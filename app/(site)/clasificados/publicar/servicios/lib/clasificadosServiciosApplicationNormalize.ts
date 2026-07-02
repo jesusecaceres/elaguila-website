@@ -1,6 +1,7 @@
 import type {
   ClasificadosServiciosApplicationState,
   ClasificadosServiciosPromoRow,
+  ClasificadosServiciosCouponRow,
   DayKey,
   GalleryItem,
   TestimonialRow,
@@ -109,6 +110,32 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     ];
   }
   if (promotions.length === 0) promotions = [createEmptyClasificadosPromoRow()];
+
+  // Normalize coupons
+  let coupons: ClasificadosServiciosCouponRow[] = d.coupons ?? [];
+  if (Array.isArray(o.coupons)) {
+    const parsed: ClasificadosServiciosCouponRow[] = [];
+    for (const r of o.coupons) {
+      if (!r || typeof r !== "object") continue;
+      const row = r as Record<string, unknown>;
+      parsed.push({
+        title: typeof row.title === "string" ? row.title.slice(0, 120) : "",
+        description: typeof row.description === "string" ? row.description.slice(0, 800) : "",
+        regularPrice: typeof row.regularPrice === "string" ? row.regularPrice.slice(0, 50) : "",
+        specialPrice: typeof row.specialPrice === "string" ? row.specialPrice.slice(0, 50) : "",
+        savings: typeof row.savings === "string" ? row.savings.slice(0, 50) : "",
+        imageUrl: typeof row.imageUrl === "string" ? row.imageUrl : "",
+        url: typeof row.url === "string" ? row.url.slice(0, 500) : "",
+        couponCode: typeof row.couponCode === "string" ? row.couponCode.slice(0, 50) : "",
+        expirationDate: typeof row.expirationDate === "string" ? row.expirationDate : "",
+        redemptionNote: typeof row.redemptionNote === "string" ? row.redemptionNote.slice(0, 300) : "",
+        ctaLabel: typeof row.ctaLabel === "string" ? row.ctaLabel.slice(0, 50) : "",
+      });
+    }
+    if (parsed.length > 0) coupons = parsed;
+  }
+  // Only keep coupons if the add-on is enabled
+  if (!d.couponsAddOn) coupons = [];
 
   let hours = d.hours;
   if (Array.isArray(o.hours) && o.hours.length === 7) {

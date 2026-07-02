@@ -9,6 +9,7 @@ import { sanitizeCustomPaymentMethodLabels, sanitizeServiciosPaymentMethodIds } 
 import type {
   ClasificadosServiciosApplicationState,
   ClasificadosServiciosPromoRow,
+  ClasificadosServiciosCouponRow,
   DayKey,
   GalleryItem,
   TestimonialRow,
@@ -121,6 +122,27 @@ function mapPromotions(promotions: ServiciosPromoOffer[] | undefined, fallback: 
       };
     })
     .filter((row) => row.title || row.details || row.link || row.imageUrl || row.pdfUrl || row.qrLater);
+  return rows.length ? rows : fallback;
+}
+
+function mapCoupons(
+  coupons: ServiciosPromoOffer[] | undefined,
+  fallback: ClasificadosServiciosCouponRow[],
+): ClasificadosServiciosCouponRow[] {
+  const raw = Array.isArray(coupons) ? coupons : [];
+  const rows = raw.slice(0, 4).map((coupon) => ({
+    title: clean(coupon.headline),
+    description: clean(coupon.footnote),
+    regularPrice: "",
+    specialPrice: "",
+    savings: "",
+    imageUrl: fromUrl(coupon.assetImageUrl),
+    url: clean(coupon.href),
+    couponCode: "",
+    expirationDate: "",
+    redemptionNote: "",
+    ctaLabel: "",
+  }));
   return rows.length ? rows : fallback;
 }
 
@@ -251,6 +273,7 @@ export function serviciosPublishedToApplicationDraft(
     hours: mapWeeklyHours(contact.hours?.weeklyRows, base.hours),
     testimonials: profile ? mapTestimonials(profile) : [],
     promotions: mapPromotions(profile?.promotions ?? (profile?.promo ? [profile.promo] : undefined), base.promotions),
+    coupons: mapCoupons(profile?.coupons ?? undefined, base.coupons ?? []),
     confirmListingAccurate: false,
     confirmPhotosRepresentBusiness: false,
     confirmCommunityRules: false,

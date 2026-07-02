@@ -138,11 +138,17 @@ export default function RestauranteApplicationClient() {
   const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
   /** Coupon detail drawer state */
   const [couponDetailDrawer, setCouponDetailDrawer] = useState(false);
+  /** Publish confirmation checkbox states */
+  const [confirmBusinessInfo, setConfirmBusinessInfo] = useState(false);
+  const [confirmPhotosRepresent, setConfirmPhotosRepresent] = useState(false);
+  const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
+  const [confirmCouponTerms, setConfirmCouponTerms] = useState(false);
 
-  // Initialize pricing based on route
+  // Initialize pricing based on product query param
   useEffect(() => {
     if (hydrated && !draft.productType) {
-      const isMobile = window.location.pathname.includes("comida-local");
+      const productParam = searchParams?.get("product");
+      const isMobile = productParam === "mobile_food_vendor";
       const productType = isMobile ? "mobile_food_vendor" : "established_restaurant";
       const baseMonthlyPrice = isMobile ? 199 : 399;
       setDraftPatch({
@@ -150,7 +156,7 @@ export default function RestauranteApplicationClient() {
         baseMonthlyPrice,
       });
     }
-  }, [hydrated, draft.productType, setDraftPatch]);
+  }, [hydrated, draft.productType, setDraftPatch, searchParams]);
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumDraftForPreview(draft), [draft]);
   const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
@@ -510,62 +516,6 @@ export default function RestauranteApplicationClient() {
           </div>
         </div>
       ) : null}
-
-      {/* Custom Restaurant Top Actions - only Vista previa and Eliminar solicitud */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <button
-          type="button"
-          onClick={goPreview}
-          disabled={!minPreviewOk}
-          className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Vista previa
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
-              void resetDraft();
-            }
-          }}
-          className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-        >
-          Eliminar solicitud
-        </button>
-      </div>
-
-      {/* Pricing Summary */}
-      {draft.productType && draft.baseMonthlyPrice ? (
-        <div className="mt-4 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
-                {lang === "en" ? "Selected plan:" : "Plan seleccionado:"}
-              </p>
-              <p className="mt-1 text-sm font-bold text-[color:var(--lx-text)]">
-                {draft.productType === "established_restaurant"
-                  ? lang === "en" ? "Established restaurant — $399/mes" : "Restaurante establecido — $399/mes"
-                  : lang === "en" ? "Mobile vendor — $199/mes" : "Puesto / pop-up / vendedor móvil — $199/mes"}
-              </p>
-              {draft.couponUpgradeEnabled && (
-                <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
-                  + {lang === "en" ? "Coupons — $99/mes" : "Cupones — $99/mes"}
-                </p>
-              )}
-            </div>
-            <Link
-              href="/clasificados/publicar/restaurantes"
-              className="text-xs font-semibold text-[color:var(--lx-text-2)] underline underline-offset-2 hover:text-[color:var(--lx-text)]"
-            >
-              {lang === "en" ? "Change type" : "Cambiar tipo"}
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
-      <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-        <strong className="text-[color:var(--lx-text-2)]">Vista previa</strong> valida los campos mínimos requeridos y te lleva al resultado. <strong className="text-[color:var(--lx-text-2)]">Abrir vista previa</strong> abre la misma URL con el borrador de esta sesión <strong>sin</strong> exigir validación — útil para revisar fotos o texto.
-      </p>
 
       {serviceErr ? (
         <div
@@ -2164,6 +2114,166 @@ export default function RestauranteApplicationClient() {
           </section>
         ) : null}
 
+        {/* Publish Confirmation Section */}
+        <section id="restaurantes-publish-confirmation" className="mt-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/50 p-6">
+          {/* Pricing Summary */}
+          {draft.productType && draft.baseMonthlyPrice ? (
+            <div className="mb-6 rounded-xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
+              <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
+                {lang === "en" ? "Monthly pricing:" : "Precios mensuales:"}
+              </p>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[color:var(--lx-text-2)]">
+                    {draft.productType === "established_restaurant"
+                      ? lang === "en" ? "Established restaurant" : "Restaurante establecido"
+                      : lang === "en" ? "Mobile vendor" : "Puesto / pop-up / vendedor móvil"}
+                  </span>
+                  <span className="font-semibold text-[color:var(--lx-text)]">
+                    ${draft.baseMonthlyPrice}/mes
+                  </span>
+                </div>
+                {draft.couponUpgradeEnabled && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[color:var(--lx-text-2)]">
+                      {lang === "en" ? "Coupon add-on" : "Add-on de cupones"}
+                    </span>
+                    <span className="font-semibold text-[color:var(--lx-text)]">
+                      +$99/mes
+                    </span>
+                  </div>
+                )}
+                <div className="mt-2 flex items-center justify-between border-t border-[color:var(--lx-nav-border)]/50 pt-2 text-sm font-bold text-[color:var(--lx-text)]">
+                  <span>{lang === "en" ? "Total monthly" : "Total mensual"}</span>
+                  <span>
+                    ${(draft.baseMonthlyPrice || 0) + (draft.couponUpgradeEnabled ? 99 : 0)}/mes
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">
+            {lang === "en" ? "Confirmation before publishing" : "Confirmación antes de publicar"}
+          </h2>
+          <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
+            {lang === "en"
+              ? "These checkboxes help keep Leonix clear and reliable for everyone."
+              : "Estas casillas ayudan a mantener Leonix claro y confiable para todos."}
+          </p>
+          <div className="mt-4 space-y-3">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                checked={confirmBusinessInfo}
+                onChange={(e) => setConfirmBusinessInfo(e.target.checked)}
+              />
+              <span className="text-sm text-[color:var(--lx-text)]">
+                {lang === "en"
+                  ? "I confirm that the restaurant information is truthful and up to date."
+                  : "Confirmo que la información del restaurante es veraz y actualizada."}
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                checked={confirmPhotosRepresent}
+                onChange={(e) => setConfirmPhotosRepresent(e.target.checked)}
+              />
+              <span className="text-sm text-[color:var(--lx-text)]">
+                {lang === "en"
+                  ? "I confirm that the photos, dishes, hours, prices/offers, and contact details represent my business correctly."
+                  : "Confirmo que las fotos, platillos, horarios, precios/ofertas y datos de contacto representan mi negocio correctamente."}
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                checked={confirmCommunityRules}
+                onChange={(e) => setConfirmCommunityRules(e.target.checked)}
+              />
+              <span className="text-sm text-[color:var(--lx-text)]">
+                {lang === "en"
+                  ? "I confirm that my ad complies with Leonix rules and that I am responsible for the published information."
+                  : "Confirmo que mi anuncio cumple con las reglas de Leonix y que soy responsable por la información publicada."}
+              </span>
+            </label>
+            {draft.couponUpgradeEnabled || (draft.coupons ?? []).length > 0 || draft.couponFlyer || draft.couponMoreOffers ? (
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                  checked={confirmCouponTerms}
+                  onChange={(e) => setConfirmCouponTerms(e.target.checked)}
+                />
+                <span className="text-sm text-[color:var(--lx-text)]">
+                  {lang === "en"
+                    ? "I confirm that the coupons and promotions are valid, with correct expiration dates and clear terms."
+                    : "Confirmo que los cupones y promociones son válidos, con fechas de expiración correctas y términos claros."}
+                </span>
+              </label>
+            ) : null}
+          </div>
+          {!minPreviewOk || !confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (draft.couponUpgradeEnabled && !confirmCouponTerms) ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-semibold">
+                {lang === "en" ? "To enable Publish, complete the following:" : "Para habilitar Publicar, completa lo siguiente:"}
+              </p>
+              <ul className="mt-2 space-y-1 text-xs">
+                {!minPreviewOk && (
+                  <li>• {lang === "en" ? "Complete minimum required fields" : "Completa los campos mínimos requeridos"}</li>
+                )}
+                {!confirmBusinessInfo && (
+                  <li>• {lang === "en" ? "Confirm restaurant information is correct" : "Confirma que la información del restaurante es correcta"}</li>
+                )}
+                {!confirmPhotosRepresent && (
+                  <li>• {lang === "en" ? "Confirm photos and data represent your business" : "Confirma que las fotos y datos representan tu negocio"}</li>
+                )}
+                {!confirmCommunityRules && (
+                  <li>• {lang === "en" ? "Confirm you comply with Leonix rules" : "Confirma que cumples las reglas de Leonix"}</li>
+                )}
+                {(draft.couponUpgradeEnabled || (draft.coupons ?? []).length > 0 || draft.couponFlyer || draft.couponMoreOffers) && !confirmCouponTerms && (
+                  <li>• {lang === "en" ? "Confirm promotions are valid" : "Confirma que las promociones son válidas"}</li>
+                )}
+              </ul>
+            </div>
+          ) : null}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={goPreview}
+                disabled={!minPreviewOk}
+                className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {lang === "en" ? "Preview" : "Vista previa"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
+                    void resetDraft();
+                  }
+                }}
+                className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+              >
+                {lang === "en" ? "Delete request" : "Eliminar solicitud"}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={goPreview}
+              disabled={!minPreviewOk || !confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (draft.couponUpgradeEnabled && !confirmCouponTerms)}
+              className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto sm:min-w-[200px]"
+            >
+              {lang === "en" ? "Publish restaurant" : "Publicar restaurante"}
+            </button>
+          </div>
+        </section>
+
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6">
           <button
             type="button"
@@ -2187,36 +2297,6 @@ export default function RestauranteApplicationClient() {
           >
             Siguiente
           </button>
-        </div>
-
-        <div className="mt-4 space-y-4 border-t border-[color:var(--lx-nav-border)] pt-8">
-          {/* Custom Restaurant Top Actions - only Vista previa and Eliminar solicitud */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <button
-              type="button"
-              onClick={goPreview}
-              disabled={!minPreviewOk}
-              className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Vista previa
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
-                  void resetDraft();
-                }
-              }}
-              className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-            >
-              Eliminar solicitud
-            </button>
-          </div>
-          <p className="text-xs text-[color:var(--lx-muted)] sm:max-w-xl">
-            <span className="font-medium text-emerald-800">
-              Sección B completada. Los modos de servicio son opcionales para mejorar el listado, pero no se requieren para la vista previa.
-            </span>
-          </p>
         </div>
         </div>
       </div>

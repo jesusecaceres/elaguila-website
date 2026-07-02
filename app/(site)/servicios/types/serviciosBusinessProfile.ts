@@ -288,6 +288,8 @@ export type ServiciosBusinessProfile = {
   promo?: ServiciosPromoOffer;
   /** Featured promotions (up to 4); sanitized at resolve */
   promotions?: ServiciosPromoOffer[];
+  /** Featured coupons (paid add-on); sanitized at resolve */
+  coupons?: ServiciosPromoOffer[];
   /** Canonical payment method ids; sanitized at resolve */
   paymentMethodIds?: string[];
   /** Advertiser-typed payment labels (non-catalog); sanitized at resolve */
@@ -391,6 +393,21 @@ export type ServiciosProfileResolved = {
     hrefSafe?: string;
     assetImageHrefSafe?: string;
     assetPdfHrefSafe?: string;
+  }>;
+  /** Active coupons (paid add-on, max 4); safe hrefs only */
+  coupons: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    regularPrice?: string;
+    specialPrice?: string;
+    savings?: string;
+    hrefSafe?: string;
+    imageUrl?: string;
+    couponCode?: string;
+    expirationDate?: string;
+    redemptionNote?: string;
+    ctaLabel?: string;
   }>;
   /** Sanitized credentials block — omitted when nothing meaningful remains */
   credentials?: ServiciosCredentialsResolved;

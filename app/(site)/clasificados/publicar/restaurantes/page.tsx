@@ -4,9 +4,6 @@ import { RestaurantesSelectorClient } from "./RestaurantesSelectorClient";
 
 type Lang = "es" | "en";
 
-const REST_PUBLICAR_ESTABLECIDO = "/publicar/restaurantes";
-const COMIDA_LOCAL_PUBLICAR = "/publicar/comida-local";
-
 const COPY = {
   es: {
     title: "Publicar en Restaurantes",
@@ -102,18 +99,10 @@ export default async function RestaurantesPublicarSelectorPage(props: PageProps)
   const lang: Lang = sp.lang === "en" ? "en" : "es";
   const t = COPY[lang];
 
-  const withLang = (path: string) => {
-    const joiner = path.includes("?") ? "&" : "?";
-    return `${path}${joiner}lang=${lang}`;
-  };
-
   return (
     <RestaurantesSelectorClient
       t={t}
       lang={lang}
-      withLang={withLang}
-      restPublicarEstablecido={REST_PUBLICAR_ESTABLECIDO}
-      comidaLocalPublicar={COMIDA_LOCAL_PUBLICAR}
     />
   );
 }

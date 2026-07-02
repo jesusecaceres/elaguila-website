@@ -426,6 +426,24 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   }
   if (draftPromos.length) draft.promotions = draftPromos;
 
+  // Map coupons (paid add-on)
+  const draftCoupons: NonNullable<ServiciosApplicationDraft["promotions"]> = [];
+  if (state.couponsAddOn) {
+    for (let i = 0; i < state.coupons.length; i++) {
+      const r = state.coupons[i]!;
+      if (!r.title.trim() && !r.description.trim()) continue;
+      const hrefRaw = r.url.trim();
+      draftCoupons.push({
+        id: `clasificados-coupon-${i}`,
+        headline: r.title.trim(),
+        footnote: r.description.trim() || undefined,
+        ...(hrefRaw ? { href: normalizeHttpUrl(hrefRaw) } : {}),
+        ...(r.imageUrl.trim() ? { assetImageUrl: r.imageUrl.trim() } : {}),
+      });
+    }
+  }
+  if (draftCoupons.length) draft.coupons = draftCoupons;
+
   const paymentIds = sanitizeServiciosPaymentMethodIds(state.paymentMethodIds);
   const customPay = sanitizeCustomPaymentMethodLabels(state.customPaymentMethods);
   if (paymentIds.length) draft.paymentMethodIds = paymentIds;

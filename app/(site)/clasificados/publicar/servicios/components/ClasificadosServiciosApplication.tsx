@@ -235,6 +235,23 @@ export function ClasificadosServiciosApplication() {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const promoImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const promoPdfInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const couponImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  const createEmptyCouponRow = useCallback((): ClasificadosServiciosCouponRow => {
+    return {
+      title: "",
+      description: "",
+      regularPrice: "",
+      specialPrice: "",
+      savings: "",
+      imageUrl: "",
+      url: "",
+      couponCode: "",
+      expirationDate: "",
+      redemptionNote: "",
+      ctaLabel: "",
+    };
+  }, []);
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
   const [coverUrlDraft, setCoverUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
@@ -266,6 +283,21 @@ export function ClasificadosServiciosApplication() {
     setState(bootstrapServiciosApplicationStateSync());
     setHydrated(true);
   }, [editRequested]);
+
+  // Initialize pricing based on product query param from checkpoint
+  useEffect(() => {
+    if (hydrated && !state.listingProduct) {
+      const productParam = searchParams?.get("product");
+      if (productParam === "servicios_profesionales") {
+        setState((prev) => ({
+          ...prev,
+          listingProduct: "servicios_profesionales",
+          baseMonthlyPrice: 399,
+          categoryPlan: lang === "en" ? "Professional services — $399/mes" : "Servicios profesionales — $399/mes",
+        }));
+      }
+    }
+  }, [hydrated, state.listingProduct, searchParams, lang, setState]);
 
   useEffect(() => {
     if (!editRequested) return;
@@ -788,6 +820,33 @@ export function ClasificadosServiciosApplication() {
           </div>
 
           <div className="mt-4 border-t border-[#D8C79A]/40 pt-4">
+            {/* Pricing Summary */}
+            {state.categoryPlan && state.baseMonthlyPrice ? (
+              <div className="mb-4 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-[#8a7a62]">
+                      {lang === "en" ? "Selected plan:" : "Plan seleccionado:"}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#3D2C12]">
+                      {state.categoryPlan}
+                    </p>
+                    {state.couponsAddOn && (
+                      <p className="mt-1 text-xs text-[#5D4A25]/90">
+                        + {lang === "en" ? "Coupons — $99/mes" : "Cupones — $99/mes"}
+                      </p>
+                    )}
+                  </div>
+                  <Link
+                    href="/clasificados/publicar/servicios/checkpoint"
+                    className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
+                  >
+                    {lang === "en" ? "Change plan" : "Cambiar plan"}
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
             {hydrated ? (
               <p className="text-xs leading-relaxed text-[#7a6a52]">
                 <span className="font-medium text-[#6b5c42]">{listingPhaseLine}</span>
@@ -2946,10 +3005,397 @@ export function ClasificadosServiciosApplication() {
             )}
           </div>
         </section>
+
+        {/* Coupon upsell reminder - show after promotions if not yet enabled */}
+        {(!state.couponsAddOn && step === 7) ? (
+          <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
+            <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
+              {lang === "en" ? "Want to attract more customers with coupons?" : "¿Quieres atraer más clientes con cupones?"}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+              {lang === "en"
+                ? "$99/month to show featured offers inside your service ad. You can publish up to 4 main coupons with regular/special pricing, savings, codes, and expiration dates."
+                : "$99/mes para mostrar ofertas destacadas dentro de tu anuncio de servicios. Puedes publicar hasta 4 cupones principales con precio regular/especial, ahorros, códigos y fechas de expiración."}
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  setState((s) => ({
+                    ...s,
+                    couponsAddOn: true,
+                    couponsMonthlyPrice: 99,
+                    coupons: [createEmptyCouponRow()],
+                  }));
+                }}
+                className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
+              >
+                {lang === "en" ? "Add coupons" : "Agregar cupones"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setState((s) => ({ ...s, couponsAddOn: false, couponsMonthlyPrice: 0, coupons: [] }));
+                }}
+                className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+              >
+                {lang === "en" ? "Continue without coupons" : "Continuar sin cupones"}
+              </button>
+            </div>
+          </div>
+        ) : null}
           </>
         ) : null}
 
         {step === 8 ? (
+          <>
+            {/* Coupons section - only shows when add-on is enabled */}
+            {state.couponsAddOn ? (
+              <section className={sectionCard} aria-labelledby="sec-coupons">
+                <h2 id="sec-coupons" className="text-lg font-bold text-[#3D2C12]">
+                  {lang === "en" ? "Featured coupons" : "Cupones destacados"}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">
+                  {lang === "en"
+                    ? "Add up to 4 featured coupons with regular/special pricing, savings, codes, and expiration dates."
+                    : "Añade hasta 4 cupones destacados con precio regular/especial, ahorros, códigos y fechas de expiración."}
+                </p>
+
+                {state.coupons.map((row, i) => {
+                  const linkInvalid = row.url.trim() && !isProbablyValidWebUrl(row.url);
+                  return (
+                    <div
+                      key={`coupon-${i}`}
+                      className={i === 0 ? "mt-6" : "mt-8 border-t border-[#D8C79A]/40 pt-8"}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-base font-bold text-[#3D2C12]">
+                          {lang === "en" ? `Coupon ${i + 1}` : `Cupón ${i + 1}`}
+                        </h3>
+                        {state.coupons.length > 1 ? (
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-red-800 underline"
+                            onClick={() => {
+                              setState((s) => ({
+                                ...s,
+                                coupons: s.coupons.length > 1
+                                  ? s.coupons.filter((_, j) => j !== i)
+                                  : [createEmptyCouponRow()],
+                              }));
+                            }}
+                          >
+                            {lang === "en" ? "Remove coupon" : "Eliminar cupón"}
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-4 space-y-4">
+                        {/* Title */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Coupon title" : "Título del cupón"}
+                          </label>
+                          <input
+                            type="text"
+                            className={inputClass}
+                            placeholder={lang === "en" ? "Ex: 50% off first service" : "Ej: 50% de descuento en primer servicio"}
+                            value={row.title}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, title: e.target.value.slice(0, 120) };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Description" : "Descripción"}
+                          </label>
+                          <textarea
+                            className={textareaClass}
+                            rows={3}
+                            placeholder={lang === "en" ? "Ex: Valid for new customers only" : "Ej: Válido solo para nuevos clientes"}
+                            value={row.description}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, description: e.target.value.slice(0, 800) };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                        </div>
+
+                        {/* Pricing */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-[#6b5c42]">
+                              {lang === "en" ? "Regular price" : "Precio regular"}
+                            </label>
+                            <input
+                              type="text"
+                              className={inputClass}
+                              placeholder="$99.99"
+                              value={row.regularPrice}
+                              onChange={(e) =>
+                                setState((s) => {
+                                  const next = [...s.coupons];
+                                  const cur = next[i] ?? createEmptyCouponRow();
+                                  next[i] = { ...cur, regularPrice: e.target.value.slice(0, 50) };
+                                  return { ...s, coupons: next };
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-[#6b5c42]">
+                              {lang === "en" ? "Special price" : "Precio especial"}
+                            </label>
+                            <input
+                              type="text"
+                              className={inputClass}
+                              placeholder="$49.99"
+                              value={row.specialPrice}
+                              onChange={(e) =>
+                                setState((s) => {
+                                  const next = [...s.coupons];
+                                  const cur = next[i] ?? createEmptyCouponRow();
+                                  next[i] = { ...cur, specialPrice: e.target.value.slice(0, 50) };
+                                  return { ...s, coupons: next };
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-[#6b5c42]">
+                              {lang === "en" ? "Savings" : "Ahorros"}
+                            </label>
+                            <input
+                              type="text"
+                              className={inputClass}
+                              placeholder="$50"
+                              value={row.savings}
+                              onChange={(e) =>
+                                setState((s) => {
+                                  const next = [...s.coupons];
+                                  const cur = next[i] ?? createEmptyCouponRow();
+                                  next[i] = { ...cur, savings: e.target.value.slice(0, 50) };
+                                  return { ...s, coupons: next };
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        {/* Coupon code */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Coupon code (optional)" : "Código del cupón (opcional)"}
+                          </label>
+                          <input
+                            type="text"
+                            className={inputClass}
+                            placeholder={lang === "en" ? "Ex: SUMMER2024" : "Ej: VERANO2024"}
+                            value={row.couponCode}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, couponCode: e.target.value.slice(0, 50) };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                        </div>
+
+                        {/* Expiration date */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Expiration date (optional)" : "Fecha de expiración (opcional)"}
+                          </label>
+                          <input
+                            type="date"
+                            className={inputClass}
+                            value={row.expirationDate}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, expirationDate: e.target.value };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                        </div>
+
+                        {/* Redemption note */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Redemption note (optional)" : "Nota de canje (opcional)"}
+                          </label>
+                          <textarea
+                            className={textareaClass}
+                            rows={2}
+                            placeholder={lang === "en" ? "Ex: Show this coupon at checkout" : "Ej: Muestra este cupón al pagar"}
+                            value={row.redemptionNote}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, redemptionNote: e.target.value.slice(0, 300) };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                        </div>
+
+                        {/* Coupon URL */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Coupon link (optional)" : "Enlace del cupón (opcional)"}
+                          </label>
+                          <input
+                            type="url"
+                            className={inputClass}
+                            placeholder={lang === "en" ? "https://yourbusiness.com/coupon" : "https://tuneogocio.com/cupon"}
+                            value={row.url}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, url: e.target.value.slice(0, 500) };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                          {linkInvalid && (
+                            <p className="mt-1 text-xs text-red-700">
+                              {lang === "en" ? "Please enter a valid URL" : "Por favor ingresa una URL válida"}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* CTA label */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Button label (optional)" : "Etiqueta del botón (opcional)"}
+                          </label>
+                          <input
+                            type="text"
+                            className={inputClass}
+                            placeholder={lang === "en" ? "Ex: Get coupon" : "Ej: Obtener cupón"}
+                            value={row.ctaLabel}
+                            onChange={(e) =>
+                              setState((s) => {
+                                const next = [...s.coupons];
+                                const cur = next[i] ?? createEmptyCouponRow();
+                                next[i] = { ...cur, ctaLabel: e.target.value.slice(0, 50) };
+                                return { ...s, coupons: next };
+                              })
+                            }
+                          />
+                        </div>
+
+                        {/* Image upload */}
+                        <div>
+                          <label className="block text-xs font-semibold text-[#6b5c42]">
+                            {lang === "en" ? "Coupon image (optional)" : "Imagen del cupón (opcional)"}
+                          </label>
+                          {row.imageUrl ? (
+                            <div className="mt-2 rounded-lg border border-[#D8C79A]/60 bg-[#FFFDF7] p-3">
+                              <img src={row.imageUrl} alt="" className="h-32 w-auto rounded object-contain" />
+                              <button
+                                type="button"
+                                className="mt-2 min-h-[44px] text-xs font-semibold text-red-700 underline"
+                                onClick={() => {
+                                  const input = couponImageInputRefs.current[i];
+                                  if (input) input.value = "";
+                                  setState((s) => {
+                                    const next = [...s.coupons];
+                                    const cur = next[i] ?? createEmptyCouponRow();
+                                    next[i] = { ...cur, imageUrl: "" };
+                                    return { ...s, coupons: next };
+                                  });
+                                }}
+                              >
+                                {lang === "en" ? "Remove image" : "Eliminar imagen"}
+                              </button>
+                            </div>
+                          ) : (
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="mt-2 block w-full text-sm text-[#5D4A25] file:mr-4 file:rounded-full file:border-0 file:bg-[#F6F0E2] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#3D2C12] hover:file:bg-[#E8DCC0]"
+                              ref={(el) => {
+                                if (el) couponImageInputRefs.current[i] = el;
+                              }}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (!f) return;
+                                if (!f.type.startsWith("image/")) {
+                                  setMediaFlash(lang === "en" ? "Please select an image file" : "Por favor selecciona un archivo de imagen");
+                                  return;
+                                }
+                                void readFileAsDataUrl(f).then((url) =>
+                                  setState((s) => {
+                                    const next = [...s.coupons];
+                                    const cur = next[i] ?? createEmptyCouponRow();
+                                    next[i] = { ...cur, imageUrl: url };
+                                    return { ...s, coupons: next };
+                                  }),
+                                );
+                              }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Add coupon button */}
+                <div className="mt-6 flex flex-col gap-2 border-t border-[#D8C79A]/40 pt-5">
+                  {state.coupons.length >= 4 ? (
+                    <p className="text-xs text-[#8a7a62]">
+                      {lang === "en" ? "Maximum 4 coupons" : "Máximo 4 cupones"}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setState((s) => ({
+                          ...s,
+                          coupons: [...s.coupons, createEmptyCouponRow()],
+                        }))
+                      }
+                      className="min-h-[44px] rounded-full border border-[#C9782F]/50 bg-[#FFFDF7] px-4 py-2 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#F6F0E2]"
+                    >
+                      {lang === "en" ? "+ Add coupon" : "+ Agregar cupón"}
+                    </button>
+                  )}
+                </div>
+              </section>
+            ) : (
+              /* Skip coupons step if add-on not enabled */
+              <div className={sectionCard}>
+                <p className="text-sm text-[#5D4A25]/90">
+                  {lang === "en"
+                    ? "Coupons add-on is not enabled. Go back to the promotions step to enable it."
+                    : "El complemento de cupones no está activado. Regresa al paso de promociones para activarlo."}
+                </p>
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {step === 9 ? (
           <>
             <ListingRulesConfirmationSection
               lang={lang}
@@ -2969,6 +3415,39 @@ export function ClasificadosServiciosApplication() {
               {hydrated ? (
                 <p className="mt-3 rounded-lg border border-[#D8C79A]/40 bg-[#FFFCF7] px-3 py-2 text-sm font-medium text-[#6b5c42]">{listingPhaseLine}</p>
               ) : null}
+
+              {/* Pricing summary */}
+              {state.baseMonthlyPrice > 0 && (
+                <div className="mt-5 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
+                  <p className="text-xs font-semibold text-[#8a7a62]">
+                    {lang === "en" ? "Pricing summary" : "Resumen de precios"}
+                  </p>
+                  <div className="mt-2 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-[#5D4A25]">{state.categoryPlan}</span>
+                      <span className="font-semibold text-[#3D2C12]">${state.baseMonthlyPrice}/mes</span>
+                    </div>
+                    {state.couponsAddOn && state.couponsMonthlyPrice > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#5D4A25]">
+                          {lang === "en" ? "Coupons add-on" : "Complemento de cupones"}
+                        </span>
+                        <span className="font-semibold text-[#3D2C12]">
+                          +${state.couponsMonthlyPrice}/mes
+                        </span>
+                      </div>
+                    )}
+                    <div className="mt-2 flex justify-between border-t border-[#D8C79A]/40 pt-2">
+                      <span className="font-semibold text-[#3D2C12]">
+                        {lang === "en" ? "Total monthly" : "Total mensual"}
+                      </span>
+                      <span className="font-bold text-[#C9782F]">
+                        ${state.baseMonthlyPrice + (state.couponsMonthlyPrice || 0)}/mes
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="mt-6 flex flex-col gap-3 border-t border-[#D8C79A]/40 pt-5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
                   <button

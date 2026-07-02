@@ -1,6 +1,7 @@
 import type {
   ClasificadosServiciosApplicationState,
   ClasificadosServiciosPromoRow,
+  ClasificadosServiciosCouponRow,
   GalleryItem,
   TestimonialRow,
   VideoItem,
@@ -67,7 +68,16 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     details: cleanPlainText(row.details),
     link: cleanPlainText(row.link),
     imageUrl: cleanRemoteMediaField(row.imageUrl),
-    pdfUrl: cleanRemoteMediaField(row.pdfUrl),
+  }));
+
+  const coupons: ClasificadosServiciosCouponRow[] = (n.coupons ?? []).slice(0, 4).map((row) => ({
+    ...row,
+    title: cleanPlainText(row.title),
+    description: cleanPlainText(row.description),
+    regularPrice: cleanPlainText(row.regularPrice),
+    specialPrice: cleanPlainText(row.specialPrice),
+    savings: cleanPlainText(row.savings),
+    imageUrl: cleanRemoteMediaField(row.imageUrl),
   }));
 
   const testimonials: TestimonialRow[] = (n.testimonials ?? []).slice(0, 24).map((t) => ({
@@ -135,6 +145,7 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     licenseDocumentUrl: cleanRemoteMediaField(n.licenseDocumentUrl),
     insuranceDocumentUrl: cleanRemoteMediaField(n.insuranceDocumentUrl),
     promotions,
+    coupons,
     testimonials,
   });
 }
