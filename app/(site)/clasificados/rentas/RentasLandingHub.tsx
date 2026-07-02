@@ -130,8 +130,6 @@ export function RentasLandingHub(_props: RentasLandingHubProps) {
             tagline={gatewayTagline}
             intro={copy.intro}
             introSecondary={copy.introSecondary}
-            publishHref={publishHref}
-            publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
             searchSlot={
               <RentasCompactSearchCanvas
                 layout="landing"
@@ -151,16 +149,19 @@ export function RentasLandingHub(_props: RentasLandingHubProps) {
                 browseAllHref={resultsBase}
                 searchButtonLabel={searchLabel}
                 filtersButtonLabel={filtersLabel}
+                publishHref={publishHref}
+                publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
               />
             }
-          />
-
-          <RentasLandingIntentTiles
-            embedded
-            lang={lang}
-            routeLang={routeLang}
-            headingEs={copy.gateway.spaceTypeHeadingEs}
-            headingEn={copy.gateway.spaceTypeHeadingEn}
+            tilesSlot={
+              <RentasLandingIntentTiles
+                embedded
+                lang={lang}
+                routeLang={routeLang}
+                headingEs={copy.gateway.spaceTypeHeadingEs}
+                headingEn={copy.gateway.spaceTypeHeadingEn}
+              />
+            }
           />
         </RentasLandingSceneBand>
 

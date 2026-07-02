@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { FiHome } from "react-icons/fi";
 import {
-  RENTAS_BTN_PRIMARY_LANDING,
   RENTAS_LANDING_GATEWAY_PAD,
+  RENTAS_LANDING_GATEWAY_PANEL,
 } from "../shared/rentasLeonixPublicUi";
 
 type Props = {
@@ -14,29 +13,27 @@ type Props = {
   tagline: string;
   intro: string;
   introSecondary: string;
-  publishHref: string;
-  publishLabel: string;
   searchSlot: ReactNode;
+  tilesSlot?: ReactNode;
 };
 
-/** Rentas gateway anchor — premium hero hierarchy, search as centerpiece. */
+/** V6 integrated landing gateway — hero text, search anchor, and tiles in one panel. */
 export function RentasLandingHeroGateway({
   lang,
   title,
   tagline,
   intro,
   introSecondary,
-  publishHref,
-  publishLabel,
   searchSlot,
+  tilesSlot,
 }: Props) {
   const eyebrow = lang === "es" ? "Leonix Clasificados · Rentas" : "Leonix Classifieds · Rentals";
 
   return (
     <section aria-labelledby="rentas-landing-hero-title">
-      <div className={`${RENTAS_LANDING_GATEWAY_PAD} relative`}>
+      <div className={`${RENTAS_LANDING_GATEWAY_PANEL} ${RENTAS_LANDING_GATEWAY_PAD}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
-          <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-[#C9A84A]/45 bg-[#FFFDF7]/90 text-[#2A4536] shadow-[0_8px_28px_-10px_rgba(201,168,74,0.45)]">
+          <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-[#C9A84A]/45 bg-white/90 text-[#2A4536] shadow-[0_8px_28px_-10px_rgba(201,168,74,0.45)]">
             <FiHome className="h-6 w-6" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
@@ -53,16 +50,9 @@ export function RentasLandingHeroGateway({
           </div>
         </div>
 
-        <div className="relative mt-6 min-w-0">{searchSlot}</div>
+        <div className="relative mt-5 min-w-0 sm:mt-6">{searchSlot}</div>
 
-        <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
-          <Link href={publishHref} className={`${RENTAS_BTN_PRIMARY_LANDING} w-full sm:w-auto sm:min-w-[13rem]`}>
-            {publishLabel}
-          </Link>
-          <p className="text-sm text-[#5C5346]">
-            {lang === "es" ? "Publica cuarto, estudio, ADU o casa en renta." : "List a room, studio, ADU, or home for rent."}
-          </p>
-        </div>
+        {tilesSlot ? <div className="min-w-0">{tilesSlot}</div> : null}
       </div>
     </section>
   );

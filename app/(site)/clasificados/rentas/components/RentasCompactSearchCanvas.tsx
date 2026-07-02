@@ -12,14 +12,14 @@ import {
   RENTAS_BTN_PRIMARY_LANDING,
   RENTAS_BTN_SECONDARY,
   RENTAS_BTN_SECONDARY_LANDING,
+  RENTAS_LANDING_HERO_SEARCH_GLOW,
+  RENTAS_LANDING_HERO_SEARCH_SHELL,
   RENTAS_SEARCH_FIELD,
   RENTAS_SEARCH_FIELD_LANDING,
   RENTAS_SEARCH_INPUT,
   RENTAS_SEARCH_INPUT_LANDING,
   RENTAS_SEARCH_SHELL,
   RENTAS_SEARCH_SHELL_GLOW,
-  RENTAS_SEARCH_SHELL_GLOW_LANDING,
-  RENTAS_SEARCH_SHELL_LANDING,
   rentasBrowseSearchPlaceholder,
 } from "../shared/rentasLeonixPublicUi";
 
@@ -41,6 +41,9 @@ type Props = {
   searchButtonLabel: string;
   filtersButtonLabel: string;
   layout?: "default" | "landing";
+  /** Landing only — integrated into action row (no separate Publicar row). */
+  publishHref?: string;
+  publishLabel?: string;
 };
 
 function SearchIcon({ large }: { large?: boolean }) {
@@ -72,6 +75,8 @@ export function RentasCompactSearchCanvas({
   searchButtonLabel,
   filtersButtonLabel,
   layout = "default",
+  publishHref,
+  publishLabel,
 }: Props) {
   const ph = rentasBrowseSearchPlaceholder(lang);
   const cityPh = lang === "es" ? "Ciudad" : "City";
@@ -80,14 +85,19 @@ export function RentasCompactSearchCanvas({
   const countryPh = lang === "es" ? "País" : "Country";
   const browseLabel = lang === "es" ? "Ver todos los anuncios" : "View all listings";
   const isLanding = layout === "landing";
+  const hasPublish = isLanding && !!publishHref && !!publishLabel;
   const datalistId = isLanding ? "rentas-city-presets-landing" : "rentas-city-presets";
-  const shellClass = isLanding ? RENTAS_SEARCH_SHELL_LANDING : RENTAS_SEARCH_SHELL;
-  const glowClass = isLanding ? RENTAS_SEARCH_SHELL_GLOW_LANDING : RENTAS_SEARCH_SHELL_GLOW;
+  const shellClass = isLanding ? RENTAS_LANDING_HERO_SEARCH_SHELL : RENTAS_SEARCH_SHELL;
+  const glowClass = isLanding ? RENTAS_LANDING_HERO_SEARCH_GLOW : RENTAS_SEARCH_SHELL_GLOW;
   const fieldClass = isLanding ? RENTAS_SEARCH_FIELD_LANDING : RENTAS_SEARCH_FIELD;
   const inputClass = isLanding ? RENTAS_SEARCH_INPUT_LANDING : RENTAS_SEARCH_INPUT;
   const btnPrimary = isLanding ? RENTAS_BTN_PRIMARY_LANDING : RENTAS_BTN_PRIMARY;
   const btnSecondary = isLanding ? RENTAS_BTN_SECONDARY_LANDING : RENTAS_BTN_SECONDARY;
   const gridGap = "gap-2.5 sm:gap-3";
+
+  const browseCol = hasPublish ? "sm:col-span-3" : "sm:col-span-5";
+  const countryCol = hasPublish ? "sm:col-span-3" : "sm:col-span-4";
+  const filtersCol = hasPublish ? "sm:col-span-2" : "sm:col-span-3";
 
   return (
     <div className={shellClass}>
@@ -158,7 +168,7 @@ export function RentasCompactSearchCanvas({
       </div>
 
       <div className={`relative mt-3 grid grid-cols-1 ${gridGap} sm:grid-cols-12 sm:items-stretch`}>
-        <label className={`${fieldClass} sm:col-span-4`}>
+        <label className={`${fieldClass} ${countryCol}`}>
           <span className="sr-only">{countryPh}</span>
           <span className="hidden shrink-0 pl-3 text-[10px] font-bold uppercase tracking-wide text-[#556B3E]/80 sm:inline" aria-hidden>
             {countryPh}
@@ -173,22 +183,32 @@ export function RentasCompactSearchCanvas({
             autoComplete="country-name"
           />
         </label>
-        <div className="sm:col-span-3">
+        <div className={filtersCol}>
           <button type="button" className={`${btnSecondary} w-full`} onClick={onOpenFilters}>
             <FiSliders className="h-4 w-4 shrink-0 text-[#556B3E]" aria-hidden />
             {filtersButtonLabel}
           </button>
         </div>
         {browseAllHref ? (
-          <Link href={browseAllHref} className={`${btnSecondary} sm:col-span-5 inline-flex w-full items-center justify-center`}>
+          <Link href={browseAllHref} className={`${btnSecondary} ${browseCol} inline-flex w-full items-center justify-center`}>
             {browseLabel}
           </Link>
         ) : (
-          <div className="hidden sm:col-span-5 sm:block" aria-hidden />
+          <div className={`hidden ${browseCol} sm:block`} aria-hidden />
         )}
+        {hasPublish ? (
+          <Link href={publishHref} className={`${btnPrimary} sm:col-span-4 inline-flex w-full items-center justify-center`}>
+            {publishLabel}
+          </Link>
+        ) : null}
         <button type="button" className={`${btnPrimary} w-full sm:hidden`} onClick={onSearch}>
           {searchButtonLabel}
         </button>
+        {hasPublish ? (
+          <Link href={publishHref} className={`${btnPrimary} w-full sm:hidden`}>
+            {publishLabel}
+          </Link>
+        ) : null}
       </div>
     </div>
   );
