@@ -33,6 +33,10 @@ import {
   rehydrateServiciosApplicationMedia,
 } from "../lib/clasificadosServiciosPreviewHandoff";
 import {
+  isLeonixLbUsCountry,
+  US_STATE_OPTIONS,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
   clearServiciosDraftStorageAndIdb,
   saveClasificadosServiciosApplicationResolved,
 } from "../lib/clasificadosServiciosStorage";
@@ -1045,6 +1049,41 @@ export function ClasificadosServiciosApplication() {
                 autoComplete="address-level2"
               />
             </div>
+            <div>
+              <label className={labelClass}>{copy.labels.state}</label>
+              {isLeonixLbUsCountry(state.country) ? (
+                <select
+                  className={inputClass}
+                  value={state.state}
+                  onChange={(e) => setState((s) => ({ ...s, state: e.target.value }))}
+                  autoComplete="address-level1"
+                >
+                  {US_STATE_OPTIONS.map((opt) => (
+                    <option key={opt.code} value={opt.code}>
+                      {opt.code} — {lang === "es" && opt.code === "CA" ? "California" : opt.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={inputClass}
+                  value={state.state}
+                  placeholder={copy.labels.statePlaceholder}
+                  onChange={(e) => setState((s) => ({ ...s, state: e.target.value }))}
+                  autoComplete="address-level1"
+                />
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>{copy.labels.country}</label>
+              <input
+                className={inputClass}
+                value={state.country}
+                placeholder={copy.labels.countryPlaceholder}
+                onChange={(e) => setState((s) => ({ ...s, country: e.target.value }))}
+                autoComplete="country-name"
+              />
+            </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>{copy.labels.serviceAreas}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.serviceAreasHelp}</p>
@@ -1098,6 +1137,9 @@ export function ClasificadosServiciosApplication() {
                 </div>
                 <div className="sm:col-span-2 sm:max-w-xs">
                   <label className={labelClass}>{copy.labels.physicalPostalCode}</label>
+                  {copy.labels.physicalPostalCodeHelp.trim() ? (
+                    <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.physicalPostalCodeHelp}</p>
+                  ) : null}
                   <input
                     className={inputClass}
                     value={state.physicalPostalCode}

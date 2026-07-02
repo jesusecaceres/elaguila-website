@@ -334,7 +334,7 @@ function rowPhysDiscovery(pj: ServiciosBusinessProfile): boolean {
 }
 
 function serviciosRowState(row: ServiciosPublicListingRow): string {
-  return row.profile_json.contact?.physicalRegion?.trim() ?? "";
+  return row.profile_json.opsMeta?.discovery?.state?.trim() ?? "";
 }
 
 function serviciosRowZip(row: ServiciosPublicListingRow): string {
@@ -633,6 +633,10 @@ export function filterServiciosRowsByKeyword(
     if (includesAnyNormalized(pj.contact?.physicalPostalCode ?? "", terms)) return true;
     if (includesAnyNormalized(pj.contact?.physicalCity ?? "", terms)) return true;
     if (includesAnyNormalized(pj.hero?.locationSummary ?? "", terms)) return true;
+    if (includesAnyNormalized(pj.hero?.state ?? "", terms)) return true;
+    if (includesAnyNormalized(pj.hero?.country ?? "", terms)) return true;
+    if (includesAnyNormalized(pj.opsMeta?.discovery?.state ?? "", terms)) return true;
+    if (includesAnyNormalized(pj.opsMeta?.discovery?.country ?? "", terms)) return true;
     for (const item of pj.serviceAreas?.items ?? []) {
       if (includesAnyNormalized(item.label, terms)) return true;
     }

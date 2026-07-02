@@ -181,7 +181,7 @@ function PromoInnerCard({
 
   // Restaurant-style compact card
   const cardClass = premiumLeonixTone
-    ? "rounded-[20px] border border-[#E8D9C4] bg-[#FFFCF7] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] group overflow-hidden p-0"
+    ? "rounded-xl border border-[#D8C2A0] bg-white p-3 shadow-sm"
     : `relative overflow-hidden rounded-2xl border border-[#D4A574]/45 shadow-[0_8px_28px_-12px_rgba(61,44,18,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-md ${
         compact ? "px-3 py-3.5 sm:px-4 sm:py-4" : "px-4 py-5 sm:px-6 sm:py-6"
       }`;
@@ -194,7 +194,7 @@ function PromoInnerCard({
     return (
       <article className={cardClass} style={cardStyle}>
         {hasImage && thumb ? (
-          <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F5F0E8]">
+          <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg bg-[#F5F0E8]">
             <button
               type="button"
               onClick={() => onImageOpen(thumb)}
@@ -208,17 +208,22 @@ function PromoInnerCard({
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
               />
             </button>
+            <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+              Promoción Leonix
+            </span>
           </div>
         ) : null}
-        <div className="p-5 sm:p-6">
-          {headline ? <OfferHeadline text={headline} premiumLeonixTone={premiumLeonixTone} /> : null}
+        <div>
+          {headline ? (
+            <h3 className="line-clamp-1 text-sm font-semibold text-[#1F1A17]">{headline}</h3>
+          ) : null}
           {footnote ? (
-            <p className="mt-2 text-sm leading-relaxed text-[#4A4A4A]">
+            <p className="line-clamp-2 mt-1 text-xs leading-snug text-[#5A5148]">
               {footnote}
             </p>
           ) : null}
           {showActions ? (
-            <div className="mt-4 flex flex-wrap gap-2.5">
+            <div className="mt-2 flex flex-wrap gap-2">
               {primary ? (
                 <PromoCtaButton
                   key={`p-${primary.kind}`}
@@ -395,7 +400,7 @@ export function ServiciosPromocionesCard({
   const listClass = premiumLeonixTone
     ? n === 1
       ? "mx-auto mt-6 max-w-lg grid grid-cols-1 gap-5"
-      : "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2"
+      : "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
     : n > 1
       ? "mt-4 flex flex-row flex-nowrap gap-3 overflow-x-auto pb-2 pt-0.5 [scrollbar-width:thin] snap-x snap-mandatory sm:mt-5 md:flex-col md:gap-3.5 md:overflow-visible md:pb-0 md:snap-none"
       : "mt-4 flex flex-col gap-3 sm:mt-5 sm:gap-3.5";
@@ -424,16 +429,33 @@ export function ServiciosPromocionesCard({
                 {copy.sectionTitle}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                {lang === "en" ? "Special offers and promotions from this business." : "Ofertas especiales y promociones de este negocio."}
+                {lang === "en" ? "Ofertas y beneficios disponibles al contactar este negocio." : "Ofertas y beneficios disponibles al contactar este negocio."}
               </p>
             </div>
-            <div className={listClass}>
+            {/* Mobile snap-x layout */}
+            <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
+              {profile.promotions.map((p) => (
+                <div key={p.id} className="flex w-[min(82vw,300px)] shrink-0 snap-center flex-col">
+                  <PromoInnerCard
+                    promo={p}
+                    lang={lang}
+                    compact={false}
+                    premiumLeonixTone={premiumLeonixTone}
+                    onImageOpen={openLightbox}
+                    listingSlug={listingSlug}
+                    analyticsMeta={analyticsMeta}
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Desktop grid layout */}
+            <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
               {profile.promotions.map((p) => (
                 <PromoInnerCard
                   key={p.id}
                   promo={p}
                   lang={lang}
-                  compact={!premiumLeonixTone}
+                  compact={false}
                   premiumLeonixTone={premiumLeonixTone}
                   onImageOpen={openLightbox}
                   listingSlug={listingSlug}

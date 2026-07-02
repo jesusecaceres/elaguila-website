@@ -233,13 +233,13 @@ export function ServiciosGalleryWithTabs({
 
   return (
     <>
-      <section
-        className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
-        style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-      >
-        <h2 className="text-lg font-bold tracking-tight text-[#2F2A23] md:text-xl">
-          {L.gallery}
-        </h2>
+      <section className="scroll-mt-24">
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Galería</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
+            {L.gallery}
+          </h2>
+        </div>
 
         <div className="mt-3 md:mt-4">
           {hasPhotos && hasVideos ? (
@@ -276,13 +276,7 @@ export function ServiciosGalleryWithTabs({
             <div>
               {visibleImages.length > 0 ? (
                 <>
-                  <div
-                    className={
-                      narrowViewport
-                        ? "grid grid-cols-2 gap-2"
-                        : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                    }
-                  >
+                  <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {visibleImages.map((g, index) => (
                       <GalleryImage 
                         key={g.id} 
@@ -295,12 +289,12 @@ export function ServiciosGalleryWithTabs({
 
                   {/* View more photos */}
                   {hasMoreImages && (
-                    <div className="mt-6 flex justify-center">
+                    <div className="mt-5">
                       <button
                         onClick={() => openModal(photoCap)}
-                        className="flex min-h-[44px] items-center justify-center rounded-full border-2 border-[#C9B46A]/45 bg-[#FFFCF7] px-6 py-2.5 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFF6E7]"
+                        className="text-sm font-semibold text-[color:var(--lx-text-2)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4 hover:text-[color:var(--lx-gold)]"
                       >
-                        {lang === "en" ? "View more photos →" : "Ver más fotos →"}
+                        {lang === "en" ? "View more photos" : "Ver más fotos"}
                       </button>
                     </div>
                   )}
@@ -317,10 +311,10 @@ export function ServiciosGalleryWithTabs({
             <div
               className={
                 videos.length === 1
-                  ? "mx-auto grid max-w-3xl grid-cols-1 gap-3 md:gap-4"
+                  ? "mx-auto mt-6 grid max-w-3xl grid-cols-1 gap-3 md:gap-4"
                   : narrowViewport
-                    ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]"
-                    : "grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4"
+                    ? "mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]"
+                    : "mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4"
               }
             >
               {videos.map((v) => (

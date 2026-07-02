@@ -91,28 +91,6 @@ export function ServiciosProfessionalPreviewShell({
       <div className={LX_PRO_INNER_PAD}>
         <div className={LX_PRO_GRID}>
           <div className={`order-1 flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
-            {hasQuickFactsResolved(profile) ? (
-              <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
-            ) : null}
-
-            {hasTrustSectionResolved(profile) ? (
-              <ServiciosTrustSection profile={profile} lang={lang} template={template} />
-            ) : null}
-
-            {hasAboutSectionResolved(profile) ? (
-              <ServiciosAbout profile={profile} lang={lang} premiumLeonixTone />
-            ) : null}
-
-            <div id="servicios-preview-contact" className="scroll-mt-20 lg:hidden">
-              <ServiciosBusinessHubContactCard
-                profile={profile}
-                lang={lang}
-                listingTemplate={template}
-                directContactFasterResponseHint
-                showOfferSidebarTeaser={false}
-              />
-            </div>
-
             {hasGallerySectionResolved(profile) ? (
               <ServiciosGalleryWithTabs profile={profile} lang={lang} />
             ) : null}
@@ -139,6 +117,18 @@ export function ServiciosProfessionalPreviewShell({
               />
             ) : null}
 
+            {hasQuickFactsResolved(profile) ? (
+              <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
+            ) : null}
+
+            {hasTrustSectionResolved(profile) ? (
+              <ServiciosTrustSection profile={profile} lang={lang} template={template} />
+            ) : null}
+
+            {hasAboutSectionResolved(profile) ? (
+              <ServiciosAbout profile={profile} lang={lang} premiumLeonixTone />
+            ) : null}
+
             {hasBusinessHighlightsResolved(profile) ? (
               <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
             ) : null}
@@ -146,6 +136,16 @@ export function ServiciosProfessionalPreviewShell({
             {hasReviewsSectionResolved(profile) ? (
               <ServiciosReviews profile={profile} lang={lang} />
             ) : null}
+
+            <div id="servicios-preview-contact" className="scroll-mt-20 lg:hidden">
+              <ServiciosBusinessHubContactCard
+                profile={profile}
+                lang={lang}
+                listingTemplate={template}
+                directContactFasterResponseHint
+                showOfferSidebarTeaser={false}
+              />
+            </div>
           </div>
 
           <aside className={`order-2 ${LX_PRO_ASIDE}`}>

@@ -37,6 +37,10 @@ export type ServiciosApplicationHeroDraft = {
   rating?: number;
   reviewCount?: number;
   locationSummary?: string;
+  /** State / Province / Region for discovery (defaults to CA for US, free text for non-US) */
+  state?: string;
+  /** Country for discovery (defaults to United States) */
+  country?: string;
   badges?: ServiciosApplicationHeroBadgeDraft[];
 };
 

@@ -130,6 +130,10 @@ export type ClasificadosServiciosApplicationState = {
   /** Custom service description when "Otro servicio" is selected */
   customServiceDescription?: string;
   city: string;
+  /** State / Province / Region for discovery (defaults to CA for US, free text for non-US) */
+  state: string;
+  /** Country for discovery (defaults to United States) */
+  country: string;
   /** Optional public storefront / mailing address (distinct from discovery `city` anchor). */
   physicalStreet: string;
   physicalSuite: string;

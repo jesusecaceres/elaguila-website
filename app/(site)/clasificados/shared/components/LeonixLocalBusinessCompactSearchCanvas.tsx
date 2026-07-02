@@ -142,7 +142,6 @@ export function LeonixLocalBusinessCompactSearchCanvas({
               name="zip"
               type="text"
               inputMode="numeric"
-              maxLength={5}
               defaultValue={defaultZip}
               placeholder={zipPh}
               aria-label={zipPh}

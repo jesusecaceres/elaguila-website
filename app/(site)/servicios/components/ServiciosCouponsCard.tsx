@@ -7,7 +7,7 @@ import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 type CouponRow = ServiciosProfileResolved["coupons"][number];
 
 const CARD =
-  "rounded-[20px] border border-[#E8D9C4] bg-[#FFFCF7] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
+  "rounded-xl border border-[#D8C2A0] bg-white p-3 shadow-sm";
 
 function CouponInnerCard({
   coupon,
@@ -21,9 +21,9 @@ function CouponInnerCard({
   const hasImage = Boolean(coupon.imageUrl);
 
   return (
-    <article className={`${CARD} group overflow-hidden p-0`}>
+    <article className={`${CARD} group overflow-hidden`}>
       {hasImage && coupon.imageUrl ? (
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F5F0E8]">
+        <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg bg-[#F5F0E8]">
           <button
             type="button"
             onClick={() => onImageOpen(coupon.imageUrl!)}
@@ -37,52 +37,48 @@ function CouponInnerCard({
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
             />
           </button>
-          <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-            {lang === "en" ? "Cupón Leonix" : "Cupón Leonix"}
+          <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+            Cupón Leonix
           </span>
         </div>
       ) : (
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#F5F0E8] to-[#FFFCF7]">
+        <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg bg-[#F5F0E8]">
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
             <span className="text-4xl opacity-50" aria-hidden>
               🎫
             </span>
-            <span className="text-xs font-semibold text-[#6B5420]">
+            <span className="text-xs font-semibold text-[#5A5148]">
               {lang === "en" ? "No photo yet" : "Sin foto aún"}
             </span>
           </div>
-          <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-            {lang === "en" ? "Cupón Leonix" : "Cupón Leonix"}
+          <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+            Cupón Leonix
           </span>
         </div>
       )}
-      <div className="p-5 sm:p-6">
+      <div>
         {coupon.couponCode ? (
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#F5F0E8] px-3 py-1 text-xs font-semibold text-[#1E1814]">
+          <div className="mb-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
             <span>{lang === "en" ? "Code:" : "Código:"}</span>
             <span className="font-mono">{coupon.couponCode}</span>
           </div>
         ) : null}
         {coupon.title ? (
-          <h3 className="text-lg font-bold text-[#1E1810]">{coupon.title}</h3>
+          <h3 className="line-clamp-1 text-sm font-semibold text-[#1F1A17]">{coupon.title}</h3>
         ) : null}
         {coupon.description ? (
-          <p className="mt-2 text-sm leading-relaxed text-[#5C5346]">{coupon.description}</p>
+          <p className="line-clamp-2 mt-1 text-xs leading-snug text-[#5A5148]">{coupon.description}</p>
         ) : null}
         {coupon.expirationDate ? (
-          <p className="mt-2 text-xs text-[#6B5420]">
+          <p className="mt-1 text-[10px] text-[#8B7E70]">
             {lang === "en" ? "Valid until" : "Válido hasta"} {coupon.expirationDate}
           </p>
         ) : null}
         {coupon.redemptionNote ? (
-          <p className="mt-2 text-xs text-[#5C5346]">
-            <span className="font-semibold">{lang === "en" ? "How to use:" : "Cómo usarlo:"} </span>
+          <p className="line-clamp-1 mt-1 text-[10px] text-[#5A5148]">
             {coupon.redemptionNote}
           </p>
         ) : null}
-      </div>
-      <div className="border-t border-[#E8D9C4]/60 bg-[#F5F0E8] px-5 py-2 text-[10px] font-medium text-[#6B5420]">
-        {lang === "en" ? "Coupon published on Leonix" : "Cupón publicado en Leonix"}
       </div>
     </article>
   );
@@ -107,11 +103,6 @@ export function ServiciosCouponsCard({
   const n = validCoupons.length;
 
   if (validCoupons.length === 0) return null;
-
-  const gridClass =
-    n === 1
-      ? "mx-auto mt-6 max-w-lg grid grid-cols-1 gap-5"
-      : "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2";
 
   return (
     <>
@@ -139,7 +130,20 @@ export function ServiciosCouponsCard({
             {lang === "en" ? "Save or share these offers before visiting." : "Guarda o comparte estas ofertas antes de visitar."}
           </p>
         </div>
-        <div className={gridClass}>
+        {/* Mobile snap-x layout */}
+        <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
+          {validCoupons.map((c, i) => (
+            <div key={`coupon-${i}`} className="flex w-[min(82vw,300px)] shrink-0 snap-center flex-col">
+              <CouponInnerCard
+                coupon={c}
+                lang={lang}
+                onImageOpen={openLightbox}
+              />
+            </div>
+          ))}
+        </div>
+        {/* Desktop grid layout */}
+        <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
           {validCoupons.map((c, i) => (
             <CouponInnerCard
               key={`coupon-${i}`}

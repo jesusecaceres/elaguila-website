@@ -91,6 +91,10 @@ export type ServiciosDiscoveryFacet = {
   hasServiceAreaMultiLine: boolean;
   hasPromoHeadline: boolean;
   listerAttestationsComplete: boolean;
+  /** State / Province / Region for discovery (defaults to CA for US, free text for non-US) */
+  state?: string;
+  /** Country for discovery (defaults to United States) */
+  country?: string;
 };
 
 export type ServiciosReview = {
@@ -154,6 +158,10 @@ export type ServiciosHeroBlock = {
   reviewCount?: number;
   badges?: ServiciosHeroBadge[];
   locationSummary?: string;
+  /** State / Province / Region for discovery (defaults to CA for US, free text for non-US) */
+  state?: string;
+  /** Country for discovery (defaults to United States) */
+  country?: string;
 };
 
 /** Optional social URLs (wire) — sanitized in resolver */
@@ -318,6 +326,10 @@ export type ServiciosProfileResolved = {
     reviewCount?: number;
     badges: ServiciosHeroBadge[];
     locationSummary?: string;
+    /** State / Province / Region for discovery (defaults to CA for US, free text for non-US) */
+    state?: string;
+    /** Country for discovery (defaults to United States) */
+    country?: string;
   };
   contact: {
     phoneDisplay?: string;

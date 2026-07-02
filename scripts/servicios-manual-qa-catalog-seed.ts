@@ -152,6 +152,8 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     businessTypeId: preset.id,
     businessName: `${QA_STAMP} · ${preset.id} · ${preset.labelEs} — Distrito León`,
     city: "Monterrey",
+    state: "Nuevo León",
+    country: "Mexico",
     physicalStreet: "Av. Constitución 1550 Piso 3",
     physicalSuite: "Oficina QA",
     physicalAddressCity: "Monterrey",

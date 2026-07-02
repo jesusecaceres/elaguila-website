@@ -81,6 +81,9 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const locationParts = [state.city.trim(), state.serviceAreaNotes.trim()].filter(Boolean);
   const locationSummary = locationParts.length ? locationParts.join(" · ").slice(0, 220) : undefined;
 
+  const stateValue = state.state.trim() || undefined;
+  const countryValue = state.country.trim() || undefined;
+
   const logoAlt = lang === "en" ? "Business logo" : "Logo del negocio";
   const coverAlt = lang === "en" ? "Cover image" : "Imagen de portada";
 
@@ -394,6 +397,8 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       coverImageUrl: state.coverUrl.trim() || undefined,
       coverImageAlt: state.coverUrl.trim() ? coverAlt : undefined,
       locationSummary,
+      state: stateValue,
+      country: countryValue,
       badges: heroBadges.length ? heroBadges : undefined,
     },
     contact,
