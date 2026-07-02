@@ -29,9 +29,9 @@ import { BrAgenteLocationFormFields } from "@/app/lib/clasificados/bienes-raices
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { formatPrecioUsd } from "../lib/agenteResidencialPreviewFormat";
 
-/** Virtual tour uploads: images, PDF, short video, static HTML — not a general file dump. */
+/** Legacy tour file accept (tour row is URL-only in UI; kept for draft restore compatibility). */
 export const BR_AGENTE_RES_TOUR_FILE_ACCEPT =
-  "image/*,application/pdf,.pdf,video/mp4,video/webm,video/quicktime,.mp4,.webm,.html,.htm";
+  "image/*,application/pdf,.pdf,.html,.htm";
 
 /** Brochure-style documents only (no executables). */
 export const BR_AGENTE_RES_BROCHURE_FILE_ACCEPT =
@@ -240,6 +240,7 @@ function UrlOrFileRow({
   quitar,
   fileReadyLabel,
   usarUrlLabel,
+  showFileUpload = true,
 }: {
   label: string;
   hint?: string;
@@ -255,6 +256,7 @@ function UrlOrFileRow({
   quitar: string;
   fileReadyLabel: string;
   usarUrlLabel: string;
+  showFileUpload?: boolean;
 }) {
   const [urlDraft, setUrlDraft] = useState(urlValue);
   useEffect(() => {
@@ -281,20 +283,22 @@ function UrlOrFileRow({
         >
           {usarUrlLabel}
         </button>
-        <label className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold text-[#5C4E2E] touch-manipulation sm:w-auto sm:min-h-0 sm:px-3 sm:py-2">
-          {subirArchivo}
-          <input
-            type="file"
-            accept={fileAccept}
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (!f) return;
-              void readFileAsDataUrl(f).then((dataUrl) => onPickFile(dataUrl, f.name)).catch(() => {});
-            }}
-          />
-        </label>
+        {showFileUpload ? (
+          <label className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold text-[#5C4E2E] touch-manipulation sm:w-auto sm:min-h-0 sm:px-3 sm:py-2">
+            {subirArchivo}
+            <input
+              type="file"
+              accept={fileAccept}
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                void readFileAsDataUrl(f).then((dataUrl) => onPickFile(dataUrl, f.name)).catch(() => {});
+              }}
+            />
+          </label>
+        ) : null}
       </div>
       {urlValue && !fileActive ? (
         <p className="mt-2 text-xs font-medium text-[#5C5346]">{urlValue}</p>
@@ -585,6 +589,7 @@ export function Step03Media({
           quitar={t.step02.quitar}
           fileReadyLabel={t.step03.archivoListoPublicar}
           usarUrlLabel={t.step03.usarUrl}
+          showFileUpload={false}
         />
         <UrlOrFileRow
           label={t.step03.folleto}

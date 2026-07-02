@@ -28,6 +28,13 @@ export const AUTOS_PRIVADO_CHECKOUT = {
   returnPath: "/clasificados/autos",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Bienes Raíces negocio / agent business — monthly subscription (Revenue OS matrix). */
+export const BIENES_RAICES_NEGOCIO_CHECKOUT = {
+  category: "bienes-raices",
+  packageKey: "br_agent_monthly",
+  returnPath: "/clasificados/bienes-raices",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 export type RevenueCategoryCheckoutPayload = {
   category: string;
   packageKey: string;

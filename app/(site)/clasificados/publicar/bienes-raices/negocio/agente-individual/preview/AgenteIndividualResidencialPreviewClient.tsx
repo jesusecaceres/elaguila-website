@@ -7,12 +7,13 @@ import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/con
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { publishLeonixListingFromAgenteResidencialDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import { brPublishPaymentRequired } from "@/app/lib/clasificados/bienes-raices/brPublishPaymentPolicy";
 import {
-  brPublishBlockedMissingStripe,
-  brPublishPaymentBlockedMessage,
-  brPublishPaymentRequired,
-} from "@/app/lib/clasificados/bienes-raices/brPublishPaymentPolicy";
-import { startBrNegocioCheckout } from "@/app/lib/clasificados/bienes-raices/brPublishCheckoutClient";
+  redirectToRevenueCategoryCheckout,
+  revenueCategoryCheckoutLoadingMessage,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { BIENES_RAICES_NEGOCIO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   computeBrPropertyInventoryCounts,
   isBrInventoryUpgradeActive,
@@ -127,12 +128,14 @@ export default function AgenteIndividualResidencialPreviewClient() {
     return withBrAgenteResLangParam(`${BR_PUBLICAR_NEGOCIO}?${qs.toString()}`, lang);
   }, [data.categoriaPropiedad, inventoryAdd.context, inventoryAdd.inventoryModeAdd, lang]);
 
+  const needsNegocioPayment = !inventoryCtx && brPublishPaymentRequired("negocio");
+
   const publishLabel = inventoryCtx
     ? brPropertyInventoryAddToInventoryCtaLabel(lang)
-    : brPublishPaymentRequired("negocio")
+    : needsNegocioPayment
       ? lang === "es"
-        ? "Continuar al pago"
-        : "Continue to payment"
+        ? "Continuar al pago seguro"
+        : "Continue to secure payment"
       : lang === "es"
         ? "Publicar anuncio"
         : "Publish listing";
@@ -169,12 +172,6 @@ export default function AgenteIndividualResidencialPreviewClient() {
       }
 
       const isInventoryAdd = publishInventory.mode === "add";
-      if (!isInventoryAdd && brPublishBlockedMissingStripe("negocio")) {
-        setPublishErr(brPublishPaymentBlockedMessage(lang));
-        setPublishBusy(false);
-        return;
-      }
-
       const needsPayment = !isInventoryAdd && brPublishPaymentRequired("negocio");
       const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory, {
         activationMode: needsPayment ? "pending_payment" : "immediate",
@@ -187,20 +184,29 @@ export default function AgenteIndividualResidencialPreviewClient() {
       }
 
       if (r.pendingPayment && needsPayment) {
-        const checkout = await startBrNegocioCheckout({
+        let leonixAdId: string | null = null;
+        try {
+          const { data: adRow } = await sb
+            .from("listings")
+            .select("leonix_ad_id")
+            .eq("id", r.listingId)
+            .maybeSingle();
+          leonixAdId = (adRow as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+        } catch {
+          /* optional metadata */
+        }
+
+        const checkout = await startRevenueCategoryCheckout({
+          ...BIENES_RAICES_NEGOCIO_CHECKOUT,
           listingId: r.listingId,
-          lang,
-          returnToListingId: inventoryCtx?.parentListingId,
+          leonixAdId,
+          locale: lang,
         });
         if (!checkout.ok) {
-          setPublishErr(checkout.message ?? checkout.error);
+          setPublishErr(checkout.userMessage);
           return;
         }
-        if (checkout.internalBypass || checkout.testPublishBypass) {
-          window.location.href = checkout.url;
-          return;
-        }
-        window.location.href = checkout.url;
+        redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
         return;
       }
 
@@ -271,7 +277,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
           </p>
           <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
             <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
-              {publishBusy ? (lang === "es" ? "Publicando…" : "Publishing…") : publishLabel}
+              {publishBusy
+                ? needsNegocioPayment
+                  ? revenueCategoryCheckoutLoadingMessage(lang)
+                  : lang === "es"
+                    ? "Publicando…"
+                    : "Publishing…"
+                : publishLabel}
             </button>
             {publishErr ? (
               <p className="max-w-[320px] text-right text-[11px] text-red-700" role="alert">

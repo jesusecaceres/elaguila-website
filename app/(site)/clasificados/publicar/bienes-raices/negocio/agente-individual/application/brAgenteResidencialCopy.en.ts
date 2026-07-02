@@ -112,7 +112,7 @@ export const BR_COPY_EN = {
     videoUrlLabel: (n: number) => (n === 1 ? "Video URL" : `Video URL ${n}`),
     tour: "Virtual / 3D tour (optional)",
     tourHint:
-      "Matterport, 3D or 360 tour URL, or another public tour link. You may also upload a compatible file (e.g. cover image/PDF, short clip, static HTML) for local draft preview.",
+      "Matterport, 3D or 360 tour URL, or another public virtual-tour link. Paste the URL only — no device upload.",
     folleto: "Brochure / document (optional)",
     folletoHint:
       "PDF, Word, or brochure/plan image. Linked as “View brochure” in preview. Allowed: PDF, DOC/DOCX, JPG/PNG.",
