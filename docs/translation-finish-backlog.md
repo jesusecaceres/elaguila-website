@@ -71,7 +71,7 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 
 `SITE-TRANSLATION-WORD-BY-WORD-SMOKE1` added a UI/source-content smoke checklist in `docs/site-translation-word-by-word-smoke.md` and fixed priority Coming Soon V2 UI chrome where PT/VI routes still had ES/EN-only local form labels or CTA aria labels. It did not translate seller-created content, change dynamic translation behavior, add schema, or call providers.
 
-`GLOBAL-PUBLIC-COPY-REGISTRY-GUARD1` added `publicCategoryCopyGuard.ts`, fixed Dealers de Autos VI hub card copy, routed hub/post CTAs through the registry, and added `npm run translation:check` (`scripts/translation/check-public-copy.mjs`). Does not translate seller content, call providers, or claim full 13-language category landings complete.
+`PUBLIC-ABOUT-CONTACT-FOOTER-POLISH1` moved About/Contact out of crowded desktop nav into footer + mobile drawer; rebuilt footer as 4-column public company hub; replaced About page with real Leonix story (ES/EN); strengthened Contact page with inquiry types, quick CTAs, and Suite 201 address. Admin/dashboard/backend untouched.
 
 **Clasificados hub guard:** New public category cards must register in `CLASIFICADOS_HUB_VISIBLE_CATEGORY_KEYS` with ES/EN base copy and VI copy for launch-critical cards. Run `npm run translation:check` before merge.
 

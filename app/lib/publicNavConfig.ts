@@ -1,6 +1,6 @@
 /**
  * Gate HEADER-3 — Global header: primary tabs + Recursos Comunitarios dropdown.
- * Nosotros/Contacto in utility links (desktop xl+ and mobile drawer).
+ * About/Contact in mobile drawer + footer (not crowded desktop main nav).
  */
 
 import type { SupportedLang } from "@/app/lib/language";

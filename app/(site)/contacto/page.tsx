@@ -8,12 +8,12 @@ import {
   LEONIX_PHONE_TEL,
   LEONIX_TIENDA_CONTACT_PATH,
   LEONIX_PHONE_DISPLAY,
-  LEONIX_OFFICE_ADDRESS,
 } from "@/app/(site)/tienda/data/leonixContact";
 import { LEONIX_GLOBAL_EMAIL, LEONIX_GLOBAL_MAILTO } from "@/app/data/leonixGlobalContact";
 import { normalizeLang } from "@/app/lib/language";
 import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
 import { parseInquiryType } from "@/app/lib/leonix/inquiryTypes";
+import { CONTACT_DISPLAY_ADDRESS, getContactPolishCopy } from "@/app/lib/leonix/contactPagePolishCopy";
 
 function withLang(href: string, lang: string, extra?: Record<string, string>): string {
   const [path, query = ""] = href.split("?");
@@ -30,12 +30,12 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
-  const copy = getPublicLocaleCopy(lang).contactPage;
+  const polish = getContactPolishCopy(lang);
   return {
-    title: copy.metaTitle,
-    description: copy.metaDescription,
-    openGraph: { title: copy.metaTitle, description: copy.metaDescription, siteName: "Leonix Media" },
-    twitter: { title: copy.metaTitle, description: copy.metaDescription },
+    title: polish.heroTitle,
+    description: polish.heroSubtitle,
+    openGraph: { title: polish.heroTitle, description: polish.heroSubtitle, siteName: "Leonix Media" },
+    twitter: { title: polish.heroTitle, description: polish.heroSubtitle },
   };
 }
 
@@ -53,6 +53,7 @@ export default async function ContactoPage(props: {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
   const pageCopy = getPublicLocaleCopy(lang).contactPage;
+  const polish = getContactPolishCopy(lang);
   const prefillRaw = typeof sp.prefillMessage === "string" ? sp.prefillMessage : "";
   const prefillMessage = prefillRaw ? prefillRaw.slice(0, 12000) : undefined;
   const initialInquiryType = parseInquiryType(sp.inquiryType ?? sp.interest, "general");
@@ -65,80 +66,142 @@ export default async function ContactoPage(props: {
   });
 
   return (
-    <main lang={lang} className="min-h-screen w-full overflow-x-hidden bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <div className="mx-auto max-w-4xl px-4 pt-24 pb-20 sm:px-6">
+    <main lang={lang} className="min-h-screen w-full overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
+      <div
+        className="pointer-events-none fixed inset-0"
+        aria-hidden
+        style={{
+          backgroundImage: `
+            radial-gradient(ellipse 110% 65% at 50% -5%, rgba(201, 168, 74, 0.1), transparent 52%),
+            radial-gradient(ellipse 45% 35% at 100% 20%, rgba(255, 255, 255, 0.35), transparent 48%)
+          `,
+        }}
+      />
+
+      <div className="relative mx-auto max-w-5xl px-4 pt-24 pb-20 sm:px-6">
         <ContactoLanguageBar />
 
-        <h1 className="mb-4 text-center text-3xl font-bold text-[color:var(--lx-text)] sm:text-4xl">{pageCopy.h1}</h1>
+        <section className="mx-auto max-w-3xl text-center">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">LEONIX MEDIA</p>
+          <h1 className="mt-3 font-serif text-4xl font-bold text-[#2A4536] sm:text-5xl">{polish.heroTitle}</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#3D3428] sm:text-lg">{polish.heroSubtitle}</p>
+        </section>
 
-        <p className="mx-auto mb-10 max-w-2xl text-center leading-relaxed text-[color:var(--lx-text-2)]/85">
-          {pageCopy.intro}
-        </p>
+        {/* Contact cards */}
+        <section className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-3" aria-labelledby="contact-cards-title">
+          <h2 id="contact-cards-title" className="sr-only">
+            {polish.contactCardsTitle}
+          </h2>
+          <article className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#556B3E]">{pageCopy.emailLabel}</p>
+            <LeonixEmailContactBlock
+              email={LEONIX_GLOBAL_EMAIL}
+              mailtoHref={LEONIX_GLOBAL_MAILTO}
+              lang={lang}
+              shareTitle={polish.heroTitle}
+              className="mt-2"
+            />
+          </article>
+          <article className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#556B3E]">{pageCopy.phoneLabel}</p>
+            <a
+              href={LEONIX_PHONE_TEL}
+              className="mt-2 inline-flex min-h-[44px] items-center text-lg font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#5e1721]"
+            >
+              {LEONIX_PHONE_DISPLAY}
+            </a>
+          </article>
+          <article className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#556B3E]">{pageCopy.addressLabel}</p>
+            <a
+              href={LEONIX_MAP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block text-sm leading-relaxed font-semibold text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#7A1E2C]"
+            >
+              {CONTACT_DISPLAY_ADDRESS}
+            </a>
+          </article>
+        </section>
 
-        <div className="mb-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
-          <h2 className="mb-3 text-xl font-semibold text-[color:var(--lx-text)]">{pageCopy.promoHelpTitle}</h2>
-          <p className="mb-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]/90">{pageCopy.promoHelpBody}</p>
+        {/* Inquiry types */}
+        <section className="mt-12" aria-labelledby="inquiry-types-title">
+          <h2 id="inquiry-types-title" className="font-serif text-2xl font-bold text-[#2A4536]">
+            {polish.inquiryTitle}
+          </h2>
+          <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {polish.inquiryTypes.map((item) => (
+              <li
+                key={item}
+                className="rounded-xl border border-[#C9A84A]/30 bg-[#FFFDF7] px-4 py-3 text-sm font-medium text-[#3D3428]"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Quick actions */}
+        <section className="mt-12" aria-labelledby="quick-actions-title">
+          <h2 id="quick-actions-title" className="font-serif text-2xl font-bold text-[#2A4536]">
+            {polish.quickActionsTitle}
+          </h2>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={withLang("/contacto", lang, { inquiryType: "advertising" })}
+              className="inline-flex min-h-[2.75rem] items-center rounded-full bg-[#7A1E2C] px-6 py-2 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
+            >
+              {polish.quickAdvertise}
+            </Link>
+            <Link
+              href={withLang("/media-kit", lang)}
+              className="inline-flex min-h-[2.75rem] items-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2 text-sm font-bold text-[#3D3428] hover:border-[#C9A84A]"
+            >
+              {polish.quickMediaKit}
+            </Link>
+            <Link
+              href={withLang("/productos-promocion", lang)}
+              className="inline-flex min-h-[2.75rem] items-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2 text-sm font-bold text-[#3D3428] hover:border-[#C9A84A]"
+            >
+              {polish.quickPromo}
+            </Link>
+            <Link
+              href={withLang("/clasificados/publicar", lang)}
+              className="inline-flex min-h-[2.75rem] items-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2 text-sm font-bold text-[#3D3428] hover:border-[#C9A84A]"
+            >
+              {polish.quickClassifieds}
+            </Link>
+          </div>
+        </section>
+
+        {/* Promo help */}
+        <div className="mt-12 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]">
+          <h2 className="text-xl font-bold text-[#2A4536]">{pageCopy.promoHelpTitle}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{pageCopy.promoHelpBody}</p>
           <Link
             href={promoHref}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[color:var(--lx-cta-primary-bg)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-primary-fg)] transition hover:opacity-90"
+            className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
           >
             {pageCopy.promoHelpCta}
           </Link>
         </div>
 
-        <div className="mb-12 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-6 shadow-[0_18px_48px_rgba(42,36,22,0.10)]">
-          <h2 className="mb-4 text-2xl font-semibold text-[color:var(--lx-text)]">{pageCopy.business}</h2>
+        {/* Trust block */}
+        <section className="mt-10 rounded-2xl border border-[#556B3E]/25 bg-[#556B3E]/5 p-6 sm:p-8">
+          <h2 className="font-serif text-xl font-bold text-[#2A4536]">{polish.trustTitle}</h2>
+          <p className="mt-3 text-sm leading-relaxed text-[#3D3428] sm:text-base">{polish.trustBody}</p>
+        </section>
 
-          <div className="space-y-3 text-[color:var(--lx-text-2)]/90">
-            <div>
-              <span className="font-semibold text-[color:var(--lx-text)]">{pageCopy.emailLabel}:</span>
-              <LeonixEmailContactBlock
-                email={LEONIX_GLOBAL_EMAIL}
-                mailtoHref={LEONIX_GLOBAL_MAILTO}
-                lang={lang}
-                shareTitle={pageCopy.business}
-                className="mt-1"
-              />
-            </div>
-
-            <p>
-              <span className="font-semibold text-[color:var(--lx-text)]">{pageCopy.phoneLabel}:</span>{" "}
-              <a href={LEONIX_PHONE_TEL} className="underline hover:opacity-80">
-                {LEONIX_PHONE_DISPLAY}
-              </a>
-            </p>
-
-            <p>
-              <span className="font-semibold text-[color:var(--lx-text)]">{pageCopy.addressLabel}:</span>{" "}
-              <a
-                href={LEONIX_MAP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="break-words underline hover:opacity-80"
-              >
-                {LEONIX_OFFICE_ADDRESS}
-              </a>
-            </p>
-
-            <p>
-              <span className="font-semibold text-[color:var(--lx-text)]">{pageCopy.hoursLabel}:</span> {pageCopy.hours}
-            </p>
-
-            <p>
-              <a href={LEONIX_MAP_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
-                {pageCopy.openMap}
-              </a>
-            </p>
-          </div>
+        {/* Existing lead form */}
+        <div className="mt-12">
+          <GlobalContactForm
+            lang={lang}
+            initialMessage={prefillMessage}
+            initialInquiryType={initialInquiryType}
+            sourcePage={sourcePage}
+            sourceCta={sourceCta}
+          />
         </div>
-
-        <GlobalContactForm
-          lang={lang}
-          initialMessage={prefillMessage}
-          initialInquiryType={initialInquiryType}
-          sourcePage={sourcePage}
-          sourceCta={sourceCta}
-        />
       </div>
     </main>
   );
