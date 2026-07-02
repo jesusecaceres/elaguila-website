@@ -85,7 +85,7 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       childFullPreviewFooter: "Vista previa de borrador — no es un anuncio publicado.",
       packagePreviewTitle: "Vista previa del inventario de propiedades",
       packagePreviewHelper:
-        "Estas propiedades se publicarán junto con el anuncio principal cuando completes la solicitud.",
+        "Propiedades adicionales que se publicarán con este anuncio principal.",
       inventoryIncludedTitle: "Inventario incluido en esta solicitud",
       previewCard: "Ver vista previa",
       leonixDraftNote: "ID Leonix se generará al publicar",
@@ -174,8 +174,7 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       "This property will publish as its own listing when you publish the full application.",
     childFullPreviewFooter: "Draft preview — not a published listing.",
     packagePreviewTitle: "Property inventory preview",
-    packagePreviewHelper:
-      "These properties will publish with the main listing when you complete the application.",
+    packagePreviewHelper: "Additional properties that will publish with this main listing.",
     inventoryIncludedTitle: "Inventory included in this application",
     previewCard: "Preview",
     leonixDraftNote: "Leonix ID generated on publish",

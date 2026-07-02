@@ -69,6 +69,7 @@ import {
 import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   dashboardEntitlementBadgeForKey,
+  dashboardRevenueAdPlanBadgeForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
@@ -324,6 +325,10 @@ export default function MyListingsPage() {
     sp.set("lang", lang);
     sp.set("cat", next);
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
+
+  function adPlanLabelWithRevenueProof(keys: string[], fallbackLabel: string): string {
+    return dashboardRevenueAdPlanBadgeForKey(entitlementBadges, keys) ?? fallbackLabel;
   }
 
   const [error, setError] = useState<string | null>(null);
@@ -1107,7 +1112,7 @@ export default function MyListingsPage() {
                       item.verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
                     metaItems={[
-                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
+                      { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
@@ -1131,7 +1136,7 @@ export default function MyListingsPage() {
                     status={item.status}
                     subtitle={item.slug}
                     metaItems={[
-                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
+                      { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
@@ -1155,7 +1160,7 @@ export default function MyListingsPage() {
                     status={item.status}
                     subtitle={item.slug}
                     metaItems={[
-                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
+                      { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       { label: lang === "es" ? "Actualizado" : "Updated", value: formatDateIso(item.updatedAt) ?? "—" },
@@ -1206,7 +1211,7 @@ export default function MyListingsPage() {
                       ...(item.verified ? [lang === "es" ? "Verificado" : "Verified"] : []),
                     ].filter(Boolean)}
                     metaItems={[
-                      { label: listingPlanFieldLabel(lang), value: categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang) },
+                      { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: lang === "es" ? "Slug" : "Slug", value: item.slug ?? "—" },
                       { label: lang === "es" ? "Publicado" : "Published", value: formatDateIso(item.publishedAt) ?? "—" },
                       ...(item.leonixAdId?.trim()
@@ -1261,7 +1266,9 @@ export default function MyListingsPage() {
                     : null;
 
                 if ((x.category ?? "").toLowerCase() === "autos") {
-                  const autosPlanLabel = categoryAdPlanDisplayLabel(
+                  const autosPlanLabel = adPlanLabelWithRevenueProof(
+                    [x.id, x.leonix_ad_id ?? ""],
+                    categoryAdPlanDisplayLabel(
                     resolveCategoryAdPlan({
                       category: "autos",
                       sourceTable: "listings",
@@ -1270,6 +1277,7 @@ export default function MyListingsPage() {
                       price: x.price,
                     }),
                     lang,
+                  ),
                   );
                   return (
                     <AutosClassifiedListingManageCard
@@ -1339,9 +1347,12 @@ export default function MyListingsPage() {
 
                 if (x.category === "en-venta") {
                   const uiSt = normalizeUiStatus(resolveListingUiStatus(x), x);
-                  const enVentaPlanLabel = categoryAdPlanDisplayLabel(
+                  const enVentaPlanLabel = adPlanLabelWithRevenueProof(
+                    [x.id, x.leonix_ad_id ?? ""],
+                    categoryAdPlanDisplayLabel(
                     resolveCategoryAdPlan({ category: "en-venta", detailPairs: x.detail_pairs }),
                     lang,
+                  ),
                   );
                   const rowRecEv = x as unknown as Record<string, unknown>;
                   const repKindEv =
@@ -1431,7 +1442,9 @@ export default function MyListingsPage() {
                   );
                 }
 
-                const genericAdPlan = categoryAdPlanDisplayLabel(
+                const genericAdPlan = adPlanLabelWithRevenueProof(
+                  [x.id, x.leonix_ad_id ?? ""],
+                  categoryAdPlanDisplayLabel(
                   resolveCategoryAdPlan({
                     category: x.category,
                     sourceTable: "listings",
@@ -1441,6 +1454,7 @@ export default function MyListingsPage() {
                     raw: x as unknown as Record<string, unknown>,
                   }),
                   lang,
+                ),
                 );
 
                 const catLower = (x.category ?? "").toLowerCase();

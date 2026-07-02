@@ -31,6 +31,9 @@ export type LeonixPaymentRecordRow = {
   source: string;
   payment_status: string;
   currency: string;
+  package_key: string | null;
+  leonix_ad_id: string | null;
+  promo_redemption_id: string | null;
   amount_total_cents: number | null;
   amount_paid_cents: number | null;
   discount_percent: number | null;
@@ -39,6 +42,9 @@ export type LeonixPaymentRecordRow = {
   commission_status: string;
   estimated_commission_cents: number | null;
   metadata: Record<string, unknown>;
+  /** Enriched read-only fields (not DB columns). */
+  entitlement_status: string | null;
+  promo_redemption_status: string | null;
 };
 
 export type PaymentTrackerSnapshot = {
@@ -88,6 +94,9 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     source: String(raw.source ?? "unknown"),
     payment_status: String(raw.payment_status ?? "unknown"),
     currency: String(raw.currency ?? "usd"),
+    package_key: raw.package_key != null ? String(raw.package_key) : null,
+    leonix_ad_id: raw.leonix_ad_id != null ? String(raw.leonix_ad_id).trim() || null : null,
+    promo_redemption_id: raw.promo_redemption_id != null ? String(raw.promo_redemption_id) : null,
     amount_total_cents: raw.amount_total_cents != null && Number.isFinite(Number(raw.amount_total_cents)) ? Number(raw.amount_total_cents) : null,
     amount_paid_cents: raw.amount_paid_cents != null && Number.isFinite(Number(raw.amount_paid_cents)) ? Number(raw.amount_paid_cents) : null,
     discount_percent: raw.discount_percent != null && Number.isFinite(Number(raw.discount_percent)) ? Number(raw.discount_percent) : null,
@@ -96,7 +105,50 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     commission_status: String(raw.commission_status ?? "not_eligible"),
     estimated_commission_cents: raw.estimated_commission_cents != null && Number.isFinite(Number(raw.estimated_commission_cents)) ? Number(raw.estimated_commission_cents) : null,
     metadata,
+    entitlement_status: null,
+    promo_redemption_status: null,
   };
+}
+
+async function enrichPaymentTrackerRows(
+  rows: LeonixPaymentRecordRow[],
+): Promise<LeonixPaymentRecordRow[]> {
+  if (rows.length === 0) return rows;
+  const supabase = getAdminSupabase();
+  const entitlementIds = rows.map((r) => r.package_entitlement_id).filter(Boolean) as string[];
+  const promoIds = rows.map((r) => r.promo_redemption_id).filter(Boolean) as string[];
+
+  const entitlementStatusById = new Map<string, string>();
+  if (entitlementIds.length > 0) {
+    const { data } = await supabase
+      .from("listing_package_entitlements")
+      .select("id, status")
+      .in("id", entitlementIds.slice(0, 100));
+    for (const row of data ?? []) {
+      entitlementStatusById.set(String((row as { id: string }).id), String((row as { status: string }).status));
+    }
+  }
+
+  const promoStatusById = new Map<string, string>();
+  if (promoIds.length > 0) {
+    const { data } = await supabase
+      .from("leonix_promo_code_redemptions")
+      .select("id, status")
+      .in("id", promoIds.slice(0, 100));
+    for (const row of data ?? []) {
+      promoStatusById.set(String((row as { id: string }).id), String((row as { status: string }).status));
+    }
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    entitlement_status: row.package_entitlement_id
+      ? entitlementStatusById.get(row.package_entitlement_id) ?? "missing"
+      : null,
+    promo_redemption_status: row.promo_redemption_id
+      ? promoStatusById.get(row.promo_redemption_id) ?? null
+      : null,
+  }));
 }
 
 export type PaymentTrackerFilters = {
@@ -120,7 +172,9 @@ function matchesSearch(row: LeonixPaymentRecordRow, q: string): boolean {
     row.sales_rep_name,
     row.category,
     row.package_tier,
+    row.package_key,
     row.listing_id,
+    row.leonix_ad_id,
     row.stripe_checkout_session_id,
     row.stripe_payment_intent_id,
   ]
@@ -165,6 +219,8 @@ export async function fetchPaymentTrackerSnapshot(
     if (filters.q) {
       rows = rows.filter((r) => matchesSearch(r, filters.q!));
     }
+
+    rows = await enrichPaymentTrackerRows(rows);
 
     let pendingCount = 0;
     let paidCount = 0;

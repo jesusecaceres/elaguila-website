@@ -515,6 +515,8 @@ export type AgenteResGalleryModel = {
   secondary2: string | null;
   videoDataUrl: string | null;
   videoExternalHref: string | null;
+  tourHref: string | null;
+  brochureHref: string | null;
   tourOrPlan: { href: string | null; variant: "tour" | "brochure" | "none" };
   totalPhotos: number;
   showAllPhotosPill: boolean;
@@ -547,6 +549,8 @@ export function buildGalleryModel(s: AgenteIndividualResidencialFormState): Agen
     secondary2,
     videoDataUrl,
     videoExternalHref,
+    tourHref: tourMedia,
+    brochureHref: brochMedia,
     tourOrPlan,
     totalPhotos: photos.length,
     showAllPhotosPill: photos.length > 3,

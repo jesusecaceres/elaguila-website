@@ -8,6 +8,7 @@ import {
   packageEntitlementIncludesNuestrosNegocios,
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import { fetchRevenueOsAdPlanProofsForListings } from "@/app/lib/listingPlans/revenuePaymentLookup";
 
 type RequestItem = {
   category: string;
@@ -54,8 +55,12 @@ export async function POST(req: NextRequest) {
       grantsResultsPriority: boolean;
       includesNuestrosNegocios: boolean;
       tier: string;
+      revenueAdPlanBadge?: string | null;
+      revenuePackageKey?: string | null;
     }
   > = {};
+
+  const revenueLookupItems: Array<{ category: string; listingId: string; listingKey: string }> = [];
 
   for (const [key, group] of byCategorySource) {
     const [category, listingSource] = key.split("\0");
@@ -97,6 +102,31 @@ export async function POST(req: NextRequest) {
         grantsDestacado: packageEntitlementGrantsDestacado(summary),
         grantsResultsPriority: packageEntitlementGrantsResultsPriority(summary),
         includesNuestrosNegocios: packageEntitlementIncludesNuestrosNegocios(summary),
+      };
+      revenueLookupItems.push({
+        category,
+        listingId: String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim(),
+        listingKey: id,
+      });
+    }
+  }
+
+  const revenueProofs = await fetchRevenueOsAdPlanProofsForListings(revenueLookupItems, "es");
+  for (const [listingKey, proof] of Object.entries(revenueProofs)) {
+    if (!badges[listingKey]) {
+      badges[listingKey] = {
+        tier: "digital_only",
+        grantsDestacado: false,
+        grantsResultsPriority: false,
+        includesNuestrosNegocios: false,
+        revenueAdPlanBadge: proof.adPlanBadge,
+        revenuePackageKey: proof.packageKey,
+      };
+    } else {
+      badges[listingKey] = {
+        ...badges[listingKey],
+        revenueAdPlanBadge: proof.adPlanBadge,
+        revenuePackageKey: proof.packageKey,
       };
     }
   }

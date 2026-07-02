@@ -158,12 +158,6 @@ export function AgenteIndividualResidencialPreviewPage({
   const locale: AgenteResPreviewLocale = lang === "en" ? "en" : "es";
   const p = t.previewUi;
 
-  const slotTourCaption = (variant: "tour" | "brochure" | "none") => {
-    if (variant === "tour") return p.tourVirtual;
-    if (variant === "brochure") return p.planoFolleto;
-    return p.tourPlano;
-  };
-
   const g = buildGalleryModel(data);
   const propertyRows = buildPropertyDetailRows(data, locale);
   const destacadosLabels = buildDestacadosLabels(data, locale);
@@ -488,24 +482,40 @@ export function AgenteIndividualResidencialPreviewPage({
                     </div>
                   )}
 
-                  {g.tourOrPlan.href ? (
+                  {g.tourHref || g.brochureHref ? (
                     <div>
-                      <a
-                        href={g.tourOrPlan.href}
-                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-lg border text-center text-[11px] font-bold tracking-wide"
-                        style={{ borderColor: BORDER, background: "#243a5e", color: "#fff", boxShadow: MEDIA_SHADOW }}
-                        {...openInNewTabAnchorProps(g.tourOrPlan.href)}
+                      <div
+                        className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-center"
+                        style={{ borderColor: BORDER, background: "#243a5e", boxShadow: MEDIA_SHADOW }}
                       >
-                        {g.tourOrPlan.variant === "tour" ? p.abrirTour : p.abrirPlano}
-                      </a>
-                      <GalleryCaption>{slotTourCaption(g.tourOrPlan.variant)}</GalleryCaption>
+                        {g.tourHref ? (
+                          <a
+                            href={g.tourHref}
+                            className="inline-flex min-h-[36px] w-full max-w-[220px] items-center justify-center rounded-md bg-white/10 px-2 py-1.5 text-[11px] font-bold tracking-wide text-white transition hover:bg-white/20"
+                            {...openInNewTabAnchorProps(g.tourHref)}
+                          >
+                            {p.abrirTour}
+                          </a>
+                        ) : null}
+                        {g.brochureHref ? (
+                          <a
+                            href={g.brochureHref}
+                            className="inline-flex min-h-[36px] w-full max-w-[220px] items-center justify-center rounded-md bg-white/10 px-2 py-1.5 text-[11px] font-bold tracking-wide text-white transition hover:bg-white/20"
+                            {...openInNewTabAnchorProps(g.brochureHref)}
+                          >
+                            {p.abrirPlano}
+                          </a>
+                        ) : null}
+                      </div>
+                      <GalleryCaption>
+                        {g.tourHref && g.brochureHref
+                          ? `${p.tourVirtual} · ${p.planoFolleto}`
+                          : g.tourHref
+                            ? p.tourVirtual
+                            : p.planoFolleto}
+                      </GalleryCaption>
                     </div>
-                  ) : (
-                    <div>
-                      <EmptySlot title={p.slotTour} subtitle={p.slotTourSub} />
-                      <GalleryCaption>{slotTourCaption("none")}</GalleryCaption>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
