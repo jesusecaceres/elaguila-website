@@ -181,7 +181,24 @@ export const CLASIFICADOS_HUB_PAGE_COPY: Record<SupportedLang, ClasificadosHubPa
       "en-venta": { label: "Đa dạng", desc: "Đồ dùng, nội thất, công cụ, quần áo và hàng hữu ích cho cộng đồng." },
       rentas: { label: "Cho thuê", desc: "Phòng, căn hộ, không gian và cơ hội nhà ở." },
       empleos: { label: "Việc làm", desc: "Cơ hội việc làm và doanh nghiệp đang tuyển dụng." },
+      autos: { label: "Ô tô", desc: "Xe của người bán cá nhân và cơ hội mua bán địa phương." },
+      "bienes-raices": {
+        label: "Bất động sản",
+        desc: "Nhà, đất, bất động sản và cơ hội đầu tư.",
+      },
       servicios: { label: "Dịch vụ", desc: "Chuyên gia và dịch vụ đáng tin cậy gần bạn." },
+      restaurantes: { label: "Nhà hàng", desc: "Ẩm thực địa phương, thực đơn và địa điểm đáng ghé thăm." },
+      travel: { label: "Du lịch", desc: "Ưu đãi, đại lý và tài nguyên để lên kế hoạch chuyến đi." },
+      comunidad: { label: "Cộng đồng & Sự kiện", desc: "Sự kiện, hoạt động và kết nối địa phương." },
+      clases: { label: "Lớp học", desc: "Khóa học, workshop và học tập cho cộng đồng." },
+      busco: {
+        label: "Cần tìm",
+        desc: "Yêu cầu, nhu cầu, cơ hội và tìm kiếm địa phương.",
+      },
+      "mascotas-y-perdidos": {
+        label: "Thú cưng & Đồ thất lác",
+        desc: "Thú cưng, nhận nuôi, đồ thất lạc và hỗ trợ cộng đồng.",
+      },
     },
   }, (label) => `Đăng trong ${label}`),
   pt: fromEnHub({

@@ -53,6 +53,8 @@ const ITEMS_ES: PublicNavItemLabels = {
   "productos-promocionalesShort": "Productos Promo",
   "compact-overflow": "Viajes y promo",
   anunciate: "Anúnciate",
+  "about-us": "Sobre nosotros",
+  "contact-us": "Contacto",
 };
 
 const ITEMS_EN: PublicNavItemLabels = {
@@ -71,6 +73,8 @@ const ITEMS_EN: PublicNavItemLabels = {
   "productos-promocionalesShort": "Promo Products",
   "compact-overflow": "Travel & promo",
   anunciate: "Advertise",
+  "about-us": "About us",
+  "contact-us": "Contact us",
 };
 
 function bundle(items: PublicNavItemLabels, chrome: PublicNavCopyBundle["chrome"]): PublicNavCopyBundle {
@@ -93,7 +97,7 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       inicio: "Trang chủ",
       revista: "Tạp chí",
       clasificados: "Rao vặt",
-      "negocios-locales": "Negocios Locales",
+      "negocios-locales": "Doanh nghiệp địa phương",
       "recursos-comunitarios": "Tài nguyên cộng đồng",
       "recursos-all": "Xem tất cả tài nguyên",
       "comunidad-eventos": "Cộng đồng & Sự kiện",
@@ -105,6 +109,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "productos-promocionalesShort": "Sản phẩm promo",
       "compact-overflow": "Du lịch & promo",
       anunciate: "Quảng cáo",
+      "about-us": "Giới thiệu",
+      "contact-us": "Liên hệ",
     }),
     fromEnChrome({
       navAria: "Điều hướng chính",
@@ -126,9 +132,9 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
   pt: bundle(
     fromEnItems({
       inicio: "Início",
-      revista: "A Revista",
+      revista: "Revista",
       clasificados: "Classificados",
-      "negocios-locales": "Negocios Locales",
+      "negocios-locales": "Negócios locais",
       "recursos-comunitarios": "Recursos comunitários",
       "recursos-all": "Ver todos os recursos",
       "comunidad-eventos": "Comunidade e eventos",
@@ -140,6 +146,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "productos-promocionalesShort": "Produtos promo",
       "compact-overflow": "Viagens e promo",
       anunciate: "Anuncie",
+      "about-us": "Sobre nós",
+      "contact-us": "Contato",
     }),
     fromEnChrome({
       navAria: "Navegação principal",
@@ -197,6 +205,7 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       inicio: "ទំព័រដើម",
       revista: "ទស្សនាវដ្តី",
       clasificados: "ការផ្សាយពាណិជ្ជកម្ម",
+      "negocios-locales": "អាជីវកម្មក្នុងតំបន់",
       "recursos-comunitarios": "ធនធានសហគមន៍",
       "recursos-all": "មើលធនធានទាំងអស់",
       "comunidad-eventos": "សហគមន៍ និងព្រឹត្តិការណ៍",
@@ -207,6 +216,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "productos-promocionales": "ផលិតផលផ្សព្វផ្សាយ",
       "compact-overflow": "ដំណើរ និង promo",
       anunciate: "ផ្សាយពាណិជ្ជកម្ម",
+      "about-us": "About us",
+      "contact-us": "Contact us",
     }),
     fromEnChrome({
       navAria: "ការរុករកចម្បង",
