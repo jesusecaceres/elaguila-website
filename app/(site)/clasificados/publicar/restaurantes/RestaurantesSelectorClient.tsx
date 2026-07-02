@@ -31,17 +31,19 @@ type Lang = "es" | "en";
 export function RestaurantesSelectorClient({
   t,
   lang,
-  withLang,
-  restPublicarEstablecido,
-  comidaLocalPublicar,
 }: {
   t: CopyType;
   lang: Lang;
-  withLang: (path: string) => string;
-  restPublicarEstablecido: string;
-  comidaLocalPublicar: string;
 }) {
   const [moreDrawer, setMoreDrawer] = useState<"card1" | "card2" | null>(null);
+
+  const withLang = (path: string) => {
+    const joiner = path.includes("?") ? "&" : "?";
+    return `${path}${joiner}lang=${lang}`;
+  };
+
+  const restPublicarEstablecido = `/publicar/restaurantes?product=established_restaurant&lang=${lang}`;
+  const comidaLocalPublicar = `/publicar/restaurantes?product=mobile_food_vendor&lang=${lang}`;
 
   return (
     <main className="min-h-screen bg-[#F6F0E2] px-4 pb-20 pt-28 text-[#2C2416]">
@@ -50,7 +52,7 @@ export function RestaurantesSelectorClient({
         <p className="mt-2 text-sm text-[#5C5346]/88">{t.body}</p>
         <div className="mt-8 space-y-4">
           <Link
-            href={withLang(restPublicarEstablecido)}
+            href={restPublicarEstablecido}
             className="block rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-5 shadow-sm transition hover:border-[#C9B46A]/50"
           >
             <div className="flex items-start justify-between gap-3">
@@ -59,6 +61,9 @@ export function RestaurantesSelectorClient({
                 <p className="mt-1 text-lg font-bold text-[#1E1810]">{t.card1Title}</p>
                 <p className="mt-1 text-sm font-semibold text-[#7A1E2C]">{t.card1Price}</p>
                 <p className="mt-2 text-sm text-[#5C5346]/85">{t.card1Body}</p>
+                <p className="mt-2 text-xs font-semibold text-[#B8954A]">
+                  {lang === "en" ? "Optional: add featured coupons for +$99/month" : "Opcional: agrega cupones destacados por +$99/mes"}
+                </p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -73,7 +78,7 @@ export function RestaurantesSelectorClient({
             </div>
           </Link>
           <Link
-            href={withLang(comidaLocalPublicar)}
+            href={comidaLocalPublicar}
             className="block rounded-2xl border border-[#C9B46A]/45 bg-gradient-to-br from-[#FFF6E7] to-[#FFFCF7] p-5 shadow-md transition hover:border-[#B8954A]"
           >
             <div className="flex items-start justify-between gap-3">
@@ -82,6 +87,9 @@ export function RestaurantesSelectorClient({
                 <p className="mt-1 text-lg font-bold text-[#1E1810]">{t.card2Title}</p>
                 <p className="mt-1 text-sm font-semibold text-[#7A1E2C]">{t.card2Price}</p>
                 <p className="mt-2 text-sm text-[#5C5346]/85">{t.card2Body}</p>
+                <p className="mt-2 text-xs font-semibold text-[#B8954A]">
+                  {lang === "en" ? "Optional: add featured coupons for +$99/month" : "Opcional: agrega cupones destacados por +$99/mes"}
+                </p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -109,6 +117,10 @@ export function RestaurantesSelectorClient({
                   <span>{bullet}</span>
                 </li>
               ))}
+              <li className="flex items-start gap-2 text-sm text-[#5C5346]">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
+                <span>{lang === "en" ? "Optional: add featured coupons for +$99/month (up to 4 coupons)" : "Opcional: agrega cupones destacados por +$99/mes (hasta 4 cupones)"}</span>
+              </li>
             </ul>
             <button
               type="button"
@@ -132,6 +144,10 @@ export function RestaurantesSelectorClient({
                   <span>{bullet}</span>
                 </li>
               ))}
+              <li className="flex items-start gap-2 text-sm text-[#5C5346]">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
+                <span>{lang === "en" ? "Optional: add featured coupons for +$99/month" : "Opcional: agrega cupones destacados por +$99/mes"}</span>
+              </li>
             </ul>
             <button
               type="button"

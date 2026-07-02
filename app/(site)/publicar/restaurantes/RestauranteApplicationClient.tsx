@@ -139,10 +139,11 @@ export default function RestauranteApplicationClient() {
   /** Coupon detail drawer state */
   const [couponDetailDrawer, setCouponDetailDrawer] = useState(false);
 
-  // Initialize pricing based on route
+  // Initialize pricing based on product query param
   useEffect(() => {
     if (hydrated && !draft.productType) {
-      const isMobile = window.location.pathname.includes("comida-local");
+      const productParam = searchParams?.get("product");
+      const isMobile = productParam === "mobile_food_vendor";
       const productType = isMobile ? "mobile_food_vendor" : "established_restaurant";
       const baseMonthlyPrice = isMobile ? 199 : 399;
       setDraftPatch({
@@ -150,7 +151,7 @@ export default function RestauranteApplicationClient() {
         baseMonthlyPrice,
       });
     }
-  }, [hydrated, draft.productType, setDraftPatch]);
+  }, [hydrated, draft.productType, setDraftPatch, searchParams]);
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumDraftForPreview(draft), [draft]);
   const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
