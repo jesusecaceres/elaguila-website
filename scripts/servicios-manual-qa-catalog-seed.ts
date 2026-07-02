@@ -175,6 +175,8 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     couponsAddOn: false,
     couponsMonthlyPrice: 99,
     coupons: [],
+    couponFlyer: { imageUrl: "" },
+    couponMoreOffers: { url: "", buttonLabel: "" },
     gallery: [
       { id: g0, url: GALLERY_IMGS[0]!, source: "url" },
       { id: g1, url: GALLERY_IMGS[1]!, source: "url" },
