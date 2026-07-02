@@ -199,6 +199,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       reviewCount: reviewCount !== undefined && reviewCount > 0 ? reviewCount : undefined,
       badges: heroBadges,
       locationSummary: trimText(heroIn.locationSummary) || undefined,
+      state: trimText(heroIn.state) || undefined,
+      country: trimText(heroIn.country) || undefined,
     },
     contact: {
       phoneDisplay: phoneDisplay ?? undefined,

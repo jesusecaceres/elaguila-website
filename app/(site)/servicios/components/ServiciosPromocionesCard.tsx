@@ -177,13 +177,11 @@ function PromoInnerCard({
     [promo, premiumLeonixTone, hasImage],
   );
 
-  const showImageCol = hasImage || !premiumLeonixTone;
   const showActions = Boolean(primary || secondary.length > 0);
 
+  // Restaurant-style compact card
   const cardClass = premiumLeonixTone
-    ? `relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-[#FFFDF7] shadow-sm transition hover:border-[#D4C4A8] hover:shadow-md ${
-        compact ? "p-4 sm:p-5" : "p-5 sm:p-6"
-      }`
+    ? "rounded-xl border border-[#D8C2A0] bg-white p-3 shadow-sm"
     : `relative overflow-hidden rounded-2xl border border-[#D4A574]/45 shadow-[0_8px_28px_-12px_rgba(61,44,18,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-md ${
         compact ? "px-3 py-3.5 sm:px-4 sm:py-4" : "px-4 py-5 sm:px-6 sm:py-6"
       }`;
@@ -191,6 +189,77 @@ function PromoInnerCard({
     ? undefined
     : { background: "linear-gradient(165deg, #FFFCF5 0%, #FFF8EC 42%, #FAF0E4 100%)" };
 
+  if (premiumLeonixTone) {
+    // Restaurant-style compact card with image on top
+    return (
+      <article className={cardClass} style={cardStyle}>
+        {hasImage && thumb ? (
+          <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg bg-[#F5F0E8]">
+            <button
+              type="button"
+              onClick={() => onImageOpen(thumb)}
+              className="h-full w-full"
+              aria-label={L.promoViewImage}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={thumb}
+                alt=""
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+              />
+            </button>
+            <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+              Promoción Leonix
+            </span>
+          </div>
+        ) : null}
+        <div>
+          {headline ? (
+            <h3 className="line-clamp-1 text-sm font-semibold text-[#1F1A17]">{headline}</h3>
+          ) : null}
+          {footnote ? (
+            <p className="line-clamp-2 mt-1 text-xs leading-snug text-[#5A5148]">
+              {footnote}
+            </p>
+          ) : null}
+          {showActions ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {primary ? (
+                <PromoCtaButton
+                  key={`p-${primary.kind}`}
+                  kind={primary.kind}
+                  href={primary.href}
+                  variant="primary"
+                  L={L}
+                  lang={lang}
+                  premiumLeonixTone={premiumLeonixTone}
+                  onImageOpen={onImageOpen}
+                  listingSlug={listingSlug}
+                  analyticsMeta={analyticsMeta}
+                />
+              ) : null}
+              {secondary.map((s) => (
+                <PromoCtaButton
+                  key={`s-${s.kind}`}
+                  kind={s.kind}
+                  href={s.href}
+                  variant="secondary"
+                  L={L}
+                  lang={lang}
+                  premiumLeonixTone={premiumLeonixTone}
+                  onImageOpen={onImageOpen}
+                  listingSlug={listingSlug}
+                  analyticsMeta={analyticsMeta}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </article>
+    );
+  }
+
+  // Original non-premium card style
   return (
     <article className={cardClass} style={cardStyle}>
       {!premiumLeonixTone ? (
@@ -207,9 +276,9 @@ function PromoInnerCard({
       ) : null}
 
       <div
-        className={`relative flex flex-col gap-4 ${showImageCol && hasImage ? "sm:flex-row sm:items-start sm:gap-5" : ""}`}
+        className={`relative flex flex-col gap-4 ${hasImage ? "sm:flex-row sm:items-start sm:gap-5" : ""}`}
       >
-        {showImageCol && hasImage && thumb ? (
+        {hasImage && thumb ? (
           <div className="w-full shrink-0 sm:max-w-[44%] sm:min-w-[10.5rem] lg:min-w-[12.5rem]">
             <button
               type="button"
@@ -225,7 +294,7 @@ function PromoInnerCard({
               />
             </button>
           </div>
-        ) : showImageCol && !premiumLeonixTone ? (
+        ) : !premiumLeonixTone ? (
           <div className="flex shrink-0 flex-col gap-1.5 sm:w-[min(100%,6.75rem)]">
             <div
               className={`flex aspect-[4/3] w-full max-w-[200px] items-center justify-center rounded-xl border border-dashed border-[#C4A574]/50 bg-[#FAF4EA] sm:max-w-none ${
@@ -241,44 +310,24 @@ function PromoInnerCard({
         ) : null}
 
         <div className="min-w-0 flex-1">
-          {premiumLeonixTone ? (
-            <span className="mb-2 inline-flex w-fit items-center rounded-md border border-[#D4C4A8] bg-[#F5F0E8] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E1814]">
-              {L.promoCouponBadge}
-            </span>
-          ) : null}
-
           {headline ? <OfferHeadline text={headline} premiumLeonixTone={premiumLeonixTone} /> : null}
 
           {footnote ? (
             <p
-              className={
-                premiumLeonixTone
-                  ? "mt-2.5 text-sm leading-relaxed text-[#4A4A4A] sm:text-base"
-                  : "mt-1.5 text-sm leading-relaxed text-[#5D4A38]/95"
-              }
-              style={
-                premiumLeonixTone
-                  ? undefined
-                  : {
-                      display: "-webkit-box",
-                      WebkitLineClamp: compact ? 2 : 4,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }
-              }
+              className="mt-1.5 text-sm leading-relaxed text-[#5D4A38]/95"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: compact ? 2 : 4,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
             >
               {footnote}
             </p>
           ) : null}
 
           {showActions ? (
-            <div
-              className={
-                premiumLeonixTone
-                  ? "mt-4 flex flex-wrap gap-2.5 border-t border-[#E8D9C4] pt-4"
-                  : "mt-2.5 flex flex-wrap gap-2 border-t border-[#D4A574]/25 pt-2.5"
-              }
-            >
+            <div className="mt-2.5 flex flex-wrap gap-2 border-t border-[#D4A574]/25 pt-2.5">
               {primary ? (
                 <PromoCtaButton
                   key={`p-${primary.kind}`}
@@ -349,7 +398,9 @@ export function ServiciosPromocionesCard({
 
   const n = profile.promotions.length;
   const listClass = premiumLeonixTone
-    ? "mt-5 flex flex-col gap-4"
+    ? n === 1
+      ? "mx-auto mt-6 max-w-lg grid grid-cols-1 gap-5"
+      : "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
     : n > 1
       ? "mt-4 flex flex-row flex-nowrap gap-3 overflow-x-auto pb-2 pt-0.5 [scrollbar-width:thin] snap-x snap-mandatory sm:mt-5 md:flex-col md:gap-3.5 md:overflow-visible md:pb-0 md:snap-none"
       : "mt-4 flex flex-col gap-3 sm:mt-5 sm:gap-3.5";
@@ -363,7 +414,7 @@ export function ServiciosPromocionesCard({
         dialogLabel={L.promoImageLightboxAria}
       />
       <section
-        className={premiumLeonixTone ? `${LX_SECTION_CARD} p-4 sm:p-6 lg:p-7` : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}
+        className={premiumLeonixTone ? "scroll-mt-24" : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}
         style={
           premiumLeonixTone
             ? undefined
@@ -371,31 +422,73 @@ export function ServiciosPromocionesCard({
         }
         aria-labelledby="servicios-promociones-heading"
       >
-        <h2
-          id="servicios-promociones-heading"
-          className={
-            premiumLeonixTone
-              ? LX_SECTION_HEADING
-              : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
-          }
-        >
-          {copy.sectionTitle}
-        </h2>
-        <div className={listClass}>
-          {profile.promotions.map((p) => (
-            <div key={p.id} className={premiumLeonixTone ? "w-full min-w-0" : n > 1 ? "w-[min(100%,340px)] shrink-0 snap-start md:w-auto md:shrink" : ""}>
-              <PromoInnerCard
-                promo={p}
-                lang={lang}
-                compact={!premiumLeonixTone}
-                premiumLeonixTone={premiumLeonixTone}
-                onImageOpen={openLightbox}
-                listingSlug={listingSlug}
-                analyticsMeta={analyticsMeta}
-              />
+        {premiumLeonixTone ? (
+          <>
+            <div className="max-w-2xl">
+              <h2 id="servicios-promociones-heading" className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
+                {copy.sectionTitle}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                {lang === "en" ? "Ofertas y beneficios disponibles al contactar este negocio." : "Ofertas y beneficios disponibles al contactar este negocio."}
+              </p>
             </div>
-          ))}
-        </div>
+            {/* Mobile snap-x layout */}
+            <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
+              {profile.promotions.map((p) => (
+                <div key={p.id} className="flex w-[min(82vw,300px)] shrink-0 snap-center flex-col">
+                  <PromoInnerCard
+                    promo={p}
+                    lang={lang}
+                    compact={false}
+                    premiumLeonixTone={premiumLeonixTone}
+                    onImageOpen={openLightbox}
+                    listingSlug={listingSlug}
+                    analyticsMeta={analyticsMeta}
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Desktop grid layout */}
+            <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
+              {profile.promotions.map((p) => (
+                <PromoInnerCard
+                  key={p.id}
+                  promo={p}
+                  lang={lang}
+                  compact={false}
+                  premiumLeonixTone={premiumLeonixTone}
+                  onImageOpen={openLightbox}
+                  listingSlug={listingSlug}
+                  analyticsMeta={analyticsMeta}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <h2
+              id="servicios-promociones-heading"
+              className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+            >
+              {copy.sectionTitle}
+            </h2>
+            <div className={listClass}>
+              {profile.promotions.map((p) => (
+                <div key={p.id} className={n > 1 ? "w-[min(100%,340px)] shrink-0 snap-start md:w-auto md:shrink" : ""}>
+                  <PromoInnerCard
+                    promo={p}
+                    lang={lang}
+                    compact={!premiumLeonixTone}
+                    premiumLeonixTone={premiumLeonixTone}
+                    onImageOpen={openLightbox}
+                    listingSlug={listingSlug}
+                    analyticsMeta={analyticsMeta}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </section>
     </>
   );

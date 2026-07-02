@@ -4,6 +4,10 @@ import {
   clasificadosPromoRowHasProgress,
   clasificadosCouponRowHasProgress,
 } from "./clasificadosServiciosPromo";
+import {
+  LEONIX_LB_DEFAULT_COUNTRY,
+  LEONIX_LB_DEFAULT_STATE,
+} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
 
 function createEmptyCouponRow(): ClasificadosServiciosCouponRow {
   return {
@@ -56,6 +60,8 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     businessTypeId: "",
     businessName: "",
     city: "",
+    state: LEONIX_LB_DEFAULT_STATE,
+    country: LEONIX_LB_DEFAULT_COUNTRY,
     physicalStreet: "",
     physicalSuite: "",
     physicalAddressCity: "",

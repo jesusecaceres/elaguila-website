@@ -13,6 +13,8 @@ export function buildServiciosDiscoveryFacet(
 ): ServiciosDiscoveryFacet {
   const area = state.serviceAreaNotes.trim();
   const tokens = area.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
+  const stateValue = state.state.trim() || undefined;
+  const countryValue = state.country.trim() || undefined;
   return {
     languageChipIds: [...state.languageIds],
     hasPhysicalAddress: [state.physicalStreet, state.physicalAddressCity, state.physicalPostalCode].some((s) => s.trim().length > 0),
@@ -24,5 +26,7 @@ export function buildServiciosDiscoveryFacet(
       state.confirmListingAccurate === true &&
       state.confirmPhotosRepresentBusiness === true &&
       state.confirmCommunityRules === true,
+    state: stateValue,
+    country: countryValue,
   };
 }

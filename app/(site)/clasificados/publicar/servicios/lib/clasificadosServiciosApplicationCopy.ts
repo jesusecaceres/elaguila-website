@@ -55,6 +55,10 @@ export type ClasificadosServiciosCopy = {
     businessName: string;
     city: string;
     cityPlaceholder: string;
+    state: string;
+    statePlaceholder: string;
+    country: string;
+    countryPlaceholder: string;
     serviceAreas: string;
     physicalAddressSection: string;
     physicalAddressIntro: string;
@@ -63,6 +67,7 @@ export type ClasificadosServiciosCopy = {
     physicalAddressCity: string;
     physicalRegion: string;
     physicalPostalCode: string;
+    physicalPostalCodeHelp: string;
     phone: string;
     phoneOffice: string;
     email: string;
@@ -335,6 +340,10 @@ const es: ClasificadosServiciosCopy = {
     businessName: "Nombre del negocio",
     city: "Ciudad principal",
     cityPlaceholder: "Ej. San José",
+    state: "Estado / Provincia / Región",
+    statePlaceholder: "Selecciona o escribe",
+    country: "País",
+    countryPlaceholder: "United States",
     serviceAreas: "Zonas de servicio",
     physicalAddressSection: "Dirección física (opcional)",
     physicalAddressIntro:
@@ -343,7 +352,8 @@ const es: ClasificadosServiciosCopy = {
     physicalSuite: "Suite / unidad (opcional)",
     physicalAddressCity: "Ciudad",
     physicalRegion: "Estado",
-    physicalPostalCode: "Código ZIP",
+    physicalPostalCode: "ZIP / Código postal",
+    physicalPostalCodeHelp: "Acepta códigos postales internacionales (ej. 95116, K1A 0B1)",
     phone: "Teléfono principal",
     phoneOffice: "Teléfono de oficina (opcional)",
     email: "Correo electrónico",
@@ -619,6 +629,10 @@ const en: ClasificadosServiciosCopy = {
     businessName: "Business name",
     city: "Main city",
     cityPlaceholder: "e.g. San Jose",
+    state: "State / Province / Region",
+    statePlaceholder: "Select or type",
+    country: "Country",
+    countryPlaceholder: "United States",
     serviceAreas: "Service areas",
     physicalAddressSection: "Physical address (optional)",
     physicalAddressIntro:
@@ -627,7 +641,8 @@ const en: ClasificadosServiciosCopy = {
     physicalSuite: "Suite / unit (optional)",
     physicalAddressCity: "City",
     physicalRegion: "State",
-    physicalPostalCode: "ZIP code",
+    physicalPostalCode: "ZIP / Postal code",
+    physicalPostalCodeHelp: "Accepts international postal codes (e.g. 95116, K1A 0B1)",
     phone: "Main phone",
     phoneOffice: "Office phone (optional)",
     email: "Email",

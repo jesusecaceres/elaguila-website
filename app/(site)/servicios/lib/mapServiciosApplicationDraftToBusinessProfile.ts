@@ -81,6 +81,10 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   }
   const locationSummary = trim(draft.hero.locationSummary);
   if (locationSummary) hero.locationSummary = locationSummary;
+  const stateValue = trim(draft.hero.state);
+  if (stateValue) hero.state = stateValue;
+  const countryValue = trim(draft.hero.country);
+  if (countryValue) hero.country = countryValue;
 
   const badges = mapHeroBadges(draft.hero.badges);
   if (badges.length) hero.badges = badges;

@@ -222,6 +222,8 @@ export function serviciosPublishedToApplicationDraft(
     businessTypeId: clean(profile?.opsMeta?.businessTypeId),
     businessName,
     city,
+    state: clean(profile?.opsMeta?.discovery?.state) || clean(hero.state) || base.state,
+    country: clean(profile?.opsMeta?.discovery?.country) || clean(hero.country) || base.country,
     physicalStreet: clean(contact.physicalStreet),
     physicalSuite: clean(contact.physicalSuite),
     physicalAddressCity: clean(contact.physicalCity),

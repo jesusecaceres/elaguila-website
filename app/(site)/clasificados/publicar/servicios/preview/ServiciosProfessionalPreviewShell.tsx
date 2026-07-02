@@ -19,6 +19,7 @@ import {
   hasBusinessHighlightsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
+  hasOfferSectionResolved,
   hasQuickFactsResolved,
   hasReviewsSectionResolved,
   hasServicesSectionResolved,
@@ -90,6 +91,32 @@ export function ServiciosProfessionalPreviewShell({
       <div className={LX_PRO_INNER_PAD}>
         <div className={LX_PRO_GRID}>
           <div className={`order-1 flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
+            {hasGallerySectionResolved(profile) ? (
+              <ServiciosGalleryWithTabs profile={profile} lang={lang} />
+            ) : null}
+
+            {hasOfferSectionResolved(profile) ? (
+              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
+            ) : null}
+
+            {profile.coupons && profile.coupons.length > 0 ? (
+              <ServiciosCouponsCard
+                coupons={profile.coupons}
+                lang={lang}
+                couponFlyer={profile.couponFlyer}
+                couponMoreOffers={profile.couponMoreOffers}
+              />
+            ) : null}
+
+            {hasServicesSectionResolved(profile) ? (
+              <ServiciosOfferedSection
+                services={profile.services}
+                lang={lang}
+                profileForQuote={profile}
+                premiumLeonixTone
+              />
+            ) : null}
+
             {hasQuickFactsResolved(profile) ? (
               <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
             ) : null}
@@ -102,6 +129,14 @@ export function ServiciosProfessionalPreviewShell({
               <ServiciosAbout profile={profile} lang={lang} premiumLeonixTone />
             ) : null}
 
+            {hasBusinessHighlightsResolved(profile) ? (
+              <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+            ) : null}
+
+            {hasReviewsSectionResolved(profile) ? (
+              <ServiciosReviews profile={profile} lang={lang} />
+            ) : null}
+
             <div id="servicios-preview-contact" className="scroll-mt-20 lg:hidden">
               <ServiciosBusinessHubContactCard
                 profile={profile}
@@ -111,35 +146,6 @@ export function ServiciosProfessionalPreviewShell({
                 showOfferSidebarTeaser={false}
               />
             </div>
-
-            {hasGallerySectionResolved(profile) ? (
-              <ServiciosGalleryWithTabs profile={profile} lang={lang} />
-            ) : null}
-
-            <div className="lg:hidden">
-              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
-            </div>
-
-            {profile.coupons && profile.coupons.length > 0 ? (
-              <ServiciosCouponsCard coupons={profile.coupons} lang={lang} />
-            ) : null}
-
-            {hasServicesSectionResolved(profile) ? (
-              <ServiciosOfferedSection
-                services={profile.services}
-                lang={lang}
-                profileForQuote={profile}
-                premiumLeonixTone
-              />
-            ) : null}
-
-            {hasBusinessHighlightsResolved(profile) ? (
-              <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
-            ) : null}
-
-            {hasReviewsSectionResolved(profile) ? (
-              <ServiciosReviews profile={profile} lang={lang} />
-            ) : null}
           </div>
 
           <aside className={`order-2 ${LX_PRO_ASIDE}`}>
@@ -152,14 +158,6 @@ export function ServiciosProfessionalPreviewShell({
                 showOfferSidebarTeaser={false}
               />
             </div>
-            <div className="mt-5">
-              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
-            </div>
-            {profile.coupons && profile.coupons.length > 0 ? (
-              <div className="mt-5">
-                <ServiciosCouponsCard coupons={profile.coupons} lang={lang} />
-              </div>
-            ) : null}
           </aside>
         </div>
 

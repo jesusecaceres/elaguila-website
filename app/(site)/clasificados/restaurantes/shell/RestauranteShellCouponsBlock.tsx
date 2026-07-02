@@ -6,7 +6,7 @@ import type { ShellCoupon, ShellCouponFlyer, ShellCouponMoreOffers } from "./res
 import { RestauranteShellInlineDataAssetButton } from "./RestauranteShellInlineDataAssetButton";
 
 const CARD =
-  "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)]";
+  "rounded-xl border border-[#D8C2A0] bg-white p-3 shadow-sm";
 
 export function RestauranteShellCouponsBlock({
   coupons,
@@ -38,11 +38,6 @@ export function RestauranteShellCouponsBlock({
 
   if (!n && !couponFlyer && !couponMoreOffers) return null;
 
-  const gridClass =
-    n === 1
-      ? "mx-auto mt-6 max-w-lg grid grid-cols-1 gap-5"
-      : "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2";
-
   return (
     <section aria-labelledby="cupones-destacados-heading" className="scroll-mt-24">
       <div className="max-w-2xl">
@@ -53,59 +48,104 @@ export function RestauranteShellCouponsBlock({
           Guarda o comparte estas ofertas antes de visitar.
         </p>
       </div>
-      <div className={gridClass}>
+      {/* Mobile snap-x layout */}
+      <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
         {visible.map((coupon: ShellCoupon, idx: number) => (
-          <article key={`${coupon.title}-${idx}`} className={`${CARD} group overflow-hidden p-0`}>
-            {coupon.imageUrl ? (
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color:var(--lx-section)]">
+          <article key={`${coupon.title}-${idx}`} className="flex w-[min(82vw,300px)] shrink-0 snap-center flex-col rounded-2xl border border-[#D8C2A0] bg-white p-3 shadow-sm">
+            <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg bg-[#F5F0E8]">
+              {coupon.imageUrl ? (
                 <Image
                   src={coupon.imageUrl}
                   alt={coupon.title}
                   fill
                   unoptimized={coupon.imageUrl.startsWith("data:")}
-                  className="object-contain transition duration-500 group-hover:scale-[1.02]"
-                  sizes="(max-width:640px) 100vw, 50vw"
+                  className="object-cover"
+                  sizes="85vw"
                 />
-                <span className="absolute right-3 top-3 rounded-full bg-[color:var(--lx-gold)] px-2.5 py-1 text-[11px] font-semibold text-white">
-                  Cupón Leonix
-                </span>
-              </div>
-            ) : (
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[color:var(--lx-section)] to-[color:var(--lx-card)] border-b border-[color:var(--lx-nav-border)]/60">
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                  <div className="mb-3 rounded-full bg-[color:var(--lx-gold)]/20 p-3">
-                    <svg className="h-8 w-8 text-[color:var(--lx-gold)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">Cupón Leonix</span>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+                  <span className="text-4xl opacity-50" aria-hidden>
+                    🎫
+                  </span>
+                  <span className="text-xs font-semibold text-[#5A5148]">Sin foto aún</span>
                 </div>
-              </div>
-            )}
-            <div className="p-5 sm:p-6">
+              )}
+              <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+                Cupón Leonix
+              </span>
+            </div>
+            <div>
               {coupon.couponCode ? (
-                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[color:var(--lx-section)] px-3 py-1 text-xs font-semibold text-[color:var(--lx-text)]">
-                  <span>Código:</span>
+                <div className="mb-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+                  <span>Código: </span>
                   <span className="font-mono">{coupon.couponCode}</span>
                 </div>
               ) : null}
-              <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{coupon.title}</h3>
+              <h3 className="line-clamp-1 text-sm font-semibold text-[#1F1A17]">{coupon.title}</h3>
               {coupon.description?.trim() ? (
-                <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{coupon.description}</p>
+                <p className="line-clamp-2 mt-1 text-xs leading-snug text-[#5A5148]">{coupon.description}</p>
               ) : null}
               {coupon.expirationDate ? (
-                <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
+                <p className="mt-1 text-[10px] text-[#8B7E70]">
                   Válido hasta {coupon.expirationDate}
                 </p>
               ) : null}
               {coupon.redemptionNote ? (
-                <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
-                  <span className="font-semibold">Cómo usarlo:</span> {coupon.redemptionNote}
+                <p className="line-clamp-1 mt-1 text-[10px] text-[#5A5148]">
+                  {coupon.redemptionNote}
                 </p>
               ) : null}
             </div>
-            <div className="border-t border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)] px-5 py-2 text-[10px] font-medium text-[color:var(--lx-muted)]">
-              Cupón publicado en Leonix
+          </article>
+        ))}
+      </div>
+      {/* Desktop grid layout */}
+      <div className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
+        {visible.map((coupon: ShellCoupon, idx: number) => (
+          <article key={`${coupon.title}-${idx}`} className={CARD}>
+            <div className="relative mb-2 aspect-[5/4] w-full overflow-hidden rounded-lg bg-[#F5F0E8]">
+              {coupon.imageUrl ? (
+                <Image
+                  src={coupon.imageUrl}
+                  alt={coupon.title}
+                  fill
+                  unoptimized={coupon.imageUrl.startsWith("data:")}
+                  className="object-cover"
+                  sizes="(max-width:1024px) 50vw, 25vw"
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
+                  <span className="text-4xl opacity-50" aria-hidden>
+                    🎫
+                  </span>
+                  <span className="text-xs font-semibold text-[#5A5148]">Sin foto aún</span>
+                </div>
+              )}
+              <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+                Cupón Leonix
+              </span>
+            </div>
+            <div>
+              {coupon.couponCode ? (
+                <div className="mb-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
+                  <span>Código: </span>
+                  <span className="font-mono">{coupon.couponCode}</span>
+                </div>
+              ) : null}
+              <h3 className="line-clamp-1 text-sm font-semibold text-[#1F1A17]">{coupon.title}</h3>
+              {coupon.description?.trim() ? (
+                <p className="line-clamp-2 mt-1 text-xs leading-snug text-[#5A5148]">{coupon.description}</p>
+              ) : null}
+              {coupon.expirationDate ? (
+                <p className="mt-1 text-[10px] text-[#8B7E70]">
+                  Válido hasta {coupon.expirationDate}
+                </p>
+              ) : null}
+              {coupon.redemptionNote ? (
+                <p className="line-clamp-1 mt-1 text-[10px] text-[#5A5148]">
+                  {coupon.redemptionNote}
+                </p>
+              ) : null}
             </div>
           </article>
         ))}
@@ -122,26 +162,20 @@ export function RestauranteShellCouponsBlock({
         </div>
       ) : null}
       {couponFlyer?.imageUrl ? (
-        <div className="mt-6 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
-          <p className="text-xs font-semibold text-[color:var(--lx-text-2)]">Flyer de promociones</p>
-          <div className="mt-3 relative aspect-[16/9] w-full overflow-hidden rounded-lg bg-[color:var(--lx-section)]">
-            <Image
-              src={couponFlyer.imageUrl}
-              alt="Flyer de promociones"
-              fill
-              unoptimized={couponFlyer.imageUrl.startsWith("data:")}
-              className="object-contain"
-              sizes="(max-width:640px) 100vw, 640px"
-            />
-          </div>
+        <div className="mt-6 flex justify-center">
+          <RestauranteShellInlineDataAssetButton
+            href={couponFlyer.imageUrl}
+            label="Ver flyer de promociones →"
+            className="flex min-h-[44px] items-center justify-center rounded-full border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
+          />
         </div>
       ) : null}
       {couponMoreOffers?.url ? (
-        <div className="mt-4">
+        <div className="mt-4 flex justify-center">
           <RestauranteShellInlineDataAssetButton
             href={couponMoreOffers.url}
-            label={`${couponMoreOffers.buttonLabel || "Ver más cupones"} →`}
-            className="flex w-full min-h-[44px] items-center justify-center rounded-full border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
+            label={`${couponMoreOffers.buttonLabel || "Ver más ofertas"} →`}
+            className="flex min-h-[44px] items-center justify-center rounded-full border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
           />
         </div>
       ) : null}

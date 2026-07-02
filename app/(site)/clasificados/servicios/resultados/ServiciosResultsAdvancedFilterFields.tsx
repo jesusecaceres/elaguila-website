@@ -74,7 +74,7 @@ export function ServiciosResultsAdvancedFilterFields({
           </label>
           <label className="flex min-w-0 flex-col gap-1">
             <span className="text-xs font-semibold text-neutral-700">ZIP</span>
-            <input name="zip" defaultValue={current.zip ?? ""} maxLength={5} className={selectClass} {...f} />
+            <input name="zip" defaultValue={current.zip ?? ""} className={selectClass} {...f} />
           </label>
           <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
             <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Country" : "País"}</span>

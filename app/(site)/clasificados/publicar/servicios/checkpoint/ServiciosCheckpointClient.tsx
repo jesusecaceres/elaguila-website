@@ -121,229 +121,104 @@ const COPY = {
 const CARD =
   "rounded-[20px] border border-[#D8C79A] bg-[#FFFDF7] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
 
-const PRIMARY_CARD =
-  "rounded-2xl border-2 border-[#C9782F]/70 bg-gradient-to-b from-[#FFFDF7] to-[#F6F0E2] p-6 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[#C9782F]/25 sm:p-7";
-
-const COUPON_CARD =
-  "rounded-2xl border border-[#D8C79A] bg-[#FFFDF7]/80 p-5 sm:p-6";
-
 export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
   const t = COPY[lang];
   const [productMoreOpen, setProductMoreOpen] = useState(false);
-  const [couponMoreOpen, setCouponMoreOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12]">
-      <main className="mx-auto max-w-4xl px-4 py-10 pb-16 sm:py-14">
+      <main className="mx-auto max-w-lg px-4 pb-20 pt-28">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
+        <div className="mb-8">
           <Link
             href="/clasificados"
             className="inline-flex min-h-[40px] items-center text-sm font-medium text-[#5D4A25] underline underline-offset-2 hover:text-[#3D2C12]"
           >
             {t.backToClasificados}
           </Link>
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-[#3D2C12] sm:text-3xl">
+          <h1 className="mt-3 text-3xl font-extrabold text-[#1E1810]">
             {t.title}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">
+          <p className="mt-2 text-sm text-[#5C5346]/88">
             {t.subtitle}
           </p>
         </div>
 
-        {/* Product Grid */}
-        <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
+        {/* Product Cards Stack */}
+        <div className="space-y-4">
           {/* Main Product Card */}
-          <div className={PRIMARY_CARD}>
-            <div className="flex items-start justify-between gap-4">
+          <Link
+            href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
+            className="block rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-5 shadow-sm transition hover:border-[#C9B46A]/50"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#C9782F]">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">
                   {t.cardKicker}
                 </p>
-                <h2 className="mt-2 text-xl font-bold text-[#3D2C12] sm:text-2xl">
+                <p className="mt-1 text-lg font-bold text-[#1E1810]">
                   {t.cardTitle}
-                </h2>
-                <p className="mt-1 text-2xl font-bold text-[#C9782F]">{t.cardPrice}</p>
-                <p className="mt-3 text-sm leading-relaxed text-[#5D4A25]/90">
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[#7A1E2C]">
+                  {t.cardPrice}
+                </p>
+                <p className="mt-2 text-sm text-[#5C5346]/85">
                   {t.cardDescription}
                 </p>
+                <p className="mt-2 text-xs font-semibold text-[#B8954A]">
+                  {t.couponUpsell}
+                </p>
               </div>
             </div>
-
-            {/* Included Value Bullets */}
-            <ul className="mt-5 space-y-2 text-sm text-[#5D4A25]/90">
-              {t.cardMoreBullets.map((bullet, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C9782F]" />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/* Coupon Upsell Note */}
-            <p className="mt-5 text-xs font-semibold text-[#8a7a62]">
-              {t.couponUpsell}
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Link
-                href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
-                className="min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a1e0d]"
-              >
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <p className="text-sm font-bold text-[#7A1E2C]">
                 {t.cardCta}
-              </Link>
+              </p>
               <button
                 type="button"
-                onClick={() => setProductMoreOpen(true)}
-                className="min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#D8C79A] bg-white px-6 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#FFFDF7]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setProductMoreOpen(true);
+                }}
+                className="text-sm font-semibold text-[#5C5346] underline underline-offset-2 hover:text-[#1E1810]"
               >
                 {t.cardMore}
               </button>
             </div>
-          </div>
-
-          {/* Coupon Preview Card */}
-          <div className={COUPON_CARD}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-[#3D2C12]">
-                  {t.couponPreviewTitle}
-                </h3>
-                <p className="mt-1 text-xl font-bold text-[#C9782F]">
-                  {t.couponPreviewPrice}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">
-                  {t.couponPreviewDescription}
-                </p>
-              </div>
-            </div>
-
-            <ul className="mt-4 space-y-2 text-sm text-[#5D4A25]/90">
-              {t.couponPreviewBullets.map((bullet, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C9782F]" />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={() => setCouponMoreOpen(true)}
-                className="min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#D8C79A] bg-white px-6 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#FFFDF7]"
-              >
-                {t.cardMore}
-              </button>
-            </div>
-          </div>
+          </Link>
         </div>
 
         {/* Product More Drawer */}
         {productMoreOpen && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            role="dialog"
-            aria-modal
+            onClick={() => setProductMoreOpen(false)}
           >
-            <div className={CARD + " max-h-[80vh] overflow-y-auto max-w-2xl w-full"}>
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="text-lg font-bold text-[#3D2C12]">
-                  {t.cardMoreTitle}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setProductMoreOpen(false)}
-                  className="text-sm font-semibold text-[#5D4A25] underline underline-offset-2 hover:text-[#3D2C12]"
-                >
-                  {t.cardMoreClose}
-                </button>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-[#5D4A25]/90">
+            <div
+              className="max-w-lg rounded-2xl bg-[#FFFCF7] p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold text-[#1E1810]">
+                {t.cardMoreTitle}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
                 {t.cardMoreDetails}
               </p>
-              <ul className="mt-4 space-y-2 text-sm text-[#5D4A25]/90">
+              <ul className="mt-4 space-y-2">
                 {t.cardMoreBullets.map((bullet, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C9782F]" />
+                  <li key={i} className="flex items-start gap-2 text-sm text-[#5C5346]">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
                     <span>{bullet}</span>
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setProductMoreOpen(false)}
-                  className="min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#D8C79A] bg-white px-6 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#FFFDF7]"
-                >
-                  {t.cardMoreClose}
-                </button>
-                <Link
-                  href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
-                  className="min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a1e0d]"
-                >
-                  {t.cardMoreCta}
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Coupon More Drawer */}
-        {couponMoreOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            role="dialog"
-            aria-modal
-          >
-            <div className={CARD + " max-h-[80vh] overflow-y-auto max-w-2xl w-full"}>
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="text-lg font-bold text-[#3D2C12]">
-                  {t.couponMoreTitle}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setCouponMoreOpen(false)}
-                  className="text-sm font-semibold text-[#5D4A25] underline underline-offset-2 hover:text-[#3D2C12]"
-                >
-                  {t.couponMoreClose}
-                </button>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-[#5D4A25]/90">
-                {t.couponMoreDetails}
-              </p>
-              <div className="mt-4 rounded-xl border border-[#D8C79A]/50 bg-[#FFFDF7]/50 p-4">
-                <p className="text-xs font-semibold text-[#8a7a62]">
-                  {t.couponMoreDifference}
-                </p>
-              </div>
-              <div className="mt-4 rounded-xl border border-[#D8C79A]/50 bg-[#FFFDF7]/50 p-4">
-                <p className="text-xs font-semibold text-[#8a7a62]">Ejemplos:</p>
-                <ul className="mt-2 space-y-1 text-sm text-[#5D4A25]/90">
-                  {t.couponExamples.map((example, i) => (
-                    <li key={i}>• {example}</li>
-                  ))}
-                </ul>
-              </div>
-              <p className="mt-4 text-xs text-[#8a7a62]">
-                {t.couponMoreNote}
-              </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setCouponMoreOpen(false)}
-                  className="min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#D8C79A] bg-white px-6 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#FFFDF7]"
-                >
-                  {t.couponMoreClose}
-                </button>
-                <Link
-                  href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
-                  className="min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2a1e0d]"
-                >
-                  {t.couponMoreCta}
-                </Link>
-              </div>
+              <button
+                type="button"
+                onClick={() => setProductMoreOpen(false)}
+                className="mt-6 min-h-[44px] w-full rounded-full bg-[#1E1810] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3D2C12]"
+              >
+                {t.cardMoreClose}
+              </button>
             </div>
           </div>
         )}
