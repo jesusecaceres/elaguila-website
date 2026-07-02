@@ -12,16 +12,24 @@ import {
   auditRestaurantePublishMediaReadinessSafe,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
-import { buildRestaurantePublishPayload } from "@/app/clasificados/restaurantes/application/buildRestaurantePublishPayload";
 import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/restaurantes/application/restauranteDraftPublishPrepare";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { RestauranteOfertasLocalesUpsellCard } from "@/app/lib/clasificados/restaurantes/RestauranteOfertasLocalesUpsellCard";
-import { supabase } from "@/app/lib/supabaseClient";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
+  type PublishCheckpointConfig,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 // Leonix premium visual tokens
 
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -41,33 +49,38 @@ const EDIT_HREF = "/publicar/restaurantes";
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();
   const { hydrated, draft } = useRestauranteDraft({ resolveMediaOnLoad: true });
-  const [pub, setPub] = useState<{
-    busy: boolean;
-    url?: string;
-    resultsUrl?: string;
-    dashboardUrl?: string;
-    err?: string;
-    errDetail?: string;
-    persisted?: boolean;
-  }>({ busy: false });
-
-  const [confirmBusinessInfo, setConfirmBusinessInfo] = useState(false);
-  const [confirmPhotosRepresent, setConfirmPhotosRepresent] = useState(false);
-  const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
-  const [confirmCouponTerms, setConfirmCouponTerms] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
   const lang = searchParams?.get("lang") === "en" ? "en" : "es";
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft, { lang }), [draft, lang]);
 
-  const publishPlan = searchParams?.get("plan") === "pro" ? "pro" : undefined;
   /** Same normalized shape as storage/API merge — matches what the preview shell maps from (not the POST sanitizer). */
   const normalizedDraft = useMemo(() => mergeRestauranteDraft(draft), [draft]);
   const readiness = useMemo(() => auditRestaurantePublishReadiness(normalizedDraft), [normalizedDraft]);
   const minOk = readiness.readyToPublish;
 
-  const hasCoupons = (normalizedDraft.coupons ?? []).length > 0 || Boolean(normalizedDraft.couponFlyer || normalizedDraft.couponMoreOffers);
-  const confirmationsOk = confirmBusinessInfo && confirmPhotosRepresent && confirmCommunityRules && (!hasCoupons || confirmCouponTerms);
+  const checkpointConfig = useMemo((): PublishCheckpointConfig => {
+    const isEstablished = normalizedDraft.productType === "established_restaurant";
+    return {
+      category: RESTAURANTES_BASE_CHECKOUT.category,
+      packageKey: RESTAURANTES_BASE_CHECKOUT.packageKey,
+      listingDraftId: normalizedDraft.draftListingId,
+      lang,
+      mode: "checkout",
+      baseLineItem: {
+        labelEn: isEstablished ? "Established restaurant" : "Mobile vendor / pop-up",
+        labelEs: isEstablished ? "Restaurante establecido" : "Puesto / pop-up / vendedor móvil",
+        priceCents: 39900,
+      },
+      restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
+      confirmations: RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
+      newsletterEligible: true,
+      promoEligible: true,
+      returnPath: RESTAURANTES_BASE_CHECKOUT.returnPath,
+    };
+  }, [normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -76,145 +89,53 @@ export default function RestaurantePreviewClient() {
     });
   }, [readiness, normalizedDraft]);
 
-  const onPublish = useCallback(async () => {
-    if (!confirmBusinessInfo || !confirmPhotosRepresent || !confirmCommunityRules || (hasCoupons && !confirmCouponTerms)) {
-      setPub({
-        busy: false,
-        err: "confirmations_required",
-        errDetail: hasCoupons ? "Marca las cuatro confirmaciones antes de publicar." : "Marca las tres confirmaciones antes de publicar.",
-      });
-      return;
-    }
-    setPub({ busy: true, err: undefined, errDetail: undefined });
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const owner_user_id = auth?.user?.id;
-
-      /** Convert local `data:image/*` refs to HTTPS via Blob upload so transport validation matches preview. */
-      let draftForPublish = normalizedDraft;
+  const onCheckout = useCallback(
+    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+      setCheckoutBusy(true);
+      setCheckoutErr(null);
       try {
-        draftForPublish = await resolveRestauranteDraftMediaToRemoteUrls(normalizedDraft);
-      } catch (e) {
-        setPub({
-          busy: false,
-          err: "media_upload_failed",
-          errDetail:
-            e instanceof Error
-              ? e.message
-              : "No se pudieron subir las imágenes. Comprueba la conexión y que el almacenamiento (BLOB_READ_WRITE_TOKEN) esté configurado en el servidor.",
-        });
-        return;
-      }
+        try {
+          await resolveRestauranteDraftMediaToRemoteUrls(normalizedDraft);
+        } catch {
+          setCheckoutErr(
+            lang === "es"
+              ? "No se pudieron preparar las fotos. Comprueba la conexión e intenta de nuevo."
+              : "We could not prepare photos. Check your connection and try again.",
+          );
+          setCheckoutBusy(false);
+          return;
+        }
 
-      /** Canonical full draft (same merge as API + readiness), never shell/card view model. */
-      const publishPayload = buildRestaurantePublishPayload(draftForPublish, owner_user_id, publishPlan, "es");
-      
-      // DEVELOPMENT DEBUG: Trace exact POST body
-      if (process.env.NODE_ENV === 'development') {
-        const payloadStr = JSON.stringify(publishPayload, null, 2);
-        const payloadSize = new Blob([payloadStr]).size;
-        
-        console.log('🔍 GATE 1: REAL POST BODY TRACE');
-        console.log('Final payload byte size:', `${(payloadSize / 1024).toFixed(2)} KB`);
-        console.log('Top-level keys:', Object.keys(publishPayload));
-        
-        // Check for blocked media signatures
-        const containsBlockedSignatures = payloadStr.includes('data:image/') || 
-                                         payloadStr.includes('data:video/') || 
-                                         payloadStr.includes('blob:') ||
-                                         payloadStr.includes('File') ||
-                                         payloadStr.includes('Blob') ||
-                                         payloadStr.includes('arrayBuffer') ||
-                                         payloadStr.includes('originFileObj');
-        
-        console.log('Contains blocked signatures:', containsBlockedSignatures);
-        
-        // Count media arrays (`Record<string, unknown>` — use Array.isArray for dev log only)
-        const mediaArrays = {
-          galleryImages: Array.isArray(publishPayload.galleryImages) ? publishPayload.galleryImages.length : 0,
-          interiorImages: Array.isArray(publishPayload.interiorImages) ? publishPayload.interiorImages.length : 0,
-          foodImages: Array.isArray(publishPayload.foodImages) ? publishPayload.foodImages.length : 0,
-          exteriorImages: Array.isArray(publishPayload.exteriorImages) ? publishPayload.exteriorImages.length : 0,
-          featuredDishes: Array.isArray(publishPayload.featuredDishes) ? publishPayload.featuredDishes.length : 0,
-        };
-        console.log('Media array counts:', mediaArrays);
-        
-        // Check for oversized strings
-        const oversizedStrings: { path: string; length: number; preview: string }[] = [];
-        function checkForOversizedStrings(obj: any, path = '') {
-          if (typeof obj === 'string' && obj.length > 1000) {
-            oversizedStrings.push({ path, length: obj.length, preview: obj.substring(0, 100) });
-          } else if (typeof obj === 'object' && obj !== null) {
-            Object.keys(obj).forEach(key => {
-              checkForOversizedStrings(obj[key], path ? `${path}.${key}` : key);
-            });
-          }
-        }
-        checkForOversizedStrings(publishPayload);
-        
-        if (oversizedStrings.length > 0) {
-          console.log('⚠️ OVERSIZED STRINGS FOUND:', oversizedStrings);
-        } else {
-          console.log('✅ No oversized strings detected');
-        }
-        
-        console.log('--- END POST BODY TRACE ---');
-      }
-      
-      // Hard client guard: check payload size before sending (1MB conservative limit)
-      const payloadSize = new Blob([JSON.stringify(publishPayload)]).size;
-      const maxSize = 1 * 1024 * 1024; // 1 MB conservative limit
-      
-      if (payloadSize > maxSize) {
-        setPub({
-          busy: false,
-          err: "payload_too_large",
-          errDetail: `Publish payload is still too large. Only metadata should be sent. Current size: ${(payloadSize / 1024).toFixed(1)} KB, limit: 1 MB`,
+        const sb = createSupabaseBrowserClient();
+        const { data: auth } = await sb.auth.getUser();
+        const customerEmail = auth.user?.email ?? null;
+
+        const checkout = await startRevenueCategoryCheckout({
+          ...RESTAURANTES_BASE_CHECKOUT,
+          listingDraftId: normalizedDraft.draftListingId,
+          locale: lang,
+          customerEmail,
+          promoCode: ctx.promoCode,
         });
-        return;
+
+        if (!checkout.ok) {
+          setCheckoutErr(checkout.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+      } catch {
+        setCheckoutErr(
+          lang === "es"
+            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+            : "We could not start secure payment. Please try again or contact Leonix.",
+        );
+        setCheckoutBusy(false);
       }
-      
-      const res = await fetch("/api/clasificados/restaurantes/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(publishPayload),
-      });
-      const j = (await res.json()) as {
-        ok?: boolean;
-        publicUrl?: string | null;
-        resultsUrl?: string;
-        dashboardUrl?: string;
-        error?: string;
-        detail?: string;
-        persisted?: boolean;
-      };
-      if (!res.ok || !j.ok) {
-        setPub({
-          busy: false,
-          err: j.error ?? "publish_failed",
-          errDetail: typeof j.detail === "string" ? j.detail : undefined,
-        });
-        return;
-      }
-      setPub({
-        busy: false,
-        url: j.publicUrl ?? undefined,
-        resultsUrl: j.resultsUrl,
-        dashboardUrl: j.dashboardUrl,
-        persisted: j.persisted ?? true,
-        err: undefined,
-        errDetail: undefined,
-      });
-    } catch {
-      setPub({ busy: false, err: "network" });
-    }
-  }, [
-    normalizedDraft,
-    publishPlan,
-    confirmBusinessInfo,
-    confirmPhotosRepresent,
-    confirmCommunityRules,
-  ]);
+    },
+    [lang, normalizedDraft],
+  );
 
   if (!hydrated) {
     return (
@@ -254,11 +175,11 @@ export default function RestaurantePreviewClient() {
           <button
             type="button"
             onClick={() => {
-              document.getElementById("publish-confirmation")?.scrollIntoView({ behavior: "smooth" });
+              document.getElementById("publish-checkout-checkpoint")?.scrollIntoView({ behavior: "smooth" });
             }}
             className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
           >
-            {lang === "en" ? "Publish" : "Publicar"}
+            {lang === "en" ? "Continue to payment" : "Continuar al pago"}
           </button>
         </div>
 
@@ -279,7 +200,9 @@ export default function RestaurantePreviewClient() {
                 )}
               </div>
             ) : (
-              <p className="text-xs font-medium text-emerald-800">Listo para publicar borrador (validación mínima OK).</p>
+              <p className="text-xs font-medium text-emerald-800">
+                {lang === "en" ? "Draft ready for secure checkout (minimum validation OK)." : "Listo para pago seguro (validación mínima OK)."}
+              </p>
             )}
             <p className="text-xs leading-relaxed">
               El borrador vive en esta sesión del navegador: se mantiene al volver y al actualizar en la misma pestaña. Al cerrar
@@ -287,151 +210,24 @@ export default function RestaurantePreviewClient() {
             </p>
             {minOk ? (
               <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-3">
-                <p className="text-xs font-semibold text-[color:var(--lx-text)]">Publicar en Clasificados</p>
+                <p className="text-xs font-semibold text-[color:var(--lx-text)]">
+                  {lang === "en" ? "Final checkout" : "Pago final"}
+                </p>
                 <p className="mt-1 text-[11px] text-[color:var(--lx-text-2)]">
-                  El servidor debe tener `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`; si falta, verás error 503 y no
-                  se guardará nada.
+                  {lang === "en"
+                    ? "Preview above does not require confirmations. Check the boxes below only when you are ready for secure payment."
+                    : "La vista previa no requiere confirmaciones. Marca las casillas abajo solo cuando estés listo para el pago seguro."}
                 </p>
                 <RestauranteOfertasLocalesUpsellCard lang={lang} />
-
-                {/* Pricing Summary */}
-                {(normalizedDraft.productType && normalizedDraft.baseMonthlyPrice) ? (
-                  <div className="mt-4 rounded-xl border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/50 px-4 py-3">
-                    <p className="text-xs font-semibold text-[color:var(--lx-muted)]">
-                      {lang === "en" ? "Monthly pricing:" : "Precios mensuales:"}
-                    </p>
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-[color:var(--lx-text-2)]">
-                          {normalizedDraft.productType === "established_restaurant"
-                            ? lang === "en" ? "Established restaurant" : "Restaurante establecido"
-                            : lang === "en" ? "Mobile vendor" : "Puesto / pop-up / vendedor móvil"}
-                        </span>
-                        <span className="font-semibold text-[color:var(--lx-text)]">
-                          ${normalizedDraft.baseMonthlyPrice}/mes
-                        </span>
-                      </div>
-                      {normalizedDraft.couponUpgradeEnabled && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-[color:var(--lx-text-2)]">
-                            {lang === "en" ? "Coupon add-on" : "Add-on de cupones"}
-                          </span>
-                          <span className="font-semibold text-[color:var(--lx-text)]">
-                            +$99/mes
-                          </span>
-                        </div>
-                      )}
-                      <div className="mt-2 flex items-center justify-between border-t border-[color:var(--lx-nav-border)]/50 pt-2 text-sm font-bold text-[color:var(--lx-text)]">
-                        <span>{lang === "en" ? "Total monthly" : "Total mensual"}</span>
-                        <span>
-                          ${(normalizedDraft.baseMonthlyPrice || 0) + (normalizedDraft.couponUpgradeEnabled ? 99 : 0)}/mes
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div id="publish-confirmation" className="mt-3 space-y-2 border-t border-[color:var(--lx-nav-border)]/50 pt-3">
-                  <p className="text-[11px] font-semibold text-[color:var(--lx-text)]">Confirmaciones antes de publicar</p>
-                  <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                      checked={confirmBusinessInfo}
-                      onChange={(e) => setConfirmBusinessInfo(e.target.checked)}
-                    />
-                    <span>Confirmo que la información del restaurante es veraz y actualizada.</span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                      checked={confirmPhotosRepresent}
-                      onChange={(e) => setConfirmPhotosRepresent(e.target.checked)}
-                    />
-                    <span>Confirmo que las fotos, platillos, horarios, precios/ofertas y datos de contacto representan mi negocio correctamente.</span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                      checked={confirmCommunityRules}
-                      onChange={(e) => setConfirmCommunityRules(e.target.checked)}
-                    />
-                    <span>Confirmo que mi anuncio cumple con las reglas de Leonix y que soy responsable por la información publicada.</span>
-                  </label>
-                  {hasCoupons ? (
-                    <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-[color:var(--lx-text-2)]">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-                        checked={confirmCouponTerms}
-                        onChange={(e) => setConfirmCouponTerms(e.target.checked)}
-                      />
-                      <span>Confirmo que los cupones y promociones son válidos, con fechas de expiración correctas y términos claros.</span>
-                    </label>
-                  ) : null}
-                  {!confirmationsOk ? (
-                    <p className="text-[11px] text-amber-900/90">
-                      {hasCoupons ? "Marca las cuatro casillas para habilitar «Publicar listado»." : "Marca las tres casillas para habilitar «Publicar listado»."}
-                    </p>
-                  ) : null}
+                <div className="mt-4">
+                  <PublishCheckoutCheckpoint
+                    config={checkpointConfig}
+                    lang={lang}
+                    busy={checkoutBusy}
+                    errorMessage={checkoutErr}
+                    onCheckout={(ctx) => void onCheckout(ctx)}
+                  />
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={pub.busy || !confirmationsOk}
-                    title={!confirmationsOk ? (hasCoupons ? "Marca las cuatro confirmaciones para publicar." : "Marca las tres confirmaciones para publicar.") : undefined}
-                    onClick={() => void onPublish()}
-                    className="min-h-[44px] rounded-full bg-[color:var(--lx-cta-dark)] px-5 py-2.5 text-sm font-semibold text-[color:var(--lx-cta-light)] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {pub.busy ? "Publicando…" : "Publicar listado"}
-                  </button>
-                  {pub.url ? (
-                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                      <Link
-                        href={appendLangToPath(pub.url, "es")}
-                        className="text-sm font-semibold text-[color:var(--lx-gold)] underline decoration-[color:var(--lx-gold-border)] underline-offset-4"
-                      >
-                        Abrir ficha pública →
-                      </Link>
-                      {pub.resultsUrl ? (
-                        <Link
-                          href={pub.resultsUrl}
-                          className="text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-nav-border)] underline-offset-4"
-                        >
-                          Ver en resultados (misma búsqueda) →
-                        </Link>
-                      ) : null}
-                      {pub.dashboardUrl ? (
-                        <Link
-                          href={pub.dashboardUrl}
-                          className="text-sm font-semibold text-[color:var(--lx-text)] underline decoration-[color:var(--lx-nav-border)] underline-offset-4"
-                        >
-                          Mi panel de restaurantes →
-                        </Link>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-                {pub.err ? (
-                  <div className="mt-2 text-xs text-red-800">
-                    <p>
-                      {pub.err === "not_ready"
-                        ? "Aún no está listo."
-                        : pub.err === "confirmations_required"
-                          ? "Faltan confirmaciones."
-                          : pub.err === "network"
-                            ? "Error de red."
-                            : pub.err === "media_upload_failed"
-                              ? "No se pudieron preparar las fotos para publicar (subida a almacenamiento)."
-                              : pub.err === "supabase_admin_unconfigured"
-                              ? "Servidor sin credenciales de Supabase (rol de servicio). No se persistió nada."
-                              : `No se pudo publicar (${pub.err}).`}
-                    </p>
-                    {pub.errDetail ? <p className="mt-1 font-mono text-[11px] opacity-90">{pub.errDetail}</p> : null}
-                  </div>
-                ) : null}
               </div>
             ) : null}
           </div>

@@ -8,6 +8,11 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { publishLeonixListingFromAgenteResidencialDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import { brPublishPaymentRequired } from "@/app/lib/clasificados/bienes-raices/brPublishPaymentPolicy";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS,
+  type PublishCheckpointConfig,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   redirectToRevenueCategoryCheckout,
   revenueCategoryCheckoutLoadingMessage,
@@ -140,6 +145,24 @@ export default function AgenteIndividualResidencialPreviewClient() {
         ? "Publicar anuncio"
         : "Publish listing";
 
+  const childInventoryCount = data.additionalInventoryProperties?.length ?? 0;
+  const hasInventoryPackage = childInventoryCount > 0 && !inventoryCtx;
+
+  const checkpointConfig = useMemo((): PublishCheckpointConfig | null => {
+    if (inventoryCtx || !needsNegocioPayment) return null;
+    return {
+      category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
+      packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
+      lang,
+      mode: "checkout",
+      childInventoryCount,
+      confirmations: BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS,
+      newsletterEligible: true,
+      promoEligible: true,
+      returnPath: BIENES_RAICES_NEGOCIO_CHECKOUT.returnPath,
+    };
+  }, [childInventoryCount, inventoryCtx, lang, needsNegocioPayment]);
+
   const onPublishLive = useCallback(async () => {
     const st = (await loadAgenteResPreviewDraftResolved()) ?? data;
     if (!st) return;
@@ -254,7 +277,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       setPublishBusy(false);
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
-  }, [inventoryCtx, lang, router]);
+  }, [data, inventoryCtx, lang, router]);
 
   const onPublishNextFromBridge = useCallback(() => {
     const href = navigateToNextQueuedChild();
@@ -266,7 +289,8 @@ export default function AgenteIndividualResidencialPreviewClient() {
     () => (childPreviewId ? data.additionalInventoryProperties.find((x) => x.id === childPreviewId) ?? null : null),
     [childPreviewId, data.additionalInventoryProperties],
   );
-  const hasInventoryPackage = (data.additionalInventoryProperties?.length ?? 0) > 0 && !inventoryCtx;
+
+  const showPaymentCheckpoint = Boolean(checkpointConfig);
 
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
@@ -276,16 +300,28 @@ export default function AgenteIndividualResidencialPreviewClient() {
             {lang === "es" ? "Vista previa · Publicar" : "Preview · Publish"}
           </p>
           <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-            <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
-              {publishBusy
-                ? needsNegocioPayment
-                  ? revenueCategoryCheckoutLoadingMessage(lang)
-                  : lang === "es"
-                    ? "Publicando…"
-                    : "Publishing…"
-                : publishLabel}
-            </button>
-            {publishErr ? (
+            {showPaymentCheckpoint ? (
+              <button
+                type="button"
+                className={PUBLISH_BTN}
+                onClick={() => {
+                  document.getElementById("publish-checkout-checkpoint")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                {lang === "es" ? "Ir al pago final" : "Go to final checkout"}
+              </button>
+            ) : (
+              <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
+                {publishBusy
+                  ? needsNegocioPayment
+                    ? revenueCategoryCheckoutLoadingMessage(lang)
+                    : lang === "es"
+                      ? "Publicando…"
+                      : "Publishing…"
+                  : publishLabel}
+              </button>
+            )}
+            {!showPaymentCheckpoint && publishErr ? (
               <p className="max-w-[320px] text-right text-[11px] text-red-700" role="alert">
                 {publishErr}
               </p>
@@ -326,13 +362,25 @@ export default function AgenteIndividualResidencialPreviewClient() {
       />
 
       {hasInventoryPackage ? (
-        <div className="mx-auto max-w-[1140px] px-4 pb-8 sm:px-6">
+        <div className="mx-auto max-w-[1140px] px-4 pb-4 sm:px-6">
           <BrNegocioPrePublishInventoryPreview
             lang={lang}
             variant="package"
             mainProperty={mapAgenteFormToMainInventoryCard(data, lang)}
             items={data.additionalInventoryProperties}
             onPreview={(id) => setChildPreviewId(id)}
+          />
+        </div>
+      ) : null}
+
+      {checkpointConfig ? (
+        <div className="mx-auto max-w-[1140px] px-4 pb-10 sm:px-6">
+          <PublishCheckoutCheckpoint
+            config={checkpointConfig}
+            lang={lang}
+            busy={publishBusy}
+            errorMessage={publishErr}
+            onCheckout={() => void onPublishLive()}
           />
         </div>
       ) : null}
