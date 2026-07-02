@@ -427,7 +427,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (draftPromos.length) draft.promotions = draftPromos;
 
   // Map coupons (paid add-on)
-  const draftCoupons: NonNullable<ServiciosApplicationDraft["promotions"]> = [];
+  const draftCoupons: NonNullable<ServiciosApplicationDraft["coupons"]> = [];
   if (state.couponsAddOn) {
     for (let i = 0; i < state.coupons.length; i++) {
       const r = state.coupons[i]!;
@@ -435,10 +435,17 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       const hrefRaw = r.url.trim();
       draftCoupons.push({
         id: `clasificados-coupon-${i}`,
-        headline: r.title.trim(),
-        footnote: r.description.trim() || undefined,
+        title: r.title.trim(),
+        description: r.description.trim() || undefined,
+        ...(r.regularPrice.trim() ? { regularPrice: r.regularPrice.trim() } : {}),
+        ...(r.specialPrice.trim() ? { specialPrice: r.specialPrice.trim() } : {}),
+        ...(r.savings.trim() ? { savings: r.savings.trim() } : {}),
         ...(hrefRaw ? { href: normalizeHttpUrl(hrefRaw) } : {}),
-        ...(r.imageUrl.trim() ? { assetImageUrl: r.imageUrl.trim() } : {}),
+        ...(r.imageUrl.trim() ? { imageUrl: r.imageUrl.trim() } : {}),
+        ...(r.couponCode.trim() ? { couponCode: r.couponCode.trim() } : {}),
+        ...(r.expirationDate.trim() ? { expirationDate: r.expirationDate.trim() } : {}),
+        ...(r.redemptionNote.trim() ? { redemptionNote: r.redemptionNote.trim() } : {}),
+        ...(r.ctaLabel.trim() ? { ctaLabel: r.ctaLabel.trim() } : {}),
       });
     }
   }

@@ -19,6 +19,7 @@ import {
   hasBusinessHighlightsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
+  hasOfferSectionResolved,
   hasQuickFactsResolved,
   hasReviewsSectionResolved,
   hasServicesSectionResolved,
@@ -116,12 +117,17 @@ export function ServiciosProfessionalPreviewShell({
               <ServiciosGalleryWithTabs profile={profile} lang={lang} />
             ) : null}
 
-            <div className="lg:hidden">
+            {hasOfferSectionResolved(profile) ? (
               <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
-            </div>
+            ) : null}
 
             {profile.coupons && profile.coupons.length > 0 ? (
-              <ServiciosCouponsCard coupons={profile.coupons} lang={lang} />
+              <ServiciosCouponsCard
+                coupons={profile.coupons}
+                lang={lang}
+                couponFlyer={profile.couponFlyer}
+                couponMoreOffers={profile.couponMoreOffers}
+              />
             ) : null}
 
             {hasServicesSectionResolved(profile) ? (
@@ -152,14 +158,6 @@ export function ServiciosProfessionalPreviewShell({
                 showOfferSidebarTeaser={false}
               />
             </div>
-            <div className="mt-5">
-              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
-            </div>
-            {profile.coupons && profile.coupons.length > 0 ? (
-              <div className="mt-5">
-                <ServiciosCouponsCard coupons={profile.coupons} lang={lang} />
-              </div>
-            ) : null}
           </aside>
         </div>
 

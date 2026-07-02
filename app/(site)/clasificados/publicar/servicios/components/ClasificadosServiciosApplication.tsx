@@ -283,6 +283,7 @@ export function ClasificadosServiciosApplication() {
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
+    // Always try to restore from storage first to survive hard refresh
     setState(bootstrapServiciosApplicationStateSync());
     setHydrated(true);
   }, [editRequested]);

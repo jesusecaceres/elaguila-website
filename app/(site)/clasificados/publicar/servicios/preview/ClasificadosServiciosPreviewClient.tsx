@@ -22,7 +22,7 @@ import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosA
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
-import { loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
+import { clearServiciosDraftStorageAndIdb, loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
@@ -245,6 +245,8 @@ export function ClasificadosServiciosPreviewClient() {
         const ig = getBusinessTypePreset(appState.businessTypeId)?.internalGroup;
         upsertLocalServiciosPublish(data.profile, appState.city, ig ?? null);
       }
+      // Clear draft after successful publish
+      await clearServiciosDraftStorageAndIdb();
       const q = new URLSearchParams({ lang });
       q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);

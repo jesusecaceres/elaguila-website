@@ -409,6 +409,10 @@ export type ServiciosProfileResolved = {
     redemptionNote?: string;
     ctaLabel?: string;
   }>;
+  /** Coupon flyer image URL (paid add-on) */
+  couponFlyer?: { imageUrl: string };
+  /** More offers link (paid add-on) */
+  couponMoreOffers?: { url: string; buttonLabel?: string };
   /** Sanitized credentials block — omitted when nothing meaningful remains */
   credentials?: ServiciosCredentialsResolved;
 };

@@ -20,7 +20,7 @@ function GalleryImage({ g, onQuoteClick, onOpen }: {
     <button
       type="button"
       onClick={onOpen}
-      className="group relative aspect-square w-full overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/60"
+      className="group relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/60"
       aria-label={g.alt}
     >
       <Image
@@ -295,16 +295,12 @@ export function ServiciosGalleryWithTabs({
 
                   {/* View more photos */}
                   {hasMoreImages && (
-                    <div className="mt-6 text-center">
+                    <div className="mt-6 flex justify-center">
                       <button
                         onClick={() => openModal(photoCap)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-[#E8D7B8] bg-[#FCF9F2] px-4 py-2.5 text-sm font-medium text-[#2F2A23] transition hover:border-[#D4AF37] hover:bg-[#D4AF37]/[0.08]"
+                        className="flex min-h-[44px] items-center justify-center rounded-full border-2 border-[#C9B46A]/45 bg-[#FFFCF7] px-6 py-2.5 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFF6E7]"
                       >
-                        <svg className="h-4 w-4 text-[#6F7A3A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.586a1 1 0 01.707.293l1.414 1.414A1 1 0 0011.414 5H19a2 2 0 012 2v1m0 4v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7m18 0H3m18 0l-2.5-3a1 1 0 00-.8-.4H6.3a1 1 0 00-.8.4L3 12" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13a2 2 0 012-2h3a2 2 0 012 2 3v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6h3a2 2 0 012-2 3v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6h3a2 2 0 012-2 3v6A2 2 0 01-2 2H6a2 2 0 01-2-2V13z" />
-                        </svg>
-                        {lang === "en" ? "View more photos" : "Ver más fotos"}
+                        {lang === "en" ? "View more photos →" : "Ver más fotos →"}
                       </button>
                     </div>
                   )}

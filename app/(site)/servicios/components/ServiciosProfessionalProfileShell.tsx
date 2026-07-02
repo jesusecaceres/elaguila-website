@@ -44,6 +44,7 @@ import { ServiciosLicense } from "./ServiciosLicense";
 import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
 import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
 import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
+import { ServiciosCouponsCard } from "./ServiciosCouponsCard";
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
@@ -341,6 +342,27 @@ export function ServiciosProfessionalProfileShell({
                   listingShareUrl={listingShareUrl}
                 />
               ) : null}
+
+              {hasOfferSectionResolved(profile) ? (
+                <ServiciosPromocionesCard
+                  profile={displayProfile}
+                  lang={lang}
+                  premiumLeonixTone
+                  listingSlug={analyticsListingSlug}
+                  listingSourceId={sourceId || listingSourceId}
+                  engagementListingId={engagementListingId}
+                  engagementOwnerUserId={engagementOwnerUserId}
+                />
+              ) : null}
+
+              {profile.coupons && profile.coupons.length > 0 ? (
+                <ServiciosCouponsCard
+                  coupons={profile.coupons}
+                  lang={lang}
+                  couponFlyer={profile.couponFlyer}
+                  couponMoreOffers={profile.couponMoreOffers}
+                />
+              ) : null}
             </section>
 
             <div className={`mt-6 sm:mt-8 ${LX_PRO_GRID}`}>
@@ -427,19 +449,7 @@ export function ServiciosProfessionalProfileShell({
                     persistListingEngagement={persistListingEngagement}
                     publicLikeCount={publicLikeCount}
                     directContactFasterResponseHint={directContactFasterResponseHint}
-                    showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
-                  />
-                </div>
-
-                <div className="lg:hidden">
-                  <ServiciosPromocionesCard
-                    profile={displayProfile}
-                    lang={lang}
-                    premiumLeonixTone
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={sourceId || listingSourceId}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
+                    showOfferSidebarTeaser={false}
                   />
                 </div>
 
@@ -466,18 +476,7 @@ export function ServiciosProfessionalProfileShell({
                     persistListingEngagement={persistListingEngagement}
                     publicLikeCount={publicLikeCount}
                     directContactFasterResponseHint={directContactFasterResponseHint}
-                    showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
-                  />
-                </div>
-                <div className="mt-5 lg:mt-6">
-                  <ServiciosPromocionesCard
-                    profile={displayProfile}
-                    lang={lang}
-                    premiumLeonixTone
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={sourceId || listingSourceId}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
+                    showOfferSidebarTeaser={false}
                   />
                 </div>
               </aside>

@@ -170,6 +170,21 @@ export type ServiciosApplicationPromoDraft = {
   qrIntent?: boolean;
 };
 
+export type ServiciosApplicationCouponDraft = {
+  id: string;
+  title: string;
+  description?: string;
+  regularPrice?: string;
+  specialPrice?: string;
+  savings?: string;
+  href?: string;
+  imageUrl?: string;
+  couponCode?: string;
+  expirationDate?: string;
+  redemptionNote?: string;
+  ctaLabel?: string;
+};
+
 export type ServiciosApplicationQuickFactDraft = {
   kind: ServiciosQuickFactKind;
   label: string;
@@ -204,7 +219,11 @@ export type ServiciosApplicationDraft = {
   /** Featured promotions (max 4) — classified Servicios Phase 7A */
   promotions?: ServiciosApplicationPromoDraft[];
   /** Featured coupons (paid add-on, max 4) — classified Servicios coupon checkpoint */
-  coupons?: ServiciosApplicationPromoDraft[];
+  coupons?: ServiciosApplicationCouponDraft[];
+  /** Coupon flyer image URL (paid add-on) */
+  couponFlyer?: { imageUrl: string };
+  /** More offers link (paid add-on) */
+  couponMoreOffers?: { url: string; buttonLabel?: string };
   /** Accepted payment methods (Leonix Servicios); sanitized on map/resolve */
   paymentMethodIds?: string[];
   /** Custom payment method labels; sanitized on map/resolve */
