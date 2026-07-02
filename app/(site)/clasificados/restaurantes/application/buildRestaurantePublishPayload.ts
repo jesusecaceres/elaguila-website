@@ -15,6 +15,7 @@ export function buildRestaurantePublishPayload(
   ownerUserId?: string,
   plan?: string,
   lang = "es",
+  opts?: { activationMode?: "pending_payment" | "immediate" },
 ): Record<string, unknown> {
   const blockHeavyMedia = (value: unknown, path = ""): unknown => {
     if (value instanceof File || value instanceof Blob) {
@@ -184,6 +185,7 @@ export function buildRestaurantePublishPayload(
     serviceAreaText: blockHeavyMedia(draft.serviceAreaText, "serviceAreaText"),
     lang,
     plan,
+    ...(opts?.activationMode === "pending_payment" ? { activation_mode: "pending_payment" } : {}),
     ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
   };
 

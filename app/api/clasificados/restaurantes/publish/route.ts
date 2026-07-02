@@ -191,6 +191,8 @@ export async function POST(req: Request) {
   }
 
   const ownerUserId = typeof b.owner_user_id === "string" ? b.owner_user_id : null;
+  const pendingPayment =
+    b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
     typeof b.plan === "string" ? b.plan : typeof b.package_tier === "string" ? b.package_tier : "",
   );
@@ -198,10 +200,12 @@ export async function POST(req: Request) {
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
+  let listingIdOut: string | null = null;
+  let leonixAdIdOut: string | null = null;
 
   const { data: existingByDraft, error: exErr } = await supabase
     .from("restaurantes_public_listings")
-    .select("slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id")
+    .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id")
     .eq("draft_listing_id", draft.draftListingId)
     .maybeSingle();
 
@@ -218,9 +222,11 @@ export async function POST(req: Request) {
         ownerUserId,
         promoted: false,
         packageTier: requestedLane,
+        status: pendingPayment ? "archived" : "published",
       }) as Record<string, unknown>;
 
       const ex = existingByDraft as {
+        id?: string;
         leonix_verified?: boolean;
         status?: string;
         promoted?: boolean;
@@ -229,7 +235,11 @@ export async function POST(req: Request) {
         leonix_ad_id?: string | null;
       };
       baseRow.leonix_verified = ex.leonix_verified ?? false;
-      baseRow.status = ex.status ?? "published";
+      if (pendingPayment) {
+        baseRow.status = ex.status === "published" ? "published" : "archived";
+      } else {
+        baseRow.status = ex.status === "archived" ? "published" : (ex.status ?? "published");
+      }
       /** Paid placement is admin-controlled only; republish/renew must not flip it from the client. */
       baseRow.promoted = ex.promoted ?? false;
       baseRow.package_tier = mergePackageTierForUpdate(ex.package_tier, requestedLane);
@@ -249,6 +259,8 @@ export async function POST(req: Request) {
           }
         }
       }
+      listingIdOut = ex.id ?? null;
+      leonixAdIdOut = typeof baseRow.leonix_ad_id === "string" ? baseRow.leonix_ad_id : null;
 
       const { error } = await supabase
         .from("restaurantes_public_listings")
@@ -269,6 +281,7 @@ export async function POST(req: Request) {
         ownerUserId,
         promoted: false,
         packageTier: requestedLane,
+        status: pendingPayment ? "archived" : "published",
       });
       let insertError: { message: string; code?: string } | null = null;
       for (let attempt = 0; attempt < 8; attempt++) {
@@ -281,19 +294,23 @@ export async function POST(req: Request) {
             { status: 500 },
           );
         }
-        const { error } = await supabase.from("restaurantes_public_listings").insert({
+        const { data: inserted, error } = await supabase.from("restaurantes_public_listings").insert({
           ...row,
           leonix_ad_id,
           published_at: now,
           updated_at: now,
-        });
-        if (!error) {
+        }).select("id, leonix_ad_id").single();
+        if (!error && inserted?.id) {
           insertError = null;
+          listingIdOut = inserted.id;
+          leonixAdIdOut = (inserted as { leonix_ad_id?: string | null }).leonix_ad_id ?? leonix_ad_id;
           break;
         }
-        insertError = error;
-        if (isUniqueViolation(error)) continue;
-        break;
+        if (error) {
+          insertError = error;
+          if (isUniqueViolation(error)) continue;
+          break;
+        }
       }
       if (insertError) {
         return NextResponse.json({ ok: false, error: "insert_failed", detail: insertError.message }, { status: 500 });
@@ -315,6 +332,25 @@ export async function POST(req: Request) {
   });
   const resultsUrl = buildRestaurantesResultsHref(lang, { ...deep, rx_pub: "1" });
   const publicPath = `/clasificados/restaurantes/${encodeURIComponent(slugOut)}`;
+
+  if (pendingPayment) {
+    if (!listingIdOut) {
+      return NextResponse.json(
+        { ok: false, error: "pending_listing_id_missing", detail: "Could not resolve listing id for pending checkout." },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      pendingPayment: true,
+      persisted: true,
+      listingId: listingIdOut,
+      leonixAdId: leonixAdIdOut,
+      draftListingId: draft.draftListingId,
+      slug: slugOut,
+      lang,
+    });
+  }
 
   return NextResponse.json({
     ok: true,

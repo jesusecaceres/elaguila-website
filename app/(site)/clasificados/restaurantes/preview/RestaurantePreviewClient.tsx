@@ -18,8 +18,9 @@ import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/Clas
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
-import { RestauranteOfertasLocalesUpsellCard } from "@/app/lib/clasificados/restaurantes/RestauranteOfertasLocalesUpsellCard";
+import { RestauranteOfertasLocalesCheckoutSecondaryCard } from "@/app/lib/clasificados/restaurantes/RestauranteOfertasLocalesCheckoutSecondaryCard";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import { saveRestaurantePendingBeforeCheckout } from "@/app/clasificados/restaurantes/application/saveRestaurantePendingBeforeCheckout";
 import {
   redirectToRevenueCategoryCheckout,
   startRevenueCategoryCheckout,
@@ -74,13 +75,12 @@ export default function RestaurantePreviewClient() {
         labelEs: isEstablished ? "Restaurante establecido" : "Puesto / pop-up / vendedor móvil",
         priceCents: 39900,
       },
-      restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
       confirmations: RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
-      promoEligible: true,
+      promoEligible: false,
       returnPath: RESTAURANTES_BASE_CHECKOUT.returnPath,
     };
-  }, [normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
+  }, [normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -94,8 +94,9 @@ export default function RestaurantePreviewClient() {
       setCheckoutBusy(true);
       setCheckoutErr(null);
       try {
+        let draftForSave = normalizedDraft;
         try {
-          await resolveRestauranteDraftMediaToRemoteUrls(normalizedDraft);
+          draftForSave = await resolveRestauranteDraftMediaToRemoteUrls(normalizedDraft);
         } catch {
           setCheckoutErr(
             lang === "es"
@@ -108,11 +109,23 @@ export default function RestaurantePreviewClient() {
 
         const sb = createSupabaseBrowserClient();
         const { data: auth } = await sb.auth.getUser();
+        const ownerUserId = auth.user?.id ?? null;
         const customerEmail = auth.user?.email ?? null;
+
+        const pending = await saveRestaurantePendingBeforeCheckout(draftForSave, {
+          ownerUserId,
+          lang,
+        });
+        if (!pending.ok) {
+          setCheckoutErr(pending.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
 
         const checkout = await startRevenueCategoryCheckout({
           ...RESTAURANTES_BASE_CHECKOUT,
-          listingDraftId: normalizedDraft.draftListingId,
+          listingId: pending.listingId,
+          leonixAdId: pending.leonixAdId,
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
@@ -294,7 +307,7 @@ export default function RestaurantePreviewClient() {
             className="rounded-3xl border p-4 sm:p-6 md:p-8"
             style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
           >
-            <RestauranteOfertasLocalesUpsellCard lang={lang} />
+            <RestauranteOfertasLocalesCheckoutSecondaryCard lang={lang} />
             <div className="mt-4">
               <PublishCheckoutCheckpoint
                 config={checkpointConfig}

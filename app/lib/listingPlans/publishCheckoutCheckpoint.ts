@@ -234,12 +234,6 @@ export function resolvePublishCheckoutCheckpoint(
       detailEs: "Hasta 4 propiedades adicionales activas",
     });
   } else if (config.category === "restaurantes" && config.packageKey === "restaurantes_base_monthly") {
-    if (config.restaurantOffersAddonSelected && !REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
-      blocked = true;
-      blockReasonEn = restaurantOffersBlockReason("en");
-      blockReasonEs = restaurantOffersBlockReason("es");
-    }
-
     lineItems.push({
       id: "base",
       labelEn: config.baseLineItem?.labelEn ?? "Established restaurant",
@@ -247,13 +241,13 @@ export function resolvePublishCheckoutCheckpoint(
       priceCents: baseCents,
     });
 
-    if (config.restaurantOffersAddonSelected) {
+    if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
       addOns.push({
         id: "offers_addon",
         labelEn: "Coupon add-on",
         labelEs: "Add-on de cupones",
         priceCents: 9900,
-        selected: REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED,
+        selected: true,
         detailEn: "Coupons and local offers module",
         detailEs: "Módulo de cupones y ofertas locales",
       });

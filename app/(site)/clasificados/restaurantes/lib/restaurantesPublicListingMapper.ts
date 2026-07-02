@@ -251,14 +251,19 @@ export function resolveRestauranteHeroForPublish(d: RestauranteListingDraft): st
 export function draftToRestaurantePublicListingInsert(
   d: RestauranteListingDraft,
   slug: string,
-  opts?: { ownerUserId?: string | null; promoted?: boolean; packageTier?: string | null }
+  opts?: {
+    ownerUserId?: string | null;
+    promoted?: boolean;
+    packageTier?: string | null;
+    status?: "published" | "archived" | "suspended";
+  },
 ): Record<string, unknown> {
   const hero = resolveRestauranteHeroForPublish(d);
   return {
     slug,
     owner_user_id: opts?.ownerUserId ?? null,
     draft_listing_id: d.draftListingId,
-    status: "published",
+    status: opts?.status ?? "published",
     package_tier: opts?.packageTier ?? null,
     leonix_verified: false,
     promoted: opts?.promoted === true,
