@@ -459,6 +459,18 @@ export function RentasFiltersDrawer({
                 </label>
               </div>
 
+              <GroupLabel>{lang === "es" ? "Superficie (ft²)" : "Area (sq ft)"}</GroupLabel>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
+                  {copy.results.sqftMinLabel}
+                  <input value={sqftMinDraft} onChange={(e) => onSqftMinDraft(e.target.value)} inputMode="numeric" className={RENTAS_FIELD} placeholder="0" />
+                </label>
+                <label className="block text-left text-[11px] font-semibold text-[#5C5346]">
+                  {copy.results.sqftMaxLabel}
+                  <input value={sqftMaxDraft} onChange={(e) => onSqftMaxDraft(e.target.value)} inputMode="numeric" className={RENTAS_FIELD} placeholder="—" />
+                </label>
+              </div>
+
               <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#5C5346]">{copy.results.highlightsHelp}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {RENTAS_HIGHLIGHT_FACET_DEFS.map((d) => {

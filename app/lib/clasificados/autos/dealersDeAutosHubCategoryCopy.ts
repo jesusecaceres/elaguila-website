@@ -1,4 +1,5 @@
-import { navCopyLang, type SupportedLang } from "@/app/lib/language";
+import type { SupportedLang } from "@/app/lib/language";
+import { getPublicCategoryCardCopy } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 
 export type DealersDeAutosHubCategoryCopy = {
   label: string;
@@ -7,21 +8,7 @@ export type DealersDeAutosHubCategoryCopy = {
   post: string;
 };
 
-const COPY: Record<"es" | "en", DealersDeAutosHubCategoryCopy> = {
-  es: {
-    label: "Dealers de Autos",
-    desc: "Inventario de agencias y negocios de autos.",
-    explore: "EXPLORAR",
-    post: "Publicar en Dealers de Autos",
-  },
-  en: {
-    label: "Dealers de Autos",
-    desc: "Dealership and auto business inventory.",
-    explore: "EXPLORE",
-    post: "Post in Dealers de Autos",
-  },
-};
-
+/** @deprecated Prefer getPublicCategoryCardCopy("dealers-de-autos", lang) from publicCategoryCopyGuard. */
 export function getDealersDeAutosHubCategoryCopy(routeLang: SupportedLang): DealersDeAutosHubCategoryCopy {
-  return COPY[navCopyLang(routeLang)];
+  return getPublicCategoryCardCopy("dealers-de-autos", routeLang);
 }

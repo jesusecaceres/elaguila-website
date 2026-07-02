@@ -25,7 +25,7 @@ import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisua
 import newLogo from "../../../../public/logo.png";
 import { normalizeLang, navCopyLang, replaceLangInHref } from "@/app/lib/language";
 import { getPublishChooserCopy } from "@/app/lib/clasificados/publishChooserCopy";
-import { getClasificadosCategoryCopy } from "@/app/lib/clasificados/clasificadosHubPageCopy";
+import { getPublicCategoryLabel } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 import type { HubCategoryKey } from "../config/clasificadosHub";
 
 type ChooserDeepLinkTarget = Exclude<CategoryKey, "all"> | "bienes-raices" | "";
@@ -62,7 +62,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
 function chooserCategoryLabel(key: Exclude<CategoryKey, "all">, routeLang: ReturnType<typeof normalizeLang>): string {
   if (key in categoryConfig) {
     try {
-      return getClasificadosCategoryCopy(routeLang, key as HubCategoryKey).label;
+      return getPublicCategoryLabel(key as HubCategoryKey, routeLang);
     } catch {
       /* fall through */
     }

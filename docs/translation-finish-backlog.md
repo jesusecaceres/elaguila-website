@@ -44,8 +44,8 @@ These routes/surfaces have typed `Record<SupportedLang, …>` copy registries or
 | `/newsletter` | `app/lib/leonix/publicFormCopy/**` |
 | `/tienda/contacto` | `app/lib/leonix/publicFormCopy/**` |
 | `/productos-promocion` | `app/lib/leonix/productosPromocionPageCopy/**` |
-| `/clasificados` (hub) | `app/lib/clasificados/clasificadosHubPageCopy/**` |
-| `/clasificados/publicar` (chooser shell) | `app/lib/clasificados/publishChooserCopy/**` |
+| `/clasificados` (hub) | `app/lib/clasificados/clasificadosHubPageCopy/**`, `app/lib/clasificados/publicCategoryCopyGuard.ts` |
+| `/clasificados/publicar` (chooser shell) | `app/lib/clasificados/publishChooserCopy/**`, `app/lib/clasificados/publicCategoryCopyGuard.ts` (category labels) |
 | **Public navbar / header** | `app/lib/leonix/publicNavCopy/**`, `app/lib/publicNavConfig.ts` |
 | **Advertise dropdown** | `app/lib/advertiseDropdownConfig.ts` |
 | Public header language selector | `app/components/LanguagePreferenceSync.tsx`, `app/lib/language.ts` |
@@ -70,6 +70,10 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 | **Legal pages** | ES/EN via `navCopyLang` | `app/(site)/legal/page.tsx` | `LEGAL-13LANG1` |
 
 `SITE-TRANSLATION-WORD-BY-WORD-SMOKE1` added a UI/source-content smoke checklist in `docs/site-translation-word-by-word-smoke.md` and fixed priority Coming Soon V2 UI chrome where PT/VI routes still had ES/EN-only local form labels or CTA aria labels. It did not translate seller-created content, change dynamic translation behavior, add schema, or call providers.
+
+`GLOBAL-PUBLIC-COPY-REGISTRY-GUARD1` added `publicCategoryCopyGuard.ts`, fixed Dealers de Autos VI hub card copy, routed hub/post CTAs through the registry, and added `npm run translation:check` (`scripts/translation/check-public-copy.mjs`). Does not translate seller content, call providers, or claim full 13-language category landings complete.
+
+**Clasificados hub guard:** New public category cards must register in `CLASIFICADOS_HUB_VISIBLE_CATEGORY_KEYS` with ES/EN base copy and VI copy for launch-critical cards. Run `npm run translation:check` before merge.
 
 **Visual assets (not UI copy):**
 

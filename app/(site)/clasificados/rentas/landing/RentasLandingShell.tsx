@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { RENTAS_LANDING_LANE } from "../shared/rentasLeonixPublicUi";
+import { RENTAS_HEADER_SAFE_TOP, RENTAS_LANDING_LANE } from "../shared/rentasLeonixPublicUi";
 
 /** Page shell — warm Leonix city-living atmosphere, single content lane. */
 export function RentasLandingShell({ children }: { children: ReactNode }) {
@@ -19,7 +19,7 @@ export function RentasLandingShell({ children }: { children: ReactNode }) {
       />
 
       <div
-        className={`${RENTAS_LANDING_LANE} relative px-3.5 pb-12 pt-[calc(3.75rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-8 lg:px-5 lg:pt-10`}
+        className={`${RENTAS_LANDING_LANE} relative px-3.5 pb-12 sm:px-4 lg:px-5 ${RENTAS_HEADER_SAFE_TOP}`}
       >
         {children}
       </div>

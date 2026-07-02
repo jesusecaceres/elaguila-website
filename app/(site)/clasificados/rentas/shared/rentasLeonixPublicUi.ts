@@ -1,16 +1,34 @@
 /** Leonix public browse UI — Rentas landing + results only. */
 
+/** Below global `(site)/layout` Navbar — Rentas-only; do not edit global header. */
+export const RENTAS_HEADER_SAFE_TOP =
+  "pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14";
+
 export const RENTAS_PUBLIC_SHELL =
-  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-4 sm:pt-4 lg:px-5";
+  "relative mx-auto w-full min-w-0 max-w-[1080px] px-3.5 pb-12 sm:px-4 lg:px-5";
 
 export const RENTAS_LANDING_LANE = "mx-auto w-full min-w-0 max-w-[1080px]";
+
+/** Results page shell lane — matches landing top breathing room. */
+export const RENTAS_RESULTS_SHELL =
+  `${RENTAS_PUBLIC_SHELL} ${RENTAS_HEADER_SAFE_TOP}`;
+
+export const RENTAS_RESULTS_PAGE_BG =
+  "min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]";
 
 /** Shared search shell — landing + results DNA. */
 export const RENTAS_SEARCH_SHELL =
   "relative overflow-hidden rounded-xl border border-[#C9A84A]/30 bg-[#FFFDF7]/98 p-2 shadow-[0_10px_32px_-18px_rgba(42,36,22,0.2),inset_0_1px_0_rgba(255,255,255,0.85)] sm:p-2.5";
 
+/** Landing variant — slightly warmer glow, same field rhythm as results. */
+export const RENTAS_SEARCH_SHELL_LANDING =
+  `${RENTAS_SEARCH_SHELL} border-[#C9A84A]/38 shadow-[0_12px_36px_-16px_rgba(42,36,22,0.22),inset_0_1px_0_rgba(255,255,255,0.9)]`;
+
 export const RENTAS_SEARCH_SHELL_GLOW =
   "pointer-events-none absolute -inset-px rounded-xl bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(201,168,74,0.14),transparent_65%)]";
+
+export const RENTAS_SEARCH_SHELL_GLOW_LANDING =
+  "pointer-events-none absolute -inset-px rounded-xl bg-[radial-gradient(ellipse_95%_65%_at_50%_0%,rgba(201,168,74,0.2),transparent_62%)]";
 
 export const RENTAS_LANDING_SECTION =
   "rounded-xl border border-[#D6C7AD]/55 bg-[#FFFDF7]/95 shadow-[0_6px_24px_-18px_rgba(42,36,22,0.14)]";

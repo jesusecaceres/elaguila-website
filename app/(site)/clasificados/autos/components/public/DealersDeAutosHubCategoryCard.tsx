@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { appendLangToPath } from "@/app/(site)/clasificados/lib/hubUrl";
-import { getDealersDeAutosHubCategoryCopy } from "@/app/lib/clasificados/autos/dealersDeAutosHubCategoryCopy";
+import { getPublicCategoryCardCopy } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 import type { SupportedLang } from "@/app/lib/language";
 
 function DealerMark() {
@@ -29,7 +29,7 @@ type Props = {
 };
 
 export function DealersDeAutosHubCategoryCard({ routeLang }: Props) {
-  const c = getDealersDeAutosHubCategoryCopy(routeLang);
+  const c = getPublicCategoryCardCopy("dealers-de-autos", routeLang);
   const browseHref = appendLangToPath("/clasificados/dealers-de-autos", routeLang);
   const publishHref = appendLangToPath("/publicar/autos/negocios", routeLang);
 

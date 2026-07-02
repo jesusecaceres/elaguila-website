@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
-import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
+import { RENTAS_RESULTS_PAGE_BG, RENTAS_RESULTS_SHELL } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 
 /** Rentas results — listings-first shell (no scenic hero band). */
 export function RentasResultsShell({ children }: { children: ReactNode }) {
-  return <CategoryStandardResultsPageShell maxWidthClass="max-w-[1080px]">{children}</CategoryStandardResultsPageShell>;
+  return (
+    <div className={RENTAS_RESULTS_PAGE_BG}>
+      <div className={`${RENTAS_RESULTS_SHELL} relative`}>{children}</div>
+    </div>
+  );
 }

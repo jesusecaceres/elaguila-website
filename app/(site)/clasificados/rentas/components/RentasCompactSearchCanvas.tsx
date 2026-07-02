@@ -13,6 +13,8 @@ import {
   RENTAS_SEARCH_INPUT,
   RENTAS_SEARCH_SHELL,
   RENTAS_SEARCH_SHELL_GLOW,
+  RENTAS_SEARCH_SHELL_GLOW_LANDING,
+  RENTAS_SEARCH_SHELL_LANDING,
   rentasBrowseSearchPlaceholder,
 } from "../shared/rentasLeonixPublicUi";
 
@@ -74,10 +76,12 @@ export function RentasCompactSearchCanvas({
   const browseLabel = lang === "es" ? "Ver todos los anuncios" : "View all listings";
   const isLanding = layout === "landing";
   const datalistId = isLanding ? "rentas-city-presets-landing" : "rentas-city-presets";
+  const shellClass = isLanding ? RENTAS_SEARCH_SHELL_LANDING : RENTAS_SEARCH_SHELL;
+  const glowClass = isLanding ? RENTAS_SEARCH_SHELL_GLOW_LANDING : RENTAS_SEARCH_SHELL_GLOW;
 
   return (
-    <div className={RENTAS_SEARCH_SHELL}>
-      <div className={RENTAS_SEARCH_SHELL_GLOW} aria-hidden />
+    <div className={shellClass}>
+      <div className={glowClass} aria-hidden />
 
       <div className="relative grid grid-cols-1 gap-2 sm:grid-cols-12 sm:gap-2.5">
         <label className={`${RENTAS_SEARCH_FIELD} ${isLanding ? "sm:col-span-5" : "sm:col-span-4"}`}>
@@ -88,7 +92,7 @@ export function RentasCompactSearchCanvas({
             onChange={(e) => onQuery(e.target.value)}
             placeholder={ph}
             aria-label={ph}
-            className={`${RENTAS_SEARCH_INPUT} px-2`}
+            className={`${RENTAS_SEARCH_INPUT} ${isLanding ? "px-2.5 font-medium" : "px-2"}`}
             autoComplete="off"
           />
         </label>
@@ -145,6 +149,10 @@ export function RentasCompactSearchCanvas({
 
       <div className="relative mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch sm:gap-2.5">
         <label className={`${RENTAS_SEARCH_FIELD} sm:col-span-4`}>
+          <span className="sr-only">{countryPh}</span>
+          <span className="hidden shrink-0 pl-2.5 text-[10px] font-bold uppercase tracking-wide text-[#556B3E]/75 sm:inline" aria-hidden>
+            {countryPh}
+          </span>
           <input
             type="text"
             value={country}

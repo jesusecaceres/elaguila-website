@@ -43,6 +43,25 @@ const BTN_SECONDARY =
   "min-h-11 rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_FILTER =
   "min-h-10 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide";
+const BTN_PRIMARY_LG =
+  "min-h-12 w-full rounded-lg bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+const BTN_NAV =
+  "min-h-9 rounded-lg border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-[10px] font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+const BTN_DANGER =
+  "min-h-9 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[10px] font-medium text-red-800 hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-45";
+
+function formatReviewCopy(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce(
+    (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)),
+    template
+  );
+}
+
+function reviewStatusLabel(status: OfertaLocalItemReviewStatus, lang: OfertasLocalesAppLang): string {
+  if (status === "approved") return lang === "en" ? "Approved" : "Aprobado";
+  if (status === "rejected") return lang === "en" ? "Rejected" : "Rechazado";
+  return lang === "en" ? "To review" : "Por revisar";
+}
 
 type ReviewFilter = "all" | OfertaLocalItemReviewStatus;
 type PageFilter = "all" | number;
@@ -227,6 +246,7 @@ function ItemReviewCard({
   onSave,
   onStatus,
   onGoNext,
+  fieldsOnly = false,
 }: {
   item: OfertaLocalItemReviewViewModel;
   draft?: OfertaLocalDraft;
@@ -239,6 +259,7 @@ function ItemReviewCard({
   onSave: () => void;
   onStatus: (status: OfertaLocalItemReviewStatus) => void;
   onGoNext?: () => void;
+  fieldsOnly?: boolean;
 }) {
   const c = ofertasLocalesAppCopy(lang);
   const [ocrOpen, setOcrOpen] = useState(false);
@@ -256,7 +277,7 @@ function ItemReviewCard({
         <span
           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}
         >
-          {item.reviewStatus.replace("_", " ")}
+          {reviewStatusLabel(item.reviewStatus, lang)}
         </span>
         <span className="text-[10px] text-[#1E1814]/55">
           {c.aiReviewConfidence}: {confidenceLabelText(item.confidenceLabel, lang)}
@@ -383,25 +404,27 @@ function ItemReviewCard({
         </p>
       ) : null}
 
-      <div className={`grid gap-2 sm:flex sm:flex-wrap ${compact ? "mt-2" : "mt-3"}`}>
-        <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={onSave}>
-          {c.aiReviewSave}
-        </button>
-        <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={() => onStatus("approved")}>
-          {c.aiReviewApprove}
-        </button>
-        <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => onStatus("needs_review")}>
-          {c.aiReviewNeedsReview}
-        </button>
-        <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => onStatus("rejected")}>
-          {c.aiReviewReject}
-        </button>
-        {onGoNext ? (
-          <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={onGoNext}>
-            {c.aiReviewNextItem}
+      {fieldsOnly ? null : (
+        <div className={`grid gap-2 sm:flex sm:flex-wrap ${compact ? "mt-2" : "mt-3"}`}>
+          <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={onSave}>
+            {c.aiReviewSaveEdits}
           </button>
-        ) : null}
-      </div>
+          <button type="button" className={BTN_PRIMARY} disabled={busy} onClick={() => onStatus("approved")}>
+            {c.aiReviewApprove}
+          </button>
+          <button type="button" className={BTN_SECONDARY} disabled={busy} onClick={() => onStatus("needs_review")}>
+            {c.aiReviewReviewLater}
+          </button>
+          <button type="button" className={BTN_DANGER} disabled={busy} onClick={() => onStatus("rejected")}>
+            {c.aiReviewRejectProduct}
+          </button>
+          {onGoNext ? (
+            <button type="button" className={BTN_NAV} disabled={busy} onClick={onGoNext}>
+              {c.aiReviewNextItem}
+            </button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -444,6 +467,10 @@ export function OfertasLocalesAiItemReviewPanel({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [previousScansOpen, setPreviousScansOpen] = useState(false);
   const [reviewedTrayOpen, setReviewedTrayOpen] = useState(false);
+  const [activeQueueOpen, setActiveQueueOpen] = useState(false);
+  const [deferredQueueTail, setDeferredQueueTail] = useState<string[]>([]);
+  const [rejectConfirmItemId, setRejectConfirmItemId] = useState<string | null>(null);
+  const [reviewLaterHint, setReviewLaterHint] = useState(false);
   const [highlightFlyer, setHighlightFlyer] = useState(false);
   const [scanCompletedAt, setScanCompletedAt] = useState<number | null>(null);
 
@@ -781,7 +808,17 @@ export function OfertasLocalesAiItemReviewPanel({
     [pageFilteredItems]
   );
 
-  const queueItems = isWorkspace ? activeReviewItems : pageFilteredItems;
+  const orderedActiveReviewItems = useMemo(() => {
+    if (!isWorkspace || deferredQueueTail.length === 0) return activeReviewItems;
+    const deferredSet = new Set(deferredQueueTail);
+    const front = activeReviewItems.filter((item) => !deferredSet.has(item.id));
+    const back = deferredQueueTail
+      .map((id) => activeReviewItems.find((item) => item.id === id))
+      .filter((item): item is OfertaLocalItemReviewViewModel => Boolean(item));
+    return [...front, ...back];
+  }, [activeReviewItems, deferredQueueTail, isWorkspace]);
+
+  const queueItems = isWorkspace ? orderedActiveReviewItems : pageFilteredItems;
 
   const filteredItems = useMemo(() => {
     let list = isWorkspace ? queueItems : pageFilteredItems;
@@ -903,6 +940,7 @@ export function OfertasLocalesAiItemReviewPanel({
     logOfertaLocalScanUi("selected item changed", { itemId });
     setSelectedItemId(itemId);
     setHighlightFlyer(false);
+    setRejectConfirmItemId(null);
   }, []);
 
   const handleShowOnFlyer = useCallback(() => {
@@ -928,6 +966,58 @@ export function OfertasLocalesAiItemReviewPanel({
     [handleStatusAction, queueItems, selectItem]
   );
 
+  const handleApproveAndNext = useCallback(
+    async (itemId: string) => {
+      setRejectConfirmItemId(null);
+      setReviewLaterHint(false);
+      const remaining = queueItems.filter((item) => item.id !== itemId);
+      const nextId = remaining[0]?.id ?? null;
+      const itemDraft = drafts[itemId];
+      if (!itemDraft) return;
+      setSavingId(itemId);
+      setActionMessage(null);
+      const result = await patchOfertaLocalReviewItem(
+        itemId,
+        patchFromDraft(itemDraft, isCouponMode, "approved")
+      );
+      setSavingId(null);
+      if (!result.ok || !result.item) {
+        setActionMessage(result.detail ?? result.error ?? c.aiReviewSaveFailed);
+        return;
+      }
+      setItems((prev) => prev.map((it) => (it.id === itemId ? result.item! : it)));
+      setDrafts((prev) => ({ ...prev, [itemId]: toDraft(result.item!) }));
+      setDeferredQueueTail((prev) => prev.filter((id) => id !== itemId));
+      setActionMessage(c.aiReviewSaved);
+      void loadItems({ silent: true });
+      if (nextId) selectItem(nextId);
+    },
+    [queueItems, drafts, isCouponMode, c.aiReviewSaveFailed, c.aiReviewSaved, loadItems, selectItem]
+  );
+
+  const handleReviewLater = useCallback(
+    (itemId: string) => {
+      setRejectConfirmItemId(null);
+      setReviewLaterHint(true);
+      const idx = queueItems.findIndex((item) => item.id === itemId);
+      const nextId =
+        queueItems[idx + 1]?.id ?? queueItems.find((item) => item.id !== itemId)?.id ?? null;
+      setDeferredQueueTail((prev) => [...prev.filter((id) => id !== itemId), itemId]);
+      if (nextId && nextId !== itemId) selectItem(nextId);
+    },
+    [queueItems, selectItem]
+  );
+
+  const handleConfirmReject = useCallback(
+    async (itemId: string) => {
+      setRejectConfirmItemId(null);
+      setReviewLaterHint(false);
+      setDeferredQueueTail((prev) => prev.filter((id) => id !== itemId));
+      await handleStatusAndAdvance(itemId, "rejected");
+    },
+    [handleStatusAndAdvance]
+  );
+
   useEffect(() => {
     if (selectionContextRef.current !== selectionContext) {
       selectionContextRef.current = selectionContext;
@@ -935,6 +1025,10 @@ export function OfertasLocalesAiItemReviewPanel({
       setPreviousScansOpen(false);
       setReviewedTrayOpen(false);
       setHighlightFlyer(false);
+      setDeferredQueueTail([]);
+      setRejectConfirmItemId(null);
+      setReviewLaterHint(false);
+      setActiveQueueOpen(false);
       return;
     }
     if (selectedItemId && !queueItems.some((item) => item.id === selectedItemId)) {
@@ -959,6 +1053,9 @@ export function OfertasLocalesAiItemReviewPanel({
   useEffect(() => {
     setSelectedPageFilter("all");
     setPageBlockMessage(null);
+    setDeferredQueueTail([]);
+    setRejectConfirmItemId(null);
+    setReviewLaterHint(false);
   }, [activeScanJobId, selectedSourceAssetId]);
 
   useEffect(() => {
@@ -1065,7 +1162,7 @@ export function OfertasLocalesAiItemReviewPanel({
 
   const filterButtons: { key: ReviewFilter; label: string }[] = [
     { key: "all", label: c.aiReviewFilterAll },
-    { key: "needs_review", label: c.aiReviewCountNeedsReview },
+    { key: "needs_review", label: c.aiReviewReviewLater },
     { key: "approved", label: c.aiReviewCountApproved },
     { key: "rejected", label: c.aiReviewCountRejected },
   ];
@@ -1116,7 +1213,7 @@ export function OfertasLocalesAiItemReviewPanel({
 
   const pageStatusLabel = (page: PageReviewSummary) => {
     if (page.needsReview === 0) return lang === "en" ? "Complete" : "Completa";
-    if (page.approved > 0 || page.rejected > 0) return lang === "en" ? "Needs review" : "Pendiente";
+    if (page.approved > 0 || page.rejected > 0) return lang === "en" ? "In progress" : "En progreso";
     return lang === "en" ? "Not started" : "Sin empezar";
   };
 
@@ -1407,91 +1504,145 @@ export function OfertasLocalesAiItemReviewPanel({
                   isCouponMode={isCouponMode}
                   busy={savingId === focusedItem.id}
                   compact
+                  fieldsOnly
                   onFieldChange={(field, value) => updateDraftField(focusedItem.id, field, value)}
                   onSave={() => void handleSave(focusedItem.id)}
                   onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
-                  onGoNext={focusIndex < queueItems.length - 1 ? goNextItem : undefined}
                 />
               ) : (
                 <p className="text-xs text-[#1E1814]/60">
-                  {lang === "en" ? "Select an item below to edit it." : "Selecciona un producto abajo para editarlo."}
+                  {lang === "en" ? "Select a product below to edit it." : "Selecciona un producto abajo para editarlo."}
                 </p>
               )}
               {focusedItem && isOfertaLocalActiveReviewStatus(focusedItem.reviewStatus) ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 space-y-3">
                   <button
                     type="button"
-                    className={BTN_PRIMARY}
+                    className={BTN_PRIMARY_LG}
                     disabled={savingId === focusedItem.id}
-                    onClick={() => void handleStatusAndAdvance(focusedItem.id, "approved")}
+                    onClick={() => void handleApproveAndNext(focusedItem.id)}
                   >
-                    {lang === "en" ? "Approve & next" : "Aprobar y siguiente"}
+                    {c.aiReviewApproveAndNext}
                   </button>
-                  <button
-                    type="button"
-                    className={BTN_SECONDARY}
-                    disabled={savingId === focusedItem.id}
-                    onClick={() => void handleStatusAndAdvance(focusedItem.id, "rejected")}
-                  >
-                    {lang === "en" ? "Reject & next" : "Rechazar y siguiente"}
-                  </button>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      className={BTN_SECONDARY}
+                      disabled={savingId === focusedItem.id}
+                      onClick={() => handleReviewLater(focusedItem.id)}
+                    >
+                      {c.aiReviewReviewLater}
+                    </button>
+                    <button
+                      type="button"
+                      className={BTN_SECONDARY}
+                      disabled={savingId === focusedItem.id}
+                      onClick={() => void handleSave(focusedItem.id)}
+                    >
+                      {c.aiReviewSaveEdits}
+                    </button>
+                  </div>
+                  {reviewLaterHint ? (
+                    <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-xs text-amber-950/90">
+                      {c.aiReviewLaterHelper}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={BTN_NAV}
+                      disabled={focusIndex <= 0}
+                      onClick={goPreviousItem}
+                    >
+                      {c.aiReviewPreviousItem}
+                    </button>
+                    <button
+                      type="button"
+                      className={BTN_NAV}
+                      disabled={focusIndex >= queueItems.length - 1}
+                      onClick={goNextItem}
+                    >
+                      {c.aiReviewNextItem}
+                    </button>
+                  </div>
+                  {rejectConfirmItemId === focusedItem.id ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-3">
+                      <p className="text-sm font-semibold text-red-900">{c.aiReviewRejectConfirmTitle}</p>
+                      <p className="mt-1 text-xs text-red-900/80">{c.aiReviewRejectConfirmBody}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className={BTN_SECONDARY}
+                          disabled={savingId === focusedItem.id}
+                          onClick={() => setRejectConfirmItemId(null)}
+                        >
+                          {c.aiReviewRejectConfirmCancel}
+                        </button>
+                        <button
+                          type="button"
+                          className={BTN_DANGER}
+                          disabled={savingId === focusedItem.id}
+                          onClick={() => void handleConfirmReject(focusedItem.id)}
+                        >
+                          {c.aiReviewRejectConfirmAction}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={BTN_DANGER}
+                      disabled={savingId === focusedItem.id}
+                      onClick={() => setRejectConfirmItemId(focusedItem.id)}
+                    >
+                      {c.aiReviewRejectProduct}
+                    </button>
+                  )}
                 </div>
               ) : null}
             </div>
             {clipInspectorSlot ? <div className="xl:hidden">{clipInspectorSlot}</div> : null}
-            <div className="flex flex-col gap-3 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold text-[#1E1814]">
-                  {focusedItem?.sourcePage
-                    ? `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${
-                        focusedPageItems.length
-                      } ${lang === "en" ? "active on page" : "activos en página"} ${focusedItem.sourcePage}`
-                    : `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${
-                        queueItems.length
-                      } ${lang === "en" ? "active" : "activos"}`}
-                </p>
-                <p className="mt-0.5 text-[10px] text-[#1E1814]/55">
-                  {queueItems.length}{" "}
-                  {lang === "en" ? "remaining on this page" : "pendientes en esta página"}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1.5">
-                <button
-                  type="button"
-                  className={BTN_SECONDARY}
-                  disabled={focusIndex <= 0}
-                  onClick={goPreviousItem}
-                >
-                  {c.aiReviewPreviousItem}
-                </button>
-                <button
-                  type="button"
-                  className={BTN_SECONDARY}
-                  disabled={focusIndex >= queueItems.length - 1}
-                  onClick={goNextItem}
-                >
-                  {c.aiReviewNextItem}
-                </button>
-              </div>
+            <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2">
+              <p className="text-xs font-semibold text-[#1E1814]">
+                {currentPageNumber != null
+                  ? formatReviewCopy(c.aiReviewProductToReview, {
+                      current: queueItems.length > 0 ? focusIndex + 1 : 0,
+                      total: queueItems.length,
+                      page: currentPageNumber,
+                    })
+                  : `${c.aiReviewProductPosition} ${focusIndex + 1} ${c.aiReviewProductOf} ${queueItems.length}`}
+              </p>
+              <p className="mt-0.5 text-[10px] text-[#1E1814]/55">
+                {formatReviewCopy(c.aiReviewItemsLeftOnPage, { count: queueItems.length })}
+              </p>
             </div>
             {queueItems.length === 0 ? (
               <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
-                {lang === "en"
-                  ? "No more items need review on this page."
-                  : "No hay más productos por revisar en esta página."}
+                {currentPageNumber != null
+                  ? formatReviewCopy(c.aiReviewPageComplete, { page: currentPageNumber })
+                  : c.aiReviewNoMoreItemsOnPage}
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={BTN_SECONDARY} onClick={goNextActiveReviewItem}>
-                  {lang === "en" ? "Go to next item needing review" : "Ir al siguiente producto pendiente"}
+                <button type="button" className={BTN_NAV} onClick={goNextActiveReviewItem}>
+                  {c.aiReviewGoToNextProductToReview}
                 </button>
               </div>
             )}
-            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-[#D4C4A8]/50 bg-white p-1.5">
-              <p className="px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C]">
-                {lang === "en" ? "Active review queue" : "Cola de revisión activa"}
-              </p>
-              {queueItems.map((item) => {
+            <div className="rounded-lg border border-[#D4C4A8]/50 bg-white">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/60"
+                onClick={() => setActiveQueueOpen((v) => !v)}
+              >
+                <span>
+                  {c.aiReviewViewProductsOnPage} ({queueItems.length})
+                </span>
+                <span>{activeQueueOpen ? "−" : "+"}</span>
+              </button>
+              {activeQueueOpen ? (
+                <div className="max-h-48 space-y-1 overflow-y-auto border-t border-[#D4C4A8]/40 p-1.5">
+                  {queueItems.map((item) => {
                 const active = item.id === selectedItemId;
                 const cropStatus = resolveItemCropListStatus(item, scanActiveForAsset || shouldPollCrops);
                 const cropStatusLabel =
@@ -1546,11 +1697,13 @@ export function OfertasLocalesAiItemReviewPanel({
                     <span
                       className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}
                     >
-                      {item.reviewStatus.replace("_", " ").slice(0, 8)}
+                      {reviewStatusLabel(item.reviewStatus, lang)}
                     </span>
                   </button>
                 );
               })}
+                </div>
+              ) : null}
             </div>
             {reviewedItems.length > 0 ? (
               <div className="rounded-lg border border-[#D4C4A8]/50 bg-[#FDF8F0]">
@@ -1579,7 +1732,7 @@ export function OfertasLocalesAiItemReviewPanel({
                         <span
                           className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase ${statusBadgeClass(item.reviewStatus)}`}
                         >
-                          {item.reviewStatus.replace("_", " ")}
+                          {reviewStatusLabel(item.reviewStatus, lang)}
                         </span>
                       </button>
                     ))}

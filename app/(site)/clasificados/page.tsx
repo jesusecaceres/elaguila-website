@@ -10,6 +10,10 @@ import { OfertasLocalesHubCategoryCard } from "./ofertas-locales/OfertasLocalesH
 import { DealersDeAutosHubCategoryCard } from "./autos/components/public/DealersDeAutosHubCategoryCard";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import {
+  getPublicCategoryCardCopy,
+  getPublicCategoryExploreLabel,
+} from "@/app/lib/clasificados/publicCategoryCopyGuard";
+import {
   getClasificadosCategoryCopy,
   getClasificadosHubPageCopy,
 } from "@/app/lib/clasificados/clasificadosHubPageCopy";
@@ -196,9 +200,8 @@ function CategoryCard({
   exploreLabel: string;
   priority?: boolean;
 }) {
-  const hubCopy = getClasificadosHubPageCopy(lang);
-  const copy = getClasificadosCategoryCopy(lang, category);
-  const postLabel = hubCopy.postInCategory(copy.label);
+  const copy = getPublicCategoryCardCopy(category, lang);
+  const note = getClasificadosCategoryCopy(lang, category).note;
 
   return (
     <article
@@ -212,7 +215,7 @@ function CategoryCard({
         <CategoryMark category={category} />
       </span>
       <h3 className="mt-4 text-base font-bold text-[#1F241C]">{copy.label}</h3>
-      {copy.note ? <p className="mt-1 text-xs font-medium text-[#556B3E]">{copy.note}</p> : null}
+      {note ? <p className="mt-1 text-xs font-medium text-[#556B3E]">{note}</p> : null}
       <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{copy.desc}</p>
       <div className="mt-auto flex flex-col gap-4 border-t border-[#D6C7AD]/50 pt-6">
         <Link
@@ -225,7 +228,7 @@ function CategoryCard({
           href={publishHref}
           className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]"
         >
-          {postLabel}
+          {copy.post}
         </Link>
       </div>
     </article>
@@ -334,7 +337,7 @@ export default function ClasificadosPage() {
                     lang={routeLang}
                     browseHref={browseHref}
                     publishHref={publishHref}
-                    exploreLabel={t.explore}
+                    exploreLabel={getPublicCategoryExploreLabel(routeLang)}
                     priority={priority}
                   />
                 </li>

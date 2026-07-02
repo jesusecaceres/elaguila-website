@@ -27,6 +27,8 @@ Future translated ad **views** require a separate source-language/translation ar
 | Dashboard chrome | `app/(site)/dashboard/lib/dashboardI18n.ts` | Shell, Mis anuncios list, listing workspace copy |
 | Dashboard actions | `app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools.ts` | Category/listing CTA labels |
 | Clasificados UI chrome | `app/lib/clasificados/clasificadosUiChromeCopy.ts` | Shared preview/publish/form field labels |
+| Public category cards | `app/lib/clasificados/publicCategoryCopyGuard.ts` | Hub + extra cards (incl. Dealers de Autos); labels, descriptions, Explore/Post CTAs |
+| Clasificados hub copy | `app/lib/clasificados/clasificadosHubPageCopy/**` | ES/EN/VI base category page copy |
 | Preview shell | `app/clasificados/lib/preview/LeonixPreviewPageShell.tsx` | Optional `lang` → back-to-edit label |
 | Public engagement | `LeonixSaveButton`, `LeonixShareButton`, `LeonixEngagementBar` | Already ES/EN via `lang` prop |
 
@@ -42,6 +44,32 @@ Future translated ad **views** require a separate source-language/translation ar
 | Category tools | All CTA label helpers now branch on `lang` |
 | RE manage card | View public / edit / pause / restore / archive labels |
 | Preview shell | `lang` prop for shared back-to-edit label |
+
+---
+
+## Public Category Copy Registry (GLOBAL-PUBLIC-COPY-REGISTRY-GUARD1)
+
+All **visible public category cards** on `/clasificados` and category labels on `/clasificados/publicar` must resolve through `app/lib/clasificados/publicCategoryCopyGuard.ts`:
+
+| Rule | Detail |
+|------|--------|
+| No raw English in non-EN routes | Post CTAs must use localized category labels — never `Post in ${englishName}` on VI/PT/KM routes |
+| ES + EN required | Every hub category key needs complete label + description in `clasificadosHubPageCopy` |
+| VI Clasificados hub | All visible hub cards + Dealers de Autos must have native VI copy before launch QA |
+| Extra cards | `dealers-de-autos`, `ofertas-locales` registered in `CLASIFICADOS_HUB_VISIBLE_CATEGORY_KEYS` |
+| Seller content | Listing titles/descriptions remain original — this registry is platform UI only |
+| Admin | English only — out of scope |
+| Future translated ad views | Separate from this registry (`SOURCE-LANGUAGE-ADS-FOUNDATION1`) |
+
+Run before merge: `npm run translation:check`
+
+When adding a new public hub category card:
+
+1. Add ES/EN copy in `clasificadosHubPageCopy`
+2. Add VI copy (or document intentional EN fallback in guard status)
+3. Register the key in `CLASIFICADOS_HUB_VISIBLE_CATEGORY_KEYS`
+4. Wire card CTAs through `getPublicCategoryPostCta` / `getPublicCategoryExploreLabel`
+5. Extend `scripts/translation/check-public-copy.mjs` if the card is VI-launch-critical
 
 ---
 

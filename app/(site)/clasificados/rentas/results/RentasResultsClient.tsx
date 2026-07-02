@@ -427,8 +427,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             );
           })}
         </div>
-
-        <CategoryVisibilityCta lang={lang} category="rentas" surface="results" compact />
       </div>
 
       <RentasResultsToolbar
@@ -520,7 +518,8 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       </section>
 
       <footer className="mt-14 border-t border-[#D4C4A8]/50 pt-8 text-center text-sm text-[#4A4338]/88">
-        <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/35">
+        <CategoryVisibilityCta lang={lang} category="rentas" surface="results" compact />
+        <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="mt-6 inline-block font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/35">
           {copy.results.backToHub}
         </Link>
       </footer>
