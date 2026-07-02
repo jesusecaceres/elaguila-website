@@ -55,6 +55,7 @@
     "verify:publish-checkout-checkpoint-standard-01": "node scripts/verify-publish-checkout-checkpoint-standard-01.mjs",
     "verify:restaurantes-publish-checkout-checkpoint-qa-fix-01": "node scripts/verify-restaurantes-publish-checkout-checkpoint-qa-fix-01.mjs",
     "verify:restaurantes-pending-publish-and-coupon-offers-truth-01": "node scripts/verify-restaurantes-pending-publish-and-coupon-offers-truth-01.mjs",
+    "verify:restaurantes-revenue-os-webhook-activation-01": "node scripts/verify-restaurantes-revenue-os-webhook-activation-01.mjs",
     "verify:clasificados-preview-public-output-battlefield-qa-01": "node scripts/verify-clasificados-preview-public-output-battlefield-qa-01.mjs",
     "comunidad:preview-publish-id-gate-audit": "tsx scripts/comunidad-preview-publish-id-gate-audit.ts",
     "verify:admin-review-cta-actions": "node scripts/verify-admin-review-cta-actions.mjs",

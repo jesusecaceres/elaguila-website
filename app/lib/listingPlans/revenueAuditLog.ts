@@ -11,6 +11,7 @@ export type RevenueAuditAction =
   | "revenue_payment_expired"
   | "revenue_promo_redeemed"
   | "revenue_entitlement_activated"
+  | "restaurante_listing_activated_after_payment"
   | "revenue_webhook_ignored"
   | "revenue_webhook_validation_failed";
 
