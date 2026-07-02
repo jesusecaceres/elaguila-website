@@ -49,7 +49,7 @@ function DestacadosHeader({ id, lang }: { id: string; lang: "es" | "en" }) {
 
 function DestacadosEmptyState({ lang }: { lang: "es" | "en" }) {
   const contactHref = `/contacto?lang=${lang}&source=servicios-destacados`;
-  const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const publishHref = `/clasificados/publicar/servicios/checkpoint?lang=${lang}`;
 
   return (
     <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-[#C9A84A]/55 bg-gradient-to-b from-[#FBF6EC] to-[#F6EFDF] px-4 py-5 text-center sm:flex-row sm:justify-between sm:text-left">

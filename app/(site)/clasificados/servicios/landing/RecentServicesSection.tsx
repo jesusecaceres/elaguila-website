@@ -10,7 +10,7 @@ export function RecentServicesSection({
   rows: ServiciosPublicListingRow[];
 }) {
   const resultsHref = `/clasificados/servicios/resultados?lang=${lang}`;
-  const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const publishHref = `/clasificados/publicar/servicios/checkpoint?lang=${lang}`;
 
   return (
     <section className="relative" aria-labelledby="servicios-recientes-heading">

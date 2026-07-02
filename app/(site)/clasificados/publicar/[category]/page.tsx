@@ -41,7 +41,7 @@ export default function PublicarCategoryPage() {
       return;
     }
     if (categoryFromUrl === "servicios") {
-      router.replace(`/clasificados/publicar/servicios?lang=${lang}`);
+      router.replace(`/clasificados/publicar/servicios/checkpoint?lang=${lang}`);
       return;
     }
     if (categoryFromUrl === "restaurantes") {

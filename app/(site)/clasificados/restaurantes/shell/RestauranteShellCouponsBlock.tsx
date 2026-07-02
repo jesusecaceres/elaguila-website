@@ -70,7 +70,18 @@ export function RestauranteShellCouponsBlock({
                   Cupón Leonix
                 </span>
               </div>
-            ) : null}
+            ) : (
+              <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[color:var(--lx-section)] to-[color:var(--lx-card)] border-b border-[color:var(--lx-nav-border)]/60">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                  <div className="mb-3 rounded-full bg-[color:var(--lx-gold)]/20 p-3">
+                    <svg className="h-8 w-8 text-[color:var(--lx-gold)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">Cupón Leonix</span>
+                </div>
+              </div>
+            )}
             <div className="p-5 sm:p-6">
               {coupon.couponCode ? (
                 <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[color:var(--lx-section)] px-3 py-1 text-xs font-semibold text-[color:var(--lx-text)]">
@@ -91,15 +102,6 @@ export function RestauranteShellCouponsBlock({
                 <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
                   <span className="font-semibold">Cómo usarlo:</span> {coupon.redemptionNote}
                 </p>
-              ) : null}
-              {coupon.url ? (
-                <div className="mt-4">
-                  <RestauranteShellInlineDataAssetButton
-                    href={coupon.url}
-                    label={`${coupon.ctaLabel || "Ver oferta"} →`}
-                    className="flex w-full min-h-[44px] items-center justify-center rounded-full border-2 border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-active)]"
-                  />
-                </div>
               ) : null}
             </div>
             <div className="border-t border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)] px-5 py-2 text-[10px] font-medium text-[color:var(--lx-muted)]">

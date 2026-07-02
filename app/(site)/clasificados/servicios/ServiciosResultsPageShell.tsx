@@ -14,7 +14,7 @@ type Props = {
 /** Servicios results — listings-first Leonix shell (no full-bleed atmosphere band). */
 export function ServiciosResultsPageShell({ lang, children, resultCount }: Props) {
   const landingHref = `/clasificados/servicios?lang=${lang}`;
-  const publishHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const publishHref = `/clasificados/publicar/servicios/checkpoint?lang=${lang}`;
   const clearHref = `/clasificados/servicios/results?lang=${lang}`;
   // compact shell — listings-first, no atmosphere band
 

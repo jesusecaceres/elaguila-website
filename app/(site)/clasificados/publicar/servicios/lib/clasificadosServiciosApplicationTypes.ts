@@ -217,6 +217,15 @@ export type ClasificadosServiciosApplicationState = {
   promotions: ClasificadosServiciosPromoRow[];
   /** Featured coupons (paid add-on) — up to 4 rows when couponsAddOn is true */
   coupons: ClasificadosServiciosCouponRow[];
+  /** Shared flyer for coupons/promotions — single image */
+  couponFlyer: {
+    imageUrl: string;
+  };
+  /** Shared more offers link — external URL and button label */
+  couponMoreOffers: {
+    url: string;
+    buttonLabel: string;
+  };
   /** Pre-publish attestations (same pattern as En Venta) */
   confirmListingAccurate: boolean;
   confirmPhotosRepresentBusiness: boolean;

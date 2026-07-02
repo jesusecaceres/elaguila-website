@@ -47,7 +47,7 @@ export function ServiciosLandingPage({
   const hasDestacados = destacadosRows.length > 0;
   const landingChips = SERVICIOS_LANDING_QUICK_CHIPS.filter((c) => LANDING_QUICK_CHIP_IDS.has(c.id));
   const resultsHref = buildCategoryResultsUrl("servicios", routeLang as Lang);
-  const publishHref = replaceLangInHref("/clasificados/publicar/servicios", routeLang);
+  const publishHref = replaceLangInHref("/clasificados/publicar/servicios/checkpoint", routeLang);
 
   const copy = {
     es: {

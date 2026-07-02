@@ -96,7 +96,7 @@ export function ClasificadosServiciosPreviewClient() {
   const searchParams = useSearchParams();
   const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
 
-  const editHref = `/clasificados/publicar/servicios?lang=${lang}`;
+  const editHref = `/publicar/servicios?lang=${lang}`;
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
 

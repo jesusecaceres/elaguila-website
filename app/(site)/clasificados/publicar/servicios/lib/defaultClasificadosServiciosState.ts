@@ -2,6 +2,7 @@ import type { ClasificadosServiciosApplicationState, DayHoursRow, DayKey, Clasif
 import {
   createEmptyClasificadosPromoRow,
   clasificadosPromoRowHasProgress,
+  clasificadosCouponRowHasProgress,
 } from "./clasificadosServiciosPromo";
 
 function createEmptyCouponRow(): ClasificadosServiciosCouponRow {
@@ -115,6 +116,8 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     testimonials: [],
     promotions: [createEmptyClasificadosPromoRow()],
     coupons: [],
+    couponFlyer: { imageUrl: "" },
+    couponMoreOffers: { url: "", buttonLabel: "" },
     confirmListingAccurate: false,
     confirmPhotosRepresentBusiness: false,
     confirmCommunityRules: false,
@@ -191,6 +194,9 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   }
   if (s.testimonials.length > 0) return true;
   if (s.promotions.some((r) => clasificadosPromoRowHasProgress(r))) return true;
+  if (s.coupons.some((r) => clasificadosCouponRowHasProgress(r))) return true;
+  if (s.couponFlyer.imageUrl.trim()) return true;
+  if (s.couponMoreOffers.url.trim() || s.couponMoreOffers.buttonLabel.trim()) return true;
   if (s.confirmListingAccurate || s.confirmPhotosRepresentBusiness || s.confirmCommunityRules) return true;
   if (
     s.paymentMethodIds.length > 0 ||

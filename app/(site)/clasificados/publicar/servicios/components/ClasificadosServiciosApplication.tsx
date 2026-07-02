@@ -3055,9 +3055,30 @@ export function ClasificadosServiciosApplication() {
             {/* Coupons section - only shows when add-on is enabled */}
             {state.couponsAddOn ? (
               <section className={sectionCard} aria-labelledby="sec-coupons">
-                <h2 id="sec-coupons" className="text-lg font-bold text-[#3D2C12]">
-                  {lang === "en" ? "Featured coupons" : "Cupones destacados"}
-                </h2>
+                <div className="flex items-center justify-between gap-2">
+                  <h2 id="sec-coupons" className="text-lg font-bold text-[#3D2C12]">
+                    {lang === "en" ? "Featured coupons" : "Cupones destacados"}
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[#3D2C12]">
+                      {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setState((s) => ({
+                          ...s,
+                          couponsAddOn: false,
+                          couponsMonthlyPrice: 0,
+                          coupons: [],
+                        }));
+                      }}
+                      className="text-sm font-semibold text-red-700 underline"
+                    >
+                      {lang === "en" ? "Remove" : "Quitar"}
+                    </button>
+                  </div>
+                </div>
                 <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">
                   {lang === "en"
                     ? "Add up to 4 featured coupons with regular/special pricing, savings, codes, and expiration dates."
@@ -3311,31 +3332,11 @@ export function ClasificadosServiciosApplication() {
                           <label className="block text-xs font-semibold text-[#6b5c42]">
                             {lang === "en" ? "Coupon image (optional)" : "Imagen del cupón (opcional)"}
                           </label>
-                          {row.imageUrl ? (
-                            <div className="mt-2 rounded-lg border border-[#D8C79A]/60 bg-[#FFFDF7] p-3">
-                              <img src={row.imageUrl} alt="" className="h-32 w-auto rounded object-contain" />
-                              <button
-                                type="button"
-                                className="mt-2 min-h-[44px] text-xs font-semibold text-red-700 underline"
-                                onClick={() => {
-                                  const input = couponImageInputRefs.current[i];
-                                  if (input) input.value = "";
-                                  setState((s) => {
-                                    const next = [...s.coupons];
-                                    const cur = next[i] ?? createEmptyCouponRow();
-                                    next[i] = { ...cur, imageUrl: "" };
-                                    return { ...s, coupons: next };
-                                  });
-                                }}
-                              >
-                                {lang === "en" ? "Remove image" : "Eliminar imagen"}
-                              </button>
-                            </div>
-                          ) : (
+                          <div className="mt-2 space-y-2">
                             <input
                               type="file"
                               accept="image/*"
-                              className="mt-2 block w-full text-sm text-[#5D4A25] file:mr-4 file:rounded-full file:border-0 file:bg-[#F6F0E2] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#3D2C12] hover:file:bg-[#E8DCC0]"
+                              className="block w-full text-sm text-[#5D4A25] file:mr-4 file:rounded-full file:border-0 file:bg-[#F6F0E2] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#3D2C12] hover:file:bg-[#E8DCC0]"
                               ref={(el) => {
                                 if (el) couponImageInputRefs.current[i] = el;
                               }}
@@ -3356,7 +3357,42 @@ export function ClasificadosServiciosApplication() {
                                 );
                               }}
                             />
-                          )}
+                            <input
+                              type="url"
+                              className={inputClass}
+                              placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
+                              value={row.imageUrl && !row.imageUrl.startsWith("data:") ? row.imageUrl : ""}
+                              onChange={(e) =>
+                                setState((s) => {
+                                  const next = [...s.coupons];
+                                  const cur = next[i] ?? createEmptyCouponRow();
+                                  next[i] = { ...cur, imageUrl: e.target.value };
+                                  return { ...s, coupons: next };
+                                })
+                              }
+                            />
+                            {row.imageUrl ? (
+                              <div className="flex items-center gap-2">
+                                <img src={row.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[#D8C79A]/60 object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const input = couponImageInputRefs.current[i];
+                                    if (input) input.value = "";
+                                    setState((s) => {
+                                      const next = [...s.coupons];
+                                      const cur = next[i] ?? createEmptyCouponRow();
+                                      next[i] = { ...cur, imageUrl: "" };
+                                      return { ...s, coupons: next };
+                                    });
+                                  }}
+                                  className="text-xs font-semibold text-red-700 hover:text-red-800"
+                                >
+                                  {lang === "en" ? "Remove" : "Eliminar"}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -3383,6 +3419,101 @@ export function ClasificadosServiciosApplication() {
                       {lang === "en" ? "+ Add coupon" : "+ Agregar cupón"}
                     </button>
                   )}
+                </div>
+
+                {/* Shared flyer section */}
+                <div className="mt-6 rounded-xl border border-[#D8C79A] bg-[#FFFDF7] p-4">
+                  <label className="block text-xs font-semibold text-[#6b5c42]">
+                    {lang === "en" ? "Flyer de cupones o promociones (opcional)" : "Flyer de cupones o promociones (opcional)"}
+                  </label>
+                  <p className="mt-1 text-xs text-[#5D4A25]/80">
+                    {lang === "en"
+                      ? "Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales."
+                      : "Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales."}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="block w-full text-sm text-[#5D4A25] file:mr-4 file:rounded-full file:border-0 file:bg-[#F6F0E2] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#3D2C12] hover:file:bg-[#E8DCC0]"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        if (!f.type.startsWith("image/")) {
+                          setMediaFlash(lang === "en" ? "Please select an image file" : "Por favor selecciona un archivo de imagen");
+                          return;
+                        }
+                        void readFileAsDataUrl(f).then((url) =>
+                          setState((s) => ({
+                            ...s,
+                            couponFlyer: { imageUrl: url },
+                          })),
+                        );
+                      }}
+                    />
+                    <input
+                      type="url"
+                      className={inputClass}
+                      placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
+                      value={state.couponFlyer.imageUrl && !state.couponFlyer.imageUrl.startsWith("data:") ? state.couponFlyer.imageUrl : ""}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          couponFlyer: { imageUrl: e.target.value },
+                        }))
+                      }
+                    />
+                    {state.couponFlyer.imageUrl ? (
+                      <div className="flex items-center gap-2">
+                        <img src={state.couponFlyer.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[#D8C79A]/60 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setState((s) => ({ ...s, couponFlyer: { imageUrl: "" } }))}
+                          className="text-xs font-semibold text-red-700 hover:text-red-800"
+                        >
+                          {lang === "en" ? "Remove" : "Eliminar"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Shared more-offers section */}
+                <div className="mt-4 rounded-xl border border-[#D8C79A] bg-[#FFFDF7] p-4">
+                  <label className="block text-xs font-semibold text-[#6b5c42]">
+                    {lang === "en" ? "Enlace para ver más ofertas (opcional)" : "Enlace para ver más ofertas (opcional)"}
+                  </label>
+                  <p className="mt-1 text-xs text-[#5D4A25]/80">
+                    {lang === "en"
+                      ? "URL externa donde los clientes pueden ver más cupones o promociones."
+                      : "URL externa donde los clientes pueden ver más cupones o promociones."}
+                  </p>
+                  <div className="mt-2 space-y-3">
+                    <input
+                      type="url"
+                      className={inputClass}
+                      placeholder={lang === "en" ? "https://yourbusiness.com/offers" : "https://tuneogocio.com/ofertas"}
+                      value={state.couponMoreOffers.url}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          couponMoreOffers: { ...s.couponMoreOffers, url: e.target.value },
+                        }))
+                      }
+                    />
+                    <input
+                      type="text"
+                      className={inputClass}
+                      placeholder={lang === "en" ? "Button label (optional)" : "Etiqueta del botón (opcional)"}
+                      value={state.couponMoreOffers.buttonLabel}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          couponMoreOffers: { ...s.couponMoreOffers, buttonLabel: e.target.value.slice(0, 50) },
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
               </section>
             ) : (

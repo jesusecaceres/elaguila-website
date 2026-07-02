@@ -1,4 +1,4 @@
-import type { ClasificadosServiciosPromoRow } from "./clasificadosServiciosApplicationTypes";
+import type { ClasificadosServiciosPromoRow, ClasificadosServiciosCouponRow } from "./clasificadosServiciosApplicationTypes";
 
 export const MAX_CLASIFICADOS_PROMOTIONS = 4;
 export const CLASIFICADOS_PROMO_TITLE_MAX = 120;
@@ -32,4 +32,21 @@ export function clasificadosPromoRowIsActive(row: ClasificadosServiciosPromoRow)
 /** Leave-guard: any user intent on the row (including QR placeholder). */
 export function clasificadosPromoRowHasProgress(row: ClasificadosServiciosPromoRow): boolean {
   return clasificadosPromoRowIsActive(row) || row.qrLater === true;
+}
+
+/** Check if a coupon row has any user input */
+export function clasificadosCouponRowHasProgress(row: ClasificadosServiciosCouponRow): boolean {
+  return Boolean(
+    row.title.trim() ||
+      row.description.trim() ||
+      row.regularPrice.trim() ||
+      row.specialPrice.trim() ||
+      row.savings.trim() ||
+      row.imageUrl.trim() ||
+      row.url.trim() ||
+      row.couponCode.trim() ||
+      row.expirationDate.trim() ||
+      row.redemptionNote.trim() ||
+      row.ctaLabel.trim(),
+  );
 }
