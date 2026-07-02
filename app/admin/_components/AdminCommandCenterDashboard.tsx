@@ -310,6 +310,28 @@ export function AdminCommandCenterDashboard({
     </header>
   );
 
+  const promoCodeGeneratorTopCta = (
+    <section
+      className={`${adminCardBase} mb-5 border-[#C9B46A]/40 bg-gradient-to-r from-[#FFF8F0] to-[#FFFCF7] p-4 sm:p-5`}
+      data-testid="admin-promo-code-generator-top-cta"
+    >
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A7164]">Promo codes</p>
+          <h2 className="mt-1 text-lg font-bold text-[#1E1810]">Leonix checkout promo codes</h2>
+          <p className="mt-1 text-sm text-[#5C5346]">Create and track Leonix checkout promo codes.</p>
+        </div>
+        <AdminDashboardCta
+          href={ADMIN_DASHBOARD_ROUTES.promoCodes}
+          label="Promo Code Generator"
+          variant="premium"
+          className="w-full sm:w-auto sm:shrink-0"
+          title="Create and track Leonix checkout promo codes"
+        />
+      </div>
+    </section>
+  );
+
   const priorityStrip = (
     <div className="mb-5 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6" data-testid="admin-ceo-priority-strip">
       <PriorityTile
@@ -833,6 +855,7 @@ export function AdminCommandCenterDashboard({
   return (
     <div className="min-w-0 max-w-7xl overflow-x-hidden" data-testid="admin-ceo-command-center">
       {hero}
+      {promoCodeGeneratorTopCta}
       <AdminPagePurposeCard
         title="Leonix Command Center"
         purpose="Daily operator view for leads, listings, reports, revenue signals, people, website control, and planned system health without fake counts."

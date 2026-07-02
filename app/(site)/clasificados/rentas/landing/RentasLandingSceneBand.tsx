@@ -3,13 +3,13 @@ import type { ReactNode } from "react";
 /**
  * Rentas landing neighborhood scene — CSS-only visual contract v5.
  * Inline SVG + gradient layers (no remote assets, no image generation).
- * Marker: data-rentas-gateway-scene="v5-visual-contract"
+ * Marker: data-rentas-gateway-scene="v6-inner-structure"
  */
 export function RentasLandingSceneBand({ children }: { children: ReactNode }) {
   return (
     <div
       className="relative min-h-[32rem] overflow-hidden rounded-2xl border-2 border-[#C9A84A]/45 shadow-[0_28px_72px_-32px_rgba(42,36,22,0.48)] ring-1 ring-[#C9A84A]/20 sm:min-h-[34rem]"
-      data-rentas-gateway-scene="v5-visual-contract"
+      data-rentas-gateway-scene="v6-inner-structure"
     >
       {/* Golden-hour sky — no opaque base; scene stays visible */}
       <div
