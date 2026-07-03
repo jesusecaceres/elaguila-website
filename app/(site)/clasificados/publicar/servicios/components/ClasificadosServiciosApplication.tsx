@@ -213,6 +213,11 @@ export function ClasificadosServiciosApplication() {
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
   const editRequested = editParam === "1" && Boolean(editListingSlug || editListingId || editLeonixAdId);
   const copy = getClasificadosServiciosCopy(lang);
+  const labels = copy.labels as any;
+  const couponDecisionTitle = labels.couponDecisionTitle || (lang === "en" ? "Add featured coupons?" : "¿Quieres agregar cupones destacados?");
+  const couponDecisionBody = labels.couponDecisionBody || (lang === "en" ? "For +$99/month, show up to 4 featured coupons inside your service listing." : "Por +$99/mes puedes mostrar hasta 4 cupones destacados dentro de tu anuncio de servicios.");
+  const couponDecisionAdd = labels.couponDecisionAdd || (lang === "en" ? "Add coupons" : "Agregar cupones");
+  const couponDecisionSkip = labels.couponDecisionSkip || (lang === "en" ? "Continue without coupons" : "Continuar sin cupones");
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
@@ -3077,45 +3082,6 @@ export function ClasificadosServiciosApplication() {
             )}
           </div>
         </section>
-
-        {/* Coupon upsell reminder - show after promotions if not yet enabled */}
-        {(!state.couponsAddOn && step === 7) ? (
-          <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
-            <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-              {lang === "en" ? "Want to attract more customers with coupons?" : "¿Quieres atraer más clientes con cupones?"}
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-              {lang === "en"
-                ? "$99/month to show featured offers inside your service ad. You can publish up to 4 main coupons with regular/special pricing, savings, codes, and expiration dates."
-                : "$99/mes para mostrar ofertas destacadas dentro de tu anuncio de servicios. Puedes publicar hasta 4 cupones principales con precio regular/especial, ahorros, códigos y fechas de expiración."}
-            </p>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => {
-                  setState((s) => ({
-                    ...s,
-                    couponsAddOn: true,
-                    couponsMonthlyPrice: 99,
-                    coupons: [createEmptyCouponRow()],
-                  }));
-                }}
-                className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
-              >
-                {lang === "en" ? "Add coupons" : "Agregar cupones"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setState((s) => ({ ...s, couponsAddOn: false, couponsMonthlyPrice: 0, coupons: [] }));
-                }}
-                className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
-              >
-                {lang === "en" ? "Continue without coupons" : "Continuar sin cupones"}
-              </button>
-            </div>
-          </div>
-        ) : null}
           </>
         ) : null}
 
@@ -3154,7 +3120,7 @@ export function ClasificadosServiciosApplication() {
                     : "Añade hasta 4 cupones destacados con precio regular/especial, ahorros, códigos y fechas de expiración."}
                 </p>
 
-                {state.coupons.map((row, i) => {
+                {state.coupons && state.coupons.length > 0 && state.coupons.map((row, i) => {
                   const linkInvalid = row.url.trim() && !isProbablyValidWebUrl(row.url);
                   return (
                     <div
@@ -3165,7 +3131,7 @@ export function ClasificadosServiciosApplication() {
                         <h3 className="text-base font-bold text-[#3D2C12]">
                           {lang === "en" ? `Coupon ${i + 1}` : `Cupón ${i + 1}`}
                         </h3>
-                        {state.coupons.length > 1 ? (
+                        {state.coupons?.length > 1 ? (
                           <button
                             type="button"
                             className="text-xs font-semibold text-red-800 underline"
@@ -3470,7 +3436,7 @@ export function ClasificadosServiciosApplication() {
 
                 {/* Add coupon button */}
                 <div className="mt-6 flex flex-col gap-2 border-t border-[#D8C79A]/40 pt-5">
-                  {state.coupons.length >= 4 ? (
+                  {state.coupons?.length >= 4 ? (
                     <p className="text-xs text-[#8a7a62]">
                       {lang === "en" ? "Maximum 4 coupons" : "Máximo 4 cupones"}
                     </p>
@@ -3480,7 +3446,7 @@ export function ClasificadosServiciosApplication() {
                       onClick={() =>
                         setState((s) => ({
                           ...s,
-                          coupons: [...s.coupons, createEmptyCouponRow()],
+                          coupons: [...(s.coupons || []), createEmptyCouponRow()],
                         }))
                       }
                       className="min-h-[44px] rounded-full border border-[#C9782F]/50 bg-[#FFFDF7] px-4 py-2 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#F6F0E2]"
@@ -3524,7 +3490,7 @@ export function ClasificadosServiciosApplication() {
                       type="url"
                       className={inputClass}
                       placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
-                      value={state.couponFlyer.imageUrl && !state.couponFlyer.imageUrl.startsWith("data:") ? state.couponFlyer.imageUrl : ""}
+                      value={state.couponFlyer?.imageUrl && !state.couponFlyer.imageUrl.startsWith("data:") ? state.couponFlyer.imageUrl : ""}
                       onChange={(e) =>
                         setState((s) => ({
                           ...s,
@@ -3532,7 +3498,7 @@ export function ClasificadosServiciosApplication() {
                         }))
                       }
                     />
-                    {state.couponFlyer.imageUrl ? (
+                    {state.couponFlyer?.imageUrl ? (
                       <div className="flex items-center gap-2">
                         <img src={state.couponFlyer.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[#D8C79A]/60 object-cover" />
                         <button
@@ -3562,11 +3528,11 @@ export function ClasificadosServiciosApplication() {
                       type="url"
                       className={inputClass}
                       placeholder={lang === "en" ? "https://yourbusiness.com/offers" : "https://tuneogocio.com/ofertas"}
-                      value={state.couponMoreOffers.url}
+                      value={state.couponMoreOffers?.url || ""}
                       onChange={(e) =>
                         setState((s) => ({
                           ...s,
-                          couponMoreOffers: { ...s.couponMoreOffers, url: e.target.value },
+                          couponMoreOffers: { ...(s.couponMoreOffers || { url: "", buttonLabel: "" }), url: e.target.value },
                         }))
                       }
                     />
@@ -3574,11 +3540,11 @@ export function ClasificadosServiciosApplication() {
                       type="text"
                       className={inputClass}
                       placeholder={lang === "en" ? "Button label (optional)" : "Etiqueta del botón (opcional)"}
-                      value={state.couponMoreOffers.buttonLabel}
+                      value={state.couponMoreOffers?.buttonLabel || ""}
                       onChange={(e) =>
                         setState((s) => ({
                           ...s,
-                          couponMoreOffers: { ...s.couponMoreOffers, buttonLabel: e.target.value.slice(0, 50) },
+                          couponMoreOffers: { ...(s.couponMoreOffers || { url: "", buttonLabel: "" }), buttonLabel: e.target.value.slice(0, 50) },
                         }))
                       }
                     />
@@ -3586,14 +3552,48 @@ export function ClasificadosServiciosApplication() {
                 </div>
               </section>
             ) : (
-              /* Skip coupons step if add-on not enabled */
-              <div className={sectionCard}>
-                <p className="text-sm text-[#5D4A25]/90">
-                  {lang === "en"
-                    ? "Coupons add-on is not enabled. Go back to the promotions step to enable it."
-                    : "El complemento de cupones no está activado. Regresa al paso de promociones para activarlo."}
-                </p>
-              </div>
+              /* Coupon decision card - show when add-on is not yet enabled */
+              <section className={sectionCard} aria-labelledby="sec-coupon-decision">
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <h2 id="sec-coupon-decision" className="text-xl font-bold text-[#3D2C12]">
+                    {couponDecisionTitle}
+                  </h2>
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-[#5D4A25]/90">
+                    {couponDecisionBody}
+                  </p>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setState((s) => ({
+                          ...s,
+                          couponsAddOn: true,
+                          couponsMonthlyPrice: 99,
+                          coupons: s.coupons && s.coupons.length > 0 ? s.coupons : [createEmptyCouponRow()],
+                        }));
+                      }}
+                      className="min-h-[44px] rounded-full bg-[#3D2C12] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5D4A25]"
+                    >
+                      {couponDecisionAdd}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setState((s) => ({
+                          ...s,
+                          couponsAddOn: false,
+                          couponsMonthlyPrice: 0,
+                          coupons: [],
+                          applicationStepIndex: 9,
+                        }));
+                      }}
+                      className="min-h-[44px] rounded-full border border-[#D8C79A] bg-white px-6 py-2.5 text-sm font-semibold text-[#3D2C12] transition hover:bg-[#F6F0E2]"
+                    >
+                      {couponDecisionSkip}
+                    </button>
+                  </div>
+                </div>
+              </section>
             )}
           </>
         ) : null}
