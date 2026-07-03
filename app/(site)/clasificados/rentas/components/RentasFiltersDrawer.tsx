@@ -200,13 +200,17 @@ export function RentasFiltersDrawer({
   const applyLabel = copy.results.applyFilters;
   const clearLabel = lang === "es" ? "Limpiar filtros" : "Clear filters";
   const isLanding = variant === "landing";
-  const spaceLabel = lang === "es" ? "Tipo de espacio" : "Space type";
-  const budgetLabel = lang === "es" ? "Presupuesto" : "Budget";
-  const locationLabel = lang === "es" ? "Ubicación" : "Location";
-  const forWhoLabel = lang === "es" ? "Para quién" : "For who";
-  const essentialsLabel = lang === "es" ? "Baño / cocina / essentials" : "Bath / kitchen / essentials";
-  const rulesLabel = lang === "es" ? "Reglas / features" : "Rules / features";
-  const posterLabel = lang === "es" ? "Publicador" : "Poster";
+  const spaceLabel = lang === "es" ? "¿Qué tipo de renta?" : "What kind of rental?";
+  const budgetLabel = lang === "es" ? "¿Qué presupuesto?" : "What budget?";
+  const locationLabel = lang === "es" ? "¿Dónde?" : "Where?";
+  const forWhoLabel = lang === "es" ? "¿Para quién?" : "For who?";
+  const essentialsLabel = lang === "es" ? "¿Qué espacio necesitas?" : "What space details?";
+  const rulesLabel = lang === "es" ? "¿Qué condiciones?" : "What conditions?";
+  const posterLabel = lang === "es" ? "¿Quién publica?" : "Who is posting?";
+  const drawerIntro =
+    lang === "es"
+      ? "Afina por tipo, presupuesto, ubicación y condiciones. Cada opción usa campos reales del anuncio."
+      : "Refine by type, budget, location, and conditions. Each option maps to real listing fields.";
 
   const applyBudgetBand = (bandValue: string) => {
     const band = RENTAS_US_BUDGET_BANDS.find((b) => b.value === bandValue);
@@ -243,6 +247,9 @@ export function RentasFiltersDrawer({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+          {!isLanding ? (
+            <p className="mb-4 text-xs leading-relaxed text-[#5C5346]">{drawerIntro}</p>
+          ) : null}
           <GroupLabel>{spaceLabel}</GroupLabel>
           <label className="mt-2 block text-left text-[11px] font-semibold text-[#5C5346]">
             {lang === "es" ? "Selecciona tipo" : "Select type"}

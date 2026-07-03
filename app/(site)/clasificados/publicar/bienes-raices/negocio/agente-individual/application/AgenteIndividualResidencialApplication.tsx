@@ -52,8 +52,10 @@ import {
 } from "../sections/steps04-09";
 import { useBrAgenteResidencialCopy } from "./BrAgenteResidencialLocaleContext";
 import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
-import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
+import { brAgenteApplicationPricingCopy } from "../../../shared/brAgenteApplicationPricingCopy";
 import { BrNegocioPrePublishInventoryShell } from "../../application/sections/shared/BrNegocioPrePublishInventoryShell";
+import { BrAgenteApplicationPricingSummary } from "../../application/sections/shared/BrAgenteApplicationPricingSummary";
+import { BrAgenteApplicationConfirmations } from "../../application/sections/shared/BrAgenteApplicationConfirmations";
 import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInventoryCardModel";
 import { getQueue, readQueuePrefillForAddMode } from "../../application/brNegocioInventoryPublishQueue";
 import { applyInventoryDraftToAgenteFormState } from "../../application/brNegocioInventoryQueuePrefill";
@@ -166,8 +168,15 @@ export default function AgenteIndividualResidencialApplication() {
     [isDirty, lang, muxIds, router]
   );
 
+  const pricingCopy = brAgenteApplicationPricingCopy(lang);
+  const childInventoryCount = state.additionalInventoryProperties.length;
+
   const confirmAll =
-    state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
+    state.confirmListingAccurate &&
+    state.confirmPhotosRepresentItem &&
+    state.confirmCommunityRules &&
+    state.confirmPaymentAfterPreview &&
+    (childInventoryCount >= 1 ? state.confirmInventoryPackPricing : true);
 
   const openPreview = useCallback(() => {
     if (!confirmAll) return;
@@ -336,6 +345,23 @@ export default function AgenteIndividualResidencialApplication() {
                   parentFullState={state}
                   mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                   items={state.additionalInventoryProperties}
+                  inventoryPackAccepted={state.inventoryPackAccepted}
+                  onInventoryPackAcceptedChange={(accepted) =>
+                    setState((s) => ({ ...s, inventoryPackAccepted: accepted }))
+                  }
+                  onInventoryPackCancel={() => {
+                    setChildInventoryMediaBridge([]);
+                    setState((s) => {
+                      const next = {
+                        ...s,
+                        inventoryPackAccepted: false,
+                        additionalInventoryProperties: [],
+                        confirmInventoryPackPricing: false,
+                      };
+                      persistAgenteResApplicationDraftQuiet(next);
+                      return next;
+                    });
+                  }}
                   onGoToParentPreview={() => {
                     queueMicrotask(() => {
                       if (confirmAll) openPreview();
@@ -344,22 +370,25 @@ export default function AgenteIndividualResidencialApplication() {
                   onItemsChange={(items) => {
                     setChildInventoryMediaBridge(items);
                     setState((s) => {
-                      const next = { ...s, additionalInventoryProperties: items };
+                      const next = {
+                        ...s,
+                        additionalInventoryProperties: items,
+                        inventoryPackAccepted: items.length > 0 ? true : s.inventoryPackAccepted,
+                        confirmInventoryPackPricing:
+                          items.length === 0 ? false : s.confirmInventoryPackPricing,
+                      };
                       persistAgenteResApplicationDraftQuiet(next);
                       return next;
                     });
                   }}
                   hidden={inventoryAdd.inventoryModeAdd}
                 />
-                <ListingRulesConfirmationSection
+                <BrAgenteApplicationPricingSummary lang={lang} childCount={childInventoryCount} />
+                <BrAgenteApplicationConfirmations
                   lang={lang}
-                  subject="property"
-                  confirmAccurate={state.confirmListingAccurate}
-                  confirmPhotos={state.confirmPhotosRepresentItem}
-                  confirmRules={state.confirmCommunityRules}
-                  onAccurate={(v) => setState((s) => ({ ...s, confirmListingAccurate: v }))}
-                  onPhotos={(v) => setState((s) => ({ ...s, confirmPhotosRepresentItem: v }))}
-                  onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
+                  state={state}
+                  childCount={childInventoryCount}
+                  setState={setState}
                 />
                 <button
                   type="button"
@@ -367,7 +396,7 @@ export default function AgenteIndividualResidencialApplication() {
                   onClick={openPreview}
                   className="mt-5 rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-6 py-3 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {t.app.verVistaPrevia}
+                  {pricingCopy.continueToPreview}
                 </button>
               </section>
             ) : null}
@@ -389,7 +418,7 @@ export default function AgenteIndividualResidencialApplication() {
                     onClick={openPreview}
                     className="min-h-[48px] w-full touch-manipulation rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-0 sm:py-2.5"
                   >
-                    {t.app.verVistaPrevia}
+                    {pricingCopy.continueToPreview}
                   </button>
                 ) : null}
                 <button

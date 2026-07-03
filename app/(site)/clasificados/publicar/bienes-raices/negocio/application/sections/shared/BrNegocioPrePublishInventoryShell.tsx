@@ -4,9 +4,12 @@ import { useCallback, useMemo, useState } from "react";
 import type { AgenteIndividualResidencialFormState } from "../../../agente-individual/schema/agenteIndividualResidencialFormState";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
+import { brAgenteApplicationPricingCopy } from "../../../../shared/brAgenteApplicationPricingCopy";
+import { BR_INVENTORY_PACK_MAX_CHILDREN } from "../../../../shared/brAgenteApplicationPricingHelpers";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
 import { normalizeChildInventoryList, mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
+import { BrAgenteInventoryPackCheckpoint } from "./BrAgenteInventoryPackCheckpoint";
 import { BrNegocioChildInventoryFullApplication } from "./BrNegocioChildInventoryFullApplication";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
 import { BrNegocioPrePublishInventoryPreview } from "./BrNegocioPrePublishInventoryPreview";
@@ -20,12 +23,16 @@ type Props = {
   parentFullState?: AgenteIndividualResidencialFormState;
   mainProperty: BrNegocioInventoryCardModel;
   items: BrNegocioAdditionalInventoryPropertyDraft[];
+  /** When omitted, legacy flow skips pricing checkpoint (e.g. generic negocio resumen). */
+  inventoryPackAccepted?: boolean;
+  onInventoryPackAcceptedChange?: (accepted: boolean) => void;
+  onInventoryPackCancel?: () => void;
   onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void;
   /** After child save — open parent full preview (step 10 publish review). */
   onGoToParentPreview?: () => void;
 };
 
-/** BR-INV-B/C/D/E — CTA + owner preview cards + full child application (pre-publish only). */
+/** BR-INV-B/C/D/E — pricing checkpoint + owner preview cards + full child application (pre-publish only). */
 export function BrNegocioPrePublishInventoryShell({
   lang = "es",
   hidden = false,
@@ -33,6 +40,9 @@ export function BrNegocioPrePublishInventoryShell({
   parentFullState,
   mainProperty,
   items,
+  inventoryPackAccepted,
+  onInventoryPackAcceptedChange,
+  onInventoryPackCancel,
   onItemsChange,
   onGoToParentPreview,
 }: Props) {
@@ -40,7 +50,11 @@ export function BrNegocioPrePublishInventoryShell({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
+  const pricingCopy = brAgenteApplicationPricingCopy(lang);
   const additionalCount = items.length;
+  const checkpointEnabled = Boolean(onInventoryPackAcceptedChange);
+  const packAccepted = inventoryPackAccepted ?? !checkpointEnabled;
+  const packActive = checkpointEnabled ? packAccepted || additionalCount > 0 : true;
 
   const editingDraft = useMemo(() => {
     if (!editingId) return null;
@@ -64,9 +78,13 @@ export function BrNegocioPrePublishInventoryShell({
   );
 
   const openForAdd = useCallback(() => {
+    if (additionalCount >= BR_INVENTORY_PACK_MAX_CHILDREN) {
+      window.alert(pricingCopy.fifthChildBlock);
+      return;
+    }
     setEditingId(null);
     setDrawerOpen(true);
-  }, []);
+  }, [additionalCount, pricingCopy.fifthChildBlock]);
 
   const openForEdit = useCallback((id: string) => {
     setEditingId(id);
@@ -85,9 +103,10 @@ export function BrNegocioPrePublishInventoryShell({
         ? items.map((x) => (x.id === editingId ? normalized : x))
         : [...items, normalized];
       onItemsChange(normalizeChildInventoryList(nextItems));
+      if (!inventoryPackAccepted && onInventoryPackAcceptedChange) onInventoryPackAcceptedChange(true);
       if (mode === "addAnother") setEditingId(null);
     },
-    [editingId, items, onItemsChange],
+    [editingId, inventoryPackAccepted, items, onInventoryPackAcceptedChange, onItemsChange],
   );
 
   const handleRemove = useCallback(
@@ -109,22 +128,43 @@ export function BrNegocioPrePublishInventoryShell({
         <p className="mt-1.5 text-sm leading-relaxed text-[#5C5346]/90">{copy.hint}</p>
         <p className="mt-1 text-xs text-[#7A7164]">{copy.ownerOnlyNote}</p>
 
-        <BrNegocioPrePublishInventoryPreview
-          lang={lang}
-          mainProperty={mainProperty}
-          items={items}
-          onEdit={openForEdit}
-          onRemove={handleRemove}
-          onPreview={(id) => setPreviewDraftId(id)}
-        />
+        {checkpointEnabled ? (
+          <BrAgenteInventoryPackCheckpoint
+            lang={lang}
+            inventoryPackAccepted={packAccepted}
+            childCount={additionalCount}
+            onAcceptPack={() => onInventoryPackAcceptedChange?.(true)}
+            onContinueMainOnly={() => undefined}
+            onCancelPack={() => onInventoryPackCancel?.()}
+            onAddProperty={openForAdd}
+          />
+        ) : null}
 
-        <button
-          type="button"
-          onClick={openForAdd}
-          className="mt-4 min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8] sm:min-h-0 sm:w-auto sm:px-5 sm:py-2.5"
-        >
-          {additionalCount > 0 ? copy.ctaAlt : copy.cta}
-        </button>
+        {packActive ? (
+          <>
+            <BrNegocioPrePublishInventoryPreview
+              lang={lang}
+              mainProperty={mainProperty}
+              items={items}
+              onEdit={openForEdit}
+              onRemove={handleRemove}
+              onPreview={(id) => setPreviewDraftId(id)}
+            />
+
+            {additionalCount >= BR_INVENTORY_PACK_MAX_CHILDREN ? (
+              <p className="mt-3 text-sm text-[#B42318]">{pricingCopy.fifthChildBlock}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={openForAdd}
+              disabled={additionalCount >= BR_INVENTORY_PACK_MAX_CHILDREN}
+              className="mt-4 min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8] disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-0 sm:w-auto sm:px-5 sm:py-2.5"
+            >
+              {additionalCount > 0 ? copy.ctaAlt : copy.cta}
+            </button>
+          </>
+        ) : null}
       </div>
 
       <BrNegocioChildInventoryFullApplication

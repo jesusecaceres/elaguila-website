@@ -50,6 +50,9 @@ type Props = {
   lang: OfertasLocalesAppLang;
   ofertaLocalId?: string | null;
   signedIn?: boolean;
+  compactMode?: boolean;
+  scanComplete?: boolean;
+  itemsFoundCount?: number;
   onScanStarted?: (asset: OfertaLocalScanEligibleAsset) => void;
   onScanComplete?: (scanJobId: string) => void;
   onScanFinished?: (result: { ok: boolean; scanJobId?: string }) => void;
@@ -61,6 +64,9 @@ export function OfertasLocalesAiScanPanel({
   lang,
   ofertaLocalId,
   signedIn = true,
+  compactMode = false,
+  scanComplete = false,
+  itemsFoundCount,
   onScanStarted,
   onScanComplete,
   onScanFinished,
@@ -136,6 +142,9 @@ export function OfertasLocalesAiScanPanel({
         scanningAsset.fileName || scanningAsset.assetId
       }`
     : "";
+
+  const singleAssetMode = compactMode && sortedAssets.length === 1;
+  const showCompletedSummary = compactMode && scanComplete && !scanning;
 
   const handleScanAsset = useCallback(
     async (asset: OfertaLocalScanEligibleAsset) => {
@@ -218,11 +227,7 @@ export function OfertasLocalesAiScanPanel({
       const completedMsg = c.aiScanCompleted;
       setScanStatus("needs_review");
       setLastCompletedMessage(completedMsg);
-      setScanMessage(
-        result.itemsExtractedCount != null && result.itemsExtractedCount > 0
-          ? `${completedMsg} ${lang === "en" ? "Review the suggestions below." : "Revisa las sugerencias abajo."}`
-          : result.message ?? completedMsg
-      );
+      setScanMessage(result.message ?? completedMsg);
       if (result.scanJobId) {
         onScanComplete?.(result.scanJobId);
         onScanFinished?.({ ok: true, scanJobId: result.scanJobId });
@@ -236,7 +241,6 @@ export function OfertasLocalesAiScanPanel({
       ofertaLocalId,
       draft,
       c,
-      lang,
       onScanComplete,
       onScanFinished,
       onScanStarted,
@@ -247,26 +251,44 @@ export function OfertasLocalesAiScanPanel({
 
   if (!draft.wantsAiSearchableSpecials) return null;
 
-  return (
-    <div className={`${CARD} space-y-3`}>
-      <div>
-        <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiScanPanelTitle}</p>
-        <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiScanReviewBeforePublish}</p>
-        <p className="mt-1 text-xs text-[#1E1814]/60">{c.aiScanHelperWait}</p>
-      </div>
-
-      <p className="text-xs font-medium text-[#1E1814]">
-        {lang === "en" ? "Status" : "Estado"}: {statusLabel(displayStatus, lang)}
-        {displayStatus === "needs_review" && lastCompletedMessage ? (
-          <span className="ml-1 font-normal text-[#1E1814]/65">({lastCompletedMessage})</span>
+  if (showCompletedSummary) {
+    return (
+      <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-2 text-xs text-emerald-900">
+        <p className="font-semibold">{c.step5CheckpointScanComplete}</p>
+        {itemsFoundCount != null && itemsFoundCount > 0 ? (
+          <p className="mt-1 text-emerald-900/80">
+            {formatOfertaLocalCopyTemplate(c.step5CheckpointProductsFound, { count: itemsFoundCount })}
+          </p>
         ) : null}
-      </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${compactMode ? "space-y-3" : `${CARD} space-y-3`}`}>
+      {!compactMode ? (
+        <div>
+          <p className="text-sm font-semibold text-[#7A1E2C]">{c.aiScanPanelTitle}</p>
+          <p className="mt-1 text-xs text-[#1E1814]/70">{c.aiScanReviewBeforePublish}</p>
+        </div>
+      ) : (
+        <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.aiScanHelperWait}</p>
+      )}
+
+      {!compactMode ? (
+        <p className="text-xs font-medium text-[#1E1814]">
+          {lang === "en" ? "Status" : "Estado"}: {statusLabel(displayStatus, lang)}
+          {displayStatus === "needs_review" && lastCompletedMessage ? (
+            <span className="ml-1 font-normal text-[#1E1814]/65">({lastCompletedMessage})</span>
+          ) : null}
+        </p>
+      ) : null}
 
       {!scanning && sortedAssets.length === 0 ? (
         <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
           {lang === "en"
-            ? "Upload a PDF, JPG, or PNG flyer to activate AI scanning."
-            : "Sube un volante PDF, JPG o PNG para activar el escaneo AI."}
+            ? "Upload a PDF, JPG, or PNG file to activate AI scanning."
+            : "Sube un archivo PDF, JPG o PNG para activar el escaneo AI."}
         </p>
       ) : null}
 
@@ -281,18 +303,10 @@ export function OfertasLocalesAiScanPanel({
           <p className="mt-1 text-[#1E1814]/55">
             {c.aiScanElapsed}: {formatScanElapsed(elapsedSeconds, lang)}
           </p>
-          <p className="mt-1 text-[#1E1814]/65">
-            {lang === "en"
-              ? "Scanning may take a few minutes. Results will appear automatically."
-              : "El escaneo puede tardar unos minutos. Los resultados aparecerán automáticamente."}
-          </p>
-          {phaseCopy.longWait ? (
-            <p className="mt-1 text-[#1E1814]/65">{c.aiReviewScanInProgress}</p>
-          ) : null}
         </div>
       ) : null}
 
-      {sortedAssets.length > 0 ? (
+      {sortedAssets.length > 0 && !singleAssetMode ? (
         <div className="space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
             {lang === "en" ? "Scan-ready files" : "Archivos listos para escanear"}
@@ -308,12 +322,8 @@ export function OfertasLocalesAiScanPanel({
                 >
                   <div className="min-w-0">
                     <p className="break-words text-xs font-medium text-[#1E1814]">{fileLabel}</p>
-                    <p className="break-words text-[10px] text-[#1E1814]/55">
-                      {assetKindLabel(asset.assetKind, lang)} — {fileLabel}
-                    </p>
                     <p className="text-[10px] font-medium text-emerald-800">
-                      {lang === "en" ? "Ready for AI scan" : "Listo para escaneo AI"} ·{" "}
-                      {asset.mimeType.split("/").pop()?.toUpperCase()}
+                      {lang === "en" ? "Ready for AI scan" : "Listo para escaneo AI"}
                     </p>
                   </div>
                   <button
@@ -335,16 +345,19 @@ export function OfertasLocalesAiScanPanel({
         </div>
       ) : null}
 
-      <ul className="list-inside list-disc space-y-1 text-xs text-[#1E1814]/70">
-        {readiness.missingPrerequisites.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-        {readiness.infoNotes.map((item) => (
-          <li key={item} className="list-none text-[#1E1814]/55">
-            · {item}
-          </li>
-        ))}
-      </ul>
+      {singleAssetMode && sortedAssets.length === 1 ? (
+        <p className="text-xs font-medium text-[#1E1814]/75">
+          {sortedAssets[0].fileName || assetKindLabel(sortedAssets[0].assetKind, lang)}
+        </p>
+      ) : null}
+
+      {readiness.missingPrerequisites.length > 0 ? (
+        <ul className="list-inside list-disc space-y-1 text-xs text-[#1E1814]/70">
+          {readiness.missingPrerequisites.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
 
       {scanMessage && !scanning ? (
         <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
@@ -352,7 +365,7 @@ export function OfertasLocalesAiScanPanel({
         </p>
       ) : null}
 
-      {sortedAssets.length === 1 ? (
+      {sortedAssets.length === 1 && !scanComplete ? (
         <button
           type="button"
           className={`${BTN_PRIMARY} w-full sm:w-auto`}
@@ -368,4 +381,11 @@ export function OfertasLocalesAiScanPanel({
       ) : null}
     </div>
   );
+}
+
+function formatOfertaLocalCopyTemplate(
+  template: string,
+  values: Record<string, string | number>
+): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
 }

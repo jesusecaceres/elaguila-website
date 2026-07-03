@@ -170,8 +170,17 @@ function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount:
 
 function restaurantCouponAddonBlockReason(lang: PublishCheckpointLanguage): string {
   return lang === "es"
-    ? "El módulo de cupones del restaurante todavía no está listo para pago seguro. Quita ese complemento para continuar con el plan base de $399/mes o contacta a Leonix."
-    : "The restaurant coupon module is not ready for secure checkout yet. Remove that add-on to continue with the $399/mo base plan or contact Leonix.";
+    ? "Para continuar al pago seguro hoy, vuelve a editar y desactiva el módulo de cupones del restaurante. El descuento promocional sí está aplicado al plan base de $399/mes."
+    : "To continue to secure payment today, go back and turn off the restaurant coupon module. The promo discount is applied to the $399/mo base plan.";
+}
+
+/** True when Restaurante coupon module is selected but Revenue OS cannot charge it yet. */
+export function isRestaurantCouponCheckoutBlocked(config: PublishCheckpointConfig): boolean {
+  return (
+    config.category === "restaurantes" &&
+    Boolean(config.restaurantOffersAddonSelected) &&
+    !REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED
+  );
 }
 
 /**

@@ -12,14 +12,14 @@ import {
   RENTAS_BTN_PRIMARY_LANDING,
   RENTAS_BTN_SECONDARY,
   RENTAS_BTN_SECONDARY_LANDING,
-  RENTAS_LANDING_HERO_SEARCH_GLOW,
-  RENTAS_LANDING_HERO_SEARCH_SHELL,
   RENTAS_SEARCH_FIELD,
   RENTAS_SEARCH_FIELD_LANDING,
   RENTAS_SEARCH_INPUT,
   RENTAS_SEARCH_INPUT_LANDING,
   RENTAS_SEARCH_SHELL,
   RENTAS_SEARCH_SHELL_GLOW,
+  RENTAS_SHARED_SEARCH_ANCHOR,
+  RENTAS_SHARED_SEARCH_GLOW,
   rentasBrowseSearchPlaceholder,
 } from "../shared/rentasLeonixPublicUi";
 
@@ -40,7 +40,7 @@ type Props = {
   browseAllHref?: string;
   searchButtonLabel: string;
   filtersButtonLabel: string;
-  layout?: "default" | "landing";
+  layout?: "default" | "landing" | "results";
   /** Landing only — integrated into action row (no separate Publicar row). */
   publishHref?: string;
   publishLabel?: string;
@@ -85,34 +85,39 @@ export function RentasCompactSearchCanvas({
   const countryPh = lang === "es" ? "País" : "Country";
   const browseLabel = lang === "es" ? "Ver todos los anuncios" : "View all listings";
   const isLanding = layout === "landing";
+  const isResults = layout === "results";
+  const isSharedAnchor = isLanding || isResults;
   const hasPublish = isLanding && !!publishHref && !!publishLabel;
-  const datalistId = isLanding ? "rentas-city-presets-landing" : "rentas-city-presets";
-  const shellClass = isLanding ? RENTAS_LANDING_HERO_SEARCH_SHELL : RENTAS_SEARCH_SHELL;
-  const glowClass = isLanding ? RENTAS_LANDING_HERO_SEARCH_GLOW : RENTAS_SEARCH_SHELL_GLOW;
-  const fieldClass = isLanding ? RENTAS_SEARCH_FIELD_LANDING : RENTAS_SEARCH_FIELD;
-  const inputClass = isLanding ? RENTAS_SEARCH_INPUT_LANDING : RENTAS_SEARCH_INPUT;
-  const btnPrimary = isLanding ? RENTAS_BTN_PRIMARY_LANDING : RENTAS_BTN_PRIMARY;
-  const btnSecondary = isLanding ? RENTAS_BTN_SECONDARY_LANDING : RENTAS_BTN_SECONDARY;
+  const datalistId = isLanding ? "rentas-city-presets-landing" : isResults ? "rentas-city-presets-results" : "rentas-city-presets";
+  const shellClass = isSharedAnchor ? RENTAS_SHARED_SEARCH_ANCHOR : RENTAS_SEARCH_SHELL;
+  const glowClass = isSharedAnchor ? RENTAS_SHARED_SEARCH_GLOW : RENTAS_SEARCH_SHELL_GLOW;
+  const fieldClass = isSharedAnchor ? RENTAS_SEARCH_FIELD_LANDING : RENTAS_SEARCH_FIELD;
+  const inputClass = isSharedAnchor ? RENTAS_SEARCH_INPUT_LANDING : RENTAS_SEARCH_INPUT;
+  const btnPrimary = isSharedAnchor ? RENTAS_BTN_PRIMARY_LANDING : RENTAS_BTN_PRIMARY;
+  const btnSecondary = isSharedAnchor ? RENTAS_BTN_SECONDARY_LANDING : RENTAS_BTN_SECONDARY;
   const gridGap = "gap-2.5 sm:gap-3";
+  const refineHint =
+    lang === "es" ? "Afina por presupuesto, recámaras y condiciones en Filtros." : "Refine by budget, beds, and conditions in Filters.";
 
-  const browseCol = hasPublish ? "sm:col-span-3" : "sm:col-span-5";
-  const countryCol = hasPublish ? "sm:col-span-3" : "sm:col-span-4";
-  const filtersCol = hasPublish ? "sm:col-span-2" : "sm:col-span-3";
+  const browseCol = hasPublish ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-5";
+  const countryCol = hasPublish ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-4";
+  const filtersCol = hasPublish ? "sm:col-span-2" : isResults ? "sm:col-span-4" : "sm:col-span-3";
+  const keywordCol = isSharedAnchor ? "sm:col-span-5" : "sm:col-span-4";
 
   return (
     <div className={shellClass}>
       <div className={glowClass} aria-hidden />
 
       <div className={`relative grid grid-cols-1 ${gridGap} sm:grid-cols-12 sm:items-stretch`}>
-        <label className={`${fieldClass} ${isLanding ? "sm:col-span-5" : "sm:col-span-4"}`}>
-          <SearchIcon large={isLanding} />
+        <label className={`${fieldClass} ${keywordCol}`}>
+          <SearchIcon large={isSharedAnchor} />
           <input
             type="search"
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             placeholder={ph}
             aria-label={ph}
-            className={`${inputClass} ${isLanding ? "font-medium" : ""}`}
+            className={`${inputClass} ${isSharedAnchor ? "font-medium" : ""}`}
             autoComplete="off"
           />
         </label>
@@ -193,6 +198,8 @@ export function RentasCompactSearchCanvas({
           <Link href={browseAllHref} className={`${btnSecondary} ${browseCol} inline-flex w-full items-center justify-center`}>
             {browseLabel}
           </Link>
+        ) : isResults ? (
+          <p className={`hidden ${browseCol} items-center text-xs leading-snug text-[#5C5346] sm:flex`}>{refineHint}</p>
         ) : (
           <div className={`hidden ${browseCol} sm:block`} aria-hidden />
         )}

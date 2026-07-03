@@ -12,6 +12,8 @@ import {
   RENTAS_BRANCH_CHIP,
   RENTAS_BRANCH_CHIP_ACTIVE,
   RENTAS_BTN_PRIMARY,
+  RENTAS_RESULTS_REFINE_DIVIDER,
+  RENTAS_RESULTS_REFINE_PANEL,
 } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import {
@@ -364,11 +366,19 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         ? `${showingFrom}–${showingTo} de ${totalLabel}`
         : `${showingFrom}–${showingTo} of ${totalLabel}`;
 
+  const refineEyebrow =
+    lang === "es" ? "Afina tu búsqueda" : "Refine your search";
+  const branchEyebrow =
+    lang === "es" ? "Tipo de anuncio" : "Listing type";
+
   return (
     <RentasResultsShell>
       <RentasResultsTopBar copy={copy} lang={lang} routeLang={routeLang} />
 
-      <div className="space-y-3 pb-3">
+      <section
+        className={RENTAS_RESULTS_REFINE_PANEL}
+        aria-label={lang === "es" ? "Buscar y filtrar rentas" : "Search and filter rentals"}
+      >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
             <h1 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">{copy.title}</h1>
@@ -379,65 +389,78 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           </Link>
         </div>
 
-        <RentasCompactSearchCanvas
-          lang={lang}
-          query={query}
-          city={cityDraft}
-          state={stateDraft}
-          zip={zipDraft}
-          country={countryDraft}
-          onQuery={setQuery}
-          onCity={setCityDraft}
-          onState={setStateDraft}
-          onZip={setZipDraft}
-          onCountry={setCountryDraft}
-          onSearch={applySearchAndRefine}
-          onOpenFilters={() => setFiltersOpen(true)}
-          searchButtonLabel={searchLabel}
-          filtersButtonLabel={filtersLabel}
-        />
+        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{refineEyebrow}</p>
 
-        <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} lang={lang} />
-
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { id: "all" as const, label: copy.results.branchAll },
-              { id: "privado" as const, label: copy.results.branchPrivado },
-              { id: "negocio" as const, label: copy.results.branchNegocio },
-            ] as const
-          ).map((opt) => {
-            const isOn = branchFilter === opt.id;
-            const sp = new URLSearchParams(searchParams?.toString() ?? "");
-            sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
-            if (opt.id === "all") sp.delete("branch");
-            else sp.set("branch", opt.id);
-            const href = `${RENTAS_RESULTS}?${sp.toString()}`;
-            return (
-              <Link
-                key={opt.id}
-                href={href}
-                scroll={false}
-                className={isOn ? RENTAS_BRANCH_CHIP_ACTIVE : RENTAS_BRANCH_CHIP}
-              >
-                {opt.label}
-              </Link>
-            );
-          })}
+        <div className="mt-2">
+          <RentasCompactSearchCanvas
+            layout="results"
+            lang={lang}
+            query={query}
+            city={cityDraft}
+            state={stateDraft}
+            zip={zipDraft}
+            country={countryDraft}
+            onQuery={setQuery}
+            onCity={setCityDraft}
+            onState={setStateDraft}
+            onZip={setZipDraft}
+            onCountry={setCountryDraft}
+            onSearch={applySearchAndRefine}
+            onOpenFilters={() => setFiltersOpen(true)}
+            searchButtonLabel={searchLabel}
+            filtersButtonLabel={filtersLabel}
+          />
         </div>
-      </div>
 
-      <RentasResultsToolbar
-        copy={copy.results}
-        lang={lang}
-        showingFrom={showingFrom}
-        showingTo={showingTo}
-        total={totalLabel}
-        sort={sortValue}
-        onSort={onSort}
-        view={view}
-        onView={setView}
-      />
+        <div className="mt-3">
+          <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} lang={lang} />
+        </div>
+
+        <div className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{branchEyebrow}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(
+              [
+                { id: "all" as const, label: copy.results.branchAll },
+                { id: "privado" as const, label: copy.results.branchPrivado },
+                { id: "negocio" as const, label: copy.results.branchNegocio },
+              ] as const
+            ).map((opt) => {
+              const isOn = branchFilter === opt.id;
+              const sp = new URLSearchParams(searchParams?.toString() ?? "");
+              sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
+              if (opt.id === "all") sp.delete("branch");
+              else sp.set("branch", opt.id);
+              const href = `${RENTAS_RESULTS}?${sp.toString()}`;
+              return (
+                <Link
+                  key={opt.id}
+                  href={href}
+                  scroll={false}
+                  className={isOn ? RENTAS_BRANCH_CHIP_ACTIVE : RENTAS_BRANCH_CHIP}
+                >
+                  {opt.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={RENTAS_RESULTS_REFINE_DIVIDER + " my-4"} aria-hidden />
+
+        <RentasResultsToolbar
+          copy={copy.results}
+          lang={lang}
+          showingFrom={showingFrom}
+          showingTo={showingTo}
+          total={totalLabel}
+          sort={sortValue}
+          onSort={onSort}
+          view={view}
+          onView={setView}
+          integrated
+        />
+      </section>
 
       <section className="mt-4" aria-labelledby="rentas-grid-heading">
         <h2 id="rentas-grid-heading" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">

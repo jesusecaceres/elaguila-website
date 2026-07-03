@@ -87,8 +87,10 @@ export default function RestaurantePreviewClient() {
     if (process.env.NODE_ENV !== "development") return;
     console.debug("[restaurantes/preview] publish readiness audit", readiness, {
       media: auditRestaurantePublishMediaReadinessSafe(normalizedDraft),
+      draftReady: minOk,
+      couponUpgradeEnabled: normalizedDraft.couponUpgradeEnabled,
     });
-  }, [readiness, normalizedDraft]);
+  }, [readiness, normalizedDraft, minOk, normalizedDraft.couponUpgradeEnabled]);
 
   const handlePromoApply = useCallback(
     async (code: string) => {
@@ -347,6 +349,7 @@ export default function RestaurantePreviewClient() {
                 }
                 onPromoApply={handlePromoApply}
                 onCheckout={(ctx) => void onCheckout(ctx)}
+                editHref={EDIT_HREF}
               />
           </div>
         </div>
