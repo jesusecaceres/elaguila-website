@@ -96,7 +96,7 @@ export function PublishCheckoutCheckpoint({
   const requiredRemaining = resolved.confirmations.filter((c) => c.required && !checkedIds.has(c.id)).length;
   const blockReason = publishCheckpointBlockReason(resolved);
   const draftBlockMessage = !draftReady ? draftReadyMessage?.trim() || null : null;
-  const showPromoDeferred = resolved.promo.eligible && !onPromoApply;
+  const showPromoDeferred = config.promoEligible && !onPromoApply;
   const finalButtonEnabled = resolved.finalActionEnabled && draftReady && !busy;
 
   const toggleConfirmation = (id: string) => {
@@ -222,6 +222,61 @@ export function PublishCheckoutCheckpoint({
         </div>
       ) : null}
 
+      {/* Promo — enabled categories with real server validation */}
+      {config.promoEligible && onPromoApply ? (
+        <div className="mt-4 space-y-2 border-t pt-4" style={{ borderColor: `${LEONIX_BORDER}99` }}>
+          <label className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
+            {lang === "es" ? "Código promocional" : "Promo code"}
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <input
+              type="text"
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+              disabled={busy || promoBusy || Boolean(appliedPromoCode)}
+              className="min-h-[44px] flex-1 rounded-xl border px-3 text-sm uppercase"
+              style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL }}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button
+              type="button"
+              disabled={busy || promoBusy || !promoInput.trim() || Boolean(appliedPromoCode)}
+              onClick={() => void handlePromoApply()}
+              className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold disabled:opacity-50"
+              style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL, background: "#FFF" }}
+            >
+              {promoBusy ? "…" : lang === "es" ? "Aplicar" : "Apply"}
+            </button>
+            {appliedPromoCode ? (
+              <button
+                type="button"
+                disabled={busy || promoBusy}
+                onClick={() => {
+                  setAppliedPromoCode(null);
+                  setPromoDiscountCents(null);
+                  setPromoMessage(null);
+                  setPromoInput("");
+                }}
+                className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold"
+                style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL, background: "#FFF" }}
+              >
+                {lang === "es" ? "Quitar" : "Remove"}
+              </button>
+            ) : null}
+          </div>
+          {promoMessage ? (
+            <p className="text-xs" style={{ color: appliedPromoCode ? LEONIX_SUCCESS : "#8B3A3A" }} role="status">
+              {promoMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : showPromoDeferred ? (
+        <p className="mt-4 text-xs leading-relaxed" style={{ color: LEONIX_MUTED }}>
+          {publishCheckpointPromoDeferredLabel(lang)}
+        </p>
+      ) : null}
+
       {/* Total */}
       <div
         className="mt-4 flex items-center justify-between border-t pt-3 text-sm font-bold"
@@ -233,47 +288,9 @@ export function PublishCheckoutCheckpoint({
 
       {resolved.discountCents > 0 ? (
         <p className="mt-1 text-xs" style={{ color: LEONIX_SUCCESS }}>
-          {lang === "es" ? "Descuento aplicado" : "Discount applied"}:{" "}
+          {lang === "es" ? "Descuento promocional" : "Promo discount"}:{" "}
           {formatPublishCheckpointMoney(resolved.discountCents, lang, { monthly: false })}
-        </p>
-      ) : null}
-
-      {/* Promo — real handler only; otherwise honest deferred note */}
-      {onPromoApply ? (
-        <div className="mt-4 space-y-2">
-          <label className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
-            {lang === "es" ? "Código promocional" : "Promo code"}
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="text"
-              value={promoInput}
-              onChange={(e) => setPromoInput(e.target.value)}
-              disabled={busy || promoBusy}
-              className="min-h-[44px] flex-1 rounded-xl border px-3 text-sm"
-              style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL }}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button
-              type="button"
-              disabled={busy || promoBusy || !promoInput.trim()}
-              onClick={() => void handlePromoApply()}
-              className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold disabled:opacity-50"
-              style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL, background: "#FFF" }}
-            >
-              {promoBusy ? "…" : lang === "es" ? "Aplicar" : "Apply"}
-            </button>
-          </div>
-          {promoMessage ? (
-            <p className="text-xs" style={{ color: appliedPromoCode ? LEONIX_SUCCESS : "#8B3A3A" }} role="status">
-              {promoMessage}
-            </p>
-          ) : null}
-        </div>
-      ) : showPromoDeferred ? (
-        <p className="mt-4 text-xs leading-relaxed" style={{ color: LEONIX_MUTED }}>
-          {publishCheckpointPromoDeferredLabel(lang)}
+          {appliedPromoCode ? ` (${appliedPromoCode})` : ""}
         </p>
       ) : null}
 

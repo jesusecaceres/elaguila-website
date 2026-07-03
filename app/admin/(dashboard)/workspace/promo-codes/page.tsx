@@ -125,7 +125,7 @@ export default async function AdminPromoCodesPage(props: {
             ? "Limited view: only your promo codes attributed to your sales rep ID."
             : "Admin-only promo-code lifecycle manager. This is not the public Cupones CMS."
         }
-        helperText="Rules from packagePricingRules and promoCodeLifecycle. No public redemption or Stripe Checkout."
+        helperText="Rules from packagePricingRules and promoCodeLifecycle. Restaurantes checkout validates discount codes server-side; redemption occurs after paid webhook."
         rightSlot={
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/workspace/package-entitlements" className={adminBtnSecondary}>
@@ -234,13 +234,32 @@ export default async function AdminPromoCodesPage(props: {
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Type
-            <select name="code_type" defaultValue="entitlement" className={`${adminInputClass} mt-1`}>
+            <select name="code_type" defaultValue="discount" className={`${adminInputClass} mt-1`}>
               {PROMO_CODE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
               ))}
             </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Discount type (when Type = Discount)
+            <select name="promo_type" defaultValue="percent_off" className={`${adminInputClass} mt-1`}>
+              <option value="percent_off">Percent off</option>
+              <option value="amount_off">Amount off ($)</option>
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Percent off (1–100)
+            <input name="percent_off" type="number" min={1} max={100} step={1} placeholder="25" className={`${adminInputClass} mt-1`} />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Amount off ($)
+            <input name="amount_off_dollars" type="number" min={0.01} step={0.01} placeholder="99.00" className={`${adminInputClass} mt-1`} />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
+            Revenue OS package scope (optional, e.g. restaurantes_base_monthly)
+            <input name="package_scope" placeholder="restaurantes_base_monthly" className={`${adminInputClass} mt-1 font-mono lowercase`} />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Initial status
@@ -388,6 +407,16 @@ export default async function AdminPromoCodesPage(props: {
                       >
                         Entitlement: {row.package_entitlement_id.slice(0, 8)}…
                       </Link>
+                    </p>
+                  ) : null}
+                  {row.code_type === "discount" ? (
+                    <p className="mt-1 font-medium text-[#5C5346]">
+                      Discount:{" "}
+                      {typeof row.metadata?.discount_percent === "number"
+                        ? `${row.metadata.discount_percent}% off`
+                        : typeof row.metadata?.discount_amount_cents === "number"
+                          ? `$${(Number(row.metadata.discount_amount_cents) / 100).toFixed(2)} off`
+                          : "not configured — add percent or amount in admin"}
                     </p>
                   ) : null}
                   <p className="mt-1 text-[#7A7164]">

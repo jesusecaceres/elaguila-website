@@ -75,6 +75,43 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const { salesRepId, salesRepName } = resolveSalesRepFieldsForCreate(access, formSalesRepId, formSalesRepName);
   const packageEntitlementId = String(formData.get("package_entitlement_id") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 4000) || null;
+  const packageScopeRaw = String(formData.get("package_scope") ?? "").trim().toLowerCase();
+  const packageScope = packageScopeRaw ? [packageScopeRaw] : null;
+
+  let promoType: string | null = null;
+  let percentOff: number | null = null;
+  let amountOffCents: number | null = null;
+
+  if (codeType === "discount") {
+    const promoTypeRaw = String(formData.get("promo_type") ?? "").trim().toLowerCase();
+    const percentOffRaw = String(formData.get("percent_off") ?? "").trim();
+    const amountOffDollarsRaw = String(formData.get("amount_off_dollars") ?? "").trim();
+
+    if (promoTypeRaw === "percent_off" || promoTypeRaw === "amount_off") {
+      promoType = promoTypeRaw;
+    } else if (percentOffRaw) {
+      promoType = "percent_off";
+    } else if (amountOffDollarsRaw) {
+      promoType = "amount_off";
+    } else {
+      redirectWith({ error: "discount_value_required" });
+    }
+
+    if (promoType === "percent_off") {
+      percentOff = Number(percentOffRaw);
+      if (!Number.isFinite(percentOff) || percentOff <= 0 || percentOff > 100) {
+        redirectWith({ error: "invalid_percent" });
+      }
+    }
+
+    if (promoType === "amount_off") {
+      const dollars = Number(amountOffDollarsRaw);
+      if (!Number.isFinite(dollars) || dollars <= 0) {
+        redirectWith({ error: "invalid_amount" });
+      }
+      amountOffCents = Math.round(dollars * 100);
+    }
+  }
 
   const promoPreview = buildPromoCodeRulePreview({ codeType, status });
   const metadata: Record<string, unknown> = {
@@ -92,6 +129,13 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
       can_create_package_entitlement: promoPreview.canCreatePackageEntitlement,
       can_discount_payment: promoPreview.canDiscountPayment,
     },
+    ...(promoType
+      ? {
+          discount_type: promoType,
+          discount_percent: percentOff,
+          discount_amount_cents: amountOffCents,
+        }
+      : {}),
   };
 
   const now = new Date().toISOString();
@@ -102,6 +146,10 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
       code,
       code_type: codeType,
       status,
+      promo_type: promoType,
+      percent_off: percentOff,
+      amount_off_cents: amountOffCents,
+      is_active: status === "active",
       non_stackable: true,
       one_time_use: promoPreview.oneTimeUse,
       starts_at: startsAt,
@@ -109,6 +157,8 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
       package_tier: packageTier,
       contract_term: contractTerm,
       category,
+      category_scope: category ? [category] : null,
+      package_scope: packageScope,
       customer_name: customerName,
       business_name: businessName,
       customer_email: customerEmail,

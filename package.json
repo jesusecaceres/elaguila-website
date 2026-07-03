@@ -57,6 +57,7 @@
     "verify:restaurantes-pending-publish-and-coupon-offers-truth-01": "node scripts/verify-restaurantes-pending-publish-and-coupon-offers-truth-01.mjs",
     "verify:restaurantes-revenue-os-webhook-activation-01": "node scripts/verify-restaurantes-revenue-os-webhook-activation-01.mjs",
     "verify:restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01": "node scripts/verify-restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01.mjs",
+    "verify:publish-checkout-promo-validation-ui-01": "node scripts/verify-publish-checkout-promo-validation-ui-01.mjs",
     "verify:admin-dashboard-promo-code-generator-top-cta-01": "node scripts/verify-admin-dashboard-promo-code-generator-top-cta-01.mjs",
     "verify:clasificados-preview-public-output-battlefield-qa-01": "node scripts/verify-clasificados-preview-public-output-battlefield-qa-01.mjs",
     "comunidad:preview-publish-id-gate-audit": "tsx scripts/comunidad-preview-publish-id-gate-audit.ts",

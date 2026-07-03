@@ -23,6 +23,7 @@ import { saveRestaurantePendingBeforeCheckout } from "@/app/clasificados/restaur
 import {
   redirectToRevenueCategoryCheckout,
   startRevenueCategoryCheckout,
+  validateRevenuePromoForCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
@@ -76,7 +77,7 @@ export default function RestaurantePreviewClient() {
       },
       confirmations: RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
-      promoEligible: false,
+      promoEligible: true,
       restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
       returnPath: RESTAURANTES_BASE_CHECKOUT.returnPath,
     };
@@ -88,6 +89,30 @@ export default function RestaurantePreviewClient() {
       media: auditRestaurantePublishMediaReadinessSafe(normalizedDraft),
     });
   }, [readiness, normalizedDraft]);
+
+  const handlePromoApply = useCallback(
+    async (code: string) => {
+      const result = await validateRevenuePromoForCheckout({
+        code,
+        category: RESTAURANTES_BASE_CHECKOUT.category,
+        packageKey: RESTAURANTES_BASE_CHECKOUT.packageKey,
+        subtotalCents: 39900,
+        locale: lang,
+      });
+      if (!result.ok) {
+        return { ok: false as const, message: result.userMessage };
+      }
+      return {
+        ok: true as const,
+        discountCents: result.discountCents,
+        message:
+          lang === "es"
+            ? `${result.discountLabel} aplicado. Total: $${(result.totalCents / 100).toFixed(2)}/mes`
+            : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
+      };
+    },
+    [lang],
+  );
 
   const onCheckout = useCallback(
     async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
@@ -307,7 +332,7 @@ export default function RestaurantePreviewClient() {
             className="rounded-3xl border p-4 sm:p-6 md:p-8"
             style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
           >
-            <PublishCheckoutCheckpoint
+              <PublishCheckoutCheckpoint
                 config={checkpointConfig}
                 lang={lang}
                 busy={checkoutBusy}
@@ -320,6 +345,7 @@ export default function RestaurantePreviewClient() {
                       ? "Complete the required fields in the form before starting secure checkout."
                       : "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
                 }
+                onPromoApply={handlePromoApply}
                 onCheckout={(ctx) => void onCheckout(ctx)}
               />
           </div>

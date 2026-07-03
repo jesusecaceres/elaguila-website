@@ -72,3 +72,63 @@ export async function startRevenueCategoryCheckout(
 export function redirectToRevenueCategoryCheckout(checkoutUrl: string): void {
   window.location.href = checkoutUrl;
 }
+
+export const REVENUE_PROMO_VALIDATE_ROUTE = "/api/revenue-os/promo/validate";
+
+export type ValidateRevenuePromoResult =
+  | {
+      ok: true;
+      code: string;
+      promoCodeId: string;
+      discountType: string;
+      discountLabel: string;
+      discountCents: number;
+      subtotalCents: number;
+      totalCents: number;
+      redemptionPolicy: string;
+    }
+  | { ok: false; userMessage: string };
+
+export async function validateRevenuePromoForCheckout(input: {
+  code: string;
+  category: string;
+  packageKey: string;
+  subtotalCents: number;
+  listingId?: string | null;
+  customerEmail?: string | null;
+  locale?: "es" | "en";
+}): Promise<ValidateRevenuePromoResult> {
+  const lang = input.locale === "en" ? "en" : "es";
+  const sb = createSupabaseBrowserClient();
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+
+  try {
+    const res = await fetch(REVENUE_PROMO_VALIDATE_ROUTE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(input),
+    });
+    const j = (await res.json().catch(() => ({}))) as ValidateRevenuePromoResult & { message?: string };
+    if (j.ok) return j;
+    return {
+      ok: false,
+      userMessage:
+        j.userMessage ??
+        (lang === "es"
+          ? "Este código promocional no es válido para este pago."
+          : "This promo code is not valid for this checkout."),
+    };
+  } catch {
+    return {
+      ok: false,
+      userMessage:
+        lang === "es"
+          ? "Este código promocional no es válido para este pago."
+          : "This promo code is not valid for this checkout.",
+    };
+  }
+}

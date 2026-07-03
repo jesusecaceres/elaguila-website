@@ -5,6 +5,7 @@
 
 import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { resolveEffectivePromoCodeStatus } from "./promoCodeLifecycle";
 import { validatePromoEligibility } from "./promoCodeRules";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
 
@@ -17,6 +18,7 @@ export type PromoRow = {
   status: string | null;
   percent_off: number | null;
   amount_off_cents: number | null;
+  category: string | null;
   category_scope: string[] | null;
   package_scope: string[] | null;
   placement_scope: string[] | null;
@@ -25,6 +27,7 @@ export type PromoRow = {
   max_redemptions: number | null;
   redemption_count: number | null;
   per_customer_limit: number | null;
+  metadata: Record<string, unknown> | null;
 };
 
 export type PromoCheckoutResolution =
@@ -58,15 +61,75 @@ export async function loadPromoByCode(code: string): Promise<PromoRow | null> {
   const { data } = await supabase
     .from("leonix_promo_codes")
     .select(
-      "id, code, promo_type, code_type, is_active, status, percent_off, amount_off_cents, category_scope, package_scope, placement_scope, starts_at, ends_at, max_redemptions, redemption_count, per_customer_limit",
+      "id, code, promo_type, code_type, is_active, status, percent_off, amount_off_cents, category, category_scope, package_scope, placement_scope, starts_at, ends_at, max_redemptions, redemption_count, per_customer_limit, metadata",
     )
     .eq("code", normalized)
     .maybeSingle();
-  return (data as PromoRow | null) ?? null;
+  const row = (data as PromoRow | null) ?? null;
+  if (!row) return null;
+  const meta = row.metadata;
+  row.metadata =
+    meta && typeof meta === "object" && !Array.isArray(meta) ? (meta as Record<string, unknown>) : null;
+  return row;
 }
 
-function resolvePromoType(row: PromoRow): string {
-  return String(row.promo_type ?? row.code_type ?? "manual").trim().toLowerCase();
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export function resolvePromoCategoryScope(row: PromoRow): string[] | null {
+  if (row.category_scope?.length) return row.category_scope;
+  const legacy = String(row.category ?? "").trim().toLowerCase();
+  return legacy ? [legacy] : null;
+}
+
+export function resolvePromoPercentOff(row: PromoRow): number | null {
+  if (row.percent_off != null && Number.isFinite(Number(row.percent_off))) {
+    const pct = Number(row.percent_off);
+    return pct > 0 ? pct : null;
+  }
+  const meta = asRecord(row.metadata);
+  const raw = meta.discount_percent ?? meta.percent_off;
+  if (raw != null && Number.isFinite(Number(raw))) {
+    const pct = Number(raw);
+    return pct > 0 ? pct : null;
+  }
+  return null;
+}
+
+export function resolvePromoAmountOffCents(row: PromoRow): number | null {
+  if (row.amount_off_cents != null && Number.isFinite(Number(row.amount_off_cents))) {
+    const cents = Math.floor(Number(row.amount_off_cents));
+    return cents > 0 ? cents : null;
+  }
+  const meta = asRecord(row.metadata);
+  if (meta.discount_amount_cents != null && Number.isFinite(Number(meta.discount_amount_cents))) {
+    const cents = Math.floor(Number(meta.discount_amount_cents));
+    return cents > 0 ? cents : null;
+  }
+  const dollars = meta.discount_amount_dollars ?? meta.discount_amount;
+  if (dollars != null && Number.isFinite(Number(dollars))) {
+    const cents = Math.round(Number(dollars) * 100);
+    return cents > 0 ? cents : null;
+  }
+  return null;
+}
+
+export function resolveRevenuePromoTypeFromRow(row: PromoRow): string | null {
+  const explicit = String(row.promo_type ?? "").trim().toLowerCase();
+  if (explicit === "percent_off" || explicit === "amount_off") return explicit;
+
+  const meta = asRecord(row.metadata);
+  const metaType = String(meta.discount_type ?? meta.promo_type ?? "").trim().toLowerCase();
+  if (metaType === "percent" || metaType === "percent_off") return "percent_off";
+  if (metaType === "amount" || metaType === "amount_off") return "amount_off";
+
+  if (resolvePromoPercentOff(row) != null) return "percent_off";
+  if (resolvePromoAmountOffCents(row) != null) return "amount_off";
+
+  return null;
 }
 
 export function calculatePromoDiscountCents(input: {
@@ -111,11 +174,33 @@ export async function resolvePromoForCheckout(input: {
     return { ok: false, code: "promo_not_found", message: "Promo code not found." };
   }
 
-  const promoType = resolvePromoType(row);
+  const effectiveStatus = resolveEffectivePromoCodeStatus({
+    status: row.status,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    redemptionCount: row.redemption_count,
+    maxRedemptions: row.max_redemptions,
+  });
+  if (effectiveStatus !== "active") {
+    return { ok: false, code: "promo_ineligible", message: "Promo code is not active." };
+  }
+
+  const promoType = resolveRevenuePromoTypeFromRow(row);
+  if (!promoType) {
+    return {
+      ok: false,
+      code: "promo_no_discount_configured",
+      message: "Promo code has no server-owned discount value configured.",
+    };
+  }
+
+  const percentOff = resolvePromoPercentOff(row);
+  const amountOffCents = resolvePromoAmountOffCents(row);
+
   const validation = validatePromoEligibility({
     promoType,
     isActive: row.is_active !== false && row.status !== "revoked",
-    categoryScope: row.category_scope,
+    categoryScope: resolvePromoCategoryScope(row),
     packageScope: row.package_scope,
     placementScope: row.placement_scope,
     startsAt: row.starts_at,
@@ -135,9 +220,17 @@ export async function resolvePromoForCheckout(input: {
   const discountCents = calculatePromoDiscountCents({
     baseAmountCents: input.baseAmountCents,
     promoType,
-    percentOff: row.percent_off,
-    amountOffCents: row.amount_off_cents,
+    percentOff,
+    amountOffCents,
   });
+
+  if (discountCents <= 0) {
+    return {
+      ok: false,
+      code: "promo_no_discount_configured",
+      message: "Promo code has no applicable discount for this checkout.",
+    };
+  }
 
   const finalAmountCents = Math.max(0, input.baseAmountCents - discountCents);
 
@@ -199,7 +292,7 @@ export async function createPendingPromoRedemption(input: {
       status: "pending",
       discount_cents: input.discountCents,
       metadata: {
-        gate: "STRIPE-REVENUE-OS-CHECKOUT-SESSION-01",
+        gate: "PUBLISH-CHECKOUT-PROMO-VALIDATION-UI-01",
         destructive: false,
       },
     })
@@ -295,7 +388,7 @@ export async function markPromoRedemptionRedeemed(input: {
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { error } = await supabase
+  const { data: updatedRows, error } = await supabase
     .from("leonix_promo_code_redemptions")
     .update({
       status: "redeemed",
@@ -309,11 +402,32 @@ export async function markPromoRedemptionRedeemed(input: {
       },
     })
     .eq("id", input.redemptionId)
-    .in("status", ["pending", "validated"]);
+    .in("status", ["pending", "validated"])
+    .select("id");
 
   if (error) {
     return { ok: false, code: "promo_redemption_update_failed", message: error.message };
   }
+
+  if (!updatedRows?.length) {
+    const refreshed = await loadPromoRedemptionById(input.redemptionId);
+    if (refreshed?.status === "redeemed") {
+      return { ok: true, idempotent: true };
+    }
+    return { ok: false, code: "promo_redemption_update_failed", message: "Promo redemption not updated." };
+  }
+
+  const { data: promoRow } = await supabase
+    .from("leonix_promo_codes")
+    .select("redemption_count")
+    .eq("id", row.promo_code_id)
+    .maybeSingle();
+
+  const nextCount = Number(promoRow?.redemption_count ?? 0) + 1;
+  await supabase
+    .from("leonix_promo_codes")
+    .update({ redemption_count: nextCount, updated_at: now })
+    .eq("id", row.promo_code_id);
 
   return { ok: true };
 }

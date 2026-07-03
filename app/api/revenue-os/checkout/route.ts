@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
   let discountCents = 0;
 
   const promoCodeRaw = body.promoCode?.trim();
+  let promoTypeForRecord: string | undefined;
   if (promoCodeRaw) {
     const prelim = validateRevenueCheckoutRequest(body);
     if (!prelim.ok) {
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
     promoCodeId = promoResult.promoCodeId;
     discountCents = promoResult.discountCents;
     finalAmountCents = promoResult.finalAmountCents;
+    promoTypeForRecord = promoResult.promoType;
   }
 
   const validated = validateRevenueCheckoutRequest(body, { finalAmountCents });
@@ -124,6 +126,8 @@ export async function POST(request: NextRequest) {
     customerEmail: body.customerEmail,
     promoCodeId,
     discountCents,
+    promoCode: promoCodeRaw ?? null,
+    discountType: promoTypeForRecord ?? null,
   });
 
   if (!paymentInsert.ok) {

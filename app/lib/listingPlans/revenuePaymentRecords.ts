@@ -20,6 +20,8 @@ export type CreatePendingPaymentRecordInput = {
   promoCodeId?: string | null;
   promoRedemptionId?: string | null;
   discountCents?: number;
+  promoCode?: string | null;
+  discountType?: string | null;
 };
 
 export type PendingPaymentRecordResult =
@@ -68,6 +70,15 @@ export async function createPendingPaymentRecord(
         gate: "STRIPE-REVENUE-OS-CHECKOUT-SESSION-01",
         package_label: input.packageDef.label,
         destructive: false,
+        ...(input.promoCode?.trim() ? { promo_code: input.promoCode.trim() } : {}),
+        ...(input.discountType?.trim() ? { promo_discount_type: input.discountType.trim() } : {}),
+        ...(discount > 0
+          ? {
+              promo_subtotal_cents: subtotal,
+              promo_discount_cents: discount,
+              promo_total_cents: total,
+            }
+          : {}),
       },
     })
     .select("id")
