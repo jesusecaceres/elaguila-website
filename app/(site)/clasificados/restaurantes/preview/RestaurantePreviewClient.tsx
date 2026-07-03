@@ -45,7 +45,12 @@ const LEONIX_SUCCESS_GREEN = "#1A4D2E";
 const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
-const EDIT_HREF = "/publicar/restaurantes";
+/**
+ * Edit link back to the Restaurante application. The `focus=coupon-upgrade`
+ * param lets the application page (future follow-up) scroll/highlight the
+ * coupon module the user must turn off before secure checkout.
+ */
+const EDIT_HREF = "/publicar/restaurantes?focus=coupon-upgrade";
 
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();
@@ -349,7 +354,7 @@ export default function RestaurantePreviewClient() {
                 }
                 onPromoApply={handlePromoApply}
                 onCheckout={(ctx) => void onCheckout(ctx)}
-                editHref={EDIT_HREF}
+                editHref={lang === "en" ? `${EDIT_HREF}&lang=en` : EDIT_HREF}
               />
           </div>
         </div>

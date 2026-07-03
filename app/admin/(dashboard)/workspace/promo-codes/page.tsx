@@ -9,6 +9,7 @@ import {
 import {
   PROMO_CODE_CATEGORIES,
   PROMO_CODE_CONTRACT_TERMS,
+  PROMO_CODE_PACKAGE_SCOPE_OPTIONS,
   PROMO_CODE_PACKAGE_TIERS,
   PROMO_CODE_STATUSES,
   PROMO_CODE_TRACKER_FETCH_LIMIT,
@@ -41,6 +42,7 @@ import {
 import { promoCodeRuleBadges, buildPromoCodeRulePreview } from "@/app/lib/listingPlans/promoCodeLifecycle";
 import { createPromoCodeAction, revokePromoCodeAction } from "./actions";
 import { PromoCodeLifecyclePreview } from "./PromoCodeLifecyclePreview";
+import { PromoCodeQuickCreateControls } from "./PromoCodeQuickCreateControls";
 
 export const dynamic = "force-dynamic";
 
@@ -310,9 +312,15 @@ export default async function AdminPromoCodesPage(props: {
           </p>
         </div>
         <form id="promo-code-create-form" action={createPromoCodeAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <PromoCodeQuickCreateControls />
+          </div>
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
             Code (empty = generate)
             <input name="code" placeholder="LX-PROMO-…" className={`${adminInputClass} mt-1 font-mono uppercase`} />
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Leave blank to auto-generate a Leonix code on save. The server normalizes and enforces uniqueness.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Type
@@ -341,10 +349,30 @@ export default async function AdminPromoCodesPage(props: {
           </label>
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
             Revenue OS package scope (optional)
-            <input name="package_scope" placeholder="restaurantes_base_monthly" className={`${adminInputClass} mt-1 font-mono lowercase`} />
+            <select name="package_scope" defaultValue="" className={`${adminInputClass} mt-1 font-mono`}>
+              {PROMO_CODE_PACKAGE_SCOPE_OPTIONS.map((opt) => (
+                <option key={opt.value || "any"} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
             <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
-              Example: restaurantes_base_monthly — limits checkout to that Revenue OS package key.
+              Example: restaurantes_base_monthly — limits checkout to that Revenue OS package key. Blank = any package
+              (category-only code).
             </span>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-[10px] font-semibold text-[#7A7164]">
+                Advanced: custom package key
+              </summary>
+              <input
+                name="package_scope_custom"
+                placeholder="custom_package_key"
+                className={`${adminInputClass} mt-1 font-mono lowercase`}
+              />
+              <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+                Overrides the dropdown when set. Use only for keys not yet in the Revenue OS matrix.
+              </span>
+            </details>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Initial status

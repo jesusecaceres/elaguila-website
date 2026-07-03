@@ -55,6 +55,23 @@ export function generateLeonixPromoCode(prefix = "LX-PROMO"): string {
 }
 
 /**
+ * Category-aware prefix for server-side code generation. Keeps the server as the
+ * single source of truth for generated codes (never trusts a client-provided code)
+ * while giving Restaurante discount codes a recognizable RESTO- prefix.
+ */
+export function promoCodePrefixForCategory(
+  category?: string | null,
+  codeType?: string | null,
+): string {
+  const cat = String(category ?? "").trim().toLowerCase();
+  const type = String(codeType ?? "").trim().toLowerCase();
+  if (cat === "restaurantes") {
+    return type === "discount" ? "RESTO-PROMO" : "RESTO";
+  }
+  return "LX-PROMO";
+}
+
+/**
  * Effective lifecycle status: stored status wins for revoked/redeemed;
  * otherwise derive expired from dates or max redemptions.
  */

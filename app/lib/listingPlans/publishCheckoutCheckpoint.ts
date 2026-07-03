@@ -170,8 +170,8 @@ function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount:
 
 function restaurantCouponAddonBlockReason(lang: PublishCheckpointLanguage): string {
   return lang === "es"
-    ? "Para continuar al pago seguro hoy, vuelve a editar y desactiva el módulo de cupones del restaurante. El descuento promocional sí está aplicado al plan base de $399/mes."
-    : "To continue to secure payment today, go back and turn off the restaurant coupon module. The promo discount is applied to the $399/mo base plan.";
+    ? "Para continuar al pago seguro hoy, vuelve a editar y desactiva el módulo de cupones del restaurante. Tu descuento promocional sí queda aplicado al plan base de $399/mes."
+    : "To continue to secure payment today, go back and turn off the restaurant coupon module. Your promo discount is applied to the $399/mo base plan.";
 }
 
 /** True when Restaurante coupon module is selected but Revenue OS cannot charge it yet. */
