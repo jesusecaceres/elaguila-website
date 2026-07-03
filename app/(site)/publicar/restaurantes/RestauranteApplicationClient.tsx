@@ -593,7 +593,7 @@ export default function RestauranteApplicationClient() {
             <button
               type="button"
               onClick={() => {
-                setActiveSectionId("restaurantes-section-i");
+                setActiveSectionId("restaurantes-section-g");
                 setDraftPatch({ couponUpgradeEnabled: true });
               }}
               className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
@@ -1604,12 +1604,12 @@ export default function RestauranteApplicationClient() {
         </section>
         ) : null}
 
-        {/* I */}
-        {activeSectionId === "restaurantes-section-i" ? (
-        <section id="restaurantes-section-i" className={stepPanel}>
+        {/* G */}
+        {activeSectionId === "restaurantes-section-g" ? (
+        <section id="restaurantes-section-g" className={stepPanel}>
           {!draft.couponUpgradeEnabled ? (
             <>
-              <SectionTitle>I · Cupones y ofertas</SectionTitle>
+              <SectionTitle>G · Cupones y ofertas</SectionTitle>
               <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
                 <div>
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
@@ -1875,10 +1875,10 @@ export default function RestauranteApplicationClient() {
         </section>
         ) : null}
 
-        {/* G */}
-        {activeSectionId === "restaurantes-section-g" ? (
-        <section id="restaurantes-section-g" className={stepPanel}>
-          <SectionTitle>G · Galería y medios</SectionTitle>
+        {/* H */}
+        {activeSectionId === "restaurantes-section-h" ? (
+        <section id="restaurantes-section-h" className={stepPanel}>
+          <SectionTitle>H · Galería y medios</SectionTitle>
           <HelperText>
             <strong className="text-[color:var(--lx-text-2)]">Hero</strong> = ancla visual superior de la ficha.{" "}
             <strong className="text-[color:var(--lx-text-2)]">Interiores / Comida / Exterior</strong> = grupos
@@ -2144,10 +2144,10 @@ export default function RestauranteApplicationClient() {
         </section>
         ) : null}
 
-        {/* H */}
-        {activeSectionId === "restaurantes-section-h" ? (
-        <section id="restaurantes-section-h" className={stepPanel}>
-          <SectionTitle>H · Destacados del lugar</SectionTitle>
+        {/* I */}
+        {activeSectionId === "restaurantes-section-i" ? (
+        <section id="restaurantes-section-i" className={stepPanel}>
+          <SectionTitle>I · Destacados del lugar</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
             Máximo <strong className="text-[color:var(--lx-text-2)]">6</strong> etiquetas en la ficha; aquí no puedes pasar de
             seis seleccionadas.
@@ -2178,10 +2178,10 @@ export default function RestauranteApplicationClient() {
         </section>
         ) : null}
 
-        {/* L — Amenidades y más */}
-        {activeSectionId === "restaurantes-section-amenities" ? (
-          <section id="restaurantes-section-amenities" className={stepPanel}>
-            <SectionTitle>L · Amenidades y más</SectionTitle>
+        {/* J — Amenidades y más */}
+        {activeSectionId === "restaurantes-section-j" ? (
+          <section id="restaurantes-section-j" className={stepPanel}>
+            <SectionTitle>J · Amenidades y más</SectionTitle>
             <HelperText>
               Opcional. No es obligatorio para publicar. Las opciones aparecen en la vista previa y en la ficha pública
               solo cuando marcas al menos una.
@@ -2270,11 +2270,10 @@ export default function RestauranteApplicationClient() {
           </section>
         ) : null}
 
-        {/* Publish Confirmation Section */}
-        <section id="restaurantes-publish-confirmation" className="mt-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/50 p-6">
-          <h2 className="text-lg font-bold text-[color:var(--lx-text)]">
-            {lang === "en" ? "Confirmation before preview" : "Confirmación antes de la vista previa"}
-          </h2>
+        {/* Final — Confirmación antes de la vista previa */}
+        {activeSectionId === "restaurantes-section-final" ? (
+        <section id="restaurantes-section-final" className={stepPanel}>
+          <SectionTitle>Final · Confirmación antes de la vista previa</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
             {lang === "en"
               ? "Check these boxes before reviewing your ad. Payment is completed after the preview."
@@ -2303,8 +2302,8 @@ export default function RestauranteApplicationClient() {
               />
               <span className="text-sm text-[color:var(--lx-text)]">
                 {lang === "en"
-                  ? "I confirm that the photos, dishes, hours, prices/offers, and contact details represent my business correctly."
-                  : "Confirmo que las fotos, platillos, horarios, precios/ofertas y datos de contacto representan mi negocio correctamente."}
+                  ? "I confirm that the photos, dishes, hours, offers, and contact details represent my business correctly."
+                  : "Confirmo que las fotos, platillos, horarios, ofertas y datos de contacto representan mi negocio correctamente."}
               </span>
             </label>
             <label className="flex cursor-pointer items-start gap-3">
@@ -2392,6 +2391,7 @@ export default function RestauranteApplicationClient() {
             </button>
           </div>
         </section>
+        ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--lx-nav-border)] pt-6">
           <button
