@@ -15,13 +15,14 @@ export function buildRestauranteApplicationSectionNavItems(draft: RestauranteLis
     { id: "restaurantes-section-d", letter: "D", shortTitle: "Contacto y CTAs" },
     { id: "restaurantes-section-e", letter: "E", shortTitle: "Ubicación del establecimiento" },
     { id: "restaurantes-section-f", letter: "F", shortTitle: "Platos destacados" },
-    { id: "restaurantes-section-i", letter: "I", shortTitle: "Cupones y ofertas" },
-    { id: "restaurantes-section-g", letter: "G", shortTitle: "Galería y medios" },
-    { id: "restaurantes-section-h", letter: "H", shortTitle: "Destacados del lugar" },
-    { id: "restaurantes-section-amenities", letter: "L", shortTitle: "Amenidades y más" },
+    { id: "restaurantes-section-g", letter: "G", shortTitle: "Cupones y ofertas" },
+    { id: "restaurantes-section-h", letter: "H", shortTitle: "Galería y medios" },
+    { id: "restaurantes-section-i", letter: "I", shortTitle: "Destacados del lugar" },
+    { id: "restaurantes-section-j", letter: "J", shortTitle: "Amenidades y más" },
   ];
   if (draft.cateringAvailable || draft.eventFoodService) {
     items.push({ id: "restaurantes-section-k", letter: "K", shortTitle: "Catering y eventos" });
   }
+  items.push({ id: "restaurantes-section-final", letter: "Final", shortTitle: "Confirmación" });
   return items;
 }
