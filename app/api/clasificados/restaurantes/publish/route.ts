@@ -18,6 +18,7 @@ import {
 import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/lib/restaurantesSlug";
 import { buildRestaurantePublish422MediaAudit } from "@/app/clasificados/restaurantes/application/restaurantePublishMediaAudit";
 import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurantes/lib/restaurantesLeonixAdId";
+import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
@@ -222,7 +223,7 @@ export async function POST(req: Request) {
         ownerUserId,
         promoted: false,
         packageTier: requestedLane,
-        status: pendingPayment ? "archived" : "published",
+        status: "published",
       }) as Record<string, unknown>;
 
       const ex = existingByDraft as {
@@ -236,9 +237,12 @@ export async function POST(req: Request) {
       };
       baseRow.leonix_verified = ex.leonix_verified ?? false;
       if (pendingPayment) {
-        baseRow.status = ex.status === "published" ? "published" : "archived";
+        baseRow.status = ex.status === "published" ? "published" : RESTAURANTE_PENDING_CHECKOUT_STATUS;
       } else {
-        baseRow.status = ex.status === "archived" ? "published" : (ex.status ?? "published");
+        baseRow.status =
+          ex.status === "archived" || ex.status === RESTAURANTE_PENDING_CHECKOUT_STATUS
+            ? "published"
+            : (ex.status ?? "published");
       }
       /** Paid placement is admin-controlled only; republish/renew must not flip it from the client. */
       baseRow.promoted = ex.promoted ?? false;
@@ -277,12 +281,15 @@ export async function POST(req: Request) {
       const requested = typeof b.slug === "string" ? b.slug.trim() : "";
       const base = requested || slugifyRestauranteBusinessName(draft.businessName);
       slugOut = await allocateSlug(base);
-      const row = draftToRestaurantePublicListingInsert(draft, slugOut, {
-        ownerUserId,
-        promoted: false,
-        packageTier: requestedLane,
-        status: pendingPayment ? "archived" : "published",
-      });
+      const row = {
+        ...draftToRestaurantePublicListingInsert(draft, slugOut, {
+          ownerUserId,
+          promoted: false,
+          packageTier: requestedLane,
+          status: "published",
+        }),
+        status: pendingPayment ? RESTAURANTE_PENDING_CHECKOUT_STATUS : "published",
+      };
       let insertError: { message: string; code?: string } | null = null;
       for (let attempt = 0; attempt < 8; attempt++) {
         let leonix_ad_id: string;

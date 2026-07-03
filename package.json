@@ -58,6 +58,7 @@
     "verify:restaurantes-publish-checkout-checkpoint-qa-fix-01": "node scripts/verify-restaurantes-publish-checkout-checkpoint-qa-fix-01.mjs",
     "verify:restaurantes-pending-publish-and-coupon-offers-truth-01": "node scripts/verify-restaurantes-pending-publish-and-coupon-offers-truth-01.mjs",
     "verify:restaurantes-revenue-os-webhook-activation-01": "node scripts/verify-restaurantes-revenue-os-webhook-activation-01.mjs",
+    "verify:restaurantes-pending-payment-status-constraint-fix-01": "node scripts/verify-restaurantes-pending-payment-status-constraint-fix-01.mjs",
     "verify:restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01": "node scripts/verify-restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01.mjs",
     "verify:restaurantes-promo-checkout-final-button-blocker-fix-01": "node scripts/verify-restaurantes-promo-checkout-final-button-blocker-fix-01.mjs",
     "verify:publish-checkout-promo-validation-ui-01": "node scripts/verify-publish-checkout-promo-validation-ui-01.mjs",

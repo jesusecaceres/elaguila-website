@@ -6,10 +6,18 @@
 import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
-export const RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY = "restaurantes_base_monthly";
+/** Hidden DB status for unpaid listings saved before Revenue OS Stripe checkout. */
+export const RESTAURANTE_PENDING_CHECKOUT_STATUS = "pending_payment" as const;
 
-/** Statuses that may transition to published after successful payment. */
-const ACTIVATABLE_FROM_STATUSES = new Set(["archived"]);
+export const RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY = "restaurantes_base_monthly" as const;
+
+/** Statuses webhook may activate to published after successful payment. */
+export const RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES = [
+  "archived",
+  RESTAURANTE_PENDING_CHECKOUT_STATUS,
+] as const;
+
+const ACTIVATABLE_FROM_STATUSES = new Set<string>(RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES);
 
 export type RestauranteRevenueActivationOutcome =
   | "activated"
@@ -110,7 +118,7 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
     .from("restaurantes_public_listings")
     .update(patch)
     .eq("id", listingId)
-    .eq("status", "archived")
+    .in("status", [...RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES])
     .select("id")
     .maybeSingle();
 
