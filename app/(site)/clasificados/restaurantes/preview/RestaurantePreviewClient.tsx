@@ -27,9 +27,11 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
+  RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 // Leonix premium visual tokens
 
@@ -97,13 +99,21 @@ export default function RestaurantePreviewClient() {
     });
   }, [readiness, normalizedDraft, minOk, normalizedDraft.couponUpgradeEnabled]);
 
+  const couponUpgradeSelected = Boolean(normalizedDraft.couponUpgradeEnabled);
+  const restaurantBaseCents =
+    getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
+  const restaurantCouponAddonCents =
+    getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
+  const checkoutSubtotalCents =
+    restaurantBaseCents + (couponUpgradeSelected ? restaurantCouponAddonCents : 0);
+
   const handlePromoApply = useCallback(
     async (code: string) => {
       const result = await validateRevenuePromoForCheckout({
         code,
         category: RESTAURANTES_BASE_CHECKOUT.category,
         packageKey: RESTAURANTES_BASE_CHECKOUT.packageKey,
-        subtotalCents: 39900,
+        subtotalCents: checkoutSubtotalCents,
         locale: lang,
       });
       if (!result.ok) {
@@ -118,7 +128,7 @@ export default function RestaurantePreviewClient() {
             : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
       };
     },
-    [lang],
+    [lang, checkoutSubtotalCents],
   );
 
   const onCheckout = useCallback(
@@ -161,6 +171,9 @@ export default function RestaurantePreviewClient() {
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
+          ...(couponUpgradeSelected
+            ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
+            : {}),
         });
 
         if (!checkout.ok) {
@@ -179,7 +192,7 @@ export default function RestaurantePreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [lang, normalizedDraft],
+    [lang, normalizedDraft, couponUpgradeSelected],
   );
 
   if (!hydrated) {

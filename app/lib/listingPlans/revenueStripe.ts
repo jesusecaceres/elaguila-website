@@ -8,9 +8,17 @@ import Stripe from "stripe";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
 import { buildStripeCheckoutMetadataPayload } from "./revenueEntitlements";
 
+export type RevenueStripeCheckoutLineItem = {
+  packageDef: RevenuePackageDefinition;
+  unitAmountCents: number;
+  quantity?: number;
+};
+
 export type CreateRevenueCheckoutSessionInput = {
   packageDef: RevenuePackageDefinition;
   amountCents: number;
+  /** When omitted, a single line item uses amountCents for the base package. */
+  lineItems?: RevenueStripeCheckoutLineItem[];
   currency: "usd";
   stripeMode: "payment" | "subscription";
   successUrl: string;
@@ -76,27 +84,32 @@ export async function createRevenueStripeCheckoutSession(
     };
   }
 
-  const lineItem = {
-    quantity: 1,
+  const lineItemsInput =
+    input.lineItems?.length && input.lineItems.length > 0
+      ? input.lineItems
+      : [{ packageDef: input.packageDef, unitAmountCents: input.amountCents, quantity: 1 }];
+
+  const stripeLineItems = lineItemsInput.map((item) => ({
+    quantity: Math.max(1, item.quantity ?? 1),
     price_data: {
       currency: input.currency,
       product_data: {
-        name: input.packageDef.label,
+        name: item.packageDef.label,
         metadata: {
-          leonix_category: input.packageDef.category,
-          leonix_package_key: input.packageDef.packageKey,
+          leonix_category: item.packageDef.category,
+          leonix_package_key: item.packageDef.packageKey,
         },
       },
-      unit_amount: input.amountCents,
+      unit_amount: Math.max(0, Math.floor(item.unitAmountCents)),
       ...(input.stripeMode === "subscription"
         ? { recurring: { interval: "month" as const } }
         : {}),
     },
-  };
+  }));
 
   const sessionParams = {
     mode: input.stripeMode,
-    line_items: [lineItem],
+    line_items: stripeLineItems,
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,
     metadata: metadataResult.payload,

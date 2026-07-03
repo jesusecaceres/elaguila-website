@@ -8,7 +8,11 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { MascotasPerdidosNoticeCard } from "./MascotasPerdidosNoticeCard";
 import { MascotasResultsSearchPanel } from "./MascotasResultsSearchPanel";
-import { CAT_STD_BTN_PRIMARY } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
+import {
+  CAT_STD_BTN_PRIMARY,
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { MascotasPerdidosShellLayout } from "./shared/MascotasPerdidosShellLayout";
 import { buildMascotasPerdidosNoticeCardModel } from "./shared/mascotasPerdidosCardModel";
 import { detailPairsToMap } from "./shared/mascotasPerdidosListingDetailPairs";
@@ -115,15 +119,20 @@ export function MascotasPerdidosResultsClient() {
     });
   }, [rows, q, city, state, zip, country, tipo, lastSeenArea, hasPhoto, lang]);
 
+  const refineEyebrow = lang === "es" ? "Afina tu búsqueda" : "Refine your search";
+  const clearHref = appendLangToPath("/clasificados/mascotas-y-perdidos/results", lang);
+
   return (
     <MascotasPerdidosShellLayout lang={lang} backHref={landingHref} backLabel={backLabel}>
       <div className="space-y-5">
         <p className="text-sm text-[#5C5346]">{t.subtitle}</p>
 
-        <MascotasResultsSearchPanel
-          lang={lang}
-          clearHref={appendLangToPath("/clasificados/mascotas-y-perdidos/results", lang)}
-        />
+        <section className={CAT_STD_RESULTS_REFINE_PANEL} aria-label={refineEyebrow}>
+          <p className={CAT_STD_REFINE_EYEBROW}>{refineEyebrow}</p>
+          <div className="mt-2">
+            <MascotasResultsSearchPanel lang={lang} clearHref={clearHref} />
+          </div>
+        </section>
 
         {loading ? (
           <p className="text-sm text-[#5C5346]" aria-busy="true">

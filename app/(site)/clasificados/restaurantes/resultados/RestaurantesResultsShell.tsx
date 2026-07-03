@@ -7,6 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
+import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { CAT_STD_PER_PAGE_OPTIONS } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 import {
   RESTAURANTE_BUSINESS_TYPES,
@@ -1169,10 +1173,14 @@ export function RestaurantesResultsShell({
           backLabel={t.backLanding}
           clearHref={clearHref}
           resultCount={sorted.length}
-          category="restaurantes"
         />
 
-          <div className="mt-3">
+          <section
+            className={CAT_STD_RESULTS_REFINE_PANEL}
+            aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
+          >
+            <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
+            <div className="mt-2">
             <RestaurantesCompactSearchCanvas
               lang={lang}
               defaultQ={parsed.q}
@@ -1192,7 +1200,8 @@ export function RestaurantesResultsShell({
                 </button>
               }
             />
-          </div>
+            </div>
+          </section>
 
         <div className="mt-2 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="min-w-0 shrink text-sm leading-snug text-[color:var(--lx-text)]/80">

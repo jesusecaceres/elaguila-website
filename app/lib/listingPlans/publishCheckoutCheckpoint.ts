@@ -18,8 +18,8 @@ import {
 /** Revenue OS checkout does not yet support a separate Bienes inventory pack line item. */
 export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false;
 
-/** Revenue OS checkout supports one packageKey per session; offers add-on is not bundled yet. */
-export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = false;
+/** Revenue OS checkout supports one packageKey per session; offers add-on is bundled via addOns[]. */
+export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = true;
 
 /** Canonical Revenue OS package key for Restaurante category-owned coupon module. */
 export const RESTAURANTES_COUPON_ADDON_PACKAGE_KEY = "restaurantes_offers_addon";
@@ -131,6 +131,7 @@ export type PublishCheckpointResolvedState = {
     returnPath?: string;
     locale: PublishCheckpointLanguage;
     promoCode?: string;
+    addOns?: Array<{ key: string; quantity?: number }>;
     metadata: Record<string, string | number | boolean>;
   };
 };
@@ -360,11 +361,18 @@ export function resolvePublishCheckoutCheckpoint(
   }
 
   if (config.category === "restaurantes") {
+    const offersDef = getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
     metadata.restaurant_coupon_addon_selected = Boolean(config.restaurantOffersAddonSelected);
     if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
       metadata.restaurant_offers_addon_package_key = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
+      metadata.restaurant_offers_addon_price_cents = offersDef?.priceCents ?? 9900;
     }
   }
+
+  const restaurantCouponAddOnSelected =
+    config.category === "restaurantes" &&
+    Boolean(config.restaurantOffersAddonSelected) &&
+    REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED;
 
   if (config.listingId?.trim()) metadata.listing_id = config.listingId.trim();
   if (config.leonixAdId?.trim()) metadata.leonix_ad_id = config.leonixAdId.trim();
@@ -380,6 +388,9 @@ export function resolvePublishCheckoutCheckpoint(
     ...(config.leonixAdId?.trim() ? { leonixAdId: config.leonixAdId.trim() } : {}),
     ...(config.returnPath?.trim() ? { returnPath: config.returnPath.trim() } : {}),
     ...(opts?.promoCode?.trim() ? { promoCode: opts.promoCode.trim() } : {}),
+    ...(restaurantCouponAddOnSelected
+      ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
+      : {}),
   };
 
   return {

@@ -61,6 +61,10 @@ import {
   EV_PUBLIC_SHELL,
   enVentaBrowseSearchPlaceholder,
 } from "../shared/styles/enVentaLeonixPublicUi";
+import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
@@ -747,8 +751,13 @@ export function EnVentaResultsClient() {
           ) : null}
         </header>
 
-        <div className="mt-2">
-          <EnVentaCompactSearchCanvas
+        <section
+          className={CAT_STD_RESULTS_REFINE_PANEL}
+          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
+        >
+          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
+          <div className="mt-2">
+            <EnVentaCompactSearchCanvas
             lang={lang}
             routeLang={lang}
             action={EN_VENTA_RESULTS_PATH}
@@ -776,10 +785,8 @@ export function EnVentaResultsClient() {
               </button>
             }
           />
-        </div>
-        <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
-
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
           <label className="inline-flex min-w-0 items-center gap-1.5">
             <span className="sr-only">{t.sort}</span>
             <select
@@ -836,7 +843,9 @@ export function EnVentaResultsClient() {
               {t.list}
             </button>
           </div>
-        </div>
+          </div>
+        </section>
+        <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
 
         {activeChips.length > 0 ? (
           <div className="mt-1.5 w-full sm:mt-2">

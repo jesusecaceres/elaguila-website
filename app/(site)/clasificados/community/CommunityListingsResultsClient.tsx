@@ -32,6 +32,10 @@ import {
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
+import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { lightweightLocationMatchesFilter } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
 import { CommunityResultsSearchPanel } from "./CommunityResultsSearchPanel";
 
@@ -241,7 +245,7 @@ export function CommunityListingsResultsClient({
 
   return (
     <CategoryStandardResultsPageShell>
-      <div className="space-y-4">
+      <div className="space-y-5">
         <CategoryStandardResultsHeader
           lang={lang}
           title={pageTitle}
@@ -253,12 +257,20 @@ export function CommunityListingsResultsClient({
           resultCount={loading ? undefined : filtered.length}
         />
 
-        <CommunityResultsSearchPanel
-          category={category}
-          lang={lang}
-          resultsAction={resultsAction}
-          clearHref={clearHref}
-        />
+        <section
+          className={CAT_STD_RESULTS_REFINE_PANEL}
+          aria-label={L ? "Afina tu búsqueda" : "Refine your search"}
+        >
+          <p className={CAT_STD_REFINE_EYEBROW}>{L ? "Afina tu búsqueda" : "Refine your search"}</p>
+          <div className="mt-2">
+            <CommunityResultsSearchPanel
+              category={category}
+              lang={lang}
+              resultsAction={resultsAction}
+              clearHref={clearHref}
+            />
+          </div>
+        </section>
 
         {loadErr ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert">

@@ -6,12 +6,16 @@
 import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
+import type { ValidatedRevenueCheckoutAddOn } from "./revenueCheckout";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 
 export type CreatePendingPaymentRecordInput = {
   category: string;
   packageKey: string;
   packageDef: RevenuePackageDefinition;
   amountCents: number;
+  subtotalCents?: number;
+  addOns?: ValidatedRevenueCheckoutAddOn[];
   currency?: string;
   listingId: string;
   leonixAdId?: string | null;
@@ -42,9 +46,11 @@ export async function createPendingPaymentRecord(
 
   const supabase = getAdminSupabase();
   const currency = (input.currency ?? "usd").toLowerCase();
-  const subtotal = input.packageDef.priceCents;
+  const subtotal = Math.max(0, input.subtotalCents ?? input.packageDef.priceCents);
   const discount = Math.max(0, input.discountCents ?? 0);
   const total = Math.max(0, input.amountCents);
+  const addOns = input.addOns ?? [];
+  const restaurantCouponSelected = addOns.some((a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
 
   const { data, error } = await supabase
     .from("leonix_payment_records")
@@ -70,6 +76,30 @@ export async function createPendingPaymentRecord(
         gate: "STRIPE-REVENUE-OS-CHECKOUT-SESSION-01",
         package_label: input.packageDef.label,
         destructive: false,
+        subtotal_cents: subtotal,
+        ...(addOns.length
+          ? {
+              add_ons: addOns.map((a) => ({
+                key: a.key,
+                price_cents: a.unitPriceCents,
+                quantity: a.quantity,
+                label: a.packageDef.label,
+              })),
+            }
+          : {}),
+        ...(input.category === "restaurantes"
+          ? {
+              restaurant_coupon_addon_selected: restaurantCouponSelected,
+              ...(restaurantCouponSelected
+                ? {
+                    restaurant_offers_addon_package_key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+                    restaurant_offers_addon_price_cents: addOns.find(
+                      (a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+                    )?.unitPriceCents,
+                  }
+                : {}),
+            }
+          : {}),
         ...(input.promoCode?.trim() ? { promo_code: input.promoCode.trim() } : {}),
         ...(input.discountType?.trim() ? { promo_discount_type: input.discountType.trim() } : {}),
         ...(discount > 0

@@ -47,6 +47,7 @@
     "verify:stripe-revenue-os-live-supabase-proof-01": "node scripts/verify-stripe-revenue-os-live-supabase-proof-01.mjs",
     "verify:stripe-revenue-os-package-key-alignment-01": "node scripts/verify-stripe-revenue-os-package-key-alignment-01.mjs",
     "verify:stripe-revenue-os-checkout-session-01": "node scripts/verify-stripe-revenue-os-checkout-session-01.mjs",
+    "verify:stripe-revenue-os-restaurantes-coupon-addon-01": "node scripts/verify-stripe-revenue-os-restaurantes-coupon-addon-01.mjs",
     "verify:stripe-revenue-os-webhook-fulfillment-01": "node scripts/verify-stripe-revenue-os-webhook-fulfillment-01.mjs",
     "verify:stripe-revenue-os-sandbox-e2e-proof-01": "node scripts/verify-stripe-revenue-os-sandbox-e2e-proof-01.mjs",
     "smoke:stripe-revenue-os-sandbox-e2e-01": "node scripts/smoke-stripe-revenue-os-sandbox-e2e-01.mjs",
