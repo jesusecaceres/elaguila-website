@@ -18,7 +18,6 @@ import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/Clas
 import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell/RestauranteAdStoryPreview";
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
-import { RestauranteOfertasLocalesCheckoutSecondaryCard } from "@/app/lib/clasificados/restaurantes/RestauranteOfertasLocalesCheckoutSecondaryCard";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
 import { saveRestaurantePendingBeforeCheckout } from "@/app/clasificados/restaurantes/application/saveRestaurantePendingBeforeCheckout";
 import {
@@ -78,9 +77,10 @@ export default function RestaurantePreviewClient() {
       confirmations: RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
       promoEligible: false,
+      restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
       returnPath: RESTAURANTES_BASE_CHECKOUT.returnPath,
     };
-  }, [normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
+  }, [normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -307,9 +307,7 @@ export default function RestaurantePreviewClient() {
             className="rounded-3xl border p-4 sm:p-6 md:p-8"
             style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
           >
-            <RestauranteOfertasLocalesCheckoutSecondaryCard lang={lang} />
-            <div className="mt-4">
-              <PublishCheckoutCheckpoint
+            <PublishCheckoutCheckpoint
                 config={checkpointConfig}
                 lang={lang}
                 busy={checkoutBusy}
@@ -324,7 +322,6 @@ export default function RestaurantePreviewClient() {
                 }
                 onCheckout={(ctx) => void onCheckout(ctx)}
               />
-            </div>
           </div>
         </div>
       </div>

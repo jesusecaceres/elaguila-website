@@ -21,6 +21,9 @@ export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false;
 /** Revenue OS checkout supports one packageKey per session; offers add-on is not bundled yet. */
 export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = false;
 
+/** Canonical Revenue OS package key for Restaurante category-owned coupon module. */
+export const RESTAURANTES_COUPON_ADDON_PACKAGE_KEY = "restaurantes_offers_addon";
+
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
 export const BR_INVENTORY_PACK_MAX_CHILDREN = 4;
 export const BR_BASE_INCLUDED_PROPERTIES = 1;
@@ -165,13 +168,10 @@ function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount:
   return null;
 }
 
-function restaurantOffersBlockReason(lang: PublishCheckpointLanguage): string | null {
-  if (!REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
-    return lang === "es"
-      ? "Este complemento todavía no está listo para pago. Continúa con el plan base del restaurante o contacta a Leonix."
-      : "This add-on is not ready for checkout yet. Continue with the base restaurant plan or contact Leonix.";
-  }
-  return null;
+function restaurantCouponAddonBlockReason(lang: PublishCheckpointLanguage): string {
+  return lang === "es"
+    ? "El módulo de cupones del restaurante todavía no está listo para pago seguro. Quita ese complemento para continuar con el plan base de $399/mes o contacta a Leonix."
+    : "The restaurant coupon module is not ready for secure checkout yet. Remove that add-on to continue with the $399/mo base plan or contact Leonix.";
 }
 
 /**
@@ -241,16 +241,35 @@ export function resolvePublishCheckoutCheckpoint(
       priceCents: baseCents,
     });
 
-    if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
-      addOns.push({
-        id: "offers_addon",
-        labelEn: "Coupon add-on",
-        labelEs: "Add-on de cupones",
-        priceCents: 9900,
-        selected: true,
-        detailEn: "Coupons and local offers module",
-        detailEs: "Módulo de cupones y ofertas locales",
-      });
+    const restaurantCouponSelected = Boolean(config.restaurantOffersAddonSelected);
+    const offersDef = getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
+    const offersPriceCents = offersDef?.priceCents ?? 9900;
+
+    if (restaurantCouponSelected) {
+      if (REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
+        addOns.push({
+          id: "restaurant_coupon_module",
+          labelEn: "Restaurant coupon module",
+          labelEs: "Módulo de cupones del restaurante",
+          priceCents: offersPriceCents,
+          selected: true,
+          detailEn: "Category-owned coupon module selected in your application",
+          detailEs: "Módulo de cupones seleccionado en tu solicitud",
+        });
+      } else {
+        blocked = true;
+        blockReasonEs = restaurantCouponAddonBlockReason("es");
+        blockReasonEn = restaurantCouponAddonBlockReason("en");
+        addOns.push({
+          id: "restaurant_coupon_module",
+          labelEn: "Restaurant coupon module",
+          labelEs: "Módulo de cupones del restaurante",
+          priceCents: offersPriceCents,
+          selected: true,
+          detailEn: "Selected in your application — not included in today's secure checkout",
+          detailEs: "Seleccionado en tu solicitud — no incluido en el pago seguro de hoy",
+        });
+      }
     }
   } else if (config.baseLineItem) {
     lineItems.push({
@@ -270,8 +289,17 @@ export function resolvePublishCheckoutCheckpoint(
     });
   }
 
+  const restaurantCouponBlockedCheckout =
+    config.category === "restaurantes" &&
+    Boolean(config.restaurantOffersAddonSelected) &&
+    !REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED;
+
   const selectedAddOnCents = addOns
-    .filter((a) => a.selected)
+    .filter((a) => {
+      if (!a.selected) return false;
+      if (restaurantCouponBlockedCheckout && a.id === "restaurant_coupon_module") return false;
+      return true;
+    })
     .reduce((sum, a) => sum + a.priceCents, 0);
 
   const subtotalCents = lineItems.reduce((sum, li) => sum + li.priceCents, 0) + selectedAddOnCents;
@@ -320,6 +348,13 @@ export function resolvePublishCheckoutCheckpoint(
     metadata.inventory_pack_slots = BR_INVENTORY_PACK_MAX_CHILDREN;
     metadata.base_included_properties = BR_BASE_INCLUDED_PROPERTIES;
     metadata.total_active_property_limit = BR_TOTAL_ACTIVE_PROPERTY_LIMIT;
+  }
+
+  if (config.category === "restaurantes") {
+    metadata.restaurant_coupon_addon_selected = Boolean(config.restaurantOffersAddonSelected);
+    if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
+      metadata.restaurant_offers_addon_package_key = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
+    }
   }
 
   if (config.listingId?.trim()) metadata.listing_id = config.listingId.trim();

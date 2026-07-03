@@ -75,8 +75,12 @@ assert(
   "Checkout must use stable listingId from pending save",
 );
 assert(
-  preview.includes("RestauranteOfertasLocalesCheckoutSecondaryCard"),
-  "Preview must use truthful secondary Ofertas card",
+  !preview.includes("RestauranteOfertasLocalesCheckoutSecondaryCard"),
+  "Preview must not render generic Ofertas Locales secondary card (removed in RESTAURANTES-CHECKOUT-REMOVE-OFERTAS-AND-COUPON-ADDON-TRUTH-01)",
+);
+assert(
+  preview.includes("restaurantOffersAddonSelected") && preview.includes("couponUpgradeEnabled"),
+  "Preview must wire Restaurante category-owned coupon add-on field",
 );
 assert(!preview.includes("RestauranteOfertasLocalesUpsellCard"), "Preview must not use old combo upsell card");
 
