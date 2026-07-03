@@ -23,7 +23,7 @@ export function CategoryStandardActiveFilterChips({ lang, chips, className = "" 
 
   return (
     <div className={`min-w-0 ${className}`.trim()} data-testid="category-active-filter-chips">
-      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#8A6B1F]">{heading}</p>
+      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{heading}</p>
       <div className="flex flex-wrap gap-1.5">
         {chips.map((chip) => (
           <Link

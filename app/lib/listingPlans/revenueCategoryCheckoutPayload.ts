@@ -42,6 +42,11 @@ export const RESTAURANTES_BASE_CHECKOUT = {
   returnPath: "/clasificados/restaurantes",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+export type RevenueCheckoutAddOnPayload = {
+  key: string;
+  quantity?: number;
+};
+
 export type RevenueCategoryCheckoutPayload = {
   category: string;
   packageKey: string;
@@ -54,6 +59,8 @@ export type RevenueCategoryCheckoutPayload = {
   locale?: "es" | "en";
   customerEmail?: string | null;
   promoCode?: string | null;
+  /** Server-validated add-on keys only — prices resolved server-side. */
+  addOns?: RevenueCheckoutAddOnPayload[];
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -71,5 +78,13 @@ export function buildRevenueCategoryCheckoutBody(
     locale: input.locale ?? "es",
     ...(input.customerEmail?.trim() ? { customerEmail: input.customerEmail.trim() } : {}),
     ...(input.promoCode?.trim() ? { promoCode: input.promoCode.trim() } : {}),
+    ...(input.addOns?.length
+      ? {
+          addOns: input.addOns.map((a) => ({
+            key: String(a.key ?? "").trim().toLowerCase(),
+            ...(a.quantity != null ? { quantity: Math.max(1, Math.floor(Number(a.quantity))) } : {}),
+          })),
+        }
+      : {}),
   };
 }

@@ -13,6 +13,8 @@ type Props = {
   onSort: (v: string) => void;
   view: "grid" | "list";
   onView: (v: "grid" | "list") => void;
+  /** Inside refine panel — no outer border/margin. */
+  integrated?: boolean;
 };
 
 function IconGrid({ className }: { className?: string }) {
@@ -48,12 +50,13 @@ export function RentasResultsToolbar({
   onSort,
   view,
   onView,
+  integrated = false,
 }: Props) {
   const locale = lang === "en" ? "en-US" : "es-MX";
 
   return (
-    <div className="mt-6 border-t border-[#D6C7AD]/50 pt-4">
-      <div className="rounded-xl border border-[#D6C7AD]/45 bg-[#FFFDF7]/90 px-4 py-3 sm:px-5">
+    <div className={integrated ? "" : "mt-6 border-t border-[#D6C7AD]/50 pt-4"}>
+      <div className={integrated ? "" : "rounded-xl border border-[#D6C7AD]/45 bg-[#FFFDF7]/90 px-4 py-3 sm:px-5"}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-snug text-[#4A4338]">
             <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#556B3E]">{copy.topBarResults}</span>

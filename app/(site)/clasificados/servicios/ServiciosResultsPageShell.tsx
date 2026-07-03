@@ -35,7 +35,6 @@ export function ServiciosResultsPageShell({ lang, children, resultCount }: Props
           publishLabel={lang === "en" ? "Post your service" : "Publica tu servicio"}
           clearHref={clearHref}
           resultCount={resultCount}
-          category="servicios"
         />
         {children}
       </div>

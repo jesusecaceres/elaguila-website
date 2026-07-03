@@ -1,59 +1,96 @@
 # Rentas Visual Gateway Audit
 
-Scoped gated build: `RENTAS-LANDING-INNER-STRUCTURE-REBUILD-V6`
+Scoped gated build: `RENTAS-LANDING-RESULTS-SHELL-FINAL-STANDARD-V7`
 
-## V6 inner structure rebuild
+## Product question model
 
-### Why V6 was needed
-
-V5 (`data-rentas-gateway-scene="v5-visual-contract"`) deployed successfully but the landing still did not match the visual target because the **inner layout remained the old stacked structure**:
-
-1. Hero text → separate search card → disconnected Publicar row → color-shift tile band
-2. Each block rendered as its own module instead of one integrated gateway panel
-
-### V6 changes
-
-| Blocker (live DOM) | File | Action |
+| Surface | Question | User job |
 |---|---|---|
-| `mt-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4` (disconnected Publicar row) | `RentasLandingHeroGateway.tsx` | **Removed** — Publicar moved into search action row |
-| `border-t border-[#D6C7AD]/50 bg-[#FFFDF7]/55 backdrop-blur-[1px]` (tile band) | `RentasLandingIntentTiles.tsx` | **Removed** — transparent integrated tiles zone |
-| Separate search form card | `RentasCompactSearchCanvas.tsx` | **Replaced** with hero search anchor inside gateway panel |
-| `data-rentas-gateway-scene="v5-visual-contract"` | `RentasLandingSceneBand.tsx` | **Updated** to `v6-inner-structure` |
+| **Landing** | “What are you looking for?” | Start with space type, keyword, city/state/ZIP/country, budget bands, practical needs |
+| **Results** | “Let me narrow it down and help you find the exact rental.” | Same base search shell + active filters + drawer + branch chips + sort/view + pagination |
 
-### V6 target structure
-
-```
-scene band (v6-inner-structure)
-  integrated gateway panel (RENTAS_LANDING_GATEWAY_PANEL)
-    hero text + tagline
-    hero search anchor (fields + Buscar + Filtros + Ver todos + Publicar renta)
-    intent tiles (transparent, gold accent line only)
-```
-
-### Scene marker
-
-- **Exact marker:** `data-rentas-gateway-scene="v6-inner-structure"`
-- **File:** `landing/RentasLandingSceneBand.tsx`
-- **Method:** CSS-only inline SVG + gradients (unchanged from V5)
-
-### Behavior preservation
-
-- Buscar, Filtros, Ver todos, Publicar renta routes unchanged
-- City/state/ZIP/country fields unchanged
-- Tile links unchanged (`rentasLandingGateway.ts`)
-- Results page untouched in V6
+**Filter rule:** Every visible filter must map to real Rentas query/application/listing fields. No fake filters, data, or analytics.
 
 ---
 
-## Requirement checklist (V6)
+## V7 — Landing/results shell final standard
+
+### What changed
+
+| Area | Change |
+|---|---|
+| Results refine panel | `RENTAS_RESULTS_REFINE_PANEL` wraps title, search, active filters, branch chips, toolbar |
+| Search shell carryover | `layout="results"` uses same `RENTAS_SHARED_SEARCH_ANCHOR` as landing |
+| Toolbar | Integrated inside refine panel (`integrated` prop) |
+| Filter drawer | Question-oriented group labels + results intro copy |
+| Landing | **No redesign** — V6 integrated gateway preserved |
+
+### Results structure (V7)
+
+```
+RentasResultsTopBar (breadcrumb)
+RENTAS_RESULTS_REFINE_PANEL
+  title + count + Publicar renta
+  “Afina tu búsqueda” eyebrow
+  RentasCompactSearchCanvas layout="results"
+  RentasResultsActiveFilters
+  branch chips (Todas / Privado / Negocio)
+  divider
+  RentasResultsToolbar (sort + view + count)
+listings + bottom pagination
+visibility strip footer
+```
+
+### Landing structure (unchanged V6)
+
+```
+scene band (v6-inner-structure)
+  integrated gateway panel
+    hero + search (layout="landing") + tiles
+budget/practical shortcuts
+visibility strip
+```
+
+---
+
+## Rentas shell standard for replication
+
+Use this pattern when building other Clasificados categories:
+
+- **Landing** asks broad intent questions (“What are you looking for?”)
+- **Results** carries the same search shell and narrows with the drawer (“Let me narrow it down…”)
+- **CTAs** keep Leonix burgundy / gold / cream language
+- **Category-specific filters** live in the drawer
+- **Top tools** include active filters, branch/type chips, sort, view toggle
+- **Pagination** remains at the bottom
+- **Every filter** must map to application/listing fields
+- **No fake filters, data, or analytics**
+
+---
+
+## Prior passes (reference)
+
+### V6 inner structure
+
+- Removed disconnected Publicar row and tile color-shift band
+- Scene marker: `data-rentas-gateway-scene="v6-inner-structure"`
+- Publicar integrated into landing search action row
+
+### V5 visual contract
+
+- CSS-only scene; left/right image contract mapping
+- No fake listing data from design target
+
+---
+
+## V7 requirement checklist
 
 | Requirement | TRUE/FALSE | Evidence |
 |---|---|---|
-| Disconnected Publicar row removed | TRUE | Grep no match for old class |
-| Tile color-shift band removed | TRUE | Grep no match for old band classes |
-| Scene marker v6-inner-structure | TRUE | `RentasLandingSceneBand.tsx` |
-| Publicar integrated in search action row | TRUE | `RentasCompactSearchCanvas` publishHref prop |
-| Tiles inside gateway panel | TRUE | `RentasLandingHub` tilesSlot |
-| Search is hero anchor | TRUE | `RENTAS_LANDING_HERO_SEARCH_SHELL` |
-| Results behavior untouched | TRUE | No results file changes |
-| Build passed | TRUE | `npm run build` exit 0 (Gate 8) |
+| Landing search shell clean | TRUE | V6 gateway unchanged |
+| Results carries landing shell language | TRUE | `RENTAS_SHARED_SEARCH_ANCHOR` + `layout="results"` |
+| Real listings preserved | TRUE | `useRentasPublicBrowseInventory` unchanged |
+| No fake filters | TRUE | Drawer + gateway wired to contract keys |
+| Filter drawer question groups | TRUE | Updated GroupLabel copy |
+| Pagination bottom | TRUE | `RentasResultsClient` nav unchanged |
+| Build passed | TRUE | `npm run build` exit 0 (Gate 9) |

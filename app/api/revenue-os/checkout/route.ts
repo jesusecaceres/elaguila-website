@@ -3,8 +3,10 @@ import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import {
   buildCheckoutCancelUrl,
   buildCheckoutSuccessUrl,
+  buildRevenueStripeLineItems,
   isRevenueStripeEnvConfigured,
   isRevenueSupabaseAdminConfigured,
+  validateRevenueCheckoutAddOns,
   validateRevenueCheckoutRequest,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
@@ -51,6 +53,20 @@ export async function POST(request: NextRequest) {
   const bearerUserId = await getBearerUserId(request);
   const ownerUserId = body.ownerUserId?.trim() || bearerUserId || null;
 
+  const addOnValidation = validateRevenueCheckoutAddOns({
+    category: String(body.category ?? "").trim().toLowerCase(),
+    basePackageKey: String(body.packageKey ?? "").trim().toLowerCase(),
+    addOns: body.addOns,
+  });
+  if (!addOnValidation.ok) {
+    return NextResponse.json(
+      { ok: false, code: addOnValidation.code, message: addOnValidation.message },
+      { status: 400 },
+    );
+  }
+
+  const validatedAddOns = addOnValidation.addOns;
+
   let finalAmountCents: number | undefined;
   let promoCodeId: string | undefined;
   let discountCents = 0;
@@ -58,7 +74,7 @@ export async function POST(request: NextRequest) {
   const promoCodeRaw = body.promoCode?.trim();
   let promoTypeForRecord: string | undefined;
   if (promoCodeRaw) {
-    const prelim = validateRevenueCheckoutRequest(body);
+    const prelim = validateRevenueCheckoutRequest(body, { validatedAddOns });
     if (!prelim.ok) {
       return NextResponse.json(
         { ok: false, code: prelim.code, message: prelim.message },
@@ -69,7 +85,7 @@ export async function POST(request: NextRequest) {
     const promoResult = await resolvePromoForCheckout({
       promoCode: promoCodeRaw,
       packageDef: prelim.packageDef,
-      baseAmountCents: prelim.packageDef.priceCents,
+      baseAmountCents: prelim.subtotalCents,
       ownerUserId,
       email: body.customerEmail,
     });
@@ -98,7 +114,10 @@ export async function POST(request: NextRequest) {
     promoTypeForRecord = promoResult.promoType;
   }
 
-  const validated = validateRevenueCheckoutRequest(body, { finalAmountCents });
+  const validated = validateRevenueCheckoutRequest(body, {
+    finalAmountCents,
+    validatedAddOns,
+  });
   if (!validated.ok) {
     const status =
       validated.code === "package_not_stripe_eligible" ||
@@ -112,13 +131,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { packageDef, listingRef, amountCents, currency, stripeMode } = validated;
+  const { packageDef, listingRef, amountCents, subtotalCents, addOns, currency, stripeMode } = validated;
 
   const paymentInsert = await createPendingPaymentRecord({
     category: packageDef.category,
     packageKey: packageDef.packageKey,
     packageDef,
     amountCents,
+    subtotalCents,
+    addOns,
     currency,
     listingId: listingRef,
     leonixAdId: body.leonixAdId,
@@ -182,9 +203,17 @@ export async function POST(request: NextRequest) {
     locale: body.locale,
   });
 
+  const stripeLineItems = buildRevenueStripeLineItems({
+    basePackageDef: packageDef,
+    addOns,
+    subtotalCents,
+    finalAmountCents: amountCents,
+  });
+
   const stripeResult = await createRevenueStripeCheckoutSession({
     packageDef,
     amountCents,
+    lineItems: stripeLineItems,
     currency,
     stripeMode,
     successUrl,

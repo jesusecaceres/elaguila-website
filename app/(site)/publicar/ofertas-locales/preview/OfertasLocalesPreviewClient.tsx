@@ -100,7 +100,7 @@ export default function OfertasLocalesPreviewClient() {
   if (!hasLoadedDraft) {
     return (
       <div className={`min-h-screen ${PAGE_BG}`}>
-        <div className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-[#1E1814]/60">
+        <div className="mx-auto max-w-[1240px] px-4 py-16 text-center text-sm text-[#1E1814]/60">
           {lang === "en" ? "Loading preview…" : "Cargando vista previa…"}
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function OfertasLocalesPreviewClient() {
   if (!hasOfertaLocalDraftContent(draft)) {
     return (
       <div className={`min-h-screen ${PAGE_BG}`}>
-        <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <div className="mx-auto max-w-[1240px] px-4 py-16 text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#7A1E2C]">
             {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEn : OFERTAS_LOCALES_PREVIEW_COPY.previewNoticeEs}
           </p>

@@ -18,7 +18,11 @@ import {
   buscoRowHasPhone,
 } from "./shared/buscoSearchText";
 import { lightweightLocationMatchesFilter } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
-import { CAT_STD_BTN_PRIMARY } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
+import {
+  CAT_STD_BTN_PRIMARY,
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
@@ -183,11 +187,18 @@ function BuscoResultsInner(props: {
 
   const clearHref = appendLangToPath("/clasificados/busco/results", lang);
 
+  const refineEyebrow = lang === "es" ? "Afina tu búsqueda" : "Refine your search";
+
   return (
     <div className="space-y-5">
       <p className="text-sm text-[#5C5346]">{t.subtitle}</p>
 
-      <BuscoResultsSearchPanel lang={lang} clearHref={clearHref} />
+      <section className={CAT_STD_RESULTS_REFINE_PANEL} aria-label={refineEyebrow}>
+        <p className={CAT_STD_REFINE_EYEBROW}>{refineEyebrow}</p>
+        <div className="mt-2">
+          <BuscoResultsSearchPanel lang={lang} clearHref={clearHref} />
+        </div>
+      </section>
 
       {loading ? (
         <p className="text-sm text-[#5C5346]" aria-busy="true">

@@ -10,9 +10,10 @@ import {
   getOfertaLocalProductDisplayLabel,
   labelForCouponPromotionSubtype,
 } from "./ofertasLocalesApplicationHelpers";
-import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
+import { activeOfertaLocalDraftAssets, assetHasExternalUrlReady, assetHasUploadedWithUrl } from "./ofertasLocalesDraftAssetHelpers";
 import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
-import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
+import { splitOfertaLocalPrimaryFlyerAssets } from "./ofertasLocalesStep5AssetLayout";
+import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "./ofertasLocalesTypes";
 
 /** True when the draft has enough content to show a meaningful preview. */
 export function hasOfertaLocalDraftContent(draft: OfertaLocalDraft): boolean {
@@ -145,4 +146,62 @@ export function digitalCouponCtaLabel(lang: "es" | "en" = "en"): string {
   return lang === "en"
     ? OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEn
     : OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEs;
+}
+
+export type OfertaLocalPreviewHeroAsset = {
+  href: string | null;
+  fileName: string;
+  mimeType: string;
+  isImage: boolean;
+  isPdf: boolean;
+  kind: "flyer" | "coupon";
+};
+
+function resolvePreviewAssetHref(asset: OfertaLocalDraftAsset): string | null {
+  if (assetHasUploadedWithUrl(asset)) {
+    return normalizeOfertaLocalUrlInput(asset.url);
+  }
+  if (assetHasExternalUrlReady(asset)) {
+    return normalizeOfertaLocalUrlInput(asset.url);
+  }
+  return null;
+}
+
+function toPreviewHeroAsset(
+  asset: OfertaLocalDraftAsset,
+  kind: "flyer" | "coupon"
+): OfertaLocalPreviewHeroAsset {
+  const mime = (asset.mimeType || "").toLowerCase();
+  const href = resolvePreviewAssetHref(asset);
+  return {
+    href,
+    fileName: asset.fileName.trim() || asset.title.trim() || (kind === "flyer" ? "flyer" : "coupon"),
+    mimeType: mime,
+    isImage: mime.startsWith("image/"),
+    isPdf: mime === "application/pdf" || asset.fileName.toLowerCase().endsWith(".pdf"),
+    kind,
+  };
+}
+
+/** Primary hero asset for preview — coupon lane prefers coupon, flyer lane prefers main flyer. */
+export function getOfertaLocalPreviewHeroAsset(draft: OfertaLocalDraft): OfertaLocalPreviewHeroAsset | null {
+  if (isOfertaLocalLocalCouponsLane(draft)) {
+    const coupon = activeOfertaLocalDraftAssets(draft.couponAssets)[0];
+    if (coupon) return toPreviewHeroAsset(coupon, "coupon");
+    const flyer = activeOfertaLocalDraftAssets(draft.flyerAssets)[0];
+    if (flyer) return toPreviewHeroAsset(flyer, "flyer");
+    return null;
+  }
+  const { primary } = splitOfertaLocalPrimaryFlyerAssets(draft.flyerAssets);
+  if (primary) return toPreviewHeroAsset(primary, "flyer");
+  const coupon = activeOfertaLocalDraftAssets(draft.couponAssets)[0];
+  if (coupon) return toPreviewHeroAsset(coupon, "coupon");
+  return null;
+}
+
+export function buildOfertaLocalPreviewLocationLine(draft: OfertaLocalDraft): string {
+  return [draft.address, draft.city, draft.state, draft.country, draft.zipCode]
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join(", ");
 }

@@ -37,6 +37,10 @@ import { EMPLEOS_RESULTS_FEATURED_STRIP_MAX } from "../lib/empleosPublicRankingP
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
 import { CategoryStandardFiltersDrawerShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardFiltersDrawerShell";
+import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { categoryStandardTitle } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import {
   LEONIX_LB_DEFAULT_COUNTRY,
@@ -509,12 +513,16 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
             publishLabel={lang === "es" ? "Publicar vacante" : "Post a job"}
             clearHref={clearResultsHref}
             resultCount={filtered.length}
-            category="empleos"
           />
         </div>
 
       <main className="mx-auto max-w-[1080px] px-3.5 sm:px-4 lg:px-5">
-        <form aria-label={t.formAria} onSubmit={submitSearch} className={LX_LB_SEARCH_CANVAS}>
+        <section
+          className={CAT_STD_RESULTS_REFINE_PANEL}
+          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
+        >
+          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
+          <form aria-label={t.formAria} onSubmit={submitSearch} className={`${LX_LB_SEARCH_CANVAS} mt-2`}>
           <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
             <label className={`${LX_LB_SEARCH_CELL} sm:col-span-4`}>
               <input
@@ -608,6 +616,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
             </button>
           </div>
         </form>
+        </section>
 
         <CategoryStandardFiltersDrawerShell
           open={filtersDrawerOpen}

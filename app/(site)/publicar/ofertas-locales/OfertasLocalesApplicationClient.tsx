@@ -84,13 +84,20 @@ import { OfertasLocalesAiScanReviewWorkspace } from "./OfertasLocalesAiScanRevie
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
 import { OfertasLocalesClickableItemPreviewPanel } from "./OfertasLocalesClickableItemPreviewPanel";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
-import { OfertasLocalesUploadedFilesSummary } from "./OfertasLocalesUploadedFilesSummary";
 import {
   OFERTAS_LOCALES_SHELL_COPY,
   ofertasLocalesAppCopy,
 } from "./ofertasLocalesApplicationCopy";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
-import { ofertaLocalDraftHasUnuploadedAssetMetadata } from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
+import {
+  ofertaLocalDraftHasUnuploadedAssetMetadata,
+  splitOfertaLocalPrimaryFlyerAssets,
+} from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
+import {
+  activeOfertaLocalDraftAssets,
+  assetHasExternalUrlReady,
+  assetHasUploadedWithUrl,
+} from "@/app/lib/ofertas-locales/ofertasLocalesDraftAssetHelpers";
 import { OfertasLocalesWizardProgress } from "./OfertasLocalesWizardProgress";
 import type { OfertaLocalAiReviewGateState } from "./OfertasLocalesAiItemReviewPanel";
 
@@ -99,6 +106,78 @@ function formatOfertaLocalCopyTemplate(
   values: Record<string, string | number>
 ): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}
+
+type Step5CheckpointCardProps = {
+  title: string;
+  isOpen: boolean;
+  isLocked: boolean;
+  isComplete: boolean;
+  lockMessage?: string;
+  summary?: ReactNode;
+  collapsedActions?: ReactNode;
+  onToggle?: () => void;
+  children?: ReactNode;
+};
+
+function Step5CheckpointCard({
+  title,
+  isOpen,
+  isLocked,
+  isComplete,
+  lockMessage,
+  summary,
+  collapsedActions,
+  onToggle,
+  children,
+}: Step5CheckpointCardProps) {
+  return (
+    <div
+      className={cx(
+        "overflow-hidden rounded-xl border shadow-sm",
+        isLocked ? "border-[#D4C4A8]/50 bg-[#FDF8F0]/60" : "border-[#D4C4A8]/70 bg-white",
+        isComplete && !isOpen ? "bg-[#FDF8F0]/90" : ""
+      )}
+    >
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left"
+        onClick={onToggle}
+        disabled={isLocked && !isComplete}
+        aria-expanded={isOpen}
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-[#1E1814]">{title}</span>
+          {!isOpen && summary ? (
+            <span className="mt-1 block text-xs leading-relaxed text-[#1E1814]/65">{summary}</span>
+          ) : null}
+          {isLocked && lockMessage ? (
+            <span className="mt-1 block text-xs text-[#1E1814]/55">{lockMessage}</span>
+          ) : null}
+        </span>
+        <span
+          className={cx(
+            "shrink-0 rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+            isComplete
+              ? "border-emerald-300/80 bg-emerald-50 text-emerald-900"
+              : isLocked
+                ? "border-[#D4C4A8] bg-white text-[#1E1814]/45"
+                : isOpen
+                  ? "border-[#7A1E2C]/30 bg-[#7A1E2C]/5 text-[#7A1E2C]"
+                  : "border-[#D4C4A8] bg-[#FDF8F0] text-[#1E1814]/55"
+          )}
+        >
+          {isComplete ? "✓" : isLocked ? "—" : isOpen ? "●" : "○"}
+        </span>
+      </button>
+      {isOpen && !isLocked ? <div className="border-t border-[#D4C4A8]/50 px-4 py-4">{children}</div> : null}
+      {!isOpen && !isLocked && collapsedActions ? (
+        <div className="flex flex-wrap gap-2 border-t border-[#D4C4A8]/40 px-4 pb-3 pt-2">
+          {collapsedActions}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 const PAGE_BG = "bg-[#FFFCF7]";
@@ -208,7 +287,11 @@ export default function OfertasLocalesApplicationClient() {
     rejectedCount: 0,
     reviewLaterCount: 0,
   });
-  const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
+  const [step5UploadEditing, setStep5UploadEditing] = useState(false);
+  const [step5ManualCheckpoint, setStep5ManualCheckpoint] = useState<
+    "upload" | "scan" | "review" | null
+  >(null);
+  const reviewWorkbenchRef = useRef<HTMLElement>(null);
   const [step7Confirmations, setStep7Confirmations] = useState({
     businessInfo: false,
     filesDates: false,
@@ -225,7 +308,6 @@ export default function OfertasLocalesApplicationClient() {
   const hasExistingAiScan =
     draft.wantsAiSearchableSpecials &&
     Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
-  const collapseUploadForReview = false;
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -290,7 +372,8 @@ export default function OfertasLocalesApplicationClient() {
       rejectedCount: 0,
       reviewLaterCount: 0,
     });
-    setUploadEditorOpen(false);
+    setStep5UploadEditing(false);
+    setStep5ManualCheckpoint(null);
     setStep7Confirmations({
       businessInfo: false,
       filesDates: false,
@@ -311,6 +394,94 @@ export default function OfertasLocalesApplicationClient() {
   const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
   const isShoppingLane = isOfertaLocalShoppingSpecialsLane(draft);
   const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
+
+  const step5UploadComplete = useMemo(() => {
+    if (step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft)) {
+      return false;
+    }
+    if (isShoppingLane) {
+      const { primary } = splitOfertaLocalPrimaryFlyerAssets(draft.flyerAssets);
+      return (
+        primary != null &&
+        (assetHasUploadedWithUrl(primary) || assetHasExternalUrlReady(primary))
+      );
+    }
+    if (isCouponsLane) {
+      const main = activeOfertaLocalDraftAssets(draft.couponAssets)[0];
+      return main != null && (assetHasUploadedWithUrl(main) || assetHasExternalUrlReady(main));
+    }
+    return false;
+  }, [draft, isCouponsLane, isShoppingLane, step5PendingFileCount]);
+
+  const step5ScanRequired = draft.wantsAiSearchableSpecials;
+  const step5ScanComplete = !step5ScanRequired || hasExistingAiScan;
+  const step5ReviewComplete =
+    !step5ScanRequired ||
+    (step5ScanComplete &&
+      (aiReviewGate.totalItems === 0 || aiReviewGate.needsReviewCount === 0));
+
+  const step5ActiveCheckpoint = useMemo((): "upload" | "scan" | "review" | "complete" => {
+    if (!step5UploadComplete) return "upload";
+    if (step5ScanRequired && !step5ScanComplete) return "scan";
+    if (step5ScanRequired && !step5ReviewComplete) return "review";
+    return "complete";
+  }, [step5ReviewComplete, step5ScanComplete, step5ScanRequired, step5UploadComplete]);
+
+  const step5PrimaryAssetSummary = useMemo(() => {
+    if (isShoppingLane) {
+      const { primary } = splitOfertaLocalPrimaryFlyerAssets(draft.flyerAssets);
+      if (!primary) return null;
+      const ready = assetHasUploadedWithUrl(primary) || assetHasExternalUrlReady(primary);
+      return {
+        label:
+          primary.fileName || primary.url || (lang === "en" ? "Flyer file" : "Archivo de volante"),
+        ready,
+        href: primary.url.trim() || null,
+      };
+    }
+    if (isCouponsLane) {
+      const main = activeOfertaLocalDraftAssets(draft.couponAssets)[0];
+      if (!main) return null;
+      const ready = assetHasUploadedWithUrl(main) || assetHasExternalUrlReady(main);
+      return {
+        label: main.fileName || main.url || (lang === "en" ? "Coupon file" : "Archivo de cupón"),
+        ready,
+        href: main.url.trim() || null,
+      };
+    }
+    return null;
+  }, [draft, isCouponsLane, isShoppingLane, lang]);
+
+  const step5UploadCardOpen =
+    step5ManualCheckpoint === "upload" ||
+    step5UploadEditing ||
+    (!step5UploadComplete && step5ActiveCheckpoint === "upload");
+  const step5ScanCardOpen =
+    step5ManualCheckpoint === "scan" ||
+    (step5ScanRequired &&
+      step5UploadComplete &&
+      !step5UploadEditing &&
+      !step5ScanComplete &&
+      step5ActiveCheckpoint === "scan");
+  const step5ReviewCardOpen =
+    step5ManualCheckpoint === "review" ||
+    (step5ScanRequired &&
+      step5ScanComplete &&
+      !step5UploadEditing &&
+      !step5ReviewComplete &&
+      step5ActiveCheckpoint === "review");
+
+  const scrollToReviewWorkbench = useCallback(() => {
+    reviewWorkbenchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  useEffect(() => {
+    if (step !== 5) {
+      setStep5UploadEditing(false);
+      setStep5ManualCheckpoint(null);
+    }
+  }, [step]);
+
   const primaryFormat = inferPrimaryAdFormatFromDraft(draft);
   const basePriceMonthly = getOfertaLocalApplicationBasePriceMonthly(draft);
   const estimatedMonthlyTotal =
@@ -412,25 +583,34 @@ export default function OfertasLocalesApplicationClient() {
 
   const goNext = useCallback(() => {
     if (step === 5) {
-      const hasPending =
-        step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
-      const hasAiReviewPending = aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
-      if (hasPending || hasAiReviewPending) return;
+      if (!step5UploadComplete) return;
+      if (draft.wantsAiSearchableSpecials && (!step5ScanComplete || !step5ReviewComplete)) return;
     }
     setStep((s) => clampWizardStep(s + 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [aiReviewGate.needsReviewCount, aiReviewGate.totalItems, draft, step, step5PendingFileCount]);
+  }, [
+    draft.wantsAiSearchableSpecials,
+    step,
+    step5ReviewComplete,
+    step5ScanComplete,
+    step5UploadComplete,
+  ]);
 
   const step5UploadBlocksContinue = useMemo(() => {
     if (step !== 5) return false;
-    return step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
-  }, [draft, step, step5PendingFileCount]);
+    return !step5UploadComplete;
+  }, [step, step5UploadComplete]);
 
   const step5HasBlockingWork = useMemo(() => {
-    const uploadBlocked = step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft);
-    const aiReviewBlocked = aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
-    return uploadBlocked || aiReviewBlocked;
-  }, [aiReviewGate.needsReviewCount, aiReviewGate.totalItems, draft, step5PendingFileCount]);
+    if (!step5UploadComplete) return true;
+    if (!draft.wantsAiSearchableSpecials) return false;
+    return !step5ScanComplete || !step5ReviewComplete;
+  }, [
+    draft.wantsAiSearchableSpecials,
+    step5ReviewComplete,
+    step5ScanComplete,
+    step5UploadComplete,
+  ]);
 
   const step5BlocksContinue = useMemo(() => {
     if (step !== 5) return false;
@@ -438,12 +618,9 @@ export default function OfertasLocalesApplicationClient() {
   }, [step, step5HasBlockingWork]);
 
   const step5AiReviewBlocksContinue =
-    step === 5 && aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount > 0;
+    step === 5 && draft.wantsAiSearchableSpecials && step5ScanComplete && !step5ReviewComplete;
 
-  const step5AiReviewBlockMessage =
-    lang === "en"
-      ? `Finish reviewing the AI suggestions before continuing. You still have ${aiReviewGate.needsReviewCount} item(s) that need review.`
-      : `Termina de revisar las sugerencias de AI antes de continuar. Todavía tienes ${aiReviewGate.needsReviewCount} producto(s) pendientes de revisión.`;
+  const step5AiReviewBlockMessage = c.step5CheckpointLockedNext;
 
   const step5PendingBySectionRef = useRef<Map<string, number>>(new Map());
 
@@ -872,7 +1049,19 @@ export default function OfertasLocalesApplicationClient() {
         );
 
       case 5: {
-        const showCompactUploads = collapseUploadForReview && !uploadEditorOpen;
+        const uploadCheckpointTitle = isCouponsLane
+          ? c.step5CheckpointUploadCouponTitle
+          : c.step5CheckpointUploadTitle;
+        const uploadCompleteLabel = isCouponsLane
+          ? c.step5CheckpointUploadCouponComplete
+          : c.step5CheckpointUploadComplete;
+        const scanLockedMessage = isCouponsLane
+          ? c.step5CheckpointLockedScanCoupon
+          : c.step5CheckpointLockedScan;
+        const reviewLockedMessage = isCouponsLane
+          ? c.step5CheckpointLockedReviewCoupon
+          : c.step5CheckpointLockedReview;
+
         const assetUploadSections = (
           <>
             {isShoppingLane ? (
@@ -922,79 +1111,202 @@ export default function OfertasLocalesApplicationClient() {
             ) : null}
           </>
         );
+
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {!primaryFormat ? (
               <p className="text-sm text-[#1E1814]/55">
                 {lang === "en"
                   ? "Choose your primary format in Step 1 first."
                   : "Elige el formato principal en el Paso 1."}
               </p>
-            ) : showCompactUploads ? (
-              <OfertasLocalesUploadedFilesSummary
-                lang={lang}
-                draft={draft}
-                onEditFiles={() => setUploadEditorOpen(true)}
-              />
             ) : (
               <>
-                {!collapseUploadForReview ? (
-                  <div className="rounded-xl border border-[#D4C4A8]/80 bg-[#FDF8F0]/90 px-4 py-3 text-sm leading-relaxed text-[#1E1814]/75">
-                    <p>{c.step5UploadWeeklyFlyerHint}</p>
-                    <p className="mt-2">{c.step5UploadLimitsHint}</p>
+                <Step5CheckpointCard
+                  title={uploadCheckpointTitle}
+                  isOpen={step5UploadCardOpen}
+                  isLocked={false}
+                  isComplete={step5UploadComplete}
+                  summary={
+                    step5PrimaryAssetSummary ? (
+                      <>
+                        {uploadCompleteLabel} · {step5PrimaryAssetSummary.label} ·{" "}
+                        {step5PrimaryAssetSummary.ready
+                          ? c.step5CheckpointFileReady
+                          : c.step5CheckpointFilePending}
+                      </>
+                    ) : undefined
+                  }
+                  collapsedActions={
+                    step5UploadComplete ? (
+                      <>
+                        {step5PrimaryAssetSummary?.href ? (
+                          <a
+                            href={step5PrimaryAssetSummary.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={BTN_SECONDARY}
+                          >
+                            {c.step5CheckpointViewFile}
+                          </a>
+                        ) : null}
+                        <button
+                          type="button"
+                          className={BTN_SECONDARY}
+                          onClick={() => {
+                            setStep5UploadEditing(true);
+                            setStep5ManualCheckpoint("upload");
+                          }}
+                        >
+                          {c.step5CheckpointEditFiles}
+                        </button>
+                      </>
+                    ) : undefined
+                  }
+                  onToggle={() => {
+                    if (step5UploadCardOpen && step5UploadComplete) {
+                      setStep5UploadEditing(false);
+                      setStep5ManualCheckpoint(null);
+                    } else {
+                      setStep5UploadEditing(true);
+                      setStep5ManualCheckpoint("upload");
+                    }
+                  }}
+                >
+                  <div className="space-y-4">
+                    <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.step5UploadLimitsHint}</p>
+                    {assetUploadSections}
+                    {step5UploadBlocksContinue ? (
+                      <p className={HINT_BOX}>{c.step5UploadBeforeContinueWarning}</p>
+                    ) : null}
+                    {step5UploadComplete ? (
+                      <button
+                        type="button"
+                        className={BTN_SECONDARY}
+                        onClick={() => {
+                          setStep5UploadEditing(false);
+                          setStep5ManualCheckpoint(null);
+                        }}
+                      >
+                        {c.uploadedFilesHideEditor}
+                      </button>
+                    ) : null}
                   </div>
-                ) : null}
-                {assetUploadSections}
-                {collapseUploadForReview && uploadEditorOpen ? (
-                  <button
-                    type="button"
-                    className={BTN_SECONDARY}
-                    onClick={() => setUploadEditorOpen(false)}
+                </Step5CheckpointCard>
+
+                {step5ScanRequired ? (
+                  <Step5CheckpointCard
+                    title={c.step5CheckpointScanTitle}
+                    isOpen={step5ScanCardOpen}
+                    isLocked={!step5UploadComplete}
+                    isComplete={step5ScanComplete}
+                    lockMessage={!step5UploadComplete ? scanLockedMessage : undefined}
+                    summary={
+                      step5ScanComplete ? (
+                        <>
+                          {c.step5CheckpointScanComplete}
+                          {aiReviewGate.totalItems > 0
+                            ? ` · ${formatOfertaLocalCopyTemplate(c.step5CheckpointProductsFound, {
+                                count: aiReviewGate.totalItems,
+                              })}`
+                            : null}
+                        </>
+                      ) : undefined
+                    }
+                    onToggle={() => {
+                      if (!step5UploadComplete) return;
+                      setStep5ManualCheckpoint(step5ScanCardOpen ? null : "scan");
+                    }}
                   >
-                    {c.uploadedFilesHideEditor}
-                  </button>
+                    <OfertasLocalesAiScanPanel
+                      draft={draft}
+                      lang={lang}
+                      ofertaLocalId={effectiveOfertaLocalId}
+                      signedIn={signedIn}
+                      compactMode
+                      scanComplete={step5ScanComplete && !scanPollingActive}
+                      itemsFoundCount={aiReviewGate.totalItems}
+                      onScanStarted={handleScanStarted}
+                      onScanComplete={(scanJobId) => {
+                        handleScanComplete(scanJobId);
+                        setStep5ManualCheckpoint(null);
+                      }}
+                      onScanFinished={handleScanFinished}
+                      onOfertaLocalIdChange={handleAiScanRecordId}
+                    />
+                  </Step5CheckpointCard>
+                ) : null}
+
+                {step5ScanRequired ? (
+                  <Step5CheckpointCard
+                    title={c.step5CheckpointReviewTitle}
+                    isOpen={step5ReviewCardOpen}
+                    isLocked={!step5ScanComplete}
+                    isComplete={step5ReviewComplete}
+                    lockMessage={!step5ScanComplete ? reviewLockedMessage : undefined}
+                    summary={
+                      step5ReviewComplete
+                        ? c.step5CheckpointReviewComplete
+                        : step5ScanComplete
+                          ? formatOfertaLocalCopyTemplate(c.step5CheckpointReviewSummary, {
+                              pending: aiReviewGate.needsReviewCount,
+                              approved: aiReviewGate.approvedCount,
+                              rejected: aiReviewGate.rejectedCount,
+                            })
+                          : undefined
+                    }
+                    collapsedActions={
+                      step5ScanComplete && !step5ReviewComplete ? (
+                        <button type="button" className={BTN_PRIMARY} onClick={scrollToReviewWorkbench}>
+                          {c.step5CheckpointReviewProductsCta}
+                        </button>
+                      ) : undefined
+                    }
+                    onToggle={() => {
+                      if (!step5ScanComplete) return;
+                      setStep5ManualCheckpoint(step5ReviewCardOpen ? null : "review");
+                    }}
+                  >
+                    <div className="space-y-3">
+                      {step5ReviewComplete ? (
+                        <p className="text-sm font-medium text-emerald-900">{c.step5CheckpointReviewComplete}</p>
+                      ) : (
+                        <>
+                          <p className="text-xs text-[#1E1814]/70">
+                            {formatOfertaLocalCopyTemplate(c.step5CheckpointReviewSummary, {
+                              pending: aiReviewGate.needsReviewCount,
+                              approved: aiReviewGate.approvedCount,
+                              rejected: aiReviewGate.rejectedCount,
+                            })}
+                          </p>
+                          <button type="button" className={BTN_PRIMARY} onClick={scrollToReviewWorkbench}>
+                            {c.step5CheckpointReviewProductsCta}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </Step5CheckpointCard>
+                ) : null}
+
+                {step5AiReviewBlocksContinue ? (
+                  <p className={ERROR_BOX}>{step5AiReviewBlockMessage}</p>
                 ) : null}
               </>
             )}
-            {step5UploadBlocksContinue ? (
-              <p className={HINT_BOX}>{c.step5UploadBeforeContinueWarning}</p>
-            ) : null}
-            {step5AiReviewBlocksContinue ? (
-              <p className={ERROR_BOX}>{step5AiReviewBlockMessage}</p>
-            ) : null}
-            {draft.wantsAiSearchableSpecials ? (
-              <>
-                <OfertasLocalesAiScanPanel
-                  draft={draft}
-                  lang={lang}
-                  ofertaLocalId={effectiveOfertaLocalId}
-                  signedIn={signedIn}
-                  onScanStarted={handleScanStarted}
-                  onScanComplete={handleScanComplete}
-                  onScanFinished={handleScanFinished}
-                  onOfertaLocalIdChange={handleAiScanRecordId}
-                />
-                {!showFullWidthReviewDesk ? (
-                  <OfertasLocalesClickableItemPreviewPanel
-                    lang={lang}
-                    ofertaLocalId={effectiveOfertaLocalId}
-                    scanJobId={lastScanJobId}
-                    draft={draft}
-                  />
-                ) : null}
-              </>
-            ) : null}
-            <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
+
+            <div className="rounded-xl border border-red-200/70 bg-red-50/30 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-900/70">
                 {lang === "en" ? "Need to start over?" : "¿Necesitas empezar de nuevo?"}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/65">{c.startOverDeviceWarning}</p>
+              <p className="mt-1 text-xs leading-relaxed text-red-900/75">{c.startOverDeviceWarning}</p>
               <button
                 type="button"
-                className="mt-3 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
+                className="mt-3 w-full rounded-xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
                 onClick={handleStartFresh}
               >
-                {lang === "en" ? "Delete this application and start over" : "Borrar esta solicitud y empezar de nuevo"}
+                {lang === "en"
+                  ? "Delete this application and start over"
+                  : "Borrar esta solicitud y empezar de nuevo"}
               </button>
             </div>
           </div>
@@ -1550,6 +1862,7 @@ export default function OfertasLocalesApplicationClient() {
 
       {showFullWidthReviewDesk ? (
         <section
+          ref={reviewWorkbenchRef}
           aria-label={lang === "en" ? "AI scan review desk" : "Mesa de revisión de escaneo AI"}
           className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-8 sm:px-6 lg:py-10"
         >

@@ -29,6 +29,10 @@ import { BR_BTN_PRIMARY } from "../shared/bienesRaicesLeonixPublicUi";
 import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
+import {
   filterBrListings,
   paginateListings,
 } from "./lib/brResultsFilters";
@@ -252,6 +256,12 @@ export function BienesRaicesResultsClient() {
           </p>
         ) : null}
 
+        <section
+          className={CAT_STD_RESULTS_REFINE_PANEL}
+          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
+        >
+          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
+          <div className="mt-2">
         <BienesRaicesCompactSearchCanvas
           lang={lang}
           query={searchQ}
@@ -270,6 +280,8 @@ export function BienesRaicesResultsClient() {
           searchButtonLabel={searchLabel}
           filtersButtonLabel={filtersLabel}
         />
+          </div>
+        </section>
 
         <BienesRaicesPropiedadFilterChips active={propiedadFilter} copy={copy} />
 

@@ -323,6 +323,11 @@ export type AgenteIndividualResidencialFormState = {
   confirmListingAccurate: boolean;
   confirmPhotosRepresentItem: boolean;
   confirmCommunityRules: boolean;
+  confirmPaymentAfterPreview: boolean;
+  confirmInventoryPackPricing: boolean;
+
+  /** User accepted Inventory Pack (+$99/mo) before adding child properties. */
+  inventoryPackAccepted: boolean;
 
   /** BR-INV-C — pre-publish additional properties (local draft only; not published). */
   additionalInventoryProperties: BrNegocioAdditionalInventoryPropertyDraft[];
@@ -727,6 +732,9 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     confirmListingAccurate: false,
     confirmPhotosRepresentItem: false,
     confirmCommunityRules: false,
+    confirmPaymentAfterPreview: false,
+    confirmInventoryPackPricing: false,
+    inventoryPackAccepted: false,
     additionalInventoryProperties: [],
   };
 }
@@ -1034,6 +1042,18 @@ export function mergePartialAgenteIndividualResidencial(
         : typeof nested.confirmCommunityRules === "boolean"
           ? nested.confirmCommunityRules
           : base.confirmCommunityRules,
+    confirmPaymentAfterPreview:
+      typeof flat.confirmPaymentAfterPreview === "boolean"
+        ? flat.confirmPaymentAfterPreview
+        : typeof nested.confirmPaymentAfterPreview === "boolean"
+          ? nested.confirmPaymentAfterPreview
+          : base.confirmPaymentAfterPreview,
+    confirmInventoryPackPricing:
+      typeof flat.confirmInventoryPackPricing === "boolean"
+        ? flat.confirmInventoryPackPricing
+        : typeof nested.confirmInventoryPackPricing === "boolean"
+          ? nested.confirmInventoryPackPricing
+          : base.confirmInventoryPackPricing,
     tipoPublicacionFijo: "venta_residencial",
     sellerTipo,
     categoriaPropiedad,
@@ -1090,12 +1110,20 @@ export function mergePartialAgenteIndividualResidencial(
   const hydrated = hydrateContactFieldsFromLegacy(inferred);
   delete (hydrated as Record<string, unknown>).tipoPropiedadOtro;
   const withAddress = hydrateAgenteStructuredAddress(hydrated);
+  const additionalInventoryProperties = mergeAdditionalInventoryProperties(
+    flat.additionalInventoryProperties ?? nested.additionalInventoryProperties,
+    withAddress.additionalInventoryProperties,
+  );
+  const inventoryPackAccepted =
+    typeof flat.inventoryPackAccepted === "boolean"
+      ? flat.inventoryPackAccepted
+      : typeof nested.inventoryPackAccepted === "boolean"
+        ? nested.inventoryPackAccepted
+        : additionalInventoryProperties.length > 0;
   return {
     ...withAddress,
-    additionalInventoryProperties: mergeAdditionalInventoryProperties(
-      flat.additionalInventoryProperties ?? nested.additionalInventoryProperties,
-      withAddress.additionalInventoryProperties,
-    ),
+    additionalInventoryProperties,
+    inventoryPackAccepted,
   };
 }
 

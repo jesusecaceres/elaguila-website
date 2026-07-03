@@ -7,6 +7,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
+import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 import { getViajesUi } from "../data/viajesUiCopy";
 import type { ViajesUi } from "../data/viajesUiCopy";
@@ -277,8 +281,12 @@ export function ViajesResultsShell({
           <CategoryVisibilityCta lang={lang} category="viajes" surface="results" compact />
         </div>
 
-        <section className="mb-4 rounded-2xl border border-[color:var(--lx-gold-border)]/40 bg-[#fffdf9]/95 p-3 shadow-[0_16px_40px_-30px_rgba(25,50,70,0.12)] backdrop-blur-sm">
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
+        <section
+          className={`${CAT_STD_RESULTS_REFINE_PANEL} mb-4 backdrop-blur-sm`}
+          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
+        >
+          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
+          <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
             <label className="min-w-0">
               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.destination}</span>
               <input

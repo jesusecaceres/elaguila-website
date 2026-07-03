@@ -18,8 +18,8 @@ import {
 /** Revenue OS checkout does not yet support a separate Bienes inventory pack line item. */
 export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false;
 
-/** Revenue OS checkout supports one packageKey per session; offers add-on is not bundled yet. */
-export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = false;
+/** Revenue OS checkout supports one packageKey per session; offers add-on is bundled via addOns[]. */
+export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = true;
 
 /** Canonical Revenue OS package key for Restaurante category-owned coupon module. */
 export const RESTAURANTES_COUPON_ADDON_PACKAGE_KEY = "restaurantes_offers_addon";
@@ -131,6 +131,7 @@ export type PublishCheckpointResolvedState = {
     returnPath?: string;
     locale: PublishCheckpointLanguage;
     promoCode?: string;
+    addOns?: Array<{ key: string; quantity?: number }>;
     metadata: Record<string, string | number | boolean>;
   };
 };
@@ -170,8 +171,17 @@ function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount:
 
 function restaurantCouponAddonBlockReason(lang: PublishCheckpointLanguage): string {
   return lang === "es"
-    ? "El módulo de cupones del restaurante todavía no está listo para pago seguro. Quita ese complemento para continuar con el plan base de $399/mes o contacta a Leonix."
-    : "The restaurant coupon module is not ready for secure checkout yet. Remove that add-on to continue with the $399/mo base plan or contact Leonix.";
+    ? "Para continuar al pago seguro hoy, vuelve a editar y desactiva el módulo de cupones del restaurante. Tu descuento promocional sí queda aplicado al plan base de $399/mes."
+    : "To continue to secure payment today, go back and turn off the restaurant coupon module. Your promo discount is applied to the $399/mo base plan.";
+}
+
+/** True when Restaurante coupon module is selected but Revenue OS cannot charge it yet. */
+export function isRestaurantCouponCheckoutBlocked(config: PublishCheckpointConfig): boolean {
+  return (
+    config.category === "restaurantes" &&
+    Boolean(config.restaurantOffersAddonSelected) &&
+    !REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED
+  );
 }
 
 /**
@@ -351,11 +361,18 @@ export function resolvePublishCheckoutCheckpoint(
   }
 
   if (config.category === "restaurantes") {
+    const offersDef = getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
     metadata.restaurant_coupon_addon_selected = Boolean(config.restaurantOffersAddonSelected);
     if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
       metadata.restaurant_offers_addon_package_key = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
+      metadata.restaurant_offers_addon_price_cents = offersDef?.priceCents ?? 9900;
     }
   }
+
+  const restaurantCouponAddOnSelected =
+    config.category === "restaurantes" &&
+    Boolean(config.restaurantOffersAddonSelected) &&
+    REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED;
 
   if (config.listingId?.trim()) metadata.listing_id = config.listingId.trim();
   if (config.leonixAdId?.trim()) metadata.leonix_ad_id = config.leonixAdId.trim();
@@ -371,6 +388,9 @@ export function resolvePublishCheckoutCheckpoint(
     ...(config.leonixAdId?.trim() ? { leonixAdId: config.leonixAdId.trim() } : {}),
     ...(config.returnPath?.trim() ? { returnPath: config.returnPath.trim() } : {}),
     ...(opts?.promoCode?.trim() ? { promoCode: opts.promoCode.trim() } : {}),
+    ...(restaurantCouponAddOnSelected
+      ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
+      : {}),
   };
 
   return {

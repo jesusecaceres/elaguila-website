@@ -8,9 +8,11 @@
  * No Stripe secrets, no payment activation, no fake promo/newsletter claims.
  */
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   formatPublishCheckpointMoney,
+  isRestaurantCouponCheckoutBlocked,
   publishCheckpointBlockReason,
   resolvePublishCheckoutCheckpoint,
   type PublishCheckpointConfig,
@@ -56,6 +58,8 @@ export type PublishCheckoutCheckpointProps = {
     newsletterOptIn: boolean;
     checkedConfirmationIds: string[];
   }) => void | Promise<void>;
+  /** When set, shown as CTA when Restaurante coupon add-on blocks checkout. */
+  editHref?: string;
   className?: string;
   id?: string;
 };
@@ -70,6 +74,7 @@ export function PublishCheckoutCheckpoint({
   onPromoApply,
   onCheckout,
   onFreePublish,
+  editHref,
   className = "",
   id = "publish-checkout-checkpoint",
 }: PublishCheckoutCheckpointProps) {
@@ -98,6 +103,30 @@ export function PublishCheckoutCheckpoint({
   const draftBlockMessage = !draftReady ? draftReadyMessage?.trim() || null : null;
   const showPromoDeferred = config.promoEligible && !onPromoApply;
   const finalButtonEnabled = resolved.finalActionEnabled && draftReady && !busy;
+  const restaurantCouponBlocked = isRestaurantCouponCheckoutBlocked(config);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    console.debug("[publish-checkout-checkpoint]", {
+      draftReady,
+      finalActionEnabled: resolved.finalActionEnabled,
+      finalButtonEnabled,
+      blocked: resolved.blocked,
+      blockReason,
+      requiredRemaining,
+      restaurantOffersAddonSelected: config.restaurantOffersAddonSelected,
+      appliedPromoCode,
+    });
+  }, [
+    draftReady,
+    resolved.finalActionEnabled,
+    resolved.blocked,
+    finalButtonEnabled,
+    blockReason,
+    requiredRemaining,
+    config.restaurantOffersAddonSelected,
+    appliedPromoCode,
+  ]);
 
   const toggleConfirmation = (id: string) => {
     setCheckedIds((prev) => {
@@ -345,12 +374,6 @@ export function PublishCheckoutCheckpoint({
           {draftBlockMessage}
         </p>
       ) : null}
-      {blockReason ? (
-        <p className="mt-3 text-xs leading-relaxed" style={{ color: "#8B3A3A" }} role="alert">
-          {blockReason}
-        </p>
-      ) : null}
-
       {/* Error */}
       {errorMessage ? (
         <p className="mt-3 text-xs leading-relaxed" style={{ color: "#8B3A3A" }} role="alert">
@@ -360,6 +383,24 @@ export function PublishCheckoutCheckpoint({
 
       {/* Final action */}
       <div className="mt-4">
+        {blockReason ? (
+          <div
+            className="mb-3 rounded-xl border px-3 py-3 text-xs leading-relaxed"
+            style={{ borderColor: "#D8A0A0", background: "#FFF5F5", color: "#8B3A3A" }}
+            role="alert"
+          >
+            <p className="font-semibold">{blockReason}</p>
+            {restaurantCouponBlocked && editHref ? (
+              <Link
+                href={editHref}
+                className="mt-2 inline-flex min-h-[44px] items-center rounded-full border px-4 py-2 text-xs font-bold"
+                style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL, background: "#FFF" }}
+              >
+                {lang === "es" ? "Volver a editar y quitar complemento" : "Back to edit and remove add-on"}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
         <button
           type="button"
           disabled={!finalButtonEnabled}

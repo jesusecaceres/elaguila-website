@@ -56,6 +56,17 @@ export const RENTAS_LANDING_TILES_INTEGRATED = "relative pt-5 sm:pt-6";
 export const RENTAS_LANDING_TILES_ACCENT =
   "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/45 to-transparent";
 
+/** Shared search anchor — landing intent + results refine (same Leonix DNA) */
+export const RENTAS_SHARED_SEARCH_ANCHOR = RENTAS_LANDING_HERO_SEARCH_SHELL;
+export const RENTAS_SHARED_SEARCH_GLOW = RENTAS_LANDING_HERO_SEARCH_GLOW;
+
+/** Results refine panel — carries landing gateway language into the finder */
+export const RENTAS_RESULTS_REFINE_PANEL =
+  "rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7]/88 p-4 shadow-[0_16px_48px_-24px_rgba(42,36,22,0.22)] sm:p-5";
+
+export const RENTAS_RESULTS_REFINE_DIVIDER =
+  "pointer-events-none h-px w-full bg-gradient-to-r from-transparent via-[#D6C7AD]/50 to-transparent";
+
 /** Results branch chip — active */
 export const RENTAS_BRANCH_CHIP_ACTIVE =
   "inline-flex h-[2rem] items-center rounded-lg border border-[#7A1E2C]/55 bg-[#7A1E2C] px-3 text-xs font-bold text-[#FFFDF7] shadow-[0_4px_12px_-6px_rgba(122,30,44,0.35)]";
@@ -123,4 +134,4 @@ export function rentasBrowseSearchPlaceholder(lang: "es" | "en"): string {
     ? "Buscar cuarto, garage, estudio, apartamento…"
     : "Search room, garage, studio, apartment…";
 }
-
+

@@ -94,6 +94,7 @@ export async function validateRevenuePromoForCheckout(input: {
   category: string;
   packageKey: string;
   subtotalCents: number;
+  addOns?: Array<{ key: string; quantity?: number }>;
   listingId?: string | null;
   customerEmail?: string | null;
   locale?: "es" | "en";
@@ -110,7 +111,10 @@ export async function validateRevenuePromoForCheckout(input: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        ...(input.addOns?.length ? { addOns: input.addOns } : {}),
+      }),
     });
     const j = (await res.json().catch(() => ({}))) as ValidateRevenuePromoResult & { message?: string };
     if (j.ok) return j;

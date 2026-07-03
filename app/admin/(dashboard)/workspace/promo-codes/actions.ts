@@ -10,7 +10,12 @@ import {
   resolveSalesRepFieldsForCreate,
 } from "@/app/admin/_lib/adminAccessControl";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
-import { buildPromoCodeRulePreview, generateLeonixPromoCode, normalizePromoCodeForStorage } from "@/app/lib/listingPlans/promoCodeLifecycle";
+import {
+  buildPromoCodeRulePreview,
+  generateLeonixPromoCode,
+  normalizePromoCodeForStorage,
+  promoCodePrefixForCategory,
+} from "@/app/lib/listingPlans/promoCodeLifecycle";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
 const ALLOWED_CODE_TYPES = new Set([
@@ -45,7 +50,6 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const access = await getCurrentAdminAccessContext();
 
   let code = normalizePromoCodeForStorage(String(formData.get("code") ?? ""));
-  if (!code) code = generateLeonixPromoCode();
 
   const codeType = String(formData.get("code_type") ?? "entitlement").trim();
   if (!ALLOWED_CODE_TYPES.has(codeType)) {
@@ -64,6 +68,8 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   }
 
   const category = String(formData.get("category") ?? "").trim().toLowerCase() || null;
+  // Server is the source of truth for generated codes; never trust a client code.
+  if (!code) code = generateLeonixPromoCode(promoCodePrefixForCategory(category, codeType));
   const packageTier = String(formData.get("package_tier") ?? "").trim() || null;
   const contractTerm = String(formData.get("contract_term") ?? "").trim() || null;
   const customerName = String(formData.get("customer_name") ?? "").trim() || null;
@@ -75,7 +81,9 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const { salesRepId, salesRepName } = resolveSalesRepFieldsForCreate(access, formSalesRepId, formSalesRepName);
   const packageEntitlementId = String(formData.get("package_entitlement_id") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 4000) || null;
-  const packageScopeRaw = String(formData.get("package_scope") ?? "").trim().toLowerCase();
+  const packageScopeSelected = String(formData.get("package_scope") ?? "").trim().toLowerCase();
+  const packageScopeCustom = String(formData.get("package_scope_custom") ?? "").trim().toLowerCase();
+  const packageScopeRaw = packageScopeCustom || packageScopeSelected;
   const packageScope = packageScopeRaw ? [packageScopeRaw] : null;
 
   let promoType: string | null = null;

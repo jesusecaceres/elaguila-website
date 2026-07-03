@@ -9,6 +9,11 @@ import { CategoryVisibilityCta, categorySupportsVisibilityCta } from "./Category
 import { CategoryStandardResultsPageShell } from "./CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "./CategoryStandardResultsHeader";
 import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_DIVIDER,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "./categoryStandardStyles";
+import {
   categoryStandardTitle,
   type CategoryStandardKey,
   categoryStandardUi,
@@ -30,11 +35,12 @@ export type CategoryStandardResultsChromeProps = {
   advancedFilters?: ReactNode;
   chips?: ReactNode;
   clearFiltersHref?: string;
+  toolbar?: ReactNode;
   children: ReactNode;
 };
 
 /**
- * Shared results-page chrome — compact header + search; listings slot below.
+ * Shared results-page chrome — Rentas V7 refine panel: search + filters + tools; listings below.
  */
 export function CategoryStandardResultsChrome({
   category,
@@ -52,14 +58,16 @@ export function CategoryStandardResultsChrome({
   advancedFilters,
   chips,
   clearFiltersHref,
+  toolbar,
   children,
 }: CategoryStandardResultsChromeProps) {
   const ui = categoryStandardUi(lang);
   const title = categoryStandardTitle(category, lang);
+  const refineEyebrow = lang === "es" ? "Afina tu búsqueda" : "Refine your search";
 
   return (
     <CategoryStandardResultsPageShell>
-      <div className="space-y-4">
+      <div className="space-y-5">
         <CategoryStandardResultsHeader
           lang={lang}
           title={title}
@@ -71,23 +79,38 @@ export function CategoryStandardResultsChrome({
           resultCount={resultCount}
         />
 
-        <CategoryStandardSearchRow
-          lang={lang}
-          action={resultsAction}
-          defaultQ={defaultQ}
-          defaultCity={defaultCity}
-          searchPlaceholder={searchPlaceholder}
-          advancedFilters={advancedFilters}
-          chips={chips}
-        />
+        <section className={CAT_STD_RESULTS_REFINE_PANEL} aria-label={refineEyebrow}>
+          <p className={CAT_STD_REFINE_EYEBROW}>{refineEyebrow}</p>
 
-        <CategoryVisibilityCta lang={lang} category={category} surface="results" compact />
+          <div className="mt-2">
+            <CategoryStandardSearchRow
+              lang={lang}
+              action={resultsAction}
+              defaultQ={defaultQ}
+              defaultCity={defaultCity}
+              searchPlaceholder={searchPlaceholder}
+              advancedFilters={advancedFilters}
+              chips={chips}
+            />
+          </div>
 
-        {activeFilterSummary ? (
-          <div className="text-xs text-[#3D3428]/80">{activeFilterSummary}</div>
-        ) : null}
+          {activeFilterSummary ? <div className="mt-3">{activeFilterSummary}</div> : null}
+
+          {toolbar ? (
+            <>
+              <div className={`${CAT_STD_RESULTS_REFINE_DIVIDER} my-4`} aria-hidden />
+              {toolbar}
+            </>
+          ) : null}
+        </section>
 
         {children}
+
+        {categorySupportsVisibilityCta(category) ? (
+          <footer className="mt-8 border-t border-[#D6C7AD]/50 pt-6">
+            <CategoryVisibilityCta lang={lang} category={category} surface="results" compact />
+          </footer>
+        ) : null}
       </div>
     </CategoryStandardResultsPageShell>
   );
@@ -138,6 +161,8 @@ export function CategoryStandardLandingBlock({
   hideBrowseCta = false,
   children,
 }: CategoryStandardLandingBlockProps) {
+  const landingEyebrow = lang === "es" ? "¿Qué estás buscando?" : "What are you looking for?";
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <CategoryCompactHero
@@ -148,6 +173,7 @@ export function CategoryStandardLandingBlock({
         description={description}
         imageSrc={imageSrc}
       >
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{landingEyebrow}</p>
         {searchSlot ??
           (category === "comunidad" ||
           category === "clases" ||

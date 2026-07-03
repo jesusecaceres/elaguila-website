@@ -40,6 +40,10 @@ import {
   CAT_STD_DEFAULT_PER_PAGE,
   CAT_STD_PER_PAGE_OPTIONS,
 } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
+import {
+  CAT_STD_REFINE_EYEBROW,
+  CAT_STD_RESULTS_REFINE_PANEL,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 function uniqSort(values: string[]): string[] {
   return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
@@ -281,11 +285,15 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
           publishLabel={marketCopy.postAd}
           clearHref={clearResultsHref}
           resultCount={loaded ? resultCount : undefined}
-          category="autos"
         />
         <p className="mt-2 text-sm text-[#5C5346]">{nearLine}</p>
 
-        <div className="mb-3 mt-3 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-4">
+        <section
+          className={CAT_STD_RESULTS_REFINE_PANEL}
+          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
+        >
+          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
+          <div className="mt-2 rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/95 p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.08)] sm:p-4">
           <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch">
               <div className="relative min-w-0 sm:col-span-5">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7A7A7A]" aria-hidden>
@@ -331,7 +339,7 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
               </div>
               <button
                 type="button"
-                className="min-h-[2.5rem] rounded-lg bg-[#D4A574] px-4 text-sm font-bold text-white shadow-sm sm:col-span-2 hover:bg-[#C19A6B]"
+                className="min-h-[2.875rem] rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] shadow-[0_4px_14px_-6px_rgba(122,30,44,0.35)] sm:col-span-2 hover:bg-[#5e1721]"
                 onClick={applyDraftToUrl}
               >
                 {copy.searchCta}
@@ -379,7 +387,8 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
               {copy.resultsResetShort}
             </button>
           </div>
-        </div>
+          </div>
+        </section>
 
         <div className="mb-4">
           <AutosMarketPeerCrossLink copy={marketCopy} href={peerResultsHref} compact />

@@ -27,9 +27,11 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
+  RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 // Leonix premium visual tokens
 
@@ -45,7 +47,12 @@ const LEONIX_SUCCESS_GREEN = "#1A4D2E";
 const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
-const EDIT_HREF = "/publicar/restaurantes";
+/**
+ * Edit link back to the Restaurante application. The `focus=coupon-upgrade`
+ * param lets the application page (future follow-up) scroll/highlight the
+ * coupon module the user must turn off before secure checkout.
+ */
+const EDIT_HREF = "/publicar/restaurantes?focus=coupon-upgrade";
 
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();
@@ -87,8 +94,18 @@ export default function RestaurantePreviewClient() {
     if (process.env.NODE_ENV !== "development") return;
     console.debug("[restaurantes/preview] publish readiness audit", readiness, {
       media: auditRestaurantePublishMediaReadinessSafe(normalizedDraft),
+      draftReady: minOk,
+      couponUpgradeEnabled: normalizedDraft.couponUpgradeEnabled,
     });
-  }, [readiness, normalizedDraft]);
+  }, [readiness, normalizedDraft, minOk, normalizedDraft.couponUpgradeEnabled]);
+
+  const couponUpgradeSelected = Boolean(normalizedDraft.couponUpgradeEnabled);
+  const restaurantBaseCents =
+    getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
+  const restaurantCouponAddonCents =
+    getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
+  const checkoutSubtotalCents =
+    restaurantBaseCents + (couponUpgradeSelected ? restaurantCouponAddonCents : 0);
 
   const handlePromoApply = useCallback(
     async (code: string) => {
@@ -96,7 +113,7 @@ export default function RestaurantePreviewClient() {
         code,
         category: RESTAURANTES_BASE_CHECKOUT.category,
         packageKey: RESTAURANTES_BASE_CHECKOUT.packageKey,
-        subtotalCents: 39900,
+        subtotalCents: checkoutSubtotalCents,
         locale: lang,
       });
       if (!result.ok) {
@@ -111,7 +128,7 @@ export default function RestaurantePreviewClient() {
             : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
       };
     },
-    [lang],
+    [lang, checkoutSubtotalCents],
   );
 
   const onCheckout = useCallback(
@@ -154,6 +171,9 @@ export default function RestaurantePreviewClient() {
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
+          ...(couponUpgradeSelected
+            ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
+            : {}),
         });
 
         if (!checkout.ok) {
@@ -172,7 +192,7 @@ export default function RestaurantePreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [lang, normalizedDraft],
+    [lang, normalizedDraft, couponUpgradeSelected],
   );
 
   if (!hydrated) {
@@ -347,6 +367,7 @@ export default function RestaurantePreviewClient() {
                 }
                 onPromoApply={handlePromoApply}
                 onCheckout={(ctx) => void onCheckout(ctx)}
+                editHref={lang === "en" ? `${EDIT_HREF}&lang=en` : EDIT_HREF}
               />
           </div>
         </div>
