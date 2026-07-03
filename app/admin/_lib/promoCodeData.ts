@@ -10,6 +10,10 @@ export type LeonixPromoCodeRow = {
   status: string;
   code: string;
   code_type: string;
+  promo_type: string | null;
+  percent_off: number | null;
+  amount_off_cents: number | null;
+  is_active: boolean | null;
   non_stackable: boolean;
   one_time_use: boolean;
   max_redemptions: number | null;
@@ -19,6 +23,8 @@ export type LeonixPromoCodeRow = {
   package_tier: string | null;
   contract_term: string | null;
   category: string | null;
+  category_scope: string[] | null;
+  package_scope: string[] | null;
   listing_source: string | null;
   listing_id: string | null;
   package_entitlement_id: string | null;
@@ -43,6 +49,53 @@ export type PromoCodeDashboardSnapshot = {
 
 const EXPIRING_SOON_MS = 14 * 24 * 60 * 60 * 1000;
 
+export type PromoCodeAttentionFlag =
+  | "missing_discount"
+  | "expiring_soon"
+  | "max_reached"
+  | "limit_nearly_reached"
+  | "assigned_business_mismatch"
+  | "assigned_email_mismatch";
+
+export type PromoCodeUsageEntry = {
+  redemptionId: string;
+  redemptionStatus: string;
+  redeemedAt: string | null;
+  discountCents: number;
+  listingId: string | null;
+  leonixAdId: string | null;
+  usedEmail: string | null;
+  usedBusinessName: string | null;
+  category: string | null;
+  packageKey: string | null;
+  stripeCheckoutSessionId: string | null;
+  paymentRecordId: string | null;
+  paymentStatus: string | null;
+  amountTotalCents: number | null;
+  amountDiscountCents: number | null;
+  publicAdUrl: string | null;
+  paymentTrackerHref: string | null;
+  mismatchFlags: PromoCodeAttentionFlag[];
+};
+
+export type PromoCodeOsSummary = {
+  activeCount: number;
+  usedCount: number;
+  expiringSoonCount: number;
+  needsAttentionCount: number;
+};
+
+function numOrNull(raw: unknown): number | null {
+  if (raw == null || !Number.isFinite(Number(raw))) return null;
+  return Number(raw);
+}
+
+function stringArrayOrNull(raw: unknown): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const out = raw.map((v) => String(v).trim()).filter(Boolean);
+  return out.length ? out : null;
+}
+
 function mapTableError(msg: string): string | null {
   if (/does not exist|schema cache|relation/i.test(msg)) {
     return "leonix_promo_codes table not found — run Supabase migrations.";
@@ -64,6 +117,13 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPromoCodeRow {
     status: String(raw.status),
     code: String(raw.code),
     code_type: String(raw.code_type),
+    promo_type: raw.promo_type != null ? String(raw.promo_type) : null,
+    percent_off: numOrNull(raw.percent_off),
+    amount_off_cents:
+      raw.amount_off_cents != null && Number.isFinite(Number(raw.amount_off_cents))
+        ? Math.floor(Number(raw.amount_off_cents))
+        : null,
+    is_active: raw.is_active == null ? null : Boolean(raw.is_active),
     non_stackable: Boolean(raw.non_stackable),
     one_time_use: Boolean(raw.one_time_use),
     max_redemptions:
@@ -76,6 +136,8 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPromoCodeRow {
     package_tier: raw.package_tier != null ? String(raw.package_tier) : null,
     contract_term: raw.contract_term != null ? String(raw.contract_term) : null,
     category: raw.category != null ? String(raw.category) : null,
+    category_scope: stringArrayOrNull(raw.category_scope),
+    package_scope: stringArrayOrNull(raw.package_scope),
     listing_source: raw.listing_source != null ? String(raw.listing_source) : null,
     listing_id: raw.listing_id != null ? String(raw.listing_id).trim() || null : null,
     package_entitlement_id:
@@ -162,8 +224,299 @@ export type PromoCodeTrackerFilters = {
   category?: string;
   code_type?: string;
   status?: string;
+  attention?: string;
   limit?: number;
 };
+
+function resolvePercentOff(row: LeonixPromoCodeRow): number | null {
+  if (row.percent_off != null && row.percent_off > 0) return row.percent_off;
+  const meta = row.metadata.discount_percent ?? row.metadata.percent_off;
+  const n = numOrNull(meta);
+  return n != null && n > 0 ? n : null;
+}
+
+function resolveAmountOffCents(row: LeonixPromoCodeRow): number | null {
+  if (row.amount_off_cents != null && row.amount_off_cents > 0) return row.amount_off_cents;
+  const metaCents = numOrNull(row.metadata.discount_amount_cents);
+  if (metaCents != null && metaCents > 0) return Math.floor(metaCents);
+  const dollars = numOrNull(row.metadata.discount_amount_dollars ?? row.metadata.discount_amount);
+  if (dollars != null && dollars > 0) return Math.round(dollars * 100);
+  return null;
+}
+
+export function promoCodeMissingDiscount(row: LeonixPromoCodeRow): boolean {
+  if (row.code_type !== "discount") return false;
+  return resolvePercentOff(row) == null && resolveAmountOffCents(row) == null;
+}
+
+export function formatPromoDiscountSummary(row: LeonixPromoCodeRow): string {
+  if (row.code_type !== "discount") return "—";
+  const pct = resolvePercentOff(row);
+  if (pct != null) return `${pct}% off`;
+  const cents = resolveAmountOffCents(row);
+  if (cents != null) return `$${(cents / 100).toFixed(2)} off`;
+  return "Missing discount value";
+}
+
+export function formatPromoCategoryScope(row: LeonixPromoCodeRow): string {
+  if (row.category_scope?.length) return row.category_scope.join(", ");
+  if (row.category?.trim()) return row.category.trim();
+  return "Any category";
+}
+
+export function formatPromoPackageScope(row: LeonixPromoCodeRow): string {
+  if (row.package_scope?.length) return row.package_scope.join(", ");
+  if (row.package_tier?.trim()) return `${row.package_tier} (legacy tier)`;
+  return "Any package";
+}
+
+export function promoCodeUsageMode(row: LeonixPromoCodeRow): "public_launch" | "assigned_private" {
+  const hasAssignment = Boolean(
+    row.business_name?.trim() || row.customer_email?.trim() || row.customer_name?.trim(),
+  );
+  return hasAssignment ? "assigned_private" : "public_launch";
+}
+
+function normalizeCompareToken(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function isExpiringSoon(row: LeonixPromoCodeRow, now = Date.now()): boolean {
+  const endMs = row.ends_at ? new Date(row.ends_at).getTime() : NaN;
+  return Number.isFinite(endMs) && endMs <= now + EXPIRING_SOON_MS && endMs >= now;
+}
+
+function isMaxRedemptionsReached(row: LeonixPromoCodeRow): boolean {
+  const max = row.max_redemptions;
+  if (max == null || !Number.isFinite(max) || max < 1) return false;
+  return row.redemption_count >= max;
+}
+
+function isLimitNearlyReached(row: LeonixPromoCodeRow): boolean {
+  const max = row.max_redemptions;
+  if (max == null || !Number.isFinite(max) || max < 2) return false;
+  return row.redemption_count >= max - 1 && row.redemption_count < max;
+}
+
+export function computePromoAttentionFlags(
+  row: LeonixPromoCodeRow,
+  usage: PromoCodeUsageEntry[] = [],
+): PromoCodeAttentionFlag[] {
+  const flags: PromoCodeAttentionFlag[] = [];
+  const effective = effectivePromoCodeStatus(row);
+
+  if (promoCodeMissingDiscount(row)) flags.push("missing_discount");
+  if (effective === "active" && isExpiringSoon(row)) flags.push("expiring_soon");
+  if (isMaxRedemptionsReached(row)) flags.push("max_reached");
+  else if (isLimitNearlyReached(row)) flags.push("limit_nearly_reached");
+
+  const assignedBusiness = row.business_name?.trim();
+  const assignedEmail = row.customer_email?.trim()?.toLowerCase();
+
+  for (const entry of usage) {
+    if (assignedBusiness && entry.usedBusinessName) {
+      if (normalizeCompareToken(assignedBusiness) !== normalizeCompareToken(entry.usedBusinessName)) {
+        if (!flags.includes("assigned_business_mismatch")) flags.push("assigned_business_mismatch");
+      }
+    }
+    if (assignedEmail && entry.usedEmail) {
+      if (assignedEmail !== entry.usedEmail.trim().toLowerCase()) {
+        if (!flags.includes("assigned_email_mismatch")) flags.push("assigned_email_mismatch");
+      }
+    }
+  }
+
+  return flags;
+}
+
+export function computePromoOsSummary(
+  rows: LeonixPromoCodeRow[],
+  usageLedger?: Map<string, PromoCodeUsageEntry[]>,
+): PromoCodeOsSummary {
+  let activeCount = 0;
+  let usedCount = 0;
+  let expiringSoonCount = 0;
+  let needsAttentionCount = 0;
+
+  for (const row of rows) {
+    const effective = effectivePromoCodeStatus(row);
+    const usage = usageLedger?.get(row.id) ?? [];
+    if (effective === "active") activeCount += 1;
+    if (row.redemption_count > 0 || effective === "redeemed") usedCount += 1;
+    if (effective === "active" && isExpiringSoon(row)) expiringSoonCount += 1;
+    if (computePromoAttentionFlags(row, usage).length > 0) needsAttentionCount += 1;
+  }
+
+  return { activeCount, usedCount, expiringSoonCount, needsAttentionCount };
+}
+
+function attentionFlagLabel(flag: PromoCodeAttentionFlag): string {
+  switch (flag) {
+    case "missing_discount":
+      return "Missing discount value";
+    case "expiring_soon":
+      return "Expiring soon";
+    case "max_reached":
+      return "Max redemptions reached";
+    case "limit_nearly_reached":
+      return "Redemption limit nearly reached";
+    case "assigned_business_mismatch":
+      return "Assigned business differs from used business";
+    case "assigned_email_mismatch":
+      return "Assigned email differs from checkout email";
+    default:
+      return flag;
+  }
+}
+
+export function promoAttentionFlagLabel(flag: PromoCodeAttentionFlag): string {
+  return attentionFlagLabel(flag);
+}
+
+export async function fetchPromoUsageLedgerForCodes(
+  promoCodeIds: string[],
+): Promise<Map<string, PromoCodeUsageEntry[]>> {
+  const ledger = new Map<string, PromoCodeUsageEntry[]>();
+  if (!promoCodeIds.length) return ledger;
+
+  try {
+    const supabase = getAdminSupabase();
+    const ids = promoCodeIds.slice(0, 100);
+    const { data: redemptions, error } = await supabase
+      .from("leonix_promo_code_redemptions")
+      .select(
+        "id, promo_code_id, status, redeemed_at, discount_cents, listing_id, leonix_ad_id, email, category, package_key, stripe_checkout_session_id, payment_record_id, metadata",
+      )
+      .in("promo_code_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(300);
+
+    if (error || !redemptions?.length) return ledger;
+
+    const paymentIds = [
+      ...new Set(
+        redemptions
+          .map((r) => (r as { payment_record_id?: string | null }).payment_record_id)
+          .filter(Boolean) as string[],
+      ),
+    ];
+
+    const paymentsById = new Map<string, Record<string, unknown>>();
+    if (paymentIds.length) {
+      const { data: payments } = await supabase
+        .from("leonix_payment_records")
+        .select("*")
+        .in("id", paymentIds.slice(0, 100));
+      for (const p of payments ?? []) {
+        paymentsById.set(String((p as { id: string }).id), p as Record<string, unknown>);
+      }
+    }
+
+    const restaurantListingIds = new Set<string>();
+    for (const red of redemptions) {
+      const cat = String((red as { category?: string }).category ?? "").toLowerCase();
+      const listingId = String((red as { listing_id?: string }).listing_id ?? "").trim();
+      if (cat === "restaurantes" && listingId) restaurantListingIds.add(listingId);
+    }
+
+    const slugByListingId = new Map<string, string>();
+    if (restaurantListingIds.size) {
+      const { data: listings } = await supabase
+        .from("restaurantes_public_listings")
+        .select("id, slug, status")
+        .in("id", [...restaurantListingIds].slice(0, 100));
+      for (const listing of listings ?? []) {
+        const id = String((listing as { id: string }).id);
+        const slug = String((listing as { slug?: string }).slug ?? "").trim();
+        const status = String((listing as { status?: string }).status ?? "");
+        if (slug && status === "published") slugByListingId.set(id, slug);
+      }
+    }
+
+    for (const raw of redemptions) {
+      const red = raw as Record<string, unknown>;
+      const promoCodeId = String(red.promo_code_id ?? "");
+      if (!promoCodeId) continue;
+
+      const paymentId = red.payment_record_id != null ? String(red.payment_record_id) : null;
+      const payment = paymentId ? paymentsById.get(paymentId) : undefined;
+      const paymentMeta =
+        payment?.metadata && typeof payment.metadata === "object" && !Array.isArray(payment.metadata)
+          ? (payment.metadata as Record<string, unknown>)
+          : {};
+
+      const listingId = red.listing_id != null ? String(red.listing_id).trim() || null : null;
+      const category = red.category != null ? String(red.category) : null;
+      const redemptionStatus = String(red.status ?? "pending");
+      const paymentStatus = payment?.payment_status != null ? String(payment.payment_status) : null;
+      const promoCodeFromPayment =
+        payment?.promo_code != null
+          ? String(payment.promo_code)
+          : paymentMeta.promo_code != null
+            ? String(paymentMeta.promo_code)
+            : null;
+
+      let publicAdUrl: string | null = null;
+      if (
+        category === "restaurantes" &&
+        listingId &&
+        slugByListingId.has(listingId) &&
+        redemptionStatus === "redeemed" &&
+        paymentStatus === "paid"
+      ) {
+        publicAdUrl = `/clasificados/restaurantes/${encodeURIComponent(slugByListingId.get(listingId)!)}?lang=es`;
+      }
+
+      let paymentTrackerHref: string | null = null;
+      if (paymentId) {
+        paymentTrackerHref = `/admin/workspace/payment-tracker?q=${encodeURIComponent(paymentId)}`;
+      } else if (promoCodeFromPayment) {
+        paymentTrackerHref = `/admin/workspace/payment-tracker?promo_code=${encodeURIComponent(promoCodeFromPayment)}`;
+      }
+
+      const entry: PromoCodeUsageEntry = {
+        redemptionId: String(red.id),
+        redemptionStatus,
+        redeemedAt: red.redeemed_at != null ? String(red.redeemed_at) : null,
+        discountCents: numOrNull(red.discount_cents) ?? 0,
+        listingId,
+        leonixAdId: red.leonix_ad_id != null ? String(red.leonix_ad_id).trim() || null : null,
+        usedEmail:
+          (payment?.customer_email != null ? String(payment.customer_email) : null) ??
+          (red.email != null ? String(red.email) : null),
+        usedBusinessName: payment?.business_name != null ? String(payment.business_name) : null,
+        category,
+        packageKey: red.package_key != null ? String(red.package_key) : null,
+        stripeCheckoutSessionId:
+          red.stripe_checkout_session_id != null ? String(red.stripe_checkout_session_id) : null,
+        paymentRecordId: paymentId,
+        paymentStatus,
+        amountTotalCents: numOrNull(payment?.amount_total_cents ?? payment?.amount_cents),
+        amountDiscountCents: numOrNull(payment?.amount_discount_cents ?? paymentMeta.promo_discount_cents),
+        publicAdUrl,
+        paymentTrackerHref,
+        mismatchFlags: [],
+      };
+
+      const list = ledger.get(promoCodeId) ?? [];
+      list.push(entry);
+      ledger.set(promoCodeId, list);
+    }
+  } catch {
+    return ledger;
+  }
+
+  return ledger;
+}
+
+export function computeUsageEntryMismatchFlags(
+  row: LeonixPromoCodeRow,
+  entry: PromoCodeUsageEntry,
+): PromoCodeAttentionFlag[] {
+  return computePromoAttentionFlags(row, [entry]).filter(
+    (f) => f === "assigned_business_mismatch" || f === "assigned_email_mismatch",
+  );
+}
 
 export async function fetchPromoCodesForTracker(
   filters: PromoCodeTrackerFilters = {},
@@ -199,6 +552,15 @@ export async function fetchPromoCodesForTracker(
     const statusFilter = filters.status?.trim();
     if (statusFilter && !["revoked", "redeemed", "draft"].includes(statusFilter)) {
       rows = rows.filter((r) => effectivePromoCodeStatus(r) === statusFilter);
+    }
+
+    const attention = filters.attention?.trim();
+    if (attention === "needs_attention") {
+      rows = rows.filter((r) => computePromoAttentionFlags(r).length > 0);
+    } else if (attention === "has_redemptions") {
+      rows = rows.filter((r) => r.redemption_count > 0);
+    } else if (attention === "missing_discount") {
+      rows = rows.filter((r) => promoCodeMissingDiscount(r));
     }
 
     return { rows, unavailable: false, note: null, totalFetched };
