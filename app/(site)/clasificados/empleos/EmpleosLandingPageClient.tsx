@@ -43,25 +43,25 @@ export function EmpleosLandingPage({
   );
 
   return (
-    <>
-      <CategoryStandardLandingPage
-        category="empleos"
+    <CategoryStandardLandingPage
+      category="empleos"
+      lang={lang}
+      publishHref={publishHref}
+      browseHref={resultsHref}
+      searchAction={resultsHref}
+      publishLabel={lang === "es" ? "Publicar empleo" : "Post a job"}
+      browseLabel={lang === "es" ? "Ver empleos" : "View jobs"}
+      searchSlot={<HeroAndSearch lang={lang} />}
+      hideBrowseCta
+      suppressVisibilityCta
+    >
+      <JobCategoryGrid lang={lang} liveInventory={liveInventory} />
+      <LatestJobsAndEmployer
         lang={lang}
-        publishHref={publishHref}
-        browseHref={resultsHref}
-        searchAction={resultsHref}
-        searchSlot={<HeroAndSearch lang={lang} />}
-        suppressVisibilityCta
+        jobs={liveInventory ? recentOverride : undefined}
+        liveInventory={liveInventory}
       />
-      <div className="mx-auto w-full max-w-[1080px] space-y-8 px-3.5 pb-24 sm:space-y-10 sm:px-4 lg:px-5">
-        <JobCategoryGrid lang={lang} liveInventory={liveInventory} />
-        <LatestJobsAndEmployer
-          lang={lang}
-          jobs={liveInventory ? recentOverride : undefined}
-          liveInventory={liveInventory}
-        />
-        <CategoryVisibilityCta lang={lang} category="empleos" surface="landing" compact />
-      </div>
-    </>
+      <CategoryVisibilityCta lang={lang} category="empleos" surface="landing" compact />
+    </CategoryStandardLandingPage>
   );
 }

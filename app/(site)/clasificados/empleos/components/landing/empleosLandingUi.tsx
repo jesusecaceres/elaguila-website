@@ -83,7 +83,7 @@ export function LandingSection({
         </div>
         {rightSlot ? <div className="shrink-0">{rightSlot}</div> : null}
       </div>
-      <div className="mt-9 sm:mt-10">{children}</div>
+      <div className="mt-5 sm:mt-6">{children}</div>
     </section>
   );
 }

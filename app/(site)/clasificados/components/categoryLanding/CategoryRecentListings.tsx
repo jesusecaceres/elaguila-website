@@ -20,9 +20,18 @@ type Props = {
   title: string;
   emptyNote: string;
   errorPrefix: string;
+  /** Landing preview cap — full results page shows more. */
+  previewLimit?: number;
 };
 
-export function CategoryRecentListings({ category, lang, title, emptyNote, errorPrefix }: Props) {
+export function CategoryRecentListings({
+  category,
+  lang,
+  title,
+  emptyNote,
+  errorPrefix,
+  previewLimit = 4,
+}: Props) {
   const [rows, setRows] = useState<CommunityListingBrowseRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,11 +47,13 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
       setErr(null);
       const withIds = data.filter((r) => r.id);
       const visible =
-        category === "comunidad" ? prepareComunidadDiscoveryRows(withIds, { limit: 8 }) : withIds.slice(0, 8);
+        category === "comunidad"
+          ? prepareComunidadDiscoveryRows(withIds, { limit: previewLimit })
+          : withIds.slice(0, previewLimit);
       setRows(visible);
     }
     setLoading(false);
-  }, [category]);
+  }, [category, previewLimit]);
 
   useEffect(() => {
     void load();
@@ -89,8 +100,11 @@ export function CategoryRecentListings({ category, lang, title, emptyNote, error
       className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5"
       data-testid="community-discovery-landing-recent"
     >
-      <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
-      <ul className="mt-4 grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+      <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#556B3E]">{title}</h2>
+      <p className="mt-1 text-xs text-[#5C564E]">
+        {lang === "es" ? "Vista previa — afina en Resultados." : "Preview — refine on Results."}
+      </p>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
         {rows.map((r) => {
           const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
           const model = buildCommunityDiscoveryCardModel(r, category, lang, href);

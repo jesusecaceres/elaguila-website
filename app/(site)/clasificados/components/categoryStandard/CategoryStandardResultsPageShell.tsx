@@ -5,7 +5,7 @@ import { CATEGORY_STANDARD_MAIN, CATEGORY_STANDARD_PAGE_BG } from "./categorySta
 
 type Props = {
   children: ReactNode;
-  /** Default max-w-6xl; narrow lanes (busco/mascotas) can pass max-w-3xl */
+  /** Default 1080px; narrow lanes (busco/mascotas) can pass max-w-3xl */
   maxWidthClass?: string;
 };
 
@@ -15,7 +15,7 @@ type Props = {
  */
 export function CategoryStandardResultsPageShell({
   children,
-  maxWidthClass = "max-w-6xl",
+  maxWidthClass = "max-w-[1080px]",
 }: Props) {
   return (
     <div className={CATEGORY_STANDARD_PAGE_BG}>

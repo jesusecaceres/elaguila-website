@@ -26,6 +26,7 @@ import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHel
 import { getBrLandingCopy } from "./bienesRaicesLandingCopy";
 import { getBrResultsCopy } from "../resultados/bienesRaicesResultsCopy";
 import {
+  BR_BTN_PRIMARY,
   BR_BTN_SECONDARY,
   BR_CHIP,
 } from "../shared/bienesRaicesLeonixPublicUi";
@@ -155,19 +156,9 @@ export function BienesRaicesLandingView() {
 
   return (
     <BienesRaicesResultsShell>
-      <div className="min-w-0 overflow-x-hidden pt-[calc(0.5rem+env(safe-area-inset-top))]">
-        <nav className="mb-4 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-          <Link href={withLang("/clasificados")} className="transition hover:text-[#7A1E2C]">
-            {copy.navClasificados}
-          </Link>
-          <span className="text-[#C9A84A]/90" aria-hidden>
-            /
-          </span>
-          <span className="text-[#1F241C]">{copy.navBreadcrumbCurrent}</span>
-        </nav>
-
+      <div className="min-w-0 overflow-x-hidden">
         {liveErr ? (
-          <p className="mb-4 rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-xs text-amber-950" role="status">
+          <p className="mb-3 rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-xs text-amber-950" role="status">
             {lang === "es" ? "Aviso — inventario no disponible:" : "Notice — inventory unavailable:"} {liveErr}
           </p>
         ) : null}
@@ -182,8 +173,23 @@ export function BienesRaicesLandingView() {
           publishHref={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)}
           browseHref={withLang(BR_RESULTS)}
           publishLabel={copy.publishNegocio}
-          browseLabel={lang === "es" ? "Ver todos los anuncios" : "View all listings"}
+          browseLabel={lang === "es" ? "Ver propiedades" : "View properties"}
           suppressVisibilityCta
+          hideBrowseCta
+          hideCtaRow
+          ctaSlot={
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Link href={withLang(BR_RESULTS)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
+                {lang === "es" ? "Buscar propiedades" : "Search properties"}
+              </Link>
+              <Link href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)} className={`${BR_BTN_PRIMARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
+                {copy.publishNegocio}
+              </Link>
+              <Link href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
+                {copy.publishPrivado}
+              </Link>
+            </div>
+          }
           searchChips={
             <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
               {BR_LANDING_QUICK_CHIPS.slice(0, 8).map((chip) => (
@@ -216,15 +222,10 @@ export function BienesRaicesLandingView() {
               />
             </div>
           }
-          belowHero={
-            <Link href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)} className={`${BR_BTN_SECONDARY} mt-2 inline-flex`}>
-              {copy.publishPrivado}
-            </Link>
-          }
         />
 
         {recientes.length > 0 ? (
-          <section className="mt-8" aria-labelledby="br-latest-heading">
+          <section className="mt-5" aria-labelledby="br-latest-heading">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 id="br-latest-heading" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">
                 {copy.sectionRecientesTitle}
@@ -240,9 +241,9 @@ export function BienesRaicesLandingView() {
             </div>
           </section>
         ) : bandsLoading ? (
-          <p className="mt-6 text-center text-sm text-[#5C5346]">{copy.inventoryLoading}</p>
+          <p className="mt-4 text-center text-sm text-[#5C5346]">{copy.inventoryLoading}</p>
         ) : (
-          <p className="mt-6 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-6 text-center text-sm text-[#5C5346]">
+          <p className="mt-4 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-5 text-center text-sm text-[#5C5346]">
             {copy.inventoryEmptyBody}
           </p>
         )}

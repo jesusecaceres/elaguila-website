@@ -54,7 +54,7 @@ export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Pro
         </Link>
       }
     >
-      <div className="grid gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.45fr)] xl:items-start">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.45fr)] lg:gap-6 xl:items-start">
         <div className="rounded-[1.25rem] border border-[#E8DFD0] bg-white shadow-[0_12px_36px_rgba(42,40,38,0.07)]">
           {rows.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-[#4A4744]">

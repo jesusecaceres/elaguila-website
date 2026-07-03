@@ -27,14 +27,14 @@ export function CategoryStandardCtaRow({
     <div className={`flex flex-col gap-2 sm:flex-row sm:flex-wrap ${className}`.trim()}>
       <Link
         href={publishHref}
-        className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:flex-none sm:min-w-[10rem]"
+        className="inline-flex min-h-[2.875rem] flex-1 items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] shadow-[0_4px_14px_-6px_rgba(122,30,44,0.35)] transition hover:bg-[#5e1721] sm:flex-none sm:min-w-[10rem]"
       >
         {publishLabel}
       </Link>
       {!hideBrowse ? (
         <Link
           href={browseHref}
-          className="inline-flex min-h-[2.5rem] flex-1 items-center justify-center rounded-lg border-2 border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:flex-none sm:min-w-[10rem]"
+          className="inline-flex min-h-[2.875rem] flex-1 items-center justify-center rounded-lg border-2 border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:flex-none sm:min-w-[10rem]"
         >
           {browseLabel ?? ui.viewAll}
         </Link>

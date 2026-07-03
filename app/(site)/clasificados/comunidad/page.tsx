@@ -73,7 +73,8 @@ export default function Page() {
       <CategoryRecentListings
         category="comunidad"
         lang={lang}
-        title={lang === "es" ? "Anuncios recientes" : "Recent listings"}
+        previewLimit={4}
+        title={lang === "es" ? "Eventos recientes" : "Recent events"}
         emptyNote={
           lang === "es"
             ? "Aún no hay eventos de Comunidad y Eventos publicados en Leonix Clasificados."

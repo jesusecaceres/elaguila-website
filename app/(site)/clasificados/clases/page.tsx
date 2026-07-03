@@ -70,7 +70,8 @@ export default function Page() {
       <CategoryRecentListings
         category="clases"
         lang={lang}
-        title={lang === "es" ? "Anuncios recientes" : "Recent listings"}
+        previewLimit={4}
+        title={lang === "es" ? "Clases recientes" : "Recent classes"}
         emptyNote={
           lang === "es"
             ? "Aún no hay clases publicadas en Leonix Clasificados."
