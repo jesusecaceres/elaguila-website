@@ -1,38 +1,25 @@
 # MAGAZINE-TRANSLATION-NIGHTLY-CLOSEOUT1
 
 Closeout date: 2026-07-03  
-Gate: `MAGAZINE-TRANSLATION-NIGHTLY-CLOSEOUT1` (handoff only; no provider calls)
+Gate: `MAGAZINE-TRANSLATION-NIGHTLY-CLOSEOUT1` (handoff only; no provider calls; no PDF edits)
 
 ---
 
 ## Executive Summary
 
-Tonight Leonix finished the **public company layer** and the **magazine translation architecture readiness path** without spending provider money or claiming a translated visual magazine.
+Tonight Leonix finished the **magazine translation architecture foundation** and **public company layer** work without spending provider money or claiming a translated visual magazine.
 
-**What got done:**
+**What got done:** Public website language shell verified; About/Contact/Footer polished; Contact intake hero built; magazine DeepL readiness audited; DeepL SDK (`deepl-node`) installed; PDF compatibility preflight completed; source artwork correction manifest created.
 
-- Public website language shell, About/Contact/Footer, and premium contact intake hero are green.
-- Magazine translation **infrastructure** is documented and partially wired: registry migration, fail-closed reader, gitignored proof paths, readiness scripts, DeepL SDK (`deepl-node`) installed.
-- Zero-cost audits confirmed the June 2026 source PDF exists but is **image-flattened** (0 text characters) and contains **wrong Leonix contact artwork** (Suite 202, wrong Coleman number, wrong phones on key pages).
-- A **Canva correction manifest** was created; the repo cannot fix the PDF in place.
+**What is green:** Source PDF exists; platform registry (`magazine_visual_assets`) and fail-closed reader path exist; proof output is gitignored; docs and zero-cost audit scripts are in place; site canonical contact uses Suite 201.
 
-**What is not done:**
+**What is not done:** No translated PDF; no DeepL API call; no public translated visual edition; no corrected Canva export in repo; no DeepL account/key.
 
-- No corrected Canva export / PDF replacement
-- No DeepL account or `DEEPL_AUTH_KEY`
-- No paid DeepL smoke
-- No translated PDF generated or served
-- No QA-approved `magazine_visual_assets` row
-- No public translated visual edition
+**External blockers:** (1) Corrected Canva/source artwork export. (2) DeepL signup + local `DEEPL_AUTH_KEY` (never paste into chat; never commit).
 
-**What is blocked externally:**
+**Product blocker:** Current June 2026 PDF is **image-flattened** (0 extractable text characters). DeepL direct PDF translation is **very high risk / likely non-viable** until a text-capable re-export exists — and even then, companion reader may remain the better first multilingual path.
 
-1. Chuy must fix source artwork in **Canva** and re-export the PDF.
-2. Chuy must sign up for **DeepL** and add the key locally (never in chat/git) — only after deciding whether a PDF proof is still worth it.
-
-**What should happen next (recommended):**
-
-Run **`MAGAZINE-COMPANION-READER-READINESS1`** — the only safe build path that does not require Canva export or DeepL signup.
+**Recommended next move:** **`MAGAZINE-COMPANION-READER-READINESS1`** — the only safe build path tonight that needs neither Canva export nor DeepL signup.
 
 ---
 
@@ -40,17 +27,17 @@ Run **`MAGAZINE-COMPANION-READER-READINESS1`** — the only safe build path that
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Public website language foundation | **Green** | Launch smoke passed; nav/lang behavior locked |
-| Contact / About / Footer company layer | **Green** | Suite 201 canonical on site; real routes |
-| Contact intake hero | **Green** | Premium hero; advertising intent; real form |
-| Magazine readiness audit | **Green** | Source PDF, registry, fail-closed documented |
-| DeepL SDK setup | **Green** | `deepl-node` in `package.json`; scripts aligned |
-| PDF compatibility preflight | **Green** | 26 pages, ~74.76 MB, **0 text layer**, flattened |
-| Source artwork correction manifest | **Green** | Canva page-level fix list; audit script |
-| Corrected Canva export | **Blocked (external)** | PDF not replaced; `HOLD_FOR_SOURCE_ARTWORK_UPDATE` |
-| DeepL account / key | **Blocked (external)** | No signup yet; do not paste key into chat |
-| Public translated magazine serving | **Not started / blocked** | Fail-closed; no approved registry row |
-| Companion reader | **Partial** | HTML companion + reader exist; expand next |
+| Public website language foundation | **Green** | `FINAL-PUBLIC-WEBSITE-LAUNCH-SMOKE1`; build passed |
+| Contact / About / Footer company layer | **Green** | Suite 201 canonical; real routes |
+| Contact intake hero | **Green** | Advertising intent; real form; no fake CTA |
+| Magazine readiness audit | **Green** | Zero-cost audit + scripts |
+| DeepL SDK setup | **Green** | `deepl-node@^1.27.0` listed; no provider call |
+| PDF compatibility preflight | **Green** | 26 pages; 74.76 MB; 0 text layer chars |
+| Source artwork correction manifest | **Green** | Canva update list documented |
+| Corrected Canva export | **Blocked (external)** | PDF artwork still wrong (Suite 202, etc.) |
+| DeepL account / key | **Blocked (external)** | `DEEPL_AUTH_KEY` missing |
+| Public translated magazine serving | **Not started / blocked** | Fail-closed; no QA-approved registry rows |
+| Companion reader | **Partial** | HTML companion + reader exist; expansion gated |
 
 ---
 
@@ -58,19 +45,19 @@ Run **`MAGAZINE-COMPANION-READER-READINESS1`** — the only safe build path that
 
 | Gate | Result | Output / doc | Important decision |
 |------|--------|--------------|-------------------|
-| `FINAL-PUBLIC-WEBSITE-LAUNCH-SMOKE1` | Pass | Launch smoke inspection | Magazine PT honest; no fake translated PDF claim |
-| `PUBLIC-ABOUT-CONTACT-FOOTER-POLISH1` | Pass | About/Contact/Footer | Suite 201 on site; header cleaned |
-| `CONTACT-PAGE-INTAKE-HERO-POLISH1` | Pass | `/contacto` hero | Advertising intent; `#contact-form`; no fake CTA |
-| `MAGAZINE-DEEPL-READINESS-AUDIT1` | Pass | `docs/magazine-deepl-readiness-audit.md`, readiness script | No DeepL call; blockers identified |
-| `MAGAZINE-DEEPL-ENV-SETUP1` | Pass | `deepl-node` installed; docs updated | SDK ready; key still missing |
-| `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT1` | Pass | `docs/magazine-pdf-deepl-compatibility-preflight.md` | Direct DeepL PDF **not viable as-is** |
-| `MAGAZINE-SOURCE-ARTWORK-CORRECTION1` | Pass | `docs/magazine-source-artwork-correction.md`, correction audit script | **Canva update required**; PDF untouched |
+| `FINAL-PUBLIC-WEBSITE-LAUNCH-SMOKE1` | Pass | QA inspection | Magazine PT honest; no fake translated PDF claim |
+| `PUBLIC-ABOUT-CONTACT-FOOTER-POLISH1` | Pass | About/Contact/Footer | Suite 201 standard on site |
+| `CONTACT-PAGE-INTAKE-HERO-POLISH1` | Pass | `/contacto` hero | Intent-aware advertising intake |
+| `MAGAZINE-DEEPL-READINESS-AUDIT1` | Pass | `docs/magazine-deepl-readiness-audit.md` | Architecture ready; env/deps blocked then |
+| `MAGAZINE-DEEPL-ENV-SETUP1` | Pass | `deepl-node` + script fixes | Key still external |
+| `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT1` | Pass | `docs/magazine-pdf-deepl-compatibility-preflight.md` | Flattened PDF; companion first |
+| `MAGAZINE-SOURCE-ARTWORK-CORRECTION1` | Pass | `docs/magazine-source-artwork-correction.md` | Canva update required; PDF not edited |
 
 ---
 
 ## Source Truth
 
-Canonical Leonix public contact (use on site, docs, and **Leonix-owned magazine artwork**):
+Canonical Leonix public contact (use in all new materials):
 
 | Field | Value |
 |-------|-------|
@@ -81,16 +68,9 @@ Canonical Leonix public contact (use on site, docs, and **Leonix-owned magazine 
 | Phone | **(408) 360-6500** |
 | Address | **871 Coleman Avenue, Suite 201**, San Jose, CA 95110 |
 
-**Not current public truth for Leonix contact blocks:**
+**Not current public truth:** Suite 202; 275 Coleman; non-canonical Leonix phones in magazine artwork ((408) 350-5100, (408) 313-0380, (408) 363-6332, etc.) when shown as Leonix contact.
 
-- Suite **202**
-- **275** Coleman (cover artwork)
-- Phones **(408) 350-5100**, **(408) 313-0380**, **(408) 363-6332** where they represent Leonix
-
-**Product truth:**
-
-- Spanish original visual magazine (PDF + FlipHTML5) remains the **only** served visual edition until a corrected, QA-approved, registry-backed translated asset exists.
-- HTML companion / translated reader sections are **summary layers**, not claims that the visual PDF was translated.
+**Visual magazine truth:** Spanish original PDF + FlipHTML5 remain the official visual edition until a **corrected, QA-approved** replacement is explicitly served via registry.
 
 ---
 
@@ -98,11 +78,11 @@ Canonical Leonix public contact (use on site, docs, and **Leonix-owned magazine 
 
 | Blocker | Why it blocks | Owner | Unblock action | Next gate |
 |---------|---------------|-------|----------------|-----------|
-| Corrected Canva export | Flattened PDF has wrong Leonix contact + no editable layers in repo | Chuy / design | Fix pages in Canva; re-export 26-page PDF (+ cover if needed) | `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` |
-| DeepL account / API key | No provider auth; zero-cost gates stopped before paid smoke | Chuy | Sign up; add `DEEPL_AUTH_KEY` to local `.env.local` only | `MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY` → smoke only if approved |
-| Image-flattened PDF / no text layer | DeepL document API needs machine-readable text | Design export + re-preflight | Re-export with selectable text if Canva allows | `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` |
-| Public translated visual serving | Requires QA-approved row + storage + explicit publish | Product + QA | Do not insert approved rows until real asset + manual QA | `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` |
-| Native ad translation system | Out of scope for magazine track tonight | Product | Separate doctrine gate later | `NATIVE-LANGUAGE-ADS-TRANSLATION-DOCTRINE1` |
+| Corrected Canva export | Flattened PDF has wrong Leonix contact + no text layer | Chuy / design | Fix pages in Canva; re-export PDF (+ cover if needed) | `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` |
+| DeepL account / API key | No provider auth; zero-cost gates only | Chuy | Sign up; add `DEEPL_AUTH_KEY` to local `.env.local` only | `MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY` |
+| Image-flattened PDF | 0 chars text layer; DeepL PDF likely useless | Design export quality | Re-export with selectable text if Canva allows | `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` |
+| Public translated visual serving | No real asset; no QA approval | Product + QA | Registry row + storage + explicit approval | `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` |
+| Native ad translation system | Out of magazine track scope | Product | Separate doctrine gate | `NATIVE-LANGUAGE-ADS-TRANSLATION-DOCTRINE1` |
 
 ---
 
@@ -110,14 +90,14 @@ Canonical Leonix public contact (use on site, docs, and **Leonix-owned magazine 
 
 | Gate | Safe now? | Requires | Why / notes |
 |------|-----------|----------|-------------|
-| `MAGAZINE-COMPANION-READER-READINESS1` | **Yes** | None external | Audit companion/reader gaps; no DeepL; no PDF replace |
-| `MAGAZINE-COMPANION-READER-BUILD1` | **Yes** (after readiness or if Chuy approves build) | Product decision | Expand multilingual HTML companion; honest fallbacks |
-| `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` | **No** | Corrected Canva PDF | Hash, visual QA, Suite 201 check |
-| `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` | **No** | Replaced PDF | Re-check text layer + size |
-| `MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY` | **No** | DeepL signup + local key | Boolean-only readiness check |
-| `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | **No** | Key + explicit approval + likely better source PDF | First paid call; PT only |
-| `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` | **No** | Storage + QA-approved asset | Not tonight |
-| `NATIVE-LANGUAGE-ADS-TRANSLATION-DOCTRINE1` | **No** | Product scope | Separate from magazine visual track |
+| `MAGAZINE-COMPANION-READER-READINESS1` | **Yes** | None external | **Recommended next** — audit companion/reader gaps |
+| `MAGAZINE-COMPANION-READER-BUILD1` | After readiness | Product decision | Real UI/copy build; still no fake visual PDF claim |
+| `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` | **No** | Corrected Canva PDF | Drop-in replace + hash + visual QA |
+| `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` | **No** | New PDF binary | Re-check text layer after replacement |
+| `MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY` | **No** | DeepL signup + local key | Never commit key; never paste in chat |
+| `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | **No** | Key + explicit approval + likely poor ROI on flat PDF | First paid call; **HOLD** until strategy confirmed |
+| `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` | **No** | QA-approved asset + storage | Not tonight |
+| `NATIVE-LANGUAGE-ADS-TRANSLATION-DOCTRINE1` | Separate track | Product scope | Not magazine visual track |
 
 ---
 
@@ -125,7 +105,7 @@ Canonical Leonix public contact (use on site, docs, and **Leonix-owned magazine 
 
 **`MAGAZINE-COMPANION-READER-READINESS1`**
 
-Reason: No corrected Canva PDF and no DeepL key exist. Companion reader is the only safe forward build that improves multilingual access without provider spend or fake visual translation claims.
+Reason: No corrected Canva PDF and no DeepL key exist. Companion reader is the honest multilingual path that does not require external signup or PDF replacement.
 
 ---
 
@@ -133,13 +113,13 @@ Reason: No corrected Canva PDF and no DeepL key exist. Companion reader is the o
 
 - No paid DeepL smoke
 - No translated PDF public claim
-- No Supabase `magazine_visual_assets` approval row (`qa_approved = true`) without manual QA
+- No Supabase `magazine_visual_assets` approval row with `qa_approved = true`
 - No public translated asset serving
-- No native ad / listing translation table work mixed into magazine visual gates
+- No native ad translation table work in magazine gates
 - No seller content auto-translation
 - No hacky PDF text overlays in repo
-- No replacing `leonix_media_june.pdf` unless a **corrected Canva export** exists
-- Do not paste `DEEPL_AUTH_KEY` into chat or commit it
+- No replacing `leonix_media_june.pdf` unless corrected Canva export exists
+- No pasting `DEEPL_AUTH_KEY` into chat or git
 
 ---
 
@@ -149,25 +129,16 @@ Reason: No corrected Canva PDF and no DeepL key exist. Companion reader is the o
 
 1. Replace `public/magazine/2026/june/leonix_media_june.pdf`
 2. Replace `public/magazine/2026/june/cover.png` only if cover changed
-3. Run:
-   ```bash
-   node scripts/magazine/hash-source.mjs --write
-   node scripts/magazine-source-artwork-correction-audit.mjs
-   ```
-4. Run gate **`MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1`**
-5. Run **`MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2`** (text layer re-check)
+3. Run `node scripts/magazine/hash-source.mjs --write`
+4. Run `node scripts/magazine-source-artwork-correction-audit.mjs`
+5. Run gate **`MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1`**
+6. Run **`MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2`** (text layer re-check)
 
 ### Option B — If Chuy got DeepL account/key
 
-1. Add `DEEPL_AUTH_KEY=` to local `.env.local` (never chat; never commit)
-2. Run:
-   ```bash
-   node scripts/magazine-deepl-readiness-audit.mjs
-   ```
-3. Run **`MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY`** if needed
-4. Run **`MAGAZINE-DEEPL-PT-REAL-SMOKE3`** only after:
-   - explicit spend approval
-   - source artwork correction decision (flattened PDF likely wastes credits)
+1. Add `DEEPL_AUTH_KEY=` to local `.env.local` (never commit; never paste in chat)
+2. Run `node scripts/magazine-deepl-readiness-audit.mjs` → expect `READY_FOR_REAL_PT_SMOKE` only when key + deps + source strategy allow
+3. Run **`MAGAZINE-DEEPL-PT-REAL-SMOKE3`** only after **explicit approval** and compatibility/strategy review (flattened PDF still argues against this)
 
 ### Option C — If neither external action is done (default)
 
@@ -176,18 +147,19 @@ Reason: No corrected Canva PDF and no DeepL key exist. Companion reader is the o
 
 ---
 
-## Key repo paths & scripts
+## Key Artifacts (restart reference)
 
-| Item | Path |
-|------|------|
-| Source PDF | `public/magazine/2026/june/leonix_media_june.pdf` |
-| Cover | `public/magazine/2026/june/cover.png` |
-| Readiness audit | `node scripts/magazine-deepl-readiness-audit.mjs` |
-| Source correction audit | `node scripts/magazine-source-artwork-correction-audit.mjs` |
-| Canva fix list | `docs/magazine-source-artwork-correction.md` |
+| Artifact | Path |
+|----------|------|
+| Readiness audit | `docs/magazine-deepl-readiness-audit.md` |
 | PDF compatibility | `docs/magazine-pdf-deepl-compatibility-preflight.md` |
+| Source correction manifest | `docs/magazine-source-artwork-correction.md` |
 | Platform runbook | `docs/magazine-translation-platform-runbook.md` |
-| Proof output (gitignored) | `.magazine-proof-output/` |
+| Readiness script | `scripts/magazine-deepl-readiness-audit.mjs` |
+| Source correction script | `scripts/magazine-source-artwork-correction-audit.mjs` |
+| Magazine proof scripts | `scripts/magazine/README.md` |
+| Source PDF | `public/magazine/2026/june/leonix_media_june.pdf` |
+| Registry migration | `supabase/migrations/20260630140000_magazine_visual_assets.sql` |
 
 ---
 
@@ -195,11 +167,11 @@ Reason: No corrected Canva PDF and no DeepL key exist. Companion reader is the o
 
 **`NIGHTLY_MAGAZINE_TRANSLATION_ARCHITECTURE_DONE`**
 
-Architecture readiness, audits, and correction manifest are complete for tonight. **Product delivery** (corrected PDF, companion expansion, DeepL proof) remains intentionally held.
+Architecture, audits, SDK setup, compatibility preflight, and source correction manifest are complete. **Product delivery** (corrected PDF, companion expansion, optional DeepL proof) remains intentionally blocked on external actions and explicit gates.
 
 ---
 
-## Cost-control proof (closeout gate)
+## Cost-Control Proof (this closeout gate)
 
 | Action | Result |
 |--------|--------|
@@ -210,14 +182,4 @@ Architecture readiness, audits, and correction manifest are complete for tonight
 | Full-document OCR | **FALSE** |
 | Supabase rows changed | **FALSE** |
 | Public reader changed | **FALSE** |
-
----
-
-## Related docs
-
-- `docs/magazine-deepl-readiness-audit.md`
-- `docs/magazine-pdf-deepl-compatibility-preflight.md`
-- `docs/magazine-source-artwork-correction.md`
-- `docs/magazine-translation-platform-runbook.md`
-- `docs/translation-finish-backlog.md`
-- `scripts/magazine/README.md`
+| Build | **Skipped** (docs-only closeout) |

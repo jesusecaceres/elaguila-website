@@ -1,6 +1,8 @@
 # Magazine Provider Proof Scripts
 
-Status: `MAGAZINE-DEEPL-ENV-SETUP1`
+Status: `MAGAZINE-TRANSLATION-NIGHTLY-CLOSEOUT1`
+
+**Handoff:** [`docs/magazine-translation-nightly-closeout.md`](../docs/magazine-translation-nightly-closeout.md) — recommended next: `MAGAZINE-COMPANION-READER-READINESS1`. Do not run paid DeepL smoke until corrected Canva export + explicit approval.
 
 These scripts prepare a backend/provider smoke path for the digital magazine without publishing assets or forcing paid API calls. They default to dry-run behavior and must not print secret values.
 
