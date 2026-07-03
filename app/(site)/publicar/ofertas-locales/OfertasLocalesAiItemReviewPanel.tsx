@@ -78,6 +78,9 @@ export type OfertaLocalAiReviewGateState = {
   activeScanJobId: string | null;
   totalItems: number;
   needsReviewCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+  reviewLaterCount: number;
 };
 
 export type OfertaLocalReviewViewerBridge = {
@@ -520,6 +523,9 @@ export function OfertasLocalesAiItemReviewPanel({
       activeScanJobId: null,
       totalItems: 0,
       needsReviewCount: 0,
+      approvedCount: 0,
+      rejectedCount: 0,
+      reviewLaterCount: 0,
     });
     onScopeChange?.({
       scanActiveForAsset: false,
@@ -1133,6 +1139,9 @@ export function OfertasLocalesAiItemReviewPanel({
       activeScanJobId,
       totalItems: gateItems.length,
       needsReviewCount: gateItems.filter((item) => !isReviewTerminal(item.reviewStatus)).length,
+      approvedCount: gateItems.filter((item) => item.reviewStatus === "approved").length,
+      rejectedCount: gateItems.filter((item) => item.reviewStatus === "rejected").length,
+      reviewLaterCount: gateItems.filter((item) => item.reviewStatus === "needs_review").length,
     });
   }, [
     activeScanJobId,
@@ -1247,13 +1256,15 @@ export function OfertasLocalesAiItemReviewPanel({
     setStatusFilter("all");
     if (nextPageSummary) {
       setSelectedPageFilter(nextPageSummary.page);
+      window.requestAnimationFrame(() => {
+        formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
       return;
     }
-    setActionMessage(
-      lang === "en"
-        ? "All pages are reviewed. You can continue to preview."
-        : "Todas las páginas están revisadas. Puedes continuar a la vista previa."
-    );
+    setActionMessage(c.aiReviewAllPagesComplete);
+    window.requestAnimationFrame(() => {
+      formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   };
 
   const summaryBar = countLabels ? (
@@ -1454,9 +1465,7 @@ export function OfertasLocalesAiItemReviewPanel({
                   ) : null}
                   {allPagesComplete ? (
                     <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
-                      {lang === "en"
-                        ? "All pages are reviewed. Continue to preview when you are ready."
-                        : "Todas las páginas están revisadas. Continúa a la vista previa cuando estés listo."}
+                      {c.aiReviewAllPagesComplete}
                     </p>
                   ) : null}
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1467,12 +1476,8 @@ export function OfertasLocalesAiItemReviewPanel({
                       onClick={proceedToNextPage}
                     >
                       {nextPageSummary
-                        ? lang === "en"
-                          ? `Proceed to Page ${nextPageSummary.page}`
-                          : `Continuar a Página ${nextPageSummary.page}`
-                        : lang === "en"
-                          ? "All pages reviewed"
-                          : "Todas las páginas revisadas"}
+                        ? formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })
+                        : c.aiReviewAllPagesComplete}
                     </button>
                     {currentPageSummary.needsReview > 0 ? (
                       <p className="text-xs font-medium text-red-800">
@@ -1629,6 +1634,37 @@ export function OfertasLocalesAiItemReviewPanel({
                 </button>
               </div>
             )}
+            {isWorkspace && currentPageSummary ? (
+              <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-3">
+                {currentPageSummary.needsReview === 0 ? (
+                  <>
+                    <p className="text-sm font-semibold text-emerald-900">
+                      {formatReviewCopy(c.aiReviewPageComplete, { page: currentPageSummary.page })}
+                    </p>
+                    {allPagesComplete ? (
+                      <p className="mt-2 text-xs font-medium text-emerald-900/90">{c.aiReviewAllPagesComplete}</p>
+                    ) : nextPageSummary ? (
+                      <button
+                        type="button"
+                        className={`${BTN_PRIMARY} mt-3 w-full sm:w-auto`}
+                        onClick={proceedToNextPage}
+                      >
+                        {formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })}
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-xs text-[#1E1814]/70">
+                    {formatReviewCopy(c.aiReviewItemsLeftOnPage, { count: currentPageSummary.needsReview })}
+                  </p>
+                )}
+                {pageBlockMessage ? (
+                  <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
+                    {pageBlockMessage}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="rounded-lg border border-[#D4C4A8]/50 bg-white">
               <button
                 type="button"

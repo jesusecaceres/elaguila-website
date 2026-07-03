@@ -109,7 +109,7 @@ const COPY = {
     customMarketLabel: "Escribe el tipo de mercado o negocio",
     customMarketHelper:
       "Ej. mercado brasileño, tienda orgánica, mercado africano, productos internacionales.",
-    cityHelper: "Usaremos la ciudad para filtros y búsquedas locales. Los ejemplos son sugerencias, no límites.",
+    cityHelper: "Usaremos la ciudad para filtros y búsquedas locales. Ejemplos como San José/NorCal son sugerencias, no límites.",
     zipHelper: "Agrega el ZIP o código postal donde los clientes encontrarán esta oferta.",
     locationStepIntro:
       "Ingresa la ciudad, estado/provincia, país y código postal que los clientes deben usar para encontrar esta oferta.",
@@ -239,6 +239,22 @@ const COPY = {
     aiReviewLaterHelper:
       "Revisar después mantiene este producto en la fila para decidir al final.",
     aiReviewViewProductsOnPage: "Ver productos de esta página",
+    aiReviewContinueToPage: "Continuar a Página {page}",
+    aiReviewAllPagesComplete: "Todas las páginas están revisadas. Puedes continuar.",
+    step7ScanSummaryTitle: "Resumen del escaneo AI",
+    step7ScanSummaryTotal: "{total} productos encontrados",
+    step7ScanSummaryApproved: "{approved} aprobados",
+    step7ScanSummaryReviewLater: "{reviewLater} por revisar después",
+    step7ScanSummaryRejected: "{rejected} rechazados",
+    step7ScanSummaryRemaining: "{remaining} pendientes",
+    step7ContinueReviewing: "Continuar revisando",
+    step7ReviewLaterItems: "Revisar pendientes",
+    step7ReviewRejectedItems: "Ver rechazados",
+    step7RescanSectionTitle: "¿Necesitas volver a escanear?",
+    step7RescanWarning:
+      "Volver a escanear puede reemplazar o duplicar sugerencias. Usa esto solo si subiste un archivo incorrecto.",
+    startOverDeviceWarning:
+      "Esto borra este borrador y el progreso del escaneo en este dispositivo.",
     aiReviewDescription: "Descripción",
     aiReviewTerms: "Términos",
     aiReviewRegularPrice: "Precio regular",
@@ -435,7 +451,7 @@ const COPY = {
     customMarketLabel: "Enter the market or business type",
     customMarketHelper:
       "Example: Brazilian market, organic store, African market, international goods.",
-    cityHelper: "We'll use the city for local filters and search. Examples are suggestions, not limits.",
+    cityHelper: "We'll use the city for local filters and search. Examples like San Jose/NorCal are suggestions, not limits.",
     zipHelper: "Add the ZIP or postal code where customers can find this offer.",
     locationStepIntro:
       "Enter the city, state/province, country, and postal code customers should use to find this offer.",
@@ -563,6 +579,21 @@ const COPY = {
     aiReviewLaterHelper:
       "Review later keeps this product in the queue for a final decision.",
     aiReviewViewProductsOnPage: "View products on this page",
+    aiReviewContinueToPage: "Continue to Page {page}",
+    aiReviewAllPagesComplete: "All pages are reviewed. You can continue.",
+    step7ScanSummaryTitle: "AI scan summary",
+    step7ScanSummaryTotal: "{total} products found",
+    step7ScanSummaryApproved: "{approved} approved",
+    step7ScanSummaryReviewLater: "{reviewLater} review later",
+    step7ScanSummaryRejected: "{rejected} rejected",
+    step7ScanSummaryRemaining: "{remaining} pending",
+    step7ContinueReviewing: "Continue reviewing",
+    step7ReviewLaterItems: "Review pending items",
+    step7ReviewRejectedItems: "View rejected items",
+    step7RescanSectionTitle: "Need to rescan?",
+    step7RescanWarning:
+      "Rescanning may replace or duplicate suggestions. Use this only if you uploaded the wrong file.",
+    startOverDeviceWarning: "This clears this draft and scan progress on this device.",
     aiReviewDescription: "Description",
     aiReviewTerms: "Terms",
     aiReviewRegularPrice: "Regular price",

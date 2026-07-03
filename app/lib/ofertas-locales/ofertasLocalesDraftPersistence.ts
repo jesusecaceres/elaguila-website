@@ -11,13 +11,49 @@ import type {
   OfertaLocalFeaturedPlacementScope,
 } from "./ofertasLocalesTypes";
 
-/** Per-tab session draft — aligned with En Venta tab-scoped publish sessions (not cross-tab localStorage). */
+/** Durable device draft — survives tab close; sessionStorage is fallback only. */
 export const OFERTAS_LOCALES_DRAFT_STORAGE_KEY = "leonix:ofertas-locales:draft:v1" as const;
 
-function getOfertasLocalesDraftStorage(): Storage | null {
+function getLocalDraftStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function getSessionDraftStorage(): Storage | null {
   if (typeof window === "undefined") return null;
   try {
     return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function migrateSessionDraftToLocal(): void {
+  const local = getLocalDraftStorage();
+  const session = getSessionDraftStorage();
+  if (!local || !session) return;
+  try {
+    const sessionRaw = session.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    if (!sessionRaw) return;
+    const localRaw = local.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    if (!localRaw) {
+      local.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, sessionRaw);
+    }
+  } catch {
+    // ignore quota / privacy mode
+  }
+}
+
+function readDraftRaw(): string | null {
+  migrateSessionDraftToLocal();
+  try {
+    const localRaw = getLocalDraftStorage()?.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    if (localRaw) return localRaw;
+    return getSessionDraftStorage()?.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY) ?? null;
   } catch {
     return null;
   }
@@ -164,23 +200,10 @@ export function migrateOfertaLocalDraftFields(draft: OfertaLocalDraft): OfertaLo
   return { ...draft, title };
 }
 
-function clearLegacyLocalStorageDraft(): void {
-  if (typeof window === "undefined") return;
-  try {
-    // Legacy cross-tab key — literal string avoids OL-2 session-only draft audit.
-    window.localStorage.removeItem("leonix:ofertas-locales:draft:v1");
-  } catch {
-    // ignore
-  }
-}
-
 export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
-  clearLegacyLocalStorageDraft();
-  const storage = getOfertasLocalesDraftStorage();
-  if (!storage) return null;
+  const raw = readDraftRaw();
+  if (!raw) return null;
   try {
-    const raw = storage.getItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
-    if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isPlainObject(parsed)) return null;
     return mergeDraft(parsed);
@@ -190,24 +213,23 @@ export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
 }
 
 export function saveOfertaLocalDraftToStorage(draft: OfertaLocalDraft): void {
-  clearLegacyLocalStorageDraft();
-  const storage = getOfertasLocalesDraftStorage();
-  if (!storage) return;
+  const payload = JSON.stringify(migrateOfertaLocalDraftFields(draft));
   try {
-    storage.setItem(
-      OFERTAS_LOCALES_DRAFT_STORAGE_KEY,
-      JSON.stringify(migrateOfertaLocalDraftFields(draft))
-    );
+    getLocalDraftStorage()?.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, payload);
+  } catch {
+    // fall through to session backup
+  }
+  try {
+    getSessionDraftStorage()?.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, payload);
   } catch {
     // Quota or privacy mode — ignore silently.
   }
 }
 
 export function clearOfertaLocalDraftStorage(): void {
-  const storage = getOfertasLocalesDraftStorage();
-  if (!storage) return;
   try {
-    storage.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    getLocalDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
   } catch {
     // ignore
   }

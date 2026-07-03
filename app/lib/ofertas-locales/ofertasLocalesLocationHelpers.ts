@@ -7,6 +7,41 @@ import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
 
 export const OFERTA_LOCAL_DEFAULT_COUNTRY = "United States";
 
+export const OFERTA_LOCAL_NORCAL_CITY_SUGGESTIONS = [
+  "San Jose",
+  "Santa Clara",
+  "Sunnyvale",
+  "Milpitas",
+  "Fremont",
+  "Cupertino",
+  "Mountain View",
+  "Palo Alto",
+  "Menlo Park",
+  "Redwood City",
+  "San Mateo",
+  "Hayward",
+  "Union City",
+  "Newark",
+  "Oakland",
+  "San Francisco",
+  "Daly City",
+  "South San Francisco",
+  "Berkeley",
+  "Richmond",
+  "Concord",
+  "Walnut Creek",
+  "Pleasanton",
+  "Livermore",
+  "Gilroy",
+  "Morgan Hill",
+  "Salinas",
+  "Monterey",
+  "Santa Cruz",
+  "Stockton",
+  "Sacramento",
+  "Modesto",
+] as const;
+
 export const OFERTA_LOCAL_COUNTRY_SUGGESTIONS = [
   "United States",
   "Mexico",

@@ -37,6 +37,7 @@ import {
 import {
   OFERTA_LOCAL_COUNTRY_SUGGESTIONS,
   OFERTA_LOCAL_DEFAULT_COUNTRY,
+  OFERTA_LOCAL_NORCAL_CITY_SUGGESTIONS,
 } from "@/app/lib/ofertas-locales/ofertasLocalesLocationHelpers";
 import {
   buildBusinessCategoryChangePatch,
@@ -92,6 +93,13 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
 import { OfertasLocalesWizardProgress } from "./OfertasLocalesWizardProgress";
 import type { OfertaLocalAiReviewGateState } from "./OfertasLocalesAiItemReviewPanel";
+
+function formatOfertaLocalCopyTemplate(
+  template: string,
+  values: Record<string, string | number>
+): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}
 
 const PAGE_BG = "bg-[#FFFCF7]";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm";
@@ -196,6 +204,9 @@ export default function OfertasLocalesApplicationClient() {
     activeScanJobId: null,
     totalItems: 0,
     needsReviewCount: 0,
+    approvedCount: 0,
+    rejectedCount: 0,
+    reviewLaterCount: 0,
   });
   const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
   const [optionalFilesOpen, setOptionalFilesOpen] = useState(false);
@@ -203,9 +214,12 @@ export default function OfertasLocalesApplicationClient() {
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
   const showFullWidthReviewDesk =
-    (step === 5 || step === 7) &&
+    step === 5 &&
     draft.wantsAiSearchableSpecials &&
     Boolean(effectiveOfertaLocalId?.trim());
+  const hasExistingAiScan =
+    draft.wantsAiSearchableSpecials &&
+    Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
   const collapseUploadForReview = false;
 
   useEffect(() => {
@@ -251,8 +265,8 @@ export default function OfertasLocalesApplicationClient() {
   const handleStartFresh = useCallback(() => {
     const msg =
       lang === "en"
-        ? "Are you sure? This will clear the current local draft, uploaded files, AI scan state, and extracted review results from this application view. You will start again at Step 1."
-        : "¿Estás seguro? Esto borrará el borrador local actual, los archivos subidos, el estado del escaneo AI y los resultados extraídos de esta vista de solicitud. Empezarás otra vez en el Paso 1.";
+        ? `Are you sure? ${c.startOverDeviceWarning} You will start again at Step 1. Uploaded database rows are not deleted.`
+        : `¿Estás seguro? ${c.startOverDeviceWarning} Empezarás otra vez en el Paso 1. No se borran registros de la base de datos.`;
     if (!window.confirm(msg)) return;
     clearOfertaLocalAiScanSession();
     resetDraft();
@@ -267,12 +281,15 @@ export default function OfertasLocalesApplicationClient() {
       activeScanJobId: null,
       totalItems: 0,
       needsReviewCount: 0,
+      approvedCount: 0,
+      rejectedCount: 0,
+      reviewLaterCount: 0,
     });
     setUploadEditorOpen(false);
     setOptionalFilesOpen(false);
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [lang, resetDraft]);
+  }, [c.startOverDeviceWarning, lang, resetDraft]);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
@@ -735,8 +752,14 @@ export default function OfertasLocalesApplicationClient() {
                   value={draft.city}
                   onChange={(e) => updateDraft({ city: e.target.value })}
                   autoComplete="address-level2"
+                  list="oferta-local-norcal-city-suggestions"
                   placeholder={lang === "en" ? "Example: San Jose, Toronto, Guadalajara" : "Ej. San José, Toronto, Guadalajara"}
                 />
+                <datalist id="oferta-local-norcal-city-suggestions">
+                  {OFERTA_LOCAL_NORCAL_CITY_SUGGESTIONS.map((cityName) => (
+                    <option key={cityName} value={cityName} />
+                  ))}
+                </datalist>
               </FieldBlock>
               <FieldBlock
                 label={c.locationCountryLabel}
@@ -996,9 +1019,10 @@ export default function OfertasLocalesApplicationClient() {
                 {lang === "en" ? "Need to start over?" : "¿Necesitas empezar de nuevo?"}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/65">
+                {c.startOverDeviceWarning}{" "}
                 {lang === "en"
-                  ? "This clears only this application view and local draft state. It does not delete database rows."
-                  : "Esto solo limpia esta vista de solicitud y el borrador local. No borra registros de la base de datos."}
+                  ? "This does not delete database rows."
+                  : "Esto no borra registros de la base de datos."}
               </p>
               <button
                 type="button"
@@ -1114,6 +1138,7 @@ export default function OfertasLocalesApplicationClient() {
               </div>
             </div>
 
+            {false ? (
             <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
               <p className="text-sm font-medium text-[#1E1814]">{c.featuredSectionTitle}</p>
               <p className={HELPER}>{c.featuredQuestion}</p>
@@ -1154,6 +1179,7 @@ export default function OfertasLocalesApplicationClient() {
                 </FieldBlock>
               ) : null}
             </div>
+            ) : null}
           </div>
         );
 
@@ -1185,27 +1211,89 @@ export default function OfertasLocalesApplicationClient() {
               lang={lang}
             />
 
+            {draft.wantsAiSearchableSpecials && hasExistingAiScan ? (
+              <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-4">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#7A1E2C]">
+                  {c.step7ScanSummaryTitle}
+                </h3>
+                <ul className="mt-3 space-y-1.5 text-sm text-[#1E1814]">
+                  <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryTotal, { total: aiReviewGate.totalItems })}</li>
+                  <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryApproved, { approved: aiReviewGate.approvedCount })}</li>
+                  <li>
+                    {formatOfertaLocalCopyTemplate(c.step7ScanSummaryReviewLater, {
+                      reviewLater: aiReviewGate.reviewLaterCount,
+                    })}
+                  </li>
+                  <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryRejected, { rejected: aiReviewGate.rejectedCount })}</li>
+                  <li>
+                    {formatOfertaLocalCopyTemplate(c.step7ScanSummaryRemaining, {
+                      remaining: aiReviewGate.needsReviewCount,
+                    })}
+                  </li>
+                </ul>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button type="button" className={BTN_PRIMARY} onClick={() => setStep(5)}>
+                    {c.step7ContinueReviewing}
+                  </button>
+                  {aiReviewGate.needsReviewCount > 0 ? (
+                    <button type="button" className={BTN_SECONDARY} onClick={() => setStep(5)}>
+                      {c.step7ReviewLaterItems}
+                    </button>
+                  ) : null}
+                  {aiReviewGate.rejectedCount > 0 ? (
+                    <button type="button" className={BTN_SECONDARY} onClick={() => setStep(5)}>
+                      {c.step7ReviewRejectedItems}
+                    </button>
+                  ) : null}
+                  <Link href={previewHref} className={BTN_SECONDARY}>
+                    {c.previewLink}
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
             {draft.wantsAiSearchableSpecials ? (
-              <>
-                <OfertasLocalesAiScanPanel
-                  draft={draft}
-                  lang={lang}
-                  ofertaLocalId={effectiveOfertaLocalId}
-                  signedIn={signedIn}
-                  onScanStarted={handleScanStarted}
-                  onScanComplete={handleScanComplete}
-                  onScanFinished={handleScanFinished}
-                  onOfertaLocalIdChange={handleAiScanRecordId}
-                />
-                {!showFullWidthReviewDesk ? (
-                  <OfertasLocalesClickableItemPreviewPanel
+              hasExistingAiScan ? (
+                <details className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-[#1E1814]">
+                    {c.step7RescanSectionTitle}
+                  </summary>
+                  <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{c.step7RescanWarning}</p>
+                  <div className="mt-4">
+                    <OfertasLocalesAiScanPanel
+                      draft={draft}
+                      lang={lang}
+                      ofertaLocalId={effectiveOfertaLocalId}
+                      signedIn={signedIn}
+                      onScanStarted={handleScanStarted}
+                      onScanComplete={handleScanComplete}
+                      onScanFinished={handleScanFinished}
+                      onOfertaLocalIdChange={handleAiScanRecordId}
+                    />
+                  </div>
+                </details>
+              ) : (
+                <>
+                  <OfertasLocalesAiScanPanel
+                    draft={draft}
                     lang={lang}
                     ofertaLocalId={effectiveOfertaLocalId}
-                    scanJobId={lastScanJobId}
-                    draft={draft}
+                    signedIn={signedIn}
+                    onScanStarted={handleScanStarted}
+                    onScanComplete={handleScanComplete}
+                    onScanFinished={handleScanFinished}
+                    onOfertaLocalIdChange={handleAiScanRecordId}
                   />
-                ) : null}
-              </>
+                  {!showFullWidthReviewDesk ? (
+                    <OfertasLocalesClickableItemPreviewPanel
+                      lang={lang}
+                      ofertaLocalId={effectiveOfertaLocalId}
+                      scanJobId={lastScanJobId}
+                      draft={draft}
+                    />
+                  ) : null}
+                </>
+              )
             ) : null}
 
             <div>
@@ -1238,11 +1326,6 @@ export default function OfertasLocalesApplicationClient() {
                     </p>
                   </div>
                 ) : null}
-                <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-sm">
-                  <p className="font-medium text-[#1E1814]">{c.step1MoreExposureTitle}</p>
-                  <p className="mt-1 text-xs text-[#1E1814]/65">{c.step1MoreExposureBody}</p>
-                  <p className="mt-2 text-xs font-semibold text-[#7A1E2C]">{c.step1MoreExposureCta}</p>
-                </div>
               </div>
               <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
               <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
@@ -1255,15 +1338,9 @@ export default function OfertasLocalesApplicationClient() {
               <button
                 type="button"
                 className={BTN_SECONDARY}
-                onClick={() => {
-                  const msg =
-                    lang === "en"
-                      ? "Reset the draft saved on this device?"
-                      : "¿Restablecer el borrador guardado en este dispositivo?";
-                  if (window.confirm(msg)) resetDraft();
-                }}
+                onClick={handleStartFresh}
               >
-                {c.resetDraft}
+                {lang === "en" ? "Delete this application and start over" : "Borrar esta solicitud y empezar de nuevo"}
               </button>
               <Link href={previewHref} className={BTN_PRIMARY}>
                 {c.previewLink}
