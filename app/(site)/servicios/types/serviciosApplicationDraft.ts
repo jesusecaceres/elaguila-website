@@ -86,6 +86,7 @@ export type ServiciosApplicationContactDraft = {
   physicalSuite?: string;
   physicalCity?: string;
   physicalRegion?: string;
+  physicalCountry?: string;
   physicalPostalCode?: string;
 };
 

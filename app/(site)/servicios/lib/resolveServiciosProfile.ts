@@ -74,6 +74,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     physicalSuite: contactIn.physicalSuite,
     physicalCity: contactIn.physicalCity,
     physicalRegion: contactIn.physicalRegion,
+    physicalCountry: contactIn.physicalCountry,
     physicalPostalCode: contactIn.physicalPostalCode,
   });
   const mapsSearchHref = physicalAddressDisplay
@@ -82,6 +83,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
         physicalSuite: contactIn.physicalSuite,
         physicalCity: contactIn.physicalCity,
         physicalRegion: contactIn.physicalRegion,
+        physicalCountry: contactIn.physicalCountry,
         physicalPostalCode: contactIn.physicalPostalCode,
       })
     : undefined;

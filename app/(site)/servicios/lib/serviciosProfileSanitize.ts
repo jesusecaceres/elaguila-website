@@ -387,18 +387,22 @@ export function formatPhysicalAddressDisplay(p: {
   physicalSuite?: string;
   physicalCity?: string;
   physicalRegion?: string;
+  physicalCountry?: string;
   physicalPostalCode?: string;
 }): string | undefined {
   const street = trimText(p.physicalStreet);
   const suite = trimText(p.physicalSuite);
   const city = trimText(p.physicalCity);
   const region = trimText(p.physicalRegion);
+  const country = trimText(p.physicalCountry);
   const zip = trimText(p.physicalPostalCode);
   const line1 = [street, suite].filter(Boolean).join(", ");
   const line2 = [city, region, zip].filter(Boolean).join(", ");
   const lines = [line1, line2].filter(Boolean);
   if (lines.length === 0) return undefined;
-  return lines.join("\n");
+  const address = lines.join("\n");
+  const countryLine = country ? `\n${country}` : "";
+  return address + countryLine;
 }
 
 /** Google Maps search URL — https only, built from structured address parts. */
@@ -407,6 +411,7 @@ export function buildGoogleMapsSearchHrefFromPhysical(p: {
   physicalSuite?: string;
   physicalCity?: string;
   physicalRegion?: string;
+  physicalCountry?: string;
   physicalPostalCode?: string;
 }): string | undefined {
   const q = [
@@ -414,6 +419,7 @@ export function buildGoogleMapsSearchHrefFromPhysical(p: {
     trimText(p.physicalSuite),
     trimText(p.physicalCity),
     trimText(p.physicalRegion),
+    trimText(p.physicalCountry),
     trimText(p.physicalPostalCode),
   ]
     .filter(Boolean)

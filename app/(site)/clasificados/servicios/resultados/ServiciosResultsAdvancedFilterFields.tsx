@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useState } from "react";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosResultsFilterQuery } from "../lib/serviciosResultsFilter";
 import {
@@ -6,6 +7,7 @@ import {
   SERVICIOS_INTERNAL_GROUP_IDS,
 } from "../lib/serviciosInternalGroupDisplay";
 import {
+  isLeonixLbUsCountry,
   LEONIX_LB_DEFAULT_COUNTRY,
   LEONIX_LB_DEFAULT_STATE,
   US_STATE_OPTIONS,
@@ -48,12 +50,13 @@ export function ServiciosResultsAdvancedFilterFields({
   formId?: string;
 }) {
   const f = formId ? { form: formId } : {};
+  const [country, setCountry] = useState(current.country ?? LEONIX_LB_DEFAULT_COUNTRY);
   return (
     <>
       <GroupShell titleEs="Ubicación" titleEn="Location" lang={lang}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Service area notes" : "Zona de servicio"}</span>
+            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "City / service area" : "Ciudad / zona de servicio"}</span>
             <input
               name="city"
               defaultValue={current.city ?? ""}
@@ -63,17 +66,32 @@ export function ServiciosResultsAdvancedFilterFields({
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "State" : "Estado"}</span>
-            <select name="state" defaultValue={current.state ?? LEONIX_LB_DEFAULT_STATE} className={selectClass} {...f}>
-              {US_STATE_OPTIONS.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.code} — {lang === "es" && opt.code === "CA" ? "California" : opt.name}
-                </option>
-              ))}
-            </select>
+            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "State / Province / Region" : "Estado / Provincia / Región"}</span>
+            {isLeonixLbUsCountry(country) ? (
+              <select
+                name="state"
+                defaultValue={current.state ?? LEONIX_LB_DEFAULT_STATE}
+                className={selectClass}
+                {...f}
+              >
+                {US_STATE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.code} — {lang === "es" && opt.code === "CA" ? "California" : opt.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                name="state"
+                defaultValue={current.state ?? ""}
+                placeholder={lang === "en" ? "Select or type" : "Selecciona o escribe"}
+                className={selectClass}
+                {...f}
+              />
+            )}
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">ZIP</span>
+            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "ZIP / Postal code" : "ZIP / Código postal"}</span>
             <input name="zip" defaultValue={current.zip ?? ""} className={selectClass} {...f} />
           </label>
           <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
@@ -81,6 +99,7 @@ export function ServiciosResultsAdvancedFilterFields({
             <input
               name="country"
               defaultValue={current.country ?? LEONIX_LB_DEFAULT_COUNTRY}
+              onChange={(e) => setCountry(e.target.value)}
               className={selectClass}
               {...f}
             />
