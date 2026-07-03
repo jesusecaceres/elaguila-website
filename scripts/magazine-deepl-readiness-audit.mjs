@@ -14,7 +14,8 @@ const ENV_LOCAL = resolve(ROOT, ".env.local");
 const ENV_FILE = resolve(ROOT, ".env");
 const GITIGNORE = resolve(ROOT, ".gitignore");
 const PACKAGE_JSON = resolve(ROOT, "package.json");
-const DEEPL_PACKAGE = "@deepl/deepl-node";
+/** Official npm package (see https://www.npmjs.com/package/deepl-node). */
+const DEEPL_PACKAGE_NAMES = ["deepl-node", "@deepl/deepl-node"];
 
 function envLocalHasDeepLKey() {
   if (!existsSync(ENV_LOCAL)) return false;
@@ -37,6 +38,13 @@ function packageHasDependency(name) {
   return Boolean(pkg.dependencies?.[name] || pkg.devDependencies?.[name]);
 }
 
+function resolveDeepLPackageName() {
+  for (const name of DEEPL_PACKAGE_NAMES) {
+    if (packageHasDependency(name)) return name;
+  }
+  return "deepl-node";
+}
+
 function gitignoreCoversProofOutput() {
   if (!existsSync(GITIGNORE)) return false;
   const text = readFileSync(GITIGNORE, "utf8");
@@ -50,6 +58,9 @@ function fileSizeLabel(path) {
   return `${bytes} bytes (${mb} MB)`;
 }
 
+const deeplPackageName = resolveDeepLPackageName();
+const deeplNodeListed = deeplPackageName !== "deepl-node" || packageHasDependency("deepl-node");
+
 const checks = {
   sourcePdfExists: existsSync(SOURCE_PDF),
   sourcePdfSize: fileSizeLabel(SOURCE_PDF),
@@ -60,7 +71,8 @@ const checks = {
   envExists: existsSync(ENV_FILE),
   deeplKeyInProcessEnv: Boolean(process.env.DEEPL_AUTH_KEY?.trim()),
   deeplKeyInEnvLocal: envLocalHasDeepLKey(),
-  deeplNodeListed: packageHasDependency(DEEPL_PACKAGE),
+  deeplNodeListed,
+  deeplPackageName,
   migrationExists: existsSync(
     resolve(ROOT, "supabase/migrations/20260630140000_magazine_visual_assets.sql"),
   ),
@@ -75,19 +87,21 @@ const checks = {
   ),
 };
 
+const hasDeepLKey = checks.deeplKeyInProcessEnv || checks.deeplKeyInEnvLocal;
+
 const blockers = [];
 if (!checks.sourcePdfExists) blockers.push("SOURCE_PDF_MISSING");
-if (!checks.deeplKeyInProcessEnv && !checks.deeplKeyInEnvLocal) blockers.push("DEEPL_AUTH_KEY_MISSING");
+if (!checks.deeplNodeListed) blockers.push("DEEPL_NODE_PACKAGE_MISSING");
+if (!hasDeepLKey) blockers.push("DEEPL_AUTH_KEY_MISSING");
 if (!checks.deeplKeyInProcessEnv && checks.deeplKeyInEnvLocal) {
   blockers.push("DEEPL_AUTH_KEY_NOT_LOADED_IN_SHELL");
 }
-if (!checks.deeplNodeListed) blockers.push("DEEPL_NODE_PACKAGE_MISSING");
 
 let decision = "READY_FOR_REAL_PT_SMOKE";
 if (!checks.sourcePdfExists) decision = "STOP_HOLD_FOR_SOURCE_PDF";
 else if (!checks.platformHelperExists || !checks.migrationExists) decision = "STOP_HOLD_FOR_ARCHITECTURE_GAP";
 else if (!checks.deeplNodeListed) decision = "STOP_HOLD_FOR_PROVIDER_DEPENDENCY";
-else if (!checks.deeplKeyInProcessEnv && !checks.deeplKeyInEnvLocal) decision = "STOP_HOLD_FOR_DEEPL_ENV";
+else if (!hasDeepLKey) decision = "STOP_HOLD_FOR_DEEPL_ENV";
 else if (!checks.deeplKeyInProcessEnv && checks.deeplKeyInEnvLocal) decision = "STOP_HOLD_FOR_DEEPL_ENV";
 else if (blockers.length) decision = "HOLD_FOR_CHUY_DECISION";
 
@@ -99,8 +113,10 @@ const nextGate =
       : decision === "STOP_HOLD_FOR_ARCHITECTURE_GAP"
         ? "MAGAZINE-VISUAL-ASSET-ARCHITECTURE-FIX1"
         : decision === "STOP_HOLD_FOR_PROVIDER_DEPENDENCY"
-          ? "MAGAZINE-DEEPL-PT-REAL-SMOKE3"
-          : "MAGAZINE-DEEPL-ENV-SETUP1";
+          ? "MAGAZINE-DEEPL-ENV-SETUP1"
+          : decision === "STOP_HOLD_FOR_DEEPL_ENV"
+            ? "MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY"
+            : "HOLD_FOR_CHUY_DECISION";
 
 console.log("# MAGAZINE-DEEPL-READINESS-AUDIT (local script)");
 console.log("");
@@ -112,10 +128,11 @@ console.log("");
 console.log("## Environment");
 console.log(`DEEPL_AUTH_KEY present (process.env): ${checks.deeplKeyInProcessEnv}`);
 console.log(`DEEPL_AUTH_KEY present (.env.local, value not printed): ${checks.deeplKeyInEnvLocal}`);
+console.log(`DEEPL_AUTH_KEY ready (process or .env.local): ${hasDeepLKey}`);
 console.log(`secret value printed: false`);
 console.log(`.env.local exists: ${checks.envLocalExists}`);
 console.log(`.env exists: ${checks.envExists}`);
-console.log(`${DEEPL_PACKAGE} listed in package.json: ${checks.deeplNodeListed}`);
+console.log(`${checks.deeplPackageName} listed in package.json: ${checks.deeplNodeListed}`);
 console.log("");
 console.log("## Source Assets");
 console.log(`source PDF exists: ${checks.sourcePdfExists}`);

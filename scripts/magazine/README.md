@@ -1,6 +1,6 @@
 # Magazine Provider Proof Scripts
 
-Status: `MAGAZINE-DEEPL-PT-REAL-SMOKE2`
+Status: `MAGAZINE-DEEPL-ENV-SETUP1`
 
 These scripts prepare a backend/provider smoke path for the digital magazine without publishing assets or forcing paid API calls. They default to dry-run behavior and must not print secret values.
 
@@ -37,12 +37,25 @@ Do not move generated translated PDFs, rendered images, or provider output into 
 
 Blocked until both are true:
 
-- Install dependency: `npm install @deepl/deepl-node`
-- Set `DEEPL_AUTH_KEY` locally or in the execution environment
+- Install dependency: `npm install deepl-node` (official npm package; completed in `MAGAZINE-DEEPL-ENV-SETUP1`)
+- Set `DEEPL_AUTH_KEY` in local `.env.local` (never commit; never paste into chat)
 
-`MAGAZINE-DEEPL-PT-REAL-SMOKE2` stopped before installing DeepL or calling the provider because `DEEPL_AUTH_KEY` is still missing in the local Cursor environment. No translated PDF or proof manifest exists from this gate.
+Add locally in `.env.local`:
 
-Safe preflight:
+```env
+# DeepL document translation API key. Do not commit real values.
+DEEPL_AUTH_KEY=
+```
+
+Re-check readiness (prints TRUE/FALSE only; never prints the key):
+
+```bash
+node scripts/magazine-deepl-readiness-audit.mjs
+```
+
+When the script reports `decision=READY_FOR_REAL_PT_SMOKE`, the next gate is `MAGAZINE-DEEPL-PT-REAL-SMOKE3` (first paid provider call — requires intentional approval).
+
+Safe preflight (zero cost):
 
 ```bash
 node scripts/magazine/proof-translate-deepl.mjs --dry-run --target=pt

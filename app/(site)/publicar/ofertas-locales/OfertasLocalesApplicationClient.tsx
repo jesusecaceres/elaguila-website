@@ -8,7 +8,10 @@ import {
   getOfertaLocalApplicationBasePriceMonthly,
   getOfertaLocalProductDisplayLabel,
   isOfertaLocalCouponPromotionFlow,
+  isOfertaLocalEmailFormatValid,
   isOfertaLocalWeeklyFlyerFlow,
+  normalizeOfertaLocalEmailInput,
+  resolveOfertaLocalContactEmail,
 } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
   OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY,
@@ -87,10 +90,7 @@ import {
   ofertasLocalesAppCopy,
 } from "./ofertasLocalesApplicationCopy";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
-import {
-  splitOfertaLocalPrimaryFlyerAssets,
-  ofertaLocalDraftHasUnuploadedAssetMetadata,
-} from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
+import { ofertaLocalDraftHasUnuploadedAssetMetadata } from "@/app/lib/ofertas-locales/ofertasLocalesStep5AssetLayout";
 import { OfertasLocalesWizardProgress } from "./OfertasLocalesWizardProgress";
 import type { OfertaLocalAiReviewGateState } from "./OfertasLocalesAiItemReviewPanel";
 
@@ -209,7 +209,12 @@ export default function OfertasLocalesApplicationClient() {
     reviewLaterCount: 0,
   });
   const [uploadEditorOpen, setUploadEditorOpen] = useState(false);
-  const [optionalFilesOpen, setOptionalFilesOpen] = useState(false);
+  const [step7Confirmations, setStep7Confirmations] = useState({
+    businessInfo: false,
+    filesDates: false,
+    aiItems: false,
+    leonixRules: false,
+  });
   const [signedIn, setSignedIn] = useState(true);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
@@ -265,8 +270,8 @@ export default function OfertasLocalesApplicationClient() {
   const handleStartFresh = useCallback(() => {
     const msg =
       lang === "en"
-        ? `Are you sure? ${c.startOverDeviceWarning} You will start again at Step 1. Uploaded database rows are not deleted.`
-        : `¿Estás seguro? ${c.startOverDeviceWarning} Empezarás otra vez en el Paso 1. No se borran registros de la base de datos.`;
+        ? `Are you sure? ${c.startOverDeviceWarning} You will start again at Step 1.`
+        : `¿Estás seguro? ${c.startOverDeviceWarning} Empezarás otra vez en el Paso 1.`;
     if (!window.confirm(msg)) return;
     clearOfertaLocalAiScanSession();
     resetDraft();
@@ -286,7 +291,12 @@ export default function OfertasLocalesApplicationClient() {
       reviewLaterCount: 0,
     });
     setUploadEditorOpen(false);
-    setOptionalFilesOpen(false);
+    setStep7Confirmations({
+      businessInfo: false,
+      filesDates: false,
+      aiItems: false,
+      leonixRules: false,
+    });
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [c.startOverDeviceWarning, lang, resetDraft]);
@@ -303,6 +313,24 @@ export default function OfertasLocalesApplicationClient() {
   const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
   const primaryFormat = inferPrimaryAdFormatFromDraft(draft);
   const basePriceMonthly = getOfertaLocalApplicationBasePriceMonthly(draft);
+  const estimatedMonthlyTotal =
+    basePriceMonthly != null
+      ? basePriceMonthly +
+        (draft.wantsAiSearchableSpecials ? OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY : 0)
+      : null;
+  const emailMalformed =
+    draft.email.trim().length > 0 && !isOfertaLocalEmailFormatValid(draft.email);
+  const step7ConfirmationsComplete = useMemo(() => {
+    if (emailMalformed) return false;
+    const base =
+      step7Confirmations.businessInfo &&
+      step7Confirmations.filesDates &&
+      step7Confirmations.leonixRules;
+    if (draft.wantsAiSearchableSpecials) {
+      return base && step7Confirmations.aiItems;
+    }
+    return base;
+  }, [draft.wantsAiSearchableSpecials, emailMalformed, step7Confirmations]);
 
   const savedLabel = formatSavedAt(lastSavedAt, lang);
   const addressAccepted = hasOfertaLocalAddressAccepted(draft);
@@ -335,6 +363,10 @@ export default function OfertasLocalesApplicationClient() {
         | "instagramUrl"
         | "tiktokUrl"
         | "youtubeUrl"
+        | "xTwitterUrl"
+        | "linkedinUrl"
+        | "snapchatUrl"
+        | "pinterestUrl"
         | "googleBusinessUrl"
         | "googleReviewUrl"
         | "yelpUrl"
@@ -840,88 +872,26 @@ export default function OfertasLocalesApplicationClient() {
         );
 
       case 5: {
-        const { supporting: supportingFlyerAssets } = splitOfertaLocalPrimaryFlyerAssets(
-          draft.flyerAssets
-        );
         const showCompactUploads = collapseUploadForReview && !uploadEditorOpen;
         const assetUploadSections = (
           <>
             {isShoppingLane ? (
-              <>
-                <OfertasLocalesDraftAssetSection
-                  bucket="flyerAssets"
-                  draft={draft}
-                  updateDraft={updateDraft}
-                  lang={lang}
-                  sectionMode="primaryMainFlyer"
-                  sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
-                  sectionHelper={
-                    lang === "en"
-                      ? "Upload your full weekly flyer first. You can add coupons or extra files after the main flyer is ready."
-                      : "Sube primero tu volante semanal completo. Puedes agregar cupones o archivos extra después de que el volante principal esté listo."
-                  }
-                  primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
-                  showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
-                  onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
-                />
-                <div className="rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                    aria-expanded={optionalFilesOpen}
-                    onClick={() => setOptionalFilesOpen((open) => !open)}
-                  >
-                    <span>
-                      <span className="block text-sm font-semibold text-[#1E1814]">
-                        {lang === "en"
-                          ? "Want to add coupons or extra files?"
-                          : "¿Quieres agregar cupones o archivos adicionales?"}
-                      </span>
-                      <span className="mt-1 block text-xs leading-relaxed text-[#1E1814]/60">
-                        {lang === "en"
-                          ? "Optional — use this only if you have separate coupons, images, or extra PDFs."
-                          : "Opcional — usa esto solo si tienes cupones separados, imágenes o PDFs extra."}
-                      </span>
-                    </span>
-                    <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-1.5 text-xs font-semibold text-[#7A1E2C]">
-                      {optionalFilesOpen
-                        ? lang === "en"
-                          ? "Hide"
-                          : "Ocultar"
-                        : lang === "en"
-                          ? "Open"
-                          : "Abrir"}
-                    </span>
-                  </button>
-                  <div className={optionalFilesOpen ? "space-y-4 border-t border-[#D4C4A8]/60 p-4" : "hidden"}>
-                    {supportingFlyerAssets.length > 0 ? (
-                      <OfertasLocalesDraftAssetSection
-                        bucket="flyerAssets"
-                        draft={draft}
-                        updateDraft={updateDraft}
-                        lang={lang}
-                        sectionMode="supportingFlyerExtras"
-                        sectionTitleOverride={c.laneShoppingSupportingFlyerExtras}
-                        sectionHelper={c.laneShoppingSupportingFlyerExtrasHelper}
-                        onPendingUploadsChange={(count) =>
-                          reportStep5SectionPending("supporting-flyer", count)
-                        }
-                      />
-                    ) : null}
-                    <OfertasLocalesDraftAssetSection
-                      bucket="couponAssets"
-                      draft={draft}
-                      updateDraft={updateDraft}
-                      lang={lang}
-                      sectionMode="additionalCoupons"
-                      sectionTitleOverride={c.laneShoppingAdditionalCoupons}
-                      sectionHelper={c.laneShoppingAdditionalCouponsHelper}
-                      showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
-                      onPendingUploadsChange={(count) => reportStep5SectionPending("add-coupons", count)}
-                    />
-                  </div>
-                </div>
-              </>
+              <OfertasLocalesDraftAssetSection
+                bucket="flyerAssets"
+                draft={draft}
+                updateDraft={updateDraft}
+                lang={lang}
+                sectionMode="primaryMainFlyer"
+                sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
+                sectionHelper={
+                  lang === "en"
+                    ? "Upload your full weekly flyer. AI product extraction is available when you select the AI add-on."
+                    : "Sube tu volante semanal completo. La extracción AI de productos está disponible si seleccionas el complemento AI."
+                }
+                primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
+                showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
+              />
             ) : null}
             {isCouponsLane ? (
               <>
@@ -1018,12 +988,7 @@ export default function OfertasLocalesApplicationClient() {
               <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
                 {lang === "en" ? "Need to start over?" : "¿Necesitas empezar de nuevo?"}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/65">
-                {c.startOverDeviceWarning}{" "}
-                {lang === "en"
-                  ? "This does not delete database rows."
-                  : "Esto no borra registros de la base de datos."}
-              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/65">{c.startOverDeviceWarning}</p>
               <button
                 type="button"
                 className="mt-3 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
@@ -1040,73 +1005,33 @@ export default function OfertasLocalesApplicationClient() {
         return (
           <div className="space-y-6">
             <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-              <p className="text-sm font-semibold text-[#1E1814]">{c.membershipSectionTitle}</p>
-              <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.membershipSectionPurpose}</p>
-              <p className="text-xs leading-relaxed text-[#1E1814]/55">{c.membershipTrafficCopy}</p>
-              <label className="flex items-center gap-2 text-sm text-[#1E1814]">
-                <input
-                  type="checkbox"
-                  checked={draft.requiresMembershipForDeals}
-                  onChange={(e) => updateDraft({ requiresMembershipForDeals: e.target.checked })}
-                  className="rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                />
-                {lang === "en"
-                  ? "Offers require membership or rewards account"
-                  : "Las ofertas requieren membresía o cuenta de recompensas"}
-              </label>
+              <div>
+                <p className="text-sm font-semibold text-[#1E1814]">{c.socialSectionTitle}</p>
+                <p className="mt-1 text-xs font-medium text-[#7A1E2C]">{c.socialSectionSubtitle}</p>
+                <p className={cx(HELPER, "mt-2")}>{c.socialSectionHelper}</p>
+                <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/60">
+                  {c.socialLinksVisibilityHelper}
+                </p>
+              </div>
               <FieldBlock
-                label={lang === "en" ? "Membership / rewards URL" : "URL de membresía / recompensas"}
+                label={c.socialEmail}
                 optional
                 optionalLabel={c.optional}
-                confirm={membershipUrlAccepted ? c.urlAccepted : undefined}
+                confirm={resolveOfertaLocalContactEmail(draft) ? c.urlAccepted : undefined}
+                helper={emailMalformed ? c.socialEmailInvalid : undefined}
               >
                 <input
                   className={INPUT}
-                  value={draft.membershipUrl}
-                  onChange={(e) => updateDraft({ membershipUrl: e.target.value })}
-                  onBlur={() => handleUrlBlur("membershipUrl")}
+                  type="email"
+                  value={draft.email}
+                  onChange={(e) =>
+                    updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })
+                  }
+                  placeholder={lang === "en" ? "hello@business.com" : "hola@negocio.com"}
+                  inputMode="email"
+                  autoComplete="email"
                 />
               </FieldBlock>
-              <FieldBlock
-                label={c.membershipCustomerInstructionLabel}
-                optional
-                optionalLabel={c.optional}
-              >
-                <textarea
-                  className={cx(INPUT, "min-h-[60px] resize-y")}
-                  value={draft.membershipNote}
-                  onChange={(e) => updateDraft({ membershipNote: e.target.value })}
-                />
-              </FieldBlock>
-              <FieldBlock
-                label={lang === "en" ? "Digital coupon URL" : "URL de cupón digital"}
-                optional
-                optionalLabel={c.optional}
-                confirm={digitalCouponUrlAccepted ? c.urlAccepted : undefined}
-              >
-                <input
-                  className={INPUT}
-                  value={draft.digitalCouponUrl}
-                  onChange={(e) => updateDraft({ digitalCouponUrl: e.target.value })}
-                  onBlur={() => handleUrlBlur("digitalCouponUrl")}
-                />
-              </FieldBlock>
-              <FieldBlock
-                label={c.digitalCouponCustomerInstructionLabel}
-                optional
-                optionalLabel={c.optional}
-              >
-                <textarea
-                  className={cx(INPUT, "min-h-[60px] resize-y")}
-                  value={draft.digitalCouponNote}
-                  onChange={(e) => updateDraft({ digitalCouponNote: e.target.value })}
-                />
-              </FieldBlock>
-            </div>
-
-            <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-              <p className="text-sm font-medium text-[#1E1814]">{c.socialSectionTitle}</p>
-              <p className={HELPER}>{c.socialSectionHelper}</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {(
                   [
@@ -1114,6 +1039,10 @@ export default function OfertasLocalesApplicationClient() {
                     ["instagramUrl", c.socialInstagram],
                     ["tiktokUrl", c.socialTiktok],
                     ["youtubeUrl", c.socialYoutube],
+                    ["xTwitterUrl", c.socialXTwitter],
+                    ["linkedinUrl", c.socialLinkedin],
+                    ["snapchatUrl", c.socialSnapchat],
+                    ["pinterestUrl", c.socialPinterest],
                     ["googleBusinessUrl", c.socialGoogleBusiness],
                     ["googleReviewUrl", c.socialGoogleReview],
                     ["yelpUrl", c.socialYelp],
@@ -1137,6 +1066,81 @@ export default function OfertasLocalesApplicationClient() {
                 ))}
               </div>
             </div>
+
+            {isShoppingLane ? (
+              <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
+                <p className="text-sm font-semibold text-[#1E1814]">{c.membershipSectionTitle}</p>
+                <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.membershipSectionPurpose}</p>
+                <p className="text-xs leading-relaxed text-[#1E1814]/55">{c.membershipTrafficCopy}</p>
+                <label className="flex items-center gap-2 text-sm text-[#1E1814]">
+                  <input
+                    type="checkbox"
+                    checked={draft.requiresMembershipForDeals}
+                    onChange={(e) => updateDraft({ requiresMembershipForDeals: e.target.checked })}
+                    className="rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+                  />
+                  {lang === "en"
+                    ? "Offers require membership or rewards account"
+                    : "Las ofertas requieren membresía o cuenta de recompensas"}
+                </label>
+                <FieldBlock
+                  label={lang === "en" ? "Membership / rewards URL" : "URL de membresía / recompensas"}
+                  optional
+                  optionalLabel={c.optional}
+                  confirm={membershipUrlAccepted ? c.urlAccepted : undefined}
+                >
+                  <input
+                    className={INPUT}
+                    value={draft.membershipUrl}
+                    onChange={(e) => updateDraft({ membershipUrl: e.target.value })}
+                    onBlur={() => handleUrlBlur("membershipUrl")}
+                  />
+                </FieldBlock>
+                <FieldBlock
+                  label={c.membershipCustomerInstructionLabel}
+                  optional
+                  optionalLabel={c.optional}
+                >
+                  <textarea
+                    className={cx(INPUT, "min-h-[60px] resize-y")}
+                    value={draft.membershipNote}
+                    onChange={(e) => updateDraft({ membershipNote: e.target.value })}
+                  />
+                </FieldBlock>
+              </div>
+            ) : null}
+
+            {isCouponsLane ? (
+              <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
+                <p className="text-sm font-semibold text-[#1E1814]">
+                  {lang === "en" ? "Digital coupon" : "Cupón digital"}
+                </p>
+                <FieldBlock
+                  label={lang === "en" ? "Digital coupon URL" : "URL de cupón digital"}
+                  optional
+                  optionalLabel={c.optional}
+                  confirm={digitalCouponUrlAccepted ? c.urlAccepted : undefined}
+                >
+                  <input
+                    className={INPUT}
+                    value={draft.digitalCouponUrl}
+                    onChange={(e) => updateDraft({ digitalCouponUrl: e.target.value })}
+                    onBlur={() => handleUrlBlur("digitalCouponUrl")}
+                  />
+                </FieldBlock>
+                <FieldBlock
+                  label={c.digitalCouponCustomerInstructionLabel}
+                  optional
+                  optionalLabel={c.optional}
+                >
+                  <textarea
+                    className={cx(INPUT, "min-h-[60px] resize-y")}
+                    value={draft.digitalCouponNote}
+                    onChange={(e) => updateDraft({ digitalCouponNote: e.target.value })}
+                  />
+                </FieldBlock>
+              </div>
+            ) : null}
 
             {false ? (
             <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
@@ -1186,30 +1190,68 @@ export default function OfertasLocalesApplicationClient() {
       case 7:
         return (
           <div className="space-y-6">
-            {submitSuccess ? (
-              <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                <p className="font-semibold">{c.submitSuccessTitle}</p>
-                <p className="mt-1 text-xs">{c.submitSuccessBody}</p>
-                <p className="mt-2 text-xs text-emerald-900/85">{c.submitNotPublicUntilReview}</p>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3 text-sm text-[#1E1814]">
-                <p className="text-xs">{c.submitNotPublicUntilReview}</p>
-              </div>
-            )}
+            <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/90 px-4 py-4">
+              <h3 className="text-base font-semibold text-[#1E1814]">{c.step7FinalReviewTitle}</h3>
+              {submitSuccess ? (
+                <div className="mt-3 rounded-lg border border-emerald-300/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  <p className="font-semibold">{c.submitSuccessTitle}</p>
+                  <p className="mt-1 text-xs">{c.submitSuccessBody}</p>
+                  <p className="mt-2 text-xs text-emerald-900/85">{c.submitNotPublicUntilReview}</p>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{c.submitNotPublicUntilReview}</p>
+              )}
+            </div>
             {submitError ? (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
                 {submitError}
               </p>
             ) : null}
 
-            <OfertasLocalesValidationPanel
-              previewIssues={previewIssues}
-              publishIssues={publishIssues}
-              previewReady={previewReady}
-              publishFieldsReady={publishFieldsReady}
-              lang={lang}
-            />
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
+                {c.pricingSectionTitle}
+              </h3>
+              <div className="mt-3 space-y-2">
+                {basePriceMonthly != null && draft.offerType ? (
+                  <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 text-sm">
+                    <p className="font-medium text-[#1E1814]">
+                      {getOfertaLocalProductDisplayLabel(draft, lang)}
+                    </p>
+                    <p className="mt-1 text-xs text-[#1E1814]/75">
+                      {formatUsd(basePriceMonthly)}
+                      {c.perMonth}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#1E1814]/55">
+                    {lang === "en" ? "Select a product in Step 1." : "Elige un producto en el Paso 1."}
+                  </p>
+                )}
+                {draft.wantsAiSearchableSpecials ? (
+                  <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3 text-sm">
+                    <p className="font-medium text-[#1E1814]">{c.aiProductSearchTitle}</p>
+                    <p className="mt-1 text-xs text-[#1E1814]/75">
+                      +{formatUsd(OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY)}
+                      {c.perMonth}
+                    </p>
+                  </div>
+                ) : null}
+                {estimatedMonthlyTotal != null ? (
+                  <div className="rounded-xl border border-[#7A1E2C]/30 bg-white px-4 py-3 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/60">
+                      {c.step7EstimatedTotal}
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
+                      {formatUsd(estimatedMonthlyTotal)}
+                      {c.perMonth}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+              <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
+              <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
+            </div>
 
             {draft.wantsAiSearchableSpecials && hasExistingAiScan ? (
               <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-4">
@@ -1245,20 +1287,17 @@ export default function OfertasLocalesApplicationClient() {
                       {c.step7ReviewRejectedItems}
                     </button>
                   ) : null}
-                  <Link href={previewHref} className={BTN_SECONDARY}>
-                    {c.previewLink}
-                  </Link>
                 </div>
               </div>
             ) : null}
 
             {draft.wantsAiSearchableSpecials ? (
               hasExistingAiScan ? (
-                <details className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3">
-                  <summary className="cursor-pointer text-sm font-semibold text-[#1E1814]">
+                <details className="rounded-xl border border-amber-200/80 bg-amber-50/40 px-4 py-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-amber-950">
                     {c.step7RescanSectionTitle}
                   </summary>
-                  <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{c.step7RescanWarning}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-amber-950/80">{c.step7RescanWarning}</p>
                   <div className="mt-4">
                     <OfertasLocalesAiScanPanel
                       draft={draft}
@@ -1296,62 +1335,114 @@ export default function OfertasLocalesApplicationClient() {
               )
             ) : null}
 
-            <div>
-              {/* OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS — review shows selected base product only (Stack 9B). */}
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
-                {c.pricingSectionTitle}
-              </h3>
-              <div className="mt-3 space-y-2">
-                {basePriceMonthly != null && draft.offerType ? (
-                  <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 text-sm">
-                    <p className="font-medium text-[#1E1814]">
-                      {getOfertaLocalProductDisplayLabel(draft, lang)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#1E1814]/75">
-                      {formatUsd(basePriceMonthly)}
-                      {c.perMonth}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#1E1814]/55">
-                    {lang === "en" ? "Select a product in Step 1." : "Elige un producto en el Paso 1."}
-                  </p>
-                )}
-                {draft.wantsAiSearchableSpecials ? (
-                  <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3 text-sm">
-                    <p className="font-medium text-[#1E1814]">{c.aiProductSearchTitle}</p>
-                    <p className="mt-1 text-xs text-[#1E1814]/75">
-                      +{formatUsd(OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY)}
-                      {c.perMonth}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-              <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
-              <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
+            <OfertasLocalesValidationPanel
+              previewIssues={previewIssues}
+              publishIssues={publishIssues}
+              previewReady={previewReady}
+              publishFieldsReady={publishFieldsReady}
+              lang={lang}
+            />
+
+            <div className="space-y-3 rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-4">
+              <p className="text-sm font-semibold text-[#1E1814]">
+                {lang === "en" ? "Confirm before preview" : "Confirma antes de la vista previa"}
+              </p>
+              <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+                <input
+                  type="checkbox"
+                  checked={step7Confirmations.businessInfo}
+                  onChange={(e) =>
+                    setStep7Confirmations((prev) => ({ ...prev, businessInfo: e.target.checked }))
+                  }
+                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+                />
+                <span>{c.step7ConfirmBusiness}</span>
+              </label>
+              <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+                <input
+                  type="checkbox"
+                  checked={step7Confirmations.filesDates}
+                  onChange={(e) =>
+                    setStep7Confirmations((prev) => ({ ...prev, filesDates: e.target.checked }))
+                  }
+                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+                />
+                <span>{c.step7ConfirmFiles}</span>
+              </label>
+              {draft.wantsAiSearchableSpecials ? (
+                <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+                  <input
+                    type="checkbox"
+                    checked={step7Confirmations.aiItems}
+                    onChange={(e) =>
+                      setStep7Confirmations((prev) => ({ ...prev, aiItems: e.target.checked }))
+                    }
+                    className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+                  />
+                  <span>{c.step7ConfirmAi}</span>
+                </label>
+              ) : null}
+              <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+                <input
+                  type="checkbox"
+                  checked={step7Confirmations.leonixRules}
+                  onChange={(e) =>
+                    setStep7Confirmations((prev) => ({ ...prev, leonixRules: e.target.checked }))
+                  }
+                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+                />
+                <span>{c.step7ConfirmRules}</span>
+              </label>
+              {!step7ConfirmationsComplete ? (
+                <p className="text-xs text-[#1E1814]/60">{c.step7PreviewGatedHelper}</p>
+              ) : null}
+              {draft.wantsAiSearchableSpecials && aiReviewGate.needsReviewCount > 0 ? (
+                <p className="text-xs font-medium text-amber-900">{c.step7AiIncompleteHelper}</p>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap gap-3">
               <button type="button" className={BTN_SECONDARY} onClick={handleSaveDraft}>
                 {c.saveDraft}
               </button>
-              <button
-                type="button"
-                className={BTN_SECONDARY}
-                onClick={handleStartFresh}
-              >
-                {lang === "en" ? "Delete this application and start over" : "Borrar esta solicitud y empezar de nuevo"}
-              </button>
-              <Link href={previewHref} className={BTN_PRIMARY}>
-                {c.previewLink}
-              </Link>
+              {step7ConfirmationsComplete ? (
+                <Link href={previewHref} className={BTN_PRIMARY}>
+                  {c.previewLink}
+                </Link>
+              ) : (
+                <span
+                  className={cx(BTN_PRIMARY, "cursor-not-allowed opacity-45")}
+                  aria-disabled="true"
+                  title={c.step7PreviewGatedHelper}
+                >
+                  {c.previewLink}
+                </span>
+              )}
               <button
                 type="button"
                 className={BTN_PRIMARY}
-                disabled={!publishFieldsReady || submitting}
+                disabled={
+                  !publishFieldsReady ||
+                  submitting ||
+                  (draft.wantsAiSearchableSpecials && aiReviewGate.needsReviewCount > 0)
+                }
                 onClick={() => void handleSubmitForReview()}
               >
                 {submitting ? c.submittingForReview : c.submitForReview}
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-red-200/80 bg-red-50/40 px-4 py-4">
+              <p className="text-sm font-semibold text-red-900">{c.step7DeleteStartOverTitle}</p>
+              <p className="mt-2 text-xs leading-relaxed text-red-900/80">{c.startOverDeviceWarning}</p>
+              <button
+                type="button"
+                className="mt-3 w-full rounded-xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
+                onClick={handleStartFresh}
+              >
+                {lang === "en"
+                  ? "Delete this application and start over"
+                  : "Borrar esta solicitud y empezar de nuevo"}
               </button>
             </div>
           </div>

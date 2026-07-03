@@ -144,6 +144,10 @@ export function parseOfertaLocalPublishedSocialLinksFromInternalNotes(
       if (key === "instagramUrl") out.instagramUrl = href;
       if (key === "tiktokUrl") out.tiktokUrl = href;
       if (key === "youtubeUrl") out.youtubeUrl = href;
+      if (key === "xTwitterUrl") out.xTwitterUrl = href;
+      if (key === "linkedinUrl") out.linkedinUrl = href;
+      if (key === "snapchatUrl") out.snapchatUrl = href;
+      if (key === "pinterestUrl") out.pinterestUrl = href;
       if (key === "googleBusinessUrl") out.googleBusinessUrl = href;
       if (key === "googleReviewUrl") out.googleReviewUrl = href;
       if (key === "yelpUrl") out.yelpUrl = href;

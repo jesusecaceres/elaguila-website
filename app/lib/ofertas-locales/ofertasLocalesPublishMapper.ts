@@ -12,6 +12,10 @@ import {
 } from "./ofertasLocalesFormatting";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
+import {
+  isOfertaLocalEmailFormatValid,
+  normalizeOfertaLocalEmailInput,
+} from "./ofertasLocalesApplicationHelpers";
 import { validateOfertaLocalDraftForFuturePublish } from "./ofertasLocalesValidation";
 import type {
   OfertaLocalDbInsertPayload,
@@ -110,6 +114,14 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
   if (tt) socialLinks.tiktokUrl = tt;
   const yt = sanitizeOptionalUrl(draft.youtubeUrl);
   if (yt) socialLinks.youtubeUrl = yt;
+  const xt = sanitizeOptionalUrl(draft.xTwitterUrl);
+  if (xt) socialLinks.xTwitterUrl = xt;
+  const li = sanitizeOptionalUrl(draft.linkedinUrl);
+  if (li) socialLinks.linkedinUrl = li;
+  const sc = sanitizeOptionalUrl(draft.snapchatUrl);
+  if (sc) socialLinks.snapchatUrl = sc;
+  const pi = sanitizeOptionalUrl(draft.pinterestUrl);
+  if (pi) socialLinks.pinterestUrl = pi;
   const gb = sanitizeOptionalUrl(draft.googleBusinessUrl);
   if (gb) socialLinks.googleBusinessUrl = gb;
   const gr = sanitizeOptionalUrl(draft.googleReviewUrl);
@@ -119,6 +131,10 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
 
   const metadata: Record<string, unknown> = {};
   if (Object.keys(socialLinks).length) metadata.socialLinks = socialLinks;
+  const contactEmail = normalizeOfertaLocalEmailInput(draft.email);
+  if (contactEmail && isOfertaLocalEmailFormatValid(contactEmail)) {
+    metadata.contactEmail = contactEmail;
+  }
   if (draft.wantsFeaturedPlacement && draft.featuredPlacementScope !== "none") {
     metadata.featuredPlacementScope = draft.featuredPlacementScope;
   }

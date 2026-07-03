@@ -4,8 +4,12 @@ import {
   OFERTAS_LOCALES_OFFER_TYPE_OPTIONS,
 } from "./ofertasLocalesConstants";
 import { labelForPrimaryBusinessCategory } from "./ofertasLocalesBusinessCategoryUx";
-import { labelForPrimaryAdFormat } from "./ofertasLocalesTwoLaneProductModel";
-import { getOfertaLocalMarketDisplayLabel, getOfertaLocalProductDisplayLabel, labelForCouponPromotionSubtype } from "./ofertasLocalesApplicationHelpers";
+import { labelForPrimaryAdFormat, isOfertaLocalLocalCouponsLane } from "./ofertasLocalesTwoLaneProductModel";
+import {
+  getOfertaLocalMarketDisplayLabel,
+  getOfertaLocalProductDisplayLabel,
+  labelForCouponPromotionSubtype,
+} from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets } from "./ofertasLocalesDraftAssetHelpers";
 import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
@@ -116,8 +120,16 @@ export function shouldShowMembershipBlock(draft: OfertaLocalDraft): boolean {
 }
 
 export function shouldShowDigitalCouponBlock(draft: OfertaLocalDraft): boolean {
+  if (!isOfertaLocalLocalCouponsLane(draft)) return false;
   return Boolean(draft.digitalCouponUrl.trim() || draft.digitalCouponNote.trim());
 }
+
+export {
+  buildOfertaLocalMailtoHref,
+  getOfertaLocalSocialLinkPillClass,
+  getOfertaLocalSocialLinksByCategory,
+  resolveOfertaLocalContactEmail,
+} from "./ofertasLocalesApplicationHelpers";
 
 export function shouldShowMagazinePartnerBlock(_draft: OfertaLocalDraft): boolean {
   return false;

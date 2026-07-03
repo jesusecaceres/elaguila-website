@@ -1,36 +1,39 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import {
-  OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_PRODUCT_NAME,
 } from "@/app/lib/ofertas-locales/ofertasLocalesConstants";
 import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
-import { getOfertaLocalSocialLinks } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
+  isOfertaLocalCouponPromotionFlow,
+  isOfertaLocalWeeklyFlyerFlow,
+} from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
+import {
+  buildOfertaLocalMailtoHref,
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
   digitalCouponCtaLabel,
   formatOfertaLocalDateRange,
   getOfertaLocalMarketDisplayLabel,
+  getOfertaLocalSocialLinkPillClass,
+  getOfertaLocalSocialLinksByCategory,
   hasOfertaLocalCouponAsset,
   hasOfertaLocalFlyerAsset,
   labelForBusinessCategory,
   labelForOfferType,
   labelForPrimaryAdFormatLane,
   membershipCtaLabel,
+  resolveOfertaLocalContactEmail,
   resolveOfertaLocalDirectionsHref,
   resolveOfertaLocalWebsiteHref,
   shouldShowDigitalCouponBlock,
   shouldShowMembershipBlock,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
-import {
-  isOfertaLocalCouponPromotionFlow,
-  isOfertaLocalWeeklyFlyerFlow,
-} from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
@@ -68,6 +71,64 @@ function ContactButton({
     >
       {label}
     </a>
+  );
+}
+
+function SocialPill({ href, label, pillClass }: { href: string; label: string; pillClass: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cx(
+        "inline-flex min-h-11 items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold",
+        pillClass
+      )}
+    >
+      {label}
+    </a>
+  );
+}
+
+function EmailContactRow({
+  email,
+  mailtoHref,
+  lang,
+}: {
+  email: string;
+  mailtoHref: string;
+  lang: OfertasLocalesAppLang;
+}) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }, [email]);
+
+  if (!email) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm text-[#1E1814]/85">{email}</span>
+      {mailtoHref ? (
+        <a href={mailtoHref} className={BTN_OUTLINE}>
+          {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.emailEn : OFERTAS_LOCALES_PREVIEW_COPY.emailEs}
+        </a>
+      ) : null}
+      <button type="button" className={BTN_OUTLINE} onClick={() => void handleCopy()}>
+        {copied
+          ? lang === "en"
+            ? "Copied"
+            : "Copiado"
+          : lang === "en"
+            ? OFERTAS_LOCALES_PREVIEW_COPY.copyEmailEn
+            : OFERTAS_LOCALES_PREVIEW_COPY.copyEmailEs}
+      </button>
+    </div>
   );
 }
 
@@ -197,6 +258,8 @@ export function OfertasLocalesPreviewCard({
   const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp || draft.phone, draft.businessName);
   const webHref = resolveOfertaLocalWebsiteHref(draft.websiteUrl);
   const directionsHref = resolveOfertaLocalDirectionsHref(draft);
+  const contactEmail = resolveOfertaLocalContactEmail(draft);
+  const mailtoHref = buildOfertaLocalMailtoHref(draft.email, draft.businessName);
 
   const locationLine = [draft.address, draft.city, draft.state, draft.country, draft.zipCode]
     .map((p) => p.trim())
@@ -205,7 +268,11 @@ export function OfertasLocalesPreviewCard({
 
   const showMembership = shouldShowMembershipBlock(draft);
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
-  const socialLinks = getOfertaLocalSocialLinks(draft);
+  const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
+  const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
+  const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
+  const hasContactActions = Boolean(telHref || waHref || webHref || contactEmail);
+  const hasLocation = Boolean(locationLine || directionsHref);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
   const previewNotice =
@@ -380,42 +447,133 @@ export function OfertasLocalesPreviewCard({
           ) : null}
           </section>
 
-          {/* D. Business / location */}
-          <section className={cx(CARD, "p-5")}>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
-              {lang === "en" ? "Business and location" : "Negocio y ubicación"}
-            </h2>
-            {locationLine ? (
-              <p className="mt-3 text-sm text-[#1E1814]/85">{locationLine}</p>
-            ) : (
-              <p className="mt-3 text-sm text-[#1E1814]/45">
-                {lang === "en" ? "Location not listed in the draft." : "Ubicación no indicada en el borrador."}
+          {/* D. Offer Hub — contact, location, social */}
+          {hasContactActions || hasLocation || followLinks.length || reviewLinks.length || businessLinks.length ? (
+            <section className={cx(CARD, "p-5")}>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
+                {lang === "en"
+                  ? OFERTAS_LOCALES_PREVIEW_COPY.contactBusinessEn
+                  : OFERTAS_LOCALES_PREVIEW_COPY.contactBusinessEs}
+              </h2>
+              {hasContactActions ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <ContactButton
+                      href={telHref}
+                      label={lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.call : OFERTAS_LOCALES_PREVIEW_COPY.callEs}
+                    />
+                    <ContactButton href={waHref} label={OFERTAS_LOCALES_PREVIEW_COPY.whatsapp} external />
+                    <ContactButton
+                      href={webHref}
+                      label={
+                        lang === "en"
+                          ? OFERTAS_LOCALES_PREVIEW_COPY.website
+                          : OFERTAS_LOCALES_PREVIEW_COPY.websiteEs
+                      }
+                      external
+                    />
+                  </div>
+                  <EmailContactRow email={contactEmail} mailtoHref={mailtoHref} lang={lang} />
+                </div>
+              ) : null}
+
+              {hasLocation ? (
+                <div className="mt-5 border-t border-[#D4C4A8]/50 pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/60">
+                    {lang === "en"
+                      ? OFERTAS_LOCALES_PREVIEW_COPY.locationEn
+                      : OFERTAS_LOCALES_PREVIEW_COPY.locationEs}
+                  </h3>
+                  {locationLine ? (
+                    <p className="mt-2 text-sm text-[#1E1814]/85">{locationLine}</p>
+                  ) : null}
+                  {draft.serviceZipCodes.length > 0 ? (
+                    <p className="mt-2 text-xs text-[#1E1814]/60">
+                      {lang === "en" ? "Service ZIPs: " : "ZIPs de servicio: "}
+                      {draft.serviceZipCodes.join(", ")}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <ContactButton
+                      href={directionsHref}
+                      label={
+                        lang === "en"
+                          ? OFERTAS_LOCALES_PREVIEW_COPY.directions
+                          : OFERTAS_LOCALES_PREVIEW_COPY.directionsEs
+                      }
+                      external
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {followLinks.length > 0 ? (
+                <div className="mt-5 border-t border-[#D4C4A8]/50 pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/60">
+                    {lang === "en"
+                      ? OFERTAS_LOCALES_PREVIEW_COPY.followUsEn
+                      : OFERTAS_LOCALES_PREVIEW_COPY.followUsEs}
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {followLinks.map((link) => (
+                      <SocialPill
+                        key={link.key}
+                        href={link.url}
+                        label={link.label}
+                        pillClass={getOfertaLocalSocialLinkPillClass(link.key)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {businessLinks.length > 0 ? (
+                <div className="mt-5 border-t border-[#D4C4A8]/50 pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/60">
+                    {lang === "en"
+                      ? OFERTAS_LOCALES_PREVIEW_COPY.googleBusinessEn
+                      : OFERTAS_LOCALES_PREVIEW_COPY.googleBusinessEs}
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {businessLinks.map((link) => (
+                      <SocialPill
+                        key={link.key}
+                        href={link.url}
+                        label={link.label}
+                        pillClass={getOfertaLocalSocialLinkPillClass(link.key)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {reviewLinks.length > 0 ? (
+                <div className="mt-5 border-t border-[#D4C4A8]/50 pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/60">
+                    {lang === "en"
+                      ? OFERTAS_LOCALES_PREVIEW_COPY.reviewsEn
+                      : OFERTAS_LOCALES_PREVIEW_COPY.reviewsEs}
+                  </h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {reviewLinks.map((link) => (
+                      <SocialPill
+                        key={link.key}
+                        href={link.url}
+                        label={link.label}
+                        pillClass={getOfertaLocalSocialLinkPillClass(link.key)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <p className="mt-5 border-t border-[#D4C4A8]/50 pt-4 text-center text-xs font-medium text-emerald-800">
+                {lang === "en"
+                  ? OFERTAS_LOCALES_PREVIEW_COPY.publishedOnLeonixEn
+                  : OFERTAS_LOCALES_PREVIEW_COPY.publishedOnLeonixEs}
               </p>
-            )}
-            {draft.serviceZipCodes.length > 0 ? (
-              <p className="mt-2 text-xs text-[#1E1814]/60">
-                {lang === "en" ? "Service ZIPs: " : "ZIPs de servicio: "}
-                {draft.serviceZipCodes.join(", ")}
-              </p>
-            ) : null}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <ContactButton
-                href={telHref}
-                label={lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.call : OFERTAS_LOCALES_PREVIEW_COPY.callEs}
-              />
-              <ContactButton href={waHref} label={OFERTAS_LOCALES_PREVIEW_COPY.whatsapp} external />
-              <ContactButton
-                href={webHref}
-                label={lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.website : OFERTAS_LOCALES_PREVIEW_COPY.websiteEs}
-                external
-              />
-              <ContactButton
-                href={directionsHref}
-                label={lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.directions : OFERTAS_LOCALES_PREVIEW_COPY.directionsEs}
-                external
-              />
-            </div>
-          </section>
+            </section>
+          ) : null}
 
           {/* E. Membership */}
           {showMembership ? (
@@ -444,13 +602,7 @@ export function OfertasLocalesPreviewCard({
                 >
                   {membershipCtaLabel(lang)}
                 </a>
-              ) : (
-                <p className="mt-3 text-xs text-[#1E1814]/50">
-                  {lang === "en"
-                    ? `${OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEn} — URL pending`
-                    : `${OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEs} — URL pendiente`}
-                </p>
-              )}
+              ) : null}
             </section>
           ) : null}
 
@@ -476,27 +628,8 @@ export function OfertasLocalesPreviewCard({
             </section>
           ) : null}
 
-          {/* Social links — only when URLs exist (Stack 8) */}
-          {socialLinks.length > 0 ? (
-            <section className={cx(CARD, "p-5")}>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
-                {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.followUsEn : OFERTAS_LOCALES_PREVIEW_COPY.followUsEs}
-              </h2>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.key}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={BTN_OUTLINE}
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </section>
-          ) : null}
+
+          {/* Social links removed from standalone block — Offer Hub above */}
 
           {/* G. AI interest (intent only — not active) */}
           {draft.wantsAiSearchableSpecials ? (

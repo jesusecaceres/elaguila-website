@@ -171,16 +171,24 @@ const COPY = {
       "Límite: PDF de volante hasta 75 MB. Imagen de volante hasta 20 MB. Para cupones: PDF hasta 40 MB o imagen hasta 15 MB. Los archivos subidos se guardan para revisión y escaneo cuando aplique.",
     step5UploadPendingRefreshHint:
       "Si seleccionas un archivo pero aún no lo subes, la vista previa local puede perderse al refrescar. Usa «Subir archivo» para guardarlo.",
-    socialSectionTitle: "Redes sociales del negocio",
-    socialSectionHelper:
-      "Conecta tus redes sociales para que los compradores conozcan más de tu negocio.",
+    socialSectionTitle: "Conecta tu negocio",
+    socialSectionSubtitle: "Redes y enlaces del negocio",
+    socialSectionHelper: "Agrega solo los enlaces que quieres mostrar públicamente.",
+    socialLinksVisibilityHelper:
+      "Solo mostraremos los enlaces que completes. No mostraremos botones vacíos.",
+    socialEmail: "Correo electrónico",
     socialFacebook: "Facebook",
     socialInstagram: "Instagram",
     socialTiktok: "TikTok",
     socialYoutube: "YouTube",
+    socialXTwitter: "X / Twitter",
+    socialLinkedin: "LinkedIn",
+    socialSnapchat: "Snapchat",
+    socialPinterest: "Pinterest",
     socialGoogleBusiness: "Google Business Profile",
     socialGoogleReview: "Google Reviews",
     socialYelp: "Yelp",
+    socialEmailInvalid: "Revisa el formato del correo si quieres usarlo públicamente.",
     featuredSectionTitle: "Destacado / más exposición",
     featuredQuestion:
       "¿Quieres aparecer destacado? El equipo de Leonix puede contactarte para opciones por ZIP, ciudad, categoría, newsletter o espacios destacados.",
@@ -252,9 +260,23 @@ const COPY = {
     step7ReviewRejectedItems: "Ver rechazados",
     step7RescanSectionTitle: "¿Necesitas volver a escanear?",
     step7RescanWarning:
-      "Volver a escanear puede reemplazar o duplicar sugerencias. Usa esto solo si subiste un archivo incorrecto.",
+      "Volver a escanear puede reemplazar o cambiar sugerencias anteriores.",
+    step7FinalReviewTitle: "Revisión final antes de la vista previa",
+    step7EstimatedTotal: "Total mensual estimado",
+    step7ConfirmBusiness:
+      "Confirmo que la información del negocio y contacto es correcta.",
+    step7ConfirmFiles:
+      "Confirmo que los archivos y fechas del volante/cupón son correctos.",
+    step7ConfirmAi:
+      "Confirmo que los productos AI seleccionados están listos, o terminé la revisión requerida.",
+    step7ConfirmRules:
+      "Confirmo que esta oferta cumple con las reglas de Leonix y soy responsable por la información enviada.",
+    step7PreviewGatedHelper: "Marca todas las confirmaciones para ver la vista previa.",
+    step7AiIncompleteHelper:
+      "Aún hay productos AI pendientes de revisión. El envío permanece bloqueado hasta terminar.",
+    step7DeleteStartOverTitle: "Borrar y empezar de nuevo",
     startOverDeviceWarning:
-      "Esto borra este borrador y el progreso del escaneo en este dispositivo.",
+      "Esto borra el borrador guardado en este navegador. No borra productos AI ya guardados en la base de datos.",
     aiReviewDescription: "Descripción",
     aiReviewTerms: "Términos",
     aiReviewRegularPrice: "Precio regular",
@@ -512,16 +534,24 @@ const COPY = {
       "Limit: flyer PDF up to 75 MB. Flyer image up to 20 MB. For coupons: PDF up to 40 MB or image up to 15 MB. Uploaded files are saved for review and scanning when applicable.",
     step5UploadPendingRefreshHint:
       "If you select a file but have not uploaded it yet, the local preview may be lost on refresh. Use «Upload file» to save it.",
-    socialSectionTitle: "Business social links",
-    socialSectionHelper:
-      "Connect your social channels so shoppers can learn more about your business.",
+    socialSectionTitle: "Connect your business",
+    socialSectionSubtitle: "Business links and social profiles",
+    socialSectionHelper: "Add only the links you want shown publicly.",
+    socialLinksVisibilityHelper:
+      "Only completed links will be shown. Empty buttons will not appear.",
+    socialEmail: "Email",
     socialFacebook: "Facebook",
     socialInstagram: "Instagram",
     socialTiktok: "TikTok",
     socialYoutube: "YouTube",
+    socialXTwitter: "X / Twitter",
+    socialLinkedin: "LinkedIn",
+    socialSnapchat: "Snapchat",
+    socialPinterest: "Pinterest",
     socialGoogleBusiness: "Google Business Profile",
     socialGoogleReview: "Google Reviews",
     socialYelp: "Yelp",
+    socialEmailInvalid: "Check the email format if you want it shown publicly.",
     featuredSectionTitle: "Featured / more exposure",
     featuredQuestion:
       "Want to be featured? The Leonix team can contact you about options by ZIP, city, category, newsletter, or featured placements.",
@@ -591,9 +621,21 @@ const COPY = {
     step7ReviewLaterItems: "Review pending items",
     step7ReviewRejectedItems: "View rejected items",
     step7RescanSectionTitle: "Need to rescan?",
-    step7RescanWarning:
-      "Rescanning may replace or duplicate suggestions. Use this only if you uploaded the wrong file.",
-    startOverDeviceWarning: "This clears this draft and scan progress on this device.",
+    step7RescanWarning: "Scanning again may replace or change previous suggestions.",
+    step7FinalReviewTitle: "Final review before preview",
+    step7EstimatedTotal: "Estimated monthly total",
+    step7ConfirmBusiness: "I confirm the business/contact information is correct.",
+    step7ConfirmFiles: "I confirm the flyer/coupon files and dates are correct.",
+    step7ConfirmAi:
+      "I confirm the selected AI items are ready, or I finished the required review.",
+    step7ConfirmRules:
+      "I confirm this offer follows Leonix rules and I am responsible for the submitted information.",
+    step7PreviewGatedHelper: "Check all confirmations to open preview.",
+    step7AiIncompleteHelper:
+      "AI items still need review. Submit stays blocked until review is complete.",
+    step7DeleteStartOverTitle: "Delete and start over",
+    startOverDeviceWarning:
+      "This clears the draft saved in this browser. It does not delete AI products already saved in the database.",
     aiReviewDescription: "Description",
     aiReviewTerms: "Terms",
     aiReviewRegularPrice: "Regular price",

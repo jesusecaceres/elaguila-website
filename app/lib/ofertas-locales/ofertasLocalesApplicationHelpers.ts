@@ -130,15 +130,64 @@ export type OfertaLocalSocialLinkKey =
   | "instagram"
   | "tiktok"
   | "youtube"
+  | "xTwitter"
+  | "linkedin"
+  | "snapchat"
+  | "pinterest"
   | "googleBusiness"
   | "googleReview"
   | "yelp";
+
+export type OfertaLocalSocialLinkCategory = "follow" | "review" | "business";
 
 export type OfertaLocalSocialLink = {
   key: OfertaLocalSocialLinkKey;
   url: string;
   label: string;
+  category: OfertaLocalSocialLinkCategory;
 };
+
+export function normalizeOfertaLocalEmailInput(raw: string): string {
+  return String(raw ?? "").trim().slice(0, 120);
+}
+
+export function isOfertaLocalEmailFormatValid(email: string): boolean {
+  const t = normalizeOfertaLocalEmailInput(email);
+  if (!t) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+
+export function resolveOfertaLocalContactEmail(draft: Pick<OfertaLocalDraft, "email">): string {
+  const t = normalizeOfertaLocalEmailInput(draft.email);
+  if (!t || !isOfertaLocalEmailFormatValid(t)) return "";
+  return t;
+}
+
+export function buildOfertaLocalMailtoHref(email: string, businessName?: string): string {
+  const t = resolveOfertaLocalContactEmail({ email });
+  if (!t) return "";
+  const subject = businessName?.trim()
+    ? encodeURIComponent(`${businessName.trim()} · Leonix`)
+    : encodeURIComponent("Leonix inquiry");
+  return `mailto:${encodeURIComponent(t)}?subject=${subject}`;
+}
+
+export function getOfertaLocalSocialLinkPillClass(key: OfertaLocalSocialLinkKey): string {
+  const map: Record<OfertaLocalSocialLinkKey, string> = {
+    facebook: "border-blue-200 bg-blue-50 text-blue-900",
+    instagram: "border-pink-200 bg-pink-50 text-pink-950",
+    tiktok: "border-[#1E1814]/20 bg-[#FDF8F0] text-[#1E1814]",
+    youtube: "border-red-200 bg-red-50 text-red-900",
+    xTwitter: "border-[#1E1814]/20 bg-[#FDF8F0] text-[#1E1814]",
+    linkedin: "border-sky-200 bg-sky-50 text-sky-950",
+    snapchat: "border-yellow-200 bg-yellow-50 text-yellow-950",
+    pinterest: "border-rose-200 bg-rose-50 text-rose-950",
+    googleBusiness: "border-emerald-200 bg-emerald-50 text-emerald-950",
+    googleReview: "border-amber-200 bg-amber-50 text-amber-950",
+    yelp: "border-red-200 bg-red-50 text-red-900",
+  };
+  return map[key] ?? "border-[#D4C4A8] bg-white text-[#1E1814]";
+}
 
 export function getOfertaLocalSocialLinks(
   draft: Pick<
@@ -147,24 +196,44 @@ export function getOfertaLocalSocialLinks(
     | "instagramUrl"
     | "tiktokUrl"
     | "youtubeUrl"
+    | "xTwitterUrl"
+    | "linkedinUrl"
+    | "snapchatUrl"
+    | "pinterestUrl"
     | "googleBusinessUrl"
     | "googleReviewUrl"
     | "yelpUrl"
   >
 ): OfertaLocalSocialLink[] {
   const out: OfertaLocalSocialLink[] = [];
-  const push = (key: OfertaLocalSocialLinkKey, raw: string, label: string) => {
+  const push = (
+    key: OfertaLocalSocialLinkKey,
+    raw: string,
+    label: string,
+    category: OfertaLocalSocialLinkCategory
+  ) => {
     const url = normalizeOfertaLocalUrlInput(raw);
-    if (url) out.push({ key, url, label });
+    if (url) out.push({ key, url, label, category });
   };
-  push("facebook", draft.facebookUrl, "Facebook");
-  push("instagram", draft.instagramUrl, "Instagram");
-  push("tiktok", draft.tiktokUrl, "TikTok");
-  push("youtube", draft.youtubeUrl, "YouTube");
-  push("googleBusiness", draft.googleBusinessUrl, "Google Business");
-  push("googleReview", draft.googleReviewUrl, "Google Reviews");
-  push("yelp", draft.yelpUrl, "Yelp");
+  push("facebook", draft.facebookUrl, "Facebook", "follow");
+  push("instagram", draft.instagramUrl, "Instagram", "follow");
+  push("tiktok", draft.tiktokUrl, "TikTok", "follow");
+  push("youtube", draft.youtubeUrl, "YouTube", "follow");
+  push("xTwitter", draft.xTwitterUrl, "X / Twitter", "follow");
+  push("linkedin", draft.linkedinUrl, "LinkedIn", "follow");
+  push("snapchat", draft.snapchatUrl, "Snapchat", "follow");
+  push("pinterest", draft.pinterestUrl, "Pinterest", "follow");
+  push("googleBusiness", draft.googleBusinessUrl, "Google Business", "business");
+  push("googleReview", draft.googleReviewUrl, "Google Reviews", "review");
+  push("yelp", draft.yelpUrl, "Yelp", "review");
   return out;
+}
+
+export function getOfertaLocalSocialLinksByCategory(
+  draft: Parameters<typeof getOfertaLocalSocialLinks>[0],
+  category: OfertaLocalSocialLinkCategory
+): OfertaLocalSocialLink[] {
+  return getOfertaLocalSocialLinks(draft).filter((link) => link.category === category);
 }
 
 export function hasOfertaLocalSocialLinks(
@@ -174,6 +243,10 @@ export function hasOfertaLocalSocialLinks(
     | "instagramUrl"
     | "tiktokUrl"
     | "youtubeUrl"
+    | "xTwitterUrl"
+    | "linkedinUrl"
+    | "snapchatUrl"
+    | "pinterestUrl"
     | "googleBusinessUrl"
     | "googleReviewUrl"
     | "yelpUrl"

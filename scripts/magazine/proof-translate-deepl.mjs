@@ -55,7 +55,13 @@ if (!existsSync(sourcePdf)) {
   process.exit(1);
 }
 
-const hasDependency = packageHasDependency("@deepl/deepl-node");
+const DEEPL_PACKAGES = ["deepl-node", "@deepl/deepl-node"];
+
+function packageHasDeepLDependency() {
+  return DEEPL_PACKAGES.some((name) => packageHasDependency(name));
+}
+
+const hasDependency = packageHasDeepLDependency();
 const hasKey = Boolean(process.env.DEEPL_AUTH_KEY?.trim());
 const sourcePdfHash = await sha256File(sourcePdf);
 
@@ -72,7 +78,7 @@ if (dryRun) {
 }
 
 if (!hasDependency) {
-  console.error("[magazine proof-translate-deepl] HOLD: install @deepl/deepl-node before executing document smoke.");
+  console.error("[magazine proof-translate-deepl] HOLD: install deepl-node before executing document smoke.");
   process.exit(1);
 }
 

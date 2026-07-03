@@ -306,9 +306,15 @@ export type OfertaLocalDraft = {
   instagramUrl: string;
   tiktokUrl: string;
   youtubeUrl: string;
+  xTwitterUrl: string;
+  linkedinUrl: string;
+  snapchatUrl: string;
+  pinterestUrl: string;
   googleBusinessUrl: string;
   googleReviewUrl: string;
   yelpUrl: string;
+  /** Optional public contact email — stored in publish metadata when no DB column exists. */
+  email: string;
   directionsUrl: string;
   flyerAssets: OfertaLocalDraftAsset[];
   couponAssets: OfertaLocalDraftAsset[];
@@ -793,6 +799,10 @@ export type OfertaLocalPublicSearchItem = {
     instagramUrl?: string;
     tiktokUrl?: string;
     youtubeUrl?: string;
+    xTwitterUrl?: string;
+    linkedinUrl?: string;
+    snapchatUrl?: string;
+    pinterestUrl?: string;
     googleBusinessUrl?: string;
     googleReviewUrl?: string;
     yelpUrl?: string;
@@ -850,6 +860,10 @@ export type OfertaLocalPublicOfferSocialLinks = {
   instagramUrl?: string;
   tiktokUrl?: string;
   youtubeUrl?: string;
+  xTwitterUrl?: string;
+  linkedinUrl?: string;
+  snapchatUrl?: string;
+  pinterestUrl?: string;
   googleBusinessUrl?: string;
   googleReviewUrl?: string;
   yelpUrl?: string;
