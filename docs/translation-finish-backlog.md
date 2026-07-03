@@ -158,8 +158,13 @@ See `docs/translation-env-setup.md`.
 
 ## 5. Next gates (ordered)
 
+**Magazine track nightly closeout (2026-07-03):** [`docs/magazine-translation-nightly-closeout.md`](magazine-translation-nightly-closeout.md) — recommended next: `MAGAZINE-COMPANION-READER-READINESS1`. DeepL PDF smoke **HOLD** until corrected Canva export + compatibility re-preflight.
+
 | Gate | Purpose |
 |------|---------|
+| `MAGAZINE-COMPANION-READER-READINESS1` | Audit companion/reader readiness; no DeepL; no PDF replace |
+| `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` | QA after corrected Canva PDF dropped into repo |
+| `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` | Re-check text layer after PDF replacement |
 | `PUBLIC-WEBSITE-13LANG-EXPANSION1` | Expand ES/EN copy registry pattern to remaining category/publish surfaces |
 | `SOURCE-LANGUAGE-ADS-FOUNDATION1` | Source-language display + future translated ad view architecture |
 | `PUBLISH-LANG1` | Publish/application operational copy ES/EN + 13-lang |

@@ -216,8 +216,14 @@ Next storage gate: `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` or dedicated storage mi
 
 ## 8. Next Gates
 
+**Nightly closeout (2026-07-03):** See [`docs/magazine-translation-nightly-closeout.md`](magazine-translation-nightly-closeout.md).
+
 | Gate | Purpose |
 |------|---------|
-| `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | Real DeepL Portuguese document smoke with `DEEPL_AUTH_KEY` |
-| `MAGAZINE-VISUAL-ASSET-QA1` | Manual QA workflow for first real provider output |
+| `MAGAZINE-COMPANION-READER-READINESS1` | **Recommended next** — safe without Canva export or DeepL key |
+| `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` | After corrected Canva export replaces source PDF |
+| `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` | Re-check text layer after PDF replacement |
+| `MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY` | After local `DEEPL_AUTH_KEY` added (never commit) |
+| `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | **HOLD** — paid PT smoke only after explicit approval; likely poor ROI on flattened PDF |
+| `MAGAZINE-VISUAL-ASSET-QA1` | Manual QA for first real provider output |
 | `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` | Storage bucket + signed URL + reader wiring for approved assets |
