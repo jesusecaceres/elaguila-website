@@ -1128,11 +1128,37 @@ export function ClasificadosServiciosApplication() {
                 </div>
                 <div>
                   <label className={labelClass}>{copy.labels.physicalRegion}</label>
+                  {isLeonixLbUsCountry(state.physicalCountry) ? (
+                    <select
+                      className={inputClass}
+                      value={state.physicalRegion}
+                      onChange={(e) => setState((s) => ({ ...s, physicalRegion: e.target.value }))}
+                      autoComplete="address-level1"
+                    >
+                      {US_STATE_OPTIONS.map((opt) => (
+                        <option key={opt.code} value={opt.code}>
+                          {opt.code} — {lang === "es" && opt.code === "CA" ? "California" : opt.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className={inputClass}
+                      value={state.physicalRegion}
+                      placeholder={copy.labels.statePlaceholder}
+                      onChange={(e) => setState((s) => ({ ...s, physicalRegion: e.target.value }))}
+                      autoComplete="address-level1"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className={labelClass}>{copy.labels.physicalCountry}</label>
                   <input
                     className={inputClass}
-                    value={state.physicalRegion}
-                    onChange={(e) => setState((s) => ({ ...s, physicalRegion: e.target.value }))}
-                    autoComplete="address-level1"
+                    value={state.physicalCountry}
+                    placeholder={copy.labels.countryPlaceholder}
+                    onChange={(e) => setState((s) => ({ ...s, physicalCountry: e.target.value }))}
+                    autoComplete="country-name"
                   />
                 </div>
                 <div className="sm:col-span-2 sm:max-w-xs">

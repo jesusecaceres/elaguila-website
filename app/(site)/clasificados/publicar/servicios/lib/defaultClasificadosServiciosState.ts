@@ -66,6 +66,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     physicalSuite: "",
     physicalAddressCity: "",
     physicalRegion: "",
+    physicalCountry: LEONIX_LB_DEFAULT_COUNTRY,
     physicalPostalCode: "",
     serviceAreaNotes: "",
     phone: "",
@@ -168,6 +169,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     s.physicalSuite.trim() ||
     s.physicalAddressCity.trim() ||
     s.physicalRegion.trim() ||
+    s.physicalCountry.trim() ||
     s.physicalPostalCode.trim()
   ) {
     return true;

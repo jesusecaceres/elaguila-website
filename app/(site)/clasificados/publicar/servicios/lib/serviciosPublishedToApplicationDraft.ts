@@ -228,6 +228,7 @@ export function serviciosPublishedToApplicationDraft(
     physicalSuite: clean(contact.physicalSuite),
     physicalAddressCity: clean(contact.physicalCity),
     physicalRegion: clean(contact.physicalRegion),
+    physicalCountry: clean(contact.physicalCountry),
     physicalPostalCode: clean(contact.physicalPostalCode),
     serviceAreaNotes,
     phone: clean(contact.phone),

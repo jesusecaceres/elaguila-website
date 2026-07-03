@@ -66,6 +66,7 @@ export type ClasificadosServiciosCopy = {
     physicalSuite: string;
     physicalAddressCity: string;
     physicalRegion: string;
+    physicalCountry: string;
     physicalPostalCode: string;
     physicalPostalCodeHelp: string;
     phone: string;
@@ -351,7 +352,8 @@ const es: ClasificadosServiciosCopy = {
     physicalStreet: "Dirección",
     physicalSuite: "Suite / unidad (opcional)",
     physicalAddressCity: "Ciudad",
-    physicalRegion: "Estado",
+    physicalRegion: "Estado / Provincia / Región",
+    physicalCountry: "País",
     physicalPostalCode: "ZIP / Código postal",
     physicalPostalCodeHelp: "Acepta códigos postales internacionales (ej. 95116, K1A 0B1)",
     phone: "Teléfono principal",
@@ -517,7 +519,7 @@ const es: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
-    cityHelp: "Ciudad donde se ubica principalmente tu negocio.",
+    cityHelp: "Los ejemplos son sugerencias, no límites.",
     serviceAreasHelp: "Describe vecindades, condados o el radio donde atiendes.",
     languageOtherLabel: "Otros idiomas",
     languageOtherPlaceholder: "",
@@ -640,7 +642,8 @@ const en: ClasificadosServiciosCopy = {
     physicalStreet: "Street address",
     physicalSuite: "Suite / unit (optional)",
     physicalAddressCity: "City",
-    physicalRegion: "State",
+    physicalRegion: "State / Province / Region",
+    physicalCountry: "Country",
     physicalPostalCode: "ZIP / Postal code",
     physicalPostalCodeHelp: "Accepts international postal codes (e.g. 95116, K1A 0B1)",
     phone: "Main phone",
@@ -806,7 +809,7 @@ const en: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Only some new photos fit (max {max} total).",
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
-    cityHelp: "City where your business is primarily based.",
+    cityHelp: "Examples are suggestions, not limits.",
     serviceAreasHelp: "Describe neighborhoods, counties, or the radius you serve.",
     languageOtherLabel: "Other languages",
     languageOtherPlaceholder: "",

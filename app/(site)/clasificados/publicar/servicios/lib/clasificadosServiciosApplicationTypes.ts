@@ -139,6 +139,7 @@ export type ClasificadosServiciosApplicationState = {
   physicalSuite: string;
   physicalAddressCity: string;
   physicalRegion: string;
+  physicalCountry: string;
   physicalPostalCode: string;
   serviceAreaNotes: string;
   phone: string;

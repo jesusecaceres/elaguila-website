@@ -184,11 +184,13 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const physSuite = trim(c?.physicalSuite);
   const physCity = trim(c?.physicalCity);
   const physRegion = trim(c?.physicalRegion);
+  const physCountry = trim(c?.physicalCountry);
   const physZip = trim(c?.physicalPostalCode);
   if (physStreet) contact.physicalStreet = physStreet;
   if (physSuite) contact.physicalSuite = physSuite;
   if (physCity) contact.physicalCity = physCity;
   if (physRegion) contact.physicalRegion = physRegion;
+  if (physCountry) contact.physicalCountry = physCountry;
   if (physZip) contact.physicalPostalCode = physZip;
 
   const quickFacts = mapQuickFacts(draft.quickFacts);
