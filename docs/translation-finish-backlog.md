@@ -166,6 +166,7 @@ See `docs/translation-env-setup.md`.
 | Gate | Purpose |
 |------|---------|
 | `MAGAZINE-COMPANION-READER-READINESS1` | Audit companion/reader readiness; no DeepL; no PDF replace |
+| `MAGAZINE-SOURCE-CANVA-LAYOUT-COMPRESSION-TRUTH1` | **Done (docs)** — Chuy applies translation-safe layout, contact truth (Suite 201), and export compression in Canva/source |
 | `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` | QA after corrected Canva PDF dropped into repo |
 | `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` | Re-check text layer after PDF replacement |
 | `PUBLIC-WEBSITE-13LANG-EXPANSION1` | Expand ES/EN copy registry pattern to remaining category/publish surfaces |

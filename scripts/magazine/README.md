@@ -2,7 +2,7 @@
 
 Status: `MAGAZINE-TRANSLATION-NIGHTLY-CLOSEOUT1`
 
-**Handoff:** [`docs/magazine-translation-nightly-closeout.md`](../docs/magazine-translation-nightly-closeout.md) — recommended next: `MAGAZINE-COMPANION-READER-READINESS1`. Do not run paid DeepL smoke until corrected Canva export + explicit approval.
+**Handoff:** Full PT proof blocked by source size (`DEEPL_PT_FULL_LOCAL_PROOF_BLOCKED_BY_SIZE`). **Next:** Chuy completes Canva/source correction per [`docs/magazine-source-canva-layout-compression-truth.md`](../docs/magazine-source-canva-layout-compression-truth.md), then `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1`. Do not run `--full --execute` again until corrected export is provider-compliant.
 
 These scripts prepare a backend/provider smoke path for the digital magazine without publishing assets or forcing paid API calls. They default to dry-run behavior and must not print secret values.
 

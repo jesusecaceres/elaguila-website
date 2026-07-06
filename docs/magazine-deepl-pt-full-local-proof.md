@@ -9,7 +9,11 @@ Pages 3 and 4 single-page smokes proved the DeepL document workflow produces tra
 
 **Result: BLOCKED** — DeepL rejected the upload: *Document exceeds the size limit of 10 MB.* The June 2026 source PDF is **74.76 MB** (26 pages). No full translated PDF was generated.
 
-This output would **not** be public or QA-approved even if successful. Chuy should continue page-by-page QA using existing single-page proofs and the inventory below until a provider-compliant full proof path exists.
+**Blocker status:** `DEEPL_PT_FULL_LOCAL_PROOF_BLOCKED_BY_SIZE`
+
+**Next move:** `MAGAZINE-SOURCE-CANVA-LAYOUT-COMPRESSION-TRUTH1` — Chuy corrects Canva/source artwork (contact truth, translation-safe spacing, export compression), then `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` before another full `--execute`.
+
+This output would **not** be public or QA-approved even if successful. **Not public-ready.**
 
 ---
 
