@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
@@ -37,7 +37,7 @@ const COPY = {
 
 const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
 
-export default function MascotasPerdidosLandingPage() {
+function MascotasPerdidosLandingPageInner() {
   const sp = useSearchParams();
   const lang = mascotasPerdidosLangFromSearchParams(sp);
   const routeLang = mascotasPerdidosRouteLangFromSearchParams(sp);
@@ -86,5 +86,13 @@ export default function MascotasPerdidosLandingPage() {
         </Link>
       </p>
     </CategoryStandardLandingPage>
+  );
+}
+
+export default function MascotasPerdidosLandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <MascotasPerdidosLandingPageInner />
+    </Suspense>
   );
 }

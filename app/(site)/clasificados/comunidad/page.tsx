@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
@@ -37,7 +37,7 @@ const COPY = {
 
 const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
 
-export default function Page() {
+function ComunidadLandingPageInner() {
   const sp = useSearchParams();
   const routeLang = resolveRouteLang(sp?.get("lang"));
   const lang = resolveHubCopyLang(sp?.get("lang"));
@@ -88,5 +88,13 @@ export default function Page() {
         </Link>
       </p>
     </CategoryStandardLandingPage>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <ComunidadLandingPageInner />
+    </Suspense>
   );
 }

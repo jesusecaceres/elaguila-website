@@ -19,17 +19,17 @@ type RouteEntry = {
 };
 
 const ROUTES: RouteEntry[] = [
-  { category: "hub", surface: "hub", path: "/clasificados", slowRisk: "low", firstClickRisk: "low" },
-  { category: "en-venta", surface: "landing", path: "/clasificados/en-venta", slowRisk: "medium", firstClickRisk: "low", notes: "Landing preview capped at 24 rows (was 800 SSR)" },
+  { category: "hub", surface: "hub", path: "/clasificados", slowRisk: "low", firstClickRisk: "low", notes: "Suspense + Link on post CTA" },
+  { category: "en-venta", surface: "landing", path: "/clasificados/en-venta", slowRisk: "medium", firstClickRisk: "low", notes: "Shell streams first; preview cap 24 in Suspense" },
   { category: "en-venta", surface: "results", path: "/clasificados/en-venta/results", slowRisk: "high", firstClickRisk: "low", notes: "Client fetch up to 800 listings" },
   { category: "rentas", surface: "landing", path: "/clasificados/rentas", slowRisk: "low", firstClickRisk: "low", notes: "Dead SSR browse fetch removed" },
-  { category: "rentas", surface: "results", path: "/clasificados/rentas/results", slowRisk: "high", firstClickRisk: "low", notes: "SSR fetch cap 5000 + entitlement overlay" },
+  { category: "rentas", surface: "results", path: "/clasificados/rentas/results", slowRisk: "high", firstClickRisk: "low", notes: "SSR fetch cap 5000; Suspense shows shell first" },
   { category: "empleos", surface: "landing", path: "/clasificados/empleos", slowRisk: "medium", firstClickRisk: "low" },
   { category: "empleos", surface: "results", path: "/clasificados/empleos/results", slowRisk: "medium", firstClickRisk: "low", notes: "Re-exports resultados" },
   { category: "empleos", surface: "alias", path: "/clasificados/empleos/resultados", slowRisk: "medium", firstClickRisk: "low" },
   { category: "autos", surface: "landing", path: "/clasificados/autos", slowRisk: "low", firstClickRisk: "low" },
   { category: "autos", surface: "results", path: "/clasificados/autos/results", slowRisk: "medium", firstClickRisk: "low" },
-  { category: "autos", surface: "alias", path: "/clasificados/autos/resultados?seller=dealer", slowRisk: "medium", firstClickRisk: "low", notes: "Negocios Locales autos-dealer lane" },
+  { category: "autos", surface: "alias", path: "/clasificados/autos/results?seller=dealer", slowRisk: "medium", firstClickRisk: "low", notes: "Negocios Locales autos-dealer lane (canonical /results)" },
   { category: "bienes-raices", surface: "landing", path: "/clasificados/bienes-raices", slowRisk: "low", firstClickRisk: "low" },
   { category: "bienes-raices", surface: "results", path: "/clasificados/bienes-raices/results", slowRisk: "medium", firstClickRisk: "low" },
   { category: "servicios", surface: "landing", path: "/clasificados/servicios", slowRisk: "medium", firstClickRisk: "low", notes: "SSR discovery fetch 200 rows" },

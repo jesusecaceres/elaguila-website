@@ -1,11 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
+import { FiCopy, FiGlobe, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
+import { FaGoogle, FaWhatsapp } from "react-icons/fa";
+import {
+  SiFacebook,
+  SiInstagram,
+  SiLinkedin,
+  SiPinterest,
+  SiSnapchat,
+  SiTiktok,
+  SiX,
+  SiYelp,
+  SiYoutube,
+} from "react-icons/si";
 import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import type { OfertaLocalSocialLink, OfertaLocalSocialLinkKey } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
   buildOfertaLocalMailtoHref,
   buildOfertaLocalTelHref,
@@ -14,7 +28,6 @@ import {
   formatOfertaLocalDateRange,
   getOfertaLocalMarketDisplayLabel,
   getOfertaLocalPreviewHeroAsset,
-  getOfertaLocalSocialLinkPillClass,
   getOfertaLocalSocialLinksByCategory,
   labelForBusinessCategory,
   labelForOfferType,
@@ -37,15 +50,64 @@ import { OfertasLocalesPreviewProductGrid } from "./OfertasLocalesPreviewProduct
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const PAGE_BG = "bg-[#FFFCF7]";
-const PAGE_MAX = "mx-auto w-full max-w-[1240px] px-4 py-8 pb-20 sm:px-6 lg:py-10";
+const PAGE_MAX = "mx-auto w-full max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:py-10";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-sm";
 const BTN_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_OUTLINE =
-  "inline-flex min-h-11 items-center justify-center rounded-xl border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+const HUB_SECTION =
+  "border-b border-[#E8D9C4]/80 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#1E1814]";
+
+const SOCIAL_BRAND: Record<OfertaLocalSocialLinkKey, { background: string; color: string; border?: string }> = {
+  facebook: { background: "#1877F2", color: "#FFFFFF" },
+  instagram: {
+    background: "linear-gradient(135deg, #833AB4 0%, #E1306C 45%, #F77737 100%)",
+    color: "#FFFFFF",
+  },
+  tiktok: { background: "#010101", color: "#FFFFFF" },
+  xTwitter: { background: "#000000", color: "#FFFFFF" },
+  youtube: { background: "#FF0000", color: "#FFFFFF" },
+  linkedin: { background: "#0A66C2", color: "#FFFFFF" },
+  snapchat: { background: "#FFFC00", color: "#000000", border: "1px solid rgba(0,0,0,0.12)" },
+  pinterest: { background: "#E60023", color: "#FFFFFF" },
+  googleBusiness: { background: "#4285F4", color: "#FFFFFF" },
+  googleReview: { background: "#FBBC04", color: "#1E1814" },
+  yelp: { background: "#D32323", color: "#FFFFFF" },
+};
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
+}
+
+function SocialBrandIcon({ linkKey }: { linkKey: OfertaLocalSocialLinkKey }) {
+  const cls = "h-5 w-5 shrink-0";
+  const p = { className: cls, "aria-hidden": true as const };
+  switch (linkKey) {
+    case "facebook":
+      return <SiFacebook {...p} />;
+    case "instagram":
+      return <SiInstagram {...p} />;
+    case "tiktok":
+      return <SiTiktok {...p} />;
+    case "xTwitter":
+      return <SiX {...p} />;
+    case "youtube":
+      return <SiYoutube {...p} />;
+    case "linkedin":
+      return <SiLinkedin {...p} />;
+    case "snapchat":
+      return <SiSnapchat {...p} />;
+    case "pinterest":
+      return <SiPinterest {...p} />;
+    case "googleBusiness":
+    case "googleReview":
+      return <FaGoogle {...p} />;
+    case "yelp":
+      return <SiYelp {...p} />;
+    default:
+      return <FiGlobe {...p} />;
+  }
 }
 
 function ContactButton({
@@ -53,11 +115,13 @@ function ContactButton({
   label,
   external,
   primary,
+  icon,
 }: {
   href: string;
   label: string;
   external?: boolean;
   primary?: boolean;
+  icon?: ReactNode;
 }) {
   if (!href) return null;
   return (
@@ -66,57 +130,181 @@ function ContactButton({
       className={primary ? BTN_PRIMARY : BTN_OUTLINE}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
+      {icon}
       {label}
     </a>
   );
 }
 
-function SocialPill({ href, label, pillClass }: { href: string; label: string; pillClass: string }) {
+function SocialLinkButton({ link }: { link: OfertaLocalSocialLink }) {
+  const style = SOCIAL_BRAND[link.key];
   return (
     <a
-      href={href}
+      href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={cx(
-        "inline-flex min-h-11 items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold",
-        pillClass
-      )}
+      className="inline-flex min-h-11 min-w-[44px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-sm transition hover:opacity-90"
+      style={{ background: style.background, color: style.color, border: style.border }}
+      title={link.label}
     >
-      {label}
+      <SocialBrandIcon linkKey={link.key} />
+      <span className="hidden sm:inline">{link.label}</span>
     </a>
   );
 }
 
-function EmailRow({ email, mailtoHref, lang }: { email: string; mailtoHref: string; lang: OfertasLocalesAppLang }) {
-  const [copied, setCopied] = useState(false);
-  const handleCopy = useCallback(async () => {
+function PreviewBusinessHub({
+  draft,
+  lang,
+  telHref,
+  waHref,
+  webHref,
+  mailtoHref,
+  directionsHref,
+  locationLine,
+}: {
+  draft: OfertaLocalDraft;
+  lang: OfertasLocalesAppLang;
+  telHref: string;
+  waHref: string;
+  webHref: string;
+  mailtoHref: string;
+  directionsHref: string;
+  locationLine: string;
+}) {
+  const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  const contactEmail = resolveOfertaLocalContactEmail(draft);
+  const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
+  const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
+  const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
+  const [emailCopied, setEmailCopied] = useState(false);
+
+  const copyEmail = useCallback(async () => {
+    if (!contactEmail) return;
     try {
-      await navigator.clipboard.writeText(email);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(contactEmail);
+      setEmailCopied(true);
+      window.setTimeout(() => setEmailCopied(false), 2000);
     } catch {
-      setCopied(false);
+      setEmailCopied(false);
     }
-  }, [email]);
-  if (!email) return null;
+  }, [contactEmail]);
+
+  const hasContact = Boolean(telHref || waHref || webHref || contactEmail);
+  const hasLocation = Boolean(locationLine || directionsHref);
+  const hasFollow = followLinks.length > 0;
+  const hasReviews = reviewLinks.length > 0;
+  const hasBusiness = businessLinks.length > 0;
+
+  if (!hasContact && !hasLocation && !hasFollow && !hasReviews && !hasBusiness) return null;
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm text-[#1E1814]/85">{email}</span>
-      {mailtoHref ? (
-        <a href={mailtoHref} className={BTN_OUTLINE}>
-          {lang === "en" ? OFERTAS_LOCALES_PREVIEW_COPY.emailEn : OFERTAS_LOCALES_PREVIEW_COPY.emailEs}
-        </a>
-      ) : null}
-      <button type="button" className={BTN_OUTLINE} onClick={() => void handleCopy()}>
-        {copied
-          ? lang === "en"
-            ? OFERTAS_LOCALES_PREVIEW_COPY.shareCopiedEn
-            : OFERTAS_LOCALES_PREVIEW_COPY.shareCopiedEs
-          : lang === "en"
-            ? OFERTAS_LOCALES_PREVIEW_COPY.copyEmailEn
-            : OFERTAS_LOCALES_PREVIEW_COPY.copyEmailEs}
-      </button>
-    </div>
+    <section className={cx(CARD, "mt-8 p-5 sm:p-6")}>
+      <h2 className="font-serif text-xl font-semibold text-[#1E1814]">
+        {lang === "en" ? c.businessHubEn : c.businessHubEs}
+      </h2>
+      <p className="mt-1 text-xs text-[#1E1814]/55">
+        {lang === "en" ? c.businessHubSubtitleEn : c.businessHubSubtitleEs}
+      </p>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {hasContact ? (
+          <div>
+            <h3 className={HUB_SECTION}>{lang === "en" ? c.contactBusinessEn : c.contactBusinessEs}</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ContactButton href={telHref} label={lang === "en" ? c.call : c.callEs} icon={<FiPhone className="h-4 w-4" aria-hidden />} />
+              <ContactButton
+                href={waHref}
+                label={c.whatsapp}
+                external
+                primary
+                icon={<FaWhatsapp className="h-4 w-4" aria-hidden />}
+              />
+              <ContactButton
+                href={webHref}
+                label={lang === "en" ? c.website : c.websiteEs}
+                external
+                icon={<FiGlobe className="h-4 w-4" aria-hidden />}
+              />
+            </div>
+            {contactEmail ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 text-sm text-[#1E1814]/85">
+                  <FiMail className="h-4 w-4 text-[#7A1E2C]" aria-hidden />
+                  {contactEmail}
+                </span>
+                {mailtoHref ? (
+                  <a href={mailtoHref} className={BTN_OUTLINE}>
+                    {lang === "en" ? c.emailEn : c.emailEs}
+                  </a>
+                ) : null}
+                <button type="button" className={BTN_OUTLINE} onClick={() => void copyEmail()}>
+                  <FiCopy className="h-4 w-4" aria-hidden />
+                  {emailCopied
+                    ? lang === "en"
+                      ? c.shareCopiedEn
+                      : c.shareCopiedEs
+                    : lang === "en"
+                      ? c.copyEmailEn
+                      : c.copyEmailEs}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {hasLocation ? (
+          <div>
+            <h3 className={HUB_SECTION}>{lang === "en" ? c.ourLocationEn : c.ourLocationEs}</h3>
+            {locationLine ? (
+              <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed text-[#1E1814]/80">
+                <FiMapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#7A1E2C]" aria-hidden />
+                <span>{locationLine}</span>
+              </p>
+            ) : null}
+            {directionsHref ? (
+              <a href={directionsHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-4")}>
+                <FiMapPin className="h-4 w-4" aria-hidden />
+                {lang === "en" ? c.directions : c.directionsEs}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+
+        {hasFollow ? (
+          <div>
+            <h3 className={HUB_SECTION}>{lang === "en" ? c.followUsEn : c.followUsEs}</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {followLinks.map((link) => (
+                <SocialLinkButton key={link.key} link={link} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {hasReviews ? (
+          <div>
+            <h3 className={HUB_SECTION}>{lang === "en" ? c.reviewsEn : c.reviewsEs}</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {reviewLinks.map((link) => (
+                <SocialLinkButton key={link.key} link={link} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {hasBusiness ? (
+          <div>
+            <h3 className={HUB_SECTION}>{lang === "en" ? c.moreInfoEn : c.moreInfoEs}</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {businessLinks.map((link) => (
+                <SocialLinkButton key={link.key} link={link} />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -163,11 +351,7 @@ export function OfertasLocalesPreviewCard({
   const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp || draft.phone, draft.businessName);
   const webHref = resolveOfertaLocalWebsiteHref(draft.websiteUrl);
   const directionsHref = resolveOfertaLocalDirectionsHref(draft);
-  const contactEmail = resolveOfertaLocalContactEmail(draft);
   const mailtoHref = buildOfertaLocalMailtoHref(draft.email, draft.businessName);
-  const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
-  const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
-  const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
   const showMembership = shouldShowMembershipBlock(draft);
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
@@ -180,57 +364,54 @@ export function OfertasLocalesPreviewCard({
     if (!url) return;
     try {
       if (typeof navigator.share === "function") {
-        await navigator.share({
-          title: draft.title || draft.businessName,
-          url,
-        });
+        await navigator.share({ title: draft.title || draft.businessName, url });
         return;
       }
       await navigator.clipboard.writeText(url);
       setShareCopied(true);
       window.setTimeout(() => setShareCopied(false), 2000);
     } catch {
-      /* user cancelled share */
+      /* cancelled */
     }
   }, [draft.businessName, draft.title]);
+
+  const defaultOfferTitle = lang === "en" ? c.defaultOfferTitleEn : c.defaultOfferTitleEs;
 
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
       <div className={PAGE_MAX}>
-        {/* Preview notice */}
-        <div className="mb-6 rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3 text-center">
-          <p className="text-sm font-semibold text-[#7A1E2C]">
+        {/* 1. Preview notice — compact owner cue */}
+        <div className="mb-5 flex items-center justify-center gap-2 rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/[0.04] px-3 py-2 text-center">
+          <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#7A1E2C]/60" aria-hidden />
+          <p className="text-xs font-medium text-[#7A1E2C]">
             {lang === "en" ? c.previewNoticeEn : c.previewNoticeEs}
-          </p>
-          <p className="mt-1 text-xs text-[#1E1814]/65">
-            {lang === "en" ? c.previewNoticeEs : c.previewNoticeEn}
           </p>
         </div>
 
-        {/* Page title */}
+        {/* 2. Page header */}
         <header className="mb-8 text-center lg:text-left">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#B8860B]">Leonix</p>
           <h1 className="mt-2 font-serif text-3xl font-bold text-[#7A1E2C] sm:text-4xl">
             {lang === "en" ? c.pageTitleEn : c.pageTitleEs}
           </h1>
-          <p className="mt-2 text-sm text-[#1E1814]/65">
+          <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/65">
             {lang === "en" ? c.pageSubtitleEn : c.pageSubtitleEs}
           </p>
         </header>
 
-        {/* Hero 3-column layout */}
+        {/* Hero: flyer + offer + desktop live actions */}
         <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
-          {/* Left — flyer/coupon visual */}
-          <div className="lg:col-span-4">
+          {/* 3. Flyer visual */}
+          <div className="lg:col-span-5">
             <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} />
           </div>
 
-          {/* Center — offer hub */}
-          <div className="lg:col-span-5">
+          {/* 4–5. Business + offer + primary CTAs */}
+          <div className="lg:col-span-4">
             <div className={cx(CARD, "h-full p-5 sm:p-6")}>
               <div className="flex flex-wrap gap-2">
                 {primaryFormatLabel ? (
-                  <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-medium text-[#7A1E2C]">
+                  <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-semibold text-[#7A1E2C]">
                     {primaryFormatLabel}
                   </span>
                 ) : null}
@@ -252,7 +433,7 @@ export function OfertasLocalesPreviewCard({
                 </p>
               ) : null}
               <h2 className="mt-1 font-serif text-2xl font-bold leading-tight text-[#1E1814] sm:text-3xl">
-                {draft.title.trim() || (lang === "en" ? "Local offer" : "Oferta local")}
+                {draft.title.trim() || defaultOfferTitle}
               </h2>
 
               <div className="mt-2 flex flex-wrap gap-x-2 text-xs text-[#1E1814]/60">
@@ -276,17 +457,20 @@ export function OfertasLocalesPreviewCard({
 
               {expired ? (
                 <p className="mt-3 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  {c.expiredWarningEs}
+                  {lang === "en" ? c.expiredWarning : c.expiredWarningEs}
                 </p>
               ) : null}
               {notYetActive ? (
                 <p className="mt-3 rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-2 text-xs text-[#1E1814]/70">
-                  {c.notYetActiveEs}
+                  {lang === "en" ? c.notYetActive : c.notYetActiveEs}
                 </p>
               ) : null}
 
               {locationLine ? (
-                <p className="mt-4 text-sm text-[#1E1814]/80">{locationLine}</p>
+                <p className="mt-4 flex items-start gap-2 text-sm text-[#1E1814]/80">
+                  <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                  <span>{locationLine}</span>
+                </p>
               ) : null}
 
               {draft.description.trim() ? (
@@ -301,7 +485,7 @@ export function OfertasLocalesPreviewCard({
               ) : null}
 
               {draft.couponText.trim() ? (
-                <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3">
+                <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-gradient-to-br from-[#7A1E2C]/8 to-[#FDF8F0] px-4 py-3">
                   <p className="text-xs font-semibold uppercase text-[#7A1E2C]">
                     {lang === "en" ? c.couponPromotionEn : c.couponPromotionEs}
                   </p>
@@ -313,7 +497,7 @@ export function OfertasLocalesPreviewCard({
                 {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
               </p>
 
-              {/* Primary CTAs */}
+              {/* Primary shopper CTAs */}
               <div className="mt-5 grid gap-2 sm:grid-cols-2">
                 {heroAsset?.href ? (
                   <ContactButton
@@ -336,135 +520,62 @@ export function OfertasLocalesPreviewCard({
                   href={directionsHref}
                   label={lang === "en" ? c.directions : c.directionsEs}
                   external
+                  icon={<FiMapPin className="h-4 w-4" aria-hidden />}
                 />
                 <ContactButton
                   href={telHref}
                   label={lang === "en" ? c.call : c.callEs}
+                  icon={<FiPhone className="h-4 w-4" aria-hidden />}
                 />
-                <ContactButton href={waHref} label={c.whatsapp} external />
+                <ContactButton
+                  href={waHref}
+                  label={c.whatsapp}
+                  external
+                  icon={<FaWhatsapp className="h-4 w-4" aria-hidden />}
+                />
                 <ContactButton
                   href={webHref}
                   label={lang === "en" ? c.website : c.websiteEs}
                   external
+                  icon={<FiGlobe className="h-4 w-4" aria-hidden />}
                 />
               </div>
-
-              {contactEmail ? (
-                <div className="mt-4 border-t border-[#D4C4A8]/50 pt-4">
-                  <EmailRow email={contactEmail} mailtoHref={mailtoHref} lang={lang} />
-                </div>
-              ) : null}
-
-              {/* Social inline */}
-              {followLinks.length || reviewLinks.length || businessLinks.length ? (
-                <div className="mt-5 space-y-4 border-t border-[#D4C4A8]/50 pt-4">
-                  {followLinks.length > 0 ? (
-                    <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
-                        {lang === "en" ? c.followUsEn : c.followUsEs}
-                      </h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {followLinks.map((link) => (
-                          <SocialPill
-                            key={link.key}
-                            href={link.url}
-                            label={link.label}
-                            pillClass={getOfertaLocalSocialLinkPillClass(link.key)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {reviewLinks.length > 0 ? (
-                    <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
-                        {lang === "en" ? c.reviewsEn : c.reviewsEs}
-                      </h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {reviewLinks.map((link) => (
-                          <SocialPill
-                            key={link.key}
-                            href={link.url}
-                            label={link.label}
-                            pillClass={getOfertaLocalSocialLinkPillClass(link.key)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {businessLinks.length > 0 ? (
-                    <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
-                        {lang === "en" ? c.googleBusinessEn : c.googleBusinessEs}
-                      </h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {businessLinks.map((link) => (
-                          <SocialPill
-                            key={link.key}
-                            href={link.url}
-                            label={link.label}
-                            pillClass={getOfertaLocalSocialLinkPillClass(link.key)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
           </div>
 
-          {/* Right — action / future cards */}
-          <div className="space-y-4 lg:col-span-3">
+          {/* Desktop live action stack (no future modules) */}
+          <div className="hidden space-y-4 lg:col-span-3 lg:block">
             {directionsHref && locationLine ? (
               <div className={cx(CARD, "p-4")}>
                 <h3 className="font-serif text-lg font-semibold text-[#1E1814]">
                   {lang === "en" ? c.directionsCardTitleEn : c.directionsCardTitleEs}
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/65">{locationLine}</p>
-                <a
-                  href={directionsHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cx(BTN_PRIMARY, "mt-4 w-full")}
-                >
+                <a href={directionsHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-4 w-full")}>
                   {lang === "en" ? c.directions : c.directionsEs}
                 </a>
               </div>
             ) : null}
 
-            {(telHref || waHref || contactEmail || webHref) ? (
+            {(telHref || waHref || webHref) ? (
               <div className={cx(CARD, "p-4")}>
                 <h3 className="font-serif text-lg font-semibold text-[#1E1814]">
                   {lang === "en" ? c.contactBusinessEn : c.contactBusinessEs}
                 </h3>
                 <div className="mt-3 grid gap-2">
-                  <ContactButton href={telHref} label={lang === "en" ? c.call : c.callEs} />
-                  <ContactButton href={waHref} label={c.whatsapp} external />
-                  <ContactButton
-                    href={webHref}
-                    label={lang === "en" ? c.website : c.websiteEs}
-                    external
-                  />
+                  <ContactButton href={telHref} label={lang === "en" ? c.call : c.callEs} icon={<FiPhone className="h-4 w-4" aria-hidden />} />
+                  <ContactButton href={waHref} label={c.whatsapp} external icon={<FaWhatsapp className="h-4 w-4" aria-hidden />} />
+                  <ContactButton href={webHref} label={lang === "en" ? c.website : c.websiteEs} external icon={<FiGlobe className="h-4 w-4" aria-hidden />} />
                 </div>
               </div>
             ) : null}
 
-            <OfertasFutureShoppingListCard lang={lang} />
-            <OfertasFutureRoutePlannerCard lang={lang} />
-            <OfertasFutureCouponWalletCard lang={lang} />
-
             {showMembership && membershipHref ? (
               <div className={cx(CARD, "border-[#7A1E2C]/20 p-4")}>
                 <h3 className="text-sm font-semibold text-[#7A1E2C]">
-                  {lang === "en" ? "Rewards / membership" : "Recompensas / membresía"}
+                  {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
                 </h3>
-                <a
-                  href={membershipHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cx(BTN_PRIMARY, "mt-3 w-full")}
-                >
+                <a href={membershipHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
                   {membershipCtaLabel(lang)}
                 </a>
               </div>
@@ -473,14 +584,9 @@ export function OfertasLocalesPreviewCard({
             {showDigitalCoupon && digitalCouponHref ? (
               <div className={cx(CARD, "p-4")}>
                 <h3 className="text-sm font-semibold text-[#1E1814]">
-                  {lang === "en" ? "Digital coupon" : "Cupón digital"}
+                  {lang === "en" ? c.digitalCouponTitleEn : c.digitalCouponTitleEs}
                 </h3>
-                <a
-                  href={digitalCouponHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cx(BTN_PRIMARY, "mt-3 w-full")}
-                >
+                <a href={digitalCouponHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
                   {digitalCouponCtaLabel(lang)}
                 </a>
               </div>
@@ -488,7 +594,45 @@ export function OfertasLocalesPreviewCard({
           </div>
         </div>
 
-        {/* Product grid */}
+        {/* 6. Business Hub */}
+        <PreviewBusinessHub
+          draft={draft}
+          lang={lang}
+          telHref={telHref}
+          waHref={waHref}
+          webHref={webHref}
+          mailtoHref={mailtoHref}
+          directionsHref={directionsHref}
+          locationLine={locationLine}
+        />
+
+        {/* Mobile membership / digital coupon */}
+        {(showMembership && membershipHref) || (showDigitalCoupon && digitalCouponHref) ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:hidden">
+            {showMembership && membershipHref ? (
+              <div className={cx(CARD, "border-[#7A1E2C]/20 p-4")}>
+                <h3 className="text-sm font-semibold text-[#7A1E2C]">
+                  {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+                </h3>
+                <a href={membershipHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
+                  {membershipCtaLabel(lang)}
+                </a>
+              </div>
+            ) : null}
+            {showDigitalCoupon && digitalCouponHref ? (
+              <div className={cx(CARD, "p-4")}>
+                <h3 className="text-sm font-semibold text-[#1E1814]">
+                  {lang === "en" ? c.digitalCouponTitleEn : c.digitalCouponTitleEs}
+                </h3>
+                <a href={digitalCouponHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
+                  {digitalCouponCtaLabel(lang)}
+                </a>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* 7. Product grid */}
         <OfertasLocalesPreviewProductGrid
           draft={draft}
           items={approvedAiItems}
@@ -499,7 +643,21 @@ export function OfertasLocalesPreviewCard({
           totalCount={aiTotalCount}
         />
 
-        {/* Intent notes */}
+        {/* 8. Future modules */}
+        <section className="mt-8" aria-label={lang === "en" ? c.futureModulesEn : c.futureModulesEs}>
+          <h2 className="font-serif text-lg font-semibold text-[#1E1814]/75">
+            {lang === "en" ? c.futureModulesEn : c.futureModulesEs}
+          </h2>
+          <p className="mt-1 text-xs text-[#1E1814]/50">
+            {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <OfertasFutureShoppingListCard lang={lang} />
+            <OfertasFutureRoutePlannerCard lang={lang} />
+            <OfertasFutureCouponWalletCard lang={lang} />
+          </div>
+        </section>
+
         {draft.wantsFeaturedPlacement ? (
           <p className="mt-6 rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-center text-xs text-[#1E1814]/60">
             {lang === "en" ? c.featuredInterestEn : c.featuredInterestEs}
@@ -512,7 +670,7 @@ export function OfertasLocalesPreviewCard({
           {hasAiProducts ? "ai-products" : ""}
         </span>
 
-        {/* Owner preview controls — separated from shopper CTAs */}
+        {/* 9. Owner controls */}
         <section className="mt-10 rounded-2xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 p-5 sm:p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-[#7A1E2C]">
             {lang === "en" ? c.ownerControlsEn : c.ownerControlsEs}
@@ -520,14 +678,8 @@ export function OfertasLocalesPreviewCard({
 
           {publishSuccess ? (
             <div className="mt-4 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-              <p className="font-semibold">
-                {lang === "en" ? "Submitted for Leonix review." : "Enviado para revisión de Leonix."}
-              </p>
-              <p className="mt-1 text-xs">
-                {lang === "en"
-                  ? "Your listing is not public until the Leonix team approves it."
-                  : "Tu anuncio no será público hasta que el equipo de Leonix lo apruebe."}
-              </p>
+              <p className="font-semibold">{lang === "en" ? c.submitSuccessEn : c.submitSuccessEs}</p>
+              <p className="mt-1 text-xs">{lang === "en" ? c.submitSuccessNoteEn : c.submitSuccessNoteEs}</p>
             </div>
           ) : null}
           {publishError ? (
@@ -551,8 +703,8 @@ export function OfertasLocalesPreviewCard({
               title={
                 aiNeedsReviewCount > 0
                   ? lang === "en"
-                    ? "Finish AI review before submitting"
-                    : "Termina la revisión AI antes de enviar"
+                    ? c.submitBlockedEn
+                    : c.submitBlockedEs
                   : undefined
               }
             >

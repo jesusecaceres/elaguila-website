@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
@@ -35,7 +35,7 @@ const COPY = {
 
 const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
 
-export default function Page() {
+function ClasesLandingPageInner() {
   const sp = useSearchParams();
   const routeLang = resolveRouteLang(sp?.get("lang"));
   const lang = resolveHubCopyLang(sp?.get("lang"));
@@ -80,5 +80,13 @@ export default function Page() {
         errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
       />
     </CategoryStandardLandingPage>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <ClasesLandingPageInner />
+    </Suspense>
   );
 }

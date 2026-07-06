@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -235,7 +235,7 @@ function CategoryCard({
   );
 }
 
-export default function ClasificadosPage() {
+function ClasificadosPageInner() {
   const params = useSearchParams();
   const routeLang = resolveRouteLang(params?.get("lang"));
   const t = useMemo(() => getClasificadosHubPageCopy(routeLang), [routeLang]);
@@ -270,12 +270,12 @@ export default function ClasificadosPage() {
 
           {/* 2 — Primary actions */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <a
+            <Link
               href={postEntryHref}
               className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
             >
               {t.ctaPost}
-            </a>
+            </Link>
             <a
               href="#categorias"
               className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
@@ -359,5 +359,19 @@ export default function ClasificadosPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function ClasificadosPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#FAF6EE] px-4 pt-28">
+          <div className="mx-auto max-w-6xl animate-pulse text-sm text-[#3D3428]">…</div>
+        </main>
+      }
+    >
+      <ClasificadosPageInner />
+    </Suspense>
   );
 }

@@ -17,7 +17,7 @@ function LandingFallback() {
   );
 }
 
-export async function EmpleosLandingServer() {
+async function EmpleosLandingContent() {
   const nowMs = Date.now();
   const live = await fetchEmpleosPublishedJobRecords();
   const omit = empleosOmitMarketingSeedCatalog();
@@ -27,12 +27,18 @@ export async function EmpleosLandingServer() {
   const recentEn = omit ? mapEmpleosLiveToRecentLandingFair(merged, nowMs, "en", EMPLEOS_LANDING_RECENT_MAX) : undefined;
 
   return (
+    <EmpleosLandingPage
+      liveInventory={omit}
+      featuredJobsOverride={featured}
+      recentJobsByLang={omit && recentEs && recentEn ? { es: recentEs, en: recentEn } : undefined}
+    />
+  );
+}
+
+export function EmpleosLandingServer() {
+  return (
     <Suspense fallback={<LandingFallback />}>
-      <EmpleosLandingPage
-        liveInventory={omit}
-        featuredJobsOverride={featured}
-        recentJobsByLang={omit && recentEs && recentEn ? { es: recentEs, en: recentEn } : undefined}
-      />
+      <EmpleosLandingContent />
     </Suspense>
   );
 }

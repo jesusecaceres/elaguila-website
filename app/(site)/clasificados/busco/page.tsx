@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
@@ -37,7 +37,7 @@ const COPY = {
 
 const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
 
-export default function BuscoLandingPage() {
+function BuscoLandingPageInner() {
   const sp = useSearchParams();
   const lang = buscoLangFromSearchParams(sp);
   const routeLang = buscoRouteLangFromSearchParams(sp);
@@ -95,5 +95,13 @@ export default function BuscoLandingPage() {
         </Link>
       </p>
     </CategoryStandardLandingPage>
+  );
+}
+
+export default function BuscoLandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <BuscoLandingPageInner />
+    </Suspense>
   );
 }

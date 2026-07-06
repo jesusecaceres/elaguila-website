@@ -29,7 +29,7 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
   servicios: "/clasificados/servicios",
   restaurantes: "/clasificados/restaurantes",
   "comida-local": "/clasificados/comida-local",
-  "autos-dealer": "/clasificados/autos/resultados",
+  "autos-dealer": "/clasificados/autos/results",
   "bienes-raices": "/clasificados/bienes-raices",
 };
 
