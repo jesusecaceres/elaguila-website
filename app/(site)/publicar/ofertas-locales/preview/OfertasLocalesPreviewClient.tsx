@@ -8,7 +8,8 @@ import { hasOfertaLocalDraftContent } from "@/app/lib/ofertas-locales/ofertasLoc
 import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
-import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { useOfertasLocalesAppLang, useOfertasLocalesPublishLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { OfertasLocalesPreviewCard } from "./OfertasLocalesPreviewCard";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
@@ -18,7 +19,7 @@ const BTN_PRIMARY =
 
 export default function OfertasLocalesPreviewClient() {
   const { draft, hasLoadedDraft } = useOfertasLocalesDraft();
-  const lang = useOfertasLocalesAppLang();
+  const { routeLang, copyLang: lang } = useOfertasLocalesPublishLang();
   const [aiItems, setAiItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
   const [aiReviewLoading, setAiReviewLoading] = useState(false);
   const [aiReviewError, setAiReviewError] = useState<string | null>(null);
@@ -116,7 +117,7 @@ export default function OfertasLocalesPreviewClient() {
           </p>
           <h1 className="mt-4 text-xl font-bold text-[#1E1814]">{OFERTAS_LOCALES_PREVIEW_COPY.emptyTitle}</h1>
           <p className="mt-2 text-sm text-[#1E1814]/70">{OFERTAS_LOCALES_PREVIEW_COPY.emptyBody}</p>
-          <Link href={`/publicar/ofertas-locales?lang=${lang}`} className={`${BTN_PRIMARY} mt-6`}>
+          <Link href={withClasificadosPublishLang("/publicar/ofertas-locales", routeLang)} className={`${BTN_PRIMARY} mt-6`}>
             {OFERTAS_LOCALES_PREVIEW_COPY.backToEditCreate}
           </Link>
         </div>
@@ -128,6 +129,7 @@ export default function OfertasLocalesPreviewClient() {
     <OfertasLocalesPreviewCard
       draft={draft}
       lang={lang}
+      routeLang={routeLang}
       approvedAiItems={approvedAiItems}
       aiReviewLoading={aiReviewLoading}
       aiReviewError={aiReviewError}

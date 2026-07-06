@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { MascotasPerdidosShellLayout } from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/MascotasPerdidosShellLayout";
-import { mascotasPerdidosLangFromSearchParams } from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/mascotasPerdidosShellCopy";
+import {
+  mascotasPerdidosLangFromSearchParams,
+  mascotasPerdidosRouteLangFromSearchParams,
+} from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/mascotasPerdidosShellCopy";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
 import {
   EmpleosFieldLabel,
@@ -39,6 +42,7 @@ export default function MascotasPerdidosQuickFormClient() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = mascotasPerdidosLangFromSearchParams(sp);
+  const routeLang = mascotasPerdidosRouteLangFromSearchParams(sp);
   const copy = mascotasPerdidosFormCopy(lang);
   const fileRef = useRef<HTMLInputElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -58,8 +62,8 @@ export default function MascotasPerdidosQuickFormClient() {
       normalizeMascotasPerdidosQuickDraft(raw),
     );
     markPublishFlowOpeningPreview();
-    router.push(mascotasPerdidosHandoffPreviewUrl(lang));
-  }, [previewDisabled, state, router, lang]);
+    router.push(mascotasPerdidosHandoffPreviewUrl(routeLang));
+  }, [previewDisabled, state, router, routeLang]);
 
   const onImagePick = useCallback(
     (file: File | null) => {

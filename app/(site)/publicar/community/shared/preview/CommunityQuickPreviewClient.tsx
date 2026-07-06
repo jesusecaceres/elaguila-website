@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { CommunityQuickPublicDetailShell } from "@/app/(site)/clasificados/community/CommunityQuickPublicDetailShell";
 import { CommunityQuickPublicDetailSidebar } from "@/app/(site)/clasificados/community/CommunityQuickPublicDetailSidebar";
 import {
@@ -31,7 +31,10 @@ import {
 
 export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [sp],
+  );
   const fromPublicar = sp?.get("from") === "publicar";
 
   const [clasesDraft, setClasesDraft] = useState<ClasesQuickDraft | null>(null);
@@ -65,7 +68,7 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
     }
   }, [kind]);
 
-  const editHref = communityQuickEditUrl(kind, lang);
+  const editHref = communityQuickEditUrl(kind, routeLang);
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
   const noDraft = COMMUNITY_PUBLISH_COPY[lang].previewNoDraft;
 
@@ -144,10 +147,10 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
       topBar={
         <div className="flex flex-wrap items-center justify-end gap-3">
           {kind === "clases" && clasesDraft ? (
-            <CommunityQuickPreviewPublishBar kind="clases" draft={clasesDraft} lang={lang} />
+            <CommunityQuickPreviewPublishBar kind="clases" draft={clasesDraft} lang={lang} routeLang={routeLang} />
           ) : null}
           {kind === "comunidad" && comunidadDraft ? (
-            <CommunityQuickPreviewPublishBar kind="comunidad" draft={comunidadDraft} lang={lang} />
+            <CommunityQuickPreviewPublishBar kind="comunidad" draft={comunidadDraft} lang={lang} routeLang={routeLang} />
           ) : null}
           <Link
             href={editHref}

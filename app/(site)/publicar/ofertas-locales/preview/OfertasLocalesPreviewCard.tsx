@@ -42,6 +42,8 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import type { SupportedLang } from "@/app/lib/language";
 import { OfertasFutureCouponWalletCard } from "./OfertasFutureCouponWalletCard";
 import { OfertasFutureRoutePlannerCard } from "./OfertasFutureRoutePlannerCard";
 import { OfertasFutureShoppingListCard } from "./OfertasFutureShoppingListCard";
@@ -311,6 +313,7 @@ function PreviewBusinessHub({
 export function OfertasLocalesPreviewCard({
   draft,
   lang = "es",
+  routeLang,
   approvedAiItems = [],
   aiReviewLoading = false,
   aiReviewError = null,
@@ -323,6 +326,7 @@ export function OfertasLocalesPreviewCard({
 }: {
   draft: OfertaLocalDraft;
   lang?: OfertasLocalesAppLang;
+  routeLang?: SupportedLang;
   approvedAiItems?: OfertaLocalItemReviewViewModel[];
   aiReviewLoading?: boolean;
   aiReviewError?: string | null;
@@ -334,6 +338,9 @@ export function OfertasLocalesPreviewCard({
   onSubmitForReview?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  const resolvedRouteLang = routeLang ?? lang;
+  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang);
+  const editReviewHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, { step: 7 });
   const offerLabel = labelForOfferType(draft.offerType, lang);
   const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
   const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
@@ -689,10 +696,10 @@ export function OfertasLocalesPreviewCard({
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href={`/publicar/ofertas-locales?lang=${lang}`} className={BTN_PRIMARY}>
+            <Link href={editHref} className={BTN_PRIMARY}>
               {lang === "en" ? c.backToEditEn : c.backToEdit}
             </Link>
-            <Link href={`/publicar/ofertas-locales?lang=${lang}&step=7`} className={BTN_OUTLINE}>
+            <Link href={editReviewHref} className={BTN_OUTLINE}>
               {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
             </Link>
             <button

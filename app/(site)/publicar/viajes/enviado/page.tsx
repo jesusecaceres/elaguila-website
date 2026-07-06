@@ -7,11 +7,12 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 function ViajesEnviadoInner() {
   const sp = useSearchParams();
   const qs = sp ?? new URLSearchParams();
-  const lang: Lang = qs.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(qs.get("lang"));
   const slug = qs.get("slug") ?? "";
   const id = qs.get("id") ?? "";
   const lane = qs.get("lane") ?? "";
@@ -43,11 +44,11 @@ function ViajesEnviadoInner() {
     };
   }, [lang]);
 
-  const q = `lang=${lang}`;
+  const q = `lang=${routeLang}`;
   const dashboardHref = `/dashboard/viajes?${q}`;
-  const resultsHref = appendLangToPath("/clasificados/viajes/resultados", lang);
-  const hubHref = appendLangToPath("/publicar/viajes", lang);
-  const detailHref = slug ? appendLangToPath(`/clasificados/viajes/oferta/${slug}`, lang) : "";
+  const resultsHref = appendLangToPath("/clasificados/viajes/resultados", routeLang);
+  const hubHref = appendLangToPath("/publicar/viajes", routeLang);
+  const detailHref = slug ? appendLangToPath(`/clasificados/viajes/oferta/${slug}`, routeLang) : "";
 
   if (!slug || !id) {
     return (

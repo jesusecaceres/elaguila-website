@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import { CategoryStandardLandingPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPageShell";
 
@@ -30,11 +31,11 @@ export type ViajesLandingPageProps = {
 
 export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProps) {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(sp?.get("lang"));
   const ui = getViajesUi(lang);
 
-  const publicarHref = appendLangToPath("/publicar/viajes", lang);
-  const homeBackHref = appendLangToPath("/clasificados/viajes", lang);
+  const publicarHref = appendLangToPath("/publicar/viajes", routeLang);
+  const homeBackHref = appendLangToPath("/clasificados/viajes", routeLang);
   const browseAllHref = buildViajesBrowseUrl(defaultViajesBrowseState(lang));
 
   return (

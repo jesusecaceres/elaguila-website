@@ -59,6 +59,7 @@ import {
   navigateToNextQueuedChild,
   type BrNegocioInventoryBridgeView,
 } from "../../application/brNegocioInventoryPostPublishFlow";
+import { publishBrAgenteInventoryBundlePendingRows } from "../../application/brNegocioInventoryBundlePendingPublish";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
@@ -199,9 +200,9 @@ export default function AgenteIndividualResidencialPreviewClient() {
       const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory, {
         activationMode: needsPayment ? "pending_payment" : "immediate",
       });
-      setPublishBusy(false);
 
       if (!r.ok) {
+        setPublishBusy(false);
         setPublishErr(r.error);
         return;
       }
@@ -219,6 +220,31 @@ export default function AgenteIndividualResidencialPreviewClient() {
           /* optional metadata */
         }
 
+        const childDrafts = st.additionalInventoryProperties ?? [];
+        let bundleCreatedCount = 0;
+        if (childDrafts.length > 0) {
+          const bundle = await publishBrAgenteInventoryBundlePendingRows({
+            parentListingId: r.listingId,
+            parentGroupId: r.listingId,
+            parentDraft: st,
+            childDrafts,
+            lang,
+            ownerUserId: ownerId ?? null,
+          });
+          bundleCreatedCount = bundle.createdChildren.length;
+          const mergedWarnings = [...r.warnings, ...bundle.warnings];
+          if (mergedWarnings.length) {
+            try {
+              sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(mergedWarnings));
+            } catch {
+              /* ignore */
+            }
+          }
+          if (bundle.error && bundleCreatedCount < childDrafts.length) {
+            setPublishErr(bundle.error);
+          }
+        }
+
         const checkout = await startRevenueCategoryCheckout({
           ...BIENES_RAICES_NEGOCIO_CHECKOUT,
           listingId: r.listingId,
@@ -226,12 +252,15 @@ export default function AgenteIndividualResidencialPreviewClient() {
           locale: lang,
         });
         if (!checkout.ok) {
+          setPublishBusy(false);
           setPublishErr(checkout.userMessage);
           return;
         }
         redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
         return;
       }
+
+      setPublishBusy(false);
 
       if (r.warnings.length) {
         try {

@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import type { SupportedLang } from "@/app/lib/language";
 
 import type { CommunityKind } from "../constants/communitySessionKeys";
 import { COMMUNITY_PUBLISH_COPY } from "../copy/communityPublishCopy";
@@ -20,12 +22,13 @@ type Props = {
   kind: CommunityKind;
   draft: ClasesQuickDraft | ComunidadQuickDraft;
   lang: Lang;
+  routeLang: SupportedLang;
 };
 
 const BTN_PUBLISH =
   "inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-full border-2 border-[#2A2620]/25 bg-[#2A2620] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#FFFCF7] shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-[40px] sm:flex-none sm:px-6";
 
-export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
+export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }: Props) {
   const router = useRouter();
   const shared = COMMUNITY_PUBLISH_COPY[lang];
   const [publishing, setPublishing] = useState(false);
@@ -86,7 +89,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang }: Props) {
         /* sessionStorage can be unavailable; redirect still provides completion feedback by URL. */
       }
       clearCommunityStagedPublish(kind);
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }

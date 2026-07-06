@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import type { SupportedLang } from "@/app/lib/language";
 
 import { gateMascotasPerdidosQuickPreview } from "../../shared/mascotasPerdidosRequiredForPreview";
 import { publishMascotasPerdidosQuickToListings } from "../../shared/publishMascotasPerdidosQuickToListings";
@@ -17,9 +19,11 @@ const BTN_PUBLISH =
 export function MascotasPerdidosQuickPreviewPublishBar({
   draft,
   lang,
+  routeLang,
 }: {
   draft: MascotasPerdidosQuickDraft;
   lang: Lang;
+  routeLang: SupportedLang;
 }) {
   const router = useRouter();
   const t = mascotasPerdidosPreviewCopy(lang);
@@ -45,7 +49,7 @@ export function MascotasPerdidosQuickPreviewPublishBar({
       } catch {
         /* optional */
       }
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }

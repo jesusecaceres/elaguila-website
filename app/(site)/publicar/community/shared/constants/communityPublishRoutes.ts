@@ -1,5 +1,5 @@
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import type { SupportedLang } from "@/app/lib/language";
 
 import type { CommunityKind } from "./communitySessionKeys";
 
@@ -17,11 +17,11 @@ export const COMMUNITY_PREVIEW_ROUTES = {
   comunidad: "/publicar/comunidad/quick/preview",
 } as const;
 
-export function communityHandoffPreviewUrl(kind: CommunityKind, lang: Lang): string {
+export function communityHandoffPreviewUrl(kind: CommunityKind, routeLang: SupportedLang): string {
   const base = COMMUNITY_PREVIEW_ROUTES[kind];
-  return appendLangToPath(`${base}?from=publicar`, lang);
+  return appendLangToPath(`${base}?from=publicar`, routeLang);
 }
 
-export function communityQuickEditUrl(kind: CommunityKind, lang: Lang): string {
-  return appendLangToPath(COMMUNITY_PUBLISH_ROUTES[kind].quick, lang);
+export function communityQuickEditUrl(kind: CommunityKind, routeLang: SupportedLang): string {
+  return appendLangToPath(COMMUNITY_PUBLISH_ROUTES[kind].quick, routeLang);
 }

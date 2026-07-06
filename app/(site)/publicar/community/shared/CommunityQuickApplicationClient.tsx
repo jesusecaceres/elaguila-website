@@ -23,6 +23,12 @@ import {
   type CommunityKind,
 } from "./constants/communitySessionKeys";
 import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
+import type { SupportedLang } from "@/app/lib/language";
+
+import {
   communityHandoffPreviewUrl,
 } from "./constants/communityPublishRoutes";
 import {
@@ -78,13 +84,14 @@ type Props = { kind: CommunityKind };
 export default function CommunityQuickApplicationClient({ kind }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(sp?.get("lang"));
   const sharedCopy = COMMUNITY_PUBLISH_COPY[lang];
 
   if (kind === "clases") {
     return (
       <ClasesQuickApplication
         lang={lang}
+        routeLang={routeLang}
         sharedCopy={sharedCopy}
         router={router}
       />
@@ -93,6 +100,7 @@ export default function CommunityQuickApplicationClient({ kind }: Props) {
   return (
     <ComunidadQuickApplication
       lang={lang}
+      routeLang={routeLang}
       sharedCopy={sharedCopy}
       router={router}
     />
@@ -103,6 +111,7 @@ type RouterLike = ReturnType<typeof useRouter>;
 
 type SubProps = {
   lang: Lang;
+  routeLang: SupportedLang;
   sharedCopy: typeof COMMUNITY_PUBLISH_COPY[Lang];
   router: RouterLike;
 };
@@ -148,7 +157,7 @@ const MEDIA_COPY = {
   },
 } as const;
 
-function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
+function ClasesQuickApplication({ lang, routeLang, sharedCopy, router }: SubProps) {
   const copy = CLASES_QUICK_COPY[lang];
   const { state, patch, reset, hydrated } = useCommunityDraftSession<ClasesQuickDraft>(
     COMMUNITY_SESSION_KEYS.clases,
@@ -180,8 +189,8 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
       (raw) => normalizeClasesQuickDraft(raw),
     );
     markPublishFlowOpeningPreview();
-    router.push(communityHandoffPreviewUrl("clases", lang));
-  }, [previewDisabled, state, router, lang]);
+    router.push(communityHandoffPreviewUrl("clases", routeLang));
+  }, [previewDisabled, state, router, routeLang]);
 
   const handleDelete = useCallback(() => {
     reset();
@@ -208,11 +217,11 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
         return;
       }
       clearCommunityStagedPublish("clases");
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }
-  }, [publishDisabled, publishing, state, lang, router]);
+  }, [publishDisabled, publishing, state, lang, routeLang, router]);
 
   const onSaveDraft = useCallback(() => {
     const envelope = buildClasesQuickPublishEnvelope(state, lang);
@@ -629,7 +638,7 @@ function ClasesQuickApplication({ lang, sharedCopy, router }: SubProps) {
   );
 }
 
-function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
+function ComunidadQuickApplication({ lang, routeLang, sharedCopy, router }: SubProps) {
   const copy = COMUNIDAD_QUICK_COPY[lang];
   const { state, patch, reset, hydrated } = useCommunityDraftSession<ComunidadQuickDraft>(
     COMMUNITY_SESSION_KEYS.comunidad,
@@ -659,8 +668,8 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
       (raw) => normalizeComunidadQuickDraft(raw),
     );
     markPublishFlowOpeningPreview();
-    router.push(communityHandoffPreviewUrl("comunidad", lang));
-  }, [previewDisabled, state, router, lang]);
+    router.push(communityHandoffPreviewUrl("comunidad", routeLang));
+  }, [previewDisabled, state, router, routeLang]);
 
   const handleDelete = useCallback(() => {
     reset();
@@ -681,11 +690,11 @@ function ComunidadQuickApplication({ lang, sharedCopy, router }: SubProps) {
         return;
       }
       clearCommunityStagedPublish("comunidad");
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }
-  }, [publishDisabled, publishing, state, lang, router]);
+  }, [publishDisabled, publishing, state, lang, routeLang, router]);
 
   const onSaveDraft = useCallback(() => {
     const envelope = buildComunidadQuickPublishEnvelope(state, lang);

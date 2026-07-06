@@ -73,6 +73,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
 import { useSearchParams } from "next/navigation";
 import { normalizeLang } from "@/app/lib/language";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { publicContactHref } from "@/app/lib/leonix/publicRouteHrefs";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
@@ -642,7 +643,7 @@ export default function OfertasLocalesApplicationClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const previewHref = `/publicar/ofertas-locales/preview?lang=${lang}`;
+  const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales/preview", routeLang);
 
   if (!hasLoadedDraft) {
     return (
