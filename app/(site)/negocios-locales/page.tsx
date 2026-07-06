@@ -253,22 +253,22 @@ function BusinessLaneCard({
   const advertiseLabel = lang === "es" ? copy.advertiseEs : copy.advertiseEn;
 
   return (
-    <article className="flex h-full min-h-[17.5rem] flex-col rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)]">
-      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536]">
+    <article className="flex h-full min-h-0 flex-col rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)] sm:min-h-[17.5rem] sm:p-5">
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536] sm:h-12 sm:w-12">
         <LaneMark lane={lane} />
       </span>
-      <h3 className="mt-4 text-base font-bold text-[#1F241C]">{label}</h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{desc}</p>
-      <div className="mt-auto flex flex-col gap-4 border-t border-[#D6C7AD]/50 pt-6">
+      <h3 className="mt-3 text-base font-bold text-[#1F241C] sm:mt-4">{label}</h3>
+      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-[#3D3428] sm:mt-2">{desc}</p>
+      <div className="mt-auto flex flex-col gap-3 border-t border-[#D6C7AD]/50 pt-4 sm:gap-4 sm:pt-6">
         <Link
           href={exploreHref}
-          className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FAF6EE] px-4 py-2.5 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]"
+          className="inline-flex min-h-[2.375rem] w-full items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FAF6EE] px-4 py-2 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7] sm:min-h-[2.5rem] sm:py-2.5"
         >
           {exploreLabel}
         </Link>
         <Link
           href={advertiseHref}
-          className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]"
+          className="inline-flex min-h-[2.375rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[2.5rem] sm:py-2.5"
         >
           {advertiseLabel}
         </Link>
@@ -334,7 +334,7 @@ function NegociosLocalesInner() {
             {t.sectionLanes}
           </h2>
 
-          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2">
+          <ul className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-5">
             {LANE_ORDER.map((lane) => (
               <li key={lane} className="flex h-full">
                 <BusinessLaneCard

@@ -35,7 +35,10 @@ export type CategoryStandardResultsChromeProps = {
   advancedFilters?: ReactNode;
   chips?: ReactNode;
   clearFiltersHref?: string;
+  /** Sort/view row — standard position below shell/chips, above listings. */
   toolbar?: ReactNode;
+  /** Replaces default CategoryStandardSearchRow (e.g. compact landing-style bar). */
+  searchSlot?: ReactNode;
   children: ReactNode;
 };
 
@@ -59,6 +62,7 @@ export function CategoryStandardResultsChrome({
   chips,
   clearFiltersHref,
   toolbar,
+  searchSlot,
   children,
 }: CategoryStandardResultsChromeProps) {
   const ui = categoryStandardUi(lang);
@@ -83,16 +87,20 @@ export function CategoryStandardResultsChrome({
           <p className={CAT_STD_REFINE_EYEBROW}>{refineEyebrow}</p>
 
           <div className="mt-2">
-            <CategoryStandardSearchRow
-              lang={lang}
-              action={resultsAction}
-              defaultQ={defaultQ}
-              defaultCity={defaultCity}
-              searchPlaceholder={searchPlaceholder}
-              advancedFilters={advancedFilters}
-              chips={chips}
-            />
+            {searchSlot ?? (
+              <CategoryStandardSearchRow
+                lang={lang}
+                action={resultsAction}
+                defaultQ={defaultQ}
+                defaultCity={defaultCity}
+                searchPlaceholder={searchPlaceholder}
+                advancedFilters={advancedFilters}
+                chips={chips}
+              />
+            )}
           </div>
+
+          {!searchSlot && chips ? <div className="mt-3">{chips}</div> : null}
 
           {activeFilterSummary ? <div className="mt-3">{activeFilterSummary}</div> : null}
 

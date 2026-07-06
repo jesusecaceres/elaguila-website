@@ -46,6 +46,8 @@ type Props = {
   showFiltersButton?: boolean;
   showBrowseAll?: boolean;
   initialDrawerOpen?: boolean;
+  /** Tighter mobile spacing for results surfaces. */
+  density?: "default" | "compact";
 };
 
 export function CategoryStandardCompactSearchBar({
@@ -64,9 +66,12 @@ export function CategoryStandardCompactSearchBar({
   showFiltersButton = true,
   showBrowseAll = true,
   initialDrawerOpen = false,
+  density = "default",
 }: Props) {
   const ui = categoryStandardUi(lang);
   const router = useRouter();
+  const compact = density === "compact";
+  const rowGap = compact ? "gap-1 p-1 sm:gap-1.5 sm:p-1.5" : "gap-1.5 p-1.5";
   const [drawerOpen, setDrawerOpen] = useState(initialDrawerOpen);
   const [q, setQ] = useState(defaultValues?.q ?? "");
   const [city, setCity] = useState(defaultValues?.city ?? "");
@@ -214,7 +219,7 @@ export function CategoryStandardCompactSearchBar({
             </button>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-center">
+        <div className={`flex flex-col ${rowGap} sm:grid sm:grid-cols-12 sm:items-center`}>
           <label className={`${LX_LB_SEARCH_CELL} order-1 border-b-0 sm:order-none sm:col-span-3 sm:border-r-0`}>
             <input
               name="country"

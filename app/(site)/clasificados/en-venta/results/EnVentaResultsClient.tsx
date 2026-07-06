@@ -786,7 +786,28 @@ export function EnVentaResultsClient() {
             }
           />
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+        </section>
+
+        <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
+
+        {activeChips.length > 0 ? (
+          <div className="mt-1.5 w-full sm:mt-2">
+            <EnVentaResultsChipsRow
+              label={t.activeFilters}
+              clearLabel={t.clearAll}
+              chips={activeChips}
+              onClearAll={resetFilters}
+              swipeHint={swipeHint}
+              lang={lang}
+            />
+          </div>
+        ) : null}
+
+        <div
+          className="mt-3 flex flex-wrap items-center gap-1.5 sm:mt-4 sm:gap-2"
+          role="group"
+          aria-label={lang === "es" ? "Ordenar y ver resultados" : "Sort and view results"}
+        >
           <label className="inline-flex min-w-0 items-center gap-1.5">
             <span className="sr-only">{t.sort}</span>
             <select
@@ -843,22 +864,7 @@ export function EnVentaResultsClient() {
               {t.list}
             </button>
           </div>
-          </div>
-        </section>
-        <input form="ev-results-form" type="hidden" name="view" value={view} readOnly />
-
-        {activeChips.length > 0 ? (
-          <div className="mt-1.5 w-full sm:mt-2">
-            <EnVentaResultsChipsRow
-              label={t.activeFilters}
-              clearLabel={t.clearAll}
-              chips={activeChips}
-              onClearAll={resetFilters}
-              swipeHint={swipeHint}
-              lang={lang}
-            />
-          </div>
-        ) : null}
+        </div>
 
         <EnVentaResultsFiltersDrawer
           open={filtersPanelOpen}
@@ -918,10 +924,6 @@ export function EnVentaResultsClient() {
           onUseMyLocation={onUseMyLocation}
         />
 
-        <div className="mt-4 sm:mt-5">
-          <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
-        </div>
-
         {loadErr ? <p className="mt-4 text-center text-sm text-red-700">{t.err}</p> : null}
 
         {!loading && !loadErr && total === 0 ? (
@@ -964,7 +966,11 @@ export function EnVentaResultsClient() {
           <div className="mt-8 text-center text-sm text-[#5C5346]">{t.loading}</div>
         ) : null}
 
-        <p className="mt-8 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
+        <footer className="mt-8 border-t border-[#D6C7AD]/50 pt-6">
+          <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
+        </footer>
+
+        <p className="mt-6 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
 
         <div className="mt-6 text-center">
           <Link href={`/clasificados/en-venta?lang=${lang}`} className="text-sm font-semibold text-[#2A2620] underline">

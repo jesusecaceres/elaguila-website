@@ -17,7 +17,6 @@ import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
-import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
 import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
 import { BienesRaicesPropiedadFilterChips } from "./components/BienesRaicesPropiedadFilterChips";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
@@ -237,7 +236,6 @@ export function BienesRaicesResultsClient() {
   return (
     <BienesRaicesResultsShell>
       <BienesRaicesResultsTopBar copy={copy} lang={lang} />
-      <BienesRaicesCategoryNav lang={lang} />
 
       <div className="space-y-3 pb-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -305,21 +303,19 @@ export function BienesRaicesResultsClient() {
           propiedadActive={propiedadLabelActive}
         />
 
-        <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
+        <BienesRaicesResultsHeader
+          showingFrom={showingFrom}
+          showingTo={showingTo}
+          total={totalForHeader}
+          sort={parsed.sort || "reciente"}
+          onSort={(v) => patchUrl({ sort: v || null })}
+          view={view}
+          onView={setView}
+          copy={copy}
+          lang={lang}
+          showMapToggle={false}
+        />
       </div>
-
-      <BienesRaicesResultsHeader
-        showingFrom={showingFrom}
-        showingTo={showingTo}
-        total={totalForHeader}
-        sort={parsed.sort || "reciente"}
-        onSort={(v) => patchUrl({ sort: v || null })}
-        view={view}
-        onView={setView}
-        copy={copy}
-        lang={lang}
-        showMapToggle={false}
-      />
 
       <section className="mt-4" aria-labelledby="br-more-heading">
         <h2 id="br-more-heading" className="sr-only">
@@ -381,6 +377,10 @@ export function BienesRaicesResultsClient() {
           </nav>
         ) : null}
       </section>
+
+      <footer className="mt-8 border-t border-[#D6C7AD]/50 pt-6">
+        <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
+      </footer>
 
       <BienesRaicesResultsFilterDrawer
         open={filterDrawerOpen}
