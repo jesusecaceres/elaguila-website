@@ -27,6 +27,10 @@ const ALLOWED_PUBLIC_PREFIXES = [
   "/productos-promocion",
   "/tienda/contacto",
   "/translate-site",
+  /** Stripe Revenue OS payment result — owners must see lookup-only status after redirect. */
+  "/revenue-os",
+  /** Owner dashboard return after payment — page-level auth still applies. */
+  "/dashboard",
 ] as const;
 
 const ALLOWED_PUBLIC_EXACT = ["/auth/callback"] as const;

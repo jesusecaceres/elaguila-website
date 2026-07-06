@@ -66,3 +66,40 @@ export function buildServiciosDashboardActionContract(args: {
     canSeeAnalytics: false,
   };
 }
+
+export function buildRestaurantesDashboardActionContract(args: {
+  id: string;
+  slug: string;
+  leonixAdId?: string | null;
+  status: string;
+  lang: Lang;
+  couponUpgradeEnabled?: boolean;
+}): CategoryDashboardActionContract {
+  const slug = args.slug.trim();
+  const id = cleanString(args.id) ?? args.id.trim();
+  const leonixAdId = cleanString(args.leonixAdId ?? null);
+  const publicQ = `lang=${args.lang}`;
+  const publicUrl = slug ? `/clasificados/restaurantes/${encodeURIComponent(slug)}?${publicQ}` : null;
+  const resultsUrl = `/clasificados/restaurantes/resultados?${publicQ}`;
+  const manageQ = new URLSearchParams({ lang: args.lang, category: "restaurantes" });
+
+  return {
+    categorySlug: "restaurantes",
+    listingId: id,
+    leonixAdId,
+    slug,
+    sourceTable: "restaurantes_public_listings",
+    status: args.status,
+    publicUrl,
+    resultsUrl,
+    editUrl: `/publicar/restaurantes?${publicQ}`,
+    manageUrl: `/dashboard/mis-anuncios?${manageQ.toString()}`,
+    previewUrl: `/clasificados/restaurantes/preview?${publicQ}`,
+    canEdit: Boolean(slug),
+    canPause: false,
+    canRepublish: false,
+    canViewPublic: Boolean(publicUrl),
+    canViewResults: true,
+    canSeeAnalytics: false,
+  };
+}

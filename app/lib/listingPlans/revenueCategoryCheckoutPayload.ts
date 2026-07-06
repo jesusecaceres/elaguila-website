@@ -7,6 +7,8 @@ import {
   EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
   type RevenuePackageDefinition,
 } from "./revenuePricingMatrix";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
+import { buildDashboardMisAnunciosReturnPath } from "./revenueOsReturnPath";
 
 export const REVENUE_CATEGORY_CHECKOUT_ROUTE = "/api/revenue-os/checkout";
 
@@ -40,6 +42,13 @@ export const RESTAURANTES_BASE_CHECKOUT = {
   category: "restaurantes",
   packageKey: "restaurantes_base_monthly",
   returnPath: "/clasificados/restaurantes",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+/** Dashboard add-on-only — coupon module on an existing published Restaurante listing ($99/mo). */
+export const RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
+  category: "restaurantes",
+  packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+  returnPath: buildDashboardMisAnunciosReturnPath("es", "restaurantes"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
 export type RevenueCheckoutAddOnPayload = {

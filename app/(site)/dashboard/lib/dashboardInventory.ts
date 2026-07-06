@@ -7,6 +7,7 @@ import {
   buildServiciosDashboardActionContract,
   type CategoryDashboardActionContract,
 } from "./categoryDashboardActionContract";
+import { restaurantCouponAddonUpgradeEligible } from "./restaurantesDashboardCouponAddonCheckout";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -32,6 +33,8 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
+  /** True when published Restaurante can buy coupon add-on only from dashboard. */
+  restaurantCouponUpgradeEligible?: boolean;
   /** Optional fields for `resolveCategoryAdPlanFromDashboardInventoryItem`. */
   autosLane?: string | null;
   viajesLane?: string | null;
@@ -64,6 +67,7 @@ export type DashboardRestaurantRow = {
   business_name: string;
   draft_listing_id: string | null;
   hero_image_url?: string | null;
+  listing_json?: unknown;
 };
 
 export type DashboardEmpleosRow = {
@@ -136,7 +140,7 @@ export async function fetchOwnerRestaurantListings(
   const { data, error } = await sb
     .from("restaurantes_public_listings")
     .select(
-      "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url",
+      "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url, listing_json",
     )
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
@@ -341,6 +345,10 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
+    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligible({
+      status: row.status,
+      listingJson: row.listing_json,
+    }),
     source: "restaurantes_public_listings",
   }));
 }

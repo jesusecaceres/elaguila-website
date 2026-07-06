@@ -1,5 +1,10 @@
 import Link from "next/link";
 import type { RevenuePaymentProof } from "@/app/lib/listingPlans/revenuePaymentLookup";
+import {
+  buildDashboardMisAnunciosReturnPath,
+  resolveRevenueCategoryDefaultReturnPath,
+  sanitizeRevenueOsReturnPath,
+} from "@/app/lib/listingPlans/revenueOsReturnPath";
 
 const SHELL = "mx-auto max-w-xl px-4 py-12 sm:py-16";
 
@@ -18,8 +23,17 @@ type Copy = {
   tone: "success" | "warn" | "neutral" | "error";
 };
 
-function resolveCopy(proof: RevenuePaymentProof, lang: "en" | "es", returnTo?: string | null): Copy {
-  const dashboardHref = lang === "es" ? "/dashboard/mis-anuncios?lang=es" : "/dashboard/mis-anuncios?lang=en";
+function resolveCopy(
+  proof: RevenuePaymentProof,
+  lang: "en" | "es",
+  returnTo?: string | null,
+  category?: string | null,
+): Copy {
+  const dashboardHref = buildDashboardMisAnunciosReturnPath(lang);
+  const categoryHref = resolveRevenueCategoryDefaultReturnPath(category ?? proof.category ?? "", lang);
+  const safeReturnTo = returnTo?.trim()
+    ? sanitizeRevenueOsReturnPath(returnTo, dashboardHref)
+    : null;
   const supportHref = lang === "es" ? "/contacto?lang=es" : "/contact?lang=en";
 
   const detailLines: Copy["detailLines"] = [];
@@ -53,21 +67,21 @@ function resolveCopy(proof: RevenuePaymentProof, lang: "en" | "es", returnTo?: s
 
   if (proof.paymentState === "confirmed" && proof.entitlementState === "active") {
     return {
-      title: lang === "es" ? "¡Pago confirmado!" : "Payment confirmed!",
-      subtitle: lang === "es" ? "Tu plan del anuncio está activo" : "Your ad plan is active",
+      title: lang === "es" ? "Pago recibido" : "Payment received",
+      subtitle: lang === "es" ? "Plan del anuncio activo" : "Ad plan active",
       body:
         lang === "es"
-          ? "Stripe confirmó tu pago y tu plan del anuncio ya está activo. Esto es independiente del plan de tu cuenta."
-          : "Stripe confirmed your payment and your listing ad plan is now active. This is separate from your account plan.",
+          ? "Stripe confirmó tu pago. Tu plan del anuncio está activo según nuestro registro verificado."
+          : "Stripe confirmed your payment. Your listing ad plan is active per our verified records.",
       detailLines,
       note:
         lang === "es"
           ? "Activado por webhook verificado de Stripe — no por esta página."
           : "Activated by verified Stripe webhook — not by this page.",
       primaryHref: dashboardHref,
-      primaryLabel: lang === "es" ? "Ver Mis anuncios" : "View My listings",
-      secondaryHref: returnTo?.trim() || undefined,
-      secondaryLabel: returnTo ? (lang === "es" ? "Volver" : "Go back") : undefined,
+      primaryLabel: lang === "es" ? "Volver a mi panel" : "Back to my dashboard",
+      secondaryHref: safeReturnTo && safeReturnTo !== dashboardHref ? safeReturnTo : categoryHref,
+      secondaryLabel: lang === "es" ? "Ver categoría" : "View category",
       supportHref,
       supportLabel: lang === "es" ? "Ayuda" : "Help",
       tone: "success",
@@ -77,15 +91,17 @@ function resolveCopy(proof: RevenuePaymentProof, lang: "en" | "es", returnTo?: s
   if (proof.paymentState === "confirmed" && proof.entitlementState !== "active") {
     return {
       title: lang === "es" ? "Pago recibido" : "Payment received",
-      subtitle: lang === "es" ? "Activando tu plan…" : "Activating your plan…",
+      subtitle: lang === "es" ? "Confirmando tu anuncio…" : "Confirming your listing…",
       body:
         lang === "es"
-          ? "Tu pago fue confirmado por Stripe. Estamos finalizando la activación de tu plan del anuncio — esto puede tardar unos segundos."
-          : "Your payment was confirmed by Stripe. We are finishing activation of your ad plan — this may take a few seconds.",
+          ? "Estamos confirmando la publicación de tu anuncio. Tu anuncio se activará cuando Stripe confirme el pago."
+          : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
       detailLines,
       note: lang === "es" ? "Actualiza esta página en un momento." : "Refresh this page in a moment.",
       primaryHref: dashboardHref,
-      primaryLabel: lang === "es" ? "Ir a Mis anuncios" : "Go to My listings",
+      primaryLabel: lang === "es" ? "Volver a mi panel" : "Back to my dashboard",
+      secondaryHref: safeReturnTo && safeReturnTo !== dashboardHref ? safeReturnTo : categoryHref,
+      secondaryLabel: lang === "es" ? "Ver categoría" : "View category",
       supportHref,
       supportLabel: lang === "es" ? "Contactar soporte" : "Contact support",
       tone: "warn",
@@ -94,16 +110,21 @@ function resolveCopy(proof: RevenuePaymentProof, lang: "en" | "es", returnTo?: s
 
   if (proof.paymentState === "processing") {
     return {
-      title: lang === "es" ? "Procesando pago…" : "Processing payment…",
+      title: lang === "es" ? "Pago recibido" : "Payment received",
       subtitle: lang === "es" ? "Esperando confirmación de Stripe" : "Waiting for Stripe confirmation",
       body:
         lang === "es"
-          ? "Tu checkout está en proceso. No marcamos nada como pagado hasta que Stripe envíe el webhook verificado."
-          : "Your checkout is in progress. We do not mark anything paid until Stripe sends the verified webhook.",
+          ? "Estamos confirmando la publicación de tu anuncio. Tu anuncio se activará cuando Stripe confirme el pago."
+          : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
       detailLines,
-      note: lang === "es" ? "Si ya pagaste, espera unos segundos y actualiza." : "If you already paid, wait a few seconds and refresh.",
+      note:
+        lang === "es"
+          ? "No marcamos nada como pagado hasta que Stripe envíe el webhook verificado. Si ya pagaste, espera unos segundos y actualiza."
+          : "We do not mark anything paid until Stripe sends the verified webhook. If you already paid, wait a few seconds and refresh.",
       primaryHref: dashboardHref,
-      primaryLabel: lang === "es" ? "Mis anuncios" : "My listings",
+      primaryLabel: lang === "es" ? "Volver a mi panel" : "Back to my dashboard",
+      secondaryHref: safeReturnTo && safeReturnTo !== dashboardHref ? safeReturnTo : categoryHref,
+      secondaryLabel: lang === "es" ? "Ver categoría" : "View category",
       supportHref,
       supportLabel: lang === "es" ? "Contactar soporte" : "Contact support",
       tone: "warn",
@@ -159,14 +180,16 @@ export function RevenueOsPagoResultView({
   proof,
   lang,
   returnTo,
+  category,
   showRefreshHint,
 }: {
   proof: RevenuePaymentProof;
   lang: "en" | "es";
   returnTo?: string | null;
+  category?: string | null;
   showRefreshHint?: boolean;
 }) {
-  const copy = resolveCopy(proof, lang, returnTo);
+  const copy = resolveCopy(proof, lang, returnTo, category);
   const tone = toneClasses(copy.tone);
 
   return (

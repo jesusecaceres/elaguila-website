@@ -6,6 +6,7 @@ import {
   buildRevenueStripeLineItems,
   isRevenueStripeEnvConfigured,
   isRevenueSupabaseAdminConfigured,
+  RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
   validateRevenueCheckoutAddOns,
   validateRevenueCheckoutRequest,
   type RevenueCheckoutRequest,
@@ -21,6 +22,11 @@ import {
   resolvePromoForCheckout,
 } from "@/app/lib/listingPlans/revenuePromoRedemptions";
 import { createRevenueStripeCheckoutSession } from "@/app/lib/listingPlans/revenueStripe";
+import {
+  buildDashboardMisAnunciosReturnPath,
+  resolveRevenueCategoryDefaultReturnPath,
+  sanitizeRevenueOsReturnPath,
+} from "@/app/lib/listingPlans/revenueOsReturnPath";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -133,6 +139,15 @@ export async function POST(request: NextRequest) {
 
   const { packageDef, listingRef, amountCents, subtotalCents, addOns, currency, stripeMode } = validated;
 
+  const locale = body.locale === "en" ? "en" : "es";
+  const isRestauranteAddonOnly =
+    packageDef.packageKey === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY &&
+    packageDef.category === "restaurantes";
+  const returnFallback = isRestauranteAddonOnly
+    ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
+    : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
+  const safeReturnPath = sanitizeRevenueOsReturnPath(body.returnPath, returnFallback);
+
   const paymentInsert = await createPendingPaymentRecord({
     category: packageDef.category,
     packageKey: packageDef.packageKey,
@@ -149,6 +164,7 @@ export async function POST(request: NextRequest) {
     discountCents,
     promoCode: promoCodeRaw ?? null,
     discountType: promoTypeForRecord ?? null,
+    addonOnly: isRestauranteAddonOnly,
   });
 
   if (!paymentInsert.ok) {
@@ -193,7 +209,7 @@ export async function POST(request: NextRequest) {
     category: packageDef.category,
     packageKey: packageDef.packageKey,
     locale: body.locale,
-    returnPath: body.returnPath,
+    returnPath: safeReturnPath,
   });
 
   const cancelUrl = buildCheckoutCancelUrl({
@@ -201,6 +217,7 @@ export async function POST(request: NextRequest) {
     packageKey: packageDef.packageKey,
     listingId: listingRef,
     locale: body.locale,
+    returnPath: safeReturnPath,
   });
 
   const stripeLineItems = buildRevenueStripeLineItems({

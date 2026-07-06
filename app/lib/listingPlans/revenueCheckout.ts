@@ -10,6 +10,13 @@ import {
   type RevenuePackageDefinition,
 } from "./revenuePricingMatrix";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
+import {
+  resolveRevenueCategoryDefaultReturnPath,
+  sanitizeRevenueOsReturnPath,
+  type RevenueOsLang,
+} from "./revenueOsReturnPath";
+
+export const RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
 
 export type RevenueCheckoutAddOnInput = {
   key: string;
@@ -243,6 +250,23 @@ export function validateRevenueCheckoutRequest(
     };
   }
 
+  if (packageKey === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY) {
+    if (!String(input.listingId ?? "").trim()) {
+      return {
+        ok: false,
+        code: "listing_id_required",
+        message: "listingId is required for Restaurante add-on-only checkout.",
+      };
+    }
+    if (input.addOns?.length) {
+      return {
+        ok: false,
+        code: "add_ons_not_allowed",
+        message: "Add-on-only checkout cannot include nested add-ons.",
+      };
+    }
+  }
+
   if (packageKey === EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY) {
     return {
       ok: false,
@@ -331,11 +355,12 @@ export function buildCheckoutSuccessUrl(input: {
   returnPath?: string | null;
 }): string {
   const origin = getRevenueSiteOrigin();
-  const lang = input.locale === "en" ? "lang=en" : "lang=es";
-  const returnQ = input.returnPath?.trim()
-    ? `&return_to=${encodeURIComponent(input.returnPath.trim())}`
-    : "";
-  return `${origin}/revenue-os/pago/exito?session_id={CHECKOUT_SESSION_ID}&category=${encodeURIComponent(input.category)}&package_key=${encodeURIComponent(input.packageKey)}&${lang}${returnQ}`;
+  const lang: RevenueOsLang = input.locale === "en" ? "en" : "es";
+  const langQ = lang === "en" ? "lang=en" : "lang=es";
+  const fallback = resolveRevenueCategoryDefaultReturnPath(input.category, lang);
+  const safeReturn = sanitizeRevenueOsReturnPath(input.returnPath, fallback);
+  const returnQ = `&return_to=${encodeURIComponent(safeReturn)}`;
+  return `${origin}/revenue-os/pago/exito?session_id={CHECKOUT_SESSION_ID}&category=${encodeURIComponent(input.category)}&package_key=${encodeURIComponent(input.packageKey)}&${langQ}${returnQ}`;
 }
 
 export function buildCheckoutCancelUrl(input: {
@@ -343,10 +368,15 @@ export function buildCheckoutCancelUrl(input: {
   packageKey: string;
   listingId: string;
   locale?: "es" | "en" | null;
+  returnPath?: string | null;
 }): string {
   const origin = getRevenueSiteOrigin();
-  const lang = input.locale === "en" ? "lang=en" : "lang=es";
-  return `${origin}/revenue-os/pago/cancelado?category=${encodeURIComponent(input.category)}&package_key=${encodeURIComponent(input.packageKey)}&listing_id=${encodeURIComponent(input.listingId)}&${lang}`;
+  const lang: RevenueOsLang = input.locale === "en" ? "en" : "es";
+  const langQ = lang === "en" ? "lang=en" : "lang=es";
+  const fallback = resolveRevenueCategoryDefaultReturnPath(input.category, lang);
+  const safeReturn = sanitizeRevenueOsReturnPath(input.returnPath, fallback);
+  const returnQ = `&return_to=${encodeURIComponent(safeReturn)}`;
+  return `${origin}/revenue-os/pago/cancelado?category=${encodeURIComponent(input.category)}&package_key=${encodeURIComponent(input.packageKey)}&listing_id=${encodeURIComponent(input.listingId)}&${langQ}${returnQ}`;
 }
 
 export function isRevenueStripeEnvConfigured(): boolean {

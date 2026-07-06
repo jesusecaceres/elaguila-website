@@ -10,6 +10,7 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 export const RESTAURANTE_PENDING_CHECKOUT_STATUS = "pending_payment" as const;
 
 export const RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY = "restaurantes_base_monthly" as const;
+export const RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY = "restaurantes_offers_addon" as const;
 
 /** Statuses webhook may activate to published after successful payment. */
 export const RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES = [
@@ -153,6 +154,113 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
       ok: false,
       outcome: "error",
       message: "Restaurant listing activation update did not apply.",
+      listingId,
+    };
+  }
+
+  return { ok: true, outcome: "activated", listingId };
+}
+
+export async function activateRestauranteCouponAddonFromRevenueOs(input: {
+  listingId: string | null | undefined;
+  packageKey: string | null | undefined;
+  paymentRecordId?: string | null;
+  stripeCheckoutSessionId?: string | null;
+  stripeEventId?: string | null;
+  leonixAdId?: string | null;
+}): Promise<RestauranteRevenueActivationResult> {
+  const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
+  if (packageKey !== RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY) {
+    return { ok: true, outcome: "skipped_wrong_package" };
+  }
+
+  const listingId = String(input.listingId ?? "").trim();
+  if (!listingId) {
+    return {
+      ok: false,
+      outcome: "missing_listing_id",
+      message: "listingId is required for Restaurante coupon add-on activation.",
+    };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, outcome: "error", message: "Supabase admin is not configured." };
+  }
+
+  const supabase = getAdminSupabase();
+  const { data: row, error: readError } = await supabase
+    .from("restaurantes_public_listings")
+    .select("id, status, listing_json")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (readError) {
+    return { ok: false, outcome: "error", message: readError.message, listingId };
+  }
+
+  if (!row?.id) {
+    return {
+      ok: false,
+      outcome: "not_found",
+      message: "Restaurante listing row not found.",
+      listingId,
+    };
+  }
+
+  const status = String(row.status ?? "").trim().toLowerCase();
+  if (status !== "published") {
+    return {
+      ok: false,
+      outcome: "unsafe_status",
+      message: `Coupon add-on can only activate on published listings (status: "${status}").`,
+      listingId,
+    };
+  }
+
+  const listingJson =
+    row.listing_json && typeof row.listing_json === "object"
+      ? { ...(row.listing_json as Record<string, unknown>) }
+      : {};
+
+  if (listingJson.couponUpgradeEnabled === true) {
+    return { ok: true, outcome: "already_published", listingId };
+  }
+
+  listingJson.couponUpgradeEnabled = true;
+  if (listingJson.couponMonthlyPrice == null) {
+    listingJson.couponMonthlyPrice = 99;
+  }
+
+  const now = new Date().toISOString();
+  const { data: updated, error: updateError } = await supabase
+    .from("restaurantes_public_listings")
+    .update({
+      listing_json: listingJson,
+      updated_at: now,
+    })
+    .eq("id", listingId)
+    .eq("status", "published")
+    .select("id")
+    .maybeSingle();
+
+  if (updateError) {
+    return { ok: false, outcome: "error", message: updateError.message, listingId };
+  }
+
+  if (!updated?.id) {
+    const { data: recheck } = await supabase
+      .from("restaurantes_public_listings")
+      .select("listing_json")
+      .eq("id", listingId)
+      .maybeSingle();
+    const recheckJson = recheck?.listing_json as Record<string, unknown> | null;
+    if (recheckJson?.couponUpgradeEnabled === true) {
+      return { ok: true, outcome: "already_published", listingId };
+    }
+    return {
+      ok: false,
+      outcome: "error",
+      message: "Restaurant coupon add-on update did not apply.",
       listingId,
     };
   }

@@ -19,7 +19,8 @@ export type CategoryToolKey =
   | "pause"
   | "archive"
   | "markSold"
-  | "reactivate";
+  | "reactivate"
+  | "couponUpgrade";
 
 export type CategoryToolStatus = "ready" | "hidden" | "future" | "unproven";
 
@@ -78,6 +79,7 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     preview: "ready",
     publicResults: "ready",
     analytics: "unproven",
+    couponUpgrade: "ready",
   },
   servicios: {
     publicView: "ready",
@@ -259,6 +261,10 @@ export function buildInventoryListingActions(
   item: DashboardInventoryItem,
   lang: Lang,
   q: string,
+  opts?: {
+    onCouponUpgrade?: () => void;
+    couponUpgradeBusy?: boolean;
+  },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
 
@@ -282,6 +288,27 @@ export function buildInventoryListingActions(
     actions.push({
       href: `/dashboard/restaurantes?${q}`,
       label: openPanelLabel(lang),
+    });
+  }
+
+  if (
+    category === "restaurantes" &&
+    item.restaurantCouponUpgradeEligible &&
+    listingToolIsReady(category, "couponUpgrade") &&
+    opts?.onCouponUpgrade
+  ) {
+    actions.push({
+      label:
+        opts.couponUpgradeBusy
+          ? lang === "es"
+            ? "Iniciando pago…"
+            : "Starting checkout…"
+          : lang === "es"
+            ? "Activar módulo de cupones ($99/mes)"
+            : "Enable coupon module ($99/mo)",
+      onClick: opts.onCouponUpgrade,
+      disabled: opts.couponUpgradeBusy,
+      tone: "primary",
     });
   }
 

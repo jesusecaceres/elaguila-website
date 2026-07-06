@@ -26,6 +26,8 @@ export type CreatePendingPaymentRecordInput = {
   discountCents?: number;
   promoCode?: string | null;
   discountType?: string | null;
+  /** True when checkout is add-on-only (e.g. dashboard Restaurante coupon upgrade). */
+  addonOnly?: boolean;
 };
 
 export type PendingPaymentRecordResult =
@@ -50,7 +52,9 @@ export async function createPendingPaymentRecord(
   const discount = Math.max(0, input.discountCents ?? 0);
   const total = Math.max(0, input.amountCents);
   const addOns = input.addOns ?? [];
-  const restaurantCouponSelected = addOns.some((a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
+  const restaurantCouponSelected =
+    input.addonOnly === true ||
+    addOns.some((a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
 
   const { data, error } = await supabase
     .from("leonix_payment_records")
@@ -90,12 +94,15 @@ export async function createPendingPaymentRecord(
         ...(input.category === "restaurantes"
           ? {
               restaurant_coupon_addon_selected: restaurantCouponSelected,
+              ...(input.addonOnly ? { checkout_mode: "addon_only" } : {}),
               ...(restaurantCouponSelected
                 ? {
                     restaurant_offers_addon_package_key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-                    restaurant_offers_addon_price_cents: addOns.find(
-                      (a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-                    )?.unitPriceCents,
+                    restaurant_offers_addon_price_cents:
+                      input.addonOnly
+                        ? input.packageDef.priceCents
+                        : addOns.find((a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY)
+                            ?.unitPriceCents,
                   }
                 : {}),
             }
