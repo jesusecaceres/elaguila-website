@@ -43,6 +43,13 @@ export type BrResultsCopy = {
   togglePool: string;
   /** Honest scope line for amenity toggles (machine facets + legacy text). */
   amenityTogglesHint: string;
+  /** Question-based drawer section headings */
+  sectionSearchWhat: string;
+  sectionWhere: string;
+  sectionBudget: string;
+  sectionSize: string;
+  sectionNeeds: string;
+  sectionPoster: string;
   searchButton: string;
   categoryHeading: string;
   categoryAll: string;
@@ -153,8 +160,13 @@ const ES: BrResultsCopy = {
   togglePets: "Mascotas",
   toggleFurnished: "Amueblado",
   togglePool: "Alberca / piscina",
-  amenityTogglesHint:
-    "Piscina, amueblado y mascotas usan datos estructurados del anuncio cuando el vendedor los capturó al publicar (`Leonix:*` en detail_pairs).",
+  amenityTogglesHint: "Se muestran cuando el anuncio guardó estos datos.",
+  sectionSearchWhat: "¿Qué buscas?",
+  sectionWhere: "¿Dónde?",
+  sectionBudget: "¿Presupuesto?",
+  sectionSize: "¿Tamaño?",
+  sectionNeeds: "¿Necesidades?",
+  sectionPoster: "¿Quién publica?",
   searchButton: "Aplicar",
   categoryHeading: "Categoría",
   categoryAll: "Todas",
@@ -272,8 +284,13 @@ const EN: BrResultsCopy = {
   togglePets: "Pets",
   toggleFurnished: "Furnished",
   togglePool: "Pool",
-  amenityTogglesHint:
-    "Pool, furnished, and pets use structured publish data when the seller captured them (`Leonix:*` in detail_pairs).",
+  amenityTogglesHint: "Shown when the listing saved these details.",
+  sectionSearchWhat: "What are you looking for?",
+  sectionWhere: "Where?",
+  sectionBudget: "Budget?",
+  sectionSize: "Size?",
+  sectionNeeds: "Needs?",
+  sectionPoster: "Who is posting?",
   searchButton: "Apply",
   categoryHeading: "Category",
   categoryAll: "All",

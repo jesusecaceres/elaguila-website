@@ -3,6 +3,11 @@
 import type { EnVentaSubcategoryDef } from "../../taxonomy/subcategories";
 import { EN_VENTA_SORT_OPTIONS } from "../../filters/enVentaFilterGroups";
 import { US_STATE_OPTIONS } from "../../shared/constants/enVentaLocationContract";
+import {
+  CAT_STD_FILTER_CHIP,
+  CAT_STD_FILTER_CHIP_GRID,
+  CAT_STD_FILTER_SECTION_HEADING,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 type Lang = "es" | "en";
 type SortId = "newest" | "price-asc" | "price-desc";
@@ -69,6 +74,36 @@ type Props = {
 const fieldClass =
   "mt-1 w-full rounded-lg border border-[#DCCAA0] bg-white px-3 py-2 text-sm text-[#1E1810]";
 
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return <p className={`mt-5 first:mt-0 ${CAT_STD_FILTER_SECTION_HEADING}`}>{children}</p>;
+}
+
+function ChipCheckbox({
+  name,
+  defaultChecked,
+  value,
+  label,
+}: {
+  name: string;
+  defaultChecked?: boolean;
+  value?: string;
+  label: string;
+}) {
+  return (
+    <label className={CAT_STD_FILTER_CHIP}>
+      <input
+        form="ev-results-form"
+        type="checkbox"
+        name={name}
+        value={value}
+        defaultChecked={defaultChecked}
+        className="h-4 w-4 shrink-0 rounded border-[#DCCAA0]"
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 export function EnVentaResultsFiltersDrawer({
   open,
   lang,
@@ -112,7 +147,7 @@ export function EnVentaResultsFiltersDrawer({
         className={
           "fixed z-[61] flex flex-col overflow-hidden border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_-12px_48px_-16px_rgba(42,36,22,0.28)] " +
           "inset-x-0 bottom-0 top-[12vh] rounded-t-2xl max-lg:max-h-[88vh] " +
-          "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[420px] lg:rounded-none lg:rounded-l-2xl"
+          "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[440px] lg:rounded-none lg:rounded-l-2xl"
         }
         role="dialog"
         aria-modal="true"
@@ -127,10 +162,34 @@ export function EnVentaResultsFiltersDrawer({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Ubicación" : "Location"}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <SectionHeading>{lang === "es" ? "¿Qué artículo?" : "What item?"}</SectionHeading>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:col-span-2">
+              {t.dept}
+              <select form="ev-results-form" name="evDept" defaultValue={evDept} className={fieldClass}>
+                <option value="">{t.all}</option>
+                {deptOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
+              {t.sub}
+              <select form="ev-results-form" name="evSub" defaultValue={evSub} className={fieldClass}>
+                <option value="">{t.all}</option>
+                {subOptions.map((o) => (
+                  <option key={o.key} value={o.key}>{o.label[lang]}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
+              {lang === "es" ? "Tipo de artículo" : "Item type"}
+              <input form="ev-results-form" name="itemType" defaultValue={itemType} placeholder={lang === "es" ? "Ej: phone, laptop…" : "e.g. phone, laptop…"} className={fieldClass} />
+            </label>
+          </div>
+
+          <SectionHeading>{lang === "es" ? "¿Dónde?" : "Where?"}</SectionHeading>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:col-span-2">
               {lang === "es" ? "Ciudad" : "City"}
               <input form="ev-results-form" name="city" defaultValue={city} autoComplete="address-level2" className={fieldClass} />
@@ -157,38 +216,8 @@ export function EnVentaResultsFiltersDrawer({
           </button>
           {geoHint ? <p className="mt-2 text-xs text-[#8B4513]">{geoHint}</p> : null}
 
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Categoría" : "Category"}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
-              {t.dept}
-              <select form="ev-results-form" name="evDept" defaultValue={evDept} className={fieldClass}>
-                <option value="">{t.all}</option>
-                {deptOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
-              {t.sub}
-              <select form="ev-results-form" name="evSub" defaultValue={evSub} className={fieldClass}>
-                <option value="">{t.all}</option>
-                {subOptions.map((o) => (
-                  <option key={o.key} value={o.key}>{o.label[lang]}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:col-span-2">
-              {lang === "es" ? "Tipo de artículo" : "Item type"}
-              <input form="ev-results-form" name="itemType" defaultValue={itemType} placeholder={lang === "es" ? "Ej: phone, laptop…" : "e.g. phone, laptop…"} className={fieldClass} />
-            </label>
-          </div>
-
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Precio" : "Price"}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <SectionHeading>{lang === "es" ? "¿Presupuesto?" : "Budget?"}</SectionHeading>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
               {t.priceMin}
               <input form="ev-results-form" name="priceMin" defaultValue={priceMin} inputMode="numeric" className={fieldClass} />
@@ -199,9 +228,7 @@ export function EnVentaResultsFiltersDrawer({
             </label>
           </div>
 
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Condición" : "Condition"}
-          </p>
+          <SectionHeading>{lang === "es" ? "¿Condición?" : "Condition?"}</SectionHeading>
           <label className="mt-3 block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
             {lang === "es" ? "Condición" : "Condition"}
             <select form="ev-results-form" name="cond" defaultValue={cond} className={fieldClass}>
@@ -212,67 +239,32 @@ export function EnVentaResultsFiltersDrawer({
             </select>
           </label>
 
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Vendedor y entrega" : "Seller & fulfillment"}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:col-span-2">
-              {t.seller}
-              <select form="ev-results-form" name="seller" defaultValue={seller} className={fieldClass}>
-                <option value="">{t.all}</option>
-                <option value="individual">{t.ind}</option>
-                <option value="business">{t.biz}</option>
-              </select>
-            </label>
+          <SectionHeading>{lang === "es" ? "¿Vendedor y entrega?" : "Seller & delivery?"}</SectionHeading>
+          <label className="mt-3 block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
+            {t.seller}
+            <select form="ev-results-form" name="seller" defaultValue={seller} className={fieldClass}>
+              <option value="">{t.all}</option>
+              <option value="individual">{t.ind}</option>
+              <option value="business">{t.biz}</option>
+            </select>
+          </label>
+          <div className={`mt-3 ${CAT_STD_FILTER_CHIP_GRID}`}>
+            <ChipCheckbox name="pickup" defaultChecked={pickup} label={lang === "es" ? "Recogida" : "Pickup"} />
+            <ChipCheckbox name="ship" defaultChecked={ship} label={lang === "es" ? "Envío" : "Shipping"} />
+            <ChipCheckbox name="delivery" defaultChecked={delivery} label={lang === "es" ? "Entrega local" : "Local delivery"} />
+            <ChipCheckbox name="meetupFilter" value="1" defaultChecked={meetupOnly} label={t.meetupOnly} />
+            <ChipCheckbox name="free" value="1" defaultChecked={freeOnly} label={t.freeOnly} />
+            <ChipCheckbox name="nego" value="1" defaultChecked={negotiableOnly} label={t.negoOnly} />
           </div>
-          <fieldset className="mt-3 flex flex-wrap gap-3 text-sm text-[#3D3428]">
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="pickup" defaultChecked={pickup} className="rounded border-[#DCCAA0]" />
-              {lang === "es" ? "Recogida" : "Pickup"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="ship" defaultChecked={ship} className="rounded border-[#DCCAA0]" />
-              {lang === "es" ? "Envío" : "Shipping"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="delivery" defaultChecked={delivery} className="rounded border-[#DCCAA0]" />
-              {lang === "es" ? "Entrega local" : "Local delivery"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="meetupFilter" value="1" defaultChecked={meetupOnly} className="rounded border-[#DCCAA0]" />
-              {t.meetupOnly}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="free" value="1" defaultChecked={freeOnly} className="rounded border-[#DCCAA0]" />
-              {t.freeOnly}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="nego" value="1" defaultChecked={negotiableOnly} className="rounded border-[#DCCAA0]" />
-              {t.negoOnly}
-            </label>
-          </fieldset>
 
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Medios" : "Media"}
-          </p>
-          <fieldset className="mt-3 flex flex-wrap gap-3 text-sm text-[#3D3428]">
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="hasPhoto" value="1" defaultChecked={hasPhotoOnly} className="rounded border-[#DCCAA0]" />
-              {lang === "es" ? "Con foto" : "Has photo"}
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input form="ev-results-form" type="checkbox" name="hasVideo" value="1" defaultChecked={hasVideoOnly} className="rounded border-[#DCCAA0]" />
-              {lang === "es" ? "Con video" : "Has video"}
-            </label>
-            <label className="inline-flex w-full items-center gap-2 border-t border-[#E8DFD0]/60 pt-3">
-              <input form="ev-results-form" type="checkbox" name="featured" value="1" defaultChecked={featuredOnly} className="rounded border-[#DCCAA0]" />
-              {t.featuredMode}
-            </label>
-          </fieldset>
+          <SectionHeading>{lang === "es" ? "¿Medios?" : "Media?"}</SectionHeading>
+          <div className={`mt-3 ${CAT_STD_FILTER_CHIP_GRID}`}>
+            <ChipCheckbox name="hasPhoto" value="1" defaultChecked={hasPhotoOnly} label={lang === "es" ? "Con foto" : "Has photo"} />
+            <ChipCheckbox name="hasVideo" value="1" defaultChecked={hasVideoOnly} label={lang === "es" ? "Con video" : "Has video"} />
+            <ChipCheckbox name="featured" value="1" defaultChecked={featuredOnly} label={t.featuredMode} />
+          </div>
 
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5C5346]">
-            {lang === "es" ? "Ordenar" : "Sort"}
-          </p>
+          <SectionHeading>{lang === "es" ? "¿Cómo ordenar?" : "Sort results?"}</SectionHeading>
           <select form="ev-results-form" name="sort" defaultValue={sort} className={`${fieldClass} mt-3`}>
             {EN_VENTA_SORT_OPTIONS.map((o) => (
               <option key={o.id} value={o.id}>{o.label[lang]}</option>

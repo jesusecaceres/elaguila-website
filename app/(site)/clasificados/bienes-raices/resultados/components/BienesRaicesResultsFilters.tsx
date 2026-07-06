@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { getCanonicalCityName, normalizeZipInput } from "@/app/data/locations/californiaLocationHelpers";
 import { BienesRaicesUseLocationButton } from "@/app/clasificados/bienes-raices/components/BienesRaicesUseLocationButton";
 import { US_STATE_OPTIONS } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import { setBrLastCity } from "@/app/clasificados/bienes-raices/shared/brFirstPartyPrefs";
+import {
+  CAT_STD_FILTER_CHIP,
+  CAT_STD_FILTER_CHIP_GRID,
+  CAT_STD_FILTER_HELPER,
+  CAT_STD_FILTER_SECTION_HEADING,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 import type { BrResultsParsedState } from "../lib/brResultsUrlState";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { brLuxuryCardClass } from "../../shared/brResultsTheme";
 
 const INPUT =
   "w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/65";
@@ -21,9 +26,55 @@ type Props = {
   /** Merge into URL; omit page reset when `preservePage` true (pagination). */
   onPatch: (patch: Record<string, string | null>, preservePage?: boolean) => void;
   idPrefix?: string;
+  /** Drawer uses single-column sections; inline panel may use wider grids. */
+  layout?: "drawer" | "inline";
 };
 
-export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPrefix = "br-f" }: Props) {
+function FilterSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3 border-b border-[#D6C7AD]/40 pb-5 last:border-b-0 last:pb-0">
+      <h3 className={CAT_STD_FILTER_SECTION_HEADING}>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function AmenityChip({
+  id,
+  checked,
+  label,
+  onChange,
+}: {
+  id: string;
+  checked: boolean;
+  label: string;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label htmlFor={id} className={CAT_STD_FILTER_CHIP}>
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 shrink-0 rounded border-[#E8DFD0] text-[#B8954A] focus:ring-[#C9B46A]/50"
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+export function BienesRaicesResultsFilters({
+  parsed,
+  copy,
+  lang,
+  onPatch,
+  idPrefix = "br-f",
+  layout = "drawer",
+}: Props) {
+  const isDrawer = layout === "drawer";
+  const pairGrid = isDrawer ? "grid gap-3 grid-cols-1 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-2";
+
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
   const [state, setState] = useState(parsed.state || "CA");
@@ -60,82 +111,27 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
   };
 
   return (
-    <div className={`${brLuxuryCardClass} p-4 sm:p-5`}>
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <label className="min-w-0 md:col-span-2 xl:col-span-1">
-              <span className={LABEL}>{copy.searchLabel}</span>
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#B8954A]" aria-hidden>
-                  ⌕
-                </span>
-                <input
-                  id={`${idPrefix}-q`}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  onBlur={commitText}
-                  placeholder={copy.searchPlaceholder}
-                  className={INPUT + " pl-9"}
-                />
-              </div>
-            </label>
-            <label className="min-w-0">
-              <span className={LABEL}>{copy.cityLabel}</span>
-              <input
-                id={`${idPrefix}-city`}
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                onBlur={commitText}
-                placeholder={copy.cityPlaceholder}
-                className={INPUT}
-              />
-            </label>
-            <label className="min-w-0">
-              <span className={LABEL}>{copy.stateLabel}</span>
-              <select
-                id={`${idPrefix}-state`}
-                value={state || "CA"}
-                onChange={(e) => {
-                  setState(e.target.value);
-                  onPatch({ state: e.target.value || null });
-                }}
-                className={INPUT}
-              >
-                {US_STATE_OPTIONS.map((opt) => (
-                  <option key={opt.code} value={opt.code}>
-                    {opt.code} — {opt.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="min-w-0">
-              <span className={LABEL}>{copy.zipLabel}</span>
-              <input
-                id={`${idPrefix}-zip`}
-                inputMode="numeric"
-                value={zip}
-                onChange={(e) => setZip(e.target.value)}
-                onBlur={commitText}
-                placeholder={copy.zipPlaceholder}
-                className={INPUT}
-                autoComplete="postal-code"
-              />
-            </label>
-            <label className="min-w-0">
-              <span className={LABEL}>{copy.countryLabel}</span>
-              <input
-                id={`${idPrefix}-country`}
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                onBlur={commitText}
-                placeholder={lang === "es" ? "Estados Unidos" : "United States"}
-                className={INPUT}
-                autoComplete="country-name"
-              />
-            </label>
-            <label>
-              <span className={LABEL}>{copy.operationLabel}</span>
+    <div className={isDrawer ? "space-y-5" : "rounded-2xl border border-[#E8DFD0]/80 bg-[#FFFDF7] p-4 sm:p-5"}>
+      <FilterSection title={copy.sectionSearchWhat}>
+        <label className="block min-w-0">
+          <span className={LABEL}>{copy.searchLabel}</span>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#B8954A]" aria-hidden>
+              ⌕
+            </span>
+            <input
+              id={`${idPrefix}-q`}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onBlur={commitText}
+              placeholder={copy.searchPlaceholder}
+              className={INPUT + " pl-9"}
+            />
+          </div>
+        </label>
+        <div className={pairGrid}>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.operationLabel}</span>
             <select
               value={parsed.operationType}
               onChange={(e) => {
@@ -149,7 +145,7 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
               <option value="renta">{copy.operationRent}</option>
             </select>
           </label>
-          <label>
+          <label className="block min-w-0">
             <span className={LABEL}>{copy.typeLabel}</span>
             <select
               value={parsed.propertyType}
@@ -171,63 +167,155 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
               <option value="comercial">{copy.typeCommercial}</option>
             </select>
           </label>
-          </div>
-          <BienesRaicesUseLocationButton lang={lang} />
         </div>
-      </div>
+      </FilterSection>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-        <label>
-          <span className={LABEL}>{copy.priceMinLabel}</span>
+      <FilterSection title={copy.sectionWhere}>
+        <label className="block min-w-0">
+          <span className={LABEL}>{copy.cityLabel}</span>
           <input
-            inputMode="numeric"
-            value={priceMin}
-            onChange={(e) => setPriceMin(e.target.value)}
+            id={`${idPrefix}-city`}
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
             onBlur={commitText}
-            placeholder={copy.priceMinPlaceholder}
+            placeholder={copy.cityPlaceholder}
             className={INPUT}
           />
         </label>
-        <label>
-          <span className={LABEL}>{copy.priceMaxLabel}</span>
+        <div className={pairGrid}>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.stateLabel}</span>
+            <select
+              id={`${idPrefix}-state`}
+              value={state || "CA"}
+              onChange={(e) => {
+                setState(e.target.value);
+                onPatch({ state: e.target.value || null });
+              }}
+              className={INPUT}
+            >
+              {US_STATE_OPTIONS.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.code} — {opt.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.zipLabel}</span>
+            <input
+              id={`${idPrefix}-zip`}
+              inputMode="numeric"
+              value={zip}
+              onChange={(e) => setZip(e.target.value)}
+              onBlur={commitText}
+              placeholder={copy.zipPlaceholder}
+              className={INPUT}
+              autoComplete="postal-code"
+            />
+          </label>
+        </div>
+        <label className="block min-w-0">
+          <span className={LABEL}>{copy.countryLabel}</span>
           <input
-            inputMode="numeric"
-            value={priceMax}
-            onChange={(e) => setPriceMax(e.target.value)}
+            id={`${idPrefix}-country`}
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
             onBlur={commitText}
-            placeholder={copy.priceMaxPlaceholder}
+            placeholder={lang === "es" ? "Estados Unidos" : "United States"}
             className={INPUT}
+            autoComplete="country-name"
           />
         </label>
-        <label>
-          <span className={LABEL}>{copy.bedsLabel}</span>
-          <select
-            value={parsed.beds}
-            onChange={(e) => onPatch({ beds: e.target.value || null, recs: e.target.value || null })}
-            className={INPUT}
-          >
-            <option value="">{copy.bedsAny}</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-          </select>
-        </label>
-        <label>
-          <span className={LABEL}>{copy.bathsLabel}</span>
-          <select
-            value={parsed.baths}
-            onChange={(e) => onPatch({ baths: e.target.value || null })}
-            className={INPUT}
-          >
-            <option value="">{copy.bathsAny}</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-          </select>
-        </label>
-        <label>
+        <BienesRaicesUseLocationButton lang={lang} />
+      </FilterSection>
+
+      <FilterSection title={copy.sectionBudget}>
+        <div className={pairGrid}>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.priceMinLabel}</span>
+            <input
+              inputMode="numeric"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+              onBlur={commitText}
+              placeholder={copy.priceMinPlaceholder}
+              className={INPUT}
+            />
+          </label>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.priceMaxLabel}</span>
+            <input
+              inputMode="numeric"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+              onBlur={commitText}
+              placeholder={copy.priceMaxPlaceholder}
+              className={INPUT}
+            />
+          </label>
+        </div>
+      </FilterSection>
+
+      <FilterSection title={copy.sectionSize}>
+        <div className={pairGrid}>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.bedsLabel}</span>
+            <select
+              value={parsed.beds}
+              onChange={(e) => onPatch({ beds: e.target.value || null, recs: e.target.value || null })}
+              className={INPUT}
+            >
+              <option value="">{copy.bedsAny}</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+            </select>
+          </label>
+          <label className="block min-w-0">
+            <span className={LABEL}>{copy.bathsLabel}</span>
+            <select
+              value={parsed.baths}
+              onChange={(e) => onPatch({ baths: e.target.value || null })}
+              className={INPUT}
+            >
+              <option value="">{copy.bathsAny}</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+            </select>
+          </label>
+        </div>
+      </FilterSection>
+
+      <FilterSection title={copy.sectionNeeds}>
+        <div className={CAT_STD_FILTER_CHIP_GRID}>
+          <AmenityChip
+            id={`${idPrefix}-pets`}
+            checked={parsed.pets === "true"}
+            label={copy.togglePets}
+            onChange={(next) => onPatch({ pets: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-furnished`}
+            checked={parsed.furnished === "true"}
+            label={copy.toggleFurnished}
+            onChange={(next) => onPatch({ furnished: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-pool`}
+            checked={parsed.pool === "true"}
+            label={copy.togglePool}
+            onChange={(next) => onPatch({ pool: next ? "true" : null })}
+          />
+        </div>
+        <p className={CAT_STD_FILTER_HELPER}>{copy.amenityTogglesHint}</p>
+      </FilterSection>
+
+      <FilterSection title={copy.sectionPoster}>
+        <label className="block min-w-0">
           <span className={LABEL}>{copy.sellerLabel}</span>
           <select
             value={parsed.sellerType}
@@ -243,38 +331,7 @@ export function BienesRaicesResultsFilters({ parsed, copy, lang, onPatch, idPref
             <option value="negocio">{copy.sellerBusiness}</option>
           </select>
         </label>
-        <div className="flex flex-col justify-end gap-2 sm:flex-row sm:items-center">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]">
-            <input
-              type="checkbox"
-              checked={parsed.pets === "true"}
-              onChange={(e) => onPatch({ pets: e.target.checked ? "true" : null })}
-              className="h-4 w-4 rounded border-[#E8DFD0] text-[#B8954A] focus:ring-[#C9B46A]/50"
-            />
-            {copy.togglePets}
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]">
-            <input
-              type="checkbox"
-              checked={parsed.furnished === "true"}
-              onChange={(e) => onPatch({ furnished: e.target.checked ? "true" : null })}
-              className="h-4 w-4 rounded border-[#E8DFD0] text-[#B8954A] focus:ring-[#C9B46A]/50"
-            />
-            {copy.toggleFurnished}
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]">
-            <input
-              type="checkbox"
-              checked={parsed.pool === "true"}
-              onChange={(e) => onPatch({ pool: e.target.checked ? "true" : null })}
-              className="h-4 w-4 rounded border-[#E8DFD0] text-[#B8954A] focus:ring-[#C9B46A]/50"
-            />
-            {copy.togglePool}
-          </label>
-        </div>
-        <p className="text-[10px] leading-snug text-[#5C5346]/85">{copy.amenityTogglesHint}</p>
-      </div>
-
+      </FilterSection>
     </div>
   );
 }

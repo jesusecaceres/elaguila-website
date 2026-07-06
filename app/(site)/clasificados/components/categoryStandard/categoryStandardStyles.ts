@@ -40,8 +40,30 @@ export const CAT_STD_REFINE_EYEBROW = "text-[10px] font-bold uppercase tracking-
 
 
 
+export const CAT_STD_FILTER_SECTION_HEADING =
+
+  "text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A6B1F]";
+
+
+
+/** Tappable filter chip for drawer checkbox/toggle groups. */
+
+export const CAT_STD_FILTER_CHIP =
+
+  "inline-flex min-h-[2.5rem] cursor-pointer items-center gap-2 rounded-xl border border-[#D6C7AD]/70 bg-white px-3 py-2 text-sm font-medium text-[#1F241C] transition hover:border-[#C9A84A]/55 has-[:checked]:border-[#7A1E2C]/45 has-[:checked]:bg-[#7A1E2C] has-[:checked]:text-[#FFFDF7]";
+
+
+
+export const CAT_STD_FILTER_CHIP_GRID = "flex flex-wrap gap-2";
+
+
+
+export const CAT_STD_FILTER_HELPER =
+
+  "w-full text-xs leading-relaxed text-[#5C5346]/90";
+
+
+
 export const CAT_STD_ACTIVE_FILTERS_PANEL =
 
   "flex flex-col gap-2 rounded-xl border border-[#C9A84A]/30 bg-[#FFFDF7]/90 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2 sm:px-5";
-
-
