@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/components/ClasificadosCategoryComingSoon";
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -22,53 +23,53 @@ export default function PublicarCategoryPage() {
   const params = useParams<{ category?: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang } = resolveClasificadosPublishLang(searchParams?.get("lang"));
   const slug = (params?.category ?? "").trim().toLowerCase();
   const normalized = normalizeCategory(params?.category ?? "");
   const categoryFromUrl = normalized === "all" ? ("" as const) : normalized;
 
   useEffect(() => {
     if (slug === "bienes-raices" || slug === "br") {
-      router.replace(`/clasificados/publicar/bienes-raices?lang=${lang}`);
+      router.replace(`/clasificados/publicar/bienes-raices?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "en-venta") {
-      router.replace(`/clasificados/publicar/en-venta?lang=${lang}`);
+      router.replace(`/clasificados/publicar/en-venta?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "autos") {
-      router.replace(`/publicar/autos?lang=${lang}`);
+      router.replace(`/publicar/autos?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "servicios") {
-      router.replace(`/clasificados/publicar/servicios/checkpoint?lang=${lang}`);
+      router.replace(`/clasificados/publicar/servicios/checkpoint?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "restaurantes") {
-      router.replace(`/publicar/restaurantes?lang=${lang}`);
+      router.replace(`/publicar/restaurantes?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "travel") {
-      router.replace(`/publicar/viajes?lang=${lang}`);
+      router.replace(`/publicar/viajes?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "empleos") {
-      router.replace(`/clasificados/publicar/empleos?lang=${lang}`);
+      router.replace(`/clasificados/publicar/empleos?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "rentas") {
       const p = new URLSearchParams(searchParams?.toString() ?? "");
       p.delete("cat");
       p.delete("categoria");
-      if (!p.get("lang")) p.set("lang", lang);
+      if (!p.get("lang")) p.set("lang", routeLang);
       const qs = p.toString();
-      router.replace(qs ? `${RENTAS_PUBLICAR_HUB}?${qs}` : `${RENTAS_PUBLICAR_HUB}?lang=${lang}`);
+      router.replace(qs ? `${RENTAS_PUBLICAR_HUB}?${qs}` : `${RENTAS_PUBLICAR_HUB}?lang=${routeLang}`);
       return;
     }
     if (!categoryFromUrl) {
-      router.replace(`/clasificados/publicar?lang=${lang}`);
+      router.replace(`/clasificados/publicar?lang=${routeLang}`);
     }
-  }, [slug, categoryFromUrl, lang, router, searchParams]);
+  }, [slug, categoryFromUrl, routeLang, router, searchParams]);
 
   if (
     slug === "bienes-raices" ||
@@ -84,10 +85,10 @@ export default function PublicarCategoryPage() {
   ) {
     return (
       <main className="min-h-[50vh] pt-28 flex items-center justify-center text-[#111111]/70 text-sm">
-        {lang === "es" ? "Redirigiendo…" : "Redirecting…"}
+        {copyLang === "es" ? "Redirigiendo…" : "Redirecting…"}
       </main>
     );
   }
 
-  return <ClasificadosCategoryComingSoon categorySlug={categoryFromUrl} lang={lang} />;
+  return <ClasificadosCategoryComingSoon categorySlug={categoryFromUrl} lang={copyLang} />;
 }

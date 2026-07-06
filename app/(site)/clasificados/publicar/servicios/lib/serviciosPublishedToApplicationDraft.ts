@@ -1,5 +1,6 @@
 import type {
   ServiciosBusinessProfile,
+  ServiciosCouponWire,
   ServiciosPromoOffer,
   ServiciosWeeklyHourRow,
 } from "@/app/servicios/types/serviciosBusinessProfile";
@@ -125,24 +126,45 @@ function mapPromotions(promotions: ServiciosPromoOffer[] | undefined, fallback: 
   return rows.length ? rows : fallback;
 }
 
+function isRichCouponWire(coupon: ServiciosPromoOffer | ServiciosCouponWire): coupon is ServiciosCouponWire {
+  return typeof (coupon as ServiciosCouponWire).title === "string";
+}
+
 function mapCoupons(
-  coupons: ServiciosPromoOffer[] | undefined,
+  coupons: Array<ServiciosPromoOffer | ServiciosCouponWire> | undefined,
   fallback: ClasificadosServiciosCouponRow[],
 ): ClasificadosServiciosCouponRow[] {
   const raw = Array.isArray(coupons) ? coupons : [];
-  const rows = raw.slice(0, 4).map((coupon) => ({
-    title: clean(coupon.headline),
-    description: clean(coupon.footnote),
-    regularPrice: "",
-    specialPrice: "",
-    savings: "",
-    imageUrl: fromUrl(coupon.assetImageUrl),
-    url: clean(coupon.href),
-    couponCode: "",
-    expirationDate: "",
-    redemptionNote: "",
-    ctaLabel: "",
-  }));
+  const rows = raw.slice(0, 4).map((coupon) => {
+    if (isRichCouponWire(coupon)) {
+      return {
+        title: clean(coupon.title),
+        description: clean(coupon.description),
+        regularPrice: clean(coupon.regularPrice),
+        specialPrice: clean(coupon.specialPrice),
+        savings: clean(coupon.savings),
+        imageUrl: fromUrl(coupon.imageUrl),
+        url: clean(coupon.href),
+        couponCode: clean(coupon.couponCode),
+        expirationDate: clean(coupon.expirationDate),
+        redemptionNote: clean(coupon.redemptionNote),
+        ctaLabel: clean(coupon.ctaLabel),
+      };
+    }
+    return {
+      title: clean(coupon.headline),
+      description: clean(coupon.footnote),
+      regularPrice: "",
+      specialPrice: "",
+      savings: "",
+      imageUrl: fromUrl(coupon.assetImageUrl),
+      url: clean(coupon.href),
+      couponCode: "",
+      expirationDate: "",
+      redemptionNote: "",
+      ctaLabel: "",
+    };
+  });
   return rows.length ? rows : fallback;
 }
 

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getBusinessTypePreset } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize";
-import { mapClasificadosServiciosApplicationToServiciosDraft } from "@/app/clasificados/publicar/servicios/lib/mapClasificadosServiciosApplicationToServiciosDraft";
+import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile } from "@/app/clasificados/publicar/servicios/lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { evaluateServiciosPublishReadiness } from "@/app/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
 import { slugifyServiciosBusinessName } from "@/app/clasificados/publicar/servicios/lib/serviciosSlug";
 import type { ClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
@@ -183,6 +183,7 @@ export async function POST(req: NextRequest) {
   const draft = mapClasificadosServiciosApplicationToServiciosDraft(state, lang);
   draft.identity.slug = slug;
   let wire = mapServiciosApplicationDraftToBusinessProfile(draft);
+  wire = applyClasificadosCouponsToServiciosWireProfile(wire, draft);
   wire = stripAdvertiserVerificationFlags(wire);
   const opsMeta = { ...wire.opsMeta };
   if (state.leonixVerifiedInterest === true) {

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import {
   EN_VENTA_PUBLICAR_PRO,
   EN_VENTA_PUBLICAR_STOREFRONT,
@@ -15,19 +20,19 @@ type Lang = "es" | "en";
 /** Fallback hub UI if server redirect is bypassed — single Pro-included CTA (Free lane not shown). */
 export function EnVentaPublishHubClient({ hub }: { hub: EnVentaPublishHubResolved }) {
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const other: Lang = lang === "es" ? "en" : "es";
-  const qs = new URLSearchParams(searchParams?.toString() ?? "");
-  qs.set("lang", other);
-  const toggleHref = `/clasificados/publicar/en-venta?${qs.toString()}`;
+  const toggleHref = withClasificadosPublishLang("/clasificados/publicar/en-venta", other);
 
   const langToggleLabel = lang === "es" ? hub.langToggleEs : hub.langToggleEn;
 
-  const laneQs = new URLSearchParams(searchParams?.toString() ?? "");
-  if (!laneQs.get("lang")) laneQs.set("lang", lang);
-
   const backBase = hub.backHref.startsWith("/") ? hub.backHref : "/clasificados/publicar";
-  const backLink = `${backBase}${backBase.includes("?") ? "&" : "?"}lang=${lang}`;
+  const backLink = withClasificadosPublishLang(backBase, routeLang);
+  const proHref = withClasificadosPublishLang(EN_VENTA_PUBLICAR_PRO, routeLang);
+  const storefrontHref = withClasificadosPublishLang(EN_VENTA_PUBLICAR_STOREFRONT, routeLang);
 
   const copy = hub;
 
@@ -59,7 +64,7 @@ export function EnVentaPublishHubClient({ hub }: { hub: EnVentaPublishHubResolve
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <Link
-              href={`${EN_VENTA_PUBLICAR_PRO}?${laneQs.toString()}`}
+              href={proHref}
               className="group relative overflow-hidden rounded-2xl border border-[#C9B46A]/55 bg-gradient-to-br from-[#2B261C] to-[#17140F] px-5 py-6 text-left text-[#F5F5F5] shadow-[0_12px_28px_rgba(42,36,22,0.25)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#C9B46A]/40 sm:col-span-2"
             >
               <span className="inline-flex w-fit items-center rounded-full border border-[#C9B46A]/45 bg-[#C9B46A]/14 px-2.5 py-1 text-[11px] font-semibold text-[#E4D4A8]">
@@ -72,7 +77,7 @@ export function EnVentaPublishHubClient({ hub }: { hub: EnVentaPublishHubResolve
               </span>
             </Link>
             <Link
-              href={`${EN_VENTA_PUBLICAR_STOREFRONT}?${laneQs.toString()}`}
+              href={storefrontHref}
               className="group relative overflow-hidden rounded-2xl border border-[#D8C79A]/65 bg-gradient-to-br from-[#FFF8EA] to-[#FFFDF7] px-4 py-5 text-left shadow-sm transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/30 sm:col-span-2"
             >
               <span className="inline-flex w-fit items-center rounded-full bg-[#F6E2B4] px-2.5 py-1 text-[11px] font-semibold text-[#3D2C12]">

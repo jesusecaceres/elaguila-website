@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 type CopyType = {
   title: string;
@@ -35,15 +40,18 @@ export function RestaurantesSelectorClient({
   t: CopyType;
   lang: Lang;
 }) {
+  const searchParams = useSearchParams();
+  const routeLang = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")).routeLang,
+    [searchParams],
+  );
   const [moreDrawer, setMoreDrawer] = useState<"card1" | "card2" | null>(null);
 
-  const withLang = (path: string) => {
-    const joiner = path.includes("?") ? "&" : "?";
-    return `${path}${joiner}lang=${lang}`;
-  };
+  const withLang = (path: string, extra?: Record<string, string>) =>
+    withClasificadosPublishLang(path, routeLang, extra);
 
-  const restPublicarEstablecido = `/publicar/restaurantes?product=established_restaurant&lang=${lang}`;
-  const comidaLocalPublicar = `/publicar/restaurantes?product=mobile_food_vendor&lang=${lang}`;
+  const restPublicarEstablecido = withLang("/publicar/restaurantes", { product: "established_restaurant" });
+  const comidaLocalPublicar = withLang("/publicar/restaurantes", { product: "mobile_food_vendor" });
 
   return (
     <main className="min-h-screen bg-[#F6F0E2] px-4 pb-20 pt-28 text-[#2C2416]">

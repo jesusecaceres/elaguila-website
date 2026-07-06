@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
 import { ServiciosHorizontalResultCard } from "@/app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard";
@@ -26,7 +30,7 @@ import { normalizeClasificadosServiciosApplicationState } from "../lib/clasifica
 import { clearServiciosDraftStorageAndIdb, loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { buildServiciosPreviewGalleryVideos } from "../lib/clasificadosServiciosPreviewHandoff";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
-import { mapClasificadosServiciosApplicationToServiciosDraft } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
+import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
@@ -96,9 +100,12 @@ function ServiciosSellerPreviewIncomplete({
 export function ClasificadosServiciosPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
 
-  const editHref = `/publicar/servicios?lang=${lang}`;
+  const editHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
 
@@ -269,7 +276,8 @@ export function ClasificadosServiciosPreviewClient() {
 
   const profile = useMemo(() => {
     if (source !== "application" || !appDraft) return null;
-    const wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
+    let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
+    wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
     return resolveServiciosProfile(wire, lang);
   }, [source, appDraft, lang]);
 
@@ -287,7 +295,8 @@ export function ClasificadosServiciosPreviewClient() {
 
   const previewListingRow = useMemo((): ServiciosPublicListingRow | null => {
     if (!useProfessionalPreview || !appState || !appDraft || !profile) return null;
-    const wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
+    let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
+    wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
     const slug = profile.identity.slug;
     return {
       slug,

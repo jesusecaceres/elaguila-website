@@ -3,6 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FiCheck, FiImage, FiPlus, FiUpload, FiX } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
@@ -201,7 +205,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function ClasificadosServiciosApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const editParam = searchParams?.get("edit") ?? "";
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -232,9 +239,7 @@ export function ClasificadosServiciosApplication() {
   const goToStep = useCallback((n: number) => {
     setState((s) => ({
       ...s,
-      applicationStepIndex: migrateServiciosApplicationStepIndex(
-        Math.max(0, Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, n)),
-      ),
+      applicationStepIndex: Math.max(0, Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, n)),
     }));
   }, []);
 
@@ -437,8 +442,8 @@ export function ClasificadosServiciosApplication() {
 
   /* Servicios draft is session-persisted; do not register native beforeunload warnings. */
 
-  const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
-  const publicarHref = `/clasificados/publicar?lang=${lang}`;
+  const previewHref = withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang);
+  const publicarHref = withClasificadosPublishLang("/clasificados/publicar", routeLang);
 
   const goStrictPreview = useCallback(async () => {
     const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);

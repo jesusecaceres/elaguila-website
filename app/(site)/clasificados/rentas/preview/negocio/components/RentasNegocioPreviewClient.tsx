@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import { publishLeonixListingFromRentasNegocioDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
@@ -52,7 +56,14 @@ export default function RentasNegocioPreviewClient() {
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
 
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const lang = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
+    [searchParams],
+  );
+  const routeLang = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")).routeLang,
+    [searchParams],
+  );
 
   const onPublishLive = useCallback(async () => {
     rentasPublishStepTraceReset();
@@ -108,11 +119,11 @@ export default function RentasNegocioPreviewClient() {
     setPublishBusy(false);
     if (r.ok) {
       clearRentasNegocioDraft();
-      router.push(withRentasLandingLang(`${rentasListingPublicPath(r.listingId)}?published=1`, lang));
+      router.push(withRentasLandingLang(`${rentasListingPublicPath(r.listingId)}?published=1`, routeLang));
     } else {
       setPublishErr(r.error);
     }
-  }, [lang, router, publishErr]);
+  }, [lang, routeLang, router, publishErr]);
 
   useEffect(() => {
     const raw = loadRentasNegocioDraft();
@@ -128,9 +139,13 @@ export default function RentasNegocioPreviewClient() {
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
     if (draft.categoriaPropiedad !== urlCategoria) {
-      router.replace(`${RENTAS_PREVIEW_NEGOCIO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}&lang=${lang}`);
+      router.replace(
+        withClasificadosPublishLang(RENTAS_PREVIEW_NEGOCIO, routeLang, {
+          [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+        }),
+      );
     }
-  }, [phase, draft, urlCategoria, router]);
+  }, [phase, draft, urlCategoria, router, routeLang]);
 
   if (phase === "loading") {
     return (
@@ -145,8 +160,11 @@ export default function RentasNegocioPreviewClient() {
       ...createEmptyRentasNegocioFormState(),
       categoriaPropiedad: urlCategoria,
     });
-    const vm = mapRentasNegocioStateToPreviewVm(shell);
-    const editHrefRecovery = `${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`;
+    const vm = mapRentasNegocioStateToPreviewVm(shell, lang);
+    const editHrefRecovery = withClasificadosPublishLang(RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY, routeLang, {
+      [BR_NEGOCIO_Q_PROPIEDAD]: urlCategoria,
+    });
+    const publishEntryHref = withClasificadosPublishLang(RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY, routeLang);
     return (
       <LeonixPreviewPageShell editHref={editHrefRecovery}>
         <p className="mx-auto max-w-[1240px] px-4 py-3 text-center text-xs text-[#5C5346] sm:px-6 lg:px-8">
@@ -155,7 +173,7 @@ export default function RentasNegocioPreviewClient() {
               <span className="font-semibold text-[#2C2416]">No draft in this session</span>
               <span className="mx-2 opacity-40">·</span>
               Minimal template by category.{" "}
-              <Link href={RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+              <Link href={publishEntryHref} className="font-semibold underline" prefetch={false}>
                 Go to publish — Business
               </Link>
             </>
@@ -164,7 +182,7 @@ export default function RentasNegocioPreviewClient() {
               <span className="font-semibold text-[#2C2416]">Sin borrador en esta sesión</span>
               <span className="mx-2 opacity-40">·</span>
               Plantilla mínima por categoría.{" "}
-              <Link href={RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+              <Link href={publishEntryHref} className="font-semibold underline" prefetch={false}>
                 Ir a publicar — Negocio
               </Link>
             </>
@@ -184,8 +202,10 @@ export default function RentasNegocioPreviewClient() {
     );
   }
 
-  const vm = mapRentasNegocioStateToPreviewVm(draft);
-  const editHref = `${RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
+  const vm = mapRentasNegocioStateToPreviewVm(draft, lang);
+  const editHref = withClasificadosPublishLang(RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY, routeLang, {
+    [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+  });
 
   return (
     <LeonixPreviewPageShell

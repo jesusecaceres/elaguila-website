@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
@@ -65,6 +65,10 @@ import {
   saveRentasNegocioDraft,
 } from "./utils/rentasNegocioDraft";
 import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -76,11 +80,20 @@ function RentasSqftPreview({ value }: { value: string }) {
 }
 
 const RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS = {
-  preview: "Validar y ver vista previa",
-  openPreview: "Ver vista previa (sin validar)",
-  openPreviewTitle:
-    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
-  deleteApplication: "Eliminar borrador",
+  es: {
+    preview: "Validar y ver vista previa",
+    openPreview: "Ver vista previa (sin validar)",
+    openPreviewTitle:
+      "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
+    deleteApplication: "Eliminar borrador",
+  },
+  en: {
+    preview: "Validate and preview",
+    openPreview: "View preview (without validation)",
+    openPreviewTitle:
+      "Opens preview immediately with the draft saved in this tab. Does not require final confirmations or all minimum fields.",
+    deleteApplication: "Delete draft",
+  },
 } as const;
 
 const RENTAS_SECTION = {
@@ -129,7 +142,10 @@ const CONFIRM_PREVIEW_BLOCKED = {
 export function RentasNegocioForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
@@ -172,7 +188,13 @@ export function RentasNegocioForm() {
     saveRentasNegocioDraft(stateRef.current);
   }, []);
 
-  const previewHref = `${RENTAS_PREVIEW_NEGOCIO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(state.categoriaPropiedad)}`;
+  const previewHref = useMemo(
+    () =>
+      withClasificadosPublishLang(RENTAS_PREVIEW_NEGOCIO, routeLang, {
+        [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
+      }),
+    [routeLang, state.categoriaPropiedad],
+  );
 
   const onPhotos = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -259,7 +281,7 @@ export function RentasNegocioForm() {
     onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll,
     validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
-    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
+    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS[lang],
     onDeleteApplication: async () => {
       clearRentasNegocioDraft();
       const empty = createEmptyRentasNegocioFormState();
@@ -272,7 +294,10 @@ export function RentasNegocioForm() {
       }
       setPreviewGateMessage(null);
     },
-    deleteConfirmMessage: "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+    deleteConfirmMessage:
+      lang === "en"
+        ? "Delete this application draft and start over?"
+        : "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
   };
 
   return (

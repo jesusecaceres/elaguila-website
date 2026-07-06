@@ -136,6 +136,22 @@ export type ServiciosPromoOffer = {
   assetPdfUrl?: string;
 };
 
+/** Paid coupon row on wire profile (Clasificados + rich coupon add-on). */
+export type ServiciosCouponWire = {
+  id: string;
+  title: string;
+  description?: string;
+  regularPrice?: string;
+  specialPrice?: string;
+  savings?: string;
+  href?: string;
+  imageUrl?: string;
+  couponCode?: string;
+  expirationDate?: string;
+  redemptionNote?: string;
+  ctaLabel?: string;
+};
+
 /** Identity — required for a routable profile */
 export type ServiciosIdentity = {
   slug: string;
@@ -298,7 +314,11 @@ export type ServiciosBusinessProfile = {
   /** Featured promotions (up to 4); sanitized at resolve */
   promotions?: ServiciosPromoOffer[];
   /** Featured coupons (paid add-on); sanitized at resolve */
-  coupons?: ServiciosPromoOffer[];
+  coupons?: Array<ServiciosPromoOffer | ServiciosCouponWire>;
+  /** Coupon flyer image (paid add-on) */
+  couponFlyer?: { imageUrl: string };
+  /** External more-offers link (paid add-on) */
+  couponMoreOffers?: { url: string; buttonLabel?: string };
   /** Canonical payment method ids; sanitized at resolve */
   paymentMethodIds?: string[];
   /** Advertiser-typed payment labels (non-catalog); sanitized at resolve */

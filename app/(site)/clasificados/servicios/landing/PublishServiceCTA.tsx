@@ -1,7 +1,15 @@
 import Link from "next/link";
+import type { SupportedLang } from "@/app/lib/language";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
-export function PublishServiceCTA({ lang }: { lang: "es" | "en" }) {
-  const publishHref = `/clasificados/publicar/servicios/checkpoint?lang=${lang}`;
+export function PublishServiceCTA({
+  lang,
+  routeLang,
+}: {
+  lang: "es" | "en";
+  routeLang: SupportedLang;
+}) {
+  const publishHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang);
 
   return (
     <section

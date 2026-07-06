@@ -31,27 +31,31 @@ export const SERVICIOS_LEGACY_STEP_COUNT_GATE02 = 9;
 export const SERVICIOS_LEGACY_STEP_COUNT_GATE01 = 10;
 
 /**
- * Map legacy step indices to the current 8-step flow.
- * Steps 0–5 unchanged across GATE-02/03; promo step (old 6) removed; coupons/review shift down.
+ * Map legacy saved step indices to the current 8-step flow.
+ * Current indices 0–7 pass through unchanged (sidebar / direct navigation).
  */
 export function migrateServiciosApplicationStepIndex(rawIndex: number): number {
   const n = Number.isFinite(rawIndex) ? Math.floor(rawIndex) : 0;
   const max = SERVICIOS_APPLICATION_STEP_COUNT - 1;
 
-  let idx = n;
+  if (n >= 0 && n <= max) return n;
 
-  // GATE-02: 10-step → 9-step (contact preview at index 5)
-  if (idx >= SERVICIOS_LEGACY_STEP_COUNT_GATE01) {
-    idx = SERVICIOS_LEGACY_STEP_COUNT_GATE02 - 1;
-  } else if (idx > 4 && idx < SERVICIOS_LEGACY_STEP_COUNT_GATE01) {
-    idx -= 1;
+  if (n >= SERVICIOS_LEGACY_STEP_COUNT_GATE01) return max;
+
+  if (n >= SERVICIOS_LEGACY_STEP_COUNT_GATE02) {
+    if (n === 8) return max;
+    if (n === 7 || n === 6) return 6;
+    return max;
   }
 
-  // GATE-03: 9-step → 8-step (free promo at index 6 removed; coupons stay at 6, review at 7)
-  if (idx <= 5) return Math.max(0, Math.min(max, idx));
-  if (idx === 6) return 6;
-  if (idx >= 8) return 7;
-  return Math.max(0, Math.min(max, idx));
+  if (n > 4 && n < SERVICIOS_LEGACY_STEP_COUNT_GATE01) {
+    const shifted = n - 1;
+    if (shifted <= 5) return shifted;
+    if (shifted === 6 || shifted === 7) return 6;
+    return max;
+  }
+
+  return max;
 }
 
 export function getServiciosApplicationStepLabels(lang: ServiciosLang): readonly string[] {

@@ -2,6 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
 import {
   brInventoryAddModeSubcopy,
@@ -86,7 +90,10 @@ function stepLabelsForAdvertiser(adv: string): string[] {
 export default function BienesRaicesNegocioApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const inventoryAdd = useMemo(
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],
@@ -155,6 +162,11 @@ export default function BienesRaicesNegocioApplication() {
     saveBienesRaicesNegocioPreviewReturnDraft(state);
   }, [state]);
 
+  const previewHref = useMemo(
+    () => withClasificadosPublishLang(BR_PREVIEW_NEGOCIO, routeLang),
+    [routeLang],
+  );
+
   const openValidatedPreview = useCallback(() => {
     const g = gateBienesRaicesNegocioPreview(state);
     if (!g.ok) {
@@ -163,8 +175,8 @@ export default function BienesRaicesNegocioApplication() {
     }
     setPreviewGateMessage(null);
     persistPreviewHandoff();
-    router.push(BR_PREVIEW_NEGOCIO);
-  }, [persistPreviewHandoff, router, state]);
+    router.push(previewHref);
+  }, [persistPreviewHandoff, previewHref, router, state]);
 
   const resetApplication = useCallback(() => {
     const ids = collectMuxAssetIdsFromNegocioState(state);
@@ -241,7 +253,7 @@ export default function BienesRaicesNegocioApplication() {
           <div className="mt-5 border-t border-[#E8DFD0]/80 pt-4">
             <ClasificadosApplicationTopActions
               onPreviewValidated={openValidatedPreview}
-              openPreviewHref={BR_PREVIEW_NEGOCIO}
+              openPreviewHref={previewHref}
               onBeforeOpenUnvalidatedPreview={persistPreviewHandoff}
               onDeleteApplication={resetApplication}
               validationBlockedMessage={previewGateMessage}

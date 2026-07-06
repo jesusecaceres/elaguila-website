@@ -101,7 +101,7 @@ export function ServiciosLandingPage({
         </div>
 
         <CategoryVisibilityCta lang={lang} category="servicios" surface="landing" compact />
-        <PublishServiceCTA lang={lang} />
+        <PublishServiceCTA lang={lang} routeLang={routeLang} />
 
         <nav
           className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-[#D6C7AD]/80 pt-8 text-[13px] text-[#5C5346] sm:pt-10"

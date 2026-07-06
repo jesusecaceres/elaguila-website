@@ -69,7 +69,7 @@ export function AutosPrivadoApplication() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { lang, t } = useAutosPrivadoLang();
+  const { lang, routeLang, t } = useAutosPrivadoLang();
   const {
     hydrated,
     restoredFromSession,
@@ -104,7 +104,7 @@ export function AutosPrivadoApplication() {
   const stepLabels = getAutosApplicationStepLabels(lang, "privado");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
 
-  const previewHref = withLangParam("/clasificados/autos/privado/preview", lang);
+  const previewHref = withLangParam("/clasificados/autos/privado/preview", routeLang);
 
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;

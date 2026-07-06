@@ -23,7 +23,7 @@ import {
   hasCredentialsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
-  hasOfferSectionResolved,
+  hasPaidCouponsSectionResolved,
   hasPaymentMethodsResolved,
   hasQuickFactsResolved,
   hasReviewsSectionResolved,
@@ -43,7 +43,6 @@ import { ServiciosReviews } from "./ServiciosReviews";
 import { ServiciosLicense } from "./ServiciosLicense";
 import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
 import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
-import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
 import { ServiciosCouponsCard } from "./ServiciosCouponsCard";
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
@@ -296,6 +295,16 @@ export function ServiciosProfessionalProfileShell({
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
+              {hasPaidCouponsSectionResolved(profile) ? (
+                <ServiciosCouponsCard
+                  coupons={profile.coupons}
+                  lang={lang}
+                  couponFlyer={profile.couponFlyer}
+                  couponMoreOffers={profile.couponMoreOffers}
+                  featuredRow
+                />
+              ) : null}
+
               {hasGallerySectionResolved(profile) ? (
                 <ServiciosGalleryWithTabs
                   profile={profile}
@@ -303,27 +312,7 @@ export function ServiciosProfessionalProfileShell({
                   listingSlug={analyticsListingSlug}
                   listingSourceId={sourceId || listingSourceId}
                   listingShareUrl={listingShareUrl}
-                />
-              ) : null}
-
-              {hasOfferSectionResolved(profile) ? (
-                <ServiciosPromocionesCard
-                  profile={displayProfile}
-                  lang={lang}
-                  premiumLeonixTone
-                  listingSlug={analyticsListingSlug}
-                  listingSourceId={sourceId || listingSourceId}
-                  engagementListingId={engagementListingId}
-                  engagementOwnerUserId={engagementOwnerUserId}
-                />
-              ) : null}
-
-              {profile.coupons && profile.coupons.length > 0 ? (
-                <ServiciosCouponsCard
-                  coupons={profile.coupons}
-                  lang={lang}
-                  couponFlyer={profile.couponFlyer}
-                  couponMoreOffers={profile.couponMoreOffers}
+                  combinedMediaLayout
                 />
               ) : null}
 

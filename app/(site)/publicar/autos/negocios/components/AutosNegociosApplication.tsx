@@ -69,7 +69,7 @@ export function AutosNegociosApplication() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { lang, t } = useAutosNegociosLang();
+  const { lang, routeLang, t } = useAutosNegociosLang();
   const {
     hydrated,
     restoredFromSession,
@@ -131,7 +131,7 @@ export function AutosNegociosApplication() {
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
 
-  const previewHref = withLangParam("/clasificados/autos/negocios/preview", lang);
+  const previewHref = withLangParam("/clasificados/autos/negocios/preview", routeLang);
 
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;

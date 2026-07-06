@@ -2,8 +2,9 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { RENTAS_LANDING_COPY } from "@/app/clasificados/rentas/rentasLandingCopy";
-import { normalizeRentasLandingLang, resolveRentasRouteLang, type RentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
+import type { RentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import type { SupportedLang } from "@/app/lib/language";
 
 export function useRentasLandingLang(): {
@@ -12,11 +13,10 @@ export function useRentasLandingLang(): {
   copy: (typeof RENTAS_LANDING_COPY)["es"];
 } {
   const searchParams = useSearchParams();
-  const routeLang = useMemo(
-    () => resolveRentasRouteLang(searchParams?.get("lang")),
+  const { routeLang, copyLang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
   );
-  const lang = useMemo(() => normalizeRentasLandingLang(searchParams?.get("lang")), [searchParams]);
-  const copy = RENTAS_LANDING_COPY[lang];
-  return { lang, routeLang, copy };
+  const copy = RENTAS_LANDING_COPY[copyLang];
+  return { lang: copyLang, routeLang, copy };
 }

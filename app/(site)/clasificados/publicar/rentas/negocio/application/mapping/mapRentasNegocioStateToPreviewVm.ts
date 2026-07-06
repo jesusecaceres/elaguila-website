@@ -72,10 +72,10 @@ function waHrefFromPhoneDisplay(raw: string): string | null {
   return `https://wa.me/${d}?text=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`;
 }
 
-function smsHrefFromState(raw: string): string | null {
+function smsHrefFromState(raw: string, lang: "es" | "en"): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `sms:${d}?&body=${encodeURIComponent(rentasLeadSmsBody("es"))}`;
+  return `sms:${d}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function plazoDisplay(s: RentasNegocioFormState): string {
@@ -128,7 +128,10 @@ function normalizeRentasNegocioHighlights(rows: BienesRaicesPreviewFact[]): Bien
   return out;
 }
 
-export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): BienesRaicesNegocioPreviewVm {
+export function mapRentasNegocioStateToPreviewVm(
+  s: RentasNegocioFormState,
+  lang: "es" | "en" = "es",
+): BienesRaicesNegocioPreviewVm {
   const neg = rentasNegocioToBienesRaicesNegocioState(s);
   const vm = mapBienesRaicesNegocioStateToPreviewVm(neg);
   const lead: BienesRaicesPreviewFact[] = [];
@@ -143,7 +146,7 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   }
 
   const primaryPhoneRaw = trim(s.negocioTelDirecto) || trim(s.negocioTelOficina);
-  const smsHref = smsHrefFromState(s.negocioMensajesTexto);
+  const smsHref = smsHrefFromState(s.negocioMensajesTexto, lang);
   const telHref = telHrefFromPhoneDisplay(primaryPhoneRaw);
   const waRaw = trim(s.negocioWhatsapp) || primaryPhoneRaw;
   const waHref = waHrefFromPhoneDisplay(waRaw);
@@ -169,7 +172,7 @@ export function mapRentasNegocioStateToPreviewVm(s: RentasNegocioFormState): Bie
   const quickFacts = dedupeQuickFactsByLabel([...quickStripMerged, ...vm.quickFacts]);
 
   const highlightsRows = normalizeRentasNegocioHighlights(vm.highlightsRows ?? []);
-  const showingCard = buildRentasShowingPreviewCard(s, "es");
+  const showingCard = buildRentasShowingPreviewCard(s, lang);
   const tourUrl = normalizeLeonixHttpsUrl(s.virtualTourUrl);
 
   return {

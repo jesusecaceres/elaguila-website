@@ -3,6 +3,7 @@ import type {
   ServiciosAboutBlock,
   ServiciosBusinessProfile,
   ServiciosContactBlock,
+  ServiciosCouponWire,
   ServiciosCredentialsWire,
   ServiciosGalleryImage,
   ServiciosGalleryVideo,
@@ -17,6 +18,7 @@ import type {
   ServiciosServiceCard,
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
+import type { ServiciosApplicationCouponDraft } from "../types/serviciosApplicationDraft";
 import {
   sanitizeCustomPaymentMethodLabels,
   sanitizeServiciosPaymentMethodIds,
@@ -208,6 +210,10 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(draft.amenityOptionIds);
   const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(draft.customAmenityOptions);
   const credentials = mapCredentials(draft.credentials);
+  const couponsWire = mapCouponsDraftToWire(draft.coupons);
+  const couponFlyerUrl = trim(draft.couponFlyer?.imageUrl);
+  const couponMoreUrl = trim(draft.couponMoreOffers?.url);
+  const couponMoreLabel = trim(draft.couponMoreOffers?.buttonLabel);
 
   const out: ServiciosBusinessProfile = {
     identity,
@@ -235,7 +241,65 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (amenityOptionIds.length) out.amenityOptionIds = amenityOptionIds;
   if (customAmenityOptions.length) out.customAmenityOptions = customAmenityOptions;
   if (credentials) out.credentials = credentials;
+  if (couponsWire.length) out.coupons = couponsWire;
+  if (couponFlyerUrl) out.couponFlyer = { imageUrl: couponFlyerUrl };
+  if (couponMoreUrl) {
+    out.couponMoreOffers = {
+      url: couponMoreUrl,
+      ...(couponMoreLabel ? { buttonLabel: couponMoreLabel.slice(0, 80) } : {}),
+    };
+  }
 
+  return out;
+}
+
+function couponDraftRowHasContent(row: ServiciosApplicationCouponDraft): boolean {
+  return Boolean(
+    trim(row.title) ||
+      trim(row.description) ||
+      trim(row.regularPrice) ||
+      trim(row.specialPrice) ||
+      trim(row.savings) ||
+      trim(row.href) ||
+      trim(row.imageUrl) ||
+      trim(row.couponCode) ||
+      trim(row.expirationDate) ||
+      trim(row.redemptionNote) ||
+      trim(row.ctaLabel),
+  );
+}
+
+function mapCouponsDraftToWire(raw: ServiciosApplicationDraft["coupons"]): ServiciosCouponWire[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ServiciosCouponWire[] = [];
+  for (const row of raw.slice(0, 4)) {
+    if (!row || typeof row.id !== "string" || !couponDraftRowHasContent(row)) continue;
+    const wire: ServiciosCouponWire = {
+      id: trim(row.id) || row.id,
+      title: trim(row.title),
+    };
+    const description = trim(row.description);
+    if (description) wire.description = description;
+    const regularPrice = trim(row.regularPrice);
+    if (regularPrice) wire.regularPrice = regularPrice;
+    const specialPrice = trim(row.specialPrice);
+    if (specialPrice) wire.specialPrice = specialPrice;
+    const savings = trim(row.savings);
+    if (savings) wire.savings = savings;
+    const href = trim(row.href);
+    if (href) wire.href = href;
+    const imageUrl = trim(row.imageUrl);
+    if (imageUrl) wire.imageUrl = imageUrl;
+    const couponCode = trim(row.couponCode);
+    if (couponCode) wire.couponCode = couponCode;
+    const expirationDate = trim(row.expirationDate);
+    if (expirationDate) wire.expirationDate = expirationDate;
+    const redemptionNote = trim(row.redemptionNote);
+    if (redemptionNote) wire.redemptionNote = redemptionNote;
+    const ctaLabel = trim(row.ctaLabel);
+    if (ctaLabel) wire.ctaLabel = ctaLabel;
+    if (wire.title || wire.description || wire.imageUrl || wire.couponCode) out.push(wire);
+  }
   return out;
 }
 

@@ -7,7 +7,8 @@ import { FiBriefcase, FiCalendar, FiCheckCircle } from "react-icons/fi";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisuals";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { appendLangToPath, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
+import { navCopyLang } from "@/app/lib/language";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 
 const CARD_SITE =
@@ -29,7 +30,8 @@ type Props = {
 
 export default function EmpleosPublicarHubClient({ variant = "default" }: Props) {
   const sp = useSearchParams();
-  const lang: Lang = useMemo(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const routeLang = useMemo(() => resolveRouteLang(sp?.get("lang")), [sp]);
+  const lang: Lang = useMemo(() => navCopyLang(routeLang), [routeLang]);
 
   const t =
     lang === "es"
@@ -72,8 +74,8 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
           myListings: "My jobs",
         };
 
-  const quickHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.quick, lang);
-  const feriaHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.feria, lang);
+  const quickHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.quick, routeLang);
+  const feriaHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.feria, routeLang);
 
   const visual = LEONIX_CATEGORY_VISUALS.empleos;
   const CARD_CLASIFICADOS = (extra: string) =>
@@ -168,13 +170,13 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
               </div>
               <div className="flex flex-wrap items-center gap-2 self-start rounded-xl border border-[#D8C79A]/65 bg-[#FFF6E7] p-1.5 shadow-sm">
                 <Link
-                  href={`/clasificados/publicar?lang=${lang}`}
+                  href={appendLangToPath("/clasificados/publicar", routeLang)}
                   className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
                 >
                   {t.backCategories}
                 </Link>
                 <Link
-                  href={appendLangToPath("/dashboard/empleos", lang)}
+                  href={appendLangToPath("/dashboard/empleos", routeLang)}
                   className="rounded-lg border border-[#2A6B4A]/35 bg-[#E8F5EE] px-4 py-2 text-sm font-semibold text-[#1E4D33] hover:bg-[#d4ecdf]"
                 >
                   {t.myListings}

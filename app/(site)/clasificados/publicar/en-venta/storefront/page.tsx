@@ -2,23 +2,28 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import { EN_VENTA_PUBLICAR_HUB } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 /**
  * Storefront lane — public surface is Coming Soon.
  * Full intake lives in `application/LeonixEnVentaStorefrontApplication.tsx` for a future launch.
  */
 
-type Lang = "es" | "en";
-
 export default function EnVentaStorefrontComingSoonPage() {
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
-  const other: Lang = lang === "es" ? "en" : "es";
-  const qs = new URLSearchParams(searchParams?.toString() ?? "");
-  qs.set("lang", other);
-  const toggleHref = `/clasificados/publicar/en-venta/storefront?${qs.toString()}`;
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
+  const other = lang === "es" ? "en" : "es";
+  const toggleHref = withClasificadosPublishLang("/clasificados/publicar/en-venta/storefront", other);
+  const hubHref = withClasificadosPublishLang(EN_VENTA_PUBLICAR_HUB, routeLang);
 
   const varios = enVentaPublicLabel(lang);
   const copy =
@@ -35,9 +40,6 @@ export default function EnVentaStorefrontComingSoonPage() {
           hub: `Back to ${varios}`,
           langToggle: "Español",
         };
-
-  const hubQs = new URLSearchParams(searchParams?.toString() ?? "");
-  if (!hubQs.get("lang")) hubQs.set("lang", lang);
 
   return (
     <main className="min-h-screen bg-[#D9D9D9] text-[#111111] pt-28 pb-16">
@@ -58,7 +60,7 @@ export default function EnVentaStorefrontComingSoonPage() {
           </div>
           <div className="mt-8 flex justify-center">
             <Link
-              href={`${EN_VENTA_PUBLICAR_HUB}?${hubQs.toString()}`}
+              href={hubHref}
               className="text-sm font-semibold text-[#111111]/80 underline hover:text-[#111111]"
             >
               {copy.hub}

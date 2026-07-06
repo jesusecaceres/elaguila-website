@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { FiArrowRight, FiBriefcase, FiUser } from "react-icons/fi";
-import { normalizeAutosNegociosLang, withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { resolveAutosRouteLang, withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { navCopyLang } from "@/app/lib/language";
 import { AutosPricingBadge } from "./shared/components/AutosPricingBadge";
 import { getAutosBranchCopy } from "./autosBranchCopy";
 
@@ -13,16 +14,17 @@ const CARD =
 
 export function PublicarAutosBranchClient() {
   const searchParams = useSearchParams();
-  const lang = useMemo(() => normalizeAutosNegociosLang(searchParams?.get("lang")), [searchParams]);
-  const c = useMemo(() => getAutosBranchCopy(lang), [lang]);
+  const routeLang = useMemo(() => resolveAutosRouteLang(searchParams?.get("lang")), [searchParams]);
+  const copyLang = useMemo(() => navCopyLang(routeLang), [routeLang]);
+  const c = useMemo(() => getAutosBranchCopy(copyLang), [copyLang]);
 
   useEffect(() => {
     document.title = c.metaTitle;
   }, [c.metaTitle]);
 
-  const publicarHref = withLangParam("/clasificados/publicar", lang);
-  const privadoHref = withLangParam("/publicar/autos/privado", lang);
-  const negociosHref = withLangParam("/publicar/autos/negocios", lang);
+  const publicarHref = withLangParam("/clasificados/publicar", routeLang);
+  const privadoHref = withLangParam("/publicar/autos/privado", routeLang);
+  const negociosHref = withLangParam("/publicar/autos/negocios", routeLang);
 
   return (
     <div

@@ -3,6 +3,7 @@ import type {
   ServiciosLang,
   ServiciosQuickFactKind,
   ServiciosBusinessProfile,
+  ServiciosCouponWire,
   ServiciosProfileResolved,
   ServiciosPromoOffer,
 } from "@/app/servicios/types/serviciosBusinessProfile";
@@ -494,40 +495,59 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   return draft;
 }
 
-function couponDraftRowToWireOffer(row: NonNullable<ServiciosApplicationDraft["coupons"]>[number]): ServiciosPromoOffer | null {
-  const headline = row.title.trim();
-  const footnoteParts = [row.description?.trim(), row.redemptionNote?.trim()].filter(Boolean) as string[];
-  const footnote = footnoteParts.join(" — ");
-  const href = row.href?.trim();
-  const assetImageUrl = row.imageUrl?.trim();
-  const hasContent = headline || footnote || href || assetImageUrl || row.couponCode?.trim();
-  if (!hasContent) return null;
-  const offer: ServiciosPromoOffer = {
-    id: row.id,
-    headline: headline || footnote.slice(0, 120) || "Cupón",
-  };
-  if (footnote && headline) offer.footnote = footnote;
-  else if (footnote && !headline) offer.footnote = footnote;
-  if (href) offer.href = href;
-  if (assetImageUrl) offer.assetImageUrl = assetImageUrl;
-  return offer;
-}
-
-/** Map paid add-on coupons from application draft onto wire profile (GATE-04). */
+/** Map paid add-on coupons from application draft onto wire profile (Clasificados publish/preview). */
 export function applyClasificadosCouponsToServiciosWireProfile(
   wire: ServiciosBusinessProfile,
   draft: ServiciosApplicationDraft,
 ): ServiciosBusinessProfile {
-  const wireCoupons: ServiciosPromoOffer[] = [];
+  const wireCoupons: ServiciosCouponWire[] = [];
   for (const row of draft.coupons ?? []) {
-    const mapped = couponDraftRowToWireOffer(row);
-    if (mapped) wireCoupons.push(mapped);
+    if (!row || typeof row.id !== "string") continue;
+    const title = row.title?.trim() ?? "";
+    const description = row.description?.trim();
+    const imageUrl = row.imageUrl?.trim();
+    const couponCode = row.couponCode?.trim();
+    const hasContent =
+      title ||
+      description ||
+      imageUrl ||
+      couponCode ||
+      row.redemptionNote?.trim() ||
+      row.href?.trim();
+    if (!hasContent) continue;
+    wireCoupons.push({
+      id: row.id,
+      title,
+      ...(description ? { description } : {}),
+      ...(row.regularPrice?.trim() ? { regularPrice: row.regularPrice.trim() } : {}),
+      ...(row.specialPrice?.trim() ? { specialPrice: row.specialPrice.trim() } : {}),
+      ...(row.savings?.trim() ? { savings: row.savings.trim() } : {}),
+      ...(row.href?.trim() ? { href: row.href.trim() } : {}),
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(couponCode ? { couponCode } : {}),
+      ...(row.expirationDate?.trim() ? { expirationDate: row.expirationDate.trim() } : {}),
+      ...(row.redemptionNote?.trim() ? { redemptionNote: row.redemptionNote.trim() } : {}),
+      ...(row.ctaLabel?.trim() ? { ctaLabel: row.ctaLabel.trim() } : {}),
+    });
   }
+  const flyerUrl = draft.couponFlyer?.imageUrl?.trim();
+  const moreUrl = draft.couponMoreOffers?.url?.trim();
   return {
     ...wire,
     promotions: undefined,
     promo: undefined,
     coupons: wireCoupons.length ? wireCoupons.slice(0, 4) : undefined,
+    ...(flyerUrl ? { couponFlyer: { imageUrl: flyerUrl } } : {}),
+    ...(moreUrl
+      ? {
+          couponMoreOffers: {
+            url: moreUrl,
+            ...(draft.couponMoreOffers?.buttonLabel?.trim()
+              ? { buttonLabel: draft.couponMoreOffers.buttonLabel.trim().slice(0, 80) }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 

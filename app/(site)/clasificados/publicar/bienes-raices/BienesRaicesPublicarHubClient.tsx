@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { BR_PUBLICAR_NEGOCIO_SELECTOR } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { withClasificadosPublishLang, resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { brAgenteApplicationPricingCopy, type BrAgentePricingLang } from "./shared/brAgenteApplicationPricingCopy";
 import { BrAgenteShowcaseSeeMoreDrawer } from "./shared/BrAgenteShowcaseSeeMoreDrawer";
 
@@ -30,14 +32,16 @@ type Props = {
 };
 
 export function BienesRaicesPublicarHubClient({ lang }: Props) {
+  const searchParams = useSearchParams();
+  const routeLang = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")).routeLang,
+    [searchParams],
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hub = HUB_COPY[lang];
   const pricing = brAgenteApplicationPricingCopy(lang);
 
-  const withLang = (path: string) => {
-    const joiner = path.includes("?") ? "&" : "?";
-    return `${path}${joiner}lang=${lang}`;
-  };
+  const withLang = (path: string) => withClasificadosPublishLang(path, routeLang);
 
   return (
     <>

@@ -42,8 +42,10 @@ import { SellerContactSection } from "./sections/SellerContactSection";
 import { ItemDetailsSection } from "./sections/ItemDetailsSection";
 import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { createEmptyEnVentaFreeState } from "./schema/enVentaFreeFormState";
-
-type Lang = "es" | "en";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 /**
  * Free lane — real form owner for `/clasificados/publicar/en-venta/free`.
@@ -51,7 +53,10 @@ type Lang = "es" | "en";
 export default function LeonixEnVentaFreeApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const resumeRequested = isEnVentaPublishResumeRequested(searchParams?.get("resume"));
   const [state, setState] = useState(createEmptyEnVentaFreeState);
   const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
@@ -85,8 +90,8 @@ export default function LeonixEnVentaFreeApplication() {
     [lang]
   );
 
-  const qs = new URLSearchParams();
-  qs.set("lang", lang);
+  const hubHref = withClasificadosPublishLang(EN_VENTA_PUBLICAR_HUB, routeLang);
+  const proHref = withClasificadosPublishLang(EN_VENTA_PUBLICAR_PRO, routeLang);
 
   const isDirty = enVentaFormHasProgress(state);
   const muxIds = collectMuxAssetIdsFromEnVentaState(state);
@@ -137,14 +142,14 @@ export default function LeonixEnVentaFreeApplication() {
               <button
                 type="button"
                 className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
-                onClick={() => leaveAndGo(`${EN_VENTA_PUBLICAR_HUB}?${qs.toString()}`)}
+                onClick={() => leaveAndGo(hubHref)}
               >
                 {copy.back}
               </button>
               <button
                 type="button"
                 className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-3 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
-                onClick={() => leaveAndGo(`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`)}
+                onClick={() => leaveAndGo(proHref)}
               >
                 {copy.switchPro}
               </button>
