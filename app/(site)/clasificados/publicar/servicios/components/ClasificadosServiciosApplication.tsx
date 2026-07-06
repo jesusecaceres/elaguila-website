@@ -48,12 +48,13 @@ import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } f
 import {
   getServiciosApplicationStepLabels,
   getServiciosApplicationStepShortLabels,
+  migrateServiciosApplicationStepIndex,
   SERVICIOS_APPLICATION_STEP_COUNT,
 } from "../lib/serviciosApplicationStepLabels";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
-import { buildServiciosContactPreviewLines, isJunkServiciosQuickFactLabel } from "../lib/serviciosContactVisibility";
+import { isJunkServiciosQuickFactLabel } from "../lib/serviciosContactVisibility";
 import {
   getServiciosCredentialPlaceholders,
   getServiciosPromoCopyHints,
@@ -244,12 +245,13 @@ export function ClasificadosServiciosApplication() {
   const goToStep = useCallback((n: number) => {
     setState((s) => ({
       ...s,
-      applicationStepIndex: Math.max(0, Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, n)),
+      applicationStepIndex: migrateServiciosApplicationStepIndex(
+        Math.max(0, Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, n)),
+      ),
     }));
   }, []);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const promoImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const promoPdfInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
@@ -271,7 +273,6 @@ export function ClasificadosServiciosApplication() {
     };
   }, []);
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
-  const [coverUrlDraft, setCoverUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
@@ -299,7 +300,13 @@ export function ClasificadosServiciosApplication() {
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
     // Always try to restore from storage first to survive hard refresh
-    setState(bootstrapServiciosApplicationStateSync());
+    setState((prev) => {
+      const sync = bootstrapServiciosApplicationStateSync();
+      return {
+        ...sync,
+        applicationStepIndex: migrateServiciosApplicationStepIndex(sync.applicationStepIndex),
+      };
+    });
     setHydrated(true);
   }, [editRequested]);
 
@@ -410,7 +417,7 @@ export function ClasificadosServiciosApplication() {
   }, [hydrated]);
 
   useEffect(() => {
-    if (step !== 8) setFinalStepPublishBlocked(null);
+    if (step !== 7) setFinalStepPublishBlocked(null);
   }, [step]);
 
   useEffect(() => {
@@ -503,11 +510,6 @@ export function ClasificadosServiciosApplication() {
   );
 
   const promoCopyHints = useMemo(() => getServiciosPromoCopyHints(listingTemplate, lang), [listingTemplate, lang]);
-
-  const contactPreviewLines = useMemo(
-    () => buildServiciosContactPreviewLines(state, lang),
-    [state, lang],
-  );
 
   const listingPhase = useMemo(() => {
     const r = evaluateServiciosPreviewReadiness(state, lang);
@@ -609,7 +611,7 @@ export function ClasificadosServiciosApplication() {
     [state.selectedBusinessHighlightIds],
   );
 
-  const pickFileToUrl = async (file: File | null, field: "logoUrl" | "coverUrl") => {
+  const pickFileToUrl = async (file: File | null, field: "logoUrl") => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setMediaFlash(copy.labels.mediaWrongFileType);
@@ -731,7 +733,7 @@ export function ClasificadosServiciosApplication() {
     }));
   };
 
-  const applyUrlFallback = (field: "logoUrl" | "coverUrl", draft: string, clearDraft: () => void) => {
+  const applyUrlFallback = (field: "logoUrl", draft: string, clearDraft: () => void) => {
     const t = draft.trim();
     if (!t) return;
     if (!isProbablyValidWebUrl(t)) {
@@ -1438,8 +1440,8 @@ export function ClasificadosServiciosApplication() {
           <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.mediaStructureIntro}</p>
           <p className="mt-1 text-xs font-medium text-[#8a4a12]">
             {lang === "es"
-              ? "* Requiere portada o al menos una imagen destacada en la galería."
-              : "* Requires a cover or at least one featured gallery image."}
+              ? "* Requiere al menos una imagen destacada en la galería."
+              : "* Requires at least one featured gallery image."}
           </p>
           <ul className="mt-3 list-inside list-disc space-y-1.5 text-xs leading-relaxed text-[#6b5c42]">
             <li>{copy.labels.galleryFeaturedHint}</li>
@@ -1448,7 +1450,7 @@ export function ClasificadosServiciosApplication() {
             <li>{copy.labels.videosHint}</li>
           </ul>
 
-          <div className="mt-6 grid gap-8 lg:grid-cols-2">
+          <div className="mt-6 max-w-md">
             <div>
               <p className={labelClass}>{copy.labels.logo}</p>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.logoHelp}</p>
@@ -1508,67 +1510,6 @@ export function ClasificadosServiciosApplication() {
                   type="button"
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white sm:px-3"
                   onClick={() => applyUrlFallback("logoUrl", logoUrlDraft, () => setLogoUrlDraft(""))}
-                >
-                  {copy.labels.addUrl}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <p className={labelClass}>{copy.labels.cover}</p>
-              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.coverHelp}</p>
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void pickFileToUrl(e.target.files?.[0] ?? null, "coverUrl")} />
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={state.coverUrl ? copy.labels.replace : copy.labels.upload}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    coverInputRef.current?.click();
-                  }
-                }}
-                onClick={() => coverInputRef.current?.click()}
-                className="mt-2 flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-8 text-center hover:border-[#3B66AD]/50"
-              >
-                {state.coverUrl ? (
-                  <div className="relative h-40 w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 ring-2 ring-[#3B66AD]/15">
-                    <Image src={state.coverUrl} alt="" fill className="object-cover" unoptimized />
-                  </div>
-                ) : (
-                  <>
-                    <FiImage className="h-10 w-10 text-[#B28A2F]" aria-hidden />
-                    <span className="mt-2 text-sm font-semibold text-[#3D2C12]">{copy.labels.upload}</span>
-                  </>
-                )}
-              </div>
-              {state.coverUrl ? (
-                <p className="mt-2 text-xs font-medium text-[#2d528d]">{copy.labels.mediaUploadedBadge}</p>
-              ) : null}
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                {state.coverUrl ? (
-                  <>
-                    <button type="button" className="min-h-[40px] text-xs font-semibold text-[#3B66AD] underline" onClick={() => coverInputRef.current?.click()}>
-                      {copy.labels.replace}
-                    </button>
-                    <button type="button" className="min-h-[40px] text-xs font-semibold text-red-700 underline" onClick={() => setState((s) => ({ ...s, coverUrl: "" }))}>
-                      {copy.labels.remove}
-                    </button>
-                  </>
-                ) : null}
-              </div>
-              <p className="mt-3 text-xs text-[#5D4A25]/75">{copy.labels.urlFallback}</p>
-              <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-                <input
-                  className={`${inputClass} sm:min-w-0 sm:flex-1`}
-                  placeholder="https://"
-                  value={coverUrlDraft}
-                  onChange={(e) => setCoverUrlDraft(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white sm:px-3"
-                  onClick={() => applyUrlFallback("coverUrl", coverUrlDraft, () => setCoverUrlDraft(""))}
                 >
                   {copy.labels.addUrl}
                 </button>
@@ -2268,42 +2209,6 @@ export function ClasificadosServiciosApplication() {
             </p>
           </section>
         )}
-          </>
-        ) : null}
-
-        {step === 5 ? (
-          <>
-        {/* Contact hub preview (populated-only; no manual action toggles) */}
-        <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.contact}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.contactHubIntro}</p>
-
-          <div className="mt-6 rounded-xl border border-[#D8C79A]/40 bg-[#FFFCF7]/90 p-4">
-            <p className="text-sm font-bold text-[#3D2C12]">{copy.labels.contactVisibleHeading}</p>
-            <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.contactSummaryIntro}</p>
-            {contactPreviewLines.length > 0 ? (
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {contactPreviewLines.map((line) => (
-                  <li
-                    key={line.id}
-                    className="inline-flex rounded-full border border-[#3B66AD]/25 bg-[#3B66AD]/8 px-3 py-1.5 text-sm font-medium text-[#1e3a5f]"
-                  >
-                    {line.label}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-amber-900/90">{copy.labels.contactHubEmpty}</p>
-            )}
-            <p className="mt-4 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
-            <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
-            <p className="mt-3 text-xs text-[#6b5c42]">
-              {lang === "es"
-                ? "Edita teléfono, correo, redes y enlaces en el paso “Datos básicos y contacto”."
-                : "Edit phone, email, socials, and links under “Basics & contact.”"}
-            </p>
-          </div>
-        </section>
 
         <section className={sectionCard} aria-labelledby="sec-payments">
           <h2 id="sec-payments" className="text-lg font-bold text-[#3D2C12]">
@@ -2743,7 +2648,7 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 6 ? (
+        {step === 5 ? (
           <>
         {/* Hours */}
         <section className={sectionCard}>
@@ -2791,7 +2696,7 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 7 ? (
+        {step === 6 ? (
           <>
         <section className={sectionCard} aria-labelledby="sec-promo">
           <h2 id="sec-promo" className="text-lg font-bold text-[#3D2C12]">
@@ -3066,7 +2971,7 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 8 ? (
+        {step === 7 ? (
           <>
             {/* Coupons section - only shows when add-on is enabled */}
             {state.couponsAddOn ? (
@@ -3475,7 +3380,7 @@ export function ClasificadosServiciosApplication() {
                             couponsAddOn: false,
                             couponsMonthlyPrice: 0,
                             coupons: [],
-                            applicationStepIndex: 9,
+                            applicationStepIndex: 8,
                           }));
                         }}
                         className="min-h-[44px] shrink-0 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
@@ -3490,7 +3395,7 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 9 ? (
+        {step === 8 ? (
           <>
             <ListingRulesConfirmationSection
               lang={lang}
@@ -3671,7 +3576,7 @@ export function ClasificadosServiciosApplication() {
                           };
                         })()
                       : {}),
-                    ...(s.applicationStepIndex === 5
+                    ...(s.applicationStepIndex === 4
                       ? (() => {
                           let w: ClasificadosServiciosApplicationState = { ...s };
                           const pending = w.customPaymentMethodLabel.trim();

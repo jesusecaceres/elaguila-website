@@ -1,6 +1,4 @@
-import Image from "next/image";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
-import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import { buildServiciosHeroHoursPill } from "./serviciosHeroHoursStatus";
 import {
@@ -52,22 +50,7 @@ export function ServiciosHero({
     <section className="relative w-full overflow-hidden rounded-xl shadow-[0_20px_60px_rgba(30,24,16,0.12)] sm:rounded-2xl md:rounded-3xl">
       <div className="relative isolate w-full min-h-[clamp(14.25rem,38vmin,31rem)] sm:min-h-[clamp(15.25rem,34vmin,28rem)] md:min-h-[clamp(16rem,30vmin,26rem)]">
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]" aria-hidden>
-          {hero.coverImageUrl ? (
-            <>
-              <Image
-                src={hero.coverImageUrl}
-                alt={hero.coverImageAlt || ""}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1280px) 100vw, 1280px"
-                priority
-                unoptimized={serviciosImageUnoptimized(hero.coverImageUrl)}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050B14]/90 via-[#071A33]/55 to-[#102E57]/25" />
-            </>
-          ) : (
-            <div className="absolute inset-0" style={LX_STANDARD_HERO_FALLBACK_STYLE} />
-          )}
+          <div className="absolute inset-0" style={LX_STANDARD_HERO_FALLBACK_STYLE} />
         </div>
 
         <div className="relative z-10 flex w-full flex-col items-center px-3 pb-7 pt-8 text-center text-[#FFFCF7] sm:px-8 sm:pb-9 sm:pt-10 md:px-10 md:pb-10 md:pt-11">

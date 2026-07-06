@@ -85,7 +85,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const countryValue = state.country.trim() || undefined;
 
   const logoAlt = lang === "en" ? "Business logo" : "Logo del negocio";
-  const coverAlt = lang === "en" ? "Cover image" : "Imagen de portada";
 
   const heroBadges: ServiciosApplicationDraft["hero"]["badges"] = [];
   for (const lab of buildServiciosLanguageLabels(state, lang)) {
@@ -396,8 +395,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       categoryLine,
       logoUrl: state.logoUrl.trim() || undefined,
       logoAlt: state.logoUrl.trim() ? logoAlt : undefined,
-      coverImageUrl: state.coverUrl.trim() || undefined,
-      coverImageAlt: state.coverUrl.trim() ? coverAlt : undefined,
       locationSummary,
       state: stateValue,
       country: countryValue,

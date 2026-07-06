@@ -337,9 +337,9 @@ const es: ClasificadosServiciosCopy = {
     quickFacts: "Datos rápidos",
     contact: "6 · Vista de contacto",
     social: "Redes sociales",
-    hours: "7 · Horarios",
+    hours: "6 · Horarios",
     testimonials: "Testimonios (opcional)",
-    offer: "8 · Promoción (opcional)",
+    offer: "7 · Promoción (opcional)",
   },
   labels: {
     businessType: "Tipo de negocio",
@@ -505,7 +505,7 @@ const es: ClasificadosServiciosCopy = {
     moveDown: "Abajo",
     featuredToggle: "Principal en anuncio",
     mediaStructureIntro:
-      "Logo y portada definen el encabezado. La galería muestra hasta 4 fotos destacadas en el anuncio; el resto aparece al ampliar. Todo se guarda en este navegador hasta que salgas del flujo o publiques.",
+      "El logo define el encabezado con el fondo estándar Leonix. La galería muestra hasta 4 fotos destacadas en el anuncio; el resto aparece al ampliar. Todo se guarda en este navegador hasta que salgas del flujo o publiques.",
     logoHelp: "Cuadrada o casi cuadrada; se muestra junto al nombre.",
     coverHelp: "Imagen ancha detrás del encabezado (como portada).",
     galleryStatusLine: "{total} foto(s) · {featured} destacada(s) (máx. 4)",
@@ -635,9 +635,9 @@ const en: ClasificadosServiciosCopy = {
     quickFacts: "Quick facts",
     contact: "6 · Contact preview",
     social: "Social media",
-    hours: "7 · Hours",
+    hours: "6 · Hours",
     testimonials: "Testimonials (optional)",
-    offer: "8 · Promotion (optional)",
+    offer: "7 · Promotion (optional)",
   },
   labels: {
     businessType: "Business type",
@@ -803,7 +803,7 @@ const en: ClasificadosServiciosCopy = {
     moveDown: "Down",
     featuredToggle: "Featured on listing",
     mediaStructureIntro:
-      "Logo and cover shape the header. The gallery uses up to 4 featured photos on the listing; the rest appear when visitors expand the gallery. Everything stays in this browser until you leave the flow or publish.",
+      "Your logo shapes the header. The gallery uses up to 4 featured photos on the listing; the rest appear when visitors expand the gallery. Everything stays in this browser until you leave the flow or publish.",
     logoHelp: "Square-ish; shown next to your business name.",
     coverHelp: "Wide image behind the header (banner).",
     galleryStatusLine: "{total} photo(s) · {featured} featured (max 4)",
