@@ -1,51 +1,111 @@
-# MAGAZINE-DEEPL-PT-SINGLE-PAGE-SMOKE1
+# Magazine DeepL Portuguese Single-Page Smoke
 
-Gate date: 2026-07-06  
-Classification: controlled provider smoke — Portuguese page 3 only
+Gate history: Page 3 (`MAGAZINE-DEEPL-PT-SINGLE-PAGE-SMOKE1`), Page 4 (`MAGAZINE-DEEPL-PT-PAGE4-SMOKE2-VISUAL-QA`)
 
-## Result
+Classification: controlled provider smoke — Portuguese only, one page at a time, local proof folder only.
 
-**DEEPL_PT_SINGLE_PAGE_SMOKE_DONE** — one-page DeepL document call succeeded; output saved locally for manual QA.
+---
 
-## Configuration
+## Page 3 Smoke Result (PASS1)
 
-| Setting | Value |
-|---------|-------|
-| Source PDF | `public/magazine/2026/june/leonix_media_june.pdf` |
-| Selected page | 3 (of 26) |
-| Target | `pt` → DeepL `PT-BR` |
-| One-page input | `.magazine-proof-output/june-2026/pt/page-smoke/page-003/source-page-003.pdf` (~3.0 MB) |
-| Translated output | `.magazine-proof-output/june-2026/pt/page-smoke/page-003/deepl-page-003.pt.pdf` (~17.1 MB) |
-| Provider calls | 1 (one-page only; full magazine not submitted) |
-| Billed characters (DeepL) | 1613 |
+| Field | Value |
+|-------|-------|
+| Output path | `.magazine-proof-output/june-2026/pt/page-smoke/page-003/deepl-page-003.pt.pdf` |
+| Source page path | `.magazine-proof-output/june-2026/pt/page-smoke/page-003/source-page-003.pdf` |
+| Output file size | 17,893,636 bytes (~17.06 MB) |
+| Source one-page size | 3,178,401 bytes (~3.03 MB) |
 | DeepL status | `done` |
+| Billed characters | 1,613 |
+| Provider calls | 1 (one-page only) |
+| Full magazine submitted | **No** |
+| Public serving | **No** |
+| Supabase row | **No** |
+| Vercel env change | **No** |
 
-## Manual QA (Chuy)
+---
 
-Open locally:
+## Page 4 Smoke Result (PASS2)
 
-`.magazine-proof-output/june-2026/pt/page-smoke/page-003/deepl-page-003.pt.pdf`
+| Field | Value |
+|-------|-------|
+| Output path | `.magazine-proof-output/june-2026/pt/page-smoke/page-004/deepl-page-004.pt.pdf` |
+| Source page path | `.magazine-proof-output/june-2026/pt/page-smoke/page-004/source-page-004.pdf` |
+| Output file size | 15,957,354 bytes (~15.22 MB) |
+| Source one-page size | 2,902,985 bytes (~2.77 MB) |
+| DeepL status | `done` |
+| Billed characters | 1,373 |
+| Provider calls (this gate) | 1 (one-page only) |
+| Full magazine submitted | **No** |
+| Public serving | **No** |
+| Supabase row | **No** |
+| Vercel env change | **No** |
 
-Compare with Spanish page 3 in the source PDF. Verify:
+---
 
-1. Did visible Spanish text become Portuguese?
-2. Did layout stay usable?
-3. Did DeepL leave the page unchanged?
-4. Is output readable enough to test another page?
+## Visual QA Notes
 
-**Do not publish** this file or claim a public Portuguese magazine edition.
+### Page 3 (Chuy — reviewed)
 
-## Next steps
+- Translation worked into Portuguese.
+- Images/branding preserved.
+- Layout mostly preserved.
+- Some translated text is longer/shorter than Spanish; alignment and line-height need touch-up review in a later polish pass.
+- Source artwork still has contact truth issues (e.g. Suite 202 where current public truth should be Suite 201). DeepL inherits source artwork — not fixed by translation.
+- **Proof-only — not public-ready.**
 
-- If output is usable: consider page 4 or another text-heavy page smoke before full-magazine spend.
-- If output is unchanged or poor: fix Canva export for selectable text and/or prioritize companion reader path.
-- Full magazine smoke: separate gate with explicit approval only.
+### Page 4 (Chuy — manual QA checklist)
+
+Open: `.magazine-proof-output/june-2026/pt/page-smoke/page-004/deepl-page-004.pt.pdf`
+
+- [ ] Did visible Spanish become Portuguese?
+- [ ] Did layout stay usable?
+- [ ] Did DeepL leave any text unchanged?
+- [ ] Did translated text overflow or crop badly?
+- [ ] Are CTA labels aligned?
+- [ ] Are footer/contact details correct or still inherited from source artwork?
+- [ ] Is it good enough to test a full Portuguese magazine local proof?
+
+**Do not publish** either proof PDF or claim a public Portuguese magazine edition.
+
+---
+
+## Local Storage Summary
+
+| Item | Size (after Page 4 gate) |
+|------|--------------------------|
+| Page 3 source | ~3.03 MB |
+| Page 3 translated | ~17.06 MB |
+| Page 4 source | ~2.77 MB |
+| Page 4 translated | ~15.22 MB |
+| **PT page-smoke folder total** | **~38.09 MB** |
+
+All under `.magazine-proof-output/` — **gitignored**, never copied to `public/`.
+
+---
+
+## Next Decision Path
+
+| If Page 4 visual QA is… | Recommended next step |
+|-------------------------|----------------------|
+| Usable (like Page 3) | Gate for **one controlled full Portuguese local proof** (explicit approval; still not public) |
+| Unchanged or poor | Fix Canva export for selectable text and/or prioritize companion reader path |
+| Polish-only issues | Document touch-up backlog; do not full-send until artwork truth + layout fixes are scoped |
+
+Full magazine smoke: separate gate with explicit approval only. No Vercel env until local full proof is QA-approved.
+
+---
 
 ## Commands
 
 ```bash
-node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --dry-run
-node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --execute
+# Readiness (never prints key)
+node scripts/magazine-deepl-readiness-audit.mjs
+
+# Page N dry-run (extract only)
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=4 --dry-run
+
+# Page N execute (one paid call per run)
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=4 --execute
 ```
 
 ## Safety
