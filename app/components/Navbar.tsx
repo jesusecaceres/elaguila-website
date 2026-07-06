@@ -339,10 +339,10 @@ function NavbarContent() {
       )}
 
       <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
-        <div className="w-full px-3 sm:px-4 lg:px-5 xl:px-6">
-          <div className="flex flex-nowrap items-center justify-between gap-x-2 py-1.5 sm:gap-x-3 sm:py-2 lg:gap-x-4">
+        <div className="w-full px-3 sm:px-4 lg:px-4 xl:px-5">
+          <div className="flex flex-nowrap items-center justify-between gap-x-2 py-1.5 sm:gap-x-2.5 sm:py-2 lg:gap-x-3">
             {/* ZONE 1 — brand (left) */}
-            <div className="flex shrink-0 items-center pe-3 sm:pe-4 lg:pe-5 xl:pe-6">
+            <div className="flex shrink-0 items-center pe-2 sm:pe-3 lg:pe-3 xl:pe-4">
               <Link
                 href={buildLink("/home")}
                 className="flex shrink-0 items-center gap-2.5 sm:gap-3"
@@ -370,7 +370,7 @@ function NavbarContent() {
               className="hidden min-w-0 flex-1 items-center overflow-visible lg:flex"
               aria-label={L.navAria}
             >
-              <div className="flex w-full min-w-0 flex-nowrap items-center gap-x-2.5 text-[0.75rem] font-medium text-[#3D3428] sm:gap-x-3 lg:text-[0.8125rem] xl:gap-x-3.5 xl:text-[0.875rem] 2xl:gap-x-4">
+              <div className="flex w-full min-w-0 flex-nowrap items-center gap-x-2 text-[0.75rem] font-medium text-[#3D3428] lg:gap-x-2 lg:text-[0.8125rem] xl:gap-x-2.5 2xl:gap-x-3 2xl:text-[0.875rem] min-[1700px]:gap-x-3.5">
                 {PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS.map((item) => (
                   <Link
                     key={item.id}
@@ -428,17 +428,17 @@ function NavbarContent() {
                 {PUBLIC_NAV_PRIMARY_AFTER_RECURSOS.map((item) => {
                   if (item.id === "productos-promocionales") {
                     return (
-                      <span key={item.id} className="hidden shrink-0 xl:contents 2xl:contents">
+                      <span key={item.id} className="hidden shrink-0 2xl:contents">
                         <Link
                           href={buildLink(item.href)}
-                          className={cx(navLinkClass(isActive(item.href)), "shrink-0 xl:inline 2xl:hidden")}
+                          className={cx(navLinkClass(isActive(item.href)), "shrink-0 2xl:inline min-[1700px]:hidden")}
                           aria-current={isActive(item.href) ? "page" : undefined}
                         >
                           {publicNavItemLabel(item, navLang, { short: true })}
                         </Link>
                         <Link
                           href={buildLink(item.href)}
-                          className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 2xl:inline")}
+                          className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 min-[1700px]:inline")}
                           aria-current={isActive(item.href) ? "page" : undefined}
                         >
                           {publicNavLabel(item, navLang)}
@@ -450,7 +450,7 @@ function NavbarContent() {
                     <Link
                       key={item.id}
                       href={buildLink(item.href)}
-                      className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 xl:inline")}
+                      className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 2xl:inline")}
                       aria-current={isActive(item.href) ? "page" : undefined}
                     >
                       {publicNavLabel(item, navLang)}
@@ -458,7 +458,7 @@ function NavbarContent() {
                   );
                 })}
 
-                <div className="relative shrink-0 xl:hidden" ref={compactOverflowRef}>
+                <div className="relative shrink-0 2xl:hidden" ref={compactOverflowRef}>
                   <button
                     type="button"
                     onClick={() => {
@@ -500,7 +500,7 @@ function NavbarContent() {
             </nav>
 
             {/* ZONE 3 — right controls */}
-            <div className="flex shrink-0 flex-nowrap items-center justify-end gap-2 ps-2 sm:gap-2.5 lg:gap-3 lg:ps-3">
+            <div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 ps-1.5 sm:gap-2 lg:gap-2 lg:ps-2 xl:gap-2.5">
               {langToggle()}
               {accountControl("desktop")}
               {advertiseCta}
