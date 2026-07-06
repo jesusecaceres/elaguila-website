@@ -89,7 +89,8 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE1` attempted the real DeepL readiness gate, but stopped before installing or calling DeepL because `DEEPL_AUTH_KEY` was not present locally.
 - `MAGAZINE-DEEPL-KEY-LOCAL-READINESS1` (2026-07-06): Re-ran zero-cost readiness audit and dry-run; repo ready except local `DEEPL_AUTH_KEY`. See `docs/magazine-deepl-key-local-readiness.md`. **HOLD** until Chuy adds key locally — no DeepL call in this gate.
 - `MAGAZINE-DEEPL-PT-SINGLE-PAGE-SMOKE1` (2026-07-06): Page 3 PT smoke done (1613 billed chars). See `docs/magazine-deepl-pt-single-page-smoke.md`.
-- `MAGAZINE-DEEPL-PT-PAGE4-SMOKE2-VISUAL-QA` (2026-07-06): Page 4 PT smoke done (1373 billed chars); Chuy visual QA pending on page 4. PT page-smoke folder ~38 MB local/gitignored. Full PT local proof: next gate with explicit approval.
+- `MAGAZINE-DEEPL-PT-PAGE4-SMOKE2-VISUAL-QA` (2026-07-06): Page 4 PT smoke done (1373 billed chars). PT page-smoke folder ~38 MB local/gitignored.
+- `MAGAZINE-DEEPL-PT-FULL-LOCAL-PROOF1` (2026-07-06): Added `--full` mode; full execute **BLOCKED** — DeepL 10 MB document limit vs ~75 MB source. See `docs/magazine-deepl-pt-full-local-proof.md`. Next: re-export smaller source or chunk strategy gate; continue single-page QA.
 - Next provider retry must use target language `pt` only and keep generated outputs under ignored local proof folders.
 - `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added `public.magazine_visual_assets`, platform helpers, server lookup, and runbook. No translated visual asset is QA-approved or publicly available. Storage bucket is a documented hold.
 

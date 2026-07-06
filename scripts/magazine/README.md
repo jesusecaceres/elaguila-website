@@ -78,18 +78,32 @@ Local outputs (gitignored):
 - `metadata.json` — proof metadata (no API key)
 - `deepl-status.json` — provider status summary
 
-Default page is **3** (contact/truth content). Only `--target=pt` is allowed. Full-magazine translation is not supported by this script.
+Default page is **3** (contact/truth content). Only `--target=pt` is allowed.
 
-Safe preflight (zero cost, legacy path):
+### Full local Portuguese proof (explicit `--full`)
+
+Requires `--full` — full document mode never runs without this flag.
+
+```bash
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --full --dry-run
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --full --execute
+```
+
+Output: `.magazine-proof-output/june-2026/pt/full-local/leonix_media_june.pt.pdf`
+
+**DeepL document API limit:** uploads are capped at **10 MB** per document. The June 2026 source PDF is ~75 MB, so full-mode `--execute` currently fails until source is re-exported smaller or a future gate splits into provider-compliant chunks. Single-page mode remains the working path.
+
+Safe preflight (zero cost, legacy page default):
 
 ```bash
 node scripts/magazine/proof-translate-deepl.mjs --dry-run --target=pt
 ```
 
-Execution remains held for **full-magazine** smoke. Use single-page proof instead:
+Execution for **full magazine** requires `--full --execute`. Single-page proof:
 
 ```bash
 node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --execute
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --full --execute
 ```
 
 This gate is Portuguese-only; the script refuses non-`pt` targets, broad/all-language targets, and held inactive `ar`/`fa`.
