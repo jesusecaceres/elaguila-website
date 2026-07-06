@@ -18,7 +18,7 @@ import {
 } from "./serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { isJunkServiciosQuickFactLabel, syncServiciosContactEnables } from "./serviciosContactVisibility";
-import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
+import { SERVICIOS_APPLICATION_STEP_COUNT, migrateServiciosApplicationStepIndex } from "./serviciosApplicationStepLabels";
 import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import { CUSTOM_SERVICIOS_AMENITY_LABEL_MAX } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
@@ -229,7 +229,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   const maxStep = Math.max(0, SERVICIOS_APPLICATION_STEP_COUNT - 1);
   let applicationStepIndex = d.applicationStepIndex;
   if (typeof o.applicationStepIndex === "number" && Number.isFinite(o.applicationStepIndex)) {
-    applicationStepIndex = Math.max(0, Math.min(maxStep, Math.floor(o.applicationStepIndex)));
+    applicationStepIndex = migrateServiciosApplicationStepIndex(Math.floor(o.applicationStepIndex));
+    applicationStepIndex = Math.max(0, Math.min(maxStep, applicationStepIndex));
   }
 
   const customServiceLabel = str("customServiceLabel", d.customServiceLabel);

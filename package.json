@@ -61,6 +61,7 @@
     "verify:restaurantes-pending-payment-status-constraint-fix-01": "node scripts/verify-restaurantes-pending-payment-status-constraint-fix-01.mjs",
     "verify:servicios-gate-01": "node scripts/verify-servicios-gate-01-draft-city-video-url.mjs",
     "verify:servicios-gate-02": "node scripts/verify-servicios-gate-02-contact-cover-cleanup.mjs",
+    "verify:servicios-gate-03": "node scripts/verify-servicios-gate-03-simple-offer-chips.mjs",
     "verify:restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01": "node scripts/verify-restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01.mjs",
     "verify:restaurantes-promo-checkout-final-button-blocker-fix-01": "node scripts/verify-restaurantes-promo-checkout-final-button-blocker-fix-01.mjs",
     "verify:publish-checkout-promo-validation-ui-01": "node scripts/verify-publish-checkout-promo-validation-ui-01.mjs",

@@ -15,7 +15,6 @@ import {
   resolveServiciosWhatsAppSocialRowHref,
 } from "@/app/servicios/lib/serviciosWhatsAppHref";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
-import { clasificadosPromoRowIsActive } from "./clasificadosServiciosPromo";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 import { getBusinessHighlightPreset } from "./businessHighlightPresets";
@@ -413,22 +412,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (highlights.length) draft.highlights = highlights;
   if (reviews.length) draft.reviews = reviews;
   if (serviceAreas && (serviceAreas.items?.length || serviceAreas.mapImageUrl)) draft.serviceAreas = serviceAreas;
-  const draftPromos: NonNullable<ServiciosApplicationDraft["promotions"]> = [];
-  for (let i = 0; i < state.promotions.length; i++) {
-    const r = state.promotions[i]!;
-    if (!clasificadosPromoRowIsActive(r)) continue;
-    const hrefRaw = r.link.trim();
-    draftPromos.push({
-      id: `clasificados-promo-${i}`,
-      headline: r.title.trim(),
-      footnote: r.details.trim() || undefined,
-      ...(hrefRaw ? { href: normalizeHttpUrl(hrefRaw) } : {}),
-      ...(r.imageUrl.trim() ? { assetImageUrl: r.imageUrl.trim() } : {}),
-      ...(r.pdfUrl.trim() ? { assetPdfUrl: r.pdfUrl.trim() } : {}),
-      ...(r.qrLater === true ? { qrIntent: true } : {}),
-    });
-  }
-  if (draftPromos.length) draft.promotions = draftPromos;
+  /* Free `state.promotions` retired (GATE-03): simple offers → highlight chips; full coupons → paid add-on. */
 
   // Map coupons (paid add-on)
   const draftCoupons: NonNullable<ServiciosApplicationDraft["coupons"]> = [];

@@ -57,7 +57,6 @@ import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadin
 import { isJunkServiciosQuickFactLabel } from "../lib/serviciosContactVisibility";
 import {
   getServiciosCredentialPlaceholders,
-  getServiciosPromoCopyHints,
   resolveServiciosApplicationTemplate,
 } from "../lib/serviciosApplicationTemplateCopy";
 import {
@@ -82,11 +81,6 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import {
-  formatPromoPdfFileSize,
-  isPromoPdfPreviewHref,
-  promoPdfDisplayFileName,
-} from "../lib/serviciosPromoPdfUi";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
@@ -115,13 +109,6 @@ import {
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
 import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
-import {
-  MAX_CLASIFICADOS_PROMOTIONS,
-  CLASIFICADOS_PROMO_TITLE_MAX,
-  CLASIFICADOS_PROMO_DETAILS_MAX,
-  CLASIFICADOS_PROMO_LINK_MAX,
-  createEmptyClasificadosPromoRow,
-} from "../lib/clasificadosServiciosPromo";
 import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import {
@@ -253,8 +240,6 @@ export function ClasificadosServiciosApplication() {
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const promoImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const promoPdfInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const couponImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const createEmptyCouponRow = useCallback((): ClasificadosServiciosCouponRow => {
@@ -417,12 +402,12 @@ export function ClasificadosServiciosApplication() {
   }, [hydrated]);
 
   useEffect(() => {
-    if (step !== 7) setFinalStepPublishBlocked(null);
+    if (step !== 6) setFinalStepPublishBlocked(null);
   }, [step]);
 
   useEffect(() => {
     if (
-      step === 8 &&
+      step === 7 &&
       state.confirmListingAccurate &&
       state.confirmPhotosRepresentBusiness &&
       state.confirmCommunityRules
@@ -508,8 +493,6 @@ export function ClasificadosServiciosApplication() {
     () => getServiciosCredentialPlaceholders(listingTemplate, lang),
     [listingTemplate, lang],
   );
-
-  const promoCopyHints = useMemo(() => getServiciosPromoCopyHints(listingTemplate, lang), [listingTemplate, lang]);
 
   const listingPhase = useMemo(() => {
     const r = evaluateServiciosPreviewReadiness(state, lang);
@@ -2014,6 +1997,10 @@ export function ClasificadosServiciosApplication() {
               {businessHighlightSelectionCount >= MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxPresetHighlights}</p>
               ) : null}
+              <div className="mt-6 rounded-xl border border-[#D8C79A]/50 bg-[#FFFCF7]/80 px-4 py-3">
+                <h3 className="text-sm font-bold text-[#3D2C12]">{copy.labels.simpleOfferPhrasesTitle}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#5D4A25]/90">{copy.labels.simpleOfferPhrasesHelper}</p>
+              </div>
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.addOtherHighlightHeading}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
               <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
@@ -2698,286 +2685,11 @@ export function ClasificadosServiciosApplication() {
 
         {step === 6 ? (
           <>
-        <section className={sectionCard} aria-labelledby="sec-promo">
-          <h2 id="sec-promo" className="text-lg font-bold text-[#3D2C12]">
-            {copy.sections.offer}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{promoCopyHints.promotionsSectionIntro}</p>
-
-          {state.promotions.map((row, i) => {
-            const linkInvalid = row.link.trim() && !isProbablyValidWebUrl(row.link);
-            return (
-              <div
-                key={`promo-block-${i}`}
-                className={i === 0 ? "mt-6" : "mt-8 border-t border-[#D8C79A]/40 pt-8"}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.promotionSlot(i + 1)}</h3>
-                  {state.promotions.length > 1 ? (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-red-800 underline"
-                      onClick={() =>
-                        setState((s) =>
-                          enforceServiciosSelectionCaps({
-                            ...s,
-                            promotions:
-                              s.promotions.length > 1
-                                ? s.promotions.filter((_, j) => j !== i)
-                                : [createEmptyClasificadosPromoRow()],
-                          }),
-                        )
-                      }
-                    >
-                      {copy.labels.promoRemovePromotion}
-                    </button>
-                  ) : null}
-                </div>
-
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerTitle}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{promoCopyHints.offerTitleHelp}</p>
-                <input
-                  className={inputClass}
-                  placeholder={promoCopyHints.promoTitlePlaceholder}
-                  maxLength={CLASIFICADOS_PROMO_TITLE_MAX}
-                  value={row.title}
-                  onChange={(e) =>
-                    setState((s) => {
-                      const next = [...s.promotions];
-                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                      next[i] = { ...cur, title: e.target.value.slice(0, CLASIFICADOS_PROMO_TITLE_MAX) };
-                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                    })
-                  }
-                />
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerDetails}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{promoCopyHints.offerDetailsHelp}</p>
-                <textarea
-                  className={inputClass}
-                  rows={3}
-                  placeholder={promoCopyHints.promoDetailsPlaceholder}
-                  maxLength={CLASIFICADOS_PROMO_DETAILS_MAX}
-                  value={row.details}
-                  onChange={(e) =>
-                    setState((s) => {
-                      const next = [...s.promotions];
-                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                      next[i] = { ...cur, details: e.target.value.slice(0, CLASIFICADOS_PROMO_DETAILS_MAX) };
-                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                    })
-                  }
-                />
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerLink}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerLinkHelp}</p>
-                <input
-                  className={`${inputClass} ${linkInvalid ? inputWarn : ""}`}
-                  type="url"
-                  placeholder={copy.labels.promoLinkPlaceholder}
-                  value={row.link}
-                  onChange={(e) =>
-                    setState((s) => {
-                      const next = [...s.promotions];
-                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                      next[i] = { ...cur, link: e.target.value.slice(0, CLASIFICADOS_PROMO_LINK_MAX) };
-                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                    })
-                  }
-                />
-                {linkInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
-
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerImage}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerImageHelp}</p>
-                <input
-                  ref={(el) => {
-                    promoImageInputRefs.current[i] = el;
-                  }}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (!f.type.startsWith("image/")) {
-                      setMediaFlash(copy.labels.mediaWrongFileType);
-                      e.target.value = "";
-                      return;
-                    }
-                    void readFileAsDataUrl(f).then((url) =>
-                      setState((s) => {
-                        const next = [...s.promotions];
-                        const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                        next[i] = { ...cur, imageUrl: url };
-                        return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                      }),
-                    );
-                  }}
-                />
-                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                      onClick={() => promoImageInputRefs.current[i]?.click()}
-                    >
-                      {copy.labels.upload}
-                    </button>
-                    {row.imageUrl ? (
-                      <button
-                        type="button"
-                        className="min-h-[44px] text-xs font-semibold text-red-700 underline"
-                        onClick={() =>
-                          setState((s) => {
-                            const next = [...s.promotions];
-                            const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                            next[i] = { ...cur, imageUrl: "" };
-                            return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                          })
-                        }
-                      >
-                        {copy.labels.remove}
-                      </button>
-                    ) : null}
-                  </div>
-                  {row.imageUrl ? (
-                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
-                        <Image src={row.imageUrl} alt="" fill className="object-cover" unoptimized />
-                      </div>
-                      <p className="text-xs font-medium text-[#2d528d]">{copy.labels.mediaUploadedBadge}</p>
-                    </div>
-                  ) : null}
-                </div>
-
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerPdf}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerPdfHelp}</p>
-                <input
-                  ref={(el) => {
-                    promoPdfInputRefs.current[i] = el;
-                  }}
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.type !== "application/pdf") {
-                      setMediaFlash(copy.labels.mediaWrongPdfType);
-                      e.target.value = "";
-                      return;
-                    }
-                    void readFileAsDataUrl(f).then((url) =>
-                      setState((s) => {
-                        const next = [...s.promotions];
-                        const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                        next[i] = {
-                          ...cur,
-                          pdfUrl: url,
-                          pdfFileName: f.name,
-                          pdfFileSizeBytes: f.size,
-                        };
-                        return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                      }),
-                    );
-                  }}
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                    onClick={() => promoPdfInputRefs.current[i]?.click()}
-                  >
-                    {row.pdfUrl ? copy.labels.replace : copy.labels.upload}
-                  </button>
-                  {row.pdfUrl ? (
-                    <div className="mt-1 w-full max-w-md rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] p-3">
-                      <p className="text-xs font-bold text-[#3D2C12]">{copy.labels.promoPdfUploadedTitle}</p>
-                      <p className="mt-1 break-all text-sm font-medium text-[#2d528d]">
-                        {promoPdfDisplayFileName(row, lang)}
-                      </p>
-                      {row.pdfFileSizeBytes > 0 ? (
-                        <p className="mt-0.5 text-[11px] text-[#6b5c42]">
-                          {formatPromoPdfFileSize(row.pdfFileSizeBytes, lang)}
-                        </p>
-                      ) : null}
-                      <div className="mt-2.5 flex flex-wrap gap-2">
-                        {isPromoPdfPreviewHref(row.pdfUrl) ? (
-                          <a
-                            href={row.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex min-h-[44px] items-center rounded-lg border border-[#3B66AD]/35 bg-[#3B66AD]/10 px-3 py-2 text-xs font-semibold text-[#1e3a5f]"
-                          >
-                            {copy.labels.promoPdfView}
-                          </a>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[44px] items-center rounded-lg border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                          onClick={() => promoPdfInputRefs.current[i]?.click()}
-                        >
-                          {copy.labels.replace}
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[44px] items-center rounded-lg px-3 py-2 text-xs font-semibold text-red-700 underline"
-                          onClick={() => {
-                            const input = promoPdfInputRefs.current[i];
-                            if (input) input.value = "";
-                            setState((s) => {
-                              const next = [...s.promotions];
-                              const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                              next[i] = {
-                                ...cur,
-                                pdfUrl: "",
-                                pdfFileName: "",
-                                pdfFileSizeBytes: 0,
-                              };
-                              return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                            });
-                          }}
-                        >
-                          {copy.labels.remove}
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-              </div>
-            );
-          })}
-
-          <div className="mt-6 flex flex-col gap-2 border-t border-[#D8C79A]/40 pt-5">
-            {state.promotions.length >= MAX_CLASIFICADOS_PROMOTIONS ? (
-              <p className="text-xs text-[#8a7a62]">{copy.labels.promoMaxNote}</p>
-            ) : (
-              <button
-                type="button"
-                className="inline-flex min-h-[44px] max-w-md items-center justify-center rounded-xl border border-[#3B66AD]/35 bg-[#3B66AD]/10 px-4 text-sm font-semibold text-[#1e3a5f]"
-                onClick={() =>
-                  setState((s) =>
-                    enforceServiciosSelectionCaps({
-                      ...s,
-                      promotions: [...s.promotions, createEmptyClasificadosPromoRow()],
-                    }),
-                  )
-                }
-              >
-                {copy.labels.promoAddPromotion}
-              </button>
-            )}
-          </div>
-        </section>
-          </>
-        ) : null}
-
-        {step === 7 ? (
-          <>
             {/* Coupons section - only shows when add-on is enabled */}
             {state.couponsAddOn ? (
               <section className={sectionCard} aria-labelledby="sec-coupons">
                 <div className="flex items-center justify-between">
-                  <SectionTitle>I · Cupones destacados</SectionTitle>
+                  <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-[color:var(--lx-text)]">
                       {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
@@ -2999,9 +2711,10 @@ export function ClasificadosServiciosApplication() {
                   </div>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                  {lang === "en"
-                    ? "Add up to 4 offers so customers have a clear reason to contact, visit, or share your business."
-                    : "Agrega hasta 4 ofertas para que los clientes tengan una razón clara para contactar, visitar o compartir tu negocio."}
+                  {copy.labels.couponsFeaturedStepBody}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                  {copy.labels.couponsFeaturedStepSimpleHint}
                 </p>
                 <div className="mt-4 grid gap-4">
                 {(state.coupons ?? []).map((coupon, i) => (
@@ -3334,20 +3047,21 @@ export function ClasificadosServiciosApplication() {
             ) : (
               /* Coupon decision card - show when add-on is not yet enabled */
               <>
-                <SectionTitle>G · Cupones y ofertas</SectionTitle>
+                <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
                 <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
                   <div>
                     <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-                      {lang === "en" ? "Do you want to add featured coupons to your listing?" : "¿Quieres agregar cupones destacados a tu anuncio?"}
+                      {copy.labels.couponsFeaturedStepTitle}
                     </h3>
                     <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
                     <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
                       {lang === "en" ? "Special price for services. Monthly add-on inside your listing." : "Precio especial para servicios. Complemento mensual dentro de tu anuncio."}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                      {lang === "en"
-                        ? "Add up to 4 featured coupons inside your service listing. Promote discounts, packages, seasonal specials, consultations, visits, or events. Customers can share the coupon by link, message, email, or compatible apps."
-                        : "Agrega hasta 4 cupones destacados dentro de tu anuncio de servicios. Puedes promocionar descuentos, paquetes, especiales de temporada, consultas, visitas o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles."}
+                      {copy.labels.couponsFeaturedStepBody}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                      {copy.labels.couponsFeaturedStepSimpleHint}
                     </p>
                   </div>
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -3380,7 +3094,7 @@ export function ClasificadosServiciosApplication() {
                             couponsAddOn: false,
                             couponsMonthlyPrice: 0,
                             coupons: [],
-                            applicationStepIndex: 8,
+                            applicationStepIndex: 7,
                           }));
                         }}
                         className="min-h-[44px] shrink-0 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
@@ -3395,7 +3109,7 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 8 ? (
+        {step === 7 ? (
           <>
             <ListingRulesConfirmationSection
               lang={lang}

@@ -178,6 +178,8 @@ export type ClasificadosServiciosCopy = {
     customServicesHelperHint: string;
     highlightsSectionTitle: string;
     highlightsSectionHelper: string;
+    simpleOfferPhrasesTitle: string;
+    simpleOfferPhrasesHelper: string;
     highlightsSuggestedHeading: string;
     addOtherHighlightHeading: string;
     highlightCustomPlaceholder: string;
@@ -199,6 +201,9 @@ export type ClasificadosServiciosCopy = {
     moveFeaturedLeft: string;
     moveFeaturedRight: string;
     offerQrLater: string;
+    couponsFeaturedStepTitle: string;
+    couponsFeaturedStepBody: string;
+    couponsFeaturedStepSimpleHint: string;
     /** How logo / cover / featured / gallery relate in the public profile */
     mediaStructureIntro: string;
     logoHelp: string;
@@ -469,6 +474,9 @@ const es: ClasificadosServiciosCopy = {
       "Puedes agregar varios servicios. Los primeros aparecerán destacados en el anuncio.",
     highlightsSectionTitle: "Highlights del negocio",
     highlightsSectionHelper: "Selecciona detalles que ayuden al cliente a confiar y decidir más rápido.",
+    simpleOfferPhrasesTitle: "Frases destacadas u ofertas simples",
+    simpleOfferPhrasesHelper:
+      "Agrega frases cortas que ayuden al cliente a decidir: beneficios, garantías, paquetes, consultas, descuentos o promociones simples. Ejemplos: Consulta inicial gratis, Estimado sin costo, Servicio el mismo día, Compra 4 llantas y recibe alineamiento gratis, 15% en primera visita. Para cupones con imagen, flyer, código, precio o enlace, usa el add-on de Cupones y ofertas destacadas.",
     highlightsSuggestedHeading: "Sugeridos:",
     addOtherHighlightHeading: "Agregar otro highlight:",
     highlightCustomPlaceholder: "Ej.: Financiamiento disponible",
@@ -484,6 +492,11 @@ const es: ClasificadosServiciosCopy = {
     offerImage: "Imagen opcional",
     offerPdf: "PDF o volante (opcional)",
     offerQrLater: "",
+    couponsFeaturedStepTitle: "Cupones y ofertas destacadas",
+    couponsFeaturedStepBody:
+      "Agrega hasta 4 cupones, descuentos, paquetes u ofertas destacadas dentro de tu anuncio.",
+    couponsFeaturedStepSimpleHint:
+      "Para frases simples sin imagen/código/enlace, usa los highlights del paso Servicios y datos rápidos.",
     promotionsSectionIntro:
       "Añade hasta 4 ofertas breves para tu vitrina. Usa promociones claras, específicas y fáciles de entender.",
     promoAddPromotion: "Añadir promoción",
@@ -767,6 +780,9 @@ const en: ClasificadosServiciosCopy = {
       "You can add multiple services. The first ones may appear highlighted in the listing.",
     highlightsSectionTitle: "Business highlights",
     highlightsSectionHelper: "Select details that help customers trust the business and decide faster.",
+    simpleOfferPhrasesTitle: "Featured phrases or simple offers",
+    simpleOfferPhrasesHelper:
+      "Add short phrases that help customers decide: benefits, guarantees, packages, consultations, discounts, or simple promotions. Examples: Free initial consultation, Free estimate, Same-day service, Buy 4 tires and get free alignment, 15% off first visit. For coupons with an image, flyer, code, price, or link, use the Featured coupons & offers add-on.",
     highlightsSuggestedHeading: "Suggested:",
     addOtherHighlightHeading: "Add another highlight:",
     highlightCustomPlaceholder: "Ex: Financing available",
@@ -782,6 +798,11 @@ const en: ClasificadosServiciosCopy = {
     offerImage: "Optional image",
     offerPdf: "Optional PDF / flyer",
     offerQrLater: "",
+    couponsFeaturedStepTitle: "Featured coupons & offers",
+    couponsFeaturedStepBody:
+      "Add up to 4 featured coupons, discounts, packages, or offers inside your listing.",
+    couponsFeaturedStepSimpleHint:
+      "For simple text phrases without image/code/link, use highlights in the Services & quick facts step.",
     promotionsSectionIntro:
       "Add up to 4 short offers for your profile. Use clear, specific promotions customers can understand quickly.",
     promoAddPromotion: "Add promotion",
