@@ -12,10 +12,12 @@ export function RestauranteShellCouponsBlock({
   coupons,
   couponFlyer,
   couponMoreOffers,
+  lang = "es",
 }: {
   coupons: ShellCoupon[];
   couponFlyer?: ShellCouponFlyer;
   couponMoreOffers?: ShellCouponMoreOffers;
+  lang?: "es" | "en";
 }) {
   const [expanded, setExpanded] = useState(false);
   const n = coupons.length;
@@ -42,10 +44,12 @@ export function RestauranteShellCouponsBlock({
     <section aria-labelledby="cupones-destacados-heading" className="scroll-mt-24">
       <div className="max-w-2xl">
         <h2 id="cupones-destacados-heading" className="text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-          Cupones y ofertas
+          {lang === "en" ? "Featured coupons & offers" : "Cupones y ofertas destacadas"}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-          Guarda o comparte estas ofertas antes de visitar.
+          {lang === "en"
+            ? "Save or share these offers before you visit."
+            : "Guarda o comparte estas ofertas antes de visitar."}
         </p>
       </div>
       {/* Mobile snap-x layout */}

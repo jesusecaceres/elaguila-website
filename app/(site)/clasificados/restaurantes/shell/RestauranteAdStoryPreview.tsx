@@ -329,6 +329,7 @@ export function RestauranteAdStoryPreview({
               coupons={data.coupons ?? []}
               couponFlyer={data.couponFlyer}
               couponMoreOffers={data.couponMoreOffers}
+              lang={lang}
             />
           </div>
         </section>

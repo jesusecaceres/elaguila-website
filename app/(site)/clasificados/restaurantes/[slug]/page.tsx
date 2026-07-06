@@ -50,7 +50,7 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
   if (!row) notFound();
 
   const draft = listingJsonToDraft(row.listing_json);
-  const shellData = mapRestauranteDraftToShellData(draft);
+  const shellData = mapRestauranteDraftToShellData(draft, { lang });
   const shellForPublic = { ...shellData, id: row.id };
 
   const linkedOffers =

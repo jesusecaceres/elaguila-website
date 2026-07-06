@@ -55,6 +55,26 @@ function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
 }
 
+function restauranteCouponRowRenderable(row: {
+  title?: string;
+  description?: string;
+  couponCode?: string;
+  expirationDate?: string;
+  redemptionNote?: string;
+  imageUrl?: string;
+  url?: string;
+}): boolean {
+  return Boolean(
+    nonEmpty(row.title) ||
+      nonEmpty(row.description) ||
+      nonEmpty(row.couponCode) ||
+      nonEmpty(row.expirationDate) ||
+      nonEmpty(row.redemptionNote) ||
+      nonEmpty(row.imageUrl) ||
+      nonEmpty(row.url),
+  );
+}
+
 const CHIP_LABEL_MAX = 52;
 
 function clampChipLabel(s: string, max = CHIP_LABEL_MAX): string {
@@ -587,7 +607,7 @@ export function isRestauranteDraftPristineEmpty(d: RestauranteListingDraft): boo
   if (nonEmpty(d.primaryCuisine) || nonEmpty(d.businessType)) return false;
   const anyDish = d.featuredDishes?.some((x) => nonEmpty(x.title) || nonEmpty(x.image));
   if (anyDish) return false;
-  const anyCoupon = d.coupons?.some((x) => nonEmpty(x.title) && nonEmpty(x.description));
+  const anyCoupon = d.couponUpgradeEnabled === true && d.coupons?.some((x) => restauranteCouponRowRenderable(x));
   if (anyCoupon) return false;
   const anyImg =
     (d.galleryImages?.some(nonEmpty) ?? false) ||
@@ -644,29 +664,36 @@ export function mapRestauranteDraftToShellData(
         imageUrl: nonEmpty(x.image) ? x.image!.trim() : undefined,
         badge: formatPlatilloPriceBadge(x.priceLabel),
       })) ?? [];
-  const coupons =
-    d.coupons
-      ?.filter((x) => nonEmpty(x.title) && nonEmpty(x.description))
-      .slice(0, 4)
-      .map((x) => ({
-        title: x.title.trim(),
-        description: x.description.trim(),
-        couponCode: nonEmpty(x.couponCode) ? x.couponCode!.trim() : undefined,
-        expirationDate: nonEmpty(x.expirationDate) ? x.expirationDate!.trim() : undefined,
-        redemptionNote: nonEmpty(x.redemptionNote) ? x.redemptionNote!.trim() : undefined,
-        imageUrl: nonEmpty(x.imageUrl) ? x.imageUrl!.trim() : undefined,
-        url: nonEmpty(x.url) ? normalizeUrl(x.url!) ?? x.url!.trim() : undefined,
-        ctaLabel: nonEmpty(x.ctaLabel) ? x.ctaLabel!.trim() : undefined,
-      })) ?? [];
-  const couponFlyer = d.couponFlyer && nonEmpty(d.couponFlyer.imageUrl)
-    ? { imageUrl: d.couponFlyer.imageUrl!.trim() }
-    : undefined;
-  const couponMoreOffers = d.couponMoreOffers && nonEmpty(d.couponMoreOffers.url)
-    ? {
-        url: normalizeUrl(d.couponMoreOffers.url!) ?? d.couponMoreOffers.url!.trim(),
-        buttonLabel: d.couponMoreOffers.buttonLabel && nonEmpty(d.couponMoreOffers.buttonLabel) ? d.couponMoreOffers.buttonLabel!.trim() : undefined,
-      }
-    : undefined;
+  const couponModuleEnabled = d.couponUpgradeEnabled === true;
+  const coupons = couponModuleEnabled
+    ? (d.coupons
+        ?.filter((x) => restauranteCouponRowRenderable(x))
+        .slice(0, 4)
+        .map((x) => ({
+          title: nonEmpty(x.title) ? x.title.trim() : lang === "en" ? "Featured offer" : "Oferta destacada",
+          description: x.description?.trim() || "",
+          couponCode: nonEmpty(x.couponCode) ? x.couponCode!.trim() : undefined,
+          expirationDate: nonEmpty(x.expirationDate) ? x.expirationDate!.trim() : undefined,
+          redemptionNote: nonEmpty(x.redemptionNote) ? x.redemptionNote!.trim() : undefined,
+          imageUrl: nonEmpty(x.imageUrl) ? x.imageUrl!.trim() : undefined,
+          url: nonEmpty(x.url) ? normalizeUrl(x.url!) ?? x.url!.trim() : undefined,
+          ctaLabel: nonEmpty(x.ctaLabel) ? x.ctaLabel!.trim() : undefined,
+        })) ?? [])
+    : [];
+  const couponFlyer =
+    couponModuleEnabled && d.couponFlyer && nonEmpty(d.couponFlyer.imageUrl)
+      ? { imageUrl: d.couponFlyer.imageUrl!.trim() }
+      : undefined;
+  const couponMoreOffers =
+    couponModuleEnabled && d.couponMoreOffers && nonEmpty(d.couponMoreOffers.url)
+      ? {
+          url: normalizeUrl(d.couponMoreOffers.url!) ?? d.couponMoreOffers.url!.trim(),
+          buttonLabel:
+            d.couponMoreOffers.buttonLabel && nonEmpty(d.couponMoreOffers.buttonLabel)
+              ? d.couponMoreOffers.buttonLabel!.trim()
+              : undefined,
+        }
+      : undefined;
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
   const menuHref = hasMenuUrl ? normalizeUrl(d.menuUrl!) : hasMenuFile ? d.menuFile! : "";

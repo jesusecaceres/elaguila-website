@@ -86,6 +86,25 @@ function paymentRecordMatchesMetadata(
   return rowCategory === metadata.category && rowPackage === metadata.packageKey;
 }
 
+function readRestaurantCouponAddonPaidFromPaymentRecord(row: LeonixPaymentRecordRow): boolean | undefined {
+  if (String(row.category ?? "").trim().toLowerCase() !== "restaurantes") return undefined;
+  const meta = row.metadata;
+  if (!meta || typeof meta !== "object") return undefined;
+  const m = meta as Record<string, unknown>;
+  if (m.restaurant_coupon_addon_selected === true) return true;
+  if (m.restaurant_coupon_addon_selected === false) return false;
+  const addOns = m.add_ons;
+  if (Array.isArray(addOns)) {
+    return addOns.some(
+      (a) =>
+        a &&
+        typeof a === "object" &&
+        String((a as Record<string, unknown>).key ?? "").trim() === "restaurantes_offers_addon",
+    );
+  }
+  return undefined;
+}
+
 async function tryActivateRestauranteListingAfterEntitlement(input: {
   paymentRecord: LeonixPaymentRecordRow;
   packageDef: RevenuePackageDefinition;
@@ -103,6 +122,7 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
     stripeCheckoutSessionId: input.stripeCheckoutSessionId,
     stripeEventId: input.stripeEventId,
     leonixAdId: input.paymentRecord.leonix_ad_id,
+    couponAddonPaid: readRestaurantCouponAddonPaidFromPaymentRecord(input.paymentRecord),
   });
 
   if (

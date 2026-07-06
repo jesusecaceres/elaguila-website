@@ -61,6 +61,7 @@
     "verify:restaurantes-pending-publish-and-coupon-offers-truth-01": "node scripts/verify-restaurantes-pending-publish-and-coupon-offers-truth-01.mjs",
     "verify:restaurantes-revenue-os-webhook-activation-01": "node scripts/verify-restaurantes-revenue-os-webhook-activation-01.mjs",
     "verify:restaurantes-pending-payment-status-constraint-fix-01": "node scripts/verify-restaurantes-pending-payment-status-constraint-fix-01.mjs",
+    "verify:restaurantes-p0-coupon-addon-published-parity": "node scripts/verify-restaurantes-p0-coupon-addon-published-parity.mjs",
     "verify:servicios-gate-01": "node scripts/verify-servicios-gate-01-draft-city-video-url.mjs",
     "verify:servicios-gate-02": "node scripts/verify-servicios-gate-02-contact-cover-cleanup.mjs",
     "verify:servicios-gate-03": "node scripts/verify-servicios-gate-03-simple-offer-chips.mjs",

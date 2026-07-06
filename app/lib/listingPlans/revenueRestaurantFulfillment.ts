@@ -42,6 +42,8 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
   stripeCheckoutSessionId?: string | null;
   stripeEventId?: string | null;
   leonixAdId?: string | null;
+  /** When set, sync paid coupon add-on truth into listing_json on activation. */
+  couponAddonPaid?: boolean;
 }): Promise<RestauranteRevenueActivationResult> {
   const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
   if (packageKey !== RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY) {
@@ -64,7 +66,7 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
   const supabase = getAdminSupabase();
   const { data: row, error: readError } = await supabase
     .from("restaurantes_public_listings")
-    .select("id, status, published_at")
+    .select("id, status, published_at, listing_json")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -106,12 +108,24 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
   }
 
   const now = new Date().toISOString();
-  const patch: Record<string, string> = {
+  const patch: Record<string, unknown> = {
     status: "published",
     updated_at: now,
   };
   if (!row.published_at) {
     patch.published_at = now;
+  }
+
+  if (input.couponAddonPaid != null && row.listing_json && typeof row.listing_json === "object") {
+    const listingJson = { ...(row.listing_json as Record<string, unknown>) };
+    listingJson.couponUpgradeEnabled = input.couponAddonPaid === true;
+    if (!input.couponAddonPaid) {
+      listingJson.coupons = [];
+      delete listingJson.couponFlyer;
+      delete listingJson.couponMoreOffers;
+      delete listingJson.couponMonthlyPrice;
+    }
+    patch.listing_json = listingJson;
   }
 
   const { data: updated, error: updateError } = await supabase
