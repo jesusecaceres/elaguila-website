@@ -169,10 +169,10 @@ function PreviewSectionNav({ items, lang }: { items: SectionNavItem[]; lang: Ofe
   if (items.length === 0) return null;
   return (
     <nav
-      className="mb-6 lg:mb-8"
+      className="mb-6 lg:hidden"
       aria-label={lang === "en" ? c.sectionNavAriaEn : c.sectionNavAriaEs}
     >
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1E1814]/45 lg:hidden">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1E1814]/45">
         {lang === "en" ? c.goToSectionEn : c.goToSectionEs}
       </p>
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -201,22 +201,26 @@ function HubCollapsibleGroup({
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   return (
-    <details
-      {...(id ? { id } : {})}
-      className={cx(SECTION_ANCHOR, "rounded-xl border border-[#E8D9C4]/60 bg-[#FFFCF7]/50 p-4 lg:border-0 lg:bg-transparent lg:p-0")}
-      open={defaultOpen}
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 lg:hidden [&::-webkit-details-marker]:hidden">
-        <span className={HUB_SECTION}>{title}</span>
-        <span className="text-[10px] font-medium text-[#1E1814]/45">
-          {lang === "en" ? c.openSectionEn : c.openSectionEs}
-        </span>
-      </summary>
+    <div {...(id ? { id } : {})} className={SECTION_ANCHOR}>
+      {/* Mobile: collapsible group */}
+      <details
+        className="rounded-xl border border-[#E8D9C4]/60 bg-[#FFFCF7]/50 p-4 lg:hidden"
+        open={defaultOpen}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
+          <span className={HUB_SECTION}>{title}</span>
+          <span className="text-[10px] font-medium text-[#1E1814]/45">
+            {lang === "en" ? c.openSectionEn : c.openSectionEs}
+          </span>
+        </summary>
+        <div className="mt-3">{children}</div>
+      </details>
+      {/* Desktop: always open, Gate 1 premium grid cell */}
       <div className="hidden lg:block">
         <h3 className={HUB_SECTION}>{title}</h3>
+        <div className="mt-3">{children}</div>
       </div>
-      <div className="mt-3 lg:mt-3">{children}</div>
-    </details>
+    </div>
   );
 }
 
@@ -888,14 +892,14 @@ export function OfertasLocalesPreviewCard({
           <p className="mt-1 text-xs text-[#1E1814]/50">
             {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
           </p>
-          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-            <div className="min-w-[min(280px,85vw)] shrink-0 lg:min-w-0">
+          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] max-lg:flex lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="min-w-[min(280px,85vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
               <OfertasFutureShoppingListCard lang={lang} />
             </div>
-            <div className="min-w-[min(280px,85vw)] shrink-0 lg:min-w-0">
+            <div className="min-w-[min(280px,85vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
               <OfertasFutureRoutePlannerCard lang={lang} />
             </div>
-            <div className="min-w-[min(280px,85vw)] shrink-0 lg:min-w-0">
+            <div className="min-w-[min(280px,85vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
               <OfertasFutureCouponWalletCard lang={lang} />
             </div>
           </div>

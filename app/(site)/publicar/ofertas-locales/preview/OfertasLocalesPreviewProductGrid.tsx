@@ -164,7 +164,7 @@ export function OfertasLocalesPreviewProductGrid({
       </div>
 
       {!loading && categories.length > 0 ? (
-        <div className="mt-5">
+        <div className="mt-5 lg:hidden">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/50">
             {lang === "en" ? c.filterProductsEn : c.filterProductsEs}
           </p>

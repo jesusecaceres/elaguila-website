@@ -129,16 +129,24 @@ function run() {
   assert.ok(audit.includes("Product category filter"), "Audit product filter");
   assert.ok(audit.includes("language globe"), "Audit globe compatibility");
 
+  assert.ok(audit.includes("Gate 1.5A"), "Gate 1.5A corrective patch documented");
+
   assert.ok(card.includes("PreviewSectionNav"), "Section nav component");
+  assert.ok(
+    card.includes('className="mb-6 lg:hidden"') || card.match(/PreviewSectionNav[\s\S]*lg:hidden/),
+    "Section nav mobile-only (lg:hidden)"
+  );
   assert.ok(card.includes('id="oferta"'), "Offer anchor");
   assert.ok(card.includes('id="volante"'), "Flyer anchor");
   assert.ok(card.includes("MobileStickyActionBar"), "Sticky action bar");
-  assert.ok(card.includes("lg:hidden"), "Mobile-only sticky");
+  assert.ok(card.includes("lg:hidden"), "Mobile-only patterns");
   assert.ok(card.includes("HubCollapsibleGroup"), "Collapsible business hub");
+  assert.ok(card.includes("hidden lg:block"), "Desktop Business Hub open layout");
   assert.ok(card.includes('id="proximamente"'), "Future modules anchor");
-  assert.ok(card.includes("overflow-x-auto"), "Horizontal rail");
+  assert.ok(card.includes("max-lg:flex") || card.includes("lg:grid lg:grid-cols-3"), "Future modules desktop grid");
 
   assert.ok(grid.includes("selectedCategory"), "Category filter state");
+  assert.ok(grid.includes("lg:hidden"), "Product filter mobile-only");
   assert.ok(grid.includes('id="productos"'), "Products anchor");
   assert.ok(grid.includes("filterAllEs") || copy.includes("filterAllEs"), "All/Todos copy");
 

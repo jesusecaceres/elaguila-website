@@ -133,3 +133,68 @@ Step 5/6/7, AI scan, crop engine, Stripe, admin, dashboard, public results, Supa
 | READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
 | GLOBAL WORKING TREE CLEAN: YES/NO | NO | Unrelated magazine dirty files |
 | UNRELATED DIRTY FILES PRESENT: YES/NO | YES | Pre-existing |
+
+---
+
+## Gate 1.5A Corrective Patch — Desktop Restore / Mobile-Only PWA Correction
+
+**Classification:** MICRO PATCH / SURGICAL CORRECTIVE PATCH
+
+### Why this correction was needed
+
+Gate 1.5 mobile/PWA tools (section chips, product filter rail) were visible on desktop and changed the clean Gate 1 premium Offer Hub feel. Business Hub `<details>` could collapse sections on desktop when `defaultOpen` was false.
+
+### Corrections applied
+
+| Area | Desktop | Mobile |
+|------|---------|--------|
+| Section chips | Hidden (`lg:hidden` on nav) | Preserved horizontal rail |
+| Product filter | Hidden (`lg:hidden` on filter block) | Preserved category chips |
+| Business Hub | Separate always-open `hidden lg:block` layout | Collapsible `<details>` |
+| Future modules | Clean 3-column grid (`lg:grid`) | Horizontal swipe rail (`max-lg:flex`) |
+| Sticky bar | Unchanged (`lg:hidden`) | Unchanged |
+
+### Files changed (Gate 1.5A)
+
+- `OfertasLocalesPreviewCard.tsx`
+- `OfertasLocalesPreviewProductGrid.tsx`
+- `OFERTAS_MOBILE_PWA_INTERACTION_AUDIT.md`
+- `scripts/verify-ofertas-mobile-pwa-interaction.mjs`
+
+### Locked files untouched
+
+Step 5/6/7, AI scan, crop, Stripe, admin, dashboard, public results, helpers, HeroVisual, future card files, other categories.
+
+### Gate 1.5A TRUE/FALSE audit table
+
+| Requirement | TRUE/FALSE | Evidence |
+|---|---|---|
+| Corrective patch classified as MICRO PATCH / SURGICAL CORRECTIVE PATCH | TRUE | This section |
+| Desktop section chips hidden or removed | TRUE | `PreviewSectionNav` `lg:hidden` |
+| Mobile section chips preserved if useful | TRUE | Nav visible below lg |
+| Desktop header-to-hero flow restored | TRUE | No chip row on lg+ |
+| Product filter rail no longer dominates desktop | TRUE | Filter block `lg:hidden` |
+| Product filters remain mobile-only or desktop-subtle | TRUE | Option A mobile-only |
+| Approved-only product behavior preserved | TRUE | items prop unchanged |
+| Desktop Business Hub remains open/premium | TRUE | `hidden lg:block` desktop cells |
+| Mobile Business Hub remains easier to scan | TRUE | `<details>` on mobile |
+| Desktop future modules are clean row/grid | TRUE | `lg:grid lg:grid-cols-3` |
+| Mobile future rail remains disabled | TRUE | Future cards unchanged |
+| Sticky action bar mobile-only | TRUE | `lg:hidden` |
+| Sticky action bar does not affect desktop | TRUE | `lg:pb-20` on container |
+| No fake ratings/stars/counts added | TRUE | No changes |
+| No fake route/distance/open status added | TRUE | No changes |
+| No fake save/list/coupon wallet behavior added | TRUE | No changes |
+| No Step 5 touched | TRUE | No Step 5 files in diff |
+| No Step 7 touched | TRUE | No Step 7 files in diff |
+| No AI scan/crop touched | TRUE | Verifier scope |
+| No Stripe/admin/dashboard touched | TRUE | Verifier scope |
+| No public results page touched | TRUE | Verifier scope |
+| ES/EN copy preserved | TRUE | No copy changes |
+| Language globe compatibility preserved | TRUE | Real text unchanged |
+| Verifier passed | TRUE | npm run verify |
+| npm run build passed | TRUE | npm run build |
+| READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate-scoped only |
+| READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
+| GLOBAL WORKING TREE CLEAN: YES/NO | TBD | Final report |
+| UNRELATED DIRTY FILES PRESENT: YES/NO | TBD | Final report |
