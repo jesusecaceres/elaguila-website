@@ -1,3 +1,4 @@
+import { EN_VENTA_LANDING_PREVIEW_LIMIT } from "@/app/(site)/clasificados/en-venta/lib/enVentaListingPublicSelect";
 import { fetchEnVentaPublicListingsForBrowse } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
 import { getMergedEnVentaHubLanding } from "@/app/lib/clasificados/enVentaCategoryContentServer";
 import { navCopyLang, normalizeLang } from "@/app/lib/language";
@@ -11,7 +12,7 @@ export default async function EnVentaHubPage(props: { searchParams?: Promise<{ l
   const copyLang = navCopyLang(routeLang);
   const [hub, initialLiveListings] = await Promise.all([
     getMergedEnVentaHubLanding(copyLang),
-    fetchEnVentaPublicListingsForBrowse(),
+    fetchEnVentaPublicListingsForBrowse({ limit: EN_VENTA_LANDING_PREVIEW_LIMIT }),
   ]);
   return <EnVentaHubPageClient hub={hub} initialLiveListings={initialLiveListings} />;
 }

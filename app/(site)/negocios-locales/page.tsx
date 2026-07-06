@@ -316,12 +316,12 @@ function NegociosLocalesInner() {
             >
               {t.ctaExplore}
             </a>
-            <a
+            <Link
               href={advertiseEntryHref}
               className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
             >
               {t.ctaAdvertise}
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -360,12 +360,12 @@ function NegociosLocalesInner() {
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#FAF6EE]/90 sm:text-[0.9375rem]">
             {t.promoDescription}
           </p>
-          <a
+          <Link
             href={advertiseEntryHref}
             className="mt-8 inline-flex min-h-[2.875rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
           >
             {t.promoButton}
-          </a>
+          </Link>
         </section>
       </div>
     </main>
