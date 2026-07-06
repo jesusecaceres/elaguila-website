@@ -201,10 +201,14 @@ export function BrNegocioChildInventoryFullApplication({
     [state, initialDraft, lang],
   );
 
+  const hydratedPreviewDraft = useMemo(
+    () => mergeChildInventoryWithMediaBridge([previewDraft])[0] ?? previewDraft,
+    [previewDraft],
+  );
+
   const previewCard = useMemo(() => {
-    const merged = mergeChildInventoryWithMediaBridge([previewDraft])[0];
-    return mapAdditionalDraftToInventoryCard(merged, lang);
-  }, [previewDraft, lang]);
+    return mapAdditionalDraftToInventoryCard(hydratedPreviewDraft, lang);
+  }, [hydratedPreviewDraft, lang]);
 
   const packageStateForPreview = useMemo(
     () =>
@@ -437,8 +441,11 @@ export function BrNegocioChildInventoryFullApplication({
           onClose={() => setFullPreviewOpen(false)}
           lang={lang}
           parentHubSnapshot={parentHubSnapshot}
-          childDraft={previewDraft}
+          childDraft={hydratedPreviewDraft}
           parentFullState={packageStateForPreview}
+          context="childApplication"
+          onEdit={() => setFullPreviewOpen(false)}
+          onSaveAndReturnToParent={() => attemptSave("goToParentPreview")}
         />
       ) : null}
     </div>

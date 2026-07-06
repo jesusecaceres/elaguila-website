@@ -56,25 +56,35 @@ export function BrNegocioPrePublishInventoryShell({
   const packAccepted = inventoryPackAccepted ?? !checkpointEnabled;
   const packActive = checkpointEnabled ? packAccepted || additionalCount > 0 : true;
 
-  const editingDraft = useMemo(() => {
-    if (!editingId) return null;
-    const hit = items.find((x) => x.id === editingId) ?? null;
-    if (!hit) return null;
-    return mergeChildInventoryWithMediaBridge([hit])[0] ?? hit;
-  }, [editingId, items]);
-
-  const previewDraft = useMemo(
-    () => (previewDraftId ? items.find((x) => x.id === previewDraftId) ?? null : null),
-    [previewDraftId, items],
+  const hydratedItems = useMemo(
+    () => mergeChildInventoryWithMediaBridge(normalizeChildInventoryList(items)),
+    [items],
   );
 
+  const editingDraft = useMemo(() => {
+    if (!editingId) return null;
+    const hit = hydratedItems.find((x) => x.id === editingId) ?? null;
+    if (!hit) return null;
+    return hit;
+  }, [editingId, hydratedItems]);
+
+  const previewDraft = useMemo(() => {
+    if (!previewDraftId) return null;
+    return hydratedItems.find((x) => x.id === previewDraftId) ?? null;
+  }, [previewDraftId, hydratedItems]);
+
   const packageState = useMemo(
-    () =>
-      parentFullState ?? {
+    () => {
+      const base = parentFullState ?? {
         ...parentHubSnapshot,
-        additionalInventoryProperties: items,
-      },
-    [parentFullState, parentHubSnapshot, items],
+        additionalInventoryProperties: hydratedItems,
+      };
+      return {
+        ...base,
+        additionalInventoryProperties: hydratedItems,
+      };
+    },
+    [parentFullState, parentHubSnapshot, hydratedItems],
   );
 
   const openForAdd = useCallback(() => {
@@ -145,7 +155,7 @@ export function BrNegocioPrePublishInventoryShell({
             <BrNegocioPrePublishInventoryPreview
               lang={lang}
               mainProperty={mainProperty}
-              items={items}
+              items={hydratedItems}
               onEdit={openForEdit}
               onRemove={handleRemove}
               onPreview={(id) => setPreviewDraftId(id)}
@@ -187,6 +197,16 @@ export function BrNegocioPrePublishInventoryShell({
           parentHubSnapshot={parentHubSnapshot}
           childDraft={previewDraft}
           parentFullState={packageState}
+          context="parentInventory"
+          onEdit={() => {
+            const id = previewDraft.id;
+            setPreviewDraftId(null);
+            openForEdit(id);
+          }}
+          onContinueToParentPreview={() => {
+            setPreviewDraftId(null);
+            onGoToParentPreview?.();
+          }}
         />
       ) : null}
     </>
