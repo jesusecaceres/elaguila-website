@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "@/app/servicios/components/serviciosDesignTokens";
@@ -19,7 +20,7 @@ import {
   hasBusinessHighlightsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
-  hasOfferSectionResolved,
+  hasPaidCouponsSectionResolved,
   hasQuickFactsResolved,
   hasReviewsSectionResolved,
   hasServicesSectionResolved,
@@ -32,9 +33,11 @@ import { ServiciosOfferedSection } from "@/app/servicios/components/ServiciosSer
 import { ServiciosGalleryWithTabs } from "@/app/servicios/components/ServiciosGalleryWithTabs";
 import { ServiciosReviews } from "@/app/servicios/components/ServiciosReviews";
 import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/ServiciosBusinessHubContactCard";
-import { ServiciosPromocionesCard } from "@/app/servicios/components/ServiciosPromocionesCard";
 import { ServiciosCouponsCard } from "@/app/servicios/components/ServiciosCouponsCard";
 import { ServiciosHighlightsSection } from "@/app/servicios/components/ServiciosHighlightsSection";
+import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
+import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
+import { mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 
 export function ServiciosProfessionalPreviewShell({
   profile,
@@ -51,6 +54,33 @@ export function ServiciosProfessionalPreviewShell({
 }) {
   const chips = collectProfessionalServiceChips(profile, 5);
   const servicesTitle = getServicesTitle(template, lang);
+  const [displayProfile, setDisplayProfile] = useState(profile);
+
+  useEffect(() => {
+    if (!draftSlug?.trim()) {
+      setDisplayProfile(profile);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const raw = await loadClasificadosServiciosApplicationResolved();
+      if (cancelled) return;
+      if (!raw) {
+        setDisplayProfile({ ...profile, promotions: [] });
+        return;
+      }
+      const normalized = normalizeClasificadosServiciosApplicationState(raw);
+      setDisplayProfile(mergeClasificadosCouponsOntoServiciosProfile(profile, normalized, lang));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, draftSlug, lang]);
+
+  const showCoupons = useMemo(
+    () => hasPaidCouponsSectionResolved(displayProfile),
+    [displayProfile],
+  );
 
   if (!hasHeroIdentityResolved(profile)) {
     return null;
@@ -62,7 +92,7 @@ export function ServiciosProfessionalPreviewShell({
       style={{ backgroundColor: SV.bg, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <ServiciosProfessionalHero
-        profile={profile}
+        profile={displayProfile}
         lang={lang}
         template={template}
         cityFallback={cityFallback}
@@ -91,55 +121,52 @@ export function ServiciosProfessionalPreviewShell({
       <div className={LX_PRO_INNER_PAD}>
         <div className={LX_PRO_GRID}>
           <div className={`order-1 flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
-            {hasGallerySectionResolved(profile) ? (
-              <ServiciosGalleryWithTabs profile={profile} lang={lang} />
-            ) : null}
-
-            {hasOfferSectionResolved(profile) ? (
-              <ServiciosPromocionesCard profile={profile} lang={lang} premiumLeonixTone />
-            ) : null}
-
-            {profile.coupons && profile.coupons.length > 0 ? (
+            {showCoupons ? (
               <ServiciosCouponsCard
-                coupons={profile.coupons}
+                coupons={displayProfile.coupons}
                 lang={lang}
-                couponFlyer={profile.couponFlyer}
-                couponMoreOffers={profile.couponMoreOffers}
+                couponFlyer={displayProfile.couponFlyer}
+                couponMoreOffers={displayProfile.couponMoreOffers}
+                featuredRow
               />
             ) : null}
 
-            {hasServicesSectionResolved(profile) ? (
+            {hasGallerySectionResolved(displayProfile) ? (
+              <ServiciosGalleryWithTabs profile={displayProfile} lang={lang} combinedMediaLayout />
+            ) : null}
+
+            {hasServicesSectionResolved(displayProfile) ? (
               <ServiciosOfferedSection
-                services={profile.services}
+                services={displayProfile.services}
                 lang={lang}
-                profileForQuote={profile}
+                profileForQuote={displayProfile}
                 premiumLeonixTone
               />
             ) : null}
 
-            {hasQuickFactsResolved(profile) ? (
-              <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
+            {hasQuickFactsResolved(displayProfile) ? (
+              <ServiciosQuickFacts facts={displayProfile.quickFacts} lang={lang} compact />
             ) : null}
 
-            {hasTrustSectionResolved(profile) ? (
-              <ServiciosTrustSection profile={profile} lang={lang} template={template} />
+            {hasTrustSectionResolved(displayProfile) ? (
+              <ServiciosTrustSection profile={displayProfile} lang={lang} template={template} />
             ) : null}
 
-            {hasAboutSectionResolved(profile) ? (
-              <ServiciosAbout profile={profile} lang={lang} premiumLeonixTone />
+            {hasAboutSectionResolved(displayProfile) ? (
+              <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
             ) : null}
 
-            {hasBusinessHighlightsResolved(profile) ? (
-              <ServiciosHighlightsSection highlights={profile.highlights} lang={lang} />
+            {hasBusinessHighlightsResolved(displayProfile) ? (
+              <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
             ) : null}
 
-            {hasReviewsSectionResolved(profile) ? (
-              <ServiciosReviews profile={profile} lang={lang} />
+            {hasReviewsSectionResolved(displayProfile) ? (
+              <ServiciosReviews profile={displayProfile} lang={lang} />
             ) : null}
 
             <div id="servicios-preview-contact" className="scroll-mt-20 lg:hidden">
               <ServiciosBusinessHubContactCard
-                profile={profile}
+                profile={displayProfile}
                 lang={lang}
                 listingTemplate={template}
                 directContactFasterResponseHint
@@ -151,7 +178,7 @@ export function ServiciosProfessionalPreviewShell({
           <aside className={`order-2 ${LX_PRO_ASIDE}`}>
             <div id="servicios-preview-contact-desktop" className="scroll-mt-20">
               <ServiciosBusinessHubContactCard
-                profile={profile}
+                profile={displayProfile}
                 lang={lang}
                 listingTemplate={template}
                 directContactFasterResponseHint

@@ -2,25 +2,33 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import { FiExternalLink } from "react-icons/fi";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
-import { SV } from "./serviciosDesignTokens";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 
-function GalleryImage({ g, onQuoteClick, onOpen }: { 
-  g: { id: string; url: string; alt: string }; 
+function GalleryImage({
+  g,
+  onQuoteClick,
+  onOpen,
+  compact,
+}: {
+  g: { id: string; url: string; alt: string };
   onQuoteClick?: () => void;
   onOpen?: () => void;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-black/[0.06] bg-black/[0.03] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/60"
+      className={`group relative w-full overflow-hidden rounded-lg border border-black/[0.06] bg-black/[0.03] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B66AD]/60 ${
+        compact ? "aspect-[4/3]" : "aspect-[4/3] rounded-xl"
+      }`}
       aria-label={g.alt}
     >
       <Image
@@ -28,7 +36,7 @@ function GalleryImage({ g, onQuoteClick, onOpen }: {
         alt={g.alt}
         fill
         className="object-cover transition duration-200 group-hover:scale-[1.02]"
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
+        sizes="(max-width: 640px) 25vw, (max-width: 1024px) 20vw, 15vw"
         unoptimized={serviciosImageUnoptimized(g.url)}
       />
       {onQuoteClick ? (
@@ -44,13 +52,13 @@ function GalleryImage({ g, onQuoteClick, onOpen }: {
   );
 }
 
-function GalleryModal({ 
-  images, 
-  isOpen, 
-  onClose, 
-  currentIndex, 
+function GalleryModal({
+  images,
+  isOpen,
+  onClose,
+  currentIndex,
   setCurrentIndex,
-  lang 
+  lang,
 }: {
   images: Array<{ id: string; url: string; alt: string }>;
   isOpen: boolean;
@@ -72,17 +80,13 @@ function GalleryModal({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onClose();
-    if (e.key === 'ArrowLeft') goToPrevious();
-    if (e.key === 'ArrowRight') goToNext();
+    if (e.key === "Escape") onClose();
+    if (e.key === "ArrowLeft") goToPrevious();
+    if (e.key === "ArrowRight") goToNext();
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-      onClick={onClose}
-      onKeyDown={handleKeyDown}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={onClose} onKeyDown={handleKeyDown}>
       <div
         className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-[#17130f] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -152,12 +156,15 @@ export function ServiciosGalleryWithTabs({
   listingSlug,
   listingSourceId = null,
   listingShareUrl,
+  combinedMediaLayout = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   listingSlug?: string;
   listingSourceId?: string | null;
   listingShareUrl?: string;
+  /** Restaurante-style photos + videos in one section (GATE-04) */
+  combinedMediaLayout?: boolean;
 }) {
   const L = getServiciosProfileLabels(lang);
   const mains = profile.gallery;
@@ -225,20 +232,87 @@ export function ServiciosGalleryWithTabs({
     setIsModalOpen(false);
   };
 
-  const photoCap = narrowViewport ? 4 : 6;
+  const photoCap = combinedMediaLayout ? 7 : narrowViewport ? 4 : 6;
   const visibleImages = allPhotos.slice(0, photoCap);
   const hasMoreImages = allPhotos.length > photoCap;
 
   if (allPhotos.length === 0 && videos.length === 0) return null;
+
+  if (combinedMediaLayout) {
+    return (
+      <>
+        <section className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_4px_20px_-8px_rgba(212,165,116,0.14)]">
+          <div className="p-4 sm:p-5">
+            <h2 className="text-lg font-bold leading-tight tracking-tight text-[#1F1A17] md:text-xl">
+              {L.galleryAndVideos}
+            </h2>
+
+            {hasPhotos ? (
+              <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-7 md:gap-2">
+                {visibleImages.map((g, index) => (
+                  <GalleryImage key={g.id} g={g} onOpen={() => openModal(index)} compact />
+                ))}
+              </div>
+            ) : null}
+
+            {hasVideos ? (
+              <div id="servicios-gallery-videos" className={hasPhotos ? "mt-4 space-y-2" : "mt-3 space-y-2"}>
+                <h3 className="text-sm font-semibold text-[#1F1A17]">
+                  {videos.length > 1 ? (lang === "en" ? "Videos" : "Videos") : lang === "en" ? "Video" : "Video"}
+                </h3>
+                <div
+                  className={
+                    videos.length === 1
+                      ? "grid max-w-md grid-cols-1 gap-2"
+                      : "grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"
+                  }
+                >
+                  {videos.map((v) => (
+                    <div key={v.id} className="min-w-0">
+                      <ServiciosGalleryVideoTile v={v} lang={lang} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {(hasPhotos || hasVideos) && (
+              <div className="mt-4 flex justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (hasPhotos) openModal(0);
+                    else document.getElementById("servicios-gallery-videos")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-4 py-2 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0]"
+                >
+                  {L.exploreGalleryAndVideos}
+                  <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <GalleryModal
+          images={allPhotos}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          currentIndex={currentModalIndex}
+          setCurrentIndex={setCurrentModalIndex}
+          lang={lang}
+        />
+        <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
+      </>
+    );
+  }
 
   return (
     <>
       <section className="scroll-mt-24">
         <div className="max-w-2xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Galería</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">
-            {L.gallery}
-          </h2>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">{L.gallery}</h2>
         </div>
 
         <div className="mt-3 md:mt-4">
@@ -270,7 +344,6 @@ export function ServiciosGalleryWithTabs({
           ) : null}
         </div>
 
-        {/* Tab content */}
         <div className="mt-4 md:mt-6">
           {activeTab === "photos" && hasPhotos ? (
             <div>
@@ -278,16 +351,15 @@ export function ServiciosGalleryWithTabs({
                 <>
                   <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {visibleImages.map((g, index) => (
-                      <GalleryImage 
-                        key={g.id} 
-                        g={g} 
-                        onQuoteClick={handleGalleryQuoteClick} 
+                      <GalleryImage
+                        key={g.id}
+                        g={g}
+                        onQuoteClick={handleGalleryQuoteClick}
                         onOpen={() => openModal(index)}
                       />
                     ))}
                   </div>
 
-                  {/* View more photos */}
                   {hasMoreImages && (
                     <div className="mt-5">
                       <button
@@ -339,7 +411,6 @@ export function ServiciosGalleryWithTabs({
         </div>
       </section>
 
-      {/* Modal */}
       <GalleryModal
         images={allPhotos}
         isOpen={isModalOpen}

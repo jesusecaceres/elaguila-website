@@ -148,6 +148,19 @@ export function hasOfferSectionResolved(p: ServiciosProfileResolved): boolean {
   return p.promotions.length > 0;
 }
 
+export function hasPaidCouponsSectionResolved(p: ServiciosProfileResolved): boolean {
+  return p.coupons.some(
+    (c) =>
+      Boolean(
+        c.title?.trim() ||
+          c.description?.trim() ||
+          c.imageUrl?.trim() ||
+          c.couponCode?.trim() ||
+          c.hrefSafe?.trim(),
+      ),
+  );
+}
+
 export function hasPaymentMethodsResolved(p: ServiciosProfileResolved): boolean {
   return p.paymentMethodIds.length > 0 || p.customPaymentMethods.length > 0;
 }

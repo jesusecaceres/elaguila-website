@@ -1,5 +1,11 @@
 import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosApplicationDraft";
-import type { ServiciosLang, ServiciosQuickFactKind } from "@/app/servicios/types/serviciosBusinessProfile";
+import type {
+  ServiciosLang,
+  ServiciosQuickFactKind,
+  ServiciosBusinessProfile,
+  ServiciosProfileResolved,
+  ServiciosPromoOffer,
+} from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosTrustItem } from "@/app/servicios/types/serviciosBusinessProfile";
 import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
@@ -30,6 +36,7 @@ import {
   sanitizeCustomServiciosAmenityLabels,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import { clasificadosCouponRowHasProgress } from "./clasificadosServiciosPromo";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -419,7 +426,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (state.couponsAddOn) {
     for (let i = 0; i < state.coupons.length; i++) {
       const r = state.coupons[i]!;
-      if (!r.title.trim() && !r.description.trim()) continue;
+      if (!clasificadosCouponRowHasProgress(r)) continue;
       const hrefRaw = r.url.trim();
       draftCoupons.push({
         id: `clasificados-coupon-${i}`,
@@ -438,6 +445,19 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     }
   }
   if (draftCoupons.length) draft.coupons = draftCoupons;
+
+  if (state.couponsAddOn && state.couponFlyer?.imageUrl?.trim()) {
+    draft.couponFlyer = { imageUrl: state.couponFlyer.imageUrl.trim() };
+  }
+  const moreOffersUrl = state.couponMoreOffers?.url?.trim() ?? "";
+  if (state.couponsAddOn && moreOffersUrl) {
+    draft.couponMoreOffers = {
+      url: normalizeHttpUrl(moreOffersUrl),
+      ...(state.couponMoreOffers?.buttonLabel?.trim()
+        ? { buttonLabel: state.couponMoreOffers.buttonLabel.trim().slice(0, 80) }
+        : {}),
+    };
+  }
 
   const paymentIds = sanitizeServiciosPaymentMethodIds(state.paymentMethodIds);
   const customPay = sanitizeCustomPaymentMethodLabels(state.customPaymentMethods);
@@ -472,4 +492,104 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (credMeaningful) draft.credentials = cred;
 
   return draft;
+}
+
+function couponDraftRowToWireOffer(row: NonNullable<ServiciosApplicationDraft["coupons"]>[number]): ServiciosPromoOffer | null {
+  const headline = row.title.trim();
+  const footnoteParts = [row.description?.trim(), row.redemptionNote?.trim()].filter(Boolean) as string[];
+  const footnote = footnoteParts.join(" — ");
+  const href = row.href?.trim();
+  const assetImageUrl = row.imageUrl?.trim();
+  const hasContent = headline || footnote || href || assetImageUrl || row.couponCode?.trim();
+  if (!hasContent) return null;
+  const offer: ServiciosPromoOffer = {
+    id: row.id,
+    headline: headline || footnote.slice(0, 120) || "Cupón",
+  };
+  if (footnote && headline) offer.footnote = footnote;
+  else if (footnote && !headline) offer.footnote = footnote;
+  if (href) offer.href = href;
+  if (assetImageUrl) offer.assetImageUrl = assetImageUrl;
+  return offer;
+}
+
+/** Map paid add-on coupons from application draft onto wire profile (GATE-04). */
+export function applyClasificadosCouponsToServiciosWireProfile(
+  wire: ServiciosBusinessProfile,
+  draft: ServiciosApplicationDraft,
+): ServiciosBusinessProfile {
+  const wireCoupons: ServiciosPromoOffer[] = [];
+  for (const row of draft.coupons ?? []) {
+    const mapped = couponDraftRowToWireOffer(row);
+    if (mapped) wireCoupons.push(mapped);
+  }
+  return {
+    ...wire,
+    promotions: undefined,
+    promo: undefined,
+    coupons: wireCoupons.length ? wireCoupons.slice(0, 4) : undefined,
+  };
+}
+
+function clasificadosCouponRowToResolved(
+  row: ClasificadosServiciosApplicationState["coupons"][number],
+  index: number,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["coupons"][number] | null {
+  if (!clasificadosCouponRowHasProgress(row)) return null;
+  const title = row.title.trim();
+  const description = row.description.trim() || undefined;
+  const imageUrl = row.imageUrl.trim() || undefined;
+  const hrefRaw = row.url.trim();
+  const hrefSafe = hrefRaw && isProbablyValidWebUrl(hrefRaw) ? normalizeHttpUrl(hrefRaw) : undefined;
+  const hasCard =
+    title || description || imageUrl || row.couponCode.trim() || row.redemptionNote.trim() || hrefSafe;
+  if (!hasCard) return null;
+  return {
+    id: `clasificados-coupon-${index}`,
+    title: title || (lang === "en" ? "Featured offer" : "Oferta destacada"),
+    ...(description ? { description } : {}),
+    ...(row.regularPrice.trim() ? { regularPrice: row.regularPrice.trim() } : {}),
+    ...(row.specialPrice.trim() ? { specialPrice: row.specialPrice.trim() } : {}),
+    ...(row.savings.trim() ? { savings: row.savings.trim() } : {}),
+    ...(hrefSafe ? { hrefSafe } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(row.couponCode.trim() ? { couponCode: row.couponCode.trim() } : {}),
+    ...(row.expirationDate.trim() ? { expirationDate: row.expirationDate.trim() } : {}),
+    ...(row.redemptionNote.trim() ? { redemptionNote: row.redemptionNote.trim() } : {}),
+    ...(row.ctaLabel.trim() ? { ctaLabel: row.ctaLabel.trim() } : {}),
+  };
+}
+
+/** Merge paid coupons onto resolved profile; strip legacy free promotions (GATE-04 preview). */
+export function mergeClasificadosCouponsOntoServiciosProfile(
+  profile: ServiciosProfileResolved,
+  state: ClasificadosServiciosApplicationState,
+  lang: ServiciosLang,
+): ServiciosProfileResolved {
+  if (!state.couponsAddOn) {
+    return { ...profile, promotions: [], coupons: [] };
+  }
+  const coupons = state.coupons
+    .map((row, i) => clasificadosCouponRowToResolved(row, i, lang))
+    .filter((row): row is ServiciosProfileResolved["coupons"][number] => row != null)
+    .slice(0, 4);
+  const flyerUrl = state.couponFlyer?.imageUrl?.trim();
+  const moreUrl = state.couponMoreOffers?.url?.trim();
+  return {
+    ...profile,
+    promotions: [],
+    coupons,
+    ...(flyerUrl ? { couponFlyer: { imageUrl: flyerUrl } } : {}),
+    ...(moreUrl
+      ? {
+          couponMoreOffers: {
+            url: isProbablyValidWebUrl(moreUrl) ? normalizeHttpUrl(moreUrl) : moreUrl,
+            ...(state.couponMoreOffers?.buttonLabel?.trim()
+              ? { buttonLabel: state.couponMoreOffers.buttonLabel.trim() }
+              : {}),
+          },
+        }
+      : {}),
+  };
 }
