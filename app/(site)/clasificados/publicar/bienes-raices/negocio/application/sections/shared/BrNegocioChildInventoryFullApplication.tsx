@@ -31,7 +31,7 @@ import {
 import { BrNegocioChildInventoryInheritedHubPanel, BrNegocioChildInventoryInheritedSummary } from "./BrNegocioChildInventoryInheritedHubPanel";
 import { BrNegocioChildInventoryInheritedContactPanel } from "./BrNegocioChildInventoryInheritedContactPanel";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
-import { mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
+import { mapAdditionalDraftToInventoryCard, applyLiveEditorPhotosToInventoryCard } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
 import {
   childEditorSessionFromState,
@@ -236,8 +236,9 @@ export function BrNegocioChildInventoryFullApplication({
   );
 
   const previewCard = useMemo(() => {
-    return mapAdditionalDraftToInventoryCard(canonicalPreviewDraft, lang);
-  }, [canonicalPreviewDraft, lang]);
+    const card = mapAdditionalDraftToInventoryCard(canonicalPreviewDraft, lang);
+    return applyLiveEditorPhotosToInventoryCard(card, previewStateForCard);
+  }, [canonicalPreviewDraft, previewStateForCard, lang]);
 
   const packageStateForPreview = useMemo(
     () =>

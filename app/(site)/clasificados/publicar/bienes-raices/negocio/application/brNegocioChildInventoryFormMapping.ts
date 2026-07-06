@@ -169,10 +169,7 @@ function flatFieldsFromChildSlice(
     .filter(Boolean);
   const coverIdx = Math.min(Math.max(0, slice.fotoPortadaIndex), Math.max(0, photos.length - 1));
   const cover = photos[coverIdx] ?? photos[0] ?? "";
-  const durableUrl = (raw: string) => {
-    const u = raw.trim();
-    return u.startsWith("http://") || u.startsWith("https://") ? u : "";
-  };
+  const durableUrl = (raw: string) => preserveUrlText(raw);
   const primaryVideoUrl =
     (Array.isArray(slice.videoUrls) ? slice.videoUrls : [])
       .map((u) => durableUrl(String(u ?? "")))
@@ -247,13 +244,41 @@ function durableHttpUrl(raw: string): string {
   return u.startsWith("http://") || u.startsWith("https://") ? u : "";
 }
 
+/** Preserve plain text URLs (http/https/www); never strip non-blob URL text for session/preview. */
+function preserveUrlText(raw: string): string {
+  const u = raw.trim();
+  if (!u || u.startsWith("data:")) return "";
+  return u;
+}
+
 function durableVideoUrlList(urls: unknown, fallbackSingle: string): string[] {
   const list = Array.isArray(urls)
-    ? urls.map((u) => durableHttpUrl(String(u ?? ""))).filter(Boolean)
+    ? urls.map((u) => preserveUrlText(String(u ?? ""))).filter(Boolean)
     : [];
   if (list.length) return list.slice(0, 4);
-  const one = durableHttpUrl(fallbackSingle);
+  const one = preserveUrlText(fallbackSingle);
   return one ? [one] : [];
+}
+
+function livePhotoUrlsFromSlice(slice: Partial<AgenteChildPropertyFormSlice>): string[] {
+  const raw = (Array.isArray(slice.fotosDataUrls) ? slice.fotosDataUrls : [])
+    .map((u) => String(u ?? "").trim())
+    .filter(Boolean);
+  const durable = raw.filter(isDurablePhotoUrl);
+  return durable.length > 0 ? durable : raw;
+}
+
+function liveVideoUrlsFromSlice(slice: Partial<AgenteChildPropertyFormSlice>): string[] {
+  const fromArray = Array.isArray(slice.videoUrls)
+    ? slice.videoUrls.map((u) => preserveUrlText(String(u ?? ""))).filter(Boolean)
+    : [];
+  if (fromArray.length) return fromArray.slice(0, 4);
+  const one = preserveUrlText(String(slice.videoUrl ?? ""));
+  return one ? [one] : [];
+}
+
+function liveUrlFromSlice(slice: Partial<AgenteChildPropertyFormSlice>, key: "tourUrl" | "brochureUrl" | "listadoUrl"): string {
+  return preserveUrlText(String(slice[key] ?? ""));
 }
 
 /** Merge autosaved session slice with saved draft without wiping media. */
@@ -270,11 +295,10 @@ export function mergeChildEditorSessionWithDraft(
   const sessionPhotos = sessionPhotosAll.filter(isDurablePhotoUrl);
   const draftPhotos = synced.photoUrls;
 
-  const sessionVideos = durableVideoUrlList(sessionForm.videoUrls, sessionForm.videoUrl ?? "");
-  const draftVideos = durableVideoUrlList(draftSlice.videoUrls, synced.videoUrl);
+  const sessionVideos = liveVideoUrlsFromSlice(sessionForm);
+  const draftVideos = liveVideoUrlsFromSlice(draftSlice);
 
-  const preferSessionPhotos =
-    sessionPhotosAll.length >= draftPhotos.length && sessionPhotosAll.length > 0;
+  const preferSessionPhotos = sessionPhotosAll.length > 0;
   const fotosDataUrls = preferSessionPhotos
     ? sessionPhotos.length > 0
       ? sessionPhotos
@@ -284,20 +308,30 @@ export function mergeChildEditorSessionWithDraft(
     ? clampEditorPhotoIndex(fotosDataUrls, sessionForm.fotoPortadaIndex)
     : synced.primaryPhotoIndex;
 
-  const videoUrls =
-    sessionVideos.length >= draftVideos.length && sessionVideos.length > 0 ? sessionVideos : draftVideos;
-  const videoUrl = videoUrls[0] ?? synced.videoUrl ?? "";
+  const preferSessionVideos = sessionVideos.length > 0;
+  const videoUrls = preferSessionVideos ? sessionVideos : draftVideos;
+  const videoUrl =
+    videoUrls[0] ?? (preserveUrlText(sessionForm.videoUrl ?? "") || synced.videoUrl || "");
 
   const mergedSlice: Partial<AgenteChildPropertyFormSlice> = {
     ...draftSlice,
     ...sessionForm,
     fotosDataUrls,
     fotoPortadaIndex,
-    videoUrls: videoUrls.length ? videoUrls : sessionForm.videoUrls,
+    videoUrls,
     videoUrl,
-    tourUrl: durableHttpUrl(sessionForm.tourUrl) || synced.tourUrl || draftSlice.tourUrl || "",
-    brochureUrl: durableHttpUrl(sessionForm.brochureUrl) || synced.brochureUrl || draftSlice.brochureUrl || "",
-    listadoUrl: durableHttpUrl(sessionForm.listadoUrl) || synced.listadoUrl || draftSlice.listadoUrl || "",
+    tourUrl:
+      liveUrlFromSlice(sessionForm, "tourUrl") ||
+      liveUrlFromSlice(draftSlice, "tourUrl") ||
+      preserveUrlText(synced.tourUrl ?? ""),
+    brochureUrl:
+      liveUrlFromSlice(sessionForm, "brochureUrl") ||
+      liveUrlFromSlice(draftSlice, "brochureUrl") ||
+      preserveUrlText(synced.brochureUrl ?? ""),
+    listadoUrl:
+      liveUrlFromSlice(sessionForm, "listadoUrl") ||
+      liveUrlFromSlice(draftSlice, "listadoUrl") ||
+      preserveUrlText(synced.listadoUrl ?? ""),
   };
 
   return syncChildInventoryDraftMedia({
@@ -310,29 +344,60 @@ function applyLiveChildEditorFieldsToPreviewDraft(
   mediaDraft: BrNegocioAdditionalInventoryPropertyDraft,
   editorDraft: BrNegocioAdditionalInventoryPropertyDraft,
 ): BrNegocioAdditionalInventoryPropertyDraft {
-  const mediaSynced = syncChildInventoryDraftMedia(mediaDraft);
   const editorSlice = (editorDraft.propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
-  const mediaSlice = (mediaSynced.propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
+  const staleSlice = (syncChildInventoryDraftMedia(mediaDraft).propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
+
+  const livePhotosRaw = livePhotoUrlsFromSlice(editorSlice);
+  const fallbackPhotos = livePhotoUrlsFromSlice(staleSlice);
+  const photos = livePhotosRaw.length > 0 ? livePhotosRaw : fallbackPhotos;
+  const primaryPhotoIndex =
+    livePhotosRaw.length > 0
+      ? clampEditorPhotoIndex(photos, editorSlice.fotoPortadaIndex ?? editorDraft.primaryPhotoIndex)
+      : clampEditorPhotoIndex(photos, mediaDraft.primaryPhotoIndex);
+  const cover = photos[primaryPhotoIndex] ?? photos[0] ?? "";
+
+  const liveVideos = liveVideoUrlsFromSlice(editorSlice);
+  const fallbackVideos = liveVideoUrlsFromSlice(staleSlice);
+  const videoUrls = liveVideos.length > 0 ? liveVideos : fallbackVideos;
+  const videoUrl =
+    videoUrls[0] ?? (preserveUrlText(String(editorSlice.videoUrl ?? "")) || mediaDraft.videoUrl || "");
+
+  const tourUrl =
+    liveUrlFromSlice(editorSlice, "tourUrl") ||
+    liveUrlFromSlice(staleSlice, "tourUrl") ||
+    preserveUrlText(mediaDraft.tourUrl ?? "");
+  const brochureUrl =
+    liveUrlFromSlice(editorSlice, "brochureUrl") ||
+    liveUrlFromSlice(staleSlice, "brochureUrl") ||
+    preserveUrlText(mediaDraft.brochureUrl ?? "");
+  const listadoUrl =
+    liveUrlFromSlice(editorSlice, "listadoUrl") ||
+    liveUrlFromSlice(staleSlice, "listadoUrl") ||
+    preserveUrlText(mediaDraft.listadoUrl ?? "");
+
+  const propertyForm: Partial<AgenteChildPropertyFormSlice> = {
+    ...staleSlice,
+    ...editorSlice,
+    fotosDataUrls: photos,
+    fotoPortadaIndex: primaryPhotoIndex,
+    videoUrls,
+    videoUrl,
+    tourUrl,
+    brochureUrl,
+    listadoUrl,
+  };
+
   return syncChildInventoryDraftMedia({
     ...editorDraft,
-    photoUrls: mediaSynced.photoUrls,
-    primaryPhotoIndex: mediaSynced.primaryPhotoIndex,
-    mainPhotoUrl: mediaSynced.mainPhotoUrl,
-    videoUrl: mediaSynced.videoUrl,
-    tourUrl: mediaSynced.tourUrl,
-    brochureUrl: mediaSynced.brochureUrl,
-    listadoUrl: mediaSynced.listadoUrl,
-    propertyForm: {
-      ...editorSlice,
-      ...mediaSlice,
-      fotosDataUrls: mediaSynced.photoUrls,
-      fotoPortadaIndex: mediaSynced.primaryPhotoIndex,
-      videoUrls: mediaSlice.videoUrls?.length ? mediaSlice.videoUrls : editorSlice.videoUrls,
-      videoUrl: mediaSynced.videoUrl,
-      tourUrl: mediaSynced.tourUrl,
-      brochureUrl: mediaSynced.brochureUrl,
-      listadoUrl: mediaSynced.listadoUrl,
-    },
+    ...mediaDraft,
+    photoUrls: photos,
+    primaryPhotoIndex,
+    mainPhotoUrl: cover,
+    videoUrl,
+    tourUrl,
+    brochureUrl,
+    listadoUrl,
+    propertyForm,
     id: editorDraft.id,
     createdAt: editorDraft.createdAt,
     updatedAt: editorDraft.updatedAt,
@@ -363,7 +428,7 @@ export function buildLiveChildInventoryPreviewDraft(input: {
 
   const withLiveFields = applyLiveChildEditorFieldsToPreviewDraft(merged, editorDraft);
   const [bridged] = mergeChildInventoryWithMediaBridge([withLiveFields]);
-  return syncChildInventoryDraftMedia(bridged ?? withLiveFields);
+  return applyLiveChildEditorFieldsToPreviewDraft(bridged ?? withLiveFields, editorDraft);
 }
 
 export function buildChildInventoryEditorState(

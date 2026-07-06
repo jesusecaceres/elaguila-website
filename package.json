@@ -21,6 +21,7 @@
     "verify:bienes-agent-inventory-bundle-pending-row-creation-01": "node scripts/verify-bienes-agent-inventory-bundle-pending-row-creation-01.mjs",
     "verify:bienes-child-inventory-preview-media-navigation-truth-01": "node scripts/verify-bienes-child-inventory-preview-media-navigation-truth-01.mjs",
     "verify:bienes-child-step10-preview-card-media-hard-refresh-fix-01": "node scripts/verify-bienes-child-step10-preview-card-media-hard-refresh-fix-01.mjs",
+    "verify:bienes-child-editor-step10-media-url-truth-force-patch-01": "node scripts/verify-bienes-child-editor-step10-media-url-truth-force-patch-01.mjs",
     "bienes:br-july1-inventory-analytics-os-01": "tsx scripts/bienes-br-july1-inventory-analytics-os-01-audit.ts",
     "bienes:final-publish-stripe-rotation-05": "tsx scripts/bienes-final-publish-stripe-rotation-05-audit.ts",
     "bienes:worldwide-location-visible-parent-child-06": "tsx scripts/bienes-worldwide-location-visible-parent-child-06-audit.ts",

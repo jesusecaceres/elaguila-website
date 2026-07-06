@@ -162,12 +162,18 @@ function durableHttpUrl(raw: string): string {
   return u.startsWith("http://") || u.startsWith("https://") ? u : "";
 }
 
+function preserveUrlText(raw: string): string {
+  const u = raw.trim();
+  if (!u || u.startsWith("data:")) return "";
+  return u;
+}
+
 function durableVideoUrlList(urls: unknown, fallbackSingle: string): string[] {
   const list = Array.isArray(urls)
-    ? urls.map((u) => durableHttpUrl(String(u ?? ""))).filter(Boolean)
+    ? urls.map((u) => preserveUrlText(String(u ?? ""))).filter(Boolean)
     : [];
   if (list.length) return list.slice(0, 4);
-  const one = durableHttpUrl(fallbackSingle);
+  const one = preserveUrlText(fallbackSingle);
   return one ? [one] : [];
 }
 
@@ -196,7 +202,7 @@ export function syncChildInventoryDraftMedia(
     .slice(0, MAX_CHILD_PHOTOS);
 
   const photos =
-    formPhotos.length >= flatPhotos.length && formPhotos.length > 0
+    formPhotos.length > 0
       ? formPhotos
       : flatPhotos.length > 0
         ? flatPhotos
@@ -207,18 +213,21 @@ export function syncChildInventoryDraftMedia(
   const cover = photos[primaryPhotoIndex] ?? photos[0] ?? "";
 
   const formVideoUrls = durableVideoUrlList(form.videoUrls, form.videoUrl ?? "");
-  const flatVideoUrls = durableVideoUrlList(null, raw.videoUrl ?? "");
+  const flatVideoUrls = durableVideoUrlList(form.videoUrls, raw.videoUrl ?? "");
   const videoUrls =
-    formVideoUrls.length >= flatVideoUrls.length && formVideoUrls.length > 0
+    formVideoUrls.length > 0
       ? formVideoUrls
       : flatVideoUrls.length > 0
         ? flatVideoUrls
         : formVideoUrls;
-  const videoUrl = videoUrls[0] ?? "";
+  const videoUrl = videoUrls[0] ?? preserveUrlText(String(form.videoUrl ?? raw.videoUrl ?? ""));
 
-  const tourUrl = durableHttpUrl(String(form.tourUrl ?? "")) || durableHttpUrl(raw.tourUrl ?? "");
-  const brochureUrl = durableHttpUrl(String(form.brochureUrl ?? "")) || durableHttpUrl(raw.brochureUrl ?? "");
-  const listadoUrl = durableHttpUrl(String(form.listadoUrl ?? "")) || durableHttpUrl(raw.listadoUrl ?? "");
+  const tourUrl =
+    preserveUrlText(String(form.tourUrl ?? "")) || preserveUrlText(String(raw.tourUrl ?? ""));
+  const brochureUrl =
+    preserveUrlText(String(form.brochureUrl ?? "")) || preserveUrlText(String(raw.brochureUrl ?? ""));
+  const listadoUrl =
+    preserveUrlText(String(form.listadoUrl ?? "")) || preserveUrlText(String(raw.listadoUrl ?? ""));
 
   const propertyForm: Partial<AgenteIndividualResidencialFormState> = {
     ...form,
