@@ -88,6 +88,7 @@ Honest gaps that require dedicated later gates (not dynamic Google translation):
 - The PT provider smoke still stopped before paid APIs because DeepL/Google document translation credentials are not present and document dependencies are not installed.
 - `MAGAZINE-DEEPL-PT-REAL-SMOKE1` attempted the real DeepL readiness gate, but stopped before installing or calling DeepL because `DEEPL_AUTH_KEY` was not present locally.
 - `MAGAZINE-DEEPL-KEY-LOCAL-READINESS1` (2026-07-06): Re-ran zero-cost readiness audit and dry-run; repo ready except local `DEEPL_AUTH_KEY`. See `docs/magazine-deepl-key-local-readiness.md`. **HOLD** until Chuy adds key locally — no DeepL call in this gate.
+- `MAGAZINE-DEEPL-PT-SINGLE-PAGE-SMOKE1` (2026-07-06): Implemented single-page DeepL proof script; ran page 3 PT smoke (1613 billed chars, output local only). See `docs/magazine-deepl-pt-single-page-smoke.md`. **Manual QA required** before next page or full magazine.
 - Next provider retry must use target language `pt` only and keep generated outputs under ignored local proof folders.
 - `MAGAZINE-TRANSLATION-PLATFORM-MIGRATION1` added `public.magazine_visual_assets`, platform helpers, server lookup, and runbook. No translated visual asset is QA-approved or publicly available. Storage bucket is a documented hold.
 

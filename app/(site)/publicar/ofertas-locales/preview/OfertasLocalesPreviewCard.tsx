@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState, type ReactNode } from "react";
-import { FiCopy, FiGlobe, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
+import { FiCopy, FiGlobe, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -52,7 +52,12 @@ import { OfertasLocalesPreviewProductGrid } from "./OfertasLocalesPreviewProduct
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const PAGE_BG = "bg-[#FFFCF7]";
-const PAGE_MAX = "mx-auto w-full max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:py-10";
+const PAGE_MAX = "mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 lg:pb-20 lg:py-10";
+const SECTION_ANCHOR = "scroll-mt-24";
+const CHIP =
+  "inline-flex shrink-0 items-center rounded-full border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0]";
+const STICKY_ACTION =
+  "flex min-h-11 min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-semibold text-[#1E1814] transition hover:bg-[#FDF8F0]";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-sm";
 const BTN_PRIMARY =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
@@ -118,18 +123,20 @@ function ContactButton({
   external,
   primary,
   icon,
+  className,
 }: {
   href: string;
   label: string;
   external?: boolean;
   primary?: boolean;
   icon?: ReactNode;
+  className?: string;
 }) {
   if (!href) return null;
   return (
     <a
       href={href}
-      className={primary ? BTN_PRIMARY : BTN_OUTLINE}
+      className={cx(primary ? BTN_PRIMARY : BTN_OUTLINE, className)}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
       {icon}
@@ -152,6 +159,145 @@ function SocialLinkButton({ link }: { link: OfertaLocalSocialLink }) {
       <SocialBrandIcon linkKey={link.key} />
       <span className="hidden sm:inline">{link.label}</span>
     </a>
+  );
+}
+
+type SectionNavItem = { id: string; label: string };
+
+function PreviewSectionNav({ items, lang }: { items: SectionNavItem[]; lang: OfertasLocalesAppLang }) {
+  const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  if (items.length === 0) return null;
+  return (
+    <nav
+      className="mb-6 lg:mb-8"
+      aria-label={lang === "en" ? c.sectionNavAriaEn : c.sectionNavAriaEs}
+    >
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1E1814]/45 lg:hidden">
+        {lang === "en" ? c.goToSectionEn : c.goToSectionEs}
+      </p>
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((item) => (
+          <a key={item.id} href={`#${item.id}`} className={CHIP}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function HubCollapsibleGroup({
+  id,
+  title,
+  defaultOpen,
+  lang,
+  children,
+}: {
+  id?: string;
+  title: string;
+  defaultOpen?: boolean;
+  lang: OfertasLocalesAppLang;
+  children: ReactNode;
+}) {
+  const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  return (
+    <details
+      {...(id ? { id } : {})}
+      className={cx(SECTION_ANCHOR, "rounded-xl border border-[#E8D9C4]/60 bg-[#FFFCF7]/50 p-4 lg:border-0 lg:bg-transparent lg:p-0")}
+      open={defaultOpen}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 lg:hidden [&::-webkit-details-marker]:hidden">
+        <span className={HUB_SECTION}>{title}</span>
+        <span className="text-[10px] font-medium text-[#1E1814]/45">
+          {lang === "en" ? c.openSectionEn : c.openSectionEs}
+        </span>
+      </summary>
+      <div className="hidden lg:block">
+        <h3 className={HUB_SECTION}>{title}</h3>
+      </div>
+      <div className="mt-3 lg:mt-3">{children}</div>
+    </details>
+  );
+}
+
+function MobileStickyActionBar({
+  lang,
+  heroHref,
+  flyerLabel,
+  directionsHref,
+  telHref,
+  waHref,
+  shareCopied,
+  onShare,
+}: {
+  lang: OfertasLocalesAppLang;
+  heroHref: string;
+  flyerLabel: string;
+  directionsHref: string;
+  telHref: string;
+  waHref: string;
+  shareCopied: boolean;
+  onShare: () => void;
+}) {
+  const c = OFERTAS_LOCALES_PREVIEW_COPY;
+
+  return (
+    <div
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#D4C4A8]/80 bg-[#FFFCF7]/95 px-2 py-2 shadow-[0_-4px_20px_rgba(30,24,20,0.08)] backdrop-blur-sm lg:hidden"
+      role="region"
+      aria-label={lang === "en" ? c.quickActionsEn : c.quickActionsEs}
+    >
+      <div className="mx-auto flex max-w-lg items-stretch justify-around gap-1">
+        {heroHref ? (
+          <a href={heroHref} target="_blank" rel="noopener noreferrer" className={STICKY_ACTION}>
+            <FiGlobe className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
+            <span>{flyerLabel}</span>
+          </a>
+        ) : null}
+        {directionsHref ? (
+          <a
+            href={directionsHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={STICKY_ACTION}
+            aria-label={lang === "en" ? c.directions : c.directionsEs}
+          >
+            <FiMapPin className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
+            <span>{lang === "en" ? c.directions : c.directionsEs}</span>
+          </a>
+        ) : null}
+        {telHref ? (
+          <a href={telHref} className={STICKY_ACTION} aria-label={lang === "en" ? c.call : c.callEs}>
+            <FiPhone className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
+            <span>{lang === "en" ? c.call : c.callEs}</span>
+          </a>
+        ) : null}
+        {waHref ? (
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={STICKY_ACTION}
+            aria-label={c.whatsapp}
+          >
+            <FaWhatsapp className="h-5 w-5 text-[#25D366]" aria-hidden />
+            <span>{c.whatsapp}</span>
+          </a>
+        ) : null}
+        <button type="button" className={STICKY_ACTION} onClick={onShare} aria-label={lang === "en" ? c.shareEn : c.shareEs}>
+          <FiShare2 className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
+          <span>
+            {shareCopied
+              ? lang === "en"
+                ? c.shareCopiedEn
+                : c.shareCopiedEs
+              : lang === "en"
+                ? c.shareEn
+                : c.shareEs}
+          </span>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -200,6 +346,10 @@ function PreviewBusinessHub({
 
   if (!hasContact && !hasLocation && !hasFollow && !hasReviews && !hasBusiness) return null;
 
+  const defaultOpenContact = hasContact;
+  const defaultOpenLocation = !hasContact && hasLocation;
+  const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasBusiness);
+
   return (
     <section className={cx(CARD, "mt-8 p-5 sm:p-6")}>
       <h2 className="font-serif text-xl font-semibold text-[#1E1814]">
@@ -209,11 +359,15 @@ function PreviewBusinessHub({
         {lang === "en" ? c.businessHubSubtitleEn : c.businessHubSubtitleEs}
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
         {hasContact ? (
-          <div>
-            <h3 className={HUB_SECTION}>{lang === "en" ? c.contactBusinessEn : c.contactBusinessEs}</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <HubCollapsibleGroup
+            id="contacto"
+            title={lang === "en" ? c.contactBusinessEn : c.contactBusinessEs}
+            defaultOpen={defaultOpenContact}
+            lang={lang}
+          >
+            <div className="flex flex-wrap gap-2">
               <ContactButton href={telHref} label={lang === "en" ? c.call : c.callEs} icon={<FiPhone className="h-4 w-4" aria-hidden />} />
               <ContactButton
                 href={waHref}
@@ -252,14 +406,18 @@ function PreviewBusinessHub({
                 </button>
               </div>
             ) : null}
-          </div>
+          </HubCollapsibleGroup>
         ) : null}
 
         {hasLocation ? (
-          <div>
-            <h3 className={HUB_SECTION}>{lang === "en" ? c.ourLocationEn : c.ourLocationEs}</h3>
+          <HubCollapsibleGroup
+            id="ubicacion"
+            title={lang === "en" ? c.ourLocationEn : c.ourLocationEs}
+            defaultOpen={defaultOpenLocation}
+            lang={lang}
+          >
             {locationLine ? (
-              <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed text-[#1E1814]/80">
+              <p className="flex items-start gap-2 text-sm leading-relaxed text-[#1E1814]/80">
                 <FiMapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#7A1E2C]" aria-hidden />
                 <span>{locationLine}</span>
               </p>
@@ -270,40 +428,52 @@ function PreviewBusinessHub({
                 {lang === "en" ? c.directions : c.directionsEs}
               </a>
             ) : null}
-          </div>
+          </HubCollapsibleGroup>
         ) : null}
 
         {hasFollow ? (
-          <div>
-            <h3 className={HUB_SECTION}>{lang === "en" ? c.followUsEn : c.followUsEs}</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <HubCollapsibleGroup
+            id="redes"
+            title={lang === "en" ? c.followUsEn : c.followUsEs}
+            defaultOpen={defaultOpenSocial}
+            lang={lang}
+          >
+            <div className="flex flex-wrap gap-2">
               {followLinks.map((link) => (
                 <SocialLinkButton key={link.key} link={link} />
               ))}
             </div>
-          </div>
+          </HubCollapsibleGroup>
         ) : null}
 
         {hasReviews ? (
-          <div>
-            <h3 className={HUB_SECTION}>{lang === "en" ? c.reviewsEn : c.reviewsEs}</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <HubCollapsibleGroup
+            id={hasFollow ? undefined : "redes"}
+            title={lang === "en" ? c.reviewsEn : c.reviewsEs}
+            defaultOpen={!hasFollow && defaultOpenSocial}
+            lang={lang}
+          >
+            <div className="flex flex-wrap gap-2">
               {reviewLinks.map((link) => (
                 <SocialLinkButton key={link.key} link={link} />
               ))}
             </div>
-          </div>
+          </HubCollapsibleGroup>
         ) : null}
 
         {hasBusiness ? (
-          <div>
-            <h3 className={HUB_SECTION}>{lang === "en" ? c.moreInfoEn : c.moreInfoEs}</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <HubCollapsibleGroup
+            id={hasFollow || hasReviews ? undefined : "redes"}
+            title={lang === "en" ? c.moreInfoEn : c.moreInfoEs}
+            defaultOpen={!hasFollow && !hasReviews && defaultOpenSocial}
+            lang={lang}
+          >
+            <div className="flex flex-wrap gap-2">
               {businessLinks.map((link) => (
                 <SocialLinkButton key={link.key} link={link} />
               ))}
             </div>
-          </div>
+          </HubCollapsibleGroup>
         ) : null}
       </div>
     </section>
@@ -384,6 +554,56 @@ export function OfertasLocalesPreviewCard({
 
   const defaultOfferTitle = lang === "en" ? c.defaultOfferTitleEn : c.defaultOfferTitleEs;
 
+  const contactEmail = resolveOfertaLocalContactEmail(draft);
+  const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
+  const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
+  const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
+  const hasContactNav = Boolean(telHref || waHref || webHref || contactEmail);
+  const hasLocationNav = Boolean(locationLine || directionsHref);
+  const hasSocialNav = followLinks.length > 0 || reviewLinks.length > 0 || businessLinks.length > 0;
+
+  const sectionNavItems: SectionNavItem[] = [
+    { id: "oferta", label: lang === "en" ? c.sectionOfferEn : c.sectionOfferEs },
+    { id: "volante", label: lang === "en" ? c.sectionFlyerEn : c.sectionFlyerEs },
+  ];
+  if (draft.wantsAiSearchableSpecials) {
+    sectionNavItems.push({
+      id: "productos",
+      label: lang === "en" ? c.sectionProductsEn : c.sectionProductsEs,
+    });
+  }
+  if (hasContactNav) {
+    sectionNavItems.push({
+      id: "contacto",
+      label: lang === "en" ? c.sectionContactEn : c.sectionContactEs,
+    });
+  }
+  if (hasLocationNav) {
+    sectionNavItems.push({
+      id: "ubicacion",
+      label: lang === "en" ? c.sectionLocationEn : c.sectionLocationEs,
+    });
+  }
+  if (hasSocialNav) {
+    sectionNavItems.push({
+      id: "redes",
+      label: lang === "en" ? c.sectionSocialEn : c.sectionSocialEs,
+    });
+  }
+  sectionNavItems.push({
+    id: "proximamente",
+    label: lang === "en" ? c.sectionComingSoonEn : c.sectionComingSoonEs,
+  });
+
+  const flyerStickyLabel =
+    heroAsset?.kind === "coupon"
+      ? lang === "en"
+        ? c.viewCouponEn
+        : c.viewCouponEs
+      : lang === "en"
+        ? c.viewFlyerEn
+        : c.viewFlyerEs;
+
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
       <div className={PAGE_MAX}>
@@ -406,15 +626,17 @@ export function OfertasLocalesPreviewCard({
           </p>
         </header>
 
+        <PreviewSectionNav items={sectionNavItems} lang={lang} />
+
         {/* Hero: flyer + offer + desktop live actions */}
         <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
-          {/* 3. Flyer visual */}
-          <div className="lg:col-span-5">
-            <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} />
+          {/* Flyer visual */}
+          <div id="volante" className={cx(SECTION_ANCHOR, "lg:col-span-5")}>
+            <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} compactMobile />
           </div>
 
-          {/* 4–5. Business + offer + primary CTAs */}
-          <div className="lg:col-span-4">
+          {/* Business + offer + primary CTAs */}
+          <div id="oferta" className={cx(SECTION_ANCHOR, "lg:col-span-4")}>
             <div className={cx(CARD, "h-full p-5 sm:p-6")}>
               <div className="flex flex-wrap gap-2">
                 {primaryFormatLabel ? (
@@ -504,7 +726,7 @@ export function OfertasLocalesPreviewCard({
                 {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
               </p>
 
-              {/* Primary shopper CTAs */}
+              {/* Primary shopper CTAs — mobile: view offer + share; desktop: full set */}
               <div className="mt-5 grid gap-2 sm:grid-cols-2">
                 {heroAsset?.href ? (
                   <ContactButton
@@ -528,23 +750,27 @@ export function OfertasLocalesPreviewCard({
                   label={lang === "en" ? c.directions : c.directionsEs}
                   external
                   icon={<FiMapPin className="h-4 w-4" aria-hidden />}
+                  className="hidden lg:inline-flex"
                 />
                 <ContactButton
                   href={telHref}
                   label={lang === "en" ? c.call : c.callEs}
                   icon={<FiPhone className="h-4 w-4" aria-hidden />}
+                  className="hidden lg:inline-flex"
                 />
                 <ContactButton
                   href={waHref}
                   label={c.whatsapp}
                   external
                   icon={<FaWhatsapp className="h-4 w-4" aria-hidden />}
+                  className="hidden lg:inline-flex"
                 />
                 <ContactButton
                   href={webHref}
                   label={lang === "en" ? c.website : c.websiteEs}
                   external
                   icon={<FiGlobe className="h-4 w-4" aria-hidden />}
+                  className="hidden lg:inline-flex"
                 />
               </div>
             </div>
@@ -650,18 +876,28 @@ export function OfertasLocalesPreviewCard({
           totalCount={aiTotalCount}
         />
 
-        {/* 8. Future modules */}
-        <section className="mt-8" aria-label={lang === "en" ? c.futureModulesEn : c.futureModulesEs}>
+        {/* Future modules */}
+        <section
+          id="proximamente"
+          className={`${SECTION_ANCHOR} mt-8`}
+          aria-label={lang === "en" ? c.futureModulesEn : c.futureModulesEs}
+        >
           <h2 className="font-serif text-lg font-semibold text-[#1E1814]/75">
             {lang === "en" ? c.futureModulesEn : c.futureModulesEs}
           </h2>
           <p className="mt-1 text-xs text-[#1E1814]/50">
             {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
           </p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <OfertasFutureShoppingListCard lang={lang} />
-            <OfertasFutureRoutePlannerCard lang={lang} />
-            <OfertasFutureCouponWalletCard lang={lang} />
+          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="min-w-[min(280px,85vw)] shrink-0 lg:min-w-0">
+              <OfertasFutureShoppingListCard lang={lang} />
+            </div>
+            <div className="min-w-[min(280px,85vw)] shrink-0 lg:min-w-0">
+              <OfertasFutureRoutePlannerCard lang={lang} />
+            </div>
+            <div className="min-w-[min(280px,85vw)] shrink-0 lg:min-w-0">
+              <OfertasFutureCouponWalletCard lang={lang} />
+            </div>
           </div>
         </section>
 
@@ -726,6 +962,17 @@ export function OfertasLocalesPreviewCard({
           </div>
         </section>
       </div>
+
+      <MobileStickyActionBar
+        lang={lang}
+        heroHref={heroAsset?.href ?? ""}
+        flyerLabel={flyerStickyLabel}
+        directionsHref={directionsHref}
+        telHref={telHref}
+        waHref={waHref}
+        shareCopied={shareCopied}
+        onShare={() => void handleShare()}
+      />
     </div>
   );
 }

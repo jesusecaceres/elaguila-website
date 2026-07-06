@@ -67,10 +67,12 @@ export function OfertasLocalesPreviewHeroVisual({
   draft,
   heroAsset,
   lang,
+  compactMobile = false,
 }: {
   draft: OfertaLocalDraft;
   heroAsset: OfertaLocalPreviewHeroAsset | null;
   lang: OfertasLocalesAppLang;
+  compactMobile?: boolean;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
@@ -128,7 +130,13 @@ export function OfertasLocalesPreviewHeroVisual({
       </div>
 
       {heroAsset?.href ? (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+        <div
+          className={
+            compactMobile
+              ? "grid grid-cols-2 gap-2 lg:grid-cols-1"
+              : "grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
+          }
+        >
           <a href={heroAsset.href} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
             {heroAsset.kind === "coupon"
               ? lang === "en"

@@ -1,10 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
+
+const SECTION_ANCHOR = "scroll-mt-24";
 
 function formatPreviewPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLocalesAppLang): string {
   const text = (item.offerText || item.priceText).trim();
@@ -120,10 +123,29 @@ export function OfertasLocalesPreviewProductGrid({
   totalCount?: number;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      const cat = item.category.trim();
+      if (cat) set.add(cat);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (selectedCategory === "all") return items;
+    return items.filter((item) => item.category.trim() === selectedCategory);
+  }, [items, selectedCategory]);
+
   if (!draft.wantsAiSearchableSpecials) return null;
 
   return (
-    <section className="mt-8 rounded-2xl border border-[#D4C4A8]/80 bg-white p-5 shadow-sm sm:p-6">
+    <section
+      id="productos"
+      className={`${SECTION_ANCHOR} mt-8 rounded-2xl border border-[#D4C4A8]/80 bg-white p-5 shadow-sm sm:p-6`}
+    >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="font-serif text-xl font-semibold text-[#1E1814]">
@@ -140,6 +162,51 @@ export function OfertasLocalesPreviewProductGrid({
           </span>
         ) : null}
       </div>
+
+      {!loading && categories.length > 0 ? (
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/50">
+            {lang === "en" ? c.filterProductsEn : c.filterProductsEs}
+          </p>
+          <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("all")}
+              className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                selectedCategory === "all"
+                  ? "border-[#7A1E2C] bg-[#7A1E2C] text-white"
+                  : "border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814]/75"
+              }`}
+            >
+              {lang === "en" ? c.filterAllEn : c.filterAllEs}
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                  selectedCategory === cat
+                    ? "border-[#7A1E2C] bg-[#7A1E2C] text-white"
+                    : "border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814]/75"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-[#1E1814]/55">
+            {lang === "en" ? c.showingEn : c.showingEs}{" "}
+            <span className="font-semibold text-[#7A1E2C]">{filteredItems.length}</span>
+            {selectedCategory !== "all" ? (
+              <span>
+                {" "}
+                · {selectedCategory}
+              </span>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="mt-6 text-sm text-[#1E1814]/60">{lang === "en" ? c.loadingProductsEn : c.loadingProductsEs}</p>
@@ -161,9 +228,13 @@ export function OfertasLocalesPreviewProductGrid({
         <div className="mt-6 rounded-xl border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/80 px-4 py-12 text-center text-sm text-[#1E1814]/55">
           {lang === "en" ? c.noApprovedProductsEn : c.noApprovedProductsEs}
         </div>
+      ) : !loading && filteredItems.length === 0 ? (
+        <div className="mt-6 rounded-xl border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/80 px-4 py-8 text-center text-sm text-[#1E1814]/55">
+          {lang === "en" ? c.filterAllEn : c.filterAllEs}
+        </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <ProductCard key={item.id} item={item} draft={draft} lang={lang} />
           ))}
         </div>

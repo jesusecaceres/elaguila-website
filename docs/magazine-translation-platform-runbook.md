@@ -12,7 +12,7 @@ Operational guide for Leonix magazine translated visual asset registry, storage,
 |------|--------|
 | Spanish June 2026 PDF exists | Yes — `public/magazine/2026/june/leonix_media_june.pdf` |
 | Source SHA-256 hash | `8fa5ec5a9faa1c0cb689451b79477f60b2fc2e644048a9176bcc68d8be112986` |
-| DeepL Portuguese output | Blocked — requires `DEEPL_AUTH_KEY` outside chat |
+| DeepL Portuguese output | **Local proof only** — page 3 smoke at `.magazine-proof-output/june-2026/pt/page-smoke/page-003/`; not QA-approved, not public |
 | Platform registry table | `public.magazine_visual_assets` (migration `20260630140000`) |
 | Translated visual edition public | **No** — no row is QA-approved and publicly available |
 | Storage bucket | **Hold** — no Supabase storage bucket migration in repo yet; use service-role upload in a later gate |

@@ -55,15 +55,44 @@ Re-check readiness (prints TRUE/FALSE only; never prints the key):
 node scripts/magazine-deepl-readiness-audit.mjs
 ```
 
-When the script reports `decision=READY_FOR_REAL_PT_SMOKE`, the next gate is `MAGAZINE-DEEPL-PT-REAL-SMOKE3` (first paid provider call — requires intentional approval).
+When the script reports `decision=READY_FOR_REAL_PT_SMOKE`, proceed to controlled smoke gates below.
 
-Safe preflight (zero cost):
+### Single-page Portuguese proof (recommended first)
+
+Extract one page locally, then optionally submit **only that page** to DeepL (not the full 74 MB magazine):
+
+```bash
+# Dry-run: extract page 3 one-page PDF + metadata; no API call
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --dry-run
+
+# Execute: one paid DeepL document call for page 3 only (requires explicit approval)
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --execute
+```
+
+Local outputs (gitignored):
+
+`.magazine-proof-output/june-2026/pt/page-smoke/page-003/`
+
+- `source-page-003.pdf` — extracted one-page input
+- `deepl-page-003.pt.pdf` — DeepL output (manual QA only)
+- `metadata.json` — proof metadata (no API key)
+- `deepl-status.json` — provider status summary
+
+Default page is **3** (contact/truth content). Only `--target=pt` is allowed. Full-magazine translation is not supported by this script.
+
+Safe preflight (zero cost, legacy path):
 
 ```bash
 node scripts/magazine/proof-translate-deepl.mjs --dry-run --target=pt
 ```
 
-Execution remains held until dependency/env are present and the DeepL document API call is implemented and reviewed. This gate is Portuguese-only; the script refuses non-`pt` targets, broad/all-language targets, and held inactive `ar`/`fa`.
+Execution remains held for **full-magazine** smoke. Use single-page proof instead:
+
+```bash
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --execute
+```
+
+This gate is Portuguese-only; the script refuses non-`pt` targets, broad/all-language targets, and held inactive `ar`/`fa`.
 
 ## Google Document Smoke
 
