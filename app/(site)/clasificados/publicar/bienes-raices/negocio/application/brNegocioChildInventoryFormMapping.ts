@@ -19,6 +19,7 @@ import {
   normalizeChildInventoryDraft,
   syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
+import { mergeChildInventoryWithMediaBridge } from "./brNegocioInventoryDraftPersistence";
 import type { BienesRaicesNegocioFormState } from "./schema/bienesRaicesNegocioFormState";
 import { applyInventoryDraftToAgenteFormState } from "./brNegocioInventoryQueuePrefill";
 
@@ -263,20 +264,25 @@ export function mergeChildEditorSessionWithDraft(
   const synced = syncChildInventoryDraftMedia(draft);
   const draftSlice = (synced.propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
 
-  const sessionPhotos = (Array.isArray(sessionForm.fotosDataUrls) ? sessionForm.fotosDataUrls : [])
+  const sessionPhotosAll = (Array.isArray(sessionForm.fotosDataUrls) ? sessionForm.fotosDataUrls : [])
     .map((u) => String(u ?? "").trim())
-    .filter(isDurablePhotoUrl);
+    .filter(Boolean);
+  const sessionPhotos = sessionPhotosAll.filter(isDurablePhotoUrl);
   const draftPhotos = synced.photoUrls;
 
   const sessionVideos = durableVideoUrlList(sessionForm.videoUrls, sessionForm.videoUrl ?? "");
   const draftVideos = durableVideoUrlList(draftSlice.videoUrls, synced.videoUrl);
 
-  const fotosDataUrls =
-    sessionPhotos.length >= draftPhotos.length && sessionPhotos.length > 0 ? sessionPhotos : draftPhotos;
-  const fotoPortadaIndex =
-    sessionPhotos.length > 0 && sessionPhotos.length >= draftPhotos.length
-      ? clampEditorPhotoIndex(fotosDataUrls, sessionForm.fotoPortadaIndex)
-      : synced.primaryPhotoIndex;
+  const preferSessionPhotos =
+    sessionPhotosAll.length >= draftPhotos.length && sessionPhotosAll.length > 0;
+  const fotosDataUrls = preferSessionPhotos
+    ? sessionPhotos.length > 0
+      ? sessionPhotos
+      : sessionPhotosAll
+    : draftPhotos;
+  const fotoPortadaIndex = preferSessionPhotos
+    ? clampEditorPhotoIndex(fotosDataUrls, sessionForm.fotoPortadaIndex)
+    : synced.primaryPhotoIndex;
 
   const videoUrls =
     sessionVideos.length >= draftVideos.length && sessionVideos.length > 0 ? sessionVideos : draftVideos;
@@ -298,6 +304,66 @@ export function mergeChildEditorSessionWithDraft(
     ...synced,
     propertyForm: mergedSlice,
   });
+}
+
+function applyLiveChildEditorFieldsToPreviewDraft(
+  mediaDraft: BrNegocioAdditionalInventoryPropertyDraft,
+  editorDraft: BrNegocioAdditionalInventoryPropertyDraft,
+): BrNegocioAdditionalInventoryPropertyDraft {
+  const mediaSynced = syncChildInventoryDraftMedia(mediaDraft);
+  const editorSlice = (editorDraft.propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
+  const mediaSlice = (mediaSynced.propertyForm ?? {}) as Partial<AgenteChildPropertyFormSlice>;
+  return syncChildInventoryDraftMedia({
+    ...editorDraft,
+    photoUrls: mediaSynced.photoUrls,
+    primaryPhotoIndex: mediaSynced.primaryPhotoIndex,
+    mainPhotoUrl: mediaSynced.mainPhotoUrl,
+    videoUrl: mediaSynced.videoUrl,
+    tourUrl: mediaSynced.tourUrl,
+    brochureUrl: mediaSynced.brochureUrl,
+    listadoUrl: mediaSynced.listadoUrl,
+    propertyForm: {
+      ...editorSlice,
+      ...mediaSlice,
+      fotosDataUrls: mediaSynced.photoUrls,
+      fotoPortadaIndex: mediaSynced.primaryPhotoIndex,
+      videoUrls: mediaSlice.videoUrls?.length ? mediaSlice.videoUrls : editorSlice.videoUrls,
+      videoUrl: mediaSynced.videoUrl,
+      tourUrl: mediaSynced.tourUrl,
+      brochureUrl: mediaSynced.brochureUrl,
+      listadoUrl: mediaSynced.listadoUrl,
+    },
+    id: editorDraft.id,
+    createdAt: editorDraft.createdAt,
+    updatedAt: editorDraft.updatedAt,
+  });
+}
+
+/**
+ * Canonical live child preview draft — Step 10 card, full overlay, and save-adjacent truth.
+ * Prefers current editor media; falls back to initial draft + in-memory media bridge.
+ */
+export function buildLiveChildInventoryPreviewDraft(input: {
+  parentHub: AgenteIndividualResidencialFormState;
+  state: AgenteIndividualResidencialFormState;
+  initialDraft: BrNegocioAdditionalInventoryPropertyDraft | null;
+  lang: "es" | "en";
+}): BrNegocioAdditionalInventoryPropertyDraft {
+  const { parentHub, state, initialDraft, lang } = input;
+  const slice = pickChildPropertySlice(state);
+  const editorDraft = childInventoryDraftFromEditorState(parentHub, state, initialDraft, lang);
+
+  const hydratedInitial = initialDraft
+    ? mergeChildInventoryWithMediaBridge([normalizeChildInventoryDraft(initialDraft)])[0] ?? initialDraft
+    : null;
+
+  const merged = hydratedInitial
+    ? mergeChildEditorSessionWithDraft(slice, hydratedInitial)
+    : mergeChildEditorSessionWithDraft(slice, editorDraft);
+
+  const withLiveFields = applyLiveChildEditorFieldsToPreviewDraft(merged, editorDraft);
+  const [bridged] = mergeChildInventoryWithMediaBridge([withLiveFields]);
+  return syncChildInventoryDraftMedia(bridged ?? withLiveFields);
 }
 
 export function buildChildInventoryEditorState(

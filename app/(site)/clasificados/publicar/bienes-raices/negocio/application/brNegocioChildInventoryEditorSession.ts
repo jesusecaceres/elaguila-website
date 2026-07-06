@@ -8,6 +8,7 @@ import type { AgenteIndividualResidencialFormState } from "../agente-individual/
 import { createEmptyAgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+  BR_AGENTE_IDB_PREFIX,
   inlineBrAgenteResHeavyMediaFromIdb,
   offloadBrAgenteResHeavyMediaToIdb,
 } from "../agente-individual/application/utils/brAgenteResDraftMedia";
@@ -112,6 +113,27 @@ export function clearChildInventoryEditorSession(): void {
   } catch {
     /* ignore */
   }
+}
+
+export function childEditorSliceHasUnresolvedIdbMedia(slice: AgenteChildPropertyFormSlice): boolean {
+  const check = (u: string) => typeof u === "string" && u.startsWith(BR_AGENTE_IDB_PREFIX);
+  for (const u of slice.fotosDataUrls ?? []) {
+    if (check(String(u))) return true;
+  }
+  if (check(slice.listadoArchivoDataUrl)) return true;
+  if (check(slice.videoDataUrl)) return true;
+  if (check(slice.tourDataUrl)) return true;
+  if (check(slice.brochureDataUrl)) return true;
+  return false;
+}
+
+/** Inline IndexedDB photo refs for same-tab hard refresh before preview card render. */
+export async function resolveChildPropertySliceMediaFromIdb(
+  slice: AgenteChildPropertyFormSlice,
+): Promise<AgenteChildPropertyFormSlice> {
+  const hub = mergeParentHubWithChildProperty(createEmptyAgenteIndividualResidencialFormState(), slice);
+  const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
+  return pickChildPropertySlice(inlined);
 }
 
 export function childEditorSessionFromState(
