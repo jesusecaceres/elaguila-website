@@ -1,4 +1,5 @@
-import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
+import type { ClasificadosServiciosApplicationState, VideoItem } from "./clasificadosServiciosApplicationTypes";
+import { normalizeServiciosApplicationVideos } from "./clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import {
   clearServiciosDraftMediaNamespace,
@@ -12,6 +13,26 @@ export const CLASIFICADOS_SERVICIOS_APPLICATION_STORAGE_KEY = "leonix.clasificad
 
 /** Single browser draft namespace for Servicios (session-scoped JSON + IDB blobs). */
 export const SERVICIOS_DRAFT_MEDIA_NAMESPACE = "clasificados-servicios-v1";
+
+function coerceRawVideoItems(raw: unknown): VideoItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (v): v is VideoItem =>
+      v != null &&
+      typeof v === "object" &&
+      typeof (v as VideoItem).id === "string" &&
+      typeof (v as VideoItem).url === "string",
+  );
+}
+
+/** Legacy normalize caps videos at 2 — reapply up to 4 from raw/session state. */
+function mergeServiciosVideosAfterNormalize(
+  normalized: ClasificadosServiciosApplicationState,
+  rawVideos: VideoItem[],
+): ClasificadosServiciosApplicationState {
+  const source = rawVideos.length > 0 ? rawVideos : normalized.videos;
+  return { ...normalized, videos: normalizeServiciosApplicationVideos(source) };
+}
 
 function storage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -43,7 +64,9 @@ export function readClasificadosServiciosApplicationFromBrowser(): ClasificadosS
     if (!raw) return null;
     const v = JSON.parse(raw) as unknown;
     if (!v || typeof v !== "object") return null;
-    return normalizeClasificadosServiciosApplicationState(v);
+    const rawVideos = coerceRawVideoItems((v as Record<string, unknown>).videos);
+    const normalized = normalizeClasificadosServiciosApplicationState(v);
+    return mergeServiciosVideosAfterNormalize(normalized, rawVideos);
   } catch {
     return null;
   }
@@ -55,11 +78,14 @@ export function readClasificadosServiciosApplicationFromBrowser(): ClasificadosS
 export async function loadClasificadosServiciosApplicationResolved(): Promise<ClasificadosServiciosApplicationState | null> {
   const sync = readClasificadosServiciosApplicationFromBrowser();
   if (!sync) return null;
+  const preservedVideos = sync.videos ?? [];
   try {
     const inlined = await inlineServiciosHeavyMediaFromIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, sync);
-    return normalizeClasificadosServiciosApplicationState(inlined);
+    const normalized = normalizeClasificadosServiciosApplicationState(inlined);
+    return mergeServiciosVideosAfterNormalize(normalized, preservedVideos);
   } catch {
-    return normalizeClasificadosServiciosApplicationState(stripUnresolvedServiciosIdbRefs(sync));
+    const normalized = normalizeClasificadosServiciosApplicationState(stripUnresolvedServiciosIdbRefs(sync));
+    return mergeServiciosVideosAfterNormalize(normalized, preservedVideos);
   }
 }
 
@@ -71,7 +97,9 @@ export async function saveClasificadosServiciosApplicationResolved(
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
   try {
-    const normalized = normalizeClasificadosServiciosApplicationState(state);
+    const preservedVideos = state.videos ?? [];
+    let normalized = normalizeClasificadosServiciosApplicationState(state);
+    normalized = mergeServiciosVideosAfterNormalize(normalized, preservedVideos);
     const stripped = await offloadServiciosHeavyMediaToIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, normalized);
     const st = storage();
     if (!st) return false;

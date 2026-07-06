@@ -21,8 +21,10 @@ import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosPro
 import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosApplicationDraft";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
+import { normalizeServiciosApplicationVideos } from "../lib/clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
 import { clearServiciosDraftStorageAndIdb, loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
+import { buildServiciosPreviewGalleryVideos } from "../lib/clasificadosServiciosPreviewHandoff";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
@@ -119,9 +121,15 @@ export function ClasificadosServiciosPreviewClient() {
         setAppState(null);
         return;
       }
-      const normalized = normalizeClasificadosServiciosApplicationState(raw);
+      const preservedVideos = raw.videos ?? [];
+      let normalized = normalizeClasificadosServiciosApplicationState(raw);
+      normalized = { ...normalized, videos: normalizeServiciosApplicationVideos(preservedVideos) };
       setAppState(normalized);
-      setAppDraft(mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang));
+      const mapped = mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang);
+      setAppDraft({
+        ...mapped,
+        galleryVideos: buildServiciosPreviewGalleryVideos(normalized),
+      });
       setSource("application");
       await saveClasificadosServiciosApplicationResolved(normalized);
     })();

@@ -25,7 +25,11 @@ import type {
   GalleryItem,
   ServiciosLang,
 } from "../lib/clasificadosServiciosApplicationTypes";
-import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTypes";
+import {
+  LANGUAGE_OPTION_CHIPS,
+  SERVICIOS_MAX_VIDEO_URLS,
+  shortenServiciosVideoUrlDisplay,
+} from "../lib/clasificadosServiciosApplicationTypes";
 import {
   bootstrapServiciosApplicationStateSync,
   clearServiciosPreviewReturnHandoff,
@@ -133,7 +137,6 @@ import {
 
 const DEBOUNCE_MS = 500;
 const GALLERY_MAX = 24;
-const VIDEO_MAX = 2;
 
 const inputClass =
   "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-snug text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
@@ -248,7 +251,6 @@ export function ClasificadosServiciosApplication() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const promoImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const promoPdfInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const couponImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
@@ -691,30 +693,6 @@ export function ClasificadosServiciosApplication() {
     });
   };
 
-  const addVideoFile = async (file: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith("video/")) {
-      setMediaFlash(copy.labels.mediaWrongVideoType);
-      return;
-    }
-    const url = await readFileAsDataUrl(file);
-    setState((prev) => {
-      if (prev.videos.length >= VIDEO_MAX) {
-        queueMicrotask(() =>
-          setMediaFlash(copy.labels.videosLimitHint.replace("{max}", String(VIDEO_MAX))),
-        );
-        return prev;
-      }
-      const row = { id: newVideoId(), url, source: "file" as const };
-      const next = [...prev.videos, row].slice(0, VIDEO_MAX);
-      if (prev.videos.length === 0) {
-        return { ...prev, videos: [{ ...row, isPrimary: true }] };
-      }
-      const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? prev.videos[0]!.id;
-      return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
-    });
-  };
-
   const addVideoUrl = () => {
     const raw = videoUrlDraft.trim();
     if (!raw) return;
@@ -722,15 +700,21 @@ export function ClasificadosServiciosApplication() {
       setMediaFlash(copy.labels.invalidUrl);
       return;
     }
+    const normalizedUrl = normalizeHttpUrl(raw);
     setState((prev) => {
-      if (prev.videos.length >= VIDEO_MAX) {
-        queueMicrotask(() =>
-          setMediaFlash(copy.labels.videosLimitHint.replace("{max}", String(VIDEO_MAX))),
-        );
+      if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
+        queueMicrotask(() => setMediaFlash(copy.labels.videosLimitHint));
         return prev;
       }
-      const row = { id: newVideoId(), url: normalizeHttpUrl(raw), source: "url" as const };
-      const next = [...prev.videos, row].slice(0, VIDEO_MAX);
+      const duplicate = prev.videos.some(
+        (v) => v.url.trim().toLowerCase() === normalizedUrl.trim().toLowerCase(),
+      );
+      if (duplicate) {
+        queueMicrotask(() => setMediaFlash(copy.labels.videoDuplicateUrl));
+        return prev;
+      }
+      const row = { id: newVideoId(), url: normalizedUrl, source: "url" as const };
+      const next = [...prev.videos, row].slice(0, SERVICIOS_MAX_VIDEO_URLS);
       if (prev.videos.length === 0) {
         return { ...prev, videos: [{ ...row, isPrimary: true }] };
       }
@@ -1049,6 +1033,9 @@ export function ClasificadosServiciosApplication() {
               </label>
               {copy.labels.cityHelp.trim() ? (
                 <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.cityHelp}</p>
+              ) : null}
+              {copy.labels.cityHelpDetail.trim() ? (
+                <p className="mt-0.5 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.cityHelpDetail}</p>
               ) : null}
               <input
                 className={inputClass}
@@ -1705,71 +1692,32 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-10 border-t border-[#D8C79A]/40 pt-8">
             <p className={labelClass}>{copy.labels.videosTitle}</p>
-            <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.videosHint}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHint}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHelper}</p>
             <p className="mt-2 text-xs font-semibold tabular-nums text-[#5D4A25]">
-              {copy.labels.videosCountLine.replace("{n}", String(state.videos.length)).replace("{max}", String(VIDEO_MAX))}
+              {copy.labels.videosCountLine.replace("{n}", String(state.videos.length))}
             </p>
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={(e) => void addVideoFile(e.target.files?.[0] ?? null)}
-            />
-            <button
-              type="button"
-              onClick={() => videoInputRef.current?.click()}
-              disabled={state.videos.length >= VIDEO_MAX}
-              className="mt-3 inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            >
-              <FiPlus className="h-4 w-4" aria-hidden />
-              {copy.labels.upload}
-            </button>
-            <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-              <input
-                className={`${inputClass} min-w-0 sm:max-w-md sm:flex-1`}
-                placeholder={copy.labels.videoUrlPlaceholder}
-                value={videoUrlDraft}
-                onChange={(e) => setVideoUrlDraft(e.target.value)}
-              />
-              <button
-                type="button"
-                disabled={state.videos.length >= VIDEO_MAX}
-                className="inline-flex min-h-[44px] w-full shrink-0 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:opacity-50 sm:w-auto"
-                onClick={addVideoUrl}
-              >
-                {copy.labels.addVideoUrl}
-              </button>
-            </div>
-            {state.videos.length >= VIDEO_MAX ? (
-              <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.videosLimitHint.replace("{max}", String(VIDEO_MAX))}</p>
-            ) : null}
             {state.videos.length > 0 ? (
-              <ul className="mt-4 space-y-3">
-                {state.videos.map((v) => {
+              <ul className="mt-4 space-y-2">
+                {state.videos.map((v, index) => {
                   const url = v.url ?? "";
-                  const isData = url.startsWith("data:");
-                  const previewLine = isData ? copy.labels.videoFromFile : copy.labels.videoFromUrl;
-                  const detail = isData ? "—" : url.length > 56 ? `${url.slice(0, 56)}…` : url || "—";
+                  const isLegacyFile = url.startsWith("data:") || v.source === "file";
+                  const badge = isLegacyFile ? copy.labels.videoFromFile : copy.labels.videoLinkBadge;
                   return (
                     <li
                       key={v.id}
-                      className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                      className="flex flex-col gap-3 rounded-xl border border-[#D8C79A]/70 bg-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0 flex-1">
-                        <span className="inline-flex rounded-full bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2d528d]">
-                          {previewLine}
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#8a7a62]">
+                          {lang === "en" ? `Video ${index + 1}` : `VIDEO ${index + 1}`}
+                        </p>
+                        <span className="mt-1 inline-flex rounded-full bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2d528d]">
+                          {badge}
                         </span>
-                        <p className="mt-1 break-all text-xs font-medium text-[#3D2C12]">{detail}</p>
-                        {url && (url.startsWith("data:video") || url.startsWith("http")) ? (
-                          <video
-                            src={url}
-                            controls
-                            muted
-                            playsInline
-                            className="mt-2 max-h-44 w-full rounded-lg border border-neutral-200 bg-black/5"
-                          />
-                        ) : null}
+                        <p className="mt-1 truncate text-sm text-[#3D2C12]" title={isLegacyFile ? undefined : url}>
+                          {shortenServiciosVideoUrlDisplay(url)}
+                        </p>
                       </div>
                       <div className="flex w-full flex-col gap-2 border-t border-neutral-100 pt-2 sm:w-auto sm:flex-row sm:items-center sm:border-t-0 sm:pt-0">
                         <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-medium text-[#5D4A25]">
@@ -1784,7 +1732,7 @@ export function ClasificadosServiciosApplication() {
                         </label>
                         <button
                           type="button"
-                          className="min-h-[44px] self-start text-left text-xs font-semibold text-red-700 hover:underline sm:self-center"
+                          className="min-h-[44px] shrink-0 rounded-lg border border-[#D8C79A]/80 px-3 py-1.5 text-xs font-semibold text-[#3D2C12] hover:bg-[#FFFCF7]"
                           onClick={() => setState((s) => ({ ...s, videos: s.videos.filter((x) => x.id !== v.id) }))}
                         >
                           {copy.labels.remove}
@@ -1795,6 +1743,35 @@ export function ClasificadosServiciosApplication() {
                 })}
               </ul>
             ) : null}
+            {state.videos.length < SERVICIOS_MAX_VIDEO_URLS ? (
+              <div className="mt-4 max-w-lg">
+                <label className={labelClass}>{copy.labels.videoUrlLabel}</label>
+                <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+                  <input
+                    className={`${inputClass} mt-0 min-w-0 sm:max-w-md sm:flex-1`}
+                    placeholder={copy.labels.videoUrlPlaceholder}
+                    value={videoUrlDraft}
+                    onChange={(e) => setVideoUrlDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addVideoUrl();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!videoUrlDraft.trim()}
+                    className="inline-flex min-h-[44px] w-full shrink-0 touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    onClick={addVideoUrl}
+                  >
+                    {copy.labels.addVideoUrl}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-xs font-medium text-[#8a7a62]">{copy.labels.videosLimitHint}</p>
+            )}
           </div>
         </section>
           </>

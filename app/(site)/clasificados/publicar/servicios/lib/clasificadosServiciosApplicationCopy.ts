@@ -155,9 +155,13 @@ export type ClasificadosServiciosCopy = {
     galleryFeaturedHint: string;
     galleryMoreHint: string;
     videosHint: string;
+    videosHelper: string;
+    videoUrlLabel: string;
     videoUrlPlaceholder: string;
     addVideoUrl: string;
     videoPrimary: string;
+    videoLinkBadge: string;
+    videoDuplicateUrl: string;
     customService: string;
     customServicePlaceholder: string;
     customReason: string;
@@ -233,6 +237,7 @@ export type ClasificadosServiciosCopy = {
     hoursOutputHint: string;
     /** Paso 2 — ciudad vs zonas */
     cityHelp: string;
+    cityHelpDetail: string;
     serviceAreasHelp: string;
     languageOtherLabel: string;
     languageOtherPlaceholder: string;
@@ -437,10 +442,16 @@ const es: ClasificadosServiciosCopy = {
     featuredStripHint: "Así aparecerán en la vista previa. Usa las flechas para cambiar el orden.",
     moveFeaturedLeft: "Mover antes",
     moveFeaturedRight: "Mover después",
-    videosHint: "Puedes agregar hasta 2 videos (archivo o enlace, por ejemplo YouTube).",
-    videoUrlPlaceholder: "https://… (YouTube o archivo en línea)",
-    addVideoUrl: "Añadir video por URL",
-    videoPrimary: "Video principal / tour",
+    videosHint:
+      "Puedes agregar hasta 4 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado.",
+    videosHelper:
+      "Recomendado: usa enlaces externos de YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible para evitar cargas pesadas.",
+    videoUrlLabel: "Enlace de video",
+    videoUrlPlaceholder: "https://",
+    addVideoUrl: "Añadir video",
+    videoPrimary: "Video principal",
+    videoLinkBadge: "ENLACE",
+    videoDuplicateUrl: "Ese enlace ya está en la lista.",
     customService: "Otro servicio",
     customServicePlaceholder: "Ej.: marcos a medida",
     customReason: "Otro motivo",
@@ -506,11 +517,11 @@ const es: ClasificadosServiciosCopy = {
       "Cuando termines las confirmaciones arriba, usa los botones de abajo para ver la vista previa o publicar. Tu progreso se guarda en esta sesión.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
-    videosTitle: "Videos (opcional)",
+    videosTitle: "Video opcional",
     galleryCountLine: "{n} / {max} fotos en la galería",
-    videosCountLine: "{n} / {max} videos adjuntos",
+    videosCountLine: "{n} / 4 videos agregados",
     galleryLimitHint: "Límite alcanzado (máx. {max}). Quita una foto para añadir más.",
-    videosLimitHint: "Ya tienes el máximo de videos ({max}). Quita uno para cambiar.",
+    videosLimitHint: "Límite de 4 videos alcanzado.",
     galleryListOrderHint:
       "El orden de la lista es el orden completo de la galería. Las destacadas pueden ser cualquiera de esas fotos; no tienen que ser las primeras.",
     mediaWrongFileType: "Ese archivo no es una imagen. Usa JPG, PNG, WebP u otro formato de imagen.",
@@ -520,6 +531,8 @@ const es: ClasificadosServiciosCopy = {
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
     cityHelp: "Los ejemplos son sugerencias, no límites.",
+    cityHelpDetail:
+      "Puedes escribir cualquier ciudad donde atiendes. NorCal aparece como sugerencia, pero Leonix acepta otras ciudades.",
     serviceAreasHelp: "Describe vecindades, condados o el radio donde atiendes.",
     languageOtherLabel: "Otros idiomas",
     languageOtherPlaceholder: "",
@@ -727,10 +740,16 @@ const en: ClasificadosServiciosCopy = {
     featuredStripHint: "This is how they appear in preview. Use arrows to reorder.",
     moveFeaturedLeft: "Move earlier",
     moveFeaturedRight: "Move later",
-    videosHint: "You can add up to 2 videos (upload or URL, e.g. YouTube).",
-    videoUrlPlaceholder: "https://… (YouTube or direct file)",
-    addVideoUrl: "Add video URL",
-    videoPrimary: "Primary / tour video",
+    videosHint:
+      "You can add up to 4 video links. Videos will appear in preview and on the published listing.",
+    videosHelper:
+      "Recommended: use external links from YouTube, TikTok, Instagram, Vimeo, or another compatible platform to avoid heavy uploads.",
+    videoUrlLabel: "Video link",
+    videoUrlPlaceholder: "https://",
+    addVideoUrl: "Add video",
+    videoPrimary: "Primary video",
+    videoLinkBadge: "URL",
+    videoDuplicateUrl: "That link is already in the list.",
     customService: "Other service",
     customServicePlaceholder: "e.g. custom trim",
     customReason: "Other reason",
@@ -796,11 +815,11 @@ const en: ClasificadosServiciosCopy = {
       "When you finish the confirmations above, use the buttons below to preview or publish. Your progress is saved for this session.",
     assetFromFile: "File",
     assetFromUrl: "URL",
-    videosTitle: "Videos (optional)",
+    videosTitle: "Optional video",
     galleryCountLine: "{n} / {max} photos in gallery",
-    videosCountLine: "{n} / {max} videos attached",
+    videosCountLine: "{n} / 4 videos added",
     galleryLimitHint: "Limit reached (max {max}). Remove a photo to add more.",
-    videosLimitHint: "Maximum videos reached ({max}). Remove one to change.",
+    videosLimitHint: "4 video limit reached.",
     galleryListOrderHint:
       "The list order is the full gallery order. Featured picks can be any of those photos — they do not have to be first.",
     mediaWrongFileType: "That file is not an image. Use JPG, PNG, WebP, or another image format.",
@@ -810,6 +829,8 @@ const en: ClasificadosServiciosCopy = {
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
     cityHelp: "Examples are suggestions, not limits.",
+    cityHelpDetail:
+      "You can enter any city you serve. NorCal appears as a suggestion, but Leonix accepts other cities.",
     serviceAreasHelp: "Describe neighborhoods, counties, or the radius you serve.",
     languageOtherLabel: "Other languages",
     languageOtherPlaceholder: "",
