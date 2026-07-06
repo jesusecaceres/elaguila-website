@@ -507,12 +507,14 @@ export function applyClasificadosCouponsToServiciosWireProfile(
     const description = row.description?.trim();
     const imageUrl = row.imageUrl?.trim();
     const couponCode = row.couponCode?.trim();
+    const expirationDate = row.expirationDate?.trim();
     const hasContent =
       title ||
       description ||
       imageUrl ||
       couponCode ||
       row.redemptionNote?.trim() ||
+      expirationDate ||
       row.href?.trim();
     if (!hasContent) continue;
     wireCoupons.push({
@@ -532,11 +534,12 @@ export function applyClasificadosCouponsToServiciosWireProfile(
   }
   const flyerUrl = draft.couponFlyer?.imageUrl?.trim();
   const moreUrl = draft.couponMoreOffers?.url?.trim();
+  const nextCoupons = wireCoupons.length ? wireCoupons.slice(0, 4) : wire.coupons;
   return {
     ...wire,
     promotions: undefined,
     promo: undefined,
-    coupons: wireCoupons.length ? wireCoupons.slice(0, 4) : undefined,
+    ...(nextCoupons && nextCoupons.length ? { coupons: nextCoupons } : {}),
     ...(flyerUrl ? { couponFlyer: { imageUrl: flyerUrl } } : {}),
     ...(moreUrl
       ? {
@@ -594,12 +597,13 @@ export function mergeClasificadosCouponsOntoServiciosProfile(
     .map((row, i) => clasificadosCouponRowToResolved(row, i, lang))
     .filter((row): row is ServiciosProfileResolved["coupons"][number] => row != null)
     .slice(0, 4);
+  const resolvedCoupons = coupons.length > 0 ? coupons : profile.coupons;
   const flyerUrl = state.couponFlyer?.imageUrl?.trim();
   const moreUrl = state.couponMoreOffers?.url?.trim();
   return {
     ...profile,
     promotions: [],
-    coupons,
+    coupons: resolvedCoupons,
     ...(flyerUrl ? { couponFlyer: { imageUrl: flyerUrl } } : {}),
     ...(moreUrl
       ? {

@@ -298,7 +298,9 @@ function mapCouponsDraftToWire(raw: ServiciosApplicationDraft["coupons"]): Servi
     if (redemptionNote) wire.redemptionNote = redemptionNote;
     const ctaLabel = trim(row.ctaLabel);
     if (ctaLabel) wire.ctaLabel = ctaLabel;
-    if (wire.title || wire.description || wire.imageUrl || wire.couponCode) out.push(wire);
+    if (wire.title || wire.description || wire.imageUrl || wire.couponCode || wire.expirationDate || wire.redemptionNote || wire.href) {
+      out.push(wire);
+    }
   }
   return out;
 }

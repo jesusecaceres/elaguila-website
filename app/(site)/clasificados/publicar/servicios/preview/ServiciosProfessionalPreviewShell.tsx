@@ -35,54 +35,83 @@ import { ServiciosReviews } from "@/app/servicios/components/ServiciosReviews";
 import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/ServiciosBusinessHubContactCard";
 import { ServiciosCouponsCard } from "@/app/servicios/components/ServiciosCouponsCard";
 import { ServiciosHighlightsSection } from "@/app/servicios/components/ServiciosHighlightsSection";
+import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
 import { mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
+
+function resolvePreviewDisplayProfile(
+  profile: ServiciosProfileResolved,
+  lang: ServiciosLang,
+  applicationState?: ClasificadosServiciosApplicationState | null,
+): ServiciosProfileResolved {
+  if (applicationState) {
+    if (!applicationState.couponsAddOn) {
+      return { ...profile, promotions: [], coupons: [] };
+    }
+    return mergeClasificadosCouponsOntoServiciosProfile(profile, applicationState, lang);
+  }
+  return profile;
+}
 
 export function ServiciosProfessionalPreviewShell({
   profile,
   lang,
   template,
   cityFallback,
+  applicationState,
   draftSlug,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   template: ServiciosListingTemplate;
   cityFallback?: string;
+  /** In-memory application state from preview client — preferred coupon source */
+  applicationState?: ClasificadosServiciosApplicationState | null;
+  /** @deprecated Prefer applicationState; kept for storage fallback */
   draftSlug?: string;
 }) {
   const chips = collectProfessionalServiceChips(profile, 5);
   const servicesTitle = getServicesTitle(template, lang);
-  const [displayProfile, setDisplayProfile] = useState(profile);
+
+  const syncedProfile = useMemo(
+    () => resolvePreviewDisplayProfile(profile, lang, applicationState),
+    [profile, lang, applicationState],
+  );
+
+  const [displayProfile, setDisplayProfile] = useState(syncedProfile);
 
   useEffect(() => {
-    if (!draftSlug?.trim()) {
-      setDisplayProfile(profile);
-      return;
-    }
+    setDisplayProfile(syncedProfile);
+  }, [syncedProfile]);
+
+  useEffect(() => {
+    if (applicationState) return;
+    if (!draftSlug?.trim()) return;
     let cancelled = false;
     void (async () => {
       const raw = await loadClasificadosServiciosApplicationResolved();
       if (cancelled) return;
-      if (!raw) {
-        setDisplayProfile({ ...profile, promotions: [] });
-        return;
-      }
+      if (!raw) return;
       const normalized = normalizeClasificadosServiciosApplicationState(raw);
-      setDisplayProfile(mergeClasificadosCouponsOntoServiciosProfile(profile, normalized, lang));
+      setDisplayProfile((current) => {
+        const merged = mergeClasificadosCouponsOntoServiciosProfile(current, normalized, lang);
+        if (hasPaidCouponsSectionResolved(merged)) return merged;
+        if (hasPaidCouponsSectionResolved(current)) return current;
+        return merged;
+      });
     })();
     return () => {
       cancelled = true;
     };
-  }, [profile, draftSlug, lang]);
+  }, [applicationState, draftSlug, lang]);
 
   const showCoupons = useMemo(
     () => hasPaidCouponsSectionResolved(displayProfile),
     [displayProfile],
   );
 
-  if (!hasHeroIdentityResolved(profile)) {
+  if (!hasHeroIdentityResolved(displayProfile)) {
     return null;
   }
 

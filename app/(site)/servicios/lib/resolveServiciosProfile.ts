@@ -318,7 +318,16 @@ function resolveOneRichCouponWire(
   const specialPrice = trimText(couponIn.specialPrice) || undefined;
   const savings = trimText(couponIn.savings) || undefined;
   const hasWire =
-    title || description || hrefSafe || imageUrl || couponCode || redemptionNote || regularPrice || specialPrice;
+    title ||
+    description ||
+    hrefSafe ||
+    imageUrl ||
+    couponCode ||
+    redemptionNote ||
+    expirationDate ||
+    regularPrice ||
+    specialPrice ||
+    savings;
   if (!hasWire) return null;
   const row: ServiciosProfileResolved["coupons"][number] = {
     id: trimText(couponIn.id) || "coupon",

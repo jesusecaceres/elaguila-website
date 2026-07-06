@@ -295,19 +295,19 @@ export function ServiciosProfessionalProfileShell({
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
-              {hasPaidCouponsSectionResolved(profile) ? (
+              {hasPaidCouponsSectionResolved(displayProfile) ? (
                 <ServiciosCouponsCard
-                  coupons={profile.coupons}
+                  coupons={displayProfile.coupons}
                   lang={lang}
-                  couponFlyer={profile.couponFlyer}
-                  couponMoreOffers={profile.couponMoreOffers}
+                  couponFlyer={displayProfile.couponFlyer}
+                  couponMoreOffers={displayProfile.couponMoreOffers}
                   featuredRow
                 />
               ) : null}
 
-              {hasGallerySectionResolved(profile) ? (
+              {hasGallerySectionResolved(displayProfile) ? (
                 <ServiciosGalleryWithTabs
-                  profile={profile}
+                  profile={displayProfile}
                   lang={lang}
                   listingSlug={analyticsListingSlug}
                   listingSourceId={sourceId || listingSourceId}

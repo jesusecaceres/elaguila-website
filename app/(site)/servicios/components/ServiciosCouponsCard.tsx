@@ -86,14 +86,14 @@ function CouponInnerCard({
         {coupon.redemptionNote ? (
           <p className="mt-1 line-clamp-2 text-[11px] text-[#5A5148]">{coupon.redemptionNote}</p>
         ) : null}
-        {coupon.hrefSafe && coupon.ctaLabel ? (
+        {coupon.hrefSafe ? (
           <a
             href={coupon.hrefSafe}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-auto pt-3 text-xs font-semibold text-[#3B66AD] underline underline-offset-2"
           >
-            {coupon.ctaLabel}
+            {coupon.ctaLabel?.trim() || (lang === "en" ? "View offer" : "Ver oferta")}
           </a>
         ) : null}
       </div>
@@ -121,7 +121,14 @@ export function ServiciosCouponsCard({
   const closeLightbox = useCallback(() => setLightboxSrc(null), []);
 
   const validCoupons = coupons.filter(
-    (c) => c.title?.trim() || c.description?.trim() || c.imageUrl?.trim() || c.couponCode?.trim(),
+    (c) =>
+      c.title?.trim() ||
+      c.description?.trim() ||
+      c.imageUrl?.trim() ||
+      c.couponCode?.trim() ||
+      c.expirationDate?.trim() ||
+      c.redemptionNote?.trim() ||
+      c.hrefSafe?.trim(),
   );
 
   if (validCoupons.length === 0) return null;

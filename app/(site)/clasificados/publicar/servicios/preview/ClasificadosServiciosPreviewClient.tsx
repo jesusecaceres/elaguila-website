@@ -30,7 +30,7 @@ import { normalizeClasificadosServiciosApplicationState } from "../lib/clasifica
 import { clearServiciosDraftStorageAndIdb, loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { buildServiciosPreviewGalleryVideos } from "../lib/clasificadosServiciosPreviewHandoff";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
-import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
+import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile, mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
@@ -275,11 +275,17 @@ export function ClasificadosServiciosPreviewClient() {
   }, [appState, canPublishFromPreview, lang, router]);
 
   const profile = useMemo(() => {
-    if (source !== "application" || !appDraft) return null;
+    if (source !== "application" || !appDraft || !appState) return null;
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
-    return resolveServiciosProfile(wire, lang);
-  }, [source, appDraft, lang]);
+    let resolved = resolveServiciosProfile(wire, lang);
+    if (appState.couponsAddOn) {
+      resolved = mergeClasificadosCouponsOntoServiciosProfile(resolved, appState, lang);
+    } else {
+      resolved = { ...resolved, promotions: [], coupons: [] };
+    }
+    return resolved;
+  }, [source, appDraft, appState, lang]);
 
   const listingTemplate = useMemo(() => {
     if (source !== "application" || !appState) return "standard_service" as const;
@@ -409,13 +415,13 @@ export function ClasificadosServiciosPreviewClient() {
 
           <div>
             <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{fullPreviewTitle}</h2>
-            {useProfessionalPreview ? (
+            {useProfessionalPreview || (profile.coupons?.length ?? 0) > 0 ? (
               <ServiciosProfessionalPreviewShell
                 profile={profile}
                 lang={lang}
                 template={listingTemplate}
                 cityFallback={appState?.city}
-                draftSlug={profile.identity.slug}
+                applicationState={appState}
               />
             ) : (
               <ServiciosProfileView profile={profile} lang={lang} showTopBar={false} />

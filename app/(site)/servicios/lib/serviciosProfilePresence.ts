@@ -149,15 +149,19 @@ export function hasOfferSectionResolved(p: ServiciosProfileResolved): boolean {
 }
 
 export function hasPaidCouponsSectionResolved(p: ServiciosProfileResolved): boolean {
-  return p.coupons.some(
-    (c) =>
-      Boolean(
-        c.title?.trim() ||
-          c.description?.trim() ||
-          c.imageUrl?.trim() ||
-          c.couponCode?.trim() ||
-          c.hrefSafe?.trim(),
-      ),
+  return p.coupons.some((c) =>
+    Boolean(
+      c.title?.trim() ||
+        c.description?.trim() ||
+        c.imageUrl?.trim() ||
+        c.couponCode?.trim() ||
+        c.hrefSafe?.trim() ||
+        c.expirationDate?.trim() ||
+        c.redemptionNote?.trim() ||
+        c.regularPrice?.trim() ||
+        c.specialPrice?.trim() ||
+        c.savings?.trim(),
+    ),
   );
 }
 
