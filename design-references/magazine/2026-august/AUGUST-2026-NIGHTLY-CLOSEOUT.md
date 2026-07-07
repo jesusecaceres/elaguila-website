@@ -160,14 +160,13 @@ Detail: [`AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md`](AUGUST-2026-VISUAL-BATCH1-ASSE
 
 ## Recommended Next Consolidated Gate
 
-**`AUGUST-2026-VISUAL-QA-AND-BATCH2-PLAN1`**
+**`AUGUST-2026-PAGE12-PNG-TO-DEEPL-PROOF-PREP1`** — Digital translation proof plan: [`AUGUST-2026-VISUAL-QA-AND-DIGITAL-TRANSLATION-PROOF-PLAN.md`](AUGUST-2026-VISUAL-QA-AND-DIGITAL-TRANSLATION-PROOF-PLAN.md)
 
-Purpose:
+- **Print remains Spanish-only.**
+- **Translated editions are digital-only.**
+- Chuy visual QA still required before Batch 2 approval.
 
-1. Chuy gives **APPROVE / FIX NEEDED** for pages 5, 6, 12
-2. If approved → plan **Batch 2** (pages 7, 8, 9) and **Batch 3** (pages 10, 11) in one consolidated pass
-3. If fixes needed → document exact fixes per page before any new image generation
-4. Keep everything outside `public/`
+Then: `AUGUST-2026-PAGE12-DEEPL-DIGITAL-PROOF1` → `AUGUST-2026-VISUAL-QA-AND-BATCH2-PLAN1`
 
 ---
 

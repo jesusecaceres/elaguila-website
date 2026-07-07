@@ -269,9 +269,9 @@ leonixmedia.com
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-QA-AND-BATCH2-PLAN1`** — Nightly closeout: [`AUGUST-2026-NIGHTLY-CLOSEOUT.md`](AUGUST-2026-NIGHTLY-CLOSEOUT.md)
+**`AUGUST-2026-PAGE12-PNG-TO-DEEPL-PROOF-PREP1`** — Digital proof plan: [`AUGUST-2026-VISUAL-QA-AND-DIGITAL-TRANSLATION-PROOF-PLAN.md`](AUGUST-2026-VISUAL-QA-AND-DIGITAL-TRANSLATION-PROOF-PLAN.md)
 
-Chuy visual QA on pages 5, 6, 12 → then Batch 2/3 plan for pages 7–11.
+**Chuy visual QA still required** before Batch 2 approval. Print = Spanish-only; translated = digital-only.
 
 ---
 
