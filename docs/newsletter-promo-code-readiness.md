@@ -28,6 +28,27 @@ Only active package entitlements / payment records control placement.
 
 ---
 
+## 1b. Public newsletter signup → promo code email (ACTIVE)
+
+**Route:** `POST /api/newsletter/subscribe`  
+**Email template:** `app/lib/email/newsletterPromoCodeEmail.ts`  
+**Client:** `app/(site)/newsletter/NewsletterPageClient.tsx`
+
+Now active:
+
+- Public `/newsletter` signup saves the subscriber (`leonix_newsletter_subscribers`) as before.
+- After a successful save, the route **creates or reuses one active `newsletter` promo code** per subscriber email in `leonix_promo_codes` (25% off, one-time, non-stackable, 60-day window).
+- The unique code is emailed to the subscriber via the existing Resend helper (bilingual ES/EN).
+- Promo email delivery status is stored honestly in the promo-code `metadata` (`email_send_status`: `pending` → `sent` / `failed` / `not_configured`).
+- The internal Leonix team notification email is preserved.
+- The public success message reflects whether the promo email was sent.
+
+Reuse rule: if the email already has an active `newsletter` code, it is reused (no duplicate rows). Insert collisions regenerate the code up to 3 attempts.
+
+Doctrine preserved: the newsletter promo code discounts a future checkout only. It never grants paid placement, ranking, verified status, or premium visibility. `metadata.placement_doctrine = "promo_code_does_not_grant_paid_placement"`.
+
+---
+
 ## 2. What this gate does
 
 - **Admin UI copy polish** — clearer headers, helpers, and Revenue OS framing on the promo-code create form.
@@ -106,9 +127,27 @@ Discount fields (percent/amount) may also be saved for `newsletter` / `sms` when
 
 ---
 
-## 7. Future gates
+## 7. Still NOT active (future gates)
 
-- Public newsletter signup → generate unique `newsletter` code per subscriber
-- Email provider integration → update `email_send_status` to `sent` / `failed`
-- SMS provider integration → update `sms_send_status`
-- Checkout validation for newsletter/SMS codes at apply time (category/package scoped)
+- Double opt-in confirmation
+- Unsubscribe management from the promo email
+- Dedicated email-event table (delivery/open/click log) — status currently lives on the promo-code metadata only
+- SMS sending
+- User dashboard "My benefits" view
+- Automatic package entitlement creation from a newsletter code
+- Stripe redemption of the newsletter code at checkout
+- Public ranking / placement boost
+- Public category rollout CTA modules
+
+## 8. Manual QA checklist (public newsletter signup)
+
+1. Submit `/newsletter` with a new email.
+2. Confirm a subscriber row exists in `leonix_newsletter_subscribers`.
+3. Confirm a `leonix_promo_codes` row exists with `code_type = newsletter`.
+4. Confirm `metadata.email_send_status` is `sent` / `failed` / `not_configured` honestly.
+5. Submit the same email again → confirm the active newsletter code is reused, not duplicated.
+6. Confirm the public success message reflects the promo email status.
+7. Confirm the internal Leonix team notification still sends (or logs the same warning as before).
+8. Confirm no package entitlement was created.
+9. Confirm no public ranking/placement changed.
+10. Confirm `npm run build` passes.

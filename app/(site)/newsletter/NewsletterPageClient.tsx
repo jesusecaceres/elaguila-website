@@ -38,6 +38,7 @@ export default function NewsletterPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [city, setCity] = useState("");
+  const [promoEmailSent, setPromoEmailSent] = useState(false);
 
   const preserveQueryKeys = source || sourceCta ? (["source", "sourceCta"] as const) : undefined;
   const resolvedSource = source.trim() || "newsletter_page";
@@ -77,6 +78,7 @@ export default function NewsletterPageClient() {
 
     setLoading(false);
     if (result.ok) {
+      setPromoEmailSent(Boolean(result.promoCodeEmailSent));
       setSubmitted(true);
       return;
     }
@@ -84,6 +86,14 @@ export default function NewsletterPageClient() {
   }
 
   if (submitted) {
+    const promoMessage = promoEmailSent
+      ? lang === "en"
+        ? "We sent your Leonix promo code to your email."
+        : "Te enviamos tu código promocional Leonix a tu correo."
+      : lang === "en"
+        ? "You’re subscribed. Leonix saved your signup, but the promo email may be sent later."
+        : "Ya estás suscrito. Leonix guardó tu registro, pero el correo con el código puede enviarse después.";
+
     return (
       <GateDestinationShell
         lang={lang}
@@ -92,7 +102,8 @@ export default function NewsletterPageClient() {
         body={getNewsletterSuccessMessage(lang)}
         preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
       >
-        <p className="text-sm text-[#5F6258]">
+        <p className="text-sm font-medium text-[#556B3E]">{promoMessage}</p>
+        <p className="mt-2 text-sm text-[#5F6258]">
           {t.languageLabel}: <span className="font-semibold text-[#3D3428]">{getLanguageLabel(lang)}</span>
         </p>
         {fromComingSoon ? <p className="mt-2 text-sm text-[#556B3E]">{t.fromComingSoon}</p> : null}

@@ -1,17 +1,217 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildLaunchSignupEmail } from "@/app/lib/email/contactInquiryEmail";
+import { buildNewsletterPromoCodeEmail } from "@/app/lib/email/newsletterPromoCodeEmail";
 import { resolveLeonixNotificationEmail } from "@/app/lib/email/leonixNotificationRecipient";
 import { resolveLeonixResendConfig } from "@/app/lib/email/leonixResendConfig";
 import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
 import { saveNewsletterSubscriber } from "@/app/lib/leonix/leadCaptureServer";
+import {
+  buildPromoCodeRulePreview,
+  generateLeonixPromoCode,
+} from "@/app/lib/listingPlans/promoCodeLifecycle";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
 const MAX_BODY_BYTES = 8_192;
 
+const NEWSLETTER_PROMO_PERCENT_OFF = 25;
+const NEWSLETTER_PROMO_TTL_DAYS = 60;
+const NEWSLETTER_PROMO_CODE_PREFIX = "LX-NEWS";
+
 function isTruthyConsent(value: unknown): boolean {
   return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function resolvePublicSiteUrl(): string {
+  const explicit = process.env.LEONIX_SITE_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
+  return "https://leonixmedia.com";
+}
+
+function asMetadataObject(raw: unknown): Record<string, unknown> {
+  return raw && typeof raw === "object" && !Array.isArray(raw) ? { ...(raw as Record<string, unknown>) } : {};
+}
+
+type NewsletterPromoOutcome =
+  | {
+      status: "created" | "reused";
+      promoCodeId: string;
+      code: string;
+      percentOff: number;
+      expiresAt: string | null;
+      metadata: Record<string, unknown>;
+    }
+  | { status: "failed"; reason: string }
+  | { status: "skipped"; reason: string };
+
+/**
+ * Create or reuse exactly one active newsletter promo code per subscriber email.
+ * Promo codes discount a future checkout only — they never grant paid placement.
+ */
+async function ensureNewsletterPromoCode(
+  supabase: SupabaseClient,
+  input: {
+    email: string;
+    name?: string | null;
+    businessName?: string | null;
+    phone?: string | null;
+    subscriberId: string | null;
+    source: string;
+    sourceCta: string;
+    lang: "en" | "es";
+  },
+): Promise<NewsletterPromoOutcome> {
+  const email = input.email.trim().toLowerCase();
+  if (!email) return { status: "skipped", reason: "no_email" };
+
+  try {
+    const { data: existing, error: lookupError } = await supabase
+      .from("leonix_promo_codes")
+      .select("id, code, percent_off, ends_at, metadata")
+      .eq("code_type", "newsletter")
+      .eq("customer_email", email)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[newsletter] promo lookup failed", { code: lookupError.code });
+      return { status: "failed", reason: "promo_lookup_failed" };
+    }
+
+    if (existing?.id) {
+      const pct =
+        typeof existing.percent_off === "number" && existing.percent_off > 0
+          ? existing.percent_off
+          : NEWSLETTER_PROMO_PERCENT_OFF;
+      return {
+        status: "reused",
+        promoCodeId: String(existing.id),
+        code: String(existing.code),
+        percentOff: pct,
+        expiresAt: existing.ends_at != null ? String(existing.ends_at) : null,
+        metadata: asMetadataObject(existing.metadata),
+      };
+    }
+  } catch (e) {
+    console.error("[newsletter] promo lookup threw", { message: e instanceof Error ? e.message : "unknown" });
+    return { status: "failed", reason: "promo_lookup_failed" };
+  }
+
+  const now = new Date();
+  const startsAt = now.toISOString();
+  const endsAt = new Date(now.getTime() + NEWSLETTER_PROMO_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const preview = buildPromoCodeRulePreview({ codeType: "newsletter", status: "active" });
+
+  const metadata: Record<string, unknown> = {
+    source: "newsletter_signup",
+    created_via: "public_newsletter_signup",
+    source_page: "public_newsletter",
+    source_cta: input.sourceCta || null,
+    signup_source: input.source || null,
+    language: input.lang,
+    subscriber_id: input.subscriberId,
+    subscriber_identity_required: true,
+    intended_delivery_channel: "email",
+    email_send_status: "pending",
+    customer_email_normalized: email,
+    placement_doctrine: "promo_code_does_not_grant_paid_placement",
+    promo_rule: {
+      promo_code_type: preview.codeType,
+      status: preview.status,
+      non_stackable: preview.nonStackable,
+      one_time_use: preview.oneTimeUse,
+      requires_owner_approval: preview.requiresOwnerApproval,
+      requires_subscriber_identity: preview.requiresSubscriberIdentity,
+      requires_sales_rep_attribution: preview.requiresSalesRepAttribution,
+      can_create_package_entitlement: preview.canCreatePackageEntitlement,
+      can_discount_payment: preview.canDiscountPayment,
+    },
+  };
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const code = generateLeonixPromoCode(NEWSLETTER_PROMO_CODE_PREFIX);
+    const { data: inserted, error: insertError } = await supabase
+      .from("leonix_promo_codes")
+      .insert({
+        code,
+        code_type: "newsletter",
+        status: "active",
+        promo_type: "percent_off",
+        percent_off: NEWSLETTER_PROMO_PERCENT_OFF,
+        amount_off_cents: null,
+        is_active: true,
+        non_stackable: true,
+        one_time_use: true,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        category: null,
+        category_scope: null,
+        package_scope: null,
+        package_tier: null,
+        contract_term: null,
+        customer_name: input.name?.trim() || null,
+        business_name: input.businessName?.trim() || null,
+        customer_email: email,
+        customer_phone: input.phone?.trim() || null,
+        requires_owner_approval: false,
+        metadata,
+        updated_at: startsAt,
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (!insertError && inserted?.id) {
+      return {
+        status: "created",
+        promoCodeId: String(inserted.id),
+        code,
+        percentOff: NEWSLETTER_PROMO_PERCENT_OFF,
+        expiresAt: endsAt,
+        metadata,
+      };
+    }
+
+    if (insertError && /duplicate|unique/i.test(insertError.message)) {
+      continue; // regenerate and retry
+    }
+
+    console.error("[newsletter] promo insert failed", { code: insertError?.code });
+    return { status: "failed", reason: "promo_insert_failed" };
+  }
+
+  console.error("[newsletter] promo insert failed after retries (duplicate code)");
+  return { status: "failed", reason: "promo_code_collision" };
+}
+
+async function updateNewsletterPromoEmailStatus(
+  supabase: SupabaseClient,
+  promoCodeId: string,
+  baseMetadata: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const { data: fresh } = await supabase
+      .from("leonix_promo_codes")
+      .select("metadata")
+      .eq("id", promoCodeId)
+      .maybeSingle();
+    const current = fresh ? asMetadataObject(fresh.metadata) : baseMetadata;
+    const merged = { ...current, ...patch };
+    await supabase
+      .from("leonix_promo_codes")
+      .update({ metadata: merged, updated_at: new Date().toISOString() })
+      .eq("id", promoCodeId);
+  } catch (e) {
+    console.warn("[newsletter] promo metadata update failed", {
+      message: e instanceof Error ? e.message : "unknown",
+    });
+  }
 }
 
 export async function POST(req: Request) {
@@ -79,17 +279,18 @@ export async function POST(req: Request) {
   let saved = false;
   let savedId: string | null = null;
   let updated = false;
+  let adminSupabase: SupabaseClient | null = null;
 
   if (dbConfigured) {
-    let supabase;
     try {
-      supabase = getAdminSupabase();
+      adminSupabase = getAdminSupabase();
     } catch {
       return NextResponse.json(
         { ok: false, code: "DB_NOT_CONFIGURED", error: "supabase_not_configured" },
         { status: 503 }
       );
     }
+    const supabase = adminSupabase;
 
     const result = await saveNewsletterSubscriber(supabase, {
       email,
@@ -200,12 +401,108 @@ export async function POST(req: Request) {
     );
   }
 
+  // Newsletter promo code: create/reuse one active code per subscriber email,
+  // then email it to the subscriber. Never grants paid placement by itself.
+  let promoCodeCreated = false;
+  let promoCodeReused = false;
+  let promoCodeEmailSent = false;
+  let promoCodeEmailStatus:
+    | "sent"
+    | "failed"
+    | "not_configured"
+    | "not_created"
+    | "skipped"
+    | "pending" = "not_created";
+
+  if (saved && savedId && adminSupabase && email.trim()) {
+    const outcome = await ensureNewsletterPromoCode(adminSupabase, {
+      email: email.trim(),
+      name,
+      businessName,
+      phone: o.phone != null ? String(o.phone) : null,
+      subscriberId: savedId,
+      source: String(source ?? "newsletter_page"),
+      sourceCta,
+      lang,
+    });
+
+    if (outcome.status === "created" || outcome.status === "reused") {
+      promoCodeCreated = outcome.status === "created";
+      promoCodeReused = outcome.status === "reused";
+
+      if (emailConfigured) {
+        const promoMail = buildNewsletterPromoCodeEmail({
+          email: email.trim(),
+          name: String(name ?? "").trim(),
+          lang,
+          code: outcome.code,
+          percentOff: outcome.percentOff,
+          expiresAt: outcome.expiresAt,
+          source: String(source ?? "newsletter_page"),
+          sourceCta,
+          subscriberId: savedId,
+          promoCodeId: outcome.promoCodeId,
+          siteUrl: resolvePublicSiteUrl(),
+        });
+
+        const sent = await sendLeonixResendEmail({
+          to: email.trim(),
+          subject: promoMail.subject,
+          text: promoMail.text,
+          html: promoMail.html,
+        });
+
+        const nowIso = new Date().toISOString();
+        if (sent.ok) {
+          promoCodeEmailSent = true;
+          promoCodeEmailStatus = "sent";
+          await updateNewsletterPromoEmailStatus(adminSupabase, outcome.promoCodeId, outcome.metadata, {
+            email_send_status: "sent",
+            email_sent_at: nowIso,
+            email_provider_status: "accepted",
+          });
+        } else {
+          promoCodeEmailStatus = "failed";
+          await updateNewsletterPromoEmailStatus(adminSupabase, outcome.promoCodeId, outcome.metadata, {
+            email_send_status: "failed",
+            email_failed_at: nowIso,
+            email_failure_code: sent.code,
+          });
+          console.warn("[newsletter] promo code created but subscriber email failed", {
+            code: sent.code,
+            subscriberId: savedId,
+          });
+        }
+      } else {
+        promoCodeEmailStatus = "not_configured";
+        await updateNewsletterPromoEmailStatus(adminSupabase, outcome.promoCodeId, outcome.metadata, {
+          email_send_status: "not_configured",
+        });
+      }
+    } else {
+      promoCodeEmailStatus = outcome.status === "failed" ? "failed" : "skipped";
+    }
+  }
+
+  const promoWarning =
+    saved && !promoCodeEmailSent && (promoCodeCreated || promoCodeReused)
+      ? promoCodeEmailStatus === "not_configured"
+        ? "promo_email_not_configured"
+        : "promo_email_not_sent"
+      : undefined;
+
   return NextResponse.json({
     ok: true,
     id: savedId,
     updated,
     saved,
+    // Internal team notification (not the subscriber-facing promo email).
     emailSent,
+    promoCodeCreated,
+    promoCodeReused,
+    promoCodeEmailSent,
+    promoCodeEmailStatus,
+    ...(promoWarning ? { warning: promoWarning } : {}),
     consentTimestamp,
   });
 }

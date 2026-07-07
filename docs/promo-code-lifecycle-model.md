@@ -69,11 +69,12 @@ Aligned with `LeonixPromoCodeType` in `packagePricingRules.ts`:
 
 ---
 
-## 6. Newsletter / SMS (admin readiness — send later)
+## 6. Newsletter / SMS
 
 - Types `newsletter` and `sms`: per-subscriber unique codes with identity (email/phone).
 - Admin create requires `customer_email` (newsletter) or `customer_phone` (sms).
-- Metadata stores `email_send_status: not_sent` / `sms_send_status: not_sent` — **no email/SMS provider in this gate**.
+- **Public newsletter signup is now active:** `POST /api/newsletter/subscribe` creates/reuses one active `newsletter` code per email and emails it via Resend. Delivery status lives in promo `metadata.email_send_status` (`pending` → `sent` / `failed` / `not_configured`).
+- SMS sending remains inactive (admin metadata readiness only).
 - See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
 ---

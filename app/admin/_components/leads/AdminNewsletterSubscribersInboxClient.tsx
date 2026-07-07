@@ -216,10 +216,22 @@ export function AdminNewsletterSubscribersInboxClient({
 
   return (
     <div className="space-y-6">
-      <p className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
-        Newsletter subscribers — use <strong>View</strong> for full details. Reply/Email use mailto (no server send).
-        Archive when done; restore from Archived tab.
-      </p>
+      <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
+        <p>
+          Newsletter subscribers — use <strong>View</strong> for full details. Reply/Email use mailto (no server send).
+          Archive when done; restore from Archived tab.
+        </p>
+        <p className="mt-2 text-xs text-[#5C5346]">
+          Newsletter signups can generate a one-time promo code by email. Promo delivery status lives on the promo-code
+          record until the full email-event log is built.{" "}
+          <Link
+            href="/admin/workspace/promo-codes?code_type=newsletter"
+            className="font-semibold text-[#6B5B2E] underline"
+          >
+            Newsletter promo codes →
+          </Link>
+        </p>
+      </div>
 
       <AdminResponsiveTabs
         ariaLabel="Newsletter folders"
