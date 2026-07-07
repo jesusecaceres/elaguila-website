@@ -174,3 +174,7 @@ Constant: `REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false`
 ## 18. Final Recommendation
 
 Ship shared checkpoint + Restaurantes proof + Bienes negocio proof (with honest inventory pack block). Enable full Bienes $498 checkout only after Revenue OS add-on support lands.
+
+---
+
+**Extended by Standard 02:** `docs/revenue-os-category-pipeline-matrix-and-checkpoint-standard-02.md` — full category/pipeline monetization matrix, dashboard existing-listing upgrade doctrine (Restaurantes P0G model), promo/newsletter future gate, and add-on persistence/media rules. Run `npm run verify:revenue-os-category-pipeline-matrix-and-checkpoint-standard-02`.

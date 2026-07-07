@@ -59,6 +59,7 @@
     "verify:stripe-revenue-os-category-checkout-wiring-01": "node scripts/verify-stripe-revenue-os-category-checkout-wiring-01.mjs",
     "verify:stripe-revenue-os-bienes-raices-negocio-wiring-01": "node scripts/verify-stripe-revenue-os-bienes-raices-negocio-wiring-01.mjs",
     "verify:publish-checkout-checkpoint-standard-01": "node scripts/verify-publish-checkout-checkpoint-standard-01.mjs",
+    "verify:revenue-os-category-pipeline-matrix-and-checkpoint-standard-02": "node scripts/verify-revenue-os-category-pipeline-matrix-and-checkpoint-standard-02.mjs",
     "verify:restaurantes-publish-checkout-checkpoint-qa-fix-01": "node scripts/verify-restaurantes-publish-checkout-checkpoint-qa-fix-01.mjs",
     "verify:restaurantes-pending-publish-and-coupon-offers-truth-01": "node scripts/verify-restaurantes-pending-publish-and-coupon-offers-truth-01.mjs",
     "verify:restaurantes-revenue-os-webhook-activation-01": "node scripts/verify-restaurantes-revenue-os-webhook-activation-01.mjs",
