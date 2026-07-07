@@ -1,22 +1,23 @@
 import type { ReactNode } from "react";
 
-import { RESTAURANTES_LANDING_HERO_BG } from "./restaurantesLandingAssets";
-
+/** Rentas/Bienes shell for Restaurantes — warm cream background with texture */
 export function RestaurantesLandingShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#FDFBF7] text-[#2D241E] antialiased">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#F3EBDD] text-[#1F241C] antialiased">
+      {/* Rentas/Bienes subtle texture */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-0 min-h-[min(40vh,380px)] w-full max-w-[100vw] overflow-hidden rounded-b-[20px] sm:min-h-[min(48vh,480px)] sm:rounded-b-[22px] md:min-h-[min(52vh,520px)] lg:min-h-[min(58vh,560px)] lg:rounded-b-[24px]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(201,168,74,0.22),transparent_52%),radial-gradient(ellipse_65%_45%_at_100%_0%,rgba(85,107,62,0.1),transparent_48%),radial-gradient(ellipse_60%_40%_at_0%_25%,rgba(122,30,44,0.06),transparent_42%)]"
         aria-hidden
-      >
-        <div
-          className="absolute inset-0 bg-cover bg-center sm:bg-[center_38%] md:bg-[center_40%] lg:bg-[center_42%]"
-          style={{ backgroundImage: `url('${RESTAURANTES_LANDING_HERO_BG}')` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#2D241E]/[0.52] via-[#fdfbf7]/[0.88] to-[#FDFBF7] sm:from-[#2D241E]/50 sm:via-[#fdfbf7]/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.12),transparent_60%)] sm:bg-[radial-gradient(ellipse_at_50%_0%,rgba(217,119,6,0.14),transparent_58%)]" />
-      </div>
-      <div className="relative z-[1] min-w-0 pt-[calc(3.75rem+env(safe-area-inset-top,0px))] sm:pt-8 lg:pt-10">{children}</div>
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.045]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(90deg,#2A4536 0px,#2A4536 1px,transparent 1px,transparent 52px),repeating-linear-gradient(0deg,#2A4536 0px,#2A4536 1px,transparent 1px,transparent 52px)",
+        }}
+        aria-hidden
+      />
+      <div className="relative z-[1] min-w-0 pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14">{children}</div>
     </div>
   );
 }

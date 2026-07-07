@@ -1130,9 +1130,23 @@ export function RestaurantesResultsShell({
 
   return (
     <CategoryStandardResultsPageShell>
-    <div className="min-h-screen overflow-x-hidden text-[color:var(--lx-text)]">
+    <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
+      {/* Rentas/Bienes subtle texture for results */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(201,168,74,0.22),transparent_52%),radial-gradient(ellipse_65%_45%_at_100%_0%,rgba(85,107,62,0.1),transparent_48%),radial-gradient(ellipse_60%_40%_at_0%_25%,rgba(122,30,44,0.06),transparent_42%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.045]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(90deg,#2A4536 0px,#2A4536 1px,transparent 1px,transparent 52px),repeating-linear-gradient(0deg,#2A4536 0px,#2A4536 1px,transparent 1px,transparent 52px)",
+        }}
+        aria-hidden
+      />
+      <div className="relative z-[1]">
       {inventoryBannerNote ? (
-        <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
+        <div className="mx-auto max-w-[1280px] min-w-0 px-3.5 pt-4 sm:px-4 lg:px-5">
           <p
             className={`rounded-[14px] border px-4 py-3 text-xs leading-relaxed shadow-sm sm:text-sm ${
               inventorySource === "published"
@@ -1148,7 +1162,7 @@ export function RestaurantesResultsShell({
         </div>
       ) : null}
       {publishFlash ? (
-        <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-3 sm:px-5 md:px-5 lg:px-6">
+        <div className="mx-auto max-w-[1280px] min-w-0 px-3.5 pt-3 sm:px-4 lg:px-5">
           <div className="flex flex-col gap-2 rounded-[14px] border border-emerald-300/80 bg-emerald-50/95 px-4 py-3 text-emerald-950 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold">{t.publishFlashTitle}</p>
@@ -1164,7 +1178,7 @@ export function RestaurantesResultsShell({
           </div>
         </div>
       ) : null}
-      <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-14 pt-3 sm:px-5 sm:pb-16 md:px-5 lg:px-6">
+      <div className="mx-auto max-w-[1280px] min-w-0 px-3.5 pb-14 pt-3 sm:px-4 sm:pb-16 lg:px-5">
         <CategoryStandardResultsHeader
           lang={lang}
           title={t.title}
@@ -1277,16 +1291,6 @@ export function RestaurantesResultsShell({
 
         <div className="mt-4 min-w-0">
           <div className="min-w-0">
-            {destacadosRows.length > 0 ? (
-              <div className="mb-4 sm:mb-5">
-                <RestaurantesDestacadosSection
-                  rows={destacadosRows}
-                  lang={lang}
-                  id="restaurantes-res-destacados"
-                />
-              </div>
-            ) : null}
-
             {shown.length === 0 ? (
               <div className="rounded-[20px] border border-dashed border-[color:var(--lx-border)]/50 bg-[color:var(--lx-section)] px-5 py-10 text-center sm:px-8 sm:py-14 md:px-10">
                 <p className="font-serif text-lg font-semibold text-[color:var(--lx-text)]">{t.emptyTitle}</p>
@@ -1359,6 +1363,7 @@ export function RestaurantesResultsShell({
           </div>
         </div>
       ) : null}
+      </div>
     </div>
     </CategoryStandardResultsPageShell>
   );
