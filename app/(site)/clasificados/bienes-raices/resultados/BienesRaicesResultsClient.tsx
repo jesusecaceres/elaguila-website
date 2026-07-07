@@ -15,6 +15,7 @@ import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
+import { BienesRaicesResultsGatewayPanel } from "./components/BienesRaicesResultsGatewayPanel";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
 import { BR_BTN_PRIMARY } from "../shared/bienesRaicesLeonixPublicUi";
@@ -219,20 +220,13 @@ export function BienesRaicesResultsClient() {
           </p>
         ) : null}
 
-        <section
-          className="rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7]/88 p-4 shadow-[0_16px_48px_-24px_rgba(42,36,22,0.22)] sm:p-5"
-          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
-        >
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{copy.heroTitle}</h1>
-              <p className="mt-0.5 text-xs text-[#3D3428]/80">{countLine}</p>
-            </div>
-            <Link href={appendLangToPath(BR_PUBLICAR_HUB, lang)} className={BR_BTN_PRIMARY}>
-              {copy.footerPublish}
-            </Link>
-          </div>
-          <div className="mt-3">
+        <BienesRaicesResultsGatewayPanel
+          lang={lang}
+          title={copy.heroTitle}
+          countLine={countLine}
+          publishHref={appendLangToPath(BR_PUBLICAR_HUB, lang)}
+          publishLabel={copy.footerPublish}
+          searchSlot={
             <BienesRaicesCompactSearchCanvas
               lang={lang}
               query={searchQ}
@@ -250,10 +244,10 @@ export function BienesRaicesResultsClient() {
               browseAllHref={appendLangToPath(BR_RESULTS, lang)}
               searchButtonLabel={searchLabel}
               filtersButtonLabel={filtersLabel}
-              layout="results"
+              layout="landing"
             />
-          </div>
-        </section>
+          }
+        />
 
         <BienesRaicesFilterChips
           copy={copy}
