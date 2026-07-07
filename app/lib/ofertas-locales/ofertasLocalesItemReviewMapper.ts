@@ -10,6 +10,7 @@ import type {
   OfertaLocalItemReviewStatus,
   OfertaLocalItemReviewViewModel,
   OfertaLocalPublishStatus,
+  OfertaLocalSearchableItemDraft,
   OfertaLocalSourceBoundingBox,
 } from "./ofertasLocalesTypes";
 
@@ -48,16 +49,6 @@ export function formatOfertaLocalItemConfidenceLabel(
   if (confidence >= 0.75) return "high";
   if (confidence >= 0.5) return "medium";
   return "low";
-}
-
-function parseSourceBbox(raw: Record<string, unknown> | null): OfertaLocalSourceBoundingBox | null {
-  if (!raw) return null;
-  const xMin = Number(raw.xMin);
-  const yMin = Number(raw.yMin);
-  const xMax = Number(raw.xMax);
-  const yMax = Number(raw.yMax);
-  if (![xMin, yMin, xMax, yMax].every((n) => Number.isFinite(n))) return null;
-  return { xMin, yMin, xMax, yMax };
 }
 
 export function mapOfertaLocalItemReviewRowToViewModel(row: OfertaLocalItemDbRow): OfertaLocalItemReviewViewModel {
@@ -223,4 +214,80 @@ export function summarizeOfertaLocalItemReviewCounts(
     counts[item.reviewStatus] += 1;
   }
   return counts;
+}
+
+function parseSourceBbox(raw: Record<string, unknown> | null): OfertaLocalSourceBoundingBox | null {
+  if (!raw) return null;
+  const xMin = Number(raw.xMin);
+  const yMin = Number(raw.yMin);
+  const xMax = Number(raw.xMax);
+  const yMax = Number(raw.yMax);
+  if (![xMin, yMin, xMax, yMax].every((n) => Number.isFinite(n))) return null;
+  return { xMin, yMin, xMax, yMax };
+}
+
+/** HTTPS-only crop URL safe for preview img src. */
+export function getSafeOfertaLocalSourceCropUrl(url: string | null | undefined): string | null {
+  const t = String(url ?? "").trim();
+  if (!t.startsWith("https://")) return null;
+  try {
+    const parsed = new URL(t);
+    if (parsed.protocol !== "https:") return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function resolveOfertaLocalItemCropDisplayUrl(
+  item: Pick<OfertaLocalItemReviewViewModel, "sourceCropUrl">
+): string | null {
+  return getSafeOfertaLocalSourceCropUrl(item.sourceCropUrl);
+}
+
+export function itemHasMissingFlyerCrop(
+  item: Pick<OfertaLocalItemReviewViewModel, "sourceCropUrl" | "sourceBbox" | "sourcePage">
+): boolean {
+  if (resolveOfertaLocalItemCropDisplayUrl(item)) return false;
+  return Boolean(item.sourceBbox) || item.sourcePage != null;
+}
+
+/** Rehydrate DB row for crop backfill — does not mutate review fields. */
+export function mapOfertaLocalItemReviewRowToSearchableDraft(
+  row: OfertaLocalItemDbRow
+): OfertaLocalSearchableItemDraft {
+  return {
+    id: row.id,
+    ofertaLocalId: row.oferta_local_id,
+    ownerId: row.owner_id,
+    itemName: row.item_name,
+    normalizedItemName: row.normalized_item_name ?? "",
+    description: row.description ?? "",
+    category: row.category ?? "",
+    subcategory: row.subcategory ?? "",
+    priceText: row.price_text ?? "",
+    priceAmount: row.price_amount,
+    regularPriceText: row.regular_price_text ?? "",
+    unit: row.unit ?? "",
+    dealType: row.deal_type ?? "",
+    quantity: row.quantity ?? "",
+    searchTags: row.search_tags ?? [],
+    candidateType: row.candidate_type ?? "product_deal",
+    couponTitle: row.coupon_title ?? "",
+    offerText: row.offer_text ?? "",
+    terms: row.terms ?? "",
+    validFrom: row.valid_from ?? undefined,
+    validUntil: row.valid_until ?? undefined,
+    sourceAssetId: row.source_asset_id ?? "",
+    sourceAssetUrl: row.source_asset_url ?? "",
+    sourceFileName: row.source_file_name ?? "",
+    sourcePage: row.source_page,
+    sourceContext: row.source_context ?? "",
+    sourceBbox: parseSourceBbox(row.source_bbox),
+    sourceCropUrl: row.source_crop_url ?? "",
+    extractedJson: (row.extracted_json as Record<string, unknown> | null) ?? {},
+    confidence: row.confidence,
+    reviewStatus: row.review_status,
+    isActive: row.is_active,
+  };
 }

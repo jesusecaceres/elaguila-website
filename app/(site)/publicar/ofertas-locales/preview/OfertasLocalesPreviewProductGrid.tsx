@@ -10,6 +10,10 @@ import {
   FiRotateCcw,
   FiSearch,
 } from "react-icons/fi";
+import {
+  itemHasMissingFlyerCrop,
+  resolveOfertaLocalItemCropDisplayUrl,
+} from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
 import type { OfertaLocalPreviewHeroAsset } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
@@ -89,26 +93,33 @@ function ProductCard({
   onOpenDetail: (item: OfertaLocalItemReviewViewModel) => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  const [cropLoadFailed, setCropLoadFailed] = useState(false);
   const title = (item.couponTitle || item.itemName).trim();
   const price = formatPreviewPrice(item, lang);
   const brand = (item.subcategory || "").trim();
   const details = (item.description || item.terms || item.dealType).trim();
-  const cropUrl = item.sourceCropUrl.trim();
+  const cropUrl = resolveOfertaLocalItemCropDisplayUrl(item);
+  const missingFlyerCrop = itemHasMissingFlyerCrop(item);
   const hasSourcePage = item.sourcePage != null;
-  const noImageLabel =
-    !cropUrl && hasSourcePage
-      ? lang === "en"
-        ? c.noClipYetEn
-        : c.noClipYetEs
-      : lang === "en"
-        ? c.noImageEn
-        : c.noImageEs;
+  const fallbackLabel = missingFlyerCrop
+    ? lang === "en"
+      ? c.cropPreparingEn
+      : c.cropPreparingEs
+    : lang === "en"
+      ? c.cropNotFoundYetEn
+      : c.cropNotFoundYetEs;
   const unit = item.unit.trim();
   const regularPrice = item.regularPriceText.trim();
   const dateRange = formatOfertaLocalDateRange(
     item.validFrom ?? draft.validFrom,
     item.validUntil ?? draft.validUntil
   );
+
+  useEffect(() => {
+    setCropLoadFailed(false);
+  }, [cropUrl, item.id]);
+
+  const showCropImage = Boolean(cropUrl) && !cropLoadFailed;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md">
@@ -117,13 +128,16 @@ function ProductCard({
         className="flex flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/35 focus-visible:ring-offset-2"
         onClick={() => onOpenDetail(item)}
       >
-        {cropUrl ? (
+        {showCropImage ? (
           <div className="border-b border-[#E8D9C4]/50 bg-[#FDF8F0]/60 p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={cropUrl}
-              alt={title || (lang === "en" ? c.productClipAltEn : c.productClipAltEs)}
+              src={cropUrl!}
+              alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
               className="mx-auto h-28 w-full rounded-lg object-contain lg:h-24"
+              loading="lazy"
+              decoding="async"
+              onError={() => setCropLoadFailed(true)}
             />
           </div>
         ) : (
@@ -135,7 +149,7 @@ function ProductCard({
               <FiImage className="h-4 w-4" />
             </span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/45">
-              {noImageLabel}
+              {fallbackLabel}
             </span>
             {hasSourcePage ? (
               <span className="text-[10px] font-medium text-[#1E1814]/40">
