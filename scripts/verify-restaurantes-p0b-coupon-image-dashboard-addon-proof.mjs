@@ -80,8 +80,8 @@ if (!shellMapper.includes("imageUrl: nonEmpty(x.imageUrl)")) fail("Shell mapper 
 if (!couponsBlock.includes("coupon.imageUrl")) fail("Coupons block must render coupon.imageUrl");
 ok("publish + preview/public coupon image path");
 
-if (!dashboardHelper.includes("Agregar cupones +$99/mes")) fail("Dashboard upgrade label must match product copy");
-if (!dashboardHelper.includes("Editar cupones")) fail("Dashboard must expose Editar cupones");
+if (!dashboardHelper.includes("Destacar ofertas +$99/mes")) fail("Dashboard upgrade label must match product copy");
+if (!dashboardHelper.includes("Editar ofertas")) fail("Dashboard must expose Editar ofertas");
 if (!dashboardHelper.includes("hydrateRestauranteListingForCouponEdit")) fail("Dashboard coupon edit hydrate required");
 if (!categoryTools.includes("couponEdit")) fail("Category tools must include couponEdit action");
 if (!inventory.includes("restaurantCouponEditEligible")) fail("Inventory must compute coupon edit eligibility");

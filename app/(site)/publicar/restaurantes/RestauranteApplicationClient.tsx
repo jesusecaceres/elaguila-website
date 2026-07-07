@@ -36,7 +36,12 @@ import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { buildRestaurantePublishPayload } from "@/app/clasificados/restaurantes/application/buildRestaurantePublishPayload";
 import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/restaurantes/application/restauranteDraftPublishPrepare";
-import { redirectRestauranteDashboardCouponAddonCheckout } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
+import {
+  redirectRestauranteDashboardCouponAddonCheckout,
+  restauranteCouponAddonUpgradeLabel,
+  restauranteCouponEditHref,
+  restauranteOffersModuleHeading,
+} from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -143,15 +148,20 @@ export default function RestauranteApplicationClient() {
   const dashboardLeonixAdId = searchParams?.get("leonixAdId")?.trim() || null;
   const focusCoupon = searchParams?.get("focus") === "coupon-upgrade";
   const returnPanel = searchParams?.get("returnPanel");
-  const isDashboardEditMode =
+  const isDashboardCouponEditMode =
     dashboardSource &&
     (dashboardMode === "coupon-edit" || dashboardMode === "dashboard-edit") &&
+    Boolean(dashboardListingId);
+  const isDashboardListingEditMode =
+    dashboardSource &&
+    (dashboardMode === "listing-edit" || dashboardMode === "dashboard-listing-edit") &&
     Boolean(dashboardListingId);
   const isDashboardAddonMode =
     dashboardSource &&
     (dashboardMode === "coupon-addon" || dashboardMode === "dashboard-addon") &&
     Boolean(dashboardListingId);
-  const isDashboardCouponContext = isDashboardEditMode || isDashboardAddonMode;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardCouponEditMode || isDashboardAddonMode;
   const dashboardReturnHref =
     returnPanel === "restaurantes"
       ? appendLangToPath("/dashboard/restaurantes", lang)
@@ -179,7 +189,7 @@ export default function RestauranteApplicationClient() {
 
   // Initialize pricing based on product query param
   useEffect(() => {
-    if (hydrated && !draft.productType && !isDashboardCouponContext) {
+    if (hydrated && !draft.productType && !isExistingDashboardListingMode) {
       const productParam = searchParams?.get("product");
       const isMobile = productParam === "mobile_food_vendor";
       const productType = isMobile ? "mobile_food_vendor" : "established_restaurant";
@@ -189,7 +199,17 @@ export default function RestauranteApplicationClient() {
         baseMonthlyPrice,
       });
     }
-  }, [hydrated, draft.productType, setDraftPatch, searchParams, isDashboardCouponContext]);
+  }, [hydrated, draft.productType, setDraftPatch, searchParams, isExistingDashboardListingMode]);
+
+  const dashboardCouponCheckoutReturnPath = useMemo(() => {
+    if (!dashboardListingId) return undefined;
+    return restauranteCouponEditHref({
+      lang,
+      listingId: dashboardListingId,
+      leonixAdId: dashboardLeonixAdId,
+      returnPanel: returnPanel === "restaurantes" ? "restaurantes" : undefined,
+    });
+  }, [dashboardListingId, dashboardLeonixAdId, lang, returnPanel]);
 
   const startDashboardAddonCheckout = useCallback(async () => {
     if (!dashboardListingId) {
@@ -210,6 +230,7 @@ export default function RestauranteApplicationClient() {
         leonixAdId: dashboardLeonixAdId,
         lang,
         customerEmail: auth.user?.email ?? null,
+        returnPath: dashboardCouponCheckoutReturnPath,
       });
       if (!result.ok) {
         setDashboardContextErr(result.userMessage);
@@ -223,10 +244,18 @@ export default function RestauranteApplicationClient() {
       );
       setDashboardAddonCheckoutBusy(false);
     }
-  }, [dashboardListingId, dashboardLeonixAdId, lang]);
+  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath]);
 
-  const saveDashboardCouponEdits = useCallback(async () => {
-    if (!isDashboardEditMode || !dashboardListingId) return;
+  const saveExistingDashboardListing = useCallback(async () => {
+    if (!isExistingDashboardListingMode || !dashboardListingId) return;
+    if (isDashboardCouponEditMode && !draftRef.current.couponUpgradeEnabled) {
+      setDashboardContextErr(
+        lang === "es"
+          ? "Activa el módulo de ofertas antes de guardar."
+          : "Enable the offers module before saving.",
+      );
+      return;
+    }
     setDashboardSaveBusy(true);
     setDashboardContextErr(null);
     try {
@@ -235,14 +264,13 @@ export default function RestauranteApplicationClient() {
       const ownerUserId = auth.user?.id?.trim();
       if (!ownerUserId) {
         setDashboardContextErr(
-          lang === "es" ? "Inicia sesión para guardar los cupones." : "Sign in to save coupons.",
+          lang === "es" ? "Inicia sesión para guardar los cambios." : "Sign in to save changes.",
         );
         setDashboardSaveBusy(false);
         return;
       }
 
       let draftForSave = mergeRestauranteDraft(draftRef.current);
-      draftForSave.couponUpgradeEnabled = true;
       try {
         draftForSave = await resolveRestauranteDraftMediaToRemoteUrls(draftForSave);
       } catch {
@@ -269,17 +297,25 @@ export default function RestauranteApplicationClient() {
       }
       setDashboardContextErr(
         lang === "es"
-          ? "No se pudieron guardar los cupones. Intenta de nuevo."
-          : "Could not save coupons. Please try again.",
+          ? "No se pudieron guardar los cambios. Intenta de nuevo."
+          : "Could not save changes. Please try again.",
       );
     } catch {
       setDashboardContextErr(
-        lang === "es" ? "No se pudieron guardar los cupones." : "Could not save coupons.",
+        lang === "es" ? "No se pudieron guardar los cambios." : "Could not save changes.",
       );
     } finally {
       setDashboardSaveBusy(false);
     }
-  }, [isDashboardEditMode, dashboardListingId, draftRef, lang, router, dashboardReturnHref]);
+  }, [
+    isExistingDashboardListingMode,
+    isDashboardCouponEditMode,
+    dashboardListingId,
+    draftRef,
+    lang,
+    router,
+    dashboardReturnHref,
+  ]);
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumDraftForPreview(draft), [draft]);
 
@@ -348,12 +384,6 @@ export default function RestauranteApplicationClient() {
   }, [hydrated, focusCoupon]);
 
   useEffect(() => {
-    if (hydrated && isDashboardEditMode && !draft.couponUpgradeEnabled) {
-      setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 99 });
-    }
-  }, [hydrated, isDashboardEditMode, draft.couponUpgradeEnabled, setDraftPatch]);
-
-  useEffect(() => {
     setActiveSectionId((prev) => {
       const ids = sectionNavItems.map((s) => s.id);
       if (ids.includes(prev)) return prev;
@@ -383,11 +413,12 @@ export default function RestauranteApplicationClient() {
   }, [publishPlanLane]);
 
   const goPreview = useCallback(async () => {
+    if (isExistingDashboardListingMode) return;
     // Service modes are no longer required for preview - default assumption is brick-and-mortar restaurant
     setServiceErr(false);
     await saveRestauranteDraftToStorageResolved(draftRef.current);
     window.location.href = previewHrefWithPlan;
-  }, [draftRef, previewHrefWithPlan]);
+  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -736,9 +767,7 @@ export default function RestauranteApplicationClient() {
                 ? lang === "en"
                   ? "Starting checkout…"
                   : "Iniciando pago…"
-                : lang === "en"
-                  ? "Pay coupon module ($99/mo)"
-                  : "Pagar módulo de cupones ($99/mes)"}
+                : restauranteCouponAddonUpgradeLabel(lang)}
             </button>
             <Link
               href={dashboardReturnHref}
@@ -750,12 +779,28 @@ export default function RestauranteApplicationClient() {
         </div>
       ) : null}
 
-      {isDashboardEditMode ? (
+      {isDashboardCouponEditMode ? (
         <div className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] p-5">
           <p className="text-sm font-semibold text-[color:var(--lx-text)]">
             {lang === "en"
               ? "You are editing coupons for an existing listing."
               : "Estás editando cupones para un anuncio existente."}
+          </p>
+          <Link
+            href={dashboardReturnHref}
+            className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline"
+          >
+            {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+          </Link>
+        </div>
+      ) : null}
+
+      {isDashboardListingEditMode ? (
+        <div className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] p-5">
+          <p className="text-sm font-semibold text-[color:var(--lx-text)]">
+            {lang === "en"
+              ? "You are editing your published restaurant listing. Save changes here — the base plan will not be charged again."
+              : "Estás editando tu anuncio publicado. Guarda los cambios aquí — no se volverá a cobrar el plan base."}
           </p>
           <Link
             href={dashboardReturnHref}
@@ -778,7 +823,7 @@ export default function RestauranteApplicationClient() {
       ) : null}
 
       {/* Final coupon upsell reminder */}
-      {(!draft.couponUpgradeEnabled && minPreviewOk && !isDashboardCouponContext) ? (
+      {(!draft.couponUpgradeEnabled && minPreviewOk && !isExistingDashboardListingMode) ? (
         <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
           <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
             {lang === "en" ? "Want to attract more customers with coupons?" : "¿Quieres atraer más clientes con cupones?"}
@@ -1807,6 +1852,33 @@ export default function RestauranteApplicationClient() {
         {activeSectionId === "restaurantes-section-g" ? (
         <section id="restaurantes-section-g" className={stepPanel}>
           {!draft.couponUpgradeEnabled ? (
+            isExistingDashboardListingMode ? (
+              <>
+                <SectionTitle>G · {restauranteOffersModuleHeading(lang)}</SectionTitle>
+                <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
+                  <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
+                    {restauranteOffersModuleHeading(lang)}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                    {lang === "en"
+                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers."
+                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas."}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={dashboardAddonCheckoutBusy}
+                    onClick={() => void startDashboardAddonCheckout()}
+                    className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
+                  >
+                    {dashboardAddonCheckoutBusy
+                      ? lang === "en"
+                        ? "Starting checkout…"
+                        : "Iniciando pago…"
+                      : restauranteCouponAddonUpgradeLabel(lang)}
+                  </button>
+                </div>
+              </>
+            ) : (
             <>
               <SectionTitle>G · Cupones y ofertas</SectionTitle>
               <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
@@ -1855,10 +1927,12 @@ export default function RestauranteApplicationClient() {
                 </div>
               </div>
             </>
+            )
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <SectionTitle>I · Cupones destacados</SectionTitle>
+                <SectionTitle>G · {restauranteOffersModuleHeading(lang)}</SectionTitle>
+                {!isExistingDashboardListingMode ? (
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold text-[color:var(--lx-text)]">
                     {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
@@ -1873,6 +1947,7 @@ export default function RestauranteApplicationClient() {
                     {lang === "en" ? "Remove" : "Quitar"}
                   </button>
                 </div>
+                ) : null}
               </div>
               <HelperText>
                 Agrega hasta <strong className="text-[color:var(--lx-text-2)]">4</strong> ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.
@@ -2083,12 +2158,12 @@ export default function RestauranteApplicationClient() {
               />
             </div>
           </div>
-          {isDashboardEditMode ? (
+          {(isDashboardCouponEditMode || (isDashboardListingEditMode && draft.couponUpgradeEnabled)) ? (
             <div className="mt-6 flex flex-wrap gap-3 border-t border-[color:var(--lx-nav-border)] pt-6">
               <button
                 type="button"
                 disabled={dashboardSaveBusy}
-                onClick={() => void saveDashboardCouponEdits()}
+                onClick={() => void saveExistingDashboardListing()}
                 className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
               >
                 {dashboardSaveBusy
@@ -2096,8 +2171,8 @@ export default function RestauranteApplicationClient() {
                     ? "Saving…"
                     : "Guardando…"
                   : lang === "en"
-                    ? "Save coupons"
-                    : "Guardar cupones"}
+                    ? "Save offers"
+                    : "Guardar ofertas"}
               </button>
               <Link
                 href={dashboardReturnHref}
@@ -2512,10 +2587,10 @@ export default function RestauranteApplicationClient() {
         <section id="restaurantes-section-final" className={stepPanel}>
           <SectionTitle>Final · Confirmación antes de la vista previa</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
-            {isDashboardEditMode
+            {isExistingDashboardListingMode
               ? lang === "en"
-                ? "Use section G to edit coupons, then save from that section. No new application payment is required."
-                : "Usa la sección G para editar cupones y guarda desde ahí. No se requiere un nuevo pago de solicitud."
+                ? "Save your restaurant changes here. The base plan will not be charged again. Use section G for offers if your module is active."
+                : "Guarda los cambios de tu restaurante aquí. No se volverá a cobrar el plan base. Usa la sección G para ofertas si tu módulo está activo."
               : lang === "en"
                 ? "Check these boxes before reviewing your ad. Payment is completed after the preview."
                 : "Marca estas casillas antes de revisar tu anuncio. El pago se completa después de la vista previa."}
@@ -2601,14 +2676,31 @@ export default function RestauranteApplicationClient() {
             </div>
           ) : null}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {isDashboardEditMode ? (
-              <Link
-                href={dashboardReturnHref}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
-              >
-                {lang === "en" ? "Back to dashboard" : "Volver al panel"}
-              </Link>
+            {isExistingDashboardListingMode ? (
+              <>
+                <button
+                  type="button"
+                  disabled={dashboardSaveBusy}
+                  onClick={() => void saveExistingDashboardListing()}
+                  className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
+                >
+                  {dashboardSaveBusy
+                    ? lang === "en"
+                      ? "Saving…"
+                      : "Guardando…"
+                    : lang === "en"
+                      ? "Save restaurant changes"
+                      : "Guardar cambios del restaurante"}
+                </button>
+                <Link
+                  href={dashboardReturnHref}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
+                >
+                  {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                </Link>
+              </>
             ) : (
+            <>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
@@ -2630,8 +2722,6 @@ export default function RestauranteApplicationClient() {
                 {lang === "en" ? "Delete request" : "Eliminar solicitud"}
               </button>
             </div>
-            )}
-            {!isDashboardEditMode ? (
             <button
               type="button"
               onClick={goPreview}
@@ -2640,7 +2730,8 @@ export default function RestauranteApplicationClient() {
             >
               {lang === "en" ? "Continue to preview" : "Continuar a vista previa"}
             </button>
-            ) : null}
+            </>
+            )}
           </div>
         </section>
         ) : null}

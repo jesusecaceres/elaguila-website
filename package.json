@@ -70,6 +70,7 @@
     "verify:restaurantes-p0c-dashboard-coupon-context-owner-lock": "node scripts/verify-restaurantes-p0c-dashboard-coupon-context-owner-lock.mjs",
     "verify:restaurantes-p0d-dedicated-dashboard-coupon-cta": "node scripts/verify-restaurantes-p0d-dedicated-dashboard-coupon-cta.mjs",
     "verify:restaurantes-p0e-dashboard-coupon-cta-copy-clarity": "node scripts/verify-restaurantes-p0e-dashboard-coupon-cta-copy-clarity.mjs",
+    "verify:restaurantes-p0f-dashboard-edit-coupon-route-image-persistence": "node scripts/verify-restaurantes-p0f-dashboard-edit-coupon-route-image-persistence.mjs",
     "verify:servicios-gate-01": "node scripts/verify-servicios-gate-01-draft-city-video-url.mjs",
     "verify:servicios-gate-02": "node scripts/verify-servicios-gate-02-contact-cover-cleanup.mjs",
     "verify:servicios-gate-03": "node scripts/verify-servicios-gate-03-simple-offer-chips.mjs",

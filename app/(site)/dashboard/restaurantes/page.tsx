@@ -33,6 +33,7 @@ import {
   restauranteCouponEditFooterHint,
   restauranteCouponEditLabel,
   restauranteCouponEditHref,
+  restauranteListingEditHref,
 } from "../lib/restaurantesDashboardCouponAddonCheckout";
 import {
   dashboardEntitlementBadgeForKey,
@@ -254,9 +255,9 @@ export default function DashboardRestaurantesPage() {
   }, [load]);
 
   const loadIntoForm = useCallback(
-    async (listingId: string) => {
+    async (row: DashboardRestaurantRow) => {
       setHydrateErr(null);
-      setHydrateId(listingId);
+      setHydrateId(row.id);
       try {
         const supabase = createSupabaseBrowserClient();
         const {
@@ -269,8 +270,8 @@ export default function DashboardRestaurantesPage() {
         }
         const { data, error } = await supabase
           .from("restaurantes_public_listings")
-          .select("listing_json, draft_listing_id")
-          .eq("id", listingId)
+          .select("listing_json, draft_listing_id, leonix_ad_id")
+          .eq("id", row.id)
           .eq("owner_user_id", user.id)
           .maybeSingle();
         if (error || !data?.listing_json) {
@@ -290,7 +291,14 @@ export default function DashboardRestaurantesPage() {
           setHydrateId(null);
           return;
         }
-        router.push(appendLangToPath("/publicar/restaurantes", lang));
+        router.push(
+          restauranteListingEditHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id ?? data.leonix_ad_id,
+            returnPanel: "restaurantes",
+          }),
+        );
       } catch {
         setHydrateErr(t.errHydrate);
         setHydrateId(null);
@@ -466,7 +474,7 @@ export default function DashboardRestaurantesPage() {
                   { href: publishHref, label: t.linkForm },
                   {
                     label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,
-                    onClick: () => void loadIntoForm(r.id),
+                    onClick: () => void loadIntoForm(r),
                     disabled: hydrateId === r.id,
                     tone: "primary",
                   },

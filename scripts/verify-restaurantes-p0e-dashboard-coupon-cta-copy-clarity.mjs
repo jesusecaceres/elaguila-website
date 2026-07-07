@@ -26,14 +26,14 @@ const helper = read("app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCh
 const dedicatedPage = read("app/(site)/dashboard/restaurantes/page.tsx");
 const pkg = read("package.json");
 
-if (!helper.includes("Activar cupones +$99/mes")) {
-  fail("Spanish inactive CTA must be Activar cupones +$99/mes");
+if (!helper.includes("Destacar ofertas +$99/mes")) {
+  fail("Spanish inactive CTA must be Destacar ofertas +$99/mes");
 }
-if (!helper.includes("Activate coupons +$99/mo")) {
-  fail("English inactive CTA must be Activate coupons +$99/mo");
+if (!helper.includes("Feature offers +$99/mo")) {
+  fail("English inactive CTA must be Feature offers +$99/mo");
 }
-if (!helper.includes("Editar cupones")) fail("Spanish edit CTA must remain Editar cupones");
-if (!helper.includes("Edit coupons")) fail("English edit CTA must remain Edit coupons");
+if (!helper.includes("Editar ofertas")) fail("Spanish edit CTA must be Editar ofertas");
+if (!helper.includes("Edit offers")) fail("English edit CTA must be Edit offers");
 ok("CTA label clarity");
 
 if (!dedicatedPage.includes("Editar restaurante") && !dedicatedPage.includes("t.hydrate")) {
@@ -49,16 +49,16 @@ if (!dedicatedPage.includes("restaurantCouponEditEligible")) {
 }
 ok("action wiring preserved");
 
-if (!helper.includes("Activa el módulo y luego podrás agregar hasta 4 cupones destacados.")) {
+if (!helper.includes("Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes.")) {
   fail("Missing ES activation helper copy");
 }
-if (!helper.includes("Activate the module, then you can add up to 4 featured coupons.")) {
+if (!helper.includes("Add up to 4 featured offers/coupons to your listing to attract more customers.")) {
   fail("Missing EN activation helper copy");
 }
-if (!helper.includes("Administra hasta 4 cupones destacados de este anuncio.")) {
+if (!helper.includes("Administra hasta 4 ofertas destacadas de este anuncio.")) {
   fail("Missing ES edit helper copy");
 }
-if (!helper.includes("Manage up to 4 featured coupons for this listing.")) {
+if (!helper.includes("Manage up to 4 featured offers for this listing.")) {
   fail("Missing EN edit helper copy");
 }
 if (!dedicatedPage.includes("restauranteCouponAddonUpgradeFooterHint")) {

@@ -21,23 +21,27 @@ export type RestauranteDashboardCouponAddonCheckoutResult =
   | { ok: false; userMessage: string };
 
 export function restauranteCouponAddonUpgradeLabel(lang: "es" | "en"): string {
-  return lang === "es" ? "Activar cupones +$99/mes" : "Activate coupons +$99/mo";
+  return lang === "es" ? "Destacar ofertas +$99/mes" : "Feature offers +$99/mo";
 }
 
 export function restauranteCouponAddonUpgradeFooterHint(lang: "es" | "en"): string {
   return lang === "es"
-    ? "Activa el módulo y luego podrás agregar hasta 4 cupones destacados."
-    : "Activate the module, then you can add up to 4 featured coupons.";
+    ? "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes."
+    : "Add up to 4 featured offers/coupons to your listing to attract more customers.";
 }
 
 export function restauranteCouponEditFooterHint(lang: "es" | "en"): string {
   return lang === "es"
-    ? "Administra hasta 4 cupones destacados de este anuncio."
-    : "Manage up to 4 featured coupons for this listing.";
+    ? "Administra hasta 4 ofertas destacadas de este anuncio."
+    : "Manage up to 4 featured offers for this listing.";
 }
 
 export function restauranteCouponEditLabel(lang: "es" | "en"): string {
-  return lang === "es" ? "Editar cupones" : "Edit coupons";
+  return lang === "es" ? "Editar ofertas" : "Edit offers";
+}
+
+export function restauranteOffersModuleHeading(lang: "es" | "en"): string {
+  return lang === "es" ? "Ofertas y cupones destacados" : "Featured offers and coupons";
 }
 
 export function restauranteCouponAddonUpgradeBusyLabel(lang: "es" | "en"): string {
@@ -204,6 +208,24 @@ export async function hydrateRestauranteListingForCouponEdit(input: {
 
 export function buildDashboardRestaurantesReturnPath(lang: "es" | "en"): string {
   return appendLangToPath("/dashboard/restaurantes", lang);
+}
+
+export function restauranteListingEditHref(input: {
+  lang: "es" | "en";
+  listingId: string;
+  leonixAdId?: string | null;
+  returnPanel?: "restaurantes" | "mis-anuncios";
+}): string {
+  const listingId = input.listingId.trim();
+  const params = new URLSearchParams({
+    source: "dashboard",
+    mode: "listing-edit",
+    listingId,
+  });
+  const leonix = input.leonixAdId?.trim();
+  if (leonix) params.set("leonixAdId", leonix);
+  if (input.returnPanel === "restaurantes") params.set("returnPanel", "restaurantes");
+  return appendLangToPath(`/publicar/restaurantes?${params.toString()}`, input.lang);
 }
 
 export function restauranteCouponEditHref(input: {
