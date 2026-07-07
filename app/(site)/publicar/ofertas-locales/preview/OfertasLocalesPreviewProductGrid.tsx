@@ -29,6 +29,10 @@ const CHIP_ACTIVE =
   "border-[#7A1E2C] bg-[#7A1E2C] text-white shadow-sm shadow-[#7A1E2C]/15";
 const CHIP_INACTIVE =
   "border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814]/75 hover:border-[#B8860B]/55 hover:bg-[#FDF8F0]";
+const BTN_DETAIL =
+  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 lg:min-h-9 lg:py-1.5";
+const BTN_SECONDARY =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#D4C4A8]/80 bg-white px-4 py-2.5 text-sm font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]";
 
 function formatPreviewPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLocalesAppLang): string {
   const text = (item.offerText || item.priceText).trim();
@@ -90,6 +94,15 @@ function ProductCard({
   const brand = (item.subcategory || "").trim();
   const details = (item.description || item.terms || item.dealType).trim();
   const cropUrl = item.sourceCropUrl.trim();
+  const hasSourcePage = item.sourcePage != null;
+  const noImageLabel =
+    !cropUrl && hasSourcePage
+      ? lang === "en"
+        ? c.noClipYetEn
+        : c.noClipYetEs
+      : lang === "en"
+        ? c.noImageEn
+        : c.noImageEs;
   const unit = item.unit.trim();
   const regularPrice = item.regularPriceText.trim();
   const dateRange = formatOfertaLocalDateRange(
@@ -98,35 +111,40 @@ function ProductCard({
   );
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md hover:shadow-[#7A1E2C]/5">
+    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md">
       <button
         type="button"
         className="flex flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/35 focus-visible:ring-offset-2"
         onClick={() => onOpenDetail(item)}
       >
         {cropUrl ? (
-          <div className="border-b border-[#E8D9C4]/50 bg-[#FDF8F0]/60 p-3">
+          <div className="border-b border-[#E8D9C4]/50 bg-[#FDF8F0]/60 p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={cropUrl}
               alt={title || (lang === "en" ? c.productClipAltEn : c.productClipAltEs)}
-              className="mx-auto h-36 w-full rounded-xl object-contain sm:h-40"
+              className="mx-auto h-28 w-full rounded-lg object-contain lg:h-24"
             />
           </div>
         ) : (
-          <div className="flex h-32 flex-col items-center justify-center gap-2 border-b border-[#E8D9C4]/40 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/30 px-4 text-center sm:h-36">
+          <div className="flex h-24 flex-col items-center justify-center gap-1.5 border-b border-[#E8D9C4]/40 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/30 px-3 text-center lg:h-20">
             <span
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#D4C4A8]/70 bg-[#FFFCF7] text-[#B8860B]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#D4C4A8]/70 bg-[#FFFCF7] text-[#B8860B]"
               aria-hidden
             >
-              <FiImage className="h-5 w-5" />
+              <FiImage className="h-4 w-4" />
             </span>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/45">
-              {lang === "en" ? c.noImageEn : c.noImageEs}
+              {noImageLabel}
             </span>
+            {hasSourcePage ? (
+              <span className="text-[10px] font-medium text-[#1E1814]/40">
+                {lang === "en" ? c.pageChipEn : c.pageChipEs} {item.sourcePage}
+              </span>
+            ) : null}
           </div>
         )}
-        <div className="flex flex-1 flex-col p-4">
+        <div className="flex flex-1 flex-col p-3">
           <div className="mb-2.5 flex flex-wrap gap-1.5">
             {item.category ? (
               <span className="rounded-full border border-[#D4C4A8]/80 bg-[#FDF8F0] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/70">
@@ -139,12 +157,12 @@ function ProductCard({
               </span>
             ) : null}
           </div>
-          <h3 className="line-clamp-2 font-serif text-base font-semibold leading-snug text-[#1E1814]">
+          <h3 className="line-clamp-2 font-serif text-sm font-semibold leading-snug text-[#1E1814]">
             {title || (lang === "en" ? c.productFallbackEn : c.productFallbackEs)}
           </h3>
-          {brand ? <p className="mt-1 text-xs font-medium text-[#1E1814]/50">{brand}</p> : null}
-          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-lg font-bold tracking-tight text-[#7A1E2C]">{price}</p>
+          {brand ? <p className="mt-0.5 text-xs font-medium text-[#1E1814]/50">{brand}</p> : null}
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-base font-bold tracking-tight text-[#7A1E2C]">{price}</p>
             {unit ? <span className="text-xs font-medium text-[#1E1814]/45">{unit}</span> : null}
           </div>
           {regularPrice ? (
@@ -165,15 +183,11 @@ function ProductCard({
           ) : null}
         </div>
       </button>
-      <div className="border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/30 px-4 pb-4 pt-3">
-        <button
-          type="button"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#7A1E2C]/15 transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 focus-visible:ring-offset-2"
-          onClick={() => onOpenDetail(item)}
-        >
+      <div className="border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/30 px-3 pb-3 pt-2">
+        <button type="button" className={BTN_DETAIL} onClick={() => onOpenDetail(item)}>
           <FiEye className="h-4 w-4 shrink-0" aria-hidden />
           <span>{lang === "en" ? c.viewDetailsEn : c.viewDetailsEs}</span>
-          <FiChevronRight className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+          <FiChevronRight className="hidden h-3.5 w-3.5 shrink-0 opacity-80 sm:inline" aria-hidden />
         </button>
       </div>
     </article>
@@ -318,7 +332,7 @@ export function OfertasLocalesPreviewProductGrid({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === "en" ? c.searchProductsEn : c.searchProductsEs}
-                className="min-h-11 w-full rounded-full border border-[#D4C4A8]/80 bg-white py-2.5 pl-10 pr-4 text-sm text-[#1E1814] shadow-sm placeholder:text-[#1E1814]/40 focus:border-[#7A1E2C]/50 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/15"
+                className="min-h-11 w-full rounded-lg border border-[#D4C4A8]/80 bg-white py-2.5 pl-10 pr-4 text-sm text-[#1E1814] shadow-sm placeholder:text-[#1E1814]/40 focus:border-[#7A1E2C]/50 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/15"
               />
             </label>
 
@@ -371,7 +385,7 @@ export function OfertasLocalesPreviewProductGrid({
                 <button
                   type="button"
                   onClick={resetDiscovery}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D4C4A8]/80 bg-white px-3.5 py-2 text-xs font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/25"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-[#D4C4A8]/80 bg-white px-3.5 py-2 text-xs font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
                 >
                   <FiRotateCcw className="h-3.5 w-3.5" aria-hidden />
                   {lang === "en" ? c.viewAllEn : c.viewAllEs}
@@ -409,7 +423,7 @@ export function OfertasLocalesPreviewProductGrid({
             <button
               type="button"
               onClick={resetDiscovery}
-              className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-[#7A1E2C]/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#FDF8F0]"
+              className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-[#7A1E2C]/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#FDF8F0]"
             >
               <FiRotateCcw className="h-4 w-4" aria-hidden />
               {lang === "en" ? c.viewAllEn : c.viewAllEs}
@@ -427,7 +441,7 @@ export function OfertasLocalesPreviewProductGrid({
                 <button
                   type="button"
                   onClick={() => setVisibleCount((n) => n + LOAD_MORE_STEP)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#D4C4A8]/80 bg-white px-6 py-2.5 text-sm font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/25"
+                  className={BTN_SECONDARY}
                 >
                   {lang === "en" ? c.loadMoreProductsEn : c.loadMoreProductsEs}
                   <FiChevronDown className="h-4 w-4" aria-hidden />

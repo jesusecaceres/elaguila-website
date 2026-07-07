@@ -35,11 +35,11 @@ function formatDrawerPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLo
 }
 
 const BTN_PRIMARY =
-  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#7A1E2C]/15 transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 focus-visible:ring-offset-2 sm:w-auto";
+  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 sm:w-auto";
 const BTN_OUTLINE =
-  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#D4C4A8]/80 bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/20 sm:w-auto";
+  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#D4C4A8]/80 bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] sm:w-auto";
 const BTN_DISABLED =
-  "inline-flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border border-dashed border-[#D4C4A8]/70 bg-[#FDF8F0]/50 px-4 py-2.5 text-sm font-medium text-[#1E1814]/35";
+  "inline-flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-dashed border-[#D4C4A8]/70 bg-[#FDF8F0]/50 px-4 py-2.5 text-sm font-medium text-[#1E1814]/35";
 
 export function OfertasLocalesProductDetailDrawer({
   item,
@@ -118,6 +118,9 @@ export function OfertasLocalesProductDetailDrawer({
   const brand = (item.subcategory || "").trim();
   const details = (item.description || item.terms || item.dealType).trim();
   const cropUrl = item.sourceCropUrl.trim();
+  const sourceAssetUrl = (item.sourceAssetUrl || "").trim();
+  const sourceFlyerHref = heroHref || sourceAssetUrl;
+  const hasSourceProof = !cropUrl && (item.sourcePage != null || sourceAssetUrl);
   const unit = item.unit.trim();
   const regularPrice = item.regularPriceText.trim();
   const dateRange = formatOfertaLocalDateRange(
@@ -153,7 +156,7 @@ export function OfertasLocalesProductDetailDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#D4C4A8]/80 bg-white text-[#1E1814] shadow-sm transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/25"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#D4C4A8]/80 bg-white text-[#1E1814] transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0]"
             aria-label={lang === "en" ? c.closeSectionEn : c.closeSectionEs}
           >
             <FiX className="h-5 w-5" aria-hidden />
@@ -161,30 +164,56 @@ export function OfertasLocalesProductDetailDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-8 sm:px-5 sm:pb-10">
-          <div className="overflow-hidden rounded-2xl border border-[#D4C4A8]/70 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-white shadow-sm">
             {cropUrl ? (
-              <div className="bg-[#FDF8F0]/50 p-3">
+              <div className="bg-[#FDF8F0]/50 p-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={cropUrl}
                   alt={title || (lang === "en" ? c.productClipAltEn : c.productClipAltEs)}
-                  className="mx-auto max-h-52 w-full rounded-xl object-contain"
+                  className="mx-auto max-h-44 w-full rounded-lg object-contain"
                 />
               </div>
-            ) : (
-              <div className="flex h-44 flex-col items-center justify-center gap-2.5 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/25 px-4">
+            ) : hasSourceProof ? (
+              <div className="flex flex-col items-center gap-2 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/25 px-4 py-6 text-center">
                 <span
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#D4C4A8]/70 bg-[#FFFCF7] text-[#B8860B]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#D4C4A8]/70 bg-[#FFFCF7] text-[#B8860B]"
                   aria-hidden
                 >
-                  <FiImage className="h-5 w-5" />
+                  <FiFileText className="h-4 w-4" />
+                </span>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#B8860B]">
+                  {lang === "en" ? c.flyerSourceEn : c.flyerSourceEs}
+                </p>
+                <p className="text-xs text-[#1E1814]/55">
+                  {lang === "en" ? c.noClipYetEn : c.noClipYetEs}
+                </p>
+                {item.sourcePage != null ? (
+                  <span className="rounded-md border border-[#D4C4A8]/60 bg-white px-2 py-0.5 text-[10px] font-medium text-[#1E1814]/55">
+                    {lang === "en" ? c.flyerPageEn : c.flyerPageEs} {item.sourcePage}
+                  </span>
+                ) : null}
+                {sourceFlyerHref ? (
+                  <a href={sourceFlyerHref} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
+                    <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                    {lang === "en" ? c.viewSourceOnFlyerEn : c.viewSourceOnFlyerEs}
+                  </a>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex h-36 flex-col items-center justify-center gap-2 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/25 px-4">
+                <span
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#D4C4A8]/70 bg-[#FFFCF7] text-[#B8860B]"
+                  aria-hidden
+                >
+                  <FiImage className="h-4 w-4" />
                 </span>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/40">
                   {lang === "en" ? c.noImageEn : c.noImageEs}
                 </span>
               </div>
             )}
-            {item.sourcePage != null ? (
+            {cropUrl && item.sourcePage != null ? (
               <div className="flex items-center gap-2 border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/40 px-3 py-2">
                 <FiFileText className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
@@ -201,7 +230,7 @@ export function OfertasLocalesProductDetailDrawer({
             </p>
           ) : null}
 
-          <h3 className="mt-1.5 font-serif text-xl font-semibold leading-snug text-[#1E1814] sm:text-2xl">
+          <h3 className="mt-1.5 font-serif text-lg font-semibold leading-snug text-[#1E1814] sm:text-xl">
             {title || (lang === "en" ? c.productFallbackEn : c.productFallbackEs)}
           </h3>
 
@@ -214,7 +243,7 @@ export function OfertasLocalesProductDetailDrawer({
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-2xl font-bold tracking-tight text-[#7A1E2C]">{price}</p>
+            <p className="text-xl font-bold tracking-tight text-[#7A1E2C]">{price}</p>
             {unit ? <span className="text-sm font-medium text-[#1E1814]/50">{unit}</span> : null}
           </div>
           {brand ? <p className="mt-1 text-sm font-medium text-[#1E1814]/55">{brand}</p> : null}
@@ -277,7 +306,7 @@ export function OfertasLocalesProductDetailDrawer({
             </div>
           </div>
 
-          <div className="mt-6 space-y-2 rounded-2xl border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-4">
+          <div className="mt-5 space-y-2 rounded-lg border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-3">
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#B8860B]">
               <FiLock className="h-3.5 w-3.5" aria-hidden />
               {lang === "en" ? c.comingSoonEn : c.comingSoonEs}

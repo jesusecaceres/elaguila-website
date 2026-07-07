@@ -205,3 +205,10 @@ export function buildOfertaLocalPreviewLocationLine(draft: OfertaLocalDraft): st
     .filter(Boolean)
     .join(", ");
 }
+
+/** Preview-only Google Maps embed URL from a real address line (no fake coordinates). */
+export function buildOfertaLocalPreviewMapEmbedUrl(locationLine: string): string {
+  const q = locationLine.trim();
+  if (!q) return "";
+  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+}

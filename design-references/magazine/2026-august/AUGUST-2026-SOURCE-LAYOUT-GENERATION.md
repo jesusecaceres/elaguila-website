@@ -291,12 +291,7 @@ Location: `design-references/magazine/2026-august/01-master-samples/`
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-BATCH1-ASSET-CREATION`** — Production packet complete: [`AUGUST-2026-VISUAL-BATCH1.md`](AUGUST-2026-VISUAL-BATCH1.md)
-
-Purpose:
-
-- Create visual master samples for pages **5, 6, 12** — **only after Chuy approves visual creation**
-- Preserve **8 × 11.5 in**, translation-safe spacing, reference-only status
+**`AUGUST-2026-VISUAL-QA-AND-BATCH2-PLAN1`** — Batch 1 placed; Chuy QA + Batch 2/3 plan. Nightly closeout: [`AUGUST-2026-NIGHTLY-CLOSEOUT.md`](AUGUST-2026-NIGHTLY-CLOSEOUT.md)
 
 ---
 

@@ -269,13 +269,9 @@ leonixmedia.com
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-BATCH1-CHUY-QA-DECISION`**
+**`AUGUST-2026-VISUAL-QA-AND-BATCH2-PLAN1`** — Nightly closeout: [`AUGUST-2026-NIGHTLY-CLOSEOUT.md`](AUGUST-2026-NIGHTLY-CLOSEOUT.md)
 
-Purpose:
-
-- Chuy completes visual QA on pages 5, 6, 12
-- Mark each page **MASTER_SAMPLE_APPROVED** or **QA_FIX_NEEDED**
-- If approved, decide: continue **Batch 2** visuals or begin **source rebuild** for Batch 1 + pages 1–4
+Chuy visual QA on pages 5, 6, 12 → then Batch 2/3 plan for pages 7–11.
 
 ---
 

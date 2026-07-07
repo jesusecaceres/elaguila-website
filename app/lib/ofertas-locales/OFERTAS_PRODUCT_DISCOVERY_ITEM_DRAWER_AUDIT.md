@@ -257,3 +257,100 @@ Gate 2 delivered working product discovery and item drawer behavior, but CTAs lo
 | READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
 | GLOBAL WORKING TREE CLEAN: YES/NO | NO | Gate 2A + unrelated dirty |
 | UNRELATED DIRTY FILES PRESENT: YES/NO | YES | bienes-raices files |
+
+---
+
+## Gate 2B/3 — Real Flyer + Leonix Fidelity + Scale Correction
+
+**Task classification:** SCOPED GATED BUILD  
+**Date:** 2026-07-07
+
+### Why this gate was needed
+
+Owner feedback: PDF hero showed decorative placeholder instead of real flyer page; CTAs drifted to bubble/pill style; typography/scale needed Leonix fidelity; location needed quick map preview; product cards needed truthful crop/source proof.
+
+### Actual flyer rendering
+
+- `OfertasLocalesPdfFlyerPreview.tsx` renders PDF page 1 via `pdfjs-dist` dynamic import (same pattern as `OfertasClipReviewViewer`)
+- Loading + honest fallback states; no fake screenshot
+- Image hero unchanged
+
+### CTA design system correction
+
+- Primary/secondary CTAs use `rounded-lg` rectangular Leonix style (not bubble pills)
+- WhatsApp uses `#25D366` green via `BTN_WHATSAPP`
+- Share behavior preserved (Web Share / clipboard)
+- Category chips may remain rounded-full (small badges only)
+
+### Typography / offer card hierarchy
+
+- Offer title scaled to `text-xl/2xl`
+- Válido date in burgundy-labeled box
+- Address readability improved
+- Published-on-Leonix subtle deep-green trust strip
+
+### Location / map preview
+
+- `OfertasLocalesMiniMapPreview.tsx` embeds Google Maps from real `locationLine` query
+- Localized iframe title; directions CTA preserved
+- No fake distance/route/time
+
+### Product crop / source proof
+
+- `sourceCropUrl` renders only when real
+- Missing crop shows `noClipYet` + source page when available
+- Drawer shows flyer source proof block with link to full flyer when crop missing
+
+### Owner controls near top
+
+- `OwnerPreviewControls` strip under preview notice
+- Bottom owner section preserved; submit gating unchanged
+
+### Deferred
+
+- Full bbox highlight viewer in drawer (ClipReviewViewer integration deferred)
+
+### Gate 2B/3 TRUE/FALSE audit table
+
+| Requirement | TRUE/FALSE | Evidence |
+|---|---|---|
+| Work classified as SCOPED GATED BUILD | TRUE | This section |
+| Actual PDF flyer hero renders real first page | TRUE | PdfFlyerPreview + pdfjs-dist |
+| Image flyer hero still works | TRUE | HeroVisual img branch |
+| PDF fallback exists if render fails | TRUE | flyerRenderFailed copy |
+| No fake flyer screenshot added | TRUE | Canvas render only |
+| Step 5 upload/scan/review untouched | TRUE | Verifier scope |
+| Step 7 untouched | TRUE | Verifier scope |
+| AI scan/crop engine untouched | TRUE | Verifier scope |
+| CTAs changed from bubble/pill to Leonix rectangular | TRUE | rounded-lg BTN_* |
+| WhatsApp CTA uses green where appropriate | TRUE | BTN_WHATSAPP |
+| Share behavior preserved | TRUE | handleShare unchanged |
+| Offer title hierarchy improved | TRUE | PreviewCard typography |
+| Address readability improved | TRUE | leading-relaxed + map |
+| Válido/date line improved | TRUE | bordered valid box |
+| Business Hub location has quick map if address exists | TRUE | MiniMapPreview |
+| No fake distance/route/open status added | TRUE | embed query only |
+| Product card scale normalized at 100% desktop | TRUE | smaller heights/padding |
+| Product card no-image state truthful | TRUE | noClipYet label |
+| Product cards show sourceCropUrl only when real | TRUE | cropUrl conditional |
+| Product source page/proof clearer | TRUE | page chip in no-image |
+| Drawer scale normalized | TRUE | smaller title/price/crop |
+| Drawer shows crop if real | TRUE | cropUrl branch |
+| Drawer shows source proof when crop missing | TRUE | hasSourceProof block |
+| Future list/save actions remain disabled | TRUE | disabled + FUTURE WIRING |
+| No fake online order/inventory/list/coupon | TRUE | no fake UI |
+| Owner controls added near top | TRUE | OwnerPreviewControls |
+| Bottom owner controls preserved | TRUE | bottom section |
+| Submit review gating preserved | TRUE | disabled when needsReview |
+| Mobile/PWA remains usable | TRUE | tap targets + overflow |
+| No horizontal overflow on mobile | TRUE | max-w-full |
+| ES/EN copy centralized | TRUE | copy file new keys |
+| Language globe compatibility preserved | TRUE | DOM text |
+| Public results page untouched | TRUE | Verifier |
+| Stripe/admin/dashboard untouched | TRUE | Verifier |
+| Verifier passed | TRUE | npm run verify |
+| npm run build passed | TRUE | npm run build |
+| READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate scoped |
+| READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
+| GLOBAL WORKING TREE CLEAN: YES/NO | NO | Gate 2B/3 files dirty |
+| UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Only gate-scoped files |

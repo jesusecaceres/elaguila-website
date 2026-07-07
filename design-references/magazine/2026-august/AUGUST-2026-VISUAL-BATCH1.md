@@ -406,11 +406,7 @@ leonixmedia.com
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-BATCH1-CHUY-QA-DECISION`** — Assets placed; see [`AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md`](AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md) placement verification (ASSET_PLACED / QA_NEEDED)
-
-Purpose:
-
-- Chuy visual QA on pages **5, 6, 12** → **MASTER_SAMPLE_APPROVED** or **QA_FIX_NEEDED**
+**`AUGUST-2026-VISUAL-QA-AND-BATCH2-PLAN1`** — Batch 1 assets placed; **Chuy visual QA still required.** Nightly closeout: [`AUGUST-2026-NIGHTLY-CLOSEOUT.md`](AUGUST-2026-NIGHTLY-CLOSEOUT.md)
 
 ---
 

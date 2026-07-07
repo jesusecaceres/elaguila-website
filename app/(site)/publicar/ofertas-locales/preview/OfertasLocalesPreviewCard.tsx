@@ -48,6 +48,7 @@ import { OfertasFutureCouponWalletCard } from "./OfertasFutureCouponWalletCard";
 import { OfertasFutureRoutePlannerCard } from "./OfertasFutureRoutePlannerCard";
 import { OfertasFutureShoppingListCard } from "./OfertasFutureShoppingListCard";
 import { OfertasLocalesPreviewHeroVisual } from "./OfertasLocalesPreviewHeroVisual";
+import { OfertasLocalesMiniMapPreview } from "./OfertasLocalesMiniMapPreview";
 import { OfertasLocalesPreviewProductGrid } from "./OfertasLocalesPreviewProductGrid";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
@@ -60,9 +61,11 @@ const STICKY_ACTION =
   "flex min-h-11 min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-semibold text-[#1E1814] transition hover:bg-[#FDF8F0]";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-sm";
 const BTN_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_OUTLINE =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+const BTN_WHATSAPP =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A]";
 const HUB_SECTION =
   "border-b border-[#E8D9C4]/80 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#1E1814]";
 
@@ -122,6 +125,7 @@ function ContactButton({
   label,
   external,
   primary,
+  whatsapp,
   icon,
   className,
 }: {
@@ -129,14 +133,16 @@ function ContactButton({
   label: string;
   external?: boolean;
   primary?: boolean;
+  whatsapp?: boolean;
   icon?: ReactNode;
   className?: string;
 }) {
   if (!href) return null;
+  const btnClass = whatsapp ? BTN_WHATSAPP : primary ? BTN_PRIMARY : BTN_OUTLINE;
   return (
     <a
       href={href}
-      className={cx(primary ? BTN_PRIMARY : BTN_OUTLINE, className)}
+      className={cx(btnClass, className)}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
       {icon}
@@ -377,7 +383,7 @@ function PreviewBusinessHub({
                 href={waHref}
                 label={c.whatsapp}
                 external
-                primary
+                whatsapp
                 icon={<FaWhatsapp className="h-4 w-4" aria-hidden />}
               />
               <ContactButton
@@ -421,13 +427,13 @@ function PreviewBusinessHub({
             lang={lang}
           >
             {locationLine ? (
-              <p className="flex items-start gap-2 text-sm leading-relaxed text-[#1E1814]/80">
-                <FiMapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#7A1E2C]" aria-hidden />
-                <span>{locationLine}</span>
-              </p>
-            ) : null}
-            {directionsHref ? (
-              <a href={directionsHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-4")}>
+              <OfertasLocalesMiniMapPreview
+                locationLine={locationLine}
+                directionsHref={directionsHref}
+                lang={lang}
+              />
+            ) : directionsHref ? (
+              <a href={directionsHref} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
                 <FiMapPin className="h-4 w-4" aria-hidden />
                 {lang === "en" ? c.directions : c.directionsEs}
               </a>
@@ -481,6 +487,60 @@ function PreviewBusinessHub({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function OwnerPreviewControls({
+  lang,
+  editHref,
+  editReviewHref,
+  publishing,
+  aiNeedsReviewCount,
+  onSubmitForReview,
+}: {
+  lang: OfertasLocalesAppLang;
+  editHref: string;
+  editReviewHref: string;
+  publishing: boolean;
+  aiNeedsReviewCount: number;
+  onSubmitForReview?: () => void;
+}) {
+  const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  return (
+    <div className="mb-5 rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/60 p-3 sm:p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+        {lang === "en" ? c.previewControlsEn : c.previewControlsEs}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link href={editHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
+          {lang === "en" ? c.backToEditEn : c.backToEdit}
+        </Link>
+        <Link href={editReviewHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
+          {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
+        </Link>
+        <button
+          type="button"
+          className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
+          disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
+          onClick={onSubmitForReview}
+          title={
+            aiNeedsReviewCount > 0
+              ? lang === "en"
+                ? c.submitBlockedEn
+                : c.submitBlockedEs
+              : undefined
+          }
+        >
+          {publishing
+            ? lang === "en"
+              ? c.submittingEn
+              : c.submittingEs
+            : lang === "en"
+              ? c.submitForReviewEn
+              : c.submitForReviewEs}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -619,6 +679,15 @@ export function OfertasLocalesPreviewCard({
           </p>
         </div>
 
+        <OwnerPreviewControls
+          lang={lang}
+          editHref={editHref}
+          editReviewHref={editReviewHref}
+          publishing={publishing}
+          aiNeedsReviewCount={aiNeedsReviewCount}
+          onSubmitForReview={onSubmitForReview}
+        />
+
         {/* 2. Page header */}
         <header className="mb-8 text-center lg:text-left">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#B8860B]">Leonix</p>
@@ -661,15 +730,15 @@ export function OfertasLocalesPreviewCard({
               </div>
 
               {draft.businessName.trim() ? (
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#B8860B]">
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[#B8860B]">
                   {draft.businessName}
                 </p>
               ) : null}
-              <h2 className="mt-1 font-serif text-2xl font-bold leading-tight text-[#1E1814] sm:text-3xl">
+              <h2 className="mt-1 font-serif text-xl font-bold leading-snug text-[#1E1814] sm:text-2xl">
                 {draft.title.trim() || defaultOfferTitle}
               </h2>
 
-              <div className="mt-2 flex flex-wrap gap-x-2 text-xs text-[#1E1814]/60">
+              <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[#1E1814]/60">
                 {categoryLabel ? <span>{categoryLabel}</span> : null}
                 {marketLabel ? (
                   <span>
@@ -680,12 +749,12 @@ export function OfertasLocalesPreviewCard({
               </div>
 
               {dateRange ? (
-                <p className="mt-4 text-sm text-[#1E1814]/75">
-                  <span className="font-semibold">
-                    {lang === "en" ? `${c.validLabelEn}: ` : `${c.validLabelEs}: `}
-                  </span>
-                  {dateRange}
-                </p>
+                <div className="mt-4 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
+                    {lang === "en" ? c.validLabelEn : c.validLabelEs}
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-[#1E1814]">{dateRange}</p>
+                </div>
               ) : null}
 
               {expired ? (
@@ -700,7 +769,7 @@ export function OfertasLocalesPreviewCard({
               ) : null}
 
               {locationLine ? (
-                <p className="mt-4 flex items-start gap-2 text-sm text-[#1E1814]/80">
+                <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-[#1E1814]/80">
                   <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
                   <span>{locationLine}</span>
                 </p>
@@ -726,7 +795,7 @@ export function OfertasLocalesPreviewCard({
                 </div>
               ) : null}
 
-              <p className="mt-5 text-center text-xs font-medium text-emerald-800">
+              <p className="mt-5 border-t border-[#E8D9C4]/50 pt-3 text-center text-[11px] font-medium text-[#2D5A3D]">
                 {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
               </p>
 
@@ -740,7 +809,8 @@ export function OfertasLocalesPreviewCard({
                     primary
                   />
                 ) : null}
-                <button type="button" className={BTN_OUTLINE} onClick={() => void handleShare()}>
+                <button type="button" className={cx(BTN_OUTLINE, "gap-2")} onClick={() => void handleShare()}>
+                  <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
                   {shareCopied
                     ? lang === "en"
                       ? c.shareCopiedEn
@@ -766,6 +836,7 @@ export function OfertasLocalesPreviewCard({
                   href={waHref}
                   label={c.whatsapp}
                   external
+                  whatsapp
                   icon={<FaWhatsapp className="h-4 w-4" aria-hidden />}
                   className="hidden lg:inline-flex"
                 />
@@ -801,7 +872,7 @@ export function OfertasLocalesPreviewCard({
                 </h3>
                 <div className="mt-3 grid gap-2">
                   <ContactButton href={telHref} label={lang === "en" ? c.call : c.callEs} icon={<FiPhone className="h-4 w-4" aria-hidden />} />
-                  <ContactButton href={waHref} label={c.whatsapp} external icon={<FaWhatsapp className="h-4 w-4" aria-hidden />} />
+                  <ContactButton href={waHref} label={c.whatsapp} external whatsapp icon={<FaWhatsapp className="h-4 w-4" aria-hidden />} />
                   <ContactButton href={webHref} label={lang === "en" ? c.website : c.websiteEs} external icon={<FiGlobe className="h-4 w-4" aria-hidden />} />
                 </div>
               </div>
@@ -898,20 +969,20 @@ export function OfertasLocalesPreviewCard({
           className={`${SECTION_ANCHOR} mt-8`}
           aria-label={lang === "en" ? c.futureModulesEn : c.futureModulesEs}
         >
-          <h2 className="font-serif text-lg font-semibold text-[#1E1814]/75">
+          <h2 className="font-serif text-base font-semibold text-[#1E1814]/80">
             {lang === "en" ? c.futureModulesEn : c.futureModulesEs}
           </h2>
           <p className="mt-1 text-xs text-[#1E1814]/50">
             {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
           </p>
-          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] max-lg:flex lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-            <div className="min-w-[min(280px,85vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
+          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] max-lg:flex lg:grid lg:grid-cols-3 lg:gap-3 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="min-w-[min(240px,82vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
               <OfertasFutureShoppingListCard lang={lang} />
             </div>
-            <div className="min-w-[min(280px,85vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
+            <div className="min-w-[min(240px,82vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
               <OfertasFutureRoutePlannerCard lang={lang} />
             </div>
-            <div className="min-w-[min(280px,85vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
+            <div className="min-w-[min(240px,82vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
               <OfertasFutureCouponWalletCard lang={lang} />
             </div>
           </div>
@@ -930,8 +1001,8 @@ export function OfertasLocalesPreviewCard({
         </span>
 
         {/* 9. Owner controls */}
-        <section className="mt-10 rounded-2xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 p-5 sm:p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#7A1E2C]">
+        <section className="mt-8 rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 p-4 sm:p-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
             {lang === "en" ? c.ownerControlsEn : c.ownerControlsEs}
           </h2>
 
