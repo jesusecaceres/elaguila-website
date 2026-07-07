@@ -5,14 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
-import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
 import type { BrNegocioListing } from "./cards/listingTypes";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
-import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
 import { BienesRaicesResultsGatewayPanel } from "./components/BienesRaicesResultsGatewayPanel";
@@ -28,17 +26,6 @@ import {
 import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
 
 const BR_RESULTS_DEV_LOG = process.env.NODE_ENV === "development";
-
-const PRIMARY_IDS: readonly BrPrimaryChipId[] = [
-  "casas",
-  "departamentos",
-  "venta",
-  "renta",
-  "comerciales",
-  "terrenos",
-] as const;
-
-const SECONDARY_IDS: readonly BrSecondaryChipId[] = ["piscina", "mascotas"] as const;
 
 const PAGE_SIZE = 9;
 
@@ -112,28 +99,6 @@ export function BienesRaicesResultsClient() {
     return rows;
   }, [pageSlice, view]);
 
-  const primarySet = useMemo(() => {
-    const next = new Set<BrPrimaryChipId>();
-    for (const part of parsed.primary
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)) {
-      if ((PRIMARY_IDS as readonly string[]).includes(part)) next.add(part as BrPrimaryChipId);
-    }
-    return next;
-  }, [parsed.primary]);
-
-  const secondarySet = useMemo(() => {
-    const next = new Set<BrSecondaryChipId>();
-    for (const part of parsed.secondary
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)) {
-      if ((SECONDARY_IDS as readonly string[]).includes(part)) next.add(part as BrSecondaryChipId);
-    }
-    return next;
-  }, [parsed.secondary]);
-
   useEffect(() => {
     setSearchQ(parsed.q);
     setSearchCity(parsed.city);
@@ -174,24 +139,6 @@ export function BienesRaicesResultsClient() {
   const clearAllFilters = useCallback(() => {
     router.replace(appendLangToPath(BR_RESULTS, lang));
   }, [router, lang]);
-
-  const togglePrimary = (id: BrPrimaryChipId) => {
-    const next = new Set(primarySet);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    patchUrl({ primary: next.size ? [...next].join(",") : null });
-  };
-
-  const toggleSecondary = (id: BrSecondaryChipId) => {
-    const next = new Set(secondarySet);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    patchUrl({ secondary: next.size ? [...next].join(",") : null });
-  };
-
-  const toggleFurnished = useCallback(() => {
-    patchUrl({ furnished: parsed.furnished === "true" ? null : "true" });
-  }, [parsed.furnished, patchUrl]);
 
   const totalCount = filtered.length;
   const totalForHeader = totalCount;
@@ -247,17 +194,6 @@ export function BienesRaicesResultsClient() {
               layout="landing"
             />
           }
-        />
-
-        <BienesRaicesFilterChips
-          copy={copy}
-          primary={primarySet}
-          secondary={secondarySet}
-          furnishedActive={parsed.furnished === "true"}
-          onTogglePrimary={togglePrimary}
-          onToggleSecondary={toggleSecondary}
-          onToggleFurnished={toggleFurnished}
-          onMoreFilters={() => setFilterDrawerOpen(true)}
         />
 
         <BienesRaicesResultsActiveFilters
