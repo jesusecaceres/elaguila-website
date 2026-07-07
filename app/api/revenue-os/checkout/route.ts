@@ -9,6 +9,7 @@ import {
   RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
   validateRevenueCheckoutAddOns,
   validateRevenueCheckoutRequest,
+  validateRestauranteAddonOnlyListingOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
 import {
@@ -57,7 +58,28 @@ export async function POST(request: NextRequest) {
   }
 
   const bearerUserId = await getBearerUserId(request);
-  const ownerUserId = body.ownerUserId?.trim() || bearerUserId || null;
+
+  const categoryEarly = String(body.category ?? "").trim().toLowerCase();
+  const packageKeyEarly = String(body.packageKey ?? "").trim().toLowerCase();
+  const isRestauranteAddonOnlyEarly =
+    categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
+
+  if (isRestauranteAddonOnlyEarly) {
+    const ownerGate = await validateRestauranteAddonOnlyListingOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+  }
+
+  const ownerUserId = isRestauranteAddonOnlyEarly
+    ? bearerUserId
+    : body.ownerUserId?.trim() || bearerUserId || null;
 
   const addOnValidation = validateRevenueCheckoutAddOns({
     category: String(body.category ?? "").trim().toLowerCase(),

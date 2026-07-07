@@ -381,7 +381,7 @@ export function buildInventoryListingActions(
     });
   }
 
-  return actions.filter((action) => Boolean(action.href));
+  return actions.filter((action) => Boolean(action.href) || Boolean(action.onClick));
 }
 
 export function listingAnalyticsIsProven(category: string): boolean {

@@ -67,6 +67,7 @@
     "verify:revenue-os-global-return-safety-01": "node scripts/verify-revenue-os-global-return-safety-01.mjs",
     "verify:restaurantes-dashboard-addon-only-checkout-return-lock-01": "node scripts/verify-restaurantes-dashboard-addon-only-checkout-return-lock-01.mjs",
     "verify:restaurantes-p0b-coupon-image-dashboard-addon-proof": "node scripts/verify-restaurantes-p0b-coupon-image-dashboard-addon-proof.mjs",
+    "verify:restaurantes-p0c-dashboard-coupon-context-owner-lock": "node scripts/verify-restaurantes-p0c-dashboard-coupon-context-owner-lock.mjs",
     "verify:servicios-gate-01": "node scripts/verify-servicios-gate-01-draft-city-video-url.mjs",
     "verify:servicios-gate-02": "node scripts/verify-servicios-gate-02-contact-cover-cleanup.mjs",
     "verify:servicios-gate-03": "node scripts/verify-servicios-gate-03-simple-offer-chips.mjs",

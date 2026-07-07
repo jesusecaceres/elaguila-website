@@ -164,6 +164,7 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
 export async function activateRestauranteCouponAddonFromRevenueOs(input: {
   listingId: string | null | undefined;
   packageKey: string | null | undefined;
+  ownerUserId?: string | null;
   paymentRecordId?: string | null;
   stripeCheckoutSessionId?: string | null;
   stripeEventId?: string | null;
@@ -190,7 +191,7 @@ export async function activateRestauranteCouponAddonFromRevenueOs(input: {
   const supabase = getAdminSupabase();
   const { data: row, error: readError } = await supabase
     .from("restaurantes_public_listings")
-    .select("id, status, listing_json")
+    .select("id, status, owner_user_id, listing_json")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -203,6 +204,17 @@ export async function activateRestauranteCouponAddonFromRevenueOs(input: {
       ok: false,
       outcome: "not_found",
       message: "Restaurante listing row not found.",
+      listingId,
+    };
+  }
+
+  const paymentOwner = String(input.ownerUserId ?? "").trim();
+  const listingOwner = String(row.owner_user_id ?? "").trim();
+  if (paymentOwner && listingOwner && paymentOwner !== listingOwner) {
+    return {
+      ok: false,
+      outcome: "error",
+      message: "Payment owner does not match listing owner.",
       listingId,
     };
   }

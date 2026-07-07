@@ -201,6 +201,7 @@ async function tryActivateRestauranteCouponAddonAfterEntitlement(input: {
   const activation = await activateRestauranteCouponAddonFromRevenueOs({
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
+    ownerUserId: input.paymentRecord.owner_user_id,
     paymentRecordId: input.paymentRecord.id,
     stripeCheckoutSessionId: input.stripeCheckoutSessionId,
     stripeEventId: input.stripeEventId,

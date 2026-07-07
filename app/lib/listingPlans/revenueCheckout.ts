@@ -15,6 +15,7 @@ import {
   sanitizeRevenueOsReturnPath,
   type RevenueOsLang,
 } from "./revenueOsReturnPath";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
 
@@ -338,6 +339,94 @@ export function validateRevenueCheckoutRequest(
     currency: "usd",
     stripeMode,
   };
+}
+
+export type RestauranteAddonOnlyOwnerValidationResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string };
+
+/** Server gate: Restaurante dashboard add-on-only checkout — listing must belong to bearer user. */
+export async function validateRestauranteAddonOnlyListingOwnership(input: {
+  listingId: string;
+  bearerUserId: string | null;
+}): Promise<RestauranteAddonOnlyOwnerValidationResult> {
+  if (!input.bearerUserId?.trim()) {
+    return {
+      ok: false,
+      status: 401,
+      code: "auth_required",
+      message: "Authentication required for Restaurante coupon add-on checkout.",
+    };
+  }
+
+  const listingId = String(input.listingId ?? "").trim();
+  if (!listingId) {
+    return {
+      ok: false,
+      status: 400,
+      code: "listing_id_required",
+      message: "listingId is required for Restaurante add-on-only checkout.",
+    };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return {
+      ok: false,
+      status: 503,
+      code: "supabase_not_configured",
+      message: "Supabase admin is not configured.",
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("restaurantes_public_listings")
+    .select("id, status, owner_user_id, listing_json")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "listing_not_found",
+      message: "Restaurante listing not found.",
+    };
+  }
+
+  if (String(data.owner_user_id ?? "").trim() !== input.bearerUserId.trim()) {
+    return {
+      ok: false,
+      status: 403,
+      code: "listing_owner_mismatch",
+      message: "Listing does not belong to the authenticated user.",
+    };
+  }
+
+  const status = String(data.status ?? "").trim().toLowerCase();
+  if (status !== "published") {
+    return {
+      ok: false,
+      status: 422,
+      code: "listing_not_eligible",
+      message: "Coupon add-on can only be purchased for published Restaurante listings.",
+    };
+  }
+
+  const listingJson =
+    data.listing_json && typeof data.listing_json === "object"
+      ? (data.listing_json as Record<string, unknown>)
+      : null;
+  if (listingJson?.couponUpgradeEnabled === true) {
+    return {
+      ok: false,
+      status: 409,
+      code: "addon_already_active",
+      message: "Coupon module is already active on this listing.",
+    };
+  }
+
+  return { ok: true };
 }
 
 export function getRevenueSiteOrigin(): string {

@@ -118,10 +118,23 @@ export async function hydrateRestauranteListingForCouponEdit(input: {
 
   try {
     const supabase = createSupabaseBrowserClient();
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    const userId = auth.user?.id?.trim();
+    if (authError || !userId) {
+      return {
+        ok: false,
+        userMessage:
+          input.lang === "es"
+            ? "Inicia sesión para editar los cupones de tu anuncio."
+            : "Sign in to edit coupons on your listing.",
+      };
+    }
+
     const { data, error } = await supabase
       .from("restaurantes_public_listings")
       .select("listing_json, draft_listing_id")
       .eq("id", listingId)
+      .eq("owner_user_id", userId)
       .maybeSingle();
 
     if (error || !data?.listing_json) {
@@ -175,6 +188,36 @@ export async function hydrateRestauranteListingForCouponEdit(input: {
   }
 }
 
-export function restauranteCouponEditHref(lang: "es" | "en"): string {
-  return appendLangToPath("/publicar/restaurantes?focus=coupon-upgrade&source=dashboard", lang);
+export function restauranteCouponEditHref(input: {
+  lang: "es" | "en";
+  listingId: string;
+  leonixAdId?: string | null;
+}): string {
+  const listingId = input.listingId.trim();
+  const params = new URLSearchParams({
+    focus: "coupon-upgrade",
+    source: "dashboard",
+    mode: "dashboard-edit",
+    listingId,
+  });
+  const leonix = input.leonixAdId?.trim();
+  if (leonix) params.set("leonixAdId", leonix);
+  return appendLangToPath(`/publicar/restaurantes?${params.toString()}`, input.lang);
+}
+
+export function restauranteCouponAddonHref(input: {
+  lang: "es" | "en";
+  listingId: string;
+  leonixAdId?: string | null;
+}): string {
+  const listingId = input.listingId.trim();
+  const params = new URLSearchParams({
+    focus: "coupon-upgrade",
+    source: "dashboard",
+    mode: "dashboard-addon",
+    listingId,
+  });
+  const leonix = input.leonixAdId?.trim();
+  if (leonix) params.set("leonixAdId", leonix);
+  return appendLangToPath(`/publicar/restaurantes?${params.toString()}`, input.lang);
 }

@@ -588,7 +588,13 @@ export default function MyListingsPage() {
         setCouponEditBusyId(null);
         return;
       }
-      router.push(restauranteCouponEditHref(lang));
+      router.push(
+        restauranteCouponEditHref({
+          lang,
+          listingId: item.id,
+          leonixAdId: item.leonixAdId,
+        }),
+      );
     } catch {
       setError(
         lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
