@@ -293,15 +293,13 @@ Full issue page count, editorial pages, and resource pages are **TBD** in `AUGUS
 
 ## Next Gate
 
-**`AUGUST-2026-PAGE-PLAN1`**
+**`AUGUST-2026-SOURCE-LAYOUT-GENERATION1`** — Page plan complete: [`AUGUST-2026-PAGE-PLAN.md`](AUGUST-2026-PAGE-PLAN.md)
 
 Purpose:
 
-- Decide **full page lineup** (total page count)
-- Decide which **editorial** vs **client ad** vs **Leonix** pages are needed
-- Lock **page order**
-- Identify gaps (editorial, resources, events, closing page)
-- Prepare for **source layout generation** in `02-source-layouts/`
+- Create **source layout plan** and page prompts for pages 5–12
+- Convert master samples 1–4 into editable source in `02-source-layouts/`
+- Preserve **8 × 11.5 in** and translation-safe rules
 
 ---
 
