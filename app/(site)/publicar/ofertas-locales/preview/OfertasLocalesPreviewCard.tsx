@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState, type ReactNode } from "react";
-import { FiCopy, FiGlobe, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiCopy, FiGlobe, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -44,16 +44,13 @@ import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { SupportedLang } from "@/app/lib/language";
-import { OfertasFutureCouponWalletCard } from "./OfertasFutureCouponWalletCard";
-import { OfertasFutureRoutePlannerCard } from "./OfertasFutureRoutePlannerCard";
-import { OfertasFutureShoppingListCard } from "./OfertasFutureShoppingListCard";
+import { LeonixMobileScrollRail } from "@/app/(site)/components/mobile/LeonixMobileScrollRail";
+import { LeonixResponsiveShell } from "@/app/(site)/components/mobile/LeonixResponsiveShell";
 import { OfertasLocalesPreviewHeroVisual } from "./OfertasLocalesPreviewHeroVisual";
 import { OfertasLocalesMiniMapPreview } from "./OfertasLocalesMiniMapPreview";
 import { OfertasLocalesPreviewProductGrid } from "./OfertasLocalesPreviewProductGrid";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
-const PAGE_BG = "bg-[#FFFCF7]";
-const PAGE_MAX = "mx-auto w-full max-w-7xl px-4 py-6 pb-28 sm:px-6 lg:pb-20 lg:py-10";
 const SECTION_ANCHOR = "scroll-mt-24";
 const CHIP =
   "inline-flex shrink-0 items-center rounded-full border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0]";
@@ -178,16 +175,20 @@ function PreviewSectionNav({ items, lang }: { items: SectionNavItem[]; lang: Ofe
       className="mb-6 lg:hidden"
       aria-label={lang === "en" ? c.sectionNavAriaEn : c.sectionNavAriaEs}
     >
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1E1814]/45">
-        {lang === "en" ? c.goToSectionEn : c.goToSectionEs}
-      </p>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <LeonixMobileScrollRail
+        lang={lang}
+        desktopMode="none"
+        showRailDots={false}
+        ariaLabel={lang === "en" ? c.sectionNavAriaEn : c.sectionNavAriaEs}
+        label={lang === "en" ? c.goToSectionEn : c.goToSectionEs}
+        swipeHint={lang === "en" ? c.swipeEn : c.swipeEs}
+      >
         {items.map((item) => (
           <a key={item.id} href={`#${item.id}`} className={CHIP}>
             {item.label}
           </a>
         ))}
-      </div>
+      </LeonixMobileScrollRail>
     </nav>
   );
 }
@@ -669,8 +670,15 @@ export function OfertasLocalesPreviewCard({
         : c.viewFlyerEs;
 
   return (
-    <div className={cx("min-h-screen", PAGE_BG)}>
-      <div className={PAGE_MAX}>
+    <>
+      <LeonixResponsiveShell
+        as="div"
+        maxWidth="preview"
+        background="ivory"
+        safeBottom
+        className="min-h-screen"
+        containerClassName="py-6 lg:py-10"
+      >
         {/* 1. Preview notice — compact owner cue */}
         <div className="mb-5 flex items-center justify-center gap-2 rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/[0.04] px-3 py-2 text-center">
           <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#7A1E2C]/60" aria-hidden />
@@ -689,14 +697,17 @@ export function OfertasLocalesPreviewCard({
         />
 
         {/* 2. Page header */}
-        <header className="mb-8 text-center lg:text-left">
+        <header className="mb-8 min-w-0 text-center lg:text-left">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#B8860B]">Leonix</p>
-          <h1 className="mt-2 font-serif text-3xl font-bold text-[#7A1E2C] sm:text-4xl">
+          <h1 className="mt-2 break-words font-serif text-[1.75rem] font-bold leading-tight text-[#7A1E2C] sm:text-4xl">
             {lang === "en" ? c.pageTitleEn : c.pageTitleEs}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/65">
+          <p className="mx-auto mt-2 max-w-2xl break-words text-sm text-[#1E1814]/65 lg:mx-0">
             {lang === "en" ? c.pageSubtitleEn : c.pageSubtitleEs}
           </p>
+          <span className="mt-2 inline-flex items-center rounded-full border border-[#C9A84A]/40 bg-[#FFFBF0]/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#7A5C12] lg:hidden">
+            {lang === "en" ? c.mobileOptimizedEn : c.mobileOptimizedEs}
+          </span>
         </header>
 
         <PreviewSectionNav items={sectionNavItems} lang={lang} />
@@ -975,16 +986,12 @@ export function OfertasLocalesPreviewCard({
           <p className="mt-1 text-xs text-[#1E1814]/50">
             {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
           </p>
-          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] max-lg:flex lg:grid lg:grid-cols-3 lg:gap-3 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-            <div className="min-w-[min(240px,82vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
-              <OfertasFutureShoppingListCard lang={lang} />
-            </div>
-            <div className="min-w-[min(240px,82vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
-              <OfertasFutureRoutePlannerCard lang={lang} />
-            </div>
-            <div className="min-w-[min(240px,82vw)] shrink-0 max-lg:shrink-0 lg:min-w-0">
-              <OfertasFutureCouponWalletCard lang={lang} />
-            </div>
+          {/* Neutralized future roadmap — one non-interactive info card (no live-looking buttons). */}
+          <div className="mt-3 rounded-xl border border-dashed border-[#D4C4A8]/70 bg-[#FDF8F0]/50 p-4">
+            <p className="flex items-start gap-2 text-xs font-medium leading-relaxed text-[#1E1814]/60">
+              <FiLock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+              {lang === "en" ? c.comingSoonListsRoutesEn : c.comingSoonListsRoutesEs}
+            </p>
           </div>
         </section>
 
@@ -1048,7 +1055,7 @@ export function OfertasLocalesPreviewCard({
             </button>
           </div>
         </section>
-      </div>
+      </LeonixResponsiveShell>
 
       <MobileStickyActionBar
         lang={lang}
@@ -1060,6 +1067,6 @@ export function OfertasLocalesPreviewCard({
         shareCopied={shareCopied}
         onShare={() => void handleShare()}
       />
-    </div>
+    </>
   );
 }

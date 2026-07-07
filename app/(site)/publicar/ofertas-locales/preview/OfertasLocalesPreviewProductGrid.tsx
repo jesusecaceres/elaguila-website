@@ -22,6 +22,7 @@ import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesT
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import { LeonixMobileScrollRail } from "@/app/(site)/components/mobile/LeonixMobileScrollRail";
 import { OfertasFlyerCropPreview } from "./OfertasFlyerCropPreview";
 import { OfertasPdfItemCropPreview } from "./OfertasPdfItemCropPreview";
 import {
@@ -414,7 +415,14 @@ export function OfertasLocalesPreviewProductGrid({
                   <FiFilter className="h-3.5 w-3.5 text-[#B8860B]" aria-hidden />
                   {lang === "en" ? c.filterProductsEn : c.filterProductsEs}
                 </p>
-                <div className="-mx-1 mt-2.5 flex max-w-full flex-wrap gap-2 px-1 sm:flex-nowrap sm:overflow-x-auto sm:pb-1 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
+                <LeonixMobileScrollRail
+                  lang={lang}
+                  desktopMode="wrap"
+                  showRailDots={false}
+                  className="mt-2.5"
+                  ariaLabel={lang === "en" ? c.filterProductsEn : c.filterProductsEs}
+                  swipeHint={lang === "en" ? c.swipeEn : c.swipeEs}
+                >
                   <button
                     type="button"
                     onClick={() => setSelectedCategory("all")}
@@ -436,7 +444,7 @@ export function OfertasLocalesPreviewProductGrid({
                       {cat}
                     </button>
                   ))}
-                </div>
+                </LeonixMobileScrollRail>
               </div>
             ) : null}
 

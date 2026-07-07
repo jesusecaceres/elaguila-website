@@ -30,6 +30,10 @@ const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationC
 const CROP_PREVIEW = "app/(site)/publicar/ofertas-locales/preview/OfertasFlyerCropPreview.tsx";
 const PDF_ITEM_CROP = "app/(site)/publicar/ofertas-locales/preview/OfertasPdfItemCropPreview.tsx";
 const PDF_RENDER_UTILS = "app/(site)/publicar/ofertas-locales/preview/ofertasPdfRenderUtils.ts";
+const MOBILE_RAIL = "app/(site)/components/mobile/LeonixMobileScrollRail.tsx";
+const MOBILE_BOTTOM_SHEET = "app/(site)/components/mobile/LeonixMobileBottomSheet.tsx";
+const MOBILE_SHELL = "app/(site)/components/mobile/LeonixResponsiveShell.tsx";
+const MOBILE_STICKY_BAR = "app/(site)/components/mobile/LeonixStickyActionBar.tsx";
 
 const GATE_ALLOWED = new Set([
   GRID,
@@ -52,6 +56,10 @@ const GATE_ALLOWED = new Set([
   CROP_PREVIEW,
   PDF_ITEM_CROP,
   PDF_RENDER_UTILS,
+  MOBILE_RAIL,
+  MOBILE_BOTTOM_SHEET,
+  MOBILE_SHELL,
+  MOBILE_STICKY_BAR,
 ]);
 
 const PROHIBITED = [
@@ -169,6 +177,10 @@ function run() {
   assert.ok(audit.includes("extracted_json.commerceMetadata"), "Commerce metadata storage documented");
   assert.ok(audit.includes("Gate 4C"), "Gate 4C section");
   assert.ok(audit.includes("Gate 4C Repair"), "Gate 4C Repair section");
+  assert.ok(
+    audit.includes("Global Mobile/PWA Foundation V1"),
+    "Global Mobile/PWA Foundation V1 section"
+  );
   assert.ok(audit.includes("TRUE/FALSE"), "Audit table");
   assert.ok(audit.includes("READY TO COMMIT THIS BUILD ONLY"), "Commit flag");
 
@@ -226,10 +238,6 @@ function run() {
   );
   assert.ok(grid.includes("heroPdfHref"), "Grid passes PDF source fallback");
   assert.ok(drawer.includes("heroPdfHref"), "Drawer receives PDF source fallback");
-  // Mobile drawer safe full-width / no horizontal overflow
-  assert.ok(drawer.includes("max-w-[100vw]"), "Drawer clamps mobile width to viewport");
-  assert.ok(drawer.includes("overflow-x-hidden"), "Drawer prevents horizontal overflow");
-  assert.ok(drawer.includes("safe-area-inset-bottom"), "Drawer adds safe-area bottom padding");
   assert.ok(
     grid.includes("canRenderOfertaLocalInstantCrop"),
     "Grid uses instant crop check"
@@ -286,12 +294,44 @@ function run() {
   );
   assert.ok(grid.includes("syncOfertasPreviewItemParam"), "Item URL foundation");
 
-  assert.ok(drawer.includes('role="dialog"'), "Dialog semantics");
-  assert.ok(drawer.includes("aria-modal"), "Aria modal");
-  assert.ok(drawer.includes("FUTURE WIRING"), "Future wiring in drawer");
   assert.ok(drawer.includes("viewFullFlyerEn") || drawer.includes("viewSourceOnFlyerEn"), "Flyer link copy");
   assert.ok(drawer.includes("productDataEn") || drawer.includes("commerceMetadata"), "Drawer product data");
-  assert.ok(drawer.includes("disabled"), "Disabled future actions");
+
+  // Gate — Global Mobile/PWA Foundation V1 (shared primitives + safety)
+  assert.ok(fs.existsSync(path.join(ROOT, MOBILE_RAIL)), "Shared mobile scroll rail exists");
+  assert.ok(fs.existsSync(path.join(ROOT, MOBILE_BOTTOM_SHEET)), "Shared mobile bottom sheet exists");
+  assert.ok(fs.existsSync(path.join(ROOT, MOBILE_SHELL)), "Shared responsive shell exists");
+  const bottomSheet = read(MOBILE_BOTTOM_SHEET);
+  const rail = read(MOBILE_RAIL);
+  assert.ok(bottomSheet.includes('role="dialog"'), "Bottom sheet dialog semantics");
+  assert.ok(bottomSheet.includes("aria-modal"), "Bottom sheet aria-modal");
+  assert.ok(bottomSheet.includes("createPortal"), "Bottom sheet portals to body");
+  assert.ok(bottomSheet.includes("safe-area-inset-bottom"), "Bottom sheet safe bottom padding");
+  assert.ok(bottomSheet.includes("max-w-[100vw]"), "Bottom sheet clamps width to viewport");
+  assert.ok(bottomSheet.includes("overflow-x-hidden"), "Bottom sheet no horizontal overflow");
+  assert.ok(rail.includes("snap-x"), "Rail uses snap-x scroll");
+  assert.ok(read(MOBILE_SHELL).includes("overflow-x-hidden"), "Shell prevents horizontal overflow");
+  // Ofertas consumes at least one shared mobile primitive
+  const previewCard = read(CARD);
+  assert.ok(
+    previewCard.includes("LeonixResponsiveShell") ||
+      previewCard.includes("LeonixMobileScrollRail") ||
+      grid.includes("LeonixMobileScrollRail") ||
+      drawer.includes("LeonixMobileBottomSheet"),
+    "Ofertas uses at least one shared mobile primitive"
+  );
+  assert.ok(drawer.includes("LeonixMobileBottomSheet"), "Drawer uses shared bottom sheet");
+  assert.ok(grid.includes("LeonixMobileScrollRail"), "Grid uses shared rail for filters");
+  // Neutralized (non-live) future roadmap
+  assert.ok(
+    drawer.includes("comingSoonListsRoutes"),
+    "Drawer future roadmap neutralized to info copy"
+  );
+  assert.ok(
+    previewCard.includes("comingSoonListsRoutes"),
+    "Preview card future roadmap neutralized to info copy"
+  );
+  assert.ok(!drawer.includes("BTN_DISABLED"), "No disabled future CTA buttons in drawer");
 
   assertRectangularMainCtas("grid", grid);
   assertRectangularMainCtas("drawer", drawer);
@@ -307,6 +347,9 @@ function run() {
     "noClipYetEs",
     "renderingCropEs",
     "cropRenderFailedEs",
+    "swipeEs",
+    "comingSoonListsRoutesEs",
+    "mobileOptimizedEs",
   ];
   for (const snippet of requiredCopy) {
     assert.ok(copy.includes(snippet), `Missing copy: ${snippet}`);
@@ -321,6 +364,14 @@ function run() {
 
   const changed = gitChangedFiles();
   const gateTouched = assertGateScope(changed);
+
+  // No service worker / PWA manifest / offline caching introduced.
+  for (const file of changed) {
+    assert.ok(
+      !/(^|\/)(sw|service-worker)\.[jt]s$|service-worker|(^|\/)manifest\.(json|webmanifest)$|workbox/i.test(file),
+      `Service worker / manifest file must not be touched: ${file}`
+    );
+  }
 
   const pkg = read("package.json");
   assert.ok(pkg.includes("verify:ofertas-product-discovery-item-drawer"), "package.json script");

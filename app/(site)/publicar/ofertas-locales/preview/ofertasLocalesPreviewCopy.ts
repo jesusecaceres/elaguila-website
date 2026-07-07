@@ -287,4 +287,12 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   renderingCropEn: "Rendering crop…",
   cropRenderFailedEs: "No se pudo preparar el recorte",
   cropRenderFailedEn: "Could not prepare crop",
+  swipeEs: "Desliza",
+  swipeEn: "Swipe",
+  closeEs: "Cerrar",
+  closeEn: "Close",
+  comingSoonListsRoutesEs: "Próximamente: listas, cupones guardados y rutas inteligentes.",
+  comingSoonListsRoutesEn: "Coming soon: lists, saved coupons, and smart routes.",
+  mobileOptimizedEs: "Vista móvil optimizada",
+  mobileOptimizedEn: "Mobile optimized view",
 } as const;

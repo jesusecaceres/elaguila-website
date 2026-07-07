@@ -571,3 +571,109 @@ DB migrations. No shopping list / coupon wallet / route / buy CTAs added.
 | READY TO COMMIT THIS BUILD ONLY | YES | Gate 4C Repair scoped |
 | READY TO PUSH THIS BUILD ONLY | YES | after commit |
 | UNRELATED DIRTY FILES PRESENT | NO | gate-scoped only |
+
+---
+
+# Leonix Global Mobile/PWA Foundation V1 + Ofertas Apply
+
+**Task classification:** SCOPED GATED BUILD — shared foundation + Ofertas-only apply
+**Date:** 2026-07-07
+
+## Components created (`app/(site)/components/mobile/`)
+
+- `LeonixMobileScrollRail.tsx` — generalized horizontal rail: `snap-x`, hidden
+  scrollbars, mobile edge fades, arrow controls (live scroll-state), rail dots,
+  swipe hint, `desktopMode` = `wrap` | `grid` | `none`, ES/EN aria labels. No
+  category content.
+- `LeonixMobileBottomSheet.tsx` — portal + body scroll lock + Escape close +
+  backdrop close, `role="dialog"`/`aria-modal`, 44px close, handle bar, mobile
+  bottom sheet (`w-full max-w-[100vw]`, `max-h-[92dvh]`, internal scroll,
+  `env(safe-area-inset-bottom)` padding, `overflow-x-hidden`), desktop right-side
+  panel via `placement="right"`.
+- `LeonixResponsiveShell.tsx` — `w-full overflow-x-hidden` outer + `mx-auto
+  min-w-0` container + optional PWA-safe bottom padding
+  (`pb-[calc(4.5rem+env(safe-area-inset-bottom))]`). No global CSS.
+- `LeonixStickyActionBar.tsx` — optional shared fixed mobile CTA bar with
+  safe-area padding, ≤5 rectangular 44px actions (created for reuse; Ofertas keeps
+  its existing in-file sticky bar for now).
+
+## Patterns extracted (behavior only, no brand content)
+
+- **En Venta rail** (`EnVentaHubHorizontalScroll.tsx`): snap-x, hidden scrollbar,
+  edge fades, arrows, dots, swipe hint, mobile rail + desktop wrap/grid.
+- **Admin drawer** (`AdminMobileNavDrawer.tsx`): portal, body scroll lock, Escape,
+  fixed overlay, `overflow-hidden`, `max-w`, 44px close/tap targets.
+- **En Venta/Restaurante shell**: `env(safe-area-inset-bottom)` bottom padding.
+
+## Ofertas mobile fixes applied
+
+- **Header:** `min-w-0` + `break-words` on `<h1>`/subtitle; page wrapped in
+  `LeonixResponsiveShell` (`overflow-x-hidden`), added a mobile "Mobile optimized
+  view" cue. No more title clipping / horizontal overflow at 390px.
+- **Section nav:** now `LeonixMobileScrollRail` (`desktopMode="none"`) with swipe
+  hint; chips scroll cleanly, no clip.
+- **Product filters:** now `LeonixMobileScrollRail` (`desktopMode="wrap"`) — mobile
+  rail, desktop wrap; search input stays full width.
+- **Product cards:** 1-column at 390px (`grid-cols-1`, 2-col only ≥480px), stable
+  crop area, rectangular CTA preserved.
+- **Flyer preview:** already `w-full`/`object-contain`; page overflow removed by
+  the shell so it fits the mobile width.
+- **Product drawer:** refactored to `LeonixMobileBottomSheet` — portal + body
+  scroll lock (new), full-width mobile bottom sheet with internal scroll + safe
+  bottom padding, desktop right-side panel preserved. No right-side clipping.
+
+## Save/list/coupon truth
+
+Removed all live-looking disabled buttons ("Mi lista", "Guardar cupón", "Ruta
+inteligente" cards; drawer "Agregar a mi lista" / "Guardar cupón"). Replaced with a
+single non-interactive info card: ES "Próximamente: listas, cupones guardados y
+rutas inteligentes." / EN "Coming soon: lists, saved coupons, and smart routes."
+Nothing says saved/added; no save/list action is live.
+
+## Future migration plan
+
+Progressively adopt `LeonixMobileScrollRail` / `LeonixMobileBottomSheet` /
+`LeonixResponsiveShell` in other category preview/hub pages gate-by-gate. Not a
+repo-wide migration in this build.
+
+## Intentionally not touched
+
+Restaurantes, En Venta, Admin drawer behavior, other `clasificados/*`, global
+header/footer/nav, Stripe/auth/monetization. No service worker / PWA manifest /
+offline caching. No DB migrations. Product crop rendering logic unchanged (layout
+integration only).
+
+## QA must verify
+
+Desktop close to accepted layout (flyer left / offer center / right action cards /
+Business Hub / 4-col grid / crop cards / side drawer). Mobile 390px: no header
+clip, section nav + filters scroll horizontally, flyer fits, 1-col cards, drawer
+opens as bottom sheet (not shifted/cut), internal scroll, sticky bar doesn't cover
+content, no fake save/list/coupon buttons.
+
+## TRUE/FALSE audit
+
+| Check | Result | Note |
+|-------|--------|------|
+| En Venta rail pattern inspected | TRUE | EnVentaHubHorizontalScroll |
+| Admin mobile drawer pattern inspected | TRUE | AdminMobileNavDrawer |
+| Shared Leonix mobile rail created | TRUE | LeonixMobileScrollRail |
+| Shared Leonix bottom sheet/drawer created | TRUE | LeonixMobileBottomSheet |
+| Shared responsive shell created | TRUE | LeonixResponsiveShell |
+| Ofertas uses shared rail for section nav or product filters | TRUE | both |
+| Ofertas mobile header no longer clips at 390px | TRUE | shell + break-words |
+| Ofertas flyer preview fits mobile width | TRUE | w-full + overflow-x-hidden |
+| Ofertas product cards 1-column, no overflow at 390px | TRUE | grid-cols-1 |
+| Product drawer behaves as mobile bottom sheet at 390px | TRUE | bottom sheet |
+| Drawer has safe bottom padding and internal scroll | TRUE | env(safe-area) |
+| Actual product crops preserved | TRUE | crop logic untouched |
+| Map/share/flyer/search/filter preserved | TRUE | unchanged |
+| Fake/unbacked save/list/coupon buttons removed or neutralized | TRUE | info card |
+| No Restaurants/En Venta/Admin behavior changed | TRUE | read-only refs |
+| No service worker/PWA manifest/offline caching added | TRUE | none |
+| ES/EN copy preserved | TRUE | swipe/close/comingSoon keys |
+| Verifier passed | TRUE | see checks |
+| Build passed | TRUE | see checks |
+| READY TO COMMIT THIS BUILD ONLY | YES | foundation + apply scoped |
+| READY TO PUSH THIS BUILD ONLY | YES | after commit |
+| UNRELATED DIRTY FILES PRESENT | NO | gate-scoped only |

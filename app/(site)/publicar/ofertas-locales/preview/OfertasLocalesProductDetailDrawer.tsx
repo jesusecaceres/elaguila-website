@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  FiBookmark,
   FiExternalLink,
   FiFileText,
   FiGlobe,
@@ -12,9 +11,9 @@ import {
   FiMapPin,
   FiShare2,
   FiShoppingBag,
-  FiX,
 } from "react-icons/fi";
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import { LeonixMobileBottomSheet } from "@/app/(site)/components/mobile/LeonixMobileBottomSheet";
 import {
   canRenderOfertaLocalInstantCrop,
   canRenderOfertaLocalPdfCrop,
@@ -49,8 +48,6 @@ const BTN_PRIMARY =
   "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 sm:w-auto";
 const BTN_OUTLINE =
   "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#D4C4A8]/80 bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] sm:w-auto";
-const BTN_DISABLED =
-  "inline-flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-dashed border-[#D4C4A8]/70 bg-[#FDF8F0]/50 px-4 py-2.5 text-sm font-medium text-[#1E1814]/35";
 
 export function OfertasLocalesProductDetailDrawer({
   item,
@@ -80,35 +77,10 @@ export function OfertasLocalesProductDetailDrawer({
   onViewMoreOffers: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
-  const panelRef = useRef<HTMLDivElement>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [cropLoadFailed, setCropLoadFailed] = useState(false);
   const [instantCropFailed, setInstantCropFailed] = useState(false);
   const [pdfCropFailed, setPdfCropFailed] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (open && panelRef.current) {
-      panelRef.current.focus();
-    }
-  }, [open, item?.id]);
 
   useEffect(() => {
     setCropLoadFailed(false);
@@ -135,7 +107,7 @@ export function OfertasLocalesProductDetailDrawer({
     }
   }, [draft.businessName, item]);
 
-  if (!open || !item) return null;
+  if (!item) return null;
 
   const title = (item.couponTitle || item.itemName).trim();
   const price = formatDrawerPrice(item, lang);
@@ -171,40 +143,15 @@ export function OfertasLocalesProductDetailDrawer({
   const safeItemUrl = validateOfertaLocalCommerceItemUrl(commerce.itemUrl);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden lg:items-stretch lg:justify-end">
-      <button
-        type="button"
-        className="absolute inset-0 bg-[#1E1814]/50 backdrop-blur-[3px]"
-        aria-label={lang === "en" ? c.closeSectionEn : c.closeSectionEs}
-        onClick={onClose}
-      />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={lang === "en" ? c.productDetailsEn : c.productDetailsEs}
-        tabIndex={-1}
-        className="relative z-10 flex max-h-[92vh] w-full max-w-[100vw] flex-col overflow-hidden rounded-t-3xl border border-[#D4C4A8]/70 bg-[#FFFCF7] shadow-2xl lg:h-full lg:max-h-none lg:w-[26rem] lg:max-w-md lg:rounded-none lg:rounded-l-3xl"
-      >
-        <div className="flex shrink-0 justify-center pt-2 lg:hidden" aria-hidden>
-          <span className="h-1 w-10 rounded-full bg-[#D4C4A8]/80" />
-        </div>
-
-        <div className="flex items-center justify-between border-b border-[#E8D9C4]/70 bg-gradient-to-r from-[#FDF8F0]/60 to-[#FFFCF7] px-4 py-3 sm:px-5">
-          <h2 className="font-serif text-lg font-semibold text-[#1E1814]">
-            {lang === "en" ? c.productDetailsEn : c.productDetailsEs}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#D4C4A8]/80 bg-white text-[#1E1814] transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0]"
-            aria-label={lang === "en" ? c.closeSectionEn : c.closeSectionEs}
-          >
-            <FiX className="h-5 w-5" aria-hidden />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-5 sm:pb-10">
+    <LeonixMobileBottomSheet
+      open={open}
+      onClose={onClose}
+      placement="right"
+      lang={lang}
+      title={lang === "en" ? c.productDetailsEn : c.productDetailsEs}
+      ariaLabel={lang === "en" ? c.productDetailsEn : c.productDetailsEs}
+      closeLabel={lang === "en" ? c.closeSectionEn : c.closeSectionEs}
+    >
           <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-white shadow-sm">
             {showCropImage ? (
               <div className="bg-[#FDF8F0]/50 p-2">
@@ -436,25 +383,14 @@ export function OfertasLocalesProductDetailDrawer({
             </div>
           </div>
 
-          <div className="mt-5 space-y-2 rounded-lg border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-3">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#B8860B]">
-              <FiLock className="h-3.5 w-3.5" aria-hidden />
-              {lang === "en" ? c.comingSoonEn : c.comingSoonEs}
+          {/* Neutralized future roadmap — non-interactive info only (no live-looking buttons). */}
+          <div className="mt-5 rounded-lg border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-3">
+            <p className="flex items-start gap-1.5 text-xs font-medium leading-relaxed text-[#1E1814]/60">
+              <FiLock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+              {lang === "en" ? c.comingSoonListsRoutesEn : c.comingSoonListsRoutesEs}
             </p>
-            {/* FUTURE WIRING: connect to saved shopping list table / dashboard saved offers. */}
-            <button type="button" disabled className={BTN_DISABLED}>
-              <FiList className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
-              {lang === "en" ? c.addToListEn : c.addToListEs}
-            </button>
-            {/* FUTURE WIRING: connect to coupon wallet / saved offers table. */}
-            <button type="button" disabled className={BTN_DISABLED}>
-              <FiBookmark className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
-              {lang === "en" ? c.saveCouponEn : c.saveCouponEs}
-            </button>
           </div>
-        </div>
-      </div>
-    </div>
+    </LeonixMobileBottomSheet>
   );
 }
 
