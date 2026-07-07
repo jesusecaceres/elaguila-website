@@ -33,11 +33,11 @@ import {
   serviciosPublishedToApplicationDraft,
   type ServiciosPublishedListingHydrationSource,
 } from "../lib/serviciosPublishedToApplicationDraft";
-import { serviciosListingEditHref } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
+import { serviciosBackToEditHrefFromPreview } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile, mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
-import { postServiciosPublishApi } from "../lib/serviciosPublishClient";
+import { postServiciosPublishApi, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
@@ -110,28 +110,36 @@ export function ClasificadosServiciosPreviewClient() {
     [searchParams],
   );
 
-  const editHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang);
+  const checkpointEditHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang);
   const previewListingParam = searchParams?.get("preview") === "listing";
   const dashboardSource = searchParams?.get("source") === "dashboard";
   const listingId = searchParams?.get("listingId")?.trim() ?? "";
   const listingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const leonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
   const returnPanel = searchParams?.get("returnPanel") ?? "";
+  const previewMode = searchParams?.get("mode") ?? "";
+  const previewFocus = searchParams?.get("focus") === "coupon-upgrade" ? "coupon-upgrade" : null;
   const listingBoundPreview =
     previewListingParam || (dashboardSource && Boolean(listingId || listingSlug || leonixAdId));
   const dashboardReturnHref = withClasificadosPublishLang(
     returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/mis-anuncios?cat=servicios",
     routeLang,
   );
-  const listingEditHref =
+  const backToEditMode: "listing-edit" | "offers-edit" | "offers-addon" =
+    previewMode === "offers-edit" || previewMode === "offers-addon" ? previewMode : "listing-edit";
+  // Golden-loop: dashboard listing preview "Volver a editar" returns to the direct app edit route
+  // with full dashboard context (never checkpoint, never product=servicios_profesionales).
+  const editHref =
     listingBoundPreview && (listingId || listingSlug || leonixAdId)
-      ? serviciosListingEditHref({
+      ? serviciosBackToEditHrefFromPreview({
           lang,
           listingId: listingId || null,
           listingSlug: listingSlug || null,
           leonixAdId: leonixAdId || null,
+          mode: backToEditMode,
+          focus: previewFocus,
         })
-      : editHref;
+      : checkpointEditHref;
   const [listingHydrationError, setListingHydrationError] = useState<string | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
@@ -182,6 +190,9 @@ export function ClasificadosServiciosPreviewClient() {
           }
           const hydrated = serviciosPublishedToApplicationDraft(data.listing);
           if (cancelled) return;
+          // Golden-loop: prime existing slug so any publish-from-preview UPDATES this listing
+          // (no duplicate, no base recharge) via the publish API's existingPublicSlug update path.
+          primeServiciosExistingPublicSlug(hydrated.editIdentity.slug);
           const normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
           setAppState(normalized);
           const mapped = mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang);

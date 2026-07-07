@@ -95,9 +95,15 @@ export function serviciosListingEditHref(input: ServiciosEditHrefInput): string 
 }
 
 /** Dashboard listing-bound preview — hydrates from owner DB listing, not empty local draft. */
-export function serviciosListingPreviewHref(input: ServiciosEditHrefInput): string {
+export function serviciosListingPreviewHref(input: ServiciosEditHrefInput & {
+  mode?: "listing-edit" | "offers-edit" | "offers-addon";
+  focus?: "coupon-upgrade" | null;
+}): string {
   const params = baseServiciosEditParams(input);
   params.set("preview", "listing");
+  if (input.mode) params.set("mode", input.mode);
+  if (input.focus) params.set("focus", input.focus);
+  else if (input.mode === "offers-edit" || input.mode === "offers-addon") params.set("focus", "coupon-upgrade");
   return appendLangToPath(`${SERVICIOS_DASHBOARD_PREVIEW_BASE}?${params.toString()}`, input.lang);
 }
 
@@ -114,6 +120,34 @@ export function serviciosOffersAddonHref(input: ServiciosEditHrefInput): string 
   const params = baseServiciosEditParams(input);
   params.set("mode", "offers-addon");
   params.set("focus", "coupon-upgrade");
+  return appendLangToPath(`${SERVICIOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
+}
+
+/**
+ * Golden-loop context params for the Servicios application (Restaurante parity).
+ * Preserves edit=1, source=dashboard, listing identity, mode, focus, and returnPanel so that
+ * every internal navigation (steps, preview, Volver a editar) keeps dashboard context.
+ */
+export function buildServiciosDashboardListingContextParams(input: ServiciosEditHrefInput & {
+  mode?: "listing-edit" | "offers-edit" | "offers-addon";
+  focus?: "coupon-upgrade" | null;
+}): URLSearchParams {
+  const params = baseServiciosEditParams(input);
+  params.set("mode", input.mode ?? "listing-edit");
+  if (input.focus) params.set("focus", input.focus);
+  else if (input.mode === "offers-edit" || input.mode === "offers-addon") params.set("focus", "coupon-upgrade");
+  return params;
+}
+
+/**
+ * Preview "Volver a editar" — returns to the direct application edit route with full dashboard
+ * context. Never uses checkpoint. Never uses product=servicios_profesionales.
+ */
+export function serviciosBackToEditHrefFromPreview(input: ServiciosEditHrefInput & {
+  mode?: "listing-edit" | "offers-edit" | "offers-addon";
+  focus?: "coupon-upgrade" | null;
+}): string {
+  const params = buildServiciosDashboardListingContextParams(input);
   return appendLangToPath(`${SERVICIOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
 }
 

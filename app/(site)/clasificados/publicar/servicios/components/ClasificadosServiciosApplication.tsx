@@ -52,6 +52,7 @@ import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } f
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
   redirectServiciosDashboardOffersAddonCheckout,
+  serviciosListingPreviewHref,
   serviciosOffersAddonUpgradeLabel,
   serviciosOffersAddonUpgradeBusyLabel,
   serviciosOffersModuleHeading,
@@ -549,7 +550,18 @@ export function ClasificadosServiciosApplication() {
 
   /* Servicios draft is session-persisted; do not register native beforeunload warnings. */
 
-  const previewHref = withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang);
+  // Golden-loop: dashboard listing edit → listing-bound preview (keeps identity/mode/focus).
+  // New application → plain seller preview from local draft.
+  const previewHref = isExistingDashboardListingMode
+    ? serviciosListingPreviewHref({
+        lang,
+        listingId: editListingId || null,
+        listingSlug: editListingSlug || null,
+        leonixAdId: editLeonixAdId || null,
+        mode: isDashboardOffersEditMode ? "offers-edit" : isDashboardOffersAddonMode ? "offers-addon" : "listing-edit",
+        focus: focusCoupon ? "coupon-upgrade" : null,
+      })
+    : withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang);
   const publicarHref = withClasificadosPublishLang("/clasificados/publicar", routeLang);
 
   const goStrictPreview = useCallback(async () => {
@@ -875,10 +887,10 @@ export function ClasificadosServiciosApplication() {
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
           <Link
-            href={publicarHref}
+            href={isExistingDashboardListingMode ? dashboardReturnHref : publicarHref}
             className="mt-2 inline-flex min-h-[40px] items-center text-xs font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
           >
-            {copy.linkBack}
+            {isExistingDashboardListingMode ? (lang === "en" ? "← Back to dashboard" : "← Volver al panel") : copy.linkBack}
           </Link>
 
           {editHydration.status === "loading" ? (
@@ -956,12 +968,21 @@ export function ClasificadosServiciosApplication() {
                       </p>
                     )}
                   </div>
-                  <Link
-                    href="/clasificados/publicar/servicios/checkpoint"
-                    className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
-                  >
-                    {lang === "en" ? "Change plan" : "Cambiar plan"}
-                  </Link>
+                  {isExistingDashboardListingMode ? (
+                    <Link
+                      href={dashboardReturnHref}
+                      className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
+                    >
+                      {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/clasificados/publicar/servicios/checkpoint"
+                      className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
+                    >
+                      {lang === "en" ? "Change plan" : "Cambiar plan"}
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : null}

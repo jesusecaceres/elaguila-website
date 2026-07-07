@@ -147,6 +147,7 @@ const blocked = changed.filter(
     /stripe.*webhook/i.test(f) ||
     (/restaurante/i.test(f) &&
       !/servicios-edit-route-restaurantes-parity/i.test(f) &&
+      !/servicios-restaurantes-golden-loop-parity/i.test(f) &&
       !/serviciosDashboard/i.test(f)),
 );
 if (blocked.length) fail(`Disallowed files touched: ${blocked.join(", ")}`);
