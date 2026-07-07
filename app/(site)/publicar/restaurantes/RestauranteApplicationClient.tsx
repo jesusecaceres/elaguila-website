@@ -37,6 +37,7 @@ import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/applicati
 import { buildRestaurantePublishPayload } from "@/app/clasificados/restaurantes/application/buildRestaurantePublishPayload";
 import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/restaurantes/application/restauranteDraftPublishPrepare";
 import { redirectRestauranteDashboardCouponAddonCheckout } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
@@ -141,12 +142,20 @@ export default function RestauranteApplicationClient() {
   const dashboardListingId = searchParams?.get("listingId")?.trim() ?? "";
   const dashboardLeonixAdId = searchParams?.get("leonixAdId")?.trim() || null;
   const focusCoupon = searchParams?.get("focus") === "coupon-upgrade";
+  const returnPanel = searchParams?.get("returnPanel");
   const isDashboardEditMode =
-    dashboardSource && dashboardMode === "dashboard-edit" && Boolean(dashboardListingId);
+    dashboardSource &&
+    (dashboardMode === "coupon-edit" || dashboardMode === "dashboard-edit") &&
+    Boolean(dashboardListingId);
   const isDashboardAddonMode =
-    dashboardSource && dashboardMode === "dashboard-addon" && Boolean(dashboardListingId);
+    dashboardSource &&
+    (dashboardMode === "coupon-addon" || dashboardMode === "dashboard-addon") &&
+    Boolean(dashboardListingId);
   const isDashboardCouponContext = isDashboardEditMode || isDashboardAddonMode;
-  const dashboardReturnHref = buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
+  const dashboardReturnHref =
+    returnPanel === "restaurantes"
+      ? appendLangToPath("/dashboard/restaurantes", lang)
+      : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
   /** Pending text before user confirms custom language with Añadir. */
@@ -745,8 +754,8 @@ export default function RestauranteApplicationClient() {
         <div className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] p-5">
           <p className="text-sm font-semibold text-[color:var(--lx-text)]">
             {lang === "en"
-              ? "Editing coupons on your published listing. The base plan will not be charged again."
-              : "Editando cupones de tu anuncio publicado. No se volverá a cobrar el plan base."}
+              ? "You are editing coupons for an existing listing."
+              : "Estás editando cupones para un anuncio existente."}
           </p>
           <Link
             href={dashboardReturnHref}

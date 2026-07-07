@@ -37,6 +37,7 @@ export async function startRestauranteDashboardCouponAddonCheckout(input: {
   leonixAdId?: string | null;
   lang: "es" | "en";
   customerEmail?: string | null;
+  returnPath?: string | null;
 }): Promise<RestauranteDashboardCouponAddonCheckoutResult> {
   const listingId = input.listingId.trim();
   if (!listingId) {
@@ -49,7 +50,8 @@ export async function startRestauranteDashboardCouponAddonCheckout(input: {
     };
   }
 
-  const returnPath = buildDashboardMisAnunciosReturnPath(input.lang, "restaurantes");
+  const returnPath =
+    input.returnPath?.trim() || buildDashboardMisAnunciosReturnPath(input.lang, "restaurantes");
   const checkout = await startRevenueCategoryCheckout({
     category: RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT.category,
     packageKey: RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT.packageKey,
@@ -188,20 +190,26 @@ export async function hydrateRestauranteListingForCouponEdit(input: {
   }
 }
 
+export function buildDashboardRestaurantesReturnPath(lang: "es" | "en"): string {
+  return appendLangToPath("/dashboard/restaurantes", lang);
+}
+
 export function restauranteCouponEditHref(input: {
   lang: "es" | "en";
   listingId: string;
   leonixAdId?: string | null;
+  returnPanel?: "restaurantes" | "mis-anuncios";
 }): string {
   const listingId = input.listingId.trim();
   const params = new URLSearchParams({
     focus: "coupon-upgrade",
     source: "dashboard",
-    mode: "dashboard-edit",
+    mode: "coupon-edit",
     listingId,
   });
   const leonix = input.leonixAdId?.trim();
   if (leonix) params.set("leonixAdId", leonix);
+  if (input.returnPanel === "restaurantes") params.set("returnPanel", "restaurantes");
   return appendLangToPath(`/publicar/restaurantes?${params.toString()}`, input.lang);
 }
 
@@ -209,15 +217,17 @@ export function restauranteCouponAddonHref(input: {
   lang: "es" | "en";
   listingId: string;
   leonixAdId?: string | null;
+  returnPanel?: "restaurantes" | "mis-anuncios";
 }): string {
   const listingId = input.listingId.trim();
   const params = new URLSearchParams({
     focus: "coupon-upgrade",
     source: "dashboard",
-    mode: "dashboard-addon",
+    mode: "coupon-addon",
     listingId,
   });
   const leonix = input.leonixAdId?.trim();
   if (leonix) params.set("leonixAdId", leonix);
+  if (input.returnPanel === "restaurantes") params.set("returnPanel", "restaurantes");
   return appendLangToPath(`/publicar/restaurantes?${params.toString()}`, input.lang);
 }

@@ -22,6 +22,17 @@ import {
   resolveCategoryAdPlan,
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import {
+  buildDashboardRestaurantesReturnPath,
+  hydrateRestauranteListingForCouponEdit,
+  redirectRestauranteDashboardCouponAddonCheckout,
+  restaurantCouponAddonUpgradeEligible,
+  restaurantCouponEditEligible,
+  restauranteCouponAddonUpgradeBusyLabel,
+  restauranteCouponAddonUpgradeLabel,
+  restauranteCouponEditLabel,
+  restauranteCouponEditHref,
+} from "../lib/restaurantesDashboardCouponAddonCheckout";
+import {
   dashboardEntitlementBadgeForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
@@ -148,6 +159,9 @@ export default function DashboardRestaurantesPage() {
   const [accountRef, setAccountRef] = useState<string | null>(null);
   const [hydrateId, setHydrateId] = useState<string | null>(null);
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
+  const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
+  const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  const [couponErr, setCouponErr] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<ListingMetrics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [entitlementBadges, setEntitlementBadges] = useState<
@@ -190,7 +204,7 @@ export default function DashboardRestaurantesPage() {
     const { data, error } = await supabase
       .from("restaurantes_public_listings")
       .select(
-        "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url",
+        "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url, listing_json",
       )
       .eq("owner_user_id", user.id)
       .order("updated_at", { ascending: false });
@@ -243,10 +257,19 @@ export default function DashboardRestaurantesPage() {
       setHydrateId(listingId);
       try {
         const supabase = createSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user?.id) {
+          setHydrateErr(t.errHydrate);
+          setHydrateId(null);
+          return;
+        }
         const { data, error } = await supabase
           .from("restaurantes_public_listings")
           .select("listing_json, draft_listing_id")
           .eq("id", listingId)
+          .eq("owner_user_id", user.id)
           .maybeSingle();
         if (error || !data?.listing_json) {
           setHydrateErr(t.errHydrate);
@@ -272,6 +295,65 @@ export default function DashboardRestaurantesPage() {
       }
     },
     [lang, router, t.errHydrate],
+  );
+
+  const startCouponAddonCheckout = useCallback(
+    async (row: DashboardRestaurantRow) => {
+      setCouponCheckoutBusyId(row.id);
+      setCouponErr(null);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: auth } = await supabase.auth.getUser();
+        const result = await redirectRestauranteDashboardCouponAddonCheckout({
+          listingId: row.id,
+          leonixAdId: row.leonix_ad_id,
+          lang,
+          customerEmail: auth.user?.email ?? null,
+          returnPath: buildDashboardRestaurantesReturnPath(lang),
+        });
+        if (!result.ok) {
+          setCouponErr(result.userMessage);
+          setCouponCheckoutBusyId(null);
+        }
+      } catch {
+        setCouponErr(
+          lang === "es"
+            ? "No pudimos iniciar el pago del módulo de cupones."
+            : "We could not start coupon module checkout.",
+        );
+        setCouponCheckoutBusyId(null);
+      }
+    },
+    [lang],
+  );
+
+  const openCouponEdit = useCallback(
+    async (row: DashboardRestaurantRow) => {
+      setCouponEditBusyId(row.id);
+      setCouponErr(null);
+      try {
+        const result = await hydrateRestauranteListingForCouponEdit({ listingId: row.id, lang });
+        if (!result.ok) {
+          setCouponErr(result.userMessage);
+          setCouponEditBusyId(null);
+          return;
+        }
+        router.push(
+          restauranteCouponEditHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+            returnPanel: "restaurantes",
+          }),
+        );
+      } catch {
+        setCouponErr(
+          lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
+        );
+        setCouponEditBusyId(null);
+      }
+    },
+    [lang, router],
   );
 
   const previewHref = appendLangToPath("/clasificados/restaurantes/preview", lang);
@@ -332,6 +414,9 @@ export default function DashboardRestaurantesPage() {
         {hydrateErr ? (
           <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{hydrateErr}</p>
         ) : null}
+        {couponErr ? (
+          <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{couponErr}</p>
+        ) : null}
 
         {loading ? <p className="mt-8 text-sm text-[#5C5346]">{t.loading}</p> : null}
         {!loading && rows.length === 0 ? <p className="mt-8 text-sm text-[#5C5346]">{t.empty}</p> : null}
@@ -357,6 +442,57 @@ export default function DashboardRestaurantesPage() {
                   }),
                   lang,
                 );
+                const couponUpgradeEligible = restaurantCouponAddonUpgradeEligible({
+                  status: r.status,
+                  listingJson: r.listing_json,
+                });
+                const couponEditEligible = restaurantCouponEditEligible({
+                  status: r.status,
+                  listingJson: r.listing_json,
+                });
+                const cardActions: Array<{
+                  href?: string;
+                  label: string;
+                  tone?: "primary" | "secondary" | "subtle";
+                  onClick?: () => void;
+                  disabled?: boolean;
+                }> = [
+                  { href: publicHref, label: t.linkPublic, tone: "primary" },
+                  { href: resultsHref, label: t.linkResults, tone: "subtle" },
+                  { href: `/dashboard/analytics?${q}`, label: t.openAnalytics, tone: "subtle" },
+                  { href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" },
+                  { href: publishHref, label: t.linkForm },
+                  {
+                    label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,
+                    onClick: () => void loadIntoForm(r.id),
+                    disabled: hydrateId === r.id,
+                    tone: "primary",
+                  },
+                ];
+                if (couponUpgradeEligible) {
+                  cardActions.push({
+                    label:
+                      couponCheckoutBusyId === r.id
+                        ? restauranteCouponAddonUpgradeBusyLabel(lang)
+                        : restauranteCouponAddonUpgradeLabel(lang),
+                    onClick: () => void startCouponAddonCheckout(r),
+                    disabled: couponCheckoutBusyId === r.id,
+                    tone: "primary",
+                  });
+                }
+                if (couponEditEligible) {
+                  cardActions.push({
+                    label:
+                      couponEditBusyId === r.id
+                        ? lang === "es"
+                          ? "Cargando…"
+                          : "Loading…"
+                        : restauranteCouponEditLabel(lang),
+                    onClick: () => void openCouponEdit(r),
+                    disabled: couponEditBusyId === r.id,
+                    tone: "primary",
+                  });
+                }
                 return (
                   <DashboardCategoryListingCard
                     key={r.id}
@@ -381,19 +517,7 @@ export default function DashboardRestaurantesPage() {
                       { label: t.cardPublished, value: fmt(r.published_at, lang) },
                       { label: t.cardUpdated, value: fmt(r.updated_at, lang) },
                     ]}
-                    actions={[
-                      { href: publicHref, label: t.linkPublic, tone: "primary" },
-                      { href: resultsHref, label: t.linkResults, tone: "subtle" },
-                      { href: `/dashboard/analytics?${q}`, label: t.openAnalytics, tone: "subtle" },
-                      { href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" },
-                      { href: publishHref, label: t.linkForm },
-                      {
-                        label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,
-                        onClick: () => void loadIntoForm(r.id),
-                        disabled: hydrateId === r.id,
-                        tone: "primary",
-                      },
-                    ]}
+                    actions={cardActions}
                   />
                 );
               })}

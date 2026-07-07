@@ -120,10 +120,16 @@ if (!dashboardHelper.includes(".eq(\"owner_user_id\", userId)")) {
   fail("Coupon edit hydrate must filter by owner_user_id");
 }
 if (!dashboardHelper.includes("listingId")) fail("Edit href helper must include listingId");
-if (!dashboardHelper.includes("mode: \"dashboard-edit\"")) {
-  fail("Edit href must include dashboard-edit mode");
+if (
+  !dashboardHelper.includes("mode: \"coupon-edit\"") &&
+  !dashboardHelper.includes("mode: \"dashboard-edit\"")
+) {
+  fail("Edit href must include coupon-edit mode");
 }
-if (!application.includes("mode=dashboard-edit") && !application.includes("dashboard-edit")) {
+if (
+  !application.includes("coupon-edit") &&
+  !application.includes("dashboard-edit")
+) {
   fail("Application must detect dashboard edit context");
 }
 if (!application.includes("dashboard-addon") && !application.includes("dashboardAddon")) {
