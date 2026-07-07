@@ -130,3 +130,5 @@ Purpose:
 **AUGUST_BATCH2_PAGES5_6_WEB_QA_URLS_READY**
 
 **READY FOR CHUY QA AT https://www.leonixmedia.com/magazine/qa/2026-august/page-5-english AND https://www.leonixmedia.com/magazine/qa/2026-august/page-6-english: YES**
+
+Chuy QA decision doc: [`AUGUST-2026-BATCH2-PAGES5-6-CHUY-QA-DECISION.md`](AUGUST-2026-BATCH2-PAGES5-6-CHUY-QA-DECISION.md) · Decisions: Page 5 `APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES` · Page 6 `APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES` · Next gate: `AUGUST-2026-CONTROLLED-ENGLISH-PROOF-BATCH3-PLAN1`

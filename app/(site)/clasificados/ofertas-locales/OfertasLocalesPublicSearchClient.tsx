@@ -415,14 +415,17 @@ export function OfertasLocalesPublicSearchClient({
           </section>
         ) : null}
 
-        {/* Discovery/shortcut section - landing only, using real offerType fields */}
+        {/* Discovery/shortcut section - landing only, using real offerType fields, Rentas/Bienes section rhythm */}
         {!isResults ? (
-          <section className="mb-4 sm:mb-6" aria-labelledby="ofertas-discovery-title">
-            <h2 id="ofertas-discovery-title" className="font-serif text-xl font-bold leading-snug text-[#2A4536] sm:text-2xl">
+          <section
+            className="mb-4 rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] px-4 py-5 sm:mb-6 sm:px-6 sm:py-6"
+            aria-labelledby="ofertas-discovery-title"
+          >
+            <h2 id="ofertas-discovery-title" className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">
               {c.discoveryTitle}
             </h2>
-            <p className="mt-1 text-sm text-[#5C5346]">{c.discoverySubtitle}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p className="mt-1 text-xs text-[#5C5346]/85">{c.discoverySubtitle}</p>
+            <div className="mt-3.5 flex flex-wrap gap-2 sm:gap-2.5">
               <Link
                 href={`${browseAllHref}&offerType=weekly_flyer`}
                 className={OFERTAS_LOCALES_CHIP}
@@ -463,22 +466,6 @@ export function OfertasLocalesPublicSearchClient({
           </section>
         ) : null}
 
-        {/* Landing CTAs - publish only on landing */}
-        {!isResults ? (
-          <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:flex-wrap">
-            <Link href={publishHref} className={`${OFERTAS_LOCALES_BTN_PRIMARY} w-full sm:w-auto`}>
-              {c.publishCta}
-            </Link>
-            {listHasItems ? (
-              <button type="button" className={`${OFERTAS_LOCALES_BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
-                {c.listButton}
-                <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
-                  {shoppingList.counts.itemCount}
-                </span>
-              </button>
-            ) : null}
-          </div>
-        ) : null}
 
         {/* Active filters - Rentas/Bienes style */}
         {hasFilters ? (
@@ -545,11 +532,8 @@ export function OfertasLocalesPublicSearchClient({
           <div id="ofertas-browse" className="mt-4 scroll-mt-24 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
             <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <Link href={publishHref} className={OFERTAS_LOCALES_BTN_PRIMARY}>
-                {c.publishCta}
-              </Link>
-              <Link href={browseAllHref} className={OFERTAS_LOCALES_BTN_SECONDARY}>
+            <div className="mt-3">
+              <Link href={browseAllHref} className="inline-block text-xs font-semibold text-[#B8954A] underline">
                 {c.browseAllDeals}
               </Link>
             </div>
@@ -560,19 +544,13 @@ export function OfertasLocalesPublicSearchClient({
           <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
             <p className="text-sm font-semibold text-[#3D3428]">{c.emptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {hasFilters ? (
-                <button type="button" className={OFERTAS_LOCALES_BTN_SECONDARY} onClick={clearFilters}>
+            {hasFilters ? (
+              <div className="mt-3">
+                <button type="button" className="inline-block text-xs font-semibold text-[#B8954A] underline" onClick={clearFilters}>
                   {c.clearFiltersLink}
                 </button>
-              ) : null}
-              <Link href={publishHref} className={OFERTAS_LOCALES_BTN_PRIMARY}>
-                {c.publishCta}
-              </Link>
-              <Link href={browseAllHref} className={OFERTAS_LOCALES_BTN_SECONDARY}>
-                {c.browseAllDeals}
-              </Link>
-            </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

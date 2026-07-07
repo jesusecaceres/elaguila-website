@@ -121,4 +121,4 @@ Purpose: create clickable Leonixmedia.com QA URLs for pages 5 and 6 so Chuy can 
 
 **READY FOR AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL1: YES**
 
-Web QA URL doc: [`AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL.md`](AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL.md) · QA URLs: `https://www.leonixmedia.com/magazine/qa/2026-august/page-5-english` · `https://www.leonixmedia.com/magazine/qa/2026-august/page-6-english` · Next gate: `AUGUST-2026-BATCH2-PAGES5-6-CHUY-QA-DECISION1`
+Web QA URL doc: [`AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL.md`](AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL.md) · QA URLs: `https://www.leonixmedia.com/magazine/qa/2026-august/page-5-english` · `https://www.leonixmedia.com/magazine/qa/2026-august/page-6-english` · Chuy QA decision locked for Pages 5 and 6 — see [`AUGUST-2026-BATCH2-PAGES5-6-CHUY-QA-DECISION.md`](AUGUST-2026-BATCH2-PAGES5-6-CHUY-QA-DECISION.md) · Next gate: `AUGUST-2026-CONTROLLED-ENGLISH-PROOF-BATCH3-PLAN1`
