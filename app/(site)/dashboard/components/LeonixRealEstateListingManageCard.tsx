@@ -28,6 +28,11 @@ import {
 } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { BrNegocioListingInventoryActions } from "@/app/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions";
 import {
+  bienesListingEditHref,
+  bienesListingPreviewHref,
+  resolveBienesCategoriaFromDetailPairs,
+} from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import {
   isBrInventoryProperty,
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
@@ -144,6 +149,25 @@ export function LeonixRealEstateListingManageCard({
   const st = String(row.status ?? "active").toLowerCase();
   const canPause = st === "active" && row.is_published !== false;
   const canResume = st === "paused" || st === "unpublished";
+
+  const brNegocioDashboardEditHref =
+    effectiveBranch === "bienes_raices_negocio" && isBr
+      ? bienesListingEditHref({
+          lang,
+          listingId: row.id,
+          leonixAdId: row.leonix_ad_id,
+          categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
+        })
+      : scaffoldEditHref(effectiveBranch, lx.categoriaPropiedad);
+  const brNegocioDashboardPreviewHref =
+    effectiveBranch === "bienes_raices_negocio" && isBr
+      ? bienesListingPreviewHref({
+          lang,
+          listingId: row.id,
+          leonixAdId: row.leonix_ad_id,
+          categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
+        })
+      : null;
 
   const publicViewHref =
     (row.category ?? "").toLowerCase() === "rentas"
@@ -267,11 +291,19 @@ export function LeonixRealEstateListingManageCard({
             {publicViewLabel(lang)}
           </Link>
           <Link
-            href={scaffoldEditHref(effectiveBranch, lx.categoriaPropiedad)}
+            href={brNegocioDashboardEditHref}
             className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
           >
             {editListingLabel(lang)}
           </Link>
+          {brNegocioDashboardPreviewHref ? (
+            <Link
+              href={brNegocioDashboardPreviewHref}
+              className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+            >
+              {lang === "es" ? "Vista previa" : "Preview"}
+            </Link>
+          ) : null}
           <button
             type="button"
             disabled={busy || !canPause}

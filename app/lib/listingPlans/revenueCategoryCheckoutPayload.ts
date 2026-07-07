@@ -10,6 +10,7 @@ import {
 import {
   RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+  BR_INVENTORY_PACK_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import { buildDashboardMisAnunciosReturnPath } from "./revenueOsReturnPath";
 
@@ -59,6 +60,13 @@ export const SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
   category: "servicios",
   packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   returnPath: buildDashboardMisAnunciosReturnPath("es", "servicios"),
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+/** Dashboard add-on-only — property inventory pack on an existing published Bienes parent listing ($99/mo). */
+export const BIENES_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
+  category: "bienes-raices",
+  packageKey: BR_INVENTORY_PACK_PACKAGE_KEY,
+  returnPath: buildDashboardMisAnunciosReturnPath("es", "bienes-raices"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
 export type RevenueCheckoutAddOnPayload = {

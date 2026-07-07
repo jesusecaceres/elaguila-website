@@ -61,6 +61,12 @@ import { getQueue, readQueuePrefillForAddMode } from "../../application/brNegoci
 import { applyInventoryDraftToAgenteFormState } from "../../application/brNegocioInventoryQueuePrefill";
 import { setChildInventoryMediaBridge } from "../../application/brNegocioInventoryDraftPersistence";
 import { syncAgenteAddModePreviewHandoff } from "../../application/brNegocioInventoryAddModePreviewHandoff";
+import {
+  bienesListingPreviewHref,
+  hydrateBienesListingForDashboardEdit,
+} from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 function trim(v: unknown): string {
   return v == null ? "" : typeof v === "string" ? v.trim() : String(v).trim();
@@ -74,6 +80,26 @@ export default function AgenteIndividualResidencialApplication() {
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],
   );
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
+  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const listingIdentity = Boolean(editListingId || editListingSlug || editLeonixAdId);
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const dashboardMode = searchParams?.get("mode") ?? "";
+  const focusInventoryPack = searchParams?.get("focus") === "inventory-pack";
+  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
+  const isDashboardInventoryEditMode = dashboardSource && dashboardMode === "inventory-edit" && listingIdentity;
+  const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
+  const dashboardReturnHref = appendLangToPath(
+    buildDashboardMisAnunciosReturnPath(lang, "bienes-raices"),
+    lang,
+  );
+  const [editHydration, setEditHydration] = useState<
+    { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
+  >({ status: "idle" });
+  const dashboardHydratedRef = useRef(false);
   const [parentMeta, setParentMeta] = useState<{ leonix_ad_id: string | null; title: string | null } | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
@@ -96,6 +122,7 @@ export default function AgenteIndividualResidencialApplication() {
   }, [inventoryAdd.context]);
 
   useLayoutEffect(() => {
+    if (isExistingDashboardListingMode) return;
     let boot = bootstrapAgenteIndividualResidencialApplicationState();
     boot = applyBrNegocioBranchQuery(boot, searchParams);
 
@@ -118,7 +145,31 @@ export default function AgenteIndividualResidencialApplication() {
       addModePreviewSyncedRef.current = true;
     }
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
-  }, []);
+  }, [isExistingDashboardListingMode]);
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !editListingId || dashboardHydratedRef.current) return;
+    dashboardHydratedRef.current = true;
+    setEditHydration({ status: "loading" });
+    void hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang }).then((result) => {
+      if (!result.ok) {
+        setEditHydration({ status: "error", message: result.userMessage });
+        return;
+      }
+      const boot = bootstrapAgenteIndividualResidencialApplicationState();
+      setState(boot);
+      void rehydrateAgenteResDraftMediaFromIdb(boot).then((resolved) => {
+        setState(resolved);
+        setEditHydration({ status: "idle" });
+      });
+    });
+  }, [editListingId, isExistingDashboardListingMode, lang]);
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode) return;
+    if (!focusInventoryPack && !isDashboardInventoryEditMode && !isDashboardInventoryAddonMode) return;
+    setStep(9);
+  }, [focusInventoryPack, isDashboardInventoryEditMode, isDashboardInventoryAddonMode, isExistingDashboardListingMode]);
 
   useEffect(() => {
     if (addModePreviewSyncedRef.current) return;
@@ -194,9 +245,39 @@ export default function AgenteIndividualResidencialApplication() {
         previewQs.set("inventoryGroupId", inventoryAdd.context.brInventoryGroupId.trim());
       }
     }
-    const previewPath = previewQs.toString() ? `${BR_PREVIEW_NEGOCIO}?${previewQs.toString()}` : BR_PREVIEW_NEGOCIO;
+    const previewPath = isExistingDashboardListingMode
+      ? bienesListingPreviewHref({
+          lang,
+          listingId: editListingId || null,
+          listingSlug: editListingSlug || null,
+          leonixAdId: editLeonixAdId || null,
+          mode: isDashboardInventoryEditMode
+            ? "inventory-edit"
+            : isDashboardInventoryAddonMode
+              ? "inventory-addon"
+              : "listing-edit",
+          focus: focusInventoryPack ? "inventory-pack" : null,
+          categoriaPropiedad: state.categoriaPropiedad,
+        })
+      : previewQs.toString()
+        ? `${BR_PREVIEW_NEGOCIO}?${previewQs.toString()}`
+        : BR_PREVIEW_NEGOCIO;
     router.push(withBrAgenteResLangParam(previewPath, lang));
-  }, [router, state, lang, confirmAll, inventoryAdd.context, inventoryAdd.inventoryModeAdd]);
+  }, [
+    confirmAll,
+    editLeonixAdId,
+    editListingId,
+    editListingSlug,
+    focusInventoryPack,
+    inventoryAdd.context,
+    inventoryAdd.inventoryModeAdd,
+    isDashboardInventoryAddonMode,
+    isDashboardInventoryEditMode,
+    isExistingDashboardListingMode,
+    lang,
+    router,
+    state,
+  ]);
 
   const nav = useMemo(
     () => (
@@ -257,6 +338,29 @@ export default function AgenteIndividualResidencialApplication() {
     [step, stepLabels, t.app.navPasos, total]
   );
 
+  if (isExistingDashboardListingMode && editHydration.status === "loading") {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-16">
+        <p className="text-sm font-semibold text-[#5D4A25]" role="status">
+          {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio publicado…"}
+        </p>
+      </main>
+    );
+  }
+
+  if (isExistingDashboardListingMode && editHydration.status === "error") {
+    return (
+      <main className="mx-auto max-w-6xl px-4 py-16">
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">
+          {editHydration.message}
+        </p>
+        <a href={dashboardReturnHref} className="mt-4 inline-block text-sm font-semibold underline">
+          {lang === "en" ? "← Back to dashboard" : "← Volver al panel"}
+        </a>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#F6F0E2] pb-24 pt-24 text-[#2C2416] sm:pb-20 sm:pt-28">
       <div className="mx-auto max-w-6xl px-3 sm:px-4">
@@ -297,20 +401,32 @@ export default function AgenteIndividualResidencialApplication() {
                   {lang === "es" ? "Volver al anuncio principal" : "Back to main listing"}
                 </button>
               ) : null}
-              <button
-                type="button"
-                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
-                onClick={() => leaveAndGo(BR_PUBLICAR_HUB)}
-              >
-                {t.app.cambiarCanal}
-              </button>
-              <button
-                type="button"
-                className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-3 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
-                onClick={() => leaveAndGo(BR_CATEGORY_HOME)}
-              >
-                {t.app.verCategoria}
-              </button>
+              {isExistingDashboardListingMode ? (
+                <button
+                  type="button"
+                  className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
+                  onClick={() => leaveAndGo(dashboardReturnHref)}
+                >
+                  {lang === "en" ? "← Back to dashboard" : "← Volver al panel"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
+                    onClick={() => leaveAndGo(BR_PUBLICAR_HUB)}
+                  >
+                    {t.app.cambiarCanal}
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-3 text-sm font-semibold text-[#6E5418] hover:bg-[#FFEFD8] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
+                    onClick={() => leaveAndGo(BR_CATEGORY_HOME)}
+                  >
+                    {t.app.verCategoria}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -60,6 +60,10 @@ import {
   type BrNegocioInventoryBridgeView,
 } from "../../application/brNegocioInventoryPostPublishFlow";
 import { publishBrAgenteInventoryBundlePendingRows } from "../../application/brNegocioInventoryBundlePendingPublish";
+import {
+  bienesBackToEditHrefFromPreview,
+  hydrateBienesListingForDashboardEdit,
+} from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
@@ -72,6 +76,17 @@ export default function AgenteIndividualResidencialPreviewClient() {
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],
   );
+  const previewListingParam = searchParams?.get("preview") === "listing";
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const listingIdParam = searchParams?.get("listingId")?.trim() ?? "";
+  const listingSlugParam = searchParams?.get("listingSlug")?.trim() ?? "";
+  const leonixAdIdParam = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const previewMode = searchParams?.get("mode") ?? "";
+  const previewFocus = searchParams?.get("focus") === "inventory-pack" ? "inventory-pack" : null;
+  const listingBoundPreview =
+    previewListingParam || (dashboardSource && Boolean(listingIdParam || listingSlugParam || leonixAdIdParam));
+  const backToEditMode: "listing-edit" | "inventory-edit" | "inventory-addon" =
+    previewMode === "inventory-edit" || previewMode === "inventory-addon" ? previewMode : "listing-edit";
   const inventoryCtx = useMemo(() => {
     const ctx = inventoryAdd.context ?? readBrInventoryAddContextFromSession();
     if (!ctx) return null;
@@ -98,10 +113,19 @@ export default function AgenteIndividualResidencialPreviewClient() {
   }, [inventoryAdd.context]);
 
   useEffect(() => {
+    if (listingBoundPreview && listingIdParam) {
+      void hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang }).then((result) => {
+        if (!result.ok) return;
+        void loadAgenteResPreviewDraftResolved().then((loaded) => {
+          if (loaded) setData(loaded);
+        });
+      });
+      return;
+    }
     void loadAgenteResPreviewDraftResolved().then((loaded) => {
       if (loaded) setData(loaded);
     });
-  }, []);
+  }, [lang, listingBoundPreview, listingIdParam]);
 
   useEffect(() => {
     const parentId = inventoryCtx?.parentListingId;
@@ -119,6 +143,17 @@ export default function AgenteIndividualResidencialPreviewClient() {
   }, [inventoryCtx?.parentListingId]);
 
   const editHref = useMemo(() => {
+    if (listingBoundPreview && (listingIdParam || listingSlugParam || leonixAdIdParam)) {
+      return bienesBackToEditHrefFromPreview({
+        lang,
+        listingId: listingIdParam || null,
+        listingSlug: listingSlugParam || null,
+        leonixAdId: leonixAdIdParam || null,
+        mode: backToEditMode,
+        focus: previewFocus,
+        categoriaPropiedad: data.categoriaPropiedad,
+      });
+    }
     const qs = new URLSearchParams();
     qs.set(BR_NEGOCIO_Q_PROPIEDAD, data.categoriaPropiedad);
     if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
@@ -132,7 +167,18 @@ export default function AgenteIndividualResidencialPreviewClient() {
       }
     }
     return withBrAgenteResLangParam(`${BR_PUBLICAR_NEGOCIO}?${qs.toString()}`, lang);
-  }, [data.categoriaPropiedad, inventoryAdd.context, inventoryAdd.inventoryModeAdd, lang]);
+  }, [
+    backToEditMode,
+    data.categoriaPropiedad,
+    inventoryAdd.context,
+    inventoryAdd.inventoryModeAdd,
+    lang,
+    leonixAdIdParam,
+    listingBoundPreview,
+    listingIdParam,
+    listingSlugParam,
+    previewFocus,
+  ]);
 
   const needsNegocioPayment = !inventoryCtx && brPublishPaymentRequired("negocio");
 
@@ -165,6 +211,14 @@ export default function AgenteIndividualResidencialPreviewClient() {
   }, [childInventoryCount, inventoryCtx, lang, needsNegocioPayment]);
 
   const onPublishLive = useCallback(async () => {
+    if (listingBoundPreview) {
+      setPublishErr(
+        lang === "es"
+          ? "Para actualizar un anuncio publicado, vuelve a editar y guarda los cambios desde el formulario."
+          : "To update a published listing, go back to edit and save changes from the application form.",
+      );
+      return;
+    }
     const st = (await loadAgenteResPreviewDraftResolved()) ?? data;
     if (!st) return;
     setPublishBusy(true);
