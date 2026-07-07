@@ -53,9 +53,9 @@ import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const SECTION_ANCHOR = "scroll-mt-24";
 const CHIP =
-  "inline-flex shrink-0 items-center rounded-full border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0]";
+  "inline-flex min-h-9 shrink-0 items-center rounded-full border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0] sm:px-3 sm:py-2 sm:text-xs";
 const STICKY_ACTION =
-  "flex min-h-11 min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-semibold text-[#1E1814] transition hover:bg-[#FDF8F0]";
+  "flex min-h-10 min-w-[40px] flex-1 flex-col items-center justify-center gap-0 rounded-md px-0.5 py-1 text-[9px] font-semibold leading-tight text-[#1E1814] transition hover:bg-[#FDF8F0] sm:min-h-11 sm:min-w-[44px] sm:gap-0.5 sm:rounded-lg sm:px-1 sm:py-1.5 sm:text-[10px]";
 const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-sm";
 const BTN_PRIMARY =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
@@ -172,16 +172,16 @@ function PreviewSectionNav({ items, lang }: { items: SectionNavItem[]; lang: Ofe
   if (items.length === 0) return null;
   return (
     <nav
-      className="mb-6 lg:hidden"
+      className="mb-3 lg:hidden"
       aria-label={lang === "en" ? c.sectionNavAriaEn : c.sectionNavAriaEs}
     >
       <LeonixMobileScrollRail
         lang={lang}
         desktopMode="none"
         showRailDots={false}
+        showScrollControls={false}
         ariaLabel={lang === "en" ? c.sectionNavAriaEn : c.sectionNavAriaEs}
         label={lang === "en" ? c.goToSectionEn : c.goToSectionEs}
-        swipeHint={lang === "en" ? c.swipeEn : c.swipeEs}
       >
         {items.map((item) => (
           <a key={item.id} href={`#${item.id}`} className={CHIP}>
@@ -211,16 +211,16 @@ function HubCollapsibleGroup({
     <div {...(id ? { id } : {})} className={SECTION_ANCHOR}>
       {/* Mobile: collapsible group */}
       <details
-        className="rounded-xl border border-[#E8D9C4]/60 bg-[#FFFCF7]/50 p-4 lg:hidden"
+        className="rounded-lg border border-[#E8D9C4]/50 bg-[#FFFCF7]/50 p-2.5 lg:hidden lg:rounded-xl lg:p-4"
         open={defaultOpen}
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 py-0.5 [&::-webkit-details-marker]:hidden">
           <span className={HUB_SECTION}>{title}</span>
-          <span className="text-[10px] font-medium text-[#1E1814]/45">
+          <span className="text-[9px] font-medium text-[#1E1814]/40 sm:text-[10px] sm:text-[#1E1814]/45">
             {lang === "en" ? c.openSectionEn : c.openSectionEs}
           </span>
         </summary>
-        <div className="mt-3">{children}</div>
+        <div className="mt-2 sm:mt-3">{children}</div>
       </details>
       {/* Desktop: always open, Gate 1 premium grid cell */}
       <div className="hidden lg:block">
@@ -254,15 +254,16 @@ function MobileStickyActionBar({
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#D4C4A8]/80 bg-[#FFFCF7]/95 px-2 py-2 shadow-[0_-4px_20px_rgba(30,24,20,0.08)] backdrop-blur-sm lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#D4C4A8]/70 bg-[#FFFCF7]/96 px-1 py-1 shadow-[0_-2px_12px_rgba(30,24,20,0.06)] backdrop-blur-sm lg:hidden"
+      style={{ paddingBottom: "max(0.25rem, env(safe-area-inset-bottom, 0px))" }}
       role="region"
       aria-label={lang === "en" ? c.quickActionsEn : c.quickActionsEs}
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around gap-1">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around gap-0.5">
         {heroHref ? (
           <a href={heroHref} target="_blank" rel="noopener noreferrer" className={STICKY_ACTION}>
-            <FiGlobe className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
-            <span>{flyerLabel}</span>
+            <FiGlobe className="h-4 w-4 text-[#7A1E2C] sm:h-5 sm:w-5" aria-hidden />
+            <span className="max-w-[4.5rem] truncate">{flyerLabel}</span>
           </a>
         ) : null}
         {directionsHref ? (
@@ -273,13 +274,13 @@ function MobileStickyActionBar({
             className={STICKY_ACTION}
             aria-label={lang === "en" ? c.directions : c.directionsEs}
           >
-            <FiMapPin className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
-            <span>{lang === "en" ? c.directions : c.directionsEs}</span>
+            <FiMapPin className="h-4 w-4 text-[#7A1E2C] sm:h-5 sm:w-5" aria-hidden />
+            <span className="max-w-[4.5rem] truncate">{lang === "en" ? c.directions : c.directionsEs}</span>
           </a>
         ) : null}
         {telHref ? (
           <a href={telHref} className={STICKY_ACTION} aria-label={lang === "en" ? c.call : c.callEs}>
-            <FiPhone className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
+            <FiPhone className="h-4 w-4 text-[#7A1E2C] sm:h-5 sm:w-5" aria-hidden />
             <span>{lang === "en" ? c.call : c.callEs}</span>
           </a>
         ) : null}
@@ -291,13 +292,13 @@ function MobileStickyActionBar({
             className={STICKY_ACTION}
             aria-label={c.whatsapp}
           >
-            <FaWhatsapp className="h-5 w-5 text-[#25D366]" aria-hidden />
-            <span>{c.whatsapp}</span>
+            <FaWhatsapp className="h-4 w-4 text-[#25D366] sm:h-5 sm:w-5" aria-hidden />
+            <span className="max-w-[4.5rem] truncate">{c.whatsapp}</span>
           </a>
         ) : null}
         <button type="button" className={STICKY_ACTION} onClick={onShare} aria-label={lang === "en" ? c.shareEn : c.shareEs}>
-          <FiShare2 className="h-5 w-5 text-[#7A1E2C]" aria-hidden />
-          <span>
+          <FiShare2 className="h-4 w-4 text-[#7A1E2C] sm:h-5 sm:w-5" aria-hidden />
+          <span className="max-w-[4.5rem] truncate">
             {shareCopied
               ? lang === "en"
                 ? c.shareCopiedEn
@@ -362,15 +363,15 @@ function PreviewBusinessHub({
   const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasBusiness);
 
   return (
-    <section className={cx(CARD, "mt-8 p-5 sm:p-6")}>
-      <h2 className="font-serif text-xl font-semibold text-[#1E1814]">
+    <section className={cx(CARD, "mt-6 p-3 sm:p-5 lg:mt-8 lg:p-6")}>
+      <h2 className="font-serif text-lg font-semibold text-[#1E1814] sm:text-xl">
         {lang === "en" ? c.businessHubEn : c.businessHubEs}
       </h2>
-      <p className="mt-1 text-xs text-[#1E1814]/55">
+      <p className="mt-0.5 text-[11px] text-[#1E1814]/50 sm:mt-1 sm:text-xs sm:text-[#1E1814]/55">
         {lang === "en" ? c.businessHubSubtitleEn : c.businessHubSubtitleEs}
       </p>
 
-      <div className="mt-6 space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+      <div className="mt-3 space-y-2 sm:mt-6 sm:space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
         {hasContact ? (
           <HubCollapsibleGroup
             id="contacto"
@@ -675,12 +676,12 @@ export function OfertasLocalesPreviewCard({
         as="div"
         maxWidth="preview"
         background="ivory"
-        safeBottom
+        safeBottom="compact"
         className="min-h-screen"
-        containerClassName="py-6 lg:py-10"
+        containerClassName="py-4 sm:py-6 lg:py-10"
       >
         {/* 1. Preview notice — compact owner cue */}
-        <div className="mb-5 flex items-center justify-center gap-2 rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/[0.04] px-3 py-2 text-center">
+        <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-[#7A1E2C]/20 bg-[#7A1E2C]/[0.04] px-2.5 py-1.5 text-center sm:mb-5 sm:px-3 sm:py-2">
           <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#7A1E2C]/60" aria-hidden />
           <p className="text-xs font-medium text-[#7A1E2C]">
             {lang === "en" ? c.previewNoticeEn : c.previewNoticeEs}
@@ -697,23 +698,20 @@ export function OfertasLocalesPreviewCard({
         />
 
         {/* 2. Page header */}
-        <header className="mb-8 min-w-0 text-center lg:text-left">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#B8860B]">Leonix</p>
-          <h1 className="mt-2 break-words font-serif text-[1.75rem] font-bold leading-tight text-[#7A1E2C] sm:text-4xl">
+        <header className="mb-4 min-w-0 text-center lg:mb-8 lg:text-left">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#B8860B] sm:text-xs">Leonix</p>
+          <h1 className="mt-1.5 break-words font-serif text-[1.6rem] font-bold leading-snug text-[#7A1E2C] sm:mt-2 sm:text-4xl sm:leading-tight">
             {lang === "en" ? c.pageTitleEn : c.pageTitleEs}
           </h1>
-          <p className="mx-auto mt-2 max-w-2xl break-words text-sm text-[#1E1814]/65 lg:mx-0">
+          <p className="mx-auto mt-1.5 max-w-xs break-words text-xs leading-relaxed text-[#1E1814]/55 sm:mt-2 sm:max-w-2xl sm:text-sm sm:text-[#1E1814]/65 lg:mx-0">
             {lang === "en" ? c.pageSubtitleEn : c.pageSubtitleEs}
           </p>
-          <span className="mt-2 inline-flex items-center rounded-full border border-[#C9A84A]/40 bg-[#FFFBF0]/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#7A5C12] lg:hidden">
-            {lang === "en" ? c.mobileOptimizedEn : c.mobileOptimizedEs}
-          </span>
         </header>
 
         <PreviewSectionNav items={sectionNavItems} lang={lang} />
 
         {/* Hero: flyer + offer + desktop live actions */}
-        <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-12 lg:gap-8">
           {/* Flyer visual */}
           <div id="volante" className={cx(SECTION_ANCHOR, "lg:col-span-5")}>
             <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} compactMobile />
@@ -721,7 +719,7 @@ export function OfertasLocalesPreviewCard({
 
           {/* Business + offer + primary CTAs */}
           <div id="oferta" className={cx(SECTION_ANCHOR, "lg:col-span-4")}>
-            <div className={cx(CARD, "h-full p-5 sm:p-6")}>
+            <div className={cx(CARD, "h-full p-4 sm:p-5 lg:p-6")}>
               <div className="flex flex-wrap gap-2">
                 {primaryFormatLabel ? (
                   <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-semibold text-[#7A1E2C]">
@@ -745,7 +743,7 @@ export function OfertasLocalesPreviewCard({
                   {draft.businessName}
                 </p>
               ) : null}
-              <h2 className="mt-1 font-serif text-xl font-bold leading-snug text-[#1E1814] sm:text-2xl">
+              <h2 className="mt-1 font-serif text-lg font-bold leading-snug text-[#1E1814] sm:text-xl lg:text-2xl">
                 {draft.title.trim() || defaultOfferTitle}
               </h2>
 
@@ -811,7 +809,7 @@ export function OfertasLocalesPreviewCard({
               </p>
 
               {/* Primary shopper CTAs — mobile: view offer + share; desktop: full set */}
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-2 sm:mt-5 sm:gap-2">
                 {heroAsset?.href ? (
                   <ContactButton
                     href={heroAsset.href}

@@ -45,9 +45,9 @@ function formatDrawerPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLo
 }
 
 const BTN_PRIMARY =
-  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 sm:w-auto";
+  "inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 sm:min-h-11 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm lg:w-auto";
 const BTN_OUTLINE =
-  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#D4C4A8]/80 bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] sm:w-auto";
+  "inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-[#D4C4A8]/80 bg-[#FFFCF7] px-3 py-2 text-xs font-medium text-[#1E1814] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] sm:min-h-11 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm lg:w-auto";
 
 export function OfertasLocalesProductDetailDrawer({
   item,
@@ -151,6 +151,7 @@ export function OfertasLocalesProductDetailDrawer({
       title={lang === "en" ? c.productDetailsEn : c.productDetailsEs}
       ariaLabel={lang === "en" ? c.productDetailsEn : c.productDetailsEs}
       closeLabel={lang === "en" ? c.closeSectionEn : c.closeSectionEs}
+      contentClassName="pb-[max(3.5rem,env(safe-area-inset-bottom))] sm:pb-[max(2rem,env(safe-area-inset-bottom))]"
     >
           <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-white shadow-sm">
             {showCropImage ? (
@@ -159,7 +160,7 @@ export function OfertasLocalesProductDetailDrawer({
                 <img
                   src={cropUrl!}
                   alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
-                  className="mx-auto max-h-44 w-full rounded-lg object-contain"
+                  className="mx-auto max-h-36 w-full rounded-lg object-contain sm:max-h-44"
                   loading="lazy"
                   decoding="async"
                   onError={() => setCropLoadFailed(true)}
@@ -249,7 +250,7 @@ export function OfertasLocalesProductDetailDrawer({
             </p>
           ) : null}
 
-          <h3 className="mt-1.5 font-serif text-lg font-semibold leading-snug text-[#1E1814] sm:text-xl">
+          <h3 className="mt-1 font-serif text-base font-semibold leading-snug text-[#1E1814] sm:mt-1.5 sm:text-lg lg:text-xl">
             {title || (lang === "en" ? c.productFallbackEn : c.productFallbackEs)}
           </h3>
 
@@ -339,14 +340,14 @@ export function OfertasLocalesProductDetailDrawer({
             </div>
           ) : null}
 
-          <div className="mt-6 space-y-2">
+          <div className="mt-4 space-y-1.5 sm:mt-6 sm:space-y-2">
             {heroHref ? (
               <a href={heroHref} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
-                <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                <FiExternalLink className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
                 {heroLabel || (lang === "en" ? c.viewFullFlyerEn : c.viewFullFlyerEs)}
               </a>
             ) : null}
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <button type="button" className={BTN_OUTLINE} onClick={() => void handleShare()}>
                 <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
                 {shareCopied
@@ -384,7 +385,7 @@ export function OfertasLocalesProductDetailDrawer({
           </div>
 
           {/* Neutralized future roadmap — non-interactive info only (no live-looking buttons). */}
-          <div className="mt-5 rounded-lg border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-3">
+          <div className="mt-4 rounded-lg border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-2.5 sm:mt-5 sm:p-3">
             <p className="flex items-start gap-1.5 text-xs font-medium leading-relaxed text-[#1E1814]/60">
               <FiLock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
               {lang === "en" ? c.comingSoonListsRoutesEn : c.comingSoonListsRoutesEs}

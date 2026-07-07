@@ -14,7 +14,7 @@ type LeonixResponsiveShellProps = {
   children: ReactNode;
   className?: string;
   containerClassName?: string;
-  safeBottom?: boolean;
+  safeBottom?: boolean | "compact";
   maxWidth?: "preview" | "wide" | "narrow";
   background?: "ivory" | "transparent";
   as?: "main" | "div";
@@ -41,9 +41,12 @@ export function LeonixResponsiveShell({
   as = "div",
 }: LeonixResponsiveShellProps) {
   const Outer = as;
-  const safeBottomClass = safeBottom
-    ? "pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-20"
-    : "";
+  const safeBottomClass =
+    safeBottom === "compact"
+      ? "pb-[calc(3.25rem+env(safe-area-inset-bottom))] lg:pb-20"
+      : safeBottom
+        ? "pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-20"
+        : "";
 
   return (
     <Outer className={`w-full overflow-x-hidden ${BACKGROUND[background]} ${className}`.trim()}>

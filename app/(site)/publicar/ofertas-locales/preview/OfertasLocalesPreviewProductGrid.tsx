@@ -151,19 +151,19 @@ function ProductCard({
   }, [item.id]);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md">
+    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md sm:rounded-xl">
       <button
         type="button"
         className="flex flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/35 focus-visible:ring-offset-2"
         onClick={() => onOpenDetail(item)}
       >
         {showCropImage ? (
-          <div className="border-b border-[#E8D9C4]/50 bg-[#FDF8F0]/60 p-2">
+          <div className="border-b border-[#E8D9C4]/50 bg-[#FDF8F0]/60 p-1.5 sm:p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={cropUrl!}
               alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
-              className="mx-auto h-28 w-full rounded-lg object-contain lg:h-24"
+              className="mx-auto h-24 w-full rounded-lg object-contain lg:h-24"
               loading="lazy"
               decoding="async"
               onError={() => setCropLoadFailed(true)}
@@ -215,8 +215,8 @@ function ProductCard({
             ) : null}
           </div>
         )}
-        <div className="flex flex-1 flex-col p-3">
-          <div className="mb-2.5 flex flex-wrap gap-1.5">
+        <div className="flex flex-1 flex-col p-2.5 sm:p-3">
+          <div className="mb-2 flex flex-wrap gap-1 sm:mb-2.5 sm:gap-1.5">
             {item.category ? (
               <span className="rounded-full border border-[#D4C4A8]/80 bg-[#FDF8F0] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/70">
                 {item.category}
@@ -254,7 +254,7 @@ function ProductCard({
           ) : null}
         </div>
       </button>
-      <div className="border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/30 px-3 pb-3 pt-2">
+      <div className="border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/30 px-2.5 pb-2.5 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2">
         <button type="button" className={BTN_DETAIL} onClick={() => onOpenDetail(item)}>
           <FiEye className="h-4 w-4 shrink-0" aria-hidden />
           <span>{lang === "en" ? c.viewDetailsEn : c.viewDetailsEs}</span>
@@ -373,14 +373,14 @@ export function OfertasLocalesPreviewProductGrid({
     <>
       <section
         id="productos"
-        className={`${SECTION_ANCHOR} mt-8 overflow-hidden rounded-2xl border border-[#D4C4A8]/70 bg-[#FFFCF7] p-5 shadow-sm sm:p-6`}
+        className={`${SECTION_ANCHOR} mt-6 overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-[#FFFCF7] p-3 shadow-sm sm:mt-8 sm:rounded-2xl sm:p-5 lg:p-6`}
       >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between sm:gap-2">
           <div>
-            <h2 className="font-serif text-xl font-semibold text-[#1E1814]">
+            <h2 className="font-serif text-lg font-semibold text-[#1E1814] sm:text-xl">
               {lang === "en" ? c.flyerProductsEn : c.flyerProductsEs}
             </h2>
-            <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">
+            <p className="mt-0.5 text-[11px] leading-relaxed text-[#1E1814]/50 sm:mt-1 sm:text-xs sm:text-[#1E1814]/55">
               {lang === "en" ? c.productsApprovedNoteEn : c.productsApprovedNoteEs}
             </p>
           </div>
@@ -393,11 +393,11 @@ export function OfertasLocalesPreviewProductGrid({
         </div>
 
         {!loading && items.length > 0 ? (
-          <div className="mt-5 rounded-2xl border border-[#D4C4A8]/60 bg-gradient-to-b from-[#FDF8F0]/80 to-white p-4 sm:p-5">
+          <div className="mt-3 space-y-3 sm:mt-5 sm:rounded-2xl sm:border sm:border-[#D4C4A8]/60 sm:bg-gradient-to-b sm:from-[#FDF8F0]/80 sm:to-white sm:p-5">
             <label className="relative block">
               <span className="sr-only">{lang === "en" ? c.searchProductsEn : c.searchProductsEs}</span>
               <FiSearch
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B8860B]"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B8860B]"
                 aria-hidden
               />
               <input
@@ -405,28 +405,28 @@ export function OfertasLocalesPreviewProductGrid({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === "en" ? c.searchProductsEn : c.searchProductsEs}
-                className="min-h-11 w-full rounded-lg border border-[#D4C4A8]/80 bg-white py-2.5 pl-10 pr-4 text-sm text-[#1E1814] shadow-sm placeholder:text-[#1E1814]/40 focus:border-[#7A1E2C]/50 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/15"
+                className="min-h-10 w-full rounded-lg border border-[#D4C4A8]/80 bg-white py-2 pl-9 pr-3 text-sm text-[#1E1814] shadow-sm placeholder:text-[#1E1814]/40 focus:border-[#7A1E2C]/50 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/15 sm:min-h-11 sm:py-2.5 sm:pl-10 sm:pr-4"
               />
             </label>
 
             {categories.length > 0 ? (
-              <div className="mt-4">
-                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
-                  <FiFilter className="h-3.5 w-3.5 text-[#B8860B]" aria-hidden />
+              <div>
+                <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-[#1E1814]/45 sm:text-[10px] sm:text-[#1E1814]/50">
+                  <FiFilter className="h-3 w-3 text-[#B8860B] sm:h-3.5 sm:w-3.5" aria-hidden />
                   {lang === "en" ? c.filterProductsEn : c.filterProductsEs}
                 </p>
                 <LeonixMobileScrollRail
                   lang={lang}
                   desktopMode="wrap"
                   showRailDots={false}
-                  className="mt-2.5"
+                  showScrollControls={false}
+                  className="mt-1.5 sm:mt-2.5"
                   ariaLabel={lang === "en" ? c.filterProductsEn : c.filterProductsEs}
-                  swipeHint={lang === "en" ? c.swipeEn : c.swipeEs}
                 >
                   <button
                     type="button"
                     onClick={() => setSelectedCategory("all")}
-                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 ${
+                    className={`min-h-9 shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 sm:px-3 sm:py-1.5 sm:text-xs ${
                       selectedCategory === "all" ? CHIP_ACTIVE : CHIP_INACTIVE
                     }`}
                   >
@@ -437,7 +437,7 @@ export function OfertasLocalesPreviewProductGrid({
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 ${
+                      className={`min-h-9 shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 sm:px-3 sm:py-1.5 sm:text-xs ${
                         selectedCategory === cat ? CHIP_ACTIVE : CHIP_INACTIVE
                       }`}
                     >
@@ -448,7 +448,7 @@ export function OfertasLocalesPreviewProductGrid({
               </div>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8D9C4]/50 pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E8D9C4]/40 pt-2.5 sm:gap-3 sm:pt-3">
               <p className="text-xs leading-relaxed text-[#1E1814]/55">
                 {lang === "en" ? c.showingEn : c.showingEs}{" "}
                 <span className="font-bold text-[#7A1E2C]">{visibleItems.length}</span>{" "}
@@ -511,7 +511,7 @@ export function OfertasLocalesPreviewProductGrid({
           </div>
         ) : (
           <>
-            <div className="mt-6 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-4 lg:grid-cols-3 xl:grid-cols-4">
               {visibleItems.map((item) => (
                 <ProductCard
                   key={item.id}

@@ -11,11 +11,11 @@ import { OfertasLocalesPdfFlyerPreview } from "./OfertasLocalesPdfFlyerPreview";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const CARD =
-  "overflow-hidden rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-md ring-1 ring-[#D4C4A8]/30";
+  "overflow-hidden rounded-xl border border-[#D4C4A8]/80 bg-white shadow-sm ring-1 ring-[#D4C4A8]/20 sm:rounded-2xl sm:shadow-md sm:ring-[#D4C4A8]/30";
 const BTN_PRIMARY =
-  "inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926]";
+  "inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6a1926] sm:min-h-11 sm:px-4 sm:py-2.5 sm:text-sm";
 const BTN_OUTLINE =
-  "inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-semibold text-[#7A1E2C] hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]";
+  "inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-[#D4C4A8] bg-[#FFFCF7] px-3 py-2 text-xs font-semibold text-[#7A1E2C] hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] sm:min-h-11 sm:px-4 sm:py-2.5 sm:text-sm";
 
 export function OfertasLocalesPreviewHeroVisual({
   draft,
@@ -42,19 +42,23 @@ export function OfertasLocalesPreviewHeroVisual({
       : null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       {laneLabel ? (
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#B8860B]">{laneLabel}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#B8860B] sm:text-xs">{laneLabel}</p>
       ) : null}
 
       <div className={CARD}>
         {heroAsset?.href && heroAsset.isImage ? (
-          <div className="bg-[#FDF8F0]/80 p-2 sm:p-3">
+          <div className="bg-[#FDF8F0]/80 p-1.5 sm:p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={heroAsset.href}
               alt={heroAsset.fileName}
-              className="mx-auto max-h-[420px] w-full rounded-lg object-contain sm:max-h-[480px] lg:max-h-[520px]"
+              className={`mx-auto w-full rounded-lg object-contain ${
+                compactMobile
+                  ? "max-h-[300px] sm:max-h-[480px] lg:max-h-[520px]"
+                  : "max-h-[420px] sm:max-h-[480px] lg:max-h-[520px]"
+              }`}
             />
           </div>
         ) : heroAsset?.href && heroAsset.isPdf ? (
@@ -62,6 +66,7 @@ export function OfertasLocalesPreviewHeroVisual({
             pdfUrl={heroAsset.href}
             lang={lang}
             fileName={heroAsset.fileName}
+            compactMobile={compactMobile}
           />
         ) : heroAsset ? (
           <div className="flex flex-col items-center justify-center bg-[#FDF8F0]/80 px-6 py-16 text-center">
@@ -91,7 +96,7 @@ export function OfertasLocalesPreviewHeroVisual({
         <div
           className={
             compactMobile
-              ? "grid grid-cols-2 gap-2 lg:grid-cols-1"
+              ? "grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-2 lg:grid-cols-1 lg:gap-2"
               : "grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
           }
         >

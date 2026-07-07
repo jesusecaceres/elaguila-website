@@ -86,6 +86,10 @@ const FAKE_STRINGS = [
   "order online",
   "open now",
   "best route",
+  "agregar a mi lista",
+  "guardar cupón",
+  "guardar cupon",
+  "mi lista",
 ];
 
 function read(rel) {
@@ -181,6 +185,7 @@ function run() {
     audit.includes("Global Mobile/PWA Foundation V1"),
     "Global Mobile/PWA Foundation V1 section"
   );
+  assert.ok(audit.includes("Ofertas Mobile Density V1"), "Ofertas Mobile Density V1 section");
   assert.ok(audit.includes("TRUE/FALSE"), "Audit table");
   assert.ok(audit.includes("READY TO COMMIT THIS BUILD ONLY"), "Commit flag");
 
@@ -332,6 +337,34 @@ function run() {
     "Preview card future roadmap neutralized to info copy"
   );
   assert.ok(!drawer.includes("BTN_DISABLED"), "No disabled future CTA buttons in drawer");
+
+  // Gate — Ofertas Mobile Density V1 (390px polish)
+  assert.ok(
+    pdfPreview.includes("compactMobile") || hero.includes("compactMobile"),
+    "Mobile compact flyer mode referenced"
+  );
+  assert.ok(
+    previewCard.includes('safeBottom="compact"') || previewCard.includes("safeBottom={'compact'}"),
+    "Compact safe-bottom shell for shorter sticky bar"
+  );
+  assert.ok(
+    previewCard.includes("LeonixMobileScrollRail") && grid.includes("LeonixMobileScrollRail"),
+    "Section nav + product filters still use shared rail"
+  );
+  assert.ok(
+    grid.includes("OfertasPdfItemCropPreview") || grid.includes("resolveOfertaLocalItemCropDisplayUrl"),
+    "Product grid still references crop rendering"
+  );
+  assert.ok(
+    drawer.includes("OfertasPdfItemCropPreview") || drawer.includes("resolveOfertaLocalItemCropDisplayUrl"),
+    "Drawer still references crop rendering"
+  );
+  assert.ok(
+    previewCard.includes("env(safe-area-inset-bottom)") || read(MOBILE_SHELL).includes("safe-area-inset-bottom"),
+    "Sticky/shell safe-area handling"
+  );
+  assert.ok(!previewCard.includes("OfertasFutureShoppingListCard"), "No live shopping list card in preview");
+  assert.ok(!drawer.includes("addToListEn") && !drawer.includes("saveCouponEn"), "No fake list/coupon CTAs in drawer");
 
   assertRectangularMainCtas("grid", grid);
   assertRectangularMainCtas("drawer", drawer);

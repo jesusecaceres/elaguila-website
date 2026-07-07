@@ -677,3 +677,73 @@ content, no fake save/list/coupon buttons.
 | READY TO COMMIT THIS BUILD ONLY | YES | foundation + apply scoped |
 | READY TO PUSH THIS BUILD ONLY | YES | after commit |
 | UNRELATED DIRTY FILES PRESENT | NO | gate-scoped only |
+
+---
+
+# Ofertas Mobile Density V1 — Final 390px PWA Polish Repair
+
+**Task classification:** SCOPED REPAIR BUILD — mobile density / PWA polish only
+**Date:** 2026-07-07
+
+## Mobile QA failures addressed (from live screenshots)
+
+- Layout technically contained but felt like squeezed desktop (desktop padding, nested cards, large type).
+- Flyer PDF preview dominated first screen (~420px max height on mobile).
+- Sticky bottom CTA bar too tall (large icons, py-2, heavy shadow).
+- Product filter area was card-in-card with extra borders/shadows.
+- Business Hub accordions used desktop padding (p-4/p-5).
+- Section nav had large margins and swipe badge stealing space.
+- Drawer CTAs used desktop sizing; bottom spacing tight vs sticky bar.
+
+## What changed (Ofertas-only mobile classes)
+
+- **Header:** `text-[1.6rem]` + tighter subtitle (`text-xs`, `max-w-xs`, lower opacity); removed cluttered mobile chip.
+- **Section nav:** compact chips (`min-h-9`), `mb-3`, no swipe hint/arrows on nav rail.
+- **Flyer:** `compactMobile` caps PDF/image preview at ~300px on mobile; smaller hero card + stacked CTAs below 400px.
+- **Offer card:** `p-4` mobile, smaller title, tighter CTA grid.
+- **Product filters:** flat mobile control rail (no nested rounded card); compact search + chips.
+- **Product cards:** `h-24` crop, tighter `p-2.5`, `mt-4` grid gap.
+- **Drawer:** smaller mobile CTAs, stacked 1-col buttons, extra bottom padding for sticky bar.
+- **Sticky bar:** shorter (`min-h-10`, `h-4` icons, `text-[9px]`, lighter shadow, safe-area).
+- **Business Hub:** `p-3` mobile, `space-y-2`, compact accordion summaries.
+- **Shell:** `safeBottom="compact"` + `py-4` mobile container padding.
+
+## What stayed global (small backward-compatible tweak)
+
+- `LeonixResponsiveShell` accepts `safeBottom="compact"` for shorter bottom padding when sticky bar is denser.
+
+## Desktop preservation
+
+All density changes use `sm:` / `lg:` breakpoints. Desktop flyer heights, grid columns, hub layout, and side drawer unchanged.
+
+## Future tools truth
+
+Verified: no `addToList`, `saveCoupon`, `myList` buttons in preview card or drawer. Only `comingSoonListsRoutes` info text remains.
+
+## 390px visual QA contract
+
+At 390px: no horizontal overflow; header not clipped; flyer compact; filters not over-nested; 1-col cards with crops; drawer bottom sheet with scroll + safe padding; compact sticky bar; compact Business Hub; no fake save/list/coupon actions.
+
+## TRUE/FALSE audit
+
+| Check | Result | Note |
+|-------|--------|------|
+| Mobile hero/header density improved | TRUE | smaller title/subtitle |
+| Section nav rail polished | TRUE | compact chips, no swipe badge |
+| Flyer mobile compact mode added | TRUE | compactMobile ~300px cap |
+| Product filter controls mobile density improved | TRUE | flat rail, less nesting |
+| Product cards remain 1-column at 390px | TRUE | grid-cols-1 |
+| Product crops preserved | TRUE | crop logic untouched |
+| Drawer mobile CTA/layout polished | TRUE | stacked compact CTAs |
+| Sticky bottom CTA bar density improved | TRUE | shorter bar + compact shell |
+| Business Hub mobile density improved | TRUE | p-3, space-y-2 |
+| No fake save/list/coupon action remains | TRUE | info card only |
+| No horizontal overflow expected at 390px | TRUE | shell overflow-x-hidden |
+| Desktop layout preserved | TRUE | sm/lg breakpoints |
+| Map/share/flyer/search/filter/load-more preserved | TRUE | unchanged behavior |
+| No other categories touched | TRUE | Ofertas preview only |
+| Verifier passed | TRUE | see checks |
+| Build passed | TRUE | see checks |
+| READY TO COMMIT THIS BUILD ONLY | YES | density repair scoped |
+| READY TO PUSH THIS BUILD ONLY | YES | after commit |
+| UNRELATED DIRTY FILES PRESENT | NO | gate-scoped only |

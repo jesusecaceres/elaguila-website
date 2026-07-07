@@ -9,10 +9,13 @@ export function OfertasLocalesPdfFlyerPreview({
   pdfUrl,
   lang,
   fileName,
+  compactMobile = false,
 }: {
   pdfUrl: string;
   lang: OfertasLocalesAppLang;
   fileName?: string;
+  /** Mobile-only height cap so the flyer does not dominate the first screen. */
+  compactMobile?: boolean;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -79,15 +82,23 @@ export function OfertasLocalesPdfFlyerPreview({
     };
   }, [pdfUrl, lang, c.flyerRenderFailedEn, c.flyerRenderFailedEs]);
 
+  const mobileMaxH = compactMobile ? "max-h-[300px]" : "max-h-[420px]";
+  const desktopMaxH = "sm:max-h-[480px] lg:max-h-[520px]";
+
   return (
-    <div ref={containerRef} className="relative w-full overflow-hidden bg-[#FDF8F0]/80 p-2 sm:p-3">
-      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#B8860B]">
-        <FiFileText className="h-3.5 w-3.5" aria-hidden />
+    <div
+      ref={containerRef}
+      className={`relative w-full overflow-hidden bg-[#FDF8F0]/80 p-1.5 sm:p-3 ${compactMobile ? "max-h-[320px] sm:max-h-none" : ""}`}
+    >
+      <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-[#B8860B] sm:mb-2 sm:text-[10px]">
+        <FiFileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
         {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
       </p>
       {rendering && !error ? (
-        <div className="flex min-h-[200px] max-h-[420px] items-center justify-center rounded-lg border border-[#D4C4A8]/60 bg-white/80 px-4 py-12 text-center sm:max-h-[480px] lg:max-h-[520px]">
-          <p className="text-sm text-[#1E1814]/55">
+        <div
+          className={`flex items-center justify-center rounded-lg border border-[#D4C4A8]/60 bg-white/80 px-3 py-8 text-center sm:px-4 sm:py-12 ${mobileMaxH} ${desktopMaxH} ${compactMobile ? "min-h-[120px]" : "min-h-[200px]"}`}
+        >
+          <p className="text-xs text-[#1E1814]/55 sm:text-sm">
             {lang === "en" ? c.flyerRenderingEn : c.flyerRenderingEs}
           </p>
         </div>
@@ -104,7 +115,7 @@ export function OfertasLocalesPdfFlyerPreview({
       ) : (
         <canvas
           ref={canvasRef}
-          className={`mx-auto max-h-[420px] w-full rounded-lg object-contain sm:max-h-[480px] lg:max-h-[520px] ${
+          className={`mx-auto w-full rounded-lg object-contain ${mobileMaxH} ${desktopMaxH} ${
             rendering ? "hidden" : "block"
           }`}
         />
