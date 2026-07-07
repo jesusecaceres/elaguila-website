@@ -162,17 +162,11 @@ August AI-created PNGs are likely **IMAGE_FLATTENED_LIKELY** — same class of r
 
 ## Next Gates (Ordered)
 
-### 1. `AUGUST-2026-PAGE12-PNG-TO-DEEPL-PROOF-PREP1`
+### 1. `AUGUST-2026-PAGE12-PNG-TO-DEEPL-PROOF-PREP1` — **DONE**
 
-Purpose:
+Prep result: [`AUGUST-2026-PAGE12-PNG-TO-DEEPL-PROOF-PREP.md`](AUGUST-2026-PAGE12-PNG-TO-DEEPL-PROOF-PREP.md) · Input: `.magazine-proof-output/2026-august/_inputs/page-smoke/page-012/source-page-012-from-png.pdf`
 
-- Prepare local Page 12 proof **input** from PNG
-- Create one-page local PDF from `august-2026-012-back-cover-master-sample.png` if safe
-- **Dry-run only** — no DeepL call
-- Verify input size under DeepL 10 MB limit
-- Document whether PDF has extractable text (preflight)
-
-### 2. `AUGUST-2026-PAGE12-DEEPL-DIGITAL-PROOF1`
+### 2. `AUGUST-2026-PAGE12-DEEPL-DIGITAL-PROOF1` — **NEXT**
 
 Purpose:
 
