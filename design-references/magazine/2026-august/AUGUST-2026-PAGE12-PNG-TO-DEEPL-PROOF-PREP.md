@@ -79,15 +79,9 @@ Prep script: `scripts/magazine/prepare-august-page12-png-proof-input.mjs`
 
 ## Next Gate
 
-**`AUGUST-2026-PAGE12-DEEPL-DIGITAL-PROOF1`**
+**`AUGUST-2026-PAGE12-ENGLISH-PROOF-VISUAL-QA1`** — English DeepL proof **done** (1 call, local output): [`AUGUST-2026-PAGE12-DEEPL-DIGITAL-PROOF.md`](AUGUST-2026-PAGE12-DEEPL-DIGITAL-PROOF.md)
 
-Purpose:
-
-- **One** provider call — Page 12 input only
-- Target language: **English or Portuguese** (Chuy decision)
-- Local output only under `.magazine-proof-output/2026-august/`
-- **No** full issue translation
-- **No** public serving
+Chuy visual QA required before claiming translation success.
 
 ---
 
