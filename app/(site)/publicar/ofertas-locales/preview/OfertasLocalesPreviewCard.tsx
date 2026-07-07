@@ -878,6 +878,18 @@ export function OfertasLocalesPreviewCard({
           error={aiReviewError}
           needsReviewCount={aiNeedsReviewCount}
           totalCount={aiTotalCount}
+          heroAsset={heroAsset}
+          heroFlyerLabel={
+            heroAsset?.kind === "coupon"
+              ? lang === "en"
+                ? c.viewCouponEn
+                : c.viewCouponEs
+              : lang === "en"
+                ? c.viewFlyerEn
+                : c.viewFlyerEs
+          }
+          directionsHref={directionsHref}
+          websiteHref={webHref}
         />
 
         {/* Future modules */}
