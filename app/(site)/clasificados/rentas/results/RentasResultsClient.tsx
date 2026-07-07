@@ -9,11 +9,7 @@ import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasL
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
 import { RentasLandingVisibilityStrip } from "@/app/clasificados/rentas/landing/RentasLandingVisibilityStrip";
 import {
-  RENTAS_BRANCH_CHIP,
-  RENTAS_BRANCH_CHIP_ACTIVE,
   RENTAS_BTN_PRIMARY,
-  RENTAS_RESULTS_REFINE_DIVIDER,
-  RENTAS_RESULTS_REFINE_PANEL,
 } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 import { RENTAS_LANDING_LANG_QUERY, withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 import {
@@ -71,6 +67,7 @@ import { RentasResultsActiveFilters } from "./components/RentasResultsActiveFilt
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
+import { RentasResultsGatewayPanel } from "./components/RentasResultsGatewayPanel";
 
 export type RentasResultsClientProps = {
   /** Server-fetched live catalog (`listings`); never demo. */
@@ -366,34 +363,22 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         ? `${showingFrom}–${showingTo} de ${totalLabel}`
         : `${showingFrom}–${showingTo} of ${totalLabel}`;
 
-  const refineEyebrow =
-    lang === "es" ? "Afina tu búsqueda" : "Refine your search";
-  const branchEyebrow =
-    lang === "es" ? "Tipo de anuncio" : "Listing type";
-
   return (
     <RentasResultsShell>
       <RentasResultsTopBar copy={copy} lang={lang} routeLang={routeLang} />
 
-      <section
-        className={RENTAS_RESULTS_REFINE_PANEL}
-        aria-label={lang === "es" ? "Buscar y filtrar rentas" : "Search and filter rentals"}
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">{copy.title}</h1>
-            <p className="mt-0.5 text-sm text-[#5C5346]">{countLine}</p>
-          </div>
-          <Link href={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)} className={`${RENTAS_BTN_PRIMARY} shrink-0 px-5`}>
-            {lang === "es" ? "Publicar renta" : "Post a rental"}
-          </Link>
-        </div>
-
-        <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{refineEyebrow}</p>
-
-        <div className="mt-2">
+      <RentasResultsGatewayPanel
+        lang={lang}
+        title={copy.title}
+        tagline={copy.tagline}
+        intro={copy.intro}
+        introSecondary={copy.introSecondary}
+        countLine={countLine}
+        publishHref={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)}
+        publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
+        searchSlot={
           <RentasCompactSearchCanvas
-            layout="results"
+            layout="landing"
             lang={lang}
             query={query}
             city={cityDraft}
@@ -410,56 +395,26 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             searchButtonLabel={searchLabel}
             filtersButtonLabel={filtersLabel}
           />
-        </div>
+        }
+      />
 
-        <div className="mt-3">
-          <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} lang={lang} />
-        </div>
+      <section className="mt-4" aria-label={lang === "es" ? "Filtros activos y resultados" : "Active filters and results"}>
+        <RentasResultsActiveFilters parsed={parsed} copy={copy} priceBandLabel={priceBandLabel} lang={lang} />
 
         <div className="mt-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#556B3E]">{branchEyebrow}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(
-              [
-                { id: "all" as const, label: copy.results.branchAll },
-                { id: "privado" as const, label: copy.results.branchPrivado },
-                { id: "negocio" as const, label: copy.results.branchNegocio },
-              ] as const
-            ).map((opt) => {
-              const isOn = branchFilter === opt.id;
-              const sp = new URLSearchParams(searchParams?.toString() ?? "");
-              sp.set(RENTAS_LANDING_LANG_QUERY, routeLang);
-              if (opt.id === "all") sp.delete("branch");
-              else sp.set("branch", opt.id);
-              const href = `${RENTAS_RESULTS}?${sp.toString()}`;
-              return (
-                <Link
-                  key={opt.id}
-                  href={href}
-                  scroll={false}
-                  className={isOn ? RENTAS_BRANCH_CHIP_ACTIVE : RENTAS_BRANCH_CHIP}
-                >
-                  {opt.label}
-                </Link>
-              );
-            })}
-          </div>
+          <RentasResultsToolbar
+            copy={copy.results}
+            lang={lang}
+            showingFrom={showingFrom}
+            showingTo={showingTo}
+            total={totalLabel}
+            sort={sortValue}
+            onSort={onSort}
+            view={view}
+            onView={setView}
+            integrated
+          />
         </div>
-
-        <div className={RENTAS_RESULTS_REFINE_DIVIDER + " my-4"} aria-hidden />
-
-        <RentasResultsToolbar
-          copy={copy.results}
-          lang={lang}
-          showingFrom={showingFrom}
-          showingTo={showingTo}
-          total={totalLabel}
-          sort={sortValue}
-          onSort={onSort}
-          view={view}
-          onView={setView}
-          integrated
-        />
       </section>
 
       <section className="mt-4" aria-labelledby="rentas-grid-heading">
