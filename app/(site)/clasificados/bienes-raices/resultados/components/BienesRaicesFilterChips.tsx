@@ -17,7 +17,6 @@ type Props = {
   onToggleSecondary: (id: BrSecondaryChipId) => void;
   onToggleFurnished: () => void;
   onMoreFilters: () => void;
-  matchCount: number;
 };
 
 function chipClass(on: boolean) {
@@ -38,7 +37,6 @@ export function BienesRaicesFilterChips({
   onToggleSecondary,
   onToggleFurnished,
   onMoreFilters,
-  matchCount,
 }: Props) {
   return (
     <div className="mt-6 space-y-3">
@@ -75,9 +73,6 @@ export function BienesRaicesFilterChips({
         >
           {copy.toggleFurnished}
         </button>
-        <span className="ml-1 rounded-full border border-[#E8DFD0] bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#5C5346]">
-          {matchCount.toLocaleString()}
-        </span>
       </div>
     </div>
   );

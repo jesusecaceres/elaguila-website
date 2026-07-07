@@ -129,6 +129,9 @@ export function BienesRaicesResultsFilters({
             />
           </div>
         </label>
+      </FilterSection>
+
+      <FilterSection title={copy.sectionOperationType}>
         <div className={pairGrid}>
           <label className="block min-w-0">
             <span className={LABEL}>{copy.operationLabel}</span>

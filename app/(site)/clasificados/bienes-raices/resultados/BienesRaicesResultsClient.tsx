@@ -23,7 +23,7 @@ import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResul
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
-import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
+import { BR_CATEGORY_HOME } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_BTN_PRIMARY } from "../shared/bienesRaicesLeonixPublicUi";
 import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
@@ -235,11 +235,16 @@ export function BienesRaicesResultsClient() {
 
   return (
     <BienesRaicesResultsShell>
-      <BienesRaicesResultsTopBar copy={copy} lang={lang} />
-
       <div className="space-y-3 pb-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="min-w-0">
+            <nav className="mb-1 flex flex-wrap items-center gap-2 text-xs font-medium text-[#556B3E]" aria-label="Breadcrumb">
+              <Link href={appendLangToPath(BR_CATEGORY_HOME, lang)} className="hover:text-[#7A1E2C]">
+                {copy.breadcrumbCategory}
+              </Link>
+              <span aria-hidden>/</span>
+              <span className="text-[#3D3428]">{copy.breadcrumbResults}</span>
+            </nav>
             <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{copy.heroTitle}</h1>
             <p className="mt-0.5 text-xs text-[#3D3428]/80">{countLine}</p>
           </div>
@@ -292,7 +297,6 @@ export function BienesRaicesResultsClient() {
           onToggleSecondary={toggleSecondary}
           onToggleFurnished={toggleFurnished}
           onMoreFilters={() => setFilterDrawerOpen(true)}
-          matchCount={totalCount}
         />
 
         <BienesRaicesResultsActiveFilters

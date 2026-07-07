@@ -137,6 +137,11 @@ export function EmpleosBrowseDrawerFields({ lang, values, onChange, fieldClass =
       </CategoryStandardFilterGroup>
 
       <CategoryStandardFilterGroup label={L ? "¿Confianza y contacto?" : "Trust & apply?"}>
+        <p className="text-xs text-[#5C5346]">
+          {L
+            ? "Empleador verificado aplica solo a vacantes con sello Leonix (admin)."
+            : "Verified employer applies only to listings with Leonix admin verification."}
+        </p>
         <div className="flex flex-wrap gap-2">
         <label className={cb}>
           <input type="checkbox" checked={values.featured} onChange={(e) => onChange("featured", e.target.checked)} className="h-4 w-4 shrink-0 rounded" />

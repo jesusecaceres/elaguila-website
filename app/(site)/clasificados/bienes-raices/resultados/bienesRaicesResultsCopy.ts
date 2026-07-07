@@ -45,6 +45,7 @@ export type BrResultsCopy = {
   amenityTogglesHint: string;
   /** Question-based drawer section headings */
   sectionSearchWhat: string;
+  sectionOperationType: string;
   sectionWhere: string;
   sectionBudget: string;
   sectionSize: string;
@@ -162,6 +163,7 @@ const ES: BrResultsCopy = {
   togglePool: "Alberca / piscina",
   amenityTogglesHint: "Se muestran cuando el anuncio guardó estos datos.",
   sectionSearchWhat: "¿Qué buscas?",
+  sectionOperationType: "¿Operación y tipo?",
   sectionWhere: "¿Dónde?",
   sectionBudget: "¿Presupuesto?",
   sectionSize: "¿Tamaño?",
@@ -286,6 +288,7 @@ const EN: BrResultsCopy = {
   togglePool: "Pool",
   amenityTogglesHint: "Shown when the listing saved these details.",
   sectionSearchWhat: "What are you looking for?",
+  sectionOperationType: "Operation & type?",
   sectionWhere: "Where?",
   sectionBudget: "Budget?",
   sectionSize: "Size?",

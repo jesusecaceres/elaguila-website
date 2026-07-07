@@ -182,6 +182,9 @@ export function BienesRaicesLandingView() {
               <Link href={withLang(BR_RESULTS)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
                 {lang === "es" ? "Buscar propiedades" : "Search properties"}
               </Link>
+              <Link href={withLang(BR_RESULTS)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
+                {lang === "es" ? "Ver propiedades" : "View properties"}
+              </Link>
               <Link href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)} className={`${BR_BTN_PRIMARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
                 {copy.publishNegocio}
               </Link>
