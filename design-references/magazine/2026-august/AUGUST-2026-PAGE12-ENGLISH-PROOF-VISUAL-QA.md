@@ -145,7 +145,7 @@ Purpose:
 - Chuy gives final proof decision.
 - Decide whether to continue PNG/PDF DeepL proof workflow or pivot.
 
-Web QA URL doc: [`AUGUST-2026-PAGE12-ENGLISH-PROOF-WEB-QA-URL.md`](AUGUST-2026-PAGE12-ENGLISH-PROOF-WEB-QA-URL.md) · QA URL: `https://www.leonixmedia.com/magazine/qa/2026-august/page-12-english` · Next gate: `AUGUST-2026-PAGE12-ENGLISH-PROOF-CHUY-DECISION1`
+Web QA URL doc: [`AUGUST-2026-PAGE12-ENGLISH-PROOF-WEB-QA-URL.md`](AUGUST-2026-PAGE12-ENGLISH-PROOF-WEB-QA-URL.md) · QA URL: `https://www.leonixmedia.com/magazine/qa/2026-august/page-12-english` · Chuy decision doc: [`AUGUST-2026-PAGE12-ENGLISH-PROOF-CHUY-DECISION.md`](AUGUST-2026-PAGE12-ENGLISH-PROOF-CHUY-DECISION.md) · Decision: `TRANSLATION_WORKED_ENOUGH_FOR_DIGITAL_PROOF` · Next gate: `AUGUST-2026-CONTROLLED-ENGLISH-PROOF-BATCH2-PLAN1`
 
 ---
 

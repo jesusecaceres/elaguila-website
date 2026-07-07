@@ -479,6 +479,108 @@ export function itemHasMissingFlyerCrop(
   return Boolean(item.sourceBbox) || item.sourcePage != null;
 }
 
+/* ── Gate 4C: instant CSS crop fallback from source flyer image + bbox ── */
+
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+/** True when the URL is an HTTPS image (not a PDF) that can be cropped client-side. */
+export function isLikelyOfertaLocalImageAssetUrl(
+  url: string | null | undefined,
+  fileName?: string | null
+): boolean {
+  const u = String(url ?? "").trim().toLowerCase();
+  if (!u.startsWith("https://")) return false;
+  const name = String(fileName ?? "").trim().toLowerCase();
+  if (u.endsWith(".pdf") || name.endsWith(".pdf")) return false;
+  return true;
+}
+
+/**
+ * Resolve a safe HTTPS image URL to crop from when no final source_crop_url exists.
+ * Prefers the item's own source asset (bbox is aligned to it). Falls back to an
+ * image hero flyer only for single-page/first-page items.
+ */
+export function resolveOfertaLocalInstantCropImageSource(params: {
+  item: Pick<OfertaLocalItemReviewViewModel, "sourceAssetUrl" | "sourceFileName" | "sourcePage">;
+  heroImageHref?: string | null;
+}): string | null {
+  const { item } = params;
+  const assetUrl = String(item.sourceAssetUrl ?? "").trim();
+  if (isLikelyOfertaLocalImageAssetUrl(assetUrl, item.sourceFileName)) return assetUrl;
+
+  const hero = String(params.heroImageHref ?? "").trim();
+  if (hero.startsWith("https://") && (item.sourcePage == null || item.sourcePage === 1)) {
+    return hero;
+  }
+  return null;
+}
+
+export type OfertaLocalCssCropStyle = {
+  imageWidthPct: number;
+  imageHeightPct: number;
+  imageLeftPct: number;
+  imageTopPct: number;
+};
+
+/**
+ * Compute absolute-position sprite crop values (percent of the crop window) so an
+ * <img> shows only the bbox region of the full flyer image. bbox is normalized 0–1.
+ */
+export function getOfertaLocalCssCropStyle(
+  bbox: OfertaLocalSourceBoundingBox | null | undefined,
+  paddingFraction = 0.08
+): OfertaLocalCssCropStyle | null {
+  if (!bbox) return null;
+  let xMin = clamp01(bbox.xMin);
+  let yMin = clamp01(bbox.yMin);
+  let xMax = clamp01(bbox.xMax);
+  let yMax = clamp01(bbox.yMax);
+  if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
+  if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
+
+  const rawW = xMax - xMin;
+  const rawH = yMax - yMin;
+  if (rawW < 0.02 || rawH < 0.02) return null;
+
+  const pad = Number.isFinite(paddingFraction) ? Math.max(0, Math.min(0.4, paddingFraction)) : 0;
+  const xMinP = clamp01(xMin - rawW * pad);
+  const yMinP = clamp01(yMin - rawH * pad);
+  const xMaxP = clamp01(xMax + rawW * pad);
+  const yMaxP = clamp01(yMax + rawH * pad);
+
+  const cropW = xMaxP - xMinP;
+  const cropH = yMaxP - yMinP;
+  if (cropW < 0.02 || cropH < 0.02) return null;
+
+  return {
+    imageWidthPct: 100 / cropW,
+    imageHeightPct: 100 / cropH,
+    imageLeftPct: -(xMinP / cropW) * 100,
+    imageTopPct: -(yMinP / cropH) * 100,
+  };
+}
+
+/** True when an instant CSS crop can be rendered (valid bbox + usable image source). */
+export function canRenderOfertaLocalInstantCrop(params: {
+  item: Pick<
+    OfertaLocalItemReviewViewModel,
+    "sourceCropUrl" | "sourceBbox" | "sourceAssetUrl" | "sourceFileName" | "sourcePage"
+  >;
+  heroImageHref?: string | null;
+}): boolean {
+  if (resolveOfertaLocalItemCropDisplayUrl(params.item)) return false;
+  if (!getOfertaLocalCssCropStyle(params.item.sourceBbox)) return false;
+  return Boolean(
+    resolveOfertaLocalInstantCropImageSource({
+      item: params.item,
+      heroImageHref: params.heroImageHref,
+    })
+  );
+}
+
 /** Rehydrate DB row for crop backfill — does not mutate review fields. */
 export function mapOfertaLocalItemReviewRowToSearchableDraft(
   row: OfertaLocalItemDbRow

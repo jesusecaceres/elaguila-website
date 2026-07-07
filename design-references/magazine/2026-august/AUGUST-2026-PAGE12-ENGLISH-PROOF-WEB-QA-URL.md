@@ -21,6 +21,16 @@ Prior gate: [`AUGUST-2026-PAGE12-ENGLISH-PROOF-VISUAL-QA.md`](AUGUST-2026-PAGE12
 
 ---
 
+## Chuy QA Decision
+
+- **Decision:** `TRANSLATION_WORKED_ENOUGH_FOR_DIGITAL_PROOF`
+- **Result:** Proof-success for digital translation direction.
+- **Status:** Not final production approval.
+- **Next gate:** `AUGUST-2026-CONTROLLED-ENGLISH-PROOF-BATCH2-PLAN1`
+- **Decision doc:** [`AUGUST-2026-PAGE12-ENGLISH-PROOF-CHUY-DECISION.md`](AUGUST-2026-PAGE12-ENGLISH-PROOF-CHUY-DECISION.md)
+
+---
+
 ## QA URL
 
 `https://www.leonixmedia.com/magazine/qa/2026-august/page-12-english`

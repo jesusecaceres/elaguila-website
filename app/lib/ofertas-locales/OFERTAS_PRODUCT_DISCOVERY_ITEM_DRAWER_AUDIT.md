@@ -423,3 +423,65 @@ Commerce section is collapsible inside each review card to keep compact/workspac
 | READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate 4B scoped |
 | READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
 | UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Gate-scoped only |
+
+---
+
+## Gate 4C — Instant Flyer Crop Rendering
+
+**Task classification:** SCOPED GATED BUILD  
+**Date:** 2026-07-07
+
+### Root cause
+
+Product cards showed “Recorte en preparación” whenever `source_crop_url` was empty — even though the item already had `source_bbox` and a `source_asset_url` / image flyer. The UI only rendered an `<img>` for the backend crop URL and never used the existing flyer image + bbox to build a visual preview.
+
+### New render priority (cards + drawer)
+
+1. `resolveOfertaLocalItemCropDisplayUrl(item)` — final `source_crop_url` (unchanged first priority).
+2. Instant CSS crop from `sourceBbox` + a usable HTTPS image source (`item.sourceAssetUrl` when it is an image, else image hero flyer for page 1). No canvas, no base64, no network fetch.
+3. Honest placeholder (`Recorte en preparación`) only when neither is possible.
+
+### Helper / component
+
+- `OfertasFlyerCropPreview.tsx` — absolute-positioned `<img>` sprite crop inside an `overflow-hidden` window; `onError` → `onUnavailable` so the parent falls back to placeholder (no broken icon, no empty box).
+- `ofertasLocalesItemReviewMapper.ts`: `getOfertaLocalCssCropStyle` (clamps bbox 0–1, ~8% padding, rejects tiny regions), `resolveOfertaLocalInstantCropImageSource`, `isLikelyOfertaLocalImageAssetUrl`, `canRenderOfertaLocalInstantCrop`.
+
+### PDF limitation
+
+`source_bbox` cannot be cropped from a PDF URL. `isLikelyOfertaLocalImageAssetUrl` rejects `.pdf` sources, and the image-hero fallback is only used when `heroAsset.isImage`. For PDF-only flyers with no per-page image URL in current data, the honest “Recorte en preparación” placeholder remains. The full backend crop pipeline (Gate 4A) still produces `source_crop_url` for PDFs; instant crop is an image-source-only enhancement.
+
+### Safety
+
+- No DB migration. No fake crop URL. Nothing written to DB.
+- No shopping list / route planner / coupon wallet / buy CTAs.
+- `source_crop_url` remains first priority; Gate 4A/4B behavior preserved.
+
+### Mobile / PWA status
+
+Card crop window is fixed height (`h-28`/`lg:h-24`) → no layout jump; drawer crop larger (`h-44 sm:h-52`). 4-col desktop grid and 390px mobile unchanged.
+
+### QA should verify
+
+Cards render the real clipped flyer region when bbox + image source exist; placeholder only when neither crop URL nor image source is possible; drawer shows the larger instant crop; PDF-only items stay honest.
+
+### Gate 4C TRUE/FALSE audit table
+
+| Requirement | TRUE/FALSE | Evidence |
+|---|---|---|
+| Product cards still use sourceCropUrl first | TRUE | resolveOfertaLocalItemCropDisplayUrl branch first |
+| Product cards render instant crop fallback when bbox + image source exist | TRUE | canRenderOfertaLocalInstantCrop branch |
+| Product cards show placeholder only when no crop source is possible | TRUE | final else branch |
+| Drawer uses sourceCropUrl first | TRUE | showCropImage branch first |
+| Drawer renders instant crop fallback when bbox + image source exist | TRUE | canInstantCrop branch |
+| PDF-only assets not falsely rendered as images | TRUE | isLikelyOfertaLocalImageAssetUrl rejects .pdf |
+| No base64/image data saved to DB | TRUE | client-only CSS crop |
+| No DB migration added | TRUE | helpers/components only |
+| No fake crop URLs added | TRUE | no source_crop_url writes |
+| No shopping list/route/coupon wallet made live | TRUE | unchanged |
+| No buy/order CTAs added | TRUE | none |
+| ES/EN copy preserved | TRUE | flyerPreview/previewFromFlyer keys |
+| Mobile/PWA layout remains clean | TRUE | fixed crop heights |
+| Checks passed | TRUE | verify + build |
+| READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate 4C scoped |
+| READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
+| UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Gate-scoped only |

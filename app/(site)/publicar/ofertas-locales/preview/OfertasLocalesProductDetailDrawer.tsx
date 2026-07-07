@@ -16,6 +16,7 @@ import {
 } from "react-icons/fi";
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import {
+  canRenderOfertaLocalInstantCrop,
   itemHasMissingFlyerCrop,
   ofertaLocalCommerceMetadataHasDisplayData,
   resolveOfertaLocalItemCropDisplayUrl,
@@ -23,6 +24,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
 import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { OfertasFlyerCropPreview } from "./OfertasFlyerCropPreview";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 function formatDrawerPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLocalesAppLang): string {
@@ -55,6 +57,7 @@ export function OfertasLocalesProductDetailDrawer({
   onClose,
   heroHref,
   heroLabel,
+  heroImageHref,
   directionsHref,
   websiteHref,
   onViewMoreOffers,
@@ -66,6 +69,7 @@ export function OfertasLocalesProductDetailDrawer({
   onClose: () => void;
   heroHref: string;
   heroLabel: string;
+  heroImageHref?: string | null;
   directionsHref: string;
   websiteHref: string;
   onViewMoreOffers: () => void;
@@ -74,6 +78,7 @@ export function OfertasLocalesProductDetailDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [cropLoadFailed, setCropLoadFailed] = useState(false);
+  const [instantCropFailed, setInstantCropFailed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -101,6 +106,7 @@ export function OfertasLocalesProductDetailDrawer({
 
   useEffect(() => {
     setCropLoadFailed(false);
+    setInstantCropFailed(false);
   }, [item?.id, item?.sourceCropUrl]);
 
   const handleShare = useCallback(async () => {
@@ -134,8 +140,12 @@ export function OfertasLocalesProductDetailDrawer({
     heroHref ||
     (sourceAssetUrl.startsWith("https://") ? sourceAssetUrl : "");
   const missingFlyerCrop = itemHasMissingFlyerCrop(item);
-  const hasSourceProof = !cropUrl && missingFlyerCrop;
   const showCropImage = Boolean(cropUrl) && !cropLoadFailed;
+  const canInstantCrop =
+    !showCropImage &&
+    !instantCropFailed &&
+    canRenderOfertaLocalInstantCrop({ item, heroImageHref });
+  const hasSourceProof = !showCropImage && !canInstantCrop && missingFlyerCrop;
   const unit = item.unit.trim();
   const regularPrice = item.regularPriceText.trim();
   const dateRange = formatOfertaLocalDateRange(
@@ -195,6 +205,19 @@ export function OfertasLocalesProductDetailDrawer({
                   onError={() => setCropLoadFailed(true)}
                 />
               </div>
+            ) : canInstantCrop ? (
+              <div className="relative">
+                <OfertasFlyerCropPreview
+                  item={item}
+                  heroImageHref={heroImageHref}
+                  alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
+                  variant="drawer"
+                  onUnavailable={() => setInstantCropFailed(true)}
+                />
+                <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-[#1E1814]/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+                  {lang === "en" ? c.previewFromFlyerEn : c.previewFromFlyerEs}
+                </span>
+              </div>
             ) : hasSourceProof ? (
               <div className="flex flex-col items-center gap-2 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/25 px-4 py-6 text-center">
                 <span
@@ -234,7 +257,7 @@ export function OfertasLocalesProductDetailDrawer({
                 </span>
               </div>
             )}
-            {showCropImage && item.sourcePage != null ? (
+            {(showCropImage || canInstantCrop) && item.sourcePage != null ? (
               <div className="flex items-center gap-2 border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/40 px-3 py-2">
                 <FiFileText className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">

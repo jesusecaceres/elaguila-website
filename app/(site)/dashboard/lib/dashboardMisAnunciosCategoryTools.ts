@@ -268,14 +268,37 @@ export function buildInventoryListingActions(
     couponUpgradeBusy?: boolean;
     onCouponEdit?: () => void;
     couponEditBusy?: boolean;
+    /** Servicios P0C listing-edit route (mode=listing-edit, returnPanel=servicios, identity). */
+    serviciosEditHref?: string;
+    /** Servicios P0C offers-edit route (mode=offers-edit&focus=coupon-upgrade). */
+    serviciosOffersEditHref?: string;
+    /** True when the Servicios listing already shows offers/coupons content. */
+    serviciosOffersActive?: boolean;
+    /** Category-specific edit label override (e.g. "Editar servicio"). */
+    editLabelOverride?: string;
+    /** Servicios offers-edit CTA label override (e.g. "Editar ofertas"). */
+    offersEditLabelOverride?: string;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
 
   if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
+    // Servicios existing-listing edit must carry P0C identity (mode=listing-edit, returnPanel=servicios).
     actions.push({
-      href: item.editHref,
-      label: editListingLabel(lang),
+      href: opts?.serviciosEditHref ?? item.editHref,
+      label: opts?.editLabelOverride ?? editListingLabel(lang),
+      tone: "primary",
+    });
+  }
+
+  if (
+    category === "servicios" &&
+    opts?.serviciosOffersActive &&
+    opts?.serviciosOffersEditHref
+  ) {
+    actions.push({
+      href: opts.serviciosOffersEditHref,
+      label: opts.offersEditLabelOverride ?? (lang === "es" ? "Editar ofertas" : "Edit offers"),
       tone: "primary",
     });
   }

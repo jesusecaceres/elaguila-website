@@ -27,6 +27,7 @@ const TYPES = "app/lib/ofertas-locales/ofertasLocalesTypes.ts";
 const ITEM_MAPPER = "app/lib/ofertas-locales/ofertasLocalesItemReviewMapper.ts";
 const REVIEW_PANEL = "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx";
 const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
+const CROP_PREVIEW = "app/(site)/publicar/ofertas-locales/preview/OfertasFlyerCropPreview.tsx";
 
 const GATE_ALLOWED = new Set([
   GRID,
@@ -46,6 +47,7 @@ const GATE_ALLOWED = new Set([
   ITEM_MAPPER,
   REVIEW_PANEL,
   APP_COPY,
+  CROP_PREVIEW,
 ]);
 
 const PROHIBITED = [
@@ -161,13 +163,46 @@ function run() {
   assert.ok(audit.includes("no fake"), "No fake crop documented");
   assert.ok(audit.includes("Gate 4B"), "Gate 4B section");
   assert.ok(audit.includes("extracted_json.commerceMetadata"), "Commerce metadata storage documented");
+  assert.ok(audit.includes("Gate 4C"), "Gate 4C section");
   assert.ok(audit.includes("TRUE/FALSE"), "Audit table");
   assert.ok(audit.includes("READY TO COMMIT THIS BUILD ONLY"), "Commit flag");
+
+  const cropPreview = read(CROP_PREVIEW);
+  const itemMapper = read(ITEM_MAPPER);
+
+  assert.ok(
+    itemMapper.includes("getOfertaLocalCssCropStyle"),
+    "CSS crop style helper"
+  );
+  assert.ok(
+    itemMapper.includes("resolveOfertaLocalInstantCropImageSource"),
+    "Instant crop image source helper"
+  );
+  assert.ok(itemMapper.includes("clamp01"), "bbox clamp helper");
+  assert.ok(itemMapper.includes(".pdf"), "PDF asset rejection guard");
+  assert.ok(
+    cropPreview.includes("getOfertaLocalCssCropStyle"),
+    "Crop preview uses CSS crop helper"
+  );
+  assert.ok(!cropPreview.includes("toDataURL"), "No canvas dataURL in crop preview");
+  assert.ok(!cropPreview.includes("base64"), "No base64 in crop preview");
+  assert.ok(
+    grid.includes("canRenderOfertaLocalInstantCrop"),
+    "Grid uses instant crop check"
+  );
+  assert.ok(
+    grid.includes("resolveOfertaLocalItemCropDisplayUrl"),
+    "Grid still uses source_crop_url first"
+  );
+  assert.ok(grid.includes("heroImageHref"), "Grid passes image source fallback");
+  assert.ok(
+    drawer.includes("canRenderOfertaLocalInstantCrop") || drawer.includes("OfertasFlyerCropPreview"),
+    "Drawer uses instant crop fallback"
+  );
 
   const geminiPrompt = read(GEMINI_PROMPT);
   const geminiValidator = read(GEMINI_VALIDATOR);
   const geminiNormalizer = read(GEMINI_NORMALIZER);
-  const itemMapper = read(ITEM_MAPPER);
   const reviewPanel = read(REVIEW_PANEL);
   const appCopy = read(APP_COPY);
 

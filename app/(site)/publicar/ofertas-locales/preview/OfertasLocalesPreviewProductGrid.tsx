@@ -11,6 +11,7 @@ import {
   FiSearch,
 } from "react-icons/fi";
 import {
+  canRenderOfertaLocalInstantCrop,
   itemHasMissingFlyerCrop,
   resolveOfertaLocalItemCropDisplayUrl,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
@@ -19,6 +20,7 @@ import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesT
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import { OfertasFlyerCropPreview } from "./OfertasFlyerCropPreview";
 import {
   OfertasLocalesProductDetailDrawer,
   readOfertasPreviewItemParam,
@@ -85,22 +87,30 @@ function ProductCard({
   item,
   draft,
   lang,
+  heroImageHref,
   onOpenDetail,
 }: {
   item: OfertaLocalItemReviewViewModel;
   draft: OfertaLocalDraft;
   lang: OfertasLocalesAppLang;
+  heroImageHref: string | null;
   onOpenDetail: (item: OfertaLocalItemReviewViewModel) => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const [cropLoadFailed, setCropLoadFailed] = useState(false);
+  const [instantCropFailed, setInstantCropFailed] = useState(false);
   const title = (item.couponTitle || item.itemName).trim();
   const price = formatPreviewPrice(item, lang);
   const brand = (item.subcategory || "").trim();
   const details = (item.description || item.terms || item.dealType).trim();
   const cropUrl = resolveOfertaLocalItemCropDisplayUrl(item);
-  const missingFlyerCrop = itemHasMissingFlyerCrop(item);
   const hasSourcePage = item.sourcePage != null;
+  const showCropImage = Boolean(cropUrl) && !cropLoadFailed;
+  const canInstantCrop =
+    !showCropImage &&
+    !instantCropFailed &&
+    canRenderOfertaLocalInstantCrop({ item, heroImageHref });
+  const missingFlyerCrop = itemHasMissingFlyerCrop(item);
   const fallbackLabel = missingFlyerCrop
     ? lang === "en"
       ? c.cropPreparingEn
@@ -119,7 +129,9 @@ function ProductCard({
     setCropLoadFailed(false);
   }, [cropUrl, item.id]);
 
-  const showCropImage = Boolean(cropUrl) && !cropLoadFailed;
+  useEffect(() => {
+    setInstantCropFailed(false);
+  }, [item.id]);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md">
@@ -139,6 +151,19 @@ function ProductCard({
               decoding="async"
               onError={() => setCropLoadFailed(true)}
             />
+          </div>
+        ) : canInstantCrop ? (
+          <div className="relative border-b border-[#E8D9C4]/50">
+            <OfertasFlyerCropPreview
+              item={item}
+              heroImageHref={heroImageHref}
+              alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
+              variant="card"
+              onUnavailable={() => setInstantCropFailed(true)}
+            />
+            <span className="pointer-events-none absolute left-1.5 top-1.5 rounded-md bg-[#1E1814]/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+              {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
+            </span>
           </div>
         ) : (
           <div className="flex h-24 flex-col items-center justify-center gap-1.5 border-b border-[#E8D9C4]/40 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/30 px-3 text-center lg:h-20">
@@ -298,6 +323,7 @@ export function OfertasLocalesPreviewProductGrid({
   }, []);
 
   const heroHref = heroAsset?.href ?? "";
+  const heroImageHref = heroAsset?.isImage ? (heroAsset.href ?? null) : null;
   const flyerLabel =
     heroFlyerLabel ??
     (heroAsset?.kind === "coupon"
@@ -447,7 +473,14 @@ export function OfertasLocalesPreviewProductGrid({
           <>
             <div className="mt-6 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {visibleItems.map((item) => (
-                <ProductCard key={item.id} item={item} draft={draft} lang={lang} onOpenDetail={openDrawer} />
+                <ProductCard
+                  key={item.id}
+                  item={item}
+                  draft={draft}
+                  lang={lang}
+                  heroImageHref={heroImageHref}
+                  onOpenDetail={openDrawer}
+                />
               ))}
             </div>
             {visibleItems.length < filteredItems.length ? (
@@ -474,6 +507,7 @@ export function OfertasLocalesPreviewProductGrid({
         onClose={closeDrawer}
         heroHref={heroHref}
         heroLabel={flyerLabel}
+        heroImageHref={heroImageHref}
         directionsHref={directionsHref ?? ""}
         websiteHref={websiteHref ?? ""}
         onViewMoreOffers={scrollToSection}

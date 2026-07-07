@@ -40,6 +40,8 @@ export type DashboardInventoryItem = {
   restaurantCouponUpgradeEligible?: boolean;
   /** True when published Restaurante has paid coupon module and can edit coupons. */
   restaurantCouponEditEligible?: boolean;
+  /** True when a Servicios listing already shows offers/coupons content (P0C honest display state). */
+  serviciosOffersAddonActive?: boolean;
   /** Optional fields for `resolveCategoryAdPlanFromDashboardInventoryItem`. */
   autosLane?: string | null;
   viajesLane?: string | null;
@@ -123,6 +125,7 @@ export type ServiciosMyListingApiRow = {
   listing_status: string;
   leonix_verified: boolean;
   leonix_ad_id?: string | null;
+  offers_addon_active?: boolean;
 };
 
 function extractDetailPairValue(detailPairs: unknown, key: string): string | null {
@@ -268,6 +271,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       promoted: false,
       verified: row.leonix_verified,
       draftListingId: null,
+      serviciosOffersAddonActive: row.offers_addon_active === true,
       actionContract,
       source: "servicios_public_listings",
     };
@@ -304,6 +308,7 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
         listing_status: typeof o.listing_status === "string" ? o.listing_status : "published",
         leonix_verified: Boolean(o.leonix_verified),
         leonix_ad_id: typeof o.leonix_ad_id === "string" && o.leonix_ad_id.trim() ? o.leonix_ad_id.trim() : null,
+        offers_addon_active: o.offers_addon_active === true,
       });
     }
     return out;

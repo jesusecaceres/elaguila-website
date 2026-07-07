@@ -281,4 +281,6 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   modelNumberEn: "Model number",
   upcLabelEs: "UPC",
   upcLabelEn: "UPC",
+  previewFromFlyerEs: "Vista generada desde el volante",
+  previewFromFlyerEn: "Preview generated from flyer",
 } as const;

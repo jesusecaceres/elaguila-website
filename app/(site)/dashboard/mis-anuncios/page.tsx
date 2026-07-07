@@ -107,6 +107,11 @@ import {
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
 import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import {
+  serviciosListingEditHref,
+  serviciosOffersEditHref,
+  serviciosOffersEditLabel,
+} from "../lib/serviciosDashboardOffersAddonCheckout";
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -1277,7 +1282,22 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={buildInventoryListingActions("servicios", item, lang, q)}
+                    actions={buildInventoryListingActions("servicios", item, lang, q, {
+                      serviciosEditHref: serviciosListingEditHref({
+                        lang,
+                        listingId: item.actionContract?.listingId ?? null,
+                        listingSlug: item.slug,
+                        leonixAdId: item.leonixAdId,
+                      }),
+                      serviciosOffersActive: item.serviciosOffersAddonActive,
+                      serviciosOffersEditHref: serviciosOffersEditHref({
+                        lang,
+                        listingId: item.actionContract?.listingId ?? null,
+                        listingSlug: item.slug,
+                        leonixAdId: item.leonixAdId,
+                      }),
+                      offersEditLabelOverride: serviciosOffersEditLabel(lang),
+                    })}
                   />
                 ))
           ) : null}
