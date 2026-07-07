@@ -22,14 +22,10 @@ import {
   resolveCategoryAdPlan,
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import {
-  buildDashboardRestaurantesReturnPath,
   hydrateRestauranteListingForCouponEdit,
-  redirectRestauranteDashboardCouponAddonCheckout,
   restaurantCouponAddonUpgradeEligible,
   restaurantCouponEditEligible,
-  restauranteCouponAddonUpgradeBusyLabel,
-  restauranteCouponAddonUpgradeLabel,
-  restauranteCouponAddonUpgradeFooterHint,
+  restauranteCouponInactiveDashboardHint,
   restauranteCouponEditFooterHint,
   restauranteCouponEditLabel,
   restauranteCouponEditHref,
@@ -162,7 +158,6 @@ export default function DashboardRestaurantesPage() {
   const [accountRef, setAccountRef] = useState<string | null>(null);
   const [hydrateId, setHydrateId] = useState<string | null>(null);
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
-  const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [couponErr, setCouponErr] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<ListingMetrics | null>(null);
@@ -307,36 +302,6 @@ export default function DashboardRestaurantesPage() {
     [lang, router, t.errHydrate],
   );
 
-  const startCouponAddonCheckout = useCallback(
-    async (row: DashboardRestaurantRow) => {
-      setCouponCheckoutBusyId(row.id);
-      setCouponErr(null);
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: auth } = await supabase.auth.getUser();
-        const result = await redirectRestauranteDashboardCouponAddonCheckout({
-          listingId: row.id,
-          leonixAdId: row.leonix_ad_id,
-          lang,
-          customerEmail: auth.user?.email ?? null,
-          returnPath: buildDashboardRestaurantesReturnPath(lang),
-        });
-        if (!result.ok) {
-          setCouponErr(result.userMessage);
-          setCouponCheckoutBusyId(null);
-        }
-      } catch {
-        setCouponErr(
-          lang === "es"
-            ? "No pudimos iniciar el pago del módulo de cupones."
-            : "We could not start coupon module checkout.",
-        );
-        setCouponCheckoutBusyId(null);
-      }
-    },
-    [lang],
-  );
-
   const openCouponEdit = useCallback(
     async (row: DashboardRestaurantRow) => {
       setCouponEditBusyId(row.id);
@@ -479,17 +444,6 @@ export default function DashboardRestaurantesPage() {
                     tone: "primary",
                   },
                 ];
-                if (couponUpgradeEligible) {
-                  cardActions.push({
-                    label:
-                      couponCheckoutBusyId === r.id
-                        ? restauranteCouponAddonUpgradeBusyLabel(lang)
-                        : restauranteCouponAddonUpgradeLabel(lang),
-                    onClick: () => void startCouponAddonCheckout(r),
-                    disabled: couponCheckoutBusyId === r.id,
-                    tone: "primary",
-                  });
-                }
                 if (couponEditEligible) {
                   cardActions.push({
                     label:
@@ -504,7 +458,7 @@ export default function DashboardRestaurantesPage() {
                   });
                 }
                 const couponFooterHint = couponUpgradeEligible
-                  ? restauranteCouponAddonUpgradeFooterHint(lang)
+                  ? restauranteCouponInactiveDashboardHint(lang)
                   : couponEditEligible
                     ? restauranteCouponEditFooterHint(lang)
                     : null;

@@ -5,6 +5,7 @@ import {
   resolveRevenueCategoryDefaultReturnPath,
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import { resolveRestauranteOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 
 const SHELL = "mx-auto max-w-xl px-4 py-12 sm:py-16";
 
@@ -35,6 +36,12 @@ function resolveCopy(
     ? sanitizeRevenueOsReturnPath(returnTo, dashboardHref)
     : null;
   const supportHref = lang === "es" ? "/contacto?lang=es" : "/contact?lang=en";
+  const offersAddonPrimaryCta = resolveRestauranteOffersAddonSuccessPrimaryCta({
+    packageKey: proof.packageKey,
+    listingId: proof.listingId,
+    leonixAdId: proof.leonixAdId,
+    lang,
+  });
 
   const detailLines: Copy["detailLines"] = [];
   if (proof.categoryLabel) detailLines.push({ label: lang === "es" ? "Categoría" : "Category", value: proof.categoryLabel });
@@ -78,10 +85,20 @@ function resolveCopy(
         lang === "es"
           ? "Activado por webhook verificado de Stripe — no por esta página."
           : "Activated by verified Stripe webhook — not by this page.",
-      primaryHref: dashboardHref,
-      primaryLabel: lang === "es" ? "Volver a mi panel" : "Back to my dashboard",
-      secondaryHref: safeReturnTo && safeReturnTo !== dashboardHref ? safeReturnTo : categoryHref,
-      secondaryLabel: lang === "es" ? "Ver categoría" : "View category",
+      primaryHref: offersAddonPrimaryCta?.href ?? dashboardHref,
+      primaryLabel: offersAddonPrimaryCta?.label ?? (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
+      secondaryHref: offersAddonPrimaryCta
+        ? dashboardHref
+        : safeReturnTo && safeReturnTo !== dashboardHref
+          ? safeReturnTo
+          : categoryHref,
+      secondaryLabel: offersAddonPrimaryCta
+        ? lang === "es"
+          ? "Volver a mi panel"
+          : "Back to my dashboard"
+        : lang === "es"
+          ? "Ver categoría"
+          : "View category",
       supportHref,
       supportLabel: lang === "es" ? "Ayuda" : "Help",
       tone: "success",
@@ -98,10 +115,20 @@ function resolveCopy(
           : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
       detailLines,
       note: lang === "es" ? "Actualiza esta página en un momento." : "Refresh this page in a moment.",
-      primaryHref: dashboardHref,
-      primaryLabel: lang === "es" ? "Volver a mi panel" : "Back to my dashboard",
-      secondaryHref: safeReturnTo && safeReturnTo !== dashboardHref ? safeReturnTo : categoryHref,
-      secondaryLabel: lang === "es" ? "Ver categoría" : "View category",
+      primaryHref: offersAddonPrimaryCta?.href ?? dashboardHref,
+      primaryLabel: offersAddonPrimaryCta?.label ?? (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
+      secondaryHref: offersAddonPrimaryCta
+        ? dashboardHref
+        : safeReturnTo && safeReturnTo !== dashboardHref
+          ? safeReturnTo
+          : categoryHref,
+      secondaryLabel: offersAddonPrimaryCta
+        ? lang === "es"
+          ? "Volver a mi panel"
+          : "Back to my dashboard"
+        : lang === "es"
+          ? "Ver categoría"
+          : "View category",
       supportHref,
       supportLabel: lang === "es" ? "Contactar soporte" : "Contact support",
       tone: "warn",

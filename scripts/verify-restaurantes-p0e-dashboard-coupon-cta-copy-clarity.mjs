@@ -24,6 +24,7 @@ function ok(msg) {
 
 const helper = read("app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts");
 const dedicatedPage = read("app/(site)/dashboard/restaurantes/page.tsx");
+const application = read("app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx");
 const pkg = read("package.json");
 
 if (!helper.includes("Destacar ofertas +$99/mes")) {
@@ -39,8 +40,16 @@ ok("CTA label clarity");
 if (!dedicatedPage.includes("Editar restaurante") && !dedicatedPage.includes("t.hydrate")) {
   fail("Editar restaurante must remain on dedicated dashboard");
 }
-if (!dedicatedPage.includes("startCouponAddonCheckout")) fail("Page must still start add-on checkout");
+if (!application.includes("startDashboardAddonCheckout")) {
+  fail("Inside Section G must still start add-on checkout");
+}
+if (!application.includes("redirectRestauranteDashboardCouponAddonCheckout")) {
+  fail("Inside activation must use add-on-only checkout helper");
+}
 if (!dedicatedPage.includes("openCouponEdit")) fail("Page must still open coupon edit");
+if (!dedicatedPage.includes("restauranteCouponInactiveDashboardHint")) {
+  fail("Inactive dashboard card must use Section G guidance helper");
+}
 if (!dedicatedPage.includes("restaurantCouponAddonUpgradeEligible")) {
   fail("Page must still use upgrade eligibility");
 }
@@ -61,8 +70,8 @@ if (!helper.includes("Administra hasta 4 ofertas destacadas de este anuncio.")) 
 if (!helper.includes("Manage up to 4 featured offers for this listing.")) {
   fail("Missing EN edit helper copy");
 }
-if (!dedicatedPage.includes("restauranteCouponAddonUpgradeFooterHint")) {
-  fail("Page must use activation footer hint helper");
+if (!dedicatedPage.includes("restauranteCouponInactiveDashboardHint")) {
+  fail("Page must use inactive Section G guidance helper");
 }
 if (!dedicatedPage.includes("restauranteCouponEditFooterHint")) {
   fail("Page must use edit footer hint helper");

@@ -20,6 +20,36 @@ export type RestauranteDashboardCouponAddonCheckoutResult =
   | { ok: true; checkoutUrl: string }
   | { ok: false; userMessage: string };
 
+export function restauranteCouponInactiveDashboardHint(lang: "es" | "en"): string {
+  return lang === "es"
+    ? "Para agregar ofertas destacadas, entra a Editar restaurante y abre la sección Ofertas y cupones."
+    : "To add featured offers, open Edit restaurant and go to Featured offers and coupons.";
+}
+
+export function restauranteCouponEditSuccessLabel(lang: "es" | "en"): string {
+  return lang === "es" ? "Editar ofertas ahora" : "Edit offers now";
+}
+
+export function resolveRestauranteOffersAddonSuccessPrimaryCta(input: {
+  packageKey: string | null;
+  listingId: string | null;
+  leonixAdId: string | null;
+  lang: "es" | "en";
+}): { href: string; label: string } | null {
+  if (input.packageKey !== "restaurantes_offers_addon") return null;
+  const listingId = input.listingId?.trim();
+  if (!listingId) return null;
+  return {
+    href: restauranteCouponEditHref({
+      lang: input.lang,
+      listingId,
+      leonixAdId: input.leonixAdId,
+      returnPanel: "restaurantes",
+    }),
+    label: restauranteCouponEditSuccessLabel(input.lang),
+  };
+}
+
 export function restauranteCouponAddonUpgradeLabel(lang: "es" | "en"): string {
   return lang === "es" ? "Destacar ofertas +$99/mes" : "Feature offers +$99/mo";
 }

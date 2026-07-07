@@ -50,33 +50,27 @@ if (!dedicatedPage.includes('.eq("owner_user_id", user.id)')) {
 }
 ok("dedicated dashboard query selects listing_json with owner filter");
 
-if (!dedicatedPage.includes("Agregar cupones +$99/mes") && !dedicatedPage.includes("restauranteCouponAddonUpgradeLabel")) {
-  fail("Dedicated dashboard must show Agregar cupones +$99/mes");
+if (!dedicatedPage.includes("restauranteCouponInactiveDashboardHint")) {
+  fail("Inactive listings must point owners to Editar restaurante / Section G");
 }
-if (!dedicatedPage.includes("Editar cupones") && !dedicatedPage.includes("restauranteCouponEditLabel")) {
-  fail("Dedicated dashboard must show Editar cupones");
+if (dedicatedPage.includes("startCouponAddonCheckout")) {
+  fail("Inactive outside Destacar ofertas CTA must be removed from dashboard cards");
+}
+if (!dedicatedPage.includes("Editar ofertas") && !dedicatedPage.includes("restauranteCouponEditLabel")) {
+  fail("Dedicated dashboard must show Editar ofertas for active listings");
 }
 if (!dedicatedPage.includes("Editar restaurante") && !dedicatedPage.includes("t.hydrate")) {
   fail("Editar restaurante must remain on dedicated dashboard");
 }
 ok("dedicated dashboard coupon CTA labels present");
 
-if (!dedicatedPage.includes("redirectRestauranteDashboardCouponAddonCheckout")) {
-  fail("Inactive CTA must use add-on-only checkout helper");
+if (dedicatedPage.includes("redirectRestauranteDashboardCouponAddonCheckout")) {
+  fail("Outside dashboard card must not start add-on checkout directly");
 }
-if (!dedicatedPage.includes("listingId: row.id")) fail("Inactive CTA must pass listingId");
-if (dedicatedPage.includes('router.push(appendLangToPath("/publicar/restaurantes"') &&
-    dedicatedPage.includes("startCouponAddonCheckout")) {
-  // upgrade handler must not push to publicar for checkout - check handler specifically
+if (!dedicatedPage.includes("restauranteListingEditHref")) {
+  fail("Editar restaurante must route with listing-edit context");
 }
-const upgradeBlock = dedicatedPage.slice(
-  dedicatedPage.indexOf("startCouponAddonCheckout"),
-  dedicatedPage.indexOf("openCouponEdit"),
-);
-if (upgradeBlock.includes('router.push(appendLangToPath("/publicar/restaurantes"')) {
-  fail("Inactive coupon CTA must not route to /publicar/restaurantes for checkout");
-}
-ok("inactive CTA uses add-on-only checkout without publish route");
+ok("inactive outside checkout removed; listing-edit route preserved");
 
 if (!dedicatedPage.includes("hydrateRestauranteListingForCouponEdit")) {
   fail("Active CTA must hydrate listing for coupon edit");

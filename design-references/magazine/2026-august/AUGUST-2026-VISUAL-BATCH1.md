@@ -406,12 +406,11 @@ leonixmedia.com
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-BATCH1-ASSET-PLACED-QA`** — Asset QA file: [`AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md`](AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md)
+**`AUGUST-2026-VISUAL-BATCH1-CHUY-QA-DECISION`** — Assets placed; see [`AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md`](AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md) placement verification (ASSET_PLACED / QA_NEEDED)
 
 Purpose:
 
-- Run after Chuy places pages **5, 6, 12** PNGs in `01-master-samples/` with exact filenames
-- Verify placement, ratio, contact truth, readability — **not** public/print/FlipHTML5 approval
+- Chuy visual QA on pages **5, 6, 12** → **MASTER_SAMPLE_APPROVED** or **QA_FIX_NEEDED**
 
 ---
 
