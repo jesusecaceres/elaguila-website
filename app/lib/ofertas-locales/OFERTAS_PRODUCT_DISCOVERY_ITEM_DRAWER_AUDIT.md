@@ -354,3 +354,72 @@ Owner feedback: PDF hero showed decorative placeholder instead of real flyer pag
 | READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
 | GLOBAL WORKING TREE CLEAN: YES/NO | NO | Gate 2B/3 files dirty |
 | UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Only gate-scoped files |
+
+---
+
+## Gate 4B — Item Metadata Extraction + Review Fields
+
+**Task classification:** SCOPED GATED BUILD  
+**Date:** 2026-07-07
+
+### Prompt fields added
+
+Gemini flyer extraction prompt now requests optional commerce metadata per tile:
+`item_number`, `sku`, `model_number`, `upc`, `coupon_code`, `item_url`, `online_availability`.
+
+Prompt forbids hallucinated numbers/URLs and store-homepage URLs.
+
+### Validator fields added
+
+`OfertaLocalGeminiRawCandidate` extended with commerce fields. Validated candidates carry `commerceMetadata` (`OfertaLocalItemCommerceMetadata`) with length limits and HTTPS-only `itemUrl` when AI-visible.
+
+### Storage location
+
+`extracted_json.commerceMetadata` — no DB migration. Existing `extracted_json` keys (`provider`, `brand`, `salePriceText`, `regularPriceText`, `savingsText`, `rawEvidence`, `priceRepaired`, `needsReviewReason`, `sourceBboxGemini`) preserved on PATCH merge.
+
+### Review UI fields added
+
+Expandable **Datos para compra / búsqueda** / **Shopping / lookup data** section in `OfertasLocalesAiItemReviewPanel` with product URL, item number, SKU, model, UPC, coupon code, and availability select.
+
+### PATCH merge behavior
+
+`validateOfertaLocalItemReviewPatch` accepts `commerceMetadata`. `mapOfertaLocalItemReviewPatchToDbUpdate` merges into existing `extracted_json` without deleting unrelated keys; preserves `metadataNote` and AI `itemUrlSource` when appropriate.
+
+### itemUrl HTTPS validation
+
+Non-HTTPS, relative, `javascript:`, `data:`, `mailto:`, and `tel:` URLs rejected with `invalid_item_url` on owner PATCH. AI extraction clears unsafe URLs with optional metadata note.
+
+### Intentionally not made live
+
+- No shopper **Buy online** / purchase CTAs (Gate 4C)
+- No copy-item-number CTA (Gate 4C)
+- No shopping list, coupon wallet, or route planner
+- Drawer shows read-only metadata only — no clickable product URL CTA yet
+
+### Mobile / PWA review status
+
+Commerce section is collapsible inside each review card to keep compact/workspace modes usable on ~390px.
+
+### Gate 4B TRUE/FALSE audit table
+
+| Requirement | TRUE/FALSE | Evidence |
+|---|---|---|
+| Gemini prompt asks for item number/SKU/model/UPC/coupon code/item URL | TRUE | ofertasLocalesGeminiPrompt.ts |
+| Prompt forbids hallucinated item numbers/URLs | TRUE | Commerce metadata rules in prompt |
+| Validator accepts optional commerce metadata | TRUE | commerceMetadata on validated candidate |
+| Invalid/non-HTTPS item URL rejected or cleared safely | TRUE | validateOfertaLocalCommerceItemUrl |
+| Metadata stored under extracted_json.commerceMetadata | TRUE | Gemini normalizer + PATCH merge |
+| Existing extracted_json data preserved on save | TRUE | mergeCommerceMetadataIntoExtractedJson |
+| Review view model exposes commerceMetadata | TRUE | mapOfertaLocalItemReviewRowToViewModel |
+| Owner review UI exposes commerce fields | TRUE | OfertasLocalesAiItemReviewPanel |
+| Review PATCH saves commerce fields through owner/admin route | TRUE | items/[itemId]/route.ts + mapper |
+| No DB migration added | TRUE | extracted_json only |
+| No fake online-shopping CTA added | TRUE | No buy/order buttons |
+| No shopping list/route/coupon wallet made live | TRUE | Unchanged |
+| Gate 4A crop/image truth preserved | TRUE | Crop helpers untouched |
+| ES/EN labels added | TRUE | applicationCopy + previewCopy |
+| Mobile review UI remains usable | TRUE | Collapsible commerce block |
+| Checks passed | TRUE | verify + build |
+| READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate 4B scoped |
+| READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
+| UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Gate-scoped only |

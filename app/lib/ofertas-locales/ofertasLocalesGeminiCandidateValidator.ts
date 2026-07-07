@@ -8,8 +8,9 @@ import {
   repairRetailPriceDigits,
 } from "./ofertasLocalesAiPriceNormalizer";
 import { validateGeminiSourceBbox, type GeminiSourceBbox } from "./ofertasLocalesGeminiBbox";
+import { sanitizeOfertaLocalCommerceMetadataFromGeminiRaw } from "./ofertasLocalesItemReviewMapper";
 import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
-import type { OfertaLocalSourceBoundingBox } from "./ofertasLocalesTypes";
+import type { OfertaLocalItemCommerceMetadata, OfertaLocalSourceBoundingBox } from "./ofertasLocalesTypes";
 
 export const OFERTAS_GEMINI_SUPPORTED_UNITS = [
   "LB",
@@ -55,6 +56,13 @@ export type OfertaLocalGeminiRawCandidate = {
   needs_review_reason?: unknown;
   raw_evidence?: unknown;
   source_bbox?: unknown;
+  item_number?: unknown;
+  sku?: unknown;
+  model_number?: unknown;
+  upc?: unknown;
+  coupon_code?: unknown;
+  item_url?: unknown;
+  online_availability?: unknown;
 };
 
 export type OfertaLocalGeminiValidatedCandidate = {
@@ -78,6 +86,7 @@ export type OfertaLocalGeminiValidatedCandidate = {
   priceRepaired: boolean;
   sourceBbox: OfertaLocalSourceBoundingBox | null;
   sourceBboxGemini: GeminiSourceBbox | null;
+  commerceMetadata: OfertaLocalItemCommerceMetadata;
 };
 
 export type OfertaLocalGeminiValidationStats = {
@@ -314,6 +323,7 @@ export function validateAndSanitizeGeminiCandidates(
     if (repaired.priceRepaired) priceRepairsApplied += 1;
 
     const bboxValidated = validateGeminiSourceBbox(raw.source_bbox);
+    const commerceMetadata = sanitizeOfertaLocalCommerceMetadataFromGeminiRaw(raw);
 
     const candidate: OfertaLocalGeminiValidatedCandidate = {
       productName,
@@ -336,6 +346,7 @@ export function validateAndSanitizeGeminiCandidates(
       priceRepaired: repaired.priceRepaired,
       sourceBbox: bboxValidated?.normalized ?? null,
       sourceBboxGemini: bboxValidated?.geminiBbox ?? null,
+      commerceMetadata,
     };
 
     const key = candidateDedupeKey(candidate);

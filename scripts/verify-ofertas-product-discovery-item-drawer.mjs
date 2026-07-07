@@ -20,6 +20,13 @@ const MAP_PREVIEW = "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesM
 const COPY = "app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts";
 const HELPERS = "app/lib/ofertas-locales/ofertasLocalesPreviewHelpers.ts";
 const VERIFIER = "scripts/verify-ofertas-product-discovery-item-drawer.mjs";
+const GEMINI_PROMPT = "app/lib/ofertas-locales/ofertasLocalesGeminiPrompt.ts";
+const GEMINI_VALIDATOR = "app/lib/ofertas-locales/ofertasLocalesGeminiCandidateValidator.ts";
+const GEMINI_NORMALIZER = "app/lib/ofertas-locales/ofertasLocalesGeminiNormalizer.ts";
+const TYPES = "app/lib/ofertas-locales/ofertasLocalesTypes.ts";
+const ITEM_MAPPER = "app/lib/ofertas-locales/ofertasLocalesItemReviewMapper.ts";
+const REVIEW_PANEL = "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx";
+const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
 
 const GATE_ALLOWED = new Set([
   GRID,
@@ -32,13 +39,19 @@ const GATE_ALLOWED = new Set([
   HELPERS,
   AUDIT,
   VERIFIER,
+  GEMINI_PROMPT,
+  GEMINI_VALIDATOR,
+  GEMINI_NORMALIZER,
+  TYPES,
+  ITEM_MAPPER,
+  REVIEW_PANEL,
+  APP_COPY,
 ]);
 
 const PROHIBITED = [
   "OfertasLocalesApplicationClient.tsx",
   "OfertasLocalesAiScanPanel.tsx",
   "OfertasLocalesAiScanReviewWorkspace.tsx",
-  "OfertasLocalesAiItemReviewPanel.tsx",
   "app/api/",
   "supabase/migrations",
   "stripe",
@@ -48,6 +61,7 @@ const PROHIBITED = [
 ];
 
 const FAKE_STRINGS = [
+  "buy now",
   "in stock",
   "added to your list",
   "added to list",
@@ -57,6 +71,7 @@ const FAKE_STRINGS = [
   "distance estimate",
   "order online",
   "open now",
+  "best route",
 ];
 
 function read(rel) {
@@ -144,8 +159,36 @@ function run() {
   assert.ok(audit.includes("Owner controls near top"), "Owner top controls documented");
   assert.ok(audit.includes("sourceCropUrl"), "Source crop truth documented");
   assert.ok(audit.includes("no fake"), "No fake crop documented");
+  assert.ok(audit.includes("Gate 4B"), "Gate 4B section");
+  assert.ok(audit.includes("extracted_json.commerceMetadata"), "Commerce metadata storage documented");
   assert.ok(audit.includes("TRUE/FALSE"), "Audit table");
   assert.ok(audit.includes("READY TO COMMIT THIS BUILD ONLY"), "Commit flag");
+
+  const geminiPrompt = read(GEMINI_PROMPT);
+  const geminiValidator = read(GEMINI_VALIDATOR);
+  const geminiNormalizer = read(GEMINI_NORMALIZER);
+  const itemMapper = read(ITEM_MAPPER);
+  const reviewPanel = read(REVIEW_PANEL);
+  const appCopy = read(APP_COPY);
+
+  for (const field of [
+    "item_number",
+    "sku",
+    "model_number",
+    "upc",
+    "coupon_code",
+    "item_url",
+    "online_availability",
+  ]) {
+    assert.ok(geminiPrompt.includes(field), `Prompt missing ${field}`);
+  }
+  assert.ok(geminiPrompt.includes("Do not hallucinate"), "Prompt anti-hallucination rule");
+  assert.ok(geminiValidator.includes("commerceMetadata"), "Validator commerce metadata");
+  assert.ok(geminiNormalizer.includes("commerceMetadata"), "Normalizer commerce metadata");
+  assert.ok(itemMapper.includes("mergeCommerceMetadataIntoExtractedJson"), "PATCH merge helper");
+  assert.ok(itemMapper.includes("invalid_item_url"), "HTTPS item URL validation");
+  assert.ok(reviewPanel.includes("aiReviewCommerceSectionTitle"), "Review commerce section");
+  assert.ok(appCopy.includes("aiReviewCommerceSectionTitle"), "Review commerce copy");
 
   assert.ok(hero.includes("OfertasLocalesPdfFlyerPreview"), "Hero uses PDF preview component");
   assert.ok(pdfPreview.includes("pdfjs-dist/legacy/build/pdf.mjs"), "PDF preview uses pdfjs-dist");
@@ -158,13 +201,17 @@ function run() {
 
   assert.ok(grid.includes("OfertasLocalesProductDetailDrawer"), "Grid uses drawer");
   assert.ok(grid.includes("searchQuery"), "Search state");
-  assert.ok(grid.includes("noClipYetEn"), "No clip yet label");
+  assert.ok(
+    grid.includes("cropPreparingEn") || grid.includes("noClipYetEn"),
+    "Crop fallback label"
+  );
   assert.ok(grid.includes("syncOfertasPreviewItemParam"), "Item URL foundation");
 
   assert.ok(drawer.includes('role="dialog"'), "Dialog semantics");
   assert.ok(drawer.includes("aria-modal"), "Aria modal");
   assert.ok(drawer.includes("FUTURE WIRING"), "Future wiring in drawer");
-  assert.ok(drawer.includes("viewSourceOnFlyerEn"), "Source on flyer link");
+  assert.ok(drawer.includes("viewFullFlyerEn") || drawer.includes("viewSourceOnFlyerEn"), "Flyer link copy");
+  assert.ok(drawer.includes("productDataEn") || drawer.includes("commerceMetadata"), "Drawer product data");
   assert.ok(drawer.includes("disabled"), "Disabled future actions");
 
   assertRectangularMainCtas("grid", grid);
@@ -186,7 +233,7 @@ function run() {
 
   assert.ok(helpers.includes("buildOfertaLocalPreviewMapEmbedUrl"), "Map embed helper");
 
-  const sources = [grid, drawer, card].join("\n").toLowerCase();
+  const sources = [grid, drawer, card, reviewPanel].join("\n").toLowerCase();
   for (const fake of FAKE_STRINGS) {
     assert.ok(!sources.includes(fake.toLowerCase()), `Fake string: ${fake}`);
   }

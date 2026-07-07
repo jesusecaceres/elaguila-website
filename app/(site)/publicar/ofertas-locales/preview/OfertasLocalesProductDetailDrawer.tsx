@@ -17,7 +17,9 @@ import {
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import {
   itemHasMissingFlyerCrop,
+  ofertaLocalCommerceMetadataHasDisplayData,
   resolveOfertaLocalItemCropDisplayUrl,
+  validateOfertaLocalCommerceItemUrl,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
 import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
@@ -141,6 +143,9 @@ export function OfertasLocalesProductDetailDrawer({
     item.validUntil ?? draft.validUntil
   );
   const businessName = draft.businessName.trim();
+  const commerce = item.commerceMetadata;
+  const showCommerceData = ofertaLocalCommerceMetadataHasDisplayData(commerce);
+  const safeItemUrl = validateOfertaLocalCommerceItemUrl(commerce.itemUrl);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-stretch lg:justify-end">
@@ -276,6 +281,64 @@ export function OfertasLocalesProductDetailDrawer({
             <p className="mt-4 text-xs font-medium uppercase tracking-wide text-[#1E1814]/40">
               {lang === "en" ? c.validLabelEn : c.validLabelEs}: {dateRange}
             </p>
+          ) : null}
+
+          {showCommerceData ? (
+            <div className="mt-5 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-3 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/55">
+                {lang === "en" ? c.productDataEn : c.productDataEs}
+              </p>
+              <dl className="mt-2 space-y-1.5 text-xs">
+                {safeItemUrl ? (
+                  <div>
+                    <dt className="font-medium text-[#1E1814]/50">
+                      {lang === "en" ? c.linkedProductEn : c.linkedProductEs}
+                    </dt>
+                    <dd className="break-all text-[#7A1E2C]">{safeItemUrl}</dd>
+                  </div>
+                ) : null}
+                {commerce.itemNumber.trim() ? (
+                  <div>
+                    <dt className="font-medium text-[#1E1814]/50">
+                      {lang === "en" ? c.itemNumberEn : c.itemNumberEs}
+                    </dt>
+                    <dd className="text-[#1E1814]/75">{commerce.itemNumber}</dd>
+                  </div>
+                ) : null}
+                {commerce.sku.trim() ? (
+                  <div>
+                    <dt className="font-medium text-[#1E1814]/50">
+                      {lang === "en" ? c.skuLabelEn : c.skuLabelEs}
+                    </dt>
+                    <dd className="text-[#1E1814]/75">{commerce.sku}</dd>
+                  </div>
+                ) : null}
+                {commerce.modelNumber.trim() ? (
+                  <div>
+                    <dt className="font-medium text-[#1E1814]/50">
+                      {lang === "en" ? c.modelNumberEn : c.modelNumberEs}
+                    </dt>
+                    <dd className="text-[#1E1814]/75">{commerce.modelNumber}</dd>
+                  </div>
+                ) : null}
+                {commerce.upc.trim() ? (
+                  <div>
+                    <dt className="font-medium text-[#1E1814]/50">
+                      {lang === "en" ? c.upcLabelEn : c.upcLabelEs}
+                    </dt>
+                    <dd className="text-[#1E1814]/75">{commerce.upc}</dd>
+                  </div>
+                ) : null}
+                {commerce.couponCode.trim() ? (
+                  <div>
+                    <dt className="font-medium text-[#1E1814]/50">
+                      {lang === "en" ? c.couponCodeEn : c.couponCodeEs}
+                    </dt>
+                    <dd className="text-[#1E1814]/75">{commerce.couponCode}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
           ) : null}
 
           <div className="mt-6 space-y-2">

@@ -76,6 +76,7 @@ function toItemDraft(
       priceRepaired: candidate.priceRepaired,
       needsReviewReason: candidate.needsReviewReason,
       sourceBboxGemini: candidate.sourceBboxGemini,
+      commerceMetadata: candidate.commerceMetadata,
     },
     confidence: candidate.confidenceScore,
     reviewStatus: "needs_review",

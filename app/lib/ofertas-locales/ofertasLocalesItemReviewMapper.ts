@@ -4,11 +4,15 @@
 
 import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
 import { resolveOfertaLocalItemIsActiveOnReviewPatch } from "./ofertasLocalesItemReviewActivation";
+import { EMPTY_OFERTA_LOCAL_ITEM_COMMERCE_METADATA } from "./ofertasLocalesTypes";
 import type {
   OfertaLocalItemDbRow,
+  OfertaLocalItemCommerceMetadata,
+  OfertaLocalItemOnlineAvailability,
   OfertaLocalItemReviewPatch,
   OfertaLocalItemReviewStatus,
   OfertaLocalItemReviewViewModel,
+  OfertaLocalItemUrlSource,
   OfertaLocalPublishStatus,
   OfertaLocalSearchableItemDraft,
   OfertaLocalSourceBoundingBox,
@@ -17,6 +21,16 @@ import type {
 const MAX_NAME = 200;
 const MAX_SHORT = 64;
 const MAX_TAGS = 25;
+const COMMERCE_MAX_SHORT = 80;
+const COMMERCE_MAX_URL = 500;
+const COMMERCE_MAX_NOTE = 240;
+
+const ONLINE_AVAILABILITY_VALUES: ReadonlySet<OfertaLocalItemOnlineAvailability> = new Set([
+  "unknown",
+  "online",
+  "in_store",
+  "both",
+]);
 
 const REVIEW_STATUSES: ReadonlySet<OfertaLocalItemReviewStatus> = new Set([
   "pending",
@@ -40,6 +54,191 @@ function sanitizeTags(tags: string[]): string[] {
     if (n && !out.includes(n) && out.length < MAX_TAGS) out.push(n);
   }
   return out;
+}
+
+function normalizeOnlineAvailability(raw: unknown): OfertaLocalItemOnlineAvailability {
+  const key = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  if (key === "online" || key === "in_store" || key === "both") return key;
+  if (key === "instore" || key === "in-store") return "in_store";
+  if (key === "online_and_in_store" || key === "online_in_store") return "both";
+  return "unknown";
+}
+
+/** HTTPS-only product URL safe for storage and display. */
+export function validateOfertaLocalCommerceItemUrl(
+  url: string | null | undefined
+): string | null {
+  const t = String(url ?? "").trim();
+  if (!t) return "";
+  const lower = t.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("mailto:") ||
+    lower.startsWith("tel:")
+  ) {
+    return null;
+  }
+  if (t.startsWith("/") || !t.startsWith("https://")) return null;
+  try {
+    const parsed = new URL(t);
+    if (parsed.protocol !== "https:") return null;
+    return parsed.toString().slice(0, COMMERCE_MAX_URL);
+  } catch {
+    return null;
+  }
+}
+
+export function parseOfertaLocalCommerceMetadataFromExtractedJson(
+  extractedJson: Record<string, unknown> | null | undefined
+): OfertaLocalItemCommerceMetadata {
+  const base = { ...EMPTY_OFERTA_LOCAL_ITEM_COMMERCE_METADATA };
+  if (!extractedJson || typeof extractedJson !== "object") return base;
+  const raw = extractedJson.commerceMetadata;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const o = raw as Record<string, unknown>;
+  const itemUrl = validateOfertaLocalCommerceItemUrl(String(o.itemUrl ?? "")) ?? "";
+  return {
+    itemNumber: sanitizeText(String(o.itemNumber ?? ""), COMMERCE_MAX_SHORT),
+    sku: sanitizeText(String(o.sku ?? ""), COMMERCE_MAX_SHORT),
+    modelNumber: sanitizeText(String(o.modelNumber ?? ""), COMMERCE_MAX_SHORT),
+    upc: sanitizeText(String(o.upc ?? ""), COMMERCE_MAX_SHORT),
+    couponCode: sanitizeText(String(o.couponCode ?? ""), COMMERCE_MAX_SHORT),
+    itemUrl,
+    onlineAvailability: normalizeOnlineAvailability(o.onlineAvailability),
+    itemUrlSource:
+      o.itemUrlSource === "ai_visible" || o.itemUrlSource === "manual"
+        ? o.itemUrlSource
+        : itemUrl
+          ? "manual"
+          : "",
+    metadataNote: sanitizeText(String(o.metadataNote ?? ""), COMMERCE_MAX_NOTE),
+  };
+}
+
+export function ofertaLocalCommerceMetadataHasDisplayData(
+  metadata: OfertaLocalItemCommerceMetadata
+): boolean {
+  return Boolean(
+    metadata.itemNumber.trim() ||
+      metadata.sku.trim() ||
+      metadata.modelNumber.trim() ||
+      metadata.upc.trim() ||
+      metadata.couponCode.trim() ||
+      metadata.itemUrl.trim()
+  );
+}
+
+export function sanitizeOfertaLocalCommerceMetadataFromGeminiRaw(raw: {
+  item_number?: unknown;
+  sku?: unknown;
+  model_number?: unknown;
+  upc?: unknown;
+  coupon_code?: unknown;
+  item_url?: unknown;
+  online_availability?: unknown;
+}): OfertaLocalItemCommerceMetadata {
+  const metadataNoteParts: string[] = [];
+  const itemUrlRaw = sanitizeText(String(raw.item_url ?? ""), COMMERCE_MAX_URL);
+  let itemUrl = "";
+  let itemUrlSource: OfertaLocalItemUrlSource = "";
+  if (itemUrlRaw) {
+    const validated = validateOfertaLocalCommerceItemUrl(itemUrlRaw);
+    if (validated) {
+      itemUrl = validated;
+      itemUrlSource = "ai_visible";
+    } else {
+      metadataNoteParts.push("AI item_url rejected (non-HTTPS or unsafe)");
+    }
+  }
+
+  return {
+    itemNumber: sanitizeText(String(raw.item_number ?? ""), COMMERCE_MAX_SHORT),
+    sku: sanitizeText(String(raw.sku ?? ""), COMMERCE_MAX_SHORT),
+    modelNumber: sanitizeText(String(raw.model_number ?? ""), COMMERCE_MAX_SHORT),
+    upc: sanitizeText(String(raw.upc ?? ""), COMMERCE_MAX_SHORT),
+    couponCode: sanitizeText(String(raw.coupon_code ?? ""), COMMERCE_MAX_SHORT),
+    itemUrl,
+    onlineAvailability: normalizeOnlineAvailability(raw.online_availability),
+    itemUrlSource,
+    metadataNote: metadataNoteParts.join(" · ").slice(0, COMMERCE_MAX_NOTE),
+  };
+}
+
+export type OfertaLocalCommerceMetadataPatchResult =
+  | { ok: true; metadata: OfertaLocalItemCommerceMetadata }
+  | { ok: false; error: string };
+
+export function sanitizeOfertaLocalCommerceMetadataPatch(
+  raw: unknown,
+  existing?: OfertaLocalItemCommerceMetadata
+): OfertaLocalCommerceMetadataPatchResult {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: "invalid_commerce_metadata" };
+  }
+  const o = raw as Record<string, unknown>;
+  const base = existing ?? { ...EMPTY_OFERTA_LOCAL_ITEM_COMMERCE_METADATA };
+
+  let itemUrl = base.itemUrl;
+  let itemUrlSource = base.itemUrlSource;
+  if (o.itemUrl !== undefined) {
+    const rawUrl = sanitizeText(String(o.itemUrl ?? ""), COMMERCE_MAX_URL);
+    if (!rawUrl) {
+      itemUrl = "";
+      itemUrlSource = "";
+    } else {
+      const validated = validateOfertaLocalCommerceItemUrl(rawUrl);
+      if (validated === null) return { ok: false, error: "invalid_item_url" };
+      itemUrl = validated;
+      itemUrlSource = "manual";
+    }
+  }
+
+  const metadata: OfertaLocalItemCommerceMetadata = {
+    itemNumber:
+      o.itemNumber !== undefined
+        ? sanitizeText(String(o.itemNumber ?? ""), COMMERCE_MAX_SHORT)
+        : base.itemNumber,
+    sku: o.sku !== undefined ? sanitizeText(String(o.sku ?? ""), COMMERCE_MAX_SHORT) : base.sku,
+    modelNumber:
+      o.modelNumber !== undefined
+        ? sanitizeText(String(o.modelNumber ?? ""), COMMERCE_MAX_SHORT)
+        : base.modelNumber,
+    upc: o.upc !== undefined ? sanitizeText(String(o.upc ?? ""), COMMERCE_MAX_SHORT) : base.upc,
+    couponCode:
+      o.couponCode !== undefined
+        ? sanitizeText(String(o.couponCode ?? ""), COMMERCE_MAX_SHORT)
+        : base.couponCode,
+    itemUrl,
+    onlineAvailability:
+      o.onlineAvailability !== undefined
+        ? normalizeOnlineAvailability(o.onlineAvailability)
+        : base.onlineAvailability,
+    itemUrlSource,
+    metadataNote:
+      o.metadataNote !== undefined
+        ? sanitizeText(String(o.metadataNote ?? ""), COMMERCE_MAX_NOTE)
+        : base.metadataNote,
+  };
+
+  if (!ONLINE_AVAILABILITY_VALUES.has(metadata.onlineAvailability)) {
+    metadata.onlineAvailability = "unknown";
+  }
+
+  return { ok: true, metadata };
+}
+
+export function mergeCommerceMetadataIntoExtractedJson(
+  existing: Record<string, unknown>,
+  metadata: OfertaLocalItemCommerceMetadata
+): Record<string, unknown> {
+  return {
+    ...existing,
+    commerceMetadata: { ...metadata },
+  };
 }
 
 export function formatOfertaLocalItemConfidenceLabel(
@@ -91,6 +290,9 @@ export function mapOfertaLocalItemReviewRowToViewModel(row: OfertaLocalItemDbRow
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    commerceMetadata: parseOfertaLocalCommerceMetadataFromExtractedJson(
+      row.extracted_json as Record<string, unknown> | null
+    ),
   };
 }
 
@@ -151,6 +353,12 @@ export function validateOfertaLocalItemReviewPatch(
     patch.reviewStatus = status;
   }
 
+  if (o.commerceMetadata !== undefined) {
+    const commerce = sanitizeOfertaLocalCommerceMetadataPatch(o.commerceMetadata);
+    if (!commerce.ok) return { ok: false, error: commerce.error };
+    patch.commerceMetadata = commerce.metadata;
+  }
+
   if (Object.keys(patch).length === 0) {
     return { ok: false, error: "empty_patch" };
   }
@@ -161,7 +369,10 @@ export function validateOfertaLocalItemReviewPatch(
 /** DB update payload — activates only when item approved and parent offer is approved. */
 export function mapOfertaLocalItemReviewPatchToDbUpdate(
   patch: OfertaLocalItemReviewPatch,
-  existing: Pick<OfertaLocalItemDbRow, "item_name" | "normalized_item_name" | "review_status" | "is_active">,
+  existing: Pick<
+    OfertaLocalItemDbRow,
+    "item_name" | "normalized_item_name" | "review_status" | "is_active" | "extracted_json"
+  >,
   parentOfferStatus: OfertaLocalPublishStatus = "pending_review"
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {
@@ -193,6 +404,22 @@ export function mapOfertaLocalItemReviewPatchToDbUpdate(
   if (patch.quantity !== undefined) out.quantity = patch.quantity || null;
   if (patch.searchTags !== undefined) out.search_tags = patch.searchTags;
   if (patch.reviewStatus !== undefined) out.review_status = patch.reviewStatus;
+
+  if (patch.commerceMetadata !== undefined) {
+    const existingJson = (existing.extracted_json as Record<string, unknown> | null) ?? {};
+    const existingMeta = parseOfertaLocalCommerceMetadataFromExtractedJson(existingJson);
+    const nextMeta: OfertaLocalItemCommerceMetadata = {
+      ...patch.commerceMetadata,
+      metadataNote: patch.commerceMetadata.metadataNote || existingMeta.metadataNote,
+      itemUrlSource: patch.commerceMetadata.itemUrl
+        ? patch.commerceMetadata.itemUrlSource ||
+          (patch.commerceMetadata.itemUrl === existingMeta.itemUrl
+            ? existingMeta.itemUrlSource
+            : "manual")
+        : "",
+    };
+    out.extracted_json = mergeCommerceMetadataIntoExtractedJson(existingJson, nextMeta);
+  }
 
   if (existing && patch.itemName === undefined && patch.normalizedItemName === undefined) {
     // no-op preserve
