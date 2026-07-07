@@ -169,3 +169,13 @@ The three wired categories (Rentas privado, Empleos paid job post, Autos privado
 - The applied code is captured client-side (shared `RevenuePromoField`, or `PublishCheckoutCheckpoint` for Restaurantes), forwarded to `startRevenueCategoryCheckout` → `POST /api/revenue-os/checkout`, which **revalidates server-side** and uses the server `finalAmountCents` for the Stripe session.
 - Redemption is **webhook-only** after a successful paid session; abandoned/cancelled checkouts do not consume the code.
 - Empleos **job fair (free)** and Autos **negocio/dealer** legacy checkout are intentionally untouched — no promo field is rendered there.
+
+## 17. Launch 25 checkout UX polish (LAUNCH-25-ELIGIBLE-CHECKOUT-UX-POLISH-01)
+
+UX continuity pass over the same eligible surfaces. No backend/validation/discount/Stripe/schema changes.
+
+- Shared reminder: `app/components/leonix/LeonixLaunch25MiniNotice.tsx` (bilingual, compact; excludes free/dealer/print/combo; no placement/ranking/verification claims).
+- Rentas privado, Empleos quick+premium paid forms, and Autos privado form now show the reminder near their top/price area.
+- Selector pages: paid Empleos job card and Autos private-seller card show a Launch 25 eligibility badge. The free job fair and the Autos dealer card are excluded (dealer shows a neutral "separate promotions" note).
+- Final `RevenuePromoField` gained a calm helper line only.
+- Server checkout remains the source of truth; redemption stays webhook-only.

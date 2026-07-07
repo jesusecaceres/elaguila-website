@@ -57,8 +57,11 @@ export function PublicarAutosBranchClient() {
               <FiUser className="h-5 w-5" aria-hidden />
             </span>
             <h2 className="mt-4 text-lg font-bold text-[color:var(--lx-text)]">{c.privado.title}</h2>
-            <p className="mt-2">
+            <p className="mt-2 flex flex-wrap items-center gap-2">
               <AutosPricingBadge priceDisplay={c.privado.priceDisplay} />
+              <span className="inline-flex items-center rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/8 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
+                {c.privado.launchBadge}
+              </span>
             </p>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.privado.body}</p>
             <span className="mt-6 inline-flex min-h-[48px] items-center gap-2 text-sm font-bold text-[color:var(--lx-gold)] group-hover:underline">
@@ -72,8 +75,11 @@ export function PublicarAutosBranchClient() {
               <FiBriefcase className="h-5 w-5" aria-hidden />
             </span>
             <h2 className="mt-4 text-lg font-bold text-[color:var(--lx-text)]">{c.negocios.title}</h2>
-            <p className="mt-2">
+            <p className="mt-2 flex flex-wrap items-center gap-2">
               <AutosPricingBadge priceDisplay={c.negocios.priceDisplay} />
+              <span className="inline-flex items-center rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
+                {c.negocios.launchNote}
+              </span>
             </p>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.negocios.body}</p>
             <span className="mt-6 inline-flex min-h-[48px] items-center gap-2 text-sm font-bold text-[color:var(--lx-gold)] group-hover:underline">

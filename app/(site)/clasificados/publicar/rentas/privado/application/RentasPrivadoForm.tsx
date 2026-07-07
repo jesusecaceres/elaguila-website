@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { LeonixLaunch25MiniNotice } from "@/app/components/leonix/LeonixLaunch25MiniNotice";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
@@ -359,6 +360,12 @@ export function RentasPrivadoForm() {
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
           </Link>
         </div>
+
+        <LeonixLaunch25MiniNotice
+          lang={lang === "en" ? "en" : "es"}
+          variant="banner"
+          href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=rentas_privado&sourceCta=launch_25`}
+        />
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{lang === "en" ? "Who is posting this rental?" : "¿Quién publica esta renta?"}</h2>

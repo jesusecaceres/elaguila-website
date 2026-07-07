@@ -152,3 +152,26 @@ Admin promo manager, Revenue OS checkout/webhook/promo modules, shared checkpoin
 
 - Promo validation on additional categories (Servicios, Bienes negocio, etc.)
 - STRIPE-REVENUE-OS-RESTAURANTES-COUPON-ADDON-01 (category add-on billing)
+
+## 17. LAUNCH-25-ELIGIBLE-CHECKOUT-UX-POLISH-01 (UX continuity gate)
+
+This gate is **UX only** — no validation, discount math, Stripe, or schema changes.
+Server checkout remains the source of truth; redemption stays webhook-only.
+
+Reusable component: `app/components/leonix/LeonixLaunch25MiniNotice.tsx`
+(compact bilingual reminder; excludes free/dealer/print/combo; no placement/ranking/verification claims).
+
+Reminders added to eligible paid surfaces:
+
+- **Rentas privado** (`RentasPrivadoForm.tsx`): reminder banner near the top of the form. No promo input here — validation stays on the preview/confirm checkpoint.
+- **Empleos paid**:
+  - Selector (`EmpleosPublicarHubClient.tsx`): "Acepta código Leonix Launch 25" / "Launch 25 code eligible" badge on the paid job card only. The free job fair card is intentionally excluded.
+  - Quick + premium paid forms: reminder banner near the price banner.
+- **Autos privado**:
+  - Selector (`PublicarAutosBranchClient.tsx`): eligibility badge on the private seller card. The dealer card shows a neutral "Business package — separate promotions" note and never claims Launch 25 eligibility.
+  - Private form (`AutosPrivadoApplication.tsx`): reminder banner in the header, next to the pricing plan banner.
+- **Final promo field** (`RevenuePromoField.tsx`): added a calm helper line ("Use your Leonix Launch 25 code if it applies to this checkout."). Validation/payload/totals unchanged.
+
+Excluded (no reminder/badge): En Venta, Comunidad, free classes, Empleos job fair, Autos dealer/negocio, Bienes privado, Servicios, Ofertas Locales, Nuestros Negocios, print/combo/manual.
+
+Verifier: `npm run verify:website-launch-25-checkout-wiring` extended with UX presence assertions.

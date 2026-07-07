@@ -157,6 +157,66 @@ for (const s of ["website checkout only", "webhook"]) {
 }
 ok("documentation doctrine present");
 
+// LAUNCH-25-ELIGIBLE-CHECKOUT-UX-POLISH-01: UX reminder presence
+const miniNotice = "app/components/leonix/LeonixLaunch25MiniNotice.tsx";
+const empleosHub = "app/(site)/publicar/empleos/EmpleosPublicarHubClient.tsx";
+const autosBranchCopy = "app/(site)/publicar/autos/autosBranchCopy.ts";
+const rentasForm = "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx";
+const autosPrivadoApp = "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx";
+const autosBranchClient = "app/(site)/publicar/autos/PublicarAutosBranchClient.tsx";
+for (const rel of [miniNotice, empleosHub, autosBranchCopy, rentasForm, autosPrivadoApp, autosBranchClient]) {
+  if (!existsSync(path.join(root, rel))) fail(`Missing UX file: ${rel}`);
+}
+const miniSrc = read(miniNotice);
+const empleosHubSrc = read(empleosHub);
+const autosBranchSrc = read(autosBranchCopy);
+const rentasFormSrc = read(rentasForm);
+const autosPrivadoAppSrc = read(autosPrivadoApp);
+const autosBranchClientSrc = read(autosBranchClient);
+
+for (const s of ["Código Leonix Launch 25", "Leonix Launch 25 code"]) {
+  if (!miniSrc.includes(s)) fail(`Mini notice missing copy: ${s}`);
+}
+// Mini notice fine print excludes free/dealer/print/combo
+for (const s of ["publicaciones gratis, dealer", "free posts, dealers"]) {
+  if (!miniSrc.includes(s)) fail(`Mini notice missing exclusion copy: ${s}`);
+}
+const miniNoComments = miniSrc.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+if (miniNoComments.match(/placement|ranking|verified|verification/i)) {
+  fail("Mini notice must not promise placement/ranking/verification");
+}
+// Eligible surfaces import + render the reminder
+for (const [name, src] of [
+  ["rentas form", rentasFormSrc],
+  ["empleos quick", empleosQuickSrc],
+  ["empleos premium", empleosPremiumSrc],
+  ["autos privado form", autosPrivadoAppSrc],
+]) {
+  if (!src.includes("LeonixLaunch25MiniNotice")) fail(`${name} must render LeonixLaunch25MiniNotice`);
+}
+// Paid selectors show eligibility badges; free/dealer excluded.
+// Checks reference the render bindings (source of truth for what the user sees).
+if (!empleosHubSrc.includes("Acepta código Leonix Launch 25") || !empleosHubSrc.includes("Launch 25 code eligible")) {
+  fail("Empleos hub paid job card must show Launch 25 eligibility badge");
+}
+if (!empleosHubSrc.includes("t.job.launchBadge")) fail("Empleos paid job card must render the eligibility badge");
+if (empleosHubSrc.includes("t.fair.launchBadge")) fail("Empleos free job fair must not render a Launch 25 badge");
+
+if (!autosBranchSrc.includes("launchBadge") || !autosBranchSrc.includes("Paquete de negocio — promociones separadas")) {
+  fail("Autos branch must show private badge + dealer separation note");
+}
+if (!autosBranchClientSrc.includes("c.privado.launchBadge")) {
+  fail("Autos private seller card must render the eligibility badge");
+}
+if (autosBranchClientSrc.includes("c.negocios.launchBadge")) {
+  fail("Autos dealer card must not render a Launch 25 eligibility badge");
+}
+// Final promo field helper copy
+for (const s of ["Usa tu código Leonix Launch 25 si aplica a este pago.", "Use your Leonix Launch 25 code if it applies to this checkout."]) {
+  if (!fieldSrc.includes(s)) fail(`Promo field missing helper copy: ${s}`);
+}
+ok("UX reminders present on eligible surfaces; free/dealer excluded");
+
 if (!pkgSrc.includes("verify:website-launch-25-checkout-wiring")) {
   fail("package.json missing verifier script");
 }

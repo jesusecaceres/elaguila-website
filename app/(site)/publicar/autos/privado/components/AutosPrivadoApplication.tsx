@@ -46,6 +46,7 @@ import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/componen
 import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
+import { LeonixLaunch25MiniNotice } from "@/app/components/leonix/LeonixLaunch25MiniNotice";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -136,6 +137,11 @@ export function AutosPrivadoApplication() {
           banner={
             <>
               <AutosPricingPlanBanner lang={lang} lane="privado" />
+              <LeonixLaunch25MiniNotice
+                lang={lang === "en" ? "en" : "es"}
+                variant="banner"
+                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=autos_privado&sourceCta=launch_25`}
+              />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
             </>
           }
