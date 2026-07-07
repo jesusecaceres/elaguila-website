@@ -267,6 +267,8 @@ export function ClasificadosServiciosApplication() {
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [couponDetailOpen, setCouponDetailOpen] = useState(false);
+  const [leonixRulesOpen, setLeonixRulesOpen] = useState(false);
   const [finalStepPublishBlocked, setFinalStepPublishBlocked] = useState<string | null>(null);
   const [mediaFlash, setMediaFlash] = useState<string | null>(null);
 
@@ -278,6 +280,19 @@ export function ClasificadosServiciosApplication() {
     const t = window.setTimeout(() => setMediaFlash(null), 4500);
     return () => window.clearTimeout(t);
   }, [mediaFlash]);
+
+  useEffect(() => {
+    if (!couponDetailOpen && !leonixRulesOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setCouponDetailOpen(false);
+        setLeonixRulesOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [couponDetailOpen, leonixRulesOpen]);
 
   useLayoutEffect(() => {
     clearLeonixReturningToEditSessionFlag();
@@ -3072,6 +3087,7 @@ export function ClasificadosServiciosApplication() {
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <button
                       type="button"
+                      onClick={() => setCouponDetailOpen(true)}
                       className="min-h-[44px] shrink-0 rounded-full border-2 border-[color:var(--lx-gold-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                     >
                       {lang === "en" ? "See more" : "Ver más"}
@@ -3116,6 +3132,20 @@ export function ClasificadosServiciosApplication() {
 
         {step === 7 ? (
           <>
+            <div className={`${sectionCard} mb-4`}>
+              <p className="text-sm leading-relaxed text-[#5D4A25]/90">
+                {lang === "en"
+                  ? "Read Leonix rules before confirming."
+                  : "Lee las reglas de Leonix antes de confirmar."}
+              </p>
+              <button
+                type="button"
+                onClick={() => setLeonixRulesOpen(true)}
+                className="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-[#1E1810] underline underline-offset-2 hover:text-[#3D2C12]"
+              >
+                {lang === "en" ? "View Leonix rules" : "Ver reglas de Leonix"}
+              </button>
+            </div>
             <ListingRulesConfirmationSection
               lang={lang}
               subject="servicios"
@@ -3369,6 +3399,92 @@ export function ClasificadosServiciosApplication() {
         }}
         getLatestState={() => stateRef.current}
       />
+
+      {couponDetailOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setCouponDetailOpen(false)}
+        >
+          <div
+            className="max-h-[min(90vh,640px)] max-w-lg overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-[#1E1810]">
+              {lang === "en" ? "Featured coupons and offers" : "Cupones y ofertas destacadas"}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
+              {lang === "en"
+                ? "Featured coupons and offers are an optional +$99/mo add-on to show up to 4 offers inside your listing. Use it for clear discounts, packages, specials, or promotions with conditions."
+                : "Cupones y ofertas destacadas son un add-on opcional de +$99/mes para mostrar hasta 4 ofertas dentro de tu anuncio. Úsalo para descuentos claros, paquetes, especiales o promociones con condiciones."}
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
+              {lang === "en"
+                ? "For simple highlights like “24/7”, “licensed”, “free estimates”, or “emergency service”, use Services and quick details."
+                : "Si solo quieres frases simples como “24/7”, “licenciado”, “estimados gratis” o “servicio de emergencia”, usa Servicios y datos rápidos."}
+            </p>
+            <p className="mt-3 text-sm font-semibold text-[#5C5346]">
+              {lang === "en"
+                ? "They are added to the final summary if you activate them."
+                : "Se agregan al resumen final si los activas."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setCouponDetailOpen(false)}
+              className="mt-6 min-h-[44px] w-full rounded-full bg-[#1E1810] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3D2C12]"
+            >
+              {lang === "en" ? "Close" : "Cerrar"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {leonixRulesOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setLeonixRulesOpen(false)}
+        >
+          <div
+            className="max-h-[min(90vh,640px)] max-w-lg overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-[#1E1810]">
+              {lang === "en" ? "Leonix publishing rules" : "Reglas de publicación de Leonix"}
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {(lang === "en"
+                ? [
+                    "Listing information must be truthful, current, and belong to your business.",
+                    "Do not publish illegal, misleading, discriminatory, sexually explicit, or dangerous services.",
+                    "You must have permission to use the photos, logos, text, and links you upload.",
+                    "Leonix may review, pause, reject, or remove listings that violate the rules.",
+                    "Payment does not guarantee approval if the listing violates our rules.",
+                    "You are responsible for the information, prices, promotions, licenses, and contact details published.",
+                  ]
+                : [
+                    "La información del anuncio debe ser verdadera, actualizada y pertenecer a tu negocio.",
+                    "No publiques servicios ilegales, engañosos, discriminatorios, sexuales explícitos o peligrosos.",
+                    "Debes tener permiso para usar las fotos, logos, textos y enlaces que subes.",
+                    "Leonix puede revisar, pausar, rechazar o eliminar anuncios que violen las reglas.",
+                    "El pago no garantiza aprobación si el anuncio viola nuestras reglas.",
+                    "Eres responsable por la información, precios, promociones, licencias y datos de contacto publicados.",
+                  ]
+              ).map((rule) => (
+                <li key={rule} className="flex items-start gap-2 text-sm text-[#5C5346]">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
+                  <span>{rule}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setLeonixRulesOpen(false)}
+              className="mt-6 min-h-[44px] w-full rounded-full bg-[#1E1810] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3D2C12]"
+            >
+              {lang === "en" ? "Got it" : "Entendido"}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
