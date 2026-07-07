@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (promoCode: string | null) => void;
   title: string;
   intro: string;
   checks: [string, string, string];
@@ -13,6 +14,13 @@ type Props = {
   cancelCta: string;
   blockedHint: string;
   closeOverlayAria: string;
+  /** When set, renders the shared promo code field (website Launch 25 checkout). */
+  promo?: {
+    category: string;
+    packageKey: string;
+    subtotalCents: number;
+    lang: "es" | "en";
+  };
 };
 
 /**
@@ -30,10 +38,15 @@ export function EmpleosPublishConfirmModal({
   cancelCta,
   blockedHint,
   closeOverlayAria,
+  promo,
 }: Props) {
   const [c, setC] = useState([false, false, false]);
+  const [promoCode, setPromoCode] = useState<string | null>(null);
   useEffect(() => {
-    if (open) setC([false, false, false]);
+    if (open) {
+      setC([false, false, false]);
+      setPromoCode(null);
+    }
   }, [open]);
   if (!open) return null;
   const all = c.every(Boolean);
@@ -59,6 +72,17 @@ export function EmpleosPublishConfirmModal({
           ))}
         </ul>
         {!all ? <p className="mt-3 text-xs text-[color:var(--lx-muted)]">{blockedHint}</p> : null}
+        {promo ? (
+          <div className="mt-4 border-t border-black/10 pt-4">
+            <RevenuePromoField
+              category={promo.category}
+              packageKey={promo.packageKey}
+              subtotalCents={promo.subtotalCents}
+              lang={promo.lang}
+              onAppliedChange={(code) => setPromoCode(code)}
+            />
+          </div>
+        ) : null}
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button type="button" className="min-h-11 rounded-lg border px-4 text-sm font-semibold" onClick={onClose}>
             {cancelCta}
@@ -68,7 +92,7 @@ export function EmpleosPublishConfirmModal({
             disabled={!all}
             className="min-h-11 rounded-lg bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
             onClick={() => {
-              onConfirm();
+              onConfirm(promoCode);
               onClose();
               setC([false, false, false]);
             }}

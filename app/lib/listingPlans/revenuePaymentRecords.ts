@@ -26,6 +26,12 @@ export type CreatePendingPaymentRecordInput = {
   discountCents?: number;
   promoCode?: string | null;
   discountType?: string | null;
+  /** Promo family (e.g. website_launch_25) resolved server-side; null for generic codes. */
+  promoFamily?: string | null;
+  /** True when the applied promo is a website-checkout-only code (Launch 25 doctrine). */
+  promoWebsiteCheckoutOnly?: boolean;
+  /** Pre-discount subtotal used to compute the promo discount (server-owned). */
+  promoBaseAmountCents?: number;
   /** True when checkout is add-on-only (e.g. dashboard Restaurante coupon upgrade). */
   addonOnly?: boolean;
 };
@@ -109,11 +115,17 @@ export async function createPendingPaymentRecord(
           : {}),
         ...(input.promoCode?.trim() ? { promo_code: input.promoCode.trim() } : {}),
         ...(input.discountType?.trim() ? { promo_discount_type: input.discountType.trim() } : {}),
+        ...(input.promoFamily?.trim() ? { promo_family: input.promoFamily.trim() } : {}),
+        ...(input.promoCode?.trim() && input.promoWebsiteCheckoutOnly
+          ? { website_checkout_only: true }
+          : {}),
         ...(discount > 0
           ? {
               promo_subtotal_cents: subtotal,
               promo_discount_cents: discount,
               promo_total_cents: total,
+              base_amount_cents: input.promoBaseAmountCents ?? subtotal,
+              final_amount_cents: total,
             }
           : {}),
       },

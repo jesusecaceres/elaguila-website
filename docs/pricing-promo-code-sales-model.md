@@ -165,9 +165,18 @@ npm run verify:admin-promo-code-lifecycle
 
 ---
 
+## 11b. Website Launch 25 checkout redemption (WEBSITE-LAUNCH-25-CHECKOUT-REDEMPTION-WIRING-01)
+
+`newsletter`-type codes in the `website_launch_25` family generate a discount usable **for website Stripe checkout only**, on the allowlisted central Revenue OS package keys `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, and `restaurantes_base_monthly`.
+
+- Excluded: printed magazine packages, print+digital combos, manual invoices/contracts, free products, renewals, and any package not yet on central Revenue OS checkout.
+- Discount is server-owned (`percent_off`/`amount_off_cents`); never inferred from the code text.
+- Server revalidates at `POST /api/revenue-os/checkout` and charges the discounted final amount; redemption is webhook-only after payment. The code never grants placement/ranking/verification/entitlement.
+
 ## 12. Gate boundaries
 
 | Gate | In scope | Out of scope |
 |------|----------|----------------|
 | **G1.6D** | Pure TS helpers, docs | Admin UI, Stripe, DB |
 | **G1.6E** | Admin create previews + metadata snapshots | Stripe, payout ledger, public redemption, public sorting |
+| **Launch 25 wiring** | Website checkout allowlist + shared promo field | New categories, Stripe Coupon objects, schema, webhook rebuild |

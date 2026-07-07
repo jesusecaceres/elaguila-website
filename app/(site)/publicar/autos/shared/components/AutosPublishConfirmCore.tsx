@@ -21,6 +21,8 @@ import {
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { AUTOS_PRIVADO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { autosConfirmErrorMessage } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import {
@@ -192,6 +194,7 @@ export function AutosPublishConfirmCore({
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [checks, setChecks] = useState([false, false, false]);
   const [payBusy, setPayBusy] = useState(false);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const [sessionMissing, setSessionMissing] = useState(false);
   const [muxPublishWarnings, setMuxPublishWarnings] = useState<string[]>([]);
   const [persistWarnings, setPersistWarnings] = useState<string[]>([]);
@@ -554,6 +557,7 @@ export function AutosPublishConfirmCore({
         listingId,
         leonixAdId,
         locale: lang,
+        promoCode: appliedPromoCode,
       });
       setPayBusy(false);
       if (!revenueCheckout.ok) {
@@ -744,6 +748,19 @@ export function AutosPublishConfirmCore({
               <li key={`${i}-${w}`}>{autosPersistWarningMessage(w, lang)}</li>
             ))}
           </ul>
+        </div>
+      ) : null}
+      {lane === "privado" && publishConfirmMode === "stripe" ? (
+        <div className="mt-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-4 sm:px-5">
+          <RevenuePromoField
+            category={AUTOS_PRIVADO_CHECKOUT.category}
+            packageKey={AUTOS_PRIVADO_CHECKOUT.packageKey}
+            subtotalCents={getRevenuePackageDefinition(AUTOS_PRIVADO_CHECKOUT.packageKey)?.priceCents ?? 2499}
+            lang={lang === "en" ? "en" : "es"}
+            disabled={payBusy}
+            listingId={listingId}
+            onAppliedChange={(code) => setAppliedPromoCode(code)}
+          />
         </div>
       ) : null}
       <ul className="mt-8 space-y-4">

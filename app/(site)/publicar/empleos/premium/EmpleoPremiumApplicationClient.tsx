@@ -19,6 +19,8 @@ import { buildEmpleosPublishEnvelopeFromPremium } from "@/app/publicar/empleos/s
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
+import { EMPLEOS_PAID_JOB_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydratePremiumDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
@@ -486,7 +488,13 @@ export default function EmpleoPremiumApplicationClient() {
       <EmpleosPublishConfirmModal
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
-        onConfirm={() => {
+        promo={{
+          category: EMPLEOS_PAID_JOB_CHECKOUT.category,
+          packageKey: EMPLEOS_PAID_JOB_CHECKOUT.packageKey,
+          subtotalCents: getRevenuePackageDefinition(EMPLEOS_PAID_JOB_CHECKOUT.packageKey)?.priceCents ?? 2499,
+          lang: lang === "es" ? "es" : "en",
+        }}
+        onConfirm={(promoCode) => {
           void (async () => {
             const g = gateEmpleosPremiumPreview(state, lang);
             if (!g.ok) return;
@@ -503,6 +511,7 @@ export default function EmpleoPremiumApplicationClient() {
               envelope,
               accessToken: data.session.access_token,
               lang,
+              promoCode,
             });
             setCheckoutBusy(false);
             if (!paid.ok) {

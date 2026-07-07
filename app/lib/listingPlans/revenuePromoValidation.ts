@@ -14,6 +14,7 @@ import {
   resolvePromoCategoryScope,
   resolvePromoPercentOff,
   resolveRevenuePromoTypeFromRow,
+  resolveWebsiteLaunch25Rejection,
 } from "./revenuePromoRedemptions";
 
 export type PromoPublishValidationInput = {
@@ -100,6 +101,10 @@ export async function validatePromoForPublishCheckout(
   });
 
   if (effectiveStatus !== "active") {
+    return invalidResult(locale);
+  }
+
+  if (resolveWebsiteLaunch25Rejection(row, packageKey)) {
     return invalidResult(locale);
   }
 

@@ -39,6 +39,8 @@ export type PromoCheckoutResolution =
       discountCents: number;
       finalAmountCents: number;
       requiresCheckout: true;
+      promoFamily: string | null;
+      websiteCheckoutOnly: boolean;
     }
   | {
       ok: true;
@@ -50,6 +52,8 @@ export type PromoCheckoutResolution =
       requiresCheckout: false;
       code: "CHECKOUT_NOT_REQUIRED_COMP_REQUIRES_NEXT_GATE";
       message: string;
+      promoFamily: string | null;
+      websiteCheckoutOnly: boolean;
     }
   | { ok: false; code: string; message: string };
 
@@ -77,6 +81,54 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+/**
+ * Website Launch 25 doctrine (Gate WEBSITE-LAUNCH-25-CHECKOUT-REDEMPTION-WIRING-01).
+ *
+ * Launch 25 codes are captured through newsletter/account/dashboard signup and are valid
+ * for website Stripe checkout products only. They carry null category_scope/package_scope,
+ * so we constrain them to the allowlisted central Revenue OS package keys below. Print,
+ * combo, manual, free, renewal, and unknown products are never eligible.
+ */
+export const WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS: readonly string[] = [
+  "rentas_30d",
+  "empleos_job_post_paid",
+  "autos_privado_30d",
+  "restaurantes_base_monthly",
+];
+
+function truthyFlag(value: unknown): boolean {
+  if (value === true) return true;
+  const s = String(value ?? "").trim().toLowerCase();
+  return s === "true" || s === "1" || s === "yes";
+}
+
+/** True when a promo row belongs to the website_launch_25 family (metadata- or code_type-driven). */
+export function isWebsiteLaunch25Promo(row: PromoRow): boolean {
+  const meta = asRecord(row.metadata);
+  const family = String(meta.promo_family ?? "").trim().toLowerCase();
+  if (family === "website_launch_25") return true;
+  const codeType = String(row.code_type ?? "").trim().toLowerCase();
+  if (codeType === "newsletter" && truthyFlag(meta.website_checkout_only)) return true;
+  return false;
+}
+
+/**
+ * Launch 25 allowlist gate. Returns a rejection reason when the code is a Launch 25 family
+ * code applied to a package key outside the website-checkout allowlist; otherwise null.
+ * Non-Launch-25 codes are unaffected (existing category/admin promo behavior preserved).
+ */
+export function resolveWebsiteLaunch25Rejection(
+  row: PromoRow,
+  packageKey: string | null | undefined,
+): string | null {
+  if (!isWebsiteLaunch25Promo(row)) return null;
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  if (!WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS.includes(key)) {
+    return "Launch 25 code applies only to eligible website checkout products.";
+  }
+  return null;
 }
 
 export function resolvePromoCategoryScope(row: PromoRow): string[] | null {
@@ -185,6 +237,11 @@ export async function resolvePromoForCheckout(input: {
     return { ok: false, code: "promo_ineligible", message: "Promo code is not active." };
   }
 
+  const launch25Rejection = resolveWebsiteLaunch25Rejection(row, input.packageDef.packageKey);
+  if (launch25Rejection) {
+    return { ok: false, code: "promo_ineligible", message: launch25Rejection };
+  }
+
   const promoType = resolveRevenuePromoTypeFromRow(row);
   if (!promoType) {
     return {
@@ -234,6 +291,16 @@ export async function resolvePromoForCheckout(input: {
 
   const finalAmountCents = Math.max(0, input.baseAmountCents - discountCents);
 
+  const isLaunch25 = isWebsiteLaunch25Promo(row);
+  const promoFamily = isLaunch25
+    ? "website_launch_25"
+    : (() => {
+        const fam = String(asRecord(row.metadata).promo_family ?? "").trim().toLowerCase();
+        return fam || null;
+      })();
+  const websiteCheckoutOnly =
+    isLaunch25 || truthyFlag(asRecord(row.metadata).website_checkout_only);
+
   if (finalAmountCents <= 0) {
     return {
       ok: true,
@@ -246,6 +313,8 @@ export async function resolvePromoForCheckout(input: {
       code: "CHECKOUT_NOT_REQUIRED_COMP_REQUIRES_NEXT_GATE",
       message:
         "Promo reduces amount to zero — comp fulfillment deferred to next gate (no Stripe Checkout).",
+      promoFamily,
+      websiteCheckoutOnly,
     };
   }
 
@@ -257,6 +326,8 @@ export async function resolvePromoForCheckout(input: {
     discountCents,
     finalAmountCents,
     requiresCheckout: true,
+    promoFamily,
+    websiteCheckoutOnly,
   };
 }
 

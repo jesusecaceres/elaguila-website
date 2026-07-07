@@ -119,10 +119,23 @@ If the promo table is missing, entitlement creation **still succeeds**; `metadat
 
 ---
 
+## 10b. Website Launch 25 redemption lifecycle (WEBSITE-LAUNCH-25-CHECKOUT-REDEMPTION-WIRING-01)
+
+`website_launch_25` codes (family stored in promo-code metadata; `code_type` stays `newsletter`) follow the standard redemption lifecycle with a website-checkout allowlist:
+
+1. **Capture** — created/reused at newsletter/account/dashboard signup.
+2. **Apply (preview)** — validated read-only via `POST /api/revenue-os/promo/validate`; allowed only for `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`.
+3. **Checkout** — `POST /api/revenue-os/checkout` revalidates the same rules and uses the server final amount; a **pending** redemption row is created (not consumed).
+4. **Redeem** — the Stripe webhook marks the redemption `redeemed` and increments `redemption_count` (one-time / non-stackable enforced).
+5. **Abandon/cancel** — pending redemption expires; the code remains usable.
+
+The code never grants placement/ranking/verification/entitlement, and print/combo/manual/free/unknown products are always rejected.
+
 ## 11. Verification
 
 ```bash
 npm run verify:admin-promo-code-lifecycle
+npm run verify:website-launch-25-checkout-wiring
 ```
 
 Manual QA:

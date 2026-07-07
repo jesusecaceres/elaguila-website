@@ -101,6 +101,9 @@ export async function POST(request: NextRequest) {
 
   const promoCodeRaw = body.promoCode?.trim();
   let promoTypeForRecord: string | undefined;
+  let promoFamilyForRecord: string | null | undefined;
+  let promoWebsiteCheckoutOnly: boolean | undefined;
+  let promoBaseAmountForRecord: number | undefined;
   if (promoCodeRaw) {
     const prelim = validateRevenueCheckoutRequest(body, { validatedAddOns });
     if (!prelim.ok) {
@@ -140,6 +143,9 @@ export async function POST(request: NextRequest) {
     discountCents = promoResult.discountCents;
     finalAmountCents = promoResult.finalAmountCents;
     promoTypeForRecord = promoResult.promoType;
+    promoFamilyForRecord = promoResult.promoFamily;
+    promoWebsiteCheckoutOnly = promoResult.websiteCheckoutOnly;
+    promoBaseAmountForRecord = prelim.subtotalCents;
   }
 
   const validated = validateRevenueCheckoutRequest(body, {
@@ -186,6 +192,9 @@ export async function POST(request: NextRequest) {
     discountCents,
     promoCode: promoCodeRaw ?? null,
     discountType: promoTypeForRecord ?? null,
+    promoFamily: promoFamilyForRecord ?? null,
+    promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
+    promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly,
   });
 

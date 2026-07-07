@@ -159,3 +159,13 @@ This gate proves a **safe repeatable pattern**: save listing data → central Re
 | `app/lib/listingPlans/revenueCategoryCheckoutPayload.ts` | Package keys, return paths, request body builder |
 | `app/lib/listingPlans/revenueCategoryCheckoutClient.ts` | Browser `startRevenueCategoryCheckout` |
 | `app/(site)/publicar/empleos/shared/publish/empleosRevenueCheckout.ts` | Empleos draft save + checkout orchestration |
+
+## 16. Website Launch 25 promo on these categories (WEBSITE-LAUNCH-25-CHECKOUT-REDEMPTION-WIRING-01)
+
+The three wired categories (Rentas privado, Empleos paid job post, Autos privado) plus the existing Restaurantes proof checkout now accept **`website_launch_25`** promo codes:
+
+- Codes are captured via newsletter/account/dashboard signup and are **website checkout only**. They apply only to the allowlisted package keys `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`.
+- They do **not** apply to print/combo/manual/free/renewal/unknown products, and never grant placement, ranking, verification, or entitlement.
+- The applied code is captured client-side (shared `RevenuePromoField`, or `PublishCheckoutCheckpoint` for Restaurantes), forwarded to `startRevenueCategoryCheckout` → `POST /api/revenue-os/checkout`, which **revalidates server-side** and uses the server `finalAmountCents` for the Stripe session.
+- Redemption is **webhook-only** after a successful paid session; abandoned/cancelled checkouts do not consume the code.
+- Empleos **job fair (free)** and Autos **negocio/dealer** legacy checkout are intentionally untouched — no promo field is rendered there.

@@ -32,6 +32,8 @@ import {
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RENTAS_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
   rentasPublishStepTracePatch,
@@ -73,6 +75,7 @@ export default function RentasPrivadoPreviewClient() {
   const [draft, setDraft] = useState<RentasPrivadoFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
 
   const lang = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
@@ -167,6 +170,7 @@ export default function RentasPrivadoPreviewClient() {
       listingId: r.listingId,
       leonixAdId,
       locale: lang,
+      promoCode: appliedPromoCode,
     });
     if (!checkout.ok) {
       setPublishErr(checkout.userMessage);
@@ -175,7 +179,7 @@ export default function RentasPrivadoPreviewClient() {
 
     clearRentasPrivadoDraft();
     redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
-  }, [lang, publishErr]);
+  }, [lang, publishErr, appliedPromoCode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,7 +275,19 @@ export default function RentasPrivadoPreviewClient() {
     <LeonixPreviewPageShell
       editHref={editHref}
       publishSlot={
-        <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+          <div className="w-full sm:w-[280px]">
+            <RevenuePromoField
+              category={RENTAS_CATEGORY_CHECKOUT.category}
+              packageKey={RENTAS_CATEGORY_CHECKOUT.packageKey}
+              subtotalCents={
+                getRevenuePackageDefinition(RENTAS_CATEGORY_CHECKOUT.packageKey)?.priceCents ?? 2499
+              }
+              lang={lang === "en" ? "en" : "es"}
+              disabled={publishBusy}
+              onAppliedChange={(code) => setAppliedPromoCode(code)}
+            />
+          </div>
           <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
             {publishBusy
               ? revenueCategoryCheckoutLoadingMessage(lang)
