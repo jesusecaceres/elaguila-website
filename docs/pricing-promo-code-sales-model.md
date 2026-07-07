@@ -65,12 +65,12 @@ Pricing can be updated centrally in `packagePricingRules.ts` — do not scatter 
 
 ---
 
-## 5. Newsletter / SMS unique one-time codes (later)
+## 5. Newsletter / SMS unique one-time codes (admin readiness)
 
 - **newsletter** and **sms** promo types: `oneTimeUse: true`, `requiresSubscriberIdentity: true`.
-- Future gates will generate a **unique code per subscriber email/phone**.
-- Typically `canDiscountPayment: true`, `canCreatePackageEntitlement: false` unless policy changes.
-- Not implemented in G1.6D — model only.
+- Admin create enforces email (newsletter) or phone (sms); metadata records delivery channel and `not_sent` status.
+- Public signup, unique-code generation at scale, and email/SMS delivery are **later gates**.
+- See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
 ---
 

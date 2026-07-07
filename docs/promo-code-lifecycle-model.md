@@ -69,10 +69,12 @@ Aligned with `LeonixPromoCodeType` in `packagePricingRules.ts`:
 
 ---
 
-## 6. Newsletter / SMS (future)
+## 6. Newsletter / SMS (admin readiness — send later)
 
-- Types `newsletter` and `sms`: placeholder for **per-subscriber unique codes** (email/phone identity).
-- G1.6F stores type and metadata only; generation and public redemption are later gates.
+- Types `newsletter` and `sms`: per-subscriber unique codes with identity (email/phone).
+- Admin create requires `customer_email` (newsletter) or `customer_phone` (sms).
+- Metadata stores `email_send_status: not_sent` / `sms_send_status: not_sent` — **no email/SMS provider in this gate**.
+- See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
 ---
 

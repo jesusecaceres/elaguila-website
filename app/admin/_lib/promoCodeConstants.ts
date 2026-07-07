@@ -111,4 +111,17 @@ export const PROMO_CODE_QUICK_PRESETS: PromoQuickPreset[] = [
       notes: "General launch — 25% off, category-only (no package scope lock).",
     },
   },
+  {
+    id: "newsletter_launch_25",
+    label: "Newsletter launch 25% (draft — email send later)",
+    fields: {
+      code_type: "newsletter",
+      promo_type: "percent_off",
+      percent_off: "25",
+      status: "draft",
+      code_mode: "auto",
+      notes:
+        "Newsletter launch — unique one-time code for subscriber identity. Email sending is a later gate unless email pipeline is active.",
+    },
+  },
 ];

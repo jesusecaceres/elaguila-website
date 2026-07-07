@@ -30,11 +30,9 @@ import {
   fetchPromoUsageLedgerForCodes,
   formatPromoCategoryScope,
   formatPromoCustomerLine,
-  formatPromoDiscountSummary,
   formatPromoPackageScope,
   formatPromoSalesRepLine,
   promoAttentionFlagLabel,
-  promoCodeMissingDiscount,
   promoCodeUsageMode,
   type PromoCodeAttentionFlag,
   type PromoCodeUsageEntry,
@@ -116,6 +114,59 @@ function statusBadgeClass(status: string): string {
   }
 }
 
+function promoPurposeLabel(codeType: string): string {
+  return PROMO_CODE_TYPES.find((t) => t.value === codeType)?.label ?? codeType;
+}
+
+type DeliveryStatus = { label: string; className: string };
+
+function formatDeliveryStatus(row: {
+  code_type: string;
+  metadata: Record<string, unknown>;
+}): DeliveryStatus | null {
+  if (row.code_type !== "newsletter" && row.code_type !== "sms") return null;
+  const channel = row.code_type === "newsletter" ? "email" : "sms";
+  const statusKey = row.code_type === "newsletter" ? "email_send_status" : "sms_send_status";
+  const raw = row.metadata[statusKey];
+  const status = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (status === "sent") {
+    return { label: `Delivery (${channel}): sent`, className: "bg-emerald-100 text-emerald-950" };
+  }
+  if (status === "failed") {
+    return { label: `Delivery (${channel}): failed`, className: "bg-rose-100 text-rose-950" };
+  }
+  if (status === "not_sent") {
+    return { label: `Delivery (${channel}): not sent yet`, className: "bg-amber-100 text-amber-950" };
+  }
+  return { label: "Delivery: not tracked yet", className: "bg-[#F4F0E8] text-[#5C5346]" };
+}
+
+function formatRowDiscountSummary(row: {
+  code_type: string;
+  promo_type: string | null;
+  percent_off: number | null;
+  amount_off_cents: number | null;
+  metadata: Record<string, unknown>;
+}): string {
+  const pct =
+    row.percent_off != null && row.percent_off > 0
+      ? row.percent_off
+      : typeof row.metadata.discount_percent === "number" && row.metadata.discount_percent > 0
+        ? row.metadata.discount_percent
+        : null;
+  const cents =
+    row.amount_off_cents != null && row.amount_off_cents > 0
+      ? row.amount_off_cents
+      : typeof row.metadata.discount_amount_cents === "number" && row.metadata.discount_amount_cents > 0
+        ? row.metadata.discount_amount_cents
+        : null;
+  if (pct != null) return `${pct}% off`;
+  if (cents != null) return `$${(cents / 100).toFixed(2)} off`;
+  if (row.code_type === "discount") return "Missing discount value";
+  if (row.code_type === "newsletter" || row.code_type === "sms") return "No discount (tracking only)";
+  return "—";
+}
+
 function alertFromSearch(sp: Record<string, string | undefined>) {
   if (sp.created === "1") {
     return { kind: "ok" as const, text: `Promo code created: ${sp.code ?? "—"}` };
@@ -123,6 +174,20 @@ function alertFromSearch(sp: Record<string, string | undefined>) {
   if (sp.revoked === "1") return { kind: "ok" as const, text: "Code revoked (record not deleted)." };
   if (sp.error === "duplicate_code") {
     return { kind: "err" as const, text: "Code already exists. Use another or leave the field empty to generate one." };
+  }
+  const friendlyErrors: Record<string, string> = {
+    newsletter_email_required:
+      "Newsletter codes need a customer email so Leonix can send or track the unique code.",
+    sms_phone_required: "SMS codes need a phone number so Leonix can send or track the unique code.",
+    discount_value_required: "Discount codes need a percent or dollar amount before saving.",
+    invalid_percent: "Percent discount must be between 1 and 100.",
+    invalid_amount: "Dollar discount must be greater than zero.",
+    end_before_start: "End date must be after the start date.",
+    invalid_code_type: "That promo purpose is not allowed. Pick a value from the dropdown.",
+    invalid_status: "That status is not allowed. Use Draft or Active for new codes.",
+  };
+  if (sp.error && friendlyErrors[sp.error]) {
+    return { kind: "err" as const, text: friendlyErrors[sp.error] };
   }
   if (sp.error) {
     return { kind: "err" as const, text: `Could not complete (${sp.error}${sp.detail ? `: ${sp.detail}` : ""}).` };
@@ -168,8 +233,8 @@ export default async function AdminPromoCodesPage(props: {
       <AdminPageHeader
         eyebrow="Workspace · Revenue OS · Promo Admin OS"
         title="Promo codes"
-        subtitle="Admin-only Revenue OS promo-code manager. This is not the public Cupones CMS."
-        helperText="Promo codes are validated by Revenue OS checkout. Redemption is finalized only after successful Stripe webhook payment."
+        subtitle="Create and administer Revenue OS promo codes for discounts, tracking, and campaign attribution."
+        helperText="Public Cupones / Ofertas Locales is a separate CMS. Promo codes can discount checkout or track customers — they do not grant paid placement, sorting, or visibility by themselves. Paid placement requires an active package entitlement or payment record."
         rightSlot={
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/workspace/payment-tracker" className={adminBtnSecondary}>
@@ -188,7 +253,9 @@ export default async function AdminPromoCodesPage(props: {
       <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
         <p className="font-bold">Leonix Promo Admin OS</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed">
-          <li>Promo code = advertiser checkout discount and attribution for Leonix payment.</li>
+          <li>Promo code = checkout discount, campaign tracking, or customer attribution for Leonix payment.</li>
+          <li>Package entitlement = actual paid visibility, sorting, and placement truth (separate tracker).</li>
+          <li>Promo codes never automatically grant Premium/Destacado placement, ranking boosts, or verified status.</li>
           <li>Public Cupones / Ofertas Locales = separate customer-facing offers CMS (not this page).</li>
           <li>Validation is category/package scoped via Revenue OS checkout — not by exact business-name match.</li>
           <li>Redemption happens after paid webhook, not when the user clicks Apply.</li>
@@ -255,7 +322,7 @@ export default async function AdminPromoCodesPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Code type
+            Promo purpose
             <select name="code_type" defaultValue={filterType} className={`${adminInputClass} mt-1`}>
               <option value="">All</option>
               {PROMO_CODE_TYPES.map((t) => (
@@ -319,11 +386,12 @@ export default async function AdminPromoCodesPage(props: {
             Code (empty = generate)
             <input name="code" placeholder="LX-PROMO-…" className={`${adminInputClass} mt-1 font-mono uppercase`} />
             <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
-              Leave blank to auto-generate a Leonix code on save. The server normalizes and enforces uniqueness.
+              Leave blank to auto-generate a unique Leonix code on save. The server normalizes the code and checks
+              uniqueness.
             </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Type
+            Promo purpose
             <select name="code_type" defaultValue="discount" className={`${adminInputClass} mt-1`}>
               {PROMO_CODE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -333,11 +401,15 @@ export default async function AdminPromoCodesPage(props: {
             </select>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
-            Discount type (when Type = Discount)
+            Discount type
             <select name="promo_type" defaultValue="percent_off" className={`${adminInputClass} mt-1`}>
               <option value="percent_off">Percent off</option>
               <option value="amount_off">Amount off ($)</option>
             </select>
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Percent or dollar amount applies only when the promo purpose can discount payment (e.g. Discount, Newsletter,
+              SMS).
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Percent off (1–100)
@@ -357,8 +429,8 @@ export default async function AdminPromoCodesPage(props: {
               ))}
             </select>
             <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
-              Example: restaurantes_base_monthly — limits checkout to that Revenue OS package key. Blank = any package
-              (category-only code).
+              Limits which Revenue OS checkout package can use this code. Blank = any package inside the selected
+              category (when category is set). Does not grant placement or visibility by itself.
             </span>
             <details className="mt-2">
               <summary className="cursor-pointer text-[10px] font-semibold text-[#7A7164]">
@@ -391,6 +463,9 @@ export default async function AdminPromoCodesPage(props: {
                 </option>
               ))}
             </select>
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Use category to scope or organize the code. Category scope is not the same as listing ownership.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Package tier
@@ -402,6 +477,10 @@ export default async function AdminPromoCodesPage(props: {
                 </option>
               ))}
             </select>
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Tracking/entitlement context only. Public placement still requires a valid package entitlement/payment
+              record.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
             Contract term
@@ -438,10 +517,18 @@ export default async function AdminPromoCodesPage(props: {
           <label className="block text-xs font-semibold text-[#5C5346]">
             Email
             <input name="customer_email" type="email" className={`${adminInputClass} mt-1`} />
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Required for Newsletter promo purpose. Tracking field for other types — does not hard-block checkout by
+              exact email unless a future validation gate implements it.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Phone
             <input name="customer_phone" className={`${adminInputClass} mt-1`} />
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Required for SMS promo purpose. Tracking field for other types — does not hard-block checkout by exact
+              phone unless a future validation gate implements it.
+            </span>
           </label>
           {salesRepLocked && salesScope ? (
             <div className="sm:col-span-2 rounded-xl border border-amber-200/80 bg-amber-50/80 p-3 text-sm text-amber-950">
@@ -472,11 +559,16 @@ export default async function AdminPromoCodesPage(props: {
               placeholder="uuid del entitlement vinculado"
               className={`${adminInputClass} mt-1 font-mono text-xs`}
             />
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Optional link to an existing entitlement. Do not fill this unless the entitlement already exists.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
             Notas (metadata)
             <textarea name="notes" rows={2} className={`${adminInputClass} mt-1`} />
-            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">Internal admin notes only.</span>
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Internal admin notes only — never shown on public pages.
+            </span>
           </label>
           <div className="sm:col-span-2">
             <PromoCodeLifecyclePreview />
@@ -504,8 +596,10 @@ export default async function AdminPromoCodesPage(props: {
               const usage = usageLedger.get(row.id) ?? [];
               const attentionFlags = computePromoAttentionFlags(row, usage);
               const usageMode = promoCodeUsageMode(row);
-              const discountSummary = formatPromoDiscountSummary(row);
-              const missingDiscount = promoCodeMissingDiscount(row);
+              const discountSummary = formatRowDiscountSummary(row);
+              const missingDiscount = row.code_type === "discount" && discountSummary === "Missing discount value";
+              const purposeLabel = promoPurposeLabel(row.code_type);
+              const deliveryStatus = formatDeliveryStatus(row);
 
               return (
                 <li key={row.id} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7] p-3 text-xs">
@@ -513,7 +607,7 @@ export default async function AdminPromoCodesPage(props: {
                     <div className="min-w-0 flex-1">
                       <p className="font-mono text-sm font-bold text-[#1E1810]">{row.code}</p>
                       <p className="mt-0.5 text-[#5C5346]">
-                        {row.code_type}
+                        <span className="font-semibold text-[#1E1810]">{purposeLabel}</span>
                         {usageMode === "assigned_private" ? " · assigned/private" : " · public launch"}
                       </p>
                     </div>
@@ -521,6 +615,22 @@ export default async function AdminPromoCodesPage(props: {
                       {effective}
                       {effective !== row.status ? ` (stored: ${row.status})` : ""}
                     </span>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="rounded-full bg-[#F4F0E8] px-2 py-0.5 text-[10px] font-semibold text-[#5C5346]">
+                      {purposeLabel}
+                    </span>
+                    <span className="rounded-full bg-[#F4F0E8] px-2 py-0.5 text-[10px] font-semibold text-[#5C5346]">
+                      {usageMode === "assigned_private" ? "Assigned/private" : "Public launch"}
+                    </span>
+                    {deliveryStatus ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${deliveryStatus.className}`}
+                      >
+                        {deliveryStatus.label}
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="mt-2 grid gap-1 sm:grid-cols-2">
@@ -539,6 +649,11 @@ export default async function AdminPromoCodesPage(props: {
                   {customer ? (
                     <p className="mt-1 text-[#5C5346]">
                       <span className="font-semibold text-[#1E1810]">Assigned:</span> {customer}
+                    </p>
+                  ) : null}
+                  {row.customer_phone?.trim() ? (
+                    <p className="text-[#5C5346]">
+                      <span className="font-semibold text-[#1E1810]">Phone:</span> {row.customer_phone.trim()}
                     </p>
                   ) : null}
                   {sales ? (

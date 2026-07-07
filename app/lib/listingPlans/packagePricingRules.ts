@@ -326,7 +326,7 @@ export function resolvePromoCodeRule(input: PromoCodeRuleInput = {}): PromoCodeR
       oneTimeUse = true;
       requiresSubscriberIdentity = true;
       canDiscountPayment = true;
-      warn(warnings, `${codeType} codes are one-time and require subscriber identity (future gate).`);
+      warn(warnings, `${codeType} codes are one-time, require subscriber identity, and email/SMS delivery is not active yet.`);
       break;
     case "sales_rep":
       requiresSalesRepAttribution = true;

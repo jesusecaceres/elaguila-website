@@ -39,6 +39,16 @@ function parseDateTimeLocal(raw: string): string | null {
   return d.toISOString();
 }
 
+function normalizeEmail(raw: string | null): string | null {
+  const v = String(raw ?? "").trim().toLowerCase();
+  return v || null;
+}
+
+function normalizePhone(raw: string | null): string | null {
+  const v = String(raw ?? "").trim();
+  return v || null;
+}
+
 function redirectWith(query: Record<string, string>): never {
   const p = new URLSearchParams(query);
   redirect(`/admin/workspace/promo-codes?${p.toString()}`);
@@ -74,8 +84,8 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const contractTerm = String(formData.get("contract_term") ?? "").trim() || null;
   const customerName = String(formData.get("customer_name") ?? "").trim() || null;
   const businessName = String(formData.get("business_name") ?? "").trim() || null;
-  const customerEmail = String(formData.get("customer_email") ?? "").trim() || null;
-  const customerPhone = String(formData.get("customer_phone") ?? "").trim() || null;
+  const customerEmail = normalizeEmail(String(formData.get("customer_email") ?? ""));
+  const customerPhone = normalizePhone(String(formData.get("customer_phone") ?? ""));
   const formSalesRepId = String(formData.get("sales_rep_id") ?? "").trim() || null;
   const formSalesRepName = String(formData.get("sales_rep_name") ?? "").trim() || null;
   const { salesRepId, salesRepName } = resolveSalesRepFieldsForCreate(access, formSalesRepId, formSalesRepName);
@@ -86,45 +96,61 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const packageScopeRaw = packageScopeCustom || packageScopeSelected;
   const packageScope = packageScopeRaw ? [packageScopeRaw] : null;
 
+  if (codeType === "newsletter" && !customerEmail) {
+    redirectWith({ error: "newsletter_email_required" });
+  }
+  if (codeType === "sms" && !customerPhone) {
+    redirectWith({ error: "sms_phone_required" });
+  }
+
+  const promoPreviewEarly = buildPromoCodeRulePreview({ codeType, status });
+
   let promoType: string | null = null;
   let percentOff: number | null = null;
   let amountOffCents: number | null = null;
 
-  if (codeType === "discount") {
+  const discountEligible =
+    codeType === "discount" || (promoPreviewEarly.canDiscountPayment && codeType !== "entitlement");
+
+  if (discountEligible) {
     const promoTypeRaw = String(formData.get("promo_type") ?? "").trim().toLowerCase();
     const percentOffRaw = String(formData.get("percent_off") ?? "").trim();
     const amountOffDollarsRaw = String(formData.get("amount_off_dollars") ?? "").trim();
+    const hasDiscountInput = Boolean(promoTypeRaw || percentOffRaw || amountOffDollarsRaw);
 
-    if (promoTypeRaw === "percent_off" || promoTypeRaw === "amount_off") {
-      promoType = promoTypeRaw;
-    } else if (percentOffRaw) {
-      promoType = "percent_off";
-    } else if (amountOffDollarsRaw) {
-      promoType = "amount_off";
-    } else {
-      redirectWith({ error: "discount_value_required" });
-    }
-
-    if (promoType === "percent_off") {
-      percentOff = Number(percentOffRaw);
-      if (!Number.isFinite(percentOff) || percentOff <= 0 || percentOff > 100) {
-        redirectWith({ error: "invalid_percent" });
+    if (codeType === "discount" || hasDiscountInput) {
+      if (promoTypeRaw === "percent_off" || promoTypeRaw === "amount_off") {
+        promoType = promoTypeRaw;
+      } else if (percentOffRaw) {
+        promoType = "percent_off";
+      } else if (amountOffDollarsRaw) {
+        promoType = "amount_off";
+      } else if (codeType === "discount") {
+        redirectWith({ error: "discount_value_required" });
       }
-    }
 
-    if (promoType === "amount_off") {
-      const dollars = Number(amountOffDollarsRaw);
-      if (!Number.isFinite(dollars) || dollars <= 0) {
-        redirectWith({ error: "invalid_amount" });
+      if (promoType === "percent_off") {
+        percentOff = Number(percentOffRaw);
+        if (!Number.isFinite(percentOff) || percentOff <= 0 || percentOff > 100) {
+          redirectWith({ error: "invalid_percent" });
+        }
       }
-      amountOffCents = Math.round(dollars * 100);
+
+      if (promoType === "amount_off") {
+        const dollars = Number(amountOffDollarsRaw);
+        if (!Number.isFinite(dollars) || dollars <= 0) {
+          redirectWith({ error: "invalid_amount" });
+        }
+        amountOffCents = Math.round(dollars * 100);
+      }
     }
   }
 
   const promoPreview = buildPromoCodeRulePreview({ codeType, status });
   const metadata: Record<string, unknown> = {
     source: "admin_promo_code_manager",
-    created_via: "gate_g1_6f",
+    created_via: "promo_admin_os_polish_newsletter_readiness",
+    source_page: "admin_workspace_promo_codes",
     notes,
     promo_rule: {
       promo_code_type: promoPreview.codeType,
@@ -142,6 +168,22 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
           discount_type: promoType,
           discount_percent: percentOff,
           discount_amount_cents: amountOffCents,
+        }
+      : {}),
+    ...(codeType === "newsletter"
+      ? {
+          subscriber_identity_required: true,
+          intended_delivery_channel: "email",
+          email_send_status: "not_sent",
+          ...(customerEmail ? { customer_email_normalized: customerEmail } : {}),
+        }
+      : {}),
+    ...(codeType === "sms"
+      ? {
+          subscriber_identity_required: true,
+          intended_delivery_channel: "sms",
+          sms_send_status: "not_sent",
+          ...(customerPhone ? { customer_phone_normalized: customerPhone } : {}),
         }
       : {}),
   };
