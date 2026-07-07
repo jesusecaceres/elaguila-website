@@ -84,6 +84,8 @@
     "verify:servicios-p0c-dashboard-addon-only-stripe-edit-route-parity": "node scripts/verify-servicios-p0c-dashboard-addon-only-stripe-edit-route-parity.mjs",
     "verify:owner-dashboard-global-cta-standard-01": "node scripts/verify-owner-dashboard-global-cta-standard-01.mjs",
     "verify:owner-dashboard-global-edit-hydration-standard-01": "node scripts/verify-owner-dashboard-global-edit-hydration-standard-01.mjs",
+    "verify:servicios-edit-route-restaurantes-parity-hard-fix-01": "node scripts/verify-servicios-edit-route-restaurantes-parity-hard-fix-01.mjs",
+    "smoke:servicios-edit-route-restaurantes-parity-hard-fix-01": "node scripts/smoke-servicios-edit-route-restaurantes-parity-hard-fix-01.mjs",
     "verify:restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01": "node scripts/verify-restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01.mjs",
     "verify:restaurantes-promo-checkout-final-button-blocker-fix-01": "node scripts/verify-restaurantes-promo-checkout-final-button-blocker-fix-01.mjs",
     "verify:publish-checkout-promo-validation-ui-01": "node scripts/verify-publish-checkout-promo-validation-ui-01.mjs",

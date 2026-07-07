@@ -223,16 +223,25 @@ export function ClasificadosServiciosApplication() {
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
-  const editRequested = editParam === "1" && Boolean(editListingSlug || editListingId || editLeonixAdId);
+  const listingIdentity = Boolean(editListingSlug || editListingId || editLeonixAdId);
   const dashboardSource = searchParams?.get("source") === "dashboard";
   const dashboardMode = searchParams?.get("mode") ?? "";
   const focusCoupon = searchParams?.get("focus") === "coupon-upgrade";
   const returnPanel = searchParams?.get("returnPanel") ?? "";
-  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && editRequested;
-  const isDashboardOffersEditMode = dashboardSource && dashboardMode === "offers-edit" && editRequested;
-  const isDashboardOffersAddonMode = dashboardSource && dashboardMode === "offers-addon" && editRequested;
+  const isDashboardListingEditMode =
+    dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
+  const isDashboardOffersEditMode =
+    dashboardSource &&
+    (dashboardMode === "offers-edit" || dashboardMode === "coupon-edit") &&
+    listingIdentity;
+  const isDashboardOffersAddonMode =
+    dashboardSource &&
+    (dashboardMode === "offers-addon" || dashboardMode === "coupon-addon") &&
+    listingIdentity;
   const isExistingDashboardListingMode =
     isDashboardListingEditMode || isDashboardOffersEditMode || isDashboardOffersAddonMode;
+  const editRequested =
+    isExistingDashboardListingMode || (editParam === "1" && listingIdentity);
   const dashboardReturnHref = appendLangToPath(
     returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/servicios",
     routeLang,
@@ -376,8 +385,9 @@ export function ClasificadosServiciosApplication() {
     setHydrated(true);
   }, [editRequested]);
 
-  // Initialize pricing based on product query param from checkpoint
+  // Initialize pricing based on product query param from checkpoint (new listing only — never dashboard edit).
   useEffect(() => {
+    if (isExistingDashboardListingMode) return;
     if (hydrated && !state.listingProduct) {
       const productParam = searchParams?.get("product");
       if (productParam === "servicios_profesionales") {
@@ -389,7 +399,7 @@ export function ClasificadosServiciosApplication() {
         }));
       }
     }
-  }, [hydrated, state.listingProduct, searchParams, lang, setState]);
+  }, [hydrated, state.listingProduct, searchParams, lang, setState, isExistingDashboardListingMode]);
 
   useEffect(() => {
     if (!editRequested) return;
@@ -838,7 +848,7 @@ export function ClasificadosServiciosApplication() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
-      {editRequested && editHydration.status === "error" ? (
+      {isExistingDashboardListingMode && editHydration.status === "error" ? (
         <main className="mx-auto max-w-lg px-4 py-16">
           <h1 className="text-xl font-bold text-[#3D2C12]">
             {lang === "en" ? "Edit mode could not load" : "No se pudo cargar el modo edición"}
@@ -851,7 +861,7 @@ export function ClasificadosServiciosApplication() {
             {lang === "en" ? "Back to dashboard" : "Volver al panel"}
           </Link>
         </main>
-      ) : editRequested && (editHydration.status === "loading" || !hydrated) ? (
+      ) : isExistingDashboardListingMode && (editHydration.status === "loading" || !hydrated) ? (
         <main className="mx-auto max-w-lg px-4 py-16">
           <p className="text-sm font-semibold text-[#5D4A25]" role="status">
             {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio publicado…"}

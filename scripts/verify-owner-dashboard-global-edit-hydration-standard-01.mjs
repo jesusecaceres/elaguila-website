@@ -196,7 +196,9 @@ const blocked = changed.filter(
   (f) =>
     /supabase\/migrations/i.test(f) ||
     /stripe.*webhook/i.test(f) ||
-    (/restaurante/i.test(f) && !/SERVICIOS_COUPON_RESTAURANTE_PARITY_AUDIT/i.test(f)),
+    (/restaurante/i.test(f) &&
+      !/servicios-edit-route-restaurantes-parity/i.test(f) &&
+      !/SERVICIOS_COUPON_RESTAURANTE_PARITY_AUDIT/i.test(f)),
 );
 if (blocked.length) fail(`Disallowed files touched: ${blocked.join(", ")}`);
 ok("No disallowed Stripe webhook / Supabase migration / Restaurante runtime changes");

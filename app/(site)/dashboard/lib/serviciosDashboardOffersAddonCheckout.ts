@@ -5,7 +5,8 @@
  * Mirrors the proven Restaurante dashboard add-on pattern, Servicios-specific:
  * - Always uses category `servicios` + the offers add-on package key.
  * - Never includes the base monthly package (no $399 base charge from dashboard edit).
- * - Edit hrefs route to `/clasificados/publicar/servicios` (not `/publicar/servicios`).
+ * - Existing-listing edit hrefs route to `/publicar/servicios` (direct app — Restaurante parity).
+ * - `/clasificados/publicar/servicios` redirects to checkpoint and must not be used for dashboard edit.
  */
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -65,6 +66,15 @@ type ServiciosEditHrefInput = {
   leonixAdId?: string | null;
 };
 
+/** Legacy clasificados publish entry (new listings) — server redirects to checkpoint; never dashboard edit. */
+export const SERVICIOS_LEGACY_CLASIFICADOS_PUBLISH_ENTRY = "/clasificados/publicar/servicios";
+
+/** Direct Servicios application mount (same component as checkpoint product flow, no checkpoint hop). */
+export const SERVICIOS_DASHBOARD_APPLICATION_BASE = "/publicar/servicios";
+
+/** Listing-bound seller preview (separate route; does not redirect to checkpoint). */
+export const SERVICIOS_DASHBOARD_PREVIEW_BASE = "/clasificados/publicar/servicios/preview";
+
 function baseServiciosEditParams(input: ServiciosEditHrefInput): URLSearchParams {
   const params = new URLSearchParams({ edit: "1", source: "dashboard" });
   const listingId = input.listingId?.trim();
@@ -81,14 +91,14 @@ function baseServiciosEditParams(input: ServiciosEditHrefInput): URLSearchParams
 export function serviciosListingEditHref(input: ServiciosEditHrefInput): string {
   const params = baseServiciosEditParams(input);
   params.set("mode", "listing-edit");
-  return appendLangToPath(`/clasificados/publicar/servicios?${params.toString()}`, input.lang);
+  return appendLangToPath(`${SERVICIOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
 }
 
 /** Dashboard listing-bound preview — hydrates from owner DB listing, not empty local draft. */
 export function serviciosListingPreviewHref(input: ServiciosEditHrefInput): string {
   const params = baseServiciosEditParams(input);
   params.set("preview", "listing");
-  return appendLangToPath(`/clasificados/publicar/servicios/preview?${params.toString()}`, input.lang);
+  return appendLangToPath(`${SERVICIOS_DASHBOARD_PREVIEW_BASE}?${params.toString()}`, input.lang);
 }
 
 /** Offers edit shortcut — opens the saved listing and jumps to the coupon section. */
@@ -96,7 +106,7 @@ export function serviciosOffersEditHref(input: ServiciosEditHrefInput): string {
   const params = baseServiciosEditParams(input);
   params.set("mode", "offers-edit");
   params.set("focus", "coupon-upgrade");
-  return appendLangToPath(`/clasificados/publicar/servicios?${params.toString()}`, input.lang);
+  return appendLangToPath(`${SERVICIOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
 }
 
 /** Offers add-on activation — opens the saved listing at the coupon section with the inactive add-on CTA. */
@@ -104,7 +114,7 @@ export function serviciosOffersAddonHref(input: ServiciosEditHrefInput): string 
   const params = baseServiciosEditParams(input);
   params.set("mode", "offers-addon");
   params.set("focus", "coupon-upgrade");
-  return appendLangToPath(`/clasificados/publicar/servicios?${params.toString()}`, input.lang);
+  return appendLangToPath(`${SERVICIOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
 }
 
 export async function startServiciosDashboardOffersAddonCheckout(input: {
