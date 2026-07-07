@@ -25,6 +25,7 @@ const GEMINI_VALIDATOR = "app/lib/ofertas-locales/ofertasLocalesGeminiCandidateV
 const GEMINI_NORMALIZER = "app/lib/ofertas-locales/ofertasLocalesGeminiNormalizer.ts";
 const TYPES = "app/lib/ofertas-locales/ofertasLocalesTypes.ts";
 const ITEM_MAPPER = "app/lib/ofertas-locales/ofertasLocalesItemReviewMapper.ts";
+const PRODUCT_TAXONOMY = "app/lib/ofertas-locales/ofertasLocalesProductTaxonomy.ts";
 const REVIEW_PANEL = "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx";
 const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
 const CROP_PREVIEW = "app/(site)/publicar/ofertas-locales/preview/OfertasFlyerCropPreview.tsx";
@@ -51,6 +52,7 @@ const GATE_ALLOWED = new Set([
   GEMINI_NORMALIZER,
   TYPES,
   ITEM_MAPPER,
+  PRODUCT_TAXONOMY,
   REVIEW_PANEL,
   APP_COPY,
   CROP_PREVIEW,
@@ -369,6 +371,37 @@ function run() {
   assertRectangularMainCtas("grid", grid);
   assertRectangularMainCtas("drawer", drawer);
   assertRectangularMainCtas("hero", hero);
+
+  // Gate — Ofertas Preview Architecture Clean-up (flyer-first + CTA consolidation)
+  assert.ok(audit.includes("Preview Architecture Clean-up"), "Preview Architecture Clean-up section");
+  // Title / info section present and flyer promoted to its own hero section.
+  assert.ok(card.includes("Title / info section"), "Title/info section introduced");
+  assert.ok(card.includes("Flyer hero"), "Flyer promoted to hero section");
+  // Upper summary no longer carries the duplicated desktop contact/action stack.
+  assert.ok(!card.includes("Desktop live action stack"), "Duplicated desktop action stack removed");
+  assert.ok(!card.includes('lg:col-span-3'), "Old 3-col summary CTA stack removed");
+  // Rewards/membership moved into the info section (FiAward marker), not a floating box.
+  assert.ok(card.includes("FiAward"), "Rewards/membership regrouped into info section");
+  // Flyer download action replaces "Abrir archivo".
+  assert.ok(hero.includes("handleDownload"), "Hero has working download handler");
+  assert.ok(hero.includes("downloadFlyer") || hero.includes("downloadCoupon"), "Hero uses download label");
+  assert.ok(hero.includes('link.download'), "Download triggers a real file download");
+  assert.ok(hero.includes("window.open"), "Download has a safe open fallback");
+  for (const snippet of ["downloadFlyerEs", "downloadFlyerEn", "downloadingFlyerEs"]) {
+    assert.ok(copy.includes(snippet), `Missing download copy: ${snippet}`);
+  }
+  // Localized, curated product filter taxonomy.
+  assert.ok(fs.existsSync(path.join(ROOT, PRODUCT_TAXONOMY)), "Product taxonomy module exists");
+  const taxonomy = read(PRODUCT_TAXONOMY);
+  assert.ok(taxonomy.includes("normalizeOfertaProductCategory"), "Taxonomy normalizer");
+  assert.ok(taxonomy.includes("getOfertaProductFilterLabel"), "Taxonomy localized label helper");
+  assert.ok(taxonomy.includes('"other"') && taxonomy.includes("Otros"), "Taxonomy has Other/Otros fallback");
+  assert.ok(taxonomy.includes("🍎") && taxonomy.includes("📦"), "Taxonomy uses emoji cues");
+  assert.ok(grid.includes("getOfertaProductFilterLabel"), "Grid renders localized filter labels");
+  assert.ok(grid.includes("normalizeOfertaProductCategory"), "Grid filters via normalized category");
+  assert.ok(grid.includes("categoryKeys"), "Grid derives curated taxonomy keys");
+  // Chips must be rectangular pills (not fully circular).
+  assert.ok(!/setSelectedCategory\("all"\)[\s\S]{0,220}rounded-full/.test(grid), "Filter chips use rectangular pills");
 
   const requiredCopy = [
     "flyerPreviewEs",

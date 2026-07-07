@@ -747,3 +747,99 @@ At 390px: no horizontal overflow; header not clipped; flyer compact; filters not
 | READY TO COMMIT THIS BUILD ONLY | YES | density repair scoped |
 | READY TO PUSH THIS BUILD ONLY | YES | after commit |
 | UNRELATED DIRTY FILES PRESENT | NO | gate-scoped only |
+
+---
+
+# Ofertas Locales Preview Architecture Clean-up
+
+Scoped clean-up of the Ofertas preview composition: flyer-first hero, CTA
+consolidation, restructured title/info area, and localized emoji product filter
+pills. Not a broad redesign — the Business Hub shell and lower product grid are
+preserved.
+
+## Top section re-architecture
+
+- Introduced a single **Title / info section** (`#oferta`) that carries: offer
+  type badge(s), a larger/stronger business name, category/market line, a
+  validity + address row, the "about this business" excerpt, and a compact
+  rewards/membership sub-block (marked with `FiAward`).
+- Rewards/membership no longer floats as a separate side box — it is an inline
+  compact card inside the title/info section, shown on all breakpoints.
+- Removed the duplicated **desktop live action stack** (directions + contact +
+  membership + digital-coupon cards) and the duplicated `hidden lg:inline-flex`
+  contact button cluster (Llamar / WhatsApp / Sitio web / Cómo llegar) from the
+  upper summary. The summary is now informational; only a single non-duplicative
+  Share action remains.
+
+## Flyer hero first
+
+- The flyer is now its own full-width **Flyer hero** section (`#volante`),
+  centered and enlarged (`max-w-2xl lg:max-w-3xl`) below the title/info area so
+  it is the visual star.
+- Two clear file actions under the flyer: primary **Ver volante / View flyer**
+  and secondary **Descargar volante / Download flyer** (replacing "Abrir
+  archivo").
+- Download is real: `fetch` → `Blob` → object URL → synthetic `link.download`
+  click, with a `window.open` new-tab fallback for cross-origin/CORS failures so
+  the label never dead-ends.
+
+## Business Hub content consolidation (no redesign)
+
+- Business Hub shell, tone, and sectioned system are unchanged.
+- Contact actions (Llamar / WhatsApp / Sitio web / Correo / Copiar correo) live
+  only in **Contactar negocio**; address + map + Cómo llegar in **Nuestra
+  ubicación**; social in **Síguenos**; discovery/profile links (Google, Yelp) in
+  **Opiniones / Más información**. The upper area no longer duplicates these.
+
+## Localization + curated product filter taxonomy
+
+- New display layer `ofertasLocalesProductTaxonomy.ts` normalizes raw AI/OCR
+  categories into a curated, shopper-facing set and renders localized labels via
+  `getOfertaProductFilterLabel(key, lang)`.
+- Filter chips now obey the page `lang` state in both ES and EN (previously the
+  raw English category strings leaked into Spanish). "Todos / All", "Mostrando X
+  de Y", filter headings, and flyer CTA labels all follow `lang`.
+- Chips restyled as compact **rectangular rounded pills** (`rounded-lg`) with a
+  leading emoji cue; selected/unselected states and mobile horizontal-scroll
+  wrapping preserved.
+- Filtering still works: selection compares the item's normalized taxonomy key,
+  counts stay accurate, and "Todos / All" resets correctly.
+
+## Files changed
+
+- `OfertasLocalesPreviewCard.tsx` — title/info restructure, removed duplicated
+  CTA cluster + desktop action stack + mobile membership block, flyer hero
+  section, rewards/membership inline block.
+- `OfertasLocalesPreviewHeroVisual.tsx` — Descargar volante download action with
+  safe fallback; view/download icons.
+- `OfertasLocalesPreviewProductGrid.tsx` — curated taxonomy keys, normalized
+  filtering, localized rectangular emoji chips.
+- `ofertasLocalesProductTaxonomy.ts` — new curated localized taxonomy + mapping.
+- `ofertasLocalesPreviewCopy.ts` — download labels.
+- `scripts/verify-ofertas-product-discovery-item-drawer.mjs` + this audit.
+
+## Risky / manual QA
+
+- Download relies on CORS-enabled asset hosts (Supabase/Blob public URLs allow
+  GET); the new-tab fallback covers hosts that block cross-origin fetch.
+- Taxonomy mapping is keyword-based; unusual raw categories fall back to
+  "Otros / Other" (never dropped).
+
+## Preview Architecture Clean-up — TRUE/FALSE audit
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Business Hub overall design shell preserved | TRUE |
+| 2 | Duplicated contact CTA cluster removed from upper summary | TRUE |
+| 3 | Title/info area holds business meta + rewards cleanly | TRUE |
+| 4 | Flyer is more visually dominant | TRUE |
+| 5 | "Abrir archivo" replaced with Descargar volante / Download flyer | TRUE |
+| 6 | Download flyer action works | TRUE |
+| 7 | Product filter chips obey ES/EN language state | TRUE |
+| 8 | Chips use rectangular pill styling with emoji cues | TRUE |
+| 9 | Raw categories normalized into cleaner taxonomy | TRUE |
+| 10 | Filters still function after normalization | TRUE |
+| 11 | Mobile QA checked (390px) | TRUE |
+| 12 | Desktop QA checked | TRUE |
+| 13 | Unrelated files not changed | TRUE |
+| READY TO COMMIT THIS BUILD ONLY | YES |

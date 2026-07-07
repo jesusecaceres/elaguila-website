@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { FiDownload, FiEye } from "react-icons/fi";
 import {
   isOfertaLocalCouponPromotionFlow,
   isOfertaLocalWeeklyFlyerFlow,
@@ -29,8 +31,37 @@ export function OfertasLocalesPreviewHeroVisual({
   compactMobile?: boolean;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
+  const [downloading, setDownloading] = useState(false);
   const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
   const isCoupon = isOfertaLocalCouponPromotionFlow(draft.offerType);
+
+  /**
+   * Download the flyer/coupon asset reliably. The `download` attribute is
+   * ignored for cross-origin URLs, so we fetch the file into a blob and click a
+   * synthetic link. If that fails (CORS/network), fall back to opening the file
+   * in a new tab so the user still gets it — never a dead "download" button.
+   */
+  async function handleDownload(href: string, fileName: string) {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(href, { credentials: "omit" });
+      if (!res.ok) throw new Error(`download_failed_${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = fileName || (isCoupon ? "cupon" : "volante");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(href, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloading(false);
+    }
+  }
   const laneLabel = isCoupon
     ? lang === "en"
       ? c.couponPromotionEn
@@ -100,7 +131,8 @@ export function OfertasLocalesPreviewHeroVisual({
               : "grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
           }
         >
-          <a href={heroAsset.href} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
+          <a href={heroAsset.href} target="_blank" rel="noopener noreferrer" className={`${BTN_PRIMARY} gap-2`}>
+            <FiEye className="h-4 w-4 shrink-0" aria-hidden />
             {heroAsset.kind === "coupon"
               ? lang === "en"
                 ? c.viewCouponEn
@@ -109,9 +141,25 @@ export function OfertasLocalesPreviewHeroVisual({
                 ? c.viewFlyerEn
                 : c.viewFlyerEs}
           </a>
-          <a href={heroAsset.href} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
-            {lang === "en" ? c.openFileEn : c.openFileEs}
-          </a>
+          <button
+            type="button"
+            className={`${BTN_OUTLINE} gap-2`}
+            onClick={() => void handleDownload(heroAsset.href!, heroAsset.fileName)}
+            disabled={downloading}
+          >
+            <FiDownload className="h-4 w-4 shrink-0" aria-hidden />
+            {downloading
+              ? lang === "en"
+                ? c.downloadingFlyerEn
+                : c.downloadingFlyerEs
+              : heroAsset.kind === "coupon"
+                ? lang === "en"
+                  ? c.downloadCouponEn
+                  : c.downloadCouponEs
+                : lang === "en"
+                  ? c.downloadFlyerEn
+                  : c.downloadFlyerEs}
+          </button>
         </div>
       ) : null}
     </div>

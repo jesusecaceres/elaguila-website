@@ -18,6 +18,11 @@ import {
   resolveOfertaLocalItemCropDisplayUrl,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
 import type { OfertaLocalPreviewHeroAsset } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import {
+  collectOfertaProductFilterKeys,
+  getOfertaProductFilterLabel,
+  normalizeOfertaProductCategory,
+} from "@/app/lib/ofertas-locales/ofertasLocalesProductTaxonomy";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
@@ -297,19 +302,24 @@ export function OfertasLocalesPreviewProductGrid({
   const [visibleCount, setVisibleCount] = useState(initialVisible);
   const [drawerItem, setDrawerItem] = useState<OfertaLocalItemReviewViewModel | null>(null);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    for (const item of items) {
-      const cat = item.category.trim();
-      if (cat) set.add(cat);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [items]);
+  // Curated, localized display taxonomy keys present among approved items.
+  const categoryKeys = useMemo(
+    () =>
+      collectOfertaProductFilterKeys(
+        items.map((i) => ({ category: i.category, subcategory: i.subcategory }))
+      ),
+    [items]
+  );
 
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
-      if (selectedCategory !== "all" && item.category.trim() !== selectedCategory) return false;
+      if (
+        selectedCategory !== "all" &&
+        normalizeOfertaProductCategory(item.category, item.subcategory) !== selectedCategory
+      ) {
+        return false;
+      }
       if (!q) return true;
       return itemSearchHaystack(item).includes(q);
     });
@@ -409,7 +419,7 @@ export function OfertasLocalesPreviewProductGrid({
               />
             </label>
 
-            {categories.length > 0 ? (
+            {categoryKeys.length > 0 ? (
               <div>
                 <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-[#1E1814]/45 sm:text-[10px] sm:text-[#1E1814]/50">
                   <FiFilter className="h-3 w-3 text-[#B8860B] sm:h-3.5 sm:w-3.5" aria-hidden />
@@ -426,22 +436,22 @@ export function OfertasLocalesPreviewProductGrid({
                   <button
                     type="button"
                     onClick={() => setSelectedCategory("all")}
-                    className={`min-h-9 shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 sm:px-3 sm:py-1.5 sm:text-xs ${
+                    className={`min-h-9 shrink-0 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 sm:px-3.5 sm:py-2 sm:text-xs ${
                       selectedCategory === "all" ? CHIP_ACTIVE : CHIP_INACTIVE
                     }`}
                   >
                     {lang === "en" ? c.filterAllEn : c.filterAllEs}
                   </button>
-                  {categories.map((cat) => (
+                  {categoryKeys.map((key) => (
                     <button
-                      key={cat}
+                      key={key}
                       type="button"
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`min-h-9 shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 sm:px-3 sm:py-1.5 sm:text-xs ${
-                        selectedCategory === cat ? CHIP_ACTIVE : CHIP_INACTIVE
+                      onClick={() => setSelectedCategory(key)}
+                      className={`min-h-9 shrink-0 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 sm:px-3.5 sm:py-2 sm:text-xs ${
+                        selectedCategory === key ? CHIP_ACTIVE : CHIP_INACTIVE
                       }`}
                     >
-                      {cat}
+                      {getOfertaProductFilterLabel(key, lang)}
                     </button>
                   ))}
                 </LeonixMobileScrollRail>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState, type ReactNode } from "react";
-import { FiCopy, FiGlobe, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiAward, FiCopy, FiGlobe, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -710,206 +710,156 @@ export function OfertasLocalesPreviewCard({
 
         <PreviewSectionNav items={sectionNavItems} lang={lang} />
 
-        {/* Hero: flyer + offer + desktop live actions */}
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-12 lg:gap-8">
-          {/* Flyer visual */}
-          <div id="volante" className={cx(SECTION_ANCHOR, "lg:col-span-5")}>
-            <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} compactMobile />
+        {/* 3. Title / info section — business meta + rewards (no duplicated contact CTA cluster) */}
+        <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "p-4 sm:p-5 lg:p-6")}>
+          <div className="flex flex-wrap gap-2">
+            {primaryFormatLabel ? (
+              <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-semibold text-[#7A1E2C]">
+                {primaryFormatLabel}
+              </span>
+            ) : null}
+            {offerLabel && offerLabel !== primaryFormatLabel ? (
+              <span className="rounded-lg border border-[#D4C4A8]/80 bg-white px-2.5 py-1 text-xs text-[#1E1814]/75">
+                {offerLabel}
+              </span>
+            ) : null}
+            {draft.wantsAiSearchableSpecials ? (
+              <span className="rounded-lg border border-emerald-300/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900">
+                {lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}
+              </span>
+            ) : null}
           </div>
 
-          {/* Business + offer + primary CTAs */}
-          <div id="oferta" className={cx(SECTION_ANCHOR, "lg:col-span-4")}>
-            <div className={cx(CARD, "h-full p-4 sm:p-5 lg:p-6")}>
-              <div className="flex flex-wrap gap-2">
-                {primaryFormatLabel ? (
-                  <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-semibold text-[#7A1E2C]">
-                    {primaryFormatLabel}
-                  </span>
-                ) : null}
-                {offerLabel && offerLabel !== primaryFormatLabel ? (
-                  <span className="rounded-lg border border-[#D4C4A8]/80 bg-white px-2.5 py-1 text-xs text-[#1E1814]/75">
-                    {offerLabel}
-                  </span>
-                ) : null}
-                {draft.wantsAiSearchableSpecials ? (
-                  <span className="rounded-lg border border-emerald-300/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900">
-                    {lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}
-                  </span>
-                ) : null}
-              </div>
+          {/* Business name — larger and stronger so it breathes */}
+          <h2 className="mt-3 break-words font-serif text-2xl font-bold leading-tight text-[#1E1814] sm:text-3xl lg:text-[2.5rem]">
+            {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
+          </h2>
+          {draft.businessName.trim() && draft.title.trim() ? (
+            <p className="mt-1.5 font-serif text-base font-semibold text-[#7A1E2C] sm:text-lg">
+              {draft.title}
+            </p>
+          ) : null}
 
-              {draft.businessName.trim() ? (
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[#B8860B]">
-                  {draft.businessName}
-                </p>
+          {(categoryLabel || marketLabel) ? (
+            <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[#1E1814]/60 sm:text-sm">
+              {categoryLabel ? <span>{categoryLabel}</span> : null}
+              {marketLabel ? (
+                <span>
+                  {categoryLabel ? "· " : ""}
+                  {marketLabel}
+                </span>
               ) : null}
-              <h2 className="mt-1 font-serif text-lg font-bold leading-snug text-[#1E1814] sm:text-xl lg:text-2xl">
-                {draft.title.trim() || defaultOfferTitle}
-              </h2>
+            </div>
+          ) : null}
 
-              <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[#1E1814]/60">
-                {categoryLabel ? <span>{categoryLabel}</span> : null}
-                {marketLabel ? (
-                  <span>
-                    {categoryLabel ? "· " : ""}
-                    {marketLabel}
-                  </span>
-                ) : null}
-              </div>
-
+          {(dateRange || locationLine) ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {dateRange ? (
-                <div className="mt-4 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-3 py-2">
+                <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-3 py-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
                     {lang === "en" ? c.validLabelEn : c.validLabelEs}
                   </p>
                   <p className="mt-0.5 text-sm font-medium text-[#1E1814]">{dateRange}</p>
                 </div>
               ) : null}
-
-              {expired ? (
-                <p className="mt-3 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  {lang === "en" ? c.expiredWarning : c.expiredWarningEs}
-                </p>
-              ) : null}
-              {notYetActive ? (
-                <p className="mt-3 rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-2 text-xs text-[#1E1814]/70">
-                  {lang === "en" ? c.notYetActive : c.notYetActiveEs}
-                </p>
-              ) : null}
-
               {locationLine ? (
-                <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-[#1E1814]/80">
+                <p className="flex items-start gap-2 rounded-lg border border-[#D4C4A8]/40 bg-white px-3 py-2 text-sm leading-relaxed text-[#1E1814]/80">
                   <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
                   <span>{locationLine}</span>
                 </p>
               ) : null}
+            </div>
+          ) : null}
 
-              {draft.description.trim() ? (
-                <div className="mt-5 border-t border-[#D4C4A8]/50 pt-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
-                    {lang === "en" ? c.aboutBusinessEn : c.aboutBusinessEs}
-                  </h3>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#1E1814]/80">
-                    {draft.description}
-                  </p>
-                </div>
-              ) : null}
+          {expired ? (
+            <p className="mt-3 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              {lang === "en" ? c.expiredWarning : c.expiredWarningEs}
+            </p>
+          ) : null}
+          {notYetActive ? (
+            <p className="mt-3 rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-2 text-xs text-[#1E1814]/70">
+              {lang === "en" ? c.notYetActive : c.notYetActiveEs}
+            </p>
+          ) : null}
 
-              {draft.couponText.trim() ? (
-                <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-gradient-to-br from-[#7A1E2C]/8 to-[#FDF8F0] px-4 py-3">
-                  <p className="text-xs font-semibold uppercase text-[#7A1E2C]">
-                    {lang === "en" ? c.couponPromotionEn : c.couponPromotionEs}
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-[#1E1814]">{draft.couponText}</p>
-                </div>
-              ) : null}
-
-              <p className="mt-5 border-t border-[#E8D9C4]/50 pt-3 text-center text-[11px] font-medium text-[#2D5A3D]">
-                {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
+          {draft.description.trim() ? (
+            <div className="mt-4 border-t border-[#D4C4A8]/50 pt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
+                {lang === "en" ? c.aboutBusinessEn : c.aboutBusinessEs}
+              </h3>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#1E1814]/80">
+                {draft.description}
               </p>
+            </div>
+          ) : null}
 
-              {/* Primary shopper CTAs — mobile: view offer + share; desktop: full set */}
-              <div className="mt-4 grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-2 sm:mt-5 sm:gap-2">
-                {heroAsset?.href ? (
-                  <ContactButton
-                    href={heroAsset.href}
-                    label={lang === "en" ? c.viewOfferEn : c.viewOfferEs}
-                    external
-                    primary
-                  />
+          {draft.couponText.trim() ? (
+            <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-gradient-to-br from-[#7A1E2C]/8 to-[#FDF8F0] px-4 py-3">
+              <p className="text-xs font-semibold uppercase text-[#7A1E2C]">
+                {lang === "en" ? c.couponPromotionEn : c.couponPromotionEs}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-[#1E1814]">{draft.couponText}</p>
+            </div>
+          ) : null}
+
+          {/* Compact rewards / membership sub-block (moved in from the old floating side rail) */}
+          {(showMembership && membershipHref) || (showDigitalCoupon && digitalCouponHref) ? (
+            <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-[#FDF8F0]/60 p-3 sm:p-4">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
+                <FiAward className="h-3.5 w-3.5" aria-hidden />
+                {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/60">
+                {lang === "en" ? c.membershipCopyEn : c.membershipCopyEs}
+              </p>
+              <div className="mt-3 grid gap-2 min-[400px]:grid-cols-2">
+                {showMembership && membershipHref ? (
+                  <a
+                    href={membershipHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cx(BTN_PRIMARY, "w-full")}
+                  >
+                    {membershipCtaLabel(lang)}
+                  </a>
                 ) : null}
-                <button type="button" className={cx(BTN_OUTLINE, "gap-2")} onClick={() => void handleShare()}>
-                  <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
-                  {shareCopied
-                    ? lang === "en"
-                      ? c.shareCopiedEn
-                      : c.shareCopiedEs
-                    : lang === "en"
-                      ? c.shareEn
-                      : c.shareEs}
-                </button>
-                <ContactButton
-                  href={directionsHref}
-                  label={lang === "en" ? c.directions : c.directionsEs}
-                  external
-                  icon={<FiMapPin className="h-4 w-4" aria-hidden />}
-                  className="hidden lg:inline-flex"
-                />
-                <ContactButton
-                  href={telHref}
-                  label={lang === "en" ? c.call : c.callEs}
-                  icon={<FiPhone className="h-4 w-4" aria-hidden />}
-                  className="hidden lg:inline-flex"
-                />
-                <ContactButton
-                  href={waHref}
-                  label={c.whatsapp}
-                  external
-                  whatsapp
-                  icon={<FaWhatsapp className="h-4 w-4" aria-hidden />}
-                  className="hidden lg:inline-flex"
-                />
-                <ContactButton
-                  href={webHref}
-                  label={lang === "en" ? c.website : c.websiteEs}
-                  external
-                  icon={<FiGlobe className="h-4 w-4" aria-hidden />}
-                  className="hidden lg:inline-flex"
-                />
+                {showDigitalCoupon && digitalCouponHref ? (
+                  <a
+                    href={digitalCouponHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cx(BTN_OUTLINE, "w-full")}
+                  >
+                    {digitalCouponCtaLabel(lang)}
+                  </a>
+                ) : null}
               </div>
             </div>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8D9C4]/50 pt-3">
+            <p className="text-[11px] font-medium text-[#2D5A3D]">
+              {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
+            </p>
+            <button type="button" className={cx(BTN_OUTLINE, "gap-2")} onClick={() => void handleShare()}>
+              <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
+              {shareCopied
+                ? lang === "en"
+                  ? c.shareCopiedEn
+                  : c.shareCopiedEs
+                : lang === "en"
+                  ? c.shareEn
+                  : c.shareEs}
+            </button>
           </div>
+        </section>
 
-          {/* Desktop live action stack (no future modules) */}
-          <div className="hidden space-y-4 lg:col-span-3 lg:block">
-            {directionsHref && locationLine ? (
-              <div className={cx(CARD, "p-4")}>
-                <h3 className="font-serif text-lg font-semibold text-[#1E1814]">
-                  {lang === "en" ? c.directionsCardTitleEn : c.directionsCardTitleEs}
-                </h3>
-                <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/65">{locationLine}</p>
-                <a href={directionsHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-4 w-full")}>
-                  {lang === "en" ? c.directions : c.directionsEs}
-                </a>
-              </div>
-            ) : null}
-
-            {(telHref || waHref || webHref) ? (
-              <div className={cx(CARD, "p-4")}>
-                <h3 className="font-serif text-lg font-semibold text-[#1E1814]">
-                  {lang === "en" ? c.contactBusinessEn : c.contactBusinessEs}
-                </h3>
-                <div className="mt-3 grid gap-2">
-                  <ContactButton href={telHref} label={lang === "en" ? c.call : c.callEs} icon={<FiPhone className="h-4 w-4" aria-hidden />} />
-                  <ContactButton href={waHref} label={c.whatsapp} external whatsapp icon={<FaWhatsapp className="h-4 w-4" aria-hidden />} />
-                  <ContactButton href={webHref} label={lang === "en" ? c.website : c.websiteEs} external icon={<FiGlobe className="h-4 w-4" aria-hidden />} />
-                </div>
-              </div>
-            ) : null}
-
-            {showMembership && membershipHref ? (
-              <div className={cx(CARD, "border-[#7A1E2C]/20 p-4")}>
-                <h3 className="text-sm font-semibold text-[#7A1E2C]">
-                  {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
-                </h3>
-                <a href={membershipHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
-                  {membershipCtaLabel(lang)}
-                </a>
-              </div>
-            ) : null}
-
-            {showDigitalCoupon && digitalCouponHref ? (
-              <div className={cx(CARD, "p-4")}>
-                <h3 className="text-sm font-semibold text-[#1E1814]">
-                  {lang === "en" ? c.digitalCouponTitleEn : c.digitalCouponTitleEs}
-                </h3>
-                <a href={digitalCouponHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
-                  {digitalCouponCtaLabel(lang)}
-                </a>
-              </div>
-            ) : null}
+        {/* 4. Flyer hero — the star of the page */}
+        <section id="volante" className={cx(SECTION_ANCHOR, "mt-4 sm:mt-6")}>
+          <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
+            <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} compactMobile />
           </div>
-        </div>
+        </section>
 
         {/* 6. Business Hub */}
         <PreviewBusinessHub
@@ -922,32 +872,6 @@ export function OfertasLocalesPreviewCard({
           directionsHref={directionsHref}
           locationLine={locationLine}
         />
-
-        {/* Mobile membership / digital coupon */}
-        {(showMembership && membershipHref) || (showDigitalCoupon && digitalCouponHref) ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:hidden">
-            {showMembership && membershipHref ? (
-              <div className={cx(CARD, "border-[#7A1E2C]/20 p-4")}>
-                <h3 className="text-sm font-semibold text-[#7A1E2C]">
-                  {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
-                </h3>
-                <a href={membershipHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
-                  {membershipCtaLabel(lang)}
-                </a>
-              </div>
-            ) : null}
-            {showDigitalCoupon && digitalCouponHref ? (
-              <div className={cx(CARD, "p-4")}>
-                <h3 className="text-sm font-semibold text-[#1E1814]">
-                  {lang === "en" ? c.digitalCouponTitleEn : c.digitalCouponTitleEs}
-                </h3>
-                <a href={digitalCouponHref} target="_blank" rel="noopener noreferrer" className={cx(BTN_PRIMARY, "mt-3 w-full")}>
-                  {digitalCouponCtaLabel(lang)}
-                </a>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
 
         {/* 7. Product grid */}
         <OfertasLocalesPreviewProductGrid
