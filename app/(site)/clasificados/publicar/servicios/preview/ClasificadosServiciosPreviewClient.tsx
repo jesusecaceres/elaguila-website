@@ -29,6 +29,11 @@ import { normalizeServiciosApplicationVideos } from "../lib/clasificadosServicio
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
 import { clearServiciosDraftStorageAndIdb, loadClasificadosServiciosApplicationResolved, saveClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { buildServiciosPreviewGalleryVideos } from "../lib/clasificadosServiciosPreviewHandoff";
+import {
+  serviciosPublishedToApplicationDraft,
+  type ServiciosPublishedListingHydrationSource,
+} from "../lib/serviciosPublishedToApplicationDraft";
+import { serviciosListingEditHref } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile, mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
@@ -37,8 +42,8 @@ import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadin
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 
-/** Seller preview — real application draft only (no demo/sample fallback). */
-type Source = "loading" | "application" | "missing";
+/** Seller preview — application draft or DB-backed listing (dashboard preview=listing). */
+type Source = "loading" | "application" | "missing" | "listing-error";
 
 const PREVIEW_BAR =
   "sticky top-0 z-[60] border-b border-black/[0.08] bg-[#F9F8F6]/95 shadow-[0_6px_20px_-12px_rgba(42,36,22,0.18)] backdrop-blur-md";
@@ -106,6 +111,28 @@ export function ClasificadosServiciosPreviewClient() {
   );
 
   const editHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang);
+  const previewListingParam = searchParams?.get("preview") === "listing";
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const listingId = searchParams?.get("listingId")?.trim() ?? "";
+  const listingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
+  const leonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const returnPanel = searchParams?.get("returnPanel") ?? "";
+  const listingBoundPreview =
+    previewListingParam || (dashboardSource && Boolean(listingId || listingSlug || leonixAdId));
+  const dashboardReturnHref = withClasificadosPublishLang(
+    returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/mis-anuncios?cat=servicios",
+    routeLang,
+  );
+  const listingEditHref =
+    listingBoundPreview && (listingId || listingSlug || leonixAdId)
+      ? serviciosListingEditHref({
+          lang,
+          listingId: listingId || null,
+          listingSlug: listingSlug || null,
+          leonixAdId: leonixAdId || null,
+        })
+      : editHref;
+  const [listingHydrationError, setListingHydrationError] = useState<string | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
 
@@ -120,6 +147,67 @@ export function ClasificadosServiciosPreviewClient() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      if (listingBoundPreview) {
+        setListingHydrationError(null);
+        try {
+          const sb = createSupabaseBrowserClient();
+          const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+          const accessToken = sess.session?.access_token ?? null;
+          if (!accessToken) {
+            throw new Error(
+              routeLang === "en"
+                ? "Log in to preview this published listing."
+                : "Inicia sesión para ver la vista previa de este anuncio publicado.",
+            );
+          }
+          const q = new URLSearchParams();
+          if (listingId) q.set("id", listingId);
+          else if (listingSlug) q.set("slug", listingSlug);
+          else if (leonixAdId) q.set("leonixAdId", leonixAdId);
+          const res = await fetch(`/api/clasificados/servicios/my-listing?${q.toString()}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            cache: "no-store",
+          });
+          const data = (await res.json()) as {
+            ok?: boolean;
+            listing?: ServiciosPublishedListingHydrationSource;
+            error?: string;
+          };
+          if (!res.ok || !data.ok || !data.listing) {
+            throw new Error(
+              routeLang === "en"
+                ? "We could not load this listing for preview."
+                : "No pudimos cargar este anuncio para la vista previa.",
+            );
+          }
+          const hydrated = serviciosPublishedToApplicationDraft(data.listing);
+          if (cancelled) return;
+          const normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
+          setAppState(normalized);
+          const mapped = mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang);
+          setAppDraft({
+            ...mapped,
+            galleryVideos: buildServiciosPreviewGalleryVideos(normalized),
+          });
+          setSource("application");
+          await saveClasificadosServiciosApplicationResolved(normalized);
+          return;
+        } catch (err) {
+          if (cancelled) return;
+          const message =
+            err instanceof Error
+              ? err.message
+              : routeLang === "en"
+                ? "Listing preview load failed."
+                : "No se pudo cargar la vista previa del anuncio.";
+          setListingHydrationError(message);
+          setSource("listing-error");
+          setAppDraft(null);
+          setAppState(null);
+          return;
+        }
+      }
+
       const raw = await loadClasificadosServiciosApplicationResolved();
       if (cancelled) return;
       if (raw == null) {
@@ -143,12 +231,13 @@ export function ClasificadosServiciosPreviewClient() {
     return () => {
       cancelled = true;
     };
-  }, [lang]);
+  }, [lang, listingBoundPreview, listingId, listingSlug, leonixAdId, routeLang]);
 
   const previewReadiness = useMemo(() => {
     if (source !== "application" || !appState) return { ok: true as const, missing: [] as { id: string; label: string }[] };
+    if (listingBoundPreview) return { ok: true as const, missing: [] as { id: string; label: string }[] };
     return evaluateServiciosPreviewReadiness(appState, lang);
-  }, [source, appState, lang]);
+  }, [source, appState, lang, listingBoundPreview]);
 
   const publishReadiness = useMemo(() => {
     if (source !== "application" || !appState) return { ok: false as const, missing: [] as { id: string; label: string }[] };
@@ -322,6 +411,17 @@ export function ClasificadosServiciosPreviewClient() {
 
   if (source === "loading") {
     return <div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />;
+  }
+
+  if (source === "listing-error") {
+    return (
+      <ServiciosSellerPreviewIncomplete
+        lang={lang}
+        editHref={dashboardReturnHref}
+        title={lang === "en" ? "Preview could not load this listing" : "No se pudo cargar la vista previa de este anuncio"}
+        body={listingHydrationError ?? (lang === "en" ? "Return to your dashboard and try again." : "Vuelve al panel e inténtalo de nuevo.")}
+      />
+    );
   }
 
   if (source === "missing") {

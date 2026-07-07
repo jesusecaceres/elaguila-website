@@ -8,6 +8,10 @@ import {
   type CategoryDashboardActionContract,
 } from "./categoryDashboardActionContract";
 import {
+  serviciosListingEditHref,
+  serviciosListingPreviewHref,
+} from "./serviciosDashboardOffersAddonCheckout";
+import {
   restaurantCouponAddonUpgradeEligible,
   restaurantCouponEditEligible,
 } from "./restaurantesDashboardCouponAddonCheckout";
@@ -258,8 +262,19 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       title: row.business_name?.trim() || row.slug,
       status: row.listing_status,
       publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
-      editHref: actionContract.editUrl ?? `/dashboard/servicios?${q}`,
-      previewHref: appendLangToPath("/clasificados/publicar/servicios/preview", L),
+      editHref:
+        serviciosListingEditHref({
+          lang: L,
+          listingId: row.id,
+          listingSlug: row.slug,
+          leonixAdId: row.leonix_ad_id,
+        }) ?? actionContract.editUrl ?? `/dashboard/servicios?${q}`,
+      previewHref: serviciosListingPreviewHref({
+        lang: L,
+        listingId: row.id,
+        listingSlug: row.slug,
+        leonixAdId: row.leonix_ad_id,
+      }),
       resultsHref: actionContract.resultsUrl ?? `/clasificados/servicios/resultados?${q}`,
       analyticsHref: `/dashboard/analytics?${q}`,
       publishedAt: row.published_at,

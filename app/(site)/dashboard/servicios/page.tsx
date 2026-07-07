@@ -14,6 +14,7 @@ import {
 } from "../lib/fetchOwnerEngagementDashboard";
 import {
   serviciosListingEditHref,
+  serviciosListingPreviewHref,
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
   serviciosOffersInactiveDashboardHint,
@@ -134,6 +135,7 @@ export default function DashboardServiciosPage() {
             view: "View showcase",
             results: "View in public results",
             edit: "Edit listing",
+            preview: "Vista previa",
             publish: "Publish another",
             leadsTitle: "Recent inquiries",
             leadsEmpty: "No inquiries recorded for your account yet.",
@@ -168,6 +170,7 @@ export default function DashboardServiciosPage() {
             view: "View showcase",
             results: "View in public results",
             edit: "Edit listing",
+            preview: "Preview",
             publish: "Publish another",
             leadsTitle: "Recent inquiries",
             leadsEmpty: "No inquiries recorded for your account yet.",
@@ -213,6 +216,15 @@ export default function DashboardServiciosPage() {
 
   function serviciosOffersShortcutHref(row: MergedRow): string {
     return serviciosOffersEditHref({
+      lang,
+      listingId: row.id,
+      listingSlug: row.slug,
+      leonixAdId: row.leonixAdId,
+    });
+  }
+
+  function serviciosPreviewHref(row: MergedRow): string {
+    return serviciosListingPreviewHref({
       lang,
       listingId: row.id,
       listingSlug: row.slug,
@@ -503,6 +515,14 @@ export default function DashboardServiciosPage() {
                       <Link href={serviciosEditHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
                         {t.edit}
                       </Link>
+                      {r.source === "cloud" && r.listingStatus === "published" ? (
+                        <Link
+                          href={serviciosPreviewHref(r)}
+                          className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]"
+                        >
+                          {t.preview}
+                        </Link>
+                      ) : null}
                       {r.source === "cloud" && r.listingStatus === "published" && r.offersAddonActive ? (
                         <Link
                           href={serviciosOffersShortcutHref(r)}
@@ -581,6 +601,11 @@ export default function DashboardServiciosPage() {
                           <Link href={serviciosEditHref(r)} className="text-xs font-semibold text-[#7A7164] underline">
                             {t.edit}
                           </Link>
+                          {r.source === "cloud" && r.listingStatus === "published" ? (
+                            <Link href={serviciosPreviewHref(r)} className="text-xs font-semibold text-[#7A7164] underline">
+                              {t.preview}
+                            </Link>
+                          ) : null}
                           {r.source === "cloud" && r.listingStatus === "published" && r.offersAddonActive ? (
                             <Link
                               href={serviciosOffersShortcutHref(r)}

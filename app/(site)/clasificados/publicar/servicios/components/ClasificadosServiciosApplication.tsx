@@ -399,6 +399,10 @@ export function ClasificadosServiciosApplication() {
 
     void (async () => {
       try {
+        if (dashboardSource) {
+          await clearServiciosDraftStorageAndIdb();
+        }
+
         const sb = createSupabaseBrowserClient();
         const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
         const accessToken = sess.session?.access_token ?? null;
@@ -408,8 +412,8 @@ export function ClasificadosServiciosApplication() {
 
         const q = new URLSearchParams();
         if (editListingId) q.set("id", editListingId);
-        if (editListingSlug) q.set("slug", editListingSlug);
-        if (editLeonixAdId) q.set("leonixAdId", editLeonixAdId);
+        else if (editListingSlug) q.set("slug", editListingSlug);
+        else if (editLeonixAdId) q.set("leonixAdId", editLeonixAdId);
         const res = await fetch(`/api/clasificados/servicios/my-listing?${q.toString()}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
           cache: "no-store",
@@ -436,15 +440,14 @@ export function ClasificadosServiciosApplication() {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : lang === "en" ? "Listing edit load failed." : "No se pudo cargar el anuncio.";
         setEditHydration({ status: "error", message });
-        setState(createDefaultClasificadosServiciosState());
-        setHydrated(true);
+        setHydrated(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [editRequested, editListingId, editListingSlug, editLeonixAdId, lang]);
+  }, [editRequested, editListingId, editListingSlug, editLeonixAdId, lang, dashboardSource]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -835,6 +838,27 @@ export function ClasificadosServiciosApplication() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
+      {editRequested && editHydration.status === "error" ? (
+        <main className="mx-auto max-w-lg px-4 py-16">
+          <h1 className="text-xl font-bold text-[#3D2C12]">
+            {lang === "en" ? "Edit mode could not load" : "No se pudo cargar el modo edición"}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-red-900">{editHydration.message}</p>
+          <Link
+            href={dashboardReturnHref}
+            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
+          >
+            {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+          </Link>
+        </main>
+      ) : editRequested && (editHydration.status === "loading" || !hydrated) ? (
+        <main className="mx-auto max-w-lg px-4 py-16">
+          <p className="text-sm font-semibold text-[#5D4A25]" role="status">
+            {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio publicado…"}
+          </p>
+        </main>
+      ) : (
+      <>
       <main className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-12 sm:pt-8">
         <div className="mb-6 rounded-2xl border border-[#D8C79A]/60 bg-[#FFFDF7]/95 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
@@ -3598,6 +3622,8 @@ export function ClasificadosServiciosApplication() {
           </div>
         </div>
       ) : null}
+      </>
+      )}
     </div>
   );
 }

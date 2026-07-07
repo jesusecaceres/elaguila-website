@@ -84,6 +84,13 @@ export function serviciosListingEditHref(input: ServiciosEditHrefInput): string 
   return appendLangToPath(`/clasificados/publicar/servicios?${params.toString()}`, input.lang);
 }
 
+/** Dashboard listing-bound preview — hydrates from owner DB listing, not empty local draft. */
+export function serviciosListingPreviewHref(input: ServiciosEditHrefInput): string {
+  const params = baseServiciosEditParams(input);
+  params.set("preview", "listing");
+  return appendLangToPath(`/clasificados/publicar/servicios/preview?${params.toString()}`, input.lang);
+}
+
 /** Offers edit shortcut — opens the saved listing and jumps to the coupon section. */
 export function serviciosOffersEditHref(input: ServiciosEditHrefInput): string {
   const params = baseServiciosEditParams(input);

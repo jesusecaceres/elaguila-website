@@ -206,6 +206,52 @@ function mapTestimonials(profile: ServiciosBusinessProfile): TestimonialRow[] {
     .filter((row) => row.authorName || row.quote);
 }
 
+/** Whether published profile_json already carries paid offers/coupon content. */
+function inferCouponsAddOnFromProfile(profile: ServiciosBusinessProfile | null | undefined): boolean {
+  if (!profile || typeof profile !== "object") return false;
+  const coupons = Array.isArray(profile.coupons) ? profile.coupons : [];
+  const hasCoupon = coupons.some((c) => {
+    if (!c || typeof c !== "object") return false;
+    const row = c as Record<string, unknown>;
+    return Boolean(
+      clean(row.title) ||
+        clean(row.description) ||
+        fromUrl(row.imageUrl) ||
+        clean(row.couponCode) ||
+        clean(row.expirationDate) ||
+        clean((row as ServiciosPromoOffer).headline) ||
+        fromUrl((row as ServiciosPromoOffer).assetImageUrl),
+    );
+  });
+  const hasFlyer = Boolean(fromUrl(profile.couponFlyer?.imageUrl));
+  const hasMore = Boolean(clean(profile.couponMoreOffers?.url));
+  return hasCoupon || hasFlyer || hasMore;
+}
+
+function mapSelectedServiceIds(profile: ServiciosBusinessProfile | null | undefined): string[] {
+  if (!Array.isArray(profile?.services)) return [];
+  const ids: string[] = [];
+  for (const card of profile.services) {
+    const id = clean(card.id);
+    const match = /^svc_(.+)$/.exec(id);
+    if (match?.[1]) ids.push(match[1]);
+  }
+  return ids;
+}
+
+function mapSelectedBusinessHighlightIds(profile: ServiciosBusinessProfile | null | undefined): string[] {
+  const raw = [
+    ...(Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : []),
+    ...(Array.isArray(profile?.trust) ? profile.trust : []),
+  ];
+  const ids: string[] = [];
+  for (const item of raw) {
+    const id = clean(item?.id);
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
 function detectNewFieldsAvailable(profile: ServiciosBusinessProfile): string[] {
   const missing: string[] = [];
   if (!Array.isArray(profile.paymentMethodIds) && !Array.isArray(profile.customPaymentMethods)) {
@@ -239,8 +285,24 @@ export function serviciosPublishedToApplicationDraft(
       .filter((label) => label && label.toLowerCase() !== city.toLowerCase())
       .join("\n") || splitLocationSummary(locationSummary, city);
 
+  const couponsAddOn = inferCouponsAddOnFromProfile(profile);
+  const mappedCoupons = profile ? mapCoupons(profile.coupons ?? undefined, base.coupons ?? []) : base.coupons ?? [];
+  const couponFlyerUrl = fromUrl(profile?.couponFlyer?.imageUrl);
+  const couponMoreOffersUrl = clean(profile?.couponMoreOffers?.url);
+  const couponMoreOffersLabel = clean(profile?.couponMoreOffers?.buttonLabel);
+
   const state = normalizeClasificadosServiciosApplicationState({
     ...base,
+    listingProduct: "servicios_profesionales",
+    baseMonthlyPrice: 399,
+    categoryPlan: "Servicios profesionales — $399/mes",
+    couponsAddOn,
+    couponsMonthlyPrice: couponsAddOn ? 99 : 0,
+    couponFlyer: couponFlyerUrl ? { imageUrl: couponFlyerUrl } : base.couponFlyer,
+    couponMoreOffers:
+      couponMoreOffersUrl || couponMoreOffersLabel
+        ? { url: couponMoreOffersUrl, buttonLabel: couponMoreOffersLabel }
+        : base.couponMoreOffers,
     businessTypeId: clean(profile?.opsMeta?.businessTypeId),
     businessName,
     city,
@@ -270,9 +332,11 @@ export function serviciosPublishedToApplicationDraft(
     videos: media.videos,
     aboutText: clean(profile?.about?.text),
     specialtiesLine: clean(profile?.about?.specialtiesLine),
+    selectedServiceIds: mapSelectedServiceIds(profile),
     customServicesOffered: (Array.isArray(profile?.services) ? profile.services : [])
       .map((item) => clean(item.title))
       .filter(Boolean),
+    selectedBusinessHighlightIds: mapSelectedBusinessHighlightIds(profile),
     customBusinessHighlights: (Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : [])
       .map((item) => clean(item.label))
       .filter(Boolean),
@@ -298,7 +362,7 @@ export function serviciosPublishedToApplicationDraft(
     hours: mapWeeklyHours(contact.hours?.weeklyRows, base.hours),
     testimonials: profile ? mapTestimonials(profile) : [],
     promotions: mapPromotions(profile?.promotions ?? (profile?.promo ? [profile.promo] : undefined), base.promotions),
-    coupons: mapCoupons(profile?.coupons ?? undefined, base.coupons ?? []),
+    coupons: mappedCoupons,
     confirmListingAccurate: false,
     confirmPhotosRepresentBusiness: false,
     confirmCommunityRules: false,
