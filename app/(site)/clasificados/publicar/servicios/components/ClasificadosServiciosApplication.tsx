@@ -49,6 +49,13 @@ import {
   saveClasificadosServiciosApplicationResolved,
 } from "../lib/clasificadosServiciosStorage";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import {
+  redirectServiciosDashboardOffersAddonCheckout,
+  serviciosOffersAddonUpgradeLabel,
+  serviciosOffersAddonUpgradeBusyLabel,
+  serviciosOffersModuleHeading,
+} from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import {
   getServiciosApplicationStepLabels,
   getServiciosApplicationStepShortLabels,
@@ -202,6 +209,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{children}</h2>;
 }
 
+/** Coupons/offers step index (see step === 6 render block). */
+const SERVICIOS_COUPON_STEP_INDEX = 6;
+
 export function ClasificadosServiciosApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -214,6 +224,19 @@ export function ClasificadosServiciosApplication() {
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
   const editRequested = editParam === "1" && Boolean(editListingSlug || editListingId || editLeonixAdId);
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const dashboardMode = searchParams?.get("mode") ?? "";
+  const focusCoupon = searchParams?.get("focus") === "coupon-upgrade";
+  const returnPanel = searchParams?.get("returnPanel") ?? "";
+  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && editRequested;
+  const isDashboardOffersEditMode = dashboardSource && dashboardMode === "offers-edit" && editRequested;
+  const isDashboardOffersAddonMode = dashboardSource && dashboardMode === "offers-addon" && editRequested;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardOffersEditMode || isDashboardOffersAddonMode;
+  const dashboardReturnHref = appendLangToPath(
+    returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/servicios",
+    routeLang,
+  );
   const copy = getClasificadosServiciosCopy(lang);
   const labels = copy.labels as any;
   const couponDecisionTitle = labels.couponDecisionTitle || (lang === "en" ? "Add featured coupons?" : "¿Quieres agregar cupones destacados?");
@@ -271,6 +294,44 @@ export function ClasificadosServiciosApplication() {
   const [leonixRulesOpen, setLeonixRulesOpen] = useState(false);
   const [finalStepPublishBlocked, setFinalStepPublishBlocked] = useState<string | null>(null);
   const [mediaFlash, setMediaFlash] = useState<string | null>(null);
+  const [dashboardAddonCheckoutBusy, setDashboardAddonCheckoutBusy] = useState(false);
+  const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
+  const focusCouponAppliedRef = useRef(false);
+
+  const startDashboardOffersAddonCheckout = useCallback(async () => {
+    if (!editListingId) {
+      setDashboardContextErr(
+        lang === "en"
+          ? "Listing id is missing. Return to the dashboard and try again."
+          : "Falta el identificador del anuncio. Vuelve al panel e intenta de nuevo.",
+      );
+      return;
+    }
+    setDashboardAddonCheckoutBusy(true);
+    setDashboardContextErr(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      const result = await redirectServiciosDashboardOffersAddonCheckout({
+        listingId: editListingId,
+        leonixAdId: editLeonixAdId || null,
+        lang,
+        customerEmail: auth.user?.email ?? null,
+        returnPath: dashboardReturnHref,
+      });
+      if (!result.ok) {
+        setDashboardContextErr(result.userMessage);
+        setDashboardAddonCheckoutBusy(false);
+      }
+    } catch {
+      setDashboardContextErr(
+        lang === "en"
+          ? "We could not start offers module checkout."
+          : "No pudimos iniciar el pago del módulo de ofertas.",
+      );
+      setDashboardAddonCheckoutBusy(false);
+    }
+  }, [editListingId, editLeonixAdId, lang, dashboardReturnHref]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -404,6 +465,20 @@ export function ClasificadosServiciosApplication() {
     const t = window.setTimeout(() => void saveClasificadosServiciosApplicationResolved(state), DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
+
+  // Dashboard offers-edit / offers-addon deep link — jump to the coupon step after hydration (once).
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!focusCoupon) return;
+    if (focusCouponAppliedRef.current) return;
+    focusCouponAppliedRef.current = true;
+    goToStep(SERVICIOS_COUPON_STEP_INDEX);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document.getElementById("servicios-step-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  }, [hydrated, focusCoupon, goToStep]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -3068,6 +3143,40 @@ export function ClasificadosServiciosApplication() {
             </div>
           </div>
               </section>
+            ) : isExistingDashboardListingMode ? (
+              /* Dashboard existing-listing add-on activation — real add-on-only Stripe checkout ($99/mo). */
+              <>
+                <SectionTitle>{serviciosOffersModuleHeading(lang)}</SectionTitle>
+                <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
+                  <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{serviciosOffersModuleHeading(lang)}</h3>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/mo" : "99/mes"}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                    {lang === "en"
+                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers."
+                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas."}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={dashboardAddonCheckoutBusy}
+                    onClick={() => void startDashboardOffersAddonCheckout()}
+                    className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
+                  >
+                    {dashboardAddonCheckoutBusy
+                      ? serviciosOffersAddonUpgradeBusyLabel(lang)
+                      : serviciosOffersAddonUpgradeLabel(lang)}
+                  </button>
+                  {dashboardContextErr ? (
+                    <p className="mt-3 text-sm font-medium text-red-700" role="status">
+                      {dashboardContextErr}
+                    </p>
+                  ) : null}
+                  <div className="mt-4">
+                    <Link href={dashboardReturnHref} className="text-sm font-semibold text-[color:var(--lx-text)] underline">
+                      {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                    </Link>
+                  </div>
+                </div>
+              </>
             ) : (
               /* Coupon decision card - show when add-on is not yet enabled */
               <>
@@ -3169,8 +3278,8 @@ export function ClasificadosServiciosApplication() {
                 <p className="mt-3 rounded-lg border border-[#D8C79A]/40 bg-[#FFFCF7] px-3 py-2 text-sm font-medium text-[#6b5c42]">{listingPhaseLine}</p>
               ) : null}
 
-              {/* Pricing summary */}
-              {state.baseMonthlyPrice > 0 && (
+              {/* Pricing summary — hidden in dashboard edit modes (no $399 base recharge from an existing listing). */}
+              {!isExistingDashboardListingMode && state.baseMonthlyPrice > 0 && (
                 <div className="mt-5 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
                   <p className="text-xs font-semibold text-[#8a7a62]">
                     {lang === "en" ? "Pricing summary" : "Resumen de precios"}

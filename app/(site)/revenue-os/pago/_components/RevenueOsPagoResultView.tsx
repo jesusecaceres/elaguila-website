@@ -6,6 +6,7 @@ import {
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { resolveRestauranteOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
+import { resolveServiciosOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 
 const SHELL = "mx-auto max-w-xl px-4 py-12 sm:py-16";
 
@@ -36,12 +37,19 @@ function resolveCopy(
     ? sanitizeRevenueOsReturnPath(returnTo, dashboardHref)
     : null;
   const supportHref = lang === "es" ? "/contacto?lang=es" : "/contact?lang=en";
-  const offersAddonPrimaryCta = resolveRestauranteOffersAddonSuccessPrimaryCta({
-    packageKey: proof.packageKey,
-    listingId: proof.listingId,
-    leonixAdId: proof.leonixAdId,
-    lang,
-  });
+  const offersAddonPrimaryCta =
+    resolveRestauranteOffersAddonSuccessPrimaryCta({
+      packageKey: proof.packageKey,
+      listingId: proof.listingId,
+      leonixAdId: proof.leonixAdId,
+      lang,
+    }) ??
+    resolveServiciosOffersAddonSuccessPrimaryCta({
+      packageKey: proof.packageKey,
+      listingId: proof.listingId,
+      leonixAdId: proof.leonixAdId,
+      lang,
+    });
 
   const detailLines: Copy["detailLines"] = [];
   if (proof.categoryLabel) detailLines.push({ label: lang === "es" ? "Categoría" : "Category", value: proof.categoryLabel });

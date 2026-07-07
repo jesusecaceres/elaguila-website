@@ -81,6 +81,7 @@
     "verify:servicios-p0b-coupon-output-render-proof": "node scripts/verify-servicios-p0b-coupon-output-render-proof.mjs",
     "verify:servicios-p0a-checkpoint-ver-mas-rules-modal-parity": "node scripts/verify-servicios-p0a-checkpoint-ver-mas-rules-modal-parity.mjs",
     "verify:servicios-p0b-coupons-offers-persistence-preview-public-output": "node scripts/verify-servicios-p0b-coupons-offers-persistence-preview-public-output.mjs",
+    "verify:servicios-p0c-dashboard-addon-only-stripe-edit-route-parity": "node scripts/verify-servicios-p0c-dashboard-addon-only-stripe-edit-route-parity.mjs",
     "verify:restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01": "node scripts/verify-restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01.mjs",
     "verify:restaurantes-promo-checkout-final-button-blocker-fix-01": "node scripts/verify-restaurantes-promo-checkout-final-button-blocker-fix-01.mjs",
     "verify:publish-checkout-promo-validation-ui-01": "node scripts/verify-publish-checkout-promo-validation-ui-01.mjs",

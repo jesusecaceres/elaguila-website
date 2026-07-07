@@ -24,6 +24,9 @@ export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = true;
 /** Canonical Revenue OS package key for Restaurante category-owned coupon module. */
 export const RESTAURANTES_COUPON_ADDON_PACKAGE_KEY = "restaurantes_offers_addon";
 
+/** Canonical Revenue OS package key for Servicios category-owned offers/coupons module. */
+export const SERVICIOS_OFFERS_ADDON_PACKAGE_KEY = "servicios_offers_addon";
+
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
 export const BR_INVENTORY_PACK_MAX_CHILDREN = 4;
 export const BR_BASE_INCLUDED_PROPERTIES = 1;

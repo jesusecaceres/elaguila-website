@@ -12,6 +12,12 @@ import {
   fetchOwnerEngagementDashboard,
   type ServiciosListingEngagementMetricsClient,
 } from "../lib/fetchOwnerEngagementDashboard";
+import {
+  serviciosListingEditHref,
+  serviciosOffersEditHref,
+  serviciosOffersEditLabel,
+  serviciosOffersInactiveDashboardHint,
+} from "../lib/serviciosDashboardOffersAddonCheckout";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -25,6 +31,7 @@ type MergedRow = {
   source: "browser" | "dev_server" | "cloud";
   listingStatus?: string | null;
   leonixAdId?: string | null;
+  offersAddonActive?: boolean;
   metrics?: ServiciosListingEngagementMetricsClient;
 };
 
@@ -196,10 +203,21 @@ export default function DashboardServiciosPage() {
   const [engagementUnavailable, setEngagementUnavailable] = useState(false);
 
   function serviciosEditHref(row: MergedRow): string {
-    const params = new URLSearchParams({ lang, edit: "1", source: "dashboard", listingSlug: row.slug });
-    if (row.id?.trim()) params.set("listingId", row.id.trim());
-    if (row.leonixAdId?.trim()) params.set("leonixAdId", row.leonixAdId.trim());
-    return `/clasificados/publicar/servicios?${params.toString()}`;
+    return serviciosListingEditHref({
+      lang,
+      listingId: row.id,
+      listingSlug: row.slug,
+      leonixAdId: row.leonixAdId,
+    });
+  }
+
+  function serviciosOffersShortcutHref(row: MergedRow): string {
+    return serviciosOffersEditHref({
+      lang,
+      listingId: row.id,
+      listingSlug: row.slug,
+      leonixAdId: row.leonixAdId,
+    });
   }
 
   useEffect(() => {
@@ -269,6 +287,7 @@ export default function DashboardServiciosPage() {
               published_at: string;
               listing_status?: string | null;
               leonix_ad_id?: string | null;
+              offers_addon_active?: boolean;
             }[];
           };
           if (j.ok && Array.isArray(j.listings)) {
@@ -282,6 +301,7 @@ export default function DashboardServiciosPage() {
                 source: "cloud",
                 listingStatus: r.listing_status ?? null,
                 leonixAdId: r.leonix_ad_id ?? null,
+                offersAddonActive: r.offers_addon_active === true,
                 metrics: serviciosMetricsBySlug[r.slug],
               });
             }
@@ -483,6 +503,14 @@ export default function DashboardServiciosPage() {
                       <Link href={serviciosEditHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
                         {t.edit}
                       </Link>
+                      {r.source === "cloud" && r.listingStatus === "published" && r.offersAddonActive ? (
+                        <Link
+                          href={serviciosOffersShortcutHref(r)}
+                          className="rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]"
+                        >
+                          {serviciosOffersEditLabel(lang)}
+                        </Link>
+                      ) : null}
                       {r.source === "cloud" && r.listingStatus === "published" ? (
                         <button
                           type="button"
@@ -503,6 +531,11 @@ export default function DashboardServiciosPage() {
                         </button>
                       ) : null}
                     </div>
+                    {r.source === "cloud" && r.listingStatus === "published" && !r.offersAddonActive ? (
+                      <p className="mt-2 text-[11px] leading-relaxed text-[#7A7164]">
+                        {serviciosOffersInactiveDashboardHint(lang)}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -548,7 +581,20 @@ export default function DashboardServiciosPage() {
                           <Link href={serviciosEditHref(r)} className="text-xs font-semibold text-[#7A7164] underline">
                             {t.edit}
                           </Link>
+                          {r.source === "cloud" && r.listingStatus === "published" && r.offersAddonActive ? (
+                            <Link
+                              href={serviciosOffersShortcutHref(r)}
+                              className="text-xs font-semibold text-[#6B5B2E] underline"
+                            >
+                              {serviciosOffersEditLabel(lang)}
+                            </Link>
+                          ) : null}
                         </div>
+                        {r.source === "cloud" && r.listingStatus === "published" && !r.offersAddonActive ? (
+                          <p className="mt-1 text-[10px] leading-relaxed text-[#9A9084]">
+                            {serviciosOffersInactiveDashboardHint(lang)}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="p-3">
                         {r.source === "cloud" && r.listingStatus === "published" ? (
