@@ -1773,7 +1773,14 @@ export default function RestauranteApplicationClient() {
                       />
                       {coupon.imageUrl && (
                         <div className="mt-2 flex items-center gap-2">
-                          <img src={coupon.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
+                          <RestauranteMediaPreviewImg
+                            src={coupon.imageUrl}
+                            draftListingId={draft.draftListingId}
+                            alt=""
+                            className="h-20 w-20 rounded-lg border border-[color:var(--lx-nav-border)] object-cover"
+                            width={80}
+                            height={80}
+                          />
                           <button
                             type="button"
                             onClick={() => patchCoupon(i, { imageUrl: undefined })}
@@ -1837,7 +1844,14 @@ export default function RestauranteApplicationClient() {
               />
               {draft.couponFlyer?.imageUrl && (
                 <div className="mt-2 flex items-center gap-2">
-                  <img src={draft.couponFlyer.imageUrl} alt="" className="h-20 w-20 rounded-lg border border-[color:var(--lx-nav-border)] object-cover" />
+                  <RestauranteMediaPreviewImg
+                    src={draft.couponFlyer.imageUrl}
+                    draftListingId={draft.draftListingId}
+                    alt=""
+                    className="h-20 w-20 rounded-lg border border-[color:var(--lx-nav-border)] object-cover"
+                    width={80}
+                    height={80}
+                  />
                   <button
                     type="button"
                     onClick={() => setDraftPatch({ couponFlyer: { imageUrl: undefined } })}

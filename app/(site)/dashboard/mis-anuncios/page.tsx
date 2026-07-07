@@ -106,7 +106,7 @@ import {
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
-import { redirectRestauranteDashboardCouponAddonCheckout } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -339,6 +339,7 @@ export default function MyListingsPage() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
+  const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
@@ -574,6 +575,25 @@ export default function MyListingsPage() {
           : "We could not start coupon module checkout. Please try again.",
       );
       setCouponCheckoutBusyId(null);
+    }
+  }
+
+  async function openRestauranteCouponEdit(item: DashboardInventoryItem) {
+    setCouponEditBusyId(item.id);
+    setError(null);
+    try {
+      const result = await hydrateRestauranteListingForCouponEdit({ listingId: item.id, lang });
+      if (!result.ok) {
+        setError(result.userMessage);
+        setCouponEditBusyId(null);
+        return;
+      }
+      router.push(restauranteCouponEditHref(lang));
+    } catch {
+      setError(
+        lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
+      );
+      setCouponEditBusyId(null);
     }
   }
 
@@ -1151,6 +1171,8 @@ export default function MyListingsPage() {
                     actions={buildInventoryListingActions("restaurantes", item, lang, q, {
                       onCouponUpgrade: () => void startRestauranteCouponAddonCheckout(item),
                       couponUpgradeBusy: couponCheckoutBusyId === item.id,
+                      onCouponEdit: () => void openRestauranteCouponEdit(item),
+                      couponEditBusy: couponEditBusyId === item.id,
                     })}
                   />
                 ))

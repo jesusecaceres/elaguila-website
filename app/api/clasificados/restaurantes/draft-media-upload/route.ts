@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const SLOTS = new Set(["hero", "gallery", "food", "interior", "exterior", "featured", "logo"]);
+const SLOTS = new Set(["hero", "gallery", "food", "interior", "exterior", "featured", "logo", "coupon", "coupon_flyer"]);
 
 /**
  * Upload one browser-held image (typically from a data URL fetched as Blob) to public Blob storage.

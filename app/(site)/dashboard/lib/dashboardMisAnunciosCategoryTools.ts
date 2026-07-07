@@ -20,7 +20,8 @@ export type CategoryToolKey =
   | "archive"
   | "markSold"
   | "reactivate"
-  | "couponUpgrade";
+  | "couponUpgrade"
+  | "couponEdit";
 
 export type CategoryToolStatus = "ready" | "hidden" | "future" | "unproven";
 
@@ -80,6 +81,7 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     publicResults: "ready",
     analytics: "unproven",
     couponUpgrade: "ready",
+    couponEdit: "ready",
   },
   servicios: {
     publicView: "ready",
@@ -264,6 +266,8 @@ export function buildInventoryListingActions(
   opts?: {
     onCouponUpgrade?: () => void;
     couponUpgradeBusy?: boolean;
+    onCouponEdit?: () => void;
+    couponEditBusy?: boolean;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
@@ -298,16 +302,35 @@ export function buildInventoryListingActions(
     opts?.onCouponUpgrade
   ) {
     actions.push({
-      label:
-        opts.couponUpgradeBusy
-          ? lang === "es"
-            ? "Iniciando pago…"
-            : "Starting checkout…"
-          : lang === "es"
-            ? "Activar módulo de cupones ($99/mes)"
-            : "Enable coupon module ($99/mo)",
+      label: opts.couponUpgradeBusy
+        ? lang === "es"
+          ? "Iniciando pago…"
+          : "Starting checkout…"
+        : lang === "es"
+          ? "Agregar cupones +$99/mes"
+          : "Add coupons +$99/mo",
       onClick: opts.onCouponUpgrade,
       disabled: opts.couponUpgradeBusy,
+      tone: "primary",
+    });
+  }
+
+  if (
+    category === "restaurantes" &&
+    item.restaurantCouponEditEligible &&
+    listingToolIsReady(category, "couponEdit") &&
+    opts?.onCouponEdit
+  ) {
+    actions.push({
+      label: opts.couponEditBusy
+        ? lang === "es"
+          ? "Cargando…"
+          : "Loading…"
+        : lang === "es"
+          ? "Editar cupones"
+          : "Edit coupons",
+      onClick: opts.onCouponEdit,
+      disabled: opts.couponEditBusy,
       tone: "primary",
     });
   }
