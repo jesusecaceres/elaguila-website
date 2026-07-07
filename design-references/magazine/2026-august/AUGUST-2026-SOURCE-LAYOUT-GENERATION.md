@@ -291,18 +291,12 @@ Location: `design-references/magazine/2026-august/01-master-samples/`
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-BATCH1`**
+**`AUGUST-2026-VISUAL-BATCH1-ASSET-CREATION`** — Production packet complete: [`AUGUST-2026-VISUAL-BATCH1.md`](AUGUST-2026-VISUAL-BATCH1.md)
 
 Purpose:
 
-- Coach creates/generates visual source samples for:
-  - **Page 5** — Agenda de Agosto
-  - **Page 6** — Negocios que construyen comunidad
-  - **Page 12** — Back cover / Sé parte del movimiento Leonix
-- Must preserve **8 × 11.5 in** ratio
-- Must preserve same-size page standard
-- Must preserve translation-safe spacing
-- Must remain source/reference assets only until approved
+- Create visual master samples for pages **5, 6, 12** — **only after Chuy approves visual creation**
+- Preserve **8 × 11.5 in**, translation-safe spacing, reference-only status
 
 ---
 

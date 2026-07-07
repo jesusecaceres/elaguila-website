@@ -29,6 +29,8 @@ import {
   restaurantCouponEditEligible,
   restauranteCouponAddonUpgradeBusyLabel,
   restauranteCouponAddonUpgradeLabel,
+  restauranteCouponAddonUpgradeFooterHint,
+  restauranteCouponEditFooterHint,
   restauranteCouponEditLabel,
   restauranteCouponEditHref,
 } from "../lib/restaurantesDashboardCouponAddonCheckout";
@@ -493,6 +495,12 @@ export default function DashboardRestaurantesPage() {
                     tone: "primary",
                   });
                 }
+                const couponFooterHint = couponUpgradeEligible
+                  ? restauranteCouponAddonUpgradeFooterHint(lang)
+                  : couponEditEligible
+                    ? restauranteCouponEditFooterHint(lang)
+                    : null;
+                const cardFooterHint = [listingPlanFootnote(lang), couponFooterHint].filter(Boolean).join(" · ");
                 return (
                   <DashboardCategoryListingCard
                     key={r.id}
@@ -510,7 +518,7 @@ export default function DashboardRestaurantesPage() {
                         : "",
                       r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
-                    footerHint={listingPlanFootnote(lang)}
+                    footerHint={cardFooterHint}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: restaurantListingPlan },
                       { label: t.cardSlug, value: r.slug },

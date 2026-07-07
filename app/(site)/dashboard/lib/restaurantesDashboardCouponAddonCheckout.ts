@@ -21,7 +21,19 @@ export type RestauranteDashboardCouponAddonCheckoutResult =
   | { ok: false; userMessage: string };
 
 export function restauranteCouponAddonUpgradeLabel(lang: "es" | "en"): string {
-  return lang === "es" ? "Agregar cupones +$99/mes" : "Add coupons +$99/mo";
+  return lang === "es" ? "Activar cupones +$99/mes" : "Activate coupons +$99/mo";
+}
+
+export function restauranteCouponAddonUpgradeFooterHint(lang: "es" | "en"): string {
+  return lang === "es"
+    ? "Activa el módulo y luego podrás agregar hasta 4 cupones destacados."
+    : "Activate the module, then you can add up to 4 featured coupons.";
+}
+
+export function restauranteCouponEditFooterHint(lang: "es" | "en"): string {
+  return lang === "es"
+    ? "Administra hasta 4 cupones destacados de este anuncio."
+    : "Manage up to 4 featured coupons for this listing.";
 }
 
 export function restauranteCouponEditLabel(lang: "es" | "en"): string {
