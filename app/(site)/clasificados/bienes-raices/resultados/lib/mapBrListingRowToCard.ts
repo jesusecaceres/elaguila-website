@@ -13,6 +13,7 @@ import {
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import { augmentLeonixDetailPairsFromStructuredColumns } from "@/app/clasificados/lib/leonixListingStructuredPayload";
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
+import { resolveBrMonetizationVisibility } from "./brMonetizationVisibilityReadModel";
 
 function imageUrlsFromJsonb(images: unknown): string[] {
   if (images == null) return [];
@@ -103,6 +104,22 @@ export type BrListingDbRow = {
   published_at?: string | null;
   status?: string | null;
   is_published?: boolean | null;
+  /**
+   * Deferred: Optional monetization/placement fields for future highlighted/featured badges.
+   * These fields do not currently exist in the listings table.
+   * When added via migration, they can be safely selected and mapped.
+   */
+  package_tier?: string | null;
+  package_key?: string | null;
+  package_entitlement_id?: string | null;
+  placement_tier?: string | null;
+  placement_tier_key?: string | null;
+  is_featured?: boolean | null;
+  featured_until?: string | null;
+  is_promoted?: boolean | null;
+  promoted_until?: string | null;
+  is_verified?: boolean | null;
+  verified_at?: string | null;
 };
 
 function parseIsoMs(raw: string | null | undefined): number {
@@ -131,13 +148,16 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
   const isFree = Boolean(row.is_free);
   const priceStr = formatListingPrice(Number.isFinite(priceNum) ? priceNum : 0, { lang, isFree });
 
-  const isNegocio =
-    row.seller_type === "business" ||
-    facets.branch === "bienes_raices_negocio" ||
-    facets.branch === "rentas_negocio";
+  // Resolve monetization visibility state (read-only, no fake badges)
+  const monetization = resolveBrMonetizationVisibility({
+    seller_type: row.seller_type,
+    detail_pairs: row.detail_pairs,
+    listing_json: row.listing_json,
+    contact_json: row.contact_json,
+  });
 
-  const sellerKind: "privado" | "negocio" = isNegocio ? "negocio" : "privado";
-  const badges: BrNegocioListing["badges"] = isNegocio ? ["negocio"] : [];
+  const sellerKind: "privado" | "negocio" = monetization.sellerKind;
+  const badges: BrNegocioListing["badges"] = monetization.badgesToAdd;
 
   const cat = facets.categoriaPropiedad ?? "residencial";
   const title = String(row.title ?? "").trim() || (lang === "es" ? "Anuncio" : "Listing");
@@ -147,7 +167,7 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
   const recencyMs = brListingRecencySortMs(row);
 
   const advName =
-    (isNegocio ? String(row.business_name ?? "").trim() : "") ||
+    (sellerKind === "negocio" ? String(row.business_name ?? "").trim() : "") ||
     (lang === "es" ? "Particular" : "Private seller");
 
   const metaLines = facets.metaHints.length ? facets.metaHints : undefined;
@@ -172,11 +192,11 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     sellerKind,
     layout: "vertical",
     advertiser: {
-      kind: isNegocio ? "oficina" : "agente",
+      kind: sellerKind === "negocio" ? "oficina" : "agente",
       name: advName || (lang === "es" ? "Anunciante" : "Seller"),
-      subtitle: isNegocio ? (lang === "es" ? "Negocios" : "Business") : undefined,
+      subtitle: sellerKind === "negocio" ? (lang === "es" ? "Negocios" : "Business") : undefined,
     },
-    trustChip: isNegocio ? (lang === "es" ? "Negocio" : "Business") : lang === "es" ? "Particular" : "Private",
+    trustChip: sellerKind === "negocio" ? (lang === "es" ? "Negocio" : "Business") : lang === "es" ? "Particular" : "Private",
     operationLabel: facets.operation === "renta" ? "Renta" : facets.operation === "venta" ? "Venta" : undefined,
     metaLines,
     demoPublishedAtMs: Number.isFinite(recencyMs) ? recencyMs : undefined,
@@ -188,5 +208,9 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     facetPets: m?.petsAllowed ?? null,
     facetFurnished: m?.furnished ?? null,
     searchBlob: searchBlob || undefined,
+    adPlanLabel: monetization.adPlanLabelEs,
+    adPlanKey: monetization.adPlanKey,
+    monetizationWarnings: monetization.warnings,
+    placementSignals: monetization.activePlacementSignals,
   };
 }
