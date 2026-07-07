@@ -1,0 +1,40 @@
+{
+  "gate": "AUGUST-2026-BATCH2-PAGES5-6-DEEPL-ENGLISH-PROOF1",
+  "pageNumber": 6,
+  "sourceInputPath": ".magazine-proof-output/2026-august/_inputs/page-smoke/page-006/source-page-006-from-png.pdf",
+  "sourceInputHash": "f06b0ec33fc90ce806409e5b50ebf83fe91ec2a5397fa5c797be2a7e24bb2d7f",
+  "sourceInputBytes": 2970647,
+  "targetLanguage": "English",
+  "deeplTargetLanguage": "EN-US",
+  "translatedOutputPath": ".magazine-proof-output/2026-august/en/page-smoke/page-006/deepl-page-006.en.pdf",
+  "provider": "DeepL",
+  "providerCallNumber": 2,
+  "providerTotalCallLimit": 2,
+  "providerCalled": true,
+  "publicAsset": false,
+  "finalPdf": false,
+  "printReady": false,
+  "digitalProofOnly": true,
+  "sourceFlatteningRisk": "IMAGE_FLATTENED_LIKELY",
+  "extractableTextExpectedFromInput": false,
+  "pageRisk": "MEDIUM",
+  "pageLayoutType": "editorial/business community page",
+  "nextQaDecisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ],
+  "timestamp": "2026-07-07T18:11:31.920Z",
+  "dryRun": false,
+  "providerCallAttempted": true,
+  "providerStatus": "done",
+  "translatedOutputExists": true,
+  "translatedOutputBytes": 2548743,
+  "translatedOutputHash": "b9d7fa0dabab06f6ff348e47ab62981d49a000f1d715e39ed4ceec8a437895df",
+  "result": "OUTPUT_FILE_GENERATED",
+  "deeplStatus": {
+    "status": "done",
+    "billedCharacters": 1494
+  }
+}

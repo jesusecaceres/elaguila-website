@@ -120,3 +120,5 @@ Purpose: create clickable Leonixmedia.com QA URLs for pages 5 and 6 so Chuy can 
 **AUGUST_BATCH2_PAGES5_6_DEEPL_ENGLISH_PROOF_READY_FOR_WEB_QA**
 
 **READY FOR AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL1: YES**
+
+Web QA URL doc: [`AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL.md`](AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL.md) · QA URLs: `https://www.leonixmedia.com/magazine/qa/2026-august/page-5-english` · `https://www.leonixmedia.com/magazine/qa/2026-august/page-6-english` · Next gate: `AUGUST-2026-BATCH2-PAGES5-6-CHUY-QA-DECISION1`

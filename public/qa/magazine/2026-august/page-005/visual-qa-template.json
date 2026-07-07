@@ -1,0 +1,22 @@
+{
+  "gate": "AUGUST-2026-BATCH2-PAGES5-6-DEEPL-ENGLISH-PROOF1",
+  "page": 5,
+  "language": "English",
+  "riskLevel": "HIGH",
+  "layoutType": "dense event/card layout",
+  "chuyQaStatus": "NOT_REVIEWED",
+  "translationWorked": "TBD",
+  "layoutUsable": "TBD",
+  "textOverflowCrop": "TBD",
+  "contactTruthIssue": "N/A",
+  "brandPreserved": "TBD",
+  "qrReadable": "TBD",
+  "notes": "",
+  "decision": "TBD",
+  "decisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ]
+}
