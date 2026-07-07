@@ -114,3 +114,5 @@ No Chuy QA for this prep gate. Chuy QA happens only after English proof outputs 
 **AUGUST_BATCH2_PAGES5_6_PNG_TO_DEEPL_PROOF_PREP_DONE**
 
 **READY FOR AUGUST-2026-BATCH2-PAGES5-6-DEEPL-ENGLISH-PROOF1: YES**
+
+English DeepL proof result: [`AUGUST-2026-BATCH2-PAGES5-6-DEEPL-ENGLISH-PROOF.md`](AUGUST-2026-BATCH2-PAGES5-6-DEEPL-ENGLISH-PROOF.md) — both pages succeeded (2 calls). Next gate: `AUGUST-2026-BATCH2-PAGES5-6-WEB-QA-URL1`.
