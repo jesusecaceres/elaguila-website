@@ -241,29 +241,82 @@ export function OfertasLocalesPublicSearchClient({
             {lang === "es" ? "← Ofertas Locales" : "← Local Deals"}
           </Link>
         ) : null}
-        <header className="mb-3 sm:mb-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
-              <TagIcon />
+
+        {/* Premium hero/search shell */}
+        <section className="mb-4 sm:mb-6" aria-labelledby="ofertas-hero-title">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
+              <TagIcon className="h-7 w-7" />
             </span>
-            <div className="min-w-0">
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">
-                {lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}
-              </p>
-              <h1 className="font-serif text-[1.35rem] font-bold leading-tight text-[#2A4536] sm:text-[1.65rem]">
-                {isResults ? (lang === "es" ? "Resultados" : "Results") : c.pageTitle}
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{c.heroEyebrow}</p>
+              <h1 id="ofertas-hero-title" className="mt-2 font-serif text-2xl font-bold leading-none tracking-tight text-[#2A4536] sm:text-3xl">
+                {c.heroTitle}
               </h1>
-              <p className="mt-1 text-sm text-[#3D3428]/80">
-                {isResults
-                  ? lang === "es"
-                    ? "Explora volantes, cupones y especiales con filtros de ubicación."
-                    : "Browse flyers, coupons, and specials with location filters."
-                  : c.pageSubtitle}
-              </p>
+              <p className="mt-2 font-serif italic text-[#7A1E2C]">{c.heroTagline}</p>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{c.heroIntro}</p>
+              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-[#5C5346] sm:text-sm">{c.heroHelper}</p>
             </div>
           </div>
-        </header>
+        </section>
 
+        {/* Sponsor lane - landing only */}
+        {!isResults ? (
+          <section
+            className="mb-4 rounded-2xl border border-[#C9A84A]/35 bg-[#FFFDF7]/95 p-5 sm:mb-6 sm:p-6"
+            aria-labelledby="ofertas-sponsors-title"
+          >
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{c.sponsorEyebrow}</p>
+            <h2 id="ofertas-sponsors-title" className="mt-2 font-serif text-2xl font-bold leading-snug text-[#2A4536] sm:text-[1.75rem]">
+              {c.sponsorTitle}
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{c.sponsorBody}</p>
+            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-[#5C5346] sm:text-sm">{c.sponsorSupport}</p>
+
+            <div className="mt-5 flex flex-wrap gap-2 sm:mt-6">
+              {c.sponsorChips.map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex rounded-full border border-[#C9A84A]/40 bg-[#FAF6EE] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6E5418] sm:text-[11px]"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
+                {c.sponsorPrimaryCta}
+              </Link>
+              <Link href={browseAllHref} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
+                {c.sponsorSecondaryCta}
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
+        {/* Discovery/shortcut section - landing only */}
+        {!isResults ? (
+          <section className="mb-4 sm:mb-6" aria-labelledby="ofertas-discovery-title">
+            <h2 id="ofertas-discovery-title" className="font-serif text-xl font-bold leading-snug text-[#2A4536] sm:text-2xl">
+              {c.discoveryTitle}
+            </h2>
+            <p className="mt-1 text-sm text-[#5C5346]">{c.discoverySubtitle}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {c.discoveryChips.map((chip) => (
+                <Link
+                  key={chip}
+                  href={`${browseAllHref}&q=${encodeURIComponent(chip)}`}
+                  className="inline-flex rounded-full border border-[#C9A84A]/45 bg-[#FBF7EF] px-3 py-1.5 text-xs font-semibold text-[#3D3428] hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7]"
+                >
+                  {chip}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {/* CTAs row */}
         <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap">
           <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
             {c.publishCta}
