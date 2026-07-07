@@ -4,9 +4,15 @@ import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import { categoryStandardQuickFilters, CATEGORY_STANDARD_CHIP } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import { categoryStandardQuickFilters } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { BuscoLandingRecentListings } from "./BuscoLandingRecentListings";
 import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang, buscoRouteLangFromSearchParams } from "./shared/buscoShellCopy";
 
@@ -35,8 +41,6 @@ const COPY = {
   },
 } as const;
 
-const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
-
 function BuscoLandingPageInner() {
   const sp = useSearchParams();
   const lang = buscoLangFromSearchParams(sp);
@@ -49,52 +53,71 @@ function BuscoLandingPageInner() {
   const resultsHref = useMemo(() => buildCategoryResultsUrl("busco", routeLang as "es" | "en"), [routeLang]);
   const hubHref = useMemo(() => buscoPathWithLang("/clasificados", routeLang), [routeLang]);
 
-  const topicChips = (
-    <CategoryLandingChipsRail label={t.quickTopics}>
-      {chips.map((label) => (
-        <Link
-          key={label}
-          href={buildCategoryResultsUrl("busco", lang, { q: label })}
-          className={CHIP_CLASS}
-        >
-          {label}
-        </Link>
-      ))}
-    </CategoryLandingChipsRail>
+  const buscoSearchForm = (
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query=""
+      city=""
+      state=""
+      zip=""
+      country=""
+      onQuery={() => {}}
+      onCity={() => {}}
+      onState={() => {}}
+      onZip={() => {}}
+      onCountry={() => {}}
+      onSearch={() => {}}
+      onOpenFilters={() => {}}
+      browseAllHref={resultsHref}
+      browseAllLabel={t.ctaView}
+      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={postHref}
+      publishLabel={t.ctaPost}
+    />
   );
 
   return (
-    <CategoryStandardLandingPage
-      category="busco"
-      lang={lang}
-      eyebrow={t.eyebrow}
-      publishHref={postHref}
-      browseHref={resultsHref}
-      searchAction={buildCategoryResultsUrl("busco", lang)}
-      publishLabel={t.ctaPost}
-      browseLabel={t.ctaView}
-      searchChips={topicChips}
-      belowHero={
+    <LeonixCategoryPageShell surface="landing">
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={lang === "es" ? "Busco / Se Busca" : "I'm Looking For / Looking For"}
+        tagline=""
+        intro={lang === "es" ? "Publica lo que buscas y encuentra ofertas de tu comunidad." : "Post what you're looking for and find offers from your community."}
+        introSecondary=""
+        searchSlot={buscoSearchForm}
+        eyebrow={t.eyebrow}
+      />
+      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
         <section className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 text-sm leading-relaxed text-[#3D3428] sm:px-5">
           <p>{product.helper[lang]}</p>
           <p className="mt-3 rounded-lg border border-[#D6C7AD]/60 bg-[#FAF6EE] px-3 py-2.5 text-xs font-medium text-[#556B3E]">
             {product.notDatingNote[lang]}
           </p>
         </section>
-      }
-    >
-      <BuscoLandingRecentListings
-        lang={lang}
-        title={t.recentTitle}
-        emptyNote={t.recentEmpty}
-        errorPrefix={t.recentError}
-      />
-      <p className="text-center">
-        <Link href={hubHref} className="text-sm font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]">
-          {t.backHub}
-        </Link>
-      </p>
-    </CategoryStandardLandingPage>
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={t.quickTopics}
+          subtitle=""
+          variant="default"
+          chips={chips.map((label) => ({ id: label, label, href: buildCategoryResultsUrl("busco", lang, { q: label }) }))}
+        />
+        <BuscoLandingRecentListings
+          lang={lang}
+          title={t.recentTitle}
+          emptyNote={t.recentEmpty}
+          errorPrefix={t.recentError}
+        />
+        <p className="text-center">
+          <Link href={hubHref} className="text-sm font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]">
+            {t.backHub}
+          </Link>
+        </p>
+      </main>
+    </LeonixCategoryPageShell>
   );
 }
 

@@ -20,9 +20,16 @@ import {
   RESTAURANTES_BLUEPRINT_QUICK_FILTERS,
 } from "./restaurantesBlueprintSampleData";
 import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
-import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
-import { RestaurantesLandingHeroGateway } from "./RestaurantesLandingHeroGateway";
-import { RestaurantesCompactSearchCanvas } from "./RestaurantesCompactSearchCanvas";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryCta,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
 import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
 
@@ -30,12 +37,12 @@ const ACCENT = "#D4A574";
 
 function RestaurantesLandingPageFallback() {
   return (
-    <RestaurantesLandingShell>
+    <LeonixCategoryPageShell surface="landing">
       <main className="mx-auto max-w-[1280px] px-4 py-10">
-        <h1 className="font-serif text-2xl font-semibold text-[color:var(--lx-text)]">Restaurantes</h1>
-        <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Cargando…</p>
+        <h1 className="font-serif text-2xl font-semibold text-[#2A4536]">Restaurantes</h1>
+        <p className="mt-2 text-sm text-[#5C5346]">Cargando…</p>
       </main>
-    </RestaurantesLandingShell>
+    </LeonixCategoryPageShell>
   );
 }
 
@@ -151,250 +158,129 @@ function RestaurantesLandingPageInner({
   }, [lang]);
 
   const landingSearchForm = (
-    <RestaurantesCompactSearchCanvas
-      lang={lang}
-      defaultQ={searchQ}
-      defaultCity={searchCity}
-      defaultState={searchState}
-      defaultZip={searchZip}
-      defaultCountry={searchCountry}
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query={searchQ}
+      city={searchCity}
+      state={searchState}
+      zip={searchZip}
+      country={searchCountry}
+      onQuery={setSearchQ}
+      onCity={setSearchCity}
+      onState={setSearchState}
+      onZip={setSearchZip}
+      onCountry={setSearchCountry}
+      onSearch={() => {
+        const params = new URLSearchParams();
+        params.set("lang", lang);
+        if (searchQ.trim()) params.set("q", searchQ.trim());
+        if (searchCity.trim()) params.set("city", searchCity.trim());
+        if (searchState.trim()) params.set("state", searchState.trim());
+        if (searchZip.trim()) params.set("zip", searchZip.trim());
+        if (searchCountry.trim()) params.set("country", searchCountry.trim());
+        window.location.href = `${allResultsHref}?${params.toString()}`;
+      }}
+      onOpenFilters={() => {}}
+      browseAllHref={allResultsHref}
+      browseAllLabel={copy.exploreAll}
+      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={publishHref}
+      publishLabel={copy.sponsorPrimaryCta}
     />
   );
 
   return (
-    <RestaurantesLandingShell>
+    <LeonixCategoryPageShell surface="landing" topSlot={
       <div className="mx-auto flex max-w-[1280px] justify-end px-3.5 pt-3 sm:px-4 lg:px-5">
         <ViajesLangSwitch compact />
       </div>
-
-      <div className="mx-auto w-full min-w-0 max-w-[1280px] px-3.5 pb-14 sm:px-4 lg:px-5">
-        <RestaurantesLandingHeroGateway
-          lang={lang}
-          title={copy.title}
-          tagline={copy.tagline}
-          intro={copy.intro}
-          introSecondary={copy.introSecondary}
-          searchSlot={landingSearchForm}
-        />
-      </div>
+    }>
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={copy.title}
+        tagline={copy.tagline}
+        intro={copy.intro}
+        introSecondary={copy.introSecondary}
+        searchSlot={landingSearchForm}
+        eyebrow={copy.sponsorEyebrow}
+      />
 
       <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
 
-        {/* Sponsor section - landing only, compact Rentas/Bienes rhythm */}
-        <section
-          className="rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] px-4 py-5 sm:px-6 sm:py-6"
-          aria-labelledby="restaurantes-sponsors-title"
-        >
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{copy.sponsorEyebrow}</p>
-          <h2 id="restaurantes-sponsors-title" className="mt-2 font-serif text-xl font-bold leading-snug text-[#2A4536] sm:text-2xl">
-            {copy.sponsorTitle}
-          </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{copy.sponsorBody}</p>
-          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-[#5C5346] sm:text-sm">{copy.sponsorSupport}</p>
-
-          <div className="mt-4 flex flex-wrap gap-2 sm:mt-5">
-            {copy.sponsorChips.map((chip) => (
-              <span
-                key={chip}
-                className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-              >
-                {chip}
-              </span>
-            ))}
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <Link href={publishHref} className="inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] shadow-[0_6px_20px_-8px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] sm:min-h-[3.125rem] sm:text-[0.9375rem]">
-              {copy.sponsorPrimaryCta}
-            </Link>
-            <Link href={allResultsHref} className="inline-flex min-h-[3rem] items-center justify-center gap-1.5 rounded-xl border border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:min-h-[3.125rem]">
-              {copy.sponsorSecondaryCta}
-            </Link>
-          </div>
-        </section>
+        {/* Sponsor section - landing only */}
+        <LeonixCategoryPartnerSection
+          enabled={true}
+          lang={lang as V2Lang}
+          surface="landing"
+          eyebrow={copy.sponsorEyebrow}
+          title={copy.sponsorTitle}
+          body={copy.sponsorBody}
+          supportingLine={copy.sponsorSupport}
+          chips={copy.sponsorChips}
+          primaryCta={{ label: copy.sponsorPrimaryCta, href: publishHref }}
+          secondaryCta={{ label: copy.sponsorSecondaryCta, href: allResultsHref }}
+        />
 
         {/* Discovery section 1 - Cuisine cards */}
-        <section
-          className="rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] px-4 py-5 sm:px-6 sm:py-6"
-          aria-labelledby="restaurantes-discovery-title"
-        >
-          <h2 id="restaurantes-discovery-title" className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">
-            {copy.discoveryTitle}
-          </h2>
-          <p className="mt-1 text-xs text-[#5C5346]/85">{copy.discoverySubtitle}</p>
-          <div className="mt-3.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:grid-cols-4">
-            <Link
-              href={buildRestaurantesResultsHref(lang, { cuisine: "mexican" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Mexicana" : "Mexican"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { cuisine: "italian" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Italiana" : "Italian"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { cuisine: "chinese" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "China" : "Chinese"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { cuisine: "burgers" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Hamburguesas" : "Burgers"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { cuisine: "pizza" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Pizza" : "Pizza"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { cuisine: "dessert" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Postres" : "Desserts"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { ft: "1" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Food truck" : "Food truck"}</span>
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { svc: "catering" })}
-              className="group flex flex-col overflow-hidden rounded-xl border border-[#D6C7AD]/70 bg-gradient-to-br from-[#FFFDF7] to-[#FBF7EF] p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[5rem]"
-            >
-              <span className="text-xs font-semibold text-[#2A4536] sm:text-sm">{lang === "es" ? "Catering" : "Catering"}</span>
-            </Link>
-          </div>
-        </section>
+        <LeonixCategoryDiscoveryGrid
+          lang={lang as V2Lang}
+          surface="landing"
+          heading={copy.discoveryTitle}
+          subtitle={copy.discoverySubtitle}
+          items={[
+            { id: "mexican", label: lang === "es" ? "Mexicana" : "Mexican", href: buildRestaurantesResultsHref(lang, { cuisine: "mexican" }), icon: () => null },
+            { id: "italian", label: lang === "es" ? "Italiana" : "Italian", href: buildRestaurantesResultsHref(lang, { cuisine: "italian" }), icon: () => null },
+            { id: "chinese", label: lang === "es" ? "China" : "Chinese", href: buildRestaurantesResultsHref(lang, { cuisine: "chinese" }), icon: () => null },
+            { id: "burgers", label: lang === "es" ? "Hamburguesas" : "Burgers", href: buildRestaurantesResultsHref(lang, { cuisine: "burgers" }), icon: () => null },
+            { id: "pizza", label: "Pizza", href: buildRestaurantesResultsHref(lang, { cuisine: "pizza" }), icon: () => null },
+            { id: "dessert", label: lang === "es" ? "Postres" : "Desserts", href: buildRestaurantesResultsHref(lang, { cuisine: "dessert" }), icon: () => null },
+            { id: "foodtruck", label: "Food truck", href: buildRestaurantesResultsHref(lang, { ft: "1" }), icon: () => null },
+            { id: "catering", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }), icon: () => null },
+          ]}
+        />
 
         {/* Discovery section 2 - Service chips */}
-        <section
-          className="rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] px-4 py-5 sm:px-6 sm:py-6"
-          aria-labelledby="restaurantes-service-title"
-        >
-          <h2 id="restaurantes-service-title" className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">
-            {lang === "es" ? "Servicio" : "Service"}
-          </h2>
-          <div className="mt-3.5 flex flex-wrap gap-2 sm:gap-2.5">
-            <Link
-              href={buildRestaurantesResultsHref(lang, { svc: "dine_in" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Comer en local" : "Dine-in"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { svc: "takeout" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Para llevar" : "Takeout"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { svc: "delivery" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Entrega" : "Delivery"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { svc: "catering" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Catering" : "Catering"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { svc: "events" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Eventos" : "Events"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { rsv: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Reservas" : "Reservations"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { pku: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Pickup" : "Pickup"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { open: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Abierto ahora" : "Open now"}
-            </Link>
-          </div>
-        </section>
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={lang === "es" ? "Servicio" : "Service"}
+          subtitle=""
+          variant="default"
+          chips={[
+            { id: "dine_in", label: lang === "es" ? "Comer en local" : "Dine-in", href: buildRestaurantesResultsHref(lang, { svc: "dine_in" }) },
+            { id: "takeout", label: lang === "es" ? "Para llevar" : "Takeout", href: buildRestaurantesResultsHref(lang, { svc: "takeout" }) },
+            { id: "delivery", label: lang === "es" ? "Entrega" : "Delivery", href: buildRestaurantesResultsHref(lang, { svc: "delivery" }) },
+            { id: "catering2", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }) },
+            { id: "events", label: lang === "es" ? "Eventos" : "Events", href: buildRestaurantesResultsHref(lang, { svc: "events" }) },
+            { id: "reservations", label: lang === "es" ? "Reservas" : "Reservations", href: buildRestaurantesResultsHref(lang, { rsv: "1" }) },
+            { id: "pickup", label: "Pickup", href: buildRestaurantesResultsHref(lang, { pku: "1" }) },
+            { id: "open", label: lang === "es" ? "Abierto ahora" : "Open now", href: buildRestaurantesResultsHref(lang, { open: "1" }) },
+          ]}
+        />
 
         {/* Discovery section 3 - What matters chips */}
-        <section
-          className="rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] px-4 py-5 sm:px-6 sm:py-6"
-          aria-labelledby="restaurantes-matters-title"
-        >
-          <h2 id="restaurantes-matters-title" className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">
-            {lang === "es" ? "Lo que más importa" : "What matters most"}
-          </h2>
-          <div className="mt-3.5 flex flex-wrap gap-2 sm:gap-2.5">
-            <Link
-              href={buildRestaurantesResultsHref(lang, { family: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Familiar" : "Family-friendly"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { menu: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Menú disponible" : "Menu available"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { wa: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Con WhatsApp" : "Has WhatsApp"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { web: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Con sitio web" : "Has website"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { social: "1" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Redes sociales" : "Social media"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { diet: "vegan" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Vegano" : "Vegan"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { diet: "glutenfree" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Sin gluten" : "Gluten-free"}
-            </Link>
-            <Link
-              href={buildRestaurantesResultsHref(lang, { diet: "halal" })}
-              className="inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536]"
-            >
-              {lang === "es" ? "Halal" : "Halal"}
-            </Link>
-          </div>
-        </section>
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={lang === "es" ? "Lo que más importa" : "What matters most"}
+          subtitle=""
+          variant="default"
+          chips={[
+            { id: "family", label: lang === "es" ? "Familiar" : "Family-friendly", href: buildRestaurantesResultsHref(lang, { family: "1" }) },
+            { id: "menu", label: lang === "es" ? "Menú disponible" : "Menu available", href: buildRestaurantesResultsHref(lang, { menu: "1" }) },
+            { id: "whatsapp", label: lang === "es" ? "Con WhatsApp" : "Has WhatsApp", href: buildRestaurantesResultsHref(lang, { wa: "1" }) },
+            { id: "website", label: lang === "es" ? "Con sitio web" : "Has website", href: buildRestaurantesResultsHref(lang, { web: "1" }) },
+            { id: "social", label: lang === "es" ? "Redes sociales" : "Social media", href: buildRestaurantesResultsHref(lang, { social: "1" }) },
+            { id: "vegan", label: lang === "es" ? "Vegano" : "Vegan", href: buildRestaurantesResultsHref(lang, { diet: "vegan" }) },
+            { id: "glutenfree", label: lang === "es" ? "Sin gluten" : "Gluten-free", href: buildRestaurantesResultsHref(lang, { diet: "glutenfree" }) },
+            { id: "halal", label: "Halal", href: buildRestaurantesResultsHref(lang, { diet: "halal" }) },
+          ]}
+        />
       </main>
-    </RestaurantesLandingShell>
+    </LeonixCategoryPageShell>
   );
 }
 

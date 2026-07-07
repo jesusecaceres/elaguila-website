@@ -17,7 +17,13 @@ import {
 import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
 import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
 import { buildAutosLandingDealersFromInventory } from "./buildAutosLandingDealersFromInventory";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { AutosLandingShell } from "./AutosLandingShell";
 import { AutosHeroSearch } from "./AutosHeroSearch";
 import { AutosLandingLangSwitch } from "./AutosLandingLangSwitch";
@@ -170,6 +176,21 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
 
   const clasificadosHome = replaceLangInHref("/clasificados", routeLang);
 
+  const autosSearchForm = (
+    <AutosHeroSearch
+      mode="fields"
+      copy={copy}
+      searchQ={searchQ}
+      setSearchQ={setSearchQ}
+      city={city}
+      setCity={setCity}
+      zip={zip}
+      setZip={setZip}
+      searchHref={searchHref}
+      browseAllHref={browseAllHref}
+    />
+  );
+
   return (
     <AutosLandingShell>
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)]/90 backdrop-blur-md">
@@ -194,32 +215,30 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
       </div>
 
       <main className="flex w-full min-w-0 flex-col gap-5 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-3 sm:gap-7 sm:pt-4 md:gap-8">
-        <CategoryStandardLandingPage
-          category="autos"
-          lang={lang as Lang}
-          title={marketCopy.heroHeading}
-          description={marketCopy.heroSubhead}
-          publishHref={publishAutosHref}
-          browseHref={browseAllHref}
-          publishLabel={marketCopy.postAd}
-          browseLabel={marketCopy.browseAll}
-          searchSlot={
-            <AutosHeroSearch
-              mode="fields"
-              copy={copy}
-              searchQ={searchQ}
-              setSearchQ={setSearchQ}
-              city={city}
-              setCity={setCity}
-              zip={zip}
-              setZip={setZip}
-              searchHref={searchHref}
-              browseAllHref={browseAllHref}
-            />
-          }
-          searchChips={<AutosQuickChips copy={copy} items={quickChipItems} />}
-          suppressVisibilityCta
-        />
+        <LeonixCategoryPageShell surface="landing" topSlot={
+          <div className="mx-auto flex max-w-[1280px] justify-end px-3.5 pt-3 sm:px-4 lg:px-5">
+            <AutosLandingLangSwitch lang={lang} />
+          </div>
+        }>
+          <LeonixCategoryHeroGateway
+            lang={lang as V2Lang}
+            surface="landing"
+            title={marketCopy.heroHeading}
+            tagline=""
+            intro={marketCopy.heroSubhead}
+            introSecondary=""
+            searchSlot={autosSearchForm}
+            eyebrow={marketCopy.title}
+          />
+          <LeonixCategoryShortcutSection
+            lang={lang as V2Lang}
+            surface="landing"
+            title={lang === "es" ? "Filtros rápidos" : "Quick filters"}
+            subtitle=""
+            variant="default"
+            chips={quickChipItems.map((item) => ({ id: item.label, label: item.label, href: item.href }))}
+          />
+        </LeonixCategoryPageShell>
 
         <AutosMarketPeerCrossLink copy={marketCopy} href={peerResultsHref} />
 

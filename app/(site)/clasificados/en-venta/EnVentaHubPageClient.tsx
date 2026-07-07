@@ -7,24 +7,29 @@ import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes"
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
 import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClasificadosCategoryContent";
 import type { EnVentaPublicBrowseListing } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
-import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryCta,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
   categoryStandardSearchPlaceholder,
   categoryStandardTitle,
   categoryStandardDescription,
-  CATEGORY_STANDARD_PAGE_BG,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import {
+  EV_BTN_PRIMARY,
+  EV_BTN_SECONDARY,
+} from "./shared/styles/enVentaLeonixPublicUi";
 import { EnVentaHubRecentListings } from "./hub/EnVentaHubRecentListings";
 import { EnVentaHubHorizontalScroll, enVentaSwipeHintLabel } from "./hub/EnVentaHubHorizontalScroll";
 import { EnVentaHubMoreFilters } from "./hub/EnVentaHubMoreFilters";
 import { EnVentaCompactSearchCanvas } from "./shared/components/EnVentaCompactSearchCanvas";
-import {
-  EV_BTN_PRIMARY,
-  EV_BTN_SECONDARY,
-  EV_CHIP,
-  EV_PUBLIC_SHELL,
-} from "./shared/styles/enVentaLeonixPublicUi";
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -94,7 +99,6 @@ export function EnVentaHubPageClient({
   const t = hub;
 
   const primaryCta = `${EV_BTN_PRIMARY} min-h-[2.75rem] px-5 text-[15px]`;
-  const secondaryCta = `${EV_BTN_SECONDARY} min-h-[2.75rem] px-5 text-[15px]`;
   const mobileStickyPrimary = `${EV_BTN_PRIMARY} min-h-[2.625rem] flex-1 px-3 text-[13px]`;
   const mobileStickySecondary = `${EV_BTN_SECONDARY} min-h-[2.625rem] flex-1 px-3 text-[13px]`;
 
@@ -144,14 +148,27 @@ export function EnVentaHubPageClient({
   const swipeHint = enVentaSwipeHintLabel(lang);
 
   const enVentaSearchForm = (
-    <EnVentaCompactSearchCanvas
-      lang={lang}
-      routeLang={routeLang}
-      action="/clasificados/en-venta/results"
-      cityLabel={t.cityPh}
-      searchButtonLabel={t.search}
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query=""
+      city=""
+      state=""
+      zip=""
+      country=""
+      onQuery={() => {}}
+      onCity={() => {}}
+      onState={() => {}}
+      onZip={() => {}}
+      onCountry={() => {}}
+      onSearch={() => {}}
+      onOpenFilters={() => {}}
       browseAllHref={allListingsHref}
-      secondRow={<EnVentaHubMoreFilters lang={lang} routeLang={routeLang} />}
+      browseAllLabel={t.lista}
+      searchButtonLabel={t.search}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={publishHref}
+      publishLabel={t.publish}
     />
   );
 
@@ -184,68 +201,37 @@ export function EnVentaHubPageClient({
   ];
 
   return (
-    <div className={`relative ${CATEGORY_STANDARD_PAGE_BG} text-[#1F241C]`}>
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.028]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }}
-        aria-hidden
+    <>
+      <LeonixCategoryPageShell surface="landing">
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={categoryStandardTitle("en-venta", lang)}
+        tagline=""
+        intro={categoryStandardDescription("en-venta", lang)}
+        introSecondary=""
+        searchSlot={enVentaSearchForm}
+        eyebrow={t.badge}
       />
 
-      <main className={`${EV_PUBLIC_SHELL} pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:pb-20`}>
-        <div
-          className="max-sm:[&>div]:space-y-1 max-sm:[&_section]:rounded-lg max-sm:[&_section]:border-0 max-sm:[&_section]:bg-transparent max-sm:[&_section]:shadow-none max-sm:[&_section>div]:gap-1 max-sm:[&_section>div]:px-2 max-sm:[&_section>div]:py-1.5 max-sm:[&_section_span.inline-flex.h-14]:hidden max-sm:[&_section>div>div>p:first-child]:hidden max-sm:[&_section_h1]:mt-0 max-sm:[&_section_h1]:text-lg max-sm:[&_section_p.max-w-2xl]:hidden max-sm:[&_section_div.mt-4]:mt-1.5 max-sm:[&_section_div.mt-4>div.mt-3]:hidden"
-        >
-        <CategoryStandardLandingBlock
-          category="en-venta"
-          lang={lang}
-          eyebrow={t.badge}
-          title={categoryStandardTitle("en-venta", lang)}
-          description={categoryStandardDescription("en-venta", lang)}
-          searchAction="/clasificados/en-venta/results"
-          searchPlaceholder={categoryStandardSearchPlaceholder("en-venta", lang)}
-          publishHref={publishHref}
-          browseHref={allListingsHref}
-          publishLabel={t.publish}
-          browseLabel={t.lista}
-          searchSlot={enVentaSearchForm}
-          suppressVisibilityCta
+      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={lang === "es" ? "Explorar por categoría" : "Browse by category"}
+          subtitle=""
+          variant="default"
+          chips={popularCategoryChips.map((chip) => ({ id: chip.key, label: chip.label, href: chip.href }))}
         />
-        </div>
 
-        <section className="mt-3 sm:mt-4" aria-label={lang === "es" ? "Categorías" : "Categories"}>
-          <EnVentaHubHorizontalScroll
-            label={lang === "es" ? "Explorar por categoría" : "Browse by category"}
-            swipeHint={swipeHint}
-            lang={lang}
-          >
-            {popularCategoryChips.map((chip) => (
-              <Link key={chip.key} href={chip.href} className={EV_CHIP}>
-                {chip.label}
-              </Link>
-            ))}
-          </EnVentaHubHorizontalScroll>
-          <EnVentaHubHorizontalScroll
-            label={lang === "es" ? "Atajos para compradores" : "Buyer shortcuts"}
-            swipeHint={swipeHint}
-            lang={lang}
-          >
-            {buyerShortcutChips.map((chip) => (
-              <Link key={chip.key} href={chip.href} className={EV_CHIP}>
-                {chip.label}
-              </Link>
-            ))}
-          </EnVentaHubHorizontalScroll>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Link href={publishHref} className={`${primaryCta} w-full sm:w-auto`}>
-              {t.publish}
-            </Link>
-            <Link href={allListingsHref} className={`${secondaryCta} w-full sm:w-auto`}>
-              {t.lista}
-            </Link>
-          </div>
-        </section>
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={lang === "es" ? "Atajos para compradores" : "Buyer shortcuts"}
+          subtitle=""
+          variant="default"
+          chips={buyerShortcutChips.map((chip) => ({ id: chip.key, label: chip.label, href: chip.href }))}
+        />
 
         <EnVentaHubRecentListings
           listings={initialLiveListings}
@@ -381,6 +367,7 @@ export function EnVentaHubPageClient({
           </Link>
         </div>
       </div>
-    </div>
+    </LeonixCategoryPageShell>
+    </>
   );
 }

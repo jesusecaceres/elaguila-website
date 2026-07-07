@@ -11,7 +11,14 @@ import { RecentServicesSection } from "./RecentServicesSection";
 import { ServiceCategoriesGrid } from "./ServiceCategoriesGrid";
 import { ServiciosQuickChips } from "./ServiciosQuickChips";
 import { ServiciosCompactSearchCanvas } from "./ServiciosCompactSearchCanvas";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES, SERVICIOS_LANDING_QUICK_CHIPS } from "./serviciosLandingSampleData";
@@ -62,22 +69,46 @@ export function ServiciosLandingPage({
     },
   }[lang];
 
+  const serviciosSearchForm = (
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query=""
+      city=""
+      state=""
+      zip=""
+      country=""
+      onQuery={() => {}}
+      onCity={() => {}}
+      onState={() => {}}
+      onZip={() => {}}
+      onCountry={() => {}}
+      onSearch={() => {}}
+      onOpenFilters={() => {}}
+      browseAllHref={resultsHref}
+      browseAllLabel={copy.browse}
+      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={publishHref}
+      publishLabel={copy.publish}
+    />
+  );
+
   const quickChips = <ServiciosQuickChips lang={lang} chips={landingChips} variant="standard" />;
 
   return (
-    <CategoryStandardLandingPage
-      category="servicios"
-      lang={lang}
-      eyebrow={copy.eyebrow}
-      publishHref={publishHref}
-      browseHref={resultsHref}
-      publishLabel={copy.publish}
-      browseLabel={copy.browse}
-      searchAction={resultsHref}
-      searchChips={quickChips}
-      searchSlot={<ServiciosCompactSearchCanvas lang={lang} />}
-      suppressVisibilityCta
-    >
+    <LeonixCategoryPageShell surface="landing">
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={lang === "es" ? "Servicios" : "Services"}
+        tagline=""
+        intro={lang === "es" ? "Encuentra servicios confiables cerca de ti." : "Find reliable services near you."}
+        introSecondary=""
+        searchSlot={serviciosSearchForm}
+        eyebrow={copy.eyebrow}
+      />
+      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
       <div className="space-y-5 sm:space-y-6">
         <div className="flex flex-col gap-5 sm:gap-6">
           <div className={`${sectionShell} p-3.5 sm:p-4 order-2`}>
@@ -121,6 +152,7 @@ export function ServiciosLandingPage({
           </Link>
         </nav>
       </div>
-    </CategoryStandardLandingPage>
+      </main>
+    </LeonixCategoryPageShell>
   );
 }

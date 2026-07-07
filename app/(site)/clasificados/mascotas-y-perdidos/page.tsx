@@ -4,9 +4,14 @@ import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import { CATEGORY_STANDARD_CHIP } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
 import { MascotasPerdidosLandingRecentListings } from "./MascotasPerdidosLandingRecentListings";
 import { mascotasPerdidosPublishEntryUrl, mascotasPerdidosTipoChipHref } from "./shared/mascotasPerdidosBrowseUrls";
@@ -35,8 +40,6 @@ const COPY = {
   },
 } as const;
 
-const CHIP_CLASS = CATEGORY_STANDARD_CHIP;
-
 function MascotasPerdidosLandingPageInner() {
   const sp = useSearchParams();
   const lang = mascotasPerdidosLangFromSearchParams(sp);
@@ -47,45 +50,69 @@ function MascotasPerdidosLandingPageInner() {
   const resultsHref = useMemo(() => buildCategoryResultsUrl("mascotas-y-perdidos", routeLang as "es" | "en"), [routeLang]);
   const hubHref = useMemo(() => mascotasPerdidosPathWithLang("/clasificados", routeLang), [routeLang]);
 
-  const topicChips = (
-    <CategoryLandingChipsRail label={t.typesTitle}>
-      {MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => (
-        <Link
-          key={opt.value}
-          href={mascotasPerdidosTipoChipHref(routeLang, opt.value)}
-          className={CHIP_CLASS}
-          data-testid={`mascotas-landing-tipo-${opt.value}`}
-        >
-          {lang === "en" ? opt.labelEn : opt.labelEs}
-        </Link>
-      ))}
-    </CategoryLandingChipsRail>
+  const mascotasSearchForm = (
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query=""
+      city=""
+      state=""
+      zip=""
+      country=""
+      onQuery={() => {}}
+      onCity={() => {}}
+      onState={() => {}}
+      onZip={() => {}}
+      onCountry={() => {}}
+      onSearch={() => {}}
+      onOpenFilters={() => {}}
+      browseAllHref={resultsHref}
+      browseAllLabel={t.ctaView}
+      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={postHref}
+      publishLabel={t.ctaPost}
+    />
   );
 
   return (
-    <CategoryStandardLandingPage
-      category="mascotas-y-perdidos"
-      lang={lang}
-      eyebrow={t.eyebrow}
-      publishHref={postHref}
-      browseHref={resultsHref}
-      searchAction={buildCategoryResultsUrl("mascotas-y-perdidos", routeLang as "es" | "en")}
-      publishLabel={t.ctaPost}
-      browseLabel={t.ctaView}
-      searchChips={topicChips}
-    >
-      <MascotasPerdidosLandingRecentListings
-        lang={lang}
-        title={t.recentTitle}
-        emptyNote={t.recentEmpty}
-        errorPrefix={t.recentError}
+    <LeonixCategoryPageShell surface="landing">
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={lang === "es" ? "Mascotas y Perdidos" : "Pets & Lost"}
+        tagline=""
+        intro={lang === "es" ? "Encuentra mascotas perdidas, avisa sobre mascotas encontradas y más." : "Find lost pets, report found pets, and more."}
+        introSecondary=""
+        searchSlot={mascotasSearchForm}
+        eyebrow={t.eyebrow}
       />
-      <p className="text-center">
-        <Link href={hubHref} className="text-sm font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]">
-          {t.backHub}
-        </Link>
-      </p>
-    </CategoryStandardLandingPage>
+      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={t.typesTitle}
+          subtitle=""
+          variant="default"
+          chips={MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => ({
+            id: opt.value,
+            label: lang === "en" ? opt.labelEn : opt.labelEs,
+            href: mascotasPerdidosTipoChipHref(routeLang, opt.value)
+          }))}
+        />
+        <MascotasPerdidosLandingRecentListings
+          lang={lang}
+          title={t.recentTitle}
+          emptyNote={t.recentEmpty}
+          errorPrefix={t.recentError}
+        />
+        <p className="text-center">
+          <Link href={hubHref} className="text-sm font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]">
+            {t.backHub}
+          </Link>
+        </p>
+      </main>
+    </LeonixCategoryPageShell>
   );
 }
 
