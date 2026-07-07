@@ -10,6 +10,7 @@ import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisua
 import { appendLangToPath, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
 import { navCopyLang } from "@/app/lib/language";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 const CARD_SITE =
   "group flex h-full flex-col rounded-[20px] border bg-[#FFFCF7] p-5 shadow-[0_16px_42px_rgba(42,40,38,0.08)] ring-1 transition hover:-translate-y-0.5 hover:shadow-[0_22px_52px_rgba(42,40,38,0.12)] sm:p-6";
@@ -43,7 +44,6 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
             price: "$24.99 por 30 días",
             body: "Anuncia un puesto local con fotos, videos y contacto directo.",
             cta: "Publicar empleo",
-            launchBadge: "Acepta código Leonix Launch 25",
           },
           fair: {
             title: "Publicar feria de empleo",
@@ -63,7 +63,6 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
             price: "$24.99 for 30 days",
             body: "Advertise one local position with photos, videos, and direct contact.",
             cta: "Post a job",
-            launchBadge: "Launch 25 code eligible",
           },
           fair: {
             title: "Post a job fair",
@@ -95,9 +94,7 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
       <Link href={quickHref} className={`${CARD_SITE} border-[#C9A85A]/50 ring-[#C9A85A]/15`}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex w-fit rounded-full border border-[#C9A85A]/45 bg-[#FFF6E2] px-3 py-1 text-xs font-extrabold text-[#6B5320]">{t.job.price}</span>
-          <span className="inline-flex w-fit items-center rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/8 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
-            {t.job.launchBadge}
-          </span>
+          <LeonixLaunchCouponCard lang={lang} variant="badge" />
         </div>
         <div className="mt-4 flex items-center gap-3">
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4A1F24] text-[#FFFCF7] shadow-sm">
@@ -133,9 +130,7 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
           <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold text-[#3D2C12] ${visual.chipBg}`}>
             {t.job.price}
           </span>
-          <span className="inline-flex w-fit items-center rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/8 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
-            {t.job.launchBadge}
-          </span>
+          <LeonixLaunchCouponCard lang={lang} variant="badge" />
         </div>
         <div className="mt-3 flex items-center gap-2">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#4A1F24] text-[#FFFCF7]">

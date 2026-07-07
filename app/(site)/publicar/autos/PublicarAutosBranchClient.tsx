@@ -8,6 +8,7 @@ import { resolveAutosRouteLang, withLangParam } from "@/app/clasificados/autos/n
 import { navCopyLang } from "@/app/lib/language";
 import { AutosPricingBadge } from "./shared/components/AutosPricingBadge";
 import { getAutosBranchCopy } from "./autosBranchCopy";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 const CARD =
   "group flex h-full flex-col rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] transition hover:border-[color:var(--lx-gold-border)] hover:shadow-[0_12px_36px_-14px_rgba(42,36,22,0.14)] sm:p-6";
@@ -59,9 +60,7 @@ export function PublicarAutosBranchClient() {
             <h2 className="mt-4 text-lg font-bold text-[color:var(--lx-text)]">{c.privado.title}</h2>
             <p className="mt-2 flex flex-wrap items-center gap-2">
               <AutosPricingBadge priceDisplay={c.privado.priceDisplay} />
-              <span className="inline-flex items-center rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/8 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">
-                {c.privado.launchBadge}
-              </span>
+              <LeonixLaunchCouponCard lang={copyLang === "en" ? "en" : "es"} variant="badge" />
             </p>
             <p className="mt-2 flex-1 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.privado.body}</p>
             <span className="mt-6 inline-flex min-h-[48px] items-center gap-2 text-sm font-bold text-[color:var(--lx-gold)] group-hover:underline">

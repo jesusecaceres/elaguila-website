@@ -174,8 +174,17 @@ The three wired categories (Rentas privado, Empleos paid job post, Autos privado
 
 UX continuity pass over the same eligible surfaces. No backend/validation/discount/Stripe/schema changes.
 
-- Shared reminder: `app/components/leonix/LeonixLaunch25MiniNotice.tsx` (bilingual, compact; excludes free/dealer/print/combo; no placement/ranking/verification claims).
+- Shared reminder: `app/components/leonix/LeonixLaunchCouponCard.tsx` (`variant="mini"`). (The earlier standalone `LeonixLaunch25MiniNotice` was removed during design-system unification — see section 18.)
 - Rentas privado, Empleos quick+premium paid forms, and Autos privado form now show the reminder near their top/price area.
 - Selector pages: paid Empleos job card and Autos private-seller card show a Launch 25 eligibility badge. The free job fair and the Autos dealer card are excluded (dealer shows a neutral "separate promotions" note).
 - Final `RevenuePromoField` gained a calm helper line only.
 - Server checkout remains the source of truth; redemption stays webhook-only.
+
+## 18. Launch 25 design-system unification (LAUNCH-25-COUPON-DESIGN-SYSTEM-UNIFICATION-01)
+
+Every Launch 25 placement now renders from one component family, `app/components/leonix/LeonixLaunchCouponCard.tsx`, so the campaign uses one design and one copy source.
+
+- Variants: `public`/`dashboard`/`compact` (full cards), `mini` (eligible form reminders), `badge` (eligible selector pills).
+- Newsletter keeps `variant="public"`. Rentas privado, Empleos quick+premium, and Autos privado forms use `variant="mini"`. Empleos paid job card and Autos private-seller card use `variant="badge"`.
+- The standalone `LeonixLaunch25MiniNotice` component and all per-page `launchBadge` copy were removed. Autos dealer keeps only a neutral separate-promotions note; Empleos free job fair has no badge.
+- No backend/checkout/Stripe/schema changes. Do not create a second Launch 25 card or copy source.

@@ -158,8 +158,8 @@ Admin promo manager, Revenue OS checkout/webhook/promo modules, shared checkpoin
 This gate is **UX only** — no validation, discount math, Stripe, or schema changes.
 Server checkout remains the source of truth; redemption stays webhook-only.
 
-Reusable component: `app/components/leonix/LeonixLaunch25MiniNotice.tsx`
-(compact bilingual reminder; excludes free/dealer/print/combo; no placement/ranking/verification claims).
+Reusable reminder (as of Gate 18, below) is the official `LeonixLaunchCouponCard` (`variant="mini"`).
+The earlier standalone `LeonixLaunch25MiniNotice` component was removed during design-system unification.
 
 Reminders added to eligible paid surfaces:
 
@@ -175,3 +175,26 @@ Reminders added to eligible paid surfaces:
 Excluded (no reminder/badge): En Venta, Comunidad, free classes, Empleos job fair, Autos dealer/negocio, Bienes privado, Servicios, Ofertas Locales, Nuestros Negocios, print/combo/manual.
 
 Verifier: `npm run verify:website-launch-25-checkout-wiring` extended with UX presence assertions.
+
+## 18. LAUNCH-25-COUPON-DESIGN-SYSTEM-UNIFICATION-01 (one visual source of truth)
+
+All Launch 25 UI now renders from a single component family: **`app/components/leonix/LeonixLaunchCouponCard.tsx`**. There is exactly one design and one copy source for the whole campaign.
+
+Variants:
+
+- `public` — full premium card (newsletter).
+- `dashboard` — launch-benefit framing (dashboard home).
+- `compact` — smaller full card (login signup, profile onboarding).
+- `mini` — same campaign look, smaller spacing + short fine print (eligible form reminders: Rentas privado, Empleos quick + premium, Autos privado).
+- `badge` — small official campaign pill for eligible selector cards (Empleos paid job card, Autos private-seller card). Rendered as a `<span>` so it can live inside `<Link>` selector cards.
+
+Centralized copy (exact): title `Obtén tu código Leonix Launch 25` / `Get your Leonix Launch 25 code`; code label `LEONIX LAUNCH CODE`; badge pill `25% DE DESCUENTO` / `25% OFF`; eligible pill `ACEPTA CÓDIGO LEONIX LAUNCH 25` / `LAUNCH 25 CODE ELIGIBLE`; short + full fine print (excludes print/combo/free/renewals; no placement/ranking/verification claims).
+
+Changes:
+
+- The separate `LeonixLaunch25MiniNotice` component was **deleted**. No page defines its own Launch 25 marketing copy anymore.
+- Per-page `launchBadge` copy in `EmpleosPublicarHubClient.tsx` and `autosBranchCopy.ts` was removed; those cards now render `variant="badge"`.
+- Autos dealer keeps only a neutral, non-Launch-25 note (`Business package — separate promotions` / `Paquete de negocio — promociones separadas`). Empleos free job fair carries no badge.
+- Props added safely: `finePrintMode` (`full` | `short` | `none`) and `showLogo`; existing `showCta` / `href` / `ctaLabel` / `className` preserved.
+
+No backend, checkout, Stripe, or schema logic changed. Future work: do not create a second Launch 25 card or copy source — extend `LeonixLaunchCouponCard`.

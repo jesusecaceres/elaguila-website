@@ -12,7 +12,6 @@ export type AutosBranchCopy = {
     priceDisplay: string;
     body: string;
     cta: string;
-    launchBadge: string;
   };
   negocios: {
     title: string;
@@ -45,7 +44,6 @@ function buildCopy(lang: AutosNegociosLang): AutosBranchCopy {
         priceDisplay: privadoPlan.priceDisplay,
         body: "Post one vehicle as a private seller. Built for selling your car locally on Leonix.",
         cta: "Start private listing",
-        launchBadge: "Launch 25 code eligible",
       },
       negocios: {
         title: "Dealer de Autos",
@@ -74,7 +72,6 @@ function buildCopy(lang: AutosNegociosLang): AutosBranchCopy {
       priceDisplay: privadoPlan.priceDisplay,
       body: "Publica un vehículo como vendedor privado. Ideal para vender tu auto localmente en Leonix.",
       cta: "Empezar anuncio privado",
-      launchBadge: "Acepta código Leonix Launch 25",
     },
     negocios: {
       title: "Dealer de Autos",

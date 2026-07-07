@@ -32,7 +32,7 @@ import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constant
 import { emptyEmpleosPremiumDraft, type EmpleosPremiumDraft } from "@/app/publicar/empleos/shared/types/empleosPremiumDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
-import { LeonixLaunch25MiniNotice } from "@/app/components/leonix/LeonixLaunch25MiniNotice";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import {
   sampleCategorySelectOptions,
   sampleExperienceOptions,
@@ -192,9 +192,9 @@ export default function EmpleoPremiumApplicationClient() {
         <header className="mb-6">
           <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Trabajo premium" : "Premium job"}</h1>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{copy.applicationPage.premiumSubtitle}</p>
-          <LeonixLaunch25MiniNotice
+          <LeonixLaunchCouponCard
             lang={lang}
-            variant="banner"
+            variant="mini"
             className="mt-3"
             href={`/newsletter?lang=${lang}&source=empleos_premium&sourceCta=launch_25`}
           />
