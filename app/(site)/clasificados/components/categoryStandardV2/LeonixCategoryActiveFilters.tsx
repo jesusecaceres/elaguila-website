@@ -1,35 +1,31 @@
-"use client";
-
+import Link from "next/link";
+import type { LeonixCategoryActiveFiltersProps } from "./types";
 import {
-  LEONIX_ACTIVE_FILTERS_PANEL,
   LEONIX_ACTIVE_FILTER_CHIP,
   LEONIX_ACTIVE_FILTERS_LABEL,
+  LEONIX_ACTIVE_FILTERS_PANEL,
 } from "./constants";
-import type { ActiveFiltersProps } from "./types";
 
 /**
  * Leonix Category Active Filters
- *
- * Displays active filter chips with clear functionality.
- *
- * Visual contract:
- * - Panel: rounded-xl border bg-[#FFFDF7]/90
- * - Chips: rounded-full border bg-white
- * - Label: uppercase tracking text-[#556B3E]
- * - Compact wrap/no overflow
- * - Chip min-h around 36-40px
- *
- * Rules:
- * - Only active filters generated from URL/query state
- * - No category shortcut chips here
- * - Hide when no chips
+ * 
+ * This component displays active filter chips for category results pages.
+ * It uses the exact Rentas/Bienes visual system with panel and chips.
+ * 
+ * Source: app/(site)/clasificados/rentas/results/components/RentasResultsActiveFilters.tsx
+ * 
+ * @param label - Section label
+ * @param chips - Active filter chips
+ * @param clearAllLabel - Clear all button label
+ * @param onClearAll - Clear all handler
  */
 export function LeonixCategoryActiveFilters({
   label,
   chips,
   clearAllLabel,
   onClearAll,
-}: ActiveFiltersProps) {
+}: LeonixCategoryActiveFiltersProps) {
+  // Hide when no chips
   if (chips.length === 0) {
     return null;
   }
@@ -42,43 +38,34 @@ export function LeonixCategoryActiveFilters({
           if (chip.href) {
             return (
               <li key={chip.id}>
-                <a
-                  href={chip.href}
-                  className={LEONIX_ACTIVE_FILTER_CHIP}
-                >
+                <Link href={chip.href} className={LEONIX_ACTIVE_FILTER_CHIP}>
                   <span className="truncate">{chip.label}</span>
-                </a>
+                  <span aria-hidden>×</span>
+                </Link>
               </li>
             );
           }
-
           return (
             <li key={chip.id}>
               <button
                 type="button"
                 onClick={chip.onClear}
-                className={`${LEONIX_ACTIVE_FILTER_CHIP} flex items-center gap-1.5`}
+                className={LEONIX_ACTIVE_FILTER_CHIP}
               >
                 <span className="truncate">{chip.label}</span>
-                <span className="shrink-0 text-[#B8954A]" aria-hidden>
-                  ×
-                </span>
-                <span className="sr-only">Clear filter</span>
+                <span aria-hidden>×</span>
               </button>
             </li>
           );
         })}
       </ul>
-
-      {clearAllLabel && onClearAll ? (
-        <button
-          type="button"
-          onClick={onClearAll}
-          className="mt-2 text-xs font-semibold text-[#B8954A] underline decoration-[#C9B46A]/45 underline-offset-2 hover:text-[#8A6F3A] sm:mt-0 sm:ml-auto"
-        >
-          {clearAllLabel}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={onClearAll}
+        className="shrink-0 text-xs font-semibold text-[#7A1E2C] underline decoration-[#7A1E2C]/40 underline-offset-2 hover:text-[#5e1721]"
+      >
+        {clearAllLabel}
+      </button>
     </div>
   );
 }

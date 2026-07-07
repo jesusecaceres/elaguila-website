@@ -1,8 +1,8 @@
 /**
- * Leonix Category Standard V2 - Type Definitions
- *
- * Extracted from Rentas/Bienes Raíces visual system.
- * These types support the reusable category landing/results template.
+ * Category Standard V2 Types
+ * 
+ * These types define the contracts for the global Leonix category landing/results UI template.
+ * They are extracted from the working Rentas/Bienes visual system.
  */
 
 export type Lang = "es" | "en";
@@ -13,26 +13,97 @@ export type CtaVariant = "primary" | "secondary" | "ghost";
 
 export type ChipVariant = "budget" | "practical" | "default";
 
-export interface CtaProps {
-  /** Button text */
-  label: string;
-  /** Link href (renders as Link if provided) */
-  href?: string;
-  /** onClick handler (renders as button if provided) */
-  onClick?: () => void;
-  /** Button type */
-  type?: "button" | "submit" | "reset";
-  /** CTA variant */
+export type CardAccent = "burgundy" | "green" | "gold";
+
+export type ViewMode = "grid" | "list";
+
+/**
+ * CTA button props
+ */
+export interface LeonixCategoryCtaProps {
   variant?: CtaVariant;
-  /** Full width */
+  href?: string;
+  onClick?: () => void;
+  type?: "button" | "submit";
+  children: React.ReactNode;
   fullWidth?: boolean;
-  /** Additional className */
   className?: string;
-  /** Disabled state */
   disabled?: boolean;
 }
 
-export interface DiscoveryCard {
+/**
+ * Hero gateway props
+ */
+export interface LeonixCategoryHeroGatewayProps {
+  lang: Lang;
+  surface: Surface;
+  title: string;
+  tagline: string;
+  intro: string;
+  introSecondary: string;
+  searchSlot: React.ReactNode;
+  tilesSlot?: React.ReactNode;
+  eyebrow?: string;
+}
+
+/**
+ * Search canvas props
+ */
+export interface LeonixCategorySearchCanvasProps {
+  lang: Lang;
+  surface: Surface;
+  query: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  onQuery: (v: string) => void;
+  onCity: (v: string) => void;
+  onState: (v: string) => void;
+  onZip: (v: string) => void;
+  onCountry: (v: string) => void;
+  onSearch: () => void;
+  onOpenFilters: () => void;
+  browseAllHref?: string;
+  browseAllLabel?: string;
+  searchButtonLabel: string;
+  filtersButtonLabel: string;
+  publishHref?: string;
+  publishLabel?: string;
+  extraSecondRowSlot?: React.ReactNode;
+  showBrowseAll?: boolean;
+  showPublish?: boolean;
+  formId?: string;
+  action?: string;
+  method?: "get" | "post";
+}
+
+/**
+ * Partner section props
+ */
+export interface LeonixCategoryPartnerSectionProps {
+  enabled: boolean;
+  lang: Lang;
+  surface: Surface;
+  eyebrow: string;
+  title: string;
+  body: string;
+  supportingLine?: string;
+  chips?: string[];
+  primaryCta?: {
+    label: string;
+    href: string;
+  };
+  secondaryCta?: {
+    label: string;
+    href: string;
+  };
+}
+
+/**
+ * Discovery grid item
+ */
+export interface DiscoveryGridItem {
   id: string;
   label: string;
   hint?: string;
@@ -40,7 +111,21 @@ export interface DiscoveryCard {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export interface ShortcutChip {
+/**
+ * Discovery grid props
+ */
+export interface LeonixCategoryDiscoveryGridProps {
+  lang: Lang;
+  surface: Surface;
+  heading: string;
+  subtitle: string;
+  items: DiscoveryGridItem[];
+}
+
+/**
+ * Shortcut chip item
+ */
+export interface ShortcutChipItem {
   id: string;
   label: string;
   href: string;
@@ -48,76 +133,35 @@ export interface ShortcutChip {
   icon?: React.ComponentType<{ className?: string }>;
 }
 
-export interface PartnerSectionProps {
-  /** Enable/disable section */
-  enabled?: boolean;
-  /** Language */
+/**
+ * Shortcut section props
+ */
+export interface LeonixCategoryShortcutSectionProps {
   lang: Lang;
-  /** Surface type */
   surface: Surface;
-  /** Eyebrow text */
-  eyebrow: string;
-  /** Section title */
   title: string;
-  /** Body text */
-  body: string;
-  /** Supporting line text */
-  supportingLine?: string;
-  /** Chips to display */
-  chips?: string[];
-  /** Primary CTA */
-  primaryCta?: {
-    label: string;
-    href: string;
-  };
-  /** Secondary CTA */
-  secondaryCta?: {
-    label: string;
-    href: string;
-  };
+  subtitle: string;
+  chips: ShortcutChipItem[];
+  variant?: ChipVariant;
 }
 
-export interface DiscoveryGridProps {
-  /** Section heading */
-  heading: string;
-  /** Section subtitle */
-  subtitle?: string;
-  /** Discovery cards */
-  items: DiscoveryCard[];
-  /** Surface type */
-  surface: Surface;
-}
-
-export interface ShortcutSectionProps {
-  /** Section title */
-  title: string;
-  /** Section subtitle */
-  subtitle?: string;
-  /** Shortcut chips */
-  chips: ShortcutChip[];
-  /** Surface type */
-  surface: Surface;
-}
-
-export interface VisibilityStripProps {
-  /** Language */
+/**
+ * Visibility strip props
+ */
+export interface LeonixCategoryVisibilityStripProps {
   lang: Lang;
-  /** Surface type */
   surface: Surface;
-  /** Allow on results (default false) */
   allowOnResults?: boolean;
-  /** Eyebrow text */
-  eyebrow?: string;
-  /** Title text */
-  title?: string;
-  /** Body text */
-  body?: string;
-  /** CTA label */
-  ctaLabel?: string;
-  /** CTA href */
-  ctaHref?: string;
+  eyebrow: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaHref: string;
 }
 
+/**
+ * Active filter chip
+ */
 export interface ActiveFilterChip {
   id: string;
   label: string;
@@ -125,43 +169,72 @@ export interface ActiveFilterChip {
   href?: string;
 }
 
-export interface ActiveFiltersProps {
-  /** Label for active filters section */
+/**
+ * Active filters props
+ */
+export interface LeonixCategoryActiveFiltersProps {
   label: string;
-  /** Active filter chips */
   chips: ActiveFilterChip[];
-  /** Clear all button label */
+  clearAllLabel: string;
+  onClearAll: () => void;
+}
+
+/**
+ * Results toolbar props
+ */
+export interface LeonixCategoryResultsToolbarProps {
+  lang: Lang;
+  countText: string;
+  resultCount: number;
+  showingFrom: number;
+  showingTo: number;
+  sortLabel: string;
+  sortValue: string;
+  onSortChange: (value: string) => void;
+  sortOptions: { value: string; label: string }[];
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  filtersButtonLabel?: string;
+  onOpenFilters?: () => void;
+  perPageLabel?: string;
+  perPageValue: number;
+  onPerPageChange?: (value: number) => void;
+  perPageOptions?: number[];
   clearAllLabel?: string;
-  /** Clear all handler */
   onClearAll?: () => void;
 }
 
-export interface ResultsToolbarProps {
-  /** Result count text */
-  countText: string;
-  /** Result count number */
-  resultCount: number;
-  /** Sort select slot */
-  sortSlot?: React.ReactNode;
-  /** View toggle slot */
-  viewToggleSlot?: React.ReactNode;
-  /** Per page slot */
-  perPageSlot?: React.ReactNode;
-  /** Filters button slot */
-  filtersButtonSlot?: React.ReactNode;
-  /** Clear all button slot */
-  clearAllButtonSlot?: React.ReactNode;
+/**
+ * Compact empty state props
+ */
+export interface LeonixCategoryCompactEmptyStateProps {
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref?: string;
 }
 
-export interface CompactEmptyStateProps {
-  /** Empty state title */
-  title: string;
-  /** Empty state body */
-  body?: string;
-  /** CTA label (max one) */
-  ctaLabel?: string;
-  /** CTA href */
-  ctaHref?: string;
-  /** CTA onClick */
-  ctaOnClick?: () => void;
+/**
+ * Results shell props
+ */
+export interface LeonixCategoryResultsShellProps {
+  surface: "results"; // Must be "results" - hard rule
+  hero: React.ReactNode;
+  activeFilters?: React.ReactNode;
+  toolbar?: React.ReactNode;
+  children: React.ReactNode;
+  emptyState?: React.ReactNode;
+  pagination?: React.ReactNode;
+  lowerVisibility?: React.ReactNode;
+  hasResults: boolean;
+}
+
+/**
+ * Page shell props
+ */
+export interface LeonixCategoryPageShellProps {
+  surface: Surface;
+  children: React.ReactNode;
+  topSlot?: React.ReactNode;
+  className?: string;
 }

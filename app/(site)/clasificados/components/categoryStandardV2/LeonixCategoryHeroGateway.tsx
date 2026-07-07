@@ -1,100 +1,92 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FiHome } from "react-icons/fi";
+import type { LeonixCategoryHeroGatewayProps } from "./types";
 import {
-  LEONIX_LANDING_GATEWAY_PANEL,
-  LEONIX_LANDING_GATEWAY_PAD,
-  LEONIX_GATEWAY_ICON,
   LEONIX_EYEBROW,
-  LEONIX_HERO_TITLE,
-  LEONIX_HERO_TAGLINE,
-  LEONIX_HERO_INTRO,
-  LEONIX_HERO_INTRO_SECONDARY,
+  LEONIX_GATEWAY_ICON,
+  LEONIX_GATEWAY_PAD,
+  LEONIX_GATEWAY_PANEL,
+  LEONIX_H1,
+  LEONIX_INTRO,
+  LEONIX_INTRO_SECONDARY,
+  LEONIX_SEARCH_SLOT,
+  LEONIX_TAGLINE,
 } from "./constants";
-import type { Surface } from "./types";
-
-type Props = {
-  /** Language */
-  lang: "es" | "en";
-  /** Category name for eyebrow (e.g., "Rentas", "Bienes Raíces") */
-  category: string;
-  /** Hero title */
-  title: string;
-  /** Hero tagline (italic) */
-  tagline: string;
-  /** Hero intro text */
-  intro: string;
-  /** Hero secondary intro text */
-  introSecondary: string;
-  /** Search slot */
-  searchSlot: ReactNode;
-  /** Optional landing tiles slot (e.g., intent cards) */
-  tilesSlot?: ReactNode;
-  /** Surface type */
-  surface?: Surface;
-  /** Optional icon component (defaults to FiHome) */
-  icon?: React.ComponentType<{ className?: string }>;
-};
 
 /**
  * Leonix Category Hero Gateway
- *
- * Extracted from Rentas/Bienes Raíces visual system.
- * Provides the integrated hero panel with text, search, and optional tiles.
- *
- * Visual contract:
- * - Rounded panel with border, background, shadow, backdrop blur
- * - Icon wrapper with border and shadow
- * - Eyebrow, title, tagline, intro, introSecondary text hierarchy
- * - Search slot below text
- * - Optional tiles slot below search
- * - For results surface: renders only hero/search identity, no landing discovery
+ * 
+ * This component provides the hero gateway for category landing and results pages.
+ * It uses the exact Rentas/Bienes visual system with icon, eyebrow, title, tagline, intro, and search slot.
+ * 
+ * Source: app/(site)/clasificados/rentas/landing/RentasLandingHeroGateway.tsx
+ * Source: app/(site)/clasificados/bienes-raices/landing/BienesRaicesLandingHeroGateway.tsx
+ * 
+ * HARD RULE: For results surface, this component must render only hero/search identity and search slot.
+ * It must NOT render landing discovery sections, partner section, visibility CTA, or extra pills.
+ * 
+ * @param lang - "es" or "en"
+ * @param surface - "landing" or "results"
+ * @param title - Main title
+ * @param tagline - Italic tagline
+ * @param intro - Primary intro paragraph
+ * @param introSecondary - Secondary intro paragraph
+ * @param searchSlot - Search canvas component
+ * @param tilesSlot - Optional intent tiles (landing only)
+ * @param eyebrow - Optional eyebrow text (defaults to category-specific)
  */
 export function LeonixCategoryHeroGateway({
   lang,
-  category,
+  surface,
   title,
   tagline,
   intro,
   introSecondary,
   searchSlot,
   tilesSlot,
-  surface = "landing",
-  icon: Icon = FiHome,
-}: Props) {
-  const eyebrow =
-    lang === "es"
-      ? `Leonix Clasificados · ${category}`
-      : `Leonix Classifieds · ${category}`;
+  eyebrow,
+}: LeonixCategoryHeroGatewayProps) {
+  // For results, tilesSlot is ignored (hard rule)
+  const showTiles = surface === "landing" && tilesSlot;
 
   return (
     <section aria-labelledby="leonix-category-hero-title">
-      <div className={`${LEONIX_LANDING_GATEWAY_PANEL} ${LEONIX_LANDING_GATEWAY_PAD}`}>
+      <div className={`${LEONIX_GATEWAY_PANEL} ${LEONIX_GATEWAY_PAD}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+          {/* Icon wrapper - category should provide appropriate icon */}
           <span className={LEONIX_GATEWAY_ICON}>
-            <Icon className="h-6 w-6" aria-hidden />
+            {/* Icon should be passed via children or category-specific wrapper */}
+            <span className="flex h-6 w-6 items-center justify-center" aria-hidden>
+              {/* Default placeholder - category should override */}
+              <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="9 22 9 12 15 12 15 22" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
           </span>
+          
           <div className="min-w-0 flex-1">
-            <p className={LEONIX_EYEBROW}>{eyebrow}</p>
+            {eyebrow ? (
+              <p className={LEONIX_EYEBROW}>{eyebrow}</p>
+            ) : null}
+            
             <h1
               id="leonix-category-hero-title"
-              className={LEONIX_HERO_TITLE}
+              className={LEONIX_H1}
             >
               {title}
             </h1>
-            <p className={LEONIX_HERO_TAGLINE}>{tagline}</p>
-            <p className={LEONIX_HERO_INTRO}>{intro}</p>
-            <p className={LEONIX_HERO_INTRO_SECONDARY}>{introSecondary}</p>
+            
+            <p className={LEONIX_TAGLINE}>{tagline}</p>
+            <p className={LEONIX_INTRO}>{intro}</p>
+            <p className={LEONIX_INTRO_SECONDARY}>{introSecondary}</p>
           </div>
         </div>
 
-        <div className="relative mt-5 min-w-0 sm:mt-6">{searchSlot}</div>
+        <div className={LEONIX_SEARCH_SLOT}>{searchSlot}</div>
 
-        {/* Tiles slot only on landing surface */}
-        {surface === "landing" && tilesSlot ? (
-          <div className="min-w-0">{tilesSlot}</div>
-        ) : null}
+        {showTiles ? <div className="min-w-0">{tilesSlot}</div> : null}
       </div>
     </section>
   );

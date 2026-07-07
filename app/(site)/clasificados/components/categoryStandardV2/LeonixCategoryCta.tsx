@@ -1,41 +1,18 @@
-"use client";
-
 import Link from "next/link";
+import type { LeonixCategoryCtaProps } from "./types";
 import {
-  LEONIX_BTN_PRIMARY_LANDING,
-  LEONIX_BTN_SECONDARY_LANDING,
   LEONIX_BTN_PRIMARY,
+  LEONIX_BTN_PRIMARY_LANDING,
   LEONIX_BTN_SECONDARY,
+  LEONIX_BTN_SECONDARY_LANDING,
 } from "./constants";
-import type { CtaVariant } from "./types";
-
-type Props = {
-  /** Button text */
-  label: string;
-  /** Link href (renders as Link if provided) */
-  href?: string;
-  /** onClick handler (renders as button if provided) */
-  onClick?: () => void;
-  /** Button type */
-  type?: "button" | "submit" | "reset";
-  /** CTA variant */
-  variant?: CtaVariant;
-  /** Full width */
-  fullWidth?: boolean;
-  /** Additional className */
-  className?: string;
-  /** Disabled state */
-  disabled?: boolean;
-  /** Landing size (larger) vs results size (compact) */
-  landing?: boolean;
-};
 
 /**
- * Leonix Category CTA
- *
- * Enforces the exact CTA contract from Rentas/Bienes visual system.
- *
- * Primary CTA (landing):
+ * Leonix Category CTA Button
+ * 
+ * This component enforces the exact CTA contract from Rentas/Bienes visual system.
+ * 
+ * PRIMARY CTA:
  * - bg-[#7A1E2C]
  * - hover:bg-[#5e1721]
  * - text-[#FFFDF7]
@@ -43,9 +20,8 @@ type Props = {
  * - rounded-xl
  * - text-sm font-bold
  * - px-5
- * - shadow-[0_6px_20px_-8px_rgba(122,30,44,0.45)]
- *
- * Secondary CTA (landing):
+ * 
+ * SECONDARY CTA:
  * - border border-[#C9A84A]/60
  * - bg-[#FFFDF7]
  * - text-[#3D3428]
@@ -53,48 +29,55 @@ type Props = {
  * - rounded-xl
  * - text-sm font-semibold
  * - px-4
- *
- * CTA RULES:
- * - Allowed on landing: search shell CTA row, partner section, visibility strip
- * - NOT allowed: floating publish buttons under discovery, repeated empty-state CTA clutter
- * - Results empty state: max one CTA
+ * 
+ * Source: app/(site)/clasificados/rentas/shared/rentasLeonixPublicUi.ts
+ * 
+ * @param variant - "primary" | "secondary" | "ghost"
+ * @param href - Link href (renders as Link if provided)
+ * @param onClick - Click handler (renders as button if provided)
+ * @param type - Button type (default: "button")
+ * @param children - Button label
+ * @param fullWidth - Full width button
+ * @param className - Optional className override
+ * @param disabled - Disabled state
  */
 export function LeonixCategoryCta({
-  label,
+  variant = "primary",
   href,
   onClick,
   type = "button",
-  variant = "primary",
+  children,
   fullWidth = false,
-  className = "",
+  className,
   disabled = false,
-  landing = true,
-}: Props) {
+}: LeonixCategoryCtaProps) {
   const isPrimary = variant === "primary";
-  const baseClass = landing
-    ? isPrimary
-      ? LEONIX_BTN_PRIMARY_LANDING
-      : LEONIX_BTN_SECONDARY_LANDING
-    : isPrimary
-      ? LEONIX_BTN_PRIMARY
-      : LEONIX_BTN_SECONDARY;
+  const isSecondary = variant === "secondary";
+  const isGhost = variant === "ghost";
 
+  // Base classes for landing-style buttons (larger, more prominent)
+  const basePrimary = LEONIX_BTN_PRIMARY_LANDING;
+  const baseSecondary = LEONIX_BTN_SECONDARY_LANDING;
+
+  // Ghost variant (not in Rentas/Bienes but provided for flexibility)
+  const baseGhost = "inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-transparent text-[#3D3428] px-4 text-sm font-semibold transition hover:bg-[#FAF6EE] sm:min-h-[3.125rem]";
+
+  const baseClasses = isPrimary ? basePrimary : isSecondary ? baseSecondary : baseGhost;
   const widthClass = fullWidth ? "w-full" : "";
+  const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
 
-  const combinedClassName = `${baseClass} ${widthClass} ${className}`.trim();
+  const combinedClassName = `${baseClasses} ${widthClass} ${disabledClass} ${className || ""}`;
 
-  if (href) {
+  // Render as Link if href provided
+  if (href && !disabled) {
     return (
-      <Link
-        href={href}
-        className={combinedClassName}
-        aria-disabled={disabled}
-      >
-        {label}
+      <Link href={href} className={combinedClassName}>
+        {children}
       </Link>
     );
   }
 
+  // Render as button otherwise
   return (
     <button
       type={type}
@@ -102,7 +85,7 @@ export function LeonixCategoryCta({
       disabled={disabled}
       className={combinedClassName}
     >
-      {label}
+      {children}
     </button>
   );
 }

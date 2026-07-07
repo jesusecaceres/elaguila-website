@@ -1,81 +1,64 @@
-"use client";
-
 import Link from "next/link";
+import type { LeonixCategoryShortcutSectionProps, ChipVariant } from "./types";
 import {
+  LEONIX_BUDGET_CHIP,
   LEONIX_LANDING_SECTION,
   LEONIX_LANDING_SECTION_PAD,
-  LEONIX_SHORTCUT_SECTIONS,
-  LEONIX_SHORTCUT_SECTION_BORDER,
-  LEONIX_SHORTCUT_BORDER_GOLD,
-  LEONIX_SHORTCUT_BORDER_OLIVE,
-  LEONIX_SECTION_HEADING,
-  LEONIX_SECTION_SUBTITLE,
-  LEONIX_BUDGET_CHIP,
   LEONIX_PRACTICAL_CHIP,
+  LEONIX_SHORTCUT_HEADING,
   LEONIX_SHORTCUT_ROW,
+  LEONIX_SHORTCUT_SECTIONS,
+  LEONIX_SHORTCUT_SUBTITLE,
 } from "./constants";
-import type { ShortcutSectionProps } from "./types";
 
 /**
  * Leonix Category Shortcut Section
- *
- * Landing-only shortcut/chip section with Rentas/Bienes visual style.
- *
- * Visual contract:
- * - Container: mt-6 space-y-5 sm:mt-7
- * - Section: rounded-2xl border bg-[#FFFDF7]/96 shadow
- * - Inner: px-4 py-5 sm:px-6 sm:py-6
- * - Budget chip: h-[38px], gold border, gradient bg
- * - Practical chip: h-[36px], olive border, gradient bg
- * - Left border accent (gold or olive)
- *
- * HARD RULE:
- * If surface === "results", returns null.
- * No shortcut/chip sections on results pages.
+ * 
+ * This component provides the shortcut/chip section for category landing pages.
+ * It uses the exact Rentas/Bienes visual system with section wrapper and chips.
+ * 
+ * Source: app/(site)/clasificados/rentas/landing/RentasLandingShortcutSections.tsx
+ * 
+ * HARD RULE: If surface === "results", return null.
+ * No shortcut/chip sections on results.
+ * 
+ * @param lang - "es" or "en"
+ * @param surface - "landing" or "results"
+ * @param title - Section title
+ * @param subtitle - Section subtitle
+ * @param chips - Shortcut chips
+ * @param variant - Chip variant ("budget" or "practical" or "default")
  */
 export function LeonixCategoryShortcutSection({
+  lang,
+  surface,
   title,
   subtitle,
   chips,
-  surface,
-}: ShortcutSectionProps) {
-  // Hard block on results surface
+  variant = "default",
+}: LeonixCategoryShortcutSectionProps) {
+  // Hard rule: no shortcut section on results
   if (surface === "results") {
     return null;
   }
 
-  // Determine border accent based on first chip variant
-  const firstVariant = chips[0]?.variant || "default";
-  const borderAccent = firstVariant === "budget" ? LEONIX_SHORTCUT_BORDER_GOLD : LEONIX_SHORTCUT_BORDER_OLIVE;
+  const chipClass = variant === "budget" ? LEONIX_BUDGET_CHIP : variant === "practical" ? LEONIX_PRACTICAL_CHIP : LEONIX_BUDGET_CHIP;
+  const borderColor = variant === "budget" ? "border-[#C9A84A]/55" : variant === "practical" ? "border-[#556B3E]/40" : "border-[#C9A84A]/55";
+  const iconColor = variant === "budget" ? "text-[#B8954A]" : variant === "practical" ? "text-[#556B3E]" : "text-[#B8954A]";
 
   return (
-    <div className={LEONIX_SHORTCUT_SECTIONS}>
-      <section className={LEONIX_LANDING_SECTION} aria-labelledby="leonix-shortcut-title">
-        <div className={`${LEONIX_LANDING_SECTION_PAD} ${LEONIX_SHORTCUT_SECTION_BORDER} ${borderAccent}`}>
-          <h2 id="leonix-shortcut-title" className={LEONIX_SECTION_HEADING}>
-            {title}
-          </h2>
-          {subtitle ? (
-            <p className={LEONIX_SECTION_SUBTITLE}>{subtitle}</p>
-          ) : null}
-
+    <section className={LEONIX_SHORTCUT_SECTIONS} aria-labelledby="leonix-shortcut-title">
+      <div className={LEONIX_LANDING_SECTION}>
+        <div className={`${LEONIX_LANDING_SECTION_PAD} border-l-[3px] ${borderColor}`}>
+          <h2 id="leonix-shortcut-title" className={LEONIX_SHORTCUT_HEADING}>{title}</h2>
+          <p className={LEONIX_SHORTCUT_SUBTITLE}>{subtitle}</p>
           <div className="mt-3.5">
             <div className={LEONIX_SHORTCUT_ROW}>
               {chips.map((chip) => {
-                const chipClass =
-                  chip.variant === "budget"
-                    ? LEONIX_BUDGET_CHIP
-                    : chip.variant === "practical"
-                      ? LEONIX_PRACTICAL_CHIP
-                      : LEONIX_BUDGET_CHIP; // Default to budget style
-
                 const Icon = chip.icon;
-
                 return (
                   <Link key={chip.id} href={chip.href} className={`${chipClass} shrink-0 snap-start`}>
-                    {Icon ? (
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-[#B8954A]" aria-hidden />
-                    ) : null}
+                    {Icon ? <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColor}`} aria-hidden /> : null}
                     {chip.label}
                   </Link>
                 );
@@ -83,7 +66,7 @@ export function LeonixCategoryShortcutSection({
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
