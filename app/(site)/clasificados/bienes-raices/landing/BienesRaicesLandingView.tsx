@@ -18,6 +18,7 @@ import { BienesRaicesLandingHeroGateway } from "./BienesRaicesLandingHeroGateway
 import { BienesRaicesLandingIntentTiles } from "./BienesRaicesLandingIntentTiles";
 import { BienesRaicesLandingShortcutSections } from "./BienesRaicesLandingShortcutSections";
 import { BienesRaicesLandingVisibilityStrip } from "./BienesRaicesLandingVisibilityStrip";
+import { BienesRaicesSponsorsLane } from "../components/BienesRaicesSponsorsLane";
 import { buildBrLandingInventorySections } from "./buildBrLandingInventorySections";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
@@ -215,6 +216,13 @@ export function BienesRaicesLandingView() {
           introSecondary={copy.gatewayIntroSecondary}
           searchSlot={searchSlot}
           tilesSlot={tilesSlot}
+        />
+
+        <BienesRaicesSponsorsLane
+          lang={lang}
+          listings={basePool}
+          surface="landing"
+          maxItems={8}
         />
 
         <BienesRaicesLandingShortcutSections

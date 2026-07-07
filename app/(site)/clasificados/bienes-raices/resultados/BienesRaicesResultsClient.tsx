@@ -10,6 +10,7 @@ import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
+import { BienesRaicesSponsorsLane } from "@/app/clasificados/bienes-raices/components/BienesRaicesSponsorsLane";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
@@ -201,6 +202,13 @@ export function BienesRaicesResultsClient() {
           copy={copy}
           onPatch={(p) => patchUrl(p)}
           onClearAll={clearAllFilters}
+        />
+
+        <BienesRaicesSponsorsLane
+          lang={lang}
+          listings={listingPool}
+          surface="results"
+          maxItems={8}
         />
 
         <BienesRaicesResultsHeader
