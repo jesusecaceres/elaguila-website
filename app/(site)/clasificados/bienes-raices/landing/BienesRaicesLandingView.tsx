@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { CategoryStandardLandingBlock } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsChrome";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
@@ -13,10 +11,13 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { buildBrResultsUrl } from "@/app/clasificados/bienes-raices/shared/constants/brResultsRoutes";
 import { BienesRaicesNegocioCard } from "@/app/clasificados/bienes-raices/resultados/cards/BienesRaicesNegocioCard";
-import { BienesRaicesResultsShell } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsShell";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
 import { BienesRaicesResultsFilterDrawer } from "@/app/clasificados/bienes-raices/resultados/components/BienesRaicesResultsFilterDrawer";
-import { BR_LANDING_QUICK_CHIPS } from "./bienesRaicesLandingSample";
+import { BienesRaicesLandingShell } from "./BienesRaicesLandingShell";
+import { BienesRaicesLandingHeroGateway } from "./BienesRaicesLandingHeroGateway";
+import { BienesRaicesLandingIntentTiles } from "./BienesRaicesLandingIntentTiles";
+import { BienesRaicesLandingShortcutSections } from "./BienesRaicesLandingShortcutSections";
+import { BienesRaicesLandingVisibilityStrip } from "./BienesRaicesLandingVisibilityStrip";
 import { buildBrLandingInventorySections } from "./buildBrLandingInventorySections";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
@@ -25,15 +26,6 @@ import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { getBrLandingCopy } from "./bienesRaicesLandingCopy";
 import { getBrResultsCopy } from "../resultados/bienesRaicesResultsCopy";
-import {
-  BR_BTN_PRIMARY,
-  BR_BTN_SECONDARY,
-  BR_CHIP,
-} from "../shared/bienesRaicesLeonixPublicUi";
-import {
-  categoryStandardDescription,
-  categoryStandardTitle,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 
 export function BienesRaicesLandingView() {
   const searchParams = useSearchParams();
@@ -154,8 +146,42 @@ export function BienesRaicesLandingView() {
 
   const resultsCopy = useMemo(() => getBrResultsCopy(lang, { useDevInventoryCopy: mergeDemo }), [lang, mergeDemo]);
 
+  const searchSlot = (
+    <BienesRaicesCompactSearchCanvas
+      lang={lang}
+      query={q}
+      city={city}
+      state={state}
+      zip={zip}
+      country={country}
+      onQuery={setQ}
+      onCity={setCity}
+      onState={setState}
+      onZip={setZip}
+      onCountry={setCountry}
+      onSearch={runSearch}
+      onOpenFilters={() => setFiltersOpen(true)}
+      browseAllHref={withLang(BR_RESULTS)}
+      searchButtonLabel={searchLabel}
+      filtersButtonLabel={filtersLabel}
+      layout="landing"
+      publishHref={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)}
+      publishLabel={copy.publishNegocio}
+    />
+  );
+
+  const tilesSlot = (
+    <BienesRaicesLandingIntentTiles
+      lang={lang}
+      routeLang={routeLang}
+      headingEs={copy.intentTilesHeadingEs}
+      headingEn={copy.intentTilesHeadingEn}
+      embedded
+    />
+  );
+
   return (
-    <BienesRaicesResultsShell>
+    <BienesRaicesLandingShell>
       <div className="min-w-0 overflow-x-hidden">
         {liveErr ? (
           <p className="mb-3 rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-xs text-amber-950" role="status">
@@ -163,79 +189,33 @@ export function BienesRaicesLandingView() {
           </p>
         ) : null}
 
-        <CategoryStandardLandingBlock
-          category="bienes-raices"
+        <BienesRaicesLandingHeroGateway
           lang={lang}
-          title={categoryStandardTitle("bienes-raices", lang)}
-          description={categoryStandardDescription("bienes-raices", lang)}
-          searchAction={withLang(BR_RESULTS)}
-          searchPlaceholder=""
-          publishHref={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)}
-          browseHref={withLang(BR_RESULTS)}
-          publishLabel={copy.publishNegocio}
-          browseLabel={lang === "es" ? "Ver propiedades" : "View properties"}
-          suppressVisibilityCta
-          hideBrowseCta
-          hideCtaRow
-          ctaSlot={
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Link href={withLang(BR_RESULTS)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
-                {lang === "es" ? "Buscar propiedades" : "Search properties"}
-              </Link>
-              <Link href={withLang(BR_RESULTS)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
-                {lang === "es" ? "Ver propiedades" : "View properties"}
-              </Link>
-              <Link href={withLang(BR_PUBLICAR_NEGOCIOS_PUBLIC_ENTRY)} className={`${BR_BTN_PRIMARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
-                {copy.publishNegocio}
-              </Link>
-              <Link href={withLang(BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY)} className={`${BR_BTN_SECONDARY} flex-1 sm:flex-none sm:min-w-[10rem]`}>
-                {copy.publishPrivado}
-              </Link>
-            </div>
-          }
-          searchChips={
-            <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
-              {BR_LANDING_QUICK_CHIPS.slice(0, 8).map((chip) => (
-                <Link key={chip.id} href={withLang(buildBrResultsUrl(chip.params))} className={BR_CHIP}>
-                  {copy.chipLabel[chip.id]}
-                </Link>
-              ))}
-            </div>
-          }
-          searchSlot={
-            <div className="w-full min-w-0 space-y-2">
-              <p className="text-[11px] font-medium text-[#556B3E]">{catalogLine}</p>
-              <BienesRaicesCompactSearchCanvas
-                lang={lang}
-                query={q}
-                city={city}
-                state={state}
-                zip={zip}
-                country={country}
-                onQuery={setQ}
-                onCity={setCity}
-                onState={setState}
-                onZip={setZip}
-                onCountry={setCountry}
-                onSearch={runSearch}
-                onOpenFilters={() => setFiltersOpen(true)}
-                browseAllHref={withLang(BR_RESULTS)}
-                searchButtonLabel={searchLabel}
-                filtersButtonLabel={filtersLabel}
-              />
-            </div>
-          }
+          title={copy.gatewayTitle}
+          tagline={copy.gatewayTagline}
+          intro={copy.gatewayIntro}
+          introSecondary={copy.gatewayIntroSecondary}
+          searchSlot={searchSlot}
+          tilesSlot={tilesSlot}
         />
 
+        <BienesRaicesLandingShortcutSections
+          lang={lang}
+          routeLang={routeLang}
+          budgetHeadingEs={copy.budgetShortcutsHeadingEs}
+          budgetHeadingEn={copy.budgetShortcutsHeadingEn}
+          practicalHeadingEs={copy.practicalShortcutsHeadingEs}
+          practicalHeadingEn={copy.practicalShortcutsHeadingEn}
+        />
+
+        <BienesRaicesLandingVisibilityStrip lang={lang} />
+
         {recientes.length > 0 ? (
-          <section className="mt-5" aria-labelledby="br-latest-heading">
+          <section className="mt-6" aria-labelledby="br-latest-heading">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 id="br-latest-heading" className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">
                 {copy.sectionRecientesTitle}
               </h2>
-              <Link href={withLang(BR_RESULTS)} className={BR_CHIP}>
-                {copy.bandMoreInResults}
-              </Link>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {recientes.map((listing) => (
@@ -245,11 +225,7 @@ export function BienesRaicesLandingView() {
           </section>
         ) : bandsLoading ? (
           <p className="mt-4 text-center text-sm text-[#5C5346]">{copy.inventoryLoading}</p>
-        ) : (
-          <p className="mt-4 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-5 text-center text-sm text-[#5C5346]">
-            {copy.inventoryEmptyBody}
-          </p>
-        )}
+        ) : null}
       </div>
 
       <BienesRaicesResultsFilterDrawer
@@ -269,6 +245,6 @@ export function BienesRaicesLandingView() {
           setCountry("United States");
         }}
       />
-    </BienesRaicesResultsShell>
+    </BienesRaicesLandingShell>
   );
 }

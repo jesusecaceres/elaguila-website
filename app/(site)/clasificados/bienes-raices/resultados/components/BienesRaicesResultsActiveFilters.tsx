@@ -83,7 +83,7 @@ export function BienesRaicesResultsActiveFilters({
   onPatch: (patch: Record<string, string | null>) => void;
   onClearAll: () => void;
   /** Structural `propiedad` filter (separate query key). */
-  propiedadActive: string | null;
+  propiedadActive?: string | null;
 }) {
   const chips = buildChips(parsed, copy);
   if (propiedadActive) {

@@ -67,6 +67,20 @@ export type BrLandingCopy = {
   /** Featured hero slot when pool is empty. */
   emptyFeaturedTitle: string;
   emptyFeaturedBody: string;
+  /** V6 landing gateway — hero text */
+  gatewayTitle: string;
+  gatewayTagline: string;
+  gatewayIntro: string;
+  gatewayIntroSecondary: string;
+  /** V6 landing — intent tiles heading */
+  intentTilesHeadingEs: string;
+  intentTilesHeadingEn: string;
+  /** V6 landing — budget shortcuts heading */
+  budgetShortcutsHeadingEs: string;
+  budgetShortcutsHeadingEn: string;
+  /** V6 landing — practical shortcuts heading */
+  practicalShortcutsHeadingEs: string;
+  practicalShortcutsHeadingEn: string;
 };
 
 const ES: BrLandingCopy = {
@@ -145,6 +159,18 @@ const ES: BrLandingCopy = {
   emptyFeaturedTitle: "Sin destacado disponible aún",
   emptyFeaturedBody:
     "Cuando existan anuncios activos, mostraremos una propiedad destacada en este espacio. Puedes publicar o explorar resultados.",
+  gatewayTitle: "Bienes Raíces",
+  gatewayTagline: "Tu búsqueda, tus reglas.",
+  gatewayIntro:
+    "Encuentra propiedades en venta o renta con claridad y confianza. Un solo lugar para particulares y profesionales.",
+  gatewayIntroSecondary:
+    "Sin filtros ocultos, sin anuncios ambiguos. Usa la búsqueda, elige un tipo de propiedad o explora por presupuesto.",
+  intentTilesHeadingEs: "¿Qué buscas?",
+  intentTilesHeadingEn: "What are you looking for?",
+  budgetShortcutsHeadingEs: "Por presupuesto",
+  budgetShortcutsHeadingEn: "By budget",
+  practicalShortcutsHeadingEs: "Por características",
+  practicalShortcutsHeadingEn: "By features",
 };
 
 const EN: BrLandingCopy = {
@@ -223,6 +249,18 @@ const EN: BrLandingCopy = {
   emptyFeaturedTitle: "No featured listing yet",
   emptyFeaturedBody:
     "When active listings exist, we will feature one here. You can publish a listing or browse results.",
+  gatewayTitle: "Real Estate",
+  gatewayTagline: "Your search, your rules.",
+  gatewayIntro:
+    "Find properties for sale or rent with clarity and confidence. One place for private sellers and professionals.",
+  gatewayIntroSecondary:
+    "No hidden filters, no ambiguous listings. Use the search, pick a property type, or explore by budget.",
+  intentTilesHeadingEs: "¿Qué buscas?",
+  intentTilesHeadingEn: "What are you looking for?",
+  budgetShortcutsHeadingEs: "Por presupuesto",
+  budgetShortcutsHeadingEn: "By budget",
+  practicalShortcutsHeadingEs: "Por características",
+  practicalShortcutsHeadingEn: "By features",
 };
 
 export function getBrLandingCopy(lang: Lang): BrLandingCopy {

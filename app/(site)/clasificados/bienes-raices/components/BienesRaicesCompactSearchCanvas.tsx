@@ -1,17 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import { FiSliders } from "react-icons/fi";
 import { LEONIX_LB_CITY_PRESETS } from "@/app/clasificados/shared/constants/leonixLocalBusinessCityPresets";
 import {
-  LEONIX_LB_DEFAULT_COUNTRY,
   LEONIX_LB_DEFAULT_STATE,
   US_STATE_OPTIONS,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
 import {
   BR_BTN_PRIMARY,
+  BR_BTN_PRIMARY_LANDING,
   BR_BTN_SECONDARY,
-  BR_SEARCH_CANVAS,
+  BR_BTN_SECONDARY_LANDING,
+  BR_SEARCH_FIELD,
+  BR_SEARCH_FIELD_LANDING,
   BR_SEARCH_INPUT,
+  BR_SEARCH_INPUT_LANDING,
+  BR_SEARCH_SHELL,
+  BR_SEARCH_SHELL_GLOW,
+  BR_SHARED_SEARCH_ANCHOR,
+  BR_SHARED_SEARCH_GLOW,
   brBrowseSearchPlaceholder,
 } from "../shared/bienesRaicesLeonixPublicUi";
 
@@ -32,7 +40,22 @@ type Props = {
   browseAllHref?: string;
   searchButtonLabel: string;
   filtersButtonLabel: string;
+  layout?: "default" | "landing" | "results";
+  /** Landing only — integrated into action row (no separate Publicar row). */
+  publishHref?: string;
+  publishLabel?: string;
 };
+
+function SearchIcon({ large }: { large?: boolean }) {
+  return (
+    <span className={`shrink-0 text-[#556B3E] ${large ? "pl-3.5" : "pl-3"}`} aria-hidden>
+      <svg width={large ? 18 : 16} height={large ? 18 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="11" cy="11" r="7" />
+        <path d="M20 20l-3-3" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
 
 export function BienesRaicesCompactSearchCanvas({
   lang,
@@ -51,6 +74,9 @@ export function BienesRaicesCompactSearchCanvas({
   browseAllHref,
   searchButtonLabel,
   filtersButtonLabel,
+  layout = "default",
+  publishHref,
+  publishLabel,
 }: Props) {
   const ph = brBrowseSearchPlaceholder(lang);
   const cityPh = lang === "es" ? "Ciudad" : "City";
@@ -58,50 +84,66 @@ export function BienesRaicesCompactSearchCanvas({
   const zipPh = "ZIP";
   const countryPh = lang === "es" ? "País" : "Country";
   const browseLabel = lang === "es" ? "Ver todos los anuncios" : "View all listings";
+  const isLanding = layout === "landing";
+  const isResults = layout === "results";
+  const isSharedAnchor = isLanding || isResults;
+  const hasPublish = isLanding && !!publishHref && !!publishLabel;
+  const datalistId = isLanding ? "br-city-presets-landing" : isResults ? "br-city-presets-results" : "br-city-presets";
+  const shellClass = isSharedAnchor ? BR_SHARED_SEARCH_ANCHOR : BR_SEARCH_SHELL;
+  const glowClass = isSharedAnchor ? BR_SHARED_SEARCH_GLOW : BR_SEARCH_SHELL_GLOW;
+  const fieldClass = isSharedAnchor ? BR_SEARCH_FIELD_LANDING : BR_SEARCH_FIELD;
+  const inputClass = isSharedAnchor ? BR_SEARCH_INPUT_LANDING : BR_SEARCH_INPUT;
+  const btnPrimary = isSharedAnchor ? BR_BTN_PRIMARY_LANDING : BR_BTN_PRIMARY;
+  const btnSecondary = isSharedAnchor ? BR_BTN_SECONDARY_LANDING : BR_BTN_SECONDARY;
+  const gridGap = "gap-2.5 sm:gap-3";
+  const refineHint =
+    lang === "es" ? "Afina por presupuesto, recámaras y condiciones en Filtros." : "Refine by budget, beds, and conditions in Filters.";
+
+  const browseCol = hasPublish ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-5";
+  const countryCol = hasPublish ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-4";
+  const filtersCol = hasPublish ? "sm:col-span-2" : isResults ? "sm:col-span-4" : "sm:col-span-3";
+  const keywordCol = isSharedAnchor ? "sm:col-span-5" : "sm:col-span-4";
 
   return (
-    <div className={BR_SEARCH_CANVAS}>
-      <div className="flex flex-col sm:grid sm:grid-cols-12 sm:items-stretch">
-        <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-4 sm:border-b-0 sm:border-r">
-          <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20l-3-3" strokeLinecap="round" />
-            </svg>
-          </span>
+    <div className={shellClass}>
+      <div className={glowClass} aria-hidden />
+
+      <div className={`relative grid grid-cols-1 ${gridGap} sm:grid-cols-12 sm:items-stretch`}>
+        <label className={`${fieldClass} ${keywordCol}`}>
+          <SearchIcon large={isSharedAnchor} />
           <input
             type="search"
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             placeholder={ph}
             aria-label={ph}
-            className={`${BR_SEARCH_INPUT} px-2`}
+            className={`${inputClass} ${isSharedAnchor ? "font-medium" : ""}`}
             autoComplete="off"
           />
         </label>
-        <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+        <label className={`${fieldClass} sm:col-span-2`}>
           <input
             type="text"
             value={city}
             onChange={(e) => onCity(e.target.value)}
-            list="br-city-presets"
+            list={datalistId}
             placeholder={cityPh}
             aria-label={cityPh}
-            className={BR_SEARCH_INPUT}
+            className={inputClass}
             autoComplete="address-level2"
           />
-          <datalist id="br-city-presets">
+          <datalist id={datalistId}>
             {LEONIX_LB_CITY_PRESETS.map((c) => (
               <option key={c} value={c} />
             ))}
           </datalist>
         </label>
-        <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+        <label className={`${fieldClass} sm:col-span-2`}>
           <select
             value={state || LEONIX_LB_DEFAULT_STATE}
             onChange={(e) => onState(e.target.value)}
             aria-label={statePh}
-            className={`${BR_SEARCH_INPUT} appearance-none`}
+            className={`${inputClass} appearance-none`}
           >
             {US_STATE_OPTIONS.map((opt) => (
               <option key={opt.code} value={opt.code}>
@@ -110,7 +152,7 @@ export function BienesRaicesCompactSearchCanvas({
             ))}
           </select>
         </label>
-        <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
+        <label className={`${fieldClass} sm:col-span-1`}>
           <input
             type="text"
             value={zip}
@@ -119,44 +161,61 @@ export function BienesRaicesCompactSearchCanvas({
             aria-label={zipPh}
             inputMode="numeric"
             maxLength={5}
-            className={BR_SEARCH_INPUT}
+            className={`${inputClass} px-2 text-center`}
             autoComplete="postal-code"
           />
         </label>
-        <div className="hidden p-1.5 sm:col-span-2 sm:block">
-          <button type="button" className={`${BR_BTN_PRIMARY} w-full`} onClick={onSearch}>
+        <div className="hidden sm:col-span-2 sm:block">
+          <button type="button" className={`${btnPrimary} w-full`} onClick={onSearch}>
             {searchButtonLabel}
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-center">
-        <label className="order-1 flex min-h-[2.625rem] min-w-0 items-center sm:order-none sm:col-span-3">
+
+      <div className={`relative mt-3 grid grid-cols-1 ${gridGap} sm:grid-cols-12 sm:items-stretch`}>
+        <label className={`${fieldClass} ${countryCol}`}>
+          <span className="sr-only">{countryPh}</span>
+          <span className="hidden shrink-0 pl-3 text-[10px] font-bold uppercase tracking-wide text-[#556B3E]/80 sm:inline" aria-hidden>
+            {countryPh}
+          </span>
           <input
             type="text"
             value={country}
             onChange={(e) => onCountry(e.target.value)}
             placeholder={countryPh}
             aria-label={countryPh}
-            className={BR_SEARCH_INPUT}
+            className={inputClass}
             autoComplete="country-name"
           />
         </label>
-        <div className="order-2 flex flex-wrap items-center gap-1.5 sm:order-none sm:col-span-4">
-          <button type="button" className={BR_BTN_SECONDARY} onClick={onOpenFilters}>
+        <div className={filtersCol}>
+          <button type="button" className={`${btnSecondary} w-full`} onClick={onOpenFilters}>
+            <FiSliders className="h-4 w-4 shrink-0 text-[#556B3E]" aria-hidden />
             {filtersButtonLabel}
           </button>
         </div>
         {browseAllHref ? (
-          <Link
-            href={browseAllHref}
-            className={`${BR_BTN_SECONDARY} order-4 inline-flex w-full items-center justify-center sm:order-none sm:col-span-3 sm:w-auto`}
-          >
+          <Link href={browseAllHref} className={`${btnSecondary} ${browseCol} inline-flex w-full items-center justify-center`}>
             {browseLabel}
           </Link>
+        ) : isResults ? (
+          <p className={`hidden ${browseCol} items-center text-xs leading-snug text-[#5C5346] sm:flex`}>{refineHint}</p>
+        ) : (
+          <div className={`hidden ${browseCol} sm:block`} aria-hidden />
+        )}
+        {hasPublish ? (
+          <Link href={publishHref} className={`${btnPrimary} sm:col-span-4 inline-flex w-full items-center justify-center`}>
+            {publishLabel}
+          </Link>
         ) : null}
-        <button type="button" className={`${BR_BTN_PRIMARY} order-3 w-full sm:hidden`} onClick={onSearch}>
+        <button type="button" className={`${btnPrimary} w-full sm:hidden`} onClick={onSearch}>
           {searchButtonLabel}
         </button>
+        {hasPublish ? (
+          <Link href={publishHref} className={`${btnPrimary} w-full sm:hidden`}>
+            {publishLabel}
+          </Link>
+        ) : null}
       </div>
     </div>
   );
