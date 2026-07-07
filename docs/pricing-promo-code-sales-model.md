@@ -65,11 +65,12 @@ Pricing can be updated centrally in `packagePricingRules.ts` — do not scatter 
 
 ---
 
-## 5. Newsletter / SMS unique one-time codes (admin readiness)
+## 5. Newsletter / SMS unique one-time codes (website Launch 25)
 
-- **newsletter** and **sms** promo types: `oneTimeUse: true`, `requiresSubscriberIdentity: true`.
-- Admin create enforces email (newsletter) or phone (sms); metadata records delivery channel and `not_sent` status.
-- Public signup, unique-code generation at scale, and email/SMS delivery are **later gates**.
+- **newsletter** promo type: `oneTimeUse: true`, `requiresSubscriberIdentity: true`, `canDiscountPayment: true`.
+- Public signup generates `website_launch_25` family codes (metadata) for **eligible website Stripe checkout only**.
+- **Not eligible:** print magazine packages, print+digital combos, manual contracts, free posts, future renewals.
+- Promo code never grants placement/ranking/verification — only discounts eligible checkout when redemption is wired.
 - See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
 ---

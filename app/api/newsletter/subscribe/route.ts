@@ -48,6 +48,15 @@ type NewsletterPromoOutcome =
   | { status: "failed"; reason: string }
   | { status: "skipped"; reason: string };
 
+function resolveCaptureChannel(source: string): string {
+  const s = source.trim().toLowerCase();
+  if (s === "account_signup") return "account_signup";
+  if (s === "dashboard") return "dashboard";
+  if (s === "profile_onboarding") return "profile_onboarding";
+  if (s.startsWith("coming-soon")) return "coming_soon_signup";
+  return "newsletter_signup";
+}
+
 /**
  * Create or reuse exactly one active newsletter promo code per subscriber email.
  * Promo codes discount a future checkout only — they never grant paid placement.
@@ -111,6 +120,12 @@ async function ensureNewsletterPromoCode(
   const metadata: Record<string, unknown> = {
     source: "newsletter_signup",
     created_via: "public_newsletter_signup",
+    promo_family: "website_launch_25",
+    capture_channel: resolveCaptureChannel(input.source),
+    eligible_channel: "stripe_website_checkout",
+    website_checkout_only: true,
+    print_combo_excluded: true,
+    redemption_note: "first eligible website checkout only",
     source_page: "public_newsletter",
     source_cta: input.sourceCta || null,
     signup_source: input.source || null,

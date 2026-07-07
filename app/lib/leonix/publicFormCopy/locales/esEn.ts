@@ -59,9 +59,9 @@ export const ES_LOCALE: PublicLocaleCopy = {
     promoLink: "contacto de productos promocionales",
   },
   newsletter: {
-    title: "Sé parte del lanzamiento",
-    subtitle: "Recibe noticias, oportunidades y el lanzamiento oficial de Leonix Media.",
-    body: "Únete a la lista de interés para recibir actualizaciones, oportunidades para negocios locales y novedades de Leonix Media.",
+    title: "Leonix Launch 25",
+    subtitle: "Obtén 25% de descuento en tu primer anuncio o paquete web elegible.",
+    body: "Regístrate con tu correo y te enviamos tu código único Leonix Launch 25. Sin elegir categoría ahora — el checkout web define después qué producto aplica.",
     fields: {
       email: "Correo electrónico",
       name: "Nombre",
@@ -87,7 +87,7 @@ export const ES_LOCALE: PublicLocaleCopy = {
     ],
     consent: "Acepto recibir actualizaciones del lanzamiento de Leonix Media.",
     consentError: "Confirma el consentimiento para recibir actualizaciones del lanzamiento.",
-    submit: "Únete al lanzamiento",
+    submit: "Obtener mi código",
     submitting: "Guardando…",
     successTitle: "¡Gracias!",
     fromComingSoon: "Te registraste desde la página de próximamente.",
@@ -151,7 +151,7 @@ export const ES_LOCALE: PublicLocaleCopy = {
         "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
     },
     newsletterSuccess:
-      "¡Gracias por ser parte de la comunidad Leonix! Te avisaremos cuando lancemos oficialmente.",
+      "¡Gracias! Tu registro está guardado. Revisa tu correo para tu código Leonix Launch 25.",
     publicError:
       "No pudimos enviar tu información en este momento. Intenta de nuevo o escríbenos a info@leonixmedia.com.",
   },
@@ -230,9 +230,9 @@ export const EN_LOCALE: PublicLocaleCopy = {
     promoLink: "promotional products contact",
   },
   newsletter: {
-    title: "Be part of the launch",
-    subtitle: "Receive news, opportunities and the official Leonix Media launch.",
-    body: "Join the interest list to receive updates, local business opportunities and Leonix Media news.",
+    title: "Leonix Launch 25",
+    subtitle: "Get 25% off your first eligible website ad or package.",
+    body: "Sign up with your email and we'll send your unique Leonix Launch 25 code. No category to pick now — website checkout decides what applies later.",
     fields: {
       email: "Email",
       name: "Name",
@@ -258,7 +258,7 @@ export const EN_LOCALE: PublicLocaleCopy = {
     ],
     consent: "I agree to receive Leonix Media launch updates.",
     consentError: "Please confirm consent to receive launch updates.",
-    submit: "Join the launch",
+    submit: "Get my code",
     submitting: "Saving…",
     successTitle: "Thank you!",
     fromComingSoon: "You signed up from the coming soon page.",
@@ -322,7 +322,7 @@ export const EN_LOCALE: PublicLocaleCopy = {
         "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
     },
     newsletterSuccess:
-      "Thank you for being part of the Leonix community! We'll let you know when we officially launch.",
+      "Thank you! Your signup is saved. Check your email for your Leonix Launch 25 code.",
     publicError:
       "We could not submit your information right now. Please try again or email us at info@leonixmedia.com.",
   },

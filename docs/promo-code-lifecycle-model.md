@@ -73,7 +73,9 @@ Aligned with `LeonixPromoCodeType` in `packagePricingRules.ts`:
 
 - Types `newsletter` and `sms`: per-subscriber unique codes with identity (email/phone).
 - Admin create requires `customer_email` (newsletter) or `customer_phone` (sms).
-- **Public newsletter signup is now active:** `POST /api/newsletter/subscribe` creates/reuses one active `newsletter` code per email and emails it via Resend. Delivery status lives in promo `metadata.email_send_status` (`pending` → `sent` / `failed` / `not_configured`).
+- **Public newsletter signup is active:** `POST /api/newsletter/subscribe` creates/reuses one active `newsletter` code per email and emails it via Resend.
+- **Promo family `website_launch_25`:** public Launch 25 offer for eligible **website checkout only** — not print, not magazine combos, not manual contracts. Metadata: `promo_family`, `capture_channel`, `eligible_channel: stripe_website_checkout`, `website_checkout_only`, `print_combo_excluded`.
+- Marketing surfaces: `/newsletter`, signup login, dashboard home, profile onboarding (`LeonixLaunchCouponCard`).
 - SMS sending remains inactive (admin metadata readiness only).
 - See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 

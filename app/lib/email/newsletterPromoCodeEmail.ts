@@ -47,8 +47,8 @@ export function buildNewsletterPromoCodeEmail(fields: NewsletterPromoCodeEmailFi
 
   const subject =
     lang === "en"
-      ? "Your Leonix promo code is here"
-      : "Tu código promocional Leonix está aquí";
+      ? "Your Leonix Launch 25 code is here"
+      : "Tu código Leonix Launch 25 está aquí";
 
   const greetingEs = name ? `Hola ${name},` : "Hola,";
   const greetingEn = name ? `Hi ${name},` : "Hi,";
@@ -58,16 +58,17 @@ export function buildNewsletterPromoCodeEmail(fields: NewsletterPromoCodeEmailFi
     "",
     "Gracias por unirte a Leonix Media.",
     "",
-    `Aquí está tu código promocional único de Leonix: ${code}`,
-    pct > 0 ? `Descuento: ${pct}% de descuento.` : "",
+    `Aquí está tu código único Leonix Launch 25: ${code}`,
+    pct > 0 ? `Descuento: ${pct}% de descuento en tu primer anuncio o paquete web elegible.` : "",
     `Válido hasta: ${expiry}.`,
     "",
     "Detalles importantes:",
     "- Este código es de un solo uso y no se puede combinar con otros códigos.",
     "- Está ligado a tu correo de suscriptor.",
-    "- Podrás usarlo al publicar o pagar cuando el checkout esté disponible.",
-    "- El código no garantiza ubicación pagada por sí solo.",
-    "- La ubicación pagada depende de un paquete/pago/entitlement elegible.",
+    "- Válido solo para checkout web elegible (anuncios y paquetes web de Leonix).",
+    "- No aplica a paquetes impresos de revista, combos impresos+digital, contratos manuales ni publicaciones gratis.",
+    "- El código no garantiza ubicación pagada, ranking ni verificación por sí solo.",
+    "- La ubicación pagada depende de un paquete/pago/entitlement elegible al checkout.",
     "",
     "Guarda este código en un lugar seguro.",
     `Si necesitas ayuda, contáctanos en ${site}/contacto.`,
@@ -78,16 +79,17 @@ export function buildNewsletterPromoCodeEmail(fields: NewsletterPromoCodeEmailFi
     "",
     "Thank you for joining Leonix Media.",
     "",
-    `Here is your unique Leonix promo code: ${code}`,
-    pct > 0 ? `Discount: ${pct}% off.` : "",
+    `Here is your unique Leonix Launch 25 code: ${code}`,
+    pct > 0 ? `Discount: ${pct}% off your first eligible website ad or package.` : "",
     `Valid until: ${expiry}.`,
     "",
     "Important details:",
     "- This code is one-time use and cannot be combined with other codes.",
     "- It is tied to your subscriber email.",
-    "- You can use it when publishing/checkout becomes available.",
-    "- The code does not guarantee paid placement by itself.",
-    "- Paid placement depends on an eligible package/payment/entitlement.",
+    "- Valid only for eligible website checkout (Leonix website ads and packages).",
+    "- Not valid for printed magazine packages, magazine print+digital combos, manual contracts, or free posts.",
+    "- The code does not guarantee paid placement, ranking, or verification by itself.",
+    "- Paid placement depends on an eligible package/payment/entitlement at checkout.",
     "",
     "Keep this code somewhere safe.",
     `If you need help, contact us at ${site}/contact.`,
@@ -107,16 +109,16 @@ export function buildNewsletterPromoCodeEmail(fields: NewsletterPromoCodeEmailFi
     <p style="margin:0 0 12px;">${escapeHtml(
       isEn ? "Thank you for joining Leonix Media." : "Gracias por unirte a Leonix Media.",
     )}</p>
-    <p style="margin:0 0 6px;">${escapeHtml(isEn ? "Your unique Leonix promo code:" : "Tu código promocional único de Leonix:")}</p>
+    <p style="margin:0 0 6px;">${escapeHtml(isEn ? "Your unique Leonix Launch 25 code:" : "Tu código único Leonix Launch 25:")}</p>
     <p style="margin:0 0 12px;font-size:22px;font-weight:700;letter-spacing:1px;font-family:monospace;">${escapeHtml(code)}</p>
-    ${pct > 0 ? `<p style="margin:0 0 6px;"><strong>${escapeHtml(isEn ? `${pct}% off` : `${pct}% de descuento`)}</strong></p>` : ""}
+    ${pct > 0 ? `<p style="margin:0 0 6px;"><strong>${escapeHtml(isEn ? `${pct}% off your first eligible website ad or package` : `${pct}% de descuento en tu primer anuncio o paquete web elegible`)}</strong></p>` : ""}
     <p style="margin:0 0 12px;">${escapeHtml(isEn ? `Valid until: ${expiry}.` : `Válido hasta: ${expiry}.`)}</p>
     <ul style="margin:0 0 12px;padding-left:18px;">
       <li>${escapeHtml(isEn ? "One-time use, non-stackable." : "De un solo uso, no combinable con otros códigos.")}</li>
       <li>${escapeHtml(isEn ? "Tied to your subscriber email." : "Ligado a tu correo de suscriptor.")}</li>
-      <li>${escapeHtml(isEn ? "Usable when publishing/checkout is available." : "Podrás usarlo al publicar o pagar cuando el checkout esté disponible.")}</li>
-      <li>${escapeHtml(isEn ? "Does not guarantee paid placement by itself." : "No garantiza ubicación pagada por sí solo.")}</li>
-      <li>${escapeHtml(isEn ? "Paid placement depends on an eligible package/payment/entitlement." : "La ubicación pagada depende de un paquete/pago/entitlement elegible.")}</li>
+      <li>${escapeHtml(isEn ? "Website checkout only — eligible Leonix website ads and packages." : "Solo checkout web — anuncios y paquetes web elegibles de Leonix.")}</li>
+      <li>${escapeHtml(isEn ? "Not valid for printed magazine packages, print+digital combos, manual contracts, or free posts." : "No aplica a paquetes impresos, combos impresos+digital, contratos manuales ni publicaciones gratis.")}</li>
+      <li>${escapeHtml(isEn ? "Does not guarantee paid placement, ranking, or verification." : "No garantiza ubicación pagada, ranking ni verificación.")}</li>
     </ul>
     <p style="margin:0 0 12px;">${escapeHtml(isEn ? "Keep this code somewhere safe." : "Guarda este código en un lugar seguro.")}</p>
     <p style="margin:0 0 12px;">${
@@ -127,11 +129,11 @@ export function buildNewsletterPromoCodeEmail(fields: NewsletterPromoCodeEmailFi
   };
 
   const primaryBlock = renderHtmlBlock(
-    lang === "en" ? "Your Leonix promo code" : "Tu código promocional Leonix",
+    lang === "en" ? "Your Leonix Launch 25 code" : "Tu código Leonix Launch 25",
     lang,
   );
   const secondaryBlock = renderHtmlBlock(
-    lang === "en" ? "Tu código promocional Leonix" : "Your Leonix promo code",
+    lang === "en" ? "Tu código Leonix Launch 25" : "Your Leonix Launch 25 code",
     lang === "en" ? "es" : "en",
   );
 

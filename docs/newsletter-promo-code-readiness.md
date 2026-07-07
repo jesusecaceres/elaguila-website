@@ -45,7 +45,32 @@ Now active:
 
 Reuse rule: if the email already has an active `newsletter` code, it is reused (no duplicate rows). Insert collisions regenerate the code up to 3 attempts.
 
-Doctrine preserved: the newsletter promo code discounts a future checkout only. It never grants paid placement, ranking, verified status, or premium visibility. `metadata.placement_doctrine = "promo_code_does_not_grant_paid_placement"`.
+Doctrine preserved: the newsletter promo code discounts a future **website checkout** only (`promo_family: website_launch_25`). It never grants paid placement, ranking, verified status, or premium visibility. `metadata.placement_doctrine = "promo_code_does_not_grant_paid_placement"`.
+
+**Not eligible:** printed magazine packages, magazine print+digital combos, manual contracts/invoices, free posts (En Venta, Comunidad), future renewals unless explicitly approved.
+
+---
+
+## 1c. Website Launch 25 marketing CTA (ACTIVE)
+
+**Component:** `app/components/leonix/LeonixLaunchCouponCard.tsx`  
+**Logo:** `/logo-clean.png`
+
+Now active in this gate:
+
+- **`/newsletter`** — positioned as Leonix Launch 25 coupon landing page (card + form; no category selector).
+- **`/login?mode=signup`** — compact promo card + copy; links to newsletter with `source=account_signup`.
+- **`/dashboard`** — launch benefit card; links to newsletter with `source=dashboard`.
+- **`/dashboard/perfil?onboarding=1`** — compact benefit card during profile onboarding (profile save remains independent).
+- **Coming Soon V2** — ES/EN newsletter section copy aligned to 25% launch code.
+
+Public promise: **“Get 25% off your first eligible Leonix website ad or package.”**
+
+Internal promo family: `website_launch_25` (stored in promo-code metadata; `code_type` remains `newsletter` for admin filters).
+
+Capture channels (`metadata.capture_channel`): `newsletter_signup`, `account_signup`, `dashboard`, `profile_onboarding`, `coming_soon_signup`.
+
+Eligibility enforced later at **website Stripe checkout only** — not at signup.
 
 ---
 
@@ -65,8 +90,8 @@ Doctrine preserved: the newsletter promo code discounts a future checkout only. 
 
 | Out of scope | Notes |
 |--------------|-------|
-| Public newsletter signup form | Not built |
-| Email sending | `email_send_status: not_sent` — no provider integration |
+| Public newsletter signup form | **Active** at `/newsletter` |
+| Email sending | **Active** via Resend for Launch 25 codes |
 | SMS sending | `sms_send_status: not_sent` — no provider integration |
 | Newsletter subscriber table | Not created |
 | Email event log | Not created |
@@ -133,11 +158,11 @@ Discount fields (percent/amount) may also be saved for `newsletter` / `sms` when
 - Unsubscribe management from the promo email
 - Dedicated email-event table (delivery/open/click log) — status currently lives on the promo-code metadata only
 - SMS sending
-- User dashboard "My benefits" view
+- User dashboard **“My active code”** status panel (benefit card links to newsletter only)
 - Automatic package entitlement creation from a newsletter code
-- Stripe redemption of the newsletter code at checkout
+- Stripe coupon creation/sync and checkout redemption enforcement
 - Public ranking / placement boost
-- Public category rollout CTA modules
+- Print/combo/admin contract promo system
 
 ## 8. Manual QA checklist (public newsletter signup)
 
