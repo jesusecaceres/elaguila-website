@@ -406,19 +406,12 @@ leonixmedia.com
 
 ## Next Gate
 
-**`AUGUST-2026-VISUAL-BATCH1-ASSET-CREATION`**
+**`AUGUST-2026-VISUAL-BATCH1-ASSET-PLACED-QA`** — Asset QA file: [`AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md`](AUGUST-2026-VISUAL-BATCH1-ASSET-QA.md)
 
 Purpose:
 
-- Create visual master samples for:
-  - Page 5 — Agenda de Agosto
-  - Page 6 — Negocios que construyen comunidad
-  - Page 12 — Back cover / Sé parte del movimiento Leonix
-- Must happen **only after Chuy explicitly approves visual creation**
-- Must preserve **8 × 11.5 in** ratio
-- Must preserve same-size page standard
-- Must preserve translation-safe spacing
-- Must remain source/reference assets only until approved
+- Run after Chuy places pages **5, 6, 12** PNGs in `01-master-samples/` with exact filenames
+- Verify placement, ratio, contact truth, readability — **not** public/print/FlipHTML5 approval
 
 ---
 
