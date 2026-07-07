@@ -9,6 +9,7 @@ import {
   hasPaymentMethodsResolved,
   hasQuickFactsResolved,
   hasOfferSectionResolved,
+  hasPaidCouponsSectionResolved,
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosHero } from "./ServiciosHero";
@@ -19,6 +20,7 @@ import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGalleryWithTabs } from "./ServiciosGalleryWithTabs";
 import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
 import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
+import { ServiciosCouponsCard } from "./ServiciosCouponsCard";
 import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosReviews } from "./ServiciosReviews";
 import { ServiciosHours } from "./ServiciosHours";
@@ -168,6 +170,19 @@ export function ServiciosProfileView({
                   </div>
 
                   <div className="order-4 lg:order-3">
+                    {hasPaidCouponsSectionResolved(displayProfile) ||
+                    displayProfile.couponFlyer?.imageUrl?.trim() ||
+                    displayProfile.couponMoreOffers?.url?.trim() ? (
+                      <div className="mb-5 sm:mb-8">
+                        <ServiciosCouponsCard
+                          coupons={displayProfile.coupons}
+                          lang={lang}
+                          couponFlyer={displayProfile.couponFlyer}
+                          couponMoreOffers={displayProfile.couponMoreOffers}
+                          featuredRow
+                        />
+                      </div>
+                    ) : null}
                     <ServiciosGalleryWithTabs
                       profile={profile}
                       lang={lang}

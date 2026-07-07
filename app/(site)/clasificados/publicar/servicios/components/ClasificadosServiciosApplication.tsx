@@ -453,6 +453,10 @@ export function ClasificadosServiciosApplication() {
     state.coverUrl,
     state.logoUrl,
     state.promotions,
+    state.coupons,
+    state.couponFlyer,
+    state.couponsAddOn,
+    state.couponMoreOffers,
   ]);
 
   /* Servicios draft is session-persisted; do not register native beforeunload warnings. */

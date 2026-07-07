@@ -107,7 +107,10 @@ export function ServiciosProfessionalPreviewShell({
   }, [applicationState, draftSlug, lang]);
 
   const showCoupons = useMemo(
-    () => hasPaidCouponsSectionResolved(displayProfile),
+    () =>
+      hasPaidCouponsSectionResolved(displayProfile) ||
+      Boolean(displayProfile.couponFlyer?.imageUrl?.trim()) ||
+      Boolean(displayProfile.couponMoreOffers?.url?.trim()),
     [displayProfile],
   );
 

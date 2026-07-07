@@ -46,6 +46,8 @@ const SLOTS = new Set([
   "promoPdf",
   "licenseDoc",
   "insuranceDoc",
+  "couponImage",
+  "couponFlyer",
 ]);
 
 async function prepareBlobForServiciosDraftUpload(blob: Blob, ctx: { slot: string; index?: number }): Promise<Blob> {
@@ -284,6 +286,23 @@ export async function resolveServiciosDraftMediaToRemoteUrls(
     insuranceDocumentUrl = await uploadUrlIfNeeded(insuranceDocumentUrl, { draftListingId, slot: "insuranceDoc" });
   }
 
+  const coupons = await Promise.all(
+    (working.coupons ?? []).slice(0, 4).map(async (row, i) => {
+      let imageUrl = row.imageUrl;
+      if (imageUrl.trim() && !isServiciosPublishableRemoteMediaUrl(imageUrl)) {
+        imageUrl = await uploadUrlIfNeeded(imageUrl, { draftListingId, slot: "couponImage", index: i });
+      }
+      return { ...row, imageUrl };
+    }),
+  );
+
+  let couponFlyer = working.couponFlyer ?? { imageUrl: "" };
+  let couponFlyerUrl = couponFlyer.imageUrl;
+  if (couponFlyerUrl.trim() && !isServiciosPublishableRemoteMediaUrl(couponFlyerUrl)) {
+    couponFlyerUrl = await uploadUrlIfNeeded(couponFlyerUrl, { draftListingId, slot: "couponFlyer" });
+    couponFlyer = { imageUrl: couponFlyerUrl };
+  }
+
   return {
     skippedOversizedVideos,
     videoPublishDiagnostics: videoPublishDiagnostics.length ? videoPublishDiagnostics : undefined,
@@ -296,6 +315,8 @@ export async function resolveServiciosDraftMediaToRemoteUrls(
       promotions,
       licenseDocumentUrl,
       insuranceDocumentUrl,
+      coupons,
+      couponFlyer,
     }),
   };
 }

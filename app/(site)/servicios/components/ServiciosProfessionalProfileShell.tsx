@@ -295,7 +295,9 @@ export function ServiciosProfessionalProfileShell({
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
-              {hasPaidCouponsSectionResolved(displayProfile) ? (
+              {hasPaidCouponsSectionResolved(displayProfile) ||
+              displayProfile.couponFlyer?.imageUrl?.trim() ||
+              displayProfile.couponMoreOffers?.url?.trim() ? (
                 <ServiciosCouponsCard
                   coupons={displayProfile.coupons}
                   lang={lang}

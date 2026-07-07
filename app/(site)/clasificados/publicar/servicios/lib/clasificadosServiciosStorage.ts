@@ -161,5 +161,9 @@ export function serviciosDraftJsonMayContainIdbRefs(state: ClasificadosServicios
   for (const v of state.videos ?? []) {
     if (check(v.url)) return true;
   }
+  for (const row of state.coupons ?? []) {
+    if (check(row.imageUrl)) return true;
+  }
+  if (check(state.couponFlyer?.imageUrl ?? "")) return true;
   return false;
 }

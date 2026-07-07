@@ -14,23 +14,34 @@ export function serviciosRefOfferImage(slot: number): string {
 export function serviciosRefOfferPdf(slot: number): string {
   return `${SV_IDB_PREFIX}|OFFER_PDF|${slot}`;
 }
+export function serviciosRefCouponImage(slot: number): string {
+  return `${SV_IDB_PREFIX}|COUPON_IMG|${slot}`;
+}
+export function serviciosRefCouponFlyer(): string {
+  return `${SV_IDB_PREFIX}|COUPON_FLYER`;
+}
 function isDataUrl(s: string): boolean {
   return typeof s === "string" && s.startsWith("data:") && s.length > 80;
 }
 
 type OfferMediaRef =
   | { kind: "offerImg"; slot?: number }
-  | { kind: "offerPdf"; slot?: number };
+  | { kind: "offerPdf"; slot?: number }
+  | { kind: "couponImg"; slot?: number }
+  | { kind: "couponFlyer" };
 
 function parseOfferMediaRef(url: string): OfferMediaRef | null {
   if (!url.startsWith(SV_IDB_PREFIX)) return null;
   const rest = url.slice(SV_IDB_PREFIX.length);
   if (rest === "|OFFER_IMG") return { kind: "offerImg" };
   if (rest === "|OFFER_PDF") return { kind: "offerPdf" };
+  if (rest === "|COUPON_FLYER") return { kind: "couponFlyer" };
   const img = /^\|OFFER_IMG\|(\d+)$/.exec(rest);
   if (img?.[1]) return { kind: "offerImg", slot: Number(img[1]) };
   const pdf = /^\|OFFER_PDF\|(\d+)$/.exec(rest);
   if (pdf?.[1]) return { kind: "offerPdf", slot: Number(pdf[1]) };
+  const couponImg = /^\|COUPON_IMG\|(\d+)$/.exec(rest);
+  if (couponImg?.[1]) return { kind: "couponImg", slot: Number(couponImg[1]) };
   return null;
 }
 
@@ -66,6 +77,13 @@ export function stripUnresolvedServiciosIdbRefs(state: ClasificadosServiciosAppl
     imageUrl: row.imageUrl.startsWith(SV_IDB_PREFIX) ? "" : row.imageUrl,
     pdfUrl: row.pdfUrl.startsWith(SV_IDB_PREFIX) ? "" : row.pdfUrl,
   }));
+  const coupons = (state.coupons ?? []).map((row) => ({
+    ...row,
+    imageUrl: row.imageUrl.startsWith(SV_IDB_PREFIX) ? "" : row.imageUrl,
+  }));
+  const couponFlyer = {
+    imageUrl: (state.couponFlyer?.imageUrl ?? "").startsWith(SV_IDB_PREFIX) ? "" : (state.couponFlyer?.imageUrl ?? ""),
+  };
   const gIds = new Set(gallery.map((x) => x.id));
   const featuredGalleryIds = state.featuredGalleryIds.filter((id) => gIds.has(id));
   return normalizeClasificadosServiciosApplicationState({
@@ -76,6 +94,8 @@ export function stripUnresolvedServiciosIdbRefs(state: ClasificadosServiciosAppl
     logoUrl,
     coverUrl,
     promotions,
+    coupons,
+    couponFlyer,
   });
 }
 
@@ -131,6 +151,25 @@ export async function offloadServiciosHeavyMediaToIdb(
     promotions[i] = { ...row, imageUrl, pdfUrl };
   }
 
+  const coupons = [...(state.coupons ?? [])];
+  for (let i = 0; i < coupons.length; i++) {
+    const row = coupons[i]!;
+    let imageUrl = row.imageUrl;
+    if (isDataUrl(imageUrl)) {
+      await idbServiciosPutDataUrl(namespace, "couponImg", String(i), imageUrl);
+      imageUrl = serviciosRefCouponImage(i);
+    }
+    coupons[i] = { ...row, imageUrl };
+  }
+
+  let couponFlyer = state.couponFlyer ?? { imageUrl: "" };
+  let couponFlyerUrl = couponFlyer.imageUrl;
+  if (isDataUrl(couponFlyerUrl)) {
+    await idbServiciosPutDataUrl(namespace, "couponFlyer", undefined, couponFlyerUrl);
+    couponFlyerUrl = serviciosRefCouponFlyer();
+    couponFlyer = { imageUrl: couponFlyerUrl };
+  }
+
   return normalizeClasificadosServiciosApplicationState({
     ...state,
     logoUrl,
@@ -138,6 +177,8 @@ export async function offloadServiciosHeavyMediaToIdb(
     gallery,
     videos,
     promotions,
+    coupons,
+    couponFlyer,
   });
 }
 
@@ -197,6 +238,27 @@ export async function inlineServiciosHeavyMediaFromIdb(
     promotions[i] = { ...row, imageUrl, pdfUrl };
   }
 
+  const coupons = [...(state.coupons ?? [])];
+  for (let i = 0; i < coupons.length; i++) {
+    const row = coupons[i]!;
+    let imageUrl = row.imageUrl;
+    const couponRef = parseOfferMediaRef(imageUrl);
+    if (couponRef?.kind === "couponImg") {
+      const blob = await idbServiciosGetDataUrl(namespace, "couponImg", idbKeyForOfferSlot(couponRef.slot));
+      imageUrl = blob ?? "";
+    }
+    coupons[i] = { ...row, imageUrl };
+  }
+
+  let couponFlyer = state.couponFlyer ?? { imageUrl: "" };
+  let couponFlyerUrl = couponFlyer.imageUrl;
+  const flyerRef = parseOfferMediaRef(couponFlyerUrl);
+  if (flyerRef?.kind === "couponFlyer") {
+    const blob = await idbServiciosGetDataUrl(namespace, "couponFlyer", undefined);
+    couponFlyerUrl = blob ?? "";
+    couponFlyer = { imageUrl: couponFlyerUrl };
+  }
+
   return normalizeClasificadosServiciosApplicationState({
     ...state,
     logoUrl,
@@ -204,6 +266,8 @@ export async function inlineServiciosHeavyMediaFromIdb(
     gallery,
     videos,
     promotions,
+    coupons,
+    couponFlyer,
   });
 }
 

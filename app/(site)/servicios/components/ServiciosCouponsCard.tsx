@@ -131,7 +131,13 @@ export function ServiciosCouponsCard({
       c.hrefSafe?.trim(),
   );
 
-  if (validCoupons.length === 0) return null;
+  if (
+    validCoupons.length === 0 &&
+    !couponFlyer?.imageUrl?.trim() &&
+    !couponMoreOffers?.url?.trim()
+  ) {
+    return null;
+  }
 
   return (
     <>
