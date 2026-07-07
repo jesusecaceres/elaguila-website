@@ -28,19 +28,29 @@ import {
 
 const OFERTAS_LOCALES_LANDING_PATH = "/clasificados/ofertas-locales";
 const OFERTAS_LOCALES_RESULTS_PATH = "/clasificados/ofertas-locales/results";
-/** Extra clearance below fixed site nav + directory (category-local only). */
-const OFERTAS_LOCALES_SHELL = `${CATEGORY_STANDARD_MAIN} pt-[calc(4.75rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14`;
+/** Rentas/Bienes shell — warm Leonix city-living atmosphere, wide premium gateway lane. */
+const OFERTAS_LOCALES_SHELL = "relative min-h-screen overflow-x-hidden bg-[#F3EBDD] text-[#1F241C]";
+const OFERTAS_LOCALES_HEADER_SAFE_TOP = "pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14";
+const OFERTAS_LOCALES_LANDING_LANE = "mx-auto w-full min-w-0 max-w-[1280px]";
+const OFERTAS_LOCALES_RESULTS_SHELL = "relative mx-auto w-full min-w-0 max-w-[1280px] px-3.5 pb-12 sm:px-4 lg:px-5";
 
-const BTN_PRIMARY =
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
-const BTN_SECONDARY =
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF] disabled:cursor-not-allowed disabled:opacity-50";
-const SEARCH_CANVAS =
-  "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
-const INPUT =
-  "min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45";
-const CHIP =
-  "inline-flex h-[30px] max-w-full shrink-0 snap-start items-center rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold leading-none text-[#3D3428] hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7]";
+/** Rentas/Bienes search shell — landing + results DNA */
+const OFERTAS_LOCALES_SEARCH_SHELL =
+  "relative w-full rounded-xl bg-white/96 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_28px_-16px_rgba(42,36,22,0.18)] ring-1 ring-[#C9A84A]/30 sm:p-4 sm:rounded-2xl";
+const OFERTAS_LOCALES_SEARCH_GLOW =
+  "pointer-events-none absolute -inset-px rounded-xl bg-[radial-gradient(ellipse_100%_80%_at_50%_0%,rgba(201,168,74,0.2),transparent_60%)] sm:rounded-2xl";
+const OFERTAS_LOCALES_SEARCH_FIELD =
+  "flex min-h-[3rem] min-w-0 items-center rounded-xl border border-[#D6C7AD]/75 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_8px_-6px_rgba(42,36,22,0.12)] sm:min-h-[3.125rem]";
+const OFERTAS_LOCALES_SEARCH_INPUT =
+  "min-h-[3rem] min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[0.9375rem] text-[#1F241C] outline-none placeholder:text-[#3D3428]/50 focus-visible:ring-0 sm:min-h-[3.125rem] sm:text-base";
+const OFERTAS_LOCALES_BTN_PRIMARY =
+  "inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] shadow-[0_6px_20px_-8px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[3.125rem] sm:text-[0.9375rem]";
+const OFERTAS_LOCALES_BTN_SECONDARY =
+  "inline-flex min-h-[3rem] items-center justify-center gap-1.5 rounded-xl border border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/35 sm:min-h-[3.125rem]";
+const OFERTAS_LOCALES_CHIP =
+  "inline-flex h-[36px] max-w-full shrink-0 snap-start items-center gap-1.5 rounded-lg border border-[#D6C7AD]/70 bg-gradient-to-b from-[#FFFDF7] to-[#FBF7EF] px-3.5 text-xs font-semibold text-[#2A4536] transition hover:border-[#C9A84A]/65 hover:from-[#FFFDF7] hover:to-[#FFF9F0] hover:shadow-[0_4px_14px_-8px_rgba(122,30,44,0.18)]";
+const OFERTAS_LOCALES_ACTIVE_FILTER_CHIP =
+  "inline-flex max-w-full items-center rounded-full border border-[#D6C7AD]/70 bg-white px-3 py-1 text-xs font-semibold text-[#2A4536] shadow-sm";
 
 function parseLang(raw: string | null): OfertasLocalesAppLang {
   return raw === "en" ? "en" : "es";
@@ -231,8 +241,22 @@ export function OfertasLocalesPublicSearchClient({
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <div className={OFERTAS_LOCALES_SHELL}>
+    <div className={OFERTAS_LOCALES_SHELL}>
+      {/* Rentas/Bienes subtle texture */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(201,168,74,0.22),transparent_52%),radial-gradient(ellipse_65%_45%_at_100%_0%,rgba(85,107,62,0.1),transparent_48%),radial-gradient(ellipse_60%_40%_at_0%_25%,rgba(122,30,44,0.06),transparent_42%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.045]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(90deg,#2A4536 0px,#2A4536 1px,transparent 1px,transparent 52px),repeating-linear-gradient(0deg,#2A4536 0px,#2A4536 1px,transparent 1px,transparent 52px)",
+        }}
+        aria-hidden
+      />
+
+      <div className={`${isResults ? OFERTAS_LOCALES_RESULTS_SHELL : OFERTAS_LOCALES_LANDING_LANE} ${OFERTAS_LOCALES_HEADER_SAFE_TOP} relative`}>
         {isResults ? (
           <Link
             href={`${OFERTAS_LOCALES_LANDING_PATH}?lang=${lang}`}
@@ -242,60 +266,156 @@ export function OfertasLocalesPublicSearchClient({
           </Link>
         ) : null}
 
-        {/* Premium hero/search shell */}
+        {/* Rentas/Bienes gateway panel */}
         <section className="mb-4 sm:mb-6" aria-labelledby="ofertas-hero-title">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
-            <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
-              <TagIcon className="h-7 w-7" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{c.heroEyebrow}</p>
-              <h1 id="ofertas-hero-title" className="mt-2 font-serif text-2xl font-bold leading-none tracking-tight text-[#2A4536] sm:text-3xl">
-                {c.heroTitle}
-              </h1>
-              <p className="mt-2 font-serif italic text-[#7A1E2C]">{c.heroTagline}</p>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{c.heroIntro}</p>
-              <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-[#5C5346] sm:text-sm">{c.heroHelper}</p>
+          <div className="relative w-full overflow-hidden rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7]/88 shadow-[0_16px_48px_-24px_rgba(42,36,22,0.28)] backdrop-blur-[2px] px-4 py-6 sm:rounded-2xl sm:px-7 sm:py-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+              <span className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-[#C9A84A]/45 bg-white/90 text-[#2A4536] shadow-[0_8px_28px_-10px_rgba(201,168,74,0.45)]">
+                <TagIcon className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{c.heroEyebrow}</p>
+                <h1 id="ofertas-hero-title" className="mt-2 font-serif text-[2.1rem] font-bold leading-[1.1] text-[#2A4536] sm:text-[2.5rem] lg:text-[2.65rem]">
+                  {c.heroTitle}
+                </h1>
+                <p className="mt-2 font-serif text-lg font-semibold italic text-[#7A1E2C] sm:text-xl">{c.heroTagline}</p>
+                <p className="mt-3 max-w-3xl text-[0.9375rem] leading-relaxed text-[#3D3428] sm:text-base">{c.heroIntro}</p>
+                <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-[#5C5346]">{c.heroHelper}</p>
+              </div>
+            </div>
+
+            {/* Search shell integrated into gateway */}
+            <div className="relative mt-5 min-w-0 sm:mt-6">
+              <div className={OFERTAS_LOCALES_SEARCH_SHELL}>
+                <div className={OFERTAS_LOCALES_SEARCH_GLOW} aria-hidden />
+                <form onSubmit={onSubmit} role="search">
+                  <div className="relative grid grid-cols-1 gap-2.5 sm:gap-3 sm:grid-cols-12 sm:items-stretch">
+                    <label className={`${OFERTAS_LOCALES_SEARCH_FIELD} sm:col-span-5`}>
+                      <span className="shrink-0 pl-3.5 text-[#556B3E]" aria-hidden>
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx={11} cy={11} r={7} />
+                          <path d="M20 20l-3-3" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                      <input
+                        className={`${OFERTAS_LOCALES_SEARCH_INPUT} font-medium`}
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        placeholder={c.searchPlaceholderCompact}
+                        aria-label={c.mobileSearchLabel}
+                        autoComplete="off"
+                      />
+                    </label>
+                    <label className={`${OFERTAS_LOCALES_SEARCH_FIELD} sm:col-span-2`}>
+                      <input
+                        className={OFERTAS_LOCALES_SEARCH_INPUT}
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder={c.cityPlaceholder}
+                        aria-label={c.cityLabel}
+                        autoComplete="address-level2"
+                      />
+                    </label>
+                    <label className={`${OFERTAS_LOCALES_SEARCH_FIELD} sm:col-span-2`}>
+                      <OfertaLocalRegionStateInput
+                        country={country || OFERTA_LOCAL_DEFAULT_COUNTRY}
+                        value={state}
+                        onChange={setState}
+                        inputClassName={OFERTAS_LOCALES_SEARCH_INPUT}
+                        lang={lang}
+                        usPlaceholder={c.statePlaceholder}
+                        intlPlaceholder={c.statePlaceholder}
+                      />
+                    </label>
+                    <label className={`${OFERTAS_LOCALES_SEARCH_FIELD} sm:col-span-1`}>
+                      <OfertaLocalPostalInput
+                        value={zip}
+                        onChange={setZip}
+                        inputClassName={`${OFERTAS_LOCALES_SEARCH_INPUT} px-2 text-center`}
+                        placeholder={c.zipPlaceholder}
+                        aria-label={c.zipLabel}
+                      />
+                    </label>
+                    <div className="hidden sm:col-span-2 sm:block">
+                      <button type="submit" className={`${OFERTAS_LOCALES_BTN_PRIMARY} w-full`} disabled={loading}>
+                        {loading ? c.searching : c.searchButton}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative mt-3 grid grid-cols-1 gap-2.5 sm:gap-3 sm:grid-cols-12 sm:items-stretch">
+                    <label className={`${OFERTAS_LOCALES_SEARCH_FIELD} sm:col-span-4`}>
+                      <span className="sr-only">{c.countryLabel}</span>
+                      <span className="hidden shrink-0 pl-3 text-[10px] font-bold uppercase tracking-wide text-[#556B3E]/80 sm:inline" aria-hidden>
+                        {c.countryLabel}
+                      </span>
+                      <input
+                        className={OFERTAS_LOCALES_SEARCH_INPUT}
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder={c.countryPlaceholder}
+                        aria-label={c.countryLabel}
+                        autoComplete="country-name"
+                      />
+                    </label>
+                    <div className="sm:col-span-3">
+                      <button type="button" className={`${OFERTAS_LOCALES_BTN_SECONDARY} w-full`} onClick={() => setFiltersOpen(true)}>
+                        <svg className="h-4 w-4 shrink-0 text-[#556B3E]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx={12} cy={12} r={3} />
+                          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                        </svg>
+                        {c.filtersButton}
+                      </button>
+                    </div>
+                    <Link href={browseAllHref} className={`${OFERTAS_LOCALES_BTN_SECONDARY} sm:col-span-5 inline-flex w-full items-center justify-center`}>
+                      {c.browseAllDeals}
+                    </Link>
+                    <button type="submit" className={`${OFERTAS_LOCALES_BTN_PRIMARY} w-full sm:hidden`} disabled={loading}>
+                      {loading ? c.searching : c.searchButton}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Sponsor lane - landing only */}
+        {/* Sponsor lane - landing only, compact Rentas/Bienes rhythm */}
         {!isResults ? (
           <section
-            className="mb-4 rounded-2xl border border-[#C9A84A]/35 bg-[#FFFDF7]/95 p-5 sm:mb-6 sm:p-6"
+            className="mb-4 rounded-2xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/96 shadow-[0_8px_32px_-20px_rgba(42,36,22,0.18)] px-4 py-5 sm:mb-6 sm:px-6 sm:py-6"
             aria-labelledby="ofertas-sponsors-title"
           >
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{c.sponsorEyebrow}</p>
-            <h2 id="ofertas-sponsors-title" className="mt-2 font-serif text-2xl font-bold leading-snug text-[#2A4536] sm:text-[1.75rem]">
+            <h2 id="ofertas-sponsors-title" className="mt-2 font-serif text-xl font-bold leading-snug text-[#2A4536] sm:text-2xl">
               {c.sponsorTitle}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{c.sponsorBody}</p>
             <p className="mt-2 max-w-3xl text-xs leading-relaxed text-[#5C5346] sm:text-sm">{c.sponsorSupport}</p>
 
-            <div className="mt-5 flex flex-wrap gap-2 sm:mt-6">
+            <div className="mt-4 flex flex-wrap gap-2 sm:mt-5">
               {c.sponsorChips.map((chip) => (
                 <span
                   key={chip}
-                  className="inline-flex rounded-full border border-[#C9A84A]/40 bg-[#FAF6EE] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6E5418] sm:text-[11px]"
+                  className={OFERTAS_LOCALES_CHIP}
                 >
                   {chip}
                 </span>
               ))}
             </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Link href={publishHref} className={`${OFERTAS_LOCALES_BTN_PRIMARY} w-full sm:w-auto`}>
                 {c.sponsorPrimaryCta}
               </Link>
-              <Link href={browseAllHref} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
+              <Link href={browseAllHref} className={`${OFERTAS_LOCALES_BTN_SECONDARY} w-full sm:w-auto`}>
                 {c.sponsorSecondaryCta}
               </Link>
             </div>
           </section>
         ) : null}
 
-        {/* Discovery/shortcut section - landing only */}
+        {/* Discovery/shortcut section - landing only, using real offerType fields */}
         {!isResults ? (
           <section className="mb-4 sm:mb-6" aria-labelledby="ofertas-discovery-title">
             <h2 id="ofertas-discovery-title" className="font-serif text-xl font-bold leading-snug text-[#2A4536] sm:text-2xl">
@@ -303,151 +423,107 @@ export function OfertasLocalesPublicSearchClient({
             </h2>
             <p className="mt-1 text-sm text-[#5C5346]">{c.discoverySubtitle}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {c.discoveryChips.map((chip) => (
-                <Link
-                  key={chip}
-                  href={`${browseAllHref}&q=${encodeURIComponent(chip)}`}
-                  className="inline-flex rounded-full border border-[#C9A84A]/45 bg-[#FBF7EF] px-3 py-1.5 text-xs font-semibold text-[#3D3428] hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7]"
-                >
-                  {chip}
-                </Link>
-              ))}
+              <Link
+                href={`${browseAllHref}&offerType=weekly_flyer`}
+                className={OFERTAS_LOCALES_CHIP}
+              >
+                {lang === "es" ? "Volante semanal" : "Weekly flyer"}
+              </Link>
+              <Link
+                href={`${browseAllHref}&offerType=coupon`}
+                className={OFERTAS_LOCALES_CHIP}
+              >
+                {lang === "es" ? "Cupón" : "Coupon"}
+              </Link>
+              <Link
+                href={`${browseAllHref}&offerType=promotion`}
+                className={OFERTAS_LOCALES_CHIP}
+              >
+                {lang === "es" ? "Promoción" : "Promotion"}
+              </Link>
+              <Link
+                href={`${browseAllHref}&offerType=seasonal_special`}
+                className={OFERTAS_LOCALES_CHIP}
+              >
+                {lang === "es" ? "Especial de temporada" : "Seasonal special"}
+              </Link>
+              <Link
+                href={`${browseAllHref}&offerType=bundle`}
+                className={OFERTAS_LOCALES_CHIP}
+              >
+                {lang === "es" ? "Paquete / combo" : "Bundle"}
+              </Link>
+              <Link
+                href={`${browseAllHref}&offerType=featured_deal`}
+                className={OFERTAS_LOCALES_CHIP}
+              >
+                {lang === "es" ? "Oferta destacada" : "Featured deal"}
+              </Link>
             </div>
           </section>
         ) : null}
 
-        {/* CTAs row */}
-        <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap">
-          <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
-            {c.publishCta}
-          </Link>
-          <Link href={browseAllHref} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
-            {c.browseAllDeals}
-          </Link>
-          {hasFilters ? (
-            <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={clearFilters}>
-              {c.clearFiltersLink}
-            </button>
-          ) : null}
-          {listHasItems ? (
-            <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
-              {c.listButton}
-              <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
-                {shoppingList.counts.itemCount}
-              </span>
-            </button>
-          ) : null}
-        </div>
-
-        <form onSubmit={onSubmit} className={SEARCH_CANVAS} role="search">
-          <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-4 sm:border-b-0 sm:border-r">
-              <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3-3" strokeLinecap="round" />
-                </svg>
-              </span>
-              <input
-                className={`${INPUT} min-w-0 flex-1 px-2`}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={c.searchPlaceholderCompact}
-                aria-label={c.mobileSearchLabel}
-              />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <input
-                className={INPUT}
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder={c.cityPlaceholder}
-                aria-label={c.cityLabel}
-                autoComplete="address-level2"
-              />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <OfertaLocalRegionStateInput
-                country={country || OFERTA_LOCAL_DEFAULT_COUNTRY}
-                value={state}
-                onChange={setState}
-                inputClassName={INPUT}
-                lang={lang}
-                usPlaceholder={c.statePlaceholder}
-                intlPlaceholder={c.statePlaceholder}
-              />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <OfertaLocalPostalInput
-                value={zip}
-                onChange={setZip}
-                inputClassName={INPUT}
-                placeholder={c.zipPlaceholder}
-                aria-label={c.zipLabel}
-              />
-            </label>
-            <div className="hidden border-b border-[#D6C7AD]/80 p-1.5 sm:col-span-2 sm:block sm:border-b-0">
-              <button type="submit" className={`${BTN_PRIMARY} w-full`} disabled={loading}>
-                {loading ? c.searching : c.searchButton}
+        {/* Landing CTAs - publish only on landing */}
+        {!isResults ? (
+          <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:flex-wrap">
+            <Link href={publishHref} className={`${OFERTAS_LOCALES_BTN_PRIMARY} w-full sm:w-auto`}>
+              {c.publishCta}
+            </Link>
+            {listHasItems ? (
+              <button type="button" className={`${OFERTAS_LOCALES_BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
+                {c.listButton}
+                <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
+                  {shoppingList.counts.itemCount}
+                </span>
               </button>
-            </div>
+            ) : null}
           </div>
-          <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-stretch">
-            <button
-              type="button"
-              className={`${BTN_SECONDARY} order-1 w-full sm:order-none sm:col-span-2 sm:max-w-none`}
-              onClick={() => setFiltersOpen(true)}
-            >
-              {c.filtersButton}
-            </button>
-            <button
-              type="submit"
-              className={`${BTN_PRIMARY} order-2 w-full sm:hidden`}
-              disabled={loading}
-            >
-              {loading ? c.searching : c.searchButton}
-            </button>
-            <label className="order-3 flex min-h-[2.625rem] min-w-0 sm:order-none sm:col-span-3">
-              <input
-                className={INPUT}
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder={c.countryPlaceholder}
-                aria-label={c.countryLabel}
-                autoComplete="country-name"
-              />
-            </label>
-          </div>
-        </form>
+        ) : null}
 
+        {/* Active filters - Rentas/Bienes style */}
         {hasFilters ? (
-          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+          <div className="mt-3 flex flex-col gap-2 rounded-xl border border-[#C9A84A]/30 bg-[#FFFDF7]/90 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2 sm:px-5">
             {q ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ q: "" })}>
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ q: "" })}>
                 {lang === "es" ? "Quitar palabra clave" : "Remove keyword"} ×
               </button>
             ) : null}
             {city ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ city: "" })}>
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ city: "" })}>
                 {city} ×
               </button>
             ) : null}
             {state ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ state: "" })}>
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ state: "" })}>
                 {state} ×
               </button>
             ) : null}
             {zip ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ zip: "" })}>
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ zip: "" })}>
                 {zip} ×
               </button>
             ) : null}
             {country ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ country: "" })}>
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ country: "" })}>
                 {country} ×
               </button>
             ) : null}
-            <button type="button" className={CHIP} onClick={clearFilters}>
+            {category ? (
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ category: "" })}>
+                {category} ×
+              </button>
+            ) : null}
+            {marketType ? (
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ marketType: "" })}>
+                {marketType} ×
+              </button>
+            ) : null}
+            {offerType ? (
+              <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={() => pushSearch({ offerType: "" })}>
+                {offerType} ×
+              </button>
+            ) : null}
+            <button type="button" className={OFERTAS_LOCALES_ACTIVE_FILTER_CHIP} onClick={clearFilters}>
               {c.clearFiltersLink}
             </button>
           </div>
@@ -470,10 +546,10 @@ export function OfertasLocalesPublicSearchClient({
             <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <Link href={publishHref} className={BTN_PRIMARY}>
+              <Link href={publishHref} className={OFERTAS_LOCALES_BTN_PRIMARY}>
                 {c.publishCta}
               </Link>
-              <Link href={browseAllHref} className={BTN_SECONDARY}>
+              <Link href={browseAllHref} className={OFERTAS_LOCALES_BTN_SECONDARY}>
                 {c.browseAllDeals}
               </Link>
             </div>
@@ -486,14 +562,14 @@ export function OfertasLocalesPublicSearchClient({
             <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {hasFilters ? (
-                <button type="button" className={BTN_SECONDARY} onClick={clearFilters}>
+                <button type="button" className={OFERTAS_LOCALES_BTN_SECONDARY} onClick={clearFilters}>
                   {c.clearFiltersLink}
                 </button>
               ) : null}
-              <Link href={publishHref} className={BTN_PRIMARY}>
+              <Link href={publishHref} className={OFERTAS_LOCALES_BTN_PRIMARY}>
                 {c.publishCta}
               </Link>
-              <Link href={browseAllHref} className={BTN_SECONDARY}>
+              <Link href={browseAllHref} className={OFERTAS_LOCALES_BTN_SECONDARY}>
                 {c.browseAllDeals}
               </Link>
             </div>
@@ -536,12 +612,20 @@ export function OfertasLocalesPublicSearchClient({
         ) : null}
         </div>
 
-        {!showPipelineEmpty ? (
-          <div className="mt-5 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 sm:mt-6">
-            <p className="text-xs font-medium text-[#3D3428]">{c.publishCtaHint}</p>
-            <Link href={publishHref} className="mt-1 inline-block text-xs font-bold text-[#7A1E2C] underline">
-              {c.publishCta}
-            </Link>
+        {/* Results CTAs - clear filters and shopping list on results */}
+        {isResults && hasFilters ? (
+          <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:flex-wrap">
+            <button type="button" className={`${OFERTAS_LOCALES_BTN_SECONDARY} w-full sm:w-auto`} onClick={clearFilters}>
+              {c.clearFiltersLink}
+            </button>
+            {listHasItems ? (
+              <button type="button" className={`${OFERTAS_LOCALES_BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
+                {c.listButton}
+                <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
+                  {shoppingList.counts.itemCount}
+                </span>
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
