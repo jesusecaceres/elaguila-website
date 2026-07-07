@@ -142,3 +142,118 @@ Step 5/6/7, AI scan, crop engine, Stripe, admin, dashboard, public results, Supa
 | READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
 | GLOBAL WORKING TREE CLEAN: YES/NO | NO | Gate 2 files dirty (expected) |
 | UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Only allowed Gate 2 files |
+
+---
+
+## Gate 2A — Product Discovery + Item Drawer Visual Polish
+
+**Task classification:** MICRO PATCH / SCOPED VISUAL POLISH PATCH  
+**Date:** 2026-07-06
+
+### Why this polish was needed
+
+Gate 2 delivered working product discovery and item drawer behavior, but CTAs looked plain/rectangular, the no-image state felt cheap, and the discovery header lacked premium Leonix brand treatment. Gate 2A polishes visuals only — no behavior changes.
+
+### Product discovery header polish
+
+- Search input: cream/white background, gold border, burgundy focus ring, `FiSearch` left icon, rounded-full pill shape
+- Filter label: `FiFilter` icon + departments label
+- Category chips: smaller rounded-full pills; active burgundy; inactive cream with gold border; hover/focus states
+- Count/reset row: divider bar, burgundy count emphasis, `FiRotateCcw` on reset pill
+
+### Product card polish
+
+- Warm cream gradient card surfaces with gold border and subtle hover shadow
+- No-image: `FiImage` in gold circle frame — no fake product image
+- Title: serif hierarchy; price: refined burgundy sizing
+- Chips: consistent gold/cream treatment
+- Ver detalle: rounded-full burgundy pill with `FiEye` + `FiChevronRight`
+
+### CTA / icon polish
+
+- All CTAs use `react-icons/fi` — no emoji
+- Primary: burgundy rounded-full pills
+- Secondary: cream outline rounded-full
+- Disabled future: dashed border + `FiLock` section header + muted icons
+
+### Drawer polish
+
+- Mobile bottom sheet handle pill at top
+- Source proof frame with crop + flyer page strip (`FiFileText`)
+- Business name with `FiShoppingBag` in deep green trust cue
+- CTA hierarchy: primary flyer link separated from secondary grid
+- Future section: dashed card with lock icon, disabled list/coupon buttons
+
+### Mobile / PWA polish
+
+- 44px min tap targets on all buttons
+- Category chips wrap/scroll without page overflow
+- Drawer `pb-8`/`pb-10` safe bottom spacing
+- `overscroll-contain` on drawer body
+
+### Brand mapping
+
+| Token | Usage |
+|---|---|
+| Cream/ivory (`#FFFCF7`, `#FDF8F0`) | Product section, cards, drawer background |
+| Burgundy (`#7A1E2C`) | Primary CTAs, active chips, price, focus rings |
+| Gold/bronze (`#B8860B`, `#D4C4A8`) | Borders, chips, icons, accents |
+| Charcoal (`#1E1814`) | Titles, body text |
+| Deep green (`#2D5A3D`) | Business/store name trust cue only |
+| React-icons (Fi*) | Search, filter, detail, share, drawer actions |
+| No emoji | Enforced |
+
+### Files changed (Gate 2A)
+
+- `OfertasLocalesPreviewProductGrid.tsx`
+- `OfertasLocalesProductDetailDrawer.tsx`
+- `OFERTAS_PRODUCT_DISCOVERY_ITEM_DRAWER_AUDIT.md`
+- `scripts/verify-ofertas-product-discovery-item-drawer.mjs`
+
+### Locked files untouched (Gate 2A)
+
+`OfertasLocalesPreviewCard.tsx`, Step 5/7, AI scan, Stripe, admin, dashboard, public results, copy file (no new labels needed)
+
+### Gate 2A TRUE/FALSE audit table
+
+| Requirement | TRUE/FALSE | Evidence |
+|---|---|---|
+| Gate 2A classified as MICRO PATCH / SCOPED VISUAL POLISH PATCH | TRUE | This section |
+| Gate 1.5A desktop layout preserved | TRUE | PreviewCard untouched |
+| Gate 2 functionality preserved | TRUE | Same state/logic/handlers |
+| Product controls remain inside product section | TRUE | #productos only |
+| Product discovery header visually polished | TRUE | Search/filter/count styling |
+| Search input uses premium icon treatment | TRUE | FiSearch + rounded-full |
+| Category chips visually polished | TRUE | CHIP_ACTIVE/INACTIVE |
+| Count/reset row visually cleaned | TRUE | Divider + reset pill |
+| Product cards visually polished | TRUE | Gradient cards + hover |
+| Product title hierarchy improved | TRUE | font-serif semibold |
+| Product price hierarchy improved | TRUE | text-lg bold burgundy |
+| No-image state improved without fake image | TRUE | FiImage icon frame |
+| SourceCropUrl real-only behavior preserved | TRUE | cropUrl conditional |
+| Ver detalle/View details CTA visually polished | TRUE | Rounded-full + icons |
+| Professional icons used instead of emoji | TRUE | react-icons/fi only |
+| Drawer visual hierarchy improved | TRUE | Source frame + sections |
+| Drawer mobile bottom sheet polished | TRUE | Handle pill + safe padding |
+| Drawer CTA hierarchy improved | TRUE | Primary separated from grid |
+| Future list/save actions remain disabled | TRUE | disabled buttons |
+| FUTURE WIRING comments remain | TRUE | Drawer comments |
+| No fake online order button added | TRUE | No order UI |
+| No fake inventory/availability added | TRUE | No stock UI |
+| No fake ratings/stars/counts added | TRUE | No rating UI |
+| No fake route/distance/open status added | TRUE | No distance UI |
+| Mobile/PWA no-horizontal-overflow considered | TRUE | max-w-full chips |
+| Mobile tap targets are safe | TRUE | min-h-11 buttons |
+| ES/EN copy preserved | TRUE | Copy file unchanged |
+| Language globe compatibility preserved | TRUE | Real DOM text |
+| Step 5 untouched | TRUE | Verifier scope |
+| Step 7 untouched | TRUE | Verifier scope |
+| AI scan/crop untouched | TRUE | Verifier scope |
+| Stripe/admin/dashboard untouched | TRUE | Verifier scope |
+| Public results page untouched | TRUE | Verifier scope |
+| Verifier passed | TRUE | npm run verify |
+| npm run build passed | TRUE | npm run build |
+| READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate 2A scoped |
+| READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
+| GLOBAL WORKING TREE CLEAN: YES/NO | NO | Gate 2A + unrelated dirty |
+| UNRELATED DIRTY FILES PRESENT: YES/NO | YES | bienes-raices files |

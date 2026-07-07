@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FiChevronDown,
+  FiChevronRight,
+  FiEye,
+  FiFilter,
+  FiImage,
+  FiRotateCcw,
+  FiSearch,
+} from "react-icons/fi";
 import type { OfertaLocalPreviewHeroAsset } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
@@ -15,6 +24,11 @@ import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const SECTION_ANCHOR = "scroll-mt-24";
 const LOAD_MORE_STEP = 24;
+
+const CHIP_ACTIVE =
+  "border-[#7A1E2C] bg-[#7A1E2C] text-white shadow-sm shadow-[#7A1E2C]/15";
+const CHIP_INACTIVE =
+  "border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814]/75 hover:border-[#B8860B]/55 hover:bg-[#FDF8F0]";
 
 function formatPreviewPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLocalesAppLang): string {
   const text = (item.offerText || item.priceText).trim();
@@ -84,73 +98,82 @@ function ProductCard({
   );
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#D4C4A8]/70 bg-gradient-to-b from-[#FFFCF7] to-white shadow-sm transition-all duration-200 hover:border-[#B8860B]/45 hover:shadow-md hover:shadow-[#7A1E2C]/5">
       <button
         type="button"
-        className="flex flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40"
+        className="flex flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/35 focus-visible:ring-offset-2"
         onClick={() => onOpenDetail(item)}
       >
         {cropUrl ? (
-          <div className="bg-[#FDF8F0]/80 p-2">
+          <div className="border-b border-[#E8D9C4]/50 bg-[#FDF8F0]/60 p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={cropUrl}
               alt={title || (lang === "en" ? c.productClipAltEn : c.productClipAltEs)}
-              className="mx-auto h-40 w-full rounded-lg object-contain"
+              className="mx-auto h-36 w-full rounded-xl object-contain sm:h-40"
             />
           </div>
         ) : (
-          <div className="flex h-32 flex-col items-center justify-center gap-1 bg-gradient-to-b from-[#FDF8F0]/80 to-[#F5EBD8]/40 px-3 text-center">
-            <span className="rounded-full border border-[#D4C4A8]/60 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/40">
+          <div className="flex h-32 flex-col items-center justify-center gap-2 border-b border-[#E8D9C4]/40 bg-gradient-to-b from-[#FDF8F0]/90 to-[#F5EBD8]/30 px-4 text-center sm:h-36">
+            <span
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#D4C4A8]/70 bg-[#FFFCF7] text-[#B8860B]"
+              aria-hidden
+            >
+              <FiImage className="h-5 w-5" />
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/45">
               {lang === "en" ? c.noImageEn : c.noImageEs}
             </span>
           </div>
         )}
         <div className="flex flex-1 flex-col p-4">
-          <div className="mb-2 flex flex-wrap gap-1">
+          <div className="mb-2.5 flex flex-wrap gap-1.5">
             {item.category ? (
-              <span className="rounded-full border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 text-[10px] font-semibold uppercase text-[#1E1814]/65">
+              <span className="rounded-full border border-[#D4C4A8]/80 bg-[#FDF8F0] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/70">
                 {item.category}
               </span>
             ) : null}
             {item.sourcePage != null ? (
-              <span className="rounded-full border border-[#D4C4A8] bg-white px-2 py-0.5 text-[10px] font-semibold text-[#1E1814]/55">
+              <span className="rounded-full border border-[#D4C4A8]/60 bg-white px-2.5 py-0.5 text-[10px] font-medium text-[#1E1814]/55">
                 {lang === "en" ? c.pageChipEn : c.pageChipEs} {item.sourcePage}
               </span>
             ) : null}
           </div>
-          <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#1E1814]">
+          <h3 className="line-clamp-2 font-serif text-base font-semibold leading-snug text-[#1E1814]">
             {title || (lang === "en" ? c.productFallbackEn : c.productFallbackEs)}
           </h3>
-          {brand ? <p className="mt-1 text-xs text-[#1E1814]/55">{brand}</p> : null}
-          <div className="mt-2 flex flex-wrap items-baseline gap-2">
-            <p className="text-xl font-extrabold text-[#7A1E2C]">{price}</p>
-            {unit ? <span className="text-xs font-medium text-[#1E1814]/50">{unit}</span> : null}
+          {brand ? <p className="mt-1 text-xs font-medium text-[#1E1814]/50">{brand}</p> : null}
+          <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-lg font-bold tracking-tight text-[#7A1E2C]">{price}</p>
+            {unit ? <span className="text-xs font-medium text-[#1E1814]/45">{unit}</span> : null}
           </div>
           {regularPrice ? (
-            <p className="mt-1 text-xs text-[#1E1814]/50">
-              {lang === "en" ? c.regularPriceEn : c.regularPriceEs}: {regularPrice}
+            <p className="mt-1 text-xs text-[#1E1814]/45">
+              {lang === "en" ? c.regularPriceEn : c.regularPriceEs}:{" "}
+              <span className="line-through">{regularPrice}</span>
             </p>
           ) : null}
           {details ? (
-            <p className="mt-2 line-clamp-3 flex-1 text-xs leading-relaxed text-[#1E1814]/65">{details}</p>
+            <p className="mt-2.5 line-clamp-3 flex-1 text-xs leading-relaxed text-[#1E1814]/60">{details}</p>
           ) : (
             <div className="flex-1" />
           )}
           {dateRange ? (
-            <p className="mt-3 text-[10px] font-medium text-[#1E1814]/45">
+            <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-[#1E1814]/40">
               {lang === "en" ? c.validLabelEn : c.validLabelEs}: {dateRange}
             </p>
           ) : null}
         </div>
       </button>
-      <div className="border-t border-[#E8D9C4]/60 px-4 pb-4 pt-2">
+      <div className="border-t border-[#E8D9C4]/50 bg-[#FDF8F0]/30 px-4 pb-4 pt-3">
         <button
           type="button"
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#7A1E2C]/30 bg-white text-sm font-semibold text-[#7A1E2C] hover:bg-[#7A1E2C]/5"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#7A1E2C]/15 transition hover:bg-[#6a1926] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40 focus-visible:ring-offset-2"
           onClick={() => onOpenDetail(item)}
         >
-          {lang === "en" ? c.viewDetailsEn : c.viewDetailsEs}
+          <FiEye className="h-4 w-4 shrink-0" aria-hidden />
+          <span>{lang === "en" ? c.viewDetailsEn : c.viewDetailsEs}</span>
+          <FiChevronRight className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
         </button>
       </div>
     </article>
@@ -263,19 +286,19 @@ export function OfertasLocalesPreviewProductGrid({
     <>
       <section
         id="productos"
-        className={`${SECTION_ANCHOR} mt-8 rounded-2xl border border-[#D4C4A8]/80 bg-white p-5 shadow-sm sm:p-6`}
+        className={`${SECTION_ANCHOR} mt-8 overflow-hidden rounded-2xl border border-[#D4C4A8]/70 bg-[#FFFCF7] p-5 shadow-sm sm:p-6`}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="font-serif text-xl font-semibold text-[#1E1814]">
               {lang === "en" ? c.flyerProductsEn : c.flyerProductsEs}
             </h2>
-            <p className="mt-1 text-xs text-[#1E1814]/55">
+            <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">
               {lang === "en" ? c.productsApprovedNoteEn : c.productsApprovedNoteEs}
             </p>
           </div>
           {totalCount != null && totalCount > 0 ? (
-            <span className="rounded-full border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-1 text-xs font-semibold text-[#7A1E2C]">
+            <span className="inline-flex w-fit items-center rounded-full border border-[#D4C4A8]/80 bg-[#FDF8F0] px-3 py-1 text-xs font-semibold text-[#7A1E2C]">
               {items.length}/{totalCount}{" "}
               {lang === "en" ? c.approvedChipEn : c.approvedChipEs}
             </span>
@@ -283,31 +306,34 @@ export function OfertasLocalesPreviewProductGrid({
         </div>
 
         {!loading && items.length > 0 ? (
-          <div className="mt-5 rounded-xl border border-[#E8D9C4]/70 bg-[#FDF8F0]/40 p-4">
-            <label className="block">
+          <div className="mt-5 rounded-2xl border border-[#D4C4A8]/60 bg-gradient-to-b from-[#FDF8F0]/80 to-white p-4 sm:p-5">
+            <label className="relative block">
               <span className="sr-only">{lang === "en" ? c.searchProductsEn : c.searchProductsEs}</span>
+              <FiSearch
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B8860B]"
+                aria-hidden
+              />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === "en" ? c.searchProductsEn : c.searchProductsEs}
-                className="min-h-11 w-full rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm text-[#1E1814] placeholder:text-[#1E1814]/45 focus:border-[#7A1E2C]/40 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/15"
+                className="min-h-11 w-full rounded-full border border-[#D4C4A8]/80 bg-white py-2.5 pl-10 pr-4 text-sm text-[#1E1814] shadow-sm placeholder:text-[#1E1814]/40 focus:border-[#7A1E2C]/50 focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/15"
               />
             </label>
 
             {categories.length > 0 ? (
-              <div className="mt-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/45">
+              <div className="mt-4">
+                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                  <FiFilter className="h-3.5 w-3.5 text-[#B8860B]" aria-hidden />
                   {lang === "en" ? c.filterProductsEn : c.filterProductsEs}
                 </p>
-                <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1 lg:flex-nowrap lg:overflow-x-auto lg:pb-1 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
+                <div className="-mx-1 mt-2.5 flex max-w-full flex-wrap gap-2 px-1 sm:flex-nowrap sm:overflow-x-auto sm:pb-1 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
                   <button
                     type="button"
                     onClick={() => setSelectedCategory("all")}
-                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                      selectedCategory === "all"
-                        ? "border-[#7A1E2C] bg-[#7A1E2C] text-white"
-                        : "border-[#D4C4A8] bg-white text-[#1E1814]/75"
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 ${
+                      selectedCategory === "all" ? CHIP_ACTIVE : CHIP_INACTIVE
                     }`}
                   >
                     {lang === "en" ? c.filterAllEn : c.filterAllEs}
@@ -317,10 +343,8 @@ export function OfertasLocalesPreviewProductGrid({
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        selectedCategory === cat
-                          ? "border-[#7A1E2C] bg-[#7A1E2C] text-white"
-                          : "border-[#D4C4A8] bg-white text-[#1E1814]/75"
+                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/30 ${
+                        selectedCategory === cat ? CHIP_ACTIVE : CHIP_INACTIVE
                       }`}
                     >
                       {cat}
@@ -330,16 +354,16 @@ export function OfertasLocalesPreviewProductGrid({
               </div>
             ) : null}
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#1E1814]/60">
-              <p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8D9C4]/50 pt-3">
+              <p className="text-xs leading-relaxed text-[#1E1814]/55">
                 {lang === "en" ? c.showingEn : c.showingEs}{" "}
-                <span className="font-semibold text-[#7A1E2C]">{visibleItems.length}</span>{" "}
+                <span className="font-bold text-[#7A1E2C]">{visibleItems.length}</span>{" "}
                 {lang === "en" ? c.ofEn : c.ofEs}{" "}
                 <span className="font-semibold text-[#1E1814]">{filteredItems.length}</span>
                 {filteredItems.length !== items.length ? (
-                  <span className="text-[#1E1814]/45">
+                  <span className="text-[#1E1814]/40">
                     {" "}
-                    ({items.length} {lang === "en" ? c.approvedChipEn : c.approvedChipEs})
+                    · {items.length} {lang === "en" ? c.approvedChipEn : c.approvedChipEs}
                   </span>
                 ) : null}
               </p>
@@ -347,8 +371,9 @@ export function OfertasLocalesPreviewProductGrid({
                 <button
                   type="button"
                   onClick={resetDiscovery}
-                  className="min-h-11 rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-semibold text-[#7A1E2C] hover:border-[#7A1E2C]/35"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[#D4C4A8]/80 bg-white px-3.5 py-2 text-xs font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/25"
                 >
+                  <FiRotateCcw className="h-3.5 w-3.5" aria-hidden />
                   {lang === "en" ? c.viewAllEn : c.viewAllEs}
                 </button>
               ) : null}
@@ -384,8 +409,9 @@ export function OfertasLocalesPreviewProductGrid({
             <button
               type="button"
               onClick={resetDiscovery}
-              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-[#7A1E2C]/30 bg-white px-4 py-2 text-sm font-semibold text-[#7A1E2C]"
+              className="mt-4 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-[#7A1E2C]/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#7A1E2C] shadow-sm hover:bg-[#FDF8F0]"
             >
+              <FiRotateCcw className="h-4 w-4" aria-hidden />
               {lang === "en" ? c.viewAllEn : c.viewAllEs}
             </button>
           </div>
@@ -401,9 +427,10 @@ export function OfertasLocalesPreviewProductGrid({
                 <button
                   type="button"
                   onClick={() => setVisibleCount((n) => n + LOAD_MORE_STEP)}
-                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#7A1E2C]/30 bg-white px-6 py-2.5 text-sm font-semibold text-[#7A1E2C] hover:bg-[#7A1E2C]/5"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#D4C4A8]/80 bg-white px-6 py-2.5 text-sm font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/25"
                 >
                   {lang === "en" ? c.loadMoreProductsEn : c.loadMoreProductsEs}
+                  <FiChevronDown className="h-4 w-4" aria-hidden />
                 </button>
               </div>
             ) : null}

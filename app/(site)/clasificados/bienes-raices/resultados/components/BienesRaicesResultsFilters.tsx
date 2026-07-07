@@ -14,6 +14,13 @@ import {
 import type { BrResultsCopy } from "../bienesRaicesResultsCopy";
 import type { BrResultsParsedState } from "../lib/brResultsUrlState";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import {
+  getBrFilterOptionsBySection,
+  getBrFilterLabel,
+  getBrDrawerSectionLabel,
+  type BrFilterOption,
+  type BrDrawerSection,
+} from "@/app/clasificados/bienes-raices/shared/bienesRaicesFilterOptions";
 
 const INPUT =
   "w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/65";
@@ -82,6 +89,9 @@ export function BienesRaicesResultsFilters({
   const [zip, setZip] = useState(parsed.zip);
   const [priceMin, setPriceMin] = useState(parsed.priceMin);
   const [priceMax, setPriceMax] = useState(parsed.priceMax);
+  const [colonia, setColonia] = useState("");
+  const [beds, setBeds] = useState(parsed.beds);
+  const [baths, setBaths] = useState(parsed.baths);
 
   useEffect(() => {
     setQ(parsed.q);
@@ -91,7 +101,9 @@ export function BienesRaicesResultsFilters({
     setZip(parsed.zip);
     setPriceMin(parsed.priceMin);
     setPriceMax(parsed.priceMax);
-  }, [parsed.q, parsed.city, parsed.state, parsed.country, parsed.zip, parsed.priceMin, parsed.priceMax]);
+    setBeds(parsed.beds);
+    setBaths(parsed.baths);
+  }, [parsed.q, parsed.city, parsed.state, parsed.country, parsed.zip, parsed.priceMin, parsed.priceMax, parsed.beds, parsed.baths]);
 
   const commitText = () => {
     const rawCity = city.trim();
@@ -107,6 +119,9 @@ export function BienesRaicesResultsFilters({
       zip: zipNorm || null,
       priceMin: priceMin.trim() || null,
       priceMax: priceMax.trim() || null,
+      colonia: colonia.trim() || null,
+      beds: beds || null,
+      baths: baths || null,
     });
   };
 
@@ -182,6 +197,17 @@ export function BienesRaicesResultsFilters({
             onChange={(e) => setCity(e.target.value)}
             onBlur={commitText}
             placeholder={copy.cityPlaceholder}
+            className={INPUT}
+          />
+        </label>
+        <label className="block min-w-0">
+          <span className={LABEL}>{lang === "es" ? "Colonia / vecindario" : "Neighborhood"}</span>
+          <input
+            id={`${idPrefix}-colonia`}
+            value={colonia}
+            onChange={(e) => setColonia(e.target.value)}
+            onBlur={commitText}
+            placeholder={lang === "es" ? "Ej: Downtown, Hills" : "Ex: Downtown, Hills"}
             className={INPUT}
           />
         </label>
@@ -313,6 +339,108 @@ export function BienesRaicesResultsFilters({
             label={copy.togglePool}
             onChange={(next) => onPatch({ pool: next ? "true" : null })}
           />
+          <AmenityChip
+            id={`${idPrefix}-patio`}
+            checked={false}
+            label={lang === "es" ? "Patio" : "Patio"}
+            onChange={(next) => onPatch({ patio: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-balcony`}
+            checked={false}
+            label={lang === "es" ? "Balcón" : "Balcony"}
+            onChange={(next) => onPatch({ balcony: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-view`}
+            checked={false}
+            label={lang === "es" ? "Vista" : "View"}
+            onChange={(next) => onPatch({ view: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-gated`}
+            checked={false}
+            label={lang === "es" ? "Comunidad cerrada" : "Gated community"}
+            onChange={(next) => onPatch({ gated: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-homeOffice`}
+            checked={false}
+            label={lang === "es" ? "Oficina en casa" : "Home office"}
+            onChange={(next) => onPatch({ homeOffice: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-solar`}
+            checked={false}
+            label={lang === "es" ? "Paneles solares" : "Solar panels"}
+            onChange={(next) => onPatch({ solar: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-fireplace`}
+            checked={false}
+            label={lang === "es" ? "Chimenea" : "Fireplace"}
+            onChange={(next) => onPatch({ fireplace: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-laundry`}
+            checked={false}
+            label={lang === "es" ? "Lavandería" : "Laundry"}
+            onChange={(next) => onPatch({ laundry: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-coveredParking`}
+            checked={false}
+            label={lang === "es" ? "Estacionamiento techado" : "Covered parking"}
+            onChange={(next) => onPatch({ coveredParking: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-accessControl`}
+            checked={false}
+            label={lang === "es" ? "Acceso controlado" : "Controlled access"}
+            onChange={(next) => onPatch({ accessControl: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-elevator`}
+            checked={false}
+            label={lang === "es" ? "Elevador" : "Elevator"}
+            onChange={(next) => onPatch({ elevator: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-terrace`}
+            checked={false}
+            label={lang === "es" ? "Terraza" : "Terrace"}
+            onChange={(next) => onPatch({ terrace: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-gym`}
+            checked={false}
+            label={lang === "es" ? "Gimnasio" : "Gym"}
+            onChange={(next) => onPatch({ gym: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-amenities`}
+            checked={false}
+            label={lang === "es" ? "Amenidades del desarrollo" : "Development amenities"}
+            onChange={(next) => onPatch({ amenities: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-walkInCloset`}
+            checked={false}
+            label={lang === "es" ? "Walk-in closet" : "Walk-in closet"}
+            onChange={(next) => onPatch({ walkInCloset: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-highCeilings`}
+            checked={false}
+            label={lang === "es" ? "Techos altos" : "High ceilings"}
+            onChange={(next) => onPatch({ highCeilings: next ? "true" : null })}
+          />
+          <AmenityChip
+            id={`${idPrefix}-smartHome`}
+            checked={false}
+            label={lang === "es" ? "Smart home" : "Smart home"}
+            onChange={(next) => onPatch({ smartHome: next ? "true" : null })}
+          />
         </div>
         <p className={CAT_STD_FILTER_HELPER}>{copy.amenityTogglesHint}</p>
       </FilterSection>
@@ -335,6 +463,119 @@ export function BienesRaicesResultsFilters({
           </select>
         </label>
       </FilterSection>
+
+      {/* Additional sections for expanded drawer - marked as deferred until filter support is added */}
+      {isDrawer && (
+        <>
+          <FilterSection title={lang === "es" ? "¿Condición y disponibilidad?" : "Condition & availability?"}>
+            <label className="block min-w-0">
+              <span className={LABEL}>{lang === "es" ? "Condición" : "Condition"}</span>
+              <select
+                value=""
+                onChange={() => {}}
+                className={INPUT}
+                disabled
+              >
+                <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                <option value="excelente">{lang === "es" ? "Excelente" : "Excellent"}</option>
+                <option value="buena">{lang === "es" ? "Buena" : "Good"}</option>
+                <option value="regular">{lang === "es" ? "Regular" : "Fair"}</option>
+                <option value="necesita_reparacion">{lang === "es" ? "Para remodelar" : "Fixer-upper"}</option>
+              </select>
+            </label>
+            <p className={CAT_STD_FILTER_HELPER}>{lang === "es" ? "Próximamente" : "Coming soon"}</p>
+          </FilterSection>
+
+          <FilterSection title={lang === "es" ? "¿Terreno?" : "Land?"}>
+            <label className="block min-w-0">
+              <span className={LABEL}>{lang === "es" ? "Tipo de terreno" : "Terrain type"}</span>
+              <select
+                value=""
+                onChange={() => {}}
+                className={INPUT}
+                disabled
+              >
+                <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                <option value="residential">{lang === "es" ? "Lote residencial" : "Residential lot"}</option>
+                <option value="commercial">{lang === "es" ? "Lote comercial" : "Commercial lot"}</option>
+                <option value="agricultural">{lang === "es" ? "Rancho / agrícola" : "Ranch / agricultural"}</option>
+              </select>
+            </label>
+            <div className={CAT_STD_FILTER_CHIP_GRID}>
+              <AmenityChip
+                id={`${idPrefix}-buildReady`}
+                checked={false}
+                label={lang === "es" ? "Listo para construir" : "Build-ready"}
+                onChange={() => {}}
+              />
+              <AmenityChip
+                id={`${idPrefix}-fenced`}
+                checked={false}
+                label={lang === "es" ? "Cercado" : "Fenced"}
+                onChange={() => {}}
+              />
+              <AmenityChip
+                id={`${idPrefix}-utilities`}
+                checked={false}
+                label={lang === "es" ? "Servicios disponibles" : "Utilities available"}
+                onChange={() => {}}
+              />
+            </div>
+            <p className={CAT_STD_FILTER_HELPER}>{lang === "es" ? "Próximamente" : "Coming soon"}</p>
+          </FilterSection>
+
+          <FilterSection title={lang === "es" ? "¿Comercial / inversión?" : "Commercial / investment?"}>
+            <label className="block min-w-0">
+              <span className={LABEL}>{lang === "es" ? "Tipo comercial" : "Commercial type"}</span>
+              <select
+                value=""
+                onChange={() => {}}
+                className={INPUT}
+                disabled
+              >
+                <option value="">{lang === "es" ? "Cualquiera" : "Any"}</option>
+                <option value="office">{lang === "es" ? "Oficina" : "Office"}</option>
+                <option value="retail">{lang === "es" ? "Local" : "Retail"}</option>
+                <option value="warehouse">{lang === "es" ? "Bodega" : "Warehouse"}</option>
+                <option value="restaurant">{lang === "es" ? "Restaurante" : "Restaurant"}</option>
+                <option value="mixed">{lang === "es" ? "Mixto" : "Mixed-use"}</option>
+                <option value="industrial">{lang === "es" ? "Industrial" : "Industrial"}</option>
+              </select>
+            </label>
+            <p className={CAT_STD_FILTER_HELPER}>{lang === "es" ? "Próximamente" : "Coming soon"}</p>
+          </FilterSection>
+
+          <FilterSection title={lang === "es" ? "Medios" : "Media"}>
+            <div className={CAT_STD_FILTER_CHIP_GRID}>
+              <AmenityChip
+                id={`${idPrefix}-hasPhotos`}
+                checked={false}
+                label={lang === "es" ? "Con fotos" : "Has photos"}
+                onChange={() => {}}
+              />
+              <AmenityChip
+                id={`${idPrefix}-hasVideo`}
+                checked={false}
+                label={lang === "es" ? "Con video" : "Has video"}
+                onChange={() => {}}
+              />
+              <AmenityChip
+                id={`${idPrefix}-hasVirtualTour`}
+                checked={false}
+                label={lang === "es" ? "Con tour virtual" : "Has virtual tour"}
+                onChange={() => {}}
+              />
+              <AmenityChip
+                id={`${idPrefix}-hasFloorPlan`}
+                checked={false}
+                label={lang === "es" ? "Con plano / floor plan" : "Has floor plan"}
+                onChange={() => {}}
+              />
+            </div>
+            <p className={CAT_STD_FILTER_HELPER}>{lang === "es" ? "Próximamente" : "Coming soon"}</p>
+          </FilterSection>
+        </>
+      )}
     </div>
   );
 }

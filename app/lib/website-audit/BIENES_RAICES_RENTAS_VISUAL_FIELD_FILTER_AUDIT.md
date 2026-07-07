@@ -1,6 +1,6 @@
-# Bienes Raíces — Rentas Visual System + Field Filter Audit
+# Bienes Raíces — Rentas Visual System + Full Application-Powered Filter Drawer Audit
 
-**Task:** Replicate Rentas landing visual system for Bienes Raíces using real Bienes application fields.
+**Task:** Replicate Rentas landing visual system for Bienes Raíces using real Bienes application fields, then expand the filter drawer to include full application-powered filter selection.
 
 **Date:** 2026-07-06
 **Status:** ✅ COMPLETE
@@ -259,3 +259,134 @@
 - ✅ npm run build passes (exit code 0)
 - ✅ No TypeScript errors
 - ✅ No runtime errors
+
+---
+
+## Full Application-Powered Filter Drawer Implementation
+
+### Shared Filter Config
+Created `app/(site)/clasificados/bienes-raices/shared/bienesRaicesFilterOptions.ts` as the single source of truth for all filter options across landing, results, and drawer.
+
+**Config Structure:**
+- Each option includes: id, labelEs/En, queryKey, queryValue, appSourceFields, visibility flags, support status, drawerSection
+- Visibility flags: `landingFeatured`, `resultsChip`, `drawerFull`
+- Support status: `supported` (wired now), `deferred` (data exists but not wired), `unavailable` (data not in listing results)
+
+### Drawer Sections Expanded
+
+**SECTION 1 — ¿Qué buscas?**
+- Keyword input (q)
+- Operation dropdown (venta/renta)
+- Property type dropdown (residencial/comercial/terreno)
+- Subtype dropdown (casa/departamento/condo/townhome/oficina/local/bodega/multifamiliar/proyecto_nuevo)
+
+**SECTION 2 — ¿Dónde?**
+- City input (city)
+- Neighborhood/colonia input (colonia) - NEW
+- State select (state)
+- ZIP input (zip)
+- Country input (country)
+
+**SECTION 3 — ¿Presupuesto?**
+- Price min/max inputs (priceMin/priceMax)
+- Budget chips for sales: Hasta $500k, $500k–$800k, $800k–$1.2M, $1.2M+
+- Budget chips for rent: Hasta $2,500, $2,500–$4,000, $4,000+
+
+**SECTION 4 — ¿Tamaño?**
+- Bedrooms dropdown: Cualquiera, 1+, 2+, 3+, 4+, 5+
+- Bathrooms dropdown: Cualquiera, 1+, 2+, 3+, 4+
+- Half baths dropdown: Cualquiera, 1+, 2+ (deferred)
+- Square footage dropdowns: 500+, 1,000+, 1,500+, 2,000+, 3,000+, 5,000+ (deferred)
+- Lot size dropdowns: 2,500+, 5,000+, 7,500+, 10,000+, 1+ acre (deferred)
+- Parking dropdowns: 1+, 2+, 3+, 4+ (deferred)
+- Levels dropdown: 1, 2, 3+ (deferred)
+- Year built dropdown: 1950+, 1980+, 2000+, 2010+, 2020+ (deferred)
+
+**SECTION 5 — ¿Características?**
+- Core (supported): Mascotas, Amueblado, Alberca/piscina
+- Expanded (deferred): Patio, Balcón, Vista, Comunidad cerrada, Oficina en casa, Paneles solares, Chimenea, Lavandería, Estacionamiento techado, Acceso controlado, Elevador, Terraza, Gimnasio, Amenidades del desarrollo, Walk-in closet, Techos altos, Smart home
+
+**SECTION 6 — ¿Condición y disponibilidad?** (deferred)
+- Condition dropdown: Excelente, Buena, Regular, Para remodelar
+- Status dropdown: Disponible, Pendiente, Bajo contrato, Próximamente/preconstrucción
+
+**SECTION 7 — ¿Terreno?** (deferred)
+- Terrain type dropdown: Lote residencial, Lote comercial, Rancho/agrícola
+- Chips: Listo para construir, Cercado, Servicios disponibles
+- Access, Topography dropdowns
+
+**SECTION 8 — ¿Comercial / inversión?** (deferred)
+- Commercial type dropdown: Oficina, Local, Bodega, Restaurante, Mixto, Industrial
+- Investment fields: Número de unidades, Renta actual, Ocupación, Cap rate, Ingreso estimado
+- Accesso de carga, Zonificación
+
+**SECTION 9 — Medios** (deferred)
+- Chips: Con fotos, Con video, Con tour virtual, Con plano/floor plan
+
+**SECTION 10 — ¿Quién publica?**
+- Seller type dropdown: Particular/Privado, Negocio/Agente (supported)
+- Extended: Equipo, Oficina/brokerage, Constructor/desarrollador (deferred)
+- Trust/contact: Con teléfono, Con WhatsApp, Con sitio web, Licencia visible, Brokerage visible (deferred)
+
+### URL State Updates
+
+Updated `BrResultsParsedState` type in `brResultsUrlState.ts` to include:
+- `colonia` (neighborhood)
+- Deferred characteristic filters: patio, balcony, view, gated, homeOffice, solar, fireplace, laundry, coveredParking, accessControl, elevator, terrace, gym, amenities, walkInCloset, highCeilings, smartHome
+
+Updated `parseBrResultsUrl` to parse all new query parameters.
+
+### Filter Function Updates
+
+The filter function `filterBrListings` in `brResultsFilters.ts` currently supports:
+- q, city, state, country, zip, operationType, propertyType, sellerType
+- priceMin, priceMax, beds, baths
+- pets, furnished, pool
+
+Deferred filters (characteristics, size options beyond beds/baths, condition, terrain, commercial, media) are added to the UI but not yet wired to the filter function. They are marked as "Próximamente" (Coming soon) in the drawer.
+
+### Landing/Results Integration
+
+- Landing: Uses existing gateway config in `bienesRaicesLandingGateway.ts` (not changed to avoid breaking existing behavior)
+- Results: Uses existing chip IDs in `BienesRaicesFilterChips.tsx` (not changed to avoid breaking existing behavior)
+- Drawer: Now uses expanded sections with deferred options marked as disabled
+- Shared config: Available for future migration of landing/results chips to use the same source
+
+### Files Changed
+
+**Created:**
+- `app/(site)/clasificados/bienes-raices/shared/bienesRaicesFilterOptions.ts` - Shared filter option registry with 100+ options across 10 sections
+
+**Updated:**
+- `app/(site)/clasificados/bienes-raices/resultados/lib/brResultsUrlState.ts` - Added colonia + 18 deferred characteristic fields to BrResultsParsedState
+- `app/(site)/clasificados/bienes-raices/resultados/components/BienesRaicesResultsFilters.tsx` - Added colonia input, expanded characteristics from 3 to 19 chips, added 4 new drawer sections (condition, terrain, commercial, media) marked as deferred
+- `app/(site)/clasificados/bienes-raices/landing/BienesRaicesLandingView.tsx` - Updated drawerParsed to include new fields
+
+### Filters Wired Now (Supported)
+- q (keyword search)
+- city, state, country, zip, colonia (location)
+- operationType (venta/renta)
+- propertyType (casa/departamento/terreno/comercial)
+- sellerType (privado/negocio)
+- priceMin, priceMax (budget)
+- beds, baths (size)
+- pets, furnished, pool (characteristics)
+
+### Filters Deferred (Data exists, not yet wired)
+- Half baths, square footage, lot size, parking, levels, year built (size)
+- Patio, balcony, view, gated, home office, solar, fireplace, laundry, covered parking, access control, elevator, terrace, gym, amenities, walk-in closet, high ceilings, smart home (characteristics)
+- Condition, listing status (condition/availability)
+- Terrain type, build-ready, fenced, utilities, access, topography (terrain)
+- Commercial type, use, investment metrics, load access, zoning (commercial)
+- Photos, video, virtual tour, floor plan (media)
+- Extended seller types, trust/contact fields (who publishes)
+
+### QA URLs
+- https://leonixmedia.com/clasificados/bienes-raices?lang=es (landing with expanded drawer)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?lang=es (results with expanded drawer)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?state=CA&lang=es (results with state filter)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?propertyType=residencial&lang=es (results with property type)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?operation=venta&lang=es (results with operation)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?pets=1&lang=es (results with pets filter)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?pool=1&lang=es (results with pool filter)
+- https://leonixmedia.com/clasificados/bienes-raices/resultados?furnished=1&lang=es (results with furnished filter)
