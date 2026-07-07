@@ -12,7 +12,9 @@ import {
 } from "react-icons/fi";
 import {
   canRenderOfertaLocalInstantCrop,
+  canRenderOfertaLocalPdfCrop,
   itemHasMissingFlyerCrop,
+  resolveOfertaLocalInstantCropPdfSource,
   resolveOfertaLocalItemCropDisplayUrl,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
 import type { OfertaLocalPreviewHeroAsset } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
@@ -21,6 +23,7 @@ import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/o
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { OfertasFlyerCropPreview } from "./OfertasFlyerCropPreview";
+import { OfertasPdfItemCropPreview } from "./OfertasPdfItemCropPreview";
 import {
   OfertasLocalesProductDetailDrawer,
   readOfertasPreviewItemParam,
@@ -88,17 +91,20 @@ function ProductCard({
   draft,
   lang,
   heroImageHref,
+  heroPdfHref,
   onOpenDetail,
 }: {
   item: OfertaLocalItemReviewViewModel;
   draft: OfertaLocalDraft;
   lang: OfertasLocalesAppLang;
   heroImageHref: string | null;
+  heroPdfHref: string | null;
   onOpenDetail: (item: OfertaLocalItemReviewViewModel) => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const [cropLoadFailed, setCropLoadFailed] = useState(false);
   const [instantCropFailed, setInstantCropFailed] = useState(false);
+  const [pdfCropFailed, setPdfCropFailed] = useState(false);
   const title = (item.couponTitle || item.itemName).trim();
   const price = formatPreviewPrice(item, lang);
   const brand = (item.subcategory || "").trim();
@@ -110,6 +116,12 @@ function ProductCard({
     !showCropImage &&
     !instantCropFailed &&
     canRenderOfertaLocalInstantCrop({ item, heroImageHref });
+  const canPdfCrop =
+    !showCropImage &&
+    !canInstantCrop &&
+    !pdfCropFailed &&
+    canRenderOfertaLocalPdfCrop({ item, heroPdfHref });
+  const pdfCropSrc = resolveOfertaLocalInstantCropPdfSource({ item, heroPdfHref });
   const missingFlyerCrop = itemHasMissingFlyerCrop(item);
   const fallbackLabel = missingFlyerCrop
     ? lang === "en"
@@ -131,6 +143,10 @@ function ProductCard({
 
   useEffect(() => {
     setInstantCropFailed(false);
+  }, [item.id]);
+
+  useEffect(() => {
+    setPdfCropFailed(false);
   }, [item.id]);
 
   return (
@@ -160,6 +176,21 @@ function ProductCard({
               alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
               variant="card"
               onUnavailable={() => setInstantCropFailed(true)}
+            />
+            <span className="pointer-events-none absolute left-1.5 top-1.5 rounded-md bg-[#1E1814]/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+              {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
+            </span>
+          </div>
+        ) : canPdfCrop && pdfCropSrc ? (
+          <div className="relative border-b border-[#E8D9C4]/50">
+            <OfertasPdfItemCropPreview
+              pdfUrl={pdfCropSrc}
+              pageNumber={item.sourcePage}
+              bbox={item.sourceBbox}
+              alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
+              variant="card"
+              lang={lang}
+              onUnavailable={() => setPdfCropFailed(true)}
             />
             <span className="pointer-events-none absolute left-1.5 top-1.5 rounded-md bg-[#1E1814]/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
               {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
@@ -324,6 +355,7 @@ export function OfertasLocalesPreviewProductGrid({
 
   const heroHref = heroAsset?.href ?? "";
   const heroImageHref = heroAsset?.isImage ? (heroAsset.href ?? null) : null;
+  const heroPdfHref = heroAsset?.isPdf ? (heroAsset.href ?? null) : null;
   const flyerLabel =
     heroFlyerLabel ??
     (heroAsset?.kind === "coupon"
@@ -479,6 +511,7 @@ export function OfertasLocalesPreviewProductGrid({
                   draft={draft}
                   lang={lang}
                   heroImageHref={heroImageHref}
+                  heroPdfHref={heroPdfHref}
                   onOpenDetail={openDrawer}
                 />
               ))}
@@ -508,6 +541,7 @@ export function OfertasLocalesPreviewProductGrid({
         heroHref={heroHref}
         heroLabel={flyerLabel}
         heroImageHref={heroImageHref}
+        heroPdfHref={heroPdfHref}
         directionsHref={directionsHref ?? ""}
         websiteHref={websiteHref ?? ""}
         onViewMoreOffers={scrollToSection}

@@ -581,6 +581,89 @@ export function canRenderOfertaLocalInstantCrop(params: {
   );
 }
 
+/* ── Gate 4C Repair: PDF page + bbox crop fallback ── */
+
+/** True when the URL/filename is an HTTPS PDF asset that can be cropped via pdf.js. */
+export function isLikelyOfertaLocalPdfAssetUrl(
+  url: string | null | undefined,
+  fileName?: string | null
+): boolean {
+  const u = String(url ?? "").trim().toLowerCase();
+  if (!u.startsWith("https://")) return false;
+  const name = String(fileName ?? "").trim().toLowerCase();
+  return u.endsWith(".pdf") || name.endsWith(".pdf") || u.includes(".pdf?");
+}
+
+/**
+ * Resolve a safe HTTPS PDF URL to crop the item from when no source_crop_url and
+ * no croppable image exist. Prefers the item's own PDF asset (bbox is aligned to
+ * its page). Falls back to a PDF hero flyer.
+ */
+export function resolveOfertaLocalInstantCropPdfSource(params: {
+  item: Pick<OfertaLocalItemReviewViewModel, "sourceAssetUrl" | "sourceFileName">;
+  heroPdfHref?: string | null;
+}): string | null {
+  const { item } = params;
+  const assetUrl = String(item.sourceAssetUrl ?? "").trim();
+  if (isLikelyOfertaLocalPdfAssetUrl(assetUrl, item.sourceFileName)) return assetUrl;
+
+  const hero = String(params.heroPdfHref ?? "").trim();
+  if (isLikelyOfertaLocalPdfAssetUrl(hero)) return hero;
+  return null;
+}
+
+export type OfertaLocalNormalizedCropRegion = {
+  xMin: number;
+  yMin: number;
+  xMax: number;
+  yMax: number;
+};
+
+/** Padded + clamped normalized (0–1) crop region for canvas/pdf cropping. */
+export function getOfertaLocalPaddedNormalizedCrop(
+  bbox: OfertaLocalSourceBoundingBox | null | undefined,
+  paddingFraction = 0.08
+): OfertaLocalNormalizedCropRegion | null {
+  if (!bbox) return null;
+  let xMin = clamp01(bbox.xMin);
+  let yMin = clamp01(bbox.yMin);
+  let xMax = clamp01(bbox.xMax);
+  let yMax = clamp01(bbox.yMax);
+  if (xMin > xMax) [xMin, xMax] = [xMax, xMin];
+  if (yMin > yMax) [yMin, yMax] = [yMax, yMin];
+
+  const rawW = xMax - xMin;
+  const rawH = yMax - yMin;
+  if (rawW < 0.02 || rawH < 0.02) return null;
+
+  const pad = Number.isFinite(paddingFraction) ? Math.max(0, Math.min(0.4, paddingFraction)) : 0;
+  const xMinP = clamp01(xMin - rawW * pad);
+  const yMinP = clamp01(yMin - rawH * pad);
+  const xMaxP = clamp01(xMax + rawW * pad);
+  const yMaxP = clamp01(yMax + rawH * pad);
+  if (xMaxP - xMinP < 0.02 || yMaxP - yMinP < 0.02) return null;
+
+  return { xMin: xMinP, yMin: yMinP, xMax: xMaxP, yMax: yMaxP };
+}
+
+/** True when a PDF-page bbox crop can be rendered (valid bbox + usable PDF source). */
+export function canRenderOfertaLocalPdfCrop(params: {
+  item: Pick<
+    OfertaLocalItemReviewViewModel,
+    "sourceCropUrl" | "sourceBbox" | "sourceAssetUrl" | "sourceFileName"
+  >;
+  heroPdfHref?: string | null;
+}): boolean {
+  if (resolveOfertaLocalItemCropDisplayUrl(params.item)) return false;
+  if (!getOfertaLocalPaddedNormalizedCrop(params.item.sourceBbox)) return false;
+  return Boolean(
+    resolveOfertaLocalInstantCropPdfSource({
+      item: params.item,
+      heroPdfHref: params.heroPdfHref,
+    })
+  );
+}
+
 /** Rehydrate DB row for crop backfill — does not mutate review fields. */
 export function mapOfertaLocalItemReviewRowToSearchableDraft(
   row: OfertaLocalItemDbRow

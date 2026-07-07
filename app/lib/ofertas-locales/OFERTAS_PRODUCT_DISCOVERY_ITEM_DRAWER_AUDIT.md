@@ -485,3 +485,89 @@ Cards render the real clipped flyer region when bbox + image source exist; place
 | READY TO COMMIT THIS BUILD ONLY: YES/NO | YES | Gate 4C scoped |
 | READY TO PUSH THIS BUILD ONLY: YES/NO | YES | After commit |
 | UNRELATED DIRTY FILES PRESENT: YES/NO | NO | Gate-scoped only |
+
+---
+
+# Gate 4C Repair — Real PDF Item Crop Rendering + Mobile/PWA Drawer Fix
+
+**Task classification:** SCOPED REPAIR BUILD
+**Date:** 2026-07-07
+
+## Previous Gate 4C failure cause
+
+The initial Gate 4C only produced an instant crop when the source asset (or hero flyer)
+was an **image** URL. `OfertasFlyerCropPreview` uses a CSS sprite technique on an `<img>`,
+which cannot render a page of a **PDF**. Because the real Ofertas Locales source is a PDF
+flyer, `resolveOfertaLocalInstantCropImageSource` returned `null`, `canRenderOfertaLocalInstantCrop`
+was `false`, and cards/drawer fell back to "Recorte en preparación" / "Recorte del producto en
+preparación" even though a renderable PDF page + `sourceBbox` existed.
+
+## Render priority (unified)
+
+1. `sourceCropUrl` (AI-generated crop) — always first.
+2. Renderable **image** source + `sourceBbox` → existing `OfertasFlyerCropPreview` (CSS crop).
+3. Renderable **PDF** source + `sourceBbox` → new `OfertasPdfItemCropPreview` (pdf.js canvas crop).
+4. Honest fallback only when no source can render.
+
+## PDF item crop renderer
+
+`app/(site)/publicar/ofertas-locales/preview/OfertasPdfItemCropPreview.tsx`:
+- `"use client"`, dynamic `import("pdfjs-dist/legacy/build/pdf.mjs")` + same unpkg worker
+  pattern as `OfertasLocalesPdfFlyerPreview`.
+- Renders the correct page (`sourcePage`, default 1, clamped to `numPages`).
+- Converts normalized bbox (0–1) into a padded/clamped crop region via
+  `getOfertaLocalPaddedNormalizedCrop` (~8% padding, rejects tiny/invalid bbox).
+- Renders **only the crop region** into a crop-sized canvas using a viewport translate
+  transform `[1,0,0,1,-cropLeft,-cropTop]` (no giant offscreen canvas). Scale is derived
+  from container width × DPR and capped (`MAX_CANVAS_PX`) to protect memory.
+- Cancels the render task on unmount / dependency change; `onUnavailable` on failure.
+- No `toDataURL`, no base64, no DB writes, no fake image. Card variant compact, drawer larger.
+
+Helpers added to `ofertasLocalesItemReviewMapper.ts` (type-safe, pure):
+`isLikelyOfertaLocalPdfAssetUrl`, `resolveOfertaLocalInstantCropPdfSource`,
+`getOfertaLocalPaddedNormalizedCrop`, `canRenderOfertaLocalPdfCrop`.
+
+## Mobile / PWA drawer fixes
+
+- Bottom sheet clamped to `w-full max-w-[100vw]`; outer wrapper `overflow-hidden` prevents shift.
+- Scroll region `overflow-x-hidden` (no content cut off on the right) + safe-area bottom padding
+  `pb-[max(2rem,env(safe-area-inset-bottom))]`.
+- Top handle + 44px close button preserved; content scrolls inside the drawer.
+- Desktop side drawer kept clean (`lg:w-[26rem] lg:max-w-md`).
+- Product grid: single column at 390px, wrapping filter chips, no horizontal overflow.
+
+## What was not touched
+
+Flyer hero renderer, map preview, native share/deep link, search/filter/load-more, Gemini
+extraction, commerce metadata review, Stripe/auth/admin/dashboard, global header/footer,
+DB migrations. No shopping list / coupon wallet / route / buy CTAs added.
+
+## Risks / deferred work
+
+- PDF crops render client-side per view; a future backend `source_crop_url` backfill remains
+  the durable path and still takes first priority automatically.
+- Very large flyers rely on the render-scale cap for memory safety.
+
+## TRUE/FALSE audit
+
+| Check | Result | Note |
+|-------|--------|------|
+| Previous CSS-only crop limitation identified | TRUE | image-only source |
+| PDF item crop renderer added | TRUE | OfertasPdfItemCropPreview |
+| Product cards use sourceCropUrl first | TRUE | resolveOfertaLocalItemCropDisplayUrl |
+| Product cards render PDF bbox crop when sourceCropUrl missing | TRUE | canRenderOfertaLocalPdfCrop |
+| Drawer renders PDF bbox crop when sourceCropUrl missing | TRUE | canRenderOfertaLocalPdfCrop |
+| Fallback only appears when no crop source can render | TRUE | image→pdf→fallback |
+| No fake crop URLs/images added | TRUE | pdf.js render only |
+| No DB migration/write/base64 added | TRUE | client render, no writes |
+| Mobile drawer width/clipping fixed | TRUE | max-w-[100vw] + overflow-x-hidden |
+| Mobile/PWA 390px no horizontal overflow considered | TRUE | single col + safe-area |
+| Search/filter/load-more preserved | TRUE | unchanged |
+| Flyer/map/share preserved | TRUE | unchanged |
+| No shopping list/route/buy CTA added | TRUE | none |
+| ES/EN copy preserved | TRUE | renderingCrop/cropRenderFailed keys |
+| Verifier passed | TRUE | see checks |
+| npm run build passed | TRUE | see checks |
+| READY TO COMMIT THIS BUILD ONLY | YES | Gate 4C Repair scoped |
+| READY TO PUSH THIS BUILD ONLY | YES | after commit |
+| UNRELATED DIRTY FILES PRESENT | NO | gate-scoped only |

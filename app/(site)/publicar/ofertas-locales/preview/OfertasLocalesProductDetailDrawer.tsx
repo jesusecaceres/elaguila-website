@@ -17,14 +17,17 @@ import {
 import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import {
   canRenderOfertaLocalInstantCrop,
+  canRenderOfertaLocalPdfCrop,
   itemHasMissingFlyerCrop,
   ofertaLocalCommerceMetadataHasDisplayData,
+  resolveOfertaLocalInstantCropPdfSource,
   resolveOfertaLocalItemCropDisplayUrl,
   validateOfertaLocalCommerceItemUrl,
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewMapper";
 import type { OfertaLocalDraft, OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OfertasFlyerCropPreview } from "./OfertasFlyerCropPreview";
+import { OfertasPdfItemCropPreview } from "./OfertasPdfItemCropPreview";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 function formatDrawerPrice(item: OfertaLocalItemReviewViewModel, lang: OfertasLocalesAppLang): string {
@@ -58,6 +61,7 @@ export function OfertasLocalesProductDetailDrawer({
   heroHref,
   heroLabel,
   heroImageHref,
+  heroPdfHref,
   directionsHref,
   websiteHref,
   onViewMoreOffers,
@@ -70,6 +74,7 @@ export function OfertasLocalesProductDetailDrawer({
   heroHref: string;
   heroLabel: string;
   heroImageHref?: string | null;
+  heroPdfHref?: string | null;
   directionsHref: string;
   websiteHref: string;
   onViewMoreOffers: () => void;
@@ -79,6 +84,7 @@ export function OfertasLocalesProductDetailDrawer({
   const [shareCopied, setShareCopied] = useState(false);
   const [cropLoadFailed, setCropLoadFailed] = useState(false);
   const [instantCropFailed, setInstantCropFailed] = useState(false);
+  const [pdfCropFailed, setPdfCropFailed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +113,7 @@ export function OfertasLocalesProductDetailDrawer({
   useEffect(() => {
     setCropLoadFailed(false);
     setInstantCropFailed(false);
+    setPdfCropFailed(false);
   }, [item?.id, item?.sourceCropUrl]);
 
   const handleShare = useCallback(async () => {
@@ -145,7 +152,13 @@ export function OfertasLocalesProductDetailDrawer({
     !showCropImage &&
     !instantCropFailed &&
     canRenderOfertaLocalInstantCrop({ item, heroImageHref });
-  const hasSourceProof = !showCropImage && !canInstantCrop && missingFlyerCrop;
+  const canPdfCrop =
+    !showCropImage &&
+    !canInstantCrop &&
+    !pdfCropFailed &&
+    canRenderOfertaLocalPdfCrop({ item, heroPdfHref });
+  const pdfCropSrc = resolveOfertaLocalInstantCropPdfSource({ item, heroPdfHref });
+  const hasSourceProof = !showCropImage && !canInstantCrop && !canPdfCrop && missingFlyerCrop;
   const unit = item.unit.trim();
   const regularPrice = item.regularPriceText.trim();
   const dateRange = formatOfertaLocalDateRange(
@@ -158,7 +171,7 @@ export function OfertasLocalesProductDetailDrawer({
   const safeItemUrl = validateOfertaLocalCommerceItemUrl(commerce.itemUrl);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-stretch lg:justify-end">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden lg:items-stretch lg:justify-end">
       <button
         type="button"
         className="absolute inset-0 bg-[#1E1814]/50 backdrop-blur-[3px]"
@@ -171,7 +184,7 @@ export function OfertasLocalesProductDetailDrawer({
         aria-modal="true"
         aria-label={lang === "en" ? c.productDetailsEn : c.productDetailsEs}
         tabIndex={-1}
-        className="relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-[#D4C4A8]/70 bg-[#FFFCF7] shadow-2xl lg:h-full lg:max-h-none lg:max-w-md lg:rounded-none lg:rounded-l-3xl"
+        className="relative z-10 flex max-h-[92vh] w-full max-w-[100vw] flex-col overflow-hidden rounded-t-3xl border border-[#D4C4A8]/70 bg-[#FFFCF7] shadow-2xl lg:h-full lg:max-h-none lg:w-[26rem] lg:max-w-md lg:rounded-none lg:rounded-l-3xl"
       >
         <div className="flex shrink-0 justify-center pt-2 lg:hidden" aria-hidden>
           <span className="h-1 w-10 rounded-full bg-[#D4C4A8]/80" />
@@ -191,7 +204,7 @@ export function OfertasLocalesProductDetailDrawer({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-8 sm:px-5 sm:pb-10">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-4 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-5 sm:pb-10">
           <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-white shadow-sm">
             {showCropImage ? (
               <div className="bg-[#FDF8F0]/50 p-2">
@@ -213,6 +226,21 @@ export function OfertasLocalesProductDetailDrawer({
                   alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
                   variant="drawer"
                   onUnavailable={() => setInstantCropFailed(true)}
+                />
+                <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-[#1E1814]/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+                  {lang === "en" ? c.previewFromFlyerEn : c.previewFromFlyerEs}
+                </span>
+              </div>
+            ) : canPdfCrop && pdfCropSrc ? (
+              <div className="relative">
+                <OfertasPdfItemCropPreview
+                  pdfUrl={pdfCropSrc}
+                  pageNumber={item.sourcePage}
+                  bbox={item.sourceBbox}
+                  alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
+                  variant="drawer"
+                  lang={lang}
+                  onUnavailable={() => setPdfCropFailed(true)}
                 />
                 <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-[#1E1814]/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
                   {lang === "en" ? c.previewFromFlyerEn : c.previewFromFlyerEs}

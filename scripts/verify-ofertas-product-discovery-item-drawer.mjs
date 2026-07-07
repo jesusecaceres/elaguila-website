@@ -28,6 +28,8 @@ const ITEM_MAPPER = "app/lib/ofertas-locales/ofertasLocalesItemReviewMapper.ts";
 const REVIEW_PANEL = "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx";
 const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
 const CROP_PREVIEW = "app/(site)/publicar/ofertas-locales/preview/OfertasFlyerCropPreview.tsx";
+const PDF_ITEM_CROP = "app/(site)/publicar/ofertas-locales/preview/OfertasPdfItemCropPreview.tsx";
+const PDF_RENDER_UTILS = "app/(site)/publicar/ofertas-locales/preview/ofertasPdfRenderUtils.ts";
 
 const GATE_ALLOWED = new Set([
   GRID,
@@ -48,6 +50,8 @@ const GATE_ALLOWED = new Set([
   REVIEW_PANEL,
   APP_COPY,
   CROP_PREVIEW,
+  PDF_ITEM_CROP,
+  PDF_RENDER_UTILS,
 ]);
 
 const PROHIBITED = [
@@ -164,6 +168,7 @@ function run() {
   assert.ok(audit.includes("Gate 4B"), "Gate 4B section");
   assert.ok(audit.includes("extracted_json.commerceMetadata"), "Commerce metadata storage documented");
   assert.ok(audit.includes("Gate 4C"), "Gate 4C section");
+  assert.ok(audit.includes("Gate 4C Repair"), "Gate 4C Repair section");
   assert.ok(audit.includes("TRUE/FALSE"), "Audit table");
   assert.ok(audit.includes("READY TO COMMIT THIS BUILD ONLY"), "Commit flag");
 
@@ -186,6 +191,45 @@ function run() {
   );
   assert.ok(!cropPreview.includes("toDataURL"), "No canvas dataURL in crop preview");
   assert.ok(!cropPreview.includes("base64"), "No base64 in crop preview");
+
+  // Gate 4C Repair — PDF item crop renderer
+  assert.ok(fs.existsSync(path.join(ROOT, PDF_ITEM_CROP)), "PDF item crop component must exist");
+  const pdfItemCrop = read(PDF_ITEM_CROP);
+  assert.ok(pdfItemCrop.includes("pdfjs-dist/legacy/build/pdf.mjs"), "PDF item crop uses pdfjs-dist");
+  assert.ok(pdfItemCrop.includes('"use client"'), "PDF item crop is a client component");
+  assert.ok(
+    pdfItemCrop.includes("getOfertaLocalPaddedNormalizedCrop"),
+    "PDF item crop clamps/pads bbox via helper"
+  );
+  assert.ok(pdfItemCrop.includes("renderTaskRef"), "PDF item crop cancels render task");
+  assert.ok(!pdfItemCrop.includes("toDataURL"), "No canvas dataURL in PDF item crop");
+  assert.ok(!pdfItemCrop.includes("base64"), "No base64 in PDF item crop");
+  assert.ok(
+    itemMapper.includes("canRenderOfertaLocalPdfCrop"),
+    "Mapper PDF crop capability helper"
+  );
+  assert.ok(
+    itemMapper.includes("resolveOfertaLocalInstantCropPdfSource"),
+    "Mapper PDF crop source resolver"
+  );
+  assert.ok(
+    itemMapper.includes("getOfertaLocalPaddedNormalizedCrop"),
+    "Mapper padded normalized crop helper"
+  );
+  assert.ok(
+    grid.includes("OfertasPdfItemCropPreview") && grid.includes("canRenderOfertaLocalPdfCrop"),
+    "Grid uses PDF crop fallback"
+  );
+  assert.ok(
+    drawer.includes("OfertasPdfItemCropPreview") && drawer.includes("canRenderOfertaLocalPdfCrop"),
+    "Drawer uses PDF crop fallback"
+  );
+  assert.ok(grid.includes("heroPdfHref"), "Grid passes PDF source fallback");
+  assert.ok(drawer.includes("heroPdfHref"), "Drawer receives PDF source fallback");
+  // Mobile drawer safe full-width / no horizontal overflow
+  assert.ok(drawer.includes("max-w-[100vw]"), "Drawer clamps mobile width to viewport");
+  assert.ok(drawer.includes("overflow-x-hidden"), "Drawer prevents horizontal overflow");
+  assert.ok(drawer.includes("safe-area-inset-bottom"), "Drawer adds safe-area bottom padding");
   assert.ok(
     grid.includes("canRenderOfertaLocalInstantCrop"),
     "Grid uses instant crop check"
@@ -261,6 +305,8 @@ function run() {
     "quickMapViewEs",
     "previewControlsEs",
     "noClipYetEs",
+    "renderingCropEs",
+    "cropRenderFailedEs",
   ];
   for (const snippet of requiredCopy) {
     assert.ok(copy.includes(snippet), `Missing copy: ${snippet}`);
@@ -268,7 +314,7 @@ function run() {
 
   assert.ok(helpers.includes("buildOfertaLocalPreviewMapEmbedUrl"), "Map embed helper");
 
-  const sources = [grid, drawer, card, reviewPanel].join("\n").toLowerCase();
+  const sources = [grid, drawer, card, reviewPanel, cropPreview, pdfItemCrop].join("\n").toLowerCase();
   for (const fake of FAKE_STRINGS) {
     assert.ok(!sources.includes(fake.toLowerCase()), `Fake string: ${fake}`);
   }

@@ -283,4 +283,8 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   upcLabelEn: "UPC",
   previewFromFlyerEs: "Vista generada desde el volante",
   previewFromFlyerEn: "Preview generated from flyer",
+  renderingCropEs: "Renderizando recorte…",
+  renderingCropEn: "Rendering crop…",
+  cropRenderFailedEs: "No se pudo preparar el recorte",
+  cropRenderFailedEn: "Could not prepare crop",
 } as const;
