@@ -266,3 +266,5 @@ If Chuy wants complete issue first:
 `READY FOR AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL1: YES`
 
 Portuguese Batch 1 DeepL result created: [`AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL.md`](AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL.md) · Next gate: `AUGUST-2026-PORTUGUESE-PROOF-BATCH1-WEB-QA-URL1`
+
+Portuguese Batch 1 QA URLs ready for Chuy/reviewer visual QA.

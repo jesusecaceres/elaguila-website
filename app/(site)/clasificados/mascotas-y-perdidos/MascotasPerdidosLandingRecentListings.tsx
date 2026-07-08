@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { LEONIX_LANDING_SECTION } from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 
 import { MascotasPerdidosNoticeCard } from "./MascotasPerdidosNoticeCard";
 import { buildMascotasPerdidosNoticeCardModel } from "./shared/mascotasPerdidosCardModel";
@@ -20,6 +21,9 @@ type Props = {
   errorPrefix: string;
 };
 
+const LANDING_PREVIEW_LIMIT = 4;
+const SECTION_PAD = "px-4 py-4 sm:px-5 sm:py-5";
+
 export function MascotasPerdidosLandingRecentListings({ lang, title, emptyNote, errorPrefix }: Props) {
   const [rows, setRows] = useState<MascotasPerdidosListingBrowseRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -33,7 +37,7 @@ export function MascotasPerdidosLandingRecentListings({ lang, title, emptyNote, 
       setRows([]);
     } else {
       setErr(null);
-      setRows(data.filter((r) => r.id));
+      setRows(data.filter((r) => r.id).slice(0, LANDING_PREVIEW_LIMIT));
     }
     setLoading(false);
   }, []);
@@ -44,7 +48,7 @@ export function MascotasPerdidosLandingRecentListings({ lang, title, emptyNote, 
 
   if (err) {
     return (
-      <section className="rounded-2xl border border-red-200/70 bg-red-50/90 px-4 py-4 text-sm text-red-950">
+      <section className="rounded-xl border border-red-200/70 bg-red-50/90 px-4 py-3.5 text-sm text-red-950">
         <p className="font-semibold">{errorPrefix}</p>
         <p className="mt-1 opacity-90">{err}</p>
       </section>
@@ -53,25 +57,22 @@ export function MascotasPerdidosLandingRecentListings({ lang, title, emptyNote, 
 
   if (loading) {
     return (
-      <section
-        className="rounded-2xl border border-[#C9B46A]/25 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/12 sm:px-5"
-        aria-busy="true"
-        data-testid="mascotas-perdidos-landing-recent"
-      >
-        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B5A32]/85">{title}</h2>
-        <p className="mt-3 text-sm text-[#5C5346]">{lang === "es" ? "Cargando…" : "Loading…"}</p>
+      <section className={LEONIX_LANDING_SECTION} aria-busy="true" data-testid="mascotas-perdidos-landing-recent">
+        <div className={SECTION_PAD}>
+          <h2 className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">{title}</h2>
+          <p className="mt-2 text-sm text-[#5C5346]">{lang === "es" ? "Cargando…" : "Loading…"}</p>
+        </div>
       </section>
     );
   }
 
   if (!rows.length) {
     return (
-      <section
-        className="rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFF9ED]/90 px-4 py-6 text-center sm:px-6"
-        data-testid="mascotas-perdidos-landing-recent-empty"
-      >
-        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B5A32]/85">{title}</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]/90">{emptyNote}</p>
+      <section className={LEONIX_LANDING_SECTION} data-testid="mascotas-perdidos-landing-recent-empty">
+        <div className={`${SECTION_PAD} text-center sm:text-left`}>
+          <h2 className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">{title}</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-[#5C5346] sm:mx-0">{emptyNote}</p>
+        </div>
       </section>
     );
   }
@@ -79,30 +80,29 @@ export function MascotasPerdidosLandingRecentListings({ lang, title, emptyNote, 
   const resultsHref = appendLangToPath("/clasificados/mascotas-y-perdidos/resultados", lang);
 
   return (
-    <section
-      className="rounded-2xl border border-[#C9B46A]/25 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/12 sm:px-5"
-      data-testid="mascotas-perdidos-landing-recent"
-    >
-      <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#6B5A32]/85">{title}</h2>
-      <ul className="mt-4 grid gap-4">
-        {rows.map((r) => {
-          const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
-          const model = buildMascotasPerdidosNoticeCardModel(r, lang, href);
-          return (
-            <li key={r.id} className="min-w-0">
-              <MascotasPerdidosNoticeCard model={model} lang={lang} />
-            </li>
-          );
-        })}
-      </ul>
-      <p className="mt-4 text-center sm:text-left">
-        <Link
-          href={resultsHref}
-          className="text-sm font-semibold text-[#6B5A32] underline underline-offset-2 hover:text-[#3D3428]"
-        >
-          {lang === "es" ? "Ver todos los avisos" : "View all notices"}
-        </Link>
-      </p>
+    <section className={LEONIX_LANDING_SECTION} data-testid="mascotas-perdidos-landing-recent">
+      <div className={SECTION_PAD}>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">{title}</h2>
+          <Link
+            href={resultsHref}
+            className="shrink-0 text-sm font-semibold text-[#6B5A32] underline underline-offset-2 hover:text-[#3D3428]"
+          >
+            {lang === "es" ? "Ver todos los avisos →" : "View all notices →"}
+          </Link>
+        </div>
+        <ul className="mt-3 grid gap-3">
+          {rows.map((r) => {
+            const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
+            const model = buildMascotasPerdidosNoticeCardModel(r, lang, href);
+            return (
+              <li key={r.id} className="min-w-0">
+                <MascotasPerdidosNoticeCard model={model} lang={lang} />
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </section>
   );
 }

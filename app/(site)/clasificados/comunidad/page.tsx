@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
 import {
   LeonixCategoryPageShell,
@@ -12,7 +10,6 @@ import {
   LeonixCategoryShortcutSection,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
-import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { appendLangToPath, resolveHubCopyLang, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
 import { buildComunidadListaUrl } from "./shared/utils/comunidadListaUrl";
 
@@ -29,14 +26,12 @@ const COPY = {
     ctaPost: "Publicar en Comunidad y Eventos",
     ctaView: "Ver todos los anuncios",
     quickTopics: "Filtros rápidos",
-    backHub: "Volver a Clasificados",
   },
   en: {
     eyebrow: "CLASSIFIEDS · COMMUNITY",
     ctaPost: "Post in Community & Events",
     ctaView: "View all listings",
     quickTopics: "Quick filters",
-    backHub: "Back to Classifieds",
   },
 } as const;
 
@@ -49,7 +44,6 @@ function ComunidadLandingPageInner() {
 
   const listaHref = useMemo(() => buildComunidadListaUrl("comunidad", routeLang as Lang), [routeLang]);
   const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/comunidad", routeLang as Lang), [routeLang]);
-  const hubHref = useMemo(() => appendLangToPath("/clasificados", routeLang as Lang), [routeLang]);
 
   const comunidadSearchForm = (
     <LeonixCategorySearchCanvas
@@ -78,43 +72,54 @@ function ComunidadLandingPageInner() {
 
   return (
     <LeonixCategoryPageShell surface="landing">
-      <LeonixCategoryHeroGateway
-        lang={lang as V2Lang}
-        surface="landing"
-        title={lang === "es" ? "Comunidad y Eventos" : "Community & Events"}
-        tagline=""
-        intro={lang === "es" ? "Encuentra eventos, ayuda, voluntariado y más en tu comunidad." : "Find events, help, volunteering, and more in your community."}
-        introSecondary=""
-        searchSlot={comunidadSearchForm}
-        eyebrow={t.eyebrow}
-      />
-      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
-        <LeonixCategoryShortcutSection
+      <div className="px-3.5 pb-8 sm:px-5 lg:px-6">
+        <LeonixCategoryHeroGateway
           lang={lang as V2Lang}
           surface="landing"
-          title={t.quickTopics}
-          subtitle=""
-          variant="default"
-          chips={chips.map((label) => ({ id: label, label, href: buildComunidadListaUrl("comunidad", routeLang as Lang, label) }))}
-        />
-        <CategoryRecentListings
-          category="comunidad"
-          lang={lang}
-          previewLimit={4}
-          title={lang === "es" ? "Eventos recientes" : "Recent events"}
-          emptyNote={
+          title={lang === "es" ? "Comunidad y Eventos" : "Community & Events"}
+          tagline={lang === "es" ? "Eventos y avisos cerca de ti." : "Events and notices near you."}
+          intro={
             lang === "es"
-              ? "Aún no hay eventos de Comunidad y Eventos publicados en Leonix Clasificados."
-              : "No Community & Events listings published on Leonix Clasificados yet."
+              ? "Encuentra eventos, ayuda, voluntariado y más en tu comunidad."
+              : "Find events, help, volunteering, and more in your community."
           }
-          errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
+          introSecondary={
+            lang === "es"
+              ? "Busca por palabra clave o ciudad; en resultados filtra por tema."
+              : "Search by keyword or city; filter by topic on results."
+          }
+          searchSlot={comunidadSearchForm}
+          eyebrow={t.eyebrow}
         />
-        <p className="text-center">
-          <Link href={hubHref} className="text-sm font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]">
-            {t.backHub}
-          </Link>
-        </p>
-      </main>
+
+        <main className="space-y-5 overflow-x-hidden sm:space-y-6">
+          <LeonixCategoryShortcutSection
+            lang={lang as V2Lang}
+            surface="landing"
+            title={t.quickTopics}
+            subtitle=""
+            variant="default"
+            chips={chips.map((label) => ({
+              id: label,
+              label,
+              href: buildComunidadListaUrl("comunidad", routeLang as Lang, label),
+            }))}
+          />
+
+          <CategoryRecentListings
+            category="comunidad"
+            lang={lang}
+            previewLimit={4}
+            title={lang === "es" ? "Eventos recientes" : "Recent events"}
+            emptyNote={
+              lang === "es"
+                ? "Aún no hay eventos publicados. Sé el primero en compartir algo con tu comunidad."
+                : "No events published yet. Be the first to share something with your community."
+            }
+            errorPrefix={lang === "es" ? "No se pudo cargar la lista:" : "Could not load listings:"}
+          />
+        </main>
+      </div>
     </LeonixCategoryPageShell>
   );
 }

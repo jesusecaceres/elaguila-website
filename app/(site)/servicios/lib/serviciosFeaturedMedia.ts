@@ -6,14 +6,17 @@ export function getAllServiciosGalleryPhotos(profile: ServiciosProfileResolved):
 }
 
 /**
- * Top visual proof row: destacada/featured images first (profile.gallery after splitFeaturedGallery),
- * up to `max`. When no destacadas were chosen, gallery holds all images — first `max` still applies.
+ * True when the advertiser explicitly selected Destacada images (featured split applied).
  */
+export function hasSelectedDestacadaImages(profile: ServiciosProfileResolved): boolean {
+  return profile.galleryMore.length > 0;
+}
+
+/** Destacada images only — empty when no explicit selection (no fallback to first gallery photos). */
 export function getFeaturedVisualProofImages(
   profile: ServiciosProfileResolved,
   max = 4,
 ): ServiciosGalleryImage[] {
-  const featured = profile.gallery.slice(0, max);
-  if (featured.length > 0) return featured;
-  return getAllServiciosGalleryPhotos(profile).slice(0, max);
+  if (!hasSelectedDestacadaImages(profile)) return [];
+  return profile.gallery.slice(0, max);
 }

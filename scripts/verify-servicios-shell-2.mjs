@@ -40,7 +40,7 @@ assert(!gallery.includes("GalleryModal"), "Legacy photos-only GalleryModal remov
 
 assert(featuredMedia.includes("getFeaturedVisualProofImages"), "Featured media helper exists");
 assert(visualProof.includes("getFeaturedVisualProofImages"), "Visual proof row uses featured helper");
-assert(!visualProof.includes("galleryMore].slice(0, 4)"), "Visual proof must not merge gallery+galleryMore blindly");
+assert(featuredMedia.includes("hasSelectedDestacadaImages"), "Destacada-only visual proof guard");
 
 assert(canvas.includes("ServiciosCredencialesCard"), "Details canvas wires credentials card");
 assert(canvas.includes("data-servicios-public-details-canvas"), "Details canvas marker present");

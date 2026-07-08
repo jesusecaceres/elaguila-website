@@ -4,41 +4,30 @@ import { useEffect, useMemo, useState } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "@/app/servicios/components/serviciosDesignTokens";
-import {
-  LX_CHIP,
-  LX_PRO_ASIDE,
-  LX_PRO_GRID,
-  LX_PRO_INNER_PAD,
-  LX_PRO_SECTION_GAP,
-  LX_SECTION_CARD,
-  collectProfessionalServiceChips,
-  getServicesTitle,
-} from "@/app/servicios/components/serviciosLeonixBrand";
+import { LX_PRO_INNER_PAD, LX_PRO_SECTION_GAP } from "@/app/servicios/components/serviciosLeonixBrand";
 import { ServiciosProfessionalHero } from "@/app/servicios/components/ServiciosProfessionalHero";
 import {
   hasAboutSectionResolved,
-  hasBusinessHighlightsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
   hasPaidCouponsSectionResolved,
-  hasQuickFactsResolved,
   hasReviewsSectionResolved,
   hasServicesSectionResolved,
-  hasTrustSectionResolved,
 } from "@/app/servicios/lib/serviciosProfilePresence";
-import { ServiciosQuickFacts } from "@/app/servicios/components/ServiciosQuickFacts";
 import { ServiciosAbout } from "@/app/servicios/components/ServiciosAbout";
-import { ServiciosTrustSection } from "@/app/servicios/components/ServiciosTrustSection";
 import { ServiciosOfferedSection } from "@/app/servicios/components/ServiciosServicesGrid";
 import { ServiciosGalleryWithTabs } from "@/app/servicios/components/ServiciosGalleryWithTabs";
 import { ServiciosReviews } from "@/app/servicios/components/ServiciosReviews";
 import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/ServiciosBusinessHubContactCard";
 import { ServiciosCouponsCard } from "@/app/servicios/components/ServiciosCouponsCard";
-import { ServiciosHighlightsSection } from "@/app/servicios/components/ServiciosHighlightsSection";
+import { ServiciosVisualProofRow } from "@/app/servicios/components/ServiciosVisualProofRow";
+import { ServiciosPublicDetailsCanvas } from "@/app/servicios/components/ServiciosPublicDetailsCanvas";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
 import { mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
+
+const SECTION_SCROLL = "scroll-mt-24";
 
 function resolvePreviewDisplayProfile(
   profile: ServiciosProfileResolved,
@@ -54,6 +43,14 @@ function resolvePreviewDisplayProfile(
   return profile;
 }
 
+function hasCouponBlock(profile: ServiciosProfileResolved): boolean {
+  return (
+    hasPaidCouponsSectionResolved(profile) ||
+    Boolean(profile.couponFlyer?.imageUrl?.trim()) ||
+    Boolean(profile.couponMoreOffers?.url?.trim())
+  );
+}
+
 export function ServiciosProfessionalPreviewShell({
   profile,
   lang,
@@ -66,14 +63,9 @@ export function ServiciosProfessionalPreviewShell({
   lang: ServiciosLang;
   template: ServiciosListingTemplate;
   cityFallback?: string;
-  /** In-memory application state from preview client — preferred coupon source */
   applicationState?: ClasificadosServiciosApplicationState | null;
-  /** @deprecated Prefer applicationState; kept for storage fallback */
   draftSlug?: string;
 }) {
-  const chips = collectProfessionalServiceChips(profile, 5);
-  const servicesTitle = getServicesTitle(template, lang);
-
   const syncedProfile = useMemo(
     () => resolvePreviewDisplayProfile(profile, lang, applicationState),
     [profile, lang, applicationState],
@@ -106,14 +98,6 @@ export function ServiciosProfessionalPreviewShell({
     };
   }, [applicationState, draftSlug, lang]);
 
-  const showCoupons = useMemo(
-    () =>
-      hasPaidCouponsSectionResolved(displayProfile) ||
-      Boolean(displayProfile.couponFlyer?.imageUrl?.trim()) ||
-      Boolean(displayProfile.couponMoreOffers?.url?.trim()),
-    [displayProfile],
-  );
-
   if (!hasHeroIdentityResolved(displayProfile)) {
     return null;
   }
@@ -137,87 +121,57 @@ export function ServiciosProfessionalPreviewShell({
           : "Vista previa — el contacto usa el teléfono, WhatsApp y correo que guardaste abajo."}
       </p>
 
-      {chips.length > 0 ? (
-        <div className={`mx-4 mt-5 sm:mx-8 lg:mx-10 ${LX_SECTION_CARD} p-4 sm:p-6`}>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6F6254]">{servicesTitle}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {chips.map((chip) => (
-              <span key={chip} className={LX_CHIP}>
-                {chip}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       <div className={LX_PRO_INNER_PAD}>
-        <div className={LX_PRO_GRID}>
-          <div className={`order-1 flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
-            {showCoupons ? (
-              <ServiciosCouponsCard
-                coupons={displayProfile.coupons}
-                lang={lang}
-                couponFlyer={displayProfile.couponFlyer}
-                couponMoreOffers={displayProfile.couponMoreOffers}
-                featuredRow
-              />
-            ) : null}
+        <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
+          {hasAboutSectionResolved(displayProfile) ? (
+            <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+          ) : null}
 
-            {hasGallerySectionResolved(displayProfile) ? (
-              <ServiciosGalleryWithTabs profile={displayProfile} lang={lang} combinedMediaLayout />
-            ) : null}
-
-            {hasServicesSectionResolved(displayProfile) ? (
-              <ServiciosOfferedSection
-                services={displayProfile.services}
-                lang={lang}
-                profileForQuote={displayProfile}
-                premiumLeonixTone
-              />
-            ) : null}
-
-            {hasQuickFactsResolved(displayProfile) ? (
-              <ServiciosQuickFacts facts={displayProfile.quickFacts} lang={lang} compact />
-            ) : null}
-
-            {hasTrustSectionResolved(displayProfile) ? (
-              <ServiciosTrustSection profile={displayProfile} lang={lang} template={template} />
-            ) : null}
-
-            {hasAboutSectionResolved(displayProfile) ? (
-              <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
-            ) : null}
-
-            {hasBusinessHighlightsResolved(displayProfile) ? (
-              <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
-            ) : null}
-
-            {hasReviewsSectionResolved(displayProfile) ? (
-              <ServiciosReviews profile={displayProfile} lang={lang} />
-            ) : null}
-
-            <div id="servicios-preview-contact" className="scroll-mt-20 lg:hidden">
-              <ServiciosBusinessHubContactCard
-                profile={displayProfile}
-                lang={lang}
-                listingTemplate={template}
-                directContactFasterResponseHint
-                showOfferSidebarTeaser={false}
-              />
-            </div>
+          <div id="servicios-preview-contact" className={SECTION_SCROLL}>
+            <ServiciosBusinessHubContactCard
+              profile={displayProfile}
+              lang={lang}
+              listingTemplate={template}
+              directContactFasterResponseHint
+              showOfferSidebarTeaser={false}
+            />
           </div>
 
-          <aside className={`order-2 ${LX_PRO_ASIDE}`}>
-            <div id="servicios-preview-contact-desktop" className="scroll-mt-20">
-              <ServiciosBusinessHubContactCard
-                profile={displayProfile}
-                lang={lang}
-                listingTemplate={template}
-                directContactFasterResponseHint
-                showOfferSidebarTeaser={false}
-              />
-            </div>
-          </aside>
+          <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
+
+          {hasCouponBlock(displayProfile) ? (
+            <ServiciosCouponsCard
+              coupons={displayProfile.coupons}
+              lang={lang}
+              couponFlyer={displayProfile.couponFlyer}
+              couponMoreOffers={displayProfile.couponMoreOffers}
+              featuredRow
+            />
+          ) : null}
+
+          {hasGallerySectionResolved(displayProfile) ? (
+            <ServiciosGalleryWithTabs profile={displayProfile} lang={lang} combinedMediaLayout />
+          ) : null}
+
+          {hasServicesSectionResolved(displayProfile) ? (
+            <ServiciosOfferedSection
+              services={displayProfile.services}
+              lang={lang}
+              profileForQuote={displayProfile}
+              premiumLeonixTone
+            />
+          ) : null}
+
+          <ServiciosPublicDetailsCanvas
+            profile={displayProfile}
+            displayProfile={displayProfile}
+            lang={lang}
+            template={template}
+          />
+
+          {hasReviewsSectionResolved(displayProfile) ? (
+            <ServiciosReviews profile={displayProfile} lang={lang} />
+          ) : null}
         </div>
 
         {draftSlug?.trim() ? (

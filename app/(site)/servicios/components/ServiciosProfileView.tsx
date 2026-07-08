@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import {
   hasAboutSectionResolved,
+  hasGallerySectionResolved,
   hasHeroIdentityResolved,
   hasOfferSectionResolved,
   hasPaidCouponsSectionResolved,
+  hasServicesSectionResolved,
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosHero } from "./ServiciosHero";
@@ -25,6 +27,14 @@ import { SV } from "./serviciosDesignTokens";
 import { LX_LINK_ACCENT } from "./serviciosLeonixBrand";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 
+function hasCouponBlock(profile: ServiciosProfileResolved): boolean {
+  return (
+    hasPaidCouponsSectionResolved(profile) ||
+    Boolean(profile.couponFlyer?.imageUrl?.trim()) ||
+    Boolean(profile.couponMoreOffers?.url?.trim())
+  );
+}
+
 export function ServiciosProfileView({
   profile,
   lang,
@@ -43,37 +53,23 @@ export function ServiciosProfileView({
   showPublicLeadInquiryForm = false,
   directContactFasterResponseHint = false,
   leonixAdIdFooter,
-  /** Public Clasificados vitrina — link back to discovery results (not browser history). */
   serviciosDiscoveryResultsHref,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
-  /** Clasificados draft preview — subtle return to the application */
   editBackHref?: string;
-  /** Same-tab preview → edit handoff (Leonix publish flow session flags). */
   beforeEditBackNavigate?: () => void;
-  /** Optional system notice (e.g. paused listing) — premium, non-alarming */
   noticeBanner?: string;
-  /** Gate 20F — success panel after publish (`?justPublished=1`). */
   justPublishedPanel?: ReactNode;
-  /** When false, the global Servicios chrome bar is omitted (e.g. Clasificados preview uses an outer wrapper). */
   showTopBar?: boolean;
-  /** Public Clasificados slug — enables analytics + tracked outbound CTAs on the action panel. */
   analyticsListingSlug?: string;
-  /** `servicios_public_listings.id` for global analytics API (SVC1). */
   listingSourceId?: string | null;
-  /** Stable key for Like/Save/Share: `leonix_ad_id`, else listing row `id`, else slug (dev). */
   engagementListingId?: string | null;
-  /** Listing owner auth id for analytics rollup. */
   engagementOwnerUserId?: string | null;
   persistListingEngagement?: boolean;
-  /** SSR like count from `user_liked_listings` (same keys as Like button); omit on previews. */
   publicLikeCount?: number;
-  /** Absolute URL for hero share (SSR from request host when available). */
   listingShareUrl?: string;
-  /** Public Clasificados: show quote form only when lead can be emailed to the business (Resend + recipient). */
   showPublicLeadInquiryForm?: boolean;
-  /** When the quote form is hidden, nudge visitors toward direct contact CTAs. */
   directContactFasterResponseHint?: boolean;
   leonixAdIdFooter?: string | null;
   serviciosDiscoveryResultsHref?: string | null;
@@ -112,110 +108,12 @@ export function ServiciosProfileView({
 
               <div className="mt-5 grid grid-cols-1 gap-5 sm:mt-8 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]">
                 <div className="order-1 flex min-w-0 flex-col gap-5 sm:gap-8 lg:order-1">
-                  {translateControl ? <div className="order-0">{translateControl}</div> : null}
+                  {translateControl ? <div>{translateControl}</div> : null}
 
                   {hasAboutSectionResolved(profile) ? (
-                    <div className="order-1">
-                      <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
-                    </div>
+                    <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
                   ) : null}
 
-                  <div className="order-2 lg:hidden">
-                    <ServiciosBusinessHubContactCard
-                      profile={profile}
-                      lang={lang}
-                      listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
-                      listingShareUrl={listingShareUrl}
-                      engagementListingId={engagementListingId}
-                      engagementOwnerUserId={engagementOwnerUserId}
-                      persistListingEngagement={persistListingEngagement}
-                      publicLikeCount={publicLikeCount}
-                      directContactFasterResponseHint={directContactFasterResponseHint}
-                      showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
-                    />
-                  </div>
-
-                  <div className="order-3">
-                    <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
-                  </div>
-
-                  <div className="order-4">
-                    {hasPaidCouponsSectionResolved(displayProfile) ||
-                    displayProfile.couponFlyer?.imageUrl?.trim() ||
-                    displayProfile.couponMoreOffers?.url?.trim() ? (
-                      <div className="mb-5 sm:mb-8">
-                        <ServiciosCouponsCard
-                          coupons={displayProfile.coupons}
-                          lang={lang}
-                          couponFlyer={displayProfile.couponFlyer}
-                          couponMoreOffers={displayProfile.couponMoreOffers}
-                          featuredRow
-                        />
-                      </div>
-                    ) : null}
-                    <ServiciosGalleryWithTabs
-                      profile={displayProfile}
-                      lang={lang}
-                      listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
-                      listingShareUrl={listingShareUrl}
-                      combinedMediaLayout
-                    />
-                  </div>
-
-                  <div className="order-5 lg:hidden">
-                    <ServiciosPromocionesCard
-                      profile={displayProfile}
-                      lang={lang}
-                      premiumLeonixTone
-                      listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
-                      engagementListingId={engagementListingId}
-                      engagementOwnerUserId={engagementOwnerUserId}
-                    />
-                  </div>
-
-                  <div className="order-6">
-                    <ServiciosOfferedSection
-                      services={displayProfile.services}
-                      lang={lang}
-                      profileForQuote={profile}
-                      listingSlug={analyticsListingSlug}
-                      listingSourceId={listingSourceId}
-                      listingShareUrl={listingShareUrl}
-                      premiumLeonixTone
-                    />
-                  </div>
-
-                  <div className="order-7">
-                    <ServiciosPublicDetailsCanvas
-                      profile={profile}
-                      displayProfile={displayProfile}
-                      lang={lang}
-                    />
-                  </div>
-
-                  {analyticsListingSlug && showPublicLeadInquiryForm ? (
-                    <div className="order-8">
-                      <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
-                    </div>
-                  ) : null}
-
-                  <div className="order-9">
-                    <ServiciosReviews profile={profile} lang={lang} />
-                  </div>
-
-                  {!profile.contact.hours?.weeklyRows ? (
-                    <div className="order-10">
-                      <ServiciosHours profile={profile} lang={lang} />
-                    </div>
-                  ) : null}
-                </div>
-
-                <aside
-                  className={`order-2 hidden min-w-0 lg:sticky lg:block lg:self-start ${stickyAsideTop} lg:z-10 lg:order-2`}
-                >
                   <ServiciosBusinessHubContactCard
                     profile={profile}
                     lang={lang}
@@ -229,7 +127,49 @@ export function ServiciosProfileView({
                     directContactFasterResponseHint={directContactFasterResponseHint}
                     showOfferSidebarTeaser={!hasOfferSectionResolved(profile)}
                   />
-                  <div className="mt-5 lg:mt-6">
+
+                  <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
+
+                  {hasCouponBlock(displayProfile) ? (
+                    <ServiciosCouponsCard
+                      coupons={displayProfile.coupons}
+                      lang={lang}
+                      couponFlyer={displayProfile.couponFlyer}
+                      couponMoreOffers={displayProfile.couponMoreOffers}
+                      featuredRow
+                    />
+                  ) : null}
+
+                  {hasGallerySectionResolved(displayProfile) ? (
+                    <ServiciosGalleryWithTabs
+                      profile={displayProfile}
+                      lang={lang}
+                      listingSlug={analyticsListingSlug}
+                      listingSourceId={listingSourceId}
+                      listingShareUrl={listingShareUrl}
+                      combinedMediaLayout
+                    />
+                  ) : null}
+
+                  {hasServicesSectionResolved(profile) ? (
+                    <ServiciosOfferedSection
+                      services={displayProfile.services}
+                      lang={lang}
+                      profileForQuote={profile}
+                      listingSlug={analyticsListingSlug}
+                      listingSourceId={listingSourceId}
+                      listingShareUrl={listingShareUrl}
+                      premiumLeonixTone
+                    />
+                  ) : null}
+
+                  <ServiciosPublicDetailsCanvas
+                    profile={profile}
+                    displayProfile={displayProfile}
+                    lang={lang}
+                  />
+
+                  <div className="lg:hidden">
                     <ServiciosPromocionesCard
                       profile={displayProfile}
                       lang={lang}
@@ -240,6 +180,30 @@ export function ServiciosProfileView({
                       engagementOwnerUserId={engagementOwnerUserId}
                     />
                   </div>
+
+                  {analyticsListingSlug && showPublicLeadInquiryForm ? (
+                    <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+                  ) : null}
+
+                  <ServiciosReviews profile={profile} lang={lang} />
+
+                  {!profile.contact.hours?.weeklyRows ? (
+                    <ServiciosHours profile={profile} lang={lang} />
+                  ) : null}
+                </div>
+
+                <aside
+                  className={`order-2 hidden min-w-0 lg:sticky lg:block lg:self-start ${stickyAsideTop} lg:z-10 lg:order-2`}
+                >
+                  <ServiciosPromocionesCard
+                    profile={displayProfile}
+                    lang={lang}
+                    premiumLeonixTone
+                    listingSlug={analyticsListingSlug}
+                    listingSourceId={listingSourceId}
+                    engagementListingId={engagementListingId}
+                    engagementOwnerUserId={engagementOwnerUserId}
+                  />
                 </aside>
               </div>
             </>

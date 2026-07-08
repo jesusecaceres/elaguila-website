@@ -5,8 +5,6 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "./serviciosDesignTokens";
 import {
-  LX_PRO_ASIDE,
-  LX_PRO_GRID,
   LX_PRO_INNER_PAD,
   LX_PRO_MAIN_MAX,
   LX_PRO_SECTION_GAP,
@@ -138,12 +136,7 @@ export function ServiciosProfessionalProfileShell({
   const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
 
   const scrollToSection = useCallback((id: string) => {
-    let targetId = id;
-    if (id === "servicios-pro-contact") {
-      const desktop = typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
-      targetId = desktop ? "servicios-pro-contact-desktop" : "servicios-pro-contact";
-    }
-    const el = document.getElementById(targetId);
+    const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
@@ -260,7 +253,13 @@ export function ServiciosProfessionalProfileShell({
           />
 
           <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
-            {(displayProfile, translateControl) => (
+            {(displayProfile, translateControl) => {
+              const showCouponBlock =
+                hasPaidCouponsSectionResolved(displayProfile) ||
+                Boolean(displayProfile.couponFlyer?.imageUrl?.trim()) ||
+                Boolean(displayProfile.couponMoreOffers?.url?.trim());
+
+              return (
           <div className={LX_PRO_INNER_PAD}>
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
@@ -269,7 +268,7 @@ export function ServiciosProfessionalProfileShell({
                 <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
               ) : null}
 
-              <div id="servicios-pro-contact" className={`${SECTION_SCROLL} lg:hidden`}>
+              <div id="servicios-pro-contact" className={SECTION_SCROLL}>
                 <ServiciosBusinessHubContactCard
                   profile={profile}
                   lang={lang}
@@ -288,9 +287,7 @@ export function ServiciosProfessionalProfileShell({
 
               <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
 
-              {hasPaidCouponsSectionResolved(displayProfile) ||
-              displayProfile.couponFlyer?.imageUrl?.trim() ||
-              displayProfile.couponMoreOffers?.url?.trim() ? (
+              {showCouponBlock ? (
                 <ServiciosCouponsCard
                   coupons={displayProfile.coupons}
                   lang={lang}
@@ -333,45 +330,24 @@ export function ServiciosProfessionalProfileShell({
               />
             </section>
 
-            <div className={`mt-6 sm:mt-8 ${LX_PRO_GRID}`}>
-              <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
-                {showReviewsSection ? (
-                  <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
-                    <ServiciosReviews profile={profile} lang={lang} />
-                  </section>
-                ) : (
-                  <section id="servicios-pro-reviews" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
-                    <span className="block h-px" />
-                  </section>
-                )}
+            <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
+              {showReviewsSection ? (
+                <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
+                  <ServiciosReviews profile={profile} lang={lang} />
+                </section>
+              ) : (
+                <section id="servicios-pro-reviews" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
+                  <span className="block h-px" />
+                </section>
+              )}
 
-                {analyticsListingSlug && showPublicLeadInquiryForm ? (
-                  <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
-                ) : null}
+              {analyticsListingSlug && showPublicLeadInquiryForm ? (
+                <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+              ) : null}
 
-                {!profile.contact.hours?.weeklyRows ? (
-                  <ServiciosHours profile={profile} lang={lang} />
-                ) : null}
-              </div>
-
-              <aside className={`${LX_PRO_ASIDE} lg:top-[4.5rem]`}>
-                <div id="servicios-pro-contact-desktop" className={SECTION_SCROLL}>
-                  <ServiciosBusinessHubContactCard
-                    profile={profile}
-                    lang={lang}
-                    listingTemplate={template}
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={sourceId || listingSourceId}
-                    listingShareUrl={listingShareUrl}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
-                    persistListingEngagement={persistListingEngagement}
-                    publicLikeCount={publicLikeCount}
-                    directContactFasterResponseHint={directContactFasterResponseHint}
-                    showOfferSidebarTeaser={false}
-                  />
-                </div>
-              </aside>
+              {!profile.contact.hours?.weeklyRows ? (
+                <ServiciosHours profile={profile} lang={lang} />
+              ) : null}
             </div>
 
             {leonixAdIdFooter ? (
@@ -396,7 +372,8 @@ export function ServiciosProfessionalProfileShell({
               </div>
             ) : null}
           </div>
-            )}
+              );
+            }}
           </ServiciosPublicTranslationLayer>
         </div>
       </main>

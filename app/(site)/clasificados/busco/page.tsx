@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
@@ -11,6 +9,10 @@ import {
   LeonixCategoryShortcutSection,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import {
+  LEONIX_LANDING_SECTION,
+  LEONIX_LANDING_SECTION_PAD,
+} from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { categoryStandardQuickFilters } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { BuscoLandingRecentListings } from "./BuscoLandingRecentListings";
@@ -26,7 +28,6 @@ const COPY = {
     recentEmpty:
       "Aún no hay solicitudes publicadas. Sé el primero en publicar lo que buscas en tu comunidad.",
     recentError: "No se pudieron cargar las solicitudes recientes.",
-    backHub: "Volver a Clasificados",
   },
   en: {
     eyebrow: "CLASSIFIEDS · REQUESTS",
@@ -37,7 +38,6 @@ const COPY = {
     recentEmpty:
       "No published requests yet. Be the first to post what you are looking for in your community.",
     recentError: "Could not load recent requests.",
-    backHub: "Back to Classifieds",
   },
 } as const;
 
@@ -51,7 +51,6 @@ function BuscoLandingPageInner() {
 
   const postHref = useMemo(() => buscoPathWithLang("/publicar/busco/quick", routeLang), [routeLang]);
   const resultsHref = useMemo(() => buildCategoryResultsUrl("busco", routeLang as "es" | "en"), [routeLang]);
-  const hubHref = useMemo(() => buscoPathWithLang("/clasificados", routeLang), [routeLang]);
 
   const buscoSearchForm = (
     <LeonixCategorySearchCanvas
@@ -80,43 +79,53 @@ function BuscoLandingPageInner() {
 
   return (
     <LeonixCategoryPageShell surface="landing">
-      <LeonixCategoryHeroGateway
-        lang={lang as V2Lang}
-        surface="landing"
-        title={lang === "es" ? "Busco / Se Busca" : "I'm Looking For / Looking For"}
-        tagline=""
-        intro={lang === "es" ? "Publica lo que buscas y encuentra ofertas de tu comunidad." : "Post what you're looking for and find offers from your community."}
-        introSecondary=""
-        searchSlot={buscoSearchForm}
-        eyebrow={t.eyebrow}
-      />
-      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
-        <section className="rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 text-sm leading-relaxed text-[#3D3428] sm:px-5">
-          <p>{product.helper[lang]}</p>
-          <p className="mt-3 rounded-lg border border-[#D6C7AD]/60 bg-[#FAF6EE] px-3 py-2.5 text-xs font-medium text-[#556B3E]">
-            {product.notDatingNote[lang]}
-          </p>
-        </section>
-        <LeonixCategoryShortcutSection
+      <div className="px-3.5 pb-8 sm:px-5 lg:px-6">
+        <LeonixCategoryHeroGateway
           lang={lang as V2Lang}
           surface="landing"
-          title={t.quickTopics}
-          subtitle=""
-          variant="default"
-          chips={chips.map((label) => ({ id: label, label, href: buildCategoryResultsUrl("busco", lang, { q: label }) }))}
+          title={lang === "es" ? "Busco / Se Busca" : "I'm Looking For / Looking For"}
+          tagline={lang === "es" ? "Solicitudes locales, sin complicaciones." : "Local requests, kept simple."}
+          intro={
+            lang === "es"
+              ? "Publica lo que buscas y encuentra ofertas de tu comunidad."
+              : "Post what you're looking for and find offers from your community."
+          }
+          introSecondary={product.helper[lang]}
+          searchSlot={buscoSearchForm}
+          eyebrow={t.eyebrow}
         />
-        <BuscoLandingRecentListings
-          lang={lang}
-          title={t.recentTitle}
-          emptyNote={t.recentEmpty}
-          errorPrefix={t.recentError}
-        />
-        <p className="text-center">
-          <Link href={hubHref} className="text-sm font-medium text-[#556B3E] underline-offset-2 hover:text-[#7A1E2C]">
-            {t.backHub}
-          </Link>
-        </p>
-      </main>
+
+        <main className="space-y-5 overflow-x-hidden sm:space-y-6">
+          <section className={LEONIX_LANDING_SECTION} aria-label={lang === "es" ? "Aviso importante" : "Important notice"}>
+            <div className={`${LEONIX_LANDING_SECTION_PAD} !py-4 sm:!py-5`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#556B3E]">
+                {lang === "es" ? "Uso de esta sección" : "How to use this section"}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{product.notDatingNote[lang]}</p>
+            </div>
+          </section>
+
+          <LeonixCategoryShortcutSection
+            lang={lang as V2Lang}
+            surface="landing"
+            title={t.quickTopics}
+            subtitle=""
+            variant="default"
+            chips={chips.map((label) => ({
+              id: label,
+              label,
+              href: buildCategoryResultsUrl("busco", lang, { q: label }),
+            }))}
+          />
+
+          <BuscoLandingRecentListings
+            lang={lang}
+            title={t.recentTitle}
+            emptyNote={t.recentEmpty}
+            errorPrefix={t.recentError}
+          />
+        </main>
+      </div>
     </LeonixCategoryPageShell>
   );
 }

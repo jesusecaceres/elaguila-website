@@ -1,0 +1,26 @@
+{
+  "gate": "AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL1",
+  "page": 6,
+  "language": "Portuguese",
+  "riskLevel": "MEDIUM",
+  "layoutType": "editorial_business_community",
+  "businessCriticalQaFocus": "editorial/community tone, business/community language, CTA readability, layout usability",
+  "chuyQaStatus": "NOT_REVIEWED",
+  "portugueseReviewerStatus": "NEEDED_OR_PENDING",
+  "translationWorked": "TBD",
+  "layoutUsable": "TBD",
+  "textOverflowCrop": "TBD",
+  "businessNamePreserved": "N/A",
+  "brandPreserved": "TBD",
+  "ctaPreserved": "TBD",
+  "qrReadable": "N/A",
+  "notes": "",
+  "decision": "TBD",
+  "decisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED",
+    "HOLD_FOR_PORTUGUESE_REVIEWER"
+  ]
+}

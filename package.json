@@ -78,6 +78,7 @@
     "verify:servicios-gate-03": "node scripts/verify-servicios-gate-03-simple-offer-chips.mjs",
     "verify:servicios-gate-04": "node scripts/verify-servicios-gate-04-coupon-gallery-parity.mjs",
     "verify:servicios-shell-2": "node scripts/verify-servicios-shell-2.mjs",
+    "verify:servicios-shell-2b": "node scripts/verify-servicios-shell-2b.mjs",
     "verify:servicios-p0-coupon-roundtrip-live-parity": "node scripts/verify-servicios-p0-coupon-roundtrip-live-parity.mjs",
     "verify:servicios-p0b-coupon-output-render-proof": "node scripts/verify-servicios-p0b-coupon-output-render-proof.mjs",
     "verify:servicios-p0a-checkpoint-ver-mas-rules-modal-parity": "node scripts/verify-servicios-p0a-checkpoint-ver-mas-rules-modal-parity.mjs",
