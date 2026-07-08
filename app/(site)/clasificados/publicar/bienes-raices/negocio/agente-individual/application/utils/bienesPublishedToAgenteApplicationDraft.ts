@@ -121,7 +121,7 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
     .slice(0, 4)
     .map((r) => mapChildListingRowToDraft(r as Parameters<typeof mapChildListingRowToDraft>[0]));
 
-  const packEnabled = listingJsonBrInventoryPackEnabled(row.listing_json) || children.length > 0;
+  const packEnabled = children.length > 0;
 
   return {
     ...base,
@@ -132,7 +132,7 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
     ciudad: trim(row.city),
     fotosDataUrls: photos,
     fotoPortadaIndex: 0,
-    inventoryPackAccepted: packEnabled,
+    inventoryPackAccepted: false,
     additionalInventoryProperties: children,
     confirmListingAccurate: true,
     confirmPhotosRepresentItem: photos.length > 0,

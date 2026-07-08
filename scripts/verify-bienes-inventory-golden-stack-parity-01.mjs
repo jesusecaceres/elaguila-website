@@ -71,8 +71,8 @@ ok("Bienes hydration mapper");
 
 for (const needle of [
   "isExistingDashboardListingMode",
-  "isDashboardListingEditMode",
-  "isDashboardInventoryEditMode",
+  "fetchBienesInventoryPackEntitlementActive",
+  "redirectBienesDashboardInventoryPackCheckout",
   "hydrateBienesListingForDashboardEdit",
   "bienesListingPreviewHref",
   "focusInventoryPack",
@@ -106,11 +106,19 @@ ok("Dashboard surfaces wired");
 if (!matrix.includes("br_inventory_pack_monthly")) fail("matrix must define br_inventory_pack_monthly");
 if (!payload.includes("BIENES_INVENTORY_PACK_DASHBOARD_CHECKOUT")) fail("checkout payload must exist");
 if (!checkpoint.includes("BR_INVENTORY_PACK_PACKAGE_KEY")) fail("package key constant required");
-if (!checkpoint.includes("REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false")) {
-  fail("inventory pack checkout must stay honestly blocked until fulfillment gate");
+if (!checkpoint.includes("REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = true")) {
+  fail("inventory pack checkout must be enabled after fulfillment gate");
+}
+if (!helper.includes("fetchBienesInventoryPackEntitlementActive")) fail("helper must fetch real entitlement");
+if (!helper.includes("startBienesDashboardInventoryPackCheckout")) fail("helper must export pack checkout");
+if (!invActions.includes("fetchBienesInventoryPackEntitlementActive")) {
+  fail("inventory actions must read real entitlement");
+}
+if (!invActions.includes("redirectBienesDashboardInventoryPackCheckout")) {
+  fail("inactive inventory CTA must start add-on checkout");
 }
 if (!helper.includes("REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED")) fail("helper must respect checkout support flag");
-ok("Payment honesty: package defined, checkout blocked");
+ok("Payment honesty: package defined, fulfillment enabled with entitlement read");
 
 if (!checkpoint.includes("BR_INVENTORY_PACK_MAX_CHILDREN = 4")) fail("max 4 rule required");
 if (!relatedFetch.includes("fetchBrRelatedInventoryListingsForDetail")) fail("public child render path required");

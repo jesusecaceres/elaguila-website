@@ -91,6 +91,8 @@
     "verify:global-monetized-category-stack-standard-01": "node scripts/verify-global-monetized-category-stack-standard-01.mjs",
     "verify:bienes-inventory-golden-stack-parity-01": "node scripts/verify-bienes-inventory-golden-stack-parity-01.mjs",
     "smoke:bienes-inventory-golden-stack-parity-01": "node scripts/smoke-bienes-inventory-golden-stack-parity-01.mjs",
+    "verify:revenue-os-br-inventory-pack-fulfillment-and-global-preview-safety-01": "node scripts/verify-revenue-os-br-inventory-pack-fulfillment-and-global-preview-safety-01.mjs",
+    "smoke:revenue-os-br-inventory-pack-fulfillment-and-global-preview-safety-01": "node scripts/smoke-revenue-os-br-inventory-pack-fulfillment-and-global-preview-safety-01.mjs",
     "verify:restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01": "node scripts/verify-restaurantes-checkout-remove-ofertas-and-coupon-addon-truth-01.mjs",
     "verify:restaurantes-promo-checkout-final-button-blocker-fix-01": "node scripts/verify-restaurantes-promo-checkout-final-button-blocker-fix-01.mjs",
     "verify:publish-checkout-promo-validation-ui-01": "node scripts/verify-publish-checkout-promo-validation-ui-01.mjs",

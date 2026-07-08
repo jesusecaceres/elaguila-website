@@ -62,8 +62,14 @@ import { applyInventoryDraftToAgenteFormState } from "../../application/brNegoci
 import { setChildInventoryMediaBridge } from "../../application/brNegocioInventoryDraftPersistence";
 import { syncAgenteAddModePreviewHandoff } from "../../application/brNegocioInventoryAddModePreviewHandoff";
 import {
+  bienesInventoryEditHref,
+  bienesInventoryPackAddonUpgradeBusyLabel,
+  bienesInventoryPackAddonUpgradeLabel,
+  bienesInventoryPackInactiveDashboardHint,
   bienesListingPreviewHref,
+  fetchBienesInventoryPackEntitlementActive,
   hydrateBienesListingForDashboardEdit,
+  redirectBienesDashboardInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -101,6 +107,11 @@ export default function AgenteIndividualResidencialApplication() {
   >({ status: "idle" });
   const dashboardHydratedRef = useRef(false);
   const [parentMeta, setParentMeta] = useState<{ leonix_ad_id: string | null; title: string | null } | null>(null);
+  const [inventoryEntitlement, setInventoryEntitlement] = useState<
+    "idle" | "loading" | "active" | "inactive" | "pending"
+  >("idle");
+  const [inventoryCheckoutBusy, setInventoryCheckoutBusy] = useState(false);
+  const [inventoryCheckoutError, setInventoryCheckoutError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
   const addModePreviewSyncedRef = useRef(false);
@@ -166,6 +177,66 @@ export default function AgenteIndividualResidencialApplication() {
   }, [editListingId, isExistingDashboardListingMode, lang]);
 
   useEffect(() => {
+    if (!isExistingDashboardListingMode || !editListingId) {
+      setInventoryEntitlement("idle");
+      return;
+    }
+    let cancelled = false;
+    setInventoryEntitlement("loading");
+    void fetchBienesInventoryPackEntitlementActive({
+      listingId: editListingId,
+      leonixAdId: editLeonixAdId,
+      slug: editListingSlug,
+    }).then((result) => {
+      if (cancelled) return;
+      if (result.active) {
+        setInventoryEntitlement("active");
+        return;
+      }
+      if (result.pending) {
+        setInventoryEntitlement("pending");
+        return;
+      }
+      const postPaymentReturn = isDashboardInventoryEditMode && focusInventoryPack;
+      setInventoryEntitlement(postPaymentReturn ? "pending" : "inactive");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    dashboardMode,
+    editLeonixAdId,
+    editListingId,
+    editListingSlug,
+    focusInventoryPack,
+    isDashboardInventoryAddonMode,
+    isDashboardInventoryEditMode,
+    isExistingDashboardListingMode,
+  ]);
+
+  const startDashboardInventoryPackCheckout = useCallback(async () => {
+    if (!editListingId) return;
+    setInventoryCheckoutError(null);
+    setInventoryCheckoutBusy(true);
+    try {
+      const result = await redirectBienesDashboardInventoryPackCheckout({
+        listingId: editListingId,
+        leonixAdId: editLeonixAdId,
+        lang,
+        returnPath: bienesInventoryEditHref({
+          lang,
+          listingId: editListingId,
+          listingSlug: editListingSlug,
+          leonixAdId: editLeonixAdId,
+        }),
+      });
+      if (!result.ok) setInventoryCheckoutError(result.userMessage);
+    } finally {
+      setInventoryCheckoutBusy(false);
+    }
+  }, [editLeonixAdId, editListingId, editListingSlug, lang]);
+
+  useEffect(() => {
     if (!isExistingDashboardListingMode) return;
     if (!focusInventoryPack && !isDashboardInventoryEditMode && !isDashboardInventoryAddonMode) return;
     setStep(9);
@@ -221,6 +292,10 @@ export default function AgenteIndividualResidencialApplication() {
 
   const pricingCopy = brAgenteApplicationPricingCopy(lang);
   const childInventoryCount = state.additionalInventoryProperties.length;
+  const dashboardInventoryPackUnlocked = !isExistingDashboardListingMode || inventoryEntitlement === "active";
+  const inventoryPackAcceptedForShell = isExistingDashboardListingMode
+    ? dashboardInventoryPackUnlocked
+    : state.inventoryPackAccepted;
 
   const confirmAll =
     state.confirmListingAccurate &&
@@ -455,65 +530,112 @@ export default function AgenteIndividualResidencialApplication() {
               <section className="rounded-2xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-sm">
                 <h2 className="text-lg font-bold text-[#1E1810]">{t.app.vistaPreviaTitulo}</h2>
                 <p className="mt-1 text-sm text-[#5C5346]/88">{t.app.vistaPreviaBody}</p>
-                <BrNegocioPrePublishInventoryShell
-                  lang={lang}
-                  parentHubSnapshot={state}
-                  parentFullState={state}
-                  mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
-                  items={state.additionalInventoryProperties}
-                  inventoryPackAccepted={state.inventoryPackAccepted}
-                  onInventoryPackAcceptedChange={(accepted) =>
-                    setState((s) => ({ ...s, inventoryPackAccepted: accepted }))
-                  }
-                  onInventoryPackCancel={() => {
-                    setChildInventoryMediaBridge([]);
-                    setState((s) => {
-                      const next = {
-                        ...s,
-                        inventoryPackAccepted: false,
-                        additionalInventoryProperties: [],
-                        confirmInventoryPackPricing: false,
-                      };
-                      persistAgenteResApplicationDraftQuiet(next);
-                      return next;
-                    });
-                  }}
-                  onGoToParentPreview={() => {
-                    queueMicrotask(() => {
-                      if (confirmAll) openPreview();
-                    });
-                  }}
-                  onItemsChange={(items) => {
-                    setChildInventoryMediaBridge(items);
-                    setState((s) => {
-                      const next = {
-                        ...s,
-                        additionalInventoryProperties: items,
-                        inventoryPackAccepted: items.length > 0 ? true : s.inventoryPackAccepted,
-                        confirmInventoryPackPricing:
-                          items.length === 0 ? false : s.confirmInventoryPackPricing,
-                      };
-                      persistAgenteResApplicationDraftQuiet(next);
-                      return next;
-                    });
-                  }}
-                  hidden={inventoryAdd.inventoryModeAdd}
-                />
-                <BrAgenteApplicationPricingSummary lang={lang} childCount={childInventoryCount} />
-                <BrAgenteApplicationConfirmations
-                  lang={lang}
-                  state={state}
-                  childCount={childInventoryCount}
-                  setState={setState}
-                />
-                <button
-                  type="button"
-                  disabled={!confirmAll}
-                  onClick={openPreview}
-                  className="mt-5 rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-6 py-3 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  {pricingCopy.continueToPreview}
-                </button>
+                {isExistingDashboardListingMode && inventoryEntitlement === "loading" ? (
+                  <p className="mt-4 text-sm text-[#5C5346]">
+                    {lang === "es" ? "Verificando tu inventario…" : "Checking your inventory…"}
+                  </p>
+                ) : null}
+                {isExistingDashboardListingMode && inventoryEntitlement === "pending" ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                    {lang === "es"
+                      ? "Estamos confirmando tu activación. Actualiza en unos segundos o vuelve desde el panel."
+                      : "We are confirming your activation. Refresh in a few seconds or return from your dashboard."}
+                  </div>
+                ) : null}
+                {isExistingDashboardListingMode && inventoryEntitlement === "inactive" ? (
+                  <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-white p-4">
+                    <p className="text-sm text-[#2C2416]">{bienesInventoryPackInactiveDashboardHint(lang)}</p>
+                    {inventoryCheckoutError ? (
+                      <p className="mt-2 text-xs text-red-800">{inventoryCheckoutError}</p>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={inventoryCheckoutBusy}
+                      onClick={() => void startDashboardInventoryPackCheckout()}
+                      className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-5 py-2 text-sm font-semibold text-[#6E5418] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {inventoryCheckoutBusy
+                        ? bienesInventoryPackAddonUpgradeBusyLabel(lang)
+                        : bienesInventoryPackAddonUpgradeLabel(lang)}
+                    </button>
+                  </div>
+                ) : null}
+                {dashboardInventoryPackUnlocked ? (
+                  <BrNegocioPrePublishInventoryShell
+                    lang={lang}
+                    parentHubSnapshot={state}
+                    parentFullState={state}
+                    mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
+                    items={state.additionalInventoryProperties}
+                    inventoryPackAccepted={inventoryPackAcceptedForShell}
+                    onInventoryPackAcceptedChange={
+                      isExistingDashboardListingMode
+                        ? undefined
+                        : (accepted) => setState((s) => ({ ...s, inventoryPackAccepted: accepted }))
+                    }
+                    onInventoryPackCancel={
+                      isExistingDashboardListingMode
+                        ? undefined
+                        : () => {
+                            setChildInventoryMediaBridge([]);
+                            setState((s) => {
+                              const next = {
+                                ...s,
+                                inventoryPackAccepted: false,
+                                additionalInventoryProperties: [],
+                                confirmInventoryPackPricing: false,
+                              };
+                              persistAgenteResApplicationDraftQuiet(next);
+                              return next;
+                            });
+                          }
+                    }
+                    onGoToParentPreview={() => {
+                      queueMicrotask(() => {
+                        if (confirmAll) openPreview();
+                      });
+                    }}
+                    onItemsChange={(items) => {
+                      if (isExistingDashboardListingMode && !dashboardInventoryPackUnlocked) return;
+                      setChildInventoryMediaBridge(items);
+                      setState((s) => {
+                        const next = {
+                          ...s,
+                          additionalInventoryProperties: items,
+                          inventoryPackAccepted: isExistingDashboardListingMode
+                            ? true
+                            : items.length > 0
+                              ? true
+                              : s.inventoryPackAccepted,
+                          confirmInventoryPackPricing:
+                            items.length === 0 ? false : s.confirmInventoryPackPricing,
+                        };
+                        persistAgenteResApplicationDraftQuiet(next);
+                        return next;
+                      });
+                    }}
+                    hidden={inventoryAdd.inventoryModeAdd}
+                  />
+                ) : null}
+                {!isExistingDashboardListingMode ? (
+                  <>
+                    <BrAgenteApplicationPricingSummary lang={lang} childCount={childInventoryCount} />
+                    <BrAgenteApplicationConfirmations
+                      lang={lang}
+                      state={state}
+                      childCount={childInventoryCount}
+                      setState={setState}
+                    />
+                    <button
+                      type="button"
+                      disabled={!confirmAll}
+                      onClick={openPreview}
+                      className="mt-5 rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-6 py-3 text-sm font-bold text-[#1E1810] shadow-md hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      {pricingCopy.continueToPreview}
+                    </button>
+                  </>
+                ) : null}
               </section>
             ) : null}
 
@@ -527,7 +649,7 @@ export default function AgenteIndividualResidencialApplication() {
                 {t.app.anterior}
               </button>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-1 sm:flex-row sm:justify-end">
-                {step === 9 ? (
+                {step === 9 && !isExistingDashboardListingMode ? (
                   <button
                     type="button"
                     disabled={!confirmAll}

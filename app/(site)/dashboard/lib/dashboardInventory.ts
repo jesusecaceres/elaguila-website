@@ -14,6 +14,7 @@ import {
 import {
   restaurantCouponAddonUpgradeEligible,
   restaurantCouponEditEligible,
+  restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
 
 export type DashboardInventoryItem = {
@@ -346,6 +347,22 @@ function viajesStagedPreviewPath(lane: string): string {
   return "/clasificados/viajes/preview/negocios";
 }
 
+/** Dashboard Mis anuncios preview for saved Restaurante listings — live public detail with identity. */
+export function restauranteDashboardListingPreviewHref(input: {
+  lang: "es" | "en";
+  slug: string;
+  listingId?: string | null;
+  leonixAdId?: string | null;
+}): string {
+  const slug = input.slug.trim();
+  const params = new URLSearchParams({ source: "dashboard", preview: "public" });
+  const listingId = input.listingId?.trim();
+  const leonixAdId = input.leonixAdId?.trim();
+  if (listingId) params.set("listingId", listingId);
+  if (leonixAdId) params.set("leonixAdId", leonixAdId);
+  return appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}?${params.toString()}`, input.lang);
+}
+
 export function buildRestaurantInventoryItems(
   rows: DashboardRestaurantRow[],
   lang: "es" | "en",
@@ -357,8 +374,18 @@ export function buildRestaurantInventoryItems(
     title: row.business_name,
     status: row.status,
     publicHref: `/clasificados/restaurantes/${encodeURIComponent(row.slug)}?${q}`,
-    editHref: `/publicar/restaurantes?${q}`,
-    previewHref: `/clasificados/restaurantes/preview?${q}`,
+    editHref: restauranteListingEditHref({
+      lang,
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+      returnPanel: "restaurantes",
+    }),
+    previewHref: restauranteDashboardListingPreviewHref({
+      lang,
+      slug: row.slug,
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+    }),
     resultsHref: `/clasificados/restaurantes/resultados?${q}&q=${encodeURIComponent(row.business_name)}`,
     analyticsHref: `/dashboard/analytics?${q}`,
     publishedAt: row.published_at,

@@ -16,7 +16,7 @@ import {
 } from "./publishCheckoutCopy";
 
 /** Revenue OS checkout does not yet support a separate Bienes inventory pack line item. */
-export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false;
+export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = true;
 
 /** Revenue OS checkout supports one packageKey per session; offers add-on is bundled via addOns[]. */
 export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = true;

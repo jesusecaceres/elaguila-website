@@ -1,17 +1,19 @@
 /**
  * Dashboard Bienes Raíces inventory pack checkout — add-on-only ($99/mo), no base plan.
  * Gate GLOBAL-MONETIZED-CATEGORY-STACK-01-BIENES-PROOF
+ * Gate REVENUE-OS-BR-INVENTORY-PACK-FULFILLMENT-AND-GLOBAL-PREVIEW-SAFETY-01
  *
  * Mirrors Restaurante/Servicios dashboard add-on pattern:
  * - Direct application routes for existing parent listings (no hub/checkpoint hop).
  * - Inventory pack checkout is add-on-only when REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED is true.
- * - Until fulfillment is wired, checkout CTA stays honestly blocked.
+ * - Active inventory unlock reads listing_package_entitlements (package_key br_inventory_pack_monthly).
  */
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_PREVIEW_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { isBrInventoryUpgradeActive } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
   redirectToRevenueCategoryCheckout,
@@ -24,7 +26,10 @@ import {
   REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
-import { isBrInventoryUpgradeActive } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import {
+  dashboardEntitlementBadgeForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+} from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
 import {
   hydrateBienesAgenteListingForDashboardEdit,
   type BienesDashboardHydrationResult,
@@ -114,14 +119,26 @@ export function bienesBackToEditHrefFromPreview(
   return appendLangToPath(`${BIENES_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
 }
 
+export function bienesInventoryPackInactiveDashboardHint(lang: Lang): string {
+  return bienesInventoryInactiveDashboardHint(lang);
+}
+
 export function bienesInventoryInactiveDashboardHint(lang: Lang): string {
   return lang === "es"
     ? "Para agregar propiedades al inventario, entra a Editar anuncio y abre la sección Inventario de propiedades."
     : "To add properties to your inventory, open Edit listing and go to the Property inventory section.";
 }
 
+export function bienesInventoryPackAddonUpgradeLabel(lang: Lang): string {
+  return bienesInventoryAddonUpgradeLabel(lang);
+}
+
 export function bienesInventoryAddonUpgradeLabel(lang: Lang): string {
   return lang === "es" ? "Activar inventario +$99/mes" : "Activate inventory +$99/mo";
+}
+
+export function bienesInventoryPackAddonUpgradeBusyLabel(lang: Lang): string {
+  return bienesInventoryAddonUpgradeBusyLabel(lang);
 }
 
 export function bienesInventoryAddonUpgradeBusyLabel(lang: Lang): string {
@@ -134,8 +151,26 @@ export function bienesInventoryAddonBlockedMessage(lang: Lang): string {
     : "Property inventory checkout is not fully available yet. Open Edit listing to prepare your properties.";
 }
 
+export function bienesInventoryPackEditLabel(lang: Lang): string {
+  return lang === "es" ? "Editar inventario" : "Edit inventory";
+}
+
+export function bienesInventoryPackEditSuccessLabel(lang: Lang): string {
+  return bienesInventoryEditSuccessLabel(lang);
+}
+
 export function bienesInventoryEditSuccessLabel(lang: Lang): string {
   return lang === "es" ? "Agregar propiedades ahora" : "Add properties now";
+}
+
+export function resolveBienesInventoryPackSuccessPrimaryCta(input: {
+  packageKey: string | null;
+  listingId: string | null;
+  leonixAdId?: string | null;
+  lang: Lang;
+  categoriaPropiedad?: BienesEditHrefInput["categoriaPropiedad"];
+}): { href: string; label: string } | null {
+  return resolveBienesInventoryAddonSuccessPrimaryCta(input);
 }
 
 export function resolveBienesInventoryAddonSuccessPrimaryCta(input: {
@@ -159,33 +194,109 @@ export function resolveBienesInventoryAddonSuccessPrimaryCta(input: {
   };
 }
 
+export function isBienesInventoryPackEntitlementActiveFromProof(
+  proof: { revenuePackageKey?: string | null } | null | undefined,
+): boolean {
+  return proof?.revenuePackageKey?.trim() === BR_INVENTORY_PACK_PACKAGE_KEY;
+}
+
+/** Browser-safe: active only when Revenue OS webhook created package entitlement for this listing. */
+export async function fetchBienesInventoryPackEntitlementActive(input: {
+  listingId: string;
+  leonixAdId?: string | null;
+  slug?: string | null;
+}): Promise<{ active: boolean; pending: boolean }> {
+  const listingId = input.listingId.trim();
+  if (!listingId) return { active: false, pending: false };
+
+  try {
+    const sb = createSupabaseBrowserClient();
+    const { data: auth } = await sb.auth.getSession();
+    const token = auth.session?.access_token;
+    if (!token?.trim()) return { active: false, pending: false };
+
+    const badges = await fetchDashboardListingPackageEntitlementBadges(
+      [
+        {
+          key: listingId,
+          category: "bienes-raices",
+          listingSource: "listings",
+          listingId,
+          slug: input.slug ?? null,
+          leonixAdId: input.leonixAdId ?? null,
+        },
+      ],
+      token,
+    );
+    const badge = dashboardEntitlementBadgeForKey(badges, [
+      listingId,
+      input.leonixAdId?.trim() ?? "",
+      input.slug?.trim() ?? "",
+    ]);
+    return { active: isBienesInventoryPackEntitlementActiveFromProof(badge), pending: false };
+  } catch {
+    return { active: false, pending: false };
+  }
+}
+
+export function bienesInventoryPackActive(input: {
+  entitlementActive?: boolean;
+  listingJson?: unknown;
+}): boolean {
+  if (input.entitlementActive === true) return true;
+  if (input.entitlementActive === false) return false;
+  return isBrInventoryUpgradeActive();
+}
+
 export function listingJsonBrInventoryPackEnabled(listingJson: unknown): boolean {
   if (!listingJson || typeof listingJson !== "object") return false;
   const o = listingJson as Record<string, unknown>;
   return o.inventoryPackEnabled === true || o.inventoryUpgradeEnabled === true;
 }
 
+export function bienesInventoryPackUpgradeEligible(input: {
+  status: string;
+  listingJson?: unknown;
+  isPublished?: boolean | null;
+  entitlementActive?: boolean;
+}): boolean {
+  return bienesInventoryAddonUpgradeEligible(input);
+}
+
 export function bienesInventoryAddonUpgradeEligible(input: {
   status: string;
   listingJson?: unknown;
   isPublished?: boolean | null;
+  entitlementActive?: boolean;
 }): boolean {
   const status = String(input.status ?? "").trim().toLowerCase();
   if (status !== "active" && status !== "published") return false;
   if (input.isPublished === false) return false;
-  if (isBrInventoryUpgradeActive()) return false;
-  return !listingJsonBrInventoryPackEnabled(input.listingJson);
+  if (bienesInventoryPackActive({ entitlementActive: input.entitlementActive, listingJson: input.listingJson })) {
+    return false;
+  }
+  return true;
+}
+
+export function bienesInventoryPackEditEligible(input: {
+  status: string;
+  listingJson?: unknown;
+  isPublished?: boolean | null;
+  entitlementActive?: boolean;
+}): boolean {
+  return bienesInventoryEditEligible(input);
 }
 
 export function bienesInventoryEditEligible(input: {
   status: string;
   listingJson?: unknown;
   isPublished?: boolean | null;
+  entitlementActive?: boolean;
 }): boolean {
   const status = String(input.status ?? "").trim().toLowerCase();
   if (status !== "active" && status !== "published") return false;
   if (input.isPublished === false) return false;
-  return listingJsonBrInventoryPackEnabled(input.listingJson) || isBrInventoryUpgradeActive();
+  return bienesInventoryPackActive({ entitlementActive: input.entitlementActive, listingJson: input.listingJson });
 }
 
 export async function hydrateBienesListingForDashboardEdit(input: {
@@ -193,6 +304,12 @@ export async function hydrateBienesListingForDashboardEdit(input: {
   lang: Lang;
 }): Promise<BienesDashboardHydrationResult> {
   return hydrateBienesAgenteListingForDashboardEdit(input);
+}
+
+export async function startBienesDashboardInventoryPackCheckout(
+  input: Parameters<typeof startBienesDashboardInventoryAddonCheckout>[0],
+): Promise<BienesDashboardInventoryAddonCheckoutResult> {
+  return startBienesDashboardInventoryAddonCheckout(input);
 }
 
 export async function startBienesDashboardInventoryAddonCheckout(input: {
@@ -237,6 +354,12 @@ export async function startBienesDashboardInventoryAddonCheckout(input: {
   }
 
   return { ok: true, checkoutUrl: checkout.checkoutUrl.trim() };
+}
+
+export async function redirectBienesDashboardInventoryPackCheckout(
+  input: Parameters<typeof startBienesDashboardInventoryPackCheckout>[0],
+): Promise<BienesDashboardInventoryAddonCheckoutResult> {
+  return redirectBienesDashboardInventoryAddonCheckout(input);
 }
 
 export async function redirectBienesDashboardInventoryAddonCheckout(
