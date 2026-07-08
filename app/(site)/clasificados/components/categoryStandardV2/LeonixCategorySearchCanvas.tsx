@@ -6,6 +6,7 @@ import type { LeonixCategorySearchCanvasProps } from "./types";
 import {
   LEONIX_BTN_PRIMARY,
   LEONIX_BTN_PRIMARY_LANDING,
+  LEONIX_BTN_PRIMARY_PLACEHOLDER,
   LEONIX_BTN_SECONDARY,
   LEONIX_BTN_SECONDARY_LANDING,
   LEONIX_HERO_SEARCH_GLOW,
@@ -39,7 +40,7 @@ import {
  * - country: sm:col-span-3 (with publish) / sm:col-span-4 (without)
  * - filters: sm:col-span-2 (with publish) / sm:col-span-3 (without) / sm:col-span-4 (results)
  * - browse all: sm:col-span-3 (with publish) / sm:col-span-5 (without) / sm:col-span-4 (results)
- * - publish CTA: sm:col-span-4 (landing only)
+ * - primary action slot: sm:col-span-4 (landing only, always preserved)
  * 
  * @param lang - "es" or "en"
  * @param surface - "landing" or "results"
@@ -61,9 +62,13 @@ import {
  * @param filtersButtonLabel - Filters button label
  * @param publishHref - Publish link href (landing only)
  * @param publishLabel - Publish link label (landing only)
+ * @param fallbackPrimaryHref - Optional fallback primary action href when publish CTA data is missing
+ * @param fallbackPrimaryLabel - Optional fallback primary action label when publish CTA data is missing
  * @param extraSecondRowSlot - Extra slot in second row
  * @param showBrowseAll - Show browse all link
- * @param showPublish - Show publish CTA
+ * @param showPublish - Optional landing override; undefined auto-renders publish CTA when href/label exist
+ * @param preservePrimarySlot - Preserve the landing primary action column even when CTA data is missing
+ * @param disabledPrimarySlotLabel - Disabled placeholder label when no primary action data exists
  * @param formId - Form ID
  * @param action - Form action
  * @param method - Form method
@@ -89,9 +94,13 @@ export function LeonixCategorySearchCanvas({
   filtersButtonLabel,
   publishHref,
   publishLabel,
+  fallbackPrimaryHref,
+  fallbackPrimaryLabel,
+  preservePrimarySlot = true,
+  disabledPrimarySlotLabel,
   extraSecondRowSlot,
   showBrowseAll = true,
-  showPublish = false,
+  showPublish,
   formId,
   action,
   method = "get",
@@ -99,7 +108,9 @@ export function LeonixCategorySearchCanvas({
   const isLanding = surface === "landing";
   const isResults = surface === "results";
   const isSharedAnchor = isLanding || isResults;
-  const hasPublish = isLanding && showPublish && !!publishHref && !!publishLabel;
+  const shouldShowPublish = isLanding && showPublish !== false && !!publishHref && !!publishLabel;
+  const hasFallbackPrimary = isLanding && !!fallbackPrimaryHref && !!fallbackPrimaryLabel;
+  const hasPrimarySlot = isLanding && (shouldShowPublish || hasFallbackPrimary || preservePrimarySlot);
 
   // Select appropriate classes based on surface
   const shellClass = isSharedAnchor ? LEONIX_HERO_SEARCH_SHELL : LEONIX_SEARCH_SHELL;
@@ -111,10 +122,10 @@ export function LeonixCategorySearchCanvas({
 
   const gridGap = "gap-2.5 sm:gap-3";
 
-  // Calculate column spans based on configuration
-  const browseCol = hasPublish ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-5";
-  const countryCol = hasPublish ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-4";
-  const filtersCol = hasPublish ? "sm:col-span-2" : isResults ? "sm:col-span-4" : "sm:col-span-3";
+  // Keep the landing second row locked: country | filters | browse all | primary slot.
+  const browseCol = hasPrimarySlot ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-5";
+  const countryCol = hasPrimarySlot ? "sm:col-span-3" : isResults ? "sm:col-span-4" : "sm:col-span-4";
+  const filtersCol = hasPrimarySlot ? "sm:col-span-2" : isResults ? "sm:col-span-4" : "sm:col-span-3";
   const keywordCol = isSharedAnchor ? "sm:col-span-5" : "sm:col-span-4";
 
   const cityPh = lang === "es" ? "Ciudad" : "City";
@@ -124,6 +135,15 @@ export function LeonixCategorySearchCanvas({
 
   const refineHint =
     lang === "es" ? "Afina por filtros en Filtros." : "Refine by filters in Filters.";
+  const disabledPrimaryLabel =
+    disabledPrimarySlotLabel || (lang === "es" ? "Accion pendiente" : "Action pending");
+
+  const primaryAction =
+    shouldShowPublish && publishHref && publishLabel
+      ? { href: publishHref, label: publishLabel }
+      : hasFallbackPrimary && fallbackPrimaryHref && fallbackPrimaryLabel
+        ? { href: fallbackPrimaryHref, label: fallbackPrimaryLabel }
+        : null;
 
   const SearchIcon = () => (
     <span className={`shrink-0 text-[#556B3E] ${isSharedAnchor ? "pl-3.5" : "pl-3"}`} aria-hidden>
@@ -241,10 +261,17 @@ export function LeonixCategorySearchCanvas({
           <div className={`hidden ${browseCol} sm:block`} aria-hidden />
         )}
 
-        {hasPublish && publishHref ? (
-          <Link href={publishHref} className={`${btnPrimary} sm:col-span-4 inline-flex w-full items-center justify-center`}>
-            {publishLabel}
+        {primaryAction ? (
+          <Link href={primaryAction.href} className={`${btnPrimary} sm:col-span-4 inline-flex w-full items-center justify-center`}>
+            {primaryAction.label}
           </Link>
+        ) : hasPrimarySlot ? (
+          <span
+            className={`${LEONIX_BTN_PRIMARY_PLACEHOLDER} hidden w-full cursor-not-allowed sm:col-span-4 sm:inline-flex`}
+            aria-disabled="true"
+          >
+            {disabledPrimaryLabel}
+          </span>
         ) : null}
 
         {extraSecondRowSlot}
@@ -255,9 +282,9 @@ export function LeonixCategorySearchCanvas({
         </button>
 
         {/* Mobile publish button */}
-        {hasPublish && publishHref ? (
-          <Link href={publishHref} className={`${btnPrimary} w-full sm:hidden`}>
-            {publishLabel}
+        {primaryAction ? (
+          <Link href={primaryAction.href} className={`${btnPrimary} w-full sm:hidden`}>
+            {primaryAction.label}
           </Link>
         ) : null}
       </div>

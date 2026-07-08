@@ -698,7 +698,7 @@ export function OfertasLocalesPreviewCard({
         />
 
         {/* 2. Page header */}
-        <header className="mb-4 min-w-0 text-center lg:mb-8 lg:text-left">
+        <header className="mb-3 min-w-0 text-center lg:mb-5 lg:text-left">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-[#B8860B] sm:text-xs">Leonix</p>
           <h1 className="mt-1.5 break-words font-serif text-[1.6rem] font-bold leading-snug text-[#7A1E2C] sm:mt-2 sm:text-4xl sm:leading-tight">
             {lang === "en" ? c.pageTitleEn : c.pageTitleEs}
@@ -710,38 +710,38 @@ export function OfertasLocalesPreviewCard({
 
         <PreviewSectionNav items={sectionNavItems} lang={lang} />
 
-        {/* 3. Title / info section — business meta + rewards (no duplicated contact CTA cluster) */}
-        <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "p-4 sm:p-5 lg:p-6")}>
-          <div className="flex flex-wrap gap-2">
+        {/* 3. Title / info section — compact business strip that supports the flyer (not a profile card) */}
+        <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "p-3 lg:p-4")}>
+          <div className="flex flex-wrap items-center gap-1.5">
             {primaryFormatLabel ? (
-              <span className="rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1 text-xs font-semibold text-[#7A1E2C]">
+              <span className="rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 text-[11px] font-semibold text-[#7A1E2C]">
                 {primaryFormatLabel}
               </span>
             ) : null}
             {offerLabel && offerLabel !== primaryFormatLabel ? (
-              <span className="rounded-lg border border-[#D4C4A8]/80 bg-white px-2.5 py-1 text-xs text-[#1E1814]/75">
+              <span className="rounded-md border border-[#D4C4A8]/80 bg-white px-2 py-0.5 text-[11px] text-[#1E1814]/75">
                 {offerLabel}
               </span>
             ) : null}
             {draft.wantsAiSearchableSpecials ? (
-              <span className="rounded-lg border border-emerald-300/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900">
+              <span className="rounded-md border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900">
                 {lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}
               </span>
             ) : null}
           </div>
 
-          {/* Business name — larger and stronger so it breathes */}
-          <h2 className="mt-3 break-words font-serif text-2xl font-bold leading-tight text-[#1E1814] sm:text-3xl lg:text-[2.5rem]">
+          {/* Business name — strong but not massive (metadata, not the hero) */}
+          <h2 className="mt-2 break-words font-serif text-xl font-bold leading-tight text-[#1E1814] sm:text-2xl lg:text-3xl">
             {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
           </h2>
           {draft.businessName.trim() && draft.title.trim() ? (
-            <p className="mt-1.5 font-serif text-base font-semibold text-[#7A1E2C] sm:text-lg">
+            <p className="mt-0.5 font-serif text-sm font-semibold text-[#7A1E2C] sm:text-base">
               {draft.title}
             </p>
           ) : null}
 
           {(categoryLabel || marketLabel) ? (
-            <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[#1E1814]/60 sm:text-sm">
+            <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-[#1E1814]/60">
               {categoryLabel ? <span>{categoryLabel}</span> : null}
               {marketLabel ? (
                 <span>
@@ -752,73 +752,74 @@ export function OfertasLocalesPreviewCard({
             </div>
           ) : null}
 
+          {/* Validity + address — one tight inline row on desktop, short stack on mobile */}
           {(dateRange || locationLine) ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-2.5 flex flex-col gap-1 text-xs text-[#1E1814]/75 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
               {dateRange ? (
-                <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-3 py-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
-                    {lang === "en" ? c.validLabelEn : c.validLabelEs}
-                  </p>
-                  <p className="mt-0.5 text-sm font-medium text-[#1E1814]">{dateRange}</p>
-                </div>
+                <span className="inline-flex flex-wrap items-baseline gap-1">
+                  <span className="font-semibold uppercase tracking-wide text-[#7A1E2C]">
+                    {lang === "en" ? c.validLabelEn : c.validLabelEs}:
+                  </span>
+                  <span className="font-medium text-[#1E1814]">{dateRange}</span>
+                </span>
               ) : null}
               {locationLine ? (
-                <p className="flex items-start gap-2 rounded-lg border border-[#D4C4A8]/40 bg-white px-3 py-2 text-sm leading-relaxed text-[#1E1814]/80">
-                  <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
-                  <span>{locationLine}</span>
-                </p>
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+                  <span className="truncate">{locationLine}</span>
+                </span>
               ) : null}
             </div>
           ) : null}
 
           {expired ? (
-            <p className="mt-3 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <p className="mt-2 rounded-md border border-amber-300/80 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
               {lang === "en" ? c.expiredWarning : c.expiredWarningEs}
             </p>
           ) : null}
           {notYetActive ? (
-            <p className="mt-3 rounded-lg border border-[#D4C4A8] bg-[#FDF8F0] px-3 py-2 text-xs text-[#1E1814]/70">
+            <p className="mt-2 rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1.5 text-[11px] text-[#1E1814]/70">
               {lang === "en" ? c.notYetActive : c.notYetActiveEs}
             </p>
           ) : null}
 
+          {/* About — short excerpt, muted, line-clamped so it never dominates */}
           {draft.description.trim() ? (
-            <div className="mt-4 border-t border-[#D4C4A8]/50 pt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/55">
-                {lang === "en" ? c.aboutBusinessEn : c.aboutBusinessEs}
-              </h3>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#1E1814]/80">
-                {draft.description}
-              </p>
-            </div>
+            <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-[#1E1814]/65">
+              {draft.description}
+            </p>
           ) : null}
 
           {draft.couponText.trim() ? (
-            <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-gradient-to-br from-[#7A1E2C]/8 to-[#FDF8F0] px-4 py-3">
-              <p className="text-xs font-semibold uppercase text-[#7A1E2C]">
+            <div className="mt-2.5 rounded-lg border border-[#7A1E2C]/20 bg-[#FDF8F0]/70 px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase text-[#7A1E2C]">
                 {lang === "en" ? c.couponPromotionEn : c.couponPromotionEs}
               </p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-[#1E1814]">{draft.couponText}</p>
+              <p className="mt-0.5 line-clamp-2 text-xs text-[#1E1814]">{draft.couponText}</p>
             </div>
           ) : null}
 
-          {/* Compact rewards / membership sub-block (moved in from the old floating side rail) */}
+          {/* Compact rewards / membership mini notice — slim ivory/gold row, not a big red card */}
           {(showMembership && membershipHref) || (showDigitalCoupon && digitalCouponHref) ? (
-            <div className="mt-4 rounded-xl border border-[#7A1E2C]/20 bg-[#FDF8F0]/60 p-3 sm:p-4">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
-                <FiAward className="h-3.5 w-3.5" aria-hidden />
-                {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/60">
-                {lang === "en" ? c.membershipCopyEn : c.membershipCopyEs}
-              </p>
-              <div className="mt-3 grid gap-2 min-[400px]:grid-cols-2">
+            <div className="mt-2.5 rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/70 p-2.5 sm:flex sm:items-center sm:gap-3">
+              <div className="flex min-w-0 items-start gap-1.5 sm:flex-1">
+                <FiAward className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-[#7A1E2C]">
+                    {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#1E1814]/60 sm:line-clamp-1">
+                    {lang === "en" ? c.membershipCopyEn : c.membershipCopyEs}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 sm:mt-0 sm:shrink-0">
                 {showMembership && membershipHref ? (
                   <a
                     href={membershipHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cx(BTN_PRIMARY, "w-full")}
+                    className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#6a1926]"
                   >
                     {membershipCtaLabel(lang)}
                   </a>
@@ -828,7 +829,7 @@ export function OfertasLocalesPreviewCard({
                     href={digitalCouponHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cx(BTN_OUTLINE, "w-full")}
+                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#D4C4A8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#7A1E2C] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
                   >
                     {digitalCouponCtaLabel(lang)}
                   </a>
@@ -837,12 +838,17 @@ export function OfertasLocalesPreviewCard({
             </div>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8D9C4]/50 pt-3">
-            <p className="text-[11px] font-medium text-[#2D5A3D]">
+          {/* Published cue + small secondary share (no tall footer row) */}
+          <div className="mt-2.5 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-medium text-[#2D5A3D]/80">
               {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
             </p>
-            <button type="button" className={cx(BTN_OUTLINE, "gap-2")} onClick={() => void handleShare()}>
-              <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D4C4A8]/80 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#7A1E2C] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
+              onClick={() => void handleShare()}
+            >
+              <FiShare2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
               {shareCopied
                 ? lang === "en"
                   ? c.shareCopiedEn
@@ -854,8 +860,8 @@ export function OfertasLocalesPreviewCard({
           </div>
         </section>
 
-        {/* 4. Flyer hero — the star of the page */}
-        <section id="volante" className={cx(SECTION_ANCHOR, "mt-4 sm:mt-6")}>
+        {/* 4. Flyer hero — the star of the page (starts right after the compact strip) */}
+        <section id="volante" className={cx(SECTION_ANCHOR, "mt-3 sm:mt-4")}>
           <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
             <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} compactMobile />
           </div>

@@ -32,6 +32,14 @@ These components are literal extractions from the working Rentas and Bienes Raí
 
 ## Hard Rules
 
+### Migration Doctrine
+
+- Importing a Category Standard V2 component does not mean a category is migrated.
+- Every migrated live URL must prove `URL -> route file -> route component -> V2 shell component tree`.
+- A live route must render V2 directly or through an approved wrapper that preserves the V2 shell, search canvas, CTA contract, and results order.
+- Visual QA must compare the migrated page against Rentas/Bienes screenshots before the category is considered complete.
+- After migration, category files must not introduce custom shell, search, or CTA classes to replace the V2 contract.
+
 ### Landing Pages
 
 **Allowed CTA locations:**
@@ -43,6 +51,15 @@ These components are literal extractions from the working Rentas and Bienes Raí
 - Floating publish buttons under discovery
 - Repeated empty-state CTA clutter
 - Random CTA rows between sections
+
+**Search shell contract:**
+- Row 1 is always `q | city | state | zip | Buscar`.
+- Row 2 is always `country | Filtros | Ver todos | primary action slot`.
+- If `publishHref` and `publishLabel` are present on `surface="landing"`, the primary CTA renders automatically.
+- `showPublish={true}` is not required for normal landing publish CTA visibility.
+- `showPublish={false}` remains an explicit override.
+- If primary CTA data is missing, the primary action slot must remain reserved with a fallback CTA or disabled placeholder.
+- Results surfaces do not show publish CTA by default.
 
 ### Results Pages
 
@@ -62,7 +79,8 @@ These components are literal extractions from the working Rentas and Bienes Raí
 2. Active filters if any
 3. Result count + sort/view controls
 4. Results/cards/items or compact empty state
-5. Optional lower visibility strip only if approved
+5. Pagination if needed
+6. Optional lower visibility strip only if approved
 
 ### CTA Contract
 
@@ -74,6 +92,7 @@ These components are literal extractions from the working Rentas and Bienes Raí
 - `rounded-xl`
 - `text-sm font-bold`
 - `px-5`
+- `inline-flex items-center justify-center`
 
 **Secondary CTA:**
 - `border border-[#C9A84A]/60`
@@ -83,6 +102,7 @@ These components are literal extractions from the working Rentas and Bienes Raí
 - `rounded-xl`
 - `text-sm font-semibold`
 - `px-4`
+- `inline-flex items-center justify-center`
 
 Use `LeonixCategoryCta` for all CTAs. Do not create custom button styles.
 
@@ -132,9 +152,13 @@ Use `LeonixCategoryCta` for all CTAs. Do not create custom button styles.
 - `filtersButtonLabel: string`
 - `publishHref?: string` (landing only)
 - `publishLabel?: string` (landing only)
+- `fallbackPrimaryHref?: string` (landing fallback)
+- `fallbackPrimaryLabel?: string` (landing fallback)
+- `preservePrimarySlot?: boolean` (default: true)
+- `disabledPrimarySlotLabel?: string`
 - `extraSecondRowSlot?: ReactNode`
 - `showBrowseAll?: boolean`
-- `showPublish?: boolean`
+- `showPublish?: boolean` (optional override; undefined auto-renders when publish data exists)
 
 ### CTA Button
 
@@ -216,6 +240,7 @@ Use `LeonixCategoryCta` for all CTAs. Do not create custom button styles.
 - `emptyState?: ReactNode`
 - `pagination?: ReactNode`
 - `lowerVisibility?: ReactNode`
+- `allowResultsVisibilityStrip?: boolean` (default: false)
 - `hasResults: boolean`
 
 **Hard rules:**
@@ -223,6 +248,8 @@ Use `LeonixCategoryCta` for all CTAs. Do not create custom button styles.
 - Does not accept `discoveryGrid` prop
 - Does not accept `shortcutSections` prop
 - Does not accept `randomCtaRows` prop
+- Does not accept `sponsorSection` prop
+- Does not render `lowerVisibility` unless `allowResultsVisibilityStrip === true`
 - `surface` must be `"results"`
 
 ### Active Filters
@@ -306,13 +333,17 @@ To migrate a category to use this template:
    - Replace empty state with `LeonixCategoryCompactEmptyState`
 
 7. **Verify hard rules:**
+   - Live URL, route file, and rendered component tree are proven
    - Results pages do not render landing-only sections
+   - Landing shell keeps the primary action slot even when category CTA data is missing
    - CTA contract is enforced
    - Empty state has at most one CTA
    - No fake filters, sponsors, or listings
+   - No custom shell/search/CTA classes are introduced in category files
 
 ## Important Notes
 
+- **Imported V2 is not complete migration.** The live route must visibly render the full V2 shell.
 - **Do not use generic styling.** Use these components for category pages.
 - **Do not invent new visual systems.** The Rentas/Bienes system is the source of truth.
 - **Do not genericize away exact classes.** The literal classes must remain present.

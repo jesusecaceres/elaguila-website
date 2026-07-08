@@ -843,3 +843,94 @@ preserved.
 | 12 | Desktop QA checked | TRUE |
 | 13 | Unrelated files not changed | TRUE |
 | READY TO COMMIT THIS BUILD ONLY | YES |
+
+---
+
+# Ofertas Preview V2.1 — Compact Business Strip + Flyer Ratio Repair
+
+Micro proportion repair of the V2 architecture. V2 was directionally correct but
+the title/info card grew into a full business-profile card that competed with
+the flyer. This gate compresses it into a compact business strip so the flyer is
+clearly the hero. No architecture rebuild.
+
+## Root cause of the proportion issue
+
+The V2 title/info `section#oferta` stacked many padded blocks, each adding
+height:
+- card padding `p-4 sm:p-5 lg:p-6`
+- oversized business name `text-2xl sm:text-3xl lg:text-[2.5rem]` (40px desktop)
+- two full bordered `px-3 py-2` validity/address boxes in a `mt-4` grid
+- a full "About" section with `border-t pt-4` heading + untruncated
+  `whitespace-pre-wrap` description
+- a large bordered membership card (`p-3 sm:p-4`) with two full-width buttons
+- a separate `mt-4 border-t pt-3` share footer row
+
+Cumulatively this pushed the flyer far down the page (profile-first feel).
+
+## Compact business strip changes
+
+- Section padding reduced to `p-3 lg:p-4`.
+- Business name reduced to `text-xl sm:text-2xl lg:text-3xl` (removed
+  `lg:text-[2.5rem]`); offer sub-line reduced to `text-sm sm:text-base`.
+- Badges kept but compact (`rounded-md px-2 py-0.5 text-[11px]`).
+- Validity + address collapsed into one tight inline row on desktop (`Válido:
+  <range>` + truncated address) and a short stack on mobile — no bordered boxes.
+- About text is now a muted `line-clamp-2` excerpt (heading + border removed); it
+  stays visible but no longer dominant.
+- Coupon text kept but compact + `line-clamp-2`.
+- "Publicado en Leonix" is small muted inline text paired with a small secondary
+  Share button in a single short row (no tall footer, no border divider).
+
+## Membership / rewards mini notice result
+
+- Converted the large red-bordered membership card into a slim ivory/gold mini
+  notice: `FiAward` + title + one short (clamped) copy line, with a small CTA on
+  the right (desktop) / compact CTA below (mobile).
+- Real membership URL + digital coupon link behavior preserved; both use small
+  inline CTAs (no full-width buttons, no floating separate cards). Nothing faked
+  when absent.
+
+## Flyer ratio result
+
+- Header bottom margin reduced (`mb-4 lg:mb-8` → `mb-3 lg:mb-5`).
+- Flyer hero top margin tightened (`mt-4 sm:mt-6` → `mt-3 sm:mt-4`).
+- Flyer size, centering (`max-w-2xl lg:max-w-3xl`), and PDF/image rendering
+  unchanged — it remains the dominant hero and now starts much sooner.
+
+## Preserved wins from V2
+
+- Business Hub shell untouched; product crop images untouched; localized emoji
+  product filters untouched; Descargar volante / Download flyer untouched; native
+  share, map/directions untouched; taxonomy/filter logic untouched.
+
+## Not touched
+
+- No architecture rebuild, no crop logic, no Business Hub shell, no lower product
+  cards, no taxonomy logic, no Stripe/auth/DB, no service worker/manifest, no
+  other categories, no global nav/header/footer.
+
+## V2.1 — TRUE/FALSE audit
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | V2 oversized title/info issue identified | TRUE |
+| 2 | Business strip padding reduced | TRUE |
+| 3 | Business name desktop size reduced | TRUE |
+| 4 | Validity/address display compacted | TRUE |
+| 5 | About text made less dominant | TRUE |
+| 6 | Membership/rewards converted to mini notice | TRUE |
+| 7 | Flyer starts closer to title/info strip | TRUE |
+| 8 | Flyer remains visually dominant | TRUE |
+| 9 | Business Hub shell preserved | TRUE |
+| 10 | Product filters preserved | TRUE |
+| 11 | Product crops preserved | TRUE |
+| 12 | Descargar volante preserved | TRUE |
+| 13 | No fake shopping/list/coupon/route behavior added | TRUE |
+| 14 | No other categories touched | TRUE |
+| 15 | Mobile 390px considered | TRUE |
+| 16 | Desktop 100% considered | TRUE |
+| 17 | Verifier passed | TRUE |
+| 18 | Build passed | TRUE |
+| 19 | READY TO COMMIT THIS BUILD ONLY | YES |
+| 20 | READY TO PUSH THIS BUILD ONLY | YES |
+| 21 | UNRELATED DIRTY FILES PRESENT | NO |

@@ -60,7 +60,7 @@ export function LeonixCategoryPartnerSection({
         ) : null}
 
         {chips && chips.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2 sm:mt-5">
+          <div className="mt-4 flex min-w-0 snap-x snap-mandatory flex-nowrap gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-5 sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
             {chips.map((chip) => (
               <span key={chip} className={LEONIX_LANDING_CHIP}>
                 {chip}

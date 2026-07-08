@@ -403,6 +403,24 @@ function run() {
   // Chips must be rectangular pills (not fully circular).
   assert.ok(!/setSelectedCategory\("all"\)[\s\S]{0,220}rounded-full/.test(grid), "Filter chips use rectangular pills");
 
+  // Gate — Ofertas Preview V2.1 (compact business strip + flyer ratio repair)
+  assert.ok(audit.includes("Ofertas Preview V2.1"), "V2.1 audit section");
+  // Business strip compacted: oversized business name + heavy padding removed.
+  assert.ok(!card.includes("lg:text-[2.5rem]"), "Business name no longer uses oversized lg:text-[2.5rem]");
+  assert.ok(card.includes('CARD, "p-3 lg:p-4"'), "Business strip uses compact padding");
+  // Rewards/membership converted to a slim mini notice (no full-width grid CTA card).
+  assert.ok(card.includes("mini notice"), "Rewards/membership is a compact mini notice");
+  // Flyer starts closer to the strip.
+  assert.ok(card.includes('"mt-3 sm:mt-4"'), "Flyer hero uses tightened top margin");
+  // Preserved V2 wins.
+  assert.ok(hero.includes("downloadFlyer") || hero.includes("downloadCoupon"), "Descargar volante preserved");
+  assert.ok(grid.includes("getOfertaProductFilterLabel"), "Localized emoji filter labels preserved");
+  assert.ok(grid.includes("normalizeOfertaProductCategory"), "Normalized filtering preserved");
+  assert.ok(
+    grid.includes("OfertasPdfItemCropPreview") || grid.includes("resolveOfertaLocalItemCropDisplayUrl"),
+    "Product crops preserved"
+  );
+
   const requiredCopy = [
     "flyerPreviewEs",
     "flyerRenderingEs",

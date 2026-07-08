@@ -133,7 +133,7 @@ export const LEONIX_BTN_PRIMARY =
 
 /** Landing primary CTA button */
 export const LEONIX_BTN_PRIMARY_LANDING =
-  "inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] shadow-[0_6px_20px_-8px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[3.125rem] sm:text-[0.9375rem]";
+  "inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] shadow-[0_6px_20px_-8px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[3.125rem]";
 
 /** Secondary CTA button */
 export const LEONIX_BTN_SECONDARY =
@@ -142,6 +142,10 @@ export const LEONIX_BTN_SECONDARY =
 /** Landing secondary CTA button */
 export const LEONIX_BTN_SECONDARY_LANDING =
   "inline-flex min-h-[3rem] items-center justify-center gap-1.5 rounded-xl border border-[#C9A84A]/60 bg-[#FFFDF7] px-4 text-sm font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/35 sm:min-h-[3.125rem]";
+
+/** Disabled placeholder that preserves the landing primary CTA slot */
+export const LEONIX_BTN_PRIMARY_PLACEHOLDER =
+  "inline-flex min-h-[3rem] items-center justify-center rounded-xl border border-dashed border-[#C9A84A]/55 bg-[#FFFDF7]/70 px-5 text-sm font-bold text-[#5C5346]/65 sm:min-h-[3.125rem]";
 
 // ============================================================================
 // LANDING SECTIONS
@@ -182,11 +186,11 @@ export const LEONIX_PRACTICAL_CHIP =
 // ============================================================================
 
 /** Discovery grid */
-export const LEONIX_DISCOVERY_GRID = "mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4";
+export const LEONIX_DISCOVERY_GRID = "mt-4 grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4";
 
 /** Discovery card */
 export const LEONIX_DISCOVERY_CARD =
-  "group flex min-h-[4.75rem] flex-col rounded-xl border bg-gradient-to-br p-3 shadow-[0_4px_18px_-12px_rgba(42,36,22,0.18)] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[5rem]";
+  "group flex min-h-[4.75rem] min-w-0 flex-col rounded-xl border bg-gradient-to-br p-3 shadow-[0_4px_18px_-12px_rgba(42,36,22,0.18)] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[5rem]";
 
 /** Discovery card icon */
 export const LEONIX_DISCOVERY_ICON =
@@ -216,7 +220,7 @@ export const LEONIX_SHORTCUT_SUBTITLE = "mt-1 text-xs text-[#5C5346]/85";
 
 /** Shortcut chips row */
 export const LEONIX_SHORTCUT_ROW =
-  "flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:gap-2.5 [&::-webkit-scrollbar]:hidden";
+  "flex min-w-0 snap-x snap-mandatory flex-nowrap gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:gap-2.5 [&::-webkit-scrollbar]:hidden";
 
 // ============================================================================
 // ACTIVE FILTERS

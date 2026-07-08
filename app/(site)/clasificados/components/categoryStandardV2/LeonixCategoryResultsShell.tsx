@@ -23,6 +23,8 @@ import type { LeonixCategoryResultsShellProps } from "./types";
  * - Do not accept discoveryGrid prop.
  * - Do not accept shortcutSections prop.
  * - Do not accept randomCtaRows prop.
+ * - Do not accept sponsorSection prop.
+ * - lowerVisibility renders only when allowResultsVisibilityStrip === true.
  * - surface must be "results"
  * 
  * @param surface - Must be "results" (hard rule)
@@ -33,6 +35,7 @@ import type { LeonixCategoryResultsShellProps } from "./types";
  * @param emptyState - Compact empty state component
  * @param pagination - Pagination component
  * @param lowerVisibility - Lower visibility strip (optional)
+ * @param allowResultsVisibilityStrip - Explicit opt-in for lower visibility on results
  * @param hasResults - Whether there are results
  */
 export function LeonixCategoryResultsShell({
@@ -44,6 +47,7 @@ export function LeonixCategoryResultsShell({
   emptyState,
   pagination,
   lowerVisibility,
+  allowResultsVisibilityStrip = false,
   hasResults,
 }: LeonixCategoryResultsShellProps) {
   // Hard rule: surface must be "results"
@@ -76,7 +80,7 @@ export function LeonixCategoryResultsShell({
       {pagination}
 
       {/* 6. Optional lower visibility strip if explicitly allowed */}
-      {lowerVisibility}
+      {allowResultsVisibilityStrip ? lowerVisibility : null}
     </div>
   );
 }

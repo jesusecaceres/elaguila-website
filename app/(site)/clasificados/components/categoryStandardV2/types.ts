@@ -48,6 +48,10 @@ export interface LeonixCategoryHeroGatewayProps {
 
 /**
  * Search canvas props
+ *
+ * Landing rule: if publishHref + publishLabel exist, the primary CTA renders by
+ * default. Results never show publish by default. preservePrimarySlot keeps the
+ * Rentas/Bienes second-row grid from collapsing when action data is missing.
  */
 export interface LeonixCategorySearchCanvasProps {
   lang: Lang;
@@ -70,6 +74,10 @@ export interface LeonixCategorySearchCanvasProps {
   filtersButtonLabel: string;
   publishHref?: string;
   publishLabel?: string;
+  fallbackPrimaryHref?: string;
+  fallbackPrimaryLabel?: string;
+  preservePrimarySlot?: boolean;
+  disabledPrimarySlotLabel?: string;
   extraSecondRowSlot?: React.ReactNode;
   showBrowseAll?: boolean;
   showPublish?: boolean;
@@ -216,6 +224,11 @@ export interface LeonixCategoryCompactEmptyStateProps {
 
 /**
  * Results shell props
+ *
+ * Results order is fixed: hero/search, active filters, toolbar, cards or empty
+ * state, pagination, and explicit lower visibility. This API intentionally does
+ * not expose landing-only named props such as partnerSection, discoveryGrid,
+ * shortcutSections, randomCtaRows, or sponsorSection.
  */
 export interface LeonixCategoryResultsShellProps {
   surface: "results"; // Must be "results" - hard rule
@@ -226,6 +239,7 @@ export interface LeonixCategoryResultsShellProps {
   emptyState?: React.ReactNode;
   pagination?: React.ReactNode;
   lowerVisibility?: React.ReactNode;
+  allowResultsVisibilityStrip?: boolean;
   hasResults: boolean;
 }
 

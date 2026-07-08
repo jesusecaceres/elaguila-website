@@ -1,0 +1,25 @@
+{
+  "gate": "AUGUST-2026-BATCH3-PAGES2-4-DEEPL-ENGLISH-PROOF1",
+  "page": 3,
+  "language": "English",
+  "riskLevel": "HIGH",
+  "layoutType": "client restaurant ad",
+  "businessCriticalQaFocus": "Cali Bear Tacos business name, food/menu language, offer/CTA/contact preservation",
+  "chuyQaStatus": "NOT_REVIEWED",
+  "translationWorked": "TBD",
+  "layoutUsable": "TBD",
+  "textOverflowCrop": "TBD",
+  "contactTruthIssue": "TBD",
+  "businessNamePreserved": "TBD",
+  "brandPreserved": "TBD",
+  "ctaPreserved": "TBD",
+  "qrReadable": "TBD",
+  "notes": "",
+  "decision": "TBD",
+  "decisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ]
+}
