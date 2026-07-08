@@ -205,8 +205,121 @@ const COPY = {
   },
 } as const;
 
-export type OfertasLocalesPublicSearchCopy = (typeof COPY)[OfertasLocalesAppLang];
+type WidenCopy<T> =
+  T extends (...args: infer Args) => infer Return
+    ? (...args: Args) => Return
+    : T extends readonly (infer Item)[]
+      ? readonly WidenCopy<Item>[]
+      : T extends string
+        ? string
+        : T extends object
+          ? { readonly [K in keyof T]: WidenCopy<T[K]> }
+        : T;
 
-export function ofertasLocalesPublicSearchCopy(lang: OfertasLocalesAppLang): OfertasLocalesPublicSearchCopy {
-  return COPY[lang];
+export type OfertasLocalesPublicSearchCopy = WidenCopy<(typeof COPY)[OfertasLocalesAppLang]>;
+
+const CUPONES_COPY = {
+  es: {
+    ...COPY.es,
+    pageTitle: "Cupones locales",
+    pageSubtitle: "Promociones, descuentos y especiales cerca de ti.",
+    heroEyebrow: "Cupones locales",
+    heroTitle: "Ahorra con cupones de negocios locales",
+    heroTagline: "Promociones, descuentos y especiales cerca de ti.",
+    heroIntro: "Explora cupones y promociones de restaurantes, servicios, tiendas y negocios locales en Leonix.",
+    heroHelper: "Busca por ciudad, código postal, categoría o negocio local.",
+    sponsorEyebrow: "CUPONES · PROMOCIONES · ESPECIALES",
+    sponsorTitle: "Publica cupones para tu negocio",
+    sponsorBody: "Promociona cupones, descuentos, combos y especiales locales en Leonix.",
+    sponsorSupport: "Ideal para restaurantes, servicios, tiendas, eventos y negocios locales.",
+    sponsorPrimaryCta: "Publicar cupón",
+    sponsorSecondaryCta: "Ver todos los cupones",
+    sponsorChips: [
+      "Cupones",
+      "Promociones",
+      "Descuentos",
+      "Combos",
+      "Especiales de temporada",
+      "Negocios locales",
+    ],
+    discoveryTitle: "Explorar cupones",
+    discoverySubtitle: "Encuentra promociones y especiales cerca de ti.",
+    searchPlaceholderCompact: "Buscar cupón, ciudad, código postal…",
+    mobileSearchLabel: "Buscar cupones",
+    offersSectionTitle: "Cupones y promociones",
+    itemsSectionTitle: "Cupones",
+    searchPlaceholder: "Ej. descuento, restaurante, aceite, evento",
+    offerTypePlaceholder: "Cupón, promoción, especial...",
+    sortPriceLow: "Más recientes",
+    searchButton: "Buscar cupones",
+    resultsCount: (n: number) => (n === 1 ? "1 cupón encontrado" : `${n} cupones encontrados`),
+    emptyTitle: "No encontramos cupones con esos filtros.",
+    emptyHint: "Intenta buscar otra ciudad, categoría o promoción.",
+    pipelineEmptyTitle: "Todavía estamos cargando cupones locales.",
+    pipelineEmptyBody: "Todavía estamos cargando cupones locales. Vuelve pronto o publica el primero.",
+    pipelineEmptyHint: "¿Tienes un negocio? Publica tu primer cupón.",
+    loadFailed: "No se pudieron cargar los cupones.",
+    viewDeal: "Ver cupón",
+    validDates: "Válido hasta",
+    publishCta: "Publicar cupón",
+    viewAllDeals: "Ver todos los cupones",
+    browseAllDeals: "Ver todos los cupones",
+    publishCtaHint: "¿Tienes un negocio? Publica cupones y promociones.",
+    offerDetailTitle: "Detalle del cupón",
+  },
+  en: {
+    ...COPY.en,
+    pageTitle: "Local coupons",
+    pageSubtitle: "Promotions, discounts, and specials near you.",
+    heroEyebrow: "Local coupons",
+    heroTitle: "Save with local business coupons",
+    heroTagline: "Promotions, discounts, and specials near you.",
+    heroIntro: "Explore coupons and promotions from restaurants, services, shops, and local businesses on Leonix.",
+    heroHelper: "Search by city, postal code, category, or local business.",
+    sponsorEyebrow: "COUPONS · PROMOTIONS · SPECIALS",
+    sponsorTitle: "Publish coupons for your business",
+    sponsorBody: "Promote local coupons, discounts, bundles, and specials on Leonix.",
+    sponsorSupport: "Built for restaurants, services, shops, events, and local businesses.",
+    sponsorPrimaryCta: "Publish coupon",
+    sponsorSecondaryCta: "View all coupons",
+    sponsorChips: [
+      "Coupons",
+      "Promotions",
+      "Discounts",
+      "Bundles",
+      "Seasonal specials",
+      "Local businesses",
+    ],
+    discoveryTitle: "Explore coupons",
+    discoverySubtitle: "Find promotions and specials near you.",
+    searchPlaceholderCompact: "Search coupon, city, postal code...",
+    mobileSearchLabel: "Search coupons",
+    offersSectionTitle: "Coupons & promotions",
+    itemsSectionTitle: "Coupons",
+    searchPlaceholder: "Example: discount, restaurant, oil change, event",
+    offerTypePlaceholder: "Coupon, promotion, special...",
+    sortPriceLow: "Newest",
+    searchButton: "Search coupons",
+    resultsCount: (n: number) => (n === 1 ? "1 coupon found" : `${n} coupons found`),
+    emptyTitle: "We didn't find coupons with those filters.",
+    emptyHint: "Try another city, category, or promotion.",
+    pipelineEmptyTitle: "We are still loading local coupons.",
+    pipelineEmptyBody: "We are still loading local coupons. Check back soon or publish the first one.",
+    pipelineEmptyHint: "Have a business? Publish your first coupon.",
+    loadFailed: "Could not load coupons.",
+    viewDeal: "View coupon",
+    validDates: "Valid until",
+    publishCta: "Publish coupon",
+    viewAllDeals: "View all coupons",
+    browseAllDeals: "View all coupons",
+    publishCtaHint: "Have a business? Publish coupons and promotions.",
+    offerDetailTitle: "Coupon detail",
+  },
+} as const satisfies Record<OfertasLocalesAppLang, OfertasLocalesPublicSearchCopy>;
+
+export function ofertasLocalesPublicSearchCopy(
+  lang: OfertasLocalesAppLang,
+  surface: "ofertas" | "cupones" = "ofertas"
+): OfertasLocalesPublicSearchCopy {
+  return surface === "cupones" ? CUPONES_COPY[lang] : COPY[lang];
 }

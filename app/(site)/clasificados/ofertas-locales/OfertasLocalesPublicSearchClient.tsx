@@ -40,6 +40,16 @@ import {
 
 const OFERTAS_LOCALES_LANDING_PATH = "/clasificados/ofertas-locales";
 const OFERTAS_LOCALES_RESULTS_PATH = "/clasificados/ofertas-locales/results";
+const CUPONES_LANDING_PATH = "/cupones";
+const CUPONES_RESULTS_PATH = "/cupones/resultados";
+const CUPON_SURFACE_OFFER_TYPES = [
+  "coupon",
+  "promotion",
+  "seasonal_special",
+  "bundle",
+  "featured_deal",
+] as const;
+const CUPON_SURFACE_OFFER_TYPE_SET = new Set<string>(CUPON_SURFACE_OFFER_TYPES);
 
 function parseLang(raw: string | null): OfertasLocalesAppLang {
   return raw === "en" ? "en" : "es";
@@ -60,19 +70,25 @@ function TagIcon({ className }: { className?: string }) {
 }
 
 type OfertasLocalesPublicSearchMode = "landing" | "results";
+type OfertasLocalesPublicSurface = "ofertas" | "cupones";
 
 export function OfertasLocalesPublicSearchClient({
   mode = "landing",
+  surface = "ofertas",
 }: {
   mode?: OfertasLocalesPublicSearchMode;
+  surface?: OfertasLocalesPublicSurface;
 }) {
   const isResults = mode === "results";
-  const browsePath = OFERTAS_LOCALES_RESULTS_PATH;
-  const clearPath = isResults ? OFERTAS_LOCALES_RESULTS_PATH : OFERTAS_LOCALES_LANDING_PATH;
+  const isCupones = surface === "cupones";
+  const landingPath = isCupones ? CUPONES_LANDING_PATH : OFERTAS_LOCALES_LANDING_PATH;
+  const resultsPath = isCupones ? CUPONES_RESULTS_PATH : OFERTAS_LOCALES_RESULTS_PATH;
+  const browsePath = resultsPath;
+  const clearPath = isResults ? resultsPath : landingPath;
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = parseLang(searchParams?.get("lang") ?? null);
-  const c = ofertasLocalesPublicSearchCopy(lang);
+  const c = ofertasLocalesPublicSearchCopy(lang, surface);
 
   const [q, setQ] = useState(() => searchParams?.get("q") ?? "");
   const [city, setCity] = useState(() => searchParams?.get("city") ?? "");
@@ -97,22 +113,36 @@ export function OfertasLocalesPublicSearchClient({
   const shoppingList = useOfertasLocalesShoppingList();
 
   const queryString = useMemo(() => {
-    const qs = searchParams?.toString() ?? "";
-    return qs || `lang=${lang}`;
-  }, [searchParams, lang]);
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("lang", lang);
+    if (isCupones && params.get("sort") === "price_low") {
+      params.delete("sort");
+    }
+    return params.toString();
+  }, [searchParams, lang, isCupones]);
 
   const loadResults = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [offersRes, itemsRes] = await Promise.all([
-        fetch(`/api/ofertas-locales/public-offers?${queryString}`, { cache: "no-store" }),
-        fetch(`/api/ofertas-locales/public-search?${queryString}`, { cache: "no-store" }),
-      ]);
+      const offersRes = await fetch(`/api/ofertas-locales/public-offers?${queryString}`, { cache: "no-store" });
       const offersData = (await offersRes.json()) as {
         ok: boolean;
         offers?: OfertaLocalPublicOfferCard[];
       };
+      if (isCupones) {
+        if (!offersData.ok) {
+          setError(c.loadFailed);
+          setOffers([]);
+          setItems([]);
+          return;
+        }
+        setOffers((offersData.offers ?? []).filter((offer) => CUPON_SURFACE_OFFER_TYPE_SET.has(offer.offerType)));
+        setItems([]);
+        return;
+      }
+
+      const itemsRes = await fetch(`/api/ofertas-locales/public-search?${queryString}`, { cache: "no-store" });
       const itemsData = (await itemsRes.json()) as {
         ok: boolean;
         items?: OfertaLocalPublicSearchItem[];
@@ -132,7 +162,7 @@ export function OfertasLocalesPublicSearchClient({
     } finally {
       setLoading(false);
     }
-  }, [c.loadFailed, queryString]);
+  }, [c.loadFailed, queryString, isCupones]);
 
   useEffect(() => {
     setQ(searchParams?.get("q") ?? "");
@@ -142,9 +172,11 @@ export function OfertasLocalesPublicSearchClient({
     setCountry(searchParams?.get("country") ?? "");
     setCategory(searchParams?.get("category") ?? "");
     setMarketType(searchParams?.get("marketType") ?? "");
-    setOfferType(searchParams?.get("offerType") ?? "");
-    setSort(searchParams?.get("sort") ?? "newest");
-  }, [searchParams]);
+    const nextOfferType = searchParams?.get("offerType") ?? "";
+    setOfferType(isCupones && nextOfferType && !CUPON_SURFACE_OFFER_TYPE_SET.has(nextOfferType) ? "" : nextOfferType);
+    const nextSort = searchParams?.get("sort") ?? "newest";
+    setSort(isCupones && nextSort === "price_low" ? "newest" : nextSort);
+  }, [searchParams, isCupones]);
 
   useEffect(() => {
     void loadResults();
@@ -191,11 +223,13 @@ export function OfertasLocalesPublicSearchClient({
       if (next.country.trim()) params.set("country", next.country.trim());
       if (next.category.trim()) params.set("category", next.category.trim());
       if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
-      if (next.offerType.trim()) params.set("offerType", next.offerType.trim());
-      if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
-      router.push(`${OFERTAS_LOCALES_RESULTS_PATH}?${params.toString()}`);
+      if (next.offerType.trim() && (!isCupones || CUPON_SURFACE_OFFER_TYPE_SET.has(next.offerType.trim()))) {
+        params.set("offerType", next.offerType.trim());
+      }
+      if (next.sort && next.sort !== "newest" && (!isCupones || next.sort !== "price_low")) params.set("sort", next.sort);
+      router.push(`${resultsPath}?${params.toString()}`);
     },
-    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort]
+    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort, isCupones, resultsPath]
   );
 
   const browseAllHref = `${browsePath}?lang=${lang}`;
@@ -205,10 +239,12 @@ export function OfertasLocalesPublicSearchClient({
     pushSearch();
   };
 
-  const publishHref = `/publicar/ofertas-locales?lang=${lang}`;
+  const publishHref = isCupones
+    ? `/publicar/ofertas-locales?lang=${lang}&product=coupon_promotion`
+    : `/publicar/ofertas-locales?lang=${lang}`;
   const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
-  const listHasItems = shoppingList.counts.itemCount > 0;
+  const listHasItems = !isCupones && shoppingList.counts.itemCount > 0;
   const resultCount = offers.length + items.length;
   const activeFilterChips = [
     ...(q ? [{ id: "q", label: `“${q}”`, onClear: () => pushSearch({ q: "" }) }] : []),
@@ -294,7 +330,7 @@ export function OfertasLocalesPublicSearchClient({
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
             {offers.map((offer) => (
               <li key={offer.id}>
-                <OfertasLocalesPublicOfferCard lang={lang} offer={offer} />
+                <OfertasLocalesPublicOfferCard lang={lang} offer={offer} surface={surface} />
               </li>
             ))}
           </ul>
@@ -312,7 +348,7 @@ export function OfertasLocalesPublicSearchClient({
         </div>
       ) : null}
 
-      {!loading && items.length > 0 ? (
+      {!isCupones && !loading && items.length > 0 ? (
         <section>
           <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
@@ -366,7 +402,9 @@ export function OfertasLocalesPublicSearchClient({
                 sortOptions={[
                   { value: "newest", label: lang === "es" ? "Más recientes" : "Newest" },
                   { value: "expiring_soon", label: lang === "es" ? "Terminan pronto" : "Expiring soon" },
-                  { value: "price_low", label: lang === "es" ? "Precio bajo" : "Price low" },
+                  ...(isCupones
+                    ? []
+                    : [{ value: "price_low", label: lang === "es" ? "Precio bajo" : "Price low" }]),
                 ]}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
@@ -413,12 +451,23 @@ export function OfertasLocalesPublicSearchClient({
                 subtitle={c.discoverySubtitle}
                 variant="default"
                 chips={[
-                  { id: "offerType:weekly_flyer", label: lang === "es" ? "Volante semanal" : "Weekly flyer", href: `${browseAllHref}&offerType=weekly_flyer` },
-                  { id: "offerType:coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
-                  { id: "offerType:promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
-                  { id: "marketType:retail", label: lang === "es" ? "Tienda local" : "Local retail", href: `${browseAllHref}&marketType=retail` },
-                  { id: "marketType:service", label: lang === "es" ? "Servicio local" : "Local service", href: `${browseAllHref}&marketType=service` },
-                  { id: "category:food", label: lang === "es" ? "Comida" : "Food", href: `${browseAllHref}&category=food` },
+                  ...(isCupones
+                    ? [
+                        { id: "offerType:coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
+                        { id: "offerType:promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
+                        { id: "offerType:seasonal_special", label: lang === "es" ? "Especial de temporada" : "Seasonal special", href: `${browseAllHref}&offerType=seasonal_special` },
+                        { id: "offerType:bundle", label: lang === "es" ? "Combo" : "Bundle", href: `${browseAllHref}&offerType=bundle` },
+                        { id: "offerType:featured_deal", label: lang === "es" ? "Oferta destacada" : "Featured deal", href: `${browseAllHref}&offerType=featured_deal` },
+                        { id: "category:restaurant", label: lang === "es" ? "Restaurantes" : "Restaurants", href: `${browseAllHref}&category=restaurant` },
+                      ]
+                    : [
+                        { id: "offerType:weekly_flyer", label: lang === "es" ? "Volante semanal" : "Weekly flyer", href: `${browseAllHref}&offerType=weekly_flyer` },
+                        { id: "offerType:coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
+                        { id: "offerType:promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
+                        { id: "marketType:retail", label: lang === "es" ? "Tienda local" : "Local retail", href: `${browseAllHref}&marketType=retail` },
+                        { id: "marketType:service", label: lang === "es" ? "Servicio local" : "Local service", href: `${browseAllHref}&marketType=service` },
+                        { id: "category:food", label: lang === "es" ? "Comida" : "Food", href: `${browseAllHref}&category=food` },
+                      ]),
                 ]}
               />
             </main>
@@ -449,9 +498,10 @@ export function OfertasLocalesPublicSearchClient({
         onClose={() => setFiltersOpen(false)}
         onApply={applyDrawerFilters}
         onClear={clearFilters}
+        surface={surface}
       />
 
-      {selectedItem ? (
+      {!isCupones && selectedItem ? (
         <OfertasLocalesPublicItemDetailDrawer
           lang={lang}
           item={selectedItem}
@@ -459,7 +509,7 @@ export function OfertasLocalesPublicSearchClient({
         />
       ) : null}
 
-      {listOpen ? (
+      {!isCupones && listOpen ? (
         <OfertasLocalesShoppingListPanel
           lang={lang}
           list={shoppingList.list}

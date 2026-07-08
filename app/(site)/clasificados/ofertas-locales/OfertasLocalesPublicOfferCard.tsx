@@ -12,10 +12,11 @@ const CARD =
 type Props = {
   lang: OfertasLocalesAppLang;
   offer: OfertaLocalPublicOfferCard;
+  surface?: "ofertas" | "cupones";
 };
 
-export function OfertasLocalesPublicOfferCard({ lang, offer }: Props) {
-  const c = ofertasLocalesPublicSearchCopy(lang);
+export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas" }: Props) {
+  const c = ofertasLocalesPublicSearchCopy(lang, surface);
   const location = [offer.city, offer.state, offer.zipCode].filter(Boolean).join(", ");
   const dates =
     offer.validFrom && offer.validUntil
