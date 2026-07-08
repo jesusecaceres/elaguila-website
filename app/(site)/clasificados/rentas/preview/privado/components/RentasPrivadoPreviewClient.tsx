@@ -33,6 +33,10 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RENTAS_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -76,6 +80,7 @@ export default function RentasPrivadoPreviewClient() {
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   const lang = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
@@ -153,8 +158,11 @@ export default function RentasPrivadoPreviewClient() {
     }
 
     let leonixAdId: string | null = null;
+    let customerEmail: string | null = null;
     try {
       const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      customerEmail = auth.user?.email ?? null;
       const { data: adRow } = await supabase
         .from("listings")
         .select("leonix_ad_id")
@@ -164,6 +172,16 @@ export default function RentasPrivadoPreviewClient() {
     } catch {
       /* optional metadata */
     }
+
+    // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+    void captureCheckoutNewsletterSubscriber({
+      email: customerEmail,
+      lang,
+      preferredLanguage: lang,
+      source: CHECKOUT_NEWSLETTER_SOURCES.rentas,
+      interests: ["package:rentas_privado", "launch_25"],
+      checked: newsletterOptIn,
+    });
 
     const checkout = await startRevenueCategoryCheckout({
       ...RENTAS_CATEGORY_CHECKOUT,
@@ -179,7 +197,7 @@ export default function RentasPrivadoPreviewClient() {
 
     clearRentasPrivadoDraft();
     redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
-  }, [lang, publishErr, appliedPromoCode]);
+  }, [lang, publishErr, appliedPromoCode, newsletterOptIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -288,6 +306,20 @@ export default function RentasPrivadoPreviewClient() {
               onAppliedChange={(code) => setAppliedPromoCode(code)}
             />
           </div>
+          <label className="flex w-full cursor-pointer items-start gap-2 text-left text-[11px] leading-snug text-[#5C5346] sm:w-[280px]">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              disabled={publishBusy}
+            />
+            <span>
+              {lang === "en"
+                ? "Send me Leonix promotions, magazine updates, local advertising opportunities, and launch news."
+                : "Quiero recibir promociones de Leonix, novedades de la revista, oportunidades de publicidad local y noticias del lanzamiento."}
+            </span>
+          </label>
           <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
             {publishBusy
               ? revenueCategoryCheckoutLoadingMessage(lang)

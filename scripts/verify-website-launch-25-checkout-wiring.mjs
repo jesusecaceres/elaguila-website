@@ -132,7 +132,7 @@ ok("shared promo field copy present, no placement/ranking claims");
 if (!rentasSrc.includes("RevenuePromoField") || !rentasSrc.includes("promoCode: appliedPromoCode")) {
   fail("Rentas privado must render promo field and forward code");
 }
-if (!empleosModalSrc.includes("RevenuePromoField") || !empleosModalSrc.includes("onConfirm(promoCode)")) {
+if (!empleosModalSrc.includes("RevenuePromoField") || !/onConfirm\(promoCode\b/.test(empleosModalSrc)) {
   fail("Empleos confirm modal must render promo field and forward code");
 }
 if (!empleosCheckoutSrc.includes("promoCode")) fail("Empleos checkout helper must accept promo code");

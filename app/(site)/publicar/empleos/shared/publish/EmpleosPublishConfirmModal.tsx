@@ -6,7 +6,7 @@ import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenueP
 type Props = {
   open: boolean;
   onClose: () => void;
-  onConfirm: (promoCode: string | null) => void;
+  onConfirm: (promoCode: string | null, newsletterOptIn: boolean) => void;
   title: string;
   intro: string;
   checks: [string, string, string];
@@ -19,6 +19,10 @@ type Props = {
     category: string;
     packageKey: string;
     subtotalCents: number;
+    lang: "es" | "en";
+  };
+  /** When set (PAID flows only), renders an optional newsletter opt-in checkbox. */
+  newsletter?: {
     lang: "es" | "en";
   };
 };
@@ -39,13 +43,16 @@ export function EmpleosPublishConfirmModal({
   blockedHint,
   closeOverlayAria,
   promo,
+  newsletter,
 }: Props) {
   const [c, setC] = useState([false, false, false]);
   const [promoCode, setPromoCode] = useState<string | null>(null);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   useEffect(() => {
     if (open) {
       setC([false, false, false]);
       setPromoCode(null);
+      setNewsletterOptIn(false);
     }
   }, [open]);
   if (!open) return null;
@@ -83,6 +90,23 @@ export function EmpleosPublishConfirmModal({
             />
           </div>
         ) : null}
+        {newsletter ? (
+          <div className="mt-4 border-t border-black/10 pt-4">
+            <label className="flex cursor-pointer items-start gap-3 text-xs leading-snug text-[color:var(--lx-text-2)]">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-black/20"
+                checked={newsletterOptIn}
+                onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              />
+              <span className="min-w-0 flex-1">
+                {newsletter.lang === "en"
+                  ? "Send me Leonix promotions, magazine updates, local advertising opportunities, and launch news."
+                  : "Quiero recibir promociones de Leonix, novedades de la revista, oportunidades de publicidad local y noticias del lanzamiento."}
+              </span>
+            </label>
+          </div>
+        ) : null}
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <button type="button" className="min-h-11 rounded-lg border px-4 text-sm font-semibold" onClick={onClose}>
             {cancelCta}
@@ -92,7 +116,7 @@ export function EmpleosPublishConfirmModal({
             disabled={!all}
             className="min-h-11 rounded-lg bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
             onClick={() => {
-              onConfirm(promoCode);
+              onConfirm(promoCode, newsletterOptIn);
               onClose();
               setC([false, false, false]);
             }}

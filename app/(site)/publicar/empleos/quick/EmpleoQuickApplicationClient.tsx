@@ -20,6 +20,10 @@ import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publis
 import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
 import { EMPLEOS_PAID_JOB_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
@@ -735,7 +739,8 @@ export default function EmpleoQuickApplicationClient() {
           subtotalCents: getRevenuePackageDefinition(EMPLEOS_PAID_JOB_CHECKOUT.packageKey)?.priceCents ?? 2499,
           lang: es ? "es" : "en",
         }}
-        onConfirm={(promoCode) => {
+        newsletter={{ lang: es ? "es" : "en" }}
+        onConfirm={(promoCode, newsletterOptIn) => {
           void (async () => {
             const g = gateEmpleosQuickPreview(state, lang);
             if (!g.ok) return;
@@ -745,6 +750,15 @@ export default function EmpleoQuickApplicationClient() {
               window.alert(es ? "Inicia sesión para publicar." : "Sign in to publish.");
               return;
             }
+            // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+            void captureCheckoutNewsletterSubscriber({
+              email: data.session.user?.email ?? null,
+              lang,
+              preferredLanguage: lang,
+              source: CHECKOUT_NEWSLETTER_SOURCES.empleos,
+              interests: ["package:empleos_quick", "launch_25"],
+              checked: newsletterOptIn,
+            });
             setCheckoutBusy(true);
             const base = buildEmpleosPublishEnvelopeFromQuick(state, lang);
             const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
