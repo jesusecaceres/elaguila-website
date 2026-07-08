@@ -56,6 +56,13 @@ export const RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
   returnPath: buildDashboardMisAnunciosReturnPath("es", "restaurantes"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Servicios provider base listing — monthly subscription (Revenue OS matrix, $399/mo). */
+export const SERVICIOS_BASE_CHECKOUT = {
+  category: "servicios",
+  packageKey: "servicios_base_monthly",
+  returnPath: "/clasificados/servicios",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 /** Dashboard add-on-only — offers/coupons module on an existing published Servicios listing ($99/mo). */
 export const SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
   category: "servicios",

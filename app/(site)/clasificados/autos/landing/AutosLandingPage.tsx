@@ -1,49 +1,140 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { replaceLangInHref } from "@/app/lib/language";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
-import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl } from "../filters/autosBrowseFilterContract";
-import { emptyAutosPublicFilters } from "../filters/autosPublicFilterTypes";
+import { emptyAutosPublicFilters, type AutosPublicFilterState } from "../filters/autosPublicFilterTypes";
 import {
-  getLandingDealerSpotlightListings,
-  getLandingPrivateFreshListings,
-} from "../data/autosLandingArrangement";
-import { useAutosPublicListingsFetch } from "../components/public/useAutosPublicListingsFetch";
-import type { AutosLandingDealerSample } from "./autosLandingDealerSamples";
-import { buildAutosLandingDealersFromInventory } from "./buildAutosLandingDealersFromInventory";
+  FiAward,
+  FiBatteryCharging,
+  FiBriefcase,
+  FiClock,
+  FiDollarSign,
+  FiMapPin,
+  FiSettings,
+  FiShield,
+  FiStar,
+  FiTruck,
+  FiUser,
+  FiZap,
+} from "react-icons/fi";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryDiscoveryGrid,
   LeonixCategoryShortcutSection,
+  LeonixCategoryVisibilityStrip,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
-import { AutosLandingShell } from "./AutosLandingShell";
-import { AutosHeroSearch } from "./AutosHeroSearch";
-import { AutosLandingLangSwitch } from "./AutosLandingLangSwitch";
-import { AutosQuickChips } from "./AutosQuickChips";
-import { AutosPrimaryDiscoveryCta } from "./AutosPrimaryDiscoveryCta";
-import { FeaturedCarsSection } from "./FeaturedCarsSection";
-import { FeaturedDealersSection } from "./FeaturedDealersSection";
-import { RecentAutosSection } from "./RecentAutosSection";
-import { AutosLandingPublishCTA } from "./AutosLandingPublishCTA";
-import { autosLandingSectionClass } from "./autosLandingLayout";
-import { AutosPublicInventoryNotice } from "../components/public/AutosPublicInventoryNotice";
-import { AutosMarketPeerCrossLink } from "../components/public/AutosMarketPeerCrossLink";
 import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
 import {
   autosMarketDefaultSellerType,
-  autosMarketPeerResultsPath,
   autosMarketPublishPath,
   autosMarketResultsPath,
 } from "@/app/lib/clasificados/autos/autosPublicMarket";
-import { getAutosPublicMarketCopy } from "@/app/lib/clasificados/autos/autosPublicMarketCopy";
+
+type LandingCopy = {
+  eyebrow: string;
+  title: string;
+  tagline: string;
+  intro: string;
+  helper: string;
+  searchPlaceholder: string;
+  publishLabel: string;
+  browseLabel: string;
+  discoveryTitle: string;
+  discoverySubtitle: string;
+  practicalTitle: string;
+  practicalSubtitle: string;
+  visibilityEyebrow: string;
+  visibilityTitle: string;
+  visibilityBody: string;
+  visibilityCta: string;
+};
+
+const LANDING_COPY: Record<AutosPublicMarket, Record<AutosPublicLang, LandingCopy>> = {
+  private: {
+    es: {
+      eyebrow: "LEONIX CLASIFICADOS · AUTOS",
+      title: "Autos",
+      tagline: "Encuentra tu próximo auto cerca de ti.",
+      intro: "Explora autos publicados por vendedores privados con precio, millaje y ubicación visibles.",
+      helper: "Busca por marca, modelo, ciudad o código postal; usa filtros para comparar lo que necesitas.",
+      searchPlaceholder: "Buscar marca, modelo o palabra clave...",
+      publishLabel: "Publicar mi auto",
+      browseLabel: "Ver todos los autos",
+      discoveryTitle: "¿Qué tipo de auto buscas?",
+      discoverySubtitle: "Elige una opción para empezar.",
+      practicalTitle: "Lo que más importa",
+      practicalSubtitle: "Atajos rápidos para encontrar autos con lo esencial.",
+      visibilityEyebrow: "VISIBILIDAD PARA TU AUTO",
+      visibilityTitle: "Haz que tu anuncio tenga más visibilidad",
+      visibilityBody: "Opciones de revista, digital y destacados se revisan con Leonix. Nada aparece como Destacado sin un paquete activo.",
+      visibilityCta: "Conocer opciones de visibilidad",
+    },
+    en: {
+      eyebrow: "LEONIX CLASSIFIEDS · AUTOS",
+      title: "Autos",
+      tagline: "Find your next car near you.",
+      intro: "Browse vehicles posted by private sellers with visible price, mileage, and location.",
+      helper: "Search by make, model, city, or ZIP; use filters to compare what you need.",
+      searchPlaceholder: "Search make, model, or keyword...",
+      publishLabel: "Post my car",
+      browseLabel: "View all cars",
+      discoveryTitle: "What kind of car are you looking for?",
+      discoverySubtitle: "Choose an option to start.",
+      practicalTitle: "What matters most",
+      practicalSubtitle: "Quick shortcuts for finding cars with the essentials.",
+      visibilityEyebrow: "VISIBILITY FOR YOUR CAR",
+      visibilityTitle: "Give your listing more visibility",
+      visibilityBody: "Print, digital, and featured options are reviewed with Leonix. Nothing is marked Featured without an active package.",
+      visibilityCta: "Explore visibility options",
+    },
+  },
+  dealer: {
+    es: {
+      eyebrow: "LEONIX CLASIFICADOS · DEALERS DE AUTOS",
+      title: "Dealers de Autos",
+      tagline: "Inventario de negocios y concesionarios cerca de ti.",
+      intro: "Explora vehículos de concesionarios y negocios de autos con precio, millaje y ubicación visibles.",
+      helper: "Busca por marca, modelo, ciudad o código postal; usa filtros para comparar inventario de dealers.",
+      searchPlaceholder: "Buscar dealer, marca, modelo o palabra clave...",
+      publishLabel: "Publicar como dealer",
+      browseLabel: "Ver inventario de dealers",
+      discoveryTitle: "¿Qué tipo de inventario buscas?",
+      discoverySubtitle: "Explora inventario de negocios y concesionarios.",
+      practicalTitle: "Lo que más importa",
+      practicalSubtitle: "Atajos rápidos para encontrar inventario de dealers.",
+      visibilityEyebrow: "VISIBILIDAD PARA DEALERS",
+      visibilityTitle: "Haz que tu inventario tenga más visibilidad",
+      visibilityBody: "Opciones de revista, digital y destacados se revisan con Leonix. Nada aparece como Destacado sin un paquete activo.",
+      visibilityCta: "Conocer opciones de visibilidad",
+    },
+    en: {
+      eyebrow: "LEONIX CLASSIFIEDS · AUTO DEALERS",
+      title: "Auto Dealers",
+      tagline: "Business and dealership inventory near you.",
+      intro: "Browse vehicles from dealerships and auto businesses with visible price, mileage, and location.",
+      helper: "Search by dealer, make, model, city, or ZIP; use filters to compare dealer inventory.",
+      searchPlaceholder: "Search dealer, make, model, or keyword...",
+      publishLabel: "Post as dealer",
+      browseLabel: "View dealer inventory",
+      discoveryTitle: "What kind of inventory are you looking for?",
+      discoverySubtitle: "Explore business and dealership inventory.",
+      practicalTitle: "What matters most",
+      practicalSubtitle: "Quick shortcuts for finding dealer inventory.",
+      visibilityEyebrow: "VISIBILITY FOR DEALERS",
+      visibilityTitle: "Give your inventory more visibility",
+      visibilityBody: "Print, digital, and featured options are reviewed with Leonix. Nothing is marked Featured without an active package.",
+      visibilityCta: "Explore visibility options",
+    },
+  },
+};
 
 export function AutosLandingPage({ market = "private" }: { market?: AutosPublicMarket }) {
   const sp = useSearchParams();
@@ -51,16 +142,17 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
   const browseState = useMemo(() => parseAutosBrowseUrl(new URLSearchParams(spStr)), [spStr]);
   const lang: AutosPublicLang = browseState.lang;
   const routeLang = browseState.routeLang;
-  const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang];
-  const marketCopy = getAutosPublicMarketCopy(market, lang);
   const isPrivateMarket = market === "private";
   const isDealerMarket = market === "dealer";
+  const copy = LANDING_COPY[market][lang];
   const RESULTADOS_PATH = autosMarketResultsPath(market);
   const defaultSeller = autosMarketDefaultSellerType(market);
 
   const [searchQ, setSearchQ] = useState("");
   const [city, setCity] = useState("San Jose");
+  const [state, setState] = useState("CA");
   const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("United States");
 
   useEffect(() => {
     const b = parseAutosBrowseUrl(new URLSearchParams(spStr));
@@ -69,22 +161,16 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
     setZip(b.filters.zip);
   }, [spStr]);
 
-  const { listings: inventory, loaded, isDemoInventory } = useAutosPublicListingsFetch();
-  const dealerSpotlight = useMemo(() => getLandingDealerSpotlightListings(inventory, 6), [inventory]);
-  const privateFresh = useMemo(() => getLandingPrivateFreshListings(inventory, 6), [inventory]);
-
-  const landingDealers = useMemo(() => buildAutosLandingDealersFromInventory(inventory, 4), [inventory]);
-
   const resultsHref = useCallback(
     (bundle: Parameters<typeof serializeAutosBrowseUrl>[0]) => `${RESULTADOS_PATH}?${serializeAutosBrowseUrl(bundle)}`,
-    [],
+    [RESULTADOS_PATH],
   );
 
-  const chipHref = useCallback(
-    (patch: Partial<ReturnType<typeof emptyAutosPublicFilters>>) =>
+  const landingHref = useCallback(
+    (patch: Partial<AutosPublicFilterState>, q = "") =>
       resultsHref({
         filters: { ...emptyAutosPublicFilters(), ...patch },
-        q: "",
+        q,
         sort: "newest",
         page: 1,
         lang,
@@ -108,185 +194,245 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
     });
   }, [defaultSeller, lang, routeLang, searchQ, city, zip, resultsHref]);
 
-  const browseAllHref = useMemo(
-    () =>
-      resultsHref({
-        filters: { ...emptyAutosPublicFilters(), sellerType: defaultSeller },
-        q: "",
-        sort: "newest",
-        page: 1,
-        lang,
-        routeLang,
-      }),
-    [defaultSeller, lang, routeLang, resultsHref],
-  );
+  const browseAllHref = useMemo(() => landingHref({ sellerType: defaultSeller }), [defaultSeller, landingHref]);
 
   const publishAutosHref = replaceLangInHref(autosMarketPublishPath(market), routeLang);
-  const peerResultsHref = useMemo(() => {
-    const peerPath = autosMarketPeerResultsPath(market);
-    return `${peerPath}?${serializeAutosBrowseUrl({
-      filters: { ...emptyAutosPublicFilters(), sellerType: autosMarketDefaultSellerType(market === "private" ? "dealer" : "private") },
-      q: "",
-      sort: "newest",
-      page: 1,
-      lang,
-      routeLang,
-    })}`;
-  }, [lang, routeLang, market]);
+  const visibilityHref = `/contacto?lang=${routeLang}&categoria=${isDealerMarket ? "dealers-de-autos" : "autos"}&surface=landing`;
+  const runSearch = () => {
+    window.location.href = searchHref;
+  };
 
-  const quickChipItems = useMemo(() => {
-    const c = copy;
-    if (isPrivateMarket) {
-      return [
-        { label: c.chips.sedan, href: chipHref({ bodyStyle: "Sedan", sellerType: "private" }) },
-        { label: c.chips.suv, href: chipHref({ bodyStyle: "SUV", sellerType: "private" }) },
-        { label: c.chips.truck, href: chipHref({ bodyStyle: "Truck", sellerType: "private" }) },
-        { label: lang === "es" ? "Menos de $10k" : "Under $10k", href: chipHref({ priceMax: "10000", sellerType: "private" }) },
-        { label: c.chipQuickLowMiles, href: chipHref({ mileageMax: "35000", sellerType: "private" }) },
-        { label: c.chipQuickPrivate, href: chipHref({ sellerType: "private" }) },
+  const discoveryItems = isPrivateMarket
+    ? [
+        {
+          id: "sedan",
+          label: lang === "es" ? "Sedán" : "Sedan",
+          hint: lang === "es" ? "Diario y práctico" : "Daily and practical",
+          href: landingHref({ bodyStyle: "Sedan", sellerType: "private" }),
+          icon: FiSettings,
+        },
+        {
+          id: "suv",
+          label: "SUV",
+          hint: lang === "es" ? "Espacio familiar" : "Family space",
+          href: landingHref({ bodyStyle: "SUV", sellerType: "private" }),
+          icon: FiShield,
+        },
+        {
+          id: "truck",
+          label: lang === "es" ? "Camioneta" : "Truck",
+          hint: lang === "es" ? "Trabajo y carga" : "Work and cargo",
+          href: landingHref({ bodyStyle: "Truck", sellerType: "private" }),
+          icon: FiTruck,
+        },
+        {
+          id: "low-mileage",
+          label: lang === "es" ? "Bajo millaje" : "Low mileage",
+          hint: lang === "es" ? "Menos uso" : "Less use",
+          href: landingHref({ mileageMax: "35000", sellerType: "private" }),
+          icon: FiAward,
+        },
+        {
+          id: "under-10k",
+          label: lang === "es" ? "Menos de $10k" : "Under $10k",
+          hint: lang === "es" ? "Opciones económicas" : "Budget options",
+          href: landingHref({ priceMax: "10000", sellerType: "private" }),
+          icon: FiDollarSign,
+        },
+        {
+          id: "hybrid-electric",
+          label: lang === "es" ? "Híbrido / eléctrico" : "Hybrid / electric",
+          hint: lang === "es" ? "Ahorro y tecnología" : "Savings and tech",
+          href: landingHref({ sellerType: "private" }, lang === "es" ? "híbrido eléctrico" : "hybrid electric"),
+          icon: FiBatteryCharging,
+        },
+        {
+          id: "private",
+          label: lang === "es" ? "Privado" : "Private",
+          hint: lang === "es" ? "Vendedores locales" : "Local sellers",
+          href: landingHref({ sellerType: "private" }),
+          icon: FiUser,
+        },
+        {
+          id: "newest",
+          label: lang === "es" ? "Recién publicado" : "Newly posted",
+          hint: lang === "es" ? "Nuevas oportunidades" : "New opportunities",
+          href: landingHref({ sellerType: "private" }),
+          icon: FiClock,
+        },
+      ]
+    : [
+        {
+          id: "dealers",
+          label: "Dealers",
+          hint: lang === "es" ? "Inventario de negocio" : "Business inventory",
+          href: landingHref({ sellerType: "dealer" }),
+          icon: FiBriefcase,
+        },
+        {
+          id: "used",
+          label: lang === "es" ? "Usados" : "Used",
+          hint: lang === "es" ? "Oportunidades disponibles" : "Available opportunities",
+          href: landingHref({ condition: "used", sellerType: "dealer" }),
+          icon: FiStar,
+        },
+        {
+          id: "new",
+          label: lang === "es" ? "Nuevos" : "New",
+          hint: lang === "es" ? "Inventario reciente" : "Recent inventory",
+          href: landingHref({ condition: "new", sellerType: "dealer" }),
+          icon: FiZap,
+        },
+        {
+          id: "suv",
+          label: "SUV",
+          hint: lang === "es" ? "Espacio familiar" : "Family space",
+          href: landingHref({ bodyStyle: "SUV", sellerType: "dealer" }),
+          icon: FiShield,
+        },
+        {
+          id: "truck",
+          label: lang === "es" ? "Camionetas" : "Trucks",
+          hint: lang === "es" ? "Trabajo y carga" : "Work and cargo",
+          href: landingHref({ bodyStyle: "Truck", sellerType: "dealer" }),
+          icon: FiTruck,
+        },
+        {
+          id: "low-mileage",
+          label: lang === "es" ? "Bajo millaje" : "Low mileage",
+          hint: lang === "es" ? "Menos uso" : "Less use",
+          href: landingHref({ mileageMax: "35000", sellerType: "dealer" }),
+          icon: FiAward,
+        },
+        {
+          id: "financing",
+          label: lang === "es" ? "Financiamiento" : "Financing",
+          hint: lang === "es" ? "Opciones disponibles" : "Available options",
+          href: landingHref({ sellerType: "dealer" }, lang === "es" ? "financiamiento" : "financing"),
+          icon: FiDollarSign,
+        },
+        {
+          id: "bay-area",
+          label: lang === "es" ? "San José / Bay Area" : "San Jose / Bay Area",
+          hint: lang === "es" ? "Ciudad inicial" : "Starter city",
+          href: landingHref({ city: "San Jose", sellerType: "dealer" }),
+          icon: FiMapPin,
+        },
       ];
-    }
-    return [
-      { label: c.chipQuickDealer, href: chipHref({ sellerType: "dealer" }) },
-      { label: c.conditionUsed, href: chipHref({ condition: "used", sellerType: "dealer" }) },
-      { label: c.conditionNew, href: chipHref({ condition: "new", sellerType: "dealer" }) },
-      { label: c.chipQuickLowMiles, href: chipHref({ mileageMax: "35000", sellerType: "dealer" }) },
-      { label: c.chips.truck, href: chipHref({ bodyStyle: "Truck", sellerType: "dealer" }) },
-      { label: c.chips.suv, href: chipHref({ bodyStyle: "SUV", sellerType: "dealer" }) },
-    ];
-  }, [copy, chipHref, isPrivateMarket, lang]);
 
-  const buildDealerInventoryHref = useCallback(
-    (dealer: AutosLandingDealerSample) => {
-      const filters = emptyAutosPublicFilters();
-      filters.sellerType = dealer.resultsHandoff.seller;
-      const raw = dealer.resultsHandoff.city.trim();
-      filters.city = getCanonicalCityName(raw) || raw;
-      return resultsHref({
-        filters,
-        q: dealer.resultsHandoff.q ?? "",
-        sort: "newest",
-        page: 1,
-        lang,
-        routeLang,
-      });
-    },
-    [lang, routeLang, resultsHref],
-  );
-
-  const clasificadosHome = replaceLangInHref("/clasificados", routeLang);
-
-  const autosSearchForm = (
-    <AutosHeroSearch
-      mode="fields"
-      copy={copy}
-      searchQ={searchQ}
-      setSearchQ={setSearchQ}
-      city={city}
-      setCity={setCity}
-      zip={zip}
-      setZip={setZip}
-      searchHref={searchHref}
-      browseAllHref={browseAllHref}
-    />
-  );
+  const practicalChips = isPrivateMarket
+    ? [
+        { id: "low-mileage", label: lang === "es" ? "Bajo millaje" : "Low mileage", href: landingHref({ mileageMax: "35000", sellerType: "private" }), icon: FiAward },
+        { id: "under-10k", label: lang === "es" ? "Menos de $10k" : "Under $10k", href: landingHref({ priceMax: "10000", sellerType: "private" }), icon: FiDollarSign },
+        { id: "suv", label: "SUV", href: landingHref({ bodyStyle: "SUV", sellerType: "private" }), icon: FiShield },
+        { id: "truck", label: lang === "es" ? "Camioneta" : "Truck", href: landingHref({ bodyStyle: "Truck", sellerType: "private" }), icon: FiTruck },
+        { id: "automatic", label: lang === "es" ? "Automático" : "Automatic", href: landingHref({ transmission: "Automatic", sellerType: "private" }), icon: FiSettings },
+        { id: "good-price", label: lang === "es" ? "Buen precio" : "Good price", href: landingHref({ priceMax: "15000", sellerType: "private" }), icon: FiDollarSign },
+        { id: "private", label: lang === "es" ? "Privado" : "Private", href: landingHref({ sellerType: "private" }), icon: FiUser },
+      ]
+    : [
+        { id: "used", label: lang === "es" ? "Usados" : "Used", href: landingHref({ condition: "used", sellerType: "dealer" }), icon: FiStar },
+        { id: "new", label: lang === "es" ? "Nuevos" : "New", href: landingHref({ condition: "new", sellerType: "dealer" }), icon: FiZap },
+        { id: "low-mileage", label: lang === "es" ? "Bajo millaje" : "Low mileage", href: landingHref({ mileageMax: "35000", sellerType: "dealer" }), icon: FiAward },
+        { id: "truck", label: lang === "es" ? "Camioneta" : "Truck", href: landingHref({ bodyStyle: "Truck", sellerType: "dealer" }), icon: FiTruck },
+        { id: "suv", label: "SUV", href: landingHref({ bodyStyle: "SUV", sellerType: "dealer" }), icon: FiShield },
+        { id: "financing", label: lang === "es" ? "Financiamiento" : "Financing", href: landingHref({ sellerType: "dealer" }, lang === "es" ? "financiamiento" : "financing"), icon: FiDollarSign },
+        { id: "dealer", label: "Dealer", href: landingHref({ sellerType: "dealer" }), icon: FiBriefcase },
+      ];
 
   return (
-    <AutosLandingShell>
-      <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)]/90 backdrop-blur-md">
-        <div className={`${autosLandingSectionClass} flex flex-wrap items-center justify-between gap-3 py-3`}>
-          <nav className="text-[11px] font-medium text-[color:var(--lx-muted)]">
-            <Link href={clasificadosHome} className="hover:text-[color:var(--lx-text)]">
-              {copy.breadcrumb}
-            </Link>
-            <span className="mx-1.5 opacity-50">/</span>
-            <span className="text-[color:var(--lx-text)]">{marketCopy.title}</span>
-          </nav>
-          <div className="flex flex-wrap items-center gap-2">
-            <AutosLandingLangSwitch lang={lang} />
-            <Link
-              href={publishAutosHref}
-              className="inline-flex min-h-[44px] items-center rounded-full bg-[color:var(--lx-cta-dark)] px-4 py-2 text-xs font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)] active:opacity-90"
-            >
-              {marketCopy.postAd}
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <main className="flex w-full min-w-0 flex-col gap-5 pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] pt-3 sm:gap-7 sm:pt-4 md:gap-8">
-        <LeonixCategoryPageShell surface="landing" topSlot={
-          <div className="mx-auto flex max-w-[1280px] justify-end px-3.5 pt-3 sm:px-4 lg:px-5">
-            <AutosLandingLangSwitch lang={lang} />
-          </div>
-        }>
+    <LeonixCategoryPageShell surface="landing">
+      <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
           <LeonixCategoryHeroGateway
             lang={lang as V2Lang}
             surface="landing"
-            title={marketCopy.heroHeading}
-            tagline=""
-            intro={marketCopy.heroSubhead}
-            introSecondary=""
-            searchSlot={autosSearchForm}
-            eyebrow={marketCopy.title}
+            title={copy.title}
+            tagline={copy.tagline}
+            intro={copy.intro}
+            introSecondary={copy.helper}
+            searchSlot={
+              <LeonixCategorySearchCanvas
+                lang={lang as V2Lang}
+                surface="landing"
+                query={searchQ}
+                city={city}
+                state={state}
+                zip={zip}
+                country={country}
+                onQuery={setSearchQ}
+                onCity={setCity}
+                onState={setState}
+                onZip={setZip}
+                onCountry={setCountry}
+                onSearch={runSearch}
+                onOpenFilters={runSearch}
+                browseAllHref={browseAllHref}
+                browseAllLabel={copy.browseLabel}
+                queryPlaceholder={copy.searchPlaceholder}
+                searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+                filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+                publishHref={publishAutosHref}
+                publishLabel={copy.publishLabel}
+              />
+            }
+            eyebrow={copy.eyebrow}
           />
+
+          <main className="space-y-6 overflow-x-hidden sm:space-y-8">
+            <LeonixCategoryDiscoveryGrid
+              lang={lang as V2Lang}
+              surface="landing"
+              heading={copy.discoveryTitle}
+              subtitle={copy.discoverySubtitle}
+              items={discoveryItems}
+            />
+
+            {isDealerMarket ? (
+              <LeonixCategoryPartnerSection
+                enabled
+                lang={lang as V2Lang}
+                surface="landing"
+                eyebrow={lang === "es" ? "REVISTA · DIGITAL · DEALERS" : "MAGAZINE · DIGITAL · DEALERS"}
+                title={lang === "es" ? "Haz visible tu inventario con Leonix" : "Make your inventory visible with Leonix"}
+                body={
+                  lang === "es"
+                    ? "Dealers y negocios de autos pueden presentar inventario con presencia premium en Leonix Media, búsqueda local y contacto directo."
+                    : "Dealers and auto businesses can present inventory with premium visibility across Leonix Media, local search, and direct contact."
+                }
+                supportingLine={
+                  lang === "es"
+                    ? "Ideal para concesionarios, lotes de autos y negocios que quieren ser encontrados por compradores locales."
+                    : "Built for dealerships, auto lots, and businesses that want to be found by local buyers."
+                }
+                chips={
+                  lang === "es"
+                    ? ["Perfil de dealer", "Inventario local", "Contacto directo", "Campañas locales", "Visibilidad premium", "Revista digital"]
+                    : ["Dealer profile", "Local inventory", "Direct contact", "Local campaigns", "Premium visibility", "Digital magazine"]
+                }
+                secondaryCta={{ label: copy.browseLabel, href: browseAllHref }}
+              />
+            ) : null}
+
           <LeonixCategoryShortcutSection
             lang={lang as V2Lang}
             surface="landing"
-            title={lang === "es" ? "Filtros rápidos" : "Quick filters"}
-            subtitle=""
-            variant="default"
-            chips={quickChipItems.map((item) => ({ id: item.label, label: item.label, href: item.href }))}
+              title={copy.practicalTitle}
+              subtitle={copy.practicalSubtitle}
+              variant="practical"
+              chips={practicalChips}
           />
-        </LeonixCategoryPageShell>
 
-        <AutosMarketPeerCrossLink copy={marketCopy} href={peerResultsHref} />
-
-        <AutosPrimaryDiscoveryCta copy={copy} browseAllHref={browseAllHref} browseLabel={marketCopy.browseAll} />
-
-        <div className={autosLandingSectionClass}>
-          <AutosPublicInventoryNotice
-            copy={copy}
-            loaded={loaded}
-            isDemoInventory={isDemoInventory}
-            hasAnyListings={inventory.length > 0}
-          />
-        </div>
-
-        {isDealerMarket ? (
-          <FeaturedCarsSection
-            copy={copy}
-            lang={lang}
-            listings={dealerSpotlight}
-            heading={copy.landingDealerSpotlightTitle}
-            subheading={copy.landingDealerSpotlightSubtitle}
-            browseAllHref={browseAllHref}
-          />
-        ) : null}
-
-        {isPrivateMarket ? (
-          <RecentAutosSection
-            copy={copy}
-            lang={lang}
-            listings={privateFresh}
-            heading={copy.landingPrivateFreshTitle}
-            subheading={copy.landingPrivateFreshSubtitle}
-            browseAllHref={browseAllHref}
-          />
-        ) : null}
-
-        {isDealerMarket && landingDealers.length > 0 ? (
-          <FeaturedDealersSection copy={copy} dealers={landingDealers} buildInventoryHref={buildDealerInventoryHref} />
-        ) : null}
-
-        <AutosLandingPublishCTA
-          copy={copy}
-          publishAutosHref={publishAutosHref}
-          browseAllHref={browseAllHref}
-          publishLabel={marketCopy.postAd}
-          browseLabel={marketCopy.browseAll}
-        />
-      </main>
-    </AutosLandingShell>
+            <LeonixCategoryVisibilityStrip
+              lang={lang as V2Lang}
+              surface="landing"
+              eyebrow={copy.visibilityEyebrow}
+              title={copy.visibilityTitle}
+              body={copy.visibilityBody}
+              ctaLabel={copy.visibilityCta}
+              ctaHref={visibilityHref}
+            />
+          </main>
+      </div>
+    </LeonixCategoryPageShell>
   );
 }

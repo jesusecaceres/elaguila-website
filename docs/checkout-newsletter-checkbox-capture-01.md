@@ -101,4 +101,5 @@ npm run verify:checkout-newsletter-capture
 - `docs/newsletter-operations-readiness.md`
 - `docs/newsletter-sales-contact-ops.md`
 - `docs/newsletter-promo-code-readiness.md`
+- `docs/launch-25-opportunity-audit-01.md` — account-surface Launch 25 visibility (signup/dashboard/profile)
 - `docs/stripe-revenue-os-category-checkout-wiring-01.md`

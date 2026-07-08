@@ -17,6 +17,7 @@
 /** Canonical checkout capture sources (must match server allowlist). */
 export const CHECKOUT_NEWSLETTER_SOURCES = {
   restaurantes: "restaurantes_checkout",
+  servicios: "servicios_checkout",
   rentas: "rentas_checkout",
   empleos: "empleos_checkout",
   autosPrivado: "autos_privado_checkout",

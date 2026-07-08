@@ -14,6 +14,7 @@ import {
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
 import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import {
+  SERVICIOS_LISTING_STATUS_PENDING_PAYMENT,
   SERVICIOS_LISTING_STATUS_PENDING_REVIEW,
   SERVICIOS_LISTING_STATUS_PUBLISHED,
 } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
@@ -224,9 +225,20 @@ export async function POST(req: NextRequest) {
   const businessName = wire.identity.businessName.trim() || slug;
   const city = state.city.trim();
   const now = new Date().toISOString();
-  const listingStatus = initialListingStatus();
+  /**
+   * When the client requests a pending-payment save (Revenue OS global checkout standard),
+   * the listing is stored hidden as `pending_payment` and stays non-public until the Stripe
+   * webhook activates it. Otherwise use the standard immediate publish status.
+   * Gate SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01
+   */
+  const pendingPayment =
+    (body as Record<string, unknown>).activationMode === "pending_payment" ||
+    (body as Record<string, unknown>).activation_mode === "pending_payment";
+  const listingStatus = pendingPayment ? SERVICIOS_LISTING_STATUS_PENDING_PAYMENT : initialListingStatus();
 
   let persistedToDatabase = false;
+  let persistedListingId: string | null = null;
+  let persistedLeonixAdId: string | null = null;
   if (isSupabaseAdminConfigured()) {
     try {
       const supabase = getAdminSupabase();
@@ -241,19 +253,30 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ ok: false, error: "slug_conflict" }, { status: 409 });
         }
-        const { error } = await supabase
+        // Never downgrade an already-published listing back to pending on re-save.
+        const nextStatus =
+          pendingPayment && existing.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED
+            ? SERVICIOS_LISTING_STATUS_PUBLISHED
+            : listingStatus;
+        const { data: updated, error } = await supabase
           .from("servicios_public_listings")
           .update({
             business_name: businessName,
             city,
             profile_json: wire,
             internal_group: internalGroup,
-            listing_status: listingStatus,
+            listing_status: nextStatus,
             updated_at: now,
             ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
           })
-          .eq("slug", slug);
-        if (!error) persistedToDatabase = true;
+          .eq("slug", slug)
+          .select("id, leonix_ad_id")
+          .maybeSingle();
+        if (!error) {
+          persistedToDatabase = true;
+          persistedListingId = updated?.id ? String(updated.id) : null;
+          persistedLeonixAdId = updated?.leonix_ad_id ? String(updated.leonix_ad_id) : null;
+        }
       } else {
         const insertRow: Record<string, unknown> = {
           slug,
@@ -263,12 +286,20 @@ export async function POST(req: NextRequest) {
           internal_group: internalGroup,
           listing_status: listingStatus,
           leonix_verified: false,
-          published_at: now,
+          published_at: pendingPayment ? null : now,
           updated_at: now,
         };
         if (ownerUserId) insertRow.owner_user_id = ownerUserId;
-        const { error } = await supabase.from("servicios_public_listings").insert(insertRow);
-        if (!error) persistedToDatabase = true;
+        const { data: inserted, error } = await supabase
+          .from("servicios_public_listings")
+          .insert(insertRow)
+          .select("id, leonix_ad_id")
+          .maybeSingle();
+        if (!error) {
+          persistedToDatabase = true;
+          persistedListingId = inserted?.id ? String(inserted.id) : null;
+          persistedLeonixAdId = inserted?.leonix_ad_id ? String(inserted.leonix_ad_id) : null;
+        }
       }
     } catch {
       persistedToDatabase = false;
@@ -328,6 +359,42 @@ export async function POST(req: NextRequest) {
       },
       { status: 503 },
     );
+  }
+
+  // Revenue OS pending-payment save: require a real DB row so we can hand a listingId to checkout.
+  if (pendingPayment) {
+    if (!persistedToDatabase || !persistedListingId) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: slug,
+        eventType: "publish_failure",
+        meta: { reason: "pending_payment_persist_failed", persistence },
+      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "pending_persist_failed",
+          message:
+            "Could not save your service listing before checkout. Please try again or contact Leonix.",
+          persistence,
+        },
+        { status: 503 },
+      );
+    }
+    await insertServiciosAnalyticsEvent({
+      listingSlug: slug,
+      eventType: "publish_pending_payment",
+      meta: { persistence, listingStatus },
+    });
+    return NextResponse.json({
+      ok: true,
+      pendingPayment: true,
+      persisted: true,
+      persistedToDatabase: true,
+      listingId: persistedListingId,
+      leonixAdId: persistedLeonixAdId,
+      slug,
+      listingStatus,
+    });
   }
 
   if (persistedToDatabase || persistedToDevWorkspace) {

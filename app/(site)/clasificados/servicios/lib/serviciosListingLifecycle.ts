@@ -20,6 +20,8 @@ export const SERVICIOS_LISTING_STATUSES = [
   "publish_ready",
   "published",
   "paused_unpublished",
+  /** Saved hidden before Revenue OS Stripe checkout; activated to `published` by webhook on paid truth. */
+  "pending_payment",
   /** Awaiting Leonix review before public discovery */
   "pending_review",
   "rejected",
@@ -29,6 +31,8 @@ export const SERVICIOS_LISTING_STATUSES = [
 export type ServiciosListingLifecycleStatus = (typeof SERVICIOS_LISTING_STATUSES)[number];
 
 export const SERVICIOS_LISTING_STATUS_PUBLISHED: ServiciosListingLifecycleStatus = "published";
+
+export const SERVICIOS_LISTING_STATUS_PENDING_PAYMENT: ServiciosListingLifecycleStatus = "pending_payment";
 
 export const SERVICIOS_LISTING_STATUS_PENDING_REVIEW: ServiciosListingLifecycleStatus = "pending_review";
 

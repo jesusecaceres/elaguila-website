@@ -60,6 +60,15 @@ export type PublishCheckoutCheckpointProps = {
   }) => void | Promise<void>;
   /** When set, shown as CTA when Restaurante coupon add-on blocks checkout. */
   editHref?: string;
+  /** Optional "Ver reglas de Leonix" modal shown above confirmations (opt-in per category). */
+  rulesModal?: {
+    triggerLabelEn?: string;
+    triggerLabelEs?: string;
+    titleEn: string;
+    titleEs: string;
+    bulletsEn: string[];
+    bulletsEs: string[];
+  };
   className?: string;
   id?: string;
 };
@@ -75,11 +84,13 @@ export function PublishCheckoutCheckpoint({
   onCheckout,
   onFreePublish,
   editHref,
+  rulesModal,
   className = "",
   id = "publish-checkout-checkpoint",
 }: PublishCheckoutCheckpointProps) {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const [promoDiscountCents, setPromoDiscountCents] = useState<number | null>(null);
@@ -342,9 +353,23 @@ export function PublishCheckoutCheckpoint({
 
       {/* Required confirmations */}
       <div className="mt-5 space-y-2 border-t pt-4" style={{ borderColor: `${LEONIX_BORDER}99` }}>
-        <p className="text-xs font-bold" style={{ color: LEONIX_CHARCOAL }}>
-          {publishCheckpointConfirmationsTitle(lang)}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-bold" style={{ color: LEONIX_CHARCOAL }}>
+            {publishCheckpointConfirmationsTitle(lang)}
+          </p>
+          {rulesModal ? (
+            <button
+              type="button"
+              onClick={() => setRulesOpen(true)}
+              className="text-xs font-semibold underline underline-offset-2"
+              style={{ color: LEONIX_BURGUNDY }}
+            >
+              {lang === "es"
+                ? rulesModal.triggerLabelEs ?? "Ver reglas de Leonix"
+                : rulesModal.triggerLabelEn ?? "See Leonix rules"}
+            </button>
+          ) : null}
+        </div>
         {resolved.confirmations.map((c) => (
           <label
             key={c.id}
@@ -419,6 +444,41 @@ export function PublishCheckoutCheckpoint({
           {busy ? loadingLabel : resolved.finalActionLabel}
         </button>
       </div>
+
+      {rulesModal && rulesOpen ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setRulesOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl p-6 shadow-xl"
+            style={{ background: LEONIX_CREAM }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold" style={{ color: LEONIX_CHARCOAL }}>
+              {lang === "es" ? rulesModal.titleEs : rulesModal.titleEn}
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {(lang === "es" ? rulesModal.bulletsEs : rulesModal.bulletsEn).map((b, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: LEONIX_MUTED }}>
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: LEONIX_GOLD }} />
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setRulesOpen(false)}
+              className="mt-6 min-h-[44px] w-full rounded-full px-6 py-2.5 text-sm font-semibold text-white"
+              style={{ background: LEONIX_BURGUNDY }}
+            >
+              {lang === "es" ? "Cerrar" : "Close"}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

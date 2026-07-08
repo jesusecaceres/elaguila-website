@@ -15,6 +15,10 @@ import {
   RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueRestaurantFulfillment";
 import {
+  activatePaidServiciosListingFromRevenueOs,
+  SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
+} from "./revenueServiciosFulfillment";
+import {
   loadPaymentRecordById,
   loadPaymentRecordByStripeSessionId,
   markPaymentRecordExpiredOrCanceled,
@@ -254,6 +258,86 @@ async function tryActivateRestauranteCouponAddonAfterEntitlement(input: {
   return { ok: true };
 }
 
+async function tryActivateServiciosListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidServiciosListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    paymentRecordId: input.paymentRecord.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripeEventId: input.stripeEventId,
+    leonixAdId: input.paymentRecord.leonix_ad_id,
+  });
+
+  if (
+    activation.outcome === "skipped_wrong_package" ||
+    activation.outcome === "already_published"
+  ) {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "servicios_public_listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "servicios_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "servicios_public_listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `servicios_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Servicios listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "servicios_listing_activated_after_payment",
+    targetType: "servicios_public_listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
 export async function fulfillCheckoutSessionCompleted(input: {
   session: Stripe.Checkout.Session;
   eventId: string;
@@ -421,6 +505,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const serviciosActivation = await tryActivateServiciosListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+    });
+    if (!serviciosActivation.ok) {
+      return {
+        ok: false,
+        code: serviciosActivation.code,
+        message: serviciosActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -549,6 +652,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: couponAddonActivation.code,
       message: couponAddonActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const serviciosActivation = await tryActivateServiciosListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+  });
+  if (!serviciosActivation.ok) {
+    return {
+      ok: false,
+      code: serviciosActivation.code,
+      message: serviciosActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,

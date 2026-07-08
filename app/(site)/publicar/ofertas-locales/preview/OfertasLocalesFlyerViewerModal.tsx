@@ -67,14 +67,21 @@ export function OfertasLocalesFlyerViewerModal({
   if (!mounted || !open || !heroAsset?.href) return null;
 
   const closeLabel = lang === "en" ? c.closeFlyerEn : c.closeFlyerEs;
-  const title =
-    heroAsset.kind === "coupon"
-      ? lang === "en"
-        ? c.viewCouponEn
-        : c.viewCouponEs
-      : lang === "en"
-        ? c.flyerViewEn
-        : c.flyerViewEs;
+  const isCoupon = heroAsset.kind === "coupon";
+  const title = isCoupon
+    ? lang === "en"
+      ? c.couponViewerTitleEn
+      : c.couponViewerTitleEs
+    : lang === "en"
+      ? c.flyerViewerTitleEn
+      : c.flyerViewerTitleEs;
+  const helper = isCoupon
+    ? lang === "en"
+      ? c.couponViewerHelperEn
+      : c.couponViewerHelperEs
+    : lang === "en"
+      ? c.flyerViewerHelperEn
+      : c.flyerViewerHelperEs;
 
   const modal = (
     <div
@@ -101,6 +108,7 @@ export function OfertasLocalesFlyerViewerModal({
             <h2 className="truncate font-serif text-base font-semibold text-[#1F241C]" title={heroAsset.fileName}>
               {heroAsset.fileName}
             </h2>
+            <p className="mt-0.5 truncate text-[11px] text-[#1E1814]/55">{helper}</p>
           </div>
           <button
             type="button"

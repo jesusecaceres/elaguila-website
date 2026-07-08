@@ -11,6 +11,7 @@ import {
 } from "./revenuePricingMatrix";
 import {
   RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import {
@@ -44,6 +45,11 @@ const CHECKOUT_ADDON_ALLOWLIST: Record<
     category: "restaurantes",
     basePackageKey: "restaurantes_base_monthly",
     allowedKeys: [RESTAURANTES_COUPON_ADDON_PACKAGE_KEY],
+  },
+  servicios: {
+    category: "servicios",
+    basePackageKey: "servicios_base_monthly",
+    allowedKeys: [SERVICIOS_OFFERS_ADDON_PACKAGE_KEY],
   },
 };
 

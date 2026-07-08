@@ -59,10 +59,12 @@ Doctrine preserved: the newsletter promo code discounts a future **website check
 Now active in this gate:
 
 - **`/newsletter`** — positioned as Leonix Launch 25 coupon landing page (card + form; no category selector).
-- **`/login?mode=signup`** — compact promo card + copy; links to newsletter with `source=account_signup`.
-- **`/dashboard`** — launch benefit card; links to newsletter with `source=dashboard`.
-- **`/dashboard/perfil?onboarding=1`** — compact benefit card during profile onboarding (profile save remains independent).
+- **`/login?mode=signup`** — compact promo card + copy; links to newsletter with `source=signup_launch_25`.
+- **`/dashboard`** — launch benefit card; links to newsletter with `source=dashboard_launch_25`.
+- **`/dashboard/perfil?onboarding=1`** — compact benefit card during profile onboarding (`source=profile_onboarding_launch_25`; profile save remains independent).
 - **Coming Soon V2** — ES/EN newsletter section copy aligned to 25% launch code.
+
+Account-surface visibility + CTA source tracking is documented in **`docs/launch-25-opportunity-audit-01.md`**.
 
 Public promise: **“Get 25% off your first eligible Leonix website ad or package.”**
 

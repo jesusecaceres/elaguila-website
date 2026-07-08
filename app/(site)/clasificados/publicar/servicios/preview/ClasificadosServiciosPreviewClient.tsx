@@ -41,6 +41,24 @@ import { postServiciosPublishApi, primeServiciosExistingPublicSlug } from "../li
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import { saveServiciosPendingBeforeCheckout } from "../lib/saveServiciosPendingBeforeCheckout";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+  validateRevenuePromoForCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { SERVICIOS_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  SERVICIOS_CHECKPOINT_CONFIRMATIONS,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+  type PublishCheckpointConfig,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 
 /** Seller preview — application draft or DB-backed listing (dashboard preview=listing). */
 type Source = "loading" | "application" | "missing" | "listing-error";
@@ -143,6 +161,8 @@ export function ClasificadosServiciosPreviewClient() {
   const [listingHydrationError, setListingHydrationError] = useState<string | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     clearLeonixPreviewNavSessionFlag();
@@ -416,6 +436,129 @@ export function ClasificadosServiciosPreviewClient() {
     };
   }, [useProfessionalPreview, appState, appDraft, profile]);
 
+  // Servicios global checkout standard — final checkpoint shown after preview for the
+  // NEW application publish flow only. Dashboard existing-listing preview keeps its own
+  // update/golden-loop button (already paid, no re-charge).
+  const offersAddonSelected = Boolean(appState?.couponsAddOn);
+  const serviciosPipeline = useProfessionalPreview ? "professional" : "trades";
+  const showFinalCheckout =
+    !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
+
+  const checkoutSubtotalCents = useMemo(() => {
+    const baseCents = getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
+    const offersCents = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
+    return baseCents + (offersAddonSelected ? offersCents : 0);
+  }, [offersAddonSelected]);
+
+  const checkpointConfig = useMemo((): PublishCheckpointConfig => {
+    return {
+      category: SERVICIOS_BASE_CHECKOUT.category,
+      packageKey: SERVICIOS_BASE_CHECKOUT.packageKey,
+      lang,
+      mode: "checkout",
+      baseLineItem: {
+        labelEn: useProfessionalPreview ? "Professional services" : "Services / trades",
+        labelEs: useProfessionalPreview ? "Servicios profesionales" : "Servicios / oficios",
+        priceCents: getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900,
+      },
+      confirmations: SERVICIOS_CHECKPOINT_CONFIRMATIONS,
+      newsletterEligible: true,
+      promoEligible: true,
+      serviciosOffersAddonSelected: offersAddonSelected,
+      pipeline: serviciosPipeline,
+      returnPath: SERVICIOS_BASE_CHECKOUT.returnPath,
+    };
+  }, [lang, offersAddonSelected, serviciosPipeline, useProfessionalPreview]);
+
+  const handlePromoApply = useCallback(
+    async (code: string) => {
+      const result = await validateRevenuePromoForCheckout({
+        code,
+        category: SERVICIOS_BASE_CHECKOUT.category,
+        packageKey: SERVICIOS_BASE_CHECKOUT.packageKey,
+        subtotalCents: checkoutSubtotalCents,
+        locale: lang,
+      });
+      if (!result.ok) {
+        return { ok: false as const, message: result.userMessage };
+      }
+      return {
+        ok: true as const,
+        discountCents: result.discountCents,
+        message:
+          lang === "es"
+            ? `${result.discountLabel} aplicado. Total: $${(result.totalCents / 100).toFixed(2)}/mes`
+            : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
+      };
+    },
+    [lang, checkoutSubtotalCents],
+  );
+
+  const onCheckout = useCallback(
+    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+      if (!appState) return;
+      setCheckoutBusy(true);
+      setCheckoutErr(null);
+      try {
+        let accessToken: string | null = null;
+        let customerEmail: string | null = null;
+        try {
+          const sb = createSupabaseBrowserClient();
+          const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+          accessToken = sess.session?.access_token ?? null;
+          customerEmail = sess.session?.user?.email ?? null;
+        } catch {
+          accessToken = null;
+        }
+
+        // Best-effort newsletter capture — never blocks checkout.
+        void captureCheckoutNewsletterSubscriber({
+          email: customerEmail,
+          lang,
+          preferredLanguage: lang,
+          source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
+          interests: ["package:servicios_base_monthly", "launch_25"],
+          checked: ctx.newsletterOptIn,
+        });
+
+        const pending = await saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken });
+        if (!pending.ok) {
+          setCheckoutErr(pending.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        const checkout = await startRevenueCategoryCheckout({
+          ...SERVICIOS_BASE_CHECKOUT,
+          listingId: pending.listingId,
+          leonixAdId: pending.leonixAdId,
+          locale: lang,
+          customerEmail,
+          promoCode: ctx.promoCode,
+          ...(offersAddonSelected
+            ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
+            : {}),
+        });
+
+        if (!checkout.ok) {
+          setCheckoutErr(checkout.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+      } catch {
+        setCheckoutErr(
+          lang === "es"
+            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+            : "We could not start secure payment. Please try again or contact Leonix.",
+        );
+        setCheckoutBusy(false);
+      }
+    },
+    [appState, lang, offersAddonSelected],
+  );
+
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
   const cardPreviewTitle = lang === "en" ? "Result card preview" : "Vista previa de la tarjeta";
   const fullPreviewTitle = lang === "en" ? "Full profile preview" : "Vista previa completa";
@@ -486,21 +629,30 @@ export function ClasificadosServiciosPreviewClient() {
     <div className="min-h-screen bg-[#F9F8F6]">
       <div className={PREVIEW_BAR}>
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
-          <button
-            type="button"
-            disabled={!canPublishFromPreview || publishBusy}
-            title={
-              !canPublishFromPreview
-                ? lang === "en"
-                  ? "Complete publish checklist and the three confirmations on the last step, then try again."
-                  : "Completa el checklist de publicación y las tres confirmaciones del último paso."
-                : undefined
-            }
-            onClick={() => void handlePublishFromPreview()}
-            className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
-          </button>
+          {showFinalCheckout ? (
+            <a
+              href="#servicios-publish-checkout-checkpoint"
+              className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+            >
+              {lang === "en" ? "Continue to payment" : "Continuar al pago"}
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled={!canPublishFromPreview || publishBusy}
+              title={
+                !canPublishFromPreview
+                  ? lang === "en"
+                    ? "Complete publish checklist and the three confirmations on the last step, then try again."
+                    : "Completa el checklist de publicación y las tres confirmaciones del último paso."
+                  : undefined
+              }
+              onClick={() => void handlePublishFromPreview()}
+              className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
+            </button>
+          )}
           <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
             {backLabel}
           </Link>
@@ -539,6 +691,57 @@ export function ClasificadosServiciosPreviewClient() {
             )}
           </div>
         </ClasificadosPreviewAdCanvas>
+
+        {showFinalCheckout ? (
+          <div className="mx-auto mt-8 max-w-3xl">
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-[#1E1810]">
+                {lang === "en" ? "3. Final checkout" : "3. Pago final"}
+              </h2>
+              <p className="mt-1 text-sm text-[#5C5346]">
+                {lang === "en"
+                  ? "The preview above does not require confirmations. Complete the summary and checkboxes below only when you are ready for secure payment."
+                  : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
+              </p>
+            </div>
+            <PublishCheckoutCheckpoint
+              id="servicios-publish-checkout-checkpoint"
+              config={checkpointConfig}
+              lang={lang}
+              busy={checkoutBusy}
+              errorMessage={checkoutErr}
+              draftReady={publishReadiness.ok}
+              draftReadyMessage={
+                publishReadiness.ok
+                  ? null
+                  : lang === "en"
+                    ? "Complete the required fields in the form before starting secure checkout."
+                    : "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
+              }
+              onPromoApply={handlePromoApply}
+              onCheckout={(ctx) => void onCheckout(ctx)}
+              editHref={editHref}
+              rulesModal={{
+                titleEn: "Leonix service marketplace rules",
+                titleEs: "Reglas del marketplace de servicios de Leonix",
+                bulletsEn: [
+                  "Your service, service area, pricing, and contact details must be accurate and current.",
+                  "You must be authorized to offer these services and to publish all photos, logos, promotions, and licenses.",
+                  "Offers/coupons are customer-facing ad content — not a substitute for a promo/discount code.",
+                  "Payment is required before your listing and any selected offers/coupons module become active.",
+                  "You are responsible for the published information and for following Leonix marketplace rules.",
+                ],
+                bulletsEs: [
+                  "Tu servicio, área de servicio, precios y datos de contacto deben ser correctos y estar actualizados.",
+                  "Debes estar autorizado para ofrecer estos servicios y publicar todas las fotos, logos, promociones y licencias.",
+                  "Las ofertas/cupones son contenido publicitario para el cliente — no sustituyen un código de descuento.",
+                  "El pago es requerido antes de que tu anuncio y el módulo de ofertas/cupones seleccionado queden activos.",
+                  "Eres responsable por la información publicada y por seguir las reglas del marketplace de Leonix.",
+                ],
+              }}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

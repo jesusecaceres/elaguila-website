@@ -12,6 +12,10 @@ export type ServiciosPublishApiResponse = {
   ok?: boolean;
   /** Client-only: set when oversized optional videos were omitted before publish (not returned by API). */
   skippedOversizedVideos?: boolean;
+  /** Set on a pending-payment save (Revenue OS checkout handoff). */
+  pendingPayment?: boolean;
+  listingId?: string;
+  leonixAdId?: string | null;
   slug?: string;
   /** Directory row status after publish (e.g. `pending_review` when moderation mode is on). */
   listingStatus?: string;
@@ -62,6 +66,8 @@ export async function postServiciosPublishApi(args: {
   state: ClasificadosServiciosApplicationState;
   lang: ServiciosLang;
   accessToken?: string | null;
+  /** "pending_payment" saves hidden before Revenue OS checkout. */
+  activationMode?: "pending_payment";
 }): Promise<{ res: Response; data: ServiciosPublishApiResponse }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (args.accessToken) {
@@ -98,7 +104,7 @@ export async function postServiciosPublishApi(args: {
     return { res, data: { ok: false, error, message } };
   }
 
-  const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug, videoPublishDiagnostics);
+  const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug, videoPublishDiagnostics, args.activationMode);
   const raw = JSON.stringify(body);
   const byteSize = new Blob([raw]).size;
   devLogTransport(body as unknown as Record<string, unknown>, byteSize);

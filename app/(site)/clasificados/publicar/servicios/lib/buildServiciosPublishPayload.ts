@@ -167,6 +167,8 @@ export type ServiciosPublishTransportBody = {
   lang: "es" | "en";
   existingPublicSlug?: string;
   videoPublishDiagnostics?: { videoId: string; reason: string }[];
+  /** "pending_payment" saves hidden before Revenue OS checkout (Stripe webhook activates). */
+  activationMode?: "pending_payment";
 };
 
 export function buildServiciosPublishTransportBody(
@@ -174,11 +176,13 @@ export function buildServiciosPublishTransportBody(
   lang: "es" | "en",
   existingPublicSlug?: string,
   videoPublishDiagnostics?: { videoId: string; reason: string }[],
+  activationMode?: "pending_payment",
 ): ServiciosPublishTransportBody {
   const payload: ServiciosPublishTransportBody = {
     state: buildServiciosPublishPayload(state),
     lang,
   };
+  if (activationMode === "pending_payment") payload.activationMode = "pending_payment";
   if (existingPublicSlug?.trim()) payload.existingPublicSlug = existingPublicSlug.trim();
   if (videoPublishDiagnostics?.length) {
     payload.videoPublishDiagnostics = videoPublishDiagnostics

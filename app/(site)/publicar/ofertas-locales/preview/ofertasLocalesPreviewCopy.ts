@@ -315,4 +315,21 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   comingSoonListsRoutesEn: "Coming soon: lists, saved coupons, and smart routes.",
   mobileOptimizedEs: "Vista móvil optimizada",
   mobileOptimizedEn: "Mobile optimized view",
+  // V2.3 — flyer/coupon viewer titles + honest helper (no invented regions)
+  flyerViewerTitleEs: "Visor del volante",
+  flyerViewerTitleEn: "Flyer viewer",
+  couponViewerTitleEs: "Visor del cupón",
+  couponViewerTitleEn: "Coupon viewer",
+  flyerViewerHelperEs: "Desliza para ver el volante completo.",
+  flyerViewerHelperEn: "Scroll to view the full flyer.",
+  couponViewerHelperEs: "Desliza para ver el cupón completo.",
+  couponViewerHelperEn: "Scroll to view the full coupon.",
+  // V2.3 — compact membership / digital coupon CTA labels
+  membershipSignUpShortEs: "Registrarse",
+  membershipSignUpShortEn: "Sign up",
+  digitalCouponActivateShortEs: "Activar",
+  digitalCouponActivateShortEn: "Activate",
+  // V2.3 — premium header quick actions
+  quickActionsTitleEs: "Acciones",
+  quickActionsTitleEn: "Actions",
 } as const;

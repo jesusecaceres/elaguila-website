@@ -558,3 +558,5 @@ Do not implement this in the magazine architecture gate.
 `READY FOR AUGUST-2026-ISSUE-MANIFEST-FOUNDATION1: YES`
 
 Issue manifest/source intake foundation created: [`august-2026-issue-manifest.json`](august-2026-issue-manifest.json) · Result doc: [`AUGUST-2026-ISSUE-MANIFEST-AND-FULL-SOURCE-INTAKE-FOUNDATION.md`](AUGUST-2026-ISSUE-MANIFEST-AND-FULL-SOURCE-INTAKE-FOUNDATION.md) · Next gate: `AUGUST-2026-PORTUGUESE-PROOF-PLAN1`
+
+Portuguese proof plan created with PT-1 recommendation and max 3 provider calls: [`AUGUST-2026-PORTUGUESE-PROOF-PLAN.md`](AUGUST-2026-PORTUGUESE-PROOF-PLAN.md)

@@ -519,7 +519,7 @@ export default function DashboardPage() {
             <LeonixLaunchCouponCard
               lang={lang}
               variant="dashboard"
-              href={`/newsletter?lang=${lang}&source=dashboard&sourceCta=launch_25`}
+              href={`/newsletter?lang=${lang}&source=dashboard_launch_25&sourceCta=launch_25`}
             />
           </div>
 

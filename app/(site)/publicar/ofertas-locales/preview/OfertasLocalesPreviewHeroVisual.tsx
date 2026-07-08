@@ -108,8 +108,8 @@ export function OfertasLocalesPreviewHeroVisual({
         compactMobile={compactMobile}
       />
     ) : heroAsset ? (
-      <div className="flex flex-col items-center justify-center bg-[#FDF8F0]/80 px-6 py-16 text-center">
-        <div className="rounded-lg border border-[#D4C4A8] bg-white px-6 py-8 shadow-sm">
+      <div className="flex flex-col items-center justify-center bg-[#FDF8F0]/80 px-6 py-10 text-center">
+        <div className="rounded-lg border border-[#D4C4A8] bg-white px-6 py-7 shadow-sm">
           <p className="text-sm font-semibold text-[#1E1814]">{heroAsset.fileName}</p>
           <p className="mt-2 text-xs text-[#1E1814]/55">
             {lang === "en" ? c.fileOnRecordEn : c.fileOnRecordEs}
@@ -117,7 +117,7 @@ export function OfertasLocalesPreviewHeroVisual({
         </div>
       </div>
     ) : (
-      <div className="flex flex-col items-center justify-center border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/60 px-6 py-20 text-center">
+      <div className="flex flex-col items-center justify-center border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/60 px-6 py-12 text-center">
         <p className="max-w-xs text-sm leading-relaxed text-[#1E1814]/55">
           {isCoupon
             ? lang === "en"

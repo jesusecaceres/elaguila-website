@@ -50,9 +50,9 @@ type NewsletterPromoOutcome =
 
 function resolveCaptureChannel(source: string): string {
   const s = source.trim().toLowerCase();
-  if (s === "account_signup") return "account_signup";
-  if (s === "dashboard") return "dashboard";
-  if (s === "profile_onboarding") return "profile_onboarding";
+  if (s === "account_signup" || s === "signup_launch_25") return "account_signup";
+  if (s === "dashboard" || s === "dashboard_launch_25") return "dashboard";
+  if (s === "profile_onboarding" || s === "profile_onboarding_launch_25") return "profile_onboarding";
   if (s.startsWith("coming-soon")) return "coming_soon_signup";
   return "newsletter_signup";
 }

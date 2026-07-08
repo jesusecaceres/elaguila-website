@@ -462,7 +462,7 @@ export default function ProfilePage() {
               <LeonixLaunchCouponCard
                 lang={lang}
                 variant="compact"
-                href={`/newsletter?lang=${lang}&source=profile_onboarding&sourceCta=launch_25`}
+                href={`/newsletter?lang=${lang}&source=profile_onboarding_launch_25&sourceCta=launch_25`}
               />
             </div>
           ) : null}

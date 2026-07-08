@@ -635,7 +635,7 @@ export default function LoginPage() {
               <LeonixLaunchCouponCard
                 lang={lang}
                 variant="compact"
-                href={`/newsletter?lang=${lang}&source=account_signup&sourceCta=launch_25`}
+                href={`/newsletter?lang=${lang}&source=signup_launch_25&sourceCta=launch_25`}
               />
             </div>
           ) : null}

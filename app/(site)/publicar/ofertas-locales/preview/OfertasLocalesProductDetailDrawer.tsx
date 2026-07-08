@@ -175,7 +175,7 @@ export function OfertasLocalesProductDetailDrawer({
                   variant="drawer"
                   onUnavailable={() => setInstantCropFailed(true)}
                 />
-                <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-[#1E1814]/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+                <span className="pointer-events-none absolute left-2 top-2 rounded-full border border-[#B8860B]/45 bg-[#FFFCF7]/95 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C] shadow-sm backdrop-blur-sm">
                   {lang === "en" ? c.previewFromFlyerEn : c.previewFromFlyerEs}
                 </span>
               </div>
@@ -190,7 +190,7 @@ export function OfertasLocalesProductDetailDrawer({
                   lang={lang}
                   onUnavailable={() => setPdfCropFailed(true)}
                 />
-                <span className="pointer-events-none absolute left-2 top-2 rounded-md bg-[#1E1814]/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+                <span className="pointer-events-none absolute left-2 top-2 rounded-full border border-[#B8860B]/45 bg-[#FFFCF7]/95 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#7A1E2C] shadow-sm backdrop-blur-sm">
                   {lang === "en" ? c.previewFromFlyerEn : c.previewFromFlyerEs}
                 </span>
               </div>

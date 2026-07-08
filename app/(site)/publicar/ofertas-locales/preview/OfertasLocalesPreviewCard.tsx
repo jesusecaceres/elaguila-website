@@ -24,7 +24,6 @@ import {
   buildOfertaLocalMailtoHref,
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
-  digitalCouponCtaLabel,
   formatOfertaLocalDateRange,
   getOfertaLocalMarketDisplayLabel,
   getOfertaLocalBusinessLogoUrl,
@@ -33,7 +32,6 @@ import {
   labelForBusinessCategory,
   labelForOfferType,
   labelForPrimaryAdFormatLane,
-  membershipCtaLabel,
   buildOfertaLocalPreviewLocationLine,
   resolveOfertaLocalContactEmail,
   resolveOfertaLocalDirectionsHref,
@@ -67,6 +65,16 @@ const BTN_WHATSAPP =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#20BD5A]";
 const HUB_SECTION =
   "border-b border-[#E8D9C4]/80 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#1E1814]";
+// V2.3 — premium badge/pill discipline (gold border, cream surface, burgundy ink)
+const PILL_PRIMARY =
+  "inline-flex items-center rounded-full border border-[#B8860B]/45 bg-[#FDF8F0] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#7A1E2C]";
+const PILL_MUTED =
+  "inline-flex items-center rounded-full border border-[#D4C4A8]/80 bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#1E1814]/70";
+const PILL_TRUST =
+  "inline-flex items-center rounded-full border border-[#2D5A3D]/30 bg-[#2D5A3D]/[0.06] px-2.5 py-0.5 text-[11px] font-semibold text-[#2D5A3D]";
+// V2.3 — compact header quick-action row (real actions only)
+const QUICK_ACTION =
+  "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition sm:text-sm";
 
 const SOCIAL_BRAND: Record<OfertaLocalSocialLinkKey, { background: string; color: string; border?: string }> = {
   facebook: { background: "#1877F2", color: "#FFFFFF" },
@@ -224,10 +232,10 @@ function HubCollapsibleGroup({
         </summary>
         <div className="mt-2 sm:mt-3">{children}</div>
       </details>
-      {/* Desktop: always open, Gate 1 premium grid cell */}
+      {/* Desktop: always open, compact premium grid cell */}
       <div className="hidden lg:block">
         <h3 className={HUB_SECTION}>{title}</h3>
-        <div className="mt-3">{children}</div>
+        <div className="mt-2.5">{children}</div>
       </div>
     </div>
   );
@@ -365,15 +373,17 @@ function PreviewBusinessHub({
   const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasBusiness);
 
   return (
-    <section className={cx(CARD, "mt-6 p-3 sm:p-5 lg:mt-8 lg:p-6")}>
-      <h2 className="font-serif text-lg font-semibold text-[#1E1814] sm:text-xl">
-        {lang === "en" ? c.businessHubEn : c.businessHubEs}
-      </h2>
-      <p className="mt-0.5 text-[11px] text-[#1E1814]/50 sm:mt-1 sm:text-xs sm:text-[#1E1814]/55">
-        {lang === "en" ? c.businessHubSubtitleEn : c.businessHubSubtitleEs}
-      </p>
+    <section className={cx(CARD, "mt-5 p-3 sm:p-4 lg:mt-6 lg:p-5")}>
+      <div className="border-b border-[#E8D9C4]/70 pb-2.5">
+        <h2 className="font-serif text-lg font-semibold text-[#1E1814] sm:text-xl">
+          {lang === "en" ? c.businessHubEn : c.businessHubEs}
+        </h2>
+        <p className="mt-0.5 text-[11px] text-[#1E1814]/50 sm:text-xs sm:text-[#1E1814]/55">
+          {lang === "en" ? c.businessHubSubtitleEn : c.businessHubSubtitleEs}
+        </p>
+      </div>
 
-      <div className="mt-3 space-y-2 sm:mt-6 sm:space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+      <div className="mt-3 space-y-2 sm:space-y-3 lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-4 lg:space-y-0">
         {hasContact ? (
           <HubCollapsibleGroup
             id="contacto"
@@ -744,21 +754,23 @@ export function OfertasLocalesPreviewCard({
 
         {/* 3. Title / info section — compact business strip that supports the flyer (not a profile card) */}
         <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "p-3 lg:p-4")}>
-          {/* Identity row — logo/monogram anchor + business meta (premium, compact) */}
-          <div className="flex items-start gap-3">
+          {/* Identity row — premium logo/monogram anchor + business meta */}
+          <div className="flex items-start gap-3 sm:gap-4">
             <div className="shrink-0">
               {businessLogoUrl && !logoFailed ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={businessLogoUrl}
-                  alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
-                  onError={() => setLogoFailed(true)}
-                  className="h-12 w-12 rounded-xl border border-[#D4C4A8]/70 bg-white object-contain p-1 shadow-sm sm:h-14 sm:w-14"
-                />
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-[#B8860B]/35 bg-white p-1.5 shadow-sm ring-1 ring-[#D4C4A8]/30 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={businessLogoUrl}
+                    alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
+                    onError={() => setLogoFailed(true)}
+                    className="h-full w-full rounded-lg object-contain"
+                  />
+                </div>
               ) : (
                 <span
                   aria-label={lang === "en" ? c.businessInitialEn : c.businessInitialEs}
-                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#7A1E2C]/25 bg-gradient-to-br from-[#7A1E2C]/10 to-[#FDF8F0] font-serif text-xl font-bold text-[#7A1E2C] shadow-sm sm:h-14 sm:w-14 sm:text-2xl"
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#B8860B]/35 bg-gradient-to-br from-[#7A1E2C]/12 via-[#FDF8F0] to-[#F5EBD8]/60 font-serif text-2xl font-bold text-[#7A1E2C] shadow-sm ring-1 ring-[#D4C4A8]/30 sm:h-20 sm:w-20 sm:text-3xl lg:h-24 lg:w-24 lg:text-4xl"
                 >
                   {businessInitial}
                 </span>
@@ -767,42 +779,29 @@ export function OfertasLocalesPreviewCard({
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                {primaryFormatLabel ? (
-                  <span className="rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 text-[11px] font-semibold text-[#7A1E2C]">
-                    {primaryFormatLabel}
-                  </span>
-                ) : null}
+                {primaryFormatLabel ? <span className={PILL_PRIMARY}>{primaryFormatLabel}</span> : null}
                 {offerLabel && offerLabel !== primaryFormatLabel ? (
-                  <span className="rounded-md border border-[#D4C4A8]/80 bg-white px-2 py-0.5 text-[11px] text-[#1E1814]/75">
-                    {offerLabel}
-                  </span>
+                  <span className={PILL_MUTED}>{offerLabel}</span>
                 ) : null}
                 {draft.wantsAiSearchableSpecials ? (
-                  <span className="rounded-md border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900">
-                    {lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}
-                  </span>
+                  <span className={PILL_TRUST}>{lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}</span>
                 ) : null}
               </div>
 
-              {/* Business name — strong but not massive (metadata, not the hero) */}
-              <h2 className="mt-1.5 break-words font-serif text-xl font-bold leading-tight text-[#1E1814] sm:text-2xl lg:text-3xl">
+              {/* Business name — premium serif anchor */}
+              <h2 className="mt-2 break-words font-serif text-2xl font-bold leading-tight text-[#1E1814] sm:text-3xl lg:text-[2.15rem]">
                 {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
               </h2>
               {draft.businessName.trim() && draft.title.trim() ? (
-                <p className="mt-0.5 font-serif text-sm font-semibold text-[#7A1E2C] sm:text-base">
+                <p className="mt-1 font-serif text-base font-semibold text-[#7A1E2C] sm:text-lg">
                   {draft.title}
                 </p>
               ) : null}
 
               {(categoryLabel || marketLabel) ? (
-                <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-[#1E1814]/60">
-                  {categoryLabel ? <span>{categoryLabel}</span> : null}
-                  {marketLabel ? (
-                    <span>
-                      {categoryLabel ? "· " : ""}
-                      {marketLabel}
-                    </span>
-                  ) : null}
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {categoryLabel ? <span className={PILL_MUTED}>{categoryLabel}</span> : null}
+                  {marketLabel ? <span className={PILL_MUTED}>{marketLabel}</span> : null}
                 </div>
               ) : null}
             </div>
@@ -827,6 +826,67 @@ export function OfertasLocalesPreviewCard({
               ) : null}
             </div>
           ) : null}
+
+          {/* Quick actions — compact real-only row; Business Hub keeps the full contact center */}
+          <div
+            className="mt-3 flex flex-wrap gap-2"
+            role="group"
+            aria-label={lang === "en" ? c.quickActionsTitleEn : c.quickActionsTitleEs}
+          >
+            {telHref ? (
+              <a href={telHref} className={cx(QUICK_ACTION, "bg-[#7A1E2C] text-white hover:bg-[#6a1926]")}>
+                <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+                {lang === "en" ? c.call : c.callEs}
+              </a>
+            ) : null}
+            {waHref ? (
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cx(QUICK_ACTION, "bg-[#25D366] text-white hover:bg-[#20BD5A]")}
+              >
+                <FaWhatsapp className="h-4 w-4 shrink-0" aria-hidden />
+                {c.whatsapp}
+              </a>
+            ) : null}
+            {directionsHref ? (
+              <a
+                href={directionsHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cx(QUICK_ACTION, "border border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814] hover:border-[#7A1E2C]/40")}
+              >
+                <FiMapPin className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                {lang === "en" ? c.directions : c.directionsEs}
+              </a>
+            ) : null}
+            {webHref ? (
+              <a
+                href={webHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cx(QUICK_ACTION, "border border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814] hover:border-[#7A1E2C]/40")}
+              >
+                <FiGlobe className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
+                {lang === "en" ? c.website : c.websiteEs}
+              </a>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void handleShare()}
+              className={cx(QUICK_ACTION, "border border-[#D4C4A8] bg-[#FFFCF7] text-[#1E1814] hover:border-[#7A1E2C]/40")}
+            >
+              <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
+              {shareCopied
+                ? lang === "en"
+                  ? c.shareCopiedEn
+                  : c.shareCopiedEs
+                : lang === "en"
+                  ? c.shareEn
+                  : c.shareEs}
+            </button>
+          </div>
 
           {expired ? (
             <p className="mt-2 rounded-md border border-amber-300/80 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
@@ -877,7 +937,7 @@ export function OfertasLocalesPreviewCard({
                     rel="noopener noreferrer"
                     className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#6a1926]"
                   >
-                    {membershipCtaLabel(lang)}
+                    {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
                   </a>
                 ) : null}
                 {showDigitalCoupon && digitalCouponHref ? (
@@ -885,39 +945,24 @@ export function OfertasLocalesPreviewCard({
                     href={digitalCouponHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#D4C4A8] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#7A1E2C] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
+                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#B8860B]/45 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#7A1E2C] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
                   >
-                    {digitalCouponCtaLabel(lang)}
+                    {lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
                   </a>
                 ) : null}
               </div>
             </div>
           ) : null}
 
-          {/* Published cue + small secondary share (no tall footer row) */}
-          <div className="mt-2.5 flex items-center justify-between gap-3">
-            <p className="text-[11px] font-medium text-[#2D5A3D]/80">
-              {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
-            </p>
-            <button
-              type="button"
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D4C4A8]/80 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#7A1E2C] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
-              onClick={() => void handleShare()}
-            >
-              <FiShare2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              {shareCopied
-                ? lang === "en"
-                  ? c.shareCopiedEn
-                  : c.shareCopiedEs
-                : lang === "en"
-                  ? c.shareEn
-                  : c.shareEs}
-            </button>
-          </div>
+          {/* Published trust cue — subtle green/charcoal, not a tall footer row */}
+          <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#2D5A3D]/85">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#2D5A3D]/70" aria-hidden />
+            {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}
+          </p>
         </section>
 
-        {/* 4. Flyer hero — the star of the page (starts right after the compact strip) */}
-        <section id="volante" className={cx(SECTION_ANCHOR, "mt-3 sm:mt-4")}>
+        {/* 4. Flyer hero — the star of the page (connected tightly to the header strip) */}
+        <section id="volante" className={cx(SECTION_ANCHOR, "mt-2 sm:mt-3")}>
           <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
             <OfertasLocalesPreviewHeroVisual
               draft={draft}
