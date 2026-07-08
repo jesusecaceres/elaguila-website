@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,7 +23,11 @@ import {
   LeonixCategoryPartnerSection,
   LeonixCategoryShortcutSection,
   LeonixCategoryActiveFilters,
+  LeonixCategoryResultsShell,
+  LeonixCategoryResultsToolbar,
+  LeonixCategoryCompactEmptyState,
   type Lang as V2Lang,
+  type ViewMode,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
 import {
   OfertaLocalPostalInput,
@@ -90,6 +93,7 @@ export function OfertasLocalesPublicSearchClient({
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<OfertaLocalPublicSearchItem | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const shoppingList = useOfertasLocalesShoppingList();
 
   const queryString = useMemo(() => {
@@ -206,6 +210,16 @@ export function OfertasLocalesPublicSearchClient({
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
   const listHasItems = shoppingList.counts.itemCount > 0;
   const resultCount = offers.length + items.length;
+  const activeFilterChips = [
+    ...(q ? [{ id: "q", label: `“${q}”`, onClear: () => pushSearch({ q: "" }) }] : []),
+    ...(city ? [{ id: "city", label: city, onClear: () => pushSearch({ city: "" }) }] : []),
+    ...(state ? [{ id: "state", label: state, onClear: () => pushSearch({ state: "" }) }] : []),
+    ...(zip ? [{ id: "zip", label: zip, onClear: () => pushSearch({ zip: "" }) }] : []),
+    ...(country ? [{ id: "country", label: country, onClear: () => pushSearch({ country: "" }) }] : []),
+    ...(category ? [{ id: "category", label: category, onClear: () => pushSearch({ category: "" }) }] : []),
+    ...(marketType ? [{ id: "marketType", label: marketType, onClear: () => pushSearch({ marketType: "" }) }] : []),
+    ...(offerType ? [{ id: "offerType", label: offerType, onClear: () => pushSearch({ offerType: "" }) }] : []),
+  ];
 
   const clearFilters = () => {
     setFiltersOpen(false);
@@ -226,7 +240,7 @@ export function OfertasLocalesPublicSearchClient({
     pushSearch();
   };
 
-  const landingSearchForm = (
+  const searchForm = (
     <LeonixCategorySearchCanvas
       lang={lang as V2Lang}
       surface={isResults ? "results" : "landing"}
@@ -251,170 +265,165 @@ export function OfertasLocalesPublicSearchClient({
     />
   );
 
+  const hero = (
+    <LeonixCategoryHeroGateway
+      lang={lang as V2Lang}
+      surface={isResults ? "results" : "landing"}
+      title={c.heroTitle}
+      tagline={c.heroTagline}
+      intro={c.heroIntro}
+      introSecondary={c.heroHelper}
+      searchSlot={searchForm}
+      eyebrow={c.heroEyebrow}
+    />
+  );
+
+  const resultsContent = (
+    <div id="ofertas-browse" className="scroll-mt-24 space-y-5">
+      {error ? (
+        <p className="text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {loading ? <p className="text-sm text-[#3D3428]/65">{c.searching}</p> : null}
+
+      {!loading && offers.length > 0 ? (
+        <section>
+          <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+            {offers.map((offer) => (
+              <li key={offer.id}>
+                <OfertasLocalesPublicOfferCard lang={lang} offer={offer} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {!loading && listHasItems ? (
+        <div className="flex justify-end">
+          <LeonixCategoryCta variant="secondary" onClick={() => setListOpen(true)}>
+            {c.listButton}
+            <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
+              {shoppingList.counts.itemCount}
+            </span>
+          </LeonixCategoryCta>
+        </div>
+      ) : null}
+
+      {!loading && items.length > 0 ? (
+        <section>
+          <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+            {items.map((item) => (
+              <li key={item.id}>
+                <OfertasLocalesPublicItemCard
+                  lang={lang}
+                  item={item}
+                  isAdded={shoppingList.isAdded(item.id)}
+                  onSelect={setSelectedItem}
+                  onAdd={shoppingList.addFromPublicItem}
+                  onRemove={shoppingList.removeItem}
+                  onOpenList={() => setListOpen(true)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+
   return (
     <>
       <LeonixCategoryPageShell surface={isResults ? "results" : "landing"}>
         {isResults ? (
-          <Link
-            href={`${OFERTAS_LOCALES_LANDING_PATH}?lang=${lang}`}
-            className="mb-2 inline-flex text-[11px] font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
+          <LeonixCategoryResultsShell
+            surface="results"
+            hero={hero}
+            activeFilters={
+              <LeonixCategoryActiveFilters
+                label={lang === "es" ? "Filtros activos" : "Active filters"}
+                chips={activeFilterChips}
+                clearAllLabel={c.clearFiltersLink}
+                onClearAll={clearFilters}
+              />
+            }
+            toolbar={
+              <LeonixCategoryResultsToolbar
+                lang={lang as V2Lang}
+                countText={c.resultsCount(resultCount)}
+                resultCount={resultCount}
+                showingFrom={resultCount > 0 ? 1 : 0}
+                showingTo={resultCount}
+                sortLabel={lang === "es" ? "Orden" : "Sort"}
+                sortValue={sort}
+                onSortChange={(value) => {
+                  setSort(value);
+                  pushSearch({ sort: value });
+                }}
+                sortOptions={[
+                  { value: "newest", label: lang === "es" ? "Más recientes" : "Newest" },
+                  { value: "expiring_soon", label: lang === "es" ? "Terminan pronto" : "Expiring soon" },
+                  { value: "price_low", label: lang === "es" ? "Precio bajo" : "Price low" },
+                ]}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                filtersButtonLabel={c.filtersButton}
+                onOpenFilters={() => setFiltersOpen(true)}
+                perPageValue={resultCount}
+                clearAllLabel={hasFilters ? c.clearFiltersLink : undefined}
+                onClearAll={hasFilters ? clearFilters : undefined}
+              />
+            }
+            emptyState={
+              <LeonixCategoryCompactEmptyState
+                title={showPipelineEmpty ? c.pipelineEmptyTitle : c.emptyTitle}
+                body={showPipelineEmpty ? c.pipelineEmptyBody : c.emptyHint}
+                ctaLabel={hasFilters ? c.clearFiltersLink : c.browseAllDeals}
+                ctaHref={hasFilters ? undefined : browseAllHref}
+              />
+            }
+            hasResults={loading || resultCount > 0 || Boolean(error)}
           >
-            {lang === "es" ? "← Ofertas Locales" : "← Local Deals"}
-          </Link>
-        ) : null}
+            {resultsContent}
+          </LeonixCategoryResultsShell>
+        ) : (
+          <>
+            {hero}
+            <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
+              <LeonixCategoryPartnerSection
+                enabled
+                lang={lang as V2Lang}
+                surface="landing"
+                eyebrow={c.sponsorEyebrow}
+                title={c.sponsorTitle}
+                body={c.sponsorBody}
+                supportingLine={c.sponsorSupport}
+                chips={[...c.sponsorChips]}
+                primaryCta={{ label: c.sponsorPrimaryCta, href: publishHref }}
+                secondaryCta={{ label: c.sponsorSecondaryCta, href: browseAllHref }}
+              />
 
-        <LeonixCategoryHeroGateway
-          lang={lang as V2Lang}
-          surface={isResults ? "results" : "landing"}
-          title={c.heroTitle}
-          tagline={c.heroTagline}
-          intro={c.heroIntro}
-          introSecondary={c.heroHelper}
-          searchSlot={landingSearchForm}
-          eyebrow={c.heroEyebrow}
-        />
-
-        <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
-          {/* Sponsor lane - landing only */}
-          <LeonixCategoryPartnerSection
-          enabled={!isResults}
-          lang={lang as V2Lang}
-          surface={isResults ? "results" : "landing"}
-          eyebrow={c.sponsorEyebrow}
-          title={c.sponsorTitle}
-          body={c.sponsorBody}
-          supportingLine={c.sponsorSupport}
-          chips={[...c.sponsorChips]}
-          primaryCta={{ label: c.sponsorPrimaryCta, href: publishHref }}
-          secondaryCta={{ label: c.sponsorSecondaryCta, href: browseAllHref }}
-        />
-
-        {/* Discovery/shortcut section - landing only */}
-        <LeonixCategoryShortcutSection
-          lang={lang as V2Lang}
-          surface={isResults ? "results" : "landing"}
-          title={c.discoveryTitle}
-          subtitle={c.discoverySubtitle}
-          variant="default"
-          chips={[
-            { id: "weekly_flyer", label: lang === "es" ? "Volante semanal" : "Weekly flyer", href: `${browseAllHref}&offerType=weekly_flyer` },
-            { id: "coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
-            { id: "promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
-            { id: "seasonal_special", label: lang === "es" ? "Especial de temporada" : "Seasonal special", href: `${browseAllHref}&offerType=seasonal_special` },
-            { id: "bundle", label: lang === "es" ? "Paquete / combo" : "Bundle", href: `${browseAllHref}&offerType=bundle` },
-            { id: "featured_deal", label: lang === "es" ? "Oferta destacada" : "Featured deal", href: `${browseAllHref}&offerType=featured_deal` },
-          ]}
-        />
-
-
-        {/* Active filters */}
-        <LeonixCategoryActiveFilters
-          label={lang === "es" ? "Filtros activos" : "Active filters"}
-          chips={[
-            ...(q ? [{ id: "q", label: lang === "es" ? "Quitar palabra clave" : "Remove keyword", onClear: () => pushSearch({ q: "" }) }] : []),
-            ...(city ? [{ id: "city", label: city, onClear: () => pushSearch({ city: "" }) }] : []),
-            ...(state ? [{ id: "state", label: state, onClear: () => pushSearch({ state: "" }) }] : []),
-            ...(zip ? [{ id: "zip", label: zip, onClear: () => pushSearch({ zip: "" }) }] : []),
-            ...(country ? [{ id: "country", label: country, onClear: () => pushSearch({ country: "" }) }] : []),
-            ...(category ? [{ id: "category", label: category, onClear: () => pushSearch({ category: "" }) }] : []),
-            ...(marketType ? [{ id: "marketType", label: marketType, onClear: () => pushSearch({ marketType: "" }) }] : []),
-            ...(offerType ? [{ id: "offerType", label: offerType, onClear: () => pushSearch({ offerType: "" }) }] : []),
-          ]}
-          clearAllLabel={c.clearFiltersLink}
-          onClearAll={clearFilters}
-        />
-
-          {!loading && resultCount > 0 ? (
-            <p className="mt-2 text-xs font-semibold text-[#556B3E]">{c.resultsCount(resultCount)}</p>
-          ) : null}
-
-          {error ? (
-            <p className="mt-3 text-sm text-red-700" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          {loading ? <p className="mt-3 text-sm text-[#3D3428]/65">{c.searching}</p> : null}
-
-          {!loading && showPipelineEmpty ? (
-            <div id="ofertas-browse" className="mt-4 scroll-mt-24 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
-              <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
-              <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
-              <div className="mt-3">
-                <Link href={browseAllHref} className="inline-block text-xs font-semibold text-[#B8954A] underline">
-                  {c.browseAllDeals}
-                </Link>
-              </div>
-            </div>
-          ) : null}
-
-          {!loading && !showPipelineEmpty && offers.length === 0 && items.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
-              <p className="text-sm font-semibold text-[#3D3428]">{c.emptyTitle}</p>
-              <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
-              {hasFilters ? (
-                <div className="mt-3">
-                  <button type="button" className="inline-block text-xs font-semibold text-[#B8954A] underline" onClick={clearFilters}>
-                    {c.clearFiltersLink}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div id="ofertas-browse" className="scroll-mt-24">
-          {!loading && offers.length > 0 ? (
-            <section className="mt-4 sm:mt-5">
-              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
-                {offers.map((offer) => (
-                  <li key={offer.id}>
-                    <OfertasLocalesPublicOfferCard lang={lang} offer={offer} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {!loading && items.length > 0 ? (
-            <section className="mt-5 sm:mt-6">
-              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <OfertasLocalesPublicItemCard
-                      lang={lang}
-                      item={item}
-                      isAdded={shoppingList.isAdded(item.id)}
-                      onSelect={setSelectedItem}
-                      onAdd={shoppingList.addFromPublicItem}
-                      onRemove={shoppingList.removeItem}
-                      onOpenList={() => setListOpen(true)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          </div>
-
-          {/* Results CTAs - clear filters and shopping list on results */}
-          {isResults && hasFilters ? (
-            <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:flex-wrap">
-              <LeonixCategoryCta variant="secondary" onClick={clearFilters}>
-                {c.clearFiltersLink}
-              </LeonixCategoryCta>
-              {listHasItems ? (
-                <LeonixCategoryCta variant="secondary" onClick={() => setListOpen(true)}>
-                  {c.listButton}
-                  <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
-                    {shoppingList.counts.itemCount}
-                  </span>
-                </LeonixCategoryCta>
-              ) : null}
-            </div>
-          ) : null}
-        </main>
+              <LeonixCategoryShortcutSection
+                lang={lang as V2Lang}
+                surface="landing"
+                title={c.discoveryTitle}
+                subtitle={c.discoverySubtitle}
+                variant="default"
+                chips={[
+                  { id: "offerType:weekly_flyer", label: lang === "es" ? "Volante semanal" : "Weekly flyer", href: `${browseAllHref}&offerType=weekly_flyer` },
+                  { id: "offerType:coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
+                  { id: "offerType:promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
+                  { id: "marketType:retail", label: lang === "es" ? "Tienda local" : "Local retail", href: `${browseAllHref}&marketType=retail` },
+                  { id: "marketType:service", label: lang === "es" ? "Servicio local" : "Local service", href: `${browseAllHref}&marketType=service` },
+                  { id: "category:food", label: lang === "es" ? "Comida" : "Food", href: `${browseAllHref}&category=food` },
+                ]}
+              />
+            </main>
+          </>
+        )}
       </LeonixCategoryPageShell>
 
       <OfertasLocalesFiltersDrawer

@@ -1,10 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FaStar } from "react-icons/fa";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -16,24 +13,16 @@ import {
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import {
   type RestaurantesBlueprintCard,
-  RESTAURANTES_BLUEPRINT_CATEGORY_TILES,
-  RESTAURANTES_BLUEPRINT_QUICK_FILTERS,
 } from "./restaurantesBlueprintSampleData";
-import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
-  LeonixCategoryCta,
   LeonixCategoryPartnerSection,
   LeonixCategoryDiscoveryGrid,
   LeonixCategoryShortcutSection,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
-import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
-import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
-
-const ACCENT = "#D4A574";
 
 function RestaurantesLandingPageFallback() {
   return (
@@ -46,13 +35,7 @@ function RestaurantesLandingPageFallback() {
   );
 }
 
-function RestaurantesLandingPageInner({
-  featuredCards,
-  recentCards,
-  destacadosRows = [],
-  landingNote,
-  discoveryLookupRows,
-}: {
+function RestaurantesLandingPageInner(_props: {
   featuredCards: RestaurantesBlueprintCard[];
   recentCards: RestaurantesBlueprintCard[];
   destacadosRows?: RestaurantesPublicBlueprintRow[];
