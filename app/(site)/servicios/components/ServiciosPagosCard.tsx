@@ -5,20 +5,28 @@ import { isServiciosPaymentMethodId } from "../lib/serviciosPaymentMethodCatalog
 import { ServiciosPaymentMethodBadge } from "./ServiciosPaymentMethodBadge";
 import { SV } from "./serviciosDesignTokens";
 
-export function ServiciosPagosCard({ profile, lang }: { profile: ServiciosProfileResolved; lang: ServiciosLang }) {
+export function ServiciosPagosCard({
+  profile,
+  lang,
+  compact = false,
+}: {
+  profile: ServiciosProfileResolved;
+  lang: ServiciosLang;
+  compact?: boolean;
+}) {
   if (!profile.paymentMethodIds.length && !profile.customPaymentMethods.length) return null;
   const L = getServiciosProfileLabels(lang);
 
   return (
     <section
-      className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
+      className={`rounded-2xl border shadow-sm ${compact ? "p-3 sm:p-4" : "p-3 sm:p-6 md:p-8"}`}
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <div className="flex items-center gap-2">
         <FaMoneyBillWave className="h-5 w-5 shrink-0 text-[#3B66AD]" aria-hidden />
         <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.paymentsTitle}</h2>
       </div>
-      <div className="mt-4 flex flex-nowrap gap-2 overflow-x-auto pb-1 md:mt-5 md:flex-wrap md:overflow-visible">
+      <div className={`flex flex-nowrap gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible ${compact ? "mt-3" : "mt-4 md:mt-5"}`}>
         {profile.paymentMethodIds.map((id) =>
           isServiciosPaymentMethodId(id) ? (
             <div

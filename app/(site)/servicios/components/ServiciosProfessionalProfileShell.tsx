@@ -50,6 +50,7 @@ import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosPagosCard } from "./ServiciosPagosCard";
 import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
+import { ServiciosProfessionalVisualProofRow } from "./ServiciosProfessionalVisualProofRow";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import {
   serviciosSavedListingExtras,
@@ -203,6 +204,7 @@ export function ServiciosProfessionalProfileShell({
 
   const showServicesSection = hasServicesSectionResolved(profile);
   const showReviewsSection = hasReviewsSectionResolved(profile);
+  const showLowerDetails = hasPaymentMethodsResolved(profile) || hasAmenityOptionsResolved(profile);
 
   if (!hasHeroIdentityResolved(profile)) {
     return null;
@@ -289,11 +291,46 @@ export function ServiciosProfessionalProfileShell({
 
           <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
             {(displayProfile, translateControl) => {
-              const chips = collectProfessionalServiceChips(displayProfile, 6);
+              const chips = collectProfessionalServiceChips(displayProfile, 4);
               return (
           <div className={LX_PRO_INNER_PAD}>
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
+
+              {(chips.length > 0 || hasQuickFactsResolved(profile) || hasTrustSectionResolved(profile)) && (
+                <div className={`${LX_SECTION_CARD} p-4 sm:p-5`}>
+                  {chips.length > 0 ? (
+                    <div className="mb-3">
+                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6F6254]">
+                        {servicesTitle}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {chips.map((chip) => (
+                          <span key={chip} className={LX_CHIP}>
+                            {chip}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {hasQuickFactsResolved(profile) ? (
+                    <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
+                  ) : null}
+                  <ServiciosLanguageChipRow
+                    profile={profile.hero}
+                    lang={lang}
+                    chipClassName={`${LX_CHIP} shrink-0`}
+                    className="mt-3 flex flex-wrap gap-1.5"
+                  />
+                  {hasTrustSectionResolved(profile) ? (
+                    <div className="mt-4">
+                      <ServiciosTrustSection profile={profile} lang={lang} template={template} />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              <ServiciosProfessionalVisualProofRow profile={displayProfile} lang={lang} />
 
               {hasPaidCouponsSectionResolved(displayProfile) ||
               displayProfile.couponFlyer?.imageUrl?.trim() ||
@@ -332,45 +369,8 @@ export function ServiciosProfessionalProfileShell({
                 </section>
               ) : null}
 
-              {(chips.length > 0 || hasQuickFactsResolved(profile)) && (
-                <div className={`${LX_SECTION_CARD} p-4 sm:p-5`}>
-                  {chips.length > 0 ? (
-                    <div className="mb-3">
-                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6F6254]">
-                        {servicesTitle}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {chips.map((chip) => (
-                          <span key={chip} className={LX_CHIP}>
-                            {chip}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {hasQuickFactsResolved(profile) ? (
-                    <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
-                  ) : null}
-                  <ServiciosLanguageChipRow
-                    profile={profile.hero}
-                    lang={lang}
-                    chipClassName={`${LX_CHIP} shrink-0`}
-                    className="mt-3 flex flex-wrap gap-1.5"
-                  />
-                  {hasTrustSectionResolved(profile) ? (
-                    <div className="mt-4">
-                      <ServiciosTrustSection profile={profile} lang={lang} template={template} />
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
               {hasAboutSectionResolved(profile) ? (
                 <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
-              ) : null}
-
-              {hasBusinessHighlightsResolved(profile) ? (
-                <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
               ) : null}
             </section>
 
@@ -392,7 +392,7 @@ export function ServiciosProfessionalProfileShell({
                       <ServiciosLicense profile={profile} lang={lang} />
                     ) : null}
                     {hasBusinessHighlightsResolved(profile) ? (
-                      <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
+                      <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} compact />
                     ) : null}
                     <ServiciosSmartTrustSummary profile={profile} lang={lang} />
                   </section>
@@ -400,13 +400,34 @@ export function ServiciosProfessionalProfileShell({
                   <section id="servicios-pro-experience" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
                     <span className="block h-px" />
                   </section>
+                ) : hasBusinessHighlightsResolved(profile) ? (
+                  <section id="servicios-pro-experience" className={SECTION_SCROLL}>
+                    <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} compact />
+                  </section>
                 ) : null}
 
-                {hasPaymentMethodsResolved(profile) ? (
-                  <ServiciosPagosCard profile={profile} lang={lang} />
-                ) : null}
-                {hasAmenityOptionsResolved(profile) ? (
-                  <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} />
+                {showLowerDetails ? (
+                  <details className={`${LX_SECTION_CARD} group`}>
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+                      <h2 className="text-lg font-bold tracking-tight text-[#1E1814] md:text-xl">
+                        {lang === "en" ? "More information" : "Más información"}
+                      </h2>
+                      <span className="text-xs font-bold text-[#6F6254] group-open:hidden">
+                        {lang === "en" ? "Show" : "Ver"}
+                      </span>
+                      <span className="hidden text-xs font-bold text-[#6F6254] group-open:inline">
+                        {lang === "en" ? "Hide" : "Ocultar"}
+                      </span>
+                    </summary>
+                    <div className="space-y-3 border-t border-[#E8D9C4]/90 p-4 sm:p-5">
+                      {hasPaymentMethodsResolved(profile) ? (
+                        <ServiciosPagosCard profile={profile} lang={lang} compact />
+                      ) : null}
+                      {hasAmenityOptionsResolved(profile) ? (
+                        <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} compact />
+                      ) : null}
+                    </div>
+                  </details>
                 ) : null}
 
                 <div id="servicios-pro-contact" className={`${SECTION_SCROLL} lg:hidden`}>

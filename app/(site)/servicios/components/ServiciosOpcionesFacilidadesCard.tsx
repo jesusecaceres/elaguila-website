@@ -11,9 +11,11 @@ import {
 export function ServiciosOpcionesFacilidadesCard({
   profile,
   lang,
+  compact = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  compact?: boolean;
 }) {
   const std = profile.amenityOptionIds.filter((id): id is string => typeof id === "string");
   const custom = profile.customAmenityOptions.filter((x) => typeof x === "string" && x.trim().length > 0);
@@ -37,7 +39,7 @@ export function ServiciosOpcionesFacilidadesCard({
 
   return (
     <section
-      className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
+      className={`rounded-2xl border shadow-sm ${compact ? "p-3 sm:p-4" : "p-3 sm:p-6 md:p-8"}`}
       style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -47,7 +49,7 @@ export function ServiciosOpcionesFacilidadesCard({
         </div>
       </div>
 
-      <div className="mt-4 space-y-4 md:mt-5 md:space-y-5">
+      <div className={`space-y-3 ${compact ? "mt-3" : "mt-4 md:mt-5 md:space-y-5"}`}>
         {SERVICIOS_AMENITY_GROUPS.filter((g) => g.id !== "other").map((g) => {
           const ids = byGroup.get(g.id as ServiciosAmenityGroupId) ?? [];
           if (ids.length === 0) return null;

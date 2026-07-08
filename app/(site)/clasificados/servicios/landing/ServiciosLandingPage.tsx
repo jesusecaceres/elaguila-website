@@ -145,6 +145,7 @@ export function ServiciosLandingPage() {
 
   return (
     <LeonixCategoryPageShell surface="landing">
+      <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
       <LeonixCategoryHeroGateway
         lang={lang as V2Lang}
         surface="landing"
@@ -155,8 +156,7 @@ export function ServiciosLandingPage() {
         searchSlot={serviciosSearchForm}
         eyebrow={copy.eyebrow}
       />
-      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
-      <div className="space-y-6 sm:space-y-8">
+      <main className="space-y-6 overflow-x-hidden sm:space-y-8">
         <LeonixCategoryPartnerSection
           enabled
           lang={lang as V2Lang}
@@ -227,8 +227,8 @@ export function ServiciosLandingPage() {
             {lang === "en" ? "FAQ" : "Preguntas Frecuentes"}
           </Link>
         </nav>
-      </div>
       </main>
+      </div>
     </LeonixCategoryPageShell>
   );
 }

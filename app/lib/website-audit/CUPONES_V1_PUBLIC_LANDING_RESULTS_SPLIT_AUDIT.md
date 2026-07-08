@@ -109,3 +109,111 @@ The Cupones surface does not add coupon wallet, saved coupon, claim, redeemed, s
 16. READY TO COMMIT THIS BUILD ONLY: YES
 17. READY TO PUSH THIS BUILD ONLY: NO
 18. UNRELATED DIRTY FILES PRESENT: NO
+
+---
+
+# Cupones V1.1 — Coupon Detail Drawer + Card CTA Behavior
+
+## Project Intent
+
+Finish the next public Cupones journey gate: on the Cupones surface, coupon cards open an in-page coupon detail drawer instead of navigating to the Ofertas offer detail route. Ofertas offer cards keep their existing Link behavior. The drawer is coupon-first, coupon-safe, and only shows real CTAs.
+
+## Files Inspected
+
+- `app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx`
+- `app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferCard.tsx`
+- `app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx`
+- `app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts`
+- `app/lib/ofertas-locales/ofertasLocalesTypes.ts`
+- `scripts/verify-cupones-public-split.mjs`
+
+## Files Changed
+
+- `app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferCard.tsx`
+- `app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx`
+- `app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx`
+- `app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts`
+- `app/lib/website-audit/CUPONES_V1_PUBLIC_LANDING_RESULTS_SPLIT_AUDIT.md`
+- `scripts/verify-cupones-public-split.mjs`
+
+## PM Diagnosis
+
+Cupones V1 already created `/cupones`, `/cupones/resultados`, coupon-only offer filtering, coupon-safe copy, no product cards, and no shopping list UI. The remaining gap was that coupon cards rendered as a `Link` into the Ofertas detail route (`ofertaLocalPublicDetailPath`). This gate makes the coupon card open a coupon detail drawer on the Cupones surface only.
+
+## Existing V1 Foundation Preserved
+
+- `/cupones` and `/cupones/resultados` routes.
+- Coupon-only offer-type allowlist (`coupon`, `promotion`, `seasonal_special`, `bundle`, `featured_deal`).
+- Product items hidden on Cupones.
+- Shopping list button/panel/product item drawer hidden on Cupones.
+
+## Card Behavior Changed Only For Cupones
+
+- `OfertasLocalesPublicOfferCard` now accepts `onSelect?: (offer) => void`.
+- When `surface === "cupones"` **and** `onSelect` exists, the card renders as an accessible `<button type="button">` (focus ring, `text-left`, full-card clickable, `aria-label`) that opens the drawer.
+- Otherwise the card preserves the existing `Link` to `ofertaLocalPublicDetailPath(offer.id, lang)`.
+
+## Ofertas Card Link Behavior Preserved
+
+Ofertas offer cards receive no `onSelect` (`isCupones ? setSelectedCouponOffer : undefined`) and continue to navigate to the existing Ofertas offer detail route.
+
+## selectedCouponOffer State Added
+
+`OfertasLocalesPublicSearchClient` adds `selectedCouponOffer: OfertaLocalPublicOfferCard | null`. The coupon drawer renders only when `isCupones && selectedCouponOffer`. The Ofertas item drawer (`!isCupones && selectedItem`) and shopping list panel remain untouched.
+
+## Drawer Is Coupon-Safe
+
+`OfertasLocalesPublicOfferDetailDrawer` is now surface-aware (`surface?: "ofertas" | "cupones"`, default `"ofertas"`) and uses `ofertasLocalesPublicSearchCopy(lang, surface)`. Cupones mode shows: coupon details heading, coupon title, business name, category, location, address, valid dates, offer-type badge, honest "no extra details yet" note, and coupon-safe source label ("Ver cupón original" / "View original coupon").
+
+## CTAs Are Real Only
+
+- Call — only if `phoneHref`.
+- Website — only if `websiteHref`.
+- Directions — only if `directionsHref`.
+- Share coupon (Cupones only) — `navigator.share` with clipboard fallback; on copy shows "Enlace copiado." / "Link copied." No analytics tracking.
+- Original source link — only if `primaryAssetHref`.
+- WhatsApp is intentionally not shown: `whatsappHref` does not exist on the `OfertaLocalPublicOfferCard` model, so it is not invented.
+
+## No Fake Claim/Redeem/Save/Wallet
+
+No coupon wallet, saved coupon, claim, redeemed, scan-to-redeem, buy-now, order-online, or fake counters were added.
+
+## No DB/Stripe/Admin/Dashboard Touched
+
+No DB schema/migrations, Stripe, auth, admin, or dashboard files were touched. No other categories touched.
+
+## Mobile/PWA Considerations
+
+- Mobile: bottom-sheet drawer (`items-end`, `rounded-t-2xl`), `max-h-[92vh]` with internal scroll, no horizontal overflow.
+- Desktop: centered modal (`sm:items-center`, `sm:rounded-2xl`).
+- Close via close button, Escape key, and overlay click. Body scroll is locked while open.
+
+## Next Gates
+
+1. Coupon publish path polish
+2. Coupon detail route `/cupones/[id]`
+3. My Coupons dashboard
+4. Coupons admin queue/live listings
+5. Stripe coupon listing/boost entitlements
+6. Real analytics events
+
+## TRUE/FALSE Audit (V1.1)
+
+1. Cupones cards open drawer: TRUE
+2. Cupones cards do not navigate to Ofertas detail route: TRUE
+3. Ofertas cards still link to Ofertas detail route: TRUE
+4. Coupon drawer shows title/business/location/dates: TRUE
+5. Coupon drawer shows only real CTAs: TRUE
+6. No fake save/claim/redeem/wallet: TRUE
+7. ES/EN copy present: TRUE
+8. Mobile drawer/bottom sheet considered: TRUE
+9. Product items remain hidden on Cupones: TRUE
+10. Shopping list remains hidden on Cupones: TRUE
+11. No DB/schema changes: TRUE
+12. No Stripe/auth/admin/dashboard changes: TRUE
+13. No unrelated categories touched: TRUE
+14. Verifier passed: TRUE
+15. Build passed: TRUE
+16. READY TO COMMIT THIS BUILD ONLY: YES
+17. READY TO PUSH THIS BUILD ONLY: NO
+18. UNRELATED DIRTY FILES PRESENT: NO

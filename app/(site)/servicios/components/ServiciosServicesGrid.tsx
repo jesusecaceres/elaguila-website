@@ -14,6 +14,8 @@ import type { CtaSheetIntent } from "@/app/components/cta/types";
 /** When count ≥ this, show expand/collapse (initially show {@link SERVICES_SECTION_INITIAL_VISIBLE}). */
 const SERVICES_SECTION_COLLAPSE_THRESHOLD = 19;
 const SERVICES_SECTION_INITIAL_VISIBLE = 18;
+const SERVICES_PRO_SECTION_COLLAPSE_THRESHOLD = 13;
+const SERVICES_PRO_SECTION_INITIAL_VISIBLE = 12;
 
 const getServiceType = (serviceName: string): "mobile" | "onsite" | "both" => {
   const name = serviceName.toLowerCase();
@@ -90,11 +92,13 @@ export function ServiciosOfferedSection({
     [profileForQuote, lang],
   );
 
-  const needsCollapse = services.length >= SERVICES_SECTION_COLLAPSE_THRESHOLD;
+  const collapseThreshold = premiumLeonixTone ? SERVICES_PRO_SECTION_COLLAPSE_THRESHOLD : SERVICES_SECTION_COLLAPSE_THRESHOLD;
+  const initialVisible = premiumLeonixTone ? SERVICES_PRO_SECTION_INITIAL_VISIBLE : SERVICES_SECTION_INITIAL_VISIBLE;
+  const needsCollapse = services.length >= collapseThreshold;
   const visible = useMemo(() => {
     if (!needsCollapse || expanded) return services;
-    return services.slice(0, SERVICES_SECTION_INITIAL_VISIBLE);
-  }, [services, needsCollapse, expanded]);
+    return services.slice(0, initialVisible);
+  }, [services, needsCollapse, expanded, initialVisible]);
 
   const handleServiceQuoteClick = useCallback(
     (serviceName: string) => {
@@ -128,7 +132,7 @@ export function ServiciosOfferedSection({
 
   return (
     <section
-      className={premiumLeonixTone ? `${LX_SECTION_CARD} p-4 sm:p-6 md:p-8` : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}
+      className={premiumLeonixTone ? `${LX_SECTION_CARD} p-4 sm:p-5` : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}
       style={
         premiumLeonixTone
           ? undefined
@@ -157,7 +161,7 @@ export function ServiciosOfferedSection({
         ) : null}
       </div>
 
-      <div className={listClass}>
+      <div className={`mt-4 ${listClass}`}>
         {visible.map((s) => {
           const serviceType = getServiceType(s.title);
           const { emoji } = resolveServiciosServiceVisual({ id: s.id, label: s.title });
@@ -178,9 +182,11 @@ export function ServiciosOfferedSection({
                 color: SV.text,
               }}
             >
-              <span className="mt-0.5 shrink-0 text-[10px] leading-none text-[#C9A84A]/70" aria-hidden>
-                {getServiceTypeIcon(serviceType)}
-              </span>
+              {premiumLeonixTone ? null : (
+                <span className="mt-0.5 shrink-0 text-[10px] leading-none text-[#C9A84A]/70" aria-hidden>
+                  {getServiceTypeIcon(serviceType)}
+                </span>
+              )}
               <span className="shrink-0 text-[0.95rem] leading-none" aria-hidden>
                 {emoji}
               </span>

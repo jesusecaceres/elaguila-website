@@ -244,7 +244,7 @@ export function ServiciosGalleryWithTabs({
         <section className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#D8C2A0] bg-[#FFFAF3] shadow-[0_4px_20px_-8px_rgba(212,165,116,0.14)]">
           <div className="p-4 sm:p-5">
             <h2 className="text-lg font-bold leading-tight tracking-tight text-[#1F1A17] md:text-xl">
-              {L.galleryAndVideos}
+              {lang === "en" ? "Gallery & videos" : "Galería y videos"}
             </h2>
 
             {hasPhotos ? (
@@ -263,7 +263,7 @@ export function ServiciosGalleryWithTabs({
                 <div
                   className={
                     videos.length === 1
-                      ? "grid max-w-md grid-cols-1 gap-2"
+                      ? "grid grid-cols-1 gap-2 sm:max-w-sm"
                       : "grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"
                   }
                 >

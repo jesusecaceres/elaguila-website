@@ -133,7 +133,7 @@ export const LEONIX_BTN_PRIMARY =
 
 /** Landing primary CTA button */
 export const LEONIX_BTN_PRIMARY_LANDING =
-  "inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] shadow-[0_6px_20px_-8px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[3.125rem]";
+  "inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFDF7] shadow-[0_12px_24px_-16px_rgba(122,30,44,0.65)] transition hover:bg-[#5e1721] hover:shadow-[0_16px_28px_-16px_rgba(122,30,44,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[3.125rem]";
 
 /** Secondary CTA button */
 export const LEONIX_BTN_SECONDARY =
@@ -332,7 +332,7 @@ export const LEONIX_VISIBILITY_BODY =
 
 /** Visibility strip CTA */
 export const LEONIX_VISIBILITY_CTA =
-  "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-xl border border-[#7A1E2C]/35 bg-[#7A1E2C] px-5 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-w-[13rem]";
+  "inline-flex min-h-[2.75rem] shrink-0 items-center justify-center rounded-xl border border-[#7A1E2C]/35 bg-[#7A1E2C] px-5 text-center text-sm font-bold text-[#FFFDF7] shadow-[0_12px_24px_-16px_rgba(122,30,44,0.65)] transition hover:bg-[#5e1721] hover:shadow-[0_16px_28px_-16px_rgba(122,30,44,0.75)] sm:min-w-[13rem]";
 
 // ============================================================================
 // CARD ACCENTS (for discovery grid)

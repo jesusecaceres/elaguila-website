@@ -138,7 +138,7 @@ export function autosDealerInventoryPackEditLabel(lang: Lang): string {
 }
 
 export function autosDealerInventoryPackEditSuccessLabel(lang: Lang): string {
-  return lang === "es" ? "Agregar vehículos ahora" : "Add vehicles now";
+  return lang === "es" ? "Administrar inventario" : "Manage inventory";
 }
 
 export function resolveAutosDealerInventoryPackSuccessPrimaryCta(input: {

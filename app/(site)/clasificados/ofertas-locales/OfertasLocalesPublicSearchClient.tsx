@@ -13,6 +13,7 @@ import { OfertasLocalesFiltersDrawer } from "./OfertasLocalesFiltersDrawer";
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
+import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
@@ -23,7 +24,6 @@ import {
   LeonixCategoryCta,
   LeonixCategoryPartnerSection,
   LeonixCategoryDiscoveryGrid,
-  LeonixCategoryShortcutSection,
   LeonixCategoryVisibilityStrip,
   LeonixCategoryActiveFilters,
   LeonixCategoryResultsShell,
@@ -111,6 +111,7 @@ export function OfertasLocalesPublicSearchClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<OfertaLocalPublicSearchItem | null>(null);
+  const [selectedCouponOffer, setSelectedCouponOffer] = useState<OfertaLocalPublicOfferCard | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const shoppingList = useOfertasLocalesShoppingList();
@@ -334,7 +335,12 @@ export function OfertasLocalesPublicSearchClient({
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
             {offers.map((offer) => (
               <li key={offer.id}>
-                <OfertasLocalesPublicOfferCard lang={lang} offer={offer} surface={surface} />
+                <OfertasLocalesPublicOfferCard
+                  lang={lang}
+                  offer={offer}
+                  surface={surface}
+                  onSelect={isCupones ? setSelectedCouponOffer : undefined}
+                />
               </li>
             ))}
           </ul>
@@ -432,9 +438,9 @@ export function OfertasLocalesPublicSearchClient({
             {resultsContent}
           </LeonixCategoryResultsShell>
         ) : (
-          <>
+          <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
             {hero}
-            <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
+            <main className="space-y-6 overflow-x-hidden sm:space-y-8">
               <LeonixCategoryDiscoveryGrid
                 lang={lang as V2Lang}
                 surface="landing"
@@ -498,33 +504,6 @@ export function OfertasLocalesPublicSearchClient({
                 secondaryCta={{ label: c.sponsorSecondaryCta, href: browseAllHref }}
               />
 
-              <LeonixCategoryShortcutSection
-                lang={lang as V2Lang}
-                surface="landing"
-                title={c.discoveryTitle}
-                subtitle={c.discoverySubtitle}
-                variant="default"
-                chips={[
-                  ...(isCupones
-                    ? [
-                        { id: "offerType:coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
-                        { id: "offerType:promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
-                        { id: "offerType:seasonal_special", label: lang === "es" ? "Especial de temporada" : "Seasonal special", href: `${browseAllHref}&offerType=seasonal_special` },
-                        { id: "offerType:bundle", label: lang === "es" ? "Combo" : "Bundle", href: `${browseAllHref}&offerType=bundle` },
-                        { id: "offerType:featured_deal", label: lang === "es" ? "Oferta destacada" : "Featured deal", href: `${browseAllHref}&offerType=featured_deal` },
-                        { id: "category:restaurant", label: lang === "es" ? "Restaurantes" : "Restaurants", href: `${browseAllHref}&category=restaurant` },
-                      ]
-                    : [
-                        { id: "offerType:weekly_flyer", label: lang === "es" ? "Volante semanal" : "Weekly flyer", href: `${browseAllHref}&offerType=weekly_flyer` },
-                        { id: "offerType:coupon", label: lang === "es" ? "Cupón" : "Coupon", href: `${browseAllHref}&offerType=coupon` },
-                        { id: "offerType:promotion", label: lang === "es" ? "Promoción" : "Promotion", href: `${browseAllHref}&offerType=promotion` },
-                        { id: "marketType:retail", label: lang === "es" ? "Tienda local" : "Local retail", href: `${browseAllHref}&marketType=retail` },
-                        { id: "marketType:service", label: lang === "es" ? "Servicio local" : "Local service", href: `${browseAllHref}&marketType=service` },
-                        { id: "category:food", label: lang === "es" ? "Comida" : "Food", href: `${browseAllHref}&category=food` },
-                      ]),
-                ]}
-              />
-
               <LeonixCategoryVisibilityStrip
                 lang={lang as V2Lang}
                 surface="landing"
@@ -539,7 +518,7 @@ export function OfertasLocalesPublicSearchClient({
                 ctaHref={`/contacto?lang=${lang}&categoria=ofertas-locales&surface=landing`}
               />
             </main>
-          </>
+          </div>
         )}
       </LeonixCategoryPageShell>
 
@@ -574,6 +553,15 @@ export function OfertasLocalesPublicSearchClient({
           lang={lang}
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
+        />
+      ) : null}
+
+      {isCupones && selectedCouponOffer ? (
+        <OfertasLocalesPublicOfferDetailDrawer
+          lang={lang}
+          offer={selectedCouponOffer}
+          surface="cupones"
+          onClose={() => setSelectedCouponOffer(null)}
         />
       ) : null}
 

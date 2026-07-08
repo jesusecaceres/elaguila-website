@@ -10,8 +10,10 @@ import {
   validateRevenueCheckoutAddOns,
   validateRevenueCheckoutRequest,
   validateRestauranteAddonOnlyListingOwnership,
+  validateAutosDealerInventoryAddonOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
+import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   attachStripeSessionToPaymentRecord,
   attachPromoRedemptionToPaymentRecord,
@@ -63,6 +65,8 @@ export async function POST(request: NextRequest) {
   const packageKeyEarly = String(body.packageKey ?? "").trim().toLowerCase();
   const isRestauranteAddonOnlyEarly =
     categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
+  const isAutosDealerInventoryAddonEarly =
+    categoryEarly === "autos" && packageKeyEarly === AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY;
 
   if (isRestauranteAddonOnlyEarly) {
     const ownerGate = await validateRestauranteAddonOnlyListingOwnership({
@@ -77,7 +81,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly
+  if (isAutosDealerInventoryAddonEarly) {
+    const ownerGate = await validateAutosDealerInventoryAddonOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+  }
+
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly
     ? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 

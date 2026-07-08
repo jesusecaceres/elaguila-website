@@ -53,7 +53,7 @@ function CouponInnerCard({
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
             <FaTicketAlt className="text-3xl text-[#9A7329]/70" aria-hidden />
             <span className="text-xs font-semibold text-[#5A5148]">
-              {lang === "en" ? "Leonix featured offer" : "Oferta destacada Leonix"}
+              {lang === "en" ? "Leonix coupon" : "Cupón Leonix"}
             </span>
           </div>
         </div>
@@ -171,24 +171,28 @@ export function ServiciosCouponsCard({
             {L.featuredCouponsSubtitle}
           </p>
         </div>
-        <div className="-mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
-          {validCoupons.map((c, i) => (
-            <div key={`coupon-${i}`} className="flex w-[min(82vw,280px)] shrink-0 snap-center flex-col">
-              <CouponInnerCard coupon={c} lang={lang} onImageOpen={openLightbox} featuredRow={featuredRow} />
+        {validCoupons.length > 0 ? (
+          <>
+            <div className="-mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
+              {validCoupons.map((c, i) => (
+                <div key={`coupon-${i}`} className="flex w-[min(82vw,280px)] shrink-0 snap-center flex-col">
+                  <CouponInnerCard coupon={c} lang={lang} onImageOpen={openLightbox} featuredRow={featuredRow} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className={`hidden gap-3 md:grid ${featuredRow ? "mt-4 grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-4"}`}>
-          {validCoupons.map((c, i) => (
-            <CouponInnerCard
-              key={`coupon-${i}`}
-              coupon={c}
-              lang={lang}
-              onImageOpen={openLightbox}
-              featuredRow={featuredRow}
-            />
-          ))}
-        </div>
+            <div className={`hidden gap-3 md:grid ${featuredRow ? "mt-4 grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-4"}`}>
+              {validCoupons.map((c, i) => (
+                <CouponInnerCard
+                  key={`coupon-${i}`}
+                  coupon={c}
+                  lang={lang}
+                  onImageOpen={openLightbox}
+                  featuredRow={featuredRow}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
         {couponFlyer?.imageUrl ? (
           <div className="mt-6 flex justify-center">
             <a

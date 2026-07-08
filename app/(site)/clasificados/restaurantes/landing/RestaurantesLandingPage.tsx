@@ -183,6 +183,7 @@ function RestaurantesLandingPageInner(_props: {
         <ViajesLangSwitch compact />
       </div>
     }>
+      <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
       <LeonixCategoryHeroGateway
         lang={lang as V2Lang}
         surface="landing"
@@ -194,7 +195,7 @@ function RestaurantesLandingPageInner(_props: {
         eyebrow={copy.sponsorEyebrow}
       />
 
-      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
+      <main className="space-y-6 overflow-x-hidden sm:space-y-8">
 
         {/* Sponsor section - landing only */}
         <LeonixCategoryPartnerSection
@@ -265,6 +266,7 @@ function RestaurantesLandingPageInner(_props: {
           ]}
         />
       </main>
+      </div>
     </LeonixCategoryPageShell>
   );
 }
