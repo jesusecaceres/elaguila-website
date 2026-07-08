@@ -16,7 +16,7 @@ export default async function AdminNewsletterSubscribersPage() {
       <AdminPageHeader
         title="Launch subscribers"
         subtitle="Newsletter and launch signups — view, reply, archive, and manage subscribers."
-        helperText="View opens full subscriber details. Reply/Email use mailto. Export CSV excludes soft-deleted records."
+        helperText="View opens full subscriber details. Reply/Email use mailto (manual client — no server newsletter send yet). Export/copy emails support manual weekly operations until campaign sending is built."
       />
 
       {activeList.dataUnavailable || archivedList.dataUnavailable ? (

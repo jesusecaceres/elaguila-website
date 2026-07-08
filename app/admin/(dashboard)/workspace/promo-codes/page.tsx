@@ -138,6 +138,12 @@ function formatDeliveryStatus(row: {
   if (status === "not_sent") {
     return { label: `Delivery (${channel}): not sent yet`, className: "bg-amber-100 text-amber-950" };
   }
+  if (status === "not_configured") {
+    return { label: `Delivery (${channel}): not configured`, className: "bg-amber-100 text-amber-950" };
+  }
+  if (status === "pending") {
+    return { label: `Delivery (${channel}): pending`, className: "bg-amber-100 text-amber-950" };
+  }
   return { label: "Delivery: not tracked yet", className: "bg-[#F4F0E8] text-[#5C5346]" };
 }
 

@@ -164,6 +164,8 @@ Discount fields (percent/amount) may also be saved for `newsletter` / `sms` when
 
 ## 7. Still NOT active (future gates)
 
+See also **`docs/newsletter-operations-readiness.md`** for the full admin operations runbook (manual export/copy/mailto workflow vs future bulk campaign sender).
+
 - Double opt-in confirmation
 - Unsubscribe management from the promo email
 - Dedicated email-event table (delivery/open/click log) — status currently lives on the promo-code metadata only
