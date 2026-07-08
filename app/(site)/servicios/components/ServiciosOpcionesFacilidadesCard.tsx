@@ -12,10 +12,12 @@ export function ServiciosOpcionesFacilidadesCard({
   profile,
   lang,
   compact = false,
+  embedded = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   compact?: boolean;
+  embedded?: boolean;
 }) {
   const std = profile.amenityOptionIds.filter((id): id is string => typeof id === "string");
   const custom = profile.customAmenityOptions.filter((x) => typeof x === "string" && x.trim().length > 0);
@@ -37,15 +39,20 @@ export function ServiciosOpcionesFacilidadesCard({
     byGroup.set(gid, cur);
   }
 
-  return (
-    <section
-      className={`rounded-2xl border shadow-sm ${compact ? "p-3 sm:p-4" : "p-3 sm:p-6 md:p-8"}`}
-      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-    >
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{title}</h2>
-          <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">{subtitle}</p>
+          <h2
+            className={
+              embedded
+                ? "text-sm font-semibold text-[color:var(--lx-text)]"
+                : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+            }
+          >
+            {title}
+          </h2>
+          {!embedded ? <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">{subtitle}</p> : null}
         </div>
       </div>
 
@@ -90,6 +97,17 @@ export function ServiciosOpcionesFacilidadesCard({
           </div>
         ) : null}
       </div>
+    </>
+  );
+
+  if (embedded) return <div data-servicios-amenities-embedded="1">{body}</div>;
+
+  return (
+    <section
+      className={`rounded-2xl border shadow-sm ${compact ? "p-3 sm:p-4" : "p-3 sm:p-6 md:p-8"}`}
+      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
+    >
+      {body}
     </section>
   );
 }

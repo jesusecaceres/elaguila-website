@@ -165,3 +165,5 @@ Portuguese and Tagalog/Filipino proof planning may proceed as scoped planning ga
 `READY FOR AUGUST-2026-PORTUGUESE-PROOF-PLAN1: YES`
 
 Portuguese proof plan created: [`AUGUST-2026-PORTUGUESE-PROOF-PLAN.md`](AUGUST-2026-PORTUGUESE-PROOF-PLAN.md) · Next gate: `AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL1`
+
+Portuguese Batch 1 DeepL attempted for pages 12, 6, and 3 — see [`AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL.md`](AUGUST-2026-PORTUGUESE-PROOF-BATCH1-DEEPL.md).

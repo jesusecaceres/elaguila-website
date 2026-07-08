@@ -5,32 +5,38 @@ import { SV } from "./serviciosDesignTokens";
 export function ServiciosCredencialesCard({
   profile,
   lang,
+  embedded = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** Inside grouped details canvas — no outer card chrome. */
+  embedded?: boolean;
 }) {
   const c = profile.credentials;
   if (!c) return null;
 
   const copy = getServiciosCredentialsCardCopy(lang);
 
-  return (
-    <section
-      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
-      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-      aria-labelledby="servicios-credenciales-heading"
-    >
-      <div className="min-w-0">
-        <h2
-          id="servicios-credenciales-heading"
-          className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
-        >
-          {copy.title}
-        </h2>
-        <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">{copy.subtitle}</p>
-      </div>
+  const body = (
+    <>
+      {!embedded ? (
+        <div className="min-w-0">
+          <h2
+            id="servicios-credenciales-heading"
+            className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+          >
+            {copy.title}
+          </h2>
+          <p className="mt-1 text-sm text-[color:var(--lx-text-2)]">{copy.subtitle}</p>
+        </div>
+      ) : (
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[color:var(--lx-text)]">{copy.title}</p>
+          <p className="mt-0.5 text-xs text-[color:var(--lx-text-2)]">{copy.subtitle}</p>
+        </div>
+      )}
 
-      <div className="mt-5 space-y-4">
+      <div className={embedded ? "mt-3 space-y-3" : "mt-5 space-y-4"}>
         {c.hasLicense ? (
           <div
             className="rounded-xl border border-black/[0.06] bg-white/95 px-4 py-3 shadow-sm"
@@ -166,6 +172,21 @@ export function ServiciosCredencialesCard({
           </div>
         ) : null}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div data-servicios-credenciales-embedded="1">{body}</div>;
+  }
+
+  return (
+    <section
+      className="rounded-2xl border p-4 shadow-sm sm:p-6 md:p-8"
+      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
+      aria-labelledby="servicios-credenciales-heading"
+      data-servicios-credenciales="1"
+    >
+      {body}
     </section>
   );
 }

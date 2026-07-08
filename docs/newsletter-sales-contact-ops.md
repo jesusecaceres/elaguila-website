@@ -90,6 +90,8 @@ Manual export, copy, and mailto are the correct launch workflow until those gate
 
 - `docs/newsletter-operations-readiness.md` — technical ops readiness audit
 - `docs/newsletter-promo-code-readiness.md` — Launch 25 promo generation + checkout redemption
+- `docs/admin-promo-code-clarity-01.md` — admin promo-code lookup labels, filters, and follow-up guidance
+- `docs/admin-promo-code-os-v2.md` — Promo Admin OS V2: generator guidance, preset directory, recent-code filters, upgraded cards
 - `docs/launch-25-opportunity-audit-01.md` — account-surface Launch 25 visibility + CTA source tracking
 - `docs/leonix-admin-command-center-master-audit.md` — admin command center overview
 

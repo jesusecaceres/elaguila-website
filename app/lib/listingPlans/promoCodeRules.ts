@@ -53,11 +53,29 @@ export type PromoEligibilityInput = {
   now?: Date;
 };
 
+/** Scope tokens that mean "matches everything" (admin "Any category" / "Any package"). */
+const SCOPE_WILDCARD_TOKENS = new Set([
+  "any",
+  "all",
+  "*",
+  "any category",
+  "any_category",
+  "anycategory",
+  "any package",
+  "any_package",
+  "anypackage",
+]);
+
 function scopeMatches(scope: string[] | null | undefined, value: string | null | undefined): boolean {
+  // Missing/empty scope = unrestricted ("Any category" / "Any package").
   if (!scope?.length) return true;
+  const normalizedScope = scope.map((s) => String(s ?? "").trim().toLowerCase()).filter(Boolean);
+  if (!normalizedScope.length) return true;
+  // A literal wildcard token anywhere in the scope list also means unrestricted.
+  if (normalizedScope.some((s) => SCOPE_WILDCARD_TOKENS.has(s))) return true;
   const token = String(value ?? "").trim().toLowerCase();
   if (!token) return false;
-  return scope.some((s) => String(s).trim().toLowerCase() === token);
+  return normalizedScope.includes(token);
 }
 
 export function validatePromoEligibility(input: PromoEligibilityInput): PromoValidationResult {

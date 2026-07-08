@@ -9,22 +9,29 @@ export function ServiciosPagosCard({
   profile,
   lang,
   compact = false,
+  embedded = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   compact?: boolean;
+  embedded?: boolean;
 }) {
   if (!profile.paymentMethodIds.length && !profile.customPaymentMethods.length) return null;
   const L = getServiciosProfileLabels(lang);
 
-  return (
-    <section
-      className={`rounded-2xl border shadow-sm ${compact ? "p-3 sm:p-4" : "p-3 sm:p-6 md:p-8"}`}
-      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-    >
+  const body = (
+    <>
       <div className="flex items-center gap-2">
         <FaMoneyBillWave className="h-5 w-5 shrink-0 text-[#3B66AD]" aria-hidden />
-        <h2 className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">{L.paymentsTitle}</h2>
+        <h2
+          className={
+            embedded
+              ? "text-sm font-semibold text-[color:var(--lx-text)]"
+              : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+          }
+        >
+          {L.paymentsTitle}
+        </h2>
       </div>
       <div className={`flex flex-nowrap gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible ${compact ? "mt-3" : "mt-4 md:mt-5"}`}>
         {profile.paymentMethodIds.map((id) =>
@@ -48,6 +55,17 @@ export function ServiciosPagosCard({
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (embedded) return <div data-servicios-payments-embedded="1">{body}</div>;
+
+  return (
+    <section
+      className={`rounded-2xl border shadow-sm ${compact ? "p-3 sm:p-4" : "p-3 sm:p-6 md:p-8"}`}
+      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
+    >
+      {body}
     </section>
   );
 }

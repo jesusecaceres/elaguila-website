@@ -30,11 +30,6 @@ import { formatOfertaLocalDateRange } from "@/app/lib/ofertas-locales/ofertasLoc
 import { LeonixMobileScrollRail } from "@/app/(site)/components/mobile/LeonixMobileScrollRail";
 import { OfertasFlyerCropPreview } from "./OfertasFlyerCropPreview";
 import { OfertasPdfItemCropPreview } from "./OfertasPdfItemCropPreview";
-import {
-  OfertasLocalesProductDetailDrawer,
-  readOfertasPreviewItemParam,
-  syncOfertasPreviewItemParam,
-} from "./OfertasLocalesProductDetailDrawer";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const SECTION_ANCHOR = "scroll-mt-24";
@@ -279,9 +274,9 @@ export function OfertasLocalesPreviewProductGrid({
   needsReviewCount,
   totalCount,
   heroAsset,
-  heroFlyerLabel,
   directionsHref,
   websiteHref,
+  onOpenDetail,
 }: {
   draft: OfertaLocalDraft;
   items: OfertaLocalItemReviewViewModel[];
@@ -294,13 +289,15 @@ export function OfertasLocalesPreviewProductGrid({
   heroFlyerLabel?: string;
   directionsHref?: string;
   websiteHref?: string;
+  drawerItem?: OfertaLocalItemReviewViewModel | null;
+  onOpenDetail: (item: OfertaLocalItemReviewViewModel) => void;
+  onCloseDetail?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const initialVisible = useInitialVisibleCount();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [visibleCount, setVisibleCount] = useState(initialVisible);
-  const [drawerItem, setDrawerItem] = useState<OfertaLocalItemReviewViewModel | null>(null);
 
   // Curated, localized display taxonomy keys present among approved items.
   const categoryKeys = useMemo(
@@ -338,50 +335,24 @@ export function OfertasLocalesPreviewProductGrid({
     setVisibleCount(initialVisible);
   }, [initialVisible]);
 
-  const openDrawer = useCallback((item: OfertaLocalItemReviewViewModel) => {
-    setDrawerItem(item);
-    syncOfertasPreviewItemParam(item.id);
-  }, []);
-
-  const closeDrawer = useCallback(() => {
-    setDrawerItem(null);
-    syncOfertasPreviewItemParam(null);
-  }, []);
+  const openDrawer = useCallback(
+    (item: OfertaLocalItemReviewViewModel) => {
+      onOpenDetail(item);
+    },
+    [onOpenDetail]
+  );
 
   useEffect(() => {
     setVisibleCount(initialVisible);
   }, [searchQuery, selectedCategory, initialVisible]);
 
-  useEffect(() => {
-    if (loading || items.length === 0) return;
-    const paramId = readOfertasPreviewItemParam();
-    if (!paramId) return;
-    const found = items.find((i) => i.id === paramId);
-    if (found) setDrawerItem(found);
-  }, [items, loading]);
-
-  const scrollToSection = useCallback(() => {
-    document.getElementById("productos")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  const heroHref = heroAsset?.href ?? "";
   const heroImageHref = heroAsset?.isImage ? (heroAsset.href ?? null) : null;
   const heroPdfHref = heroAsset?.isPdf ? (heroAsset.href ?? null) : null;
-  const flyerLabel =
-    heroFlyerLabel ??
-    (heroAsset?.kind === "coupon"
-      ? lang === "en"
-        ? c.viewCouponEn
-        : c.viewCouponEs
-      : lang === "en"
-        ? c.viewFlyerEn
-        : c.viewFlyerEs);
 
   if (!draft.wantsAiSearchableSpecials) return null;
 
   return (
-    <>
-      <section
+    <section
         id="productos"
         className={`${SECTION_ANCHOR} mt-6 overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-[#FFFCF7] p-3 shadow-sm sm:mt-8 sm:rounded-2xl sm:p-5 lg:p-6`}
       >
@@ -549,21 +520,5 @@ export function OfertasLocalesPreviewProductGrid({
           </>
         )}
       </section>
-
-      <OfertasLocalesProductDetailDrawer
-        item={drawerItem}
-        draft={draft}
-        lang={lang}
-        open={drawerItem != null}
-        onClose={closeDrawer}
-        heroHref={heroHref}
-        heroLabel={flyerLabel}
-        heroImageHref={heroImageHref}
-        heroPdfHref={heroPdfHref}
-        directionsHref={directionsHref ?? ""}
-        websiteHref={websiteHref ?? ""}
-        onViewMoreOffers={scrollToSection}
-      />
-    </>
   );
 }

@@ -72,4 +72,5 @@ npm run verify:launch-25-opportunity-surfaces
 
 - `docs/newsletter-promo-code-readiness.md`
 - `docs/newsletter-sales-contact-ops.md`
+- `docs/admin-promo-code-clarity-01.md`
 - `docs/checkout-newsletter-checkbox-capture-01.md`

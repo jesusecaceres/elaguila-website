@@ -32,10 +32,12 @@ export function ServiciosTrustSection({
   profile,
   lang,
   template,
+  embedded = false,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   template?: ServiciosListingTemplate;
+  embedded?: boolean;
 }) {
   const items = profile.trust.slice(0, 6);
   if (!items.length) return null;
@@ -43,10 +45,12 @@ export function ServiciosTrustSection({
   const heading = template ? getTrustSectionHeading(template, lang) : lang === "en" ? "Why choose us" : "¿Por qué elegirnos?";
   const kicker = template ? getTrustSectionKicker(template, lang) : lang === "en" ? "Trust & credentials" : "Confianza y credenciales";
 
-  return (
-    <section className={`${LX_SECTION_CARD} px-3 py-4 sm:px-6 sm:py-6`}>
+  const content = (
+    <>
       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6F6254]">{kicker}</p>
-      <h2 className={`mt-1 ${LX_SECTION_HEADING}`}>{heading}</h2>
+      <h2 className={`mt-1 ${embedded ? "text-base font-bold tracking-tight text-[#1E1814] md:text-lg" : LX_SECTION_HEADING}`}>
+        {heading}
+      </h2>
       <div className="mt-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 md:mt-5 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3">
         {items.map((t) => (
           <div
@@ -60,6 +64,14 @@ export function ServiciosTrustSection({
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (embedded) return <div data-servicios-trust-embedded="1">{content}</div>;
+
+  return (
+    <section className={`${LX_SECTION_CARD} px-3 py-4 sm:px-6 sm:py-6`}>
+      {content}
     </section>
   );
 }

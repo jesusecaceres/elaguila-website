@@ -90,12 +90,17 @@ function asRecord(value: unknown): Record<string, unknown> {
  * for website Stripe checkout products only. They carry null category_scope/package_scope,
  * so we constrain them to the allowlisted central Revenue OS package keys below. Print,
  * combo, manual, free, renewal, and unknown products are never eligible.
+ *
+ * Keep in sync with live first-party website Stripe checkout base packages. Servicios base
+ * monthly was added when SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01 made Servicios a live
+ * Revenue OS website checkout product (Gate REVENUE-OS-NEWSLETTER-PROMO-CHECKOUT-VALIDATION-01).
  */
 export const WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS: readonly string[] = [
   "rentas_30d",
   "empleos_job_post_paid",
   "autos_privado_30d",
   "restaurantes_base_monthly",
+  "servicios_base_monthly",
 ];
 
 function truthyFlag(value: unknown): boolean {
@@ -129,6 +134,32 @@ export function resolveWebsiteLaunch25Rejection(
     return "Launch 25 code applies only to eligible website checkout products.";
   }
   return null;
+}
+
+/**
+ * Whether the promo may discount a paid Stripe checkout. Newsletter/discount codes carry
+ * `can_discount_payment` on `metadata` (and/or nested `metadata.promo_rule`). Only an
+ * explicit `false` disables payment discount; missing/legacy codes remain allowed so we do
+ * not silently reject historically-valid discount codes.
+ */
+export function resolvePromoCanDiscountPayment(row: PromoRow): boolean {
+  const meta = asRecord(row.metadata);
+  const rule = asRecord(meta.promo_rule);
+  const raw = meta.can_discount_payment ?? rule.can_discount_payment;
+  if (raw === false) return false;
+  const s = String(raw ?? "").trim().toLowerCase();
+  if (s === "false" || s === "0" || s === "no") return false;
+  return true;
+}
+
+/**
+ * Whether the promo explicitly requires proving subscriber/owner identity to redeem.
+ * Assigned/private tracking alone does NOT require identity — only an explicit flag does.
+ */
+export function resolvePromoRequiresSubscriberIdentity(row: PromoRow): boolean {
+  const meta = asRecord(row.metadata);
+  const rule = asRecord(meta.promo_rule);
+  return truthyFlag(meta.subscriber_identity_required ?? rule.requires_subscriber_identity);
 }
 
 export function resolvePromoCategoryScope(row: PromoRow): string[] | null {
@@ -240,6 +271,25 @@ export async function resolvePromoForCheckout(input: {
   const launch25Rejection = resolveWebsiteLaunch25Rejection(row, input.packageDef.packageKey);
   if (launch25Rejection) {
     return { ok: false, code: "promo_ineligible", message: launch25Rejection };
+  }
+
+  if (!resolvePromoCanDiscountPayment(row)) {
+    return {
+      ok: false,
+      code: "promo_payment_discount_disabled",
+      message: "Promo code is not permitted to discount payment.",
+    };
+  }
+
+  if (resolvePromoRequiresSubscriberIdentity(row)) {
+    const identity = String(input.email ?? "").trim() || String(input.ownerUserId ?? "").trim();
+    if (!identity) {
+      return {
+        ok: false,
+        code: "promo_identity_required",
+        message: "Promo code requires a matching subscriber identity.",
+      };
+    }
   }
 
   const promoType = resolveRevenuePromoTypeFromRow(row);

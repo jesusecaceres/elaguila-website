@@ -66,6 +66,10 @@ Now active in this gate:
 
 Account-surface visibility + CTA source tracking is documented in **`docs/launch-25-opportunity-audit-01.md`**.
 
+Admin promo-code lookup clarity (delivery status, follow-up guidance, newsletter filter) is documented in **`docs/admin-promo-code-clarity-01.md`**.
+
+Promo Admin OS V2 (generator guidance, preset directory, client-side recent-code filters, operational cards) is documented in **`docs/admin-promo-code-os-v2.md`**.
+
 Public promise: **“Get 25% off your first eligible Leonix website ad or package.”**
 
 Internal promo family: `website_launch_25` (stored in promo-code metadata; `code_type` remains `newsletter` for admin filters).

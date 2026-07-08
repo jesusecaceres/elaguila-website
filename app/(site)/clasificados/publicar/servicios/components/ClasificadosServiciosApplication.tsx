@@ -2046,7 +2046,7 @@ export function ClasificadosServiciosApplication() {
                 ) : null}
               </div>
               {reasonsSelectionCount >= MAX_REASONS_SELECTION ? (
-                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxThree}</p>
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxReasons}</p>
               ) : null}
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.customReason}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
@@ -2271,7 +2271,7 @@ export function ClasificadosServiciosApplication() {
                 ) : null}
               </div>
               {quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION ? (
-                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxThree}</p>
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxQuickFacts}</p>
               ) : null}
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.customQuickFact}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
@@ -2676,6 +2676,7 @@ export function ClasificadosServiciosApplication() {
           />
 
           <label className={`mt-6 block ${labelClass}`}>{copy.labels.certificationsLabel}</label>
+          <p className="mt-1 text-xs text-[#8a7a62]">{copy.labels.certificationsHint}</p>
           <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
             <input
               className={inputClass}

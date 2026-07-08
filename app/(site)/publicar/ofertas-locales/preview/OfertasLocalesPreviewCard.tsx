@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { FiAward, FiCopy, FiGlobe, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
@@ -49,6 +49,11 @@ import { OfertasLocalesPreviewHeroVisual } from "./OfertasLocalesPreviewHeroVisu
 import { OfertasLocalesFlyerViewerModal } from "./OfertasLocalesFlyerViewerModal";
 import { OfertasLocalesMiniMapPreview } from "./OfertasLocalesMiniMapPreview";
 import { OfertasLocalesPreviewProductGrid } from "./OfertasLocalesPreviewProductGrid";
+import {
+  OfertasLocalesProductDetailDrawer,
+  readOfertasPreviewItemParam,
+  syncOfertasPreviewItemParam,
+} from "./OfertasLocalesProductDetailDrawer";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const SECTION_ANCHOR = "scroll-mt-24";
@@ -619,6 +624,25 @@ export function OfertasLocalesPreviewCard({
   const [flyerViewerOpen, setFlyerViewerOpen] = useState(false);
   const [flyerDownloading, setFlyerDownloading] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [drawerItem, setDrawerItem] = useState<OfertaLocalItemReviewViewModel | null>(null);
+
+  const openProductDetail = useCallback((item: OfertaLocalItemReviewViewModel) => {
+    setDrawerItem(item);
+    syncOfertasPreviewItemParam(item.id);
+  }, []);
+
+  const closeProductDetail = useCallback(() => {
+    setDrawerItem(null);
+    syncOfertasPreviewItemParam(null);
+  }, []);
+
+  useEffect(() => {
+    if (aiReviewLoading || approvedAiItems.length === 0) return;
+    const paramId = readOfertasPreviewItemParam();
+    if (!paramId) return;
+    const found = approvedAiItems.find((i) => i.id === paramId);
+    if (found) setDrawerItem(found);
+  }, [approvedAiItems, aiReviewLoading]);
 
   /** Shared flyer/coupon download used by the in-page viewer (blob + safe fallback). */
   const handleFlyerDownload = useCallback(async () => {
@@ -1007,6 +1031,9 @@ export function OfertasLocalesPreviewCard({
           }
           directionsHref={directionsHref}
           websiteHref={webHref}
+          drawerItem={drawerItem}
+          onOpenDetail={openProductDetail}
+          onCloseDetail={closeProductDetail}
         />
 
         {/* Future modules */}
@@ -1110,6 +1137,27 @@ export function OfertasLocalesPreviewCard({
         lang={lang}
         onDownload={() => void handleFlyerDownload()}
         downloading={flyerDownloading}
+        items={approvedAiItems}
+        selectedItemId={drawerItem?.id ?? null}
+        onOpenProductDetail={openProductDetail}
+        stackBelowDrawer={drawerItem != null}
+      />
+
+      <OfertasLocalesProductDetailDrawer
+        item={drawerItem}
+        draft={draft}
+        lang={lang}
+        open={drawerItem != null}
+        onClose={closeProductDetail}
+        heroHref={heroAsset?.href ?? ""}
+        heroLabel={flyerStickyLabel}
+        heroImageHref={heroAsset?.isImage ? (heroAsset.href ?? null) : null}
+        heroPdfHref={heroAsset?.isPdf ? (heroAsset.href ?? null) : null}
+        directionsHref={directionsHref}
+        websiteHref={webHref}
+        onViewMoreOffers={() => {
+          document.getElementById("productos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
       />
     </>
   );

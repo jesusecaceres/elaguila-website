@@ -5,52 +5,35 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "./serviciosDesignTokens";
 import {
-  LX_CHIP,
   LX_PRO_ASIDE,
   LX_PRO_GRID,
   LX_PRO_INNER_PAD,
   LX_PRO_MAIN_MAX,
   LX_PRO_SECTION_GAP,
-  LX_SECTION_CARD,
-  collectProfessionalServiceChips,
-  getServicesTitle,
 } from "./serviciosLeonixBrand";
 import { ServiciosProfessionalHero } from "./ServiciosProfessionalHero";
 import {
   hasAboutSectionResolved,
-  hasAmenityOptionsResolved,
-  hasBusinessHighlightsResolved,
-  hasCredentialsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
   hasPaidCouponsSectionResolved,
-  hasPaymentMethodsResolved,
-  hasQuickFactsResolved,
   hasReviewsSectionResolved,
   hasServicesSectionResolved,
-  hasTrustSectionResolved,
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
-import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
-import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 import { ServiciosAbout } from "./ServiciosAbout";
-import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGalleryWithTabs } from "./ServiciosGalleryWithTabs";
 import { ServiciosReviews } from "./ServiciosReviews";
-import { ServiciosLicense } from "./ServiciosLicense";
-import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
-import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
 import { ServiciosCouponsCard } from "./ServiciosCouponsCard";
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ServiciosHours } from "./ServiciosHours";
-import { ServiciosPagosCard } from "./ServiciosPagosCard";
-import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
-import { ServiciosProfessionalVisualProofRow } from "./ServiciosProfessionalVisualProofRow";
+import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
+import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import {
   serviciosSavedListingExtras,
@@ -72,18 +55,11 @@ type NavItem = { id: string; label: string };
 
 function mobileNavItems(template: ServiciosListingTemplate, lang: ServiciosLang): NavItem[] {
   const en = lang === "en";
-  if (template === "legal_provider") {
-    return [
-      { id: "servicios-pro-overview", label: en ? "Overview" : "Resumen" },
-      { id: "servicios-pro-reviews", label: en ? "Reviews" : "Reseñas" },
-      { id: "servicios-pro-experience", label: en ? "Experience" : "Experiencia" },
-      { id: "servicios-pro-contact", label: en ? "Contact" : "Contacto" },
-    ];
-  }
+  void template;
   return [
     { id: "servicios-pro-overview", label: en ? "Overview" : "Resumen" },
-    { id: "servicios-pro-reviews", label: en ? "Reviews" : "Reseñas" },
     { id: "servicios-pro-services", label: en ? "Services" : "Servicios" },
+    { id: "servicios-pro-reviews", label: en ? "Reviews" : "Reseñas" },
     { id: "servicios-pro-contact", label: en ? "Contact" : "Contacto" },
   ];
 }
@@ -158,7 +134,6 @@ export function ServiciosProfessionalProfileShell({
   leonixAdIdFooter,
   serviciosDiscoveryResultsHref,
 }: ServiciosProfessionalProfileShellProps) {
-  const servicesTitle = getServicesTitle(template, lang);
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
   const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
 
@@ -198,13 +173,8 @@ export function ServiciosProfessionalProfileShell({
         })
       : null;
 
-  const showExperience =
-    template === "legal_provider" &&
-    (hasCredentialsResolved(profile) || hasBusinessHighlightsResolved(profile));
-
   const showServicesSection = hasServicesSectionResolved(profile);
   const showReviewsSection = hasReviewsSectionResolved(profile);
-  const showLowerDetails = hasPaymentMethodsResolved(profile) || hasAmenityOptionsResolved(profile);
 
   if (!hasHeroIdentityResolved(profile)) {
     return null;
@@ -290,47 +260,33 @@ export function ServiciosProfessionalProfileShell({
           />
 
           <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
-            {(displayProfile, translateControl) => {
-              const chips = collectProfessionalServiceChips(displayProfile, 4);
-              return (
+            {(displayProfile, translateControl) => (
           <div className={LX_PRO_INNER_PAD}>
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
-              {(chips.length > 0 || hasQuickFactsResolved(profile) || hasTrustSectionResolved(profile)) && (
-                <div className={`${LX_SECTION_CARD} p-4 sm:p-5`}>
-                  {chips.length > 0 ? (
-                    <div className="mb-3">
-                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6F6254]">
-                        {servicesTitle}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {chips.map((chip) => (
-                          <span key={chip} className={LX_CHIP}>
-                            {chip}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {hasQuickFactsResolved(profile) ? (
-                    <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
-                  ) : null}
-                  <ServiciosLanguageChipRow
-                    profile={profile.hero}
-                    lang={lang}
-                    chipClassName={`${LX_CHIP} shrink-0`}
-                    className="mt-3 flex flex-wrap gap-1.5"
-                  />
-                  {hasTrustSectionResolved(profile) ? (
-                    <div className="mt-4">
-                      <ServiciosTrustSection profile={profile} lang={lang} template={template} />
-                    </div>
-                  ) : null}
-                </div>
-              )}
+              {hasAboutSectionResolved(profile) ? (
+                <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+              ) : null}
 
-              <ServiciosProfessionalVisualProofRow profile={displayProfile} lang={lang} />
+              <div id="servicios-pro-contact" className={`${SECTION_SCROLL} lg:hidden`}>
+                <ServiciosBusinessHubContactCard
+                  profile={profile}
+                  lang={lang}
+                  listingTemplate={template}
+                  listingSlug={analyticsListingSlug}
+                  listingSourceId={sourceId || listingSourceId}
+                  listingShareUrl={listingShareUrl}
+                  engagementListingId={engagementListingId}
+                  engagementOwnerUserId={engagementOwnerUserId}
+                  persistListingEngagement={persistListingEngagement}
+                  publicLikeCount={publicLikeCount}
+                  directContactFasterResponseHint={directContactFasterResponseHint}
+                  showOfferSidebarTeaser={false}
+                />
+              </div>
+
+              <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
 
               {hasPaidCouponsSectionResolved(displayProfile) ||
               displayProfile.couponFlyer?.imageUrl?.trim() ||
@@ -369,9 +325,12 @@ export function ServiciosProfessionalProfileShell({
                 </section>
               ) : null}
 
-              {hasAboutSectionResolved(profile) ? (
-                <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
-              ) : null}
+              <ServiciosPublicDetailsCanvas
+                profile={profile}
+                displayProfile={displayProfile}
+                lang={lang}
+                template={template}
+              />
             </section>
 
             <div className={`mt-6 sm:mt-8 ${LX_PRO_GRID}`}>
@@ -385,67 +344,6 @@ export function ServiciosProfessionalProfileShell({
                     <span className="block h-px" />
                   </section>
                 )}
-
-                {showExperience ? (
-                  <section id="servicios-pro-experience" className={`${SECTION_SCROLL} space-y-5 sm:space-y-6`}>
-                    {hasCredentialsResolved(profile) ? (
-                      <ServiciosLicense profile={profile} lang={lang} />
-                    ) : null}
-                    {hasBusinessHighlightsResolved(profile) ? (
-                      <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} compact />
-                    ) : null}
-                    <ServiciosSmartTrustSummary profile={profile} lang={lang} />
-                  </section>
-                ) : template === "legal_provider" ? (
-                  <section id="servicios-pro-experience" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
-                    <span className="block h-px" />
-                  </section>
-                ) : hasBusinessHighlightsResolved(profile) ? (
-                  <section id="servicios-pro-experience" className={SECTION_SCROLL}>
-                    <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} compact />
-                  </section>
-                ) : null}
-
-                {showLowerDetails ? (
-                  <details className={`${LX_SECTION_CARD} group`}>
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
-                      <h2 className="text-lg font-bold tracking-tight text-[#1E1814] md:text-xl">
-                        {lang === "en" ? "More information" : "Más información"}
-                      </h2>
-                      <span className="text-xs font-bold text-[#6F6254] group-open:hidden">
-                        {lang === "en" ? "Show" : "Ver"}
-                      </span>
-                      <span className="hidden text-xs font-bold text-[#6F6254] group-open:inline">
-                        {lang === "en" ? "Hide" : "Ocultar"}
-                      </span>
-                    </summary>
-                    <div className="space-y-3 border-t border-[#E8D9C4]/90 p-4 sm:p-5">
-                      {hasPaymentMethodsResolved(profile) ? (
-                        <ServiciosPagosCard profile={profile} lang={lang} compact />
-                      ) : null}
-                      {hasAmenityOptionsResolved(profile) ? (
-                        <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} compact />
-                      ) : null}
-                    </div>
-                  </details>
-                ) : null}
-
-                <div id="servicios-pro-contact" className={`${SECTION_SCROLL} lg:hidden`}>
-                  <ServiciosBusinessHubContactCard
-                    profile={profile}
-                    lang={lang}
-                    listingTemplate={template}
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={sourceId || listingSourceId}
-                    listingShareUrl={listingShareUrl}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
-                    persistListingEngagement={persistListingEngagement}
-                    publicLikeCount={publicLikeCount}
-                    directContactFasterResponseHint={directContactFasterResponseHint}
-                    showOfferSidebarTeaser={false}
-                  />
-                </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
                   <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
@@ -498,8 +396,7 @@ export function ServiciosProfessionalProfileShell({
               </div>
             ) : null}
           </div>
-              );
-            }}
+            )}
           </ServiciosPublicTranslationLayer>
         </div>
       </main>

@@ -186,7 +186,8 @@ export type ClasificadosServiciosCopy = {
     addedHighlightsSection: string;
     customHighlightsMax: string;
     selectionMaxPresetHighlights: string;
-    selectionMaxThree: string;
+    selectionMaxReasons: string;
+    selectionMaxQuickFacts: string;
     aboutServicesGapNote: string;
     leonixVerified: string;
     leonixVerifiedHint: string;
@@ -291,6 +292,7 @@ export type ClasificadosServiciosCopy = {
     insuranceTypePlaceholder: string;
     certificationsLabel: string;
     certificationsPlaceholder: string;
+    certificationsHint: string;
     certificationsAdd: string;
     certificationsAddedList: string;
     certificationsCustomMax: string;
@@ -483,7 +485,8 @@ const es: ClasificadosServiciosCopy = {
     addedHighlightsSection: "Highlights agregados:",
     customHighlightsMax: `Máximo ${MAX_CUSTOM_BUSINESS_HIGHLIGHTS} highlights personalizados`,
     selectionMaxPresetHighlights: `Puedes elegir hasta ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} sugeridos.`,
-    selectionMaxThree: "Máximo 3 opciones",
+    selectionMaxReasons: "Máximo 6 opciones",
+    selectionMaxQuickFacts: "Máximo 5 opciones",
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
     leonixVerified: "Mostrar interés en Verificado Leonix",
@@ -596,7 +599,8 @@ const es: ClasificadosServiciosCopy = {
     insuranceType: "Tipo de seguro",
     insuranceTypePlaceholder: "Ej.: Responsabilidad general",
     certificationsLabel: "Certificaciones",
-    certificationsPlaceholder: "Ej.: Técnico certificado",
+    certificationsPlaceholder: "Certificación, membresía o grado",
+    certificationsHint: "Agrega certificaciones, membresías, grados o reconocimientos.",
     certificationsAdd: "Añadir",
     certificationsAddedList: "Certificaciones agregadas:",
     certificationsCustomMax: "Has alcanzado el máximo de certificaciones (24).",
@@ -789,7 +793,8 @@ const en: ClasificadosServiciosCopy = {
     addedHighlightsSection: "Added highlights:",
     customHighlightsMax: `Up to ${MAX_CUSTOM_BUSINESS_HIGHLIGHTS} custom highlights`,
     selectionMaxPresetHighlights: `You can select up to ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} suggested highlights.`,
-    selectionMaxThree: "Maximum 3 options",
+    selectionMaxReasons: "Maximum 6 options",
+    selectionMaxQuickFacts: "Maximum 5 options",
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
     leonixVerified: "Show interest in Leonix Verified",
@@ -902,7 +907,8 @@ const en: ClasificadosServiciosCopy = {
     insuranceType: "Insurance type",
     insuranceTypePlaceholder: "Ex: General liability",
     certificationsLabel: "Certifications",
-    certificationsPlaceholder: "Ex: Certified technician",
+    certificationsPlaceholder: "Certification, membership, or degree",
+    certificationsHint: "Add certifications, memberships, degrees, or recognitions.",
     certificationsAdd: "Add",
     certificationsAddedList: "Added certifications:",
     certificationsCustomMax: "You’ve reached the maximum of 24 certifications.",

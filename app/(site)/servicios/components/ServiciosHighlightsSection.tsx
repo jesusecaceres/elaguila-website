@@ -23,12 +23,18 @@ export type ServiciosHighlightsSectionProps = {
   highlights: ServiciosBusinessHighlightItem[];
   lang: ServiciosLang;
   compact?: boolean;
+  embedded?: boolean;
 };
 
 /**
  * Standalone “Highlights del negocio” block — props-driven, safe to relocate in the layout.
  */
-export function ServiciosHighlightsSection({ highlights, lang, compact = false }: ServiciosHighlightsSectionProps) {
+export function ServiciosHighlightsSection({
+  highlights,
+  lang,
+  compact = false,
+  embedded = false,
+}: ServiciosHighlightsSectionProps) {
   const L = getServiciosProfileLabels(lang);
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
@@ -45,18 +51,23 @@ export function ServiciosHighlightsSection({ highlights, lang, compact = false }
 
   const listClass = highlightsListClass(visible.length);
 
-  return (
-    <section
-      className={`rounded-2xl border shadow-sm ${compact ? "p-4 sm:p-5" : "p-3 sm:p-6 md:p-8"}`}
-      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-      aria-labelledby={headingId}
-    >
+  const body = (
+    <>
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h2 id={headingId} className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">
+          <h2
+            id={headingId}
+            className={
+              embedded
+                ? "text-sm font-semibold text-[color:var(--lx-text)]"
+                : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+            }
+          >
             {L.highlightsTitle}
           </h2>
-          <p className="mt-1 max-w-prose text-sm leading-snug text-[color:var(--lx-muted)]">{L.highlightsSubtitle}</p>
+          {!embedded ? (
+            <p className="mt-1 max-w-prose text-sm leading-snug text-[color:var(--lx-muted)]">{L.highlightsSubtitle}</p>
+          ) : null}
         </div>
         {highlights.length > 6 ? (
           <p className="shrink-0 text-xs font-medium text-[color:var(--lx-muted)]">
@@ -108,6 +119,18 @@ export function ServiciosHighlightsSection({ highlights, lang, compact = false }
           {L.highlightsShowLess}
         </button>
       ) : null}
+    </>
+  );
+
+  if (embedded) return <div data-servicios-highlights-embedded="1">{body}</div>;
+
+  return (
+    <section
+      className={`rounded-2xl border shadow-sm ${compact ? "p-4 sm:p-5" : "p-3 sm:p-6 md:p-8"}`}
+      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
+      aria-labelledby={headingId}
+    >
+      {body}
     </section>
   );
 }
