@@ -90,6 +90,7 @@ export function LeonixCategorySearchCanvas({
   onOpenFilters,
   browseAllHref,
   browseAllLabel,
+  queryPlaceholder,
   searchButtonLabel,
   filtersButtonLabel,
   publishHref,
@@ -166,8 +167,8 @@ export function LeonixCategorySearchCanvas({
             type="search"
             value={query}
             onChange={(e) => onQuery(e.target.value)}
-            placeholder={lang === "es" ? "Buscar..." : "Search..."}
-            aria-label={lang === "es" ? "Buscar" : "Search"}
+            placeholder={queryPlaceholder || (lang === "es" ? "Buscar..." : "Search...")}
+            aria-label={queryPlaceholder || (lang === "es" ? "Buscar" : "Search")}
             className={`${inputClass} ${isSharedAnchor ? "font-medium" : ""}`}
             autoComplete="off"
           />

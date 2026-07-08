@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { FiCalendar, FiClock, FiCoffee, FiGlobe, FiHeart, FiHome, FiMapPin, FiMessageCircle, FiShoppingBag, FiStar, FiTruck } from "react-icons/fi";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -76,6 +77,7 @@ function RestaurantesLandingPageInner(_props: {
         tagline: "Local flavor close to your community.",
         intro: "Find restaurants, local food, catering, and food businesses with clear details and direct contact.",
         introSecondary: "Search by name, cuisine, city, or ZIP; use filters for delivery, takeout, family-friendly options, and more.",
+        searchPlaceholder: "Search restaurant, cuisine, or food...",
         sponsorEyebrow: "MAGAZINE · DIGITAL · RESTAURANTS",
         sponsorTitle: "Leonix Sponsors",
         sponsorBody: "Restaurants and food businesses with premium visibility across Leonix Media, print/digital magazine, and community campaigns.",
@@ -110,6 +112,7 @@ function RestaurantesLandingPageInner(_props: {
       tagline: "Sabores cerca de tu comunidad.",
       intro: "Encuentra restaurantes, comida local, catering y negocios de comida con datos claros y contacto directo.",
       introSecondary: "Busca por nombre, cocina, ciudad o código postal; usa filtros para delivery, para llevar, familiar y más.",
+      searchPlaceholder: "Buscar restaurante, cocina o comida...",
       sponsorEyebrow: "REVISTA · DIGITAL · RESTAURANTES",
       sponsorTitle: "Patrocinadores de Leonix",
       sponsorBody: "Restaurantes y negocios de comida con presencia premium en Leonix Media, revista impresa/digital y campañas comunitarias.",
@@ -155,18 +158,18 @@ function RestaurantesLandingPageInner(_props: {
       onZip={setSearchZip}
       onCountry={setSearchCountry}
       onSearch={() => {
-        const params = new URLSearchParams();
-        params.set("lang", lang);
-        if (searchQ.trim()) params.set("q", searchQ.trim());
-        if (searchCity.trim()) params.set("city", searchCity.trim());
-        if (searchState.trim()) params.set("state", searchState.trim());
-        if (searchZip.trim()) params.set("zip", searchZip.trim());
-        if (searchCountry.trim()) params.set("country", searchCountry.trim());
-        window.location.href = `${allResultsHref}?${params.toString()}`;
+        window.location.href = buildRestaurantesResultsHref(lang, {
+          q: searchQ.trim(),
+          city: searchCity.trim(),
+          state: searchState.trim(),
+          zip: searchZip.trim(),
+          country: searchCountry.trim(),
+        });
       }}
       onOpenFilters={() => {}}
       browseAllHref={allResultsHref}
       browseAllLabel={copy.exploreAll}
+      queryPlaceholder={copy.searchPlaceholder}
       searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
       filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
       publishHref={publishHref}
@@ -203,7 +206,6 @@ function RestaurantesLandingPageInner(_props: {
           body={copy.sponsorBody}
           supportingLine={copy.sponsorSupport}
           chips={copy.sponsorChips}
-          primaryCta={{ label: copy.sponsorPrimaryCta, href: publishHref }}
           secondaryCta={{ label: copy.sponsorSecondaryCta, href: allResultsHref }}
         />
 
@@ -214,14 +216,14 @@ function RestaurantesLandingPageInner(_props: {
           heading={copy.discoveryTitle}
           subtitle={copy.discoverySubtitle}
           items={[
-            { id: "mexican", label: lang === "es" ? "Mexicana" : "Mexican", href: buildRestaurantesResultsHref(lang, { cuisine: "mexican" }), icon: () => null },
-            { id: "italian", label: lang === "es" ? "Italiana" : "Italian", href: buildRestaurantesResultsHref(lang, { cuisine: "italian" }), icon: () => null },
-            { id: "chinese", label: lang === "es" ? "China" : "Chinese", href: buildRestaurantesResultsHref(lang, { cuisine: "chinese" }), icon: () => null },
-            { id: "burgers", label: lang === "es" ? "Hamburguesas" : "Burgers", href: buildRestaurantesResultsHref(lang, { cuisine: "burgers" }), icon: () => null },
-            { id: "pizza", label: "Pizza", href: buildRestaurantesResultsHref(lang, { cuisine: "pizza" }), icon: () => null },
-            { id: "dessert", label: lang === "es" ? "Postres" : "Desserts", href: buildRestaurantesResultsHref(lang, { cuisine: "dessert" }), icon: () => null },
-            { id: "foodtruck", label: "Food truck", href: buildRestaurantesResultsHref(lang, { ft: "1" }), icon: () => null },
-            { id: "catering", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }), icon: () => null },
+            { id: "mexican", label: lang === "es" ? "Mexicana" : "Mexican", href: buildRestaurantesResultsHref(lang, { cuisine: "mexican" }), icon: FiCoffee },
+            { id: "italian", label: lang === "es" ? "Italiana" : "Italian", href: buildRestaurantesResultsHref(lang, { cuisine: "italian" }), icon: FiCoffee },
+            { id: "chinese", label: lang === "es" ? "China" : "Chinese", href: buildRestaurantesResultsHref(lang, { cuisine: "chinese" }), icon: FiCoffee },
+            { id: "burgers", label: lang === "es" ? "Hamburguesas" : "Burgers", href: buildRestaurantesResultsHref(lang, { cuisine: "burgers" }), icon: FiCoffee },
+            { id: "pizza", label: "Pizza", href: buildRestaurantesResultsHref(lang, { cuisine: "pizza" }), icon: FiCoffee },
+            { id: "dessert", label: lang === "es" ? "Postres" : "Desserts", href: buildRestaurantesResultsHref(lang, { cuisine: "dessert" }), icon: FiStar },
+            { id: "foodtruck", label: "Food truck", href: buildRestaurantesResultsHref(lang, { ft: "1" }), icon: FiTruck },
+            { id: "catering", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }), icon: FiCalendar },
           ]}
         />
 
@@ -233,14 +235,14 @@ function RestaurantesLandingPageInner(_props: {
           subtitle=""
           variant="default"
           chips={[
-            { id: "dine_in", label: lang === "es" ? "Comer en local" : "Dine-in", href: buildRestaurantesResultsHref(lang, { svc: "dine_in" }) },
-            { id: "takeout", label: lang === "es" ? "Para llevar" : "Takeout", href: buildRestaurantesResultsHref(lang, { svc: "takeout" }) },
-            { id: "delivery", label: lang === "es" ? "Entrega" : "Delivery", href: buildRestaurantesResultsHref(lang, { svc: "delivery" }) },
-            { id: "catering2", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }) },
-            { id: "events", label: lang === "es" ? "Eventos" : "Events", href: buildRestaurantesResultsHref(lang, { svc: "events" }) },
-            { id: "reservations", label: lang === "es" ? "Reservas" : "Reservations", href: buildRestaurantesResultsHref(lang, { rsv: "1" }) },
-            { id: "pickup", label: "Pickup", href: buildRestaurantesResultsHref(lang, { pku: "1" }) },
-            { id: "open", label: lang === "es" ? "Abierto ahora" : "Open now", href: buildRestaurantesResultsHref(lang, { open: "1" }) },
+            { id: "dine_in", label: lang === "es" ? "Comer en local" : "Dine-in", href: buildRestaurantesResultsHref(lang, { svc: "dine_in" }), icon: FiHome },
+            { id: "takeout", label: lang === "es" ? "Para llevar" : "Takeout", href: buildRestaurantesResultsHref(lang, { svc: "takeout" }), icon: FiShoppingBag },
+            { id: "delivery", label: lang === "es" ? "Entrega" : "Delivery", href: buildRestaurantesResultsHref(lang, { svc: "delivery" }), icon: FiTruck },
+            { id: "catering2", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }), icon: FiCalendar },
+            { id: "events", label: lang === "es" ? "Eventos" : "Events", href: buildRestaurantesResultsHref(lang, { svc: "events" }), icon: FiCalendar },
+            { id: "reservations", label: lang === "es" ? "Reservas" : "Reservations", href: buildRestaurantesResultsHref(lang, { rsv: "1" }), icon: FiStar },
+            { id: "pickup", label: "Pickup", href: buildRestaurantesResultsHref(lang, { pku: "1" }), icon: FiMapPin },
+            { id: "open", label: lang === "es" ? "Abierto ahora" : "Open now", href: buildRestaurantesResultsHref(lang, { open: "1" }), icon: FiClock },
           ]}
         />
 
@@ -252,14 +254,14 @@ function RestaurantesLandingPageInner(_props: {
           subtitle=""
           variant="default"
           chips={[
-            { id: "family", label: lang === "es" ? "Familiar" : "Family-friendly", href: buildRestaurantesResultsHref(lang, { family: "1" }) },
-            { id: "menu", label: lang === "es" ? "Menú disponible" : "Menu available", href: buildRestaurantesResultsHref(lang, { menu: "1" }) },
-            { id: "whatsapp", label: lang === "es" ? "Con WhatsApp" : "Has WhatsApp", href: buildRestaurantesResultsHref(lang, { wa: "1" }) },
-            { id: "website", label: lang === "es" ? "Con sitio web" : "Has website", href: buildRestaurantesResultsHref(lang, { web: "1" }) },
-            { id: "social", label: lang === "es" ? "Redes sociales" : "Social media", href: buildRestaurantesResultsHref(lang, { social: "1" }) },
-            { id: "vegan", label: lang === "es" ? "Vegano" : "Vegan", href: buildRestaurantesResultsHref(lang, { diet: "vegan" }) },
-            { id: "glutenfree", label: lang === "es" ? "Sin gluten" : "Gluten-free", href: buildRestaurantesResultsHref(lang, { diet: "glutenfree" }) },
-            { id: "halal", label: "Halal", href: buildRestaurantesResultsHref(lang, { diet: "halal" }) },
+            { id: "family", label: lang === "es" ? "Familiar" : "Family-friendly", href: buildRestaurantesResultsHref(lang, { family: "1" }), icon: FiHeart },
+            { id: "menu", label: lang === "es" ? "Menú disponible" : "Menu available", href: buildRestaurantesResultsHref(lang, { menu: "1" }), icon: FiCoffee },
+            { id: "whatsapp", label: "WhatsApp", href: buildRestaurantesResultsHref(lang, { wa: "1" }), icon: FiMessageCircle },
+            { id: "website", label: lang === "es" ? "Con sitio web" : "Has website", href: buildRestaurantesResultsHref(lang, { web: "1" }), icon: FiGlobe },
+            { id: "social", label: lang === "es" ? "Redes sociales" : "Social media", href: buildRestaurantesResultsHref(lang, { social: "1" }), icon: FiStar },
+            { id: "vegan", label: lang === "es" ? "Vegano" : "Vegan", href: buildRestaurantesResultsHref(lang, { diet: "vegan" }), icon: FiHeart },
+            { id: "glutenfree", label: lang === "es" ? "Sin gluten" : "Gluten-free", href: buildRestaurantesResultsHref(lang, { diet: "glutenfree" }), icon: FiHeart },
+            { id: "halal", label: "Halal", href: buildRestaurantesResultsHref(lang, { diet: "halal" }), icon: FiHeart },
           ]}
         />
       </main>

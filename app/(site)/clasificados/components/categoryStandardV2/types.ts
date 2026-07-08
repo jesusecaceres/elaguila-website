@@ -70,6 +70,7 @@ export interface LeonixCategorySearchCanvasProps {
   onOpenFilters: () => void;
   browseAllHref?: string;
   browseAllLabel?: string;
+  queryPlaceholder?: string;
   searchButtonLabel: string;
   filtersButtonLabel: string;
   publishHref?: string;

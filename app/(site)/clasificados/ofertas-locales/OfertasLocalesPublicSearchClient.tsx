@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FiCoffee, FiGift, FiShoppingBag, FiShoppingCart, FiStar, FiTag, FiTool } from "react-icons/fi";
 import type {
   OfertaLocalPublicOfferCard,
   OfertaLocalPublicSearchItem,
@@ -21,7 +22,9 @@ import {
   LeonixCategorySearchCanvas,
   LeonixCategoryCta,
   LeonixCategoryPartnerSection,
+  LeonixCategoryDiscoveryGrid,
   LeonixCategoryShortcutSection,
+  LeonixCategoryVisibilityStrip,
   LeonixCategoryActiveFilters,
   LeonixCategoryResultsShell,
   LeonixCategoryResultsToolbar,
@@ -294,6 +297,7 @@ export function OfertasLocalesPublicSearchClient({
       onOpenFilters={() => setFiltersOpen(true)}
       browseAllHref={browseAllHref}
       browseAllLabel={c.browseAllDeals}
+      queryPlaceholder={c.searchPlaceholderCompact}
       searchButtonLabel={c.searchButton}
       filtersButtonLabel={c.filtersButton}
       publishHref={isResults ? undefined : publishHref}
@@ -431,6 +435,57 @@ export function OfertasLocalesPublicSearchClient({
           <>
             {hero}
             <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
+              <LeonixCategoryDiscoveryGrid
+                lang={lang as V2Lang}
+                surface="landing"
+                heading={c.discoveryTitle}
+                subtitle={c.discoverySubtitle}
+                items={[
+                  {
+                    id: "weekly-flyer",
+                    label: lang === "es" ? "Volante semanal" : "Weekly flyer",
+                    hint: lang === "es" ? "Especiales de tienda" : "Store specials",
+                    href: `${browseAllHref}&offerType=weekly_flyer`,
+                    icon: FiShoppingCart,
+                  },
+                  {
+                    id: "coupon",
+                    label: lang === "es" ? "Cupón" : "Coupon",
+                    hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
+                    href: `${browseAllHref}&offerType=coupon`,
+                    icon: FiTag,
+                  },
+                  {
+                    id: "promotion",
+                    label: lang === "es" ? "Promoción" : "Promotion",
+                    hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
+                    href: `${browseAllHref}&offerType=promotion`,
+                    icon: FiGift,
+                  },
+                  {
+                    id: "local-store",
+                    label: lang === "es" ? "Tienda local" : "Local store",
+                    hint: lang === "es" ? "Negocios cerca de ti" : "Nearby businesses",
+                    href: `${browseAllHref}&marketType=retail`,
+                    icon: FiShoppingBag,
+                  },
+                  {
+                    id: "local-service",
+                    label: lang === "es" ? "Servicio local" : "Local service",
+                    hint: lang === "es" ? "Promos de servicios" : "Service promos",
+                    href: `${browseAllHref}&marketType=service`,
+                    icon: FiTool,
+                  },
+                  {
+                    id: "food",
+                    label: lang === "es" ? "Comida" : "Food",
+                    hint: lang === "es" ? "Restaurantes y mercados" : "Restaurants and markets",
+                    href: `${browseAllHref}&category=food`,
+                    icon: FiCoffee,
+                  },
+                ]}
+              />
+
               <LeonixCategoryPartnerSection
                 enabled
                 lang={lang as V2Lang}
@@ -440,7 +495,6 @@ export function OfertasLocalesPublicSearchClient({
                 body={c.sponsorBody}
                 supportingLine={c.sponsorSupport}
                 chips={[...c.sponsorChips]}
-                primaryCta={{ label: c.sponsorPrimaryCta, href: publishHref }}
                 secondaryCta={{ label: c.sponsorSecondaryCta, href: browseAllHref }}
               />
 
@@ -469,6 +523,20 @@ export function OfertasLocalesPublicSearchClient({
                         { id: "category:food", label: lang === "es" ? "Comida" : "Food", href: `${browseAllHref}&category=food` },
                       ]),
                 ]}
+              />
+
+              <LeonixCategoryVisibilityStrip
+                lang={lang as V2Lang}
+                surface="landing"
+                eyebrow={lang === "es" ? "VISIBILIDAD PRINT + DIGITAL" : "PRINT + DIGITAL VISIBILITY"}
+                title={lang === "es" ? "Haz que tus ofertas tengan más visibilidad" : "Give your offers more visibility"}
+                body={
+                  lang === "es"
+                    ? "Opciones de revista, digital y destacados se revisan con Leonix. Nada aparece como Destacado sin un paquete activo."
+                    : "Print, digital, and featured options are reviewed with Leonix. Nothing is marked Featured without an active package."
+                }
+                ctaLabel={lang === "es" ? "Conocer opciones de visibilidad" : "Explore visibility options"}
+                ctaHref={`/contacto?lang=${lang}&categoria=ofertas-locales&surface=landing`}
               />
             </main>
           </>
