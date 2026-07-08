@@ -166,6 +166,8 @@ Discount fields (percent/amount) may also be saved for `newsletter` / `sms` when
 
 See also **`docs/newsletter-operations-readiness.md`** for the full admin operations runbook (manual export/copy/mailto workflow vs future bulk campaign sender).
 
+**Sales handoff:** step-by-step Google Sheets + Gmail BCC workflow is in **`docs/newsletter-sales-contact-ops.md`**. Current launch workflow is manual export/copy/mailto; true bulk campaign sending is future scope.
+
 - Double opt-in confirmation
 - Unsubscribe management from the promo email
 - Dedicated email-event table (delivery/open/click log) — status currently lives on the promo-code metadata only

@@ -286,6 +286,8 @@ export type OfertaLocalDraft = {
   /** When marketType is other — used for display/search instead of “Otro”. */
   customMarketType: string;
   businessName: string;
+  /** Optional business logo URL (session/draft metadata only — not a DB column). */
+  businessLogoUrl: string;
   title: string;
   description: string;
   couponText: string;

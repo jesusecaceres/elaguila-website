@@ -35,6 +35,20 @@ export const BR_INVENTORY_PACK_MAX_CHILDREN = 4;
 export const BR_BASE_INCLUDED_PROPERTIES = 1;
 export const BR_TOTAL_ACTIVE_PROPERTY_LIMIT = BR_BASE_INCLUDED_PROPERTIES + BR_INVENTORY_PACK_MAX_CHILDREN;
 
+/** Revenue OS checkout supports Autos dealer inventory pack add-on ($129/mo, +10 active vehicles). */
+export const REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED = true;
+
+/** Canonical Revenue OS package key for Autos dealer child vehicle inventory pack (+10 active vehicles). */
+export const AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY = "autos_dealer_inventory_pack_monthly";
+
+/** Price source: `autosDealerInventoryCopy.ts` / A5.QA-03 audit ($129/mo inventory boost). */
+export const AUTOS_DEALER_INVENTORY_PACK_PRICE_CENTS = 12900;
+
+export const AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES = 10;
+export const AUTOS_DEALER_BASE_INCLUDED_VEHICLES = 10;
+export const AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT =
+  AUTOS_DEALER_BASE_INCLUDED_VEHICLES + AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES;
+
 export type PublishCheckpointMode = "checkout" | "free_publish";
 
 export type PublishCheckpointLanguage = "en" | "es";

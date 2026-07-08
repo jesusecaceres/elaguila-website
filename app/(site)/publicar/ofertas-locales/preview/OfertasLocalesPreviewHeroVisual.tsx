@@ -24,11 +24,14 @@ export function OfertasLocalesPreviewHeroVisual({
   heroAsset,
   lang,
   compactMobile = false,
+  onOpenViewer,
 }: {
   draft: OfertaLocalDraft;
   heroAsset: OfertaLocalPreviewHeroAsset | null;
   lang: OfertasLocalesAppLang;
   compactMobile?: boolean;
+  /** When provided, the flyer preview + primary action open the in-page viewer instead of a raw tab. */
+  onOpenViewer?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const [downloading, setDownloading] = useState(false);
@@ -72,6 +75,61 @@ export function OfertasLocalesPreviewHeroVisual({
         : c.weeklyFlyerEs
       : null;
 
+  const viewLabel =
+    heroAsset?.kind === "coupon"
+      ? lang === "en"
+        ? c.viewCouponEn
+        : c.viewCouponEs
+      : lang === "en"
+        ? c.viewFlyerEn
+        : c.viewFlyerEs;
+
+  const canOpenViewer = Boolean(onOpenViewer && heroAsset?.href);
+
+  const previewInner =
+    heroAsset?.href && heroAsset.isImage ? (
+      <div className="bg-[#FDF8F0]/80 p-1.5 sm:p-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={heroAsset.href}
+          alt={heroAsset.fileName}
+          className={`mx-auto w-full rounded-lg object-contain ${
+            compactMobile
+              ? "max-h-[300px] sm:max-h-[480px] lg:max-h-[520px]"
+              : "max-h-[420px] sm:max-h-[480px] lg:max-h-[520px]"
+          }`}
+        />
+      </div>
+    ) : heroAsset?.href && heroAsset.isPdf ? (
+      <OfertasLocalesPdfFlyerPreview
+        pdfUrl={heroAsset.href}
+        lang={lang}
+        fileName={heroAsset.fileName}
+        compactMobile={compactMobile}
+      />
+    ) : heroAsset ? (
+      <div className="flex flex-col items-center justify-center bg-[#FDF8F0]/80 px-6 py-16 text-center">
+        <div className="rounded-lg border border-[#D4C4A8] bg-white px-6 py-8 shadow-sm">
+          <p className="text-sm font-semibold text-[#1E1814]">{heroAsset.fileName}</p>
+          <p className="mt-2 text-xs text-[#1E1814]/55">
+            {lang === "en" ? c.fileOnRecordEn : c.fileOnRecordEs}
+          </p>
+        </div>
+      </div>
+    ) : (
+      <div className="flex flex-col items-center justify-center border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/60 px-6 py-20 text-center">
+        <p className="max-w-xs text-sm leading-relaxed text-[#1E1814]/55">
+          {isCoupon
+            ? lang === "en"
+              ? c.couponEmptyEn
+              : c.couponEmptyEs
+            : lang === "en"
+              ? c.flyerEmptyEn
+              : c.flyerEmptyEs}
+        </p>
+      </div>
+    );
+
   return (
     <div className="space-y-2 sm:space-y-3">
       {laneLabel ? (
@@ -79,47 +137,17 @@ export function OfertasLocalesPreviewHeroVisual({
       ) : null}
 
       <div className={CARD}>
-        {heroAsset?.href && heroAsset.isImage ? (
-          <div className="bg-[#FDF8F0]/80 p-1.5 sm:p-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={heroAsset.href}
-              alt={heroAsset.fileName}
-              className={`mx-auto w-full rounded-lg object-contain ${
-                compactMobile
-                  ? "max-h-[300px] sm:max-h-[480px] lg:max-h-[520px]"
-                  : "max-h-[420px] sm:max-h-[480px] lg:max-h-[520px]"
-              }`}
-            />
-          </div>
-        ) : heroAsset?.href && heroAsset.isPdf ? (
-          <OfertasLocalesPdfFlyerPreview
-            pdfUrl={heroAsset.href}
-            lang={lang}
-            fileName={heroAsset.fileName}
-            compactMobile={compactMobile}
-          />
-        ) : heroAsset ? (
-          <div className="flex flex-col items-center justify-center bg-[#FDF8F0]/80 px-6 py-16 text-center">
-            <div className="rounded-lg border border-[#D4C4A8] bg-white px-6 py-8 shadow-sm">
-              <p className="text-sm font-semibold text-[#1E1814]">{heroAsset.fileName}</p>
-              <p className="mt-2 text-xs text-[#1E1814]/55">
-                {lang === "en" ? c.fileOnRecordEn : c.fileOnRecordEs}
-              </p>
-            </div>
-          </div>
+        {canOpenViewer ? (
+          <button
+            type="button"
+            onClick={onOpenViewer}
+            aria-label={viewLabel}
+            className="group block w-full cursor-zoom-in text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40"
+          >
+            {previewInner}
+          </button>
         ) : (
-          <div className="flex flex-col items-center justify-center border border-dashed border-[#D4C4A8] bg-[#FDF8F0]/60 px-6 py-20 text-center">
-            <p className="max-w-xs text-sm leading-relaxed text-[#1E1814]/55">
-              {isCoupon
-                ? lang === "en"
-                  ? c.couponEmptyEn
-                  : c.couponEmptyEs
-                : lang === "en"
-                  ? c.flyerEmptyEn
-                  : c.flyerEmptyEs}
-            </p>
-          </div>
+          previewInner
         )}
       </div>
 
@@ -131,16 +159,17 @@ export function OfertasLocalesPreviewHeroVisual({
               : "grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
           }
         >
-          <a href={heroAsset.href} target="_blank" rel="noopener noreferrer" className={`${BTN_PRIMARY} gap-2`}>
-            <FiEye className="h-4 w-4 shrink-0" aria-hidden />
-            {heroAsset.kind === "coupon"
-              ? lang === "en"
-                ? c.viewCouponEn
-                : c.viewCouponEs
-              : lang === "en"
-                ? c.viewFlyerEn
-                : c.viewFlyerEs}
-          </a>
+          {onOpenViewer ? (
+            <button type="button" onClick={onOpenViewer} className={`${BTN_PRIMARY} gap-2`}>
+              <FiEye className="h-4 w-4 shrink-0" aria-hidden />
+              {viewLabel}
+            </button>
+          ) : (
+            <a href={heroAsset.href} target="_blank" rel="noopener noreferrer" className={`${BTN_PRIMARY} gap-2`}>
+              <FiEye className="h-4 w-4 shrink-0" aria-hidden />
+              {viewLabel}
+            </a>
+          )}
           <button
             type="button"
             className={`${BTN_OUTLINE} gap-2`}

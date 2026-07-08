@@ -148,6 +148,19 @@ export function digitalCouponCtaLabel(lang: "es" | "en" = "en"): string {
     : OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEs;
 }
 
+/**
+ * Resolve a safe HTTPS business logo URL from the draft, or null. Logo is
+ * optional draft/session metadata — never faked. Requires https to avoid mixed
+ * content / unsafe schemes.
+ */
+export function getOfertaLocalBusinessLogoUrl(draft: OfertaLocalDraft): string | null {
+  const raw = String(draft.businessLogoUrl ?? "").trim();
+  if (!raw) return null;
+  const normalized = normalizeOfertaLocalUrlInput(raw);
+  if (!normalized) return null;
+  return normalized.toLowerCase().startsWith("https://") ? normalized : null;
+}
+
 export type OfertaLocalPreviewHeroAsset = {
   href: string | null;
   fileName: string;

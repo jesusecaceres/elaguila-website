@@ -11,6 +11,7 @@ import {
   RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
+  AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import { buildDashboardMisAnunciosReturnPath } from "./revenueOsReturnPath";
 
@@ -67,6 +68,13 @@ export const BIENES_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
   category: "bienes-raices",
   packageKey: BR_INVENTORY_PACK_PACKAGE_KEY,
   returnPath: buildDashboardMisAnunciosReturnPath("es", "bienes-raices"),
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+/** Dashboard add-on-only — dealer child vehicle inventory pack on an existing published Autos Negocio parent ($129/mo). */
+export const AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
+  category: "autos",
+  packageKey: AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
+  returnPath: buildDashboardMisAnunciosReturnPath("es", "autos"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
 export type RevenueCheckoutAddOnPayload = {

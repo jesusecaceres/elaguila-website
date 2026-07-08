@@ -934,3 +934,91 @@ Cumulatively this pushed the flyer far down the page (profile-first feel).
 | 19 | READY TO COMMIT THIS BUILD ONLY | YES |
 | 20 | READY TO PUSH THIS BUILD ONLY | YES |
 | 21 | UNRELATED DIRTY FILES PRESENT | NO |
+
+---
+
+# Ofertas Preview V2.2 — Business Logo Identity + In-Page Flyer Viewer Repair
+
+Scoped build: brand the identity strip with a logo anchor and replace the raw
+"Ver volante" tab-open with an in-page viewer. Business Hub stays locked.
+
+## Logo field (optional draft/session metadata — no DB migration)
+
+- Added optional `businessLogoUrl: string` to `OfertaLocalDraft`; initialized to
+  `""` in `createEmptyOfertaLocalDraft`. Round-trips through existing draft
+  persistence (spread merge) with no schema/migration change and no publish
+  mapper change.
+- Step 2 of `OfertasLocalesApplicationClient` now has an optional "Logo del
+  negocio / Business logo" URL field near Business Name, normalized on blur with
+  the existing URL normalizer and an "accepted" confirmation like Website.
+- Preview resolves the logo via `getOfertaLocalBusinessLogoUrl` (HTTPS-only, no
+  fake). No file upload added this gate (URL support only).
+
+## Premium identity strip
+
+- The compact strip now leads with an identity row: a logo image (if a valid
+  HTTPS logo is provided) or an honest monogram fallback (first letter of the
+  business name) — never a fake image. Broken logo URLs gracefully fall back to
+  the monogram via `onError`.
+- Business name/meta sit beside the anchor; badges, validity/address, about,
+  rewards mini-notice, and small share remain compact. It did not revert to a
+  large profile card; the flyer still starts right after.
+
+## In-page flyer viewer
+
+- New `OfertasLocalesFlyerViewerModal` (portal, dark backdrop, centered desktop
+  panel, near full-screen mobile, close button, Escape close, body scroll lock,
+  internal scroll, file-name title). Reuses `OfertasLocalesPdfFlyerPreview` for
+  PDFs and a contained `<img>` for images.
+- Clicking the flyer preview and clicking "Ver volante / View flyer" both open
+  this viewer (no raw tab, no double-open). The viewer offers "Descargar volante
+  / Download flyer" (blob + safe fallback) and a secondary "Abrir en pestaña /
+  Open in tab".
+- "Descargar volante" on the hero keeps its existing blob-download + open
+  fallback behavior. Product cards/drawers are unchanged.
+
+## Mobile / PWA
+
+- Identity row stacks cleanly at 390px (logo does not crowd the name). Viewer is
+  near full-screen with a reachable close button, safe-area padding, internal
+  scroll, and no horizontal overflow. Sticky quick-action bar still works.
+
+## Preserved / not touched
+
+- Business Hub shell, product crops, emoji localized filters, filter behavior,
+  search/filter/load-more, native share, map/directions, neutralized future
+  tools — all preserved. No shopping list/coupon wallet/route/buy behavior, no
+  DB/schema/migration, no Stripe/auth/admin, no service worker/manifest, no other
+  categories, no global nav/header/footer.
+
+## V2.2 — TRUE/FALSE audit
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Logo support gap identified | TRUE |
+| 2 | Optional `businessLogoUrl` added to draft type | TRUE |
+| 3 | Empty draft initializes `businessLogoUrl` | TRUE |
+| 4 | Step 2 exposes optional logo URL field | TRUE |
+| 5 | Logo URL normalizes/validates safely (HTTPS) | TRUE |
+| 6 | Identity strip uses logo when available | TRUE |
+| 7 | Identity strip uses honest monogram fallback | TRUE |
+| 8 | Identity strip is premium but compact | TRUE |
+| 9 | Flyer remains the hero | TRUE |
+| 10 | Flyer preview click opens in-page viewer | TRUE |
+| 11 | `Ver volante` opens in-page viewer | TRUE |
+| 12 | `Descargar volante` remains download/raw fallback | TRUE |
+| 13 | No double-open behavior introduced | TRUE |
+| 14 | Viewer works for PDF/image assets | TRUE |
+| 15 | Viewer has accessible close behavior | TRUE |
+| 16 | Mobile 390px considered | TRUE |
+| 17 | Business Hub shell preserved | TRUE |
+| 18 | Product crops preserved | TRUE |
+| 19 | Emoji filters preserved | TRUE |
+| 20 | No fake save/list/coupon/route/buy behavior added | TRUE |
+| 21 | No DB migration/schema change | TRUE |
+| 22 | No other categories touched | TRUE |
+| 23 | Verifier passed | TRUE |
+| 24 | Build passed | TRUE |
+| 25 | READY TO COMMIT THIS BUILD ONLY | YES |
+| 26 | READY TO PUSH THIS BUILD ONLY | YES |
+| 27 | UNRELATED DIRTY FILES PRESENT | NO |

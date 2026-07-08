@@ -8,7 +8,9 @@ import {
   isAutosClassifiedsDbConfigured,
   listAutosClassifiedsListingsForOwner,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import { countActiveDealerVehicles, summarizeDealerInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { countActiveDealerVehicles, summarizeDealerInventory, isDealerInventoryMainListing } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -43,6 +45,44 @@ function dbNotConfigured(lang: AutosClassifiedsLang) {
   );
 }
 
+async function ownerHasActiveDealerInventoryPack(
+  ownerUserId: string,
+  rows: Awaited<ReturnType<typeof listAutosClassifiedsListingsForOwner>>,
+): Promise<boolean> {
+  const { getAdminSupabase, isSupabaseAdminConfigured } = await import("@/app/lib/supabase/server");
+  if (!isSupabaseAdminConfigured()) return false;
+  const mainIds = rows
+    .filter((r) => isDealerInventoryMainListing(r) && r.status === "active")
+    .map((r) => r.id)
+    .filter(Boolean);
+  if (!mainIds.length) return false;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("listing_package_entitlements")
+    .select("id, listing_id, package_key, status, ends_at")
+    .in("listing_id", mainIds)
+    .eq("package_key", AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY);
+  return (data ?? []).some((row) => {
+    const status = String(row.status ?? "").trim().toLowerCase();
+    if (status !== "active") return false;
+    return isListingPackageEntitlementRowActive({
+      status: row.status as string,
+      ends_at: row.ends_at as string | null,
+    });
+  });
+}
+
+async function resolveDealerActiveVehicleLimitForOwner(
+  ownerUserId: string,
+  rows: Awaited<ReturnType<typeof listAutosClassifiedsListingsForOwner>>,
+): Promise<number> {
+  const { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } = await import(
+    "@/app/lib/clasificados/autos/autosDealerInventoryPolicy"
+  );
+  const hasPack = await ownerHasActiveDealerInventoryPack(ownerUserId, rows);
+  return hasPack ? AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT : STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT;
+}
+
 /** Owner's Autos classifieds rows (all statuses) for dashboard / publish flow. */
 export async function GET(request: Request) {
   if (!isAutosClassifiedsDbConfigured()) {
@@ -60,7 +100,8 @@ export async function GET(request: Request) {
     );
   }
   const rows = await listAutosClassifiedsListingsForOwner(userId);
-  const dealerInventory = summarizeDealerInventory(countActiveDealerVehicles(rows));
+  const limit = await resolveDealerActiveVehicleLimitForOwner(userId, rows);
+  const dealerInventory = summarizeDealerInventory(countActiveDealerVehicles(rows), limit);
   return NextResponse.json({
     ok: true,
     listings: rows.map(autosClassifiedsRowToDashboardRow),

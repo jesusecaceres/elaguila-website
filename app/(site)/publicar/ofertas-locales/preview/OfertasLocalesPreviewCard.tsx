@@ -27,6 +27,7 @@ import {
   digitalCouponCtaLabel,
   formatOfertaLocalDateRange,
   getOfertaLocalMarketDisplayLabel,
+  getOfertaLocalBusinessLogoUrl,
   getOfertaLocalPreviewHeroAsset,
   getOfertaLocalSocialLinksByCategory,
   labelForBusinessCategory,
@@ -47,6 +48,7 @@ import type { SupportedLang } from "@/app/lib/language";
 import { LeonixMobileScrollRail } from "@/app/(site)/components/mobile/LeonixMobileScrollRail";
 import { LeonixResponsiveShell } from "@/app/(site)/components/mobile/LeonixResponsiveShell";
 import { OfertasLocalesPreviewHeroVisual } from "./OfertasLocalesPreviewHeroVisual";
+import { OfertasLocalesFlyerViewerModal } from "./OfertasLocalesFlyerViewerModal";
 import { OfertasLocalesMiniMapPreview } from "./OfertasLocalesMiniMapPreview";
 import { OfertasLocalesPreviewProductGrid } from "./OfertasLocalesPreviewProductGrid";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
@@ -589,6 +591,8 @@ export function OfertasLocalesPreviewCard({
       : false;
 
   const heroAsset = getOfertaLocalPreviewHeroAsset(draft);
+  const businessLogoUrl = getOfertaLocalBusinessLogoUrl(draft);
+  const businessInitial = (draft.businessName.trim() || draft.title.trim() || "L").charAt(0).toUpperCase();
   const locationLine = buildOfertaLocalPreviewLocationLine(draft);
   const telHref = buildOfertaLocalTelHref(draft.phone);
   const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp || draft.phone, draft.businessName);
@@ -602,6 +606,34 @@ export function OfertasLocalesPreviewCard({
   const hasAiProducts = draft.wantsAiSearchableSpecials && approvedAiItems.length > 0;
 
   const [shareCopied, setShareCopied] = useState(false);
+  const [flyerViewerOpen, setFlyerViewerOpen] = useState(false);
+  const [flyerDownloading, setFlyerDownloading] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  /** Shared flyer/coupon download used by the in-page viewer (blob + safe fallback). */
+  const handleFlyerDownload = useCallback(async () => {
+    const href = heroAsset?.href;
+    if (!href || flyerDownloading) return;
+    setFlyerDownloading(true);
+    try {
+      const res = await fetch(href, { credentials: "omit" });
+      if (!res.ok) throw new Error(`download_failed_${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = heroAsset?.fileName || (heroAsset?.kind === "coupon" ? "cupon" : "volante");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(href, "_blank", "noopener,noreferrer");
+    } finally {
+      setFlyerDownloading(false);
+    }
+  }, [heroAsset?.href, heroAsset?.fileName, heroAsset?.kind, flyerDownloading]);
+
   const handleShare = useCallback(async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (!url) return;
@@ -712,45 +744,69 @@ export function OfertasLocalesPreviewCard({
 
         {/* 3. Title / info section — compact business strip that supports the flyer (not a profile card) */}
         <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "p-3 lg:p-4")}>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {primaryFormatLabel ? (
-              <span className="rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 text-[11px] font-semibold text-[#7A1E2C]">
-                {primaryFormatLabel}
-              </span>
-            ) : null}
-            {offerLabel && offerLabel !== primaryFormatLabel ? (
-              <span className="rounded-md border border-[#D4C4A8]/80 bg-white px-2 py-0.5 text-[11px] text-[#1E1814]/75">
-                {offerLabel}
-              </span>
-            ) : null}
-            {draft.wantsAiSearchableSpecials ? (
-              <span className="rounded-md border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900">
-                {lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}
-              </span>
-            ) : null}
-          </div>
-
-          {/* Business name — strong but not massive (metadata, not the hero) */}
-          <h2 className="mt-2 break-words font-serif text-xl font-bold leading-tight text-[#1E1814] sm:text-2xl lg:text-3xl">
-            {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
-          </h2>
-          {draft.businessName.trim() && draft.title.trim() ? (
-            <p className="mt-0.5 font-serif text-sm font-semibold text-[#7A1E2C] sm:text-base">
-              {draft.title}
-            </p>
-          ) : null}
-
-          {(categoryLabel || marketLabel) ? (
-            <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-[#1E1814]/60">
-              {categoryLabel ? <span>{categoryLabel}</span> : null}
-              {marketLabel ? (
-                <span>
-                  {categoryLabel ? "· " : ""}
-                  {marketLabel}
+          {/* Identity row — logo/monogram anchor + business meta (premium, compact) */}
+          <div className="flex items-start gap-3">
+            <div className="shrink-0">
+              {businessLogoUrl && !logoFailed ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={businessLogoUrl}
+                  alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
+                  onError={() => setLogoFailed(true)}
+                  className="h-12 w-12 rounded-xl border border-[#D4C4A8]/70 bg-white object-contain p-1 shadow-sm sm:h-14 sm:w-14"
+                />
+              ) : (
+                <span
+                  aria-label={lang === "en" ? c.businessInitialEn : c.businessInitialEs}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#7A1E2C]/25 bg-gradient-to-br from-[#7A1E2C]/10 to-[#FDF8F0] font-serif text-xl font-bold text-[#7A1E2C] shadow-sm sm:h-14 sm:w-14 sm:text-2xl"
+                >
+                  {businessInitial}
                 </span>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {primaryFormatLabel ? (
+                  <span className="rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2 py-0.5 text-[11px] font-semibold text-[#7A1E2C]">
+                    {primaryFormatLabel}
+                  </span>
+                ) : null}
+                {offerLabel && offerLabel !== primaryFormatLabel ? (
+                  <span className="rounded-md border border-[#D4C4A8]/80 bg-white px-2 py-0.5 text-[11px] text-[#1E1814]/75">
+                    {offerLabel}
+                  </span>
+                ) : null}
+                {draft.wantsAiSearchableSpecials ? (
+                  <span className="rounded-md border border-emerald-300/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-900">
+                    {lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Business name — strong but not massive (metadata, not the hero) */}
+              <h2 className="mt-1.5 break-words font-serif text-xl font-bold leading-tight text-[#1E1814] sm:text-2xl lg:text-3xl">
+                {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
+              </h2>
+              {draft.businessName.trim() && draft.title.trim() ? (
+                <p className="mt-0.5 font-serif text-sm font-semibold text-[#7A1E2C] sm:text-base">
+                  {draft.title}
+                </p>
+              ) : null}
+
+              {(categoryLabel || marketLabel) ? (
+                <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-[#1E1814]/60">
+                  {categoryLabel ? <span>{categoryLabel}</span> : null}
+                  {marketLabel ? (
+                    <span>
+                      {categoryLabel ? "· " : ""}
+                      {marketLabel}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
-          ) : null}
+          </div>
 
           {/* Validity + address — one tight inline row on desktop, short stack on mobile */}
           {(dateRange || locationLine) ? (
@@ -863,7 +919,13 @@ export function OfertasLocalesPreviewCard({
         {/* 4. Flyer hero — the star of the page (starts right after the compact strip) */}
         <section id="volante" className={cx(SECTION_ANCHOR, "mt-3 sm:mt-4")}>
           <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
-            <OfertasLocalesPreviewHeroVisual draft={draft} heroAsset={heroAsset} lang={lang} compactMobile />
+            <OfertasLocalesPreviewHeroVisual
+              draft={draft}
+              heroAsset={heroAsset}
+              lang={lang}
+              compactMobile
+              onOpenViewer={heroAsset?.href ? () => setFlyerViewerOpen(true) : undefined}
+            />
           </div>
         </section>
 
@@ -994,6 +1056,15 @@ export function OfertasLocalesPreviewCard({
         waHref={waHref}
         shareCopied={shareCopied}
         onShare={() => void handleShare()}
+      />
+
+      <OfertasLocalesFlyerViewerModal
+        open={flyerViewerOpen}
+        onClose={() => setFlyerViewerOpen(false)}
+        heroAsset={heroAsset}
+        lang={lang}
+        onDownload={() => void handleFlyerDownload()}
+        downloading={flyerDownloading}
       />
     </>
   );

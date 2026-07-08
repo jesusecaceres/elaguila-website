@@ -284,23 +284,27 @@ export function buildNewsletterReplyContent(row: NewsletterReplyInput): {
 
   return es
     ? {
-        subject: "Leonix — gracias por unirse al lanzamiento",
+        subject: "Tu código Leonix Launch 25",
         body: `Hola ${name},
 
-Gracias por registrarse en Leonix. Nos alegra tenerle cerca para el lanzamiento.
+Gracias por unirte a Leonix Media.
 
-¿Le interesa más como lector, dueño de negocio, anunciante o socio?
+Tu código Leonix Launch 25 es para productos web elegibles en checkout (anuncios y paquetes web). No aplica a paquetes impresos de revista, combos impresos+digital ni contratos manuales — esos son productos separados.
+
+Si necesitas ayuda para usar tu código o publicar, contáctanos y con gusto te orientamos.
 
 Saludos,
 Equipo Leonix Media`,
       }
     : {
-        subject: "Leonix — thank you for joining the launch list",
+        subject: "Your Leonix Launch 25 code",
         body: `Hi ${name},
 
-Thank you for signing up with Leonix. We're glad to have you for the launch.
+Thank you for joining Leonix Media.
 
-Are you most interested as a reader, business owner, advertiser, or partner?
+Your Leonix Launch 25 code applies to eligible website checkout products (website ads and packages). It does not apply to printed magazine packages, print+digital combos, or manual contracts — those are separate products.
+
+If you need help using your code or publishing, contact us and we'll be happy to guide you.
 
 Best,
 Leonix Media Team`,

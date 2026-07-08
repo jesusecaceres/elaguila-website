@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import {
-  autosInventoryBoostCheckoutSoonMessage,
   autosInventoryBoostNoPaymentNote,
   autosInventoryBoostStripeReturnNote,
   autosInventoryBoostPanelIntro,
   autosInventoryBoostPanelTitle,
-  autosInventoryBoostPrepareCta,
   autosInventoryBoostPricingBullets,
-  writeAutosInventoryBoostReturnContext,
   type AutosInventoryBoostReturnContext,
 } from "@/app/lib/clasificados/autos/autosInventoryBoostPipeline";
+import {
+  autosDealerInventoryPackAddonUpgradeBusyLabel,
+  autosDealerInventoryPackAddonUpgradeLabel,
+  redirectAutosDealerInventoryPackCheckout,
+  REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED,
+} from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 
 export type AutosInventoryBoostEditorContext = Omit<AutosInventoryBoostReturnContext, "savedAt" | "status">;
 
@@ -22,16 +25,29 @@ type Props = {
   lang: AutosNegociosLang;
   flushDraft?: () => Promise<void>;
   editorContext: AutosInventoryBoostEditorContext;
+  /** Parent dealer listing id — required for Revenue OS add-on checkout. */
+  parentListingId?: string | null;
+  leonixAdId?: string | null;
 };
 
-export function AutosNegociosInventoryBoostPanel({ open, onClose, lang, flushDraft, editorContext }: Props) {
-  const [prepared, setPrepared] = useState(false);
+export function AutosNegociosInventoryBoostPanel({
+  open,
+  onClose,
+  lang,
+  flushDraft,
+  editorContext,
+  parentListingId,
+  leonixAdId,
+}: Props) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const bullets = autosInventoryBoostPricingBullets(lang);
+  const checkoutEnabled = REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED;
+  const listingId = parentListingId?.trim() || editorContext.parentListingId?.trim() || "";
 
   useEffect(() => {
     if (!open) return;
-    setPrepared(false);
+    setError(null);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -41,16 +57,40 @@ export function AutosNegociosInventoryBoostPanel({ open, onClose, lang, flushDra
 
   if (!open) return null;
 
-  const handlePrepare = async () => {
+  const handleCheckout = async () => {
     setBusy(true);
+    setError(null);
     try {
       if (flushDraft) await flushDraft();
-      writeAutosInventoryBoostReturnContext({
-        ...editorContext,
-        savedAt: new Date().toISOString(),
-        status: "prepared",
+      if (!checkoutEnabled) {
+        setError(
+          lang === "es"
+            ? "El checkout de inventario aún no está disponible."
+            : "Inventory checkout is not available yet.",
+        );
+        return;
+      }
+      if (!listingId) {
+        setError(
+          lang === "es"
+            ? "Publica primero tu anuncio dealer principal para activar el inventario."
+            : "Publish your main dealer listing first to activate inventory.",
+        );
+        return;
+      }
+      const returnPath =
+        editorContext.editorPath && editorContext.editorSearch
+          ? `${editorContext.editorPath}${editorContext.editorSearch}`
+          : undefined;
+      const result = await redirectAutosDealerInventoryPackCheckout({
+        listingId,
+        leonixAdId,
+        lang,
+        returnPath: returnPath ?? null,
       });
-      setPrepared(true);
+      if (!result.ok) {
+        setError(result.userMessage);
+      }
     } finally {
       setBusy(false);
     }
@@ -94,32 +134,30 @@ export function AutosNegociosInventoryBoostPanel({ open, onClose, lang, flushDra
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs font-medium text-[#6E5418]">{autosInventoryBoostNoPaymentNote(lang)}</p>
-          {prepared ? (
-            <p className="mt-4 rounded-xl border border-emerald-200/90 bg-emerald-50/95 px-4 py-3 text-sm font-medium text-emerald-950">
-              {autosInventoryBoostCheckoutSoonMessage(lang)}
+          <p className="mt-4 text-xs font-medium text-[#6E5418]">
+            {checkoutEnabled
+              ? lang === "es"
+                ? "Solo se cobra el paquete de inventario adicional — no se vuelve a cobrar el plan dealer base."
+                : "Only the additional inventory pack is charged — your base dealer plan is not charged again."
+              : autosInventoryBoostNoPaymentNote(lang)}
+          </p>
+          {error ? (
+            <p className="mt-4 rounded-xl border border-red-200/90 bg-red-50/95 px-4 py-3 text-sm font-medium text-red-950">
+              {error}
             </p>
           ) : null}
         </div>
         <div className="shrink-0 border-t border-[#E8DFD0] bg-[#FAF7F2] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
-          {!prepared ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handlePrepare()}
-              className="w-full rounded-2xl bg-[#2A2620] py-3.5 text-sm font-bold text-[#FAF7F2] shadow-md hover:bg-[#1E1810] disabled:opacity-60"
-            >
-              {busy ? (lang === "es" ? "Guardando…" : "Saving…") : autosInventoryBoostPrepareCta(lang)}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full rounded-2xl border border-[#C9B46A]/50 bg-white py-3.5 text-sm font-bold text-[#6E5418]"
-            >
-              {lang === "es" ? "Continuar" : "Continue"}
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={busy || !checkoutEnabled}
+            onClick={() => void handleCheckout()}
+            className="w-full rounded-2xl bg-[#2A2620] py-3.5 text-sm font-bold text-[#FAF7F2] shadow-md hover:bg-[#1E1810] disabled:opacity-60"
+          >
+            {busy
+              ? autosDealerInventoryPackAddonUpgradeBusyLabel(lang)
+              : autosDealerInventoryPackAddonUpgradeLabel(lang)}
+          </button>
         </div>
       </div>
     </div>

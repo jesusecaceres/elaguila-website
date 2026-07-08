@@ -26,6 +26,10 @@ const GEMINI_NORMALIZER = "app/lib/ofertas-locales/ofertasLocalesGeminiNormalize
 const TYPES = "app/lib/ofertas-locales/ofertasLocalesTypes.ts";
 const ITEM_MAPPER = "app/lib/ofertas-locales/ofertasLocalesItemReviewMapper.ts";
 const PRODUCT_TAXONOMY = "app/lib/ofertas-locales/ofertasLocalesProductTaxonomy.ts";
+const TYPES_DRAFT = "app/lib/ofertas-locales/ofertasLocalesTypes.ts";
+const CREATE_EMPTY = "app/lib/ofertas-locales/createEmptyOfertaLocalDraft.ts";
+const APP_CLIENT = "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx";
+const FLYER_VIEWER = "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesFlyerViewerModal.tsx";
 const REVIEW_PANEL = "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx";
 const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
 const CROP_PREVIEW = "app/(site)/publicar/ofertas-locales/preview/OfertasFlyerCropPreview.tsx";
@@ -53,6 +57,9 @@ const GATE_ALLOWED = new Set([
   TYPES,
   ITEM_MAPPER,
   PRODUCT_TAXONOMY,
+  CREATE_EMPTY,
+  APP_CLIENT,
+  FLYER_VIEWER,
   REVIEW_PANEL,
   APP_COPY,
   CROP_PREVIEW,
@@ -65,7 +72,8 @@ const GATE_ALLOWED = new Set([
 ]);
 
 const PROHIBITED = [
-  "OfertasLocalesApplicationClient.tsx",
+  // Note: OfertasLocalesApplicationClient.tsx is intentionally allowed in V2.2
+  // (optional business logo URL field in Step 2). Kept out of PROHIBITED here.
   "OfertasLocalesAiScanPanel.tsx",
   "OfertasLocalesAiScanReviewWorkspace.tsx",
   "app/api/",
@@ -420,6 +428,47 @@ function run() {
     grid.includes("OfertasPdfItemCropPreview") || grid.includes("resolveOfertaLocalItemCropDisplayUrl"),
     "Product crops preserved"
   );
+
+  // Gate — Ofertas Preview V2.2 (business logo identity + in-page flyer viewer)
+  assert.ok(audit.includes("Ofertas Preview V2.2"), "V2.2 audit section");
+
+  const typesDraft = read(TYPES_DRAFT);
+  const createEmpty = read(CREATE_EMPTY);
+  const appClient = read(APP_CLIENT);
+  assert.ok(typesDraft.includes("businessLogoUrl"), "Draft type has businessLogoUrl");
+  assert.ok(createEmpty.includes('businessLogoUrl: ""'), "Empty draft initializes businessLogoUrl");
+  assert.ok(appClient.includes("businessLogoUrl"), "App client Step 2 exposes logo field");
+  assert.ok(
+    appClient.includes("Business logo") && appClient.includes("Logo del negocio"),
+    "App client logo label is ES/EN"
+  );
+  assert.ok(helpers.includes("getOfertaLocalBusinessLogoUrl"), "Preview logo resolver helper");
+  assert.ok(helpers.includes("https://"), "Logo resolver enforces https");
+
+  // Identity strip uses logo + honest monogram fallback.
+  assert.ok(card.includes("businessLogoUrl"), "Preview card references logo");
+  assert.ok(card.includes("businessInitial"), "Preview card has monogram fallback");
+  assert.ok(card.includes("logoFailed"), "Preview card handles broken logo gracefully");
+
+  // In-page flyer viewer modal.
+  assert.ok(fs.existsSync(path.join(ROOT, FLYER_VIEWER)), "Flyer viewer modal exists");
+  const flyerViewer = read(FLYER_VIEWER);
+  assert.ok(flyerViewer.includes('"use client"'), "Viewer is a client component");
+  assert.ok(flyerViewer.includes("createPortal"), "Viewer portals to body");
+  assert.ok(flyerViewer.includes('e.key === "Escape"'), "Viewer closes on Escape");
+  assert.ok(
+    flyerViewer.includes("OfertasLocalesPdfFlyerPreview") && flyerViewer.includes("heroAsset.isImage"),
+    "Viewer renders PDF + image assets"
+  );
+  assert.ok(flyerViewer.includes("openInTab"), "Viewer offers open-in-tab fallback");
+  assert.ok(card.includes("OfertasLocalesFlyerViewerModal"), "Preview card renders viewer modal");
+  assert.ok(card.includes("setFlyerViewerOpen"), "Preview card owns viewer open state");
+  // Ver volante opens viewer (hero wired via onOpenViewer), download stays raw fallback.
+  assert.ok(hero.includes("onOpenViewer"), "Hero wires viewer open (Ver volante no longer raw-only)");
+  assert.ok(hero.includes("handleDownload") && hero.includes("downloadFlyer"), "Descargar volante preserved in hero");
+  assert.ok(card.includes("handleFlyerDownload") && card.includes("link.download"), "Viewer download works via blob");
+  // Business Hub still present.
+  assert.ok(card.includes("PreviewBusinessHub"), "Business Hub preserved");
 
   const requiredCopy = [
     "flyerPreviewEs",

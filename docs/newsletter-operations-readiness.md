@@ -93,6 +93,7 @@ This document describes what is **built today** for Leonix newsletter operations
 
 ## Related docs
 
+- `docs/newsletter-sales-contact-ops.md` — **sales handoff runbook** (Google Sheets, Gmail BCC chunks, manual mailto; true bulk sender is future scope)
 - `docs/newsletter-promo-code-readiness.md` — Launch 25 promo code generation + checkout redemption
 - `docs/promo-code-lifecycle-model.md` — promo code lifecycle doctrine
 - `docs/pricing-promo-code-sales-model.md` — sales/pricing promo model

@@ -6,6 +6,7 @@ import {
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { resolveBienesInventoryPackSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import { resolveAutosDealerInventoryPackSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { resolveRestauranteOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 import { resolveServiciosOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 
@@ -52,6 +53,12 @@ function resolveCopy(
       lang,
     }) ??
     resolveBienesInventoryPackSuccessPrimaryCta({
+      packageKey: proof.packageKey,
+      listingId: proof.listingId,
+      leonixAdId: proof.leonixAdId,
+      lang,
+    }) ??
+    resolveAutosDealerInventoryPackSuccessPrimaryCta({
       packageKey: proof.packageKey,
       listingId: proof.listingId,
       leonixAdId: proof.leonixAdId,

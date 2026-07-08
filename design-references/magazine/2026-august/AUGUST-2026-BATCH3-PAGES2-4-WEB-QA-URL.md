@@ -133,3 +133,5 @@ Purpose:
 **AUGUST_BATCH3_PAGES2_4_WEB_QA_URLS_READY**
 
 **READY FOR CHUY QA AT https://www.leonixmedia.com/magazine/qa/2026-august/page-2-english AND https://www.leonixmedia.com/magazine/qa/2026-august/page-3-english AND https://www.leonixmedia.com/magazine/qa/2026-august/page-4-english: YES**
+
+Chuy QA decision locked: [`AUGUST-2026-BATCH3-PAGES2-4-CHUY-QA-DECISION.md`](AUGUST-2026-BATCH3-PAGES2-4-CHUY-QA-DECISION.md) · Next gate: `AUGUST-2026-MULTILINGUAL-DIGITAL-TRANSLATION-PIPELINE-ARCHITECTURE1`

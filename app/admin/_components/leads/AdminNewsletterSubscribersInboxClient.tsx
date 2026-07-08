@@ -23,8 +23,11 @@ import {
 import {
   clipLeadText,
   copyTextToClipboard,
+  formatBccEmailChunks,
+  formatEmailsForBcc,
   formatLeadCreatedParts,
   parseInterestChips,
+  subscribedEmailsFromRows,
 } from "@/app/admin/_components/leads/adminLeadInboxFormat";
 
 type Folder = "active" | "archived";
@@ -202,10 +205,7 @@ export function AdminNewsletterSubscribersInboxClient({
   }
 
   async function copyEmails() {
-    const emails = filtered
-      .filter((r) => r.status === "subscribed" && r.email.trim())
-      .map((r) => r.email.trim())
-      .join(", ");
+    const emails = formatEmailsForBcc(subscribedEmailsFromRows(filtered));
     if (!emails) {
       showToast("No subscribed emails in view");
       return;
@@ -214,23 +214,64 @@ export function AdminNewsletterSubscribersInboxClient({
     showToast(ok ? "Visible emails copied" : "Could not copy emails");
   }
 
+  async function copyEmailsForBcc() {
+    const emails = subscribedEmailsFromRows(filtered);
+    if (emails.length === 0) {
+      showToast("No subscribed emails in view");
+      return;
+    }
+    const ok = await copyTextToClipboard(formatEmailsForBcc(emails));
+    showToast(ok ? "BCC email list copied" : "Could not copy BCC list");
+  }
+
+  async function copyBccChunks() {
+    const emails = subscribedEmailsFromRows(filtered);
+    if (emails.length === 0) {
+      showToast("No subscribed emails in view");
+      return;
+    }
+    const text = formatBccEmailChunks(emails);
+    const ok = await copyTextToClipboard(text);
+    const chunkCount = Math.ceil(emails.length / 50);
+    showToast(ok ? `BCC email chunks copied (${chunkCount})` : "Could not copy BCC chunks");
+  }
+
   return (
     <div className="space-y-6">
-      <div className={`${adminCardBase} border-[#E8DFD0] bg-[#FAF7F2]/90 px-4 py-3 text-sm text-[#3D3629]`}>
-        <p>
-          Newsletter subscribers — use <strong>View</strong> for full details. Reply/Email use mailto (manual email client;
-          no server newsletter send yet). Archive when done; restore from Archived tab.
-        </p>
-        <p className="mt-2 text-xs text-[#5C5346]">
-          Export/copy emails are for manual newsletter operations until campaign sending is built. Newsletter signups
-          can generate a one-time Launch 25 promo code by email. Promo delivery status lives on the promo-code record
-          until the full email-event log is built.{" "}
+      <div className={`${adminCardBase} border-[#C9A84A]/40 bg-gradient-to-br from-[#FFFCF7] to-[#F6ECD8] px-4 py-4 text-sm text-[#3D3629]`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7A1E2C]">Sales contact ops</p>
+            <p className="mt-1 font-semibold text-[#1E1810]">
+              Use this list for Launch 25 follow-up, sales outreach, and manual newsletter operations.
+            </p>
+            <ul className="mt-3 list-inside list-disc space-y-1 text-xs leading-relaxed text-[#5C5346]">
+              <li>
+                <strong>Export emails CSV</strong> → best for Google Sheets or Gmail contact import.
+              </li>
+              <li>
+                <strong>Export full CSV</strong> → includes source, language, city, interests, consent, and status.
+              </li>
+              <li>
+                <strong>Copy visible emails</strong> / <strong>Copy emails for BCC</strong> / <strong>Copy BCC chunks</strong> →
+                only subscribed emails currently shown by your filters.
+              </li>
+              <li>
+                <strong>Email/Reply</strong> use mailto → manual email client; no server bulk send yet.
+              </li>
+              <li>Promo delivery status lives on the promo-code record.</li>
+            </ul>
+          </div>
           <Link
             href="/admin/workspace/promo-codes?code_type=newsletter"
-            className="font-semibold text-[#6B5B2E] underline"
+            className={`${adminBtnSecondary} shrink-0 self-start`}
           >
-            Newsletter promo codes →
+            View newsletter promo codes
           </Link>
+        </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-[#7A7164]">
+          Newsletter subscribers — use <strong>View</strong> for full details. Archive when done; restore from Archived tab.
+          Export/copy are manual operations until campaign sending is built inside Leonix.
         </p>
       </div>
 
@@ -294,13 +335,32 @@ export function AdminNewsletterSubscribersInboxClient({
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Link href="/api/admin/leads/newsletter/export" className={adminBtnSecondary}>Export full CSV</Link>
-        <Link href="/api/admin/leads/newsletter/emails-export" className={adminBtnSecondary}>Export emails CSV</Link>
-        <button type="button" onClick={() => void copyEmails()} className={adminBtnSecondary}>Copy visible emails</button>
-        <span className="self-center text-sm text-[#7A7164]">
-          Showing {filtered.length} of {rows.length} loaded ({total} {folder}, newest {limit})
-        </span>
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-3">
+          <Link href="/api/admin/leads/newsletter/export" className={adminBtnSecondary}>
+            Export full CSV
+          </Link>
+          <Link href="/api/admin/leads/newsletter/emails-export" className={adminBtnSecondary}>
+            Export emails CSV
+          </Link>
+          <button type="button" onClick={() => void copyEmails()} className={adminBtnSecondary}>
+            Copy visible emails
+          </button>
+          <button type="button" onClick={() => void copyEmailsForBcc()} className={adminBtnSecondary}>
+            Copy emails for BCC
+          </button>
+          <button type="button" onClick={() => void copyBccChunks()} className={adminBtnSecondary}>
+            Copy BCC chunks
+          </button>
+          <span className="self-center text-sm text-[#7A7164]">
+            Showing {filtered.length} of {rows.length} loaded ({total} {folder}, newest {limit})
+          </span>
+        </div>
+        <p className="text-xs leading-relaxed text-[#5C5346]">
+          <strong>No Excel needed:</strong> upload the CSV to Google Drive, then open with Google Sheets. For Gmail
+          outreach, use Export emails CSV or copy buttons above — paste into <strong>BCC</strong>, not To. Use BCC chunks
+          when the list is long (50 emails per chunk).
+        </p>
       </div>
 
       {toast ? (

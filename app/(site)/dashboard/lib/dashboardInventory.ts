@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import {
+  autosDealerInventoryEditHref,
+  autosDealerListingEditHref,
+  autosDealerListingPreviewHref,
+} from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import {
   buildServiciosDashboardActionContract,
@@ -118,6 +123,8 @@ export type DashboardAutosClassifiedsRow = {
   published_at: string | null;
   updated_at: string;
   leonix_ad_id?: string | null;
+  inventory_role?: string | null;
+  dealer_inventory_parent_listing_id?: string | null;
 };
 
 /** Row shape returned by `GET /api/clasificados/servicios/my-listings` (cloud owner inventory only). */
@@ -198,7 +205,9 @@ export async function fetchOwnerAutosClassifiedsListings(
 ): Promise<DashboardAutosClassifiedsRow[]> {
   const { data, error } = await sb
     .from("autos_classifieds_listings")
-    .select("id, status, lane, lang, listing_payload, published_at, updated_at, leonix_ad_id")
+    .select(
+      "id, status, lane, lang, listing_payload, published_at, updated_at, leonix_ad_id, inventory_role, dealer_inventory_parent_listing_id",
+    )
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
   if (error || !data) return [];
@@ -222,28 +231,54 @@ export function buildAutosClassifiedsInventoryItems(
   lang: "es" | "en",
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
-  return rows.map((row) => ({
-    id: row.id,
-    category: "autos_paid",
-    title: autosClassifiedsTitleFromPayload(row.listing_payload, lang),
-    status: row.status,
-    publicHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
-    editHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
-    previewHref: null,
-    resultsHref: `/clasificados/autos/resultados?${q}`,
-    analyticsHref: `/dashboard/analytics?${q}`,
-    publishedAt: row.published_at,
-    updatedAt: row.updated_at,
-    image: null,
-    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
-    slug: null,
-    packageTier: null,
-    promoted: false,
-    verified: false,
-    draftListingId: null,
-    autosLane: row.lane,
-    source: "autos_classifieds_listings",
-  }));
+  return rows.map((row) => {
+    const isDealerMain =
+      row.lane === "negocios" &&
+      (row.inventory_role === "main" || !row.dealer_inventory_parent_listing_id?.trim());
+    const editHref =
+      row.lane === "negocios" && isDealerMain
+        ? autosDealerListingEditHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+          })
+        : row.lane === "privado"
+          ? `/publicar/autos/privado?edit=1&source=dashboard&listingId=${encodeURIComponent(row.id)}&returnPanel=autos&lang=${lang}`
+          : `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`;
+    const previewHref =
+      row.lane === "negocios" && isDealerMain
+        ? autosDealerListingPreviewHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+            mode: "listing-edit",
+          })
+        : row.status === "active"
+          ? `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`
+          : null;
+    return {
+      id: row.id,
+      category: "autos_paid",
+      title: autosClassifiedsTitleFromPayload(row.listing_payload, lang),
+      status: row.status,
+      publicHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
+      editHref,
+      previewHref,
+      resultsHref: `/clasificados/autos/resultados?${q}`,
+      analyticsHref: `/dashboard/analytics?${q}`,
+      publishedAt: row.published_at,
+      updatedAt: row.updated_at,
+      image: null,
+      leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
+      slug: null,
+      packageTier: null,
+      promoted: false,
+      verified: false,
+      draftListingId: null,
+      autosLane: row.lane,
+      source: "autos_classifieds_listings",
+    };
+  });
 }
 
 export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], lang: "es" | "en"): DashboardInventoryItem[] {
