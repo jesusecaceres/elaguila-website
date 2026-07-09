@@ -472,6 +472,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(
       mapsUrl,
       line1: showExact ? streetLine : "",
       cityStateZip,
+      fullAddress: showExact ? [streetLine, cityStateZip].filter(Boolean).join(", ") : "",
       hasMeaningfulAddress: Boolean((showExact && streetLine) || city || mapsUrl),
     },
     hoaCommunityCard,

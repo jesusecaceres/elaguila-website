@@ -448,7 +448,8 @@ export function mapRentasListingToPrivadoPreviewVm(
   const sellerName = lang === "en" ? extra.sellerDisplayEn : extra.sellerDisplayEs;
   const desc = lang === "en" ? extra.descriptionEn : extra.descriptionEs;
   const loc = rentasLiveLocationLines(listing);
-  const mapsUrl = safeRentasMapUrl(listing.mapUrl);
+  const mapsQuery = loc.exact ? loc.addressLine : loc.cityStateZip;
+  const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : safeRentasMapUrl(listing.mapUrl);
   const showingCard = buildRentasLiveShowingCard(listing, lang);
   const tourUrl = normalizeLeonixHttpsUrl(listing.virtualTourUrl);
 
@@ -502,6 +503,7 @@ export function mapRentasListingToPrivadoPreviewVm(
       mapsUrl,
       line1: loc.line1,
       cityStateZip: loc.cityStateZip,
+      fullAddress: loc.exact ? loc.addressLine : loc.line1,
       hasMeaningfulAddress: Boolean(loc.line1 || loc.cityStateZip || mapsUrl),
     },
     mostrarDireccionExacta: loc.exact,
@@ -574,7 +576,8 @@ export function mapRentasListingToNegocioPreviewVm(
   const desc = lang === "en" ? extra.descriptionEn : extra.descriptionEs;
   const loc = rentasLiveLocationLines(listing);
   const colonia = zonaFromListing(listing);
-  const mapsUrl = safeRentasMapUrl(listing.mapUrl);
+  const mapsQuery = loc.exact ? loc.addressLine : loc.cityStateZip;
+  const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : safeRentasMapUrl(listing.mapUrl);
   const showingCard = buildRentasLiveShowingCard(listing, lang);
   const tourUrl = normalizeLeonixHttpsUrl(listing.virtualTourUrl);
   const ch = listing.contactChannels ?? null;

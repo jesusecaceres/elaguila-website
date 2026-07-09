@@ -316,7 +316,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
   const detailRows = cleanRows(vm.propertyDetailsRows);
   const detailGroups = groupDetails(detailRows, lang);
   const featureText = uniqueFeatureText(cleanRows(vm.highlightsRows));
-  const locationLine = isNegocio(vm) ? vm.location.fullAddress || vm.location.cityStateZip : vm.location.cityStateZip;
+  const locationLine = vm.location.fullAddress || vm.location.cityStateZip;
   const ctas = [c.mailHref, c.callHref, c.waHref, c.smsHref, c.websiteHref, c.mapHref].filter(Boolean);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
