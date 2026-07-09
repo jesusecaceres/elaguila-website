@@ -119,3 +119,5 @@ Purpose: Chuy/reviewer reports one decision per Portuguese page. Coach decides c
 **AUGUST_PORTUGUESE_PROOF_BATCH1_WEB_QA_URLS_READY**
 
 **READY FOR CHUY/REVIEWER QA AT https://www.leonixmedia.com/magazine/qa/2026-august/page-12-portuguese AND https://www.leonixmedia.com/magazine/qa/2026-august/page-6-portuguese AND https://www.leonixmedia.com/magazine/qa/2026-august/page-3-portuguese: YES**
+
+Portuguese Batch 1 QA decision locked: [`AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION.md`](AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION.md) · Next gate: `AUGUST-2026-TRANSLATION-SAFE-MAGAZINE-DESIGN-SPECS1`

@@ -58,6 +58,7 @@ assert(cardModel.includes("BR_INVENTORY_GALLERY_SLOT_COUNT = 6"), "six gallery s
 assert(cardUi.includes("GallerySlotGrid"), "inventory card gallery grid UI");
 assert(app.includes("bootstrapAgenteIndividualResidencialApplicationStateResolved"), "app awaits IDB rehydrate");
 assert(app.includes("persistAgenteResApplicationDraftResolved"), "preview awaits persist before navigate");
-assert(!previewDraft.includes("fullDraftMediaBridge = null"), "bootstrap must not wipe media bridge early");
+assert(previewDraft.includes("resolveFullDraftMediaBridgeState"), "bootstrap uses validated media bridge");
+assert(previewDraft.includes("parsePersistedStateFromJson(raw)"), "LS fallback parses return wrapper");
 
 console.log("OK: bienes-draft-hydration-media-lock-01");

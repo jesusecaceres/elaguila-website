@@ -509,10 +509,14 @@ export function Step03Media({
       <p className={aiSubClass}>{t.step03.sub}</p>
       <div className="mt-5 space-y-6">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{t.step03.mainPortraitTitle}</p>
-          <p className="mt-1 text-xs leading-relaxed text-[#5C5346]/85">{t.step03.mainPortraitHint}</p>
-          <p className="mt-4 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{t.step03.fotos}</p>
-          <label className="mt-2 inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold touch-manipulation sm:min-h-0 sm:px-3 sm:py-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{t.step03.fotos}</p>
+          <div className="mt-2 rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7] px-3 py-2.5 text-xs leading-relaxed text-[#5C5346]/90">
+            <p className="font-bold text-[#6E5418]">{t.step03.imageUploadNoteLabel}</p>
+            <p className="mt-1">{t.step03.imageUploadNoteLine1}</p>
+            <p>{t.step03.imageUploadNoteLine2}</p>
+            <p>{t.step03.imageUploadNoteLine3}</p>
+          </div>
+          <label className="mt-3 inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold touch-manipulation sm:min-h-0 sm:px-3 sm:py-2">
             {t.step03.agregarFotos}
             <input
               type="file"
@@ -549,8 +553,6 @@ export function Step03Media({
               onSetPrimary={(i) => setState((s) => ({ ...s, fotoPortadaIndex: i }))}
             />
           ) : null}
-          <p className="mt-5 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{t.step03.resultsGalleryTitle}</p>
-          <p className="mt-1 text-xs leading-relaxed text-[#5C5346]/85">{t.step03.resultsGalleryHint}</p>
         </div>
         <UrlOrFileRow
           label={t.step02.listado}

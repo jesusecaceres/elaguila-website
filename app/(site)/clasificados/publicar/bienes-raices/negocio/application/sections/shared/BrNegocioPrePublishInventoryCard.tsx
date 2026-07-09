@@ -34,7 +34,7 @@ function PhotoBlock({
       ? "h-36 w-full shrink-0 overflow-hidden rounded-lg bg-[#F3EDE3] sm:h-44 sm:w-52 md:w-60 lg:w-64"
       : layout === "compact"
         ? "h-[88px] w-[88px] shrink-0 sm:h-[96px] sm:w-[96px]"
-        : "relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:w-28 sm:aspect-square";
+        : "relative aspect-[4/3] w-full shrink-0 overflow-hidden sm:w-36 sm:aspect-[4/3] md:w-40 lg:w-44";
 
   if (showImg) {
     return (
@@ -54,7 +54,7 @@ function PhotoBlock({
       ? "h-36 w-full sm:h-44 sm:w-52 md:w-60 lg:w-64"
       : layout === "compact"
         ? "h-[88px] w-[88px] sm:h-[96px] sm:w-[96px]"
-        : "aspect-[4/3] w-full sm:aspect-square sm:w-28";
+        : "aspect-[4/3] w-full sm:aspect-[4/3] sm:w-36 md:w-40 lg:w-44";
 
   return (
     <div
@@ -75,18 +75,24 @@ function GallerySlot({
   url,
   slotNumber,
   lang,
+  layout,
 }: {
   url: string;
   slotNumber: number;
   lang: BrNegocioPrePublishInventoryLang;
+  layout: CardLayout;
 }) {
   const [failed, setFailed] = useState(false);
   const showImg = isDisplayablePhotoUrl(url) && !failed;
   const label = lang === "es" ? `Galería ${slotNumber + 1}` : `Gallery ${slotNumber + 1}`;
+  const sizeClass =
+    layout === "compact"
+      ? "min-h-[52px] rounded-md"
+      : "min-h-[72px] rounded-lg sm:min-h-[80px] md:min-h-[88px]";
 
   if (showImg) {
     return (
-      <div className="aspect-square overflow-hidden rounded-md border border-[#E8DFD0] bg-[#F3EDE3]">
+      <div className={`aspect-[4/3] overflow-hidden border border-[#E8DFD0] bg-[#F3EDE3] ${sizeClass}`}>
         <img src={url} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />
       </div>
     );
@@ -94,7 +100,7 @@ function GallerySlot({
 
   return (
     <div
-      className="flex aspect-square items-center justify-center rounded-md border border-dashed border-[#E8DFD0] bg-[#F9F5EE] text-[9px] font-medium text-[#9A9288]"
+      className={`flex aspect-[4/3] items-center justify-center border border-dashed border-[#E8DFD0]/80 bg-[#F9F5EE]/80 text-[10px] font-medium text-[#9A9288]/90 ${sizeClass}`}
       aria-hidden
     >
       {label}
@@ -105,18 +111,25 @@ function GallerySlot({
 function GallerySlotGrid({
   slots,
   lang,
+  layout,
 }: {
   slots: string[];
   lang: BrNegocioPrePublishInventoryLang;
+  layout: CardLayout;
 }) {
+  const gridClass =
+    layout === "compact"
+      ? "grid grid-cols-3 gap-1.5"
+      : "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5";
+
   return (
-    <div className="w-full shrink-0 sm:w-[168px] md:w-[184px]">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#6E5418]">
+    <div className="w-full shrink-0 sm:min-w-[11rem] sm:max-w-[14rem] md:min-w-[13rem] md:max-w-[16rem] lg:min-w-[15rem] lg:max-w-[18rem]">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#6E5418] sm:text-[11px]">
         {lang === "es" ? "Galería tarjeta" : "Results gallery"}
       </p>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className={gridClass}>
         {slots.map((url, index) => (
-          <GallerySlot key={`gallery-${index}`} url={url} slotNumber={index} lang={lang} />
+          <GallerySlot key={`gallery-${index}`} url={url} slotNumber={index} lang={lang} layout={layout} />
         ))}
       </div>
     </div>
@@ -161,9 +174,10 @@ export function BrNegocioPrePublishInventoryCard({
       ? "flex flex-col gap-4 lg:flex-row lg:items-stretch"
       : resolvedLayout === "compact"
         ? "flex items-center gap-2.5"
-        : "flex flex-col gap-3 sm:flex-row sm:items-start";
+        : "flex flex-col gap-3 sm:flex-row sm:items-stretch";
 
   const gallerySlots = card.gallerySlotUrls ?? [];
+  const showGallery = resolvedLayout !== "compact";
 
   return (
     <article
@@ -206,7 +220,7 @@ export function BrNegocioPrePublishInventoryCard({
           ) : null}
           <p className={`font-medium text-[#9A9288] ${noteTextClass}`}>{card.leonixDraftNote}</p>
         </div>
-        {resolvedLayout === "showcase" ? <GallerySlotGrid slots={gallerySlots} lang={lang} /> : null}
+        {showGallery ? <GallerySlotGrid slots={gallerySlots} lang={lang} layout={resolvedLayout} /> : null}
       </div>
       {showActions ? (
         <div

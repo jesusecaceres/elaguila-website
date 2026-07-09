@@ -4,6 +4,7 @@ import {
   mergePartialAgenteIndividualResidencial,
   type AgenteIndividualResidencialFormState,
 } from "../../schema/agenteIndividualResidencialFormState";
+import { agenteResFormHasProgress } from "../formProgress";
 import {
   clearChildInventoryMediaBridge,
   mergeChildInventoryWithMediaBridge,
@@ -123,7 +124,7 @@ function readDraftFromLocalStorageFallback(): string | null {
   }
 }
 
-function parsePersistedStateFromJson(raw: string): AgenteIndividualResidencialFormState | null {
+export function parsePersistedStateFromJson(raw: string): AgenteIndividualResidencialFormState | null {
   try {
     const data = JSON.parse(raw) as Partial<AgenteResPreviewReturnPayload> & Record<string, unknown>;
     if (data.state && typeof data.state === "object") {
@@ -138,19 +139,50 @@ function parsePersistedStateFromJson(raw: string): AgenteIndividualResidencialFo
   return null;
 }
 
+/** Unwrap flat form state vs `{ state, savedAt }` return wrapper stored in memory bridges. */
+function coercePersistedFormState(candidate: unknown): AgenteIndividualResidencialFormState | null {
+  if (!candidate || typeof candidate !== "object") return null;
+  if ("titulo" in candidate) {
+    return candidate as AgenteIndividualResidencialFormState;
+  }
+  const wrapped = candidate as Partial<AgenteResPreviewReturnPayload>;
+  if (wrapped.state && typeof wrapped.state === "object" && "titulo" in wrapped.state) {
+    return wrapped.state as AgenteIndividualResidencialFormState;
+  }
+  return null;
+}
+
+function resolveFullDraftMediaBridgeState(): AgenteIndividualResidencialFormState | null {
+  return coercePersistedFormState(fullDraftMediaBridge);
+}
+
 function restoreMediaBridgesFromLocalStorageFallback(): void {
   if (fullDraftMediaBridge) return;
   try {
     const raw = readDraftFromLocalStorageFallback();
     if (!raw) return;
-    const parsed = JSON.parse(raw) as AgenteIndividualResidencialFormState;
-    if (parsed && typeof parsed === "object") {
+    const parsed = parsePersistedStateFromJson(raw);
+    if (parsed) {
       setFullDraftMediaBridge(parsed);
       setChildInventoryMediaBridge(parsed.additionalInventoryProperties ?? []);
     }
   } catch {
     /* ignore */
   }
+}
+
+function draftHasPersistableProgress(state: AgenteIndividualResidencialFormState): boolean {
+  if (agenteResFormHasProgress(state)) return true;
+  return (state.additionalInventoryProperties?.length ?? 0) > 0;
+}
+
+/** Hard-refresh simulation for hydration proof scripts (clears in-memory bridges only). */
+export function resetAgenteResDraftHydrationMemoryForTests(): void {
+  if (previewReturnTimer) clearTimeout(previewReturnTimer);
+  previewReturnTimer = null;
+  previewReturnMemory = null;
+  fullDraftMediaBridge = null;
+  clearChildInventoryMediaBridge();
 }
 
 function isQuotaError(e: unknown): boolean {
@@ -233,7 +265,6 @@ function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boo
     try {
       const json = JSON.stringify(p);
       writeReturnKey(json);
-      mirrorDraftToLocalStorage(json);
       return true;
     } catch (e) {
       if (!isQuotaError(e)) {
@@ -262,6 +293,7 @@ export async function persistAgenteResApplicationDraftResolved(
   state: AgenteIndividualResidencialFormState,
 ): Promise<void> {
   if (typeof window === "undefined") return;
+  if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys()) return;
   setFullDraftMediaBridge(state);
   setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
   let compact = state;
@@ -307,13 +339,14 @@ export async function loadAgenteResPreviewDraftResolved(): Promise<AgenteIndivid
 export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormState | null {
   if (typeof window === "undefined") return null;
   restoreMediaBridgesFromLocalStorageFallback();
-  if (fullDraftMediaBridge) {
+  const bridgedPreview = resolveFullDraftMediaBridgeState();
+  if (bridgedPreview) {
     try {
       return mergePartialAgenteIndividualResidencial(
-        fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+        bridgedPreview as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
       );
     } catch {
-      const cat = explicitCategoriaInPayload(fullDraftMediaBridge);
+      const cat = explicitCategoriaInPayload(bridgedPreview);
       if (cat) return mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
     }
   }
@@ -373,9 +406,10 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
     const returnState = raw ? parsePersistedStateFromJson(raw) : null;
     if (returnState) {
       try {
-          const mergedBase = fullDraftMediaBridge
+          const bridgedReturn = resolveFullDraftMediaBridgeState();
+          const mergedBase = bridgedReturn
             ? mergePartialAgenteIndividualResidencial(
-                fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+                bridgedReturn as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
               )
             : mergePartialAgenteIndividualResidencial(returnState as Partial<AgenteIndividualResidencialFormState>);
           const merged = mergePartialAgenteIndividualResidencial({
@@ -394,7 +428,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
             console.warn("[agente-res preview] merge return draft failed", e);
           }
           const cat =
-            explicitCategoriaInPayload(fullDraftMediaBridge) ??
+            explicitCategoriaInPayload(resolveFullDraftMediaBridgeState()) ??
             explicitCategoriaInPayload(returnState as Record<string, unknown>);
           if (cat) {
             const recovered = mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
@@ -411,9 +445,10 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
     const previewState = previewRaw ? parsePersistedStateFromJson(previewRaw) : null;
     if (previewState) {
       try {
-        const mergedBase = fullDraftMediaBridge
+        const bridgedPreview = resolveFullDraftMediaBridgeState();
+        const mergedBase = bridgedPreview
           ? mergePartialAgenteIndividualResidencial(
-              fullDraftMediaBridge as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+              bridgedPreview as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
             )
           : mergePartialAgenteIndividualResidencial(previewState as Partial<AgenteIndividualResidencialFormState>);
         const merged = mergePartialAgenteIndividualResidencial({

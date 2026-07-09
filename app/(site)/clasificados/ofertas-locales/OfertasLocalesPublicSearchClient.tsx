@@ -72,6 +72,69 @@ function TagIcon({ className }: { className?: string }) {
   );
 }
 
+function OfertasShoppingListCartEntry({
+  title,
+  emptyHelper,
+  openLabel,
+  itemCount,
+  listSummary,
+  onOpen,
+}: {
+  title: string;
+  emptyHelper: string;
+  openLabel: string;
+  itemCount: number;
+  listSummary: string;
+  onOpen: () => void;
+}) {
+  return (
+    <>
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#B8860B]/35 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3 py-2.5 shadow-sm"
+        data-testid="ofertas-shopping-list-cart-entry"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#B8860B]/40 bg-white text-[#7A1E2C]">
+            <FiShoppingCart className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#1E1814]">{title}</p>
+            <p className="truncate text-xs text-[#1E1814]/60">
+              {itemCount > 0 ? listSummary : emptyHelper}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#7A1E2C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6a1926]"
+          onClick={onOpen}
+        >
+          {openLabel}
+          {itemCount > 0 ? (
+            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-white/20 px-1.5 text-[11px] font-bold">
+              {itemCount}
+            </span>
+          ) : null}
+        </button>
+      </div>
+
+      <button
+        type="button"
+        aria-label={title}
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[#B8860B]/45 bg-gradient-to-br from-[#7A1E2C] to-[#5c1723] text-white shadow-lg hover:brightness-110 sm:bottom-6 sm:right-6 lg:hidden"
+        onClick={onOpen}
+      >
+        <FiShoppingCart className="h-6 w-6" aria-hidden />
+        {itemCount > 0 ? (
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#B8860B] px-1 text-[10px] font-bold text-white">
+            {itemCount}
+          </span>
+        ) : null}
+      </button>
+    </>
+  );
+}
+
 type OfertasLocalesPublicSearchMode = "landing" | "results";
 type OfertasLocalesPublicSurface = "ofertas" | "cupones";
 
@@ -248,7 +311,6 @@ export function OfertasLocalesPublicSearchClient({
     : `/publicar/ofertas-locales?lang=${lang}`;
   const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
-  const listHasItems = !isCupones && shoppingList.counts.itemCount > 0;
   const resultCount = offers.length + items.length;
   const activeFilterChips = [
     ...(q ? [{ id: "q", label: `“${q}”`, onClear: () => pushSearch({ q: "" }) }] : []),
@@ -319,8 +381,23 @@ export function OfertasLocalesPublicSearchClient({
     />
   );
 
+  const openShoppingList = () => setListOpen(true);
+
+  const shoppingListCartEntry = !isCupones ? (
+    <OfertasShoppingListCartEntry
+      title={c.shoppingListTitle}
+      emptyHelper={c.shoppingListEmptyHelper}
+      openLabel={c.shoppingListOpen}
+      itemCount={shoppingList.counts.itemCount}
+      listSummary={c.listSummary(shoppingList.counts.storeCount, shoppingList.counts.itemCount)}
+      onOpen={openShoppingList}
+    />
+  ) : null;
+
   const resultsContent = (
     <div id="ofertas-browse" className="scroll-mt-24 space-y-5">
+      {shoppingListCartEntry}
+
       {error ? (
         <p className="text-sm text-red-700" role="alert">
           {error}
@@ -345,17 +422,6 @@ export function OfertasLocalesPublicSearchClient({
             ))}
           </ul>
         </section>
-      ) : null}
-
-      {!loading && listHasItems ? (
-        <div className="flex justify-end">
-          <LeonixCategoryCta variant="secondary" onClick={() => setListOpen(true)}>
-            {c.listButton}
-            <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
-              {shoppingList.counts.itemCount}
-            </span>
-          </LeonixCategoryCta>
-        </div>
       ) : null}
 
       {!isCupones && !loading && items.length > 0 ? (
@@ -441,6 +507,8 @@ export function OfertasLocalesPublicSearchClient({
           <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
             {hero}
             <main className="space-y-6 overflow-x-hidden sm:space-y-8">
+              {shoppingListCartEntry}
+
               <LeonixCategoryDiscoveryGrid
                 lang={lang as V2Lang}
                 surface="landing"
@@ -553,6 +621,13 @@ export function OfertasLocalesPublicSearchClient({
           lang={lang}
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
+          isAdded={shoppingList.isAdded(selectedItem.id)}
+          onAdd={shoppingList.addFromPublicItem}
+          onRemove={shoppingList.removeItem}
+          onOpenList={() => {
+            setSelectedItem(null);
+            setListOpen(true);
+          }}
         />
       ) : null}
 

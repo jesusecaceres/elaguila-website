@@ -14,14 +14,22 @@ const OVERLAY = "fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-
 const DRAWER =
   "max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[#D4C4A8]/70 bg-[#FAF6F0] shadow-xl sm:rounded-2xl";
 const BTN =
-  "inline-flex rounded-lg bg-[#7A1E2C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6a1926]";
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6a1926]";
 const BTN_OUTLINE =
-  "inline-flex rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40";
+const BTN_ADD =
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-[#7A1E2C]/35 bg-[#7A1E2C]/5 px-3 py-2 text-sm font-semibold text-[#7A1E2C] hover:bg-[#7A1E2C]/10";
+const BTN_ADDED =
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900";
 
 type Props = {
   lang: OfertasLocalesAppLang;
   item: OfertaLocalPublicSearchItem;
   onClose: () => void;
+  isAdded?: boolean;
+  onAdd?: (item: OfertaLocalPublicSearchItem) => void;
+  onRemove?: (itemId: string) => void;
+  onOpenList?: () => void;
 };
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -34,12 +42,21 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function OfertasLocalesPublicItemDetailDrawer({ lang, item, onClose }: Props) {
+export function OfertasLocalesPublicItemDetailDrawer({
+  lang,
+  item,
+  onClose,
+  isAdded = false,
+  onAdd,
+  onRemove,
+  onOpenList,
+}: Props) {
   const c = ofertasLocalesPublicSearchCopy(lang);
   const price = formatOfertaLocalPublicItemPriceDisplay(item);
   const location = formatOfertaLocalPublicItemLocation(item);
   const dates = formatOfertaLocalPublicItemValidDates(item, lang);
   const tags = item.searchTags.join(", ");
+  const showListActions = Boolean(onAdd || onRemove || onOpenList);
 
   return (
     <div className={OVERLAY} role="dialog" aria-modal="true" onClick={onClose}>
@@ -61,6 +78,34 @@ export function OfertasLocalesPublicItemDetailDrawer({ lang, item, onClose }: Pr
             <p className="text-2xl font-bold text-[#7A1E2C]">{price}</p>
             {item.unit?.trim() ? <p className="text-sm text-[#1E1814]/70">{item.unit}</p> : null}
           </div>
+
+          {showListActions ? (
+            <div className="flex flex-wrap gap-2 rounded-xl border border-[#B8860B]/35 bg-[#FDF8F0]/80 px-3 py-3">
+              {isAdded ? (
+                <>
+                  <span className={BTN_ADDED}>{c.addedToList}</span>
+                  {onOpenList ? (
+                    <button type="button" className={BTN} onClick={onOpenList}>
+                      {c.viewList}
+                    </button>
+                  ) : null}
+                  {onRemove ? (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-11 items-center px-2 text-xs font-medium text-[#1E1814]/55 underline"
+                      onClick={() => onRemove(item.id)}
+                    >
+                      {c.removeFromList}
+                    </button>
+                  ) : null}
+                </>
+              ) : onAdd ? (
+                <button type="button" className={BTN_ADD} onClick={() => onAdd(item)}>
+                  {c.addToList}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <DetailRow label={c.pageTitle} value={item.businessName} />

@@ -1,5 +1,5 @@
 /**
- * Stack E — Ofertas Locales shopping list audit.
+ * Stack E — Ofertas Locales shopping list audit (V1.1).
  * Run: npm run ofertas-locales:stack-e-shopping-list-audit
  */
 import assert from "node:assert/strict";
@@ -18,6 +18,7 @@ const HOOK = "app/(site)/clasificados/ofertas-locales/useOfertasLocalesShoppingL
 const PANEL = "app/(site)/clasificados/ofertas-locales/OfertasLocalesShoppingListPanel.tsx";
 const SEARCH_CLIENT = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx";
 const ITEM_CARD = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemCard.tsx";
+const ITEM_DRAWER = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx";
 const COPY = "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts";
 
 const NAV_FILES = ["app/components/Navbar.tsx", "app/components/AdvertiseDropdown.tsx"] as const;
@@ -27,6 +28,15 @@ const STACK_E_CHANGED_PATTERNS = [
   /^app\/\(site\)\/clasificados\/ofertas-locales\//,
   /^package\.json$/,
   /^scripts\/ofertas-locales-stack-e-shopping-list-audit\.ts$/,
+] as const;
+
+const FAKE_STRINGS = [
+  "checkout",
+  "payment",
+  "wallet",
+  "account synced",
+  "saved to account",
+  "routeOptimization",
 ] as const;
 
 function read(rel: string): string {
@@ -63,18 +73,26 @@ function changedFiles(): string[] {
   return [...new Set([...tracked, ...untracked])].map((x) => x.replace(/\\/g, "/"));
 }
 
+function assertNoFakeStrings(scope: string, source: string) {
+  for (const fake of FAKE_STRINGS) {
+    assert.ok(!source.toLowerCase().includes(fake), `${scope} must not include fake string: ${fake}`);
+  }
+}
+
 function run() {
   assert.ok(exists(PLAN), "Stack E plan must exist");
   assert.ok(exists(AUDIT_DOC), "Stack E audit doc must exist");
   assert.ok(exists(HELPERS), "shopping list helper must exist");
   assert.ok(exists(HOOK), "shopping list hook must exist");
   assert.ok(exists(PANEL), "shopping list panel must exist");
+  assert.ok(exists(ITEM_DRAWER), "item detail drawer must exist");
 
   const helpers = read(HELPERS);
   const hook = read(HOOK);
   const panel = read(PANEL);
   const client = read(SEARCH_CLIENT);
   const card = read(ITEM_CARD);
+  const drawer = read(ITEM_DRAWER);
   const copy = read(COPY);
   const pkg = read("package.json");
 
@@ -92,14 +110,47 @@ function run() {
 
   assert.ok(client.includes("useOfertasLocalesShoppingList"), "search client uses hook");
   assert.ok(client.includes("OfertasLocalesShoppingListPanel"), "search client uses panel");
+  assert.ok(client.includes("OfertasShoppingListCartEntry"), "always-available cart entry component");
+  assert.ok(client.includes("!isCupones"), "cart entry gated off Cupones surface");
+  assert.ok(client.includes("shoppingListTitle"), "cart entry uses shopping list title copy");
+  assert.ok(client.includes("setListOpen(true)"), "cart entry opens shopping list panel");
+
   assert.ok(
     copy.includes("Agregar a lista") && copy.includes("Add to list"),
     "add to list copy"
   );
-  assert.ok(card.includes("onAdd") || card.includes("addToList"), "item card supports add");
-  assert.ok(panel.includes("routeComingNext") || copy.includes("Ruta de compras próximamente"), "route placeholder");
-  assert.ok(!panel.includes("routeOptimization"), "no route optimization");
+  assert.ok(copy.includes("shoppingListTitle"), "shoppingListTitle copy key");
+  assert.ok(copy.includes("shoppingListOpen"), "shoppingListOpen copy key");
+  assert.ok(copy.includes("shoppingListEmptyHelper"), "shoppingListEmptyHelper copy key");
+  assert.ok(copy.includes("viewList"), "viewList copy key");
+  assert.ok(copy.includes("savedOnDevice"), "savedOnDevice copy key");
+  assert.ok(copy.includes("mapHandoffNote"), "mapHandoffNote copy key");
+  assert.ok(copy.includes("Guardado en este dispositivo"), "ES saved-on-device copy");
+  assert.ok(copy.includes("Saved on this device"), "EN saved-on-device copy");
+  assert.ok(
+    copy.includes("no es optimización automática") &&
+      copy.includes("not automatic route optimization"),
+    "map handoff truth copy ES/EN"
+  );
   assert.ok(copy.includes("Copiar lista") || copy.includes("Copy list"), "copy list copy");
+
+  assert.ok(card.includes("onAdd") || card.includes("addToList"), "item card supports add");
+
+  assert.ok(drawer.includes("isAdded"), "detail drawer isAdded prop");
+  assert.ok(drawer.includes("onAdd"), "detail drawer onAdd prop");
+  assert.ok(drawer.includes("onRemove"), "detail drawer onRemove prop");
+  assert.ok(drawer.includes("onOpenList"), "detail drawer onOpenList prop");
+  assert.ok(drawer.includes("addToList") || drawer.includes("c.addToList"), "detail drawer add CTA");
+  assert.ok(drawer.includes("viewList") || drawer.includes("c.viewList"), "detail drawer view list CTA");
+
+  assert.ok(panel.includes("savedOnDevice") || panel.includes("c.savedOnDevice"), "panel saved-on-device");
+  assert.ok(panel.includes("mapHandoffNote") || panel.includes("c.mapHandoffNote"), "panel map handoff note");
+  assert.ok(panel.includes("groupOfertaLocalShoppingListByBusiness") || panel.includes("group"), "panel groups by store");
+  assert.ok(!panel.includes("routeOptimization"), "no route optimization");
+
+  assertNoFakeStrings("panel", panel);
+  assertNoFakeStrings("drawer", drawer);
+  assertNoFakeStrings("search client", client);
 
   const stackEChanged = changedFiles().filter(isStackEChangedFile);
   for (const nav of NAV_FILES) {
@@ -129,7 +180,7 @@ function run() {
     "package script for stack E audit"
   );
 
-  console.log("Stack E — Ofertas Locales shopping list audit passed.");
+  console.log("Stack E — Ofertas Locales shopping list audit (V1.1) passed.");
 }
 
 run();

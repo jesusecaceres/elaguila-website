@@ -15,6 +15,24 @@ export type ServiciosPagosGroup = {
 
 const FINANCING_IDS = new Set(["financing_available", "payment_plans", "deposit_required", "invoice_available"]);
 
+const PAGOS_GROUP_ICON_FALLBACK: Record<string, string> = {
+  payments: "💳",
+  financing: "🧾",
+  highlights: "⭐",
+  discounts: "🏷️",
+  warranty: "🛡️",
+  insurance: "🛡️",
+  license: "📄",
+  other_benefits: "✨",
+};
+
+/** Group title icon — preserve explicit icon when set, else safe fallback emoji. */
+export function resolveServiciosPagosGroupIcon(groupId: string, explicit?: string): string {
+  const trimmed = explicit?.trim();
+  if (trimmed) return trimmed;
+  return PAGOS_GROUP_ICON_FALLBACK[groupId] ?? "✨";
+}
+
 export function buildServiciosPagosGroups(
   profile: ServiciosProfileResolved,
   displayProfile: ServiciosProfileResolved,
@@ -42,7 +60,7 @@ export function buildServiciosPagosGroups(
     groups.push({
       id: "payments",
       title: lang === "en" ? "Payments" : "Pagos",
-      icon: "💳",
+      icon: resolveServiciosPagosGroupIcon("payments"),
       items: paymentLabels,
     });
   }
@@ -51,7 +69,7 @@ export function buildServiciosPagosGroups(
     groups.push({
       id: "financing",
       title: lang === "en" ? "Financing" : "Financiamiento",
-      icon: "📋",
+      icon: resolveServiciosPagosGroupIcon("financing"),
       items: financingLabels,
     });
   }
@@ -60,7 +78,7 @@ export function buildServiciosPagosGroups(
     groups.push({
       id: "highlights",
       title: lang === "en" ? "Business highlights" : "Beneficios del negocio",
-      icon: "⭐",
+      icon: resolveServiciosPagosGroupIcon("highlights"),
       items: displayProfile.highlights.map((h) => h.label.trim()).filter(Boolean),
     });
   }

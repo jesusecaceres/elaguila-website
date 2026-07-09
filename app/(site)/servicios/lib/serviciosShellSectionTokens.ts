@@ -23,3 +23,6 @@ export const SVC_AMENITY_CHIP =
 export const SVC_FEATURES_COMPACT_GRID = "grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4";
 
 export const SVC_AMENITIES_GRID = "grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6";
+
+/** Pagos y beneficios — even thirds on desktop (SVC-SHELL-2E). */
+export const SVC_PAGOS_BENEFICIOS_GRID = "grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3";

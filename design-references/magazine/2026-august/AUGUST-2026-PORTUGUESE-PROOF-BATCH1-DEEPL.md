@@ -121,3 +121,5 @@ Purpose: create temporary noindex QA URLs for pages 12, 6, and 3 so Chuy/reviewe
 **READY FOR AUGUST-2026-PORTUGUESE-PROOF-BATCH1-WEB-QA-URL1: YES**
 
 Portuguese Batch 1 web QA URLs created: [`AUGUST-2026-PORTUGUESE-PROOF-BATCH1-WEB-QA-URL.md`](AUGUST-2026-PORTUGUESE-PROOF-BATCH1-WEB-QA-URL.md) · Next gate: `AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION1`
+
+Portuguese Batch 1 approved for digital proof direction with minor polish notes: [`AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION.md`](AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION.md)

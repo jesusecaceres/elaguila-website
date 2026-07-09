@@ -6,11 +6,12 @@ import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import {
   buildServiciosPagosGroups,
   hasServiciosPagosBeneficiosSection,
+  resolveServiciosPagosGroupIcon,
 } from "../lib/serviciosPagosBeneficiosData";
 import {
-  SVC_AMENITIES_GRID,
   SVC_AMENITY_CHIP,
   SVC_AMENITY_GROUP_CARD,
+  SVC_PAGOS_BENEFICIOS_GRID,
   SVC_SECTION_CARD,
   SVC_SECTION_PADDING,
   SVC_SECTION_TITLE,
@@ -57,15 +58,18 @@ export function ServiciosPagosBeneficiosSection({
         <h2 id={headingId} className={SVC_SECTION_TITLE}>
           {title}
         </h2>
-        <div className={SVC_AMENITIES_GRID}>
+        <div className={SVC_PAGOS_BENEFICIOS_GRID}>
           {groups.map((g) => {
             const items = g.id === "highlights" ? visibleHighlights : g.items;
             if (items.length === 0) return null;
+            const groupIcon = resolveServiciosPagosGroupIcon(g.id, g.icon);
             return (
               <div key={g.id} className={SVC_AMENITY_GROUP_CARD}>
                 <h3 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#1F1A17] sm:text-sm">
-                  <span aria-hidden>{g.icon}</span>
-                  {g.title}
+                  <span className="shrink-0 text-sm leading-none" aria-hidden>
+                    {groupIcon}
+                  </span>
+                  <span className="min-w-0">{g.title}</span>
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {items.map((item, ii) => (

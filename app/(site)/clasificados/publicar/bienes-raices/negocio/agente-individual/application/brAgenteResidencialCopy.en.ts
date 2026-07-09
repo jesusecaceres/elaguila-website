@@ -93,11 +93,11 @@ export const BR_COPY_EN = {
     title: "Photos & media",
     sub: "The main image is the cover. Video, tour, and brochure appear in the preview when the matching buttons are enabled.",
     fotos: "Photos",
-    mainPortraitTitle: "Main photo / portrait image",
-    mainPortraitHint: "This first image is the main portrait image for this property.",
-    resultsGalleryTitle: "Results card gallery",
-    resultsGalleryHint:
-      "Add up to 6 additional images. These images will be used to showcase this property in results cards and preview sections.",
+    imageUploadNoteLabel: "NOTE:",
+    imageUploadNoteLine1: "Image 1 is your main listing photo.",
+    imageUploadNoteLine2: "Images 2–7 are your results card gallery.",
+    imageUploadNoteLine3:
+      "These gallery images help showcase this property in search results and preview cards.",
     agregarFotos: "Add photos",
     portada: "Main image (cover)",
     portadaHint: "Choose which photo is the cover.",

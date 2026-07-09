@@ -60,9 +60,9 @@ assert(howSection.includes("SVC_GROUP_BLOCK"), "how section: group block cards")
 assert(howSection.includes("SVC_FEATURES_COMPACT_GRID"), "how section: sm:2 lg:4 grid");
 assert(howSection.includes("SVC_FEATURE_CHIP"), "how section: compact feature chips");
 
-assert(pagosSection.includes("SVC_AMENITIES_GRID"), "pagos section: amenities grid");
-assert(pagosSection.includes("SVC_AMENITY_CHIP"), "pagos section: compact amenity chips");
-assert(shellTokens.includes("xl:grid-cols-6"), "shell tokens: pagos xl:grid-cols-6");
+assert(pagosSection.includes("SVC_PAGOS_BENEFICIOS_GRID"), "pagos section: even-thirds grid");
+assert(pagosSection.includes("resolveServiciosPagosGroupIcon"), "pagos section: group icon resolver");
+assert(shellTokens.includes("lg:grid-cols-3"), "shell tokens: lg:grid-cols-3");
 
 assert(detailsCanvas.includes("ServiciosCredencialesCard"), "details canvas: credentials preserved");
 assert(!detailsCanvas.includes("ServiciosOpcionesFacilidadesCard"), "details canvas: how moved out");
