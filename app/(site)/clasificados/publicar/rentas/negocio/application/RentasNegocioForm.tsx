@@ -272,7 +272,7 @@ export function RentasNegocioForm() {
     onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll,
     validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
-    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS[lang],
+    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
     onDeleteApplication: async () => {
       clearRentasNegocioDraft();
       const empty = createEmptyRentasNegocioFormState();
@@ -1220,3 +1220,5 @@ export function RentasNegocioForm() {
     </main>
   );
 }
+
+
