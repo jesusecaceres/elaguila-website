@@ -78,6 +78,7 @@ export type ServiciosApplicationContactDraft = {
   socialWhatsappProfileUrl?: string;
   socialXUrl?: string;
   socialSnapchatUrl?: string;
+  googleBusinessUrl?: string;
   googleReviewsUrl?: string;
   yelpReviewsUrl?: string;
   extraLinks?: { label?: string; url: string }[];

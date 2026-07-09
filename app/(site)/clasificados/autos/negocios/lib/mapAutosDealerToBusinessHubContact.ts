@@ -8,7 +8,7 @@ import {
 } from "./dealerContactResolve";
 import { whatsAppHrefFromDisplay } from "./dealerWhatsappHref";
 import { hrefForUserWebsiteUrl, phoneDigitsForTel } from "../components/autoDealerFormatters";
-import { buildDealerDisplayAddress, buildDealerMapsHref } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
+import { buildDealerDisplayAddress, buildDealerMapsHref, buildAutosDealerMapEmbedUrl } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import { dealerCustomLinksForOutput } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
 import { dealerLanguagesForOutput } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import type {
@@ -106,16 +106,26 @@ export function mapAutosDealerToBusinessHubContact(
     });
   }
 
-  const moreLinks = dealerCustomLinksForOutput(data.dealerCustomLinks, lang);
+  const moreLinks: AutosNegociosBusinessHubContactViewModel["moreLinks"] = [];
+  const googleBusiness = safeExternalHref(data.googleBusinessUrl);
+  if (googleBusiness) {
+    moreLinks.push({
+      label: lang === "en" ? "Google Business" : "Perfil de Google",
+      url: googleBusiness,
+    });
+  }
+  moreLinks.push(...dealerCustomLinksForOutput(data.dealerCustomLinks, lang));
   const languages = dealerLanguagesForOutput(data.dealerLanguages);
 
   const addressLine = buildDealerDisplayAddress(data);
   const mapsHref = buildDealerMapsHref(data);
+  const mapEmbedUrl = buildAutosDealerMapEmbedUrl(addressLine);
   const location =
-    addressLine.trim() || mapsHref
+    addressLine.trim() || mapsHref || mapEmbedUrl
       ? {
           addressDisplay: addressLine.trim(),
           mapsHref,
+          mapEmbedUrl: mapEmbedUrl || undefined,
         }
       : undefined;
 
@@ -140,6 +150,6 @@ export function autosNegociosBusinessHubHasContactContent(
     vm.reviews.length > 0 ||
     vm.moreLinks.length > 0 ||
     (vm.languages?.length ?? 0) > 0 ||
-    Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref)
+    Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref || vm.location?.mapEmbedUrl)
   );
 }

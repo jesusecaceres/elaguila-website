@@ -32,6 +32,7 @@ import {
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
 import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
+import { AUTOS_DEFAULT_COUNTRY } from "@/app/lib/clasificados/autos/autosLocationContract";
 import {
   autosMarketDefaultSellerType,
   autosMarketPublishPath,
@@ -152,13 +153,15 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
   const [city, setCity] = useState("San Jose");
   const [state, setState] = useState("CA");
   const [zip, setZip] = useState("");
-  const [country, setCountry] = useState("United States");
+  const [country, setCountry] = useState(AUTOS_DEFAULT_COUNTRY);
 
   useEffect(() => {
     const b = parseAutosBrowseUrl(new URLSearchParams(spStr));
     setSearchQ(b.q);
     setCity(b.filters.city.trim() || "San Jose");
+    setState(b.filters.state.trim() || "CA");
     setZip(b.filters.zip);
+    setCountry(b.filters.country.trim() || AUTOS_DEFAULT_COUNTRY);
   }, [spStr]);
 
   const resultsHref = useCallback(
@@ -183,7 +186,9 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
     const filters = { ...emptyAutosPublicFilters(), sellerType: defaultSeller };
     const rawCity = city.trim();
     filters.city = getCanonicalCityName(rawCity) || rawCity;
-    filters.zip = zip.replace(/\D/g, "").slice(0, 5);
+    filters.state = state.trim();
+    filters.zip = zip.trim();
+    filters.country = country.trim() || AUTOS_DEFAULT_COUNTRY;
     return resultsHref({
       filters,
       q: searchQ.trim(),
@@ -192,7 +197,7 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
       lang,
       routeLang,
     });
-  }, [defaultSeller, lang, routeLang, searchQ, city, zip, resultsHref]);
+  }, [defaultSeller, lang, routeLang, searchQ, city, state, zip, country, resultsHref]);
 
   const browseAllHref = useMemo(() => landingHref({ sellerType: defaultSeller }), [defaultSeller, landingHref]);
 

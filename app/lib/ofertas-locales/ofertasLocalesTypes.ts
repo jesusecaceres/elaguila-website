@@ -288,6 +288,9 @@ export type OfertaLocalDraft = {
   businessName: string;
   /** Optional business logo URL (session/draft metadata only — not a DB column). */
   businessLogoUrl: string;
+  /** Uploaded logo public URL (Vercel Blob) — takes priority over businessLogoUrl in preview. */
+  businessLogoUploadedUrl: string;
+  businessLogoUploadedFileName: string;
   title: string;
   description: string;
   couponText: string;

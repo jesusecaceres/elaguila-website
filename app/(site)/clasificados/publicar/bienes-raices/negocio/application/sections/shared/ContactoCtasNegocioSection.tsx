@@ -212,6 +212,51 @@ export function ContactoCtasNegocioSection({
             En la vista previa se mostrará como <strong>Más información</strong>, no como URL cruda.
           </p>
         ) : null}
+      </div>
+
+      <div className="mt-6 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        <h3 className="text-sm font-bold text-[#1E1810]">
+          {lang === "en" ? "Business Hub links" : "Enlaces del Business Hub"}
+        </h3>
+        <p className="mt-1 text-xs text-[#5C5346]/90">
+          {lang === "en"
+            ? "Optional. Shown in your public Business Hub near socials and reviews."
+            : "Opcional. Se muestran en tu Business Hub público junto a redes y opiniones."}
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <BrField
+            label={lang === "en" ? "Google Business Profile URL" : "Perfil de Google Business (URL)"}
+          >
+            <input
+              className={brInputClass}
+              type="url"
+              value={state.googleBusinessUrl ?? ""}
+              onChange={(e) => setState((s) => ({ ...s, googleBusinessUrl: e.target.value }))}
+              placeholder="https://…"
+            />
+          </BrField>
+          <BrField label={lang === "en" ? "Google Reviews URL" : "Opiniones en Google (URL)"}>
+            <input
+              className={brInputClass}
+              type="url"
+              value={state.googleReviewsUrl ?? ""}
+              onChange={(e) => setState((s) => ({ ...s, googleReviewsUrl: e.target.value }))}
+              placeholder="https://…"
+            />
+          </BrField>
+          <BrField label={lang === "en" ? "Yelp reviews URL" : "Opiniones en Yelp (URL)"}>
+            <input
+              className={brInputClass}
+              type="url"
+              value={state.yelpReviewsUrl ?? ""}
+              onChange={(e) => setState((s) => ({ ...s, yelpReviewsUrl: e.target.value }))}
+              placeholder="https://…"
+            />
+          </BrField>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <BrField label="Mensaje prellenado del formulario" hint="Texto sugerido cuando alguien escribe desde el anuncio.">
           <textarea
             className={brTextareaClass}

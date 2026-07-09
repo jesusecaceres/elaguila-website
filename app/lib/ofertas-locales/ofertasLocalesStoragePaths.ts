@@ -31,7 +31,8 @@ export function getOfertaLocalAssetStorageFolder(params: {
   assetId: string;
 }): string {
   const owner = sanitizeOfertaLocalStorageSegment(params.ownerUserId, 36);
-  const kind = params.assetKind === "flyer" ? "flyer" : "coupon";
+  const kind =
+    params.assetKind === "flyer" ? "flyer" : params.assetKind === "logo" ? "logo" : "coupon";
   const assetId = sanitizeOfertaLocalStorageSegment(params.assetId, 64) || "asset";
   return `ofertas-locales/drafts/${owner}/${kind}/${assetId}`;
 }

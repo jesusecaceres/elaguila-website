@@ -10,6 +10,8 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     customMarketType: "",
     businessName: "",
     businessLogoUrl: "",
+    businessLogoUploadedUrl: "",
+    businessLogoUploadedFileName: "",
     title: "",
     description: "",
     couponText: "",

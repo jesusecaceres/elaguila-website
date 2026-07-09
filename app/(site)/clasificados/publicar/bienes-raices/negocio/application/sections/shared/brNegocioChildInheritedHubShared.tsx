@@ -90,6 +90,7 @@ export function useInheritedHubModel(
       { label: s7.x, value: state.socialX },
       { label: s7.linkedin, value: state.socialLinkedin },
       { label: s7.snapchat, value: state.socialSnapchat },
+      { label: s7.googleBusiness, value: state.googleBusinessUrl },
       { label: s7.googleReviews, value: state.googleReviewsUrl },
       { label: s7.yelpReviews, value: state.yelpReviewsUrl },
       { label: s7.enlaceSocialAdicional, value: state.socialOtro },

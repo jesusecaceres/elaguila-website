@@ -193,6 +193,7 @@ export type ServiciosContactSocialLinks = {
   whatsappProfileUrl?: string;
   xUrl?: string;
   snapchatUrl?: string;
+  googleBusinessUrl?: string;
 };
 
 /** External review profile URLs — link-out only; never used to invent ratings. */
@@ -386,6 +387,7 @@ export type ServiciosProfileResolved = {
       whatsappProfile?: string;
       x?: string;
       snapchat?: string;
+      googleBusiness?: string;
     };
     externalReviewLinks?: {
       google?: string;
@@ -404,7 +406,7 @@ export type ServiciosProfileResolved = {
   gallery: ServiciosGalleryImage[];
   /** Additional gallery images (future lightbox); empty when legacy / no featured split */
   galleryMore: ServiciosGalleryImage[];
-  /** Up to two sanitized video URLs (https or draft data: URLs) */
+  /** Up to four sanitized video URLs (https or draft data: URLs) */
   galleryVideos: ServiciosGalleryVideo[];
   trust: ServiciosTrustItem[];
   highlights: ServiciosBusinessHighlightItem[];

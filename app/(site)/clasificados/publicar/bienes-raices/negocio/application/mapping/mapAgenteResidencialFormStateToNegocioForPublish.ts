@@ -190,6 +190,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     },
     contactChannels: contactChannelsFromAgente(s),
     businessExtraUrls: durableUrlList(s.businessExtraUrls, 2),
+    googleBusinessUrl: durableHttpUrl(s.googleBusinessUrl),
+    googleReviewsUrl: durableHttpUrl(s.googleReviewsUrl),
+    yelpReviewsUrl: durableHttpUrl(s.yelpReviewsUrl),
     trust: {
       ...base.trust,
       mostrarLicencia: Boolean(trim(s.agenteLicencia) || trim(s.marcaLicencia)),

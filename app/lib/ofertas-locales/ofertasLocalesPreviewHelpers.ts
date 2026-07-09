@@ -153,12 +153,19 @@ export function digitalCouponCtaLabel(lang: "es" | "en" = "en"): string {
  * optional draft/session metadata — never faked. Requires https to avoid mixed
  * content / unsafe schemes.
  */
-export function getOfertaLocalBusinessLogoUrl(draft: OfertaLocalDraft): string | null {
-  const raw = String(draft.businessLogoUrl ?? "").trim();
-  if (!raw) return null;
-  const normalized = normalizeOfertaLocalUrlInput(raw);
+function resolveHttpsLogoUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const normalized = normalizeOfertaLocalUrlInput(trimmed);
   if (!normalized) return null;
   return normalized.toLowerCase().startsWith("https://") ? normalized : null;
+}
+
+/** Uploaded blob logo takes priority over pasted URL. */
+export function getOfertaLocalBusinessLogoUrl(draft: OfertaLocalDraft): string | null {
+  const uploaded = resolveHttpsLogoUrl(String(draft.businessLogoUploadedUrl ?? ""));
+  if (uploaded) return uploaded;
+  return resolveHttpsLogoUrl(String(draft.businessLogoUrl ?? ""));
 }
 
 export type OfertaLocalPreviewHeroAsset = {

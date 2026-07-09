@@ -60,6 +60,7 @@ export const US_STATE_OPTIONS = [
   "CO",
   "CT",
   "DE",
+  "DC",
   "FL",
   "GA",
   "HI",

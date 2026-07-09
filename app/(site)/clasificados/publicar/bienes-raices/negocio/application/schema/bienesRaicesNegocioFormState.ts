@@ -300,6 +300,11 @@ export type BienesRaicesNegocioFormState = {
   /** Additional business/profile URLs rendered as useful-link CTAs. */
   businessExtraUrls?: string[];
 
+  /** Business hub profile/review URLs (form JSON only; no SQL migration). */
+  googleBusinessUrl?: string;
+  googleReviewsUrl?: string;
+  yelpReviewsUrl?: string;
+
   /** BR-INV-C — pre-publish additional properties (local draft only; not published). */
   additionalInventoryProperties: BrNegocioAdditionalInventoryPropertyDraft[];
 };
@@ -638,6 +643,9 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     },
     contactChannels: createEmptyLeonixContactChannelsFormSlice(),
     businessExtraUrls: [],
+    googleBusinessUrl: "",
+    googleReviewsUrl: "",
+    yelpReviewsUrl: "",
     trust: {
       mostrarLicencia: true,
       mostrarBrokerage: true,
@@ -817,6 +825,11 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
       partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
     ),
     businessExtraUrls: coerceUrlList((partial as Partial<BienesRaicesNegocioFormState>).businessExtraUrls, 2),
+    googleBusinessUrl:
+      typeof partial.googleBusinessUrl === "string" ? partial.googleBusinessUrl : base.googleBusinessUrl,
+    googleReviewsUrl:
+      typeof partial.googleReviewsUrl === "string" ? partial.googleReviewsUrl : base.googleReviewsUrl,
+    yelpReviewsUrl: typeof partial.yelpReviewsUrl === "string" ? partial.yelpReviewsUrl : base.yelpReviewsUrl,
     trust: { ...base.trust, ...partial.trust },
     petsAllowed: coerceNegocioPetsAllowed(
       (partial as Partial<BienesRaicesNegocioFormState>).petsAllowed,

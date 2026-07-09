@@ -30,6 +30,7 @@ export type AutosInventoryVehicleFields = Pick<
   | "city"
   | "state"
   | "zip"
+  | "country"
   | "vin"
   | "stockNumber"
   | "motor"
@@ -237,6 +238,7 @@ function normalizeOneItem(raw: unknown): AutosAdditionalInventoryVehicleDraft | 
     city: strOrUndef(o.city),
     state: strOrUndef(o.state),
     zip: strOrUndef(o.zip),
+    country: strOrUndef(o.country),
     vin: strOrUndef(o.vin),
     stockNumber: strOrUndef(o.stockNumber),
     exteriorColor: strOrUndef(o.exteriorColor),
@@ -650,6 +652,7 @@ export const AUTOS_INVENTORY_DEALER_FIELD_BLOCKLIST = [
   "dealerBookingUrl",
   "financeContactName",
   "googleReviewsUrl",
+  "googleBusinessUrl",
   "dealerCustomLinks",
   "dealerLanguages",
   "dealerHours",

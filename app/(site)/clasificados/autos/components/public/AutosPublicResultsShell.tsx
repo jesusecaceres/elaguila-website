@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
+import { AUTOS_DEFAULT_COUNTRY } from "@/app/lib/clasificados/autos/autosLocationContract";
+import { US_STATE_OPTIONS } from "@/app/publicar/autos/negocios/lib/autoDealerTaxonomy";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
@@ -153,7 +155,13 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
   const applyDraftToUrl = useCallback(() => {
     const cityRaw = draftFilters.city.trim();
     const canonCity = getCanonicalCityName(cityRaw) || cityRaw;
-    const nextFilters = { ...draftFilters, city: canonCity };
+    const nextFilters = {
+      ...draftFilters,
+      city: canonCity,
+      state: draftFilters.state.trim(),
+      zip: draftFilters.zip.trim(),
+      country: draftFilters.country.trim(),
+    };
     setDraftFilters(nextFilters);
     pushBundle({
       ...applied,
@@ -295,7 +303,7 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
           <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
           <div className="mt-2 rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7]/95 p-3 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.08)] sm:p-4">
           <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-12 sm:items-stretch">
-              <div className="relative min-w-0 sm:col-span-5">
+              <div className="relative min-w-0 sm:col-span-4">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7A7A7A]" aria-hidden>
                     ⌕
                   </span>
@@ -315,7 +323,7 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
                     autoComplete="off"
                   />
               </div>
-              <div className="min-w-0 sm:col-span-3">
+              <div className="min-w-0 sm:col-span-2">
                 <input
                   id="autos-res-city"
                   className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
@@ -326,26 +334,50 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
                 />
               </div>
               <div className="min-w-0 sm:col-span-2">
+                <select
+                  id="autos-res-state"
+                  className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
+                  value={draftFilters.state}
+                  onChange={(e) => patchDraft({ state: e.target.value })}
+                  aria-label={copy.stateLabel}
+                >
+                  {US_STATE_OPTIONS.map((s) => (
+                    <option key={s || "empty"} value={s}>
+                      {s || copy.filterAny}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="min-w-0 sm:col-span-2">
                 <input
                   id="autos-res-zip"
                   className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
-                  inputMode="numeric"
-                  maxLength={5}
                   value={draftFilters.zip}
-                  onChange={(e) => patchDraft({ zip: e.target.value.replace(/\D/g, "").slice(0, 5) })}
+                  onChange={(e) => patchDraft({ zip: e.target.value })}
                   placeholder={copy.zipPlaceholder}
                   autoComplete="postal-code"
                 />
               </div>
+              <div className="min-w-0 sm:col-span-2">
+                <input
+                  id="autos-res-country"
+                  className="min-h-[2.5rem] w-full rounded-lg border border-[#D6C7AD] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#D4A574]/50"
+                  value={draftFilters.country}
+                  onChange={(e) => patchDraft({ country: e.target.value })}
+                  placeholder={AUTOS_DEFAULT_COUNTRY}
+                  autoComplete="country-name"
+                  aria-label={copy.countryLabel}
+                />
+              </div>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                className="min-h-[2.875rem] rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] shadow-[0_4px_14px_-6px_rgba(122,30,44,0.35)] sm:col-span-2 hover:bg-[#5e1721]"
+                className="min-h-[2.875rem] rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] shadow-[0_4px_14px_-6px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
                 onClick={applyDraftToUrl}
               >
                 {copy.searchCta}
               </button>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
               className="inline-flex min-h-[36px] items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold text-[#1A1A1A] shadow-sm hover:bg-[#FAF6EE]"

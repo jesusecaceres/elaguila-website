@@ -8,8 +8,14 @@ export function autosVehicleCityHelper(lang: AutosNegociosLang): string {
 
 export function autosVehicleZipHelper(lang: AutosNegociosLang): string {
   return lang === "es"
-    ? "Usa el código postal del vehículo para mejorar ubicación, búsqueda y filtros."
-    : "Use the vehicle ZIP code to improve location, search, and filters.";
+    ? "Acepta cualquier código postal (EE. UU. u otro país)."
+    : "Accepts any postal / ZIP code (US or international).";
+}
+
+export function autosVehicleCountryHelper(lang: AutosNegociosLang): string {
+  return lang === "es"
+    ? "Por defecto Estados Unidos; puedes escribir otro país si aplica."
+    : "Defaults to United States; enter another country if needed.";
 }
 
 export function autosVehicleCityPlaceholder(lang: AutosNegociosLang): string {

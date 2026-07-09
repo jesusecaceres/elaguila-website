@@ -226,6 +226,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     socialX: "",
     socialSnapchat: "",
     googleReviewsUrl: "",
+    googleBusinessUrl: "",
     yelpReviewsUrl: "",
     extraLink1Url: "",
     extraLink1Label: "",

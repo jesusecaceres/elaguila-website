@@ -20,7 +20,14 @@ function LanguagePreferenceSyncInner() {
   useEffect(() => {
     if (isPublicLangPersistenceExcludedPath(pathname)) return;
 
-    const urlLang = readUrlLang(searchParams?.get("lang"));
+    const rawLangParam = searchParams?.get("lang");
+    const urlLang = readUrlLang(rawLangParam);
+    if (rawLangParam && !urlLang) {
+      const fallback = resolveRouteLang(null);
+      writePersistedLangPreference(fallback);
+      document.documentElement.lang = fallback;
+      return;
+    }
     if (urlLang) {
       writePersistedLangPreference(urlLang);
       document.documentElement.lang = urlLang;

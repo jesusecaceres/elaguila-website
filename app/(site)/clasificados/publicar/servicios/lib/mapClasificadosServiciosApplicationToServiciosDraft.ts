@@ -10,6 +10,7 @@ import type {
 import type { ServiciosTrustItem } from "@/app/servicios/types/serviciosBusinessProfile";
 import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
+import { SERVICIOS_MAX_VIDEO_URLS } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { serviciosQuickFactKindFromPresetChip } from "./serviciosQuickFactKindFromChip";
 import { isJunkServiciosQuickFactLabel } from "./serviciosContactVisibility";
@@ -305,6 +306,10 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (googleRev && isProbablyValidWebUrl(googleRev)) {
     contact.googleReviewsUrl = normalizeHttpUrl(googleRev);
   }
+  const googleBusiness = trimUrl(state.googleBusinessUrl);
+  if (googleBusiness && isProbablyValidWebUrl(googleBusiness)) {
+    contact.googleBusinessUrl = normalizeHttpUrl(googleBusiness);
+  }
   const yelpRev = trimUrl(state.yelpReviewsUrl);
   if (yelpRev && isProbablyValidWebUrl(yelpRev)) {
     contact.yelpReviewsUrl = normalizeHttpUrl(yelpRev);
@@ -385,7 +390,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       return row;
     })
     .filter((v) => v.url.length > 0)
-    .slice(0, 2);
+    .slice(0, SERVICIOS_MAX_VIDEO_URLS);
   galleryVideosRaw.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
 
   const about: ServiciosApplicationDraft["about"] | undefined =

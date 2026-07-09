@@ -354,6 +354,7 @@ export function serviciosPublishedToApplicationDraft(
     socialX: clean(contact.socialLinks?.xUrl),
     socialSnapchat: clean(contact.socialLinks?.snapchatUrl),
     googleReviewsUrl: clean(contact.externalReviewLinks?.googleReviewsUrl),
+    googleBusinessUrl: clean(contact.socialLinks?.googleBusinessUrl),
     yelpReviewsUrl: clean(contact.externalReviewLinks?.yelpReviewsUrl),
     extraLink1Url: clean(contact.extraLinks?.[0]?.url),
     extraLink1Label: clean(contact.extraLinks?.[0]?.label),

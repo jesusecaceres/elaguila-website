@@ -50,6 +50,9 @@ import {
   getSubtypeOptionsForBusinessCategory,
 } from "@/app/lib/ofertas-locales/ofertasLocalesBusinessCategoryUx";
 import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
+import { uploadOfertaLocalDraftAsset } from "@/app/lib/ofertas-locales/ofertasLocalesAssetUpload";
+import { validateOfertaLocalClientAssetFile } from "@/app/lib/ofertas-locales/ofertasLocalesClientUploadValidation";
+import { getOfertaLocalBusinessLogoUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import {
   clearOfertaLocalAiScanSession,
   loadOfertaLocalAiScanSession,
@@ -508,6 +511,11 @@ export default function OfertasLocalesApplicationClient() {
   const addressAccepted = hasOfertaLocalAddressAccepted(draft);
   const websiteUrlAccepted = hasOfertaLocalUrlAccepted(draft.websiteUrl);
   const businessLogoUrlAccepted = hasOfertaLocalUrlAccepted(draft.businessLogoUrl);
+  const resolvedBusinessLogoUrl = getOfertaLocalBusinessLogoUrl(draft);
+  const businessLogoAssetId = useMemo(() => crypto.randomUUID(), []);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const membershipUrlAccepted = hasOfertaLocalUrlAccepted(draft.membershipUrl);
   const digitalCouponUrlAccepted = hasOfertaLocalUrlAccepted(draft.digitalCouponUrl);
 
@@ -525,6 +533,39 @@ export default function OfertasLocalesApplicationClient() {
       });
     }
   }, [draft.membershipCtaLabel, updateDraft]);
+
+  const handleBusinessLogoFile = useCallback(
+    async (file: File) => {
+      const validation = validateOfertaLocalClientAssetFile(file, "logo", lang);
+      if (!validation.ok) {
+        setLogoUploadError(validation.errors[0] ?? c.businessLogoUploadFailed);
+        return;
+      }
+      setLogoUploading(true);
+      setLogoUploadError(null);
+      try {
+        const result = await uploadOfertaLocalDraftAsset({
+          file,
+          assetKind: "logo",
+          assetId: businessLogoAssetId,
+        });
+        if (!result.ok || !result.publicUrl) {
+          setLogoUploadError(result.errors?.[0] ?? result.detail ?? c.businessLogoUploadFailed);
+          return;
+        }
+        updateDraft({
+          businessLogoUploadedUrl: result.publicUrl,
+          businessLogoUploadedFileName: result.fileName ?? file.name,
+        });
+      } catch {
+        setLogoUploadError(c.businessLogoUploadFailed);
+      } finally {
+        setLogoUploading(false);
+        if (logoFileInputRef.current) logoFileInputRef.current.value = "";
+      }
+    },
+    [businessLogoAssetId, c.businessLogoUploadFailed, lang, updateDraft]
+  );
 
   const handleUrlBlur = useCallback(
     (
@@ -835,23 +876,80 @@ export default function OfertasLocalesApplicationClient() {
             </FieldBlock>
             <FieldBlock
               label={lang === "en" ? "Business logo" : "Logo del negocio"}
-              helper={
-                lang === "en"
-                  ? "Optional. Paste a logo URL to make the listing look more professional."
-                  : "Opcional. Pega una URL de tu logo para que el anuncio se vea más profesional."
-              }
+              helper={c.businessLogoHelper}
               optional
               optionalLabel={c.optional}
-              confirm={businessLogoUrlAccepted ? c.urlAccepted : undefined}
+              confirm={
+                draft.businessLogoUploadedUrl.trim()
+                  ? c.businessLogoUploaded
+                  : businessLogoUrlAccepted
+                    ? c.urlAccepted
+                    : undefined
+              }
             >
-              <input
-                className={INPUT}
-                value={draft.businessLogoUrl}
-                onChange={(e) => updateDraft({ businessLogoUrl: e.target.value })}
-                onBlur={() => handleUrlBlur("businessLogoUrl")}
-                placeholder="https://"
-                inputMode="url"
-              />
+              <div className="space-y-3">
+                <input
+                  className={INPUT}
+                  value={draft.businessLogoUrl}
+                  onChange={(e) => updateDraft({ businessLogoUrl: e.target.value })}
+                  onBlur={() => handleUrlBlur("businessLogoUrl")}
+                  placeholder="https://"
+                  inputMode="url"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={logoFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleBusinessLogoFile(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="min-h-11 rounded-xl border border-[#D4C4A8] bg-[#FFFCF7] px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45"
+                    disabled={logoUploading}
+                    onClick={() => logoFileInputRef.current?.click()}
+                  >
+                    {logoUploading ? c.businessLogoUploading : c.businessLogoUploadButton}
+                  </button>
+                  <span className="text-xs text-[#1E1814]/50">{c.businessLogoUploadFormats}</span>
+                  {draft.businessLogoUploadedUrl.trim() ? (
+                    <button
+                      type="button"
+                      className="min-h-11 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-800 hover:bg-red-50"
+                      onClick={() =>
+                        updateDraft({
+                          businessLogoUploadedUrl: "",
+                          businessLogoUploadedFileName: "",
+                        })
+                      }
+                    >
+                      {c.businessLogoRemoveUpload}
+                    </button>
+                  ) : null}
+                </div>
+                {logoUploadError ? (
+                  <p className="text-xs font-medium text-red-700">{logoUploadError}</p>
+                ) : null}
+                {resolvedBusinessLogoUrl ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/80 p-2.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={resolvedBusinessLogoUrl}
+                      alt={lang === "en" ? "Business logo preview" : "Vista previa del logo"}
+                      className="h-14 w-14 rounded-lg border border-[#D4C4A8]/60 bg-white object-contain p-1"
+                    />
+                    <p className="min-w-0 truncate text-xs text-[#1E1814]/60">
+                      {draft.businessLogoUploadedFileName.trim() ||
+                        draft.businessLogoUrl.trim() ||
+                        (lang === "en" ? "Logo ready" : "Logo listo")}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             </FieldBlock>
             <FieldBlock
               label={

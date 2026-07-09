@@ -5,7 +5,7 @@ import {
 } from "./ofertasLocalesConstants";
 import type { OfertaLocalDraftAssetType } from "./ofertasLocalesTypes";
 
-export type OfertaLocalClientAssetKind = "flyer" | "coupon";
+export type OfertaLocalClientAssetKind = "flyer" | "coupon" | "logo";
 
 export type OfertaLocalClientAssetValidationResult = {
   ok: boolean;
@@ -23,7 +23,10 @@ const UPLOAD_ASSET_TYPES = new Set<OfertaLocalDraftAssetType>([
   "coupon_image",
 ]);
 
+const LOGO_MIMES = ["image/jpeg", "image/png", "image/webp"] as const;
+
 function allowedMimes(kind: OfertaLocalClientAssetKind): readonly string[] {
+  if (kind === "logo") return LOGO_MIMES;
   return kind === "flyer"
     ? OFERTAS_LOCALES_CLIENT_UPLOAD_FLYER_MIME_TYPES
     : OFERTAS_LOCALES_CLIENT_UPLOAD_COUPON_MIME_TYPES;
@@ -34,6 +37,10 @@ export function getOfertaLocalAssetTypeFromMime(
   assetKind: OfertaLocalClientAssetKind
 ): OfertaLocalDraftAssetType | null {
   const mime = (mimeType || "").toLowerCase();
+  if (assetKind === "logo") {
+    if (IMAGE_MIMES.has(mime)) return "flyer_image";
+    return null;
+  }
   if (mime === "application/pdf") {
     return assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf";
   }
@@ -116,13 +123,18 @@ function validateCore(
   const warnings: string[] = [];
   const mime = (input.mimeType || "").toLowerCase();
   const allowed = allowedMimes(input.assetKind);
-  const label = input.assetKind === "flyer" ? "volante" : "cupón";
+  const label =
+    input.assetKind === "flyer" ? "volante" : input.assetKind === "logo" ? "logo" : "cupón";
   const lang = input.lang ?? "es";
 
   if (!mime) {
     warnings.push("No se detectó el tipo MIME del archivo; verifica la extensión.");
   } else if (!allowed.includes(mime)) {
-    errors.push(`Tipo de archivo no permitido para ${label}. Usa PDF o imagen (JPEG, PNG, WebP).`);
+    errors.push(
+      input.assetKind === "logo"
+        ? "Tipo de archivo no permitido para logo. Usa JPEG, PNG o WebP."
+        : `Tipo de archivo no permitido para ${label}. Usa PDF o imagen (JPEG, PNG, WebP).`
+    );
   }
 
   if (input.sizeBytes === 0) {

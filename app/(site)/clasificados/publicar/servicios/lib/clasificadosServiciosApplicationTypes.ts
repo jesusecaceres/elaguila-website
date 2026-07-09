@@ -238,6 +238,7 @@ export type ClasificadosServiciosApplicationState = {
   socialX: string;
   socialSnapchat: string;
   googleReviewsUrl: string;
+  googleBusinessUrl: string;
   yelpReviewsUrl: string;
   extraLink1Url: string;
   extraLink1Label: string;

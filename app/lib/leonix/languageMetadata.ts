@@ -6,13 +6,16 @@
  */
 
 import {
-  ACTIVE_PUBLIC_LANGS,
+  HIDDEN_FUTURE_LANGUAGE_CODES,
   HELD_RTL_LANGUAGE_CODES,
   LANGUAGE_LABELS,
   LANGUAGE_REGISTRY,
+  OFFICIAL_LAUNCH_LANGUAGES,
   PROVIDER_LANGUAGE_CODES,
   type HeldRtlLang,
+  type HiddenFutureLang,
   type LanguageCode,
+  type OfficialLaunchLang,
   type SupportedLang,
   getProviderLanguageCode,
 } from "@/app/lib/language";
@@ -43,23 +46,14 @@ export type LanguageMeta = {
  * Human-reviewed native copy on root, coming soon, header/footer, QR, translate helper, Media Kit shell.
  * Dynamic classifieds / applications still use machine cache even when true.
  */
-const OFFICIAL_NATIVE_COPY_READY: Record<SupportedLang, boolean> = {
+const OFFICIAL_NATIVE_COPY_READY: Record<OfficialLaunchLang, boolean> = {
   es: true,
   en: true,
-  vi: true,
   pt: true,
   tl: true,
-  km: true,
-  zh: true,
-  ja: true,
-  ko: true,
-  hi: true,
-  hy: true,
-  ru: true,
-  pa: true,
 };
 
-function productionMeta(code: SupportedLang, sortOrder: number): LanguageMeta {
+function productionMeta(code: OfficialLaunchLang, sortOrder: number): LanguageMeta {
   const def = LANGUAGE_REGISTRY[code];
   return {
     code,
@@ -72,6 +66,22 @@ function productionMeta(code: SupportedLang, sortOrder: number): LanguageMeta {
     canUseMachineTranslation: true,
     sortOrder,
     status: "production",
+  };
+}
+
+function futureMeta(code: HiddenFutureLang, sortOrder: number): LanguageMeta {
+  const def = LANGUAGE_REGISTRY[code];
+  return {
+    code,
+    label: def.label,
+    nativeLabel: def.nativeLabel,
+    googleTargetCode: PROVIDER_LANGUAGE_CODES[code],
+    isActive: false,
+    isRtl: false,
+    isOfficialNativeCopyReady: false,
+    canUseMachineTranslation: true,
+    sortOrder,
+    status: "future",
   };
 }
 
@@ -91,27 +101,37 @@ function heldRtlMeta(code: HeldRtlLang, sortOrder: number): LanguageMeta {
   };
 }
 
-const PRODUCTION_METADATA: Record<SupportedLang, LanguageMeta> = Object.fromEntries(
-  ACTIVE_PUBLIC_LANGS.map((code, index) => [code, productionMeta(code, index + 1)]),
-) as Record<SupportedLang, LanguageMeta>;
+const PRODUCTION_METADATA: Record<OfficialLaunchLang, LanguageMeta> = Object.fromEntries(
+  OFFICIAL_LAUNCH_LANGUAGES.map((code, index) => [code, productionMeta(code, index + 1)]),
+) as Record<OfficialLaunchLang, LanguageMeta>;
+
+const FUTURE_METADATA: Record<HiddenFutureLang, LanguageMeta> = Object.fromEntries(
+  HIDDEN_FUTURE_LANGUAGE_CODES.map((code, index) => [code, futureMeta(code, index + 20)]),
+) as Record<HiddenFutureLang, LanguageMeta>;
 
 const HELD_METADATA: Record<HeldRtlLang, LanguageMeta> = {
   ar: heldRtlMeta("ar", 100),
   fa: heldRtlMeta("fa", 101),
 };
 
-/** All known Leonix language metadata (production + held). Future langs add with status "future". */
+/** All known Leonix language metadata (production + future + held). */
 export const LEONIX_LANGUAGE_METADATA: Readonly<Record<LanguageCode, LanguageMeta>> = {
   ...PRODUCTION_METADATA,
+  ...FUTURE_METADATA,
   ...HELD_METADATA,
 };
 
 /** Alias for LEONIX_LANGUAGE_METADATA (architecture / audit searches). */
 export { LEONIX_LANGUAGE_METADATA as LEONIX_LANGUAGES };
 
-/** Active production languages for public selectors (excludes ar/fa). */
-export const LEONIX_ACTIVE_LANGUAGE_METADATA: readonly LanguageMeta[] = ACTIVE_PUBLIC_LANGS.map(
+/** Active production languages for public selectors (official launch scope). */
+export const LEONIX_ACTIVE_LANGUAGE_METADATA: readonly LanguageMeta[] = OFFICIAL_LAUNCH_LANGUAGES.map(
   (code) => PRODUCTION_METADATA[code],
+);
+
+/** Hidden future languages — preserved, not public until reviewer activation. */
+export const LEONIX_FUTURE_LANGUAGE_METADATA: readonly LanguageMeta[] = HIDDEN_FUTURE_LANGUAGE_CODES.map(
+  (code) => FUTURE_METADATA[code],
 );
 
 /** Held RTL languages — never expose in public selectors until RTL gate. */
@@ -123,7 +143,7 @@ export function getLanguageMeta(code: LanguageCode): LanguageMeta {
   return LEONIX_LANGUAGE_METADATA[code];
 }
 
-export function getActiveLanguageMeta(code: SupportedLang): LanguageMeta {
+export function getActiveLanguageMeta(code: OfficialLaunchLang): LanguageMeta {
   return PRODUCTION_METADATA[code];
 }
 
@@ -149,7 +169,7 @@ export function isLanguageMetaActive(code: string): boolean {
 }
 
 export function assertLeonixLanguageMetadataInvariants(): void {
-  for (const code of ACTIVE_PUBLIC_LANGS) {
+  for (const code of OFFICIAL_LAUNCH_LANGUAGES) {
     const meta = PRODUCTION_METADATA[code];
     if (!meta.googleTargetCode) {
       throw new Error(`Missing googleTargetCode for active language ${code}`);
@@ -165,8 +185,21 @@ export function assertLeonixLanguageMetadataInvariants(): void {
   if (mapRouteLangToGoogleTarget("tl") !== "fil") {
     throw new Error("Tagalog route tl must map to Google target fil");
   }
+  if (mapRouteLangToGoogleTarget("fil") !== "fil") {
+    throw new Error("Filipino alias fil must map to Google target fil");
+  }
   if (mapRouteLangToGoogleTarget("zh") !== "zh-CN") {
     throw new Error("Chinese route zh must map to Google target zh-CN");
+  }
+  if (mapRouteLangToGoogleTarget("zh-CN") !== "zh-CN") {
+    throw new Error("Chinese alias zh-CN must map to Google target zh-CN");
+  }
+
+  for (const code of HIDDEN_FUTURE_LANGUAGE_CODES) {
+    const meta = FUTURE_METADATA[code];
+    if (meta.isActive || meta.status !== "future") {
+      throw new Error(`Hidden future language ${code} must remain inactive`);
+    }
   }
 
   for (const code of HELD_RTL_LANGUAGE_CODES) {
@@ -176,14 +209,14 @@ export function assertLeonixLanguageMetadataInvariants(): void {
     }
   }
 
-  const activeCodes = new Set(ACTIVE_PUBLIC_LANGS);
-  if (activeCodes.size !== 13) {
-    throw new Error(`Expected 13 active public languages, found ${activeCodes.size}`);
+  const activeCodes = new Set(OFFICIAL_LAUNCH_LANGUAGES);
+  if (activeCodes.size !== 4) {
+    throw new Error(`Expected 4 official launch languages, found ${activeCodes.size}`);
   }
 
   for (const code of ["ar", "fa"] as const) {
-    if (activeCodes.has(code as SupportedLang)) {
-      throw new Error(`${code} must not be in ACTIVE_PUBLIC_LANGS`);
+    if (activeCodes.has(code as OfficialLaunchLang)) {
+      throw new Error(`${code} must not be in OFFICIAL_LAUNCH_LANGUAGES`);
     }
   }
 }

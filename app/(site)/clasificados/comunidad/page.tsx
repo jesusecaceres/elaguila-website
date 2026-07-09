@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { CategoryRecentListings } from "@/app/(site)/clasificados/components/categoryLanding/CategoryRecentListings";
+import { ComunidadLandingRecentListings } from "./ComunidadLandingRecentListings";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
@@ -106,8 +106,7 @@ function ComunidadLandingPageInner() {
             }))}
           />
 
-          <CategoryRecentListings
-            category="comunidad"
+          <ComunidadLandingRecentListings
             lang={lang}
             previewLimit={4}
             title={lang === "es" ? "Eventos recientes" : "Recent events"}

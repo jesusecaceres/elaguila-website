@@ -469,19 +469,21 @@ export type GoogleTranslatePlacementCopy = {
 };
 
 const PLACEMENT_EN: GoogleTranslatePlacementCopy = {
-  dropdownHelper: "Need another language? Open the website in Google Translate.",
+  dropdownHelper: "Open Leonix with Google Translate for website browsing (browser-controlled helper).",
   dropdownCta: "🌐 Translate Leonix with Google",
   comingSoonQuestion: "Need another language?",
-  comingSoonBody: "Open Leonix with Google Translate for website browsing.",
+  comingSoonBody:
+    "Your browser may offer Google Translate for website browsing. Google Lens can help with printed or visual magazine pages. Leonix official launch languages are Spanish, English, Portuguese, and Tagalog/Filipino.",
   comingSoonCta: "Translate website with Google",
 };
 
 const PLACEMENT_BY_LANG: Partial<Record<SupportedLang, GoogleTranslatePlacementCopy>> = {
   es: {
-    dropdownHelper: "¿Necesitas otro idioma? Abre el sitio en Google Translate.",
+    dropdownHelper: "Abre Leonix con Google Translate para navegar el sitio (ayuda del navegador).",
     dropdownCta: "🌐 Traducir Leonix con Google",
     comingSoonQuestion: "¿Necesitas otro idioma?",
-    comingSoonBody: "Abre Leonix con Google Translate para navegar el sitio web.",
+    comingSoonBody:
+      "Tu navegador puede ofrecer Google Translate para navegar el sitio. Google Lens puede ayudar con páginas impresas o visuales. Los idiomas oficiales de Leonix son Español, English, Português y Tagalog/Filipino.",
     comingSoonCta: "Traducir sitio web con Google",
   },
   en: PLACEMENT_EN,
@@ -493,10 +495,11 @@ const PLACEMENT_BY_LANG: Partial<Record<SupportedLang, GoogleTranslatePlacementC
     comingSoonCta: "Dịch trang web bằng Google",
   },
   pt: {
-    dropdownHelper: "Precisa de outro idioma? Abra o site no Google Translate.",
+    dropdownHelper: "Abra a Leonix com Google Translate para navegar no site (ajuda do navegador).",
     dropdownCta: "🌐 Traduzir Leonix com Google",
     comingSoonQuestion: "Precisa de outro idioma?",
-    comingSoonBody: "Abra a Leonix com Google Translate para navegar no site.",
+    comingSoonBody:
+      "Seu navegador pode oferecer o Google Translate para navegar no site. O Google Lens pode ajudar com páginas impressas ou visuais. Os idiomas oficiais de lançamento da Leonix são Espanhol, Inglês, Português e Tagalog/Filipino.",
     comingSoonCta: "Traduzir site com Google",
   },
   ja: {
@@ -507,10 +510,11 @@ const PLACEMENT_BY_LANG: Partial<Record<SupportedLang, GoogleTranslatePlacementC
     comingSoonCta: "Googleでサイトを翻訳",
   },
   tl: {
-    dropdownHelper: "Kailangan ng ibang wika? Buksan ang website sa Google Translate.",
+    dropdownHelper: "Buksan ang Leonix gamit ang Google Translate para mag-browse (browser helper).",
     dropdownCta: "🌐 Isalin ang Leonix gamit ang Google",
     comingSoonQuestion: "Kailangan ng ibang wika?",
-    comingSoonBody: "Buksan ang Leonix gamit ang Google Translate para mag-browse sa website.",
+    comingSoonBody:
+      "Maaaring mag-alok ang iyong browser ng Google Translate para mag-browse. Makakatulong ang Google Lens sa naka-print o visual na mga pahina. Ang opisyal na launch languages ng Leonix ay Spanish, English, Portuguese, at Tagalog/Filipino.",
     comingSoonCta: "Isalin ang website gamit ang Google",
   },
   km: {

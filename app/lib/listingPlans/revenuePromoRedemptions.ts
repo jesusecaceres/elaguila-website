@@ -6,7 +6,7 @@
 import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { resolveEffectivePromoCodeStatus } from "./promoCodeLifecycle";
-import { validatePromoEligibility } from "./promoCodeRules";
+import { promoScopeIsUnrestricted, validatePromoEligibility } from "./promoCodeRules";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
 
 export type PromoRow = {
@@ -122,13 +122,23 @@ export function isWebsiteLaunch25Promo(row: PromoRow): boolean {
 /**
  * Launch 25 allowlist gate. Returns a rejection reason when the code is a Launch 25 family
  * code applied to a package key outside the website-checkout allowlist; otherwise null.
- * Non-Launch-25 codes are unaffected (existing category/admin promo behavior preserved).
+ *
+ * Global checkout promos (Any category + Any package) skip the allowlist — newsletter is an
+ * acquisition channel, not a package-restricted discount (Gate REVENUE-OS-NEWSLETTER-PROMO-CHECKOUT-VALIDATION-02).
+ * Non-Launch-25 codes are unaffected.
  */
 export function resolveWebsiteLaunch25Rejection(
   row: PromoRow,
   packageKey: string | null | undefined,
 ): string | null {
   if (!isWebsiteLaunch25Promo(row)) return null;
+
+  const categoryScope = resolvePromoCategoryScope(row);
+  const packageScope = row.package_scope;
+  if (promoScopeIsUnrestricted(categoryScope) && promoScopeIsUnrestricted(packageScope)) {
+    return null;
+  }
+
   const key = String(packageKey ?? "").trim().toLowerCase();
   if (!WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS.includes(key)) {
     return "Launch 25 code applies only to eligible website checkout products.";
@@ -153,12 +163,36 @@ export function resolvePromoCanDiscountPayment(row: PromoRow): boolean {
 }
 
 /**
- * Whether the promo explicitly requires proving subscriber/owner identity to redeem.
- * Assigned/private tracking alone does NOT require identity — only an explicit flag does.
+ * Whether checkout must prove subscriber/owner identity before applying the promo.
+ *
+ * Leonix doctrine (REVENUE-OS-NEWSLETTER-PROMO-CHECKOUT-VALIDATION-02):
+ * - Newsletter/SMS origin is an acquisition/delivery channel — not a checkout identity gate.
+ * - Assigned/private + delivery email are tracking metadata — not payment restrictions.
+ * - Identity blocks checkout ONLY when explicitly required via checkout-specific flags.
+ * - Legacy `subscriber_identity_required` on newsletter rows tracked delivery assignment;
+ *   it must NOT reject Apply/checkout when Admin shows Subscriber identity = No.
  */
 export function resolvePromoRequiresSubscriberIdentity(row: PromoRow): boolean {
   const meta = asRecord(row.metadata);
   const rule = asRecord(meta.promo_rule);
+
+  // Explicit stored false wins (admin "Subscriber identity: No").
+  if (
+    meta.subscriber_identity_required === false ||
+    rule.requires_subscriber_identity === false ||
+    meta.checkout_subscriber_identity_required === false
+  ) {
+    return false;
+  }
+
+  // Explicit checkout identity gate (honored for any code type).
+  if (truthyFlag(meta.checkout_subscriber_identity_required)) return true;
+
+  const codeType = String(row.code_type ?? "").trim().toLowerCase();
+  if (codeType === "newsletter" || codeType === "sms") {
+    return false;
+  }
+
   return truthyFlag(meta.subscriber_identity_required ?? rule.requires_subscriber_identity);
 }
 

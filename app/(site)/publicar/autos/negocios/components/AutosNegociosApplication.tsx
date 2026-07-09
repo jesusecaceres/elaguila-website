@@ -439,10 +439,13 @@ export function AutosNegociosApplication() {
                   city: t.app.labels.dealerAddressCity,
                   state: t.app.labels.dealerAddressState,
                   zipCode: t.app.labels.dealerAddressZip,
+                  country: t.app.labels.dealerAddressCountry,
                   helperMaps: t.app.hints.dealerAddressMaps,
                   helperSearch: t.app.hints.dealerAddressSearch,
+                  selectEmpty: t.taxonomy.selectEmpty,
                 }}
                 values={listing}
+                lang={lang}
                 onPatch={(p) => setListingPatch(syncDealerAddressFromStructured({ ...listing, ...p }))}
               />
             </div>
@@ -453,8 +456,6 @@ export function AutosNegociosApplication() {
               languages={listing.dealerLanguages}
               onChange={(dealerLanguages) => setListingPatch({ dealerLanguages })}
             />
-
-            <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
 
             <h3 className="mt-6 text-sm font-extrabold text-[color:var(--lx-text)]">{t.app.dealer.dealershipContactsHeading}</h3>
             <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.dealershipContactsHelper}</p>
@@ -508,6 +509,16 @@ export function AutosNegociosApplication() {
                   value={listing.yelpReviewsUrl ?? ""}
                   onChange={(e) => setListingPatch({ yelpReviewsUrl: autosDraftUrlValue(e.target.value) })}
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>{t.app.dealer.googleBusiness}</label>
+                <input
+                  className={INPUT}
+                  placeholder={t.app.placeholders.https}
+                  value={listing.googleBusinessUrl ?? ""}
+                  onChange={(e) => setListingPatch({ googleBusinessUrl: autosDraftUrlValue(e.target.value) })}
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.googleBusinessHint}</p>
               </div>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.reviewsHelper}</p>
@@ -648,6 +659,8 @@ export function AutosNegociosApplication() {
               onUpdateRow={(rowId, patch) => updateDealerHourRow(rowId, patch)}
               onRemoveRow={(rowId) => removeDealerHourRow(rowId)}
             />
+
+            <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
           </section>
 
           <div className={activeStep === 6 ? "" : "hidden"} aria-hidden={activeStep !== 6}>

@@ -35,8 +35,10 @@ import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFo
 import {
   autosVehicleCityHelper,
   autosVehicleCityPlaceholder,
+  autosVehicleCountryHelper,
   autosVehicleZipHelper,
 } from "@/app/lib/clasificados/autos/autosVehicleLocationCopy";
+import { AUTOS_DEFAULT_COUNTRY, AUTOS_DEFAULT_STATE } from "@/app/lib/clasificados/autos/autosLocationContract";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import { AutosApplicationSteppedShell } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosPublishApplicationHeader } from "@/app/publicar/autos/shared/components/AutosPublishApplicationHeader";
@@ -278,7 +280,7 @@ export function AutosPrivadoApplication() {
                 <label className={LABEL}>{reqLabel(t.app.labels.state)}</label>
                 <select
                   className={INPUT}
-                  value={listing.state ?? ""}
+                  value={listing.state?.trim() || AUTOS_DEFAULT_STATE}
                   onChange={(e) => setListingPatch({ state: e.target.value || undefined })}
                 >
                   {US_STATE_OPTIONS.map((s) => (
@@ -292,18 +294,27 @@ export function AutosPrivadoApplication() {
                 <label className={LABEL}>{reqLabel(t.app.labels.zip)}</label>
                 <input
                   className={INPUT}
-                  inputMode="numeric"
                   autoComplete="postal-code"
-                  maxLength={5}
                   placeholder={t.app.placeholders.zip}
                   value={listing.zip ?? ""}
                   onChange={(e) => {
-                    const d = e.target.value.replace(/\D/g, "").slice(0, 5);
-                    setListingPatch({ zip: d ? d : undefined });
+                    const v = e.target.value.trim();
+                    setListingPatch({ zip: v ? v : undefined });
                   }}
                   aria-label={t.app.labels.zip}
                 />
                 <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleZipHelper(lang)}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={LABEL}>{t.app.labels.country}</label>
+                <input
+                  className={INPUT}
+                  autoComplete="country-name"
+                  value={listing.country ?? AUTOS_DEFAULT_COUNTRY}
+                  onChange={(e) => setListingPatch({ country: e.target.value.trim() || undefined })}
+                  aria-label={t.app.labels.country}
+                />
+                <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleCountryHelper(lang)}</p>
               </div>
             </div>
           </section>

@@ -17,7 +17,7 @@ import {
   leonixHomeGoogleTranslateUrl,
 } from "@/app/lib/googleTranslateWebsite";
 import { magazinePrintGuideHref } from "@/app/lib/magazine/qrRouteHelpers";
-import { resolveRouteLang } from "@/app/lib/language";
+import { getOfficialLaunchLanguageFallbackNote, resolveRouteLang } from "@/app/lib/language";
 
 const btnExternal =
   "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-4 py-2.5 text-center text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] sm:min-h-[3.125rem]";
@@ -65,6 +65,7 @@ function TranslatorGatewayContent() {
     returnTo: `/qr/translator?lang=${lang}`,
   });
   const websitesPasteHint = getGoogleTranslateWebsitesPasteHint(lang);
+  const officialFallbackNote = getOfficialLaunchLanguageFallbackNote(lang);
   const guideHref = magazinePrintGuideHref(lang, {
     sourcePage: "qr_translator",
     sourceCta: "qr_guide",
@@ -98,6 +99,10 @@ function TranslatorGatewayContent() {
 
           <p className="mt-4 text-xs leading-relaxed text-[#3D3428]/85 sm:text-sm">
             {copy.honestNote}
+          </p>
+
+          <p className="mt-3 rounded-xl border border-[#D6C7AD]/70 bg-[#FBF7EF] px-3 py-3 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
+            {officialFallbackNote}
           </p>
 
           <div className="mt-5 grid min-w-0 gap-2.5">

@@ -125,6 +125,8 @@ type PreviewUi = {
   verFolleto: string;
   googleReviews: string;
   yelpReviews: string;
+  googleBusiness: string;
+  businessHubReviews: string;
   officeBrokerLabel: string;
   mainAgentLabel: string;
   secondAgentLabel: string;
@@ -317,7 +319,7 @@ export function BrAgenteResContactSidebar({
           </div>
         ) : null}
 
-        {hub.hasSocialIcons || hub.hasReviewCards || hub.businessExtraLinks.length ? (
+        {hub.hasSocialIcons || hub.hasBusinessLinks || hub.businessExtraLinks.length ? (
           <div className="mt-3 space-y-2 border-t pt-3" style={{ borderColor: BORDER }}>
             {hub.hasSocialIcons ? (
               <div className="flex flex-wrap justify-center gap-1.5">
@@ -362,6 +364,12 @@ export function BrAgenteResContactSidebar({
                   </SocialCircle>
                 ) : null}
               </div>
+            ) : null}
+            {hub.googleBusinessUrl ? <ReviewCard href={hub.googleBusinessUrl} label={p.googleBusiness} /> : null}
+            {(hub.googleReviewsUrl || hub.yelpReviewsUrl) && (hub.googleBusinessUrl || hub.hasSocialIcons) ? (
+              <p className="pt-0.5 text-center text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE }}>
+                {p.businessHubReviews}
+              </p>
             ) : null}
             {hub.googleReviewsUrl ? <ReviewCard href={hub.googleReviewsUrl} label={p.googleReviews} /> : null}
             {hub.yelpReviewsUrl ? <ReviewCard href={hub.yelpReviewsUrl} label={p.yelpReviews} /> : null}

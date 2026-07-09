@@ -217,7 +217,9 @@ export type AgenteIndividualResidencialFormState = {
   socialX: string;
   socialLinkedin: string;
   socialSnapchat: string;
-  /** Google Business / reviews profile URL (main agent hub). */
+  /** Google Business Profile URL (main agent hub). */
+  googleBusinessUrl: string;
+  /** Google reviews URL (main agent hub). */
   googleReviewsUrl: string;
   /** Yelp business reviews URL (main agent hub). */
   yelpReviewsUrl: string;
@@ -650,6 +652,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     socialX: "",
     socialLinkedin: "",
     socialSnapchat: "",
+    googleBusinessUrl: "",
     googleReviewsUrl: "",
     yelpReviewsUrl: "",
     socialOtro: "",

@@ -43,6 +43,7 @@ import {
 import { digitsOnly } from "../application/utils/phoneMask";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { BrAgenteResContactSidebar } from "./BrAgenteResContactSidebar";
+import { BrLeonixPreviewMiniMap } from "@/app/clasificados/publicar/bienes-raices/shared/BrLeonixPreviewMiniMap";
 import { AgenteIndividualResidencialMediaLightbox } from "./AgenteIndividualResidencialMediaLightbox";
 import { BrPreviewVideoModal } from "./BrPreviewVideoModal";
 import {
@@ -751,21 +752,16 @@ export function AgenteIndividualResidencialPreviewPage({
                   ) : null}
                   {mapQuery ? (
                     <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-                      <div className={`${CARD_PAD} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}>
-                        <h4 className={`${typo.kicker} mb-0`} style={{ color: MUTED }}>
+                      <div className={CARD_PAD}>
+                        <h4 className={`${typo.kicker} mb-3`} style={{ color: MUTED }}>
                           {p.ubicacionAprox}
                         </h4>
-                        {mapsUrl ? (
-                          <a
-                            href={mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex shrink-0 items-center justify-center rounded-lg border px-3 py-2 text-[11px] font-bold transition hover:bg-[rgba(197,160,89,0.08)]"
-                            style={{ borderColor: `${BRONZE}aa`, color: BRONZE }}
-                          >
-                            {p.abrirMapa}
-                          </a>
-                        ) : null}
+                        <BrLeonixPreviewMiniMap
+                          locationLine={locationLine || mapQuery}
+                          directionsHref={mapsUrl ?? ""}
+                          lang={locale}
+                          variant="light"
+                        />
                       </div>
                     </div>
                   ) : null}

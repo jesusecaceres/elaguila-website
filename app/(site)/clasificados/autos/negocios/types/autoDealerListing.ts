@@ -101,10 +101,12 @@ export type AutoDealerListing = {
   city?: string;
   state?: string;
   /**
-   * US ZIP: digits only, up to 5 while typing; filter/geo use when length is 5.
-   * Future: pair with lat/lng from ZIP centroid if needed.
+   * Postal / ZIP code — any format (US 5-digit, ZIP+4, international).
+   * Used for public browse filters and listing location display.
    */
   zip?: string;
+  /** Defaults to United States when empty; not hard-locked. */
+  country?: string;
   vin?: string;
   stockNumber?: string;
   /** Trim alias for filters/payload (often mirrors trim). */
@@ -234,6 +236,8 @@ export type AutoDealerListing = {
   dealerAddressCity?: string;
   dealerAddressState?: string;
   dealerAddressZip?: string;
+  /** Dealership country — defaults to United States when empty. */
+  dealerAddressCountry?: string;
   /** Catalog engine value for filter facets; omit when seller enters custom motor text. */
   engineNormalized?: string;
   dealerHours?: DealerHoursEntry[];
@@ -243,6 +247,8 @@ export type AutoDealerListing = {
   dealerSocials?: DealerSocials;
   /** Google Business / Maps review URL — no invented ratings. */
   googleReviewsUrl?: string;
+  /** Google Business Profile page URL — separate from reviews and Maps search. */
+  googleBusinessUrl?: string;
   /** Yelp review URL — no invented ratings. */
   yelpReviewsUrl?: string;
   /** Up to 3 titled dealership links (financing, trade-in, service, etc.). */

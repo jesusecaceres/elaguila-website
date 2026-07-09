@@ -788,10 +788,13 @@ export function Step07InformacionProfesional({
             <AiField label={s7.snapchat}>
               <input className={aiInputClass} type="url" value={state.socialSnapchat} onChange={(e) => setState((s) => ({ ...s, socialSnapchat: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
-            <AiField label={s7.googleReviews}>
+            <AiField label={s7.googleBusiness} hint={s7.googleBusinessHint}>
+              <input className={aiInputClass} type="url" value={state.googleBusinessUrl} onChange={(e) => setState((s) => ({ ...s, googleBusinessUrl: e.target.value }))} placeholder="https://" autoComplete="off" />
+            </AiField>
+            <AiField label={s7.googleReviews} hint={s7.googleReviewsHint}>
               <input className={aiInputClass} type="url" value={state.googleReviewsUrl} onChange={(e) => setState((s) => ({ ...s, googleReviewsUrl: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
-            <AiField label={s7.yelpReviews}>
+            <AiField label={s7.yelpReviews} hint={s7.yelpReviewsHint}>
               <input className={aiInputClass} type="url" value={state.yelpReviewsUrl} onChange={(e) => setState((s) => ({ ...s, yelpReviewsUrl: e.target.value }))} placeholder="https://" autoComplete="off" />
             </AiField>
             <AiField label={s7.enlaceSocialAdicional}>

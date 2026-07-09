@@ -1,7 +1,20 @@
 "use client";
 
+import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { DealerStructuredAddressPatch } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
+import {
+  AUTOS_DEFAULT_COUNTRY,
+  AUTOS_DEFAULT_STATE,
+} from "@/app/lib/clasificados/autos/autosLocationContract";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import {
+  autosVehicleCityHelper,
+  autosVehicleCityPlaceholder,
+  autosVehicleCountryHelper,
+  autosVehicleZipHelper,
+} from "@/app/lib/clasificados/autos/autosVehicleLocationCopy";
+import { US_STATE_OPTIONS } from "@/app/publicar/autos/negocios/lib/autoDealerTaxonomy";
+import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -15,18 +28,22 @@ export type AutosDealerStructuredAddressLabels = {
   city: string;
   state: string;
   zipCode: string;
+  country: string;
   helperMaps: string;
   helperSearch: string;
+  selectEmpty: string;
 };
 
 export function AutosDealerStructuredAddressFields({
   labels,
   values,
   onPatch,
+  lang,
 }: {
   labels: AutosDealerStructuredAddressLabels;
   values: DealerStructuredAddressPatch;
   onPatch: (patch: Partial<DealerStructuredAddressPatch>) => void;
+  lang: AutosNegociosLang;
 }) {
   return (
     <div className="sm:col-span-2 space-y-4">
@@ -61,36 +78,51 @@ export function AutosDealerStructuredAddressFields({
             autoComplete="off"
           />
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <label className={LABEL}>{labels.city}</label>
-          <input
-            className={INPUT}
+          <CityAutocomplete
             value={values.dealerAddressCity ?? ""}
-            onChange={(e) => onPatch({ dealerAddressCity: autosDraftTextValue(e.target.value) })}
-            autoComplete="address-level2"
+            onChange={(v) => onPatch({ dealerAddressCity: v || undefined })}
+            lang={lang}
+            variant="brForm"
+            freeText
+            placeholder={autosVehicleCityPlaceholder(lang)}
           />
+          <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleCityHelper(lang)}</p>
         </div>
         <div>
           <label className={LABEL}>{labels.state}</label>
-          <input
+          <select
             className={INPUT}
-            value={values.dealerAddressState ?? ""}
-            onChange={(e) => onPatch({ dealerAddressState: autosDraftTextValue(e.target.value) })}
-            autoComplete="address-level1"
-          />
+            value={values.dealerAddressState?.trim() || AUTOS_DEFAULT_STATE}
+            onChange={(e) => onPatch({ dealerAddressState: e.target.value || undefined })}
+          >
+            {US_STATE_OPTIONS.map((s) => (
+              <option key={s || "empty"} value={s}>
+                {s || labels.selectEmpty}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={LABEL}>{labels.zipCode}</label>
           <input
             className={INPUT}
-            inputMode="numeric"
             value={values.dealerAddressZip ?? ""}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, "").slice(0, 5);
-              onPatch({ dealerAddressZip: digits.length > 0 ? digits : undefined });
-            }}
+            onChange={(e) => onPatch({ dealerAddressZip: autosDraftTextValue(e.target.value) || undefined })}
             autoComplete="postal-code"
           />
+          <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleZipHelper(lang)}</p>
+        </div>
+        <div className="sm:col-span-2">
+          <label className={LABEL}>{labels.country}</label>
+          <input
+            className={INPUT}
+            value={values.dealerAddressCountry ?? AUTOS_DEFAULT_COUNTRY}
+            onChange={(e) => onPatch({ dealerAddressCountry: autosDraftTextValue(e.target.value) || undefined })}
+            autoComplete="country-name"
+          />
+          <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleCountryHelper(lang)}</p>
         </div>
       </div>
     </div>

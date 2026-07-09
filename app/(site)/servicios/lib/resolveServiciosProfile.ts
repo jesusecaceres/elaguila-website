@@ -131,6 +131,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     if (xUrl) out.x = xUrl;
     const snap = safeExternalWebsiteHref(rawSocial.snapchatUrl);
     if (snap) out.snapchat = snap;
+    const googleBusiness = safeExternalWebsiteHref(rawSocial.googleBusinessUrl);
+    if (googleBusiness) out.googleBusiness = googleBusiness;
     if (Object.keys(out).length > 0) socialLinks = out;
   }
 

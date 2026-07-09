@@ -30,11 +30,25 @@ function buildActiveFilterChips(
       onRemove: () => next({ filters: { ...filters, city: "" } }),
     });
   }
+  if (filters.state.trim()) {
+    chips.push({
+      key: "state",
+      label: `${copy.stateLabel}: ${filters.state.trim()}`,
+      onRemove: () => next({ filters: { ...filters, state: "" } }),
+    });
+  }
   if (filters.zip.trim()) {
     chips.push({
       key: "zip",
       label: `${copy.zipLabel}: ${filters.zip.trim()}`,
       onRemove: () => next({ filters: { ...filters, zip: "" } }),
+    });
+  }
+  if (filters.country.trim()) {
+    chips.push({
+      key: "country",
+      label: `${copy.countryLabel}: ${filters.country.trim()}`,
+      onRemove: () => next({ filters: { ...filters, country: "" } }),
     });
   }
   if (filters.sellerType) {

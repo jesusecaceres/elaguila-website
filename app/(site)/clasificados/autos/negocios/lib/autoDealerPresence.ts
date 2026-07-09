@@ -92,6 +92,7 @@ export function hasDealerCard(data: AutoDealerListing): boolean {
     Object.values(soc).some((u) => nonEmpty(u) && Boolean(safeExternalHref(u))) ||
     nonEmpty(data.dealerSmsPhone) ||
     nonEmpty(data.googleReviewsUrl) ||
+    nonEmpty(data.googleBusinessUrl) ||
     nonEmpty(data.yelpReviewsUrl) ||
     (data.dealerCustomLinks ?? []).some((r) => nonEmpty(r.url) && Boolean(safeExternalHref(r.url)))
   );

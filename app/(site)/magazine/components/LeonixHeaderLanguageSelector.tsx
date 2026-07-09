@@ -9,6 +9,7 @@ import {
   PRIMARY_LANGUAGES,
   buildPathWithLang,
   getLanguageLabel,
+  getOfficialLaunchLanguageFallbackNote,
   isAdditionalLanguageActive,
   languageAriaLabel,
   normalizeLang,
@@ -52,6 +53,7 @@ export function LeonixHeaderLanguageSelector({
   const lang = normalizeLang(searchParams?.get("lang"));
   const isFull = variant === "full";
   const googleCopy = getGoogleTranslatePlacementCopy(lang);
+  const officialFallbackNote = getOfficialLaunchLanguageFallbackNote(lang);
   const googleTranslateHref = translateSiteHref({
     lang,
     sourcePage: pathname.replace(/^\//, "") || "site",
@@ -205,8 +207,17 @@ export function LeonixHeaderLanguageSelector({
             <li role="separator" aria-hidden className="my-1 border-t border-[#D6C7AD]/80" />
             <li role="presentation" className="px-2 pb-1 pt-0.5">
               <p className="px-1 py-1.5 text-[0.65rem] leading-snug text-[#3D3428]/75 sm:text-xs">
+                {officialFallbackNote}
+              </p>
+              <p className="px-1 py-1.5 text-[0.65rem] leading-snug text-[#3D3428]/75 sm:text-xs">
                 {googleCopy.dropdownHelper}
               </p>
+              <a
+                href="/qr/translator"
+                className="flex min-h-[2.5rem] w-full items-center rounded-lg px-2 py-2 text-left text-xs font-semibold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:text-sm"
+              >
+                Translation options / QR guide
+              </a>
               <a
                 href={googleTranslateHref}
                 className="flex min-h-[2.75rem] w-full items-center rounded-lg px-2 py-2 text-left text-sm font-semibold text-[#2A4536] transition hover:bg-[#FBF7EF]"

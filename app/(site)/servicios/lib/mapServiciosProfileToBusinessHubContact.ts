@@ -1,4 +1,5 @@
 import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import { buildServiciosGoogleMapsEmbedSrc } from "./serviciosBusinessHubMapEmbed";
 import {
   buildQuoteSmsHref,
   resolveServiciosQuoteDestination,
@@ -80,23 +81,47 @@ export function mapServiciosProfileToBusinessHubContact(
 
   const moreLinks: ServiciosBusinessHubCustomLink[] = [];
   if (c.websiteHref) {
-    const label =
-      c.websiteLabel?.trim() ||
-      (lang === "en" ? "Website" : "Sitio web");
-    moreLinks.push({ label, url: c.websiteHref });
+    moreLinks.push({
+      label: lang === "en" ? "Website" : "Sitio web",
+      url: c.websiteHref,
+    });
+  }
+  const googleBusiness = social?.googleBusiness?.trim();
+  if (googleBusiness) {
+    moreLinks.push({
+      label: lang === "en" ? "Google Business" : "Google Business",
+      url: googleBusiness,
+    });
+  }
+  if (googleRev) {
+    moreLinks.push({
+      label: lang === "en" ? "Google Reviews" : "Google Reviews",
+      url: googleRev,
+    });
+  }
+  if (yelpRev) {
+    moreLinks.push({
+      label: lang === "en" ? "Yelp" : "Yelp",
+      url: yelpRev,
+    });
   }
   for (const row of profile.contact.extraLinks ?? []) {
     const url = row.url?.trim();
     if (!url) continue;
     moreLinks.push({ label: row.label?.trim() || (lang === "en" ? "Additional link" : "Enlace adicional"), url });
-    if (moreLinks.length >= 3) break;
+    if (moreLinks.length >= 6) break;
   }
 
+  const addressDisplay = c.physicalAddressDisplay?.trim() || profile.hero.locationSummary?.trim() || "";
+  const mapImageUrl = profile.serviceAreas?.mapImageUrl?.trim() || undefined;
+  const mapEmbedSrc = buildServiciosGoogleMapsEmbedSrc(addressDisplay);
   const location =
-    c.physicalAddressDisplay?.trim() || c.mapsSearchHref
+    addressDisplay || c.mapsSearchHref || mapImageUrl || mapEmbedSrc
       ? {
-          addressDisplay: c.physicalAddressDisplay?.trim() || profile.hero.locationSummary?.trim() || "",
+          addressDisplay,
           mapsHref: c.mapsSearchHref,
+          ...(mapImageUrl ? { mapImageUrl } : {}),
+          ...(mapEmbedSrc ? { mapEmbedSrc } : {}),
         }
       : undefined;
 
@@ -108,8 +133,14 @@ export function mapServiciosProfileToBusinessHubContact(
     contact: contactActions,
     social: socialLinks,
     reviews,
-    moreLinks: moreLinks.slice(0, 3),
-    location: location?.addressDisplay || location?.mapsHref ? location : undefined,
+    moreLinks: moreLinks.slice(0, 6),
+    location:
+      location?.addressDisplay?.trim() ||
+      location?.mapsHref ||
+      location?.mapEmbedSrc ||
+      location?.mapImageUrl
+        ? location
+        : undefined,
   };
 }
 
@@ -128,7 +159,7 @@ export function serviciosBusinessHubHasVisibleContent(
     vm.social.length > 0 ||
     vm.reviews.length > 0 ||
     vm.moreLinks.length > 0 ||
-    Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref) ||
+    Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref || vm.location?.mapEmbedSrc || vm.location?.mapImageUrl) ||
     vm.showLeonixVerifiedCue ||
     Boolean(opts?.hasPrimaryQuote) ||
     Boolean(opts?.hasHours) ||

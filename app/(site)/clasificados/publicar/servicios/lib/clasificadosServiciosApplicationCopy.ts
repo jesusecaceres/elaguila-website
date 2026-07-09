@@ -110,6 +110,8 @@ export type ClasificadosServiciosCopy = {
     xTwitter: string;
     snapchat: string;
     contactReviewsHeading: string;
+    googleBusiness: string;
+    googleBusinessHint: string;
     googleReviews: string;
     yelpReviews: string;
     contactExtraLinksHeading: string;
@@ -413,6 +415,8 @@ const es: ClasificadosServiciosCopy = {
     xTwitter: "X (Twitter)",
     snapchat: "Snapchat",
     contactReviewsHeading: "Opiniones externas (opcional)",
+    googleBusiness: "Perfil de Google Business",
+    googleBusinessHint: "Enlace público de tu perfil de negocio en Google.",
     googleReviews: "Opiniones en Google (URL)",
     yelpReviews: "Opiniones en Yelp (URL)",
     contactExtraLinksHeading: "Enlaces adicionales (opcional)",
@@ -721,6 +725,8 @@ const en: ClasificadosServiciosCopy = {
     xTwitter: "X (Twitter)",
     snapchat: "Snapchat",
     contactReviewsHeading: "External reviews (optional)",
+    googleBusiness: "Google Business Profile",
+    googleBusinessHint: "Public link to your Google business profile.",
     googleReviews: "Google Reviews (URL)",
     yelpReviews: "Yelp Reviews (URL)",
     contactExtraLinksHeading: "Additional links (optional)",

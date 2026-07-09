@@ -22,7 +22,9 @@ export const AUTOS_BROWSE_URL_KEYS = {
   lang: "lang",
   q: "q",
   city: "city",
+  state: "state",
   zip: "zip",
+  country: "country",
   radiusMiles: "radiusMiles",
   priceMin: "priceMin",
   priceMax: "priceMax",
@@ -92,7 +94,9 @@ export type AutosBrowseUrlBundle = {
 export function parseAutosBrowseUrl(sp: URLSearchParams): AutosBrowseUrlBundle {
   const filters = emptyAutosPublicFilters();
   filters.city = sp.get(K.city) ?? "";
+  filters.state = sp.get(K.state) ?? "";
   filters.zip = sp.get(K.zip) ?? "";
+  filters.country = sp.get(K.country) ?? "";
   filters.radiusMiles = sp.get(K.radiusMiles) ?? "";
   filters.priceMin = sp.get(K.priceMin) ?? "";
   filters.priceMax = sp.get(K.priceMax) ?? "";
@@ -137,7 +141,9 @@ export function serializeAutosBrowseUrl(bundle: AutosBrowseUrlBundle): string {
   params.set(K.lang, bundle.routeLang);
   setIfNonEmpty(params, K.q, bundle.q);
   setIfNonEmpty(params, K.city, bundle.filters.city);
+  setIfNonEmpty(params, K.state, bundle.filters.state);
   setIfNonEmpty(params, K.zip, bundle.filters.zip);
+  setIfNonEmpty(params, K.country, bundle.filters.country);
   setIfNonEmpty(params, K.radiusMiles, bundle.filters.radiusMiles);
   setIfNonEmpty(params, K.priceMin, bundle.filters.priceMin);
   setIfNonEmpty(params, K.priceMax, bundle.filters.priceMax);
