@@ -17,7 +17,16 @@ export function AutosPrivadoPreviewEmptyState() {
   const editHref = withLangParam(EDIT_BASE, lang);
 
   return (
-    <PrivadoPreviewChrome editBackHref={editHref}>
+    <PrivadoPreviewChrome
+      lang={lang}
+      labels={{
+        breadcrumbClassifieds: t.preview.chrome.breadcrumbClassifieds,
+        breadcrumbAutos: t.preview.chrome.breadcrumbAutos,
+        breadcrumbTail: lang === "es" ? "Privado" : "Private",
+        backToEdit: t.preview.chrome.backToEdit,
+      }}
+      editBackHref={editHref}
+    >
       <main className="mx-auto mt-6 max-w-[1280px] px-4 sm:mt-8 md:px-5 lg:px-6">
         <div className={CARD}>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--lx-muted)]">{e.kicker}</p>

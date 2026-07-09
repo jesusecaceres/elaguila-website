@@ -64,14 +64,14 @@ export function EmpleosBenefitsPicker({ lang, selected, onChange }: Props) {
   const presetLabels = new Set(presets as readonly string[]);
   const customOnly = selected.filter((s) => {
     const t = s.trim();
-    return t && !presetLabels.has(t);
+    return !presetLabels.has(t);
   });
 
   const togglePreset = (label: string) => {
     const next = new Set(selectedSet);
     if (next.has(label)) next.delete(label);
     else next.add(label);
-    const customs = customOnly.filter((c) => !presetLabels.has(c));
+    const customs = customOnly.filter((c) => !presetLabels.has(c.trim()));
     onChange([...presets.filter((p) => next.has(p)), ...customs]);
   };
 

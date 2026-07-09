@@ -16,7 +16,7 @@ import {
 } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
 import { AutoGallery } from "@/app/clasificados/autos/negocios/components/AutoGallery";
 import { PrivadoVehicleDescription } from "./PrivadoVehicleDescription";
-import { VehicleHighlights } from "@/app/clasificados/autos/negocios/components/VehicleHighlights";
+import { PrivadoVehicleHighlights } from "./PrivadoVehicleHighlights";
 import { VehicleSpecsGrid } from "@/app/clasificados/autos/negocios/components/VehicleSpecsGrid";
 import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/AutosEngagementRow";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
@@ -85,7 +85,16 @@ export function AutoPrivadoPreviewPage({
   const showPriceCol = priceOk;
 
   return (
-    <PrivadoPreviewChrome editBackHref={editBackHref}>
+    <PrivadoPreviewChrome
+      lang={lang}
+      labels={{
+        breadcrumbClassifieds: t.preview.chrome.breadcrumbClassifieds,
+        breadcrumbAutos: t.preview.chrome.breadcrumbAutos,
+        breadcrumbTail: lang === "es" ? "Privado" : "Private",
+        backToEdit: t.preview.chrome.backToEdit,
+      }}
+      editBackHref={editBackHref}
+    >
       <main className="mx-auto mt-5 max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] pt-1 sm:mt-8 sm:pb-10 md:px-5 lg:px-6">
         <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
           {showTitle ? (
@@ -182,7 +191,7 @@ export function AutoPrivadoPreviewPage({
             {showSpecs ? <VehicleSpecsGrid data={display} hiddenRowKeys={["stock"]} /> : null}
             {showHighlights ? (
               <div className={showSpecs ? "mt-6" : ""}>
-                <VehicleHighlights data={display} />
+                <PrivadoVehicleHighlights data={display} />
               </div>
             ) : null}
             {showDesc ? (

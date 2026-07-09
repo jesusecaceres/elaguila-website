@@ -393,7 +393,7 @@ export default function EmpleoQuickApplicationClient() {
               </p>
               <div className="mt-2">
                 <EmpleosStringLinesEditor
-                  items={state.payNote ? state.payNote.split("\n").filter(Boolean) : []}
+                  items={state.payNote ? state.payNote.split("\n") : []}
                   onChange={(lines) => patchPay({ payNote: lines.join("\n") })}
                   addLabel={es ? "+ Añadir nota" : "+ Add note"}
                   removeLabel={es ? "Quitar" : "Remove"}

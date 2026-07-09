@@ -73,7 +73,7 @@ export function PrivadoContactStrip({
   const siteMessageHref = buildPrivadoSiteMessageHref(lang, data);
 
   const seller = data.dealerName?.trim();
-  const socials = data.dealerSocials;
+  const socials = data.dealerSocials ?? {};
   const website = data.dealerWebsite;
 
   // Optional location for meeting

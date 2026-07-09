@@ -47,6 +47,7 @@ export type BienesRaicesPrivadoLocationVm = {
   mapsUrl: string | null;
   line1: string;
   cityStateZip: string;
+  fullAddress: string;
   hasMeaningfulAddress: boolean;
 };
 

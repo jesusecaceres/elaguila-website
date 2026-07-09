@@ -92,6 +92,7 @@ export function buildBienesRaicesPrivadoTemplateVm(categoria: BrNegocioCategoria
       mapsUrl: null,
       line1: "Dirección aproximada o cruce de referencia",
       cityStateZip: "Ciudad, CA · plantilla",
+      fullAddress: "Dirección aproximada o cruce de referencia, Ciudad, CA · plantilla",
       hasMeaningfulAddress: true,
     },
     mostrarDireccionExacta: true,

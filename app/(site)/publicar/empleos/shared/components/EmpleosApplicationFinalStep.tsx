@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 const BTN_PREVIEW =
   "inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-[12px] bg-[color:var(--lx-cta-dark)] px-4 py-3 text-sm font-bold text-[#FFFCF7] shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:max-w-xs";
 const BTN_PUBLISH =
@@ -14,6 +16,19 @@ type FinalCopy = {
   saveDraftCta?: string;
   deleteRequest: string;
   deleteConfirm: string;
+  confirmationTitle?: string;
+  confirmationHelper?: string;
+  confirmationLinkLabel?: string;
+  confirmationLinkUrl?: string;
+  checkbox1?: string;
+  checkbox2?: string;
+  checkbox3?: string;
+  readyMessage?: string;
+  missingConfirmationsMessage?: string;
+  priceSummaryTitle?: string;
+  priceSummaryItem?: string;
+  priceSummaryHelper?: string;
+  priceSummaryTotal?: string;
 };
 
 type Props = {
@@ -68,7 +83,15 @@ export function EmpleosApplicationFinalStep({
   publishWorking,
   publishWorkingLabel,
 }: Props) {
-  const publishBtnDisabled = publishDisabled ?? previewDisabled;
+  const [confirm1, setConfirm1] = useState(false);
+  const [confirm2, setConfirm2] = useState(false);
+  const [confirm3, setConfirm3] = useState(false);
+
+  const hasConfirmations = copy.checkbox1 && copy.checkbox2 && copy.checkbox3;
+  const allConfirmed = confirm1 && confirm2 && confirm3;
+  const confirmationsBlocked = hasConfirmations && !allConfirmed;
+
+  const publishBtnDisabled = publishDisabled ?? previewDisabled ?? confirmationsBlocked;
   const saveBtnDisabled = allowSaveDraftWhenBlocked ? false : previewDisabled;
   const publishTitleHint =
     publishBtnDisabled && !previewDisabled
@@ -88,6 +111,83 @@ export function EmpleosApplicationFinalStep({
       <p className="mt-3 rounded-lg border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-page)] px-3 py-2 text-xs font-medium text-[color:var(--lx-text-2)]">
         {copy.sessionDraftLine}
       </p>
+
+      {hasConfirmations ? (
+        <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-4 py-3">
+          <h3 className="text-sm font-bold text-[color:var(--lx-text)]">
+            {copy.confirmationTitle}
+          </h3>
+          <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
+            {copy.confirmationHelper}
+            {copy.confirmationLinkLabel && copy.confirmationLinkUrl && (
+              <a
+                href={copy.confirmationLinkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 text-xs font-semibold text-blue-700 underline"
+              >
+                {copy.confirmationLinkLabel}
+              </a>
+            )}
+          </p>
+          <div className="mt-3 space-y-2">
+            <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-[color:var(--lx-nav-border)] px-3 py-2 text-sm transition hover:border-[color:var(--lx-cta-dark)]/40 bg-white">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--lx-cta-dark)]"
+                checked={confirm1}
+                onChange={(e) => setConfirm1(e.target.checked)}
+              />
+              <span className="text-[color:var(--lx-text)]">{copy.checkbox1}</span>
+            </label>
+            <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-[color:var(--lx-nav-border)] px-3 py-2 text-sm transition hover:border-[color:var(--lx-cta-dark)]/40 bg-white">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--lx-cta-dark)]"
+                checked={confirm2}
+                onChange={(e) => setConfirm2(e.target.checked)}
+              />
+              <span className="text-[color:var(--lx-text)]">{copy.checkbox2}</span>
+            </label>
+            <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-lg border border-[color:var(--lx-nav-border)] px-3 py-2 text-sm transition hover:border-[color:var(--lx-cta-dark)]/40 bg-white">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--lx-cta-dark)]"
+                checked={confirm3}
+                onChange={(e) => setConfirm3(e.target.checked)}
+              />
+              <span className="text-[color:var(--lx-text)]">{copy.checkbox3}</span>
+            </label>
+          </div>
+          {confirmationsBlocked && copy.missingConfirmationsMessage ? (
+            <p className="mt-3 text-xs font-medium text-amber-900" role="status">
+              {copy.missingConfirmationsMessage}
+            </p>
+          ) : null}
+          {!confirmationsBlocked && copy.readyMessage ? (
+            <p className="mt-3 text-xs font-medium text-emerald-900" role="status">
+              {copy.readyMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {copy.priceSummaryTitle && copy.priceSummaryItem && copy.priceSummaryTotal ? (
+        <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-4 py-3">
+          <h3 className="text-sm font-bold text-[color:var(--lx-text)]">
+            {copy.priceSummaryTitle}
+          </h3>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-[color:var(--lx-text)]">{copy.priceSummaryItem}</p>
+              <p className="mt-0.5 text-xs text-[color:var(--lx-text-2)]">{copy.priceSummaryHelper}</p>
+            </div>
+            <div className="ml-4 text-right">
+              <p className="text-sm font-bold text-[color:var(--lx-text)]">{copy.priceSummaryTotal}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {stagedSuccessText ? (
         <p className="mt-3 rounded-xl border border-emerald-200/80 bg-emerald-50/95 px-3 py-2 text-sm text-emerald-950" role="status">

@@ -278,7 +278,7 @@ export function normalizePayDisplayParts(input: PayDisplayInput, lang: "es" | "e
   const noteFromField = st(input.payNote);
   const legacy = st(input.pay);
 
-  let note = noteFromField;
+  let note = noteFromField ? noteFromField.replace(/\n+/g, " · ") : "";
   let headline = "—";
 
   if (amount || unit) {
