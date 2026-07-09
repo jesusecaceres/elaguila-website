@@ -562,3 +562,5 @@ Issue manifest/source intake foundation created: [`august-2026-issue-manifest.js
 Portuguese proof plan created with PT-1 recommendation and max 3 provider calls: [`AUGUST-2026-PORTUGUESE-PROOF-PLAN.md`](AUGUST-2026-PORTUGUESE-PROOF-PLAN.md)
 
 Portuguese Batch 1 validated PT-BR proof direction for pages 12, 6, and 3: [`AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION.md`](AUGUST-2026-PORTUGUESE-PROOF-BATCH1-QA-DECISION.md)
+
+Translation-safe design specs now capture spacing, padding, CTA/QR/contact, source export, and final polish rules: [`AUGUST-2026-TRANSLATION-SAFE-MAGAZINE-DESIGN-SPECS.md`](AUGUST-2026-TRANSLATION-SAFE-MAGAZINE-DESIGN-SPECS.md)

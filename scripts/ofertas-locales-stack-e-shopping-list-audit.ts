@@ -1,5 +1,5 @@
 /**
- * Stack E — Ofertas Locales shopping list audit (V1.1).
+ * Stack E — Ofertas Locales shopping list audit (V1.1A).
  * Run: npm run ofertas-locales:stack-e-shopping-list-audit
  */
 import assert from "node:assert/strict";
@@ -110,10 +110,24 @@ function run() {
 
   assert.ok(client.includes("useOfertasLocalesShoppingList"), "search client uses hook");
   assert.ok(client.includes("OfertasLocalesShoppingListPanel"), "search client uses panel");
-  assert.ok(client.includes("OfertasShoppingListCartEntry"), "always-available cart entry component");
+  assert.ok(client.includes("OfertasFloatingShoppingListCart"), "floating cart entry component");
+  assert.ok(
+    client.includes("ofertas-floating-shopping-list-cart") ||
+      client.includes("fixed bottom-"),
+    "floating cart uses fixed bottom positioning"
+  );
   assert.ok(client.includes("!isCupones"), "cart entry gated off Cupones surface");
   assert.ok(client.includes("shoppingListTitle"), "cart entry uses shopping list title copy");
+  assert.ok(client.includes("shoppingListEmptyHelper"), "cart entry uses empty helper copy");
   assert.ok(client.includes("setListOpen(true)"), "cart entry opens shopping list panel");
+  assert.ok(
+    client.includes("itemCount") || client.includes("counts.itemCount"),
+    "cart entry uses item count badge"
+  );
+  assert.ok(
+    !client.includes("OfertasShoppingListCartEntry"),
+    "legacy inline cart row removed in favor of floating entry"
+  );
 
   assert.ok(
     copy.includes("Agregar a lista") && copy.includes("Add to list"),
@@ -121,7 +135,11 @@ function run() {
   );
   assert.ok(copy.includes("shoppingListTitle"), "shoppingListTitle copy key");
   assert.ok(copy.includes("shoppingListOpen"), "shoppingListOpen copy key");
-  assert.ok(copy.includes("shoppingListEmptyHelper"), "shoppingListEmptyHelper copy key");
+  assert.ok(
+    copy.includes("Agrega productos para planear tu visita.") &&
+      copy.includes("Add items to plan your visit."),
+    "ES/EN shopping list empty helper text"
+  );
   assert.ok(copy.includes("viewList"), "viewList copy key");
   assert.ok(copy.includes("savedOnDevice"), "savedOnDevice copy key");
   assert.ok(copy.includes("mapHandoffNote"), "mapHandoffNote copy key");
@@ -180,7 +198,7 @@ function run() {
     "package script for stack E audit"
   );
 
-  console.log("Stack E — Ofertas Locales shopping list audit (V1.1) passed.");
+  console.log("Stack E — Ofertas Locales shopping list audit (V1.1A) passed.");
 }
 
 run();

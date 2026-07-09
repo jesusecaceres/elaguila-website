@@ -7,6 +7,7 @@ import { normalizeDealerCustomLinks } from "@/app/lib/clasificados/autos/autosDe
 import { dealerLanguagesForOutput } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import {
   autosInventoryChildEditInMainApplication,
+  autosInventoryChildStep5EditHint,
   autosInventoryChildStep5Intro,
   autosInventoryChildStep5SectionTitle,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
@@ -71,6 +72,7 @@ export function AutosInventoryInheritedDealerStep({
       <h3 className="text-sm font-extrabold text-[#1E1810]">{autosInventoryChildStep5SectionTitle(lang)}</h3>
       <p className="mt-3 rounded-xl border border-[#C9B46A]/40 bg-[#FAF7F2] px-4 py-3 text-xs leading-relaxed text-[#5C5346]">
         {autosInventoryChildStep5Intro(lang)}
+        <span className="mt-2 block">{autosInventoryChildStep5EditHint(lang)}</span>
       </p>
       {onEditInMainApplication ? (
         <button

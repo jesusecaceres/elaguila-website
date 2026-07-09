@@ -80,7 +80,7 @@ export function autosInventoryDrawerLocationInheritHint(lang: AutosClassifiedsLa
 }
 
 export function autosAddInventorySaveCta(lang: AutosClassifiedsLang): string {
-  return lang === "es" ? "Guardar en inventario" : "Save to inventory";
+  return lang === "es" ? "Guardar inventario" : "Save inventory";
 }
 
 export function autosAddInventorySaveAndAnotherCta(lang: AutosClassifiedsLang): string {
@@ -237,8 +237,14 @@ export function autosInventoryUnsavedModalCloseWithoutSaving(lang: AutosClassifi
 
 export function autosInventoryChildStep5Intro(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? "Esta información se toma de la solicitud principal del concesionario. Se usará para este vehículo cuando se guarde en inventario."
-    : "This information comes from the main dealership application. It will be used for this vehicle when saved to inventory.";
+    ? "La información del dealer se hereda de la aplicación principal del concesionario."
+    : "Dealer information is inherited from the main dealership application.";
+}
+
+export function autosInventoryChildStep5EditHint(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Edita la información del dealer en el Paso 5 de la aplicación principal."
+    : "Edit dealership information in Step 5 of the main application.";
 }
 
 export function autosInventoryChildEditInMainApplication(lang: AutosClassifiedsLang): string {

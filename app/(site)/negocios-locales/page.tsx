@@ -4,103 +4,19 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { resolveRouteLang, type SupportedLang } from "@/app/lib/language";
+import { NegociosLocalesBusinessCard } from "./_components/NegociosLocalesBusinessCard";
+import { NegociosLocalesFeaturedOfertasModule } from "./_components/NegociosLocalesFeaturedOfertasModule";
+import { NegociosLocalesLaunchBanner } from "./_components/NegociosLocalesLaunchBanner";
+import {
+  buildBusinessAdvertiseEntryHref,
+  buildNegociosAdvertiseHref,
+  buildNegociosExploreHref,
+  NEGOCIOS_LANE_COPY,
+  NEGOCIOS_SECTOR_GRID_ORDER,
+  type BusinessLaneKey,
+} from "./_lib/negociosLocalesLanes";
 
 type PageLang = "es" | "en";
-
-type BusinessLaneKey =
-  | "ofertas-locales"
-  | "servicios"
-  | "restaurantes"
-  | "comida-local"
-  | "autos-dealer"
-  | "bienes-raices";
-
-const LANE_ORDER: readonly BusinessLaneKey[] = [
-  "ofertas-locales",
-  "servicios",
-  "restaurantes",
-  "comida-local",
-  "autos-dealer",
-  "bienes-raices",
-];
-
-const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
-  "ofertas-locales": "/clasificados/ofertas-locales",
-  servicios: "/clasificados/servicios",
-  restaurantes: "/clasificados/restaurantes",
-  "comida-local": "/clasificados/comida-local",
-  "autos-dealer": "/clasificados/autos/results",
-  "bienes-raices": "/clasificados/bienes-raices",
-};
-
-const LANE_ADVERTISE_PATH: Record<BusinessLaneKey, string> = {
-  "ofertas-locales": "/publicar/ofertas-locales",
-  servicios: "/clasificados/publicar/servicios",
-  restaurantes: "/clasificados/publicar/restaurantes",
-  "comida-local": "/publicar/comida-local",
-  "autos-dealer": "/publicar/autos/negocios",
-  "bienes-raices": "/clasificados/publicar/bienes-raices",
-};
-
-type LaneCopy = {
-  labelEs: string;
-  labelEn: string;
-  descEs: string;
-  descEn: string;
-  advertiseEs: string;
-  advertiseEn: string;
-};
-
-const LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
-  "ofertas-locales": {
-    labelEs: "Ofertas Locales",
-    labelEn: "Local Deals",
-    descEs: "Encuentra especiales, cupones y ofertas semanales de negocios locales.",
-    descEn: "Find weekly specials, coupons, and local business offers.",
-    advertiseEs: "Publica tus ofertas locales",
-    advertiseEn: "Publish your local deals",
-  },
-  servicios: {
-    labelEs: "Servicios",
-    labelEn: "Services",
-    descEs: "Profesionales y servicios confiables para hogares, negocios y proyectos locales.",
-    descEn: "Trusted professionals and services for homes, businesses, and local projects.",
-    advertiseEs: "Anunciar en Servicios",
-    advertiseEn: "Advertise in Services",
-  },
-  restaurantes: {
-    labelEs: "Restaurantes",
-    labelEn: "Restaurants",
-    descEs: "Comida local, menús, antojos y lugares para visitar en tu comunidad.",
-    descEn: "Local food, menus, cravings, and places to visit in your community.",
-    advertiseEs: "Anunciar en Restaurantes",
-    advertiseEn: "Advertise in Restaurants",
-  },
-  "comida-local": {
-    labelEs: "Comida Local",
-    labelEn: "Local Food",
-    descEs: "Puestos, pop-ups, comida casera y vendedores móviles para la comunidad.",
-    descEn: "Pop-ups, homemade food, mobile vendors, and local food sellers.",
-    advertiseEs: "Publicar tu puesto",
-    advertiseEn: "Publish your stand",
-  },
-  "autos-dealer": {
-    labelEs: "Concesionarios de Autos",
-    labelEn: "Auto Dealerships",
-    descEs: "Agencias y negocios de autos para conectar compradores con opciones locales.",
-    descEn: "Auto businesses and dealerships connecting buyers with local options.",
-    advertiseEs: "Anunciar concesionario",
-    advertiseEn: "Advertise dealership",
-  },
-  "bienes-raices": {
-    labelEs: "Bienes Raíces",
-    labelEn: "Real Estate",
-    descEs: "Casas, propiedades, agentes y oportunidades inmobiliarias para la comunidad.",
-    descEn: "Homes, properties, agents, and real estate opportunities for the community.",
-    advertiseEs: "Anunciar en Bienes Raíces",
-    advertiseEn: "Advertise in Real Estate",
-  },
-};
 
 const PAGE_COPY = {
   es: {
@@ -108,17 +24,16 @@ const PAGE_COPY = {
     title: "Negocios Locales",
     subtitle: "Encuentra negocios, servicios y profesionales cerca de tu comunidad.",
     description:
-      "Explora servicios, restaurantes, concesionarios y bienes raíces en un espacio creado para conectar negocios locales con familias, clientes y oportunidades reales.",
+      "Explora servicios, restaurantes, dealers de autos y bienes raíces en un espacio creado para conectar negocios locales con familias, clientes y oportunidades reales.",
     ctaExplore: "Explorar negocios",
     ctaAdvertise: "Anunciar mi negocio",
     sectionLanes: "Explorar por sector",
-    explore: "EXPLORAR",
     sponsorEyebrow: "REVISTA · DIGITAL · COMUNIDAD",
     sponsorTitle: "Patrocinadores de Leonix",
     sponsorSubtitle:
       "Negocios locales con presencia premium en Leonix Media, revista impresa/digital y campañas comunitarias.",
     sponsorSupporting:
-      "Ideal para restaurantes, servicios, tiendas, concesionarios, profesionales y marcas que quieren ser vistos por la comunidad.",
+      "Ideal para restaurantes, servicios, tiendas, dealers de autos, profesionales y marcas que quieren ser vistos por la comunidad.",
     sponsorCtaPrimary: "Quiero patrocinar en Leonix",
     sponsorCtaSecondary: "Ver sectores",
     sponsorChips: [
@@ -139,17 +54,16 @@ const PAGE_COPY = {
     title: "Local Businesses",
     subtitle: "Find businesses, services, and professionals near your community.",
     description:
-      "Explore services, restaurants, auto dealerships, and real estate in one place built to connect local businesses with families, customers, and real opportunities.",
+      "Explore services, restaurants, auto dealers, and real estate in one place built to connect local businesses with families, customers, and real opportunities.",
     ctaExplore: "Explore businesses",
     ctaAdvertise: "Advertise my business",
     sectionLanes: "Explore by sector",
-    explore: "EXPLORE",
     sponsorEyebrow: "MAGAZINE · DIGITAL · COMMUNITY",
     sponsorTitle: "Leonix Sponsors",
     sponsorSubtitle:
       "Local businesses with premium visibility across Leonix Media, print/digital magazine, and community campaigns.",
     sponsorSupporting:
-      "Built for restaurants, services, shops, dealerships, professionals, and brands that want to be seen by the community.",
+      "Built for restaurants, services, shops, auto dealers, professionals, and brands that want to be seen by the community.",
     sponsorCtaPrimary: "Sponsor with Leonix",
     sponsorCtaSecondary: "View sectors",
     sponsorChips: [
@@ -167,32 +81,10 @@ const PAGE_COPY = {
   },
 } as const;
 
+const PRIORITY_LANES = new Set<BusinessLaneKey>(["servicios", "restaurantes", "autos-dealer"]);
+
 function pageLangFromRoute(routeLang: SupportedLang): PageLang {
   return routeLang === "es" ? "es" : "en";
-}
-
-function appendLangToPath(path: string, lang: SupportedLang): string {
-  const [base, hash] = path.split("#");
-  const joiner = base.includes("?") ? "&" : "?";
-  const withParam = `${base}${joiner}lang=${lang}`;
-  return hash ? `${withParam}#${hash}` : withParam;
-}
-
-function buildExploreHref(lane: BusinessLaneKey, lang: SupportedLang): string {
-  if (lane === "autos-dealer") {
-    const params = new URLSearchParams({ lang, seller: "dealer" });
-    return `${LANE_EXPLORE_PATH[lane]}?${params.toString()}`;
-  }
-  return appendLangToPath(LANE_EXPLORE_PATH[lane], lang);
-}
-
-function buildAdvertiseHref(lane: BusinessLaneKey, lang: SupportedLang): string {
-  return appendLangToPath(LANE_ADVERTISE_PATH[lane], lang);
-}
-
-function buildBusinessAdvertiseEntryHref(lang: SupportedLang): string {
-  const redirect = encodeURIComponent(`/clasificados/publicar?lang=${lang}`);
-  return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
 }
 
 function LaneMark({ lane }: { lane: BusinessLaneKey }) {
@@ -266,49 +158,6 @@ function LaneMark({ lane }: { lane: BusinessLaneKey }) {
   }
 }
 
-function BusinessLaneCard({
-  lane,
-  lang,
-  exploreHref,
-  advertiseHref,
-  exploreLabel,
-}: {
-  lane: BusinessLaneKey;
-  lang: PageLang;
-  exploreHref: string;
-  advertiseHref: string;
-  exploreLabel: string;
-}) {
-  const copy = LANE_COPY[lane];
-  const label = lang === "es" ? copy.labelEs : copy.labelEn;
-  const desc = lang === "es" ? copy.descEs : copy.descEn;
-  const advertiseLabel = lang === "es" ? copy.advertiseEs : copy.advertiseEn;
-
-  return (
-    <article className="flex h-full min-h-0 flex-col rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)] sm:min-h-[17.5rem] sm:p-5">
-      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536] sm:h-12 sm:w-12">
-        <LaneMark lane={lane} />
-      </span>
-      <h3 className="mt-3 text-base font-bold text-[#1F241C] sm:mt-4">{label}</h3>
-      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-[#3D3428] sm:mt-2">{desc}</p>
-      <div className="mt-auto flex flex-col gap-3 border-t border-[#D6C7AD]/50 pt-4 sm:gap-4 sm:pt-6">
-        <Link
-          href={exploreHref}
-          className="inline-flex min-h-[2.375rem] w-full items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FAF6EE] px-4 py-2 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7] sm:min-h-[2.5rem] sm:py-2.5"
-        >
-          {exploreLabel}
-        </Link>
-        <Link
-          href={advertiseHref}
-          className="inline-flex min-h-[2.375rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[2.5rem] sm:py-2.5"
-        >
-          {advertiseLabel}
-        </Link>
-      </div>
-    </article>
-  );
-}
-
 function NegociosLocalesInner() {
   const routeLang = resolveRouteLang(useSearchParams()?.get("lang"));
   const pageLang = pageLangFromRoute(routeLang);
@@ -329,7 +178,6 @@ function NegociosLocalesInner() {
       />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:px-8">
-        {/* 1 — Business hero */}
         <section className="max-w-3xl" aria-labelledby="negocios-hero-title">
           <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{t.eyebrow}</p>
           <h1
@@ -357,7 +205,14 @@ function NegociosLocalesInner() {
           </div>
         </section>
 
-        {/* 1.5 — Patrocinadores de Leonix sponsor lane */}
+        <div className="mt-10 max-w-3xl">
+          <NegociosLocalesLaunchBanner routeLang={routeLang} />
+        </div>
+
+        <div className="mt-8">
+          <NegociosLocalesFeaturedOfertasModule routeLang={routeLang} />
+        </div>
+
         <section
           className="mt-12 rounded-2xl border border-[#C9A84A]/35 bg-[#FFFDF7]/95 p-5 sm:mt-14 sm:p-6"
           aria-labelledby="negocios-sponsors-title"
@@ -399,7 +254,6 @@ function NegociosLocalesInner() {
           </div>
         </section>
 
-        {/* 2 — Business lane grid */}
         <section id="sectores" className="mt-14 sm:mt-16" aria-labelledby="negocios-lanes-title">
           <h2
             id="negocios-lanes-title"
@@ -408,22 +262,36 @@ function NegociosLocalesInner() {
             {t.sectionLanes}
           </h2>
 
-          <ul className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-5">
-            {LANE_ORDER.map((lane) => (
-              <li key={lane} className="flex h-full">
-                <BusinessLaneCard
-                  lane={lane}
-                  lang={pageLang}
-                  exploreHref={buildExploreHref(lane, routeLang)}
-                  advertiseHref={buildAdvertiseHref(lane, routeLang)}
-                  exploreLabel={t.explore}
-                />
-              </li>
-            ))}
+          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {NEGOCIOS_SECTOR_GRID_ORDER.map((lane) => {
+              const copy = NEGOCIOS_LANE_COPY[lane];
+              const label = pageLang === "es" ? copy.labelEs : copy.labelEn;
+              const desc = pageLang === "es" ? copy.descEs : copy.descEn;
+              const note = pageLang === "es" ? copy.noteEs : copy.noteEn;
+              const advertiseLabel = pageLang === "es" ? copy.advertiseEs : copy.advertiseEn;
+              const priority = PRIORITY_LANES.has(lane);
+              const accent = lane === "autos-dealer" ? "gold" : undefined;
+
+              return (
+                <li key={lane} className="flex h-full">
+                  <NegociosLocalesBusinessCard
+                    lang={routeLang}
+                    browseHref={buildNegociosExploreHref(lane, routeLang)}
+                    advertiseHref={buildNegociosAdvertiseHref(lane, routeLang)}
+                    label={label}
+                    description={desc}
+                    advertiseLabel={advertiseLabel}
+                    note={note}
+                    priority={priority}
+                    accent={accent}
+                    icon={<LaneMark lane={lane} />}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </section>
 
-        {/* 3 — Business advertising CTA */}
         <section
           className="mt-14 rounded-2xl border border-[#C9A84A]/40 bg-[#2A4536] px-6 py-10 text-[#FFFDF7] shadow-[0_16px_40px_-20px_rgba(31,36,28,0.35)] sm:px-10 sm:py-12"
           aria-labelledby="negocios-promo-title"

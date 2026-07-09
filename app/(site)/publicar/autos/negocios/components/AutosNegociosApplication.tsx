@@ -192,8 +192,13 @@ export function AutosNegociosApplication() {
     inProgressDraft: inProgressInventoryVehicleDraft,
     onInProgressChange: updateInProgressInventoryVehicleDraft,
     onEditParentDealerStep: () => {
+      const parentDealerStep = 4;
       setInventoryDrawerOpen(false, null);
-      setEditorProgress(4, Math.max(editorMaxReached, 4));
+      setEditorProgress(parentDealerStep, Math.max(editorMaxReached, parentDealerStep));
+      void flushDraft({
+        editorStep: parentDealerStep,
+        editorMaxReached: Math.max(editorMaxReached, parentDealerStep),
+      });
     },
   };
 

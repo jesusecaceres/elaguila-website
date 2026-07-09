@@ -6,13 +6,10 @@ import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
-  LeonixCategoryShortcutSection,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
-import { MascotasPerdidosLandingRecentListings } from "./MascotasPerdidosLandingRecentListings";
-import { mascotasPerdidosPublishEntryUrl, mascotasPerdidosTipoChipHref } from "./shared/mascotasPerdidosBrowseUrls";
+import { mascotasPerdidosPublishEntryUrl } from "./shared/mascotasPerdidosBrowseUrls";
 import { mascotasPerdidosLangFromSearchParams, mascotasPerdidosRouteLangFromSearchParams } from "./shared/mascotasPerdidosShellCopy";
 
 const COPY = {
@@ -20,19 +17,17 @@ const COPY = {
     eyebrow: "CLASIFICADOS · MASCOTAS Y PERDIDOS",
     ctaPost: "Publicar en Mascotas y Perdidos",
     ctaView: "Ver todos los anuncios",
-    typesTitle: "Filtros rápidos",
-    recentTitle: "Avisos recientes",
-    recentEmpty: "Aún no hay avisos publicados. Sé el primero en publicar un aviso gratuito.",
-    recentError: "No se pudieron cargar los avisos recientes.",
+    tagline: "Avisos locales cuando más importa.",
+    intro: "Encuentra mascotas perdidas, avisa sobre mascotas encontradas y más.",
+    helper: "Busca por ciudad o tipo de aviso; comparte información clara y reciente.",
   },
   en: {
     eyebrow: "CLASSIFIEDS · PETS & LOST",
     ctaPost: "Post in Pets & Lost",
     ctaView: "View all listings",
-    typesTitle: "Quick filters",
-    recentTitle: "Recent notices",
-    recentEmpty: "No published notices yet. Be the first to post a free notice.",
-    recentError: "Could not load recent notices.",
+    tagline: "Local notices when it matters most.",
+    intro: "Find lost pets, report found pets, and more.",
+    helper: "Search by city or notice type; share clear, timely information.",
   },
 } as const;
 
@@ -80,42 +75,12 @@ function MascotasPerdidosLandingPageInner() {
           lang={lang as V2Lang}
           surface="landing"
           title={lang === "es" ? "Mascotas y Perdidos" : "Pets & Lost"}
-          tagline={lang === "es" ? "Avisos locales cuando más importa." : "Local notices when it matters most."}
-          intro={
-            lang === "es"
-              ? "Encuentra mascotas perdidas, avisa sobre mascotas encontradas y más."
-              : "Find lost pets, report found pets, and more."
-          }
-          introSecondary={
-            lang === "es"
-              ? "Busca por ciudad o tipo de aviso; comparte información clara y reciente."
-              : "Search by city or notice type; share clear, timely information."
-          }
+          tagline={t.tagline}
+          intro={t.intro}
+          introSecondary={t.helper}
           searchSlot={mascotasSearchForm}
           eyebrow={t.eyebrow}
         />
-
-        <main className="space-y-5 overflow-x-hidden sm:space-y-6">
-          <LeonixCategoryShortcutSection
-            lang={lang as V2Lang}
-            surface="landing"
-            title={t.typesTitle}
-            subtitle=""
-            variant="default"
-            chips={MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((opt) => ({
-              id: opt.value,
-              label: lang === "en" ? opt.labelEn : opt.labelEs,
-              href: mascotasPerdidosTipoChipHref(routeLang, opt.value),
-            }))}
-          />
-
-          <MascotasPerdidosLandingRecentListings
-            lang={lang}
-            title={t.recentTitle}
-            emptyNote={t.recentEmpty}
-            errorPrefix={t.recentError}
-          />
-        </main>
       </div>
     </LeonixCategoryPageShell>
   );
