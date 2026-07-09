@@ -90,3 +90,27 @@ export function trackRentasContactClick(ctxOrId: RentasAnalyticsContext | string
 export function trackRentasMessageSent(ctxOrId: RentasAnalyticsContext | string, _userId?: string | null) {
   void trackRentasGlobalEvent(ctxOrId, "message_sent", "detail", { authRequired: true });
 }
+
+export function trackRentasPhoneClick(ctxOrId: RentasAnalyticsContext | string) {
+  void trackRentasGlobalEvent(ctxOrId, "phone_click", "detail");
+}
+
+export function trackRentasWhatsappClick(ctxOrId: RentasAnalyticsContext | string) {
+  void trackRentasGlobalEvent(ctxOrId, "whatsapp_click", "detail");
+}
+
+export function trackRentasEmailClick(ctxOrId: RentasAnalyticsContext | string) {
+  void trackRentasGlobalEvent(ctxOrId, "email_click", "detail");
+}
+
+export function trackRentasWebsiteClick(ctxOrId: RentasAnalyticsContext | string) {
+  void trackRentasGlobalEvent(ctxOrId, "website_click", "detail");
+}
+
+export function trackRentasDirectionsClick(ctxOrId: RentasAnalyticsContext | string) {
+  void trackRentasGlobalEvent(ctxOrId, "directions_click", "detail");
+}
+
+export function trackRentasMessageClick(ctxOrId: RentasAnalyticsContext | string) {
+  void trackRentasGlobalEvent(ctxOrId, "message_click", "detail");
+}

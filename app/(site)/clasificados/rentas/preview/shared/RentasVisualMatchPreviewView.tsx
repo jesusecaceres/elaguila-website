@@ -19,6 +19,14 @@ import type {
   BienesRaicesPreviewFact,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import {
+  trackRentasPhoneClick,
+  trackRentasWhatsappClick,
+  trackRentasEmailClick,
+  trackRentasWebsiteClick,
+  trackRentasDirectionsClick,
+  trackRentasMessageClick,
+} from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 
 type Vm = BienesRaicesPrivadoPreviewVm | BienesRaicesNegocioPreviewVm;
 
@@ -26,6 +34,8 @@ type Props = {
   vm: Vm;
   lang: "es" | "en";
   videoUrls?: readonly string[] | null;
+  /** Optional listing UUID for analytics tracking in public detail context */
+  listingId?: string | null;
 };
 
 type DetailGroup = {
@@ -114,6 +124,10 @@ function photos(vm: Vm): string[] {
     out.push(url);
   }
   return out;
+}
+
+function isUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
 }
 
 function contact(vm: Vm) {
@@ -291,10 +305,12 @@ function ActionLink({
   href,
   children,
   variant = "secondary",
+  onClick,
 }: {
   href: string | null | undefined;
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "whatsapp";
+  onClick?: () => void;
 }) {
   if (!href) return null;
   const isExternal = href.startsWith("http");
@@ -309,6 +325,7 @@ function ActionLink({
       href={href}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
+      onClick={onClick}
       className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-center text-[0.82rem] font-bold transition ${cls}`}
     >
       {children}
@@ -316,7 +333,7 @@ function ActionLink({
   );
 }
 
-export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
+export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }: Props) {
   const ph = photos(vm);
   const [hero, ...rest] = ph;
   const videos = mediaVideos(vm, videoUrls, lang);
@@ -360,6 +377,30 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
       // User cancelled native share or browser blocked it.
     }
   }, [vm.heroTitle, lang]);
+
+  const handlePhoneClick = useCallback(() => {
+    if (listingId) void trackRentasPhoneClick({ listingUuid: listingId });
+  }, [listingId]);
+
+  const handleWhatsappClick = useCallback(() => {
+    if (listingId) void trackRentasWhatsappClick({ listingUuid: listingId });
+  }, [listingId]);
+
+  const handleEmailClick = useCallback(() => {
+    if (listingId) void trackRentasEmailClick({ listingUuid: listingId });
+  }, [listingId]);
+
+  const handleWebsiteClick = useCallback(() => {
+    if (listingId) void trackRentasWebsiteClick({ listingUuid: listingId });
+  }, [listingId]);
+
+  const handleSmsClick = useCallback(() => {
+    if (listingId) void trackRentasMessageClick({ listingUuid: listingId });
+  }, [listingId]);
+
+  const handleDirectionsClick = useCallback(() => {
+    if (listingId) void trackRentasDirectionsClick({ listingUuid: listingId });
+  }, [listingId]);
 
   const openPhotoGallery = (index: number) => {
     if (!galleryCount) return;
@@ -682,37 +723,37 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
                 : "Share"}
           </button>
           {c.showSolicitarInfo && c.mailHref ? (
-            <ActionLink href={c.mailHref} variant="primary">
+            <ActionLink href={c.mailHref} variant="primary" onClick={handleEmailClick}>
               <FiMail className="h-4 w-4" />
               {lang === "es" ? "Enviar correo" : "Email seller"}
             </ActionLink>
           ) : null}
           {c.showLlamar && c.callHref ? (
-            <ActionLink href={c.callHref}>
+            <ActionLink href={c.callHref} onClick={handlePhoneClick}>
               <FiPhone className="h-4 w-4" />
               {lang === "es" ? "Llamar" : "Call"}
             </ActionLink>
           ) : null}
           {c.showWhatsapp && c.waHref ? (
-            <ActionLink href={c.waHref} variant="whatsapp">
+            <ActionLink href={c.waHref} variant="whatsapp" onClick={handleWhatsappClick}>
               <FiMessageCircle className="h-4 w-4" />
               WhatsApp
             </ActionLink>
           ) : null}
           {c.showSms && c.smsHref ? (
-            <ActionLink href={c.smsHref}>
+            <ActionLink href={c.smsHref} onClick={handleSmsClick}>
               <FiMessageCircle className="h-4 w-4" />
               {lang === "es" ? "Enviar texto" : "Send text"}
             </ActionLink>
           ) : null}
           {c.websiteHref ? (
-            <ActionLink href={c.websiteHref}>
+            <ActionLink href={c.websiteHref} onClick={handleWebsiteClick}>
               <FiGlobe className="h-4 w-4" />
               {lang === "es" ? "Ver sitio web" : "View website"}
             </ActionLink>
           ) : null}
           {c.mapHref ? (
-            <ActionLink href={c.mapHref}>
+            <ActionLink href={c.mapHref} onClick={handleDirectionsClick}>
               <FiMapPin className="h-4 w-4" />
               {lang === "es" ? "Ver mapa" : "View on map"}
             </ActionLink>

@@ -151,9 +151,9 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         {translateControl}
 
         {listing.branch === "privado" ? (
-          <RentasVisualMatchPreviewView vm={vmPrivado} lang={lang} videoUrls={proseListing.videoUrls} />
+          <RentasVisualMatchPreviewView vm={vmPrivado} lang={lang} videoUrls={proseListing.videoUrls} listingId={listingUuid ? listing.id : null} />
         ) : (
-          <RentasVisualMatchPreviewView vm={vmNegocio} lang={lang} videoUrls={proseListing.videoUrls} />
+          <RentasVisualMatchPreviewView vm={vmNegocio} lang={lang} videoUrls={proseListing.videoUrls} listingId={listingUuid ? listing.id : null} />
         )}
         {listingUuid ? (
           <div className="mx-auto mt-8 max-w-[1240px] px-4 sm:px-6 lg:px-8">
