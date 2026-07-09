@@ -1164,13 +1164,79 @@ export function RentasPrivadoForm() {
           onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
         />
 
-        <div className="min-w-0 space-y-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7] p-4 sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa del anuncio</p>
-          <p className="text-xs leading-relaxed text-[#5C5346]/90">
-            Mismas acciones que arriba: no necesitas desplazarte otra vez al inicio del formulario.
+        <section className={`${aiCardClass} min-w-0`} aria-labelledby="sec-review">
+          <h2 id="sec-review" className={aiTitleClass}>
+            {lang === "es" ? "Revisión final" : "Final review"}
+          </h2>
+          <p className={aiSubClass}>
+            {lang === "en"
+              ? "When your content is ready, use the buttons below to open the preview or start publishing."
+              : "Cuando tu contenido esté listo, usa los botones de abajo para abrir la vista previa o iniciar la publicación."}
           </p>
-          <ClasificadosApplicationTopActions {...previewActionsProps} />
-        </div>
+
+          {/* Pricing summary */}
+          <div className="mt-5 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
+            <p className="text-xs font-semibold text-[#8a7a62]">
+              {lang === "en" ? "Price summary" : "Resumen de precios"}
+            </p>
+            <div className="mt-2 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[#5D4A25]">
+                  {lang === "en" ? "Rental listing" : "Anuncio de renta"}
+                </span>
+                <span className="font-semibold text-[#3D2C12]">$24.99 / 30 {lang === "en" ? "days" : "días"}</span>
+              </div>
+              <div className="mt-2 flex justify-between border-t border-[#D8C79A]/40 pt-2">
+                <span className="font-semibold text-[#3D2C12]">
+                  {lang === "en" ? "Total" : "Total"}
+                </span>
+                <span className="font-bold text-[#C9782F]">$24.99</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#5D4A25]/80">
+              {lang === "en"
+                ? "Paid listing activation happens after secure payment."
+                : "La activación del anuncio pagado ocurre después del pago seguro."}
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 border-t border-[#D8C79A]/40 pt-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+              <button
+                type="button"
+                onClick={previewActionsProps.onPreviewValidated}
+                disabled={previewActionsProps.disableValidatedPreview}
+                className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-xs"
+              >
+                {lang === "en" ? "Preview" : "Vista previa"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  previewActionsProps.onBeforeOpenUnvalidatedPreview();
+                  router.push(previewActionsProps.openPreviewHref);
+                }}
+                className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
+              >
+                {lang === "en" ? "View preview (draft)" : "Ver vista previa (borrador)"}
+              </button>
+            </div>
+            {previewActionsProps.validationBlockedMessage ? (
+              <p className="text-sm font-medium text-amber-900" role="status">
+                {previewActionsProps.validationBlockedMessage}
+              </p>
+            ) : null}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={previewActionsProps.onDeleteApplication}
+                className="text-xs font-medium text-red-800/90 underline decoration-red-800/30 underline-offset-2 hover:text-red-950"
+              >
+                {previewActionsProps.labels.deleteApplication}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
           Borrador guardado solo en este dispositivo.

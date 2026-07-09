@@ -105,7 +105,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     propertySubtype: rentasNegocioSubtipoLabel(s),
     media: {
       photoUrls: [...s.media.photoDataUrls],
-      primaryImageIndex: s.media.primaryImageIndex,
+      primaryImageIndex: 0,
       listingVideoSlots: [slot0, slot1],
       externalVideoUrls: videos,
       virtualTourUrl: "",

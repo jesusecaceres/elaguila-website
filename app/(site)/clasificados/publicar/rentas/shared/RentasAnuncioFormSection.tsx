@@ -52,6 +52,43 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
   textareaFieldClass,
   estadoOptions,
 }: Props<T>) {
+  const lang = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("lang") === "en" ? "en" : "es" : "es";
+  
+  // Translated labels
+  const sectionTitle = lang === "en" ? "Listing" : "Anuncio";
+  const titleLabel = lang === "en" ? "Title" : "Título";
+  const rentalTypeLabel = lang === "en" ? "Rental type" : "Tipo de renta";
+  const rentalTypeHint = lang === "en" 
+    ? "Describe in more detail what you offer; helps preview and results." 
+    : "Describe con más detalle qué ofreces; ayuda a la vista previa y a los resultados.";
+  const specifyOtherTypeLabel = lang === "en" ? "Specify rental type" : "Especifica el tipo de renta";
+  const specifyOtherTypeHint = lang === "en" 
+    ? "Will be shown exactly as you write it (not just \"Other\")." 
+    : "Se mostrará tal como lo escribas (no solo \"Otro\").";
+  const conditionsLabel = lang === "en" ? "Important rental conditions" : "Condiciones importantes del alquiler";
+  const conditionsHint = lang === "en"
+    ? "Add rules, conditions or important details about the space. Avoid discriminatory language; focus on house rules, occupancy, space use and clear requirements."
+    : "Agrega reglas, condiciones o detalles importantes del espacio. Evita lenguaje discriminatorio; enfócate en reglas del hogar, ocupación, uso del espacio y requisitos claros.";
+  const conditionsPlaceholder = lang === "en"
+    ? "E.g. quiet environment, no smoking, max 1 person, ideal for student or worker, proof of income required…"
+    : "Ej. ambiente tranquilo, no fumar, máximo 1 persona, ideal para estudiante o trabajador, se requiere comprobante de ingresos…";
+  const monthlyRentLabel = lang === "en" ? "Monthly rent (USD)" : "Renta mensual (USD)";
+  const monthlyRentHint = lang === "en" 
+    ? "Enter numbers only (no symbols). Below you'll see how it will appear in the listing." 
+    : "Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio.";
+  const inListingText = lang === "en" ? "In listing: " : "En el anuncio: ";
+  const rentReviewText = lang === "en" ? "Review the number (must be greater than zero)." : "Revisa el número (debe ser mayor que cero).";
+  const rentExampleText = lang === "en" 
+    ? "Example: typing 2500 will display the rent in dollars formatted with \"/ month\"." 
+    : "Ejemplo: al escribir 2500 se mostrará la renta en dólares con formato y \"/ mes\".";
+  const depositLabel = lang === "en" ? "Deposit (USD)" : "Depósito (USD)";
+  const depositHint = lang === "en" ? "Numbers only (whole dollars). No \"/ month\" in the listing." : "Solo números (dólares enteros). Sin \"/ mes\" en el anuncio.";
+  const depositReviewText = lang === "en" ? "Review the amount (must be greater than zero)." : "Revisa el monto (debe ser mayor que cero).";
+  const depositExampleText = lang === "en" 
+    ? "Example: 10000 will be displayed as a formatted dollar deposit." 
+    : "Ejemplo: 10000 se mostrará como depósito en dólares con formato.";
+  const contractTermLabel = lang === "en" ? "Contract term" : "Plazo del contrato";
+  
   const rentPreview = formatRentasMensualAnuncioPreview(state.rentaMensual);
   const depositPreview = formatRentasDepositUsdPreview(state.deposito);
   const dispIso = rentasDisponibilidadIsIsoDate(state.disponibilidad);
@@ -65,10 +102,10 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
-      <h2 className={aiTitleClass}>Anuncio</h2>
+      <h2 className={aiTitleClass}>{sectionTitle}</h2>
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
         <div className="sm:col-span-2">
-          <AiField required label="Título">
+          <AiField required label={titleLabel}>
             <input
               className={fieldClass}
               value={state.titulo}
@@ -78,7 +115,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           </AiField>
         </div>
         <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-          <AiField label="Tipo de renta" hint="Describe con más detalle qué ofreces; ayuda a la vista previa y a los resultados.">
+          <AiField label={rentalTypeLabel} hint={rentalTypeHint}>
             <select
               className={fieldClass}
               value={state.tipoDeRenta}
@@ -111,23 +148,23 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
         </div>
         <div className="sm:col-span-2">
           <AiField
-            label="Condiciones importantes del alquiler"
-            hint="Agrega reglas, condiciones o detalles importantes del espacio. Evita lenguaje discriminatorio; enfócate en reglas del hogar, ocupación, uso del espacio y requisitos claros."
+            label={conditionsLabel}
+            hint={conditionsHint}
           >
             <textarea
               className={textareaFieldClass}
               rows={3}
               value={state.condicionesAlquiler}
               onChange={(e) => setState((s) => ({ ...s, condicionesAlquiler: e.target.value }))}
-              placeholder="Ej. ambiente tranquilo, no fumar, máximo 1 persona, ideal para estudiante o trabajador, se requiere comprobante de ingresos…"
+              placeholder={conditionsPlaceholder}
             />
           </AiField>
         </div>
         <RentasTipoFlowDetailFields state={state} setState={setState} fieldClass={fieldClass} />
         <AiField
           required
-          label="Renta mensual (USD)"
-          hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
+          label={monthlyRentLabel}
+          hint={monthlyRentHint}
         >
           <input
             className={fieldClass}
@@ -138,7 +175,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           />
           {rentPreview ? (
             <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-              En el anuncio:{" "}
+              {inListingText}
               <span className="text-[#1E1810]" aria-live="polite">
                 {rentPreview}
               </span>
@@ -161,7 +198,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           />
           {depositPreview ? (
             <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-              En el anuncio:{" "}
+              {inListingText}
               <span className="text-[#1E1810]" aria-live="polite">
                 {depositPreview}
               </span>
@@ -169,12 +206,12 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           ) : (
             <p className="mt-2 text-xs text-[#5C5346]/85">
               {state.deposito.trim()
-                ? "Revisa el monto (debe ser mayor que cero)."
-                : "Ejemplo: 10000 se mostrará como depósito en dólares con formato."}
+                ? depositReviewText
+                : depositExampleText}
             </p>
           )}
         </AiField>
-        <AiField label="Plazo del contrato">
+        <AiField label={contractTermLabel}>
           <select
             className={fieldClass}
             value={state.plazoContrato}
