@@ -11,7 +11,7 @@ type Props = {
 /** Category landing pages — cream Leonix shell (site layout provides global Navbar). */
 export function CategoryStandardLandingPageShell({
   children,
-  maxWidthClass = "max-w-6xl",
+  maxWidthClass = "max-w-[1080px]",
 }: Props) {
   return (
     <div className={CATEGORY_STANDARD_PAGE_BG}>

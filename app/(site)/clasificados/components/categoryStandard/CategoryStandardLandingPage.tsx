@@ -34,6 +34,9 @@ export type CategoryStandardLandingPageProps = {
   searchSlot?: ReactNode;
   children?: ReactNode;
   suppressVisibilityCta?: boolean;
+  hideBrowseCta?: boolean;
+  hideCtaRow?: boolean;
+  ctaSlot?: ReactNode;
 };
 
 /**
@@ -54,6 +57,9 @@ export function CategoryStandardLandingPage({
   belowHero,
   searchSlot,
   suppressVisibilityCta,
+  hideBrowseCta,
+  hideCtaRow,
+  ctaSlot,
   children,
 }: CategoryStandardLandingPageProps) {
   const searchAction = searchActionProp ?? buildCategoryResultsUrl(category, lang);
@@ -82,6 +88,9 @@ export function CategoryStandardLandingPage({
         searchSlot={searchSlot}
         belowHero={belowHero}
         suppressVisibilityCta={suppressVisibilityCta}
+        hideBrowseCta={hideBrowseCta}
+        hideCtaRow={hideCtaRow}
+        ctaSlot={ctaSlot}
       >
         {children}
       </CategoryStandardLandingBlock>

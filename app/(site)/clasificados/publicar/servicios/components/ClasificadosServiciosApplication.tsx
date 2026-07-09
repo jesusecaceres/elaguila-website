@@ -3,6 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { FiCheck, FiImage, FiPlus, FiUpload, FiX } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
@@ -25,7 +29,11 @@ import type {
   GalleryItem,
   ServiciosLang,
 } from "../lib/clasificadosServiciosApplicationTypes";
-import { LANGUAGE_OPTION_CHIPS } from "../lib/clasificadosServiciosApplicationTypes";
+import {
+  LANGUAGE_OPTION_CHIPS,
+  SERVICIOS_MAX_VIDEO_URLS,
+  shortenServiciosVideoUrlDisplay,
+} from "../lib/clasificadosServiciosApplicationTypes";
 import {
   bootstrapServiciosApplicationStateSync,
   clearServiciosPreviewReturnHandoff,
@@ -41,18 +49,26 @@ import {
   saveClasificadosServiciosApplicationResolved,
 } from "../lib/clasificadosServiciosStorage";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import {
+  redirectServiciosDashboardOffersAddonCheckout,
+  serviciosListingPreviewHref,
+  serviciosOffersAddonUpgradeLabel,
+  serviciosOffersAddonUpgradeBusyLabel,
+  serviciosOffersModuleHeading,
+} from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import {
   getServiciosApplicationStepLabels,
   getServiciosApplicationStepShortLabels,
+  migrateServiciosApplicationStepIndex,
   SERVICIOS_APPLICATION_STEP_COUNT,
 } from "../lib/serviciosApplicationStepLabels";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
-import { buildServiciosContactPreviewLines, isJunkServiciosQuickFactLabel } from "../lib/serviciosContactVisibility";
+import { isJunkServiciosQuickFactLabel } from "../lib/serviciosContactVisibility";
 import {
   getServiciosCredentialPlaceholders,
-  getServiciosPromoCopyHints,
   resolveServiciosApplicationTemplate,
 } from "../lib/serviciosApplicationTemplateCopy";
 import {
@@ -77,11 +93,6 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import {
-  formatPromoPdfFileSize,
-  isPromoPdfPreviewHref,
-  promoPdfDisplayFileName,
-} from "../lib/serviciosPromoPdfUi";
 import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
@@ -110,13 +121,6 @@ import {
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
 import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
-import {
-  MAX_CLASIFICADOS_PROMOTIONS,
-  CLASIFICADOS_PROMO_TITLE_MAX,
-  CLASIFICADOS_PROMO_DETAILS_MAX,
-  CLASIFICADOS_PROMO_LINK_MAX,
-  createEmptyClasificadosPromoRow,
-} from "../lib/clasificadosServiciosPromo";
 import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import {
@@ -133,7 +137,6 @@ import {
 
 const DEBOUNCE_MS = 500;
 const GALLERY_MAX = 24;
-const VIDEO_MAX = 2;
 
 const inputClass =
   "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-snug text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
@@ -207,15 +210,43 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{children}</h2>;
 }
 
+/** Coupons/offers step index (see step === 6 render block). */
+const SERVICIOS_COUPON_STEP_INDEX = 6;
+
 export function ClasificadosServiciosApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang: ServiciosLang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const editParam = searchParams?.get("edit") ?? "";
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
-  const editRequested = editParam === "1" && Boolean(editListingSlug || editListingId || editLeonixAdId);
+  const listingIdentity = Boolean(editListingSlug || editListingId || editLeonixAdId);
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const dashboardMode = searchParams?.get("mode") ?? "";
+  const focusCoupon = searchParams?.get("focus") === "coupon-upgrade";
+  const returnPanel = searchParams?.get("returnPanel") ?? "";
+  const isDashboardListingEditMode =
+    dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
+  const isDashboardOffersEditMode =
+    dashboardSource &&
+    (dashboardMode === "offers-edit" || dashboardMode === "coupon-edit") &&
+    listingIdentity;
+  const isDashboardOffersAddonMode =
+    dashboardSource &&
+    (dashboardMode === "offers-addon" || dashboardMode === "coupon-addon") &&
+    listingIdentity;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardOffersEditMode || isDashboardOffersAddonMode;
+  const editRequested =
+    isExistingDashboardListingMode || (editParam === "1" && listingIdentity);
+  const dashboardReturnHref = appendLangToPath(
+    returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/servicios",
+    routeLang,
+  );
   const copy = getClasificadosServiciosCopy(lang);
   const labels = copy.labels as any;
   const couponDecisionTitle = labels.couponDecisionTitle || (lang === "en" ? "Add featured coupons?" : "¿Quieres agregar cupones destacados?");
@@ -246,11 +277,7 @@ export function ClasificadosServiciosApplication() {
   }, []);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const promoImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const promoPdfInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const couponImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const createEmptyCouponRow = useCallback((): ClasificadosServiciosCouponRow => {
@@ -269,13 +296,52 @@ export function ClasificadosServiciosApplication() {
     };
   }, []);
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
-  const [coverUrlDraft, setCoverUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [couponDetailOpen, setCouponDetailOpen] = useState(false);
+  const [leonixRulesOpen, setLeonixRulesOpen] = useState(false);
   const [finalStepPublishBlocked, setFinalStepPublishBlocked] = useState<string | null>(null);
   const [mediaFlash, setMediaFlash] = useState<string | null>(null);
+  const [dashboardAddonCheckoutBusy, setDashboardAddonCheckoutBusy] = useState(false);
+  const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
+  const focusCouponAppliedRef = useRef(false);
+
+  const startDashboardOffersAddonCheckout = useCallback(async () => {
+    if (!editListingId) {
+      setDashboardContextErr(
+        lang === "en"
+          ? "Listing id is missing. Return to the dashboard and try again."
+          : "Falta el identificador del anuncio. Vuelve al panel e intenta de nuevo.",
+      );
+      return;
+    }
+    setDashboardAddonCheckoutBusy(true);
+    setDashboardContextErr(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      const result = await redirectServiciosDashboardOffersAddonCheckout({
+        listingId: editListingId,
+        leonixAdId: editLeonixAdId || null,
+        lang,
+        customerEmail: auth.user?.email ?? null,
+        returnPath: dashboardReturnHref,
+      });
+      if (!result.ok) {
+        setDashboardContextErr(result.userMessage);
+        setDashboardAddonCheckoutBusy(false);
+      }
+    } catch {
+      setDashboardContextErr(
+        lang === "en"
+          ? "We could not start offers module checkout."
+          : "No pudimos iniciar el pago del módulo de ofertas.",
+      );
+      setDashboardAddonCheckoutBusy(false);
+    }
+  }, [editListingId, editLeonixAdId, lang, dashboardReturnHref]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -285,6 +351,19 @@ export function ClasificadosServiciosApplication() {
     const t = window.setTimeout(() => setMediaFlash(null), 4500);
     return () => window.clearTimeout(t);
   }, [mediaFlash]);
+
+  useEffect(() => {
+    if (!couponDetailOpen && !leonixRulesOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setCouponDetailOpen(false);
+        setLeonixRulesOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [couponDetailOpen, leonixRulesOpen]);
 
   useLayoutEffect(() => {
     clearLeonixReturningToEditSessionFlag();
@@ -297,12 +376,19 @@ export function ClasificadosServiciosApplication() {
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
     // Always try to restore from storage first to survive hard refresh
-    setState(bootstrapServiciosApplicationStateSync());
+    setState((prev) => {
+      const sync = bootstrapServiciosApplicationStateSync();
+      return {
+        ...sync,
+        applicationStepIndex: migrateServiciosApplicationStepIndex(sync.applicationStepIndex),
+      };
+    });
     setHydrated(true);
   }, [editRequested]);
 
-  // Initialize pricing based on product query param from checkpoint
+  // Initialize pricing based on product query param from checkpoint (new listing only — never dashboard edit).
   useEffect(() => {
+    if (isExistingDashboardListingMode) return;
     if (hydrated && !state.listingProduct) {
       const productParam = searchParams?.get("product");
       if (productParam === "servicios_profesionales") {
@@ -314,7 +400,7 @@ export function ClasificadosServiciosApplication() {
         }));
       }
     }
-  }, [hydrated, state.listingProduct, searchParams, lang, setState]);
+  }, [hydrated, state.listingProduct, searchParams, lang, setState, isExistingDashboardListingMode]);
 
   useEffect(() => {
     if (!editRequested) return;
@@ -324,6 +410,10 @@ export function ClasificadosServiciosApplication() {
 
     void (async () => {
       try {
+        if (dashboardSource) {
+          await clearServiciosDraftStorageAndIdb();
+        }
+
         const sb = createSupabaseBrowserClient();
         const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
         const accessToken = sess.session?.access_token ?? null;
@@ -333,8 +423,8 @@ export function ClasificadosServiciosApplication() {
 
         const q = new URLSearchParams();
         if (editListingId) q.set("id", editListingId);
-        if (editListingSlug) q.set("slug", editListingSlug);
-        if (editLeonixAdId) q.set("leonixAdId", editLeonixAdId);
+        else if (editListingSlug) q.set("slug", editListingSlug);
+        else if (editLeonixAdId) q.set("leonixAdId", editLeonixAdId);
         const res = await fetch(`/api/clasificados/servicios/my-listing?${q.toString()}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
           cache: "no-store",
@@ -361,15 +451,14 @@ export function ClasificadosServiciosApplication() {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : lang === "en" ? "Listing edit load failed." : "No se pudo cargar el anuncio.";
         setEditHydration({ status: "error", message });
-        setState(createDefaultClasificadosServiciosState());
-        setHydrated(true);
+        setHydrated(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [editRequested, editListingId, editListingSlug, editLeonixAdId, lang]);
+  }, [editRequested, editListingId, editListingSlug, editLeonixAdId, lang, dashboardSource]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -391,6 +480,20 @@ export function ClasificadosServiciosApplication() {
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
+  // Dashboard offers-edit / offers-addon deep link — jump to the coupon step after hydration (once).
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!focusCoupon) return;
+    if (focusCouponAppliedRef.current) return;
+    focusCouponAppliedRef.current = true;
+    goToStep(SERVICIOS_COUPON_STEP_INDEX);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document.getElementById("servicios-step-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    }
+  }, [hydrated, focusCoupon, goToStep]);
+
   useEffect(() => {
     if (!hydrated) return;
     const flush = () => {
@@ -408,12 +511,12 @@ export function ClasificadosServiciosApplication() {
   }, [hydrated]);
 
   useEffect(() => {
-    if (step !== 8) setFinalStepPublishBlocked(null);
+    if (step !== 6) setFinalStepPublishBlocked(null);
   }, [step]);
 
   useEffect(() => {
     if (
-      step === 8 &&
+      step === 7 &&
       state.confirmListingAccurate &&
       state.confirmPhotosRepresentBusiness &&
       state.confirmCommunityRules
@@ -439,12 +542,27 @@ export function ClasificadosServiciosApplication() {
     state.coverUrl,
     state.logoUrl,
     state.promotions,
+    state.coupons,
+    state.couponFlyer,
+    state.couponsAddOn,
+    state.couponMoreOffers,
   ]);
 
   /* Servicios draft is session-persisted; do not register native beforeunload warnings. */
 
-  const previewHref = `/clasificados/publicar/servicios/preview?lang=${lang}`;
-  const publicarHref = `/clasificados/publicar?lang=${lang}`;
+  // Golden-loop: dashboard listing edit → listing-bound preview (keeps identity/mode/focus).
+  // New application → plain seller preview from local draft.
+  const previewHref = isExistingDashboardListingMode
+    ? serviciosListingPreviewHref({
+        lang,
+        listingId: editListingId || null,
+        listingSlug: editListingSlug || null,
+        leonixAdId: editLeonixAdId || null,
+        mode: isDashboardOffersEditMode ? "offers-edit" : isDashboardOffersAddonMode ? "offers-addon" : "listing-edit",
+        focus: focusCoupon ? "coupon-upgrade" : null,
+      })
+    : withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang);
+  const publicarHref = withClasificadosPublishLang("/clasificados/publicar", routeLang);
 
   const goStrictPreview = useCallback(async () => {
     const r = evaluateServiciosPreviewReadiness(stateRef.current, lang);
@@ -498,13 +616,6 @@ export function ClasificadosServiciosApplication() {
   const credentialPlaceholders = useMemo(
     () => getServiciosCredentialPlaceholders(listingTemplate, lang),
     [listingTemplate, lang],
-  );
-
-  const promoCopyHints = useMemo(() => getServiciosPromoCopyHints(listingTemplate, lang), [listingTemplate, lang]);
-
-  const contactPreviewLines = useMemo(
-    () => buildServiciosContactPreviewLines(state, lang),
-    [state, lang],
   );
 
   const listingPhase = useMemo(() => {
@@ -607,7 +718,7 @@ export function ClasificadosServiciosApplication() {
     [state.selectedBusinessHighlightIds],
   );
 
-  const pickFileToUrl = async (file: File | null, field: "logoUrl" | "coverUrl") => {
+  const pickFileToUrl = async (file: File | null, field: "logoUrl") => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setMediaFlash(copy.labels.mediaWrongFileType);
@@ -691,30 +802,6 @@ export function ClasificadosServiciosApplication() {
     });
   };
 
-  const addVideoFile = async (file: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith("video/")) {
-      setMediaFlash(copy.labels.mediaWrongVideoType);
-      return;
-    }
-    const url = await readFileAsDataUrl(file);
-    setState((prev) => {
-      if (prev.videos.length >= VIDEO_MAX) {
-        queueMicrotask(() =>
-          setMediaFlash(copy.labels.videosLimitHint.replace("{max}", String(VIDEO_MAX))),
-        );
-        return prev;
-      }
-      const row = { id: newVideoId(), url, source: "file" as const };
-      const next = [...prev.videos, row].slice(0, VIDEO_MAX);
-      if (prev.videos.length === 0) {
-        return { ...prev, videos: [{ ...row, isPrimary: true }] };
-      }
-      const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? prev.videos[0]!.id;
-      return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
-    });
-  };
-
   const addVideoUrl = () => {
     const raw = videoUrlDraft.trim();
     if (!raw) return;
@@ -722,15 +809,21 @@ export function ClasificadosServiciosApplication() {
       setMediaFlash(copy.labels.invalidUrl);
       return;
     }
+    const normalizedUrl = normalizeHttpUrl(raw);
     setState((prev) => {
-      if (prev.videos.length >= VIDEO_MAX) {
-        queueMicrotask(() =>
-          setMediaFlash(copy.labels.videosLimitHint.replace("{max}", String(VIDEO_MAX))),
-        );
+      if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
+        queueMicrotask(() => setMediaFlash(copy.labels.videosLimitHint));
         return prev;
       }
-      const row = { id: newVideoId(), url: normalizeHttpUrl(raw), source: "url" as const };
-      const next = [...prev.videos, row].slice(0, VIDEO_MAX);
+      const duplicate = prev.videos.some(
+        (v) => v.url.trim().toLowerCase() === normalizedUrl.trim().toLowerCase(),
+      );
+      if (duplicate) {
+        queueMicrotask(() => setMediaFlash(copy.labels.videoDuplicateUrl));
+        return prev;
+      }
+      const row = { id: newVideoId(), url: normalizedUrl, source: "url" as const };
+      const next = [...prev.videos, row].slice(0, SERVICIOS_MAX_VIDEO_URLS);
       if (prev.videos.length === 0) {
         return { ...prev, videos: [{ ...row, isPrimary: true }] };
       }
@@ -747,7 +840,7 @@ export function ClasificadosServiciosApplication() {
     }));
   };
 
-  const applyUrlFallback = (field: "logoUrl" | "coverUrl", draft: string, clearDraft: () => void) => {
+  const applyUrlFallback = (field: "logoUrl", draft: string, clearDraft: () => void) => {
     const t = draft.trim();
     if (!t) return;
     if (!isProbablyValidWebUrl(t)) {
@@ -767,16 +860,37 @@ export function ClasificadosServiciosApplication() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
+      {isExistingDashboardListingMode && editHydration.status === "error" ? (
+        <main className="mx-auto max-w-lg px-4 py-16">
+          <h1 className="text-xl font-bold text-[#3D2C12]">
+            {lang === "en" ? "Edit mode could not load" : "No se pudo cargar el modo edición"}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-red-900">{editHydration.message}</p>
+          <Link
+            href={dashboardReturnHref}
+            className="mt-8 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
+          >
+            {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+          </Link>
+        </main>
+      ) : isExistingDashboardListingMode && (editHydration.status === "loading" || !hydrated) ? (
+        <main className="mx-auto max-w-lg px-4 py-16">
+          <p className="text-sm font-semibold text-[#5D4A25]" role="status">
+            {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio publicado…"}
+          </p>
+        </main>
+      ) : (
+      <>
       <main className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-12 sm:pt-8">
         <div className="mb-6 rounded-2xl border border-[#D8C79A]/60 bg-[#FFFDF7]/95 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#5D4A25]/90">{copy.pageSubtitle}</p>
           <Link
-            href={publicarHref}
+            href={isExistingDashboardListingMode ? dashboardReturnHref : publicarHref}
             className="mt-2 inline-flex min-h-[40px] items-center text-xs font-medium text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
           >
-            {copy.linkBack}
+            {isExistingDashboardListingMode ? (lang === "en" ? "← Back to dashboard" : "← Volver al panel") : copy.linkBack}
           </Link>
 
           {editHydration.status === "loading" ? (
@@ -854,12 +968,21 @@ export function ClasificadosServiciosApplication() {
                       </p>
                     )}
                   </div>
-                  <Link
-                    href="/clasificados/publicar/servicios/checkpoint"
-                    className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
-                  >
-                    {lang === "en" ? "Change plan" : "Cambiar plan"}
-                  </Link>
+                  {isExistingDashboardListingMode ? (
+                    <Link
+                      href={dashboardReturnHref}
+                      className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
+                    >
+                      {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/clasificados/publicar/servicios/checkpoint"
+                      className="text-xs font-semibold text-[#5D4A25]/85 underline underline-offset-2 hover:text-[#3D2C12]"
+                    >
+                      {lang === "en" ? "Change plan" : "Cambiar plan"}
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -1049,6 +1172,9 @@ export function ClasificadosServiciosApplication() {
               </label>
               {copy.labels.cityHelp.trim() ? (
                 <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.cityHelp}</p>
+              ) : null}
+              {copy.labels.cityHelpDetail.trim() ? (
+                <p className="mt-0.5 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.cityHelpDetail}</p>
               ) : null}
               <input
                 className={inputClass}
@@ -1451,8 +1577,8 @@ export function ClasificadosServiciosApplication() {
           <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.mediaStructureIntro}</p>
           <p className="mt-1 text-xs font-medium text-[#8a4a12]">
             {lang === "es"
-              ? "* Requiere portada o al menos una imagen destacada en la galería."
-              : "* Requires a cover or at least one featured gallery image."}
+              ? "* Requiere al menos una imagen destacada en la galería."
+              : "* Requires at least one featured gallery image."}
           </p>
           <ul className="mt-3 list-inside list-disc space-y-1.5 text-xs leading-relaxed text-[#6b5c42]">
             <li>{copy.labels.galleryFeaturedHint}</li>
@@ -1461,7 +1587,7 @@ export function ClasificadosServiciosApplication() {
             <li>{copy.labels.videosHint}</li>
           </ul>
 
-          <div className="mt-6 grid gap-8 lg:grid-cols-2">
+          <div className="mt-6 max-w-md">
             <div>
               <p className={labelClass}>{copy.labels.logo}</p>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.logoHelp}</p>
@@ -1521,67 +1647,6 @@ export function ClasificadosServiciosApplication() {
                   type="button"
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white sm:px-3"
                   onClick={() => applyUrlFallback("logoUrl", logoUrlDraft, () => setLogoUrlDraft(""))}
-                >
-                  {copy.labels.addUrl}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <p className={labelClass}>{copy.labels.cover}</p>
-              <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.coverHelp}</p>
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => void pickFileToUrl(e.target.files?.[0] ?? null, "coverUrl")} />
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={state.coverUrl ? copy.labels.replace : copy.labels.upload}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    coverInputRef.current?.click();
-                  }
-                }}
-                onClick={() => coverInputRef.current?.click()}
-                className="mt-2 flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-8 text-center hover:border-[#3B66AD]/50"
-              >
-                {state.coverUrl ? (
-                  <div className="relative h-40 w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 ring-2 ring-[#3B66AD]/15">
-                    <Image src={state.coverUrl} alt="" fill className="object-cover" unoptimized />
-                  </div>
-                ) : (
-                  <>
-                    <FiImage className="h-10 w-10 text-[#B28A2F]" aria-hidden />
-                    <span className="mt-2 text-sm font-semibold text-[#3D2C12]">{copy.labels.upload}</span>
-                  </>
-                )}
-              </div>
-              {state.coverUrl ? (
-                <p className="mt-2 text-xs font-medium text-[#2d528d]">{copy.labels.mediaUploadedBadge}</p>
-              ) : null}
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                {state.coverUrl ? (
-                  <>
-                    <button type="button" className="min-h-[40px] text-xs font-semibold text-[#3B66AD] underline" onClick={() => coverInputRef.current?.click()}>
-                      {copy.labels.replace}
-                    </button>
-                    <button type="button" className="min-h-[40px] text-xs font-semibold text-red-700 underline" onClick={() => setState((s) => ({ ...s, coverUrl: "" }))}>
-                      {copy.labels.remove}
-                    </button>
-                  </>
-                ) : null}
-              </div>
-              <p className="mt-3 text-xs text-[#5D4A25]/75">{copy.labels.urlFallback}</p>
-              <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-                <input
-                  className={`${inputClass} sm:min-w-0 sm:flex-1`}
-                  placeholder="https://"
-                  value={coverUrlDraft}
-                  onChange={(e) => setCoverUrlDraft(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2 text-sm font-semibold text-white sm:px-3"
-                  onClick={() => applyUrlFallback("coverUrl", coverUrlDraft, () => setCoverUrlDraft(""))}
                 >
                   {copy.labels.addUrl}
                 </button>
@@ -1705,71 +1770,32 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-10 border-t border-[#D8C79A]/40 pt-8">
             <p className={labelClass}>{copy.labels.videosTitle}</p>
-            <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.videosHint}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHint}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHelper}</p>
             <p className="mt-2 text-xs font-semibold tabular-nums text-[#5D4A25]">
-              {copy.labels.videosCountLine.replace("{n}", String(state.videos.length)).replace("{max}", String(VIDEO_MAX))}
+              {copy.labels.videosCountLine.replace("{n}", String(state.videos.length))}
             </p>
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={(e) => void addVideoFile(e.target.files?.[0] ?? null)}
-            />
-            <button
-              type="button"
-              onClick={() => videoInputRef.current?.click()}
-              disabled={state.videos.length >= VIDEO_MAX}
-              className="mt-3 inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#D8C79A]/80 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            >
-              <FiPlus className="h-4 w-4" aria-hidden />
-              {copy.labels.upload}
-            </button>
-            <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-              <input
-                className={`${inputClass} min-w-0 sm:max-w-md sm:flex-1`}
-                placeholder={copy.labels.videoUrlPlaceholder}
-                value={videoUrlDraft}
-                onChange={(e) => setVideoUrlDraft(e.target.value)}
-              />
-              <button
-                type="button"
-                disabled={state.videos.length >= VIDEO_MAX}
-                className="inline-flex min-h-[44px] w-full shrink-0 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:opacity-50 sm:w-auto"
-                onClick={addVideoUrl}
-              >
-                {copy.labels.addVideoUrl}
-              </button>
-            </div>
-            {state.videos.length >= VIDEO_MAX ? (
-              <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.videosLimitHint.replace("{max}", String(VIDEO_MAX))}</p>
-            ) : null}
             {state.videos.length > 0 ? (
-              <ul className="mt-4 space-y-3">
-                {state.videos.map((v) => {
+              <ul className="mt-4 space-y-2">
+                {state.videos.map((v, index) => {
                   const url = v.url ?? "";
-                  const isData = url.startsWith("data:");
-                  const previewLine = isData ? copy.labels.videoFromFile : copy.labels.videoFromUrl;
-                  const detail = isData ? "—" : url.length > 56 ? `${url.slice(0, 56)}…` : url || "—";
+                  const isLegacyFile = url.startsWith("data:") || v.source === "file";
+                  const badge = isLegacyFile ? copy.labels.videoFromFile : copy.labels.videoLinkBadge;
                   return (
                     <li
                       key={v.id}
-                      className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                      className="flex flex-col gap-3 rounded-xl border border-[#D8C79A]/70 bg-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="min-w-0 flex-1">
-                        <span className="inline-flex rounded-full bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2d528d]">
-                          {previewLine}
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#8a7a62]">
+                          {lang === "en" ? `Video ${index + 1}` : `VIDEO ${index + 1}`}
+                        </p>
+                        <span className="mt-1 inline-flex rounded-full bg-[#3B66AD]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2d528d]">
+                          {badge}
                         </span>
-                        <p className="mt-1 break-all text-xs font-medium text-[#3D2C12]">{detail}</p>
-                        {url && (url.startsWith("data:video") || url.startsWith("http")) ? (
-                          <video
-                            src={url}
-                            controls
-                            muted
-                            playsInline
-                            className="mt-2 max-h-44 w-full rounded-lg border border-neutral-200 bg-black/5"
-                          />
-                        ) : null}
+                        <p className="mt-1 truncate text-sm text-[#3D2C12]" title={isLegacyFile ? undefined : url}>
+                          {shortenServiciosVideoUrlDisplay(url)}
+                        </p>
                       </div>
                       <div className="flex w-full flex-col gap-2 border-t border-neutral-100 pt-2 sm:w-auto sm:flex-row sm:items-center sm:border-t-0 sm:pt-0">
                         <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-xs font-medium text-[#5D4A25]">
@@ -1784,7 +1810,7 @@ export function ClasificadosServiciosApplication() {
                         </label>
                         <button
                           type="button"
-                          className="min-h-[44px] self-start text-left text-xs font-semibold text-red-700 hover:underline sm:self-center"
+                          className="min-h-[44px] shrink-0 rounded-lg border border-[#D8C79A]/80 px-3 py-1.5 text-xs font-semibold text-[#3D2C12] hover:bg-[#FFFCF7]"
                           onClick={() => setState((s) => ({ ...s, videos: s.videos.filter((x) => x.id !== v.id) }))}
                         >
                           {copy.labels.remove}
@@ -1795,6 +1821,35 @@ export function ClasificadosServiciosApplication() {
                 })}
               </ul>
             ) : null}
+            {state.videos.length < SERVICIOS_MAX_VIDEO_URLS ? (
+              <div className="mt-4 max-w-lg">
+                <label className={labelClass}>{copy.labels.videoUrlLabel}</label>
+                <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+                  <input
+                    className={`${inputClass} mt-0 min-w-0 sm:max-w-md sm:flex-1`}
+                    placeholder={copy.labels.videoUrlPlaceholder}
+                    value={videoUrlDraft}
+                    onChange={(e) => setVideoUrlDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addVideoUrl();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!videoUrlDraft.trim()}
+                    className="inline-flex min-h-[44px] w-full shrink-0 touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    onClick={addVideoUrl}
+                  >
+                    {copy.labels.addVideoUrl}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-xs font-medium text-[#8a7a62]">{copy.labels.videosLimitHint}</p>
+            )}
           </div>
         </section>
           </>
@@ -1991,7 +2046,7 @@ export function ClasificadosServiciosApplication() {
                 ) : null}
               </div>
               {reasonsSelectionCount >= MAX_REASONS_SELECTION ? (
-                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxThree}</p>
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxReasons}</p>
               ) : null}
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.customReason}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
@@ -2096,6 +2151,10 @@ export function ClasificadosServiciosApplication() {
               {businessHighlightSelectionCount >= MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxPresetHighlights}</p>
               ) : null}
+              <div className="mt-6 rounded-xl border border-[#D8C79A]/50 bg-[#FFFCF7]/80 px-4 py-3">
+                <h3 className="text-sm font-bold text-[#3D2C12]">{copy.labels.simpleOfferPhrasesTitle}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#5D4A25]/90">{copy.labels.simpleOfferPhrasesHelper}</p>
+              </div>
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.addOtherHighlightHeading}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
               <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
@@ -2212,7 +2271,7 @@ export function ClasificadosServiciosApplication() {
                 ) : null}
               </div>
               {quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION ? (
-                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxThree}</p>
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxQuickFacts}</p>
               ) : null}
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.customQuickFact}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
@@ -2291,42 +2350,6 @@ export function ClasificadosServiciosApplication() {
             </p>
           </section>
         )}
-          </>
-        ) : null}
-
-        {step === 5 ? (
-          <>
-        {/* Contact hub preview (populated-only; no manual action toggles) */}
-        <section className={sectionCard}>
-          <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.contact}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{copy.labels.contactHubIntro}</p>
-
-          <div className="mt-6 rounded-xl border border-[#D8C79A]/40 bg-[#FFFCF7]/90 p-4">
-            <p className="text-sm font-bold text-[#3D2C12]">{copy.labels.contactVisibleHeading}</p>
-            <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.contactSummaryIntro}</p>
-            {contactPreviewLines.length > 0 ? (
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {contactPreviewLines.map((line) => (
-                  <li
-                    key={line.id}
-                    className="inline-flex rounded-full border border-[#3B66AD]/25 bg-[#3B66AD]/8 px-3 py-1.5 text-sm font-medium text-[#1e3a5f]"
-                  >
-                    {line.label}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-amber-900/90">{copy.labels.contactHubEmpty}</p>
-            )}
-            <p className="mt-4 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactPrimaryCtaHelp}</p>
-            <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.contactMessageFootnote}</p>
-            <p className="mt-3 text-xs text-[#6b5c42]">
-              {lang === "es"
-                ? "Edita teléfono, correo, redes y enlaces en el paso “Datos básicos y contacto”."
-                : "Edit phone, email, socials, and links under “Basics & contact.”"}
-            </p>
-          </div>
-        </section>
 
         <section className={sectionCard} aria-labelledby="sec-payments">
           <h2 id="sec-payments" className="text-lg font-bold text-[#3D2C12]">
@@ -2653,6 +2676,7 @@ export function ClasificadosServiciosApplication() {
           />
 
           <label className={`mt-6 block ${labelClass}`}>{copy.labels.certificationsLabel}</label>
+          <p className="mt-1 text-xs text-[#8a7a62]">{copy.labels.certificationsHint}</p>
           <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
             <input
               className={inputClass}
@@ -2766,7 +2790,7 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 6 ? (
+        {step === 5 ? (
           <>
         {/* Hours */}
         <section className={sectionCard}>
@@ -2814,288 +2838,13 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 7 ? (
-          <>
-        <section className={sectionCard} aria-labelledby="sec-promo">
-          <h2 id="sec-promo" className="text-lg font-bold text-[#3D2C12]">
-            {copy.sections.offer}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#5D4A25]/90">{promoCopyHints.promotionsSectionIntro}</p>
-
-          {state.promotions.map((row, i) => {
-            const linkInvalid = row.link.trim() && !isProbablyValidWebUrl(row.link);
-            return (
-              <div
-                key={`promo-block-${i}`}
-                className={i === 0 ? "mt-6" : "mt-8 border-t border-[#D8C79A]/40 pt-8"}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.promotionSlot(i + 1)}</h3>
-                  {state.promotions.length > 1 ? (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-red-800 underline"
-                      onClick={() =>
-                        setState((s) =>
-                          enforceServiciosSelectionCaps({
-                            ...s,
-                            promotions:
-                              s.promotions.length > 1
-                                ? s.promotions.filter((_, j) => j !== i)
-                                : [createEmptyClasificadosPromoRow()],
-                          }),
-                        )
-                      }
-                    >
-                      {copy.labels.promoRemovePromotion}
-                    </button>
-                  ) : null}
-                </div>
-
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerTitle}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{promoCopyHints.offerTitleHelp}</p>
-                <input
-                  className={inputClass}
-                  placeholder={promoCopyHints.promoTitlePlaceholder}
-                  maxLength={CLASIFICADOS_PROMO_TITLE_MAX}
-                  value={row.title}
-                  onChange={(e) =>
-                    setState((s) => {
-                      const next = [...s.promotions];
-                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                      next[i] = { ...cur, title: e.target.value.slice(0, CLASIFICADOS_PROMO_TITLE_MAX) };
-                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                    })
-                  }
-                />
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerDetails}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{promoCopyHints.offerDetailsHelp}</p>
-                <textarea
-                  className={inputClass}
-                  rows={3}
-                  placeholder={promoCopyHints.promoDetailsPlaceholder}
-                  maxLength={CLASIFICADOS_PROMO_DETAILS_MAX}
-                  value={row.details}
-                  onChange={(e) =>
-                    setState((s) => {
-                      const next = [...s.promotions];
-                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                      next[i] = { ...cur, details: e.target.value.slice(0, CLASIFICADOS_PROMO_DETAILS_MAX) };
-                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                    })
-                  }
-                />
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerLink}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerLinkHelp}</p>
-                <input
-                  className={`${inputClass} ${linkInvalid ? inputWarn : ""}`}
-                  type="url"
-                  placeholder={copy.labels.promoLinkPlaceholder}
-                  value={row.link}
-                  onChange={(e) =>
-                    setState((s) => {
-                      const next = [...s.promotions];
-                      const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                      next[i] = { ...cur, link: e.target.value.slice(0, CLASIFICADOS_PROMO_LINK_MAX) };
-                      return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                    })
-                  }
-                />
-                {linkInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
-
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerImage}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerImageHelp}</p>
-                <input
-                  ref={(el) => {
-                    promoImageInputRefs.current[i] = el;
-                  }}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (!f.type.startsWith("image/")) {
-                      setMediaFlash(copy.labels.mediaWrongFileType);
-                      e.target.value = "";
-                      return;
-                    }
-                    void readFileAsDataUrl(f).then((url) =>
-                      setState((s) => {
-                        const next = [...s.promotions];
-                        const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                        next[i] = { ...cur, imageUrl: url };
-                        return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                      }),
-                    );
-                  }}
-                />
-                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                      onClick={() => promoImageInputRefs.current[i]?.click()}
-                    >
-                      {copy.labels.upload}
-                    </button>
-                    {row.imageUrl ? (
-                      <button
-                        type="button"
-                        className="min-h-[44px] text-xs font-semibold text-red-700 underline"
-                        onClick={() =>
-                          setState((s) => {
-                            const next = [...s.promotions];
-                            const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                            next[i] = { ...cur, imageUrl: "" };
-                            return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                          })
-                        }
-                      >
-                        {copy.labels.remove}
-                      </button>
-                    ) : null}
-                  </div>
-                  {row.imageUrl ? (
-                    <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
-                        <Image src={row.imageUrl} alt="" fill className="object-cover" unoptimized />
-                      </div>
-                      <p className="text-xs font-medium text-[#2d528d]">{copy.labels.mediaUploadedBadge}</p>
-                    </div>
-                  ) : null}
-                </div>
-
-                <label className={`mt-4 block ${labelClass}`}>{copy.labels.offerPdf}</label>
-                <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.offerPdfHelp}</p>
-                <input
-                  ref={(el) => {
-                    promoPdfInputRefs.current[i] = el;
-                  }}
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.type !== "application/pdf") {
-                      setMediaFlash(copy.labels.mediaWrongPdfType);
-                      e.target.value = "";
-                      return;
-                    }
-                    void readFileAsDataUrl(f).then((url) =>
-                      setState((s) => {
-                        const next = [...s.promotions];
-                        const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                        next[i] = {
-                          ...cur,
-                          pdfUrl: url,
-                          pdfFileName: f.name,
-                          pdfFileSizeBytes: f.size,
-                        };
-                        return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                      }),
-                    );
-                  }}
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] items-center rounded-xl border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                    onClick={() => promoPdfInputRefs.current[i]?.click()}
-                  >
-                    {row.pdfUrl ? copy.labels.replace : copy.labels.upload}
-                  </button>
-                  {row.pdfUrl ? (
-                    <div className="mt-1 w-full max-w-md rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] p-3">
-                      <p className="text-xs font-bold text-[#3D2C12]">{copy.labels.promoPdfUploadedTitle}</p>
-                      <p className="mt-1 break-all text-sm font-medium text-[#2d528d]">
-                        {promoPdfDisplayFileName(row, lang)}
-                      </p>
-                      {row.pdfFileSizeBytes > 0 ? (
-                        <p className="mt-0.5 text-[11px] text-[#6b5c42]">
-                          {formatPromoPdfFileSize(row.pdfFileSizeBytes, lang)}
-                        </p>
-                      ) : null}
-                      <div className="mt-2.5 flex flex-wrap gap-2">
-                        {isPromoPdfPreviewHref(row.pdfUrl) ? (
-                          <a
-                            href={row.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex min-h-[44px] items-center rounded-lg border border-[#3B66AD]/35 bg-[#3B66AD]/10 px-3 py-2 text-xs font-semibold text-[#1e3a5f]"
-                          >
-                            {copy.labels.promoPdfView}
-                          </a>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[44px] items-center rounded-lg border border-[#D8C79A]/80 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12]"
-                          onClick={() => promoPdfInputRefs.current[i]?.click()}
-                        >
-                          {copy.labels.replace}
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex min-h-[44px] items-center rounded-lg px-3 py-2 text-xs font-semibold text-red-700 underline"
-                          onClick={() => {
-                            const input = promoPdfInputRefs.current[i];
-                            if (input) input.value = "";
-                            setState((s) => {
-                              const next = [...s.promotions];
-                              const cur = next[i] ?? createEmptyClasificadosPromoRow();
-                              next[i] = {
-                                ...cur,
-                                pdfUrl: "",
-                                pdfFileName: "",
-                                pdfFileSizeBytes: 0,
-                              };
-                              return enforceServiciosSelectionCaps({ ...s, promotions: next });
-                            });
-                          }}
-                        >
-                          {copy.labels.remove}
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-              </div>
-            );
-          })}
-
-          <div className="mt-6 flex flex-col gap-2 border-t border-[#D8C79A]/40 pt-5">
-            {state.promotions.length >= MAX_CLASIFICADOS_PROMOTIONS ? (
-              <p className="text-xs text-[#8a7a62]">{copy.labels.promoMaxNote}</p>
-            ) : (
-              <button
-                type="button"
-                className="inline-flex min-h-[44px] max-w-md items-center justify-center rounded-xl border border-[#3B66AD]/35 bg-[#3B66AD]/10 px-4 text-sm font-semibold text-[#1e3a5f]"
-                onClick={() =>
-                  setState((s) =>
-                    enforceServiciosSelectionCaps({
-                      ...s,
-                      promotions: [...s.promotions, createEmptyClasificadosPromoRow()],
-                    }),
-                  )
-                }
-              >
-                {copy.labels.promoAddPromotion}
-              </button>
-            )}
-          </div>
-        </section>
-          </>
-        ) : null}
-
-        {step === 8 ? (
+        {step === 6 ? (
           <>
             {/* Coupons section - only shows when add-on is enabled */}
             {state.couponsAddOn ? (
               <section className={sectionCard} aria-labelledby="sec-coupons">
                 <div className="flex items-center justify-between">
-                  <SectionTitle>I · Cupones destacados</SectionTitle>
+                  <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-[color:var(--lx-text)]">
                       {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
@@ -3117,9 +2866,10 @@ export function ClasificadosServiciosApplication() {
                   </div>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                  {lang === "en"
-                    ? "Add up to 4 offers so customers have a clear reason to contact, visit, or share your business."
-                    : "Agrega hasta 4 ofertas para que los clientes tengan una razón clara para contactar, visitar o compartir tu negocio."}
+                  {copy.labels.couponsFeaturedStepBody}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                  {copy.labels.couponsFeaturedStepSimpleHint}
                 </p>
                 <div className="mt-4 grid gap-4">
                 {(state.coupons ?? []).map((coupon, i) => (
@@ -3449,28 +3199,64 @@ export function ClasificadosServiciosApplication() {
             </div>
           </div>
               </section>
+            ) : isExistingDashboardListingMode ? (
+              /* Dashboard existing-listing add-on activation — real add-on-only Stripe checkout ($99/mo). */
+              <>
+                <SectionTitle>{serviciosOffersModuleHeading(lang)}</SectionTitle>
+                <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
+                  <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{serviciosOffersModuleHeading(lang)}</h3>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/mo" : "99/mes"}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                    {lang === "en"
+                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers."
+                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas."}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={dashboardAddonCheckoutBusy}
+                    onClick={() => void startDashboardOffersAddonCheckout()}
+                    className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
+                  >
+                    {dashboardAddonCheckoutBusy
+                      ? serviciosOffersAddonUpgradeBusyLabel(lang)
+                      : serviciosOffersAddonUpgradeLabel(lang)}
+                  </button>
+                  {dashboardContextErr ? (
+                    <p className="mt-3 text-sm font-medium text-red-700" role="status">
+                      {dashboardContextErr}
+                    </p>
+                  ) : null}
+                  <div className="mt-4">
+                    <Link href={dashboardReturnHref} className="text-sm font-semibold text-[color:var(--lx-text)] underline">
+                      {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                    </Link>
+                  </div>
+                </div>
+              </>
             ) : (
               /* Coupon decision card - show when add-on is not yet enabled */
               <>
-                <SectionTitle>G · Cupones y ofertas</SectionTitle>
+                <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
                 <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
                   <div>
                     <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-                      {lang === "en" ? "Do you want to add featured coupons to your listing?" : "¿Quieres agregar cupones destacados a tu anuncio?"}
+                      {copy.labels.couponsFeaturedStepTitle}
                     </h3>
                     <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
                     <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
                       {lang === "en" ? "Special price for services. Monthly add-on inside your listing." : "Precio especial para servicios. Complemento mensual dentro de tu anuncio."}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                      {lang === "en"
-                        ? "Add up to 4 featured coupons inside your service listing. Promote discounts, packages, seasonal specials, consultations, visits, or events. Customers can share the coupon by link, message, email, or compatible apps."
-                        : "Agrega hasta 4 cupones destacados dentro de tu anuncio de servicios. Puedes promocionar descuentos, paquetes, especiales de temporada, consultas, visitas o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles."}
+                      {copy.labels.couponsFeaturedStepBody}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                      {copy.labels.couponsFeaturedStepSimpleHint}
                     </p>
                   </div>
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <button
                       type="button"
+                      onClick={() => setCouponDetailOpen(true)}
                       className="min-h-[44px] shrink-0 rounded-full border-2 border-[color:var(--lx-gold-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                     >
                       {lang === "en" ? "See more" : "Ver más"}
@@ -3498,7 +3284,7 @@ export function ClasificadosServiciosApplication() {
                             couponsAddOn: false,
                             couponsMonthlyPrice: 0,
                             coupons: [],
-                            applicationStepIndex: 9,
+                            applicationStepIndex: 7,
                           }));
                         }}
                         className="min-h-[44px] shrink-0 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
@@ -3513,8 +3299,22 @@ export function ClasificadosServiciosApplication() {
           </>
         ) : null}
 
-        {step === 9 ? (
+        {step === 7 ? (
           <>
+            <div className={`${sectionCard} mb-4`}>
+              <p className="text-sm leading-relaxed text-[#5D4A25]/90">
+                {lang === "en"
+                  ? "Read Leonix rules before confirming."
+                  : "Lee las reglas de Leonix antes de confirmar."}
+              </p>
+              <button
+                type="button"
+                onClick={() => setLeonixRulesOpen(true)}
+                className="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-[#1E1810] underline underline-offset-2 hover:text-[#3D2C12]"
+              >
+                {lang === "en" ? "View Leonix rules" : "Ver reglas de Leonix"}
+              </button>
+            </div>
             <ListingRulesConfirmationSection
               lang={lang}
               subject="servicios"
@@ -3534,8 +3334,8 @@ export function ClasificadosServiciosApplication() {
                 <p className="mt-3 rounded-lg border border-[#D8C79A]/40 bg-[#FFFCF7] px-3 py-2 text-sm font-medium text-[#6b5c42]">{listingPhaseLine}</p>
               ) : null}
 
-              {/* Pricing summary */}
-              {state.baseMonthlyPrice > 0 && (
+              {/* Pricing summary — hidden in dashboard edit modes (no $399 base recharge from an existing listing). */}
+              {!isExistingDashboardListingMode && state.baseMonthlyPrice > 0 && (
                 <div className="mt-5 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
                   <p className="text-xs font-semibold text-[#8a7a62]">
                     {lang === "en" ? "Pricing summary" : "Resumen de precios"}
@@ -3694,7 +3494,7 @@ export function ClasificadosServiciosApplication() {
                           };
                         })()
                       : {}),
-                    ...(s.applicationStepIndex === 5
+                    ...(s.applicationStepIndex === 4
                       ? (() => {
                           let w: ClasificadosServiciosApplicationState = { ...s };
                           const pending = w.customPaymentMethodLabel.trim();
@@ -3768,6 +3568,94 @@ export function ClasificadosServiciosApplication() {
         }}
         getLatestState={() => stateRef.current}
       />
+
+      {couponDetailOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setCouponDetailOpen(false)}
+        >
+          <div
+            className="max-h-[min(90vh,640px)] max-w-lg overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-[#1E1810]">
+              {lang === "en" ? "Featured coupons and offers" : "Cupones y ofertas destacadas"}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
+              {lang === "en"
+                ? "Featured coupons and offers are an optional +$99/mo add-on to show up to 4 offers inside your listing. Use it for clear discounts, packages, specials, or promotions with conditions."
+                : "Cupones y ofertas destacadas son un add-on opcional de +$99/mes para mostrar hasta 4 ofertas dentro de tu anuncio. Úsalo para descuentos claros, paquetes, especiales o promociones con condiciones."}
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
+              {lang === "en"
+                ? "For simple highlights like “24/7”, “licensed”, “free estimates”, or “emergency service”, use Services and quick details."
+                : "Si solo quieres frases simples como “24/7”, “licenciado”, “estimados gratis” o “servicio de emergencia”, usa Servicios y datos rápidos."}
+            </p>
+            <p className="mt-3 text-sm font-semibold text-[#5C5346]">
+              {lang === "en"
+                ? "They are added to the final summary if you activate them."
+                : "Se agregan al resumen final si los activas."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setCouponDetailOpen(false)}
+              className="mt-6 min-h-[44px] w-full rounded-full bg-[#1E1810] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3D2C12]"
+            >
+              {lang === "en" ? "Close" : "Cerrar"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {leonixRulesOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setLeonixRulesOpen(false)}
+        >
+          <div
+            className="max-h-[min(90vh,640px)] max-w-lg overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-[#1E1810]">
+              {lang === "en" ? "Leonix publishing rules" : "Reglas de publicación de Leonix"}
+            </h2>
+            <ul className="mt-4 space-y-2">
+              {(lang === "en"
+                ? [
+                    "Listing information must be truthful, current, and belong to your business.",
+                    "Do not publish illegal, misleading, discriminatory, sexually explicit, or dangerous services.",
+                    "You must have permission to use the photos, logos, text, and links you upload.",
+                    "Leonix may review, pause, reject, or remove listings that violate the rules.",
+                    "Payment does not guarantee approval if the listing violates our rules.",
+                    "You are responsible for the information, prices, promotions, licenses, and contact details published.",
+                  ]
+                : [
+                    "La información del anuncio debe ser verdadera, actualizada y pertenecer a tu negocio.",
+                    "No publiques servicios ilegales, engañosos, discriminatorios, sexuales explícitos o peligrosos.",
+                    "Debes tener permiso para usar las fotos, logos, textos y enlaces que subes.",
+                    "Leonix puede revisar, pausar, rechazar o eliminar anuncios que violen las reglas.",
+                    "El pago no garantiza aprobación si el anuncio viola nuestras reglas.",
+                    "Eres responsable por la información, precios, promociones, licencias y datos de contacto publicados.",
+                  ]
+              ).map((rule) => (
+                <li key={rule} className="flex items-start gap-2 text-sm text-[#5C5346]">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
+                  <span>{rule}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => setLeonixRulesOpen(false)}
+              className="mt-6 min-h-[44px] w-full rounded-full bg-[#1E1810] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3D2C12]"
+            >
+              {lang === "en" ? "Got it" : "Entendido"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+      </>
+      )}
     </div>
   );
 }

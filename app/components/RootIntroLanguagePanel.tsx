@@ -24,7 +24,12 @@ function langPillClass(active: boolean): string {
   ].join(" ");
 }
 
-export function RootIntroLanguagePanel() {
+type RootIntroLanguagePanelProps = {
+  /** Owner preview bypass, admin cookie, or launch lock off — route Enter to real site. */
+  siteUnlocked: boolean;
+};
+
+export function RootIntroLanguagePanel({ siteUnlocked }: RootIntroLanguagePanelProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const lang = resolveRouteLang(searchParams?.get("lang"));
@@ -32,7 +37,7 @@ export function RootIntroLanguagePanel() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const enterHref = withPublicLangAndTracking("/coming-soon-v2", {
+  const enterHref = withPublicLangAndTracking(siteUnlocked ? "/home" : "/coming-soon-v2", {
     lang,
     sourcePage: "root_intro",
     sourceCta: "enter_site",

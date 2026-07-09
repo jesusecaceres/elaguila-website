@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
@@ -64,22 +65,36 @@ import {
   saveRentasPrivadoDraft,
 } from "./utils/rentasPrivadoDraft";
 import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
 
-function RentasSqftPreview({ value }: { value: string }) {
+function RentasSqftPreview({ value, lang }: { value: string; lang: "es" | "en" }) {
   const shown = formatRentasSqftPreview(value);
   if (!shown) return null;
-  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
+  const label = lang === "en" ? "Preview:" : "Vista previa:";
+  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">{label} {shown}</p>;
 }
 
 const RENTAS_PREVIEW_ACTION_LABELS = {
-  preview: "Validar y ver vista previa",
-  openPreview: "Ver vista previa (sin validar)",
-  openPreviewTitle:
-    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
-  deleteApplication: "Eliminar borrador",
+  es: {
+    preview: "Validar y ver vista previa",
+    openPreview: "Ver vista previa (sin validar)",
+    openPreviewTitle:
+      "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
+    deleteApplication: "Eliminar borrador",
+  },
+  en: {
+    preview: "Validate and preview",
+    openPreview: "View preview (without validation)",
+    openPreviewTitle:
+      "Opens preview immediately with the draft saved in this tab. Does not require final confirmations or all minimum fields.",
+    deleteApplication: "Delete draft",
+  },
 } as const;
 
 const RENTAS_SECTION = {
@@ -99,10 +114,10 @@ const RENTAS_SECTION = {
   },
 } as const;
 
-const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
-  { id: "residencial", label: "Residencial" },
-  { id: "comercial", label: "Comercial" },
-  { id: "terreno_lote", label: "Terreno / lote" },
+const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: { es: string; en: string } }[] = [
+  { id: "residencial", label: { es: "Residencial", en: "Residential" } },
+  { id: "comercial", label: { es: "Comercial", en: "Commercial" } },
+  { id: "terreno_lote", label: { es: "Terreno / lote", en: "Land / lot" } },
 ];
 
 const POSTER_TYPE_OPTIONS: {
@@ -115,19 +130,19 @@ const POSTER_TYPE_OPTIONS: {
   { id: "business", label: { es: "Negocio", en: "Business" } },
 ];
 
-const ESTADOS: { id: RentasPrivadoFormState["estadoAnuncio"]; label: string }[] = [
-  { id: "disponible", label: "Disponible" },
-  { id: "pendiente", label: "Pendiente" },
-  { id: "bajo_contrato", label: "Bajo contrato" },
-  { id: "rentado", label: "Rentado" },
+const ESTADOS: { id: RentasPrivadoFormState["estadoAnuncio"]; label: { es: string; en: string } }[] = [
+  { id: "disponible", label: { es: "Disponible", en: "Available" } },
+  { id: "pendiente", label: { es: "Pendiente", en: "Pending" } },
+  { id: "bajo_contrato", label: { es: "Bajo contrato", en: "Under contract" } },
+  { id: "rentado", label: { es: "Rentado", en: "Rented" } },
 ];
 
-const CONDICION_OPTS: { value: RentasPrivadoFormState["residencial"]["condicion"]; label: string }[] = [
-  { value: "", label: "—" },
-  { value: "excelente", label: "Excelente" },
-  { value: "buena", label: "Buena" },
-  { value: "regular", label: "Regular" },
-  { value: "necesita_reparacion", label: "Necesita reparación" },
+const CONDICION_OPTS: { value: RentasPrivadoFormState["residencial"]["condicion"]; label: { es: string; en: string } }[] = [
+  { value: "", label: { es: "—", en: "—" } },
+  { value: "excelente", label: { es: "Excelente", en: "Excellent" } },
+  { value: "buena", label: { es: "Buena", en: "Good" } },
+  { value: "regular", label: { es: "Regular", en: "Fair" } },
+  { value: "necesita_reparacion", label: { es: "Necesita reparación", en: "Needs repair" } },
 ];
 
 const CONFIRM_PREVIEW_BLOCKED = {
@@ -135,10 +150,17 @@ const CONFIRM_PREVIEW_BLOCKED = {
   en: "Check all three confirmations at the bottom to use validated preview.",
 } as const;
 
+function rentasFormOptionLabel(label: string | { es: string; en: string }, copyLang: "es" | "en"): string {
+  return typeof label === "string" ? label : label[copyLang];
+}
+
 export function RentasPrivadoForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const [state, setState] = useState<RentasPrivadoFormState>(createEmptyRentasPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
@@ -192,7 +214,13 @@ export function RentasPrivadoForm() {
     saveRentasPrivadoDraft(stateRef.current);
   }, []);
 
-  const previewHref = `${RENTAS_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(state.categoriaPropiedad)}`;
+  const previewHref = useMemo(
+    () =>
+      withClasificadosPublishLang(RENTAS_PREVIEW_PRIVADO, routeLang, {
+        [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
+      }),
+    [routeLang, state.categoriaPropiedad],
+  );
 
   const onPhotos = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -279,7 +307,7 @@ export function RentasPrivadoForm() {
     onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll,
     validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
-    labels: RENTAS_PREVIEW_ACTION_LABELS,
+    labels: RENTAS_PREVIEW_ACTION_LABELS[lang],
     onDeleteApplication: async () => {
       clearRentasPrivadoDraft();
       const empty = createEmptyRentasPrivadoFormState();
@@ -292,7 +320,10 @@ export function RentasPrivadoForm() {
       }
       setPreviewGateMessage(null);
     },
-    deleteConfirmMessage: "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+    deleteConfirmMessage:
+      lang === "en"
+        ? "Delete this application draft and start over?"
+        : "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
   };
 
   return (
@@ -323,12 +354,18 @@ export function RentasPrivadoForm() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href={`/clasificados/rentas?lang=${lang}`}
+            href={withClasificadosPublishLang("/clasificados/rentas", routeLang)}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
           </Link>
         </div>
+
+        <LeonixLaunchCouponCard
+          lang={lang === "en" ? "en" : "es"}
+          variant="mini"
+          href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=rentas_privado&sourceCta=launch_25`}
+        />
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{lang === "en" ? "Who is posting this rental?" : "¿Quién publica esta renta?"}</h2>
@@ -349,7 +386,7 @@ export function RentasPrivadoForm() {
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
-                {o.label[lang]}
+                {rentasFormOptionLabel(o.label, lang)}
               </button>
             ))}
           </div>
@@ -370,7 +407,7 @@ export function RentasPrivadoForm() {
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
-                {c.label}
+                {c.label[lang]}
               </button>
             ))}
           </div>
@@ -381,7 +418,7 @@ export function RentasPrivadoForm() {
           setState={setState}
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
-          estadoOptions={ESTADOS}
+          estadoOptions={ESTADOS.map((o) => ({ id: o.id, label: o.label[lang] }))}
         />
 
         <RentasShowingTourSection
@@ -664,7 +701,7 @@ export function RentasPrivadoForm() {
             </div>
             <div className="sm:col-span-2 mt-2 border-t border-black/10 pt-5">
               <Gate12cContactChannelsFields
-                lang="es"
+                lang={lang}
                 value={state.contactChannels}
                 onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
                 fieldClass={fieldClass}
@@ -692,7 +729,7 @@ export function RentasPrivadoForm() {
                 >
                   {TIPO_PROPIEDAD_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -705,7 +742,7 @@ export function RentasPrivadoForm() {
                 >
                   {SUBTIPO_POR_TIPO[state.residencial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -741,7 +778,7 @@ export function RentasPrivadoForm() {
                   value={state.residencial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
                 />
-                <RentasSqftPreview value={state.residencial.interiorSqft} />
+                <RentasSqftPreview value={state.residencial.interiorSqft} lang={lang} />
               </AiField>
               <AiField label="Lote (ft²)">
                 <input
@@ -750,7 +787,7 @@ export function RentasPrivadoForm() {
                   value={state.residencial.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, loteSqft: e.target.value } }))}
                 />
-                <RentasSqftPreview value={state.residencial.loteSqft} />
+                <RentasSqftPreview value={state.residencial.loteSqft} lang={lang} />
               </AiField>
               <AiField label="Estacionamiento">
                 <input
@@ -780,7 +817,7 @@ export function RentasPrivadoForm() {
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={o.value || "x"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -811,7 +848,7 @@ export function RentasPrivadoForm() {
                     value={state.residencial.interiorSqft}
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
                   />
-                  <RentasSqftPreview value={state.residencial.interiorSqft} />
+                  <RentasSqftPreview value={state.residencial.interiorSqft} lang={lang} />
                 </AiField>
                 <AiField label="Estacionamiento">
                   <input
@@ -874,7 +911,7 @@ export function RentasPrivadoForm() {
                 >
                   {COMERCIAL_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -887,7 +924,7 @@ export function RentasPrivadoForm() {
                 >
                   {COMERCIAL_SUBTIPO_POR_TIPO[state.comercial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -908,7 +945,7 @@ export function RentasPrivadoForm() {
                   value={state.comercial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, interiorSqft: e.target.value } }))}
                 />
-                <RentasSqftPreview value={state.comercial.interiorSqft} />
+                <RentasSqftPreview value={state.comercial.interiorSqft} lang={lang} />
               </AiField>
               <AiField label="Oficinas">
                 <input
@@ -958,7 +995,7 @@ export function RentasPrivadoForm() {
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={`c-${o.value || "x"}`} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -1016,7 +1053,7 @@ export function RentasPrivadoForm() {
                 >
                   {TERRENO_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -1029,7 +1066,7 @@ export function RentasPrivadoForm() {
                 >
                   {TERRENO_SUBTIPO_POR_TIPO[state.terreno.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -1041,7 +1078,7 @@ export function RentasPrivadoForm() {
                   value={state.terreno.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, loteSqft: e.target.value } }))}
                 />
-                <RentasSqftPreview value={state.terreno.loteSqft} />
+                <RentasSqftPreview value={state.terreno.loteSqft} lang={lang} />
               </AiField>
               <AiField label="Uso / zonificación">
                 <input

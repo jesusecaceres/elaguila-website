@@ -316,11 +316,11 @@ export function categoryStandardUi(lang: Lang) {
 
 /** Shared page background for clasificados category surfaces */
 export const CATEGORY_STANDARD_PAGE_BG =
-  "min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]";
+  "min-h-0 overflow-x-hidden bg-[#FAF6EE] pb-12 text-[#1F241C]";
 
-/** Below global site Navbar from `(site)/layout` — do not nest a second Navbar. */
+/** Below global site Navbar from `(site)/layout` — compact gateway, not a tall hero page. */
 export const CATEGORY_STANDARD_MAIN =
-  "relative mx-auto w-full max-w-[1080px] min-w-0 px-3.5 pb-12 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-10 lg:px-5 lg:pt-12";
+  "relative mx-auto w-full max-w-[1080px] min-w-0 px-3.5 pb-8 pt-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:px-4 sm:pt-8 lg:px-5 lg:pt-9";
 
 /** Compact Leonix chip for category landing rails. */
 export const CATEGORY_STANDARD_CHIP =

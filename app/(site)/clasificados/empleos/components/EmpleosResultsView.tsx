@@ -71,10 +71,12 @@ const COPY = {
     sortSalary: "Salario mayor",
     sortHint: "Se aplica a los resultados ya filtrados.",
     activeFilters: "Filtros activos",
-    emptyTitle: "No encontramos vacantes con esta combinación",
-    emptyHint: "Amplía ciudad o palabra clave, o restablece filtros para volver a explorar.",
-    emptySupport: "No es un error tuyo: los listados viven de tus filtros. Prueba una acción de abajo o vuelve al inicio de Empleos.",
+    emptyTitle: "No encontramos vacantes con esta combinación.",
+    emptyHint: "Amplía ciudad, cambia filtros o restablece la búsqueda.",
+    emptySupport: "",
     emptyExplore: "Volver a Empleos",
+    resetShort: "Restablecer",
+    viewAll: "Ver todos",
     keywordHint: "Escribe y pulsa Buscar, o Enter, para aplicar la palabra clave.",
     fieldBlurHint: "Ciudad y ZIP se actualizan al salir del campo.",
     listIntroRecent: "Solo publicaciones de los últimos 7 días, en orden cronológico.",
@@ -111,10 +113,12 @@ const COPY = {
     sortSalary: "Highest salary",
     sortHint: "Applies to your filtered results.",
     activeFilters: "Active filters",
-    emptyTitle: "No openings match this combination",
-    emptyHint: "Broaden your city or keyword, or reset filters to explore again.",
-    emptySupport: "This is normal: results follow your filters. Try a recovery action below or return to Jobs home.",
+    emptyTitle: "No openings match this combination.",
+    emptyHint: "Broaden city, change filters, or reset your search.",
+    emptySupport: "",
     emptyExplore: "Back to Jobs home",
+    resetShort: "Reset",
+    viewAll: "View all",
     keywordHint: "Type and press Search, or Enter, to apply your keyword.",
     fieldBlurHint: "City and postal code update when you leave the field.",
     listIntroRecent: "Last 7 days only, in chronological order.",
@@ -511,7 +515,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
             backLabel={lang === "es" ? "Empleos" : "Jobs"}
             publishHref={publishHref}
             publishLabel={lang === "es" ? "Publicar vacante" : "Post a job"}
-            clearHref={clearResultsHref}
+            clearHref={activeChips.length > 0 ? clearResultsHref : undefined}
             resultCount={filtered.length}
           />
         </div>
@@ -591,32 +595,38 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
               <button type="button" onClick={() => setFiltersDrawerOpen(true)} className={`${LX_LB_BTN_SECONDARY} min-w-[5rem]`}>
                 {lang === "es" ? "Filtros" : "Filters"}
               </button>
-              <label className="inline-flex min-w-0 items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.sortLabel}</span>
-                <select
-                  value={parsed.sort}
-                  onChange={(e) => onSortChange(e.target.value)}
-                  className="min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]"
-                >
-                  <option value="relevance">{t.sortRelevance}</option>
-                  <option value="date_desc">{t.sortDate}</option>
-                  <option value="salary_desc">{t.sortSalary}</option>
-                </select>
-              </label>
             </div>
-            <button
-              type="button"
-              onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
-              className={`${LX_LB_BTN_SECONDARY} order-4 hidden sm:order-none sm:col-span-2 sm:inline-flex`}
+            <Link
+              href={clearResultsHref}
+              className={`${LX_LB_BTN_SECONDARY} order-4 inline-flex w-full items-center justify-center sm:order-none sm:col-span-3 sm:w-auto`}
             >
-              {t.clearAll}
-            </button>
+              {t.viewAll}
+            </Link>
             <button type="submit" className={`${LX_LB_BTN_PRIMARY} order-3 w-full sm:hidden`}>
               {t.search}
             </button>
           </div>
         </form>
         </section>
+
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={lang === "es" ? "Ordenar resultados" : "Sort results"}
+        >
+          <label className="inline-flex min-w-0 items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.sortLabel}</span>
+            <select
+              value={parsed.sort}
+              onChange={(e) => onSortChange(e.target.value)}
+              className="min-h-[2.625rem] rounded-lg border border-[#C9A84A]/45 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428]"
+            >
+              <option value="relevance">{t.sortRelevance}</option>
+              <option value="date_desc">{t.sortDate}</option>
+              <option value="salary_desc">{t.sortSalary}</option>
+            </select>
+          </label>
+        </div>
 
         <CategoryStandardFiltersDrawerShell
           open={filtersDrawerOpen}
@@ -707,33 +717,31 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
         ) : null}
 
         {filtered.length === 0 ? (
-          <div className="mt-14 rounded-[1.5rem] border border-[#E8DFD0] bg-white px-5 py-12 text-center shadow-[0_22px_60px_rgba(42,40,38,0.08)] ring-1 ring-[#D9A23A]/12 sm:px-12 sm:py-16">
-            <div className="mx-auto max-w-lg">
-              <p className="text-xl font-bold tracking-tight text-[#2A2826] sm:text-2xl">{t.emptyTitle}</p>
-              <p className="mx-auto mt-3 text-sm leading-relaxed text-[#5C564E] sm:text-base">{t.emptyHint}</p>
-              <p className="mx-auto mt-4 text-sm leading-relaxed text-[#5B6F82]">{t.emptySupport}</p>
-            </div>
+          <div className="mt-6 rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] px-4 py-6 text-center sm:px-6 sm:py-7">
+            <p className="text-base font-bold text-[#2A4536] sm:text-lg">{t.emptyTitle}</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]">{t.emptyHint}</p>
             {emptyRecoveryActions.length > 0 ? (
-              <div className="mx-auto mt-10 max-w-2xl text-left">
-                <p className="mb-3 text-center text-xs font-bold uppercase tracking-wide text-[#5B6F82]">{t.emptyRecoveryTitle}</p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
-                  {emptyRecoveryActions.map((a) => (
-                    <Link
-                      key={a.label}
-                      href={a.href}
-                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#E8DFD0] bg-[#FFFBF7] px-4 text-sm font-semibold text-[#2A2826] shadow-sm transition hover:border-[#D9A23A]/45"
-                    >
-                      {a.label}
-                    </Link>
-                  ))}
-                </div>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {emptyRecoveryActions.slice(0, 3).map((a) => (
+                  <Link
+                    key={a.label}
+                    href={a.href}
+                    className="inline-flex min-h-10 items-center rounded-lg border border-[#C9A84A]/45 bg-white px-3 text-xs font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
+                  >
+                    {a.label}
+                  </Link>
+                ))}
               </div>
             ) : null}
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <button type="button" onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))} className={EMPLEOS_CTA_SECONDARY}>
-                {t.clearAll}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push(buildEmpleosResultadosUrl(lang, { sort: parsed.sort }))}
+                className={EMPLEOS_CTA_SECONDARY}
+              >
+                {t.resetShort}
               </button>
-              <Link href={landingHref} className={`${EMPLEOS_LINK_MUTED} text-center`}>
+              <Link href={landingHref} className={`${EMPLEOS_LINK_MUTED} text-sm`}>
                 {t.emptyExplore}
               </Link>
             </div>

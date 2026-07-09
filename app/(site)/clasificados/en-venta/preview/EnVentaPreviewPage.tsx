@@ -3,6 +3,10 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { EnVentaFreeApplicationState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { createEmptyEnVentaFreeState } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
 import { loadLatestEnVentaPreviewDraftAsync, loadEnVentaPreviewDraftMeta, buildEnVentaEditResumeHref } from "./enVentaPreviewDraft";
@@ -90,15 +94,18 @@ function relativeTimeLabel(ts: number, lang: "es" | "en"): string {
 
 export function EnVentaPreviewPage() {
   const sp = useSearchParams();
-  const lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [sp],
+  );
   const planParam = sp?.get("plan");
   const plan: "free" | "pro" = planParam === "free" ? "free" : "pro";
   const tEmpty = EMPTY[lang];
   const tBuyer = BUYER[lang];
 
-  const editBackHref = buildEnVentaEditResumeHref(plan, lang);
-  const previewHrefFree = `/clasificados/en-venta/preview?lang=${lang}&plan=free`;
-  const previewHrefPro = `/clasificados/en-venta/preview?lang=${lang}&plan=pro`;
+  const editBackHref = buildEnVentaEditResumeHref(plan, routeLang);
+  const previewHrefFree = withClasificadosPublishLang("/clasificados/en-venta/preview", routeLang, { plan: "free" });
+  const previewHrefPro = withClasificadosPublishLang("/clasificados/en-venta/preview", routeLang, { plan: "pro" });
   const [draft, setDraft] = useState<EnVentaFreeApplicationState | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -150,7 +157,7 @@ export function EnVentaPreviewPage() {
     return vm.shellStatusLine;
   }, [draftMeta?.updatedAt, lang, vm.shellStatusLine]);
 
-  const previewPublicUrl = typeof window !== "undefined" ? window.location.href : `/clasificados/en-venta/preview?lang=${lang}&plan=${plan}`;
+  const previewPublicUrl = typeof window !== "undefined" ? window.location.href : withClasificadosPublishLang("/clasificados/en-venta/preview", routeLang, { plan });
   const previewContactMessage = lang === "es" ? "Hola, ¿sigue disponible este artículo?" : "Hi — is this item still available?";
   const previewEmailSubject = lang === "es" ? "Interés en tu anuncio Leonix" : "Question about your Leonix listing";
   const previewContactShareExtras = useMemo(

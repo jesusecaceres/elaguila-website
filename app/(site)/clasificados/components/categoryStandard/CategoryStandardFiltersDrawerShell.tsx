@@ -71,7 +71,7 @@ export function CategoryStandardFiltersDrawerShell({
         className={
           "fixed z-[71] flex flex-col overflow-hidden border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-xl " +
           "inset-x-0 bottom-0 top-[10vh] rounded-t-2xl max-lg:max-h-[90vh] " +
-          "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[420px] lg:rounded-none lg:rounded-l-2xl"
+          "lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:w-full lg:max-w-[440px] lg:rounded-none lg:rounded-l-2xl"
         }
         role="dialog"
         aria-modal="true"
@@ -112,9 +112,9 @@ export function CategoryStandardFilterGroup({
   children: ReactNode;
 }) {
   return (
-    <section className="space-y-2 border-b border-[#D6C7AD]/40 pb-4 last:border-b-0 last:pb-0">
+    <section className="space-y-3 border-b border-[#D6C7AD]/40 pb-5 last:border-b-0 last:pb-0">
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A6B1F]">{label}</p>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-3">{children}</div>
     </section>
   );
 }

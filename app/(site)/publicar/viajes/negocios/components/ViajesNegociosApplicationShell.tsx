@@ -8,6 +8,7 @@ import Navbar from "@/app/components/Navbar";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang, withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/lib/useViajesLocalHeroObjectUrl";
 import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
@@ -31,7 +32,7 @@ const GRID2 = "grid gap-4 sm:grid-cols-2";
 export function ViajesNegociosApplicationShell() {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(sp?.get("lang"));
   const c = getPublicarViajesNegociosCopy(lang);
   const { draft, update, reset, hydrated, setDraft } = useViajesNegociosDraft();
   const stagedIdFromUrl = (sp?.get("stagedId") ?? "").trim();
@@ -85,9 +86,9 @@ export function ViajesNegociosApplicationShell() {
     document.title = c.documentTitle;
   }, [c.documentTitle]);
 
-  const branchHref = appendLangToPath("/publicar/viajes", lang);
-  const privadoHref = appendLangToPath("/publicar/viajes/privado", lang);
-  const previewHref = appendLangToPath("/clasificados/viajes/preview/negocios", lang);
+  const branchHref = appendLangToPath("/publicar/viajes", routeLang);
+  const privadoHref = appendLangToPath("/publicar/viajes/privado", routeLang);
+  const previewHref = appendLangToPath("/clasificados/viajes/preview/negocios", routeLang);
 
   const chk = (id: string, checked: boolean, onChange: (v: boolean) => void, label: string) => (
     <label htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm text-[color:var(--lx-text-2)]">
@@ -114,7 +115,12 @@ export function ViajesNegociosApplicationShell() {
         session = null;
       }
       if (!session?.access_token) {
-        router.push(`/login?redirect=${encodeURIComponent(`/publicar/viajes/negocios${stagedIdFromUrl ? `?stagedId=${encodeURIComponent(stagedIdFromUrl)}` : ""}${lang === "en" ? "&lang=en" : ""}`)}`);
+        const loginPath = withClasificadosPublishLang(
+          "/publicar/viajes/negocios",
+          routeLang,
+          stagedIdFromUrl ? { stagedId: stagedIdFromUrl } : undefined,
+        );
+        router.push(`/login?redirect=${encodeURIComponent(loginPath)}`);
         return;
       }
       const headers: Record<string, string> = {
@@ -135,7 +141,12 @@ export function ViajesNegociosApplicationShell() {
       if (!res.ok || !json.ok) {
         const code = json.error ?? "unknown";
         if (code === "auth_required") {
-          router.push(`/login?redirect=${encodeURIComponent(`/publicar/viajes/negocios${stagedIdFromUrl ? `?stagedId=${encodeURIComponent(stagedIdFromUrl)}` : ""}`)}`);
+          const loginPath = withClasificadosPublishLang(
+            "/publicar/viajes/negocios",
+            routeLang,
+            stagedIdFromUrl ? { stagedId: stagedIdFromUrl } : undefined,
+          );
+          router.push(`/login?redirect=${encodeURIComponent(loginPath)}`);
           return;
         }
         if (code === "supabase_not_configured") {
@@ -149,7 +160,7 @@ export function ViajesNegociosApplicationShell() {
         }
         return;
       }
-      const q = new URLSearchParams({ slug: String(json.slug), id: String(json.id), lane: "business", lang });
+      const q = new URLSearchParams({ slug: String(json.slug), id: String(json.id), lane: "business", lang: routeLang });
       setPublishOpen(false);
       router.push(`/publicar/viajes/enviado?${q.toString()}`);
     } catch {

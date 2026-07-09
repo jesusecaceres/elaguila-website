@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BienesRaicesPublicarHubClient } from "./BienesRaicesPublicarHubClient";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const metadata: Metadata = {
   title: "Publicar Bienes Raíces | Leonix Clasificados",
@@ -12,6 +13,6 @@ type PageProps = {
 
 export default async function BienesRaicesPublicarHubPage(props: PageProps) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
-  return <BienesRaicesPublicarHubClient lang={lang} />;
+  const { copyLang } = resolveClasificadosPublishLangFromSearchParams(sp);
+  return <BienesRaicesPublicarHubClient lang={copyLang} />;
 }

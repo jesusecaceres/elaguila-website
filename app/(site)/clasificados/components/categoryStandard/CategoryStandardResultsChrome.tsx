@@ -35,7 +35,10 @@ export type CategoryStandardResultsChromeProps = {
   advancedFilters?: ReactNode;
   chips?: ReactNode;
   clearFiltersHref?: string;
+  /** Sort/view row — standard position below shell/chips, above listings. */
   toolbar?: ReactNode;
+  /** Replaces default CategoryStandardSearchRow (e.g. compact landing-style bar). */
+  searchSlot?: ReactNode;
   children: ReactNode;
 };
 
@@ -59,6 +62,7 @@ export function CategoryStandardResultsChrome({
   chips,
   clearFiltersHref,
   toolbar,
+  searchSlot,
   children,
 }: CategoryStandardResultsChromeProps) {
   const ui = categoryStandardUi(lang);
@@ -83,16 +87,20 @@ export function CategoryStandardResultsChrome({
           <p className={CAT_STD_REFINE_EYEBROW}>{refineEyebrow}</p>
 
           <div className="mt-2">
-            <CategoryStandardSearchRow
-              lang={lang}
-              action={resultsAction}
-              defaultQ={defaultQ}
-              defaultCity={defaultCity}
-              searchPlaceholder={searchPlaceholder}
-              advancedFilters={advancedFilters}
-              chips={chips}
-            />
+            {searchSlot ?? (
+              <CategoryStandardSearchRow
+                lang={lang}
+                action={resultsAction}
+                defaultQ={defaultQ}
+                defaultCity={defaultCity}
+                searchPlaceholder={searchPlaceholder}
+                advancedFilters={advancedFilters}
+                chips={chips}
+              />
+            )}
           </div>
+
+          {!searchSlot && chips ? <div className="mt-3">{chips}</div> : null}
 
           {activeFilterSummary ? <div className="mt-3">{activeFilterSummary}</div> : null}
 
@@ -139,6 +147,10 @@ export type CategoryStandardLandingBlockProps = {
   suppressVisibilityCta?: boolean;
   /** Hide browse CTA in hero row when browse lives in search canvas. */
   hideBrowseCta?: boolean;
+  /** Hide default publish/browse row when category supplies custom CTAs (e.g. dual publish). */
+  hideCtaRow?: boolean;
+  /** Optional custom CTA row (replaces default when hideCtaRow). */
+  ctaSlot?: ReactNode;
 };
 
 export function CategoryStandardLandingBlock({
@@ -159,12 +171,14 @@ export function CategoryStandardLandingBlock({
   searchSlot,
   suppressVisibilityCta = false,
   hideBrowseCta = false,
+  hideCtaRow = false,
+  ctaSlot,
   children,
 }: CategoryStandardLandingBlockProps) {
   const landingEyebrow = lang === "es" ? "¿Qué estás buscando?" : "What are you looking for?";
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       <CategoryCompactHero
         category={category}
         lang={lang}
@@ -196,24 +210,27 @@ export function CategoryStandardLandingBlock({
               className="!border-0 !bg-transparent !p-0 !shadow-none"
             />
           ))}
-        <div className="mt-3">
-          <CategoryStandardCtaRow
-            lang={lang}
-            publishHref={publishHref}
-            browseHref={browseHref}
-            publishLabel={publishLabel}
-            browseLabel={browseLabel}
-            hideBrowse={hideBrowseCta}
-          />
+        <div className="mt-2.5">
+          {ctaSlot ??
+            (hideCtaRow ? null : (
+              <CategoryStandardCtaRow
+                lang={lang}
+                publishHref={publishHref}
+                browseHref={browseHref}
+                publishLabel={publishLabel}
+                browseLabel={browseLabel}
+                hideBrowse={hideBrowseCta}
+              />
+            ))}
         </div>
         {categorySupportsVisibilityCta(category) && !suppressVisibilityCta ? (
-          <div className="mt-3">
+          <div className="mt-2">
             <CategoryVisibilityCta lang={lang} category={category} surface="landing" compact />
           </div>
         ) : null}
       </CategoryCompactHero>
       {belowHero}
-      {children}
+      {children ? <div className="mt-4 space-y-4 sm:space-y-5">{children}</div> : null}
     </div>
   );
 }

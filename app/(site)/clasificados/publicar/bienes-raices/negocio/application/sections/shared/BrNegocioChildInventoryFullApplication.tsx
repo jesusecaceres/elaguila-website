@@ -19,6 +19,7 @@ import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublish
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
 import {
   buildChildInventoryEditorState,
+  buildLiveChildInventoryPreviewDraft,
   childInventoryDraftFromEditorState,
   childInventorySaveHasErrors,
   mergeChildEditorSessionWithDraft,
@@ -30,13 +31,15 @@ import {
 import { BrNegocioChildInventoryInheritedHubPanel, BrNegocioChildInventoryInheritedSummary } from "./BrNegocioChildInventoryInheritedHubPanel";
 import { BrNegocioChildInventoryInheritedContactPanel } from "./BrNegocioChildInventoryInheritedContactPanel";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
-import { mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
+import { mapAdditionalDraftToInventoryCard, applyLiveEditorPhotosToInventoryCard } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
 import {
   childEditorSessionFromState,
+  childEditorSliceHasUnresolvedIdbMedia,
   clearChildInventoryEditorSession,
   loadChildInventoryEditorSessionResolved,
   persistChildInventoryEditorSession,
+  resolveChildPropertySliceMediaFromIdb,
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 
@@ -103,6 +106,7 @@ export function BrNegocioChildInventoryFullApplication({
   );
   const [errors, setErrors] = useState<ReturnType<typeof validateAgenteChildInventoryForSave>>({});
   const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
+  const [idbResolvedSlice, setIdbResolvedSlice] = useState<ReturnType<typeof pickChildPropertySlice> | null>(null);
 
   const stepLabels = lang === "en" ? CHILD_STEP_LABELS_EN : CHILD_STEP_LABELS_ES;
   const total = stepLabels.length;
@@ -196,15 +200,45 @@ export function BrNegocioChildInventoryFullApplication({
     return () => clearTimeout(timer);
   }, [open, editingId, step, state]);
 
-  const previewDraft = useMemo(
-    () => childInventoryDraftFromEditorState(parentHubRef.current, state, initialDraft, lang),
-    [state, initialDraft, lang],
+  useEffect(() => {
+    if (!open) {
+      setIdbResolvedSlice(null);
+      return;
+    }
+    const slice = pickChildPropertySlice(state);
+    if (!childEditorSliceHasUnresolvedIdbMedia(slice)) {
+      setIdbResolvedSlice(null);
+      return;
+    }
+    let cancelled = false;
+    void resolveChildPropertySliceMediaFromIdb(slice).then((resolved) => {
+      if (!cancelled) setIdbResolvedSlice(resolved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, state]);
+
+  const previewStateForCard = useMemo(() => {
+    if (!idbResolvedSlice) return state;
+    return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, idbResolvedSlice);
+  }, [state, idbResolvedSlice]);
+
+  const canonicalPreviewDraft = useMemo(
+    () =>
+      buildLiveChildInventoryPreviewDraft({
+        parentHub: parentHubRef.current,
+        state: previewStateForCard,
+        initialDraft,
+        lang,
+      }),
+    [previewStateForCard, initialDraft, lang],
   );
 
   const previewCard = useMemo(() => {
-    const merged = mergeChildInventoryWithMediaBridge([previewDraft])[0];
-    return mapAdditionalDraftToInventoryCard(merged, lang);
-  }, [previewDraft, lang]);
+    const card = mapAdditionalDraftToInventoryCard(canonicalPreviewDraft, lang);
+    return applyLiveEditorPhotosToInventoryCard(card, previewStateForCard);
+  }, [canonicalPreviewDraft, previewStateForCard, lang]);
 
   const packageStateForPreview = useMemo(
     () =>
@@ -437,8 +471,11 @@ export function BrNegocioChildInventoryFullApplication({
           onClose={() => setFullPreviewOpen(false)}
           lang={lang}
           parentHubSnapshot={parentHubSnapshot}
-          childDraft={previewDraft}
+          childDraft={canonicalPreviewDraft}
           parentFullState={packageStateForPreview}
+          context="childApplication"
+          onEdit={() => setFullPreviewOpen(false)}
+          onSaveAndReturnToParent={() => attemptSave("goToParentPreview")}
         />
       ) : null}
     </div>

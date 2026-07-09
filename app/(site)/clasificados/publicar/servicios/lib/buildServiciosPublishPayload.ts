@@ -77,7 +77,12 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     regularPrice: cleanPlainText(row.regularPrice),
     specialPrice: cleanPlainText(row.specialPrice),
     savings: cleanPlainText(row.savings),
+    url: cleanPlainText(row.url),
     imageUrl: cleanRemoteMediaField(row.imageUrl),
+    couponCode: cleanPlainText(row.couponCode),
+    expirationDate: cleanPlainText(row.expirationDate),
+    redemptionNote: cleanPlainText(row.redemptionNote),
+    ctaLabel: cleanPlainText(row.ctaLabel),
   }));
 
   const testimonials: TestimonialRow[] = (n.testimonials ?? []).slice(0, 24).map((t) => ({
@@ -146,6 +151,13 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     insuranceDocumentUrl: cleanRemoteMediaField(n.insuranceDocumentUrl),
     promotions,
     coupons,
+    couponsAddOn: n.couponsAddOn === true,
+    couponsMonthlyPrice: n.couponsMonthlyPrice,
+    couponFlyer: { imageUrl: cleanRemoteMediaField(n.couponFlyer?.imageUrl ?? "") },
+    couponMoreOffers: {
+      url: cleanPlainText(n.couponMoreOffers?.url ?? ""),
+      buttonLabel: cleanPlainText(n.couponMoreOffers?.buttonLabel ?? "").slice(0, 80),
+    },
     testimonials,
   });
 }
@@ -155,6 +167,8 @@ export type ServiciosPublishTransportBody = {
   lang: "es" | "en";
   existingPublicSlug?: string;
   videoPublishDiagnostics?: { videoId: string; reason: string }[];
+  /** "pending_payment" saves hidden before Revenue OS checkout (Stripe webhook activates). */
+  activationMode?: "pending_payment";
 };
 
 export function buildServiciosPublishTransportBody(
@@ -162,11 +176,13 @@ export function buildServiciosPublishTransportBody(
   lang: "es" | "en",
   existingPublicSlug?: string,
   videoPublishDiagnostics?: { videoId: string; reason: string }[],
+  activationMode?: "pending_payment",
 ): ServiciosPublishTransportBody {
   const payload: ServiciosPublishTransportBody = {
     state: buildServiciosPublishPayload(state),
     lang,
   };
+  if (activationMode === "pending_payment") payload.activationMode = "pending_payment";
   if (existingPublicSlug?.trim()) payload.existingPublicSlug = existingPublicSlug.trim();
   if (videoPublishDiagnostics?.length) {
     payload.videoPublishDiagnostics = videoPublishDiagnostics

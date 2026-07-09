@@ -16,18 +16,44 @@ import {
 } from "./publishCheckoutCopy";
 
 /** Revenue OS checkout does not yet support a separate Bienes inventory pack line item. */
-export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = false;
+export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = true;
 
 /** Revenue OS checkout supports one packageKey per session; offers add-on is bundled via addOns[]. */
 export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = true;
 
+/** Revenue OS checkout supports Servicios offers/coupons add-on bundled via addOns[]. */
+export const REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED = true;
+
 /** Canonical Revenue OS package key for Restaurante category-owned coupon module. */
 export const RESTAURANTES_COUPON_ADDON_PACKAGE_KEY = "restaurantes_offers_addon";
+
+/** Canonical Revenue OS base package key for Servicios provider listing ($399/mo). */
+export const SERVICIOS_BASE_MONTHLY_PACKAGE_KEY = "servicios_base_monthly";
+
+/** Canonical Revenue OS package key for Servicios category-owned offers/coupons module. */
+export const SERVICIOS_OFFERS_ADDON_PACKAGE_KEY = "servicios_offers_addon";
+
+/** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
+export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
 export const BR_INVENTORY_PACK_MAX_CHILDREN = 4;
 export const BR_BASE_INCLUDED_PROPERTIES = 1;
 export const BR_TOTAL_ACTIVE_PROPERTY_LIMIT = BR_BASE_INCLUDED_PROPERTIES + BR_INVENTORY_PACK_MAX_CHILDREN;
+
+/** Revenue OS checkout supports Autos dealer inventory pack add-on ($129/mo, +10 active vehicles). */
+export const REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED = true;
+
+/** Canonical Revenue OS package key for Autos dealer child vehicle inventory pack (+10 active vehicles). */
+export const AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY = "autos_dealer_inventory_pack_monthly";
+
+/** Price source: `autosDealerInventoryCopy.ts` / A5.QA-03 audit ($129/mo inventory boost). */
+export const AUTOS_DEALER_INVENTORY_PACK_PRICE_CENTS = 12900;
+
+export const AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES = 10;
+export const AUTOS_DEALER_BASE_INCLUDED_VEHICLES = 10;
+export const AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT =
+  AUTOS_DEALER_BASE_INCLUDED_VEHICLES + AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES;
 
 export type PublishCheckpointMode = "checkout" | "free_publish";
 
@@ -96,6 +122,10 @@ export type PublishCheckpointConfig = {
   promoEligible?: boolean;
   /** Restaurant coupon/offers module selected in draft. */
   restaurantOffersAddonSelected?: boolean;
+  /** Servicios offers/coupons module selected in draft. */
+  serviciosOffersAddonSelected?: boolean;
+  /** Servicios internal lane/pipeline (e.g. professional | trades) — checkout metadata only. */
+  pipeline?: string | null;
   returnPath?: string | null;
 };
 
@@ -281,6 +311,29 @@ export function resolvePublishCheckoutCheckpoint(
         });
       }
     }
+  } else if (config.category === "servicios" && config.packageKey === SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
+    lineItems.push({
+      id: "base",
+      labelEn: config.baseLineItem?.labelEn ?? "Professional services",
+      labelEs: config.baseLineItem?.labelEs ?? "Servicios profesionales",
+      priceCents: baseCents,
+    });
+
+    const serviciosOffersSelected = Boolean(config.serviciosOffersAddonSelected);
+    const serviciosOffersDef = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
+    const serviciosOffersPriceCents = serviciosOffersDef?.priceCents ?? 9900;
+
+    if (serviciosOffersSelected) {
+      addOns.push({
+        id: "servicios_offers_module",
+        labelEn: "Offers/coupons module",
+        labelEs: "Módulo de ofertas/cupones",
+        priceCents: serviciosOffersPriceCents,
+        selected: true,
+        detailEn: "Category-owned offers/coupons module selected in your application",
+        detailEs: "Módulo de ofertas/cupones seleccionado en tu solicitud",
+      });
+    }
   } else if (config.baseLineItem) {
     lineItems.push({
       id: config.baseLineItem.id ?? "base",
@@ -369,10 +422,25 @@ export function resolvePublishCheckoutCheckpoint(
     }
   }
 
+  if (config.category === "servicios") {
+    const serviciosOffersDef = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
+    metadata.servicios_offers_addon_selected = Boolean(config.serviciosOffersAddonSelected);
+    if (config.pipeline?.trim()) metadata.pipeline = config.pipeline.trim();
+    if (config.serviciosOffersAddonSelected && REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED) {
+      metadata.servicios_offers_addon_package_key = SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
+      metadata.servicios_offers_addon_price_cents = serviciosOffersDef?.priceCents ?? 9900;
+    }
+  }
+
   const restaurantCouponAddOnSelected =
     config.category === "restaurantes" &&
     Boolean(config.restaurantOffersAddonSelected) &&
     REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED;
+
+  const serviciosOffersAddOnSelected =
+    config.category === "servicios" &&
+    Boolean(config.serviciosOffersAddonSelected) &&
+    REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED;
 
   if (config.listingId?.trim()) metadata.listing_id = config.listingId.trim();
   if (config.leonixAdId?.trim()) metadata.leonix_ad_id = config.leonixAdId.trim();
@@ -390,6 +458,9 @@ export function resolvePublishCheckoutCheckpoint(
     ...(opts?.promoCode?.trim() ? { promoCode: opts.promoCode.trim() } : {}),
     ...(restaurantCouponAddOnSelected
       ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
+      : {}),
+    ...(serviciosOffersAddOnSelected
+      ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
       : {}),
   };
 
@@ -485,6 +556,41 @@ export const BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmat
       "I understand payment is required before this listing and any additional inventory become active.",
     labelEs:
       "Entiendo que el pago es requerido antes de que este anuncio y cualquier inventario adicional queden activos.",
+  },
+];
+
+export const SERVICIOS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_info",
+    required: true,
+    labelEn:
+      "I confirm my service information, service area, pricing/contact details, and business information are accurate and up to date.",
+    labelEs:
+      "Confirmo que la información de mis servicios, área de servicio, precios/datos de contacto e información del negocio es correcta y está actualizada.",
+  },
+  {
+    id: "authorized_to_publish",
+    required: true,
+    labelEn:
+      "I confirm I am authorized to offer these services and to publish any photos, logos, promotions, licenses, or business details included in this listing.",
+    labelEs:
+      "Confirmo que estoy autorizado para ofrecer estos servicios y publicar cualquier foto, logo, promoción, licencia o detalle del negocio incluido en este anuncio.",
+  },
+  {
+    id: "marketplace_rules",
+    required: true,
+    labelEn:
+      "I confirm this listing follows Leonix service marketplace rules and that I am responsible for the published information.",
+    labelEs:
+      "Confirmo que este anuncio sigue las reglas del marketplace de servicios de Leonix y que soy responsable por la información publicada.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn:
+      "I understand payment is required before this Servicios listing and any selected offers/coupons module become active.",
+    labelEs:
+      "Entiendo que el pago es requerido antes de que este anuncio de Servicios y cualquier módulo de ofertas/cupones seleccionado queden activos.",
   },
 ];
 

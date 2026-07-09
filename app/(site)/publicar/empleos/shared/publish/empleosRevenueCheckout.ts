@@ -15,6 +15,7 @@ export async function saveEmpleosDraftAndStartPaidJobCheckout(input: {
   accessToken: string;
   lang: Lang;
   leonixAdId?: string | null;
+  promoCode?: string | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const lang = input.lang === "en" ? "en" : "es";
   const res = await fetch("/api/clasificados/empleos/listings", {
@@ -40,6 +41,7 @@ export async function saveEmpleosDraftAndStartPaidJobCheckout(input: {
     listingId: json.id,
     leonixAdId: input.leonixAdId,
     locale: lang,
+    promoCode: input.promoCode ?? null,
   });
   if (!checkout.ok) {
     return { ok: false, message: checkout.userMessage };

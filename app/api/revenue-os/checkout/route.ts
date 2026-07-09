@@ -6,10 +6,14 @@ import {
   buildRevenueStripeLineItems,
   isRevenueStripeEnvConfigured,
   isRevenueSupabaseAdminConfigured,
+  RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
   validateRevenueCheckoutAddOns,
   validateRevenueCheckoutRequest,
+  validateRestauranteAddonOnlyListingOwnership,
+  validateAutosDealerInventoryAddonOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
+import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   attachStripeSessionToPaymentRecord,
   attachPromoRedemptionToPaymentRecord,
@@ -21,6 +25,11 @@ import {
   resolvePromoForCheckout,
 } from "@/app/lib/listingPlans/revenuePromoRedemptions";
 import { createRevenueStripeCheckoutSession } from "@/app/lib/listingPlans/revenueStripe";
+import {
+  buildDashboardMisAnunciosReturnPath,
+  resolveRevenueCategoryDefaultReturnPath,
+  sanitizeRevenueOsReturnPath,
+} from "@/app/lib/listingPlans/revenueOsReturnPath";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,7 +60,43 @@ export async function POST(request: NextRequest) {
   }
 
   const bearerUserId = await getBearerUserId(request);
-  const ownerUserId = body.ownerUserId?.trim() || bearerUserId || null;
+
+  const categoryEarly = String(body.category ?? "").trim().toLowerCase();
+  const packageKeyEarly = String(body.packageKey ?? "").trim().toLowerCase();
+  const isRestauranteAddonOnlyEarly =
+    categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
+  const isAutosDealerInventoryAddonEarly =
+    categoryEarly === "autos" && packageKeyEarly === AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY;
+
+  if (isRestauranteAddonOnlyEarly) {
+    const ownerGate = await validateRestauranteAddonOnlyListingOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+  }
+
+  if (isAutosDealerInventoryAddonEarly) {
+    const ownerGate = await validateAutosDealerInventoryAddonOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+  }
+
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly
+    ? bearerUserId
+    : body.ownerUserId?.trim() || bearerUserId || null;
 
   const addOnValidation = validateRevenueCheckoutAddOns({
     category: String(body.category ?? "").trim().toLowerCase(),
@@ -73,6 +118,9 @@ export async function POST(request: NextRequest) {
 
   const promoCodeRaw = body.promoCode?.trim();
   let promoTypeForRecord: string | undefined;
+  let promoFamilyForRecord: string | null | undefined;
+  let promoWebsiteCheckoutOnly: boolean | undefined;
+  let promoBaseAmountForRecord: number | undefined;
   if (promoCodeRaw) {
     const prelim = validateRevenueCheckoutRequest(body, { validatedAddOns });
     if (!prelim.ok) {
@@ -112,6 +160,9 @@ export async function POST(request: NextRequest) {
     discountCents = promoResult.discountCents;
     finalAmountCents = promoResult.finalAmountCents;
     promoTypeForRecord = promoResult.promoType;
+    promoFamilyForRecord = promoResult.promoFamily;
+    promoWebsiteCheckoutOnly = promoResult.websiteCheckoutOnly;
+    promoBaseAmountForRecord = prelim.subtotalCents;
   }
 
   const validated = validateRevenueCheckoutRequest(body, {
@@ -133,6 +184,15 @@ export async function POST(request: NextRequest) {
 
   const { packageDef, listingRef, amountCents, subtotalCents, addOns, currency, stripeMode } = validated;
 
+  const locale = body.locale === "en" ? "en" : "es";
+  const isRestauranteAddonOnly =
+    packageDef.packageKey === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY &&
+    packageDef.category === "restaurantes";
+  const returnFallback = isRestauranteAddonOnly
+    ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
+    : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
+  const safeReturnPath = sanitizeRevenueOsReturnPath(body.returnPath, returnFallback);
+
   const paymentInsert = await createPendingPaymentRecord({
     category: packageDef.category,
     packageKey: packageDef.packageKey,
@@ -149,6 +209,10 @@ export async function POST(request: NextRequest) {
     discountCents,
     promoCode: promoCodeRaw ?? null,
     discountType: promoTypeForRecord ?? null,
+    promoFamily: promoFamilyForRecord ?? null,
+    promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
+    promoBaseAmountCents: promoBaseAmountForRecord,
+    addonOnly: isRestauranteAddonOnly,
   });
 
   if (!paymentInsert.ok) {
@@ -193,7 +257,7 @@ export async function POST(request: NextRequest) {
     category: packageDef.category,
     packageKey: packageDef.packageKey,
     locale: body.locale,
-    returnPath: body.returnPath,
+    returnPath: safeReturnPath,
   });
 
   const cancelUrl = buildCheckoutCancelUrl({
@@ -201,6 +265,7 @@ export async function POST(request: NextRequest) {
     packageKey: packageDef.packageKey,
     listingId: listingRef,
     locale: body.locale,
+    returnPath: safeReturnPath,
   });
 
   const stripeLineItems = buildRevenueStripeLineItems({

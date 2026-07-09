@@ -73,6 +73,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
 import { useSearchParams } from "next/navigation";
 import { normalizeLang } from "@/app/lib/language";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { publicContactHref } from "@/app/lib/leonix/publicRouteHrefs";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
@@ -506,6 +507,7 @@ export default function OfertasLocalesApplicationClient() {
   const savedLabel = formatSavedAt(lastSavedAt, lang);
   const addressAccepted = hasOfertaLocalAddressAccepted(draft);
   const websiteUrlAccepted = hasOfertaLocalUrlAccepted(draft.websiteUrl);
+  const businessLogoUrlAccepted = hasOfertaLocalUrlAccepted(draft.businessLogoUrl);
   const membershipUrlAccepted = hasOfertaLocalUrlAccepted(draft.membershipUrl);
   const digitalCouponUrlAccepted = hasOfertaLocalUrlAccepted(draft.digitalCouponUrl);
 
@@ -528,6 +530,7 @@ export default function OfertasLocalesApplicationClient() {
     (
       field:
         | "websiteUrl"
+        | "businessLogoUrl"
         | "membershipUrl"
         | "digitalCouponUrl"
         | "facebookUrl"
@@ -642,7 +645,7 @@ export default function OfertasLocalesApplicationClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const previewHref = `/publicar/ofertas-locales/preview?lang=${lang}`;
+  const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales/preview", routeLang);
 
   if (!hasLoadedDraft) {
     return (
@@ -828,6 +831,26 @@ export default function OfertasLocalesApplicationClient() {
                 value={draft.businessName}
                 onChange={(e) => updateDraft({ businessName: e.target.value })}
                 autoComplete="organization"
+              />
+            </FieldBlock>
+            <FieldBlock
+              label={lang === "en" ? "Business logo" : "Logo del negocio"}
+              helper={
+                lang === "en"
+                  ? "Optional. Paste a logo URL to make the listing look more professional."
+                  : "Opcional. Pega una URL de tu logo para que el anuncio se vea más profesional."
+              }
+              optional
+              optionalLabel={c.optional}
+              confirm={businessLogoUrlAccepted ? c.urlAccepted : undefined}
+            >
+              <input
+                className={INPUT}
+                value={draft.businessLogoUrl}
+                onChange={(e) => updateDraft({ businessLogoUrl: e.target.value })}
+                onBlur={() => handleUrlBlur("businessLogoUrl")}
+                placeholder="https://"
+                inputMode="url"
               />
             </FieldBlock>
             <FieldBlock

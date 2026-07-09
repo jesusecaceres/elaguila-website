@@ -29,7 +29,7 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
   servicios: "/clasificados/servicios",
   restaurantes: "/clasificados/restaurantes",
   "comida-local": "/clasificados/comida-local",
-  "autos-dealer": "/clasificados/autos/resultados",
+  "autos-dealer": "/clasificados/autos/results",
   "bienes-raices": "/clasificados/bienes-raices",
 };
 
@@ -113,9 +113,25 @@ const PAGE_COPY = {
     ctaAdvertise: "Anunciar mi negocio",
     sectionLanes: "Explorar por sector",
     explore: "EXPLORAR",
-    promoTitle: "¿Quieres que tu negocio aparezca en Leonix?",
+    sponsorEyebrow: "REVISTA · DIGITAL · COMUNIDAD",
+    sponsorTitle: "Patrocinadores de Leonix",
+    sponsorSubtitle:
+      "Negocios locales con presencia premium en Leonix Media, revista impresa/digital y campañas comunitarias.",
+    sponsorSupporting:
+      "Ideal para restaurantes, servicios, tiendas, concesionarios, profesionales y marcas que quieren ser vistos por la comunidad.",
+    sponsorCtaPrimary: "Quiero patrocinar en Leonix",
+    sponsorCtaSecondary: "Ver sectores",
+    sponsorChips: [
+      "Revista impresa",
+      "Revista digital",
+      "Perfil de negocio",
+      "Campañas locales",
+      "Portada / premium",
+      "Contacto directo",
+    ],
+    promoTitle: "Haz que tu negocio ruja con Leonix",
     promoDescription:
-      "Crea presencia local con una página de negocio, opciones de contacto, enlaces útiles y visibilidad dentro de la comunidad.",
+      "Crea presencia local con perfil de negocio, enlaces de contacto, opciones de revista y visibilidad digital para tu comunidad.",
     promoButton: "Anunciar mi negocio",
   },
   en: {
@@ -128,9 +144,25 @@ const PAGE_COPY = {
     ctaAdvertise: "Advertise my business",
     sectionLanes: "Explore by sector",
     explore: "EXPLORE",
-    promoTitle: "Want your business to appear on Leonix?",
+    sponsorEyebrow: "MAGAZINE · DIGITAL · COMMUNITY",
+    sponsorTitle: "Leonix Sponsors",
+    sponsorSubtitle:
+      "Local businesses with premium visibility across Leonix Media, print/digital magazine, and community campaigns.",
+    sponsorSupporting:
+      "Built for restaurants, services, shops, dealerships, professionals, and brands that want to be seen by the community.",
+    sponsorCtaPrimary: "Sponsor with Leonix",
+    sponsorCtaSecondary: "View sectors",
+    sponsorChips: [
+      "Print magazine",
+      "Digital magazine",
+      "Business profile",
+      "Local campaigns",
+      "Cover / premium",
+      "Direct contact",
+    ],
+    promoTitle: "Help your business roar with Leonix",
     promoDescription:
-      "Build local presence with a business page, contact options, useful links, and visibility inside the community.",
+      "Build local presence with a business profile, contact links, magazine options, and digital visibility for your community.",
     promoButton: "Advertise my business",
   },
 } as const;
@@ -253,22 +285,22 @@ function BusinessLaneCard({
   const advertiseLabel = lang === "es" ? copy.advertiseEs : copy.advertiseEn;
 
   return (
-    <article className="flex h-full min-h-[17.5rem] flex-col rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)]">
-      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536]">
+    <article className="flex h-full min-h-0 flex-col rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)] sm:min-h-[17.5rem] sm:p-5">
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/35 bg-[#FAF6EE] text-[#2A4536] sm:h-12 sm:w-12">
         <LaneMark lane={lane} />
       </span>
-      <h3 className="mt-4 text-base font-bold text-[#1F241C]">{label}</h3>
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{desc}</p>
-      <div className="mt-auto flex flex-col gap-4 border-t border-[#D6C7AD]/50 pt-6">
+      <h3 className="mt-3 text-base font-bold text-[#1F241C] sm:mt-4">{label}</h3>
+      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-[#3D3428] sm:mt-2">{desc}</p>
+      <div className="mt-auto flex flex-col gap-3 border-t border-[#D6C7AD]/50 pt-4 sm:gap-4 sm:pt-6">
         <Link
           href={exploreHref}
-          className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FAF6EE] px-4 py-2.5 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]"
+          className="inline-flex min-h-[2.375rem] w-full items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FAF6EE] px-4 py-2 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7] sm:min-h-[2.5rem] sm:py-2.5"
         >
           {exploreLabel}
         </Link>
         <Link
           href={advertiseHref}
-          className="inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]"
+          className="inline-flex min-h-[2.375rem] w-full items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[2.5rem] sm:py-2.5"
         >
           {advertiseLabel}
         </Link>
@@ -316,11 +348,53 @@ function NegociosLocalesInner() {
             >
               {t.ctaExplore}
             </a>
-            <a
+            <Link
               href={advertiseEntryHref}
               className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
             >
               {t.ctaAdvertise}
+            </Link>
+          </div>
+        </section>
+
+        {/* 1.5 — Patrocinadores de Leonix sponsor lane */}
+        <section
+          className="mt-12 rounded-2xl border border-[#C9A84A]/35 bg-[#FFFDF7]/95 p-5 sm:mt-14 sm:p-6"
+          aria-labelledby="negocios-sponsors-title"
+        >
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">{t.sponsorEyebrow}</p>
+          <h2
+            id="negocios-sponsors-title"
+            className="mt-2 font-serif text-2xl font-bold leading-snug text-[#2A4536] sm:text-[1.75rem]"
+          >
+            {t.sponsorTitle}
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.sponsorSubtitle}</p>
+          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-[#5C5346] sm:text-sm">{t.sponsorSupporting}</p>
+
+          <div className="mt-5 flex flex-wrap gap-2 sm:mt-6">
+            {t.sponsorChips.map((chip) => (
+              <span
+                key={chip}
+                className="inline-flex rounded-full border border-[#C9A84A]/40 bg-[#FAF6EE] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6E5418] sm:text-[11px]"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <Link
+              href={advertiseEntryHref}
+              className="inline-flex min-h-[2.625rem] items-center justify-center rounded-full bg-[#7A1E2C] px-6 py-2 text-sm font-bold text-[#FFFDF7] shadow-[0_8px_24px_-12px_rgba(122,30,44,0.4)] transition hover:bg-[#5e1721] sm:min-h-[2.75rem] sm:px-8 sm:py-2.5"
+            >
+              {t.sponsorCtaPrimary}
+            </Link>
+            <a
+              href="#sectores"
+              className="inline-flex min-h-[2.625rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FFFDF7] px-6 py-2 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] sm:min-h-[2.75rem] sm:px-8 sm:py-2.5"
+            >
+              {t.sponsorCtaSecondary}
             </a>
           </div>
         </section>
@@ -334,7 +408,7 @@ function NegociosLocalesInner() {
             {t.sectionLanes}
           </h2>
 
-          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2">
+          <ul className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-5">
             {LANE_ORDER.map((lane) => (
               <li key={lane} className="flex h-full">
                 <BusinessLaneCard
@@ -360,12 +434,12 @@ function NegociosLocalesInner() {
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#FAF6EE]/90 sm:text-[0.9375rem]">
             {t.promoDescription}
           </p>
-          <a
+          <Link
             href={advertiseEntryHref}
             className="mt-8 inline-flex min-h-[2.875rem] items-center justify-center rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.45)] transition hover:bg-[#5e1721]"
           >
             {t.promoButton}
-          </a>
+          </Link>
         </section>
       </div>
     </main>

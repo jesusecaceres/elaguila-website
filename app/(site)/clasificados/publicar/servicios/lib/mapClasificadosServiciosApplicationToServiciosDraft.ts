@@ -1,5 +1,12 @@
 import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosApplicationDraft";
-import type { ServiciosLang, ServiciosQuickFactKind } from "@/app/servicios/types/serviciosBusinessProfile";
+import type {
+  ServiciosLang,
+  ServiciosQuickFactKind,
+  ServiciosBusinessProfile,
+  ServiciosCouponWire,
+  ServiciosProfileResolved,
+  ServiciosPromoOffer,
+} from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosTrustItem } from "@/app/servicios/types/serviciosBusinessProfile";
 import { chipLabel, getBusinessTypePreset } from "./businessTypePresets";
 import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificadosServiciosApplicationTypes";
@@ -15,7 +22,6 @@ import {
   resolveServiciosWhatsAppSocialRowHref,
 } from "@/app/servicios/lib/serviciosWhatsAppHref";
 import { slugifyServiciosBusinessName } from "./serviciosSlug";
-import { clasificadosPromoRowIsActive } from "./clasificadosServiciosPromo";
 import { WEEK_DAY_LABELS } from "./defaultClasificadosServiciosState";
 import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 import { getBusinessHighlightPreset } from "./businessHighlightPresets";
@@ -31,6 +37,7 @@ import {
   sanitizeCustomServiciosAmenityLabels,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import { clasificadosCouponRowHasProgress } from "./clasificadosServiciosPromo";
 
 const JS_DAY_TO_ROW: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -85,7 +92,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const countryValue = state.country.trim() || undefined;
 
   const logoAlt = lang === "en" ? "Business logo" : "Logo del negocio";
-  const coverAlt = lang === "en" ? "Cover image" : "Imagen de portada";
 
   const heroBadges: ServiciosApplicationDraft["hero"]["badges"] = [];
   for (const lab of buildServiciosLanguageLabels(state, lang)) {
@@ -396,8 +402,6 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       categoryLine,
       logoUrl: state.logoUrl.trim() || undefined,
       logoAlt: state.logoUrl.trim() ? logoAlt : undefined,
-      coverImageUrl: state.coverUrl.trim() || undefined,
-      coverImageAlt: state.coverUrl.trim() ? coverAlt : undefined,
       locationSummary,
       state: stateValue,
       country: countryValue,
@@ -416,29 +420,14 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (highlights.length) draft.highlights = highlights;
   if (reviews.length) draft.reviews = reviews;
   if (serviceAreas && (serviceAreas.items?.length || serviceAreas.mapImageUrl)) draft.serviceAreas = serviceAreas;
-  const draftPromos: NonNullable<ServiciosApplicationDraft["promotions"]> = [];
-  for (let i = 0; i < state.promotions.length; i++) {
-    const r = state.promotions[i]!;
-    if (!clasificadosPromoRowIsActive(r)) continue;
-    const hrefRaw = r.link.trim();
-    draftPromos.push({
-      id: `clasificados-promo-${i}`,
-      headline: r.title.trim(),
-      footnote: r.details.trim() || undefined,
-      ...(hrefRaw ? { href: normalizeHttpUrl(hrefRaw) } : {}),
-      ...(r.imageUrl.trim() ? { assetImageUrl: r.imageUrl.trim() } : {}),
-      ...(r.pdfUrl.trim() ? { assetPdfUrl: r.pdfUrl.trim() } : {}),
-      ...(r.qrLater === true ? { qrIntent: true } : {}),
-    });
-  }
-  if (draftPromos.length) draft.promotions = draftPromos;
+  /* Free `state.promotions` retired (GATE-03): simple offers → highlight chips; full coupons → paid add-on. */
 
   // Map coupons (paid add-on)
   const draftCoupons: NonNullable<ServiciosApplicationDraft["coupons"]> = [];
   if (state.couponsAddOn) {
     for (let i = 0; i < state.coupons.length; i++) {
       const r = state.coupons[i]!;
-      if (!r.title.trim() && !r.description.trim()) continue;
+      if (!clasificadosCouponRowHasProgress(r)) continue;
       const hrefRaw = r.url.trim();
       draftCoupons.push({
         id: `clasificados-coupon-${i}`,
@@ -457,6 +446,19 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     }
   }
   if (draftCoupons.length) draft.coupons = draftCoupons;
+
+  if (state.couponsAddOn && state.couponFlyer?.imageUrl?.trim()) {
+    draft.couponFlyer = { imageUrl: state.couponFlyer.imageUrl.trim() };
+  }
+  const moreOffersUrl = state.couponMoreOffers?.url?.trim() ?? "";
+  if (state.couponsAddOn && moreOffersUrl) {
+    draft.couponMoreOffers = {
+      url: normalizeHttpUrl(moreOffersUrl),
+      ...(state.couponMoreOffers?.buttonLabel?.trim()
+        ? { buttonLabel: state.couponMoreOffers.buttonLabel.trim().slice(0, 80) }
+        : {}),
+    };
+  }
 
   const paymentIds = sanitizeServiciosPaymentMethodIds(state.paymentMethodIds);
   const customPay = sanitizeCustomPaymentMethodLabels(state.customPaymentMethods);
@@ -491,4 +493,127 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (credMeaningful) draft.credentials = cred;
 
   return draft;
+}
+
+/** Map paid add-on coupons from application draft onto wire profile (Clasificados publish/preview). */
+export function applyClasificadosCouponsToServiciosWireProfile(
+  wire: ServiciosBusinessProfile,
+  draft: ServiciosApplicationDraft,
+): ServiciosBusinessProfile {
+  const wireCoupons: ServiciosCouponWire[] = [];
+  for (const row of draft.coupons ?? []) {
+    if (!row || typeof row.id !== "string") continue;
+    const title = row.title?.trim() ?? "";
+    const description = row.description?.trim();
+    const imageUrl = row.imageUrl?.trim();
+    const couponCode = row.couponCode?.trim();
+    const expirationDate = row.expirationDate?.trim();
+    const hasContent =
+      title ||
+      description ||
+      imageUrl ||
+      couponCode ||
+      row.redemptionNote?.trim() ||
+      expirationDate ||
+      row.href?.trim();
+    if (!hasContent) continue;
+    wireCoupons.push({
+      id: row.id,
+      title,
+      ...(description ? { description } : {}),
+      ...(row.regularPrice?.trim() ? { regularPrice: row.regularPrice.trim() } : {}),
+      ...(row.specialPrice?.trim() ? { specialPrice: row.specialPrice.trim() } : {}),
+      ...(row.savings?.trim() ? { savings: row.savings.trim() } : {}),
+      ...(row.href?.trim() ? { href: row.href.trim() } : {}),
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(couponCode ? { couponCode } : {}),
+      ...(row.expirationDate?.trim() ? { expirationDate: row.expirationDate.trim() } : {}),
+      ...(row.redemptionNote?.trim() ? { redemptionNote: row.redemptionNote.trim() } : {}),
+      ...(row.ctaLabel?.trim() ? { ctaLabel: row.ctaLabel.trim() } : {}),
+    });
+  }
+  const flyerUrl = draft.couponFlyer?.imageUrl?.trim();
+  const moreUrl = draft.couponMoreOffers?.url?.trim();
+  const nextCoupons = wireCoupons.length ? wireCoupons.slice(0, 4) : wire.coupons;
+  return {
+    ...wire,
+    promotions: undefined,
+    promo: undefined,
+    ...(nextCoupons && nextCoupons.length ? { coupons: nextCoupons } : {}),
+    ...(flyerUrl ? { couponFlyer: { imageUrl: flyerUrl } } : {}),
+    ...(moreUrl
+      ? {
+          couponMoreOffers: {
+            url: moreUrl,
+            ...(draft.couponMoreOffers?.buttonLabel?.trim()
+              ? { buttonLabel: draft.couponMoreOffers.buttonLabel.trim().slice(0, 80) }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
+
+function clasificadosCouponRowToResolved(
+  row: ClasificadosServiciosApplicationState["coupons"][number],
+  index: number,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["coupons"][number] | null {
+  if (!clasificadosCouponRowHasProgress(row)) return null;
+  const title = row.title.trim();
+  const description = row.description.trim() || undefined;
+  const imageUrl = row.imageUrl.trim() || undefined;
+  const hrefRaw = row.url.trim();
+  const hrefSafe = hrefRaw && isProbablyValidWebUrl(hrefRaw) ? normalizeHttpUrl(hrefRaw) : undefined;
+  const hasCard =
+    title || description || imageUrl || row.couponCode.trim() || row.redemptionNote.trim() || hrefSafe;
+  if (!hasCard) return null;
+  return {
+    id: `clasificados-coupon-${index}`,
+    title: title || (lang === "en" ? "Featured offer" : "Oferta destacada"),
+    ...(description ? { description } : {}),
+    ...(row.regularPrice.trim() ? { regularPrice: row.regularPrice.trim() } : {}),
+    ...(row.specialPrice.trim() ? { specialPrice: row.specialPrice.trim() } : {}),
+    ...(row.savings.trim() ? { savings: row.savings.trim() } : {}),
+    ...(hrefSafe ? { hrefSafe } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(row.couponCode.trim() ? { couponCode: row.couponCode.trim() } : {}),
+    ...(row.expirationDate.trim() ? { expirationDate: row.expirationDate.trim() } : {}),
+    ...(row.redemptionNote.trim() ? { redemptionNote: row.redemptionNote.trim() } : {}),
+    ...(row.ctaLabel.trim() ? { ctaLabel: row.ctaLabel.trim() } : {}),
+  };
+}
+
+/** Merge paid coupons onto resolved profile; strip legacy free promotions (GATE-04 preview). */
+export function mergeClasificadosCouponsOntoServiciosProfile(
+  profile: ServiciosProfileResolved,
+  state: ClasificadosServiciosApplicationState,
+  lang: ServiciosLang,
+): ServiciosProfileResolved {
+  if (!state.couponsAddOn) {
+    return { ...profile, promotions: [], coupons: [] };
+  }
+  const coupons = state.coupons
+    .map((row, i) => clasificadosCouponRowToResolved(row, i, lang))
+    .filter((row): row is ServiciosProfileResolved["coupons"][number] => row != null)
+    .slice(0, 4);
+  const resolvedCoupons = coupons.length > 0 ? coupons : profile.coupons;
+  const flyerUrl = state.couponFlyer?.imageUrl?.trim();
+  const moreUrl = state.couponMoreOffers?.url?.trim();
+  return {
+    ...profile,
+    promotions: [],
+    coupons: resolvedCoupons,
+    ...(flyerUrl ? { couponFlyer: { imageUrl: flyerUrl } } : {}),
+    ...(moreUrl
+      ? {
+          couponMoreOffers: {
+            url: isProbablyValidWebUrl(moreUrl) ? normalizeHttpUrl(moreUrl) : moreUrl,
+            ...(state.couponMoreOffers?.buttonLabel?.trim()
+              ? { buttonLabel: state.couponMoreOffers.buttonLabel.trim() }
+              : {}),
+          },
+        }
+      : {}),
+  };
 }

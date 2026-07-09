@@ -43,6 +43,11 @@ export function AutosNegociosInventoryValueModule({
   onSaveAdditionalVehicle,
   onAtLimitOpenBoost,
   inventoryDrawerProps,
+  postPublishDashboardMode = false,
+  inventoryPackActive = false,
+  inventoryEntitlementPending = false,
+  leonixAdId = null,
+  onStartInventoryCheckout,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
@@ -51,6 +56,12 @@ export function AutosNegociosInventoryValueModule({
   showAddCta?: boolean;
   /** Paso 7 before main listing exists — show inventory card + safe pre-publish drawer. */
   prePublishMode?: boolean;
+  /** Dashboard edit of published dealer parent — entitlement gates child inventory. */
+  postPublishDashboardMode?: boolean;
+  inventoryPackActive?: boolean;
+  inventoryEntitlementPending?: boolean;
+  leonixAdId?: string | null;
+  onStartInventoryCheckout?: () => void;
   dealerInventoryCounts?: AutosDealerInventoryCount | null;
   flushDraft?: () => Promise<void>;
   boostEditorContext?: AutosInventoryBoostEditorContext;
@@ -103,7 +114,12 @@ export function AutosNegociosInventoryValueModule({
   const counts = fetchedCounts ?? summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
   const limitReached = atLimit || !counts.canAddActiveVehicle;
   const showBoostCta =
-    prePublishMode || limitReached || counts.remainingSlots <= INVENTORY_BOOST_APPROACHING_SLOTS;
+    !postPublishDashboardMode &&
+    (prePublishMode || limitReached || counts.remainingSlots <= INVENTORY_BOOST_APPROACHING_SLOTS);
+  const canManageChildInventory =
+    !postPublishDashboardMode || inventoryPackActive || prePublishMode;
+  const showInactiveAddonCard =
+    postPublishDashboardMode && !inventoryPackActive && !prePublishMode;
 
   const addCtx = useMemo(() => {
     if (!parentListingId?.trim()) return null;
@@ -146,7 +162,29 @@ export function AutosNegociosInventoryValueModule({
         ))}
       </ul>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        {showAddCta ? (
+        {showInactiveAddonCard ? (
+          <div className="w-full rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
+            <p>
+              {inventoryEntitlementPending
+                ? lang === "es"
+                  ? "Estamos confirmando tu pago del inventario. Actualiza en unos segundos si acabas de pagar."
+                  : "We are confirming your inventory payment. Refresh in a few seconds if you just paid."
+                : lang === "es"
+                  ? "Activa el paquete de inventario para agregar vehículos adicionales al inventario del dealer."
+                  : "Activate the inventory pack to add additional vehicles to your dealer inventory."}
+            </p>
+            {!inventoryEntitlementPending && onStartInventoryCheckout ? (
+              <button
+                type="button"
+                className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2]"
+                onClick={onStartInventoryCheckout}
+              >
+                {autosDealerInventoryAddTenSlotsCta(lang)}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {showAddCta && canManageChildInventory ? (
           addCtx && counts.canAddActiveVehicle ? (
             <AutosNegociosInventoryValueDrawerTrigger
               lang={lang}
@@ -193,6 +231,8 @@ export function AutosNegociosInventoryValueModule({
               lang={lang}
               flushDraft={flushDraft}
               editorContext={boostContext}
+              parentListingId={parentListingId}
+              leonixAdId={leonixAdId}
             />
           </>
         ) : null}

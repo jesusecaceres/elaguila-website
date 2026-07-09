@@ -8,6 +8,8 @@ import { SV } from "./serviciosDesignTokens";
 
 const HIGHLIGHTS_SECTION_COLLAPSE_THRESHOLD = 19;
 const HIGHLIGHTS_SECTION_INITIAL_VISIBLE = 18;
+const HIGHLIGHTS_PRO_SECTION_COLLAPSE_THRESHOLD = 13;
+const HIGHLIGHTS_PRO_SECTION_INITIAL_VISIBLE = 12;
 
 function highlightsListClass(visibleCount: number): string {
   const mdGrid =
@@ -20,38 +22,52 @@ function highlightsListClass(visibleCount: number): string {
 export type ServiciosHighlightsSectionProps = {
   highlights: ServiciosBusinessHighlightItem[];
   lang: ServiciosLang;
+  compact?: boolean;
+  embedded?: boolean;
 };
 
 /**
  * Standalone “Highlights del negocio” block — props-driven, safe to relocate in the layout.
  */
-export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighlightsSectionProps) {
+export function ServiciosHighlightsSection({
+  highlights,
+  lang,
+  compact = false,
+  embedded = false,
+}: ServiciosHighlightsSectionProps) {
   const L = getServiciosProfileLabels(lang);
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
 
-  const needsCollapse = highlights.length >= HIGHLIGHTS_SECTION_COLLAPSE_THRESHOLD;
+  const collapseThreshold = compact ? HIGHLIGHTS_PRO_SECTION_COLLAPSE_THRESHOLD : HIGHLIGHTS_SECTION_COLLAPSE_THRESHOLD;
+  const initialVisible = compact ? HIGHLIGHTS_PRO_SECTION_INITIAL_VISIBLE : HIGHLIGHTS_SECTION_INITIAL_VISIBLE;
+  const needsCollapse = highlights.length >= collapseThreshold;
   const visible = useMemo(() => {
     if (!needsCollapse || expanded) return highlights;
-    return highlights.slice(0, HIGHLIGHTS_SECTION_INITIAL_VISIBLE);
-  }, [highlights, needsCollapse, expanded]);
+    return highlights.slice(0, initialVisible);
+  }, [highlights, needsCollapse, expanded, initialVisible]);
 
   if (!highlights.length) return null;
 
   const listClass = highlightsListClass(visible.length);
 
-  return (
-    <section
-      className="rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"
-      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
-      aria-labelledby={headingId}
-    >
+  const body = (
+    <>
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h2 id={headingId} className="text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl">
+          <h2
+            id={headingId}
+            className={
+              embedded
+                ? "text-sm font-semibold text-[color:var(--lx-text)]"
+                : "text-lg font-bold tracking-tight text-[color:var(--lx-text)] md:text-xl"
+            }
+          >
             {L.highlightsTitle}
           </h2>
-          <p className="mt-1 max-w-prose text-sm leading-snug text-[color:var(--lx-muted)]">{L.highlightsSubtitle}</p>
+          {!embedded ? (
+            <p className="mt-1 max-w-prose text-sm leading-snug text-[color:var(--lx-muted)]">{L.highlightsSubtitle}</p>
+          ) : null}
         </div>
         {highlights.length > 6 ? (
           <p className="shrink-0 text-xs font-medium text-[color:var(--lx-muted)]">
@@ -60,7 +76,7 @@ export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighli
         ) : null}
       </div>
 
-      <div className={listClass}>
+      <div className={`mt-4 ${listClass}`}>
         {visible.map((h) => {
           const { emoji } = resolveServiciosBusinessHighlightVisual({ id: h.id, label: h.label });
           return (
@@ -103,6 +119,18 @@ export function ServiciosHighlightsSection({ highlights, lang }: ServiciosHighli
           {L.highlightsShowLess}
         </button>
       ) : null}
+    </>
+  );
+
+  if (embedded) return <div data-servicios-highlights-embedded="1">{body}</div>;
+
+  return (
+    <section
+      className={`rounded-2xl border shadow-sm ${compact ? "p-4 sm:p-5" : "p-3 sm:p-6 md:p-8"}`}
+      style={{ backgroundColor: SV.card, borderColor: SV.border, boxShadow: SV.shadowSm }}
+      aria-labelledby={headingId}
+    >
+      {body}
     </section>
   );
 }

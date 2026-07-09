@@ -21,6 +21,12 @@ import {
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { AUTOS_PRIVADO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { autosConfirmErrorMessage } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import {
@@ -192,6 +198,8 @@ export function AutosPublishConfirmCore({
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [checks, setChecks] = useState([false, false, false]);
   const [payBusy, setPayBusy] = useState(false);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
   const [muxPublishWarnings, setMuxPublishWarnings] = useState<string[]>([]);
   const [persistWarnings, setPersistWarnings] = useState<string[]>([]);
@@ -549,11 +557,22 @@ export function AutosPublishConfirmCore({
         /* optional metadata */
       }
 
+      // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+      void captureCheckoutNewsletterSubscriber({
+        email: sessionData.session?.user?.email ?? null,
+        lang,
+        preferredLanguage: lang,
+        source: CHECKOUT_NEWSLETTER_SOURCES.autosPrivado,
+        interests: ["package:autos_privado", "launch_25"],
+        checked: newsletterOptIn,
+      });
+
       const revenueCheckout = await startRevenueCategoryCheckout({
         ...AUTOS_PRIVADO_CHECKOUT,
         listingId,
         leonixAdId,
         locale: lang,
+        promoCode: appliedPromoCode,
       });
       setPayBusy(false);
       if (!revenueCheckout.ok) {
@@ -744,6 +763,33 @@ export function AutosPublishConfirmCore({
               <li key={`${i}-${w}`}>{autosPersistWarningMessage(w, lang)}</li>
             ))}
           </ul>
+        </div>
+      ) : null}
+      {lane === "privado" && publishConfirmMode === "stripe" ? (
+        <div className="mt-8 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 py-4 sm:px-5">
+          <RevenuePromoField
+            category={AUTOS_PRIVADO_CHECKOUT.category}
+            packageKey={AUTOS_PRIVADO_CHECKOUT.packageKey}
+            subtotalCents={getRevenuePackageDefinition(AUTOS_PRIVADO_CHECKOUT.packageKey)?.priceCents ?? 2499}
+            lang={lang === "en" ? "en" : "es"}
+            disabled={payBusy}
+            listingId={listingId}
+            onAppliedChange={(code) => setAppliedPromoCode(code)}
+          />
+          <label className="mt-4 flex cursor-pointer items-start gap-3 text-xs leading-snug text-[color:var(--lx-text-2)]">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              disabled={payBusy}
+            />
+            <span className="min-w-0 flex-1">
+              {lang === "en"
+                ? "Send me Leonix promotions, magazine updates, local advertising opportunities, and launch news."
+                : "Quiero recibir promociones de Leonix, novedades de la revista, oportunidades de publicidad local y noticias del lanzamiento."}
+            </span>
+          </label>
         </div>
       ) : null}
       <ul className="mt-8 space-y-4">

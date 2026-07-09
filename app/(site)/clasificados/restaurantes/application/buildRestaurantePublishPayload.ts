@@ -183,6 +183,45 @@ export function buildRestaurantePublishPayload(
     pickupAvailable: blockHeavyMedia(draft.pickupAvailable, "pickupAvailable"),
     deliveryRadiusMiles: blockHeavyMedia(draft.deliveryRadiusMiles, "deliveryRadiusMiles"),
     serviceAreaText: blockHeavyMedia(draft.serviceAreaText, "serviceAreaText"),
+    productType: blockHeavyMedia(draft.productType, "productType"),
+    baseMonthlyPrice: blockHeavyMedia(draft.baseMonthlyPrice, "baseMonthlyPrice"),
+    couponUpgradeEnabled: draft.couponUpgradeEnabled === true,
+    ...(draft.couponUpgradeEnabled === true && draft.couponMonthlyPrice != null
+      ? { couponMonthlyPrice: blockHeavyMedia(draft.couponMonthlyPrice, "couponMonthlyPrice") }
+      : {}),
+    ...(draft.couponUpgradeEnabled === true
+      ? {
+          coupons: blockHeavyMedia(
+            (draft.coupons ?? [])
+              .slice(0, 4)
+              .map((row) => ({
+                title: row.title ?? "",
+                description: row.description ?? "",
+                couponCode: row.couponCode,
+                expirationDate: row.expirationDate,
+                redemptionNote: row.redemptionNote,
+                imageUrl: row.imageUrl,
+                url: row.url,
+                ctaLabel: row.ctaLabel,
+                isFeatured: row.isFeatured,
+              })),
+            "coupons",
+          ),
+          couponFlyer: blockHeavyMedia(
+            draft.couponFlyer?.imageUrl ? { imageUrl: draft.couponFlyer.imageUrl } : undefined,
+            "couponFlyer",
+          ),
+          couponMoreOffers: blockHeavyMedia(
+            draft.couponMoreOffers?.url
+              ? {
+                  url: draft.couponMoreOffers.url,
+                  buttonLabel: draft.couponMoreOffers.buttonLabel,
+                }
+              : undefined,
+            "couponMoreOffers",
+          ),
+        }
+      : {}),
     lang,
     plan,
     ...(opts?.activationMode === "pending_payment" ? { activation_mode: "pending_payment" } : {}),

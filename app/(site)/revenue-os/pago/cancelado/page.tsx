@@ -4,6 +4,7 @@ import {
   resolveRevenueCategoryLabel,
   resolveRevenuePackageLabel,
 } from "@/app/lib/listingPlans/revenueDisplay";
+import { resolveRevenueOsSuccessReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function RevenueOsPagoCanceladoPage({
   const packageKey = typeof params.package_key === "string" ? params.package_key : "";
   const listingId = typeof params.listing_id === "string" ? params.listing_id : "";
   const sessionId = typeof params.session_id === "string" ? params.session_id : "";
+  const returnToRaw = typeof params.return_to === "string" ? params.return_to : null;
 
   const proof = sessionId
     ? await lookupRevenuePaymentProof({ stripeCheckoutSessionId: sessionId, lang })
@@ -27,6 +29,12 @@ export default async function RevenueOsPagoCanceladoPage({
     proof?.found && proof.paymentState === "confirmed" && proof.entitlementState === "active";
 
   const dashboardHref = lang === "es" ? "/dashboard/mis-anuncios?lang=es" : "/dashboard/mis-anuncios?lang=en";
+  const returnHref = resolveRevenueOsSuccessReturnPath({
+    returnTo: returnToRaw,
+    category,
+    packageKey,
+    lang,
+  });
   const categoryLabel = resolveRevenueCategoryLabel(category, lang);
   const packageLabel = resolveRevenuePackageLabel(packageKey, lang);
 
@@ -85,20 +93,20 @@ export default async function RevenueOsPagoCanceladoPage({
             </Link>
           ) : (
             <>
-              {category && packageKey && listingId ? (
+              <Link
+                href={returnHref}
+                className="inline-flex rounded-xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+              >
+                {lang === "es" ? "Volver a mi panel" : "Back to my dashboard"}
+              </Link>
+              {returnHref !== dashboardHref ? (
                 <Link
-                  href={`/dashboard/mis-anuncios?lang=${lang}`}
-                  className="inline-flex rounded-xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
+                  href={dashboardHref}
+                  className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
                 >
-                  {lang === "es" ? "Volver al panel" : "Back to dashboard"}
+                  {lang === "es" ? "Mis anuncios" : "My listings"}
                 </Link>
               ) : null}
-              <Link
-                href={dashboardHref}
-                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
-              >
-                {lang === "es" ? "Mis anuncios" : "My listings"}
-              </Link>
             </>
           )}
           <Link

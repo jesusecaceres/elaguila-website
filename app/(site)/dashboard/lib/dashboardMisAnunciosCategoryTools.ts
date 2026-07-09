@@ -19,7 +19,9 @@ export type CategoryToolKey =
   | "pause"
   | "archive"
   | "markSold"
-  | "reactivate";
+  | "reactivate"
+  | "couponUpgrade"
+  | "couponEdit";
 
 export type CategoryToolStatus = "ready" | "hidden" | "future" | "unproven";
 
@@ -78,6 +80,8 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     preview: "ready",
     publicResults: "ready",
     analytics: "unproven",
+    couponUpgrade: "ready",
+    couponEdit: "ready",
   },
   servicios: {
     publicView: "ready",
@@ -259,13 +263,42 @@ export function buildInventoryListingActions(
   item: DashboardInventoryItem,
   lang: Lang,
   q: string,
+  opts?: {
+    onCouponUpgrade?: () => void;
+    couponUpgradeBusy?: boolean;
+    onCouponEdit?: () => void;
+    couponEditBusy?: boolean;
+    /** Servicios P0C listing-edit route (mode=listing-edit, returnPanel=servicios, identity). */
+    serviciosEditHref?: string;
+    /** Servicios P0C offers-edit route (mode=offers-edit&focus=coupon-upgrade). */
+    serviciosOffersEditHref?: string;
+    /** True when the Servicios listing already shows offers/coupons content. */
+    serviciosOffersActive?: boolean;
+    /** Category-specific edit label override (e.g. "Editar servicio"). */
+    editLabelOverride?: string;
+    /** Servicios offers-edit CTA label override (e.g. "Editar ofertas"). */
+    offersEditLabelOverride?: string;
+  },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
 
   if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
+    // Servicios existing-listing edit must carry P0C identity (mode=listing-edit, returnPanel=servicios).
     actions.push({
-      href: item.editHref,
-      label: editListingLabel(lang),
+      href: opts?.serviciosEditHref ?? item.editHref,
+      label: opts?.editLabelOverride ?? editListingLabel(lang),
+      tone: "primary",
+    });
+  }
+
+  if (
+    category === "servicios" &&
+    opts?.serviciosOffersActive &&
+    opts?.serviciosOffersEditHref
+  ) {
+    actions.push({
+      href: opts.serviciosOffersEditHref,
+      label: opts.offersEditLabelOverride ?? (lang === "es" ? "Editar ofertas" : "Edit offers"),
       tone: "primary",
     });
   }
@@ -282,6 +315,46 @@ export function buildInventoryListingActions(
     actions.push({
       href: `/dashboard/restaurantes?${q}`,
       label: openPanelLabel(lang),
+    });
+  }
+
+  if (
+    category === "restaurantes" &&
+    item.restaurantCouponUpgradeEligible &&
+    listingToolIsReady(category, "couponUpgrade") &&
+    opts?.onCouponUpgrade
+  ) {
+    actions.push({
+      label: opts.couponUpgradeBusy
+        ? lang === "es"
+          ? "Iniciando pago…"
+          : "Starting checkout…"
+        : lang === "es"
+          ? "Agregar cupones +$99/mes"
+          : "Add coupons +$99/mo",
+      onClick: opts.onCouponUpgrade,
+      disabled: opts.couponUpgradeBusy,
+      tone: "primary",
+    });
+  }
+
+  if (
+    category === "restaurantes" &&
+    item.restaurantCouponEditEligible &&
+    listingToolIsReady(category, "couponEdit") &&
+    opts?.onCouponEdit
+  ) {
+    actions.push({
+      label: opts.couponEditBusy
+        ? lang === "es"
+          ? "Cargando…"
+          : "Loading…"
+        : lang === "es"
+          ? "Editar cupones"
+          : "Edit coupons",
+      onClick: opts.onCouponEdit,
+      disabled: opts.couponEditBusy,
+      tone: "primary",
     });
   }
 
@@ -331,7 +404,7 @@ export function buildInventoryListingActions(
     });
   }
 
-  return actions.filter((action) => Boolean(action.href));
+  return actions.filter((action) => Boolean(action.href) || Boolean(action.onClick));
 }
 
 export function listingAnalyticsIsProven(category: string): boolean {

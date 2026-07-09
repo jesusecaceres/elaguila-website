@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import type { SupportedLang } from "@/app/lib/language";
 
 import { gateBuscoQuickPreview } from "../shared/buscoRequiredForPreview";
 import { publishBuscoQuickToListings } from "../shared/publishBuscoQuickToListings";
@@ -13,7 +15,15 @@ import type { BuscoQuickDraft } from "../shared/buscoQuickTypes";
 const BTN_PUBLISH =
   "inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-bold text-[#F5F5F5] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45 sm:min-w-[11rem] sm:flex-none";
 
-export function BuscoQuickPreviewPublishBar({ draft, lang }: { draft: BuscoQuickDraft; lang: Lang }) {
+export function BuscoQuickPreviewPublishBar({
+  draft,
+  lang,
+  routeLang,
+}: {
+  draft: BuscoQuickDraft;
+  lang: Lang;
+  routeLang: SupportedLang;
+}) {
   const router = useRouter();
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
@@ -42,7 +52,7 @@ export function BuscoQuickPreviewPublishBar({ draft, lang }: { draft: BuscoQuick
       } catch {
         /* sessionStorage optional */
       }
-      router.push(`/clasificados/anuncio/${r.listingId}?lang=${lang}`);
+      router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }

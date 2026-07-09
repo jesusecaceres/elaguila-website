@@ -11,6 +11,18 @@ const BR_LISTINGS_SELECT_BASE =
 /** Rich timestamps for `reciente` / republish fairness (`mapBrListingRowToNegocioCard`). */
 const BR_LISTINGS_SELECT_RICH = `${BR_LISTINGS_SELECT_BASE}, updated_at, published_at, republish_sort_at, republished_at`;
 
+/**
+ * Deferred: Optional monetization/placement fields for future highlighted/featured badges.
+ * These fields do not currently exist in the listings table.
+ * When added via migration, they can be safely selected here using shrink-safe strategy.
+ * Fields to add in future:
+ * - package_tier, package_key, package_entitlement_id
+ * - placement_tier, placement_tier_key
+ * - is_featured, featured_until
+ * - is_promoted, promoted_until
+ * - is_verified, verified_at
+ */
+
 export type FetchBrPublishedListingsResult = {
   listings: BrNegocioListing[];
   error: string | null;

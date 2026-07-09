@@ -2,7 +2,7 @@
 
 Status: `MAGAZINE-TRANSLATION-NIGHTLY-CLOSEOUT1`
 
-**Handoff:** [`docs/magazine-translation-nightly-closeout.md`](../docs/magazine-translation-nightly-closeout.md) — recommended next: `MAGAZINE-COMPANION-READER-READINESS1`. Do not run paid DeepL smoke until corrected Canva export + explicit approval.
+**Handoff:** Full PT proof blocked by source size (`DEEPL_PT_FULL_LOCAL_PROOF_BLOCKED_BY_SIZE`). **Next:** Chuy completes Canva/source correction per [`docs/magazine-source-canva-layout-compression-truth.md`](../docs/magazine-source-canva-layout-compression-truth.md), then `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1`. Do not run `--full --execute` again until corrected export is provider-compliant.
 
 These scripts prepare a backend/provider smoke path for the digital magazine without publishing assets or forcing paid API calls. They default to dry-run behavior and must not print secret values.
 
@@ -55,15 +55,58 @@ Re-check readiness (prints TRUE/FALSE only; never prints the key):
 node scripts/magazine-deepl-readiness-audit.mjs
 ```
 
-When the script reports `decision=READY_FOR_REAL_PT_SMOKE`, the next gate is `MAGAZINE-DEEPL-PT-REAL-SMOKE3` (first paid provider call — requires intentional approval).
+When the script reports `decision=READY_FOR_REAL_PT_SMOKE`, proceed to controlled smoke gates below.
 
-Safe preflight (zero cost):
+### Single-page Portuguese proof (recommended first)
+
+Extract one page locally, then optionally submit **only that page** to DeepL (not the full 74 MB magazine):
+
+```bash
+# Dry-run: extract page 3 one-page PDF + metadata; no API call
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --dry-run
+
+# Execute: one paid DeepL document call for page 3 only (requires explicit approval)
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --execute
+```
+
+Local outputs (gitignored):
+
+`.magazine-proof-output/june-2026/pt/page-smoke/page-003/`
+
+- `source-page-003.pdf` — extracted one-page input
+- `deepl-page-003.pt.pdf` — DeepL output (manual QA only)
+- `metadata.json` — proof metadata (no API key)
+- `deepl-status.json` — provider status summary
+
+Default page is **3** (contact/truth content). Only `--target=pt` is allowed.
+
+### Full local Portuguese proof (explicit `--full`)
+
+Requires `--full` — full document mode never runs without this flag.
+
+```bash
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --full --dry-run
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --full --execute
+```
+
+Output: `.magazine-proof-output/june-2026/pt/full-local/leonix_media_june.pt.pdf`
+
+**DeepL document API limit:** uploads are capped at **10 MB** per document. The June 2026 source PDF is ~75 MB, so full-mode `--execute` currently fails until source is re-exported smaller or a future gate splits into provider-compliant chunks. Single-page mode remains the working path.
+
+Safe preflight (zero cost, legacy page default):
 
 ```bash
 node scripts/magazine/proof-translate-deepl.mjs --dry-run --target=pt
 ```
 
-Execution remains held until dependency/env are present and the DeepL document API call is implemented and reviewed. This gate is Portuguese-only; the script refuses non-`pt` targets, broad/all-language targets, and held inactive `ar`/`fa`.
+Execution for **full magazine** requires `--full --execute`. Single-page proof:
+
+```bash
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --page=3 --execute
+node scripts/magazine/proof-translate-deepl.mjs --target=pt --full --execute
+```
+
+This gate is Portuguese-only; the script refuses non-`pt` targets, broad/all-language targets, and held inactive `ar`/`fa`.
 
 ## Google Document Smoke
 

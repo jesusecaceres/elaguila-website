@@ -1,6 +1,8 @@
 import Navbar from "@/app/components/Navbar";
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import {
+  resolveClasificadosPublishLangFromSearchParams,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 import { ViajesLangSwitch } from "../components/ViajesLangSwitch";
 import { ViajesOfferDetailLayout } from "../components/ViajesOfferDetailLayout";
@@ -11,18 +13,12 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function pickLang(sp: Record<string, string | string[] | undefined>): Lang {
-  const v = sp.lang;
-  const raw = Array.isArray(v) ? v[0] : v;
-  return raw === "en" ? "en" : "es";
-}
-
 export default async function ClasificadosViajesPreviewPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const lang = pickLang(sp);
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   const ui = getViajesUi(lang);
-  const backHref = appendLangToPath("/publicar/viajes/negocios", lang);
-  const exploreViajesHref = appendLangToPath("/clasificados/viajes", lang);
+  const backHref = appendLangToPath("/publicar/viajes/negocios", routeLang);
+  const exploreViajesHref = appendLangToPath("/clasificados/viajes", routeLang);
 
   return (
     <div className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">

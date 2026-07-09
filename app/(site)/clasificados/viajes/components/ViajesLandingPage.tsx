@@ -4,8 +4,15 @@ import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
-import { CategoryStandardLandingPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPageShell";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 
 import { buildViajesBrowseUrl, defaultViajesBrowseState } from "../lib/buildViajesResultsUrl";
 
@@ -30,30 +37,56 @@ export type ViajesLandingPageProps = {
 
 export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProps) {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(sp?.get("lang"));
   const ui = getViajesUi(lang);
 
-  const publicarHref = appendLangToPath("/publicar/viajes", lang);
-  const homeBackHref = appendLangToPath("/clasificados/viajes", lang);
+  const publicarHref = appendLangToPath("/publicar/viajes", routeLang);
+  const homeBackHref = appendLangToPath("/clasificados/viajes", routeLang);
   const browseAllHref = buildViajesBrowseUrl(defaultViajesBrowseState(lang));
 
+  const viajesSearchForm = (
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query=""
+      city=""
+      state=""
+      zip=""
+      country=""
+      onQuery={() => {}}
+      onCity={() => {}}
+      onState={() => {}}
+      onZip={() => {}}
+      onCountry={() => {}}
+      onSearch={() => {}}
+      onOpenFilters={() => {}}
+      browseAllHref={browseAllHref}
+      browseAllLabel={lang === "es" ? "Ver todos" : "View all"}
+      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={publicarHref}
+      publishLabel={lang === "es" ? "Publicar viaje" : "Post trip"}
+    />
+  );
+
   return (
-    <CategoryStandardLandingPageShell>
-      <div className="flex justify-end px-3 pt-3 sm:px-5">
+    <LeonixCategoryPageShell surface="landing" topSlot={
+      <div className="mx-auto flex max-w-[1280px] justify-end px-3.5 pt-3 sm:px-4 lg:px-5">
         <ViajesLangSwitch compact />
       </div>
-
-      <CategoryStandardLandingPage
-        category="viajes"
-        lang={lang}
-        publishHref={publicarHref}
-        browseHref={browseAllHref}
-        searchSlot={<ViajesSearchBar lang={lang} ui={ui} />}
-        searchChips={<ViajesCategoryPillsPanel lang={lang} ui={ui} />}
-        suppressVisibilityCta
+    }>
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={lang === "es" ? "Viajes" : "Travel"}
+        tagline=""
+        intro={lang === "es" ? "Descubre destinos, ofertas de viajes y experiencias locales." : "Discover destinations, travel deals, and local experiences."}
+        introSecondary=""
+        searchSlot={viajesSearchForm}
+        eyebrow={lang === "es" ? "VIAJES · LEONIX" : "TRAVEL · LEONIX"}
       />
 
-      <main className="relative mx-auto max-w-7xl min-w-0 px-3 pb-10 pt-6 sm:px-5 sm:pt-9 lg:px-6 lg:pt-11">
+      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
         <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} initialBusinessRows={initialBusinessRows} />
         <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
 
@@ -72,6 +105,6 @@ export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProp
       </main>
 
       <ViajesTrustFooter ui={ui} />
-    </CategoryStandardLandingPageShell>
+    </LeonixCategoryPageShell>
   );
 }

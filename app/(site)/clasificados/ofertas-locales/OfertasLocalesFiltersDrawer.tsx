@@ -7,10 +7,19 @@ import {
 import { OFERTA_LOCAL_DEFAULT_COUNTRY } from "@/app/lib/ofertas-locales/ofertasLocalesLocationHelpers";
 import type { OfertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 
+const CUPON_SURFACE_OFFER_TYPE_OPTIONS = [
+  { value: "coupon", labelEs: "Cupón", labelEn: "Coupon" },
+  { value: "promotion", labelEs: "Promoción", labelEn: "Promotion" },
+  { value: "seasonal_special", labelEs: "Especial de temporada", labelEn: "Seasonal special" },
+  { value: "bundle", labelEs: "Paquete / combo", labelEn: "Bundle / combo" },
+  { value: "featured_deal", labelEs: "Oferta destacada", labelEn: "Featured deal" },
+] as const;
+
 type Props = {
   open: boolean;
   lang: "es" | "en";
   c: OfertasLocalesPublicSearchCopy;
+  surface?: "ofertas" | "cupones";
   city: string;
   state: string;
   zip: string;
@@ -42,6 +51,7 @@ export function OfertasLocalesFiltersDrawer({
   open,
   lang,
   c,
+  surface = "ofertas",
   city,
   state,
   zip,
@@ -63,6 +73,7 @@ export function OfertasLocalesFiltersDrawer({
   onClear,
 }: Props) {
   if (!open) return null;
+  const isCupones = surface === "cupones";
 
   return (
     <>
@@ -164,12 +175,23 @@ export function OfertasLocalesFiltersDrawer({
             </label>
             <label className="block text-xs font-semibold text-[#3D3428]">
               {c.offerTypeLabel}
-              <input
-                className={INPUT}
-                value={offerType}
-                onChange={(e) => onOfferTypeChange(e.target.value)}
-                placeholder={c.offerTypePlaceholder}
-              />
+              {isCupones ? (
+                <select className={INPUT} value={offerType} onChange={(e) => onOfferTypeChange(e.target.value)}>
+                  <option value="">{c.offerTypePlaceholder}</option>
+                  {CUPON_SURFACE_OFFER_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {lang === "es" ? option.labelEs : option.labelEn}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={INPUT}
+                  value={offerType}
+                  onChange={(e) => onOfferTypeChange(e.target.value)}
+                  placeholder={c.offerTypePlaceholder}
+                />
+              )}
             </label>
           </div>
 
@@ -178,7 +200,7 @@ export function OfertasLocalesFiltersDrawer({
             {c.sortLabel}
             <select className={INPUT} value={sort} onChange={(e) => onSortChange(e.target.value)}>
               <option value="newest">{c.sortNewest}</option>
-              <option value="price_low">{c.sortPriceLow}</option>
+              {!isCupones ? <option value="price_low">{c.sortPriceLow}</option> : null}
               <option value="expiring_soon">{c.sortExpiringSoon}</option>
             </select>
           </label>

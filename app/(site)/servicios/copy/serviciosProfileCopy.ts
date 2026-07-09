@@ -3,9 +3,8 @@ import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
   if (lang === "en") {
     return {
-      title: "Credentials",
-      subtitle:
-        "Information provided by the business to help you evaluate trust and experience.",
+      title: "License, insurance & certifications",
+      subtitle: "Information provided by the advertiser.",
       licenseProvided: "License provided",
       insuranceProvided: "Insurance provided",
       licenseType: "License type",
@@ -20,9 +19,8 @@ export function getServiciosCredentialsCardCopy(lang: ServiciosLang) {
     };
   }
   return {
-    title: "Credenciales",
-    subtitle:
-      "Información proporcionada por el negocio para ayudarte a evaluar confianza y experiencia.",
+    title: "Licencia, seguro y certificaciones",
+    subtitle: "Información proporcionada por el anunciante.",
     licenseProvided: "Licencia proporcionada",
     insuranceProvided: "Seguro proporcionado",
     licenseType: "Tipo de licencia",
@@ -84,6 +82,10 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       highlightsSeeAll: "See all highlights",
       highlightsShowLess: "Show less",
       gallery: "Project gallery",
+      galleryAndVideos: "Gallery & Videos",
+      exploreGalleryAndVideos: "Explore photos & videos",
+      featuredCouponsTitle: "Featured coupons & offers",
+      featuredCouponsSubtitle: "Save or share these offers before contacting the business.",
       trust: "Why choose us",
       reviews: "Customer reviews",
       serviceAreas: "Service areas",
@@ -127,6 +129,10 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     highlightsSeeAll: "Ver todos los destacados",
     highlightsShowLess: "Ver menos",
     gallery: "Galería de trabajos",
+    galleryAndVideos: "Galería y Videos",
+    exploreGalleryAndVideos: "Explorar fotos y videos",
+    featuredCouponsTitle: "Cupones y ofertas destacadas",
+    featuredCouponsSubtitle: "Guarda o comparte estas ofertas antes de contactar al negocio.",
     trust: "¿Por qué elegirnos?",
     reviews: "Reseñas de clientes",
     serviceAreas: "Zonas de servicio",

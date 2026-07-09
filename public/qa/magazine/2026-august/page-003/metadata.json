@@ -1,0 +1,41 @@
+{
+  "gate": "AUGUST-2026-BATCH3-PAGES2-4-DEEPL-ENGLISH-PROOF1",
+  "pageNumber": 3,
+  "sourceInputPath": ".magazine-proof-output/2026-august/_inputs/page-smoke/page-003/source-page-003-from-png.pdf",
+  "sourceInputHash": "d23fdafe13887a1f10ea9c97d8a9ad41c3baf5ff7fc583d5d13397686053a149",
+  "sourceInputBytes": 2479554,
+  "targetLanguage": "English",
+  "deeplTargetLanguage": "EN-US",
+  "translatedOutputPath": ".magazine-proof-output/2026-august/en/page-smoke/page-003/deepl-page-003.en.pdf",
+  "provider": "DeepL",
+  "providerCallNumber": 2,
+  "providerTotalCallLimit": 3,
+  "providerCalled": true,
+  "publicAsset": false,
+  "finalPdf": false,
+  "printReady": false,
+  "digitalProofOnly": true,
+  "sourceFlatteningRisk": "IMAGE_FLATTENED_LIKELY",
+  "extractableTextExpectedFromInput": false,
+  "pageRisk": "HIGH",
+  "pageLayoutType": "client restaurant ad",
+  "businessCriticalQaFocus": "Cali Bear Tacos business name, food/menu language, offer/CTA/contact preservation",
+  "nextQaDecisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ],
+  "timestamp": "2026-07-07T20:23:12.059Z",
+  "dryRun": false,
+  "providerCallAttempted": true,
+  "providerStatus": "done",
+  "translatedOutputExists": true,
+  "translatedOutputBytes": 2064066,
+  "translatedOutputHash": "a43e5410f7faee58c7dc28cc6e83f8de3b89de577108932f3307682bc3c69abe",
+  "result": "OUTPUT_FILE_GENERATED",
+  "deeplStatus": {
+    "status": "done",
+    "billedCharacters": 1135
+  }
+}

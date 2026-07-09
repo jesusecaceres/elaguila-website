@@ -60,6 +60,9 @@ export type GalleryItem = {
   source: "file" | "url";
 };
 
+/** External video links only in the application UI (gate SERVICIOS-GATE-01). */
+export const SERVICIOS_MAX_VIDEO_URLS = 4;
+
 export type VideoItem = {
   id: string;
   url: string;
@@ -72,6 +75,30 @@ export type VideoItem = {
   /** When publish prep could not persist a playable video (Mux/blob failure). */
   muxSkipReason?: string;
 };
+
+export function shortenServiciosVideoUrlDisplay(url: string, max = 56): string {
+  const t = url.trim();
+  if (!t) return "—";
+  if (t.startsWith("data:")) return t.length > 28 ? `${t.slice(0, 28)}…` : t;
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
+/** Normalize video list for storage/preview (up to 4; preserves legacy file rows). */
+export function normalizeServiciosApplicationVideos(videos: VideoItem[]): VideoItem[] {
+  let list = videos
+    .filter((v) => v && typeof v.url === "string" && v.url.trim().length > 0)
+    .map((v) => ({
+      ...v,
+      url: v.url.trim(),
+      isPrimary: v.isPrimary === true,
+    }))
+    .slice(0, SERVICIOS_MAX_VIDEO_URLS);
+  if (list.length > 0 && !list.some((v) => v.isPrimary === true)) {
+    list = list.map((v, i) => ({ ...v, isPrimary: i === 0 }));
+  }
+  return list;
+}
 
 export type TestimonialRow = {
   id: string;

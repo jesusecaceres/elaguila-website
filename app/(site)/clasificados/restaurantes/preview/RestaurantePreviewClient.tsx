@@ -33,6 +33,10 @@ import {
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 // Leonix premium visual tokens
 
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -153,6 +157,16 @@ export default function RestaurantePreviewClient() {
         const { data: auth } = await sb.auth.getUser();
         const ownerUserId = auth.user?.id ?? null;
         const customerEmail = auth.user?.email ?? null;
+
+        // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+        void captureCheckoutNewsletterSubscriber({
+          email: customerEmail,
+          lang,
+          preferredLanguage: lang,
+          source: CHECKOUT_NEWSLETTER_SOURCES.restaurantes,
+          interests: ["package:restaurantes_base_monthly", "launch_25"],
+          checked: ctx.newsletterOptIn,
+        });
 
         const pending = await saveRestaurantePendingBeforeCheckout(draftForSave, {
           ownerUserId,

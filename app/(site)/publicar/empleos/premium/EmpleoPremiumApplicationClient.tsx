@@ -19,6 +19,12 @@ import { buildEmpleosPublishEnvelopeFromPremium } from "@/app/publicar/empleos/s
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
+import { EMPLEOS_PAID_JOB_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydratePremiumDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
@@ -30,6 +36,7 @@ import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constant
 import { emptyEmpleosPremiumDraft, type EmpleosPremiumDraft } from "@/app/publicar/empleos/shared/types/empleosPremiumDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import {
   sampleCategorySelectOptions,
   sampleExperienceOptions,
@@ -189,6 +196,12 @@ export default function EmpleoPremiumApplicationClient() {
         <header className="mb-6">
           <h1 className="text-2xl font-bold sm:text-3xl">{lang === "es" ? "Trabajo premium" : "Premium job"}</h1>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">{copy.applicationPage.premiumSubtitle}</p>
+          <LeonixLaunchCouponCard
+            lang={lang}
+            variant="mini"
+            className="mt-3"
+            href={`/newsletter?lang=${lang}&source=empleos_premium&sourceCta=launch_25`}
+          />
         </header>
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
@@ -486,7 +499,14 @@ export default function EmpleoPremiumApplicationClient() {
       <EmpleosPublishConfirmModal
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
-        onConfirm={() => {
+        promo={{
+          category: EMPLEOS_PAID_JOB_CHECKOUT.category,
+          packageKey: EMPLEOS_PAID_JOB_CHECKOUT.packageKey,
+          subtotalCents: getRevenuePackageDefinition(EMPLEOS_PAID_JOB_CHECKOUT.packageKey)?.priceCents ?? 2499,
+          lang: lang === "es" ? "es" : "en",
+        }}
+        newsletter={{ lang: lang === "es" ? "es" : "en" }}
+        onConfirm={(promoCode, newsletterOptIn) => {
           void (async () => {
             const g = gateEmpleosPremiumPreview(state, lang);
             if (!g.ok) return;
@@ -496,6 +516,15 @@ export default function EmpleoPremiumApplicationClient() {
               window.alert(lang === "es" ? "Inicia sesión para publicar." : "Sign in to publish.");
               return;
             }
+            // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+            void captureCheckoutNewsletterSubscriber({
+              email: data.session.user?.email ?? null,
+              lang,
+              preferredLanguage: lang,
+              source: CHECKOUT_NEWSLETTER_SOURCES.empleos,
+              interests: ["package:empleos_premium", "launch_25"],
+              checked: newsletterOptIn,
+            });
             setCheckoutBusy(true);
             const base = buildEmpleosPublishEnvelopeFromPremium(state, lang);
             const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
@@ -503,6 +532,7 @@ export default function EmpleoPremiumApplicationClient() {
               envelope,
               accessToken: data.session.access_token,
               lang,
+              promoCode,
             });
             setCheckoutBusy(false);
             if (!paid.ok) {

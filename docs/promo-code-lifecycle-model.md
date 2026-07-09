@@ -69,10 +69,15 @@ Aligned with `LeonixPromoCodeType` in `packagePricingRules.ts`:
 
 ---
 
-## 6. Newsletter / SMS (future)
+## 6. Newsletter / SMS
 
-- Types `newsletter` and `sms`: placeholder for **per-subscriber unique codes** (email/phone identity).
-- G1.6F stores type and metadata only; generation and public redemption are later gates.
+- Types `newsletter` and `sms`: per-subscriber unique codes with identity (email/phone).
+- Admin create requires `customer_email` (newsletter) or `customer_phone` (sms).
+- **Public newsletter signup is active:** `POST /api/newsletter/subscribe` creates/reuses one active `newsletter` code per email and emails it via Resend.
+- **Promo family `website_launch_25`:** public Launch 25 offer for eligible **website checkout only** — not print, not magazine combos, not manual contracts. Metadata: `promo_family`, `capture_channel`, `eligible_channel: stripe_website_checkout`, `website_checkout_only`, `print_combo_excluded`.
+- Marketing surfaces: `/newsletter`, signup login, dashboard home, profile onboarding (`LeonixLaunchCouponCard`).
+- SMS sending remains inactive (admin metadata readiness only).
+- See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
 ---
 
@@ -114,10 +119,23 @@ If the promo table is missing, entitlement creation **still succeeds**; `metadat
 
 ---
 
+## 10b. Website Launch 25 redemption lifecycle (WEBSITE-LAUNCH-25-CHECKOUT-REDEMPTION-WIRING-01)
+
+`website_launch_25` codes (family stored in promo-code metadata; `code_type` stays `newsletter`) follow the standard redemption lifecycle with a website-checkout allowlist:
+
+1. **Capture** — created/reused at newsletter/account/dashboard signup.
+2. **Apply (preview)** — validated read-only via `POST /api/revenue-os/promo/validate`; allowed only for `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`.
+3. **Checkout** — `POST /api/revenue-os/checkout` revalidates the same rules and uses the server final amount; a **pending** redemption row is created (not consumed).
+4. **Redeem** — the Stripe webhook marks the redemption `redeemed` and increments `redemption_count` (one-time / non-stackable enforced).
+5. **Abandon/cancel** — pending redemption expires; the code remains usable.
+
+The code never grants placement/ranking/verification/entitlement, and print/combo/manual/free/unknown products are always rejected.
+
 ## 11. Verification
 
 ```bash
 npm run verify:admin-promo-code-lifecycle
+npm run verify:website-launch-25-checkout-wiring
 ```
 
 Manual QA:

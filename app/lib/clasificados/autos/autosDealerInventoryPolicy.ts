@@ -1,6 +1,11 @@
 import type { AutosClassifiedsListingRow, AutosDealerInventoryRole } from "./autosClassifiedsTypes";
+import {
+  AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 export const STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT = 10;
+
+export const BOOSTED_DEALER_ACTIVE_VEHICLE_LIMIT = AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT;
 
 export type AutosDealerInventoryCount = {
   activeCount: number;
@@ -75,4 +80,16 @@ export function summarizeDealerInventory(activeCount: number, limit = STANDARD_D
     remainingSlots,
     canAddActiveVehicle: dealerCanAddActiveVehicle(activeCount, limit),
   };
+}
+
+/** Active limit when dealer inventory pack entitlement is paid (not draft/local flags). */
+export function resolveDealerActiveVehicleLimit(entitlementActive?: boolean): number {
+  if (entitlementActive === true) return BOOSTED_DEALER_ACTIVE_VEHICLE_LIMIT;
+  return STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT;
+}
+
+export function isAutosDealerInventoryPackActive(input: {
+  entitlementActive?: boolean;
+}): boolean {
+  return input.entitlementActive === true;
 }

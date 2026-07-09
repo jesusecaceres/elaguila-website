@@ -18,6 +18,12 @@ import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/sha
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
+import { EMPLEOS_PAID_JOB_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
@@ -43,6 +49,7 @@ import {
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 const INPUT = "mt-1 w-full min-h-[44px] rounded-lg border border-black/10 px-3 py-2 text-sm";
 const SELECT = `${INPUT} bg-white`;
@@ -241,6 +248,12 @@ export default function EmpleoQuickApplicationClient() {
                 : "$24.99 for 30 days. Your listing activates after final review."}
             </p>
           </div>
+          <LeonixLaunchCouponCard
+            lang={lang}
+            variant="mini"
+            className="mt-3"
+            href={`/newsletter?lang=${lang}&source=empleos_quick&sourceCta=launch_25`}
+          />
         </header>
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
@@ -720,7 +733,14 @@ export default function EmpleoQuickApplicationClient() {
       <EmpleosPublishConfirmModal
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
-        onConfirm={() => {
+        promo={{
+          category: EMPLEOS_PAID_JOB_CHECKOUT.category,
+          packageKey: EMPLEOS_PAID_JOB_CHECKOUT.packageKey,
+          subtotalCents: getRevenuePackageDefinition(EMPLEOS_PAID_JOB_CHECKOUT.packageKey)?.priceCents ?? 2499,
+          lang: es ? "es" : "en",
+        }}
+        newsletter={{ lang: es ? "es" : "en" }}
+        onConfirm={(promoCode, newsletterOptIn) => {
           void (async () => {
             const g = gateEmpleosQuickPreview(state, lang);
             if (!g.ok) return;
@@ -730,6 +750,15 @@ export default function EmpleoQuickApplicationClient() {
               window.alert(es ? "Inicia sesión para publicar." : "Sign in to publish.");
               return;
             }
+            // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+            void captureCheckoutNewsletterSubscriber({
+              email: data.session.user?.email ?? null,
+              lang,
+              preferredLanguage: lang,
+              source: CHECKOUT_NEWSLETTER_SOURCES.empleos,
+              interests: ["package:empleos_quick", "launch_25"],
+              checked: newsletterOptIn,
+            });
             setCheckoutBusy(true);
             const base = buildEmpleosPublishEnvelopeFromQuick(state, lang);
             const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
@@ -737,6 +766,7 @@ export default function EmpleoQuickApplicationClient() {
               envelope,
               accessToken: data.session.access_token,
               lang,
+              promoCode,
             });
             setCheckoutBusy(false);
             if (!paid.ok) {

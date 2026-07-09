@@ -2,11 +2,25 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import {
+  autosDealerInventoryEditHref,
+  autosDealerListingEditHref,
+  autosDealerListingPreviewHref,
+} from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import {
   buildServiciosDashboardActionContract,
   type CategoryDashboardActionContract,
 } from "./categoryDashboardActionContract";
+import {
+  serviciosListingEditHref,
+  serviciosListingPreviewHref,
+} from "./serviciosDashboardOffersAddonCheckout";
+import {
+  restaurantCouponAddonUpgradeEligible,
+  restaurantCouponEditEligible,
+  restauranteListingEditHref,
+} from "./restaurantesDashboardCouponAddonCheckout";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -32,6 +46,12 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
+  /** True when published Restaurante can buy coupon add-on only from dashboard. */
+  restaurantCouponUpgradeEligible?: boolean;
+  /** True when published Restaurante has paid coupon module and can edit coupons. */
+  restaurantCouponEditEligible?: boolean;
+  /** True when a Servicios listing already shows offers/coupons content (P0C honest display state). */
+  serviciosOffersAddonActive?: boolean;
   /** Optional fields for `resolveCategoryAdPlanFromDashboardInventoryItem`. */
   autosLane?: string | null;
   viajesLane?: string | null;
@@ -64,6 +84,7 @@ export type DashboardRestaurantRow = {
   business_name: string;
   draft_listing_id: string | null;
   hero_image_url?: string | null;
+  listing_json?: unknown;
 };
 
 export type DashboardEmpleosRow = {
@@ -102,6 +123,8 @@ export type DashboardAutosClassifiedsRow = {
   published_at: string | null;
   updated_at: string;
   leonix_ad_id?: string | null;
+  inventory_role?: string | null;
+  dealer_inventory_parent_listing_id?: string | null;
 };
 
 /** Row shape returned by `GET /api/clasificados/servicios/my-listings` (cloud owner inventory only). */
@@ -114,6 +137,7 @@ export type ServiciosMyListingApiRow = {
   listing_status: string;
   leonix_verified: boolean;
   leonix_ad_id?: string | null;
+  offers_addon_active?: boolean;
 };
 
 function extractDetailPairValue(detailPairs: unknown, key: string): string | null {
@@ -136,7 +160,7 @@ export async function fetchOwnerRestaurantListings(
   const { data, error } = await sb
     .from("restaurantes_public_listings")
     .select(
-      "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url",
+      "id, slug, leonix_ad_id, status, promoted, leonix_verified, package_tier, published_at, updated_at, business_name, draft_listing_id, hero_image_url, listing_json",
     )
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
@@ -181,7 +205,9 @@ export async function fetchOwnerAutosClassifiedsListings(
 ): Promise<DashboardAutosClassifiedsRow[]> {
   const { data, error } = await sb
     .from("autos_classifieds_listings")
-    .select("id, status, lane, lang, listing_payload, published_at, updated_at, leonix_ad_id")
+    .select(
+      "id, status, lane, lang, listing_payload, published_at, updated_at, leonix_ad_id, inventory_role, dealer_inventory_parent_listing_id",
+    )
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
   if (error || !data) return [];
@@ -205,28 +231,54 @@ export function buildAutosClassifiedsInventoryItems(
   lang: "es" | "en",
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
-  return rows.map((row) => ({
-    id: row.id,
-    category: "autos_paid",
-    title: autosClassifiedsTitleFromPayload(row.listing_payload, lang),
-    status: row.status,
-    publicHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
-    editHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
-    previewHref: null,
-    resultsHref: `/clasificados/autos/resultados?${q}`,
-    analyticsHref: `/dashboard/analytics?${q}`,
-    publishedAt: row.published_at,
-    updatedAt: row.updated_at,
-    image: null,
-    leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
-    slug: null,
-    packageTier: null,
-    promoted: false,
-    verified: false,
-    draftListingId: null,
-    autosLane: row.lane,
-    source: "autos_classifieds_listings",
-  }));
+  return rows.map((row) => {
+    const isDealerMain =
+      row.lane === "negocios" &&
+      (row.inventory_role === "main" || !row.dealer_inventory_parent_listing_id?.trim());
+    const editHref =
+      row.lane === "negocios" && isDealerMain
+        ? autosDealerListingEditHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+          })
+        : row.lane === "privado"
+          ? `/publicar/autos/privado?edit=1&source=dashboard&listingId=${encodeURIComponent(row.id)}&returnPanel=autos&lang=${lang}`
+          : `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`;
+    const previewHref =
+      row.lane === "negocios" && isDealerMain
+        ? autosDealerListingPreviewHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+            mode: "listing-edit",
+          })
+        : row.status === "active"
+          ? `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`
+          : null;
+    return {
+      id: row.id,
+      category: "autos_paid",
+      title: autosClassifiedsTitleFromPayload(row.listing_payload, lang),
+      status: row.status,
+      publicHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
+      editHref,
+      previewHref,
+      resultsHref: `/clasificados/autos/resultados?${q}`,
+      analyticsHref: `/dashboard/analytics?${q}`,
+      publishedAt: row.published_at,
+      updatedAt: row.updated_at,
+      image: null,
+      leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
+      slug: null,
+      packageTier: null,
+      promoted: false,
+      verified: false,
+      draftListingId: null,
+      autosLane: row.lane,
+      source: "autos_classifieds_listings",
+    };
+  });
 }
 
 export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], lang: "es" | "en"): DashboardInventoryItem[] {
@@ -246,8 +298,19 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       title: row.business_name?.trim() || row.slug,
       status: row.listing_status,
       publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
-      editHref: actionContract.editUrl ?? `/dashboard/servicios?${q}`,
-      previewHref: appendLangToPath("/clasificados/publicar/servicios/preview", L),
+      editHref:
+        serviciosListingEditHref({
+          lang: L,
+          listingId: row.id,
+          listingSlug: row.slug,
+          leonixAdId: row.leonix_ad_id,
+        }) ?? actionContract.editUrl ?? `/dashboard/servicios?${q}`,
+      previewHref: serviciosListingPreviewHref({
+        lang: L,
+        listingId: row.id,
+        listingSlug: row.slug,
+        leonixAdId: row.leonix_ad_id,
+      }),
       resultsHref: actionContract.resultsUrl ?? `/clasificados/servicios/resultados?${q}`,
       analyticsHref: `/dashboard/analytics?${q}`,
       publishedAt: row.published_at,
@@ -259,6 +322,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       promoted: false,
       verified: row.leonix_verified,
       draftListingId: null,
+      serviciosOffersAddonActive: row.offers_addon_active === true,
       actionContract,
       source: "servicios_public_listings",
     };
@@ -295,6 +359,7 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
         listing_status: typeof o.listing_status === "string" ? o.listing_status : "published",
         leonix_verified: Boolean(o.leonix_verified),
         leonix_ad_id: typeof o.leonix_ad_id === "string" && o.leonix_ad_id.trim() ? o.leonix_ad_id.trim() : null,
+        offers_addon_active: o.offers_addon_active === true,
       });
     }
     return out;
@@ -317,6 +382,22 @@ function viajesStagedPreviewPath(lane: string): string {
   return "/clasificados/viajes/preview/negocios";
 }
 
+/** Dashboard Mis anuncios preview for saved Restaurante listings — live public detail with identity. */
+export function restauranteDashboardListingPreviewHref(input: {
+  lang: "es" | "en";
+  slug: string;
+  listingId?: string | null;
+  leonixAdId?: string | null;
+}): string {
+  const slug = input.slug.trim();
+  const params = new URLSearchParams({ source: "dashboard", preview: "public" });
+  const listingId = input.listingId?.trim();
+  const leonixAdId = input.leonixAdId?.trim();
+  if (listingId) params.set("listingId", listingId);
+  if (leonixAdId) params.set("leonixAdId", leonixAdId);
+  return appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}?${params.toString()}`, input.lang);
+}
+
 export function buildRestaurantInventoryItems(
   rows: DashboardRestaurantRow[],
   lang: "es" | "en",
@@ -328,8 +409,18 @@ export function buildRestaurantInventoryItems(
     title: row.business_name,
     status: row.status,
     publicHref: `/clasificados/restaurantes/${encodeURIComponent(row.slug)}?${q}`,
-    editHref: `/publicar/restaurantes?${q}`,
-    previewHref: `/clasificados/restaurantes/preview?${q}`,
+    editHref: restauranteListingEditHref({
+      lang,
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+      returnPanel: "restaurantes",
+    }),
+    previewHref: restauranteDashboardListingPreviewHref({
+      lang,
+      slug: row.slug,
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+    }),
     resultsHref: `/clasificados/restaurantes/resultados?${q}&q=${encodeURIComponent(row.business_name)}`,
     analyticsHref: `/dashboard/analytics?${q}`,
     publishedAt: row.published_at,
@@ -341,6 +432,14 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
+    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligible({
+      status: row.status,
+      listingJson: row.listing_json,
+    }),
+    restaurantCouponEditEligible: restaurantCouponEditEligible({
+      status: row.status,
+      listingJson: row.listing_json,
+    }),
     source: "restaurantes_public_listings",
   }));
 }

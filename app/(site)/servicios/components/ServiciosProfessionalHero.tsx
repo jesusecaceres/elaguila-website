@@ -14,9 +14,7 @@ import {
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
   LX_HERO_BG_STYLE,
-  LX_HERO_CHIP,
   LX_HERO_TITLE,
-  collectHeroDisplayChips,
   getPrimaryCtaLabel,
   hasPhysicalAddress,
 } from "./serviciosLeonixBrand";
@@ -73,7 +71,6 @@ export function ServiciosProfessionalHero({
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || cityFallback?.trim() || "";
   const thumb = profile.hero.logoUrl || null;
-  const displayChips = collectHeroDisplayChips(profile, 5);
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
       ? profile.hero.rating
@@ -216,15 +213,6 @@ export function ServiciosProfessionalHero({
               ) : null}
             </div>
 
-            {displayChips.length > 0 ? (
-              <div className="mt-3.5 flex flex-wrap justify-center gap-1.5 sm:justify-start lg:mt-4">
-                {displayChips.map((chip) => (
-                  <span key={chip} className={LX_HERO_CHIP}>
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            ) : null}
           </div>
         </div>
 

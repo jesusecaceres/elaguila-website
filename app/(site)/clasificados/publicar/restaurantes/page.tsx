@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RestaurantesSelectorClient } from "./RestaurantesSelectorClient";
-
-type Lang = "es" | "en";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 const COPY = {
   es: {
@@ -96,7 +95,7 @@ type PageProps = {
 
 export default async function RestaurantesPublicarSelectorPage(props: PageProps) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang: Lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   const t = COPY[lang];
 
   return (

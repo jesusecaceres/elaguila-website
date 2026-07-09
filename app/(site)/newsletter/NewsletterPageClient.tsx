@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShell";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { submitLaunchSignupForm } from "@/app/(site)/lib/submitLaunchSignupForm";
 import { getNewsletterSuccessMessage, getPublicLeadErrorMessage } from "@/app/lib/leonix/leadConfirmationCopy";
@@ -32,12 +33,14 @@ export default function NewsletterPageClient() {
   const emailPrefill = searchParams?.get("email") ?? "";
   const locale = getPublicLocaleCopy(lang);
   const t = locale.newsletter;
+  const cardLang: "es" | "en" = lang === "en" ? "en" : "es";
   const formLang: LeadLang = lang === "en" ? "en" : "es";
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [city, setCity] = useState("");
+  const [promoEmailSent, setPromoEmailSent] = useState(false);
 
   const preserveQueryKeys = source || sourceCta ? (["source", "sourceCta"] as const) : undefined;
   const resolvedSource = source.trim() || "newsletter_page";
@@ -69,7 +72,7 @@ export default function NewsletterPageClient() {
         preferredLanguage: fd.get("preferredLanguage"),
         interests: fd.get("interests"),
         source: resolvedSource,
-        sourceCta: sourceCta || "join_launch",
+        sourceCta: sourceCta || "launch_25",
         consentToReceiveUpdates: true,
       },
       lang
@@ -77,6 +80,7 @@ export default function NewsletterPageClient() {
 
     setLoading(false);
     if (result.ok) {
+      setPromoEmailSent(Boolean(result.promoCodeEmailSent));
       setSubmitted(true);
       return;
     }
@@ -84,6 +88,14 @@ export default function NewsletterPageClient() {
   }
 
   if (submitted) {
+    const promoMessage = promoEmailSent
+      ? lang === "en"
+        ? "We sent your Leonix Launch 25 code to your email."
+        : "Te enviamos tu código Leonix Launch 25 a tu correo."
+      : lang === "en"
+        ? "You’re subscribed. Leonix saved your signup, but the promo email may be sent later."
+        : "Ya estás suscrito. Leonix guardó tu registro, pero el correo con el código puede enviarse después.";
+
     return (
       <GateDestinationShell
         lang={lang}
@@ -92,7 +104,8 @@ export default function NewsletterPageClient() {
         body={getNewsletterSuccessMessage(lang)}
         preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
       >
-        <p className="text-sm text-[#5F6258]">
+        <p className="text-sm font-medium text-[#556B3E]">{promoMessage}</p>
+        <p className="mt-2 text-sm text-[#5F6258]">
           {t.languageLabel}: <span className="font-semibold text-[#3D3428]">{getLanguageLabel(lang)}</span>
         </p>
         {fromComingSoon ? <p className="mt-2 text-sm text-[#556B3E]">{t.fromComingSoon}</p> : null}
@@ -109,6 +122,9 @@ export default function NewsletterPageClient() {
       preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
     >
       {fromComingSoon ? <p className="mb-4 text-sm font-medium text-[#556B3E]">{t.fromComingSoon}</p> : null}
+      <div className="mb-6">
+        <LeonixLaunchCouponCard lang={cardLang} variant="public" showCta={false} />
+      </div>
       <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-sm">
         <Field label={t.fields.email}>
           <input

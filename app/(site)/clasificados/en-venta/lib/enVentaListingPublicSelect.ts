@@ -11,6 +11,9 @@ export const EN_VENTA_LISTING_PUBLIC_ROW_BASE =
 
 const BROWSE_LIMIT = 800;
 
+/** Hub landing preview only needs recent rows (EnVentaHubRecentListings caps at 8). */
+export const EN_VENTA_LANDING_PREVIEW_LIMIT = 24;
+
 type BrowseOrder =
   | { kind: "column"; column: string; ascending: boolean; nullsFirst?: boolean }
   | { kind: "none" };
@@ -28,13 +31,14 @@ async function runEnVentaBrowseSelect(
   supabase: SupabaseClient,
   cols: string,
   order: BrowseOrder,
+  limit: number,
 ): Promise<{ data: unknown[] | null; error: { message: string } | null }> {
   let q = supabase
     .from("listings")
     .select(cols)
     .eq("category", "en-venta")
     .eq("status", "active")
-    .limit(BROWSE_LIMIT);
+    .limit(limit);
   if (order.kind === "column") {
     q = q.order(order.column, {
       ascending: order.ascending,
@@ -45,14 +49,18 @@ async function runEnVentaBrowseSelect(
   return { data, error: error ? { message: error.message } : null };
 }
 
-export async function queryEnVentaBrowseListings(supabase: SupabaseClient): Promise<{
+export async function queryEnVentaBrowseListings(
+  supabase: SupabaseClient,
+  options?: { limit?: number },
+): Promise<{
   data: unknown[] | null;
   error: { message: string } | null;
 }> {
+  const limit = options?.limit ?? BROWSE_LIMIT;
   let lastErr: { message: string } | null = null;
   for (const ord of BROWSE_ORDER_ATTEMPTS) {
     const res = await listingsQueryWithSelectShrink(EN_VENTA_LISTING_PUBLIC_ROW_BASE, async (cols) =>
-      runEnVentaBrowseSelect(supabase, cols, ord),
+      runEnVentaBrowseSelect(supabase, cols, ord, limit),
     );
     if (!res.error) {
       return { data: (res.data as unknown[] | null) ?? null, error: null };

@@ -45,6 +45,8 @@ Reorganize sidebar into Command / Revenue / Marketplace Ops / People / Content /
 | `/admin/leads/inbox` | Launch Leads | CRM for contact/ad/promo leads | Reply, archive, lifecycle | `leonix_leads` | **STRONG** | **STRONG** (cards + drawer) | LOW | HIGH | Filter presets for “needs reply” |
 | `/admin/leads/inbox?view=promo` | (filtered) | Promo / print quote view | Same as inbox | `leonix_leads` (source_cta) | **WORKING** | **STRONG** | LOW | HIGH | Dedicated nav chip optional |
 | `/admin/leads/newsletter` | (subnav) | Newsletter subscribers | Export, lifecycle | `leonix_newsletter_subscribers` | **WORKING** | **PARTIAL** | LOW | MEDIUM | Mobile card list polish |
+
+**Newsletter sales contact ops:** manual export/copy/mailto workflow for sales team is documented in `docs/newsletter-sales-contact-ops.md`. True bulk campaign sending inside Leonix is future scope.
 | `/admin/leads/media-kit` | (subnav) | Media kit requests | Reply, archive, export CSV | `leonix_media_kit_leads` | **WORKING** | **STRONG** | LOW | HIGH | — |
 | `/admin/workspace/clasificados` | Categories | Category hub + global listings queue | Moderate, filter, bulk actions | `listings`, `site_category_config` | **STRONG** | **PARTIAL** (wide queue table) | MEDIUM | HIGH | Mobile queue cards default |
 | `/admin/workspace/clasificados?status=flagged#queue` | (deep link) | Review queue | Clear flag, edit, archive | `listings` | **STRONG** | **PARTIAL** | MEDIUM | HIGH | Action proof toasts |

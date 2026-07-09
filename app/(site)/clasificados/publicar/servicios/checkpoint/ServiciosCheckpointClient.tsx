@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-
-type Lang = "es" | "en";
+import type { SupportedLang } from "@/app/lib/language";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 const COPY = {
   es: {
@@ -118,12 +118,31 @@ const COPY = {
   },
 } as const;
 
-const CARD =
-  "rounded-[20px] border border-[#D8C79A] bg-[#FFFDF7] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
-
-export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
+export function ServiciosCheckpointClient({
+  lang,
+  routeLang,
+}: {
+  lang: "es" | "en";
+  routeLang: SupportedLang;
+}) {
   const t = COPY[lang];
   const [productMoreOpen, setProductMoreOpen] = useState(false);
+  const applicationHref = withClasificadosPublishLang("/publicar/servicios", routeLang, {
+    product: "servicios_profesionales",
+  });
+  const clasificadosHref = withClasificadosPublishLang("/clasificados", routeLang);
+
+  useEffect(() => {
+    if (!productMoreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setProductMoreOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [productMoreOpen]);
 
   return (
     <div className="min-h-screen bg-[#F6F0E2] text-[#3D2C12]">
@@ -131,7 +150,7 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/clasificados"
+            href={clasificadosHref}
             className="inline-flex min-h-[40px] items-center text-sm font-medium text-[#5D4A25] underline underline-offset-2 hover:text-[#3D2C12]"
           >
             {t.backToClasificados}
@@ -146,11 +165,7 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
 
         {/* Product Cards Stack */}
         <div className="space-y-4">
-          {/* Main Product Card */}
-          <Link
-            href={`/publicar/servicios?lang=${lang}&product=servicios_profesionales`}
-            className="block rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-5 shadow-sm transition hover:border-[#C9B46A]/50"
-          >
+          <article className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">
@@ -171,21 +186,21 @@ export function ServiciosCheckpointClient({ lang }: { lang: Lang }) {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="text-sm font-bold text-[#7A1E2C]">
+              <Link
+                href={applicationHref}
+                className="text-sm font-bold text-[#7A1E2C] underline-offset-2 hover:underline"
+              >
                 {t.cardCta}
-              </p>
+              </Link>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setProductMoreOpen(true);
-                }}
+                onClick={() => setProductMoreOpen(true)}
                 className="text-sm font-semibold text-[#5C5346] underline underline-offset-2 hover:text-[#1E1810]"
               >
                 {t.cardMore}
               </button>
             </div>
-          </Link>
+          </article>
         </div>
 
         {/* Product More Drawer */}

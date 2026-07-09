@@ -2,6 +2,7 @@ import {
   createEmptyEnVentaFreeState,
   type EnVentaFreeApplicationState,
 } from "@/app/clasificados/publicar/en-venta/free/application/schema/enVentaFreeFormState";
+import { withLang, type SupportedLang } from "@/app/lib/language";
 import {
   idbClearEnVentaPreviewDrafts,
   idbGetEnVentaPreviewDraft,
@@ -592,10 +593,10 @@ export function loadEnVentaPreviewDraftMeta(): EnVentaPreviewDraftMeta | null {
 }
 
 /** Pro/Free edit route with resume flag after preview round-trip. */
-export function buildEnVentaEditResumeHref(plan: "free" | "pro", lang: "es" | "en"): string {
+export function buildEnVentaEditResumeHref(plan: "free" | "pro", routeLang: SupportedLang): string {
   const base =
     plan === "free" ? "/clasificados/publicar/en-venta/free" : "/clasificados/publicar/en-venta/pro";
-  return `${base}?lang=${lang}&resume=1`;
+  return withLang(base, routeLang, { resume: "1" });
 }
 
 export function enVentaDraftHasAllPublishCheckboxes(state: EnVentaFreeApplicationState): boolean {

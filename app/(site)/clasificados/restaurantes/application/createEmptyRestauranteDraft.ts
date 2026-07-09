@@ -250,5 +250,44 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
 
   if (!merged.state?.trim()) merged.state = "CA";
 
+  merged.couponUpgradeEnabled = merged.couponUpgradeEnabled === true;
+  merged.coupons = Array.isArray(merged.coupons)
+    ? merged.coupons.slice(0, 4).map((row) => {
+        if (!row || typeof row !== "object") {
+          return { title: "", description: "" };
+        }
+        const r = row as Record<string, unknown>;
+        return {
+          title: typeof r.title === "string" ? r.title : "",
+          description: typeof r.description === "string" ? r.description : "",
+          couponCode: typeof r.couponCode === "string" ? r.couponCode : undefined,
+          expirationDate: typeof r.expirationDate === "string" ? r.expirationDate : undefined,
+          redemptionNote: typeof r.redemptionNote === "string" ? r.redemptionNote : undefined,
+          imageUrl: coerceRestauranteImageRefToString(r.imageUrl),
+          url: typeof r.url === "string" ? r.url : undefined,
+          ctaLabel: typeof r.ctaLabel === "string" ? r.ctaLabel : undefined,
+          isFeatured: r.isFeatured === true,
+        };
+      })
+    : [];
+  if (draft.couponFlyer && typeof draft.couponFlyer === "object") {
+    const cf = draft.couponFlyer as Record<string, unknown>;
+    const imageUrl = coerceRestauranteImageRefToString(cf.imageUrl);
+    merged.couponFlyer = imageUrl ? { imageUrl } : undefined;
+  }
+  if (draft.couponMoreOffers && typeof draft.couponMoreOffers === "object") {
+    const cm = draft.couponMoreOffers as Record<string, unknown>;
+    merged.couponMoreOffers = {
+      url: typeof cm.url === "string" ? cm.url : "",
+      buttonLabel: typeof cm.buttonLabel === "string" ? cm.buttonLabel : undefined,
+    };
+  }
+  if (!merged.couponUpgradeEnabled) {
+    merged.coupons = [];
+    merged.couponFlyer = undefined;
+    merged.couponMoreOffers = undefined;
+    merged.couponMonthlyPrice = undefined;
+  }
+
   return merged;
 }

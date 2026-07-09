@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "gate": "AUGUST-2026-ISSUE-MANIFEST-AND-FULL-SOURCE-INTAKE-FOUNDATION1",
+  "issue": {
+    "slug": "2026-august",
+    "title": "Leonix Media August 2026",
+    "sourceLanguage": "es",
+    "printLanguage": "es",
+    "printStatus": "spanish_only",
+    "pageCount": 12,
+    "publicTranslatedIssueLaunched": false
+  },
+  "officialDigitalLanguages": [
+    "en",
+    "pt",
+    "tl"
+  ],
+  "hiddenFutureLanguages": [
+    "vi",
+    "zh-Hans",
+    "zh-Hant",
+    "ar",
+    "pa",
+    "fa",
+    "ja",
+    "hi",
+    "ru"
+  ],
+  "languageScope": {
+    "es": {
+      "role": "source_print_base",
+      "status": "ACTIVE",
+      "publicClaim": "official"
+    },
+    "en": {
+      "role": "digital_translation",
+      "status": "ACTIVE",
+      "publicClaim": "official",
+      "reviewerStatus": "Chuy/team can verify enough"
+    },
+    "pt": {
+      "role": "digital_translation",
+      "status": "ACTIVE_NEXT",
+      "publicClaim": "official_once_proofed",
+      "reviewerStatus": "Chuy/team first-pass plus later reviewer"
+    },
+    "tl": {
+      "role": "digital_translation",
+      "status": "ACTIVE_NEXT",
+      "publicClaim": "official_once_proofed",
+      "reviewerStatus": "trusted friend/reviewer available"
+    }
+  },
+  "hiddenLanguagePolicy": {
+    "status": "INACTIVE",
+    "publicExposure": false,
+    "activationRequirement": "trusted reviewer/team required before public support or provider runs"
+  },
+  "sourceFolders": {
+    "masterSamples": "design-references/magazine/2026-august/01-master-samples",
+    "sourceLayouts": "design-references/magazine/2026-august/02-source-layouts",
+    "spanishFinal": "design-references/magazine/2026-august/03-spanish-final",
+    "printReadyPdf": "design-references/magazine/2026-august/06-print-ready-pdf"
+  },
+  "pages": [
+    {
+      "pageNumber": 1,
+      "pageTitle": "Cover",
+      "pageType": "cover",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-cover-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "HELD_FOR_LATER",
+      "riskLevel": "MEDIUM",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "NOT_STARTED_HELD_FOR_LATER",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Master sample exists; cover was held for later proof/polish after higher-risk content pages."
+    },
+    {
+      "pageNumber": 2,
+      "pageTitle": "Más que un anuncio / Leonix house ad",
+      "pageType": "leonix_house_ad",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-leonix-house-ad-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "AVAILABLE",
+      "riskLevel": "MEDIUM",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "PROOF_DIRECTION_APPROVED_WITH_MINOR_POLISH_NOTES",
+          "qaStatus": "CHUY_DECISION_LOCKED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "English proof direction approved for digital proof with minor polish notes; final public launch still requires polish/review."
+    },
+    {
+      "pageNumber": 3,
+      "pageTitle": "Cali Bear Tacos full-page ad",
+      "pageType": "client_restaurant_ad",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-calibear-tacos-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "AVAILABLE",
+      "riskLevel": "HIGH",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "PROOF_DIRECTION_APPROVED_WITH_MINOR_POLISH_NOTES",
+          "qaStatus": "CHUY_DECISION_LOCKED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Client restaurant ad; business name, offer, menu, CTA, and contact details require final human review."
+    },
+    {
+      "pageNumber": 4,
+      "pageTitle": "Elevated Barber full-page ad",
+      "pageType": "client_service_barber_ad",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-elevated-barber-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "AVAILABLE",
+      "riskLevel": "HIGH",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "PROOF_DIRECTION_APPROVED_WITH_MINOR_POLISH_NOTES",
+          "qaStatus": "CHUY_DECISION_LOCKED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Client service/barber ad; service wording, premium tone, CTA, and contact details require final human review."
+    },
+    {
+      "pageNumber": 5,
+      "pageTitle": "Agenda de Agosto",
+      "pageType": "agenda_event_cards",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-005-agenda-de-agosto-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "AVAILABLE",
+      "riskLevel": "HIGH",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "PROOF_DIRECTION_APPROVED_WITH_MINOR_POLISH_NOTES",
+          "qaStatus": "CHUY_DECISION_LOCKED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Dense agenda/event-card layout validated in English proof direction; final line breaks and event details require polish."
+    },
+    {
+      "pageNumber": 6,
+      "pageTitle": "Negocios que construyen comunidad",
+      "pageType": "editorial_business_community",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-006-negocios-comunidad-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "AVAILABLE",
+      "riskLevel": "MEDIUM",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "PROOF_DIRECTION_APPROVED_WITH_MINOR_POLISH_NOTES",
+          "qaStatus": "CHUY_DECISION_LOCKED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Editorial/business community layout validated in English proof direction; final brand voice polish still required."
+    },
+    {
+      "pageNumber": 7,
+      "pageTitle": "Receta de la comunidad",
+      "pageType": "community_recipe",
+      "sourceFile": null,
+      "sourceFormat": null,
+      "sourceStatus": "MISSING_SOURCE",
+      "riskLevel": "MEDIUM",
+      "translate": false,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Missing final Spanish source/master sample; full issue translation blocked until source exists."
+    },
+    {
+      "pageNumber": 8,
+      "pageTitle": "Familia y bienestar",
+      "pageType": "family_wellness",
+      "sourceFile": null,
+      "sourceFormat": null,
+      "sourceStatus": "MISSING_SOURCE",
+      "riskLevel": "MEDIUM",
+      "translate": false,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Missing final Spanish source/master sample; full issue translation blocked until source exists."
+    },
+    {
+      "pageNumber": 9,
+      "pageTitle": "Finanzas y negocio",
+      "pageType": "finance_business",
+      "sourceFile": null,
+      "sourceFormat": null,
+      "sourceStatus": "MISSING_SOURCE",
+      "riskLevel": "MEDIUM",
+      "translate": false,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Missing final Spanish source/master sample; full issue translation blocked until source exists."
+    },
+    {
+      "pageNumber": 10,
+      "pageTitle": "Cultura que nos une",
+      "pageType": "culture_editorial",
+      "sourceFile": null,
+      "sourceFormat": null,
+      "sourceStatus": "MISSING_SOURCE",
+      "riskLevel": "MEDIUM",
+      "translate": false,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Missing final Spanish source/master sample; full issue translation blocked until source exists."
+    },
+    {
+      "pageNumber": 11,
+      "pageTitle": "Recursos que ayudan",
+      "pageType": "community_resources",
+      "sourceFile": null,
+      "sourceFormat": null,
+      "sourceStatus": "MISSING_SOURCE",
+      "riskLevel": "MEDIUM",
+      "translate": false,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "BLOCKED_MISSING_SOURCE",
+          "qaStatus": "BLOCKED",
+          "polishStatus": "BLOCKED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Missing final Spanish source/master sample; full issue translation blocked until source exists."
+    },
+    {
+      "pageNumber": 12,
+      "pageTitle": "Sé parte del movimiento Leonix",
+      "pageType": "back_cover_house_ad",
+      "sourceFile": "design-references/magazine/2026-august/01-master-samples/august-2026-012-back-cover-master-sample.png",
+      "sourceFormat": "png",
+      "sourceStatus": "AVAILABLE",
+      "riskLevel": "HIGH",
+      "translate": true,
+      "languageStatus": {
+        "en": {
+          "translationStatus": "PROOF_DIRECTION_APPROVED_WITH_MINOR_POLISH_NOTES",
+          "qaStatus": "CHUY_DECISION_LOCKED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "pt": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        },
+        "tl": {
+          "translationStatus": "NOT_STARTED",
+          "qaStatus": "NOT_STARTED",
+          "polishStatus": "NOT_STARTED",
+          "publicLaunchStatus": "NOT_LAUNCHED"
+        }
+      },
+      "notes": "Back-cover / house-ad style validated in English proof direction; Leonix contact, QR, CTA, and typography need final polish before launch."
+    }
+  ],
+  "publicLaunchRules": {
+    "translatedIssuePublicLaunchAllowed": false,
+    "reason": "Final public translated issue requires all pages, language proofs, QA decisions, polish/review, final assets outside public QA, launch wiring, analytics, and Chuy approval."
+  }
+}

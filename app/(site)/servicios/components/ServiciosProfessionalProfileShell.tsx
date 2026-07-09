@@ -5,52 +5,33 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "./serviciosDesignTokens";
 import {
-  LX_CHIP,
-  LX_PRO_ASIDE,
-  LX_PRO_GRID,
   LX_PRO_INNER_PAD,
   LX_PRO_MAIN_MAX,
   LX_PRO_SECTION_GAP,
-  LX_SECTION_CARD,
-  collectProfessionalServiceChips,
-  getServicesTitle,
 } from "./serviciosLeonixBrand";
 import { ServiciosProfessionalHero } from "./ServiciosProfessionalHero";
 import {
   hasAboutSectionResolved,
-  hasAmenityOptionsResolved,
-  hasBusinessHighlightsResolved,
-  hasCredentialsResolved,
   hasGallerySectionResolved,
   hasHeroIdentityResolved,
-  hasOfferSectionResolved,
-  hasPaymentMethodsResolved,
-  hasQuickFactsResolved,
+  hasPaidCouponsSectionResolved,
   hasReviewsSectionResolved,
   hasServicesSectionResolved,
-  hasTrustSectionResolved,
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
-import { ServiciosQuickFacts } from "./ServiciosQuickFacts";
-import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 import { ServiciosAbout } from "./ServiciosAbout";
-import { ServiciosTrustSection } from "./ServiciosTrustSection";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGalleryWithTabs } from "./ServiciosGalleryWithTabs";
 import { ServiciosReviews } from "./ServiciosReviews";
-import { ServiciosLicense } from "./ServiciosLicense";
-import { ServiciosSmartTrustSummary } from "./ServiciosSmartTrustSummary";
-import { ServiciosHighlightsSection } from "./ServiciosHighlightsSection";
-import { ServiciosPromocionesCard } from "./ServiciosPromocionesCard";
 import { ServiciosCouponsCard } from "./ServiciosCouponsCard";
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ServiciosHours } from "./ServiciosHours";
-import { ServiciosPagosCard } from "./ServiciosPagosCard";
-import { ServiciosOpcionesFacilidadesCard } from "./ServiciosOpcionesFacilidadesCard";
+import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
+import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import {
   serviciosSavedListingExtras,
@@ -72,18 +53,11 @@ type NavItem = { id: string; label: string };
 
 function mobileNavItems(template: ServiciosListingTemplate, lang: ServiciosLang): NavItem[] {
   const en = lang === "en";
-  if (template === "legal_provider") {
-    return [
-      { id: "servicios-pro-overview", label: en ? "Overview" : "Resumen" },
-      { id: "servicios-pro-reviews", label: en ? "Reviews" : "Reseñas" },
-      { id: "servicios-pro-experience", label: en ? "Experience" : "Experiencia" },
-      { id: "servicios-pro-contact", label: en ? "Contact" : "Contacto" },
-    ];
-  }
+  void template;
   return [
     { id: "servicios-pro-overview", label: en ? "Overview" : "Resumen" },
-    { id: "servicios-pro-reviews", label: en ? "Reviews" : "Reseñas" },
     { id: "servicios-pro-services", label: en ? "Services" : "Servicios" },
+    { id: "servicios-pro-reviews", label: en ? "Reviews" : "Reseñas" },
     { id: "servicios-pro-contact", label: en ? "Contact" : "Contacto" },
   ];
 }
@@ -158,17 +132,11 @@ export function ServiciosProfessionalProfileShell({
   leonixAdIdFooter,
   serviciosDiscoveryResultsHref,
 }: ServiciosProfessionalProfileShellProps) {
-  const servicesTitle = getServicesTitle(template, lang);
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
   const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
 
   const scrollToSection = useCallback((id: string) => {
-    let targetId = id;
-    if (id === "servicios-pro-contact") {
-      const desktop = typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
-      targetId = desktop ? "servicios-pro-contact-desktop" : "servicios-pro-contact";
-    }
-    const el = document.getElementById(targetId);
+    const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
@@ -197,10 +165,6 @@ export function ServiciosProfessionalProfileShell({
           leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
         })
       : null;
-
-  const showExperience =
-    template === "legal_provider" &&
-    (hasCredentialsResolved(profile) || hasBusinessHighlightsResolved(profile));
 
   const showServicesSection = hasServicesSectionResolved(profile);
   const showReviewsSection = hasReviewsSectionResolved(profile);
@@ -290,40 +254,57 @@ export function ServiciosProfessionalProfileShell({
 
           <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
             {(displayProfile, translateControl) => {
-              const chips = collectProfessionalServiceChips(displayProfile, 6);
+              const showCouponBlock =
+                hasPaidCouponsSectionResolved(displayProfile) ||
+                Boolean(displayProfile.couponFlyer?.imageUrl?.trim()) ||
+                Boolean(displayProfile.couponMoreOffers?.url?.trim());
+
               return (
           <div className={LX_PRO_INNER_PAD}>
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
 
-              {hasGallerySectionResolved(profile) ? (
-                <ServiciosGalleryWithTabs
+              {hasAboutSectionResolved(profile) ? (
+                <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+              ) : null}
+
+              <div id="servicios-pro-contact" className={SECTION_SCROLL}>
+                <ServiciosBusinessHubContactCard
                   profile={profile}
+                  lang={lang}
+                  listingTemplate={template}
+                  listingSlug={analyticsListingSlug}
+                  listingSourceId={sourceId || listingSourceId}
+                  listingShareUrl={listingShareUrl}
+                  engagementListingId={engagementListingId}
+                  engagementOwnerUserId={engagementOwnerUserId}
+                  persistListingEngagement={persistListingEngagement}
+                  publicLikeCount={publicLikeCount}
+                  directContactFasterResponseHint={directContactFasterResponseHint}
+                  showOfferSidebarTeaser={false}
+                />
+              </div>
+
+              <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
+
+              {showCouponBlock ? (
+                <ServiciosCouponsCard
+                  coupons={displayProfile.coupons}
+                  lang={lang}
+                  couponFlyer={displayProfile.couponFlyer}
+                  couponMoreOffers={displayProfile.couponMoreOffers}
+                  featuredRow
+                />
+              ) : null}
+
+              {hasGallerySectionResolved(displayProfile) ? (
+                <ServiciosGalleryWithTabs
+                  profile={displayProfile}
                   lang={lang}
                   listingSlug={analyticsListingSlug}
                   listingSourceId={sourceId || listingSourceId}
                   listingShareUrl={listingShareUrl}
-                />
-              ) : null}
-
-              {hasOfferSectionResolved(profile) ? (
-                <ServiciosPromocionesCard
-                  profile={displayProfile}
-                  lang={lang}
-                  premiumLeonixTone
-                  listingSlug={analyticsListingSlug}
-                  listingSourceId={sourceId || listingSourceId}
-                  engagementListingId={engagementListingId}
-                  engagementOwnerUserId={engagementOwnerUserId}
-                />
-              ) : null}
-
-              {profile.coupons && profile.coupons.length > 0 ? (
-                <ServiciosCouponsCard
-                  coupons={profile.coupons}
-                  lang={lang}
-                  couponFlyer={profile.couponFlyer}
-                  couponMoreOffers={profile.couponMoreOffers}
+                  combinedMediaLayout
                 />
               ) : null}
 
@@ -341,127 +322,32 @@ export function ServiciosProfessionalProfileShell({
                 </section>
               ) : null}
 
-              {(chips.length > 0 || hasQuickFactsResolved(profile)) && (
-                <div className={`${LX_SECTION_CARD} p-4 sm:p-5`}>
-                  {chips.length > 0 ? (
-                    <div className="mb-3">
-                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6F6254]">
-                        {servicesTitle}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {chips.map((chip) => (
-                          <span key={chip} className={LX_CHIP}>
-                            {chip}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                  {hasQuickFactsResolved(profile) ? (
-                    <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
-                  ) : null}
-                  <ServiciosLanguageChipRow
-                    profile={profile.hero}
-                    lang={lang}
-                    chipClassName={`${LX_CHIP} shrink-0`}
-                    className="mt-3 flex flex-wrap gap-1.5"
-                  />
-                  {hasTrustSectionResolved(profile) ? (
-                    <div className="mt-4">
-                      <ServiciosTrustSection profile={profile} lang={lang} template={template} />
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              {hasAboutSectionResolved(profile) ? (
-                <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
-              ) : null}
-
-              {hasBusinessHighlightsResolved(profile) ? (
-                <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
-              ) : null}
+              <ServiciosPublicDetailsCanvas
+                profile={profile}
+                displayProfile={displayProfile}
+                lang={lang}
+                template={template}
+              />
             </section>
 
-            <div className={`mt-6 sm:mt-8 ${LX_PRO_GRID}`}>
-              <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
-                {showReviewsSection ? (
-                  <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
-                    <ServiciosReviews profile={profile} lang={lang} />
-                  </section>
-                ) : (
-                  <section id="servicios-pro-reviews" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
-                    <span className="block h-px" />
-                  </section>
-                )}
+            <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
+              {showReviewsSection ? (
+                <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
+                  <ServiciosReviews profile={profile} lang={lang} />
+                </section>
+              ) : (
+                <section id="servicios-pro-reviews" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
+                  <span className="block h-px" />
+                </section>
+              )}
 
-                {showExperience ? (
-                  <section id="servicios-pro-experience" className={`${SECTION_SCROLL} space-y-5 sm:space-y-6`}>
-                    {hasCredentialsResolved(profile) ? (
-                      <ServiciosLicense profile={profile} lang={lang} />
-                    ) : null}
-                    {hasBusinessHighlightsResolved(profile) ? (
-                      <ServiciosHighlightsSection highlights={displayProfile.highlights} lang={lang} />
-                    ) : null}
-                    <ServiciosSmartTrustSummary profile={profile} lang={lang} />
-                  </section>
-                ) : template === "legal_provider" ? (
-                  <section id="servicios-pro-experience" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
-                    <span className="block h-px" />
-                  </section>
-                ) : null}
+              {analyticsListingSlug && showPublicLeadInquiryForm ? (
+                <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+              ) : null}
 
-                {hasPaymentMethodsResolved(profile) ? (
-                  <ServiciosPagosCard profile={profile} lang={lang} />
-                ) : null}
-                {hasAmenityOptionsResolved(profile) ? (
-                  <ServiciosOpcionesFacilidadesCard profile={profile} lang={lang} />
-                ) : null}
-
-                <div id="servicios-pro-contact" className={`${SECTION_SCROLL} lg:hidden`}>
-                  <ServiciosBusinessHubContactCard
-                    profile={profile}
-                    lang={lang}
-                    listingTemplate={template}
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={sourceId || listingSourceId}
-                    listingShareUrl={listingShareUrl}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
-                    persistListingEngagement={persistListingEngagement}
-                    publicLikeCount={publicLikeCount}
-                    directContactFasterResponseHint={directContactFasterResponseHint}
-                    showOfferSidebarTeaser={false}
-                  />
-                </div>
-
-                {analyticsListingSlug && showPublicLeadInquiryForm ? (
-                  <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
-                ) : null}
-
-                {!profile.contact.hours?.weeklyRows ? (
-                  <ServiciosHours profile={profile} lang={lang} />
-                ) : null}
-              </div>
-
-              <aside className={`${LX_PRO_ASIDE} lg:top-[4.5rem]`}>
-                <div id="servicios-pro-contact-desktop" className={SECTION_SCROLL}>
-                  <ServiciosBusinessHubContactCard
-                    profile={profile}
-                    lang={lang}
-                    listingTemplate={template}
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={sourceId || listingSourceId}
-                    listingShareUrl={listingShareUrl}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
-                    persistListingEngagement={persistListingEngagement}
-                    publicLikeCount={publicLikeCount}
-                    directContactFasterResponseHint={directContactFasterResponseHint}
-                    showOfferSidebarTeaser={false}
-                  />
-                </div>
-              </aside>
+              {!profile.contact.hours?.weeklyRows ? (
+                <ServiciosHours profile={profile} lang={lang} />
+              ) : null}
             </div>
 
             {leonixAdIdFooter ? (

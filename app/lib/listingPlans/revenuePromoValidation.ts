@@ -11,9 +11,12 @@ import {
   calculatePromoDiscountCents,
   loadPromoByCode,
   resolvePromoAmountOffCents,
+  resolvePromoCanDiscountPayment,
   resolvePromoCategoryScope,
   resolvePromoPercentOff,
+  resolvePromoRequiresSubscriberIdentity,
   resolveRevenuePromoTypeFromRow,
+  resolveWebsiteLaunch25Rejection,
 } from "./revenuePromoRedemptions";
 
 export type PromoPublishValidationInput = {
@@ -65,6 +68,21 @@ function buildDiscountLabel(promoType: string, percentOff: number | null, amount
   return "Discount";
 }
 
+/** Map internal eligibility reasons to a short bilingual detail for the checkout UI. */
+function localizeEligibilityReason(reason: string, locale: "es" | "en"): string | undefined {
+  const r = String(reason ?? "").toLowerCase();
+  const es = locale === "es";
+  if (r.includes("category")) return es ? "(No válido para esta categoría.)" : "(Not valid for this category.)";
+  if (r.includes("package")) return es ? "(No válido para este paquete.)" : "(Not valid for this package.)";
+  if (r.includes("placement")) return es ? "(No válido para esta ubicación.)" : "(Not valid for this placement.)";
+  if (r.includes("expired")) return es ? "(El código expiró.)" : "(Code expired.)";
+  if (r.includes("not yet active")) return es ? "(El código aún no está activo.)" : "(Code not yet active.)";
+  if (r.includes("inactive")) return es ? "(El código está inactivo.)" : "(Code is inactive.)";
+  if (r.includes("redemption limit") || r.includes("limit reached"))
+    return es ? "(Se alcanzó el límite de usos.)" : "(Redemption limit reached.)";
+  return undefined;
+}
+
 function invalidResult(locale: "es" | "en", detail?: string): PromoPublishValidationFailure {
   const base = locale === "es" ? PROMO_CHECKOUT_INVALID_MESSAGE.es : PROMO_CHECKOUT_INVALID_MESSAGE.en;
   return {
@@ -101,6 +119,34 @@ export async function validatePromoForPublishCheckout(
 
   if (effectiveStatus !== "active") {
     return invalidResult(locale);
+  }
+
+  if (resolveWebsiteLaunch25Rejection(row, packageKey)) {
+    return invalidResult(locale);
+  }
+
+  // Payment-discount gate: only an explicit `can_discount_payment = false` blocks paid checkout.
+  if (!resolvePromoCanDiscountPayment(row)) {
+    return invalidResult(
+      locale,
+      locale === "es"
+        ? "(Este código no permite descontar el pago.)"
+        : "(This code cannot discount payment.)",
+    );
+  }
+
+  // Assigned/private tracking alone does NOT block. Identity is only enforced when the promo
+  // explicitly requires a matching subscriber/owner identity and checkout cannot prove one.
+  if (resolvePromoRequiresSubscriberIdentity(row)) {
+    const identity = String(input.customerEmail ?? "").trim();
+    if (!identity) {
+      return invalidResult(
+        locale,
+        locale === "es"
+          ? "(Este código requiere identidad de suscriptor.)"
+          : "(This code requires subscriber identity.)",
+      );
+    }
   }
 
   const promoType = resolveRevenuePromoTypeFromRow(row);
@@ -140,7 +186,7 @@ export async function validatePromoForPublishCheckout(
   });
 
   if (!validation.eligible) {
-    return invalidResult(locale);
+    return invalidResult(locale, localizeEligibilityReason(validation.reason, locale));
   }
 
   const discountCents = calculatePromoDiscountCents({

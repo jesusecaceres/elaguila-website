@@ -1,17 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
-import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
-import {
-  CAT_STD_REFINE_EYEBROW,
-  CAT_STD_RESULTS_REFINE_PANEL,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { CAT_STD_PER_PAGE_OPTIONS } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryResultsShell,
+  LeonixCategoryActiveFilters,
+  LeonixCategoryResultsToolbar,
+  LeonixCategoryCompactEmptyState,
+  type Lang as V2Lang,
+  type ViewMode,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import {
   RESTAURANTE_BUSINESS_TYPES,
   RESTAURANTE_CUISINES,
@@ -32,25 +36,16 @@ import {
 import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import { loadRestaurantesBuyerSavedIdSet } from "@/app/clasificados/restaurantes/lib/restaurantesBuyerSavedIds";
 import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
-import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
-import { getRestaurantesDestacadosRows } from "@/app/clasificados/restaurantes/lib/restaurantesDestacados";
 import { applyRestaurantesVisibilityRanking } from "@/app/clasificados/restaurantes/lib/restaurantesVisibilityRanking";
 import { leonixPersonalizationAllowed } from "@/app/lib/leonixPublicConsent";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { RestaurantesResultsInventorySource } from "@/app/clasificados/restaurantes/lib/restaurantesResultsInventoryServer";
 import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
-import { RestaurantesCompactSearchCanvas } from "@/app/clasificados/restaurantes/landing/RestaurantesCompactSearchCanvas";
 import {
   LEONIX_LB_DEFAULT_COUNTRY,
   LEONIX_LB_DEFAULT_STATE,
   US_STATE_OPTIONS,
 } from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
-import {
-  LX_LB_BTN_PRIMARY,
-  LX_LB_BTN_SECONDARY,
-} from "@/app/(site)/clasificados/shared/components/LeonixLocalBusinessCompactSearchCanvas";
-
-const RX_RESULTS_FORM_ID = "restaurantes-results-search-form";
 
 function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string {
   switch (svc) {
@@ -113,6 +108,20 @@ export function RestaurantesResultsShell({
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [dismissPublishFlash, setDismissPublishFlash] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [searchQ, setSearchQ] = useState(parsed.q);
+  const [searchCity, setSearchCity] = useState(parsed.city);
+  const [searchState, setSearchState] = useState(parsed.state || LEONIX_LB_DEFAULT_STATE);
+  const [searchZip, setSearchZip] = useState(parsed.zip);
+  const [searchCountry, setSearchCountry] = useState(parsed.country || LEONIX_LB_DEFAULT_COUNTRY);
+
+  useEffect(() => {
+    setSearchQ(parsed.q);
+    setSearchCity(parsed.city);
+    setSearchState(parsed.state || LEONIX_LB_DEFAULT_STATE);
+    setSearchZip(parsed.zip);
+    setSearchCountry(parsed.country || LEONIX_LB_DEFAULT_COUNTRY);
+  }, [parsed.q, parsed.city, parsed.state, parsed.zip, parsed.country]);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,8 +153,6 @@ export function RestaurantesResultsShell({
     [filteredUnsorted],
   );
 
-  const destacadosRows = useMemo(() => getRestaurantesDestacadosRows(ranked), [ranked]);
-
   const sorted = useMemo(() => sortRestaurantesBlueprintRows(ranked, effectiveSort), [ranked, effectiveSort]);
 
   const gridRows = sorted;
@@ -165,14 +172,13 @@ export function RestaurantesResultsShell({
     [lang, router],
   );
 
-  const onSearchCapture = (e: FormEvent<HTMLFormElement>) => {
-    const fd = new FormData(e.currentTarget);
+  const submitSearch = () => {
     const next = mergeDiscovery(parsed, {
-      q: String(fd.get("q") ?? "").trim(),
-      city: String(fd.get("city") ?? "").trim(),
-      state: String(fd.get("state") ?? "").trim() || LEONIX_LB_DEFAULT_STATE,
-      zip: String(fd.get("zip") ?? "").trim(),
-      country: String(fd.get("country") ?? "").trim() || LEONIX_LB_DEFAULT_COUNTRY,
+      q: searchQ.trim(),
+      city: searchCity.trim(),
+      state: searchState.trim() || LEONIX_LB_DEFAULT_STATE,
+      zip: searchZip.trim(),
+      country: searchCountry.trim() || LEONIX_LB_DEFAULT_COUNTRY,
       page: 1,
     });
     rememberRestaurantesDiscoveryFromState(next);
@@ -1105,240 +1111,181 @@ export function RestaurantesResultsShell({
     return chips;
   }, [parsed, pushState, t, lang]);
 
-  const locationToolbar = (
-    <>
-      {activeChips.length > 0 ? (
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+  const clearHref = buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang)));
+  const resultItems = (
+    <ul className="flex w-full min-w-0 list-none flex-col gap-3 sm:gap-4">
+      {shown.map((row) => (
+        <li key={row.id} className="min-w-0 w-full">
+          <RestaurantePublishedListingCard
+            row={row}
+            lang={lang}
+            cta={t.verMas}
+            narrowLabel={t.resultNarrowInResults}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+
+  const pagination =
+    pageCount > 1 ? (
+      <nav className="mt-4 flex flex-wrap items-center justify-center gap-2" aria-label={lang === "es" ? "Paginación" : "Pagination"}>
+        {currentPage > 1 ? (
+          <Link
+            href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage - 1 })))}
+            className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
+          >
+            {lang === "es" ? "Anterior" : "Previous"}
+          </Link>
+        ) : null}
+        <span className="text-sm text-[color:var(--lx-muted)]">
+          {lang === "es" ? `Página ${currentPage} de ${pageCount}` : `Page ${currentPage} of ${pageCount}`}
+        </span>
+        {currentPage < pageCount ? (
+          <Link
+            href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage + 1 })))}
+            className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
+          >
+            {lang === "es" ? "Siguiente" : "Next"}
+          </Link>
+        ) : null}
+      </nav>
+    ) : null;
+
+  const hero = (
+    <LeonixCategoryHeroGateway
+      lang={lang as V2Lang}
+      surface="results"
+      title={t.title}
+      tagline={lang === "es" ? "Sabores cerca de tu comunidad." : "Local flavor close to your community."}
+      intro={lang === "es" ? "Busca restaurantes por nombre, cocina, ciudad o codigo postal." : "Search restaurants by name, cuisine, city, or ZIP."}
+      introSecondary={t.subtitle}
+      eyebrow={t.eyebrow}
+      searchSlot={
+        <LeonixCategorySearchCanvas
+          lang={lang as V2Lang}
+          surface="results"
+          query={searchQ}
+          city={searchCity}
+          state={searchState}
+          zip={searchZip}
+          country={searchCountry}
+          onQuery={setSearchQ}
+          onCity={setSearchCity}
+          onState={setSearchState}
+          onZip={setSearchZip}
+          onCountry={setSearchCountry}
+          onSearch={submitSearch}
+          onOpenFilters={() => setFiltersPanelOpen(true)}
+          browseAllHref={clearHref}
+          browseAllLabel={t.clearAll}
+          searchButtonLabel={t.search}
+          filtersButtonLabel={t.filters}
+        />
+      }
+    />
+  );
+
+  return (
+    <LeonixCategoryPageShell surface="results">
+      {inventoryBannerNote ? (
+        <p
+          className={`mb-3 rounded-[14px] border px-4 py-3 text-xs leading-relaxed shadow-sm sm:text-sm ${
+            inventorySource === "published"
+              ? "border-amber-200/90 bg-amber-50/90 text-amber-950"
+              : "border-red-300/90 bg-red-50/95 text-red-950"
+          }`}
+          role="status"
+        >
+          {inventorySource === "inventory_unavailable" ? <span className="font-semibold">Inventario no disponible: </span> : null}
+          {inventorySource === "inventory_query_failed" ? <span className="font-semibold">Error al cargar listados: </span> : null}
+          {inventoryBannerNote}
+        </p>
+      ) : null}
+      {publishFlash ? (
+        <div className="mb-3 flex flex-col gap-2 rounded-[14px] border border-emerald-300/80 bg-emerald-50/95 px-4 py-3 text-emerald-950 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold">{t.publishFlashTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed opacity-90 sm:text-sm">{t.publishFlashBody}</p>
+          </div>
           <button
             type="button"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-[12px] border border-[color:var(--lx-border)]/50 px-4 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-section)]"
-            onClick={() =>
-              router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
-            }
+            onClick={() => setDismissPublishFlash(true)}
+            className="inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-full border border-emerald-700/25 bg-white/80 px-4 text-xs font-bold text-emerald-900 transition hover:bg-white"
           >
-            {t.clearAll}
+            {t.publishFlashDismiss}
           </button>
         </div>
       ) : null}
-      {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
-        <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.nearHonest}</p>
-      ) : null}
-    </>
-  );
-
-  const clearHref = buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang)));
-
-  return (
-    <CategoryStandardResultsPageShell>
-    <div className="min-h-screen overflow-x-hidden text-[color:var(--lx-text)]">
-      {inventoryBannerNote ? (
-        <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-4 sm:px-5 md:px-5 lg:px-6">
-          <p
-            className={`rounded-[14px] border px-4 py-3 text-xs leading-relaxed shadow-sm sm:text-sm ${
-              inventorySource === "published"
-                ? "border-amber-200/90 bg-amber-50/90 text-amber-950"
-                : "border-red-300/90 bg-red-50/95 text-red-950"
-            }`}
-            role="status"
-          >
-            {inventorySource === "inventory_unavailable" ? <span className="font-semibold">Inventario no disponible: </span> : null}
-            {inventorySource === "inventory_query_failed" ? <span className="font-semibold">Error al cargar listados: </span> : null}
-            {inventoryBannerNote}
-          </p>
-        </div>
-      ) : null}
-      {publishFlash ? (
-        <div className="mx-auto max-w-[1280px] min-w-0 px-4 pt-3 sm:px-5 md:px-5 lg:px-6">
-          <div className="flex flex-col gap-2 rounded-[14px] border border-emerald-300/80 bg-emerald-50/95 px-4 py-3 text-emerald-950 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold">{t.publishFlashTitle}</p>
-              <p className="mt-1 text-xs leading-relaxed opacity-90 sm:text-sm">{t.publishFlashBody}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDismissPublishFlash(true)}
-              className="inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-full border border-emerald-700/25 bg-white/80 px-4 text-xs font-bold text-emerald-900 transition hover:bg-white"
-            >
-              {t.publishFlashDismiss}
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <div className="mx-auto max-w-[1280px] min-w-0 px-4 pb-14 pt-3 sm:px-5 sm:pb-16 md:px-5 lg:px-6">
-        <CategoryStandardResultsHeader
-          lang={lang}
-          title={t.title}
-          subtitle={lang === "es" ? "Busca y afina en Filtros." : "Search and refine in Filters."}
-          backHref={landingHref}
-          backLabel={t.backLanding}
-          clearHref={clearHref}
-          resultCount={sorted.length}
-        />
-
-          <section
-            className={CAT_STD_RESULTS_REFINE_PANEL}
-            aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
-          >
-            <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
-            <div className="mt-2">
-            <RestaurantesCompactSearchCanvas
-              lang={lang}
-              defaultQ={parsed.q}
-              defaultCity={parsed.city}
-              defaultState={parsed.state || LEONIX_LB_DEFAULT_STATE}
-              defaultZip={parsed.zip}
-              defaultCountry={parsed.country || LEONIX_LB_DEFAULT_COUNTRY}
-              showBrowseAll={false}
-              onSubmitCapture={onSearchCapture}
-              secondRow={
-                <button
-                  type="button"
-                  className={`${LX_LB_BTN_SECONDARY} min-w-[5rem]`}
-                  onClick={() => setFiltersPanelOpen(true)}
-                >
-                  {t.filters}
-                </button>
-              }
-            />
-            </div>
-          </section>
-
-        <div className="mt-2 flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <p className="min-w-0 shrink text-sm leading-snug text-[color:var(--lx-text)]/80">
-            <span className="font-semibold text-[color:var(--lx-text)]">{sorted.length}</span>{" "}
-            <span className="text-[color:var(--lx-muted)]">{t.resultsMatching}</span>
-          </p>
-          <div className="flex min-w-0 w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
-            <label className="flex min-w-0 w-full flex-col gap-1.5 text-sm sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-              <span className="shrink-0 text-[color:var(--lx-muted)]">{t.sort}</span>
-              <select
-                aria-label={t.sort}
-                className="min-h-[48px] w-full min-w-0 max-w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none transition focus:border-[#D97706]/45 focus:ring-2 focus:ring-[#D97706]/25 sm:w-auto sm:min-w-[min(100%,200px)] md:min-w-[200px]"
-                value={parsed.top ? "rating-desc" : parsed.sort}
-                onChange={(e) => {
-                  const v = e.target.value as RestaurantesDiscoveryState["sort"];
-                  pushState(mergeDiscovery(parsed, { sort: v, top: false, page: 1 }));
-                }}
-              >
-                <option value="newest">{t.sortNew}</option>
-                <option value="name-asc">{t.sortName}</option>
-                <option value="rating-desc">{t.sortRating}</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              className="inline-flex min-h-[36px] shrink-0 items-center justify-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)] shadow-sm hover:bg-[#FAF6EE]"
-              onClick={() => setFiltersPanelOpen(true)}
-            >
-              {t.filters}
-            </button>
-            <select
-              className="min-h-[36px] rounded-full border border-[#D6C7AD] bg-white px-3 py-1.5 text-xs font-medium"
-              value={perPage}
-              onChange={(e) => pushState(mergeDiscovery(parsed, { perPage: Number(e.target.value), page: 1 }))}
-              aria-label={lang === "es" ? "Mostrar por página" : "Per page"}
-            >
-              {CAT_STD_PER_PAGE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="inline-flex min-h-[36px] items-center rounded-full border border-[#D6C7AD] bg-white px-3 py-2 text-xs font-semibold hover:bg-[#FAF6EE]"
-              onClick={() =>
+      <LeonixCategoryResultsShell
+        surface="results"
+        hero={hero}
+        activeFilters={
+          <>
+            <LeonixCategoryActiveFilters
+              label={t.active}
+              chips={activeChips.map((chip) => ({
+                id: chip.id,
+                label: chip.label,
+                onClear: chip.clear,
+              }))}
+              clearAllLabel={t.clearAll}
+              onClearAll={() =>
                 router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
               }
-            >
-              {t.clearAll}
-            </button>
-          </div>
-        </div>
-        {locationToolbar}
-
-        {activeChips.length ? (
-          <div className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <span className="shrink-0 text-xs font-semibold text-[color:var(--lx-muted)]">{t.active}:</span>
-            <div className="-mx-1 flex min-w-0 flex-1 flex-wrap items-center gap-2 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:overflow-visible [&::-webkit-scrollbar]:hidden">
-              {activeChips.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={c.clear}
-                  className="inline-flex min-h-[40px] max-w-[min(100%,280px)] shrink-0 items-center gap-1 overflow-hidden text-ellipsis rounded-full border border-[#D97706]/35 bg-[color:var(--lx-section)] px-3 text-left text-xs font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-canvas)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50 sm:max-w-none"
-                >
-                  <span className="truncate">{c.label}</span> <span aria-hidden>×</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mt-4 min-w-0">
-          <div className="min-w-0">
-            {destacadosRows.length > 0 ? (
-              <div className="mb-4 sm:mb-5">
-                <RestaurantesDestacadosSection
-                  rows={destacadosRows}
-                  lang={lang}
-                  id="restaurantes-res-destacados"
-                />
-              </div>
+            />
+            {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
+              <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.nearHonest}</p>
             ) : null}
-
-            {shown.length === 0 ? (
-              <div className="rounded-[20px] border border-dashed border-[color:var(--lx-border)]/50 bg-[color:var(--lx-section)] px-5 py-10 text-center sm:px-8 sm:py-14 md:px-10">
-                <p className="font-serif text-lg font-semibold text-[color:var(--lx-text)]">{t.emptyTitle}</p>
-                <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[color:var(--lx-muted)]">{t.emptyBody}</p>
-                <Link
-                  href={landingHref}
-                  className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-[14px] border border-[#D97706]/45 bg-[color:var(--lx-card)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[color:var(--lx-section)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50"
-                >
-                  {t.emptyCta}
-                </Link>
-              </div>
-            ) : (
-              <ul className="flex list-none w-full min-w-0 flex-col gap-3 sm:gap-4">
-                {shown.map((row) => (
-                  <li key={row.id} className="min-w-0 w-full">
-                    <RestaurantePublishedListingCard
-                      row={row}
-                      lang={lang}
-                      cta={t.verMas}
-                      narrowLabel={t.resultNarrowInResults}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {pageCount > 1 ? (
-              <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label={lang === "es" ? "Paginación" : "Pagination"}>
-                {currentPage > 1 ? (
-                  <Link
-                    href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage - 1 })))}
-                    className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
-                  >
-                    {lang === "es" ? "Anterior" : "Previous"}
-                  </Link>
-                ) : null}
-                <span className="text-sm text-[color:var(--lx-muted)]">
-                  {lang === "es" ? `Página ${currentPage} de ${pageCount}` : `Page ${currentPage} of ${pageCount}`}
-                </span>
-                {currentPage < pageCount ? (
-                  <Link
-                    href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage + 1 })))}
-                    className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
-                  >
-                    {lang === "es" ? "Siguiente" : "Next"}
-                  </Link>
-                ) : null}
-              </nav>
-            ) : null}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+        toolbar={
+          <LeonixCategoryResultsToolbar
+            lang={lang as V2Lang}
+            countText={`${sorted.length} ${t.resultsMatching}`}
+            resultCount={sorted.length}
+            showingFrom={shown.length > 0 ? (currentPage - 1) * perPage + 1 : 0}
+            showingTo={shown.length > 0 ? (currentPage - 1) * perPage + shown.length : 0}
+            sortLabel={t.sort}
+            sortValue={parsed.top ? "rating-desc" : parsed.sort}
+            onSortChange={(value) => {
+              const v = value as RestaurantesDiscoveryState["sort"];
+              pushState(mergeDiscovery(parsed, { sort: v, top: false, page: 1 }));
+            }}
+            sortOptions={[
+              { value: "newest", label: t.sortNew },
+              { value: "name-asc", label: t.sortName },
+              { value: "rating-desc", label: t.sortRating },
+            ]}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            filtersButtonLabel={t.filters}
+            onOpenFilters={() => setFiltersPanelOpen(true)}
+            perPageLabel={lang === "es" ? "Por pagina" : "Per page"}
+            perPageValue={perPage}
+            onPerPageChange={(value) => pushState(mergeDiscovery(parsed, { perPage: value, page: 1 }))}
+            perPageOptions={[...CAT_STD_PER_PAGE_OPTIONS]}
+            clearAllLabel={activeChips.length > 0 ? t.clearAll : undefined}
+            onClearAll={
+              activeChips.length > 0
+                ? () => router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+                : undefined
+            }
+          />
+        }
+        emptyState={
+          <LeonixCategoryCompactEmptyState
+            title={t.emptyTitle}
+            body={t.emptyBody}
+            ctaLabel={t.emptyCta}
+            ctaHref={landingHref}
+          />
+        }
+        pagination={pagination}
+        hasResults={shown.length > 0}
+      >
+        {resultItems}
+      </LeonixCategoryResultsShell>
 
       {filtersPanelOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={t.filters}>
@@ -1359,7 +1306,6 @@ export function RestaurantesResultsShell({
           </div>
         </div>
       ) : null}
-    </div>
-    </CategoryStandardResultsPageShell>
+    </LeonixCategoryPageShell>
   );
 }

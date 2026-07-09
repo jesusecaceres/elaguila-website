@@ -44,8 +44,25 @@ For each product/deal tile, return:
   "confidence_score": number,
   "needs_review_reason": string or null,
   "raw_evidence": string,
-  "source_bbox": [number, number, number, number]
+  "source_bbox": [number, number, number, number],
+  "item_number": string or null,
+  "sku": string or null,
+  "model_number": string or null,
+  "upc": string or null,
+  "coupon_code": string or null,
+  "item_url": string or null,
+  "online_availability": "unknown" | "online" | "in_store" | "both"
 }
+
+Commerce metadata rules:
+- Extract item_number, sku, model_number, upc, coupon_code, item_url, and online_availability only when visibly printed on the product tile or immediately adjacent to it.
+- Do not hallucinate item numbers, SKUs, model numbers, UPCs, coupon codes, or URLs.
+- Do not guess URLs. Do not use the store homepage as item_url.
+- item_url must be a visible direct product or deal URL printed on the flyer when present.
+- coupon_code only when a real coupon/promo code is visibly printed.
+- SKU/model/item number may appear as Item #, SKU, Model, Mfr #, Part #, UPC, etc.
+- UPC only when clearly visible as readable numbers — not from a barcode image without text.
+- If unsure about any commerce field, return null for that field and online_availability "unknown".
 
 Rules:
 - Do not hallucinate.

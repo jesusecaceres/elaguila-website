@@ -37,8 +37,8 @@ import { isJunkServiciosQuickFactLabel } from "./serviciosContactVisibility";
 export const MAX_SERVICES_SELECTION = 24;
 /** Max free-text custom services (independent of preset cap) */
 export const MAX_CUSTOM_SERVICES_OFFERED = 40;
-export const MAX_REASONS_SELECTION = 3;
-export const MAX_QUICK_FACTS_SELECTION = 3;
+export const MAX_REASONS_SELECTION = 6;
+export const MAX_QUICK_FACTS_SELECTION = 5;
 
 export const CUSTOM_CHIP_MAX_LENGTH = 28;
 

@@ -96,6 +96,30 @@ function socialHeadline(platform: ServiciosBusinessHubSocialLink["platform"]): s
   return map[platform];
 }
 
+function cleanHubLinkLabel(label: string, url: string, lang: ServiciosLang): string {
+  const trimmed = label.trim().replace(/\s+/g, " ").replace(/\s+\./g, ".");
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./i, "");
+  } catch {
+    host = "";
+  }
+  const fallback = host || (lang === "en" ? "Website" : "Sitio web");
+  const weak = trimmed.toLowerCase();
+  if (
+    !trimmed ||
+    weak === "website" ||
+    weak === "sitio web" ||
+    weak === "aol website" ||
+    weak === "aol website." ||
+    weak === "additional link" ||
+    weak === "enlace adicional"
+  ) {
+    return fallback;
+  }
+  return trimmed;
+}
+
 function HubSectionTitle({ children }: { children: ReactNode }) {
   return (
     <h3 className="border-b border-[#E8D9C4]/80 pb-2 text-sm font-bold tracking-tight text-[#1E1814] sm:text-base">
@@ -610,7 +634,7 @@ export function ServiciosBusinessHubContactCard({
                     className={moreLinkClass}
                   >
                     <FiGlobe className="h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
-                    <span className="min-w-0 flex-1 break-words">{link.label}</span>
+                    <span className="min-w-0 flex-1 break-words">{cleanHubLinkLabel(link.label, link.url, lang)}</span>
                   </button>
                 ))}
               </div>

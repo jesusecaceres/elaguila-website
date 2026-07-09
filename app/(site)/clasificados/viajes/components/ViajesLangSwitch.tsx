@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { navCopyLang, normalizeLang, type SupportedLang } from "@/app/lib/language";
 
-function buildHref(pathname: string, sp: URLSearchParams, lang: Lang) {
+function buildHref(pathname: string, sp: URLSearchParams, lang: Lang | SupportedLang) {
   const p = new URLSearchParams(sp.toString());
   p.set("lang", lang);
   const qs = p.toString();
@@ -16,7 +17,8 @@ export function ViajesLangSwitch({ compact }: { compact?: boolean }) {
   const pathname = usePathname();
   const sp = useSearchParams();
   const params = sp ?? new URLSearchParams();
-  const current: Lang = params.get("lang") === "en" ? "en" : "es";
+  const routeLang = normalizeLang(params.get("lang"));
+  const current = navCopyLang(routeLang);
 
   const pill = (lang: Lang, label: string) => {
     const active = current === lang;

@@ -20,10 +20,16 @@ import {
   autosDealerInventoryUpgradePitch,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
 import {
-  autosDealerInventoryAddTenSlotsCta,
   autosDealerInventoryValueBullets,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
-import { AutosNegociosInventoryBoostTrigger } from "@/app/publicar/autos/negocios/components/AutosNegociosInventoryBoostTrigger";
+import {
+  autosDealerInventoryEditHref,
+  autosDealerInventoryPackAddonUpgradeLabel,
+  autosDealerInventoryPackEditLabel,
+  autosDealerListingEditHref,
+  redirectAutosDealerInventoryPackCheckout,
+  REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED,
+} from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import {
   autosDealerInventoryActiveCountLine,
   autosDealerInventoryRemainingSlotsLine,
@@ -227,17 +233,21 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       {hasNegociosRows && atLimit ? (
         <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
           <p>{autosDealerInventoryLimitMessage(lang)}</p>
-          <div className="mt-3">
-            <AutosNegociosInventoryBoostTrigger
-              lang={lang}
-              label={autosDealerInventoryAddTenSlotsCta(lang)}
-              editorContext={{
-                editorPath: typeof window !== "undefined" ? window.location.pathname : "/dashboard/mis-anuncios",
-                editorSearch: typeof window !== "undefined" ? window.location.search : "",
-              }}
-              className="!min-h-[40px] !rounded-lg !px-3 !text-xs"
-              variant="primary"
-            />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED && groups[0]?.mainListingId ? (
+              <button
+                type="button"
+                className="inline-flex min-h-[40px] items-center justify-center rounded-lg bg-[#2A2620] px-3 text-xs font-bold text-[#FAF7F2]"
+                onClick={() =>
+                  void redirectAutosDealerInventoryPackCheckout({
+                    listingId: groups[0]!.mainListingId!,
+                    lang,
+                  })
+                }
+              >
+                {autosDealerInventoryPackAddonUpgradeLabel(lang)}
+              </button>
+            ) : null}
           </div>
         </div>
       ) : hasNegociosRows ? (
@@ -323,6 +333,22 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                       label={autosDealerInventoryAddVehicleCta(lang)}
                       className="!min-h-[40px] !rounded-lg !px-3 !text-xs"
                     />
+                  ) : null}
+                  {parentId ? (
+                    <Link
+                      href={autosDealerListingEditHref({ lang, listingId: parentId })}
+                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-xs font-bold text-[#2C2416]"
+                    >
+                      {lang === "es" ? "Editar anuncio" : "Edit listing"}
+                    </Link>
+                  ) : null}
+                  {parentId ? (
+                    <Link
+                      href={autosDealerInventoryEditHref({ lang, listingId: parentId })}
+                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#C9B46A]/45 bg-[#FBF7EF] px-3 text-xs font-bold text-[#5C4E2E]"
+                    >
+                      {autosDealerInventoryPackEditLabel(lang)}
+                    </Link>
                   ) : null}
                   <Link
                     href={manageHref}

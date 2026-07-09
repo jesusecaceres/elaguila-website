@@ -1,5 +1,6 @@
 import type {
   ServiciosBusinessProfile,
+  ServiciosCouponWire,
   ServiciosGalleryImage,
   ServiciosProfileResolved,
   ServiciosLang,
@@ -164,6 +165,9 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
 
   const promotions = resolveWirePromotions(input, lang);
   const coupons = resolveWireCoupons(input, lang);
+  const couponFlyerUrl = safePromoAssetHref(input.couponFlyer?.imageUrl) ?? undefined;
+  const couponMoreUrl = safePromoHref(input.couponMoreOffers?.url) ?? undefined;
+  const couponMoreLabel = trimText(input.couponMoreOffers?.buttonLabel ?? "") || undefined;
 
   /** Testimonials: quote + author only (no self-serve per-quote stars) */
   const reviews = meaningfulReviews(input.reviews).map((r) => ({
@@ -245,6 +249,15 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     customAmenityOptions: filterCustomAmenityOptions(input.customAmenityOptions),
     promotions,
     coupons,
+    ...(couponFlyerUrl ? { couponFlyer: { imageUrl: couponFlyerUrl } } : {}),
+    ...(couponMoreUrl
+      ? {
+          couponMoreOffers: {
+            url: couponMoreUrl,
+            ...(couponMoreLabel ? { buttonLabel: couponMoreLabel.slice(0, 80) } : {}),
+          },
+        }
+      : {}),
     ...(credentials ? { credentials } : {}),
   };
 }
@@ -273,18 +286,64 @@ function resolveWireCoupons(
   input: ServiciosBusinessProfile,
   lang: ServiciosLang,
 ): ServiciosProfileResolved["coupons"] {
-  const raw: ServiciosPromoOffer[] = [];
-  if (Array.isArray(input.coupons) && input.coupons.length > 0) {
-    for (const c of input.coupons.slice(0, 4)) {
-      if (c && typeof c === "object" && typeof c.id === "string") raw.push(c);
-    }
-  }
+  const raw = input.coupons ?? [];
   const out: ServiciosProfileResolved["coupons"] = [];
-  for (const offer of raw) {
-    const row = resolveOneCouponWire(offer, lang);
+  for (const offer of raw.slice(0, 4)) {
+    if (!offer || typeof offer !== "object" || typeof offer.id !== "string") continue;
+    const row = isRichCouponWire(offer)
+      ? resolveOneRichCouponWire(offer, lang)
+      : resolveOneCouponWire(offer as ServiciosPromoOffer, lang);
     if (row) out.push(row);
   }
   return out;
+}
+
+function isRichCouponWire(c: ServiciosPromoOffer | ServiciosCouponWire): c is ServiciosCouponWire {
+  return "title" in c && typeof (c as ServiciosCouponWire).title === "string";
+}
+
+function resolveOneRichCouponWire(
+  couponIn: ServiciosCouponWire,
+  lang: ServiciosLang,
+): ServiciosProfileResolved["coupons"][number] | null {
+  const title = trimText(couponIn.title);
+  const description = trimText(couponIn.description) || undefined;
+  const hrefSafe = safePromoHref(couponIn.href) ?? undefined;
+  const imageUrl = safePromoAssetHref(couponIn.imageUrl) ?? undefined;
+  const couponCode = trimText(couponIn.couponCode) || undefined;
+  const expirationDate = trimText(couponIn.expirationDate) || undefined;
+  const redemptionNote = trimText(couponIn.redemptionNote) || undefined;
+  const ctaLabel = trimText(couponIn.ctaLabel) || undefined;
+  const regularPrice = trimText(couponIn.regularPrice) || undefined;
+  const specialPrice = trimText(couponIn.specialPrice) || undefined;
+  const savings = trimText(couponIn.savings) || undefined;
+  const hasWire =
+    title ||
+    description ||
+    hrefSafe ||
+    imageUrl ||
+    couponCode ||
+    redemptionNote ||
+    expirationDate ||
+    regularPrice ||
+    specialPrice ||
+    savings;
+  if (!hasWire) return null;
+  const row: ServiciosProfileResolved["coupons"][number] = {
+    id: trimText(couponIn.id) || "coupon",
+    title: title || (lang === "en" ? "Featured offer" : "Oferta destacada"),
+  };
+  if (description) row.description = description;
+  if (hrefSafe) row.hrefSafe = hrefSafe;
+  if (imageUrl) row.imageUrl = imageUrl;
+  if (couponCode) row.couponCode = couponCode;
+  if (expirationDate) row.expirationDate = expirationDate;
+  if (redemptionNote) row.redemptionNote = redemptionNote;
+  if (ctaLabel) row.ctaLabel = ctaLabel;
+  if (regularPrice) row.regularPrice = regularPrice;
+  if (specialPrice) row.specialPrice = specialPrice;
+  if (savings) row.savings = savings;
+  return row;
 }
 
 function resolveOneCouponWire(

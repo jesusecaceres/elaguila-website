@@ -99,3 +99,47 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Default chunk size for Gmail BCC paste (avoids one giant comma list). */
+export const NEWSLETTER_BCC_CHUNK_SIZE = 50;
+
+/** Subscribed rows with a non-empty email, deduped. */
+export function subscribedEmailsFromRows<T extends { status: string; email: string }>(rows: T[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const row of rows) {
+    if (row.status !== "subscribed") continue;
+    const email = row.email.trim();
+    if (!email) continue;
+    const key = email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(email);
+  }
+  return out;
+}
+
+/** Comma-separated list for a single Gmail BCC field. */
+export function formatEmailsForBcc(emails: string[]): string {
+  return emails.join(", ");
+}
+
+/**
+ * Chunked BCC copy block for manual Gmail outreach.
+ * Example:
+ * Chunk 1:
+ * a@x.com, b@y.com
+ *
+ * Chunk 2:
+ * c@z.com
+ */
+export function formatBccEmailChunks(emails: string[], chunkSize = NEWSLETTER_BCC_CHUNK_SIZE): string {
+  if (emails.length === 0) return "";
+  const chunks: string[] = [];
+  for (let i = 0; i < emails.length; i += chunkSize) {
+    const slice = emails.slice(i, i + chunkSize);
+    const n = Math.floor(i / chunkSize) + 1;
+    chunks.push(`Chunk ${n}:\n${slice.join(", ")}`);
+  }
+  return chunks.join("\n\n");
+}

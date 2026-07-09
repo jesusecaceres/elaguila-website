@@ -6,7 +6,10 @@ import { useSearchParams } from "next/navigation";
 
 import ContactActions from "@/app/(site)/clasificados/components/ContactActions";
 import { MascotasPerdidosShellLayout } from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/MascotasPerdidosShellLayout";
-import { mascotasPerdidosLangFromSearchParams } from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/mascotasPerdidosShellCopy";
+import {
+  mascotasPerdidosLangFromSearchParams,
+  mascotasPerdidosRouteLangFromSearchParams,
+} from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/mascotasPerdidosShellCopy";
 import {
   clearLeonixPreviewNavSessionFlag,
   markPublishFlowReturningToEdit,
@@ -44,6 +47,7 @@ function PreviewField({
 export default function MascotasPerdidosQuickPreviewClient() {
   const sp = useSearchParams();
   const lang = mascotasPerdidosLangFromSearchParams(sp);
+  const routeLang = mascotasPerdidosRouteLangFromSearchParams(sp);
   const t = mascotasPerdidosPreviewCopy(lang);
   const fields = mascotasPerdidosFormCopy(lang).fields;
   const [draft, setDraft] = useState<MascotasPerdidosQuickDraft | null>(null);
@@ -69,7 +73,7 @@ export default function MascotasPerdidosQuickPreviewClient() {
     }
   }, []);
 
-  const editHref = mascotasPerdidosQuickEditUrl(lang);
+  const editHref = mascotasPerdidosQuickEditUrl(routeLang);
 
   if (!ready) {
     return (
@@ -196,7 +200,7 @@ export default function MascotasPerdidosQuickPreviewClient() {
         >
           {t.edit}
         </Link>
-        <MascotasPerdidosQuickPreviewPublishBar draft={draft} lang={lang} />
+        <MascotasPerdidosQuickPreviewPublishBar draft={draft} lang={lang} routeLang={routeLang} />
       </div>
     </MascotasPerdidosShellLayout>
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FiCoffee, FiGift, FiShoppingBag, FiShoppingCart, FiStar, FiTag, FiTool } from "react-icons/fi";
 import type {
   OfertaLocalPublicOfferCard,
   OfertaLocalPublicSearchItem,
@@ -13,10 +13,25 @@ import { OfertasLocalesFiltersDrawer } from "./OfertasLocalesFiltersDrawer";
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
+import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
-import { CATEGORY_STANDARD_MAIN } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryCta,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryVisibilityStrip,
+  LeonixCategoryActiveFilters,
+  LeonixCategoryResultsShell,
+  LeonixCategoryResultsToolbar,
+  LeonixCategoryCompactEmptyState,
+  type Lang as V2Lang,
+  type ViewMode,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 import {
   OfertaLocalPostalInput,
   OfertaLocalRegionStateInput,
@@ -28,19 +43,16 @@ import {
 
 const OFERTAS_LOCALES_LANDING_PATH = "/clasificados/ofertas-locales";
 const OFERTAS_LOCALES_RESULTS_PATH = "/clasificados/ofertas-locales/results";
-/** Extra clearance below fixed site nav + directory (category-local only). */
-const OFERTAS_LOCALES_SHELL = `${CATEGORY_STANDARD_MAIN} pt-[calc(4.75rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14`;
-
-const BTN_PRIMARY =
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-50";
-const BTN_SECONDARY =
-  "inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:border-[#C9A84A] hover:bg-[#FBF7EF] disabled:cursor-not-allowed disabled:opacity-50";
-const SEARCH_CANVAS =
-  "overflow-hidden rounded-xl border border-[#D6C7AD]/90 bg-[#FFFDF7] shadow-[0_6px_22px_-16px_rgba(31,36,28,0.16)]";
-const INPUT =
-  "min-h-[2.625rem] w-full bg-transparent px-3 py-2 text-sm outline-none placeholder:text-[#3D3428]/45";
-const CHIP =
-  "inline-flex h-[30px] max-w-full shrink-0 snap-start items-center rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold leading-none text-[#3D3428] hover:border-[#C9A84A]/70 hover:bg-[#FFFDF7]";
+const CUPONES_LANDING_PATH = "/cupones";
+const CUPONES_RESULTS_PATH = "/cupones/resultados";
+const CUPON_SURFACE_OFFER_TYPES = [
+  "coupon",
+  "promotion",
+  "seasonal_special",
+  "bundle",
+  "featured_deal",
+] as const;
+const CUPON_SURFACE_OFFER_TYPE_SET = new Set<string>(CUPON_SURFACE_OFFER_TYPES);
 
 function parseLang(raw: string | null): OfertasLocalesAppLang {
   return raw === "en" ? "en" : "es";
@@ -61,19 +73,25 @@ function TagIcon({ className }: { className?: string }) {
 }
 
 type OfertasLocalesPublicSearchMode = "landing" | "results";
+type OfertasLocalesPublicSurface = "ofertas" | "cupones";
 
 export function OfertasLocalesPublicSearchClient({
   mode = "landing",
+  surface = "ofertas",
 }: {
   mode?: OfertasLocalesPublicSearchMode;
+  surface?: OfertasLocalesPublicSurface;
 }) {
   const isResults = mode === "results";
-  const browsePath = OFERTAS_LOCALES_RESULTS_PATH;
-  const clearPath = isResults ? OFERTAS_LOCALES_RESULTS_PATH : OFERTAS_LOCALES_LANDING_PATH;
+  const isCupones = surface === "cupones";
+  const landingPath = isCupones ? CUPONES_LANDING_PATH : OFERTAS_LOCALES_LANDING_PATH;
+  const resultsPath = isCupones ? CUPONES_RESULTS_PATH : OFERTAS_LOCALES_RESULTS_PATH;
+  const browsePath = resultsPath;
+  const clearPath = isResults ? resultsPath : landingPath;
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang = parseLang(searchParams?.get("lang") ?? null);
-  const c = ofertasLocalesPublicSearchCopy(lang);
+  const c = ofertasLocalesPublicSearchCopy(lang, surface);
 
   const [q, setQ] = useState(() => searchParams?.get("q") ?? "");
   const [city, setCity] = useState(() => searchParams?.get("city") ?? "");
@@ -93,26 +111,42 @@ export function OfertasLocalesPublicSearchClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<OfertaLocalPublicSearchItem | null>(null);
+  const [selectedCouponOffer, setSelectedCouponOffer] = useState<OfertaLocalPublicOfferCard | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const shoppingList = useOfertasLocalesShoppingList();
 
   const queryString = useMemo(() => {
-    const qs = searchParams?.toString() ?? "";
-    return qs || `lang=${lang}`;
-  }, [searchParams, lang]);
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("lang", lang);
+    if (isCupones && params.get("sort") === "price_low") {
+      params.delete("sort");
+    }
+    return params.toString();
+  }, [searchParams, lang, isCupones]);
 
   const loadResults = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [offersRes, itemsRes] = await Promise.all([
-        fetch(`/api/ofertas-locales/public-offers?${queryString}`, { cache: "no-store" }),
-        fetch(`/api/ofertas-locales/public-search?${queryString}`, { cache: "no-store" }),
-      ]);
+      const offersRes = await fetch(`/api/ofertas-locales/public-offers?${queryString}`, { cache: "no-store" });
       const offersData = (await offersRes.json()) as {
         ok: boolean;
         offers?: OfertaLocalPublicOfferCard[];
       };
+      if (isCupones) {
+        if (!offersData.ok) {
+          setError(c.loadFailed);
+          setOffers([]);
+          setItems([]);
+          return;
+        }
+        setOffers((offersData.offers ?? []).filter((offer) => CUPON_SURFACE_OFFER_TYPE_SET.has(offer.offerType)));
+        setItems([]);
+        return;
+      }
+
+      const itemsRes = await fetch(`/api/ofertas-locales/public-search?${queryString}`, { cache: "no-store" });
       const itemsData = (await itemsRes.json()) as {
         ok: boolean;
         items?: OfertaLocalPublicSearchItem[];
@@ -132,7 +166,7 @@ export function OfertasLocalesPublicSearchClient({
     } finally {
       setLoading(false);
     }
-  }, [c.loadFailed, queryString]);
+  }, [c.loadFailed, queryString, isCupones]);
 
   useEffect(() => {
     setQ(searchParams?.get("q") ?? "");
@@ -142,9 +176,11 @@ export function OfertasLocalesPublicSearchClient({
     setCountry(searchParams?.get("country") ?? "");
     setCategory(searchParams?.get("category") ?? "");
     setMarketType(searchParams?.get("marketType") ?? "");
-    setOfferType(searchParams?.get("offerType") ?? "");
-    setSort(searchParams?.get("sort") ?? "newest");
-  }, [searchParams]);
+    const nextOfferType = searchParams?.get("offerType") ?? "";
+    setOfferType(isCupones && nextOfferType && !CUPON_SURFACE_OFFER_TYPE_SET.has(nextOfferType) ? "" : nextOfferType);
+    const nextSort = searchParams?.get("sort") ?? "newest";
+    setSort(isCupones && nextSort === "price_low" ? "newest" : nextSort);
+  }, [searchParams, isCupones]);
 
   useEffect(() => {
     void loadResults();
@@ -191,11 +227,13 @@ export function OfertasLocalesPublicSearchClient({
       if (next.country.trim()) params.set("country", next.country.trim());
       if (next.category.trim()) params.set("category", next.category.trim());
       if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
-      if (next.offerType.trim()) params.set("offerType", next.offerType.trim());
-      if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
-      router.push(`${OFERTAS_LOCALES_RESULTS_PATH}?${params.toString()}`);
+      if (next.offerType.trim() && (!isCupones || CUPON_SURFACE_OFFER_TYPE_SET.has(next.offerType.trim()))) {
+        params.set("offerType", next.offerType.trim());
+      }
+      if (next.sort && next.sort !== "newest" && (!isCupones || next.sort !== "price_low")) params.set("sort", next.sort);
+      router.push(`${resultsPath}?${params.toString()}`);
     },
-    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort]
+    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort, isCupones, resultsPath]
   );
 
   const browseAllHref = `${browsePath}?lang=${lang}`;
@@ -205,11 +243,23 @@ export function OfertasLocalesPublicSearchClient({
     pushSearch();
   };
 
-  const publishHref = `/publicar/ofertas-locales?lang=${lang}`;
+  const publishHref = isCupones
+    ? `/publicar/ofertas-locales?lang=${lang}&product=coupon_promotion`
+    : `/publicar/ofertas-locales?lang=${lang}`;
   const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
-  const listHasItems = shoppingList.counts.itemCount > 0;
+  const listHasItems = !isCupones && shoppingList.counts.itemCount > 0;
   const resultCount = offers.length + items.length;
+  const activeFilterChips = [
+    ...(q ? [{ id: "q", label: `“${q}”`, onClear: () => pushSearch({ q: "" }) }] : []),
+    ...(city ? [{ id: "city", label: city, onClear: () => pushSearch({ city: "" }) }] : []),
+    ...(state ? [{ id: "state", label: state, onClear: () => pushSearch({ state: "" }) }] : []),
+    ...(zip ? [{ id: "zip", label: zip, onClear: () => pushSearch({ zip: "" }) }] : []),
+    ...(country ? [{ id: "country", label: country, onClear: () => pushSearch({ country: "" }) }] : []),
+    ...(category ? [{ id: "category", label: category, onClear: () => pushSearch({ category: "" }) }] : []),
+    ...(marketType ? [{ id: "marketType", label: marketType, onClear: () => pushSearch({ marketType: "" }) }] : []),
+    ...(offerType ? [{ id: "offerType", label: offerType, onClear: () => pushSearch({ offerType: "" }) }] : []),
+  ];
 
   const clearFilters = () => {
     setFiltersOpen(false);
@@ -230,268 +280,247 @@ export function OfertasLocalesPublicSearchClient({
     pushSearch();
   };
 
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
-      <div className={OFERTAS_LOCALES_SHELL}>
-        {isResults ? (
-          <Link
-            href={`${OFERTAS_LOCALES_LANDING_PATH}?lang=${lang}`}
-            className="mb-2 inline-flex text-[11px] font-semibold text-[#556B3E] hover:text-[#7A1E2C] sm:text-sm"
-          >
-            {lang === "es" ? "← Ofertas Locales" : "← Local Deals"}
-          </Link>
-        ) : null}
-        <header className="mb-3 sm:mb-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] text-[#7A1E2C]">
-              <TagIcon />
+  const searchForm = (
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface={isResults ? "results" : "landing"}
+      query={q}
+      city={city}
+      state={state}
+      zip={zip}
+      country={country}
+      onQuery={setQ}
+      onCity={setCity}
+      onState={setState}
+      onZip={setZip}
+      onCountry={setCountry}
+      onSearch={() => pushSearch()}
+      onOpenFilters={() => setFiltersOpen(true)}
+      browseAllHref={browseAllHref}
+      browseAllLabel={c.browseAllDeals}
+      queryPlaceholder={c.searchPlaceholderCompact}
+      searchButtonLabel={c.searchButton}
+      filtersButtonLabel={c.filtersButton}
+      publishHref={isResults ? undefined : publishHref}
+      publishLabel={isResults ? undefined : c.sponsorPrimaryCta}
+    />
+  );
+
+  const hero = (
+    <LeonixCategoryHeroGateway
+      lang={lang as V2Lang}
+      surface={isResults ? "results" : "landing"}
+      title={c.heroTitle}
+      tagline={c.heroTagline}
+      intro={c.heroIntro}
+      introSecondary={c.heroHelper}
+      searchSlot={searchForm}
+      eyebrow={c.heroEyebrow}
+    />
+  );
+
+  const resultsContent = (
+    <div id="ofertas-browse" className="scroll-mt-24 space-y-5">
+      {error ? (
+        <p className="text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {loading ? <p className="text-sm text-[#3D3428]/65">{c.searching}</p> : null}
+
+      {!loading && offers.length > 0 ? (
+        <section>
+          <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+            {offers.map((offer) => (
+              <li key={offer.id}>
+                <OfertasLocalesPublicOfferCard
+                  lang={lang}
+                  offer={offer}
+                  surface={surface}
+                  onSelect={isCupones ? setSelectedCouponOffer : undefined}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {!loading && listHasItems ? (
+        <div className="flex justify-end">
+          <LeonixCategoryCta variant="secondary" onClick={() => setListOpen(true)}>
+            {c.listButton}
+            <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
+              {shoppingList.counts.itemCount}
             </span>
-            <div className="min-w-0">
-              <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#556B3E]">
-                {lang === "es" ? "Leonix Clasificados" : "Leonix Classifieds"}
-              </p>
-              <h1 className="font-serif text-[1.35rem] font-bold leading-tight text-[#2A4536] sm:text-[1.65rem]">
-                {isResults ? (lang === "es" ? "Resultados" : "Results") : c.pageTitle}
-              </h1>
-              <p className="mt-1 text-sm text-[#3D3428]/80">
-                {isResults
-                  ? lang === "es"
-                    ? "Explora volantes, cupones y especiales con filtros de ubicación."
-                    : "Browse flyers, coupons, and specials with location filters."
-                  : c.pageSubtitle}
-              </p>
-            </div>
-          </div>
-        </header>
-
-        <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap">
-          <Link href={publishHref} className={`${BTN_PRIMARY} w-full sm:w-auto`}>
-            {c.publishCta}
-          </Link>
-          <Link href={browseAllHref} className={`${BTN_SECONDARY} w-full sm:w-auto`}>
-            {c.browseAllDeals}
-          </Link>
-          {hasFilters ? (
-            <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={clearFilters}>
-              {c.clearFiltersLink}
-            </button>
-          ) : null}
-          {listHasItems ? (
-            <button type="button" className={`${BTN_SECONDARY} w-full sm:w-auto`} onClick={() => setListOpen(true)}>
-              {c.listButton}
-              <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-[#7A1E2C] px-1.5 py-0.5 text-[11px] font-bold text-[#FFFDF7]">
-                {shoppingList.counts.itemCount}
-              </span>
-            </button>
-          ) : null}
+          </LeonixCategoryCta>
         </div>
+      ) : null}
 
-        <form onSubmit={onSubmit} className={SEARCH_CANVAS} role="search">
-          <div className="flex flex-col border-b border-[#D6C7AD]/80 sm:grid sm:grid-cols-12 sm:items-stretch">
-            <label className="flex min-h-[2.625rem] min-w-0 items-center border-b border-[#D6C7AD]/80 sm:col-span-4 sm:border-b-0 sm:border-r">
-              <span className="shrink-0 pl-3 text-[#556B3E]" aria-hidden>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3-3" strokeLinecap="round" />
-                </svg>
-              </span>
-              <input
-                className={`${INPUT} min-w-0 flex-1 px-2`}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={c.searchPlaceholderCompact}
-                aria-label={c.mobileSearchLabel}
+      {!isCupones && !loading && items.length > 0 ? (
+        <section>
+          <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+            {items.map((item) => (
+              <li key={item.id}>
+                <OfertasLocalesPublicItemCard
+                  lang={lang}
+                  item={item}
+                  isAdded={shoppingList.isAdded(item.id)}
+                  onSelect={setSelectedItem}
+                  onAdd={shoppingList.addFromPublicItem}
+                  onRemove={shoppingList.removeItem}
+                  onOpenList={() => setListOpen(true)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <>
+      <LeonixCategoryPageShell surface={isResults ? "results" : "landing"}>
+        {isResults ? (
+          <LeonixCategoryResultsShell
+            surface="results"
+            hero={hero}
+            activeFilters={
+              <LeonixCategoryActiveFilters
+                label={lang === "es" ? "Filtros activos" : "Active filters"}
+                chips={activeFilterChips}
+                clearAllLabel={c.clearFiltersLink}
+                onClearAll={clearFilters}
               />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <input
-                className={INPUT}
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder={c.cityPlaceholder}
-                aria-label={c.cityLabel}
-                autoComplete="address-level2"
+            }
+            toolbar={
+              <LeonixCategoryResultsToolbar
+                lang={lang as V2Lang}
+                countText={c.resultsCount(resultCount)}
+                resultCount={resultCount}
+                showingFrom={resultCount > 0 ? 1 : 0}
+                showingTo={resultCount}
+                sortLabel={lang === "es" ? "Orden" : "Sort"}
+                sortValue={sort}
+                onSortChange={(value) => {
+                  setSort(value);
+                  pushSearch({ sort: value });
+                }}
+                sortOptions={[
+                  { value: "newest", label: lang === "es" ? "Más recientes" : "Newest" },
+                  { value: "expiring_soon", label: lang === "es" ? "Terminan pronto" : "Expiring soon" },
+                  ...(isCupones
+                    ? []
+                    : [{ value: "price_low", label: lang === "es" ? "Precio bajo" : "Price low" }]),
+                ]}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                filtersButtonLabel={c.filtersButton}
+                onOpenFilters={() => setFiltersOpen(true)}
+                perPageValue={resultCount}
+                clearAllLabel={hasFilters ? c.clearFiltersLink : undefined}
+                onClearAll={hasFilters ? clearFilters : undefined}
               />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <OfertaLocalRegionStateInput
-                country={country || OFERTA_LOCAL_DEFAULT_COUNTRY}
-                value={state}
-                onChange={setState}
-                inputClassName={INPUT}
-                lang={lang}
-                usPlaceholder={c.statePlaceholder}
-                intlPlaceholder={c.statePlaceholder}
+            }
+            emptyState={
+              <LeonixCategoryCompactEmptyState
+                title={showPipelineEmpty ? c.pipelineEmptyTitle : c.emptyTitle}
+                body={showPipelineEmpty ? c.pipelineEmptyBody : c.emptyHint}
+                ctaLabel={hasFilters ? c.clearFiltersLink : c.browseAllDeals}
+                ctaHref={hasFilters ? undefined : browseAllHref}
               />
-            </label>
-            <label className="flex min-h-[2.625rem] min-w-0 border-b border-[#D6C7AD]/80 sm:col-span-2 sm:border-b-0 sm:border-r">
-              <OfertaLocalPostalInput
-                value={zip}
-                onChange={setZip}
-                inputClassName={INPUT}
-                placeholder={c.zipPlaceholder}
-                aria-label={c.zipLabel}
+            }
+            hasResults={loading || resultCount > 0 || Boolean(error)}
+          >
+            {resultsContent}
+          </LeonixCategoryResultsShell>
+        ) : (
+          <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
+            {hero}
+            <main className="space-y-6 overflow-x-hidden sm:space-y-8">
+              <LeonixCategoryDiscoveryGrid
+                lang={lang as V2Lang}
+                surface="landing"
+                heading={c.discoveryTitle}
+                subtitle={c.discoverySubtitle}
+                items={[
+                  {
+                    id: "weekly-flyer",
+                    label: lang === "es" ? "Volante semanal" : "Weekly flyer",
+                    hint: lang === "es" ? "Especiales de tienda" : "Store specials",
+                    href: `${browseAllHref}&offerType=weekly_flyer`,
+                    icon: FiShoppingCart,
+                  },
+                  {
+                    id: "coupon",
+                    label: lang === "es" ? "Cupón" : "Coupon",
+                    hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
+                    href: `${browseAllHref}&offerType=coupon`,
+                    icon: FiTag,
+                  },
+                  {
+                    id: "promotion",
+                    label: lang === "es" ? "Promoción" : "Promotion",
+                    hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
+                    href: `${browseAllHref}&offerType=promotion`,
+                    icon: FiGift,
+                  },
+                  {
+                    id: "local-store",
+                    label: lang === "es" ? "Tienda local" : "Local store",
+                    hint: lang === "es" ? "Negocios cerca de ti" : "Nearby businesses",
+                    href: `${browseAllHref}&marketType=retail`,
+                    icon: FiShoppingBag,
+                  },
+                  {
+                    id: "local-service",
+                    label: lang === "es" ? "Servicio local" : "Local service",
+                    hint: lang === "es" ? "Promos de servicios" : "Service promos",
+                    href: `${browseAllHref}&marketType=service`,
+                    icon: FiTool,
+                  },
+                  {
+                    id: "food",
+                    label: lang === "es" ? "Comida" : "Food",
+                    hint: lang === "es" ? "Restaurantes y mercados" : "Restaurants and markets",
+                    href: `${browseAllHref}&category=food`,
+                    icon: FiCoffee,
+                  },
+                ]}
               />
-            </label>
-            <div className="hidden border-b border-[#D6C7AD]/80 p-1.5 sm:col-span-2 sm:block sm:border-b-0">
-              <button type="submit" className={`${BTN_PRIMARY} w-full`} disabled={loading}>
-                {loading ? c.searching : c.searchButton}
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-stretch">
-            <button
-              type="button"
-              className={`${BTN_SECONDARY} order-1 w-full sm:order-none sm:col-span-2 sm:max-w-none`}
-              onClick={() => setFiltersOpen(true)}
-            >
-              {c.filtersButton}
-            </button>
-            <button
-              type="submit"
-              className={`${BTN_PRIMARY} order-2 w-full sm:hidden`}
-              disabled={loading}
-            >
-              {loading ? c.searching : c.searchButton}
-            </button>
-            <label className="order-3 flex min-h-[2.625rem] min-w-0 sm:order-none sm:col-span-3">
-              <input
-                className={INPUT}
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder={c.countryPlaceholder}
-                aria-label={c.countryLabel}
-                autoComplete="country-name"
+
+              <LeonixCategoryPartnerSection
+                enabled
+                lang={lang as V2Lang}
+                surface="landing"
+                eyebrow={c.sponsorEyebrow}
+                title={c.sponsorTitle}
+                body={c.sponsorBody}
+                supportingLine={c.sponsorSupport}
+                chips={[...c.sponsorChips]}
+                secondaryCta={{ label: c.sponsorSecondaryCta, href: browseAllHref }}
               />
-            </label>
+
+              <LeonixCategoryVisibilityStrip
+                lang={lang as V2Lang}
+                surface="landing"
+                eyebrow={lang === "es" ? "VISIBILIDAD PRINT + DIGITAL" : "PRINT + DIGITAL VISIBILITY"}
+                title={lang === "es" ? "Haz que tus ofertas tengan más visibilidad" : "Give your offers more visibility"}
+                body={
+                  lang === "es"
+                    ? "Opciones de revista, digital y destacados se revisan con Leonix. Nada aparece como Destacado sin un paquete activo."
+                    : "Print, digital, and featured options are reviewed with Leonix. Nothing is marked Featured without an active package."
+                }
+                ctaLabel={lang === "es" ? "Conocer opciones de visibilidad" : "Explore visibility options"}
+                ctaHref={`/contacto?lang=${lang}&categoria=ofertas-locales&surface=landing`}
+              />
+            </main>
           </div>
-        </form>
-
-        {hasFilters ? (
-          <div className="mt-2 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
-            {q ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ q: "" })}>
-                {lang === "es" ? "Quitar palabra clave" : "Remove keyword"} ×
-              </button>
-            ) : null}
-            {city ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ city: "" })}>
-                {city} ×
-              </button>
-            ) : null}
-            {state ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ state: "" })}>
-                {state} ×
-              </button>
-            ) : null}
-            {zip ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ zip: "" })}>
-                {zip} ×
-              </button>
-            ) : null}
-            {country ? (
-              <button type="button" className={CHIP} onClick={() => pushSearch({ country: "" })}>
-                {country} ×
-              </button>
-            ) : null}
-            <button type="button" className={CHIP} onClick={clearFilters}>
-              {c.clearFiltersLink}
-            </button>
-          </div>
-        ) : null}
-
-        {!loading && resultCount > 0 ? (
-          <p className="mt-2 text-xs font-semibold text-[#556B3E]">{c.resultsCount(resultCount)}</p>
-        ) : null}
-
-        {error ? (
-          <p className="mt-3 text-sm text-red-700" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        {loading ? <p className="mt-3 text-sm text-[#3D3428]/65">{c.searching}</p> : null}
-
-        {!loading && showPipelineEmpty ? (
-          <div id="ofertas-browse" className="mt-4 scroll-mt-24 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
-            <p className="text-sm font-semibold text-[#3D3428]">{c.pipelineEmptyTitle}</p>
-            <p className="mt-1 text-xs text-[#3D3428]/70">{c.pipelineEmptyBody}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <Link href={publishHref} className={BTN_PRIMARY}>
-                {c.publishCta}
-              </Link>
-              <Link href={browseAllHref} className={BTN_SECONDARY}>
-                {c.browseAllDeals}
-              </Link>
-            </div>
-          </div>
-        ) : null}
-
-        {!loading && !showPipelineEmpty && offers.length === 0 && items.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] px-4 py-4 text-center">
-            <p className="text-sm font-semibold text-[#3D3428]">{c.emptyTitle}</p>
-            <p className="mt-1 text-xs text-[#3D3428]/70">{c.emptyHint}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              {hasFilters ? (
-                <button type="button" className={BTN_SECONDARY} onClick={clearFilters}>
-                  {c.clearFiltersLink}
-                </button>
-              ) : null}
-              <Link href={publishHref} className={BTN_PRIMARY}>
-                {c.publishCta}
-              </Link>
-              <Link href={browseAllHref} className={BTN_SECONDARY}>
-                {c.browseAllDeals}
-              </Link>
-            </div>
-          </div>
-        ) : null}
-
-        <div id="ofertas-browse" className="scroll-mt-24">
-        {!loading && offers.length > 0 ? (
-          <section className="mt-4 sm:mt-5">
-            <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
-              {offers.map((offer) => (
-                <li key={offer.id}>
-                  <OfertasLocalesPublicOfferCard lang={lang} offer={offer} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {!loading && items.length > 0 ? (
-          <section className="mt-5 sm:mt-6">
-            <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <OfertasLocalesPublicItemCard
-                    lang={lang}
-                    item={item}
-                    isAdded={shoppingList.isAdded(item.id)}
-                    onSelect={setSelectedItem}
-                    onAdd={shoppingList.addFromPublicItem}
-                    onRemove={shoppingList.removeItem}
-                    onOpenList={() => setListOpen(true)}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-        </div>
-
-        {!showPipelineEmpty ? (
-          <div className="mt-5 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 sm:mt-6">
-            <p className="text-xs font-medium text-[#3D3428]">{c.publishCtaHint}</p>
-            <Link href={publishHref} className="mt-1 inline-block text-xs font-bold text-[#7A1E2C] underline">
-              {c.publishCta}
-            </Link>
-          </div>
-        ) : null}
-      </div>
+        )}
+      </LeonixCategoryPageShell>
 
       <OfertasLocalesFiltersDrawer
         open={filtersOpen}
@@ -516,9 +545,10 @@ export function OfertasLocalesPublicSearchClient({
         onClose={() => setFiltersOpen(false)}
         onApply={applyDrawerFilters}
         onClear={clearFilters}
+        surface={surface}
       />
 
-      {selectedItem ? (
+      {!isCupones && selectedItem ? (
         <OfertasLocalesPublicItemDetailDrawer
           lang={lang}
           item={selectedItem}
@@ -526,7 +556,16 @@ export function OfertasLocalesPublicSearchClient({
         />
       ) : null}
 
-      {listOpen ? (
+      {isCupones && selectedCouponOffer ? (
+        <OfertasLocalesPublicOfferDetailDrawer
+          lang={lang}
+          offer={selectedCouponOffer}
+          surface="cupones"
+          onClose={() => setSelectedCouponOffer(null)}
+        />
+      ) : null}
+
+      {!isCupones && listOpen ? (
         <OfertasLocalesShoppingListPanel
           lang={lang}
           list={shoppingList.list}
@@ -539,6 +578,6 @@ export function OfertasLocalesPublicSearchClient({
           onClear={shoppingList.clearList}
         />
       ) : null}
-    </div>
+    </>
   );
 }

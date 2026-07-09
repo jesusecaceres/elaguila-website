@@ -2,12 +2,14 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { normalizeAutosNegociosLang, type AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { navCopyLang } from "@/app/lib/language";
+import { resolveAutosRouteLang, type AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { getAutosPrivadoCopy } from "./getAutosPrivadoCopy";
 
 export function useAutosPrivadoLang() {
   const sp = useSearchParams();
-  const lang: AutosNegociosLang = useMemo(() => normalizeAutosNegociosLang(sp?.get("lang")), [sp]);
+  const routeLang = useMemo(() => resolveAutosRouteLang(sp?.get("lang")), [sp]);
+  const lang: AutosNegociosLang = useMemo(() => navCopyLang(routeLang), [routeLang]);
   const t = useMemo(() => getAutosPrivadoCopy(lang), [lang]);
-  return { lang, t };
+  return { lang, routeLang, t };
 }

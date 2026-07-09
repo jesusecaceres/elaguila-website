@@ -28,6 +28,12 @@ function refExt(i: number): string {
 function refFd(i: number): string {
   return `${RT_IDB_PREFIX}|fd|${i}`;
 }
+function refCoupon(i: number): string {
+  return `${RT_IDB_PREFIX}|cp|${i}`;
+}
+function refCouponFlyer(): string {
+  return `${RT_IDB_PREFIX}|cfly`;
+}
 function refMenu(): string {
   return `${RT_IDB_PREFIX}|menu`;
 }
@@ -70,6 +76,10 @@ export async function resolveRestauranteMediaRefForDisplay(
       return idbRestauranteGetDataUrl(namespace, "ext", String(pr.i));
     case "fd":
       return idbRestauranteGetDataUrl(namespace, "fd", String(pr.i));
+    case "cp":
+      return idbRestauranteGetDataUrl(namespace, "cp", String(pr.i));
+    case "cfly":
+      return idbRestauranteGetDataUrl(namespace, "cfly", undefined);
     default:
       return null;
   }
@@ -87,6 +97,8 @@ function parseRef(s: string):
   | { k: "g"; i: number }
   | { k: "food" | "int" | "ext"; i: number }
   | { k: "fd"; i: number }
+  | { k: "cp"; i: number }
+  | { k: "cfly" }
   | null {
   if (!s.startsWith(RT_IDB_PREFIX)) return null;
   const t = s.slice(RT_IDB_PREFIX.length);
@@ -104,6 +116,9 @@ function parseRef(s: string):
   if (ext) return { k: "ext", i: Number(ext[1]) };
   const fd = /^\|fd\|(\d+)$/.exec(t);
   if (fd) return { k: "fd", i: Number(fd[1]) };
+  const cp = /^\|cp\|(\d+)$/.exec(t);
+  if (cp) return { k: "cp", i: Number(cp[1]) };
+  if (t === "|cfly") return { k: "cfly" };
   return null;
 }
 
@@ -185,6 +200,21 @@ export async function offloadRestauranteDraftMedia(namespace: string, d: Restaur
     brochureFile = refBro();
   }
 
+  const coupons = [...(d.coupons ?? [])];
+  for (let i = 0; i < coupons.length; i++) {
+    const row = coupons[i]!;
+    if (isDataUrl(row.imageUrl)) {
+      await idbRestaurantePutDataUrl(namespace, "cp", String(i), row.imageUrl);
+      coupons[i] = { ...row, imageUrl: refCoupon(i) };
+    }
+  }
+
+  let couponFlyer = d.couponFlyer;
+  if (couponFlyer?.imageUrl && isDataUrl(couponFlyer.imageUrl)) {
+    await idbRestaurantePutDataUrl(namespace, "cfly", undefined, couponFlyer.imageUrl);
+    couponFlyer = { imageUrl: refCouponFlyer() };
+  }
+
   return {
     ...d,
     heroImage,
@@ -196,6 +226,8 @@ export async function offloadRestauranteDraftMedia(namespace: string, d: Restaur
     featuredDishes,
     menuFile,
     brochureFile,
+    coupons,
+    couponFlyer,
   };
 }
 
@@ -278,6 +310,23 @@ export async function inlineRestauranteDraftMedia(namespace: string, d: Restaura
     brochureFile = (await idbRestauranteGetDataUrl(namespace, "bro", undefined)) ?? undefined;
   }
 
+  const coupons = [...(d.coupons ?? [])];
+  for (let i = 0; i < coupons.length; i++) {
+    const row = coupons[i]!;
+    const img = row.imageUrl;
+    const pr = typeof img === "string" ? parseRef(img) : null;
+    if (pr?.k === "cp") {
+      const blob = await idbRestauranteGetDataUrl(namespace, "cp", String(pr.i));
+      if (blob) coupons[i] = { ...row, imageUrl: blob };
+    }
+  }
+
+  let couponFlyer = d.couponFlyer;
+  if (couponFlyer?.imageUrl && parseRef(couponFlyer.imageUrl)?.k === "cfly") {
+    const blob = await idbRestauranteGetDataUrl(namespace, "cfly", undefined);
+    couponFlyer = blob ? { imageUrl: blob } : undefined;
+  }
+
   return {
     ...d,
     heroImage,
@@ -289,6 +338,8 @@ export async function inlineRestauranteDraftMedia(namespace: string, d: Restaura
     featuredDishes,
     menuFile,
     brochureFile,
+    coupons,
+    couponFlyer,
   };
 }
 

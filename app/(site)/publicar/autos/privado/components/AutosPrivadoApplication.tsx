@@ -46,6 +46,7 @@ import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/componen
 import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -69,7 +70,7 @@ export function AutosPrivadoApplication() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { lang, t } = useAutosPrivadoLang();
+  const { lang, routeLang, t } = useAutosPrivadoLang();
   const {
     hydrated,
     restoredFromSession,
@@ -104,7 +105,7 @@ export function AutosPrivadoApplication() {
   const stepLabels = getAutosApplicationStepLabels(lang, "privado");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
 
-  const previewHref = withLangParam("/clasificados/autos/privado/preview", lang);
+  const previewHref = withLangParam("/clasificados/autos/privado/preview", routeLang);
 
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
@@ -136,6 +137,11 @@ export function AutosPrivadoApplication() {
           banner={
             <>
               <AutosPricingPlanBanner lang={lang} lane="privado" />
+              <LeonixLaunchCouponCard
+                lang={lang === "en" ? "en" : "es"}
+                variant="mini"
+                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=autos_privado&sourceCta=launch_25`}
+              />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
             </>
           }

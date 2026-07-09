@@ -35,6 +35,10 @@ import { SellerContactSection } from "../../free/application/sections/SellerCont
 import { ItemDetailsSection } from "../../free/application/sections/ItemDetailsSection";
 import { evaluateEnVentaFamilySafetyFromState } from "@/app/clasificados/en-venta/moderation/enVentaFamilySafety";
 import { createEmptyEnVentaFreeState } from "../../free/application/schema/enVentaFreeFormState";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 
 type Lang = "es" | "en";
 
@@ -44,7 +48,10 @@ type Lang = "es" | "en";
 export default function LeonixEnVentaProApplication() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const resumeRequested = isEnVentaPublishResumeRequested(searchParams?.get("resume"));
   const [state, setState] = useState(createEmptyEnVentaFreeState);
   const [familySafetyMsg, setFamilySafetyMsg] = useState<string | null>(null);
@@ -80,8 +87,7 @@ export default function LeonixEnVentaProApplication() {
     [lang]
   );
 
-  const qs = new URLSearchParams();
-  qs.set("lang", lang);
+  const landingHref = withClasificadosPublishLang(EN_VENTA_LANDING, routeLang);
 
   const isDirty = enVentaFormHasProgress(state);
 
@@ -126,7 +132,7 @@ export default function LeonixEnVentaProApplication() {
               <button
                 type="button"
                 className="rounded-lg border border-[#D8C79A]/70 bg-[#FFFCF4] px-3 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFF6E7]"
-                onClick={() => leaveAndGo(`${EN_VENTA_LANDING}?${qs.toString()}`)}
+                onClick={() => leaveAndGo(landingHref)}
               >
                 {copy.back}
               </button>

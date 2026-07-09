@@ -63,12 +63,12 @@ export const PACKAGE_ENTITLEMENT_PRINT_PLACEMENT_TYPES = [
 ] as const;
 
 export const PACKAGE_ENTITLEMENT_PROMO_CODE_TYPES = [
-  { value: "entitlement", label: "Entitlement (package access)" },
+  { value: "entitlement", label: "Entitlement / package access" },
   { value: "discount", label: "Discount only" },
-  { value: "newsletter", label: "Newsletter (future unique code)" },
-  { value: "sms", label: "SMS (future unique code)" },
-  { value: "sales_rep", label: "Sales rep" },
-  { value: "contract", label: "Contract term" },
+  { value: "newsletter", label: "Newsletter signup code (unique / send later)" },
+  { value: "sms", label: "SMS signup code (unique / send later)" },
+  { value: "sales_rep", label: "Sales rep attribution" },
+  { value: "contract", label: "Contract / package term" },
   { value: "founding_partner", label: "Founding partner" },
   { value: "owner_override", label: "Owner override" },
 ] as const;

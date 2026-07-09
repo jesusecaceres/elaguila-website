@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { listServiciosPublicListingsForDiscovery } from "./lib/serviciosPublicListingsServer";
 import { ServiciosLandingPage } from "./landing/ServiciosLandingPage";
 
 /** Marketplace landing must always reflect current `servicios_public_listings` (+ optional dev file). */
@@ -24,11 +23,9 @@ export const metadata: Metadata = {
 };
 
 export default async function ClasificadosServiciosLandingPage() {
-  /** Larger window so landing “Recientes” (newest-by-time strip) stays representative vs busy directories. */
-  const liveRows = await listServiciosPublicListingsForDiscovery(200);
   return (
     <Suspense fallback={<div className="min-h-screen bg-[color:var(--lx-page)]" aria-busy="true" />}>
-      <ServiciosLandingPage liveRows={liveRows} />
+      <ServiciosLandingPage />
     </Suspense>
   );
 }

@@ -8,6 +8,7 @@ import type { AgenteIndividualResidencialFormState } from "../agente-individual/
 import { createEmptyAgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+  BR_AGENTE_IDB_PREFIX,
   inlineBrAgenteResHeavyMediaFromIdb,
   offloadBrAgenteResHeavyMediaToIdb,
 } from "../agente-individual/application/utils/brAgenteResDraftMedia";
@@ -38,6 +39,22 @@ function stripDataUrlsFromSlice(slice: AgenteChildPropertyFormSlice): AgenteChil
   return j;
 }
 
+function normalizeSessionPropertyFormUrls(slice: AgenteChildPropertyFormSlice): AgenteChildPropertyFormSlice {
+  const videoUrls = Array.isArray(slice.videoUrls)
+    ? slice.videoUrls.map((u) => String(u ?? "").trim()).filter((u) => u && !u.startsWith("data:"))
+    : [];
+  const videoUrl = String(slice.videoUrl ?? "").trim() || videoUrls[0] || "";
+  const normalizedVideos = videoUrls.length ? videoUrls.slice(0, 4) : videoUrl ? [videoUrl] : [];
+  return {
+    ...slice,
+    videoUrls: normalizedVideos,
+    videoUrl: normalizedVideos[0] ?? videoUrl,
+    listadoUrl: String(slice.listadoUrl ?? "").trim(),
+    tourUrl: String(slice.tourUrl ?? "").trim(),
+    brochureUrl: String(slice.brochureUrl ?? "").trim(),
+  };
+}
+
 export function persistChildInventoryEditorSession(session: BrNegocioChildInventoryEditorSession): void {
   childEditorMemoryBridge = session;
   if (typeof window === "undefined") return;
@@ -48,7 +65,7 @@ async function persistChildInventoryEditorSessionResolved(
   session: BrNegocioChildInventoryEditorSession,
 ): Promise<void> {
   childEditorMemoryBridge = session;
-  let propertyForm = session.propertyForm;
+  let propertyForm = normalizeSessionPropertyFormUrls(session.propertyForm);
   try {
     const hub = mergeParentHubWithChildProperty(
       createEmptyAgenteIndividualResidencialFormState(),
@@ -83,7 +100,7 @@ export async function loadChildInventoryEditorSessionResolved(): Promise<BrNegoc
     const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
     return {
       ...sync,
-      propertyForm: pickChildPropertySlice(inlined),
+      propertyForm: normalizeSessionPropertyFormUrls(pickChildPropertySlice(inlined)),
     };
   } catch {
     return sync;
@@ -98,7 +115,10 @@ export function loadChildInventoryEditorSession(): BrNegocioChildInventoryEditor
     if (!raw) return null;
     const j = JSON.parse(raw) as BrNegocioChildInventoryEditorSession;
     if (j?.version !== 1) return null;
-    return j;
+    return {
+      ...j,
+      propertyForm: normalizeSessionPropertyFormUrls(j.propertyForm),
+    };
   } catch {
     return null;
   }
@@ -114,6 +134,27 @@ export function clearChildInventoryEditorSession(): void {
   }
 }
 
+export function childEditorSliceHasUnresolvedIdbMedia(slice: AgenteChildPropertyFormSlice): boolean {
+  const check = (u: string) => typeof u === "string" && u.startsWith(BR_AGENTE_IDB_PREFIX);
+  for (const u of slice.fotosDataUrls ?? []) {
+    if (check(String(u))) return true;
+  }
+  if (check(slice.listadoArchivoDataUrl)) return true;
+  if (check(slice.videoDataUrl)) return true;
+  if (check(slice.tourDataUrl)) return true;
+  if (check(slice.brochureDataUrl)) return true;
+  return false;
+}
+
+/** Inline IndexedDB photo refs for same-tab hard refresh before preview card render. */
+export async function resolveChildPropertySliceMediaFromIdb(
+  slice: AgenteChildPropertyFormSlice,
+): Promise<AgenteChildPropertyFormSlice> {
+  const hub = mergeParentHubWithChildProperty(createEmptyAgenteIndividualResidencialFormState(), slice);
+  const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
+  return pickChildPropertySlice(inlined);
+}
+
 export function childEditorSessionFromState(
   editingId: string | null,
   step: number,
@@ -123,7 +164,7 @@ export function childEditorSessionFromState(
     version: 1,
     editingId,
     step,
-    propertyForm: pickChildPropertySlice(state),
+    propertyForm: normalizeSessionPropertyFormUrls(pickChildPropertySlice(state)),
     savedAt: Date.now(),
   };
 }

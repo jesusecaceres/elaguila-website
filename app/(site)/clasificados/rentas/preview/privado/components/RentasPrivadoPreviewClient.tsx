@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
+import {
   publishLeonixListingFromRentasPrivadoDraft,
 } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import {
@@ -28,6 +32,12 @@ import {
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RENTAS_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
   rentasPublishStepTracePatch,
@@ -69,8 +79,17 @@ export default function RentasPrivadoPreviewClient() {
   const [draft, setDraft] = useState<RentasPrivadoFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const lang = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
+    [searchParams],
+  );
+  const routeLang = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")).routeLang,
+    [searchParams],
+  );
 
   const onPublishLive = useCallback(async () => {
     rentasPublishStepTraceReset();
@@ -139,8 +158,11 @@ export default function RentasPrivadoPreviewClient() {
     }
 
     let leonixAdId: string | null = null;
+    let customerEmail: string | null = null;
     try {
       const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      customerEmail = auth.user?.email ?? null;
       const { data: adRow } = await supabase
         .from("listings")
         .select("leonix_ad_id")
@@ -151,11 +173,22 @@ export default function RentasPrivadoPreviewClient() {
       /* optional metadata */
     }
 
+    // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
+    void captureCheckoutNewsletterSubscriber({
+      email: customerEmail,
+      lang,
+      preferredLanguage: lang,
+      source: CHECKOUT_NEWSLETTER_SOURCES.rentas,
+      interests: ["package:rentas_privado", "launch_25"],
+      checked: newsletterOptIn,
+    });
+
     const checkout = await startRevenueCategoryCheckout({
       ...RENTAS_CATEGORY_CHECKOUT,
       listingId: r.listingId,
       leonixAdId,
       locale: lang,
+      promoCode: appliedPromoCode,
     });
     if (!checkout.ok) {
       setPublishErr(checkout.userMessage);
@@ -164,7 +197,7 @@ export default function RentasPrivadoPreviewClient() {
 
     clearRentasPrivadoDraft();
     redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
-  }, [lang, publishErr]);
+  }, [lang, publishErr, appliedPromoCode, newsletterOptIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -191,9 +224,13 @@ export default function RentasPrivadoPreviewClient() {
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
     if (draft.categoriaPropiedad !== urlCategoria) {
-      router.replace(`${RENTAS_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}&lang=${lang}`);
+      router.replace(
+        withClasificadosPublishLang(RENTAS_PREVIEW_PRIVADO, routeLang, {
+          [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+        }),
+      );
     }
-  }, [phase, draft, urlCategoria, router]);
+  }, [phase, draft, urlCategoria, router, routeLang]);
 
   if (phase === "loading") {
     return (
@@ -205,7 +242,10 @@ export default function RentasPrivadoPreviewClient() {
 
   if (phase === "recovery" || !draft) {
     const templateVm = buildRentasPrivadoTemplateVm(urlCategoria);
-    const editHrefRecovery = `${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(urlCategoria)}`;
+    const editHrefRecovery = withClasificadosPublishLang(RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY, routeLang, {
+      [BR_NEGOCIO_Q_PROPIEDAD]: urlCategoria,
+    });
+    const publishEntryHref = withClasificadosPublishLang(RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY, routeLang);
     return (
       <LeonixPreviewPageShell editHref={editHrefRecovery}>
         <p className="mx-auto max-w-[1240px] px-4 py-3 text-center text-xs text-[#5C5346] sm:px-6 lg:px-8">
@@ -214,7 +254,7 @@ export default function RentasPrivadoPreviewClient() {
               <span className="font-semibold text-[#2C2416]">No draft in this session</span>
               <span className="mx-2 opacity-40">·</span>
               Category template.{" "}
-              <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+              <Link href={publishEntryHref} className="font-semibold underline" prefetch={false}>
                 Post a rental
               </Link>
             </>
@@ -223,7 +263,7 @@ export default function RentasPrivadoPreviewClient() {
               <span className="font-semibold text-[#2C2416]">Sin borrador en esta sesión</span>
               <span className="mx-2 opacity-40">·</span>
               Plantilla por categoría.{" "}
-              <Link href={RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY} className="font-semibold underline" prefetch={false}>
+              <Link href={publishEntryHref} className="font-semibold underline" prefetch={false}>
                 Publicar renta
               </Link>
             </>
@@ -245,13 +285,41 @@ export default function RentasPrivadoPreviewClient() {
 
   const vm = mapRentasPrivadoStateToPreviewVm(draft, lang);
 
-  const editHref = `${RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
+  const editHref = withClasificadosPublishLang(RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY, routeLang, {
+    [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+  });
 
   return (
     <LeonixPreviewPageShell
       editHref={editHref}
       publishSlot={
-        <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+          <div className="w-full sm:w-[280px]">
+            <RevenuePromoField
+              category={RENTAS_CATEGORY_CHECKOUT.category}
+              packageKey={RENTAS_CATEGORY_CHECKOUT.packageKey}
+              subtotalCents={
+                getRevenuePackageDefinition(RENTAS_CATEGORY_CHECKOUT.packageKey)?.priceCents ?? 2499
+              }
+              lang={lang === "en" ? "en" : "es"}
+              disabled={publishBusy}
+              onAppliedChange={(code) => setAppliedPromoCode(code)}
+            />
+          </div>
+          <label className="flex w-full cursor-pointer items-start gap-2 text-left text-[11px] leading-snug text-[#5C5346] sm:w-[280px]">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded"
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              disabled={publishBusy}
+            />
+            <span>
+              {lang === "en"
+                ? "Send me Leonix promotions, magazine updates, local advertising opportunities, and launch news."
+                : "Quiero recibir promociones de Leonix, novedades de la revista, oportunidades de publicidad local y noticias del lanzamiento."}
+            </span>
+          </label>
           <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
             {publishBusy
               ? revenueCategoryCheckoutLoadingMessage(lang)

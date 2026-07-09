@@ -286,6 +286,8 @@ export type OfertaLocalDraft = {
   /** When marketType is other — used for display/search instead of “Otro”. */
   customMarketType: string;
   businessName: string;
+  /** Optional business logo URL (session/draft metadata only — not a DB column). */
+  businessLogoUrl: string;
   title: string;
   description: string;
   couponText: string;
@@ -370,6 +372,35 @@ export type OfertaLocalSourceBoundingBox = {
   yMin: number;
   xMax: number;
   yMax: number;
+};
+
+/** V1 commerce lookup metadata — stored in extracted_json.commerceMetadata (Gate 4B). */
+export type OfertaLocalItemOnlineAvailability = "unknown" | "online" | "in_store" | "both";
+
+export type OfertaLocalItemUrlSource = "ai_visible" | "manual" | "";
+
+export type OfertaLocalItemCommerceMetadata = {
+  itemNumber: string;
+  sku: string;
+  modelNumber: string;
+  upc: string;
+  couponCode: string;
+  itemUrl: string;
+  onlineAvailability: OfertaLocalItemOnlineAvailability;
+  itemUrlSource: OfertaLocalItemUrlSource;
+  metadataNote: string;
+};
+
+export const EMPTY_OFERTA_LOCAL_ITEM_COMMERCE_METADATA: OfertaLocalItemCommerceMetadata = {
+  itemNumber: "",
+  sku: "",
+  modelNumber: "",
+  upc: "",
+  couponCode: "",
+  itemUrl: "",
+  onlineAvailability: "unknown",
+  itemUrlSource: "",
+  metadataNote: "",
 };
 
 export type OfertaLocalSearchableItemDraft = {
@@ -695,6 +726,7 @@ export type OfertaLocalItemReviewViewModel = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  commerceMetadata: OfertaLocalItemCommerceMetadata;
 };
 
 export type OfertaLocalItemReviewPatch = {
@@ -714,6 +746,7 @@ export type OfertaLocalItemReviewPatch = {
   terms?: string;
   searchTags?: string[];
   reviewStatus?: OfertaLocalItemReviewStatus;
+  commerceMetadata?: OfertaLocalItemCommerceMetadata;
 };
 
 export type OfertaLocalScanJobSummary = {

@@ -148,6 +148,19 @@ export function digitalCouponCtaLabel(lang: "es" | "en" = "en"): string {
     : OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.activateDigitalCouponsEs;
 }
 
+/**
+ * Resolve a safe HTTPS business logo URL from the draft, or null. Logo is
+ * optional draft/session metadata — never faked. Requires https to avoid mixed
+ * content / unsafe schemes.
+ */
+export function getOfertaLocalBusinessLogoUrl(draft: OfertaLocalDraft): string | null {
+  const raw = String(draft.businessLogoUrl ?? "").trim();
+  if (!raw) return null;
+  const normalized = normalizeOfertaLocalUrlInput(raw);
+  if (!normalized) return null;
+  return normalized.toLowerCase().startsWith("https://") ? normalized : null;
+}
+
 export type OfertaLocalPreviewHeroAsset = {
   href: string | null;
   fileName: string;
@@ -204,4 +217,11 @@ export function buildOfertaLocalPreviewLocationLine(draft: OfertaLocalDraft): st
     .map((p) => p.trim())
     .filter(Boolean)
     .join(", ");
+}
+
+/** Preview-only Google Maps embed URL from a real address line (no fake coordinates). */
+export function buildOfertaLocalPreviewMapEmbedUrl(locationLine: string): string {
+  const q = locationLine.trim();
+  if (!q) return "";
+  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
 }

@@ -1,0 +1,40 @@
+{
+  "gate": "AUGUST-2026-BATCH2-PAGES5-6-DEEPL-ENGLISH-PROOF1",
+  "pageNumber": 5,
+  "sourceInputPath": ".magazine-proof-output/2026-august/_inputs/page-smoke/page-005/source-page-005-from-png.pdf",
+  "sourceInputHash": "c9270f6280ddc89be50c0f9e3aba9cae6086b95aae3434f5b3ddbc9548e97ab0",
+  "sourceInputBytes": 2853520,
+  "targetLanguage": "English",
+  "deeplTargetLanguage": "EN-US",
+  "translatedOutputPath": ".magazine-proof-output/2026-august/en/page-smoke/page-005/deepl-page-005.en.pdf",
+  "provider": "DeepL",
+  "providerCallNumber": 1,
+  "providerTotalCallLimit": 2,
+  "providerCalled": true,
+  "publicAsset": false,
+  "finalPdf": false,
+  "printReady": false,
+  "digitalProofOnly": true,
+  "sourceFlatteningRisk": "IMAGE_FLATTENED_LIKELY",
+  "extractableTextExpectedFromInput": false,
+  "pageRisk": "HIGH",
+  "pageLayoutType": "dense event/card layout",
+  "nextQaDecisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ],
+  "timestamp": "2026-07-07T18:10:56.585Z",
+  "dryRun": false,
+  "providerCallAttempted": true,
+  "providerStatus": "done",
+  "translatedOutputExists": true,
+  "translatedOutputBytes": 2331887,
+  "translatedOutputHash": "81b2f1251d812a62ef42fd2abf8ad29ce72361bb716067cccc69e8945c8da3a5",
+  "result": "OUTPUT_FILE_GENERATED",
+  "deeplStatus": {
+    "status": "done",
+    "billedCharacters": 1316
+  }
+}

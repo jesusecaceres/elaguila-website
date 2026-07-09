@@ -159,3 +159,32 @@ This gate proves a **safe repeatable pattern**: save listing data → central Re
 | `app/lib/listingPlans/revenueCategoryCheckoutPayload.ts` | Package keys, return paths, request body builder |
 | `app/lib/listingPlans/revenueCategoryCheckoutClient.ts` | Browser `startRevenueCategoryCheckout` |
 | `app/(site)/publicar/empleos/shared/publish/empleosRevenueCheckout.ts` | Empleos draft save + checkout orchestration |
+
+## 16. Website Launch 25 promo on these categories (WEBSITE-LAUNCH-25-CHECKOUT-REDEMPTION-WIRING-01)
+
+The three wired categories (Rentas privado, Empleos paid job post, Autos privado) plus the existing Restaurantes proof checkout now accept **`website_launch_25`** promo codes:
+
+- Codes are captured via newsletter/account/dashboard signup and are **website checkout only**. They apply only to the allowlisted package keys `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`.
+- They do **not** apply to print/combo/manual/free/renewal/unknown products, and never grant placement, ranking, verification, or entitlement.
+- The applied code is captured client-side (shared `RevenuePromoField`, or `PublishCheckoutCheckpoint` for Restaurantes), forwarded to `startRevenueCategoryCheckout` → `POST /api/revenue-os/checkout`, which **revalidates server-side** and uses the server `finalAmountCents` for the Stripe session.
+- Redemption is **webhook-only** after a successful paid session; abandoned/cancelled checkouts do not consume the code.
+- Empleos **job fair (free)** and Autos **negocio/dealer** legacy checkout are intentionally untouched — no promo field is rendered there.
+
+## 17. Launch 25 checkout UX polish (LAUNCH-25-ELIGIBLE-CHECKOUT-UX-POLISH-01)
+
+UX continuity pass over the same eligible surfaces. No backend/validation/discount/Stripe/schema changes.
+
+- Shared reminder: `app/components/leonix/LeonixLaunchCouponCard.tsx` (`variant="mini"`). (The earlier standalone `LeonixLaunch25MiniNotice` was removed during design-system unification — see section 18.)
+- Rentas privado, Empleos quick+premium paid forms, and Autos privado form now show the reminder near their top/price area.
+- Selector pages: paid Empleos job card and Autos private-seller card show a Launch 25 eligibility badge. The free job fair and the Autos dealer card are excluded (dealer shows a neutral "separate promotions" note).
+- Final `RevenuePromoField` gained a calm helper line only.
+- Server checkout remains the source of truth; redemption stays webhook-only.
+
+## 18. Launch 25 design-system unification (LAUNCH-25-COUPON-DESIGN-SYSTEM-UNIFICATION-01)
+
+Every Launch 25 placement now renders from one component family, `app/components/leonix/LeonixLaunchCouponCard.tsx`, so the campaign uses one design and one copy source.
+
+- Variants: `public`/`dashboard`/`compact` (full cards), `mini` (eligible form reminders), `badge` (eligible selector pills).
+- Newsletter keeps `variant="public"`. Rentas privado, Empleos quick+premium, and Autos privado forms use `variant="mini"`. Empleos paid job card and Autos private-seller card use `variant="badge"`.
+- The standalone `LeonixLaunch25MiniNotice` component and all per-page `launchBadge` copy were removed. Autos dealer keeps only a neutral separate-promotions note; Empleos free job fair has no badge.
+- No backend/checkout/Stripe/schema changes. Do not create a second Launch 25 card or copy source.

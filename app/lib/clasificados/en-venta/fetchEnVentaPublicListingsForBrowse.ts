@@ -14,13 +14,20 @@ export type EnVentaPublicBrowseListing = {
   dto: EnVentaAnuncioDTO;
 };
 
-export async function fetchEnVentaPublicListingsForBrowse(): Promise<EnVentaPublicBrowseListing[]> {
+export type FetchEnVentaPublicListingsOptions = {
+  /** Lower cap for hub landing preview; results browse uses default (800). */
+  limit?: number;
+};
+
+export async function fetchEnVentaPublicListingsForBrowse(
+  options?: FetchEnVentaPublicListingsOptions,
+): Promise<EnVentaPublicBrowseListing[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return [];
 
   const sb = createClient(url, key);
-  const { data, error } = await queryEnVentaBrowseListings(sb);
+  const { data, error } = await queryEnVentaBrowseListings(sb, options?.limit != null ? { limit: options.limit } : undefined);
   if (error || !data?.length) return [];
 
   const out: EnVentaPublicBrowseListing[] = [];

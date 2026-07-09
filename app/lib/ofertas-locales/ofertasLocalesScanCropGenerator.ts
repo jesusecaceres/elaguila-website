@@ -89,7 +89,11 @@ export async function applyOfertaLocalScanItemCrops(
 
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {
-    console.warn("[ofertas-locales crop] disabled: missing BLOB_READ_WRITE_TOKEN");
+    console.warn("[ofertas-locales crop] disabled: missing BLOB_READ_WRITE_TOKEN", {
+      ofertaLocalId: params.ofertaLocalId,
+      scanJobId: params.scanJobId,
+      itemCount: params.items.length,
+    });
     return { cropsGenerated: 0, cropErrors: ["blob_token_missing"] };
   }
 
@@ -106,10 +110,22 @@ export async function applyOfertaLocalScanItemCrops(
   } catch (err) {
     const message = err instanceof Error ? err.message : "sharp_unavailable";
     console.warn("[ofertas-locales crop] disabled: sharp unavailable", {
+      ofertaLocalId: params.ofertaLocalId,
+      scanJobId: params.scanJobId,
       error: message.slice(0, 200),
     });
     return { cropsGenerated: 0, cropErrors: ["sharp_unavailable"] };
   }
+
+  console.info("[ofertas-locales crop] start", {
+    ofertaLocalId: params.ofertaLocalId,
+    scanJobId: params.scanJobId,
+    sourceAssetId: params.sourceAssetId,
+    itemCount: params.items.length,
+    pageImageCount: params.pageImages.length,
+    hasBlobToken: true,
+    sharpAvailable: true,
+  });
 
   for (let index = 0; index < params.items.length; index++) {
     const item = params.items[index];
@@ -274,6 +290,7 @@ export async function applyOfertaLocalScanItemCrops(
   }
 
   console.info("[ofertas-locales crop] summary", {
+    ofertaLocalId: params.ofertaLocalId,
     scanJobId: params.scanJobId,
     sourceAssetId: params.sourceAssetId,
     totalItems: summary.totalItems,
@@ -284,6 +301,7 @@ export async function applyOfertaLocalScanItemCrops(
     cropFailureCount: summary.cropSkipped,
     cropSkipped: summary.cropSkipped,
     skipReasonCounts: summary.skipReasonCounts,
+    itemsWithSourceCropUrl: params.items.filter((item) => item.sourceCropUrl?.trim()).length,
   });
   logAiStage("CROP_SUMMARY", {
     scanJobId: params.scanJobId,

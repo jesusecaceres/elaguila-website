@@ -8,6 +8,7 @@ import { FiArrowRight, FiBriefcase, FiUser } from "react-icons/fi";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang, withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
 import { getPublicarViajesHubCopy } from "./data/publicarViajesHubCopy";
@@ -17,17 +18,17 @@ const CARD =
 
 export function PublicarViajesBranchClient() {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(sp?.get("lang"));
   const copy = getPublicarViajesHubCopy(lang);
 
   useEffect(() => {
     document.title = copy.documentTitle;
   }, [copy.documentTitle]);
 
-  const hubHref = appendLangToPath("/clasificados/publicar", lang);
-  const negociosHref = appendLangToPath("/publicar/viajes/negocios", lang);
-  const privadoHref = appendLangToPath("/publicar/viajes/privado", lang);
-  const viajesHref = appendLangToPath("/clasificados/viajes", lang);
+  const hubHref = appendLangToPath("/clasificados/publicar", routeLang);
+  const negociosHref = appendLangToPath("/publicar/viajes/negocios", routeLang);
+  const privadoHref = appendLangToPath("/publicar/viajes/privado", routeLang);
+  const viajesHref = appendLangToPath("/clasificados/viajes", routeLang);
   const privateLaneDisabled = isViajesPrivatePublishDisabled();
 
   return (

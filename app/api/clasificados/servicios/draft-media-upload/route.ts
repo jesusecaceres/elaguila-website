@@ -13,6 +13,8 @@ const SLOTS = new Set([
   "promoPdf",
   "licenseDoc",
   "insuranceDoc",
+  "couponImage",
+  "couponFlyer",
 ]);
 
 /**

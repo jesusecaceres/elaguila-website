@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { listServiciosPublicListingsForOwner } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { serviciosListingJsonOffersEnabled } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -40,6 +41,8 @@ export async function GET(req: NextRequest) {
       listing_status: r.listing_status,
       leonix_verified: r.leonix_verified,
       leonix_ad_id: r.leonix_ad_id ?? null,
+      // Honest display state only — reflects published offers CONTENT, not verified Stripe entitlement.
+      offers_addon_active: serviciosListingJsonOffersEnabled(r.profile_json),
     })),
   });
 }

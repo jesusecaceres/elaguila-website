@@ -4,34 +4,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import {
-  BR_NEGOCIO_Q_PROPIEDAD,
-  parseBrNegocioPropiedadParam,
-  type BrNegocioCategoriaPropiedad,
-} from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
-import type { BrPrimaryChipId, BrSecondaryChipId } from "./search/filterTypes";
 import type { BrNegocioListing } from "./cards/listingTypes";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
+import { BienesRaicesSponsorsLane } from "@/app/clasificados/bienes-raices/components/BienesRaicesSponsorsLane";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
-import { BienesRaicesCategoryNav } from "./components/BienesRaicesCategoryNav";
-import { BienesRaicesFilterChips } from "./components/BienesRaicesFilterChips";
-import { BienesRaicesPropiedadFilterChips } from "./components/BienesRaicesPropiedadFilterChips";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
+import { BienesRaicesResultsGatewayPanel } from "./components/BienesRaicesResultsGatewayPanel";
 import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeader";
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
-import { BienesRaicesResultsTopBar } from "./components/BienesRaicesResultsTopBar";
 import { BR_BTN_PRIMARY } from "../shared/bienesRaicesLeonixPublicUi";
 import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
 import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
-import {
-  CAT_STD_REFINE_EYEBROW,
-  CAT_STD_RESULTS_REFINE_PANEL,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import {
   filterBrListings,
   paginateListings,
@@ -39,17 +27,6 @@ import {
 import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
 
 const BR_RESULTS_DEV_LOG = process.env.NODE_ENV === "development";
-
-const PRIMARY_IDS: readonly BrPrimaryChipId[] = [
-  "casas",
-  "departamentos",
-  "venta",
-  "renta",
-  "comerciales",
-  "terrenos",
-] as const;
-
-const SECONDARY_IDS: readonly BrSecondaryChipId[] = ["piscina", "mascotas"] as const;
 
 const PAGE_SIZE = 9;
 
@@ -73,18 +50,6 @@ export function BienesRaicesResultsClient() {
   const [searchState, setSearchState] = useState("CA");
   const [searchZip, setSearchZip] = useState("");
   const [searchCountry, setSearchCountry] = useState("United States");
-
-  const propiedadFilter: BrNegocioCategoriaPropiedad | null = useMemo(
-    () => parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD)),
-    [sp]
-  );
-
-  const propiedadLabelActive = useMemo(() => {
-    if (!propiedadFilter) return null;
-    if (propiedadFilter === "residencial") return copy.categoryResidential;
-    if (propiedadFilter === "comercial") return copy.categoryCommercial;
-    return copy.categoryLand;
-  }, [propiedadFilter, copy]);
 
   const [liveBrListings, setLiveBrListings] = useState<BrNegocioListing[]>([]);
   const [liveFetchErr, setLiveFetchErr] = useState<string | null>(null);
@@ -119,8 +84,8 @@ export function BienesRaicesResultsClient() {
   }, [liveBrListings, mergeDemo]);
 
   const filtered = useMemo(
-    () => filterBrListings(listingPool, parsed, propiedadFilter),
-    [listingPool, parsed, propiedadFilter]
+    () => filterBrListings(listingPool, parsed, null),
+    [listingPool, parsed]
   );
 
   const { page: pageNum, slice: pageSlice, total: mainTotal } = useMemo(
@@ -134,28 +99,6 @@ export function BienesRaicesResultsClient() {
     );
     return rows;
   }, [pageSlice, view]);
-
-  const primarySet = useMemo(() => {
-    const next = new Set<BrPrimaryChipId>();
-    for (const part of parsed.primary
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)) {
-      if ((PRIMARY_IDS as readonly string[]).includes(part)) next.add(part as BrPrimaryChipId);
-    }
-    return next;
-  }, [parsed.primary]);
-
-  const secondarySet = useMemo(() => {
-    const next = new Set<BrSecondaryChipId>();
-    for (const part of parsed.secondary
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)) {
-      if ((SECONDARY_IDS as readonly string[]).includes(part)) next.add(part as BrSecondaryChipId);
-    }
-    return next;
-  }, [parsed.secondary]);
 
   useEffect(() => {
     setSearchQ(parsed.q);
@@ -198,24 +141,6 @@ export function BienesRaicesResultsClient() {
     router.replace(appendLangToPath(BR_RESULTS, lang));
   }, [router, lang]);
 
-  const togglePrimary = (id: BrPrimaryChipId) => {
-    const next = new Set(primarySet);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    patchUrl({ primary: next.size ? [...next].join(",") : null });
-  };
-
-  const toggleSecondary = (id: BrSecondaryChipId) => {
-    const next = new Set(secondarySet);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    patchUrl({ secondary: next.size ? [...next].join(",") : null });
-  };
-
-  const toggleFurnished = useCallback(() => {
-    patchUrl({ furnished: parsed.furnished === "true" ? null : "true" });
-  }, [parsed.furnished, patchUrl]);
-
   const totalCount = filtered.length;
   const totalForHeader = totalCount;
 
@@ -236,65 +161,40 @@ export function BienesRaicesResultsClient() {
 
   return (
     <BienesRaicesResultsShell>
-      <BienesRaicesResultsTopBar copy={copy} lang={lang} />
-      <BienesRaicesCategoryNav lang={lang} />
-
-      <div className="space-y-3 pb-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="font-serif text-lg font-bold text-[#2A4536] sm:text-xl">{copy.heroTitle}</h1>
-            <p className="mt-0.5 text-xs text-[#3D3428]/80">{countLine}</p>
-          </div>
-          <Link href={appendLangToPath(BR_PUBLICAR_HUB, lang)} className={BR_BTN_PRIMARY}>
-            {copy.footerPublish}
-          </Link>
-        </div>
-
+      <div className="space-y-4 pb-3">
         {liveFetchErr ? (
           <p className="rounded-lg border border-amber-200/90 bg-amber-50/95 px-3 py-2 text-xs text-amber-950" role="status">
             {lang === "es" ? "Aviso — inventario no disponible:" : "Notice — inventory unavailable:"} {liveFetchErr}
           </p>
         ) : null}
 
-        <section
-          className={CAT_STD_RESULTS_REFINE_PANEL}
-          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
-        >
-          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
-          <div className="mt-2">
-        <BienesRaicesCompactSearchCanvas
+        <BienesRaicesResultsGatewayPanel
           lang={lang}
-          query={searchQ}
-          city={searchCity}
-          state={searchState}
-          zip={searchZip}
-          country={searchCountry}
-          onQuery={setSearchQ}
-          onCity={setSearchCity}
-          onState={setSearchState}
-          onZip={setSearchZip}
-          onCountry={setSearchCountry}
-          onSearch={applySearch}
-          onOpenFilters={() => setFilterDrawerOpen(true)}
-          browseAllHref={appendLangToPath(BR_RESULTS, lang)}
-          searchButtonLabel={searchLabel}
-          filtersButtonLabel={filtersLabel}
-        />
-          </div>
-        </section>
-
-        <BienesRaicesPropiedadFilterChips active={propiedadFilter} copy={copy} />
-
-        <BienesRaicesFilterChips
-          copy={copy}
-          primary={primarySet}
-          secondary={secondarySet}
-          furnishedActive={parsed.furnished === "true"}
-          onTogglePrimary={togglePrimary}
-          onToggleSecondary={toggleSecondary}
-          onToggleFurnished={toggleFurnished}
-          onMoreFilters={() => setFilterDrawerOpen(true)}
-          matchCount={totalCount}
+          title={copy.heroTitle}
+          countLine={countLine}
+          publishHref={appendLangToPath(BR_PUBLICAR_HUB, lang)}
+          publishLabel={copy.footerPublish}
+          searchSlot={
+            <BienesRaicesCompactSearchCanvas
+              lang={lang}
+              query={searchQ}
+              city={searchCity}
+              state={searchState}
+              zip={searchZip}
+              country={searchCountry}
+              onQuery={setSearchQ}
+              onCity={setSearchCity}
+              onState={setSearchState}
+              onZip={setSearchZip}
+              onCountry={setSearchCountry}
+              onSearch={applySearch}
+              onOpenFilters={() => setFilterDrawerOpen(true)}
+              browseAllHref={appendLangToPath(BR_RESULTS, lang)}
+              searchButtonLabel={searchLabel}
+              filtersButtonLabel={filtersLabel}
+              layout="landing"
+            />
+          }
         />
 
         <BienesRaicesResultsActiveFilters
@@ -302,24 +202,28 @@ export function BienesRaicesResultsClient() {
           copy={copy}
           onPatch={(p) => patchUrl(p)}
           onClearAll={clearAllFilters}
-          propiedadActive={propiedadLabelActive}
         />
 
-        <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
-      </div>
+        <BienesRaicesSponsorsLane
+          lang={lang}
+          listings={listingPool}
+          surface="results"
+          maxItems={8}
+        />
 
-      <BienesRaicesResultsHeader
-        showingFrom={showingFrom}
-        showingTo={showingTo}
-        total={totalForHeader}
-        sort={parsed.sort || "reciente"}
-        onSort={(v) => patchUrl({ sort: v || null })}
-        view={view}
-        onView={setView}
-        copy={copy}
-        lang={lang}
-        showMapToggle={false}
-      />
+        <BienesRaicesResultsHeader
+          showingFrom={showingFrom}
+          showingTo={showingTo}
+          total={totalForHeader}
+          sort={parsed.sort || "reciente"}
+          onSort={(v) => patchUrl({ sort: v || null })}
+          view={view}
+          onView={setView}
+          copy={copy}
+          lang={lang}
+          showMapToggle={false}
+        />
+      </div>
 
       <section className="mt-4" aria-labelledby="br-more-heading">
         <h2 id="br-more-heading" className="sr-only">
@@ -381,6 +285,10 @@ export function BienesRaicesResultsClient() {
           </nav>
         ) : null}
       </section>
+
+      <footer className="mt-8 border-t border-[#D6C7AD]/50 pt-6">
+        <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
+      </footer>
 
       <BienesRaicesResultsFilterDrawer
         open={filterDrawerOpen}

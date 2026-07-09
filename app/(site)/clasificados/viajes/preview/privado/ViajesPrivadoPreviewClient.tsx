@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 import { ViajesOfferDetailLayout } from "@/app/(site)/clasificados/viajes/components/ViajesOfferDetailLayout";
 import type { ViajesOfferDetailModel } from "@/app/(site)/clasificados/viajes/data/viajesOfferDetailSampleData";
@@ -19,7 +20,7 @@ import { useViajesPrivadoDraft } from "@/app/(site)/publicar/viajes/privado/lib/
 
 export function ViajesPrivadoPreviewClient() {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(sp?.get("lang"));
   const ui = getViajesUi(lang);
   const c = getPublicarViajesPrivadoCopy(lang);
   const { draft, hydrated } = useViajesPrivadoDraft();
@@ -95,10 +96,10 @@ export function ViajesPrivadoPreviewClient() {
   const offer = stagedOffer ?? draftOffer;
   const stagedPreviewPending = Boolean(stagedId) && !stagedOffer && !stagedErr;
   const backHref = stagedId
-    ? appendLangToPath("/dashboard/viajes", lang)
-    : appendLangToPath("/publicar/viajes/privado", lang);
+    ? appendLangToPath("/dashboard/viajes", routeLang)
+    : appendLangToPath("/publicar/viajes/privado", routeLang);
   const backLabel = stagedId ? (lang === "en" ? "Back to Viajes dashboard" : "Volver al panel Viajes") : c.previewBackEdit;
-  const exploreViajesHref = appendLangToPath("/clasificados/viajes", lang);
+  const exploreViajesHref = appendLangToPath("/clasificados/viajes", routeLang);
 
   return (
     <div className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">

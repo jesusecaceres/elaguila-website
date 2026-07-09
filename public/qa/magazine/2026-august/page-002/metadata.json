@@ -1,0 +1,41 @@
+{
+  "gate": "AUGUST-2026-BATCH3-PAGES2-4-DEEPL-ENGLISH-PROOF1",
+  "pageNumber": 2,
+  "sourceInputPath": ".magazine-proof-output/2026-august/_inputs/page-smoke/page-002/source-page-002-from-png.pdf",
+  "sourceInputHash": "1182245ac8b12c598c6efa046de48867719f45331085b569ff436f674142956f",
+  "sourceInputBytes": 2852346,
+  "targetLanguage": "English",
+  "deeplTargetLanguage": "EN-US",
+  "translatedOutputPath": ".magazine-proof-output/2026-august/en/page-smoke/page-002/deepl-page-002.en.pdf",
+  "provider": "DeepL",
+  "providerCallNumber": 1,
+  "providerTotalCallLimit": 3,
+  "providerCalled": true,
+  "publicAsset": false,
+  "finalPdf": false,
+  "printReady": false,
+  "digitalProofOnly": true,
+  "sourceFlatteningRisk": "IMAGE_FLATTENED_LIKELY",
+  "extractableTextExpectedFromInput": false,
+  "pageRisk": "MEDIUM",
+  "pageLayoutType": "Leonix house ad / brand ad",
+  "businessCriticalQaFocus": "Leonix ad copy, CTA/contact layout, brand voice, QR/contact blocks",
+  "nextQaDecisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ],
+  "timestamp": "2026-07-07T20:22:31.674Z",
+  "dryRun": false,
+  "providerCallAttempted": true,
+  "providerStatus": "done",
+  "translatedOutputExists": true,
+  "translatedOutputBytes": 2528698,
+  "translatedOutputHash": "f0fc0ddfd95add19b629fd7449878a08318eec42c56fea29b30077f987a279e0",
+  "result": "OUTPUT_FILE_GENERATED",
+  "deeplStatus": {
+    "status": "done",
+    "billedCharacters": 1859
+  }
+}

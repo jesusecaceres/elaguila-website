@@ -27,6 +27,8 @@ import type { ClipReviewViewerItem } from "./OfertasClipReviewViewer";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
   OfertaLocalDraft,
+  OfertaLocalItemCommerceMetadata,
+  OfertaLocalItemOnlineAvailability,
   OfertaLocalItemReviewStatus,
   OfertaLocalItemReviewViewModel,
   OfertaLocalScanJobSummary,
@@ -128,7 +130,50 @@ type ItemDraft = {
   terms: string;
   dealType: string;
   searchTags: string;
+  itemUrl: string;
+  itemNumber: string;
+  sku: string;
+  modelNumber: string;
+  upc: string;
+  couponCode: string;
+  onlineAvailability: OfertaLocalItemOnlineAvailability;
 };
+
+function commerceDraftFromItem(item: OfertaLocalItemReviewViewModel): Pick<
+  ItemDraft,
+  | "itemUrl"
+  | "itemNumber"
+  | "sku"
+  | "modelNumber"
+  | "upc"
+  | "couponCode"
+  | "onlineAvailability"
+> {
+  const m = item.commerceMetadata;
+  return {
+    itemUrl: m.itemUrl,
+    itemNumber: m.itemNumber,
+    sku: m.sku,
+    modelNumber: m.modelNumber,
+    upc: m.upc,
+    couponCode: m.couponCode,
+    onlineAvailability: m.onlineAvailability,
+  };
+}
+
+function commerceMetadataFromDraft(draft: ItemDraft): OfertaLocalItemCommerceMetadata {
+  return {
+    itemUrl: draft.itemUrl.trim(),
+    itemNumber: draft.itemNumber.trim(),
+    sku: draft.sku.trim(),
+    modelNumber: draft.modelNumber.trim(),
+    upc: draft.upc.trim(),
+    couponCode: draft.couponCode.trim(),
+    onlineAvailability: draft.onlineAvailability,
+    itemUrlSource: draft.itemUrl.trim() ? "manual" : "",
+    metadataNote: "",
+  };
+}
 
 function toDraft(item: OfertaLocalItemReviewViewModel): ItemDraft {
   return {
@@ -142,6 +187,7 @@ function toDraft(item: OfertaLocalItemReviewViewModel): ItemDraft {
     terms: item.terms || item.dealType,
     dealType: item.dealType,
     searchTags: item.searchTags.join(", "),
+    ...commerceDraftFromItem(item),
   };
 }
 
@@ -193,6 +239,7 @@ function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: 
       .split(/[,;]+/)
       .map((t) => t.trim())
       .filter(Boolean),
+    commerceMetadata: commerceMetadataFromDraft(draft),
     reviewStatus,
   };
 }
@@ -266,6 +313,7 @@ function ItemReviewCard({
 }) {
   const c = ofertasLocalesAppCopy(lang);
   const [ocrOpen, setOcrOpen] = useState(false);
+  const [commerceOpen, setCommerceOpen] = useState(false);
   const ocrContext = item.sourceContext?.trim();
   const cardClass = compact
     ? "rounded-lg border border-[#D4C4A8]/70 bg-white px-3 py-2.5 shadow-sm"
@@ -382,6 +430,95 @@ function ItemReviewCard({
             placeholder={lang === "en" ? "comma separated" : "separadas por coma"}
           />
         </label>
+      </div>
+
+      <div className="mt-2 rounded-md border border-[#D4C4A8]/50 bg-[#FFFCF7]/60">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left"
+          onClick={() => setCommerceOpen((v) => !v)}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/65">
+            {c.aiReviewCommerceSectionTitle}
+          </span>
+          <span className="text-[10px] font-medium text-[#7A1E2C]/70">
+            {commerceOpen ? (lang === "en" ? "Hide" : "Ocultar") : lang === "en" ? "Show" : "Ver"}
+          </span>
+        </button>
+        {commerceOpen ? (
+          <div className={`space-y-1.5 border-t border-[#D4C4A8]/40 px-2.5 py-2 ${compact ? "" : ""}`}>
+            <p className="text-[10px] leading-relaxed text-[#1E1814]/55">{c.aiReviewCommerceHelper}</p>
+            <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+              {c.aiReviewCommerceItemUrl}
+              <input
+                className={`${inputClass} mt-0.5`}
+                value={draftFields.itemUrl}
+                onChange={(e) => onFieldChange("itemUrl", e.target.value)}
+                placeholder="https://"
+                inputMode="url"
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                {c.aiReviewCommerceItemNumber}
+                <input
+                  className={`${inputClass} mt-0.5`}
+                  value={draftFields.itemNumber}
+                  onChange={(e) => onFieldChange("itemNumber", e.target.value)}
+                />
+              </label>
+              <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                {c.aiReviewCommerceSku}
+                <input
+                  className={`${inputClass} mt-0.5`}
+                  value={draftFields.sku}
+                  onChange={(e) => onFieldChange("sku", e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                {c.aiReviewCommerceModelNumber}
+                <input
+                  className={`${inputClass} mt-0.5`}
+                  value={draftFields.modelNumber}
+                  onChange={(e) => onFieldChange("modelNumber", e.target.value)}
+                />
+              </label>
+              <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+                {c.aiReviewCommerceUpc}
+                <input
+                  className={`${inputClass} mt-0.5`}
+                  value={draftFields.upc}
+                  onChange={(e) => onFieldChange("upc", e.target.value)}
+                />
+              </label>
+            </div>
+            <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+              {c.aiReviewCommerceCouponCode}
+              <input
+                className={`${inputClass} mt-0.5`}
+                value={draftFields.couponCode}
+                onChange={(e) => onFieldChange("couponCode", e.target.value)}
+              />
+            </label>
+            <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
+              {c.aiReviewCommerceAvailability}
+              <select
+                className={`${inputClass} mt-0.5`}
+                value={draftFields.onlineAvailability}
+                onChange={(e) =>
+                  onFieldChange("onlineAvailability", e.target.value as OfertaLocalItemOnlineAvailability)
+                }
+              >
+                <option value="unknown">{c.aiReviewCommerceAvailabilityUnknown}</option>
+                <option value="online">{c.aiReviewCommerceAvailabilityOnline}</option>
+                <option value="in_store">{c.aiReviewCommerceAvailabilityInStore}</option>
+                <option value="both">{c.aiReviewCommerceAvailabilityBoth}</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
       </div>
 
       {ocrContext ? (

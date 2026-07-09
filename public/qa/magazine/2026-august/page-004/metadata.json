@@ -1,0 +1,41 @@
+{
+  "gate": "AUGUST-2026-BATCH3-PAGES2-4-DEEPL-ENGLISH-PROOF1",
+  "pageNumber": 4,
+  "sourceInputPath": ".magazine-proof-output/2026-august/_inputs/page-smoke/page-004/source-page-004-from-png.pdf",
+  "sourceInputHash": "b84dc8b8f8bef245e33c205a467119b1a3c17d521da3cfc6b05db80fe14383da",
+  "sourceInputBytes": 2621751,
+  "targetLanguage": "English",
+  "deeplTargetLanguage": "EN-US",
+  "translatedOutputPath": ".magazine-proof-output/2026-august/en/page-smoke/page-004/deepl-page-004.en.pdf",
+  "provider": "DeepL",
+  "providerCallNumber": 3,
+  "providerTotalCallLimit": 3,
+  "providerCalled": true,
+  "publicAsset": false,
+  "finalPdf": false,
+  "printReady": false,
+  "digitalProofOnly": true,
+  "sourceFlatteningRisk": "IMAGE_FLATTENED_LIKELY",
+  "extractableTextExpectedFromInput": false,
+  "pageRisk": "HIGH",
+  "pageLayoutType": "client service/barber ad",
+  "businessCriticalQaFocus": "Elevated Barber business name, service copy, CTA/contact preservation, premium ad tone",
+  "nextQaDecisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ],
+  "timestamp": "2026-07-07T20:23:56.386Z",
+  "dryRun": false,
+  "providerCallAttempted": true,
+  "providerStatus": "done",
+  "translatedOutputExists": true,
+  "translatedOutputBytes": 2249813,
+  "translatedOutputHash": "19900f174e2da2f96d0b1dd50db3f01af9e9d8cbf255363a64f3a0d10bd7b15d",
+  "result": "OUTPUT_FILE_GENERATED",
+  "deeplStatus": {
+    "status": "done",
+    "billedCharacters": 1012
+  }
+}

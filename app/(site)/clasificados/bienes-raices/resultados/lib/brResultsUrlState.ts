@@ -6,6 +6,8 @@ export type BrResultsParsedState = {
   lang: Lang;
   q: string;
   city: string;
+  /** Neighborhood/colonia filter. */
+  colonia: string;
   /** US state code (e.g. CA). */
   state: string;
   /** Country filter (defaults omitted when United States). */
@@ -30,6 +32,24 @@ export type BrResultsParsedState = {
   secondary: string;
   /** Legacy price band (`precio`) — mapped to min/max when numeric bounds absent. */
   precio: string;
+  /** Deferred characteristic filters (not yet wired to filter function). */
+  patio: string;
+  balcony: string;
+  view: string;
+  gated: string;
+  homeOffice: string;
+  solar: string;
+  fireplace: string;
+  laundry: string;
+  coveredParking: string;
+  accessControl: string;
+  elevator: string;
+  terrace: string;
+  gym: string;
+  amenities: string;
+  walkInCloset: string;
+  highCeilings: string;
+  smartHome: string;
 };
 
 const LANG_SET = new Set<Lang>(["es", "en"]);
@@ -68,6 +88,7 @@ export function parseBrResultsUrl(searchParams: URLSearchParams): BrResultsParse
     lang,
     q: searchParams.get("q") ?? "",
     city: searchParams.get("city") ?? "",
+    colonia: searchParams.get("colonia") ?? "",
     state: searchParams.get("state") ?? "",
     country: searchParams.get("country") ?? "",
     operationType,
@@ -86,6 +107,23 @@ export function parseBrResultsUrl(searchParams: URLSearchParams): BrResultsParse
     primary: searchParams.get("primary") ?? "",
     secondary: searchParams.get("secondary") ?? "",
     precio: searchParams.get("precio") ?? "",
+    patio: searchParams.get("patio") === "true" ? "true" : "",
+    balcony: searchParams.get("balcony") === "true" ? "true" : "",
+    view: searchParams.get("view") === "true" ? "true" : "",
+    gated: searchParams.get("gated") === "true" ? "true" : "",
+    homeOffice: searchParams.get("homeOffice") === "true" ? "true" : "",
+    solar: searchParams.get("solar") === "true" ? "true" : "",
+    fireplace: searchParams.get("fireplace") === "true" ? "true" : "",
+    laundry: searchParams.get("laundry") === "true" ? "true" : "",
+    coveredParking: searchParams.get("coveredParking") === "true" ? "true" : "",
+    accessControl: searchParams.get("accessControl") === "true" ? "true" : "",
+    elevator: searchParams.get("elevator") === "true" ? "true" : "",
+    terrace: searchParams.get("terrace") === "true" ? "true" : "",
+    gym: searchParams.get("gym") === "true" ? "true" : "",
+    amenities: searchParams.get("amenities") === "true" ? "true" : "",
+    walkInCloset: searchParams.get("walkInCloset") === "true" ? "true" : "",
+    highCeilings: searchParams.get("highCeilings") === "true" ? "true" : "",
+    smartHome: searchParams.get("smartHome") === "true" ? "true" : "",
   };
 }
 

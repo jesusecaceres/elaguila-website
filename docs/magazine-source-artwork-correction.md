@@ -11,6 +11,8 @@ The repo holds a **flattened Canva export only** (`leonix_media_june.pdf` + `cov
 
 **Current public PDF artwork status:** `HOLD_FOR_SOURCE_ARTWORK_UPDATE` — **not corrected in this gate.**
 
+**Portuguese proof update (2026-07-06):** Pages **3** and **4** single-page DeepL proofs succeeded locally — translation **works**, but source layout must become **translation-safe** (font size, line-height, text-box breathing room) before a full edition looks premium. Footer artwork on reviewed pages still shows **Suite 202**; all Leonix contact blocks must use **Suite 201** and canonical phone/email/web per below. See `docs/magazine-source-canva-layout-compression-truth.md`.
+
 ---
 
 ## Source asset state (repo)

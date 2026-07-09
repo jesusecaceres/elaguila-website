@@ -1,4 +1,5 @@
-import type { ClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationTypes";
+import type { ClasificadosServiciosApplicationState, VideoItem } from "./clasificadosServiciosApplicationTypes";
+import { normalizeServiciosApplicationVideos } from "./clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
 import { inlineServiciosHeavyMediaFromIdb } from "./clasificadosServiciosDraftMedia";
@@ -14,6 +15,36 @@ import {
  * Mirrors Bienes Raíces Negocio `BR_NEGOCIO_PREVIEW_RETURN_DRAFT` behavior.
  */
 export const SERVICIOS_PREVIEW_RETURN_KEY = "leonix.clasificados.servicios.previewReturn.v1";
+
+/** Up to 4 gallery videos for seller preview (legacy mapper still caps at 2). */
+export function buildServiciosPreviewGalleryVideos(state: ClasificadosServiciosApplicationState) {
+  return normalizeServiciosApplicationVideos(state.videos)
+    .map((v) => {
+      const row: {
+        id: string;
+        url: string;
+        isPrimary: boolean;
+        muxPlaybackId?: string;
+        muxAssetId?: string;
+        muxThumbnailUrl?: string;
+        muxPublishSkipReason?: string;
+      } = {
+        id: v.id,
+        url: v.url.trim(),
+        isPrimary: v.isPrimary === true,
+      };
+      const mp = v.muxPlaybackId?.trim();
+      if (mp) row.muxPlaybackId = mp;
+      const ma = v.muxAssetId?.trim();
+      if (ma) row.muxAssetId = ma;
+      const th = v.muxThumbnailUrl?.trim();
+      if (th) row.muxThumbnailUrl = th;
+      const sk = v.muxSkipReason?.trim();
+      if (sk) row.muxPublishSkipReason = sk.slice(0, 480);
+      return row;
+    })
+    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+}
 
 type ServiciosPreviewReturnPayload = {
   state: ClasificadosServiciosApplicationState;
@@ -45,7 +76,11 @@ function consumePreviewReturnFromSession(): ClasificadosServiciosApplicationStat
     const data = JSON.parse(raw) as Partial<ServiciosPreviewReturnPayload>;
     if (!data.state || typeof data.state !== "object") return null;
     window.sessionStorage.removeItem(SERVICIOS_PREVIEW_RETURN_KEY);
-    const merged = normalizeClasificadosServiciosApplicationState(data.state);
+    const rawVideos = Array.isArray((data.state as Record<string, unknown>).videos)
+      ? ((data.state as Record<string, unknown>).videos as VideoItem[])
+      : [];
+    let merged = normalizeClasificadosServiciosApplicationState(data.state);
+    merged = { ...merged, videos: normalizeServiciosApplicationVideos(rawVideos.length > 0 ? rawVideos : merged.videos) };
     previewReturnMemory = merged;
     consumedPreviewReturnThisMount = true;
     scheduleClearReturnMemory();
@@ -73,11 +108,14 @@ export function bootstrapServiciosApplicationStateSync(): ClasificadosServiciosA
 export async function rehydrateServiciosApplicationMedia(
   base: ClasificadosServiciosApplicationState,
 ): Promise<ClasificadosServiciosApplicationState> {
+  const preservedVideos = base.videos ?? [];
   try {
     const full = await inlineServiciosHeavyMediaFromIdb(SERVICIOS_DRAFT_MEDIA_NAMESPACE, base);
-    return normalizeClasificadosServiciosApplicationState(full);
+    const normalized = normalizeClasificadosServiciosApplicationState(full);
+    return { ...normalized, videos: normalizeServiciosApplicationVideos(preservedVideos) };
   } catch {
-    return normalizeClasificadosServiciosApplicationState(base);
+    const normalized = normalizeClasificadosServiciosApplicationState(base);
+    return { ...normalized, videos: normalizeServiciosApplicationVideos(preservedVideos) };
   }
 }
 
@@ -86,7 +124,9 @@ export function saveServiciosPreviewReturnDraft(state: ClasificadosServiciosAppl
   if (typeof window === "undefined") return false;
   previewReturnMemory = null;
   try {
-    const normalized = normalizeClasificadosServiciosApplicationState(state);
+    const preservedVideos = state.videos ?? [];
+    let normalized = normalizeClasificadosServiciosApplicationState(state);
+    normalized = { ...normalized, videos: normalizeServiciosApplicationVideos(preservedVideos) };
     const payload: ServiciosPreviewReturnPayload = { state: normalized, savedAt: Date.now() };
     const raw = JSON.stringify(payload);
     window.sessionStorage.setItem(SERVICIOS_PREVIEW_RETURN_KEY, raw);

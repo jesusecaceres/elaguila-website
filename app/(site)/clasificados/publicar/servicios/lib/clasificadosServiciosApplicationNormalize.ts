@@ -18,7 +18,8 @@ import {
 } from "./serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { isJunkServiciosQuickFactLabel, syncServiciosContactEnables } from "./serviciosContactVisibility";
-import { SERVICIOS_APPLICATION_STEP_COUNT } from "./serviciosApplicationStepLabels";
+import { SERVICIOS_APPLICATION_STEP_COUNT, migrateServiciosApplicationStepIndex } from "./serviciosApplicationStepLabels";
+import { SERVICIOS_MAX_VIDEO_URLS } from "./clasificadosServiciosApplicationTypes";
 import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import { CUSTOM_SERVICIOS_AMENITY_LABEL_MAX } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
@@ -112,6 +113,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   if (promotions.length === 0) promotions = [createEmptyClasificadosPromoRow()];
 
   // Normalize coupons
+  const couponsAddOn = bool("couponsAddOn", d.couponsAddOn);
   let coupons: ClasificadosServiciosCouponRow[] = d.coupons ?? [];
   if (Array.isArray(o.coupons)) {
     const parsed: ClasificadosServiciosCouponRow[] = [];
@@ -134,8 +136,29 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     }
     if (parsed.length > 0) coupons = parsed;
   }
-  // Only keep coupons if the add-on is enabled
-  if (!d.couponsAddOn) coupons = [];
+  if (!couponsAddOn) coupons = [];
+
+  let couponFlyer = d.couponFlyer ?? { imageUrl: "" };
+  if (o.couponFlyer && typeof o.couponFlyer === "object") {
+    const cf = o.couponFlyer as Record<string, unknown>;
+    couponFlyer = {
+      imageUrl: typeof cf.imageUrl === "string" ? cf.imageUrl : "",
+    };
+  }
+
+  let couponMoreOffers = d.couponMoreOffers ?? { url: "", buttonLabel: "" };
+  if (o.couponMoreOffers && typeof o.couponMoreOffers === "object") {
+    const cm = o.couponMoreOffers as Record<string, unknown>;
+    couponMoreOffers = {
+      url: typeof cm.url === "string" ? cm.url.slice(0, 500) : "",
+      buttonLabel: typeof cm.buttonLabel === "string" ? cm.buttonLabel.slice(0, 80) : "",
+    };
+  }
+
+  const couponsMonthlyPrice =
+    typeof o.couponsMonthlyPrice === "number" && Number.isFinite(o.couponsMonthlyPrice)
+      ? Math.max(0, Math.floor(o.couponsMonthlyPrice))
+      : d.couponsMonthlyPrice;
 
   let hours = d.hours;
   if (Array.isArray(o.hours) && o.hours.length === 7) {
@@ -213,7 +236,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
         const row = v as VideoItem;
         return { ...row, isPrimary: row.isPrimary === true };
       })
-      .slice(0, 2);
+      .slice(0, SERVICIOS_MAX_VIDEO_URLS);
   }
   if (videos.length > 0 && !videos.some((v) => v.isPrimary === true)) {
     videos = videos.map((v, i) => ({ ...v, isPrimary: i === 0 }));
@@ -229,7 +252,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   const maxStep = Math.max(0, SERVICIOS_APPLICATION_STEP_COUNT - 1);
   let applicationStepIndex = d.applicationStepIndex;
   if (typeof o.applicationStepIndex === "number" && Number.isFinite(o.applicationStepIndex)) {
-    applicationStepIndex = Math.max(0, Math.min(maxStep, Math.floor(o.applicationStepIndex)));
+    applicationStepIndex = migrateServiciosApplicationStepIndex(Math.floor(o.applicationStepIndex));
+    applicationStepIndex = Math.max(0, Math.min(maxStep, applicationStepIndex));
   }
 
   const customServiceLabel = str("customServiceLabel", d.customServiceLabel);
@@ -374,10 +398,10 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     testimonials,
     promotions,
     coupons,
-    couponsAddOn: bool("couponsAddOn", d.couponsAddOn),
-    couponsMonthlyPrice: typeof d.couponsMonthlyPrice === "number" ? d.couponsMonthlyPrice : 0,
-    couponFlyer: d.couponFlyer || { imageUrl: "" },
-    couponMoreOffers: d.couponMoreOffers || { url: "", buttonLabel: "" },
+    couponsAddOn,
+    couponsMonthlyPrice,
+    couponFlyer,
+    couponMoreOffers,
     confirmListingAccurate: bool("confirmListingAccurate", d.confirmListingAccurate),
     confirmPhotosRepresentBusiness: bool("confirmPhotosRepresentBusiness", d.confirmPhotosRepresentBusiness),
     confirmCommunityRules: bool("confirmCommunityRules", d.confirmCommunityRules),

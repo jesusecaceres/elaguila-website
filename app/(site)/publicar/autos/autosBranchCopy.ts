@@ -18,6 +18,7 @@ export type AutosBranchCopy = {
     priceDisplay: string;
     body: string;
     cta: string;
+    launchNote: string;
   };
   privadoPlaceholder: {
     title: string;
@@ -49,6 +50,7 @@ function buildCopy(lang: AutosNegociosLang): AutosBranchCopy {
         priceDisplay: negociosPlan.priceDisplay,
         body: "For dealerships and auto businesses that need a professional presence and vehicle inventory.",
         cta: "Start as dealer",
+        launchNote: "Business package — separate promotions",
       },
       privadoPlaceholder: {
         title: "Private seller — live flow (QA)",
@@ -76,6 +78,7 @@ function buildCopy(lang: AutosNegociosLang): AutosBranchCopy {
       priceDisplay: negociosPlan.priceDisplay,
       body: "Para agencias y negocios de autos que necesitan una presencia profesional e inventario de vehículos.",
       cta: "Empezar como dealer",
+      launchNote: "Paquete de negocio — promociones separadas",
     },
     privadoPlaceholder: {
       title: "Privado — flujo activo (QA)",

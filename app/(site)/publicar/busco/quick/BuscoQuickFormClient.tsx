@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { BuscoShellLayout } from "@/app/(site)/clasificados/busco/shared/BuscoShellLayout";
-import { buscoLangFromSearchParams } from "@/app/(site)/clasificados/busco/shared/buscoShellCopy";
+import { buscoLangFromSearchParams, buscoRouteLangFromSearchParams } from "@/app/(site)/clasificados/busco/shared/buscoShellCopy";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
 import {
@@ -36,6 +36,7 @@ export default function BuscoQuickFormClient() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = buscoLangFromSearchParams(sp);
+  const routeLang = buscoRouteLangFromSearchParams(sp);
   const copy = buscoFormCopy(lang);
   const fileRef = useRef<HTMLInputElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -54,8 +55,8 @@ export default function BuscoQuickFormClient() {
     if (previewDisabled) return;
     flushCommunityDraftToSession(BUSCO_QUICK_DRAFT_KEY, state, (raw) => normalizeBuscoQuickDraft(raw));
     markPublishFlowOpeningPreview();
-    router.push(buscoHandoffPreviewUrl(lang));
-  }, [previewDisabled, state, router, lang]);
+    router.push(buscoHandoffPreviewUrl(routeLang));
+  }, [previewDisabled, state, router, routeLang]);
 
   const onImagePick = useCallback(
     (file: File | null) => {

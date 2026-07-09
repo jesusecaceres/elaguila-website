@@ -58,7 +58,7 @@ export function useRentasPublicBrowseInventory(opts: {
 }): UseRentasPublicBrowseInventoryResult {
   const { initialLiveListings, lang, includeDemoPool } = opts;
   const [live, setLive] = useState<RentasPublicListing[]>(initialLiveListings);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialLiveListings.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 

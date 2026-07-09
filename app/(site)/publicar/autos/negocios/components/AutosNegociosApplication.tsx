@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
 import type {
@@ -39,6 +39,13 @@ import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/com
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { writeAutosNegociosEditorReturnContext } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
 import { stripAutosNegociosEditorResumeQueryParams } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
+import {
+  fetchAutosDealerInventoryPackEntitlementActive,
+  hydrateAutosDealerListingForDashboardEdit,
+  redirectAutosDealerInventoryPackCheckout,
+} from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -69,7 +76,7 @@ export function AutosNegociosApplication() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { lang, t } = useAutosNegociosLang();
+  const { lang, routeLang, t } = useAutosNegociosLang();
   const {
     hydrated,
     restoredFromSession,
@@ -96,6 +103,87 @@ export function AutosNegociosApplication() {
     inventoryDrawerEditingId,
     setInventoryDrawerOpen,
   } = useAutoDealerDraft();
+
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const listingIdentity = Boolean(editListingId || editLeonixAdId);
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const dashboardMode = searchParams?.get("mode") ?? "";
+  const focusInventoryPack = searchParams?.get("focus") === "inventory-pack";
+  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
+  const isDashboardInventoryEditMode = dashboardSource && dashboardMode === "inventory-edit" && listingIdentity;
+  const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
+  const dashboardReturnHref = appendLangToPath(buildDashboardMisAnunciosReturnPath(lang, "autos"), lang);
+  const dashboardHydratedRef = useRef(false);
+  const [editHydration, setEditHydration] = useState<
+    { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
+  >({ status: "idle" });
+  const [inventoryEntitlement, setInventoryEntitlement] = useState<
+    "idle" | "loading" | "active" | "inactive" | "pending"
+  >("idle");
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !editListingId || dashboardHydratedRef.current) return;
+    dashboardHydratedRef.current = true;
+    setEditHydration({ status: "loading" });
+    void hydrateAutosDealerListingForDashboardEdit({
+      listingId: editListingId,
+      lang,
+      focusInventory: isDashboardInventoryEditMode || isDashboardInventoryAddonMode,
+    }).then(async (result) => {
+      if (!result.ok) {
+        setEditHydration({ status: "error", message: result.userMessage });
+        return;
+      }
+      await rehydrateFromStorage();
+      if (isDashboardInventoryEditMode || isDashboardInventoryAddonMode) {
+        setEditorProgress(6, Math.max(editorMaxReached, 6));
+      }
+      setEditHydration({ status: "idle" });
+    });
+  }, [
+    editListingId,
+    editorMaxReached,
+    isDashboardInventoryAddonMode,
+    isDashboardInventoryEditMode,
+    isExistingDashboardListingMode,
+    lang,
+    rehydrateFromStorage,
+    setEditorProgress,
+  ]);
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !editListingId) {
+      setInventoryEntitlement("idle");
+      return;
+    }
+    let cancelled = false;
+    setInventoryEntitlement("loading");
+    void fetchAutosDealerInventoryPackEntitlementActive({
+      listingId: editListingId,
+      leonixAdId: editLeonixAdId,
+    }).then((result) => {
+      if (cancelled) return;
+      if (result.active) {
+        setInventoryEntitlement("active");
+        return;
+      }
+      if (result.pending) {
+        setInventoryEntitlement("pending");
+        return;
+      }
+      const postPaymentReturn = isDashboardInventoryEditMode && focusInventoryPack;
+      setInventoryEntitlement(postPaymentReturn ? "pending" : "inactive");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editLeonixAdId, editListingId, focusInventoryPack, isDashboardInventoryEditMode, isExistingDashboardListingMode]);
+
+  const inventoryPackActive = inventoryEntitlement === "active";
+  const dashboardParentListingId = isExistingDashboardListingMode ? editListingId : null;
 
   const inventoryDrawerProps = {
     drawerOpen: inventoryDrawerOpen,
@@ -131,10 +219,35 @@ export function AutosNegociosApplication() {
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
 
-  const previewHref = withLangParam("/clasificados/autos/negocios/preview", lang);
+  const previewHref = isExistingDashboardListingMode
+    ? withLangParam(
+        `/clasificados/autos/negocios/preview?${new URLSearchParams({
+          edit: "1",
+          source: "dashboard",
+          mode: isDashboardInventoryEditMode ? "inventory-edit" : "listing-edit",
+          listingId: editListingId,
+          ...(editLeonixAdId ? { leonixAdId: editLeonixAdId } : {}),
+          returnPanel: "autos",
+          ...(focusInventoryPack ? { focus: "inventory-pack" } : {}),
+          preview: "listing",
+        }).toString()}`,
+        routeLang,
+      )
+    : withLangParam("/clasificados/autos/negocios/preview", routeLang);
 
-  if (!hydrated) {
+  if (!hydrated || (isExistingDashboardListingMode && editHydration.status === "loading")) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
+
+  if (isExistingDashboardListingMode && editHydration.status === "error") {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <p className="text-sm text-red-900">{editHydration.message}</p>
+        <a href={dashboardReturnHref} className="mt-4 inline-block text-sm font-bold text-[#5C4E2E] underline">
+          {lang === "es" ? "Volver a Mis anuncios" : "Back to My listings"}
+        </a>
+      </div>
+    );
   }
 
   const inventoryBanner =
@@ -162,6 +275,16 @@ export function AutosNegociosApplication() {
           draftLabel={t.app.badgeLocal}
           banner={
             <>
+              {isExistingDashboardListingMode ? (
+                <p className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-3 text-sm text-[#5C4E2E]">
+                  {lang === "es"
+                    ? "Editando tu anuncio dealer publicado desde el panel."
+                    : "Editing your published dealer listing from the dashboard."}{" "}
+                  <a href={dashboardReturnHref} className="font-bold underline">
+                    {lang === "es" ? "Volver a Mis anuncios" : "Back to My listings"}
+                  </a>
+                </p>
+              ) : null}
               <AutosPricingPlanBanner lang={lang} lane="negocios" />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
               {inventoryBanner ? (
@@ -560,10 +683,16 @@ export function AutosNegociosApplication() {
                 />
                 <AutosNegociosInventoryValueModule
                   lang={lang}
-                  prePublishMode
+                  prePublishMode={!isExistingDashboardListingMode}
+                  postPublishDashboardMode={isExistingDashboardListingMode}
+                  inventoryPackActive={inventoryPackActive}
+                  inventoryEntitlementPending={inventoryEntitlement === "pending"}
                   copy={t}
                   parentListing={listing}
-                  parentListingId={inventoryAddContext?.parentListingId ?? null}
+                  parentListingId={
+                    dashboardParentListingId ?? inventoryAddContext?.parentListingId ?? null
+                  }
+                  leonixAdId={editLeonixAdId || null}
                   dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
                   flushDraft={flushDraft}
                   additionalInventoryCount={additionalInventoryVehicles.length}
@@ -573,13 +702,22 @@ export function AutosNegociosApplication() {
                     if (ok) void flushDraft();
                     return ok;
                   }}
+                  onStartInventoryCheckout={() =>
+                    void redirectAutosDealerInventoryPackCheckout({
+                      listingId: editListingId,
+                      leonixAdId: editLeonixAdId || null,
+                      lang,
+                    })
+                  }
                   inventoryDrawerProps={inventoryDrawerProps}
                   boostEditorContext={{
                     editorPath: pathname ?? "",
                     editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",
                     activeStep: ctx.activeStep,
-                    parentListingId: inventoryAddContext?.parentListingId ?? null,
-                    returnToListingId: inventoryAddContext?.returnToListingId ?? null,
+                    parentListingId:
+                      dashboardParentListingId ?? inventoryAddContext?.parentListingId ?? null,
+                    returnToListingId:
+                      dashboardParentListingId ?? inventoryAddContext?.returnToListingId ?? null,
                     dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
                   }}
                 />

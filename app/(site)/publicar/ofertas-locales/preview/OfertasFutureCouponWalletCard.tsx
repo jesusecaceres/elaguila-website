@@ -4,7 +4,7 @@ import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertas
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 
 const CARD =
-  "rounded-2xl border border-dashed border-[#D4C4A8]/80 bg-[#FDF8F0]/60 p-4 opacity-80";
+  "rounded-2xl border border-dashed border-[#D4C4A8]/80 bg-[#FDF8F0]/50 p-4 opacity-75";
 
 /** FUTURE WIRING: connect to coupon wallet / saved offers table. */
 export function OfertasFutureCouponWalletCard({ lang }: { lang: OfertasLocalesAppLang }) {

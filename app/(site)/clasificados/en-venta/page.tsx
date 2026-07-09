@@ -1,4 +1,3 @@
-import { fetchEnVentaPublicListingsForBrowse } from "@/app/lib/clasificados/en-venta/fetchEnVentaPublicListingsForBrowse";
 import { getMergedEnVentaHubLanding } from "@/app/lib/clasificados/enVentaCategoryContentServer";
 import { navCopyLang, normalizeLang } from "@/app/lib/language";
 import { EnVentaHubPageClient } from "./EnVentaHubPageClient";
@@ -9,9 +8,6 @@ export default async function EnVentaHubPage(props: { searchParams?: Promise<{ l
   const sp = (await props.searchParams) ?? {};
   const routeLang = normalizeLang(sp.lang);
   const copyLang = navCopyLang(routeLang);
-  const [hub, initialLiveListings] = await Promise.all([
-    getMergedEnVentaHubLanding(copyLang),
-    fetchEnVentaPublicListingsForBrowse(),
-  ]);
-  return <EnVentaHubPageClient hub={hub} initialLiveListings={initialLiveListings} />;
+  const hub = await getMergedEnVentaHubLanding(copyLang);
+  return <EnVentaHubPageClient hub={hub} />;
 }

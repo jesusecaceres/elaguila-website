@@ -44,7 +44,10 @@ export function PromoCodeLifecyclePreview() {
   return (
     <div className="space-y-3 rounded-xl border border-[#E8DFD0]/90 bg-[#F8F4EC]/60 p-3">
       <p className="text-xs font-bold text-[#1E1810]">Preview — promo rules (G1.6D/F)</p>
-      <p className="text-[10px] text-[#7A7164]">From packagePricingRules / promoCodeLifecycle. Checkout validation enabled for Restaurantes; redemption after paid webhook.</p>
+      <p className="text-[10px] text-[#7A7164]">
+        From packagePricingRules / promoCodeLifecycle. Promo codes can discount checkout but never grant paid placement
+        by themselves — entitlement/payment truth controls visibility.
+      </p>
 
       <ul className="grid gap-1 text-xs text-[#5C5346] sm:grid-cols-2">
         <li>Non-stackable: {boolLabel(rule.nonStackable)}</li>

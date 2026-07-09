@@ -1,7 +1,11 @@
 ﻿"use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { LeonixApplicationDataLossNotice } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixApplicationDataLossNotice";
 import { LeonixApplicationVerAnuncioActions } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixApplicationVerAnuncioActions";
@@ -104,7 +108,10 @@ const CONFIRM_PREVIEW_BLOCKED = {
 export function BienesRaicesPrivadoForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const [state, setState] = useState<BienesRaicesPrivadoFormState>(createEmptyBienesRaicesPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
@@ -154,7 +161,9 @@ export function BienesRaicesPrivadoForm() {
     saveBienesRaicesPrivadoDraft(stateRef.current);
   }, []);
 
-  const previewHref = `${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(state.categoriaPropiedad)}`;
+  const previewHref = withClasificadosPublishLang(BR_PREVIEW_PRIVADO, routeLang, {
+    [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
+  });
 
   const onPhotos = async (files: FileList | null) => {
     if (!files?.length) return;

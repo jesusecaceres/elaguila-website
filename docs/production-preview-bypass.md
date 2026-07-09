@@ -46,6 +46,16 @@ Generate a strong token (e.g. 32+ random bytes) and add it in Vercel → Project
 
 4. The browser receives `leonix_preview_access=1` and is redirected to `/` (or `next`).
 
+### Stripe / Revenue OS owner QA
+
+After sandbox or live Stripe checkout during launch lock, use preview bypass so category browse and dashboard returns work end-to-end:
+
+```
+https://leonixmedia.com/api/preview/unlock?token=YOUR_SECRET_TOKEN&next=/dashboard/mis-anuncios?lang=es
+```
+
+Payment result pages (`/revenue-os/pago/exito`, `/revenue-os/pago/cancelado`) and `/dashboard` are allowlisted during launch lock so owners can see payment status without a public site unlock.
+
 ## How the owner locks production preview again
 
 Visit:

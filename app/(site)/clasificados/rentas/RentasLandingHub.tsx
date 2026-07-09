@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/RentasCompactSearchCanvas";
 import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
 import { useRentasLandingLang } from "@/app/(site)/clasificados/rentas/hooks/useRentasLandingLang";
-import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { RentasLandingHeroGateway } from "@/app/clasificados/rentas/landing/RentasLandingHeroGateway";
 import { RentasLandingIntentTiles } from "@/app/clasificados/rentas/landing/RentasLandingIntentTiles";
 import { RentasLandingSceneBand } from "@/app/clasificados/rentas/landing/RentasLandingSceneBand";
@@ -33,12 +32,7 @@ import { RENTAS_PUBLICAR_PRIVADO, RENTAS_RESULTS } from "@/app/clasificados/rent
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
 import { withRentasLandingLang } from "@/app/(site)/clasificados/rentas/rentasLandingLang";
 
-export type RentasLandingHubProps = {
-  initialLiveListings: RentasPublicListing[];
-  includeDemoPool: boolean;
-};
-
-export function RentasLandingHub(_props: RentasLandingHubProps) {
+export function RentasLandingHub() {
   const router = useRouter();
   const { lang, routeLang, copy } = useRentasLandingLang();
   const [query, setQuery] = useState("");

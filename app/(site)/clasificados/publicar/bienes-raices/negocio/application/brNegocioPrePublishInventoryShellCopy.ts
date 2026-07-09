@@ -22,6 +22,11 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
       previewSaveBody:
         "Revisa la tarjeta antes de guardar. Esto no publica el anuncio; solo agrega la propiedad a tu inventario pre-publicación.",
       close: "Cerrar",
+      closePreview: "Cerrar vista previa",
+      editThisProperty: "Editar esta propiedad",
+      continueToParentPublishStep: "Continuar al paso de publicación",
+      continueEditingThisProperty: "Seguir editando esta propiedad",
+      saveAndReturnToParentPublishStep: "Guardar y volver al paso de publicación",
       cancel: "Cancelar",
       saveProperty: "Guardar propiedad",
       saveAndAddAnother: "Guardar y agregar otra",
@@ -113,6 +118,11 @@ export function brNegocioPrePublishInventoryShellCopy(lang: BrNegocioPrePublishI
     previewSaveBody:
       "Review the card before saving. This does not publish the listing; it only adds the property to your pre-publish inventory.",
     close: "Close",
+    closePreview: "Close preview",
+    editThisProperty: "Edit this property",
+    continueToParentPublishStep: "Continue to parent publish step",
+    continueEditingThisProperty: "Continue editing this property",
+    saveAndReturnToParentPublishStep: "Save and return to parent publish step",
     cancel: "Cancel",
     saveProperty: "Save property",
     saveAndAddAnother: "Save and add another",

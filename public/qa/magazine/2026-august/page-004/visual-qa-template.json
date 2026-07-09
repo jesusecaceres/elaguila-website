@@ -1,0 +1,25 @@
+{
+  "gate": "AUGUST-2026-BATCH3-PAGES2-4-DEEPL-ENGLISH-PROOF1",
+  "page": 4,
+  "language": "English",
+  "riskLevel": "HIGH",
+  "layoutType": "client service/barber ad",
+  "businessCriticalQaFocus": "Elevated Barber business name, service copy, CTA/contact preservation, premium ad tone",
+  "chuyQaStatus": "NOT_REVIEWED",
+  "translationWorked": "TBD",
+  "layoutUsable": "TBD",
+  "textOverflowCrop": "TBD",
+  "contactTruthIssue": "TBD",
+  "businessNamePreserved": "TBD",
+  "brandPreserved": "TBD",
+  "ctaPreserved": "TBD",
+  "qrReadable": "TBD",
+  "notes": "",
+  "decision": "TBD",
+  "decisionOptions": [
+    "APPROVED_FOR_DIGITAL_PROOF_WITH_MINOR_POLISH_NOTES",
+    "FIX_NEEDED",
+    "REBUILD_SOURCE_NEEDED",
+    "COMPANION_LAYER_NEEDED"
+  ]
+}

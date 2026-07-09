@@ -106,6 +106,12 @@ import {
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
+import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import {
+  serviciosListingEditHref,
+  serviciosOffersEditHref,
+  serviciosOffersEditLabel,
+} from "../lib/serviciosDashboardOffersAddonCheckout";
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -337,6 +343,8 @@ export default function MyListingsPage() {
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
 
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
+  const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
@@ -547,6 +555,57 @@ export default function MyListingsPage() {
       prev.map((x) => (x.id === id ? { ...x, status: "active", is_published: true, updated_at: now } : x)),
     );
     setBusyId(null);
+  }
+
+  async function startRestauranteCouponAddonCheckout(item: DashboardInventoryItem) {
+    setCouponCheckoutBusyId(item.id);
+    setError(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      const result = await redirectRestauranteDashboardCouponAddonCheckout({
+        listingId: item.id,
+        leonixAdId: item.leonixAdId,
+        lang,
+        customerEmail: auth.user?.email ?? null,
+      });
+      if (!result.ok) {
+        setError(result.userMessage);
+        setCouponCheckoutBusyId(null);
+      }
+    } catch {
+      setError(
+        lang === "es"
+          ? "No pudimos iniciar el pago del módulo de cupones. Intenta de nuevo."
+          : "We could not start coupon module checkout. Please try again.",
+      );
+      setCouponCheckoutBusyId(null);
+    }
+  }
+
+  async function openRestauranteCouponEdit(item: DashboardInventoryItem) {
+    setCouponEditBusyId(item.id);
+    setError(null);
+    try {
+      const result = await hydrateRestauranteListingForCouponEdit({ listingId: item.id, lang });
+      if (!result.ok) {
+        setError(result.userMessage);
+        setCouponEditBusyId(null);
+        return;
+      }
+      router.push(
+        restauranteCouponEditHref({
+          lang,
+          listingId: item.id,
+          leonixAdId: item.leonixAdId,
+        }),
+      );
+    } catch {
+      setError(
+        lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
+      );
+      setCouponEditBusyId(null);
+    }
   }
 
   async function markStatus(id: string, status: "active" | "sold") {
@@ -1120,7 +1179,12 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={buildInventoryListingActions("restaurantes", item, lang, q)}
+                    actions={buildInventoryListingActions("restaurantes", item, lang, q, {
+                      onCouponUpgrade: () => void startRestauranteCouponAddonCheckout(item),
+                      couponUpgradeBusy: couponCheckoutBusyId === item.id,
+                      onCouponEdit: () => void openRestauranteCouponEdit(item),
+                      couponEditBusy: couponEditBusyId === item.id,
+                    })}
                   />
                 ))
           ) : null}
@@ -1218,7 +1282,22 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={buildInventoryListingActions("servicios", item, lang, q)}
+                    actions={buildInventoryListingActions("servicios", item, lang, q, {
+                      serviciosEditHref: serviciosListingEditHref({
+                        lang,
+                        listingId: item.actionContract?.listingId ?? null,
+                        listingSlug: item.slug,
+                        leonixAdId: item.leonixAdId,
+                      }),
+                      serviciosOffersActive: item.serviciosOffersAddonActive,
+                      serviciosOffersEditHref: serviciosOffersEditHref({
+                        lang,
+                        listingId: item.actionContract?.listingId ?? null,
+                        listingSlug: item.slug,
+                        leonixAdId: item.leonixAdId,
+                      }),
+                      offersEditLabelOverride: serviciosOffersEditLabel(lang),
+                    })}
                   />
                 ))
           ) : null}

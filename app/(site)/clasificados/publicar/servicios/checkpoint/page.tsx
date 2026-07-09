@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ServiciosCheckpointClient } from "./ServiciosCheckpointClient";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ type PageProps = {
 
 export default async function ServiciosCheckpointPage(props: PageProps) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { routeLang, copyLang } = resolveClasificadosPublishLangFromSearchParams(sp);
 
   return (
     <Suspense
@@ -23,7 +24,7 @@ export default async function ServiciosCheckpointPage(props: PageProps) {
         </div>
       }
     >
-      <ServiciosCheckpointClient lang={lang} />
+      <ServiciosCheckpointClient lang={copyLang} routeLang={routeLang} />
     </Suspense>
   );
 }

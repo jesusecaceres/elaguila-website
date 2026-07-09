@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { CommunityQuickPublicDetailShell } from "@/app/(site)/clasificados/community/CommunityQuickPublicDetailShell";
 import { CommunityQuickPublicDetailSidebar } from "@/app/(site)/clasificados/community/CommunityQuickPublicDetailSidebar";
-import { buscoLangFromSearchParams } from "@/app/(site)/clasificados/busco/shared/buscoShellCopy";
+import { buscoLangFromSearchParams, buscoRouteLangFromSearchParams } from "@/app/(site)/clasificados/busco/shared/buscoShellCopy";
 import {
   clearLeonixPreviewNavSessionFlag,
   markPublishFlowReturningToEdit,
@@ -38,6 +38,7 @@ const COPY = {
 export default function BuscoQuickPreviewClient() {
   const sp = useSearchParams();
   const lang = buscoLangFromSearchParams(sp);
+  const routeLang = buscoRouteLangFromSearchParams(sp);
   const t = COPY[lang];
   const [draft, setDraft] = useState<BuscoQuickDraft | null>(null);
   const [ready, setReady] = useState(false);
@@ -59,7 +60,7 @@ export default function BuscoQuickPreviewClient() {
     }
   }, []);
 
-  const editHref = buscoQuickEditUrl(lang);
+  const editHref = buscoQuickEditUrl(routeLang);
   const vm = useMemo(() => (draft ? buscoViewModelFromDraft(draft, lang) : null), [draft, lang]);
 
   if (!ready) {
@@ -103,7 +104,7 @@ export default function BuscoQuickPreviewClient() {
             {t.previewNote}
           </p>
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <BuscoQuickPreviewPublishBar draft={draft} lang={lang} />
+            <BuscoQuickPreviewPublishBar draft={draft} lang={lang} routeLang={routeLang} />
             <Link
               href={editHref}
               prefetch={false}

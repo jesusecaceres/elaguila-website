@@ -48,16 +48,16 @@ function telHrefFromPhoneDisplay(raw: string): string | null {
   return `tel:${d}`;
 }
 
-function smsHrefFromPhoneDisplay(raw: string): string | null {
+function smsHrefFromPhoneDisplay(raw: string, lang: "es" | "en"): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `sms:${d}?&body=${encodeURIComponent(rentasLeadSmsBody("es"))}`;
+  return `sms:${d}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
-function waHrefFromPhoneDisplay(raw: string): string | null {
+function waHrefFromPhoneDisplay(raw: string, lang: "es" | "en"): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `https://wa.me/${d}?text=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`;
+  return `https://wa.me/${d}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function phoneDisplayFormatted(raw: string): string {
@@ -244,27 +244,27 @@ export function mapRentasPrivadoStateToPreviewVm(
   const propertyBody: BienesRaicesPreviewFact[] = buildRentasFlowPropertyBodyRows(s);
 
   const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
-  const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto);
+  const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto, lang);
   const waDigitsPrimary = trim(s.seller.whatsapp) ? trim(s.seller.whatsapp) : trim(s.seller.telefono);
-  const waHref = waHrefFromPhoneDisplay(waDigitsPrimary);
+  const waHref = waHrefFromPhoneDisplay(waDigitsPrimary, lang);
 
   const mailto =
     trim(s.seller.correo) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trim(s.seller.correo))
-      ? `mailto:${trim(s.seller.correo)}?subject=${encodeURIComponent("Pregunta sobre tu renta (Leonix)")}&body=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`
+      ? `mailto:${trim(s.seller.correo)}?subject=${encodeURIComponent(lang === "en" ? "Question about your rental (Leonix)" : "Pregunta sobre tu renta (Leonix)")}&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`
       : null;
 
   const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
     instructionsNote: s.seller.notaContacto,
   });
   const socialLinks = socialLinksFromChannelsPayload(ch);
-  const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
+  const preferredContactLine = formatLeonixPreferredContactLine(ch, lang);
 
   const highlightsRows = base.highlightsRows.map((r) => ({
     ...r,
     value: trim(r.value) === "✓" ? "Sí" : r.value,
   }));
 
-  const showingCard = buildRentasShowingPreviewCard(s, "es");
+  const showingCard = buildRentasShowingPreviewCard(s, lang);
   const tourUrl = normalizeLeonixHttpsUrl(s.virtualTourUrl);
 
   return {

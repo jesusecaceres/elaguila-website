@@ -7,6 +7,7 @@ import CityAutocomplete from "../../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../../data/locations/californiaLocationHelpers";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
 type Lang = "es" | "en";
@@ -453,6 +454,16 @@ export default function ProfilePage() {
           {showSavedBanner && !requirePost && !onboarding ? (
             <div className="mt-6 rounded-2xl border border-emerald-200/90 bg-emerald-50/95 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm">
               {L.savedBanner}
+            </div>
+          ) : null}
+
+          {onboarding ? (
+            <div className="mt-6">
+              <LeonixLaunchCouponCard
+                lang={lang}
+                variant="compact"
+                href={`/newsletter?lang=${lang}&source=profile_onboarding_launch_25&sourceCta=launch_25`}
+              />
             </div>
           ) : null}
 

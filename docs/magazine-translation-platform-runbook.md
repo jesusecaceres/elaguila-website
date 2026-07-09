@@ -12,7 +12,8 @@ Operational guide for Leonix magazine translated visual asset registry, storage,
 |------|--------|
 | Spanish June 2026 PDF exists | Yes — `public/magazine/2026/june/leonix_media_june.pdf` |
 | Source SHA-256 hash | `8fa5ec5a9faa1c0cb689451b79477f60b2fc2e644048a9176bcc68d8be112986` |
-| DeepL Portuguese output | Blocked — requires `DEEPL_AUTH_KEY` outside chat |
+| DeepL Portuguese output | **Local proof only** — pages 3–4 smoke (~38 MB); full-local **blocked** (`DEEPL_PT_FULL_LOCAL_PROOF_BLOCKED_BY_SIZE`); not QA-approved, not public |
+| Next gate lock (magazine PT) | **Source correction/compression first** — `MAGAZINE-SOURCE-CANVA-LAYOUT-COMPRESSION-TRUTH1` → Chuy re-export → `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` → full PT proof only if size allows |
 | Platform registry table | `public.magazine_visual_assets` (migration `20260630140000`) |
 | Translated visual edition public | **No** — no row is QA-approved and publicly available |
 | Storage bucket | **Hold** — no Supabase storage bucket migration in repo yet; use service-role upload in a later gate |
@@ -216,12 +217,13 @@ Next storage gate: `MAGAZINE-VISUAL-ASSET-PUBLIC-SERVE1` or dedicated storage mi
 
 ## 8. Next Gates
 
-**Nightly closeout (2026-07-03):** [`docs/magazine-translation-nightly-closeout.md`](magazine-translation-nightly-closeout.md) — **recommended next:** `MAGAZINE-COMPANION-READER-READINESS1`. DeepL PDF smoke **HOLD** until corrected Canva export + compatibility re-preflight + explicit approval.
+**Magazine PT track (2026-07-06):** Full Portuguese proof blocked by source size. **Next gate lock:** `MAGAZINE-SOURCE-CANVA-LAYOUT-COMPRESSION-TRUTH1` (Chuy Canva/source correction) → `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1`. Do not run another full PT `--execute` until corrected export is under DeepL 10 MB or an approved chunk strategy exists. See `docs/magazine-source-canva-layout-compression-truth.md`.
 
 | Gate | Purpose |
 |------|---------|
-| `MAGAZINE-COMPANION-READER-READINESS1` | **Recommended next** — safe without Canva export or DeepL key |
+| `MAGAZINE-SOURCE-CANVA-LAYOUT-COMPRESSION-TRUTH1` | **Active** — layout/compression/contact-truth correction packet for Chuy |
 | `MAGAZINE-SOURCE-PDF-REPLACEMENT-QA1` | After corrected Canva export replaces source PDF |
+| `MAGAZINE-COMPANION-READER-READINESS1` | Companion/reader readiness; parallel safe track |
 | `MAGAZINE-PDF-DEEPL-COMPATIBILITY-PREFLIGHT2` | Re-check text layer after PDF replacement |
 | `MAGAZINE-DEEPL-ENV-SETUP1_KEY_ONLY` | After local `DEEPL_AUTH_KEY` added (never commit) |
 | `MAGAZINE-DEEPL-PT-REAL-SMOKE3` | **HOLD** — paid PT smoke only after explicit approval; poor ROI on flattened PDF |

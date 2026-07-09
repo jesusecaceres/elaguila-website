@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FaStar } from "react-icons/fa";
+import { FiCalendar, FiClock, FiCoffee, FiGlobe, FiHeart, FiHome, FiMapPin, FiMessageCircle, FiShoppingBag, FiStar, FiTruck } from "react-icons/fi";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -13,40 +11,32 @@ import { ViajesLangSwitch } from "@/app/clasificados/viajes/components/ViajesLan
 import {
   buildRestaurantesResultsHref,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
-import { CategoryStandardLandingPage } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingPage";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import {
   type RestaurantesBlueprintCard,
-  RESTAURANTES_BLUEPRINT_CATEGORY_TILES,
-  RESTAURANTES_BLUEPRINT_QUICK_FILTERS,
 } from "./restaurantesBlueprintSampleData";
-import { RESTAURANTES_LANDING_CTA_BG, RESTAURANTES_LANDING_CTA_TEAM } from "./restaurantesLandingAssets";
-import { RestaurantesLandingShell } from "./RestaurantesLandingShell";
-import { RestaurantesCompactSearchCanvas } from "./RestaurantesCompactSearchCanvas";
-import { CategoryLandingChipsRail } from "@/app/(site)/clasificados/components/categoryLanding/CategoryLandingChipsRail";
-import { RestaurantePublishedListingCard } from "@/app/clasificados/restaurantes/components/RestaurantePublishedListingCard";
-import { RestaurantesDestacadosSection } from "@/app/clasificados/restaurantes/components/RestaurantesDestacadosSection";
-
-const ACCENT = "#D4A574";
+import {
+  LeonixCategoryPageShell,
+  LeonixCategoryHeroGateway,
+  LeonixCategorySearchCanvas,
+  LeonixCategoryPartnerSection,
+  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryShortcutSection,
+  type Lang as V2Lang,
+} from "@/app/(site)/clasificados/components/categoryStandardV2";
 
 function RestaurantesLandingPageFallback() {
   return (
-    <RestaurantesLandingShell>
+    <LeonixCategoryPageShell surface="landing">
       <main className="mx-auto max-w-[1280px] px-4 py-10">
-        <h1 className="font-serif text-2xl font-semibold text-[color:var(--lx-text)]">Restaurantes</h1>
-        <p className="mt-2 text-sm text-[color:var(--lx-muted)]">Cargando…</p>
+        <h1 className="font-serif text-2xl font-semibold text-[#2A4536]">Restaurantes</h1>
+        <p className="mt-2 text-sm text-[#5C5346]">Cargando…</p>
       </main>
-    </RestaurantesLandingShell>
+    </LeonixCategoryPageShell>
   );
 }
 
-function RestaurantesLandingPageInner({
-  featuredCards,
-  recentCards,
-  destacadosRows = [],
-  landingNote,
-  discoveryLookupRows,
-}: {
+function RestaurantesLandingPageInner(_props: {
   featuredCards: RestaurantesBlueprintCard[];
   recentCards: RestaurantesBlueprintCard[];
   destacadosRows?: RestaurantesPublicBlueprintRow[];
@@ -83,21 +73,27 @@ function RestaurantesLandingPageInner({
   const copy = useMemo(() => {
     if (lang === "en") {
       return {
-        breadcrumbParent: "Classifieds",
-        breadcrumbCurrent: "Restaurants",
-        heroLead: "Find the best restaurants ",
-        heroAccent: "near you",
-        heroSub: "Trusted local spots for every craving—search by name, cuisine, or dish.",
-        searchPh: "Restaurant, cuisine, or dish…",
-        locationPh: "City or 5-digit ZIP",
-        searchHelper: "Search by restaurant name, cuisine type, or a specific dish.",
-        locationHelper: "Add a city or U.S. ZIP to focus results near that area.",
-        searchCta: "Search",
-        trust: [
-          "Discover options near you with phone, text, and directions in one place.",
-          "Verified and featured businesses on Leonix—confidence before you choose.",
-          "Quick paths to delivery, takeout, family-friendly picks, and more in results.",
+        title: "Restaurants",
+        tagline: "Local flavor close to your community.",
+        intro: "Find restaurants, local food, catering, and food businesses with clear details and direct contact.",
+        introSecondary: "Search by name, cuisine, city, or ZIP; use filters for delivery, takeout, family-friendly options, and more.",
+        searchPlaceholder: "Search restaurant, cuisine, or food...",
+        sponsorEyebrow: "MAGAZINE · DIGITAL · RESTAURANTS",
+        sponsorTitle: "Leonix Sponsors",
+        sponsorBody: "Restaurants and food businesses with premium visibility across Leonix Media, print/digital magazine, and community campaigns.",
+        sponsorSupport: "Built for restaurants, taquerias, bakeries, food trucks, catering, and food brands that want to be seen by the community.",
+        sponsorPrimaryCta: "Advertise my restaurant",
+        sponsorSecondaryCta: "View restaurants",
+        sponsorChips: [
+          "Print magazine",
+          "Digital magazine",
+          "Business profile",
+          "Menu & contact",
+          "Local campaigns",
+          "Premium visibility",
         ],
+        discoveryTitle: "What are you craving?",
+        discoverySubtitle: "Explore by cuisine or food type.",
         featuredTitle: "Featured restaurants",
         featuredIntro: "Premium visibility mixed with strong organic picks—not pay-only.",
         browseTitle: "Explore cuisine types",
@@ -109,26 +105,30 @@ function RestaurantesLandingPageInner({
           "Put your menu in front of diners actively searching Leonix—premium exposure, clear discovery, and room to grow with featured placement.",
         ctaBtn: "Advertise your restaurant",
         exploreAll: "Explore all results",
-        continuityHint:
-          "Quick search opens results with the same URL parameters; refine cuisine, service, and more on the results page.",
       };
     }
     return {
-      breadcrumbParent: "Clasificados",
-      breadcrumbCurrent: "Restaurantes",
-      heroLead: "Encuentra los mejores restaurantes ",
-      heroAccent: "cerca de ti",
-      heroSub: "Lugares de confianza para cada antojo: busca por nombre, cocina o platillo.",
-      searchPh: "Restaurante, cocina o platillo…",
-      locationPh: "Ciudad o código postal (5 dígitos)",
-      searchHelper: "Puedes buscar por nombre del lugar, tipo de cocina o un platillo concreto.",
-      locationHelper: "Indica ciudad o código postal de EE. UU. para acotar la zona.",
-      searchCta: "Buscar",
-      trust: [
-        "Encuentra opciones cerca de ti con llamada, mensaje y direcciones en un solo lugar.",
-        "Negocios verificados y destacados en Leonix: confianza antes de elegir.",
-        "Atajos útiles a delivery, para llevar, ambiente familiar y más desde resultados.",
+      title: "Restaurantes",
+      tagline: "Sabores cerca de tu comunidad.",
+      intro: "Encuentra restaurantes, comida local, catering y negocios de comida con datos claros y contacto directo.",
+      introSecondary: "Busca por nombre, cocina, ciudad o código postal; usa filtros para delivery, para llevar, familiar y más.",
+      searchPlaceholder: "Buscar restaurante, cocina o comida...",
+      sponsorEyebrow: "REVISTA · DIGITAL · RESTAURANTES",
+      sponsorTitle: "Patrocinadores de Leonix",
+      sponsorBody: "Restaurantes y negocios de comida con presencia premium en Leonix Media, revista impresa/digital y campañas comunitarias.",
+      sponsorSupport: "Ideal para restaurantes, taquerías, panaderías, food trucks, catering y marcas de comida que quieren ser vistas por la comunidad.",
+      sponsorPrimaryCta: "Quiero anunciar mi restaurante",
+      sponsorSecondaryCta: "Ver restaurantes",
+      sponsorChips: [
+        "Revista impresa",
+        "Revista digital",
+        "Perfil de negocio",
+        "Menú y contacto",
+        "Campañas locales",
+        "Visibilidad premium",
       ],
+      discoveryTitle: "¿Qué se te antoja?",
+      discoverySubtitle: "Explora por cocina o tipo de comida.",
       featuredTitle: "Restaurantes Destacados",
       featuredIntro: "Visibilidad premium mezclada con buena señal orgánica—no solo pago.",
       browseTitle: "Explora los tipos de cocina",
@@ -140,252 +140,134 @@ function RestaurantesLandingPageInner({
         "Llega a comensales que ya buscan en Leonix: visibilidad clara, descubrimiento premium y espacio para crecer con destacados.",
       ctaBtn: "Anuncia tu Restaurante",
       exploreAll: "Explorar todos los resultados",
-      continuityHint:
-        "La búsqueda rápida abre resultados con los mismos parámetros de URL; allí afinas cocina, servicio y más.",
     };
   }, [lang]);
 
   const landingSearchForm = (
-    <RestaurantesCompactSearchCanvas
-      lang={lang}
-      defaultQ={searchQ}
-      defaultCity={searchCity}
-      defaultState={searchState}
-      defaultZip={searchZip}
-      defaultCountry={searchCountry}
+    <LeonixCategorySearchCanvas
+      lang={lang as V2Lang}
+      surface="landing"
+      query={searchQ}
+      city={searchCity}
+      state={searchState}
+      zip={searchZip}
+      country={searchCountry}
+      onQuery={setSearchQ}
+      onCity={setSearchCity}
+      onState={setSearchState}
+      onZip={setSearchZip}
+      onCountry={setSearchCountry}
+      onSearch={() => {
+        window.location.href = buildRestaurantesResultsHref(lang, {
+          q: searchQ.trim(),
+          city: searchCity.trim(),
+          state: searchState.trim(),
+          zip: searchZip.trim(),
+          country: searchCountry.trim(),
+        });
+      }}
+      onOpenFilters={() => {}}
+      browseAllHref={allResultsHref}
+      browseAllLabel={copy.exploreAll}
+      queryPlaceholder={copy.searchPlaceholder}
+      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
+      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
+      publishHref={publishHref}
+      publishLabel={copy.sponsorPrimaryCta}
     />
   );
 
-  const restaurantesLandingChips = (
-    <>
-      {landingNote ? (
-        <p
-          className="rounded-[12px] border border-amber-300/70 bg-amber-50/90 px-3 py-2.5 text-left text-[11px] leading-relaxed text-amber-950 sm:text-xs"
-          role="note"
-        >
-          {landingNote}
-        </p>
-      ) : null}
-      <CategoryLandingChipsRail
-        className="mt-2"
-        label={lang === "en" ? "Quick restaurant filters" : "Filtros rápidos de restaurantes"}
-      >
-        {RESTAURANTES_BLUEPRINT_QUICK_FILTERS.slice(0, 8).map((f) => (
-          <Link
-            key={f.id}
-            href={buildRestaurantesResultsHref(lang, f.resultParams)}
-            className="inline-flex h-[30px] shrink-0 snap-start items-center whitespace-nowrap rounded-md border border-[#C9A84A]/45 bg-[#FBF7EF] px-2.5 text-[11px] font-semibold text-[#3D3428] hover:border-[#C9A84A]/70 sm:text-xs"
-          >
-            {lang === "es" ? f.labelEs : f.labelEn}
-          </Link>
-        ))}
-      </CategoryLandingChipsRail>
-    </>
-  );
-
   return (
-    <RestaurantesLandingShell>
-      <div className="mx-auto flex max-w-[1280px] justify-end px-4 pt-3 md:px-5 lg:px-6">
+    <LeonixCategoryPageShell surface="landing" topSlot={
+      <div className="mx-auto flex max-w-[1280px] justify-end px-3.5 pt-3 sm:px-4 lg:px-5">
         <ViajesLangSwitch compact />
       </div>
-
-      <CategoryStandardLandingPage
-        category="restaurantes"
-        lang={lang}
-        publishHref={publishHref}
-        browseHref={allResultsHref}
-        publishLabel={lang === "es" ? "Anunciar restaurante" : "Advertise restaurant"}
+    }>
+      <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
+      <LeonixCategoryHeroGateway
+        lang={lang as V2Lang}
+        surface="landing"
+        title={copy.title}
+        tagline={copy.tagline}
+        intro={copy.intro}
+        introSecondary={copy.introSecondary}
         searchSlot={landingSearchForm}
-        searchChips={restaurantesLandingChips}
+        eyebrow={copy.sponsorEyebrow}
       />
 
-      <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden bg-[color:var(--lx-page)] px-4 pb-12 text-[color:var(--lx-text)] sm:space-y-8 sm:px-5 sm:pb-16 md:space-y-9 lg:px-6">
-        <section
-          className="grid grid-cols-1 gap-5 rounded-[20px] border border-[color:var(--lx-border)]/20 bg-[color:var(--lx-card)]/90 p-5 shadow-sm sm:gap-6 sm:p-6 md:grid-cols-2 md:gap-6 md:p-7 lg:grid-cols-3 lg:gap-8 lg:p-8"
-          aria-label={lang === "es" ? "Por qué Leonix Restaurantes" : "Why search Leonix Restaurants"}
-        >
-          {copy.trust.map((line) => (
-            <p key={line} className="text-center text-sm font-medium leading-relaxed text-[color:var(--lx-text)]/80">
-              {line}
-            </p>
-          ))}
-        </section>
+      <main className="space-y-6 overflow-x-hidden sm:space-y-8">
 
-        {destacadosRows.length > 0 ? (
-          <RestaurantesDestacadosSection
-            rows={destacadosRows}
-            lang={lang}
-            id="restaurantes-landing-destacados"
-          />
-        ) : null}
+        {/* Sponsor section - landing only */}
+        <LeonixCategoryPartnerSection
+          enabled={true}
+          lang={lang as V2Lang}
+          surface="landing"
+          eyebrow={copy.sponsorEyebrow}
+          title={copy.sponsorTitle}
+          body={copy.sponsorBody}
+          supportingLine={copy.sponsorSupport}
+          chips={copy.sponsorChips}
+          secondaryCta={{ label: copy.sponsorSecondaryCta, href: allResultsHref }}
+        />
 
-        <section aria-labelledby="rx-featured-heading">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-                <h2 id="rx-featured-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
-                  {copy.featuredTitle}
-                </h2>
-              </div>
-              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.featuredIntro}</p>
-            </div>
-          </div>
-          {featuredCards.length ? (
-            <div className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:gap-4">
-              {featuredCards.map((card) => {
-                const row = discoveryLookupRows.find((r) => r.id === card.id);
-                if (!row) return null;
-                return (
-                  <div key={card.id} className="min-w-0 w-full">
-                    <RestaurantePublishedListingCard
-                      row={row}
-                      lang={lang}
-                      badge={lang === "es" ? "Selección en portada" : "Homepage pick"}
-                      cta={lang === "es" ? "Ver más" : "See more"}
-                      narrowLabel={lang === "es" ? "Misma búsqueda en resultados" : "Same search in results"}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-6 rounded-[14px] border border-[color:var(--lx-border)]/35 bg-[color:var(--lx-card)] px-4 py-4 text-sm leading-relaxed text-[color:var(--lx-muted)]">
-              {lang === "es"
-                ? "Cuando haya listados publicados, aparecerán aquí los destacados según la política de exposición de Leonix."
-                : "When published listings exist, featured picks will appear here using Leonix exposure rules."}
-            </p>
-          )}
-        </section>
+        {/* Discovery section 1 - Cuisine cards */}
+        <LeonixCategoryDiscoveryGrid
+          lang={lang as V2Lang}
+          surface="landing"
+          heading={copy.discoveryTitle}
+          subtitle={copy.discoverySubtitle}
+          items={[
+            { id: "mexican", label: lang === "es" ? "Mexicana" : "Mexican", href: buildRestaurantesResultsHref(lang, { cuisine: "mexican" }), icon: FiCoffee },
+            { id: "italian", label: lang === "es" ? "Italiana" : "Italian", href: buildRestaurantesResultsHref(lang, { cuisine: "italian" }), icon: FiCoffee },
+            { id: "chinese", label: lang === "es" ? "China" : "Chinese", href: buildRestaurantesResultsHref(lang, { cuisine: "chinese" }), icon: FiCoffee },
+            { id: "burgers", label: lang === "es" ? "Hamburguesas" : "Burgers", href: buildRestaurantesResultsHref(lang, { cuisine: "burgers" }), icon: FiCoffee },
+            { id: "pizza", label: "Pizza", href: buildRestaurantesResultsHref(lang, { cuisine: "pizza" }), icon: FiCoffee },
+            { id: "dessert", label: lang === "es" ? "Postres" : "Desserts", href: buildRestaurantesResultsHref(lang, { cuisine: "dessert" }), icon: FiStar },
+            { id: "foodtruck", label: "Food truck", href: buildRestaurantesResultsHref(lang, { ft: "1" }), icon: FiTruck },
+            { id: "catering", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }), icon: FiCalendar },
+          ]}
+        />
 
-        <section aria-labelledby="rx-browse-heading">
-          <div>
-            <div className="flex items-center gap-2">
-              <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-              <h2 id="rx-browse-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
-                {copy.browseTitle}
-              </h2>
-            </div>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.browseIntro}</p>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:grid-cols-6">
-            {RESTAURANTES_BLUEPRINT_CATEGORY_TILES.map((tile) => (
-              <Link
-                key={tile.id}
-                href={buildRestaurantesResultsHref(lang, { cuisine: tile.cuisineKey })}
-                className="group flex flex-col overflow-hidden rounded-[16px] border border-[color:var(--lx-border)]/30 bg-[color:var(--lx-card)] shadow-[0_10px_32px_-22px_rgba(45,36,30,0.4)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-20px_rgba(45,36,30,0.45)] touch-manipulation"
-              >
-                <div className="relative aspect-square w-full overflow-hidden rounded-t-[16px]">
-                  <Image
-                    src={tile.imageSrc}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                    className="object-cover object-center transition duration-500 group-hover:scale-[1.05]"
-                  />
-                </div>
-                <div className="p-2.5 text-center">
-                  <span className="text-xs font-semibold text-[color:var(--lx-text)] sm:text-sm">
-                    {lang === "es" ? tile.labelEs : tile.labelEn}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {/* Discovery section 2 - Service chips */}
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={lang === "es" ? "Servicio" : "Service"}
+          subtitle=""
+          variant="default"
+          chips={[
+            { id: "dine_in", label: lang === "es" ? "Comer en local" : "Dine-in", href: buildRestaurantesResultsHref(lang, { svc: "dine_in" }), icon: FiHome },
+            { id: "takeout", label: lang === "es" ? "Para llevar" : "Takeout", href: buildRestaurantesResultsHref(lang, { svc: "takeout" }), icon: FiShoppingBag },
+            { id: "delivery", label: lang === "es" ? "Entrega" : "Delivery", href: buildRestaurantesResultsHref(lang, { svc: "delivery" }), icon: FiTruck },
+            { id: "catering2", label: "Catering", href: buildRestaurantesResultsHref(lang, { svc: "catering" }), icon: FiCalendar },
+            { id: "events", label: lang === "es" ? "Eventos" : "Events", href: buildRestaurantesResultsHref(lang, { svc: "events" }), icon: FiCalendar },
+            { id: "reservations", label: lang === "es" ? "Reservas" : "Reservations", href: buildRestaurantesResultsHref(lang, { rsv: "1" }), icon: FiStar },
+            { id: "pickup", label: "Pickup", href: buildRestaurantesResultsHref(lang, { pku: "1" }), icon: FiMapPin },
+            { id: "open", label: lang === "es" ? "Abierto ahora" : "Open now", href: buildRestaurantesResultsHref(lang, { open: "1" }), icon: FiClock },
+          ]}
+        />
 
-        <section aria-labelledby="rx-recent-heading">
-          <div>
-            <div className="flex items-center gap-2">
-              <FaStar className="h-4 w-4 shrink-0" style={{ color: ACCENT }} aria-hidden />
-              <h2 id="rx-recent-heading" className="font-serif text-xl font-semibold tracking-tight sm:text-2xl">
-                {copy.recentTitle}
-              </h2>
-            </div>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[color:var(--lx-muted)] sm:text-sm">{copy.recentIntro}</p>
-          </div>
-          {recentCards.length ? (
-            <div className="mt-4 flex w-full min-w-0 flex-col gap-3 sm:gap-4">
-              {recentCards.map((card) => {
-                const row = discoveryLookupRows.find((r) => r.id === card.id);
-                if (!row) return null;
-                return (
-                  <div key={card.id} className="min-w-0 w-full">
-                    <RestaurantePublishedListingCard
-                      row={row}
-                      lang={lang}
-                      badge={lang === "es" ? "Recién publicado" : "New listing"}
-                      cta={lang === "es" ? "Ver más" : "See more"}
-                      narrowLabel={lang === "es" ? "Misma búsqueda en resultados" : "Same search in results"}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-6 rounded-[14px] border border-dashed border-[#D97706]/35 bg-[color:var(--lx-section)] px-4 py-4 text-sm leading-relaxed text-[color:var(--lx-muted)]">
-              {lang === "es"
-                ? "Los recientes se rellenan con publicaciones vivas ordenadas por fecha."
-                : "Recent listings fill in from live posts ordered by publish date."}
-            </p>
-          )}
-        </section>
-
-        <div className="mt-8 flex justify-center sm:mt-10 md:mt-12">
-          <Link
-            href={allResultsHref}
-            className="inline-flex min-h-[44px] w-full max-w-md items-center justify-center rounded-full border border-[#D97706]/40 bg-[color:var(--lx-card)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[color:var(--lx-section)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/70 focus-visible:ring-offset-2 sm:w-auto sm:max-w-none"
-          >
-            {copy.exploreAll}
-          </Link>
-        </div>
-
-        <section
-          className="relative overflow-hidden rounded-[20px] border border-[color:var(--lx-border)]/25 shadow-[0_20px_50px_-28px_rgba(45,36,30,0.35)] sm:rounded-[24px]"
-          aria-labelledby="rx-owner-cta"
-        >
-          <div className="absolute inset-0" aria-hidden>
-            <Image
-              src={RESTAURANTES_LANDING_CTA_BG}
-              alt=""
-              fill
-              className="object-cover object-center opacity-90 sm:object-[center_40%]"
-              sizes="(max-width: 768px) 100vw, 1280px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#FDFBF7]/92 via-[#FDFBF7]/86 to-[#FDFBF7]/78 sm:bg-gradient-to-r sm:from-[#FDFBF7]/95 sm:via-[#FDFBF7]/88 sm:to-[#FDFBF7]/75" />
-          </div>
-          <div className="relative grid grid-cols-1 items-center gap-6 p-5 sm:gap-8 sm:p-7 md:grid-cols-[minmax(0,240px)_1fr] md:gap-10 lg:grid-cols-[minmax(0,280px)_1fr] lg:p-10">
-            <div className="relative mx-auto aspect-[4/3] w-full max-w-[260px] overflow-hidden rounded-[18px] shadow-lg sm:max-w-[280px] md:mx-0 md:max-w-none">
-              <Image
-                src={RESTAURANTES_LANDING_CTA_TEAM}
-                alt=""
-                fill
-                className="object-cover object-center"
-                sizes="(max-width: 768px) 260px, min(360px, 35vw)"
-              />
-            </div>
-            <div className="min-w-0 text-center md:text-left">
-              <h2
-                id="rx-owner-cta"
-                className="font-serif text-[clamp(1.375rem,2.5vw+0.75rem,1.875rem)] font-semibold leading-tight text-[color:var(--lx-text)] sm:text-2xl lg:text-3xl"
-              >
-                {copy.ctaHeadline}
-              </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[color:var(--lx-muted)] md:mx-0 md:text-base">{copy.ctaSub}</p>
-              <div className="mt-5 flex justify-center md:mt-6 md:justify-start">
-                <Link
-                  href={publishHref}
-                  className="inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-[16px] px-8 text-sm font-bold text-white shadow-[0_14px_40px_-12px_rgba(180,83,9,0.58)] transition hover:brightness-[1.04] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] focus-visible:ring-offset-2 sm:min-w-[220px] sm:w-auto sm:max-w-none touch-manipulation"
-                  style={{ background: `linear-gradient(135deg, ${ACCENT}, #c2410c)` }}
-                >
-                  {copy.ctaBtn}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Discovery section 3 - What matters chips */}
+        <LeonixCategoryShortcutSection
+          lang={lang as V2Lang}
+          surface="landing"
+          title={lang === "es" ? "Lo que más importa" : "What matters most"}
+          subtitle=""
+          variant="default"
+          chips={[
+            { id: "family", label: lang === "es" ? "Familiar" : "Family-friendly", href: buildRestaurantesResultsHref(lang, { family: "1" }), icon: FiHeart },
+            { id: "menu", label: lang === "es" ? "Menú disponible" : "Menu available", href: buildRestaurantesResultsHref(lang, { menu: "1" }), icon: FiCoffee },
+            { id: "whatsapp", label: "WhatsApp", href: buildRestaurantesResultsHref(lang, { wa: "1" }), icon: FiMessageCircle },
+            { id: "website", label: lang === "es" ? "Con sitio web" : "Has website", href: buildRestaurantesResultsHref(lang, { web: "1" }), icon: FiGlobe },
+            { id: "social", label: lang === "es" ? "Redes sociales" : "Social media", href: buildRestaurantesResultsHref(lang, { social: "1" }), icon: FiStar },
+            { id: "vegan", label: lang === "es" ? "Vegano" : "Vegan", href: buildRestaurantesResultsHref(lang, { diet: "vegan" }), icon: FiHeart },
+            { id: "glutenfree", label: lang === "es" ? "Sin gluten" : "Gluten-free", href: buildRestaurantesResultsHref(lang, { diet: "glutenfree" }), icon: FiHeart },
+            { id: "halal", label: "Halal", href: buildRestaurantesResultsHref(lang, { diet: "halal" }), icon: FiHeart },
+          ]}
+        />
       </main>
-    </RestaurantesLandingShell>
+      </div>
+    </LeonixCategoryPageShell>
   );
 }
 

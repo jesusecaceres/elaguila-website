@@ -155,9 +155,13 @@ export type ClasificadosServiciosCopy = {
     galleryFeaturedHint: string;
     galleryMoreHint: string;
     videosHint: string;
+    videosHelper: string;
+    videoUrlLabel: string;
     videoUrlPlaceholder: string;
     addVideoUrl: string;
     videoPrimary: string;
+    videoLinkBadge: string;
+    videoDuplicateUrl: string;
     customService: string;
     customServicePlaceholder: string;
     customReason: string;
@@ -174,13 +178,16 @@ export type ClasificadosServiciosCopy = {
     customServicesHelperHint: string;
     highlightsSectionTitle: string;
     highlightsSectionHelper: string;
+    simpleOfferPhrasesTitle: string;
+    simpleOfferPhrasesHelper: string;
     highlightsSuggestedHeading: string;
     addOtherHighlightHeading: string;
     highlightCustomPlaceholder: string;
     addedHighlightsSection: string;
     customHighlightsMax: string;
     selectionMaxPresetHighlights: string;
-    selectionMaxThree: string;
+    selectionMaxReasons: string;
+    selectionMaxQuickFacts: string;
     aboutServicesGapNote: string;
     leonixVerified: string;
     leonixVerifiedHint: string;
@@ -195,6 +202,9 @@ export type ClasificadosServiciosCopy = {
     moveFeaturedLeft: string;
     moveFeaturedRight: string;
     offerQrLater: string;
+    couponsFeaturedStepTitle: string;
+    couponsFeaturedStepBody: string;
+    couponsFeaturedStepSimpleHint: string;
     /** How logo / cover / featured / gallery relate in the public profile */
     mediaStructureIntro: string;
     logoHelp: string;
@@ -233,6 +243,7 @@ export type ClasificadosServiciosCopy = {
     hoursOutputHint: string;
     /** Paso 2 — ciudad vs zonas */
     cityHelp: string;
+    cityHelpDetail: string;
     serviceAreasHelp: string;
     languageOtherLabel: string;
     languageOtherPlaceholder: string;
@@ -281,6 +292,7 @@ export type ClasificadosServiciosCopy = {
     insuranceTypePlaceholder: string;
     certificationsLabel: string;
     certificationsPlaceholder: string;
+    certificationsHint: string;
     certificationsAdd: string;
     certificationsAddedList: string;
     certificationsCustomMax: string;
@@ -332,9 +344,9 @@ const es: ClasificadosServiciosCopy = {
     quickFacts: "Datos rápidos",
     contact: "6 · Vista de contacto",
     social: "Redes sociales",
-    hours: "7 · Horarios",
+    hours: "6 · Horarios",
     testimonials: "Testimonios (opcional)",
-    offer: "8 · Promoción (opcional)",
+    offer: "7 · Promoción (opcional)",
   },
   labels: {
     businessType: "Tipo de negocio",
@@ -437,10 +449,16 @@ const es: ClasificadosServiciosCopy = {
     featuredStripHint: "Así aparecerán en la vista previa. Usa las flechas para cambiar el orden.",
     moveFeaturedLeft: "Mover antes",
     moveFeaturedRight: "Mover después",
-    videosHint: "Puedes agregar hasta 2 videos (archivo o enlace, por ejemplo YouTube).",
-    videoUrlPlaceholder: "https://… (YouTube o archivo en línea)",
-    addVideoUrl: "Añadir video por URL",
-    videoPrimary: "Video principal / tour",
+    videosHint:
+      "Puedes agregar hasta 4 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado.",
+    videosHelper:
+      "Recomendado: usa enlaces externos de YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible para evitar cargas pesadas.",
+    videoUrlLabel: "Enlace de video",
+    videoUrlPlaceholder: "https://",
+    addVideoUrl: "Añadir video",
+    videoPrimary: "Video principal",
+    videoLinkBadge: "ENLACE",
+    videoDuplicateUrl: "Ese enlace ya está en la lista.",
     customService: "Otro servicio",
     customServicePlaceholder: "Ej.: marcos a medida",
     customReason: "Otro motivo",
@@ -458,13 +476,17 @@ const es: ClasificadosServiciosCopy = {
       "Puedes agregar varios servicios. Los primeros aparecerán destacados en el anuncio.",
     highlightsSectionTitle: "Highlights del negocio",
     highlightsSectionHelper: "Selecciona detalles que ayuden al cliente a confiar y decidir más rápido.",
+    simpleOfferPhrasesTitle: "Frases destacadas u ofertas simples",
+    simpleOfferPhrasesHelper:
+      "Agrega frases cortas que ayuden al cliente a decidir: beneficios, garantías, paquetes, consultas, descuentos o promociones simples. Ejemplos: Consulta inicial gratis, Estimado sin costo, Servicio el mismo día, Compra 4 llantas y recibe alineamiento gratis, 15% en primera visita. Para cupones con imagen, flyer, código, precio o enlace, usa el add-on de Cupones y ofertas destacadas.",
     highlightsSuggestedHeading: "Sugeridos:",
     addOtherHighlightHeading: "Agregar otro highlight:",
     highlightCustomPlaceholder: "Ej.: Financiamiento disponible",
     addedHighlightsSection: "Highlights agregados:",
     customHighlightsMax: `Máximo ${MAX_CUSTOM_BUSINESS_HIGHLIGHTS} highlights personalizados`,
     selectionMaxPresetHighlights: `Puedes elegir hasta ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} sugeridos.`,
-    selectionMaxThree: "Máximo 3 opciones",
+    selectionMaxReasons: "Máximo 6 opciones",
+    selectionMaxQuickFacts: "Máximo 5 opciones",
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
     leonixVerified: "Mostrar interés en Verificado Leonix",
@@ -473,6 +495,11 @@ const es: ClasificadosServiciosCopy = {
     offerImage: "Imagen opcional",
     offerPdf: "PDF o volante (opcional)",
     offerQrLater: "",
+    couponsFeaturedStepTitle: "Cupones y ofertas destacadas",
+    couponsFeaturedStepBody:
+      "Agrega hasta 4 cupones, descuentos, paquetes u ofertas destacadas dentro de tu anuncio.",
+    couponsFeaturedStepSimpleHint:
+      "Para frases simples sin imagen/código/enlace, usa los highlights del paso Servicios y datos rápidos.",
     promotionsSectionIntro:
       "Añade hasta 4 ofertas breves para tu vitrina. Usa promociones claras, específicas y fáciles de entender.",
     promoAddPromotion: "Añadir promoción",
@@ -494,7 +521,7 @@ const es: ClasificadosServiciosCopy = {
     moveDown: "Abajo",
     featuredToggle: "Principal en anuncio",
     mediaStructureIntro:
-      "Logo y portada definen el encabezado. La galería muestra hasta 4 fotos destacadas en el anuncio; el resto aparece al ampliar. Todo se guarda en este navegador hasta que salgas del flujo o publiques.",
+      "El logo define el encabezado con el fondo estándar Leonix. La galería muestra hasta 4 fotos destacadas en el anuncio; el resto aparece al ampliar. Todo se guarda en este navegador hasta que salgas del flujo o publiques.",
     logoHelp: "Cuadrada o casi cuadrada; se muestra junto al nombre.",
     coverHelp: "Imagen ancha detrás del encabezado (como portada).",
     galleryStatusLine: "{total} foto(s) · {featured} destacada(s) (máx. 4)",
@@ -506,11 +533,11 @@ const es: ClasificadosServiciosCopy = {
       "Cuando termines las confirmaciones arriba, usa los botones de abajo para ver la vista previa o publicar. Tu progreso se guarda en esta sesión.",
     assetFromFile: "Archivo",
     assetFromUrl: "URL",
-    videosTitle: "Videos (opcional)",
+    videosTitle: "Video opcional",
     galleryCountLine: "{n} / {max} fotos en la galería",
-    videosCountLine: "{n} / {max} videos adjuntos",
+    videosCountLine: "{n} / 4 videos agregados",
     galleryLimitHint: "Límite alcanzado (máx. {max}). Quita una foto para añadir más.",
-    videosLimitHint: "Ya tienes el máximo de videos ({max}). Quita uno para cambiar.",
+    videosLimitHint: "Límite de 4 videos alcanzado.",
     galleryListOrderHint:
       "El orden de la lista es el orden completo de la galería. Las destacadas pueden ser cualquiera de esas fotos; no tienen que ser las primeras.",
     mediaWrongFileType: "Ese archivo no es una imagen. Usa JPG, PNG, WebP u otro formato de imagen.",
@@ -520,6 +547,8 @@ const es: ClasificadosServiciosCopy = {
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
     cityHelp: "Los ejemplos son sugerencias, no límites.",
+    cityHelpDetail:
+      "Puedes escribir cualquier ciudad donde atiendes. NorCal aparece como sugerencia, pero Leonix acepta otras ciudades.",
     serviceAreasHelp: "Describe vecindades, condados o el radio donde atiendes.",
     languageOtherLabel: "Otros idiomas",
     languageOtherPlaceholder: "",
@@ -570,7 +599,8 @@ const es: ClasificadosServiciosCopy = {
     insuranceType: "Tipo de seguro",
     insuranceTypePlaceholder: "Ej.: Responsabilidad general",
     certificationsLabel: "Certificaciones",
-    certificationsPlaceholder: "Ej.: Técnico certificado",
+    certificationsPlaceholder: "Certificación, membresía o grado",
+    certificationsHint: "Agrega certificaciones, membresías, grados o reconocimientos.",
     certificationsAdd: "Añadir",
     certificationsAddedList: "Certificaciones agregadas:",
     certificationsCustomMax: "Has alcanzado el máximo de certificaciones (24).",
@@ -622,9 +652,9 @@ const en: ClasificadosServiciosCopy = {
     quickFacts: "Quick facts",
     contact: "6 · Contact preview",
     social: "Social media",
-    hours: "7 · Hours",
+    hours: "6 · Hours",
     testimonials: "Testimonials (optional)",
-    offer: "8 · Promotion (optional)",
+    offer: "7 · Promotion (optional)",
   },
   labels: {
     businessType: "Business type",
@@ -727,10 +757,16 @@ const en: ClasificadosServiciosCopy = {
     featuredStripHint: "This is how they appear in preview. Use arrows to reorder.",
     moveFeaturedLeft: "Move earlier",
     moveFeaturedRight: "Move later",
-    videosHint: "You can add up to 2 videos (upload or URL, e.g. YouTube).",
-    videoUrlPlaceholder: "https://… (YouTube or direct file)",
-    addVideoUrl: "Add video URL",
-    videoPrimary: "Primary / tour video",
+    videosHint:
+      "You can add up to 4 video links. Videos will appear in preview and on the published listing.",
+    videosHelper:
+      "Recommended: use external links from YouTube, TikTok, Instagram, Vimeo, or another compatible platform to avoid heavy uploads.",
+    videoUrlLabel: "Video link",
+    videoUrlPlaceholder: "https://",
+    addVideoUrl: "Add video",
+    videoPrimary: "Primary video",
+    videoLinkBadge: "URL",
+    videoDuplicateUrl: "That link is already in the list.",
     customService: "Other service",
     customServicePlaceholder: "e.g. custom trim",
     customReason: "Other reason",
@@ -748,13 +784,17 @@ const en: ClasificadosServiciosCopy = {
       "You can add multiple services. The first ones may appear highlighted in the listing.",
     highlightsSectionTitle: "Business highlights",
     highlightsSectionHelper: "Select details that help customers trust the business and decide faster.",
+    simpleOfferPhrasesTitle: "Featured phrases or simple offers",
+    simpleOfferPhrasesHelper:
+      "Add short phrases that help customers decide: benefits, guarantees, packages, consultations, discounts, or simple promotions. Examples: Free initial consultation, Free estimate, Same-day service, Buy 4 tires and get free alignment, 15% off first visit. For coupons with an image, flyer, code, price, or link, use the Featured coupons & offers add-on.",
     highlightsSuggestedHeading: "Suggested:",
     addOtherHighlightHeading: "Add another highlight:",
     highlightCustomPlaceholder: "Ex: Financing available",
     addedHighlightsSection: "Added highlights:",
     customHighlightsMax: `Up to ${MAX_CUSTOM_BUSINESS_HIGHLIGHTS} custom highlights`,
     selectionMaxPresetHighlights: `You can select up to ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} suggested highlights.`,
-    selectionMaxThree: "Maximum 3 options",
+    selectionMaxReasons: "Maximum 6 options",
+    selectionMaxQuickFacts: "Maximum 5 options",
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
     leonixVerified: "Show interest in Leonix Verified",
@@ -763,6 +803,11 @@ const en: ClasificadosServiciosCopy = {
     offerImage: "Optional image",
     offerPdf: "Optional PDF / flyer",
     offerQrLater: "",
+    couponsFeaturedStepTitle: "Featured coupons & offers",
+    couponsFeaturedStepBody:
+      "Add up to 4 featured coupons, discounts, packages, or offers inside your listing.",
+    couponsFeaturedStepSimpleHint:
+      "For simple text phrases without image/code/link, use highlights in the Services & quick facts step.",
     promotionsSectionIntro:
       "Add up to 4 short offers for your profile. Use clear, specific promotions customers can understand quickly.",
     promoAddPromotion: "Add promotion",
@@ -784,7 +829,7 @@ const en: ClasificadosServiciosCopy = {
     moveDown: "Down",
     featuredToggle: "Featured on listing",
     mediaStructureIntro:
-      "Logo and cover shape the header. The gallery uses up to 4 featured photos on the listing; the rest appear when visitors expand the gallery. Everything stays in this browser until you leave the flow or publish.",
+      "Your logo shapes the header. The gallery uses up to 4 featured photos on the listing; the rest appear when visitors expand the gallery. Everything stays in this browser until you leave the flow or publish.",
     logoHelp: "Square-ish; shown next to your business name.",
     coverHelp: "Wide image behind the header (banner).",
     galleryStatusLine: "{total} photo(s) · {featured} featured (max 4)",
@@ -796,11 +841,11 @@ const en: ClasificadosServiciosCopy = {
       "When you finish the confirmations above, use the buttons below to preview or publish. Your progress is saved for this session.",
     assetFromFile: "File",
     assetFromUrl: "URL",
-    videosTitle: "Videos (optional)",
+    videosTitle: "Optional video",
     galleryCountLine: "{n} / {max} photos in gallery",
-    videosCountLine: "{n} / {max} videos attached",
+    videosCountLine: "{n} / 4 videos added",
     galleryLimitHint: "Limit reached (max {max}). Remove a photo to add more.",
-    videosLimitHint: "Maximum videos reached ({max}). Remove one to change.",
+    videosLimitHint: "4 video limit reached.",
     galleryListOrderHint:
       "The list order is the full gallery order. Featured picks can be any of those photos — they do not have to be first.",
     mediaWrongFileType: "That file is not an image. Use JPG, PNG, WebP, or another image format.",
@@ -810,6 +855,8 @@ const en: ClasificadosServiciosCopy = {
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
     cityHelp: "Examples are suggestions, not limits.",
+    cityHelpDetail:
+      "You can enter any city you serve. NorCal appears as a suggestion, but Leonix accepts other cities.",
     serviceAreasHelp: "Describe neighborhoods, counties, or the radius you serve.",
     languageOtherLabel: "Other languages",
     languageOtherPlaceholder: "",
@@ -860,7 +907,8 @@ const en: ClasificadosServiciosCopy = {
     insuranceType: "Insurance type",
     insuranceTypePlaceholder: "Ex: General liability",
     certificationsLabel: "Certifications",
-    certificationsPlaceholder: "Ex: Certified technician",
+    certificationsPlaceholder: "Certification, membership, or degree",
+    certificationsHint: "Add certifications, memberships, degrees, or recognitions.",
     certificationsAdd: "Add",
     certificationsAddedList: "Added certifications:",
     certificationsCustomMax: "You’ve reached the maximum of 24 certifications.",

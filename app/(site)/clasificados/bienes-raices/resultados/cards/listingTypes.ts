@@ -61,4 +61,12 @@ export type BrNegocioListing = {
   demoPublishedAtMs?: number;
   /** Stripped listing description for `q` search (not shown on cards). */
   searchBlob?: string;
+  /**
+   * Optional monetization metadata for future badge/CTA enhancements.
+   * Currently not used prominently on cards; reserved for future placement signals.
+   */
+  adPlanLabel?: string;
+  adPlanKey?: "paid_private" | "paid_business" | "unknown";
+  monetizationWarnings?: string[];
+  placementSignals?: string[];
 };

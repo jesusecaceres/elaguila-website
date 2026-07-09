@@ -1,14 +1,15 @@
 import { Suspense } from "react";
 import { getMergedEnVentaDetailFieldsUi } from "@/app/lib/clasificados/enVentaCategoryContentServer";
 import { EnVentaDetailFieldCopyProvider } from "@/app/clasificados/en-venta/publish/EnVentaDetailFieldCopyContext";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 import LeonixEnVentaProApplication from "./application/LeonixEnVentaProApplication";
 
 export const dynamic = "force-dynamic";
 
 export default async function EnVentaProPublishPage(props: { searchParams?: Promise<{ lang?: string }> }) {
   const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
-  const detailFieldsUi = await getMergedEnVentaDetailFieldsUi(lang);
+  const { copyLang } = resolveClasificadosPublishLangFromSearchParams(sp);
+  const detailFieldsUi = await getMergedEnVentaDetailFieldsUi(copyLang);
 
   return (
     <Suspense

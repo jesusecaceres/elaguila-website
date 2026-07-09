@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
-import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
+import { BR_RESULTS_PAGE_BG, BR_RESULTS_SHELL } from "@/app/clasificados/bienes-raices/shared/bienesRaicesLeonixPublicUi";
 
-/** Bienes Raíces results — listings-first Leonix cream shell (CAT-STD-ALL). */
+/** Bienes Raíces results — Rentas-style cream shell with warm background. */
 export function BienesRaicesResultsShell({ children }: { children: ReactNode }) {
-  return <CategoryStandardResultsPageShell maxWidthClass="max-w-[1080px]">{children}</CategoryStandardResultsPageShell>;
+  return (
+    <div className={BR_RESULTS_PAGE_BG}>
+      <div className={BR_RESULTS_SHELL}>{children}</div>
+    </div>
+  );
 }

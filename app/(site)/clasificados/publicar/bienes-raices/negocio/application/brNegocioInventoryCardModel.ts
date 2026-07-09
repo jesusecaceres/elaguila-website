@@ -59,6 +59,23 @@ function safePhotoUrl(raw: string | undefined): string {
   return "";
 }
 
+function resolveAdditionalDraftCardPhotoUrl(
+  normalized: BrNegocioAdditionalInventoryPropertyDraft,
+): string {
+  const photos = normalized.photoUrls.map((u) => trim(String(u))).filter(Boolean);
+  const fromCover = safePhotoUrl(childInventoryCoverPhotoUrl(normalized));
+  if (fromCover) return fromCover;
+  const idx = Math.min(
+    Math.max(0, normalized.primaryPhotoIndex),
+    Math.max(0, photos.length - 1),
+  );
+  for (const candidate of [photos[idx], photos[0], ...photos, normalized.mainPhotoUrl]) {
+    const safe = safePhotoUrl(candidate);
+    if (safe) return safe;
+  }
+  return "";
+}
+
 function negocioTypeLine(state: BienesRaicesNegocioFormState): string {
   const type = trim(state.tipoPropiedad);
   const sub = trim(state.propertySubtype);
@@ -154,12 +171,32 @@ export function mapAdditionalDraftToInventoryCard(
     bathrooms: trim(normalized.bathrooms),
     interiorSqft: trim(normalized.interiorSqft),
     lotSqft: trim(normalized.lotSqft),
-    photoUrl: safePhotoUrl(childInventoryCoverPhotoUrl(normalized)),
+    photoUrl: resolveAdditionalDraftCardPhotoUrl(normalized),
     photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
     leonixDraftNote: copy.leonix,
   };
+}
+
+/** Step 10 safety net — never show "No photo" when live editor state has photos. */
+export function applyLiveEditorPhotosToInventoryCard(
+  card: BrNegocioInventoryCardModel,
+  liveState: AgenteIndividualResidencialFormState,
+): BrNegocioInventoryCardModel {
+  if (card.photoUrl) return card;
+  const photos = (Array.isArray(liveState.fotosDataUrls) ? liveState.fotosDataUrls : [])
+    .map((u) => trim(String(u)))
+    .filter(Boolean);
+  if (!photos.length) return card;
+  const idx = Math.min(Math.max(0, liveState.fotoPortadaIndex), Math.max(0, photos.length - 1));
+  for (const candidate of [photos[idx], photos[0], ...photos]) {
+    const photoUrl = safePhotoUrl(candidate);
+    if (photoUrl) {
+      return { ...card, photoUrl, photoCount: Math.max(card.photoCount, photos.length) };
+    }
+  }
+  return { ...card, photoCount: Math.max(card.photoCount, photos.length) };
 }
 
 /** Beds / baths / sqft line for card facet row. */

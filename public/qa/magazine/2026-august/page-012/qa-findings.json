@@ -1,0 +1,58 @@
+{
+  "gate": "AUGUST-2026-PAGE12-ENGLISH-PROOF-VISUAL-QA1",
+  "proofPdfPath": ".magazine-proof-output/2026-august/en/page-smoke/page-012/deepl-page-012.en.pdf",
+  "proofPdfBytes": 2418049,
+  "proofPdfHash": "a6b82d6cd3f35c1f60a5d93f7101c1376c2e6b3554017a86f2e719418fc72072",
+  "sourceMasterPath": "design-references/magazine/2026-august/01-master-samples/august-2026-012-back-cover-master-sample.png",
+  "sourceInputPath": ".magazine-proof-output/2026-august/_inputs/page-smoke/page-012/source-page-012-from-png.pdf",
+  "outputPublic": false,
+  "finalPdf": false,
+  "printReady": false,
+  "providerCalledInThisGate": false,
+  "previousGateProviderCalls": 1,
+  "previousGateProvider": "DeepL",
+  "previousGateTarget": "EN-US",
+  "textLayerProbeResult": {
+    "attempted": true,
+    "tool": "pdfjs-dist (local Node, legacy build)",
+    "ocrUsed": false,
+    "providerCalled": false,
+    "englishProofPdf": {
+      "textLayerPresent": true,
+      "extractableCharacterCount": 1535,
+      "englishDetected": true,
+      "spanishAlsoPresent": false,
+      "contactInfoInExtractedText": {
+        "suite201": true,
+        "suite202": false,
+        "coleman275": false,
+        "phone4083606500": true,
+        "emailInfoLeonixmedia": true,
+        "websiteLeonixmedia": true
+      },
+      "sampleExtractedText": "PAGE 12 Be part of the Leonix movement LOCAL BUSINESSES REAL STORIES OPPORTUNITIES THAT MAKE AN IMPACT ... ADVERTISE WITH LEONIX LET'S GROW YOUR BUSINESS, TOGETHER. ... Let the lion roar. ... 871Coleman Avenue, Suite 201 San Jose, CA 95110 (408) 360-6500 info@leonixmedia.com"
+    },
+    "sourceInputPdf": {
+      "textLayerPresent": false,
+      "extractableCharacterCount": 0,
+      "note": "Expected — PNG-embedded PDF had no extractable text before DeepL"
+    },
+    "limitation": "Extractable text does not replace visual QA. Layout, font rendering, QR readability, and visible translation quality must be confirmed by opening the PDF."
+  },
+  "previewExportResult": {
+    "attempted": true,
+    "englishProofPreviewPng": "PREVIEW_EXPORT_NOT_AVAILABLE_OPEN_PDF_MANUALLY",
+    "sourceProofPreviewPng": ".magazine-proof-output/2026-august/en/page-smoke/page-012/visual-qa/source-proof-preview.png",
+    "sourceProofPreviewNote": "Spanish master PNG copied for side-by-side reference; pdftoppm/ImageMagick not on PATH",
+    "compareInstructions": ".magazine-proof-output/2026-august/en/page-smoke/page-012/visual-qa/compare-instructions.md"
+  },
+  "currentStatus": "PROVIDER_OUTPUT_READY_FOR_CHUY_QA",
+  "finalHumanDecisionRequired": true,
+  "allowedDecisions": [
+    "TRANSLATION_WORKED_ENOUGH_FOR_DIGITAL_PROOF",
+    "TRANSLATION_UNCHANGED_OR_FAILED",
+    "NEEDS_EDITABLE_SOURCE_REBUILD",
+    "NEEDS_COMPANION_TEXT_LAYER"
+  ],
+  "timestamp": "2026-07-07T15:05:00.000Z"
+}
