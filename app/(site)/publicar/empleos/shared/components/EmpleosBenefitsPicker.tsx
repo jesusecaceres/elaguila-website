@@ -113,9 +113,8 @@ export function EmpleosBenefitsPicker({ lang, selected, onChange }: Props) {
           <EmpleosStringLinesEditor
             items={customOnly.length ? customOnly : [""]}
             onChange={(customs) => {
-              const trimmed = customs.map((c) => c.trim()).filter(Boolean);
               const fromPresets = presets.filter((p) => selectedSet.has(p));
-              onChange([...fromPresets, ...trimmed]);
+              onChange([...fromPresets, ...customs]);
             }}
             addLabel={es ? "+ Añadir beneficio personalizado" : "+ Add custom benefit"}
             removeLabel={es ? "Quitar" : "Remove"}

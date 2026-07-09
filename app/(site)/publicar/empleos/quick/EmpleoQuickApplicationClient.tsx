@@ -33,6 +33,7 @@ import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/em
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import { EmpleosBenefitsPicker } from "@/app/publicar/empleos/shared/components/EmpleosBenefitsPicker";
 import { EmpleosShiftScheduleEditor } from "@/app/publicar/empleos/shared/components/EmpleosShiftScheduleEditor";
+import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
 import {
   EMPLEOS_PAY_UNIT_OPTIONS_EN,
   EMPLEOS_PAY_UNIT_OPTIONS_ES,
@@ -322,6 +323,13 @@ export default function EmpleoQuickApplicationClient() {
                 </select>
               </label>
             </div>
+            {state.workModality === "otro" ? (
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>{es ? "Describe la modalidad" : "Describe workplace type"}</EmpleosFieldLabel>
+                <input className={INPUT} value={state.workModalityCustom} onChange={(e) => patch({ workModalityCustom: e.target.value })}
+                  placeholder={es ? "Ej. En ruta, por llamadas, visitas a clientes" : "e.g. On route, on call, client visits"} />
+              </label>
+            ) : null}
             {state.jobType === "otro" ? (
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>{es ? "Describe el tipo de empleo" : "Describe employment type"}</EmpleosFieldLabel>
@@ -376,11 +384,23 @@ export default function EmpleoQuickApplicationClient() {
                   placeholder={es ? "Ej. Por entrega" : "e.g. Per delivery"} />
               </label>
             ) : null}
-            <label className="block text-sm">
+            <div>
               <EmpleosFieldLabel lang={lang}>{es ? "Nota de pago (opcional)" : "Pay note (optional)"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.payNote} onChange={(e) => patchPay({ payNote: e.target.value })}
-                placeholder={es ? "Ej. más bonos, propinas incluidas" : "e.g. plus bonuses, tips included"} />
-            </label>
+              <p className="mt-0.5 text-xs text-[#7A756E]">
+                {es
+                  ? "Añade notas adicionales sobre el pago."
+                  : "Add additional notes about pay."}
+              </p>
+              <div className="mt-2">
+                <EmpleosStringLinesEditor
+                  items={state.payNote ? state.payNote.split("\n").filter(Boolean) : []}
+                  onChange={(lines) => patchPay({ payNote: lines.join("\n") })}
+                  addLabel={es ? "+ Añadir nota" : "+ Add note"}
+                  removeLabel={es ? "Quitar" : "Remove"}
+                  placeholder={es ? "Ej. más bonos, propinas incluidas" : "e.g. plus bonuses, tips included"}
+                />
+              </div>
+            </div>
             {state.payAmount || state.payUnit || state.pay ? (
               <p className="rounded-lg border border-[#C9B46A]/35 bg-[#FBF7EF] px-3 py-2 text-xs text-[#5C5346]">
                 {es ? "Vista previa:" : "Preview:"}{" "}

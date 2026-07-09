@@ -1,6 +1,5 @@
 "use client";
 
-import { useId } from "react";
 import type { QuickJobLocationBlock } from "../../data/empleoQuickJobSampleData";
 
 type Props = {
@@ -11,51 +10,11 @@ type Props = {
   compact?: boolean;
 };
 
-function QuickJobFauxMap({ compact }: { compact?: boolean }) {
-  const uid = useId().replace(/:/g, "");
-  const gridId = `ej-map-grid-${uid}`;
-  const washId = `ej-map-wash-${uid}`;
-  const vigId = `ej-map-vig-${uid}`;
-  return (
-    <div
-      className={`relative mt-3 w-full max-w-full overflow-hidden rounded-lg border border-[#C9A84A]/25 shadow-sm ${compact ? "aspect-[3/1]" : "aspect-[2/1]"}`}
-      style={{
-        background: "linear-gradient(160deg, #2A2620 0%, #1E1814 38%, #2F241F 72%, #1A1612 100%)",
-        maxHeight: compact ? "4.5rem" : "7.5rem",
-      }}
-      aria-hidden
-    >
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id={gridId} width="22" height="22" patternUnits="userSpaceOnUse">
-            <path d="M 22 0 L 0 0 0 22" fill="none" stroke="rgba(201,168,74,0.14)" strokeWidth="0.75" />
-          </pattern>
-          <linearGradient id={washId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(122,30,44,0.22)" />
-            <stop offset="55%" stopColor="rgba(30,24,20,0.08)" />
-            <stop offset="100%" stopColor="rgba(201,168,74,0.12)" />
-          </linearGradient>
-          <radialGradient id={vigId} cx="50%" cy="50%" r="68%">
-            <stop offset="55%" stopColor="rgba(0,0,0,0)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0.45)" />
-          </radialGradient>
-        </defs>
-        <rect width="400" height="200" fill={`url(#${gridId})`} />
-        <rect width="400" height="200" fill={`url(#${washId})`} />
-        <rect width="400" height="200" fill={`url(#${vigId})`} />
-      </svg>
-      <div className="pointer-events-none absolute left-1/2 top-[44%] z-10 flex -translate-x-1/2 flex-col items-center">
-        <div
-          className={`flex items-center justify-center rounded-full border-2 border-[#FFFCF7] ${compact ? "h-7 w-7" : "h-9 w-9"}`}
-          style={{ backgroundColor: "#7A1E2C", boxShadow: "0 8px 22px rgba(30,24,16,0.45),0 0 0 4px rgba(201,168,74,0.35)" }}
-        >
-          <svg className={`text-white ${compact ? "h-3 w-3" : "h-4 w-4"}`} viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
+/** Build Google Maps embed URL from a real address line (no fake coordinates). */
+function buildEmpleosPreviewMapEmbedUrl(locationLine: string): string {
+  const q = locationLine.trim();
+  if (!q) return "";
+  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
 }
 
 export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen, compact }: Props) {
@@ -66,6 +25,7 @@ export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen,
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
     : null;
   const showMap = !location.isRemote && Boolean(location.addressLine1?.trim() && location.addressLine1 !== "—");
+  const embedUrl = showMap ? buildEmpleosPreviewMapEmbedUrl(query) : "";
 
   return (
     <section className={`rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] ${compact ? "p-4" : "p-5 sm:p-6"}`}>
@@ -89,7 +49,20 @@ export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen,
           ) : null}
         </address>
       </div>
-      {showMap ? <QuickJobFauxMap compact={compact} /> : null}
+      {embedUrl ? (
+        <div className="mt-3 overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/40">
+          <p className="border-b border-[#E8D9C4]/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+            Mapa
+          </p>
+          <iframe
+            title="Mapa de ubicación"
+            src={embedUrl}
+            className={`border-0 ${compact ? "h-32" : "h-40"} w-full max-w-full sm:h-44`}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+      ) : null}
       {mapsHref ? (
         <button
           type="button"

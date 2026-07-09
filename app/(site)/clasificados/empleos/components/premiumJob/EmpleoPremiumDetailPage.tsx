@@ -34,7 +34,7 @@ function modalityLine(lang: Lang, m?: JobModalitySlug): string | undefined {
   }
   if (m === "remoto") return "Remoto";
   if (m === "hibrido") return "Híbrido";
-  return "Presencial";
+  return "En persona";
 }
 
 const COPY = {

@@ -21,12 +21,13 @@ import {
   sampleJobTypeSelectOptions,
 } from "@/app/clasificados/empleos/data/empleosLandingSampleData";
 
-function modalityLabelEs(m: string): string {
+function modalityLabelEs(m: string, custom?: string): string {
   const v = m.toLowerCase();
   if (v === "virtual") return "Virtual";
   if (v === "remoto") return "Remoto";
   if (v.includes("híbrid") || v === "hibrida" || v === "hibrido") return v.endsWith("a") ? "Híbrida" : "Híbrido";
-  return "Presencial";
+  if (v === "otro") return custom?.trim() || "Otro";
+  return "En persona";
 }
 
 export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPublishEnvelope | null): QuickJobDetailSample {
@@ -82,7 +83,9 @@ export function mapPublishedQuickToShell(job: EmpleosJobRecord, env: EmpleosPubl
       schedule: scheduleFull || (d.schedule || job.scheduleLabel || "—").trim(),
       scheduleSummary: scheduleSummary || scheduleFull,
       scheduleRows,
-      workModalityLabel: d.workModality ? modalityLabelEs(d.workModality) : modalityLabelEs(job.modality),
+      workModalityLabel: d.workModality 
+        ? modalityLabelEs(d.workModality, d.workModalityCustom) 
+        : modalityLabelEs(job.modality),
       description: d.description || job.description,
       benefits: [...d.benefits],
       applyLink: d.applyLink ? (sanitizeHttpUrl(d.applyLink) ?? undefined) : undefined,

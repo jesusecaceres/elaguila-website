@@ -11,7 +11,7 @@ function modalityLabel(m: EmpleosFeriaDraft["modality"]): string {
     case "híbrida":
       return "Híbrida";
     default:
-      return "Presencial";
+      return "En persona";
   }
 }
 

@@ -28,12 +28,12 @@ type Props = {
 };
 
 function modalityEs(m: EmpleosJobRecord["modality"]) {
-  if (m === "presencial") return "Presencial";
+  if (m === "presencial") return "En persona";
   if (m === "hibrido") return "Híbrido";
   if (m === "remoto") return "Remoto";
   if (m === "campo") return "En campo";
   if (m === "varias-ubicaciones") return "Varias ubicaciones";
-  return "Presencial";
+  return "En persona";
 }
 
 function jobTypeEs(t: EmpleosJobRecord["jobType"]) {

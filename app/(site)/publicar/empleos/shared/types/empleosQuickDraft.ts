@@ -38,6 +38,8 @@ export type EmpleosQuickDraft = {
   city: string;
   state: string;
   workModality: JobModalitySlug;
+  /** Custom workplace type label when workModality === "otro". */
+  workModalityCustom: string;
   jobType: string;
   /** Custom job type label when `jobType === "otro"`. */
   jobTypeCustom: string;
@@ -158,6 +160,8 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
   const MODALITY_SLUGS: JobModalitySlug[] = ["presencial", "hibrido", "remoto", "campo", "varias-ubicaciones", "otro"];
   const workModality: JobModalitySlug =
     modalityRaw && MODALITY_SLUGS.includes(modalityRaw) ? modalityRaw : e.workModality;
+  const workModalityCustom =
+    typeof rest.workModalityCustom === "string" ? rest.workModalityCustom.trim() : e.workModalityCustom;
 
   let scheduleRows: EmpleosQuickScheduleRow[] = Array.isArray(rest.scheduleRows)
     ? rest.scheduleRows.map((r) => ({
@@ -221,6 +225,7 @@ export function normalizeEmpleosQuickDraft(p: Partial<EmpleosQuickDraft> & { ben
     postalCode,
     country: typeof rest.country === "string" ? rest.country.trim() : e.country,
     workModality,
+    workModalityCustom,
     scheduleRows,
     payAmount,
     payUnit,
@@ -258,6 +263,7 @@ export function emptyEmpleosQuickDraft(): EmpleosQuickDraft {
     city: "",
     state: "",
     workModality: "presencial",
+    workModalityCustom: "",
     jobType: "",
     jobTypeCustom: "",
     schedule: "",
