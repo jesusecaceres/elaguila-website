@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FiCheckCircle,
   FiExternalLink,
@@ -11,6 +11,7 @@ import {
   FiMessageCircle,
   FiPhone,
   FiPlayCircle,
+  FiShare2,
 } from "react-icons/fi";
 import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-raices/preview/privado/model/bienesRaicesPrivadoPreviewVm";
 import type {
@@ -130,6 +131,10 @@ function contact(vm: Vm) {
       websiteHref: vm.contact.websiteHref ?? vm.identity.profileHref,
       mapHref: vm.location.mapsUrl,
       note: vm.contact.instructionsLine || vm.contact.preferredContactLine || vm.identity.bioLine,
+      showLlamar: vm.contact.showLlamar,
+      showSolicitarInfo: vm.contact.showSolicitarInfo,
+      showWhatsapp: vm.contact.showWhatsapp,
+      showSms: vm.contact.showSms,
     };
   }
   return {
@@ -145,6 +150,10 @@ function contact(vm: Vm) {
     websiteHref: vm.contact.websiteHref,
     mapHref: vm.location.mapsUrl,
     note: vm.contact.instructionsLine || vm.contact.preferredContactLine || vm.seller.noteLine,
+    showLlamar: vm.contact.showLlamar,
+    showSolicitarInfo: vm.contact.showSolicitarInfo,
+    showWhatsapp: vm.contact.showWhatsapp,
+    showSms: vm.contact.showSms,
   };
 }
 
@@ -317,7 +326,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
   const detailGroups = groupDetails(detailRows, lang);
   const featureText = uniqueFeatureText(cleanRows(vm.highlightsRows));
   const locationLine = vm.location.fullAddress || vm.location.cityStateZip;
-  const ctas = [c.mailHref, c.callHref, c.waHref, c.smsHref, c.websiteHref, c.mapHref].filter(Boolean);
+  const [shareCopied, setShareCopied] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const galleryCount = ph.length;
@@ -327,6 +336,30 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
         ? `${galleryIndex + 1} de ${galleryCount}`
         : `${galleryIndex + 1} of ${galleryCount}`
       : "";
+
+  const handleNativeShare = useCallback(async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (!url) return;
+
+    const title = vm.heroTitle?.trim() || (lang === "en" ? "Leonix Media" : "Leonix Media");
+
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({
+          title,
+          text: title,
+          url,
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // User cancelled native share or browser blocked it.
+    }
+  }, [vm.heroTitle, lang]);
 
   const openPhotoGallery = (index: number) => {
     if (!galleryCount) return;
@@ -633,33 +666,56 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
               ) : null}
             </div>
           ) : null}
-          {ctas.length ? (
-            <div className="mt-4 space-y-2">
-              <ActionLink href={c.mailHref} variant="primary">
-                <FiMail className="h-4 w-4" />
-                {lang === "es" ? "Enviar correo" : "Email seller"}
-              </ActionLink>
-              <ActionLink href={c.callHref}>
-                <FiPhone className="h-4 w-4" />
-                {lang === "es" ? "Llamar" : "Call"}
-              </ActionLink>
-              <ActionLink href={c.waHref} variant="whatsapp">
-                <FiMessageCircle className="h-4 w-4" />
-                WhatsApp
-              </ActionLink>
-              <ActionLink href={c.smsHref}>
-                <FiMessageCircle className="h-4 w-4" />
-                {lang === "es" ? "Enviar texto" : "Send text"}
-              </ActionLink>
-              <ActionLink href={c.websiteHref}>
-                <FiGlobe className="h-4 w-4" />
-                {lang === "es" ? "Ver sitio web" : "View website"}
-              </ActionLink>
-              <ActionLink href={c.mapHref}>
-                <FiMapPin className="h-4 w-4" />
-                {lang === "es" ? "Ver mapa" : "View on map"}
-              </ActionLink>
-            </div>
+          <button
+            type="button"
+            onClick={handleNativeShare}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition hover:bg-[#FBF7EF]"
+            style={{ borderColor: `${GOLD}88`, color: CHARCOAL }}
+          >
+            <FiShare2 className="h-4 w-4" />
+            {shareCopied
+              ? lang === "es"
+                ? "Enlace copiado"
+                : "Link copied"
+              : lang === "es"
+                ? "Compartir"
+                : "Share"}
+          </button>
+          {c.showSolicitarInfo && c.mailHref ? (
+            <ActionLink href={c.mailHref} variant="primary">
+              <FiMail className="h-4 w-4" />
+              {lang === "es" ? "Enviar correo" : "Email seller"}
+            </ActionLink>
+          ) : null}
+          {c.showLlamar && c.callHref ? (
+            <ActionLink href={c.callHref}>
+              <FiPhone className="h-4 w-4" />
+              {lang === "es" ? "Llamar" : "Call"}
+            </ActionLink>
+          ) : null}
+          {c.showWhatsapp && c.waHref ? (
+            <ActionLink href={c.waHref} variant="whatsapp">
+              <FiMessageCircle className="h-4 w-4" />
+              WhatsApp
+            </ActionLink>
+          ) : null}
+          {c.showSms && c.smsHref ? (
+            <ActionLink href={c.smsHref}>
+              <FiMessageCircle className="h-4 w-4" />
+              {lang === "es" ? "Enviar texto" : "Send text"}
+            </ActionLink>
+          ) : null}
+          {c.websiteHref ? (
+            <ActionLink href={c.websiteHref}>
+              <FiGlobe className="h-4 w-4" />
+              {lang === "es" ? "Ver sitio web" : "View website"}
+            </ActionLink>
+          ) : null}
+          {c.mapHref ? (
+            <ActionLink href={c.mapHref}>
+              <FiMapPin className="h-4 w-4" />
+              {lang === "es" ? "Ver mapa" : "View on map"}
+            </ActionLink>
           ) : null}
           {vm.location?.hasMeaningfulAddress && locationLine ? (
             <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(214,199,173,0.65)" }}>
