@@ -185,13 +185,13 @@ export function AutosNegociosAddInventoryDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, requestClose, unsavedModalOpen]);
 
-  const handleEditInMainApplication = useCallback(() => {
+  const handleEditInMainApplication = useCallback(async () => {
     if (isDirty()) {
-      setUnsavedModalOpen(true);
-      return;
+      onInProgressChange?.(draft);
+      await flushDraft?.();
     }
     onEditParentDealerStep?.();
-  }, [isDirty, onEditParentDealerStep]);
+  }, [draft, flushDraft, isDirty, onEditParentDealerStep, onInProgressChange]);
 
   const handleBackdropClose = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {

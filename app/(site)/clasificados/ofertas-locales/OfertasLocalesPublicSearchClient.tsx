@@ -72,7 +72,7 @@ function TagIcon({ className }: { className?: string }) {
   );
 }
 
-function OfertasShoppingListCartEntry({
+function OfertasFloatingShoppingListCart({
   title,
   emptyHelper,
   openLabel,
@@ -87,51 +87,46 @@ function OfertasShoppingListCartEntry({
   listSummary: string;
   onOpen: () => void;
 }) {
+  const subtitle = itemCount > 0 ? listSummary : emptyHelper;
+
   return (
-    <>
-      <div
-        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#B8860B]/35 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3 py-2.5 shadow-sm"
-        data-testid="ofertas-shopping-list-cart-entry"
+    <div
+      className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-40 max-w-[min(20rem,calc(100vw-1.5rem))] sm:bottom-6 sm:right-6"
+      data-testid="ofertas-floating-shopping-list-cart"
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        className="pointer-events-auto group flex w-full items-stretch overflow-hidden rounded-2xl border-2 border-[#B8860B]/75 bg-gradient-to-br from-[#FDF8F0] via-[#FFFCF7] to-[#F5EBD8] text-left shadow-[0_10px_36px_rgba(30,24,20,0.28)] ring-1 ring-[#7A1E2C]/15 transition duration-200 hover:-translate-y-0.5 hover:border-[#B8860B] hover:shadow-[0_14px_44px_rgba(122,30,44,0.28)] active:scale-[0.98]"
+        aria-label={`${title}. ${subtitle}`}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#B8860B]/40 bg-white text-[#7A1E2C]">
-            <FiShoppingCart className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#1E1814]">{title}</p>
-            <p className="truncate text-xs text-[#1E1814]/60">
-              {itemCount > 0 ? listSummary : emptyHelper}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#7A1E2C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6a1926]"
-          onClick={onOpen}
-        >
-          {openLabel}
+        <span className="relative flex w-[3.75rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b from-[#7A1E2C] to-[#5c1723] py-3.5 text-white sm:w-[4.25rem]">
+          <FiShoppingCart className="h-6 w-6 drop-shadow-sm" aria-hidden />
           {itemCount > 0 ? (
-            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-md bg-white/20 px-1.5 text-[11px] font-bold">
+            <span className="absolute -right-1.5 -top-1.5 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full border-2 border-[#FDF8F0] bg-[#B8860B] px-1.5 text-[11px] font-bold leading-none text-white shadow-md">
               {itemCount}
             </span>
           ) : null}
-        </button>
-      </div>
+        </span>
 
-      <button
-        type="button"
-        aria-label={title}
-        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-40 flex h-14 w-14 items-center justify-center rounded-full border border-[#B8860B]/45 bg-gradient-to-br from-[#7A1E2C] to-[#5c1723] text-white shadow-lg hover:brightness-110 sm:bottom-6 sm:right-6 lg:hidden"
-        onClick={onOpen}
-      >
-        <FiShoppingCart className="h-6 w-6" aria-hidden />
-        {itemCount > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#B8860B] px-1 text-[10px] font-bold text-white">
-            {itemCount}
+        <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-2.5 sm:px-3.5 sm:py-3">
+          <span className="text-sm font-bold leading-tight text-[#1E1814] sm:text-[0.9375rem]">
+            {title}
           </span>
-        ) : null}
+          <span className="line-clamp-2 text-[11px] leading-snug text-[#1E1814]/68 sm:text-xs">
+            {subtitle}
+          </span>
+          <span className="mt-0.5 inline-flex w-fit min-h-8 items-center rounded-lg bg-[#7A1E2C] px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm group-hover:bg-[#6a1926] sm:min-h-9 sm:px-3 sm:text-xs">
+            {openLabel}
+            {itemCount > 0 ? (
+              <span className="ml-1.5 inline-flex min-w-[1.125rem] items-center justify-center rounded bg-white/20 px-1 text-[10px] font-bold">
+                {itemCount}
+              </span>
+            ) : null}
+          </span>
+        </span>
       </button>
-    </>
+    </div>
   );
 }
 
@@ -383,8 +378,8 @@ export function OfertasLocalesPublicSearchClient({
 
   const openShoppingList = () => setListOpen(true);
 
-  const shoppingListCartEntry = !isCupones ? (
-    <OfertasShoppingListCartEntry
+  const floatingShoppingListCart = !isCupones ? (
+    <OfertasFloatingShoppingListCart
       title={c.shoppingListTitle}
       emptyHelper={c.shoppingListEmptyHelper}
       openLabel={c.shoppingListOpen}
@@ -396,8 +391,6 @@ export function OfertasLocalesPublicSearchClient({
 
   const resultsContent = (
     <div id="ofertas-browse" className="scroll-mt-24 space-y-5">
-      {shoppingListCartEntry}
-
       {error ? (
         <p className="text-sm text-red-700" role="alert">
           {error}
@@ -507,8 +500,6 @@ export function OfertasLocalesPublicSearchClient({
           <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
             {hero}
             <main className="space-y-6 overflow-x-hidden sm:space-y-8">
-              {shoppingListCartEntry}
-
               <LeonixCategoryDiscoveryGrid
                 lang={lang as V2Lang}
                 surface="landing"
@@ -653,6 +644,8 @@ export function OfertasLocalesPublicSearchClient({
           onClear={shoppingList.clearList}
         />
       ) : null}
+
+      {floatingShoppingListCart}
     </>
   );
 }

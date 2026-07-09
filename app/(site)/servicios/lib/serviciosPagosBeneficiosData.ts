@@ -6,11 +6,16 @@ import {
 } from "./serviciosPaymentMethodCatalog";
 import { hasBusinessHighlightsResolved, hasPaymentMethodsResolved } from "./serviciosProfilePresence";
 
+export type ServiciosPagosChipItem = {
+  label: string;
+  paymentMethodId?: string;
+};
+
 export type ServiciosPagosGroup = {
   id: string;
   title: string;
   icon: string;
-  items: string[];
+  items: ServiciosPagosChipItem[];
 };
 
 const FINANCING_IDS = new Set(["financing_available", "payment_plans", "deposit_required", "invoice_available"]);
@@ -40,37 +45,38 @@ export function buildServiciosPagosGroups(
 ): ServiciosPagosGroup[] {
   const groups: ServiciosPagosGroup[] = [];
 
-  const paymentLabels: string[] = [];
-  const financingLabels: string[] = [];
+  const paymentItems: ServiciosPagosChipItem[] = [];
+  const financingItems: ServiciosPagosChipItem[] = [];
 
   for (const id of SERVICIOS_PAYMENT_METHOD_ORDER) {
     if (!profile.paymentMethodIds.includes(id) || !isServiciosPaymentMethodId(id)) continue;
     const label = getServiciosPaymentMethodLabel(id, lang);
-    if (FINANCING_IDS.has(id)) financingLabels.push(label);
-    else paymentLabels.push(label);
+    const row = { label, paymentMethodId: id };
+    if (FINANCING_IDS.has(id)) financingItems.push(row);
+    else paymentItems.push(row);
   }
 
   for (const raw of profile.customPaymentMethods) {
     const label = raw.trim();
     if (!label) continue;
-    paymentLabels.push(label);
+    paymentItems.push({ label });
   }
 
-  if (paymentLabels.length > 0) {
+  if (paymentItems.length > 0) {
     groups.push({
       id: "payments",
       title: lang === "en" ? "Payments" : "Pagos",
       icon: resolveServiciosPagosGroupIcon("payments"),
-      items: paymentLabels,
+      items: paymentItems,
     });
   }
 
-  if (financingLabels.length > 0) {
+  if (financingItems.length > 0) {
     groups.push({
       id: "financing",
       title: lang === "en" ? "Financing" : "Financiamiento",
       icon: resolveServiciosPagosGroupIcon("financing"),
-      items: financingLabels,
+      items: financingItems,
     });
   }
 
@@ -79,7 +85,10 @@ export function buildServiciosPagosGroups(
       id: "highlights",
       title: lang === "en" ? "Business highlights" : "Beneficios del negocio",
       icon: resolveServiciosPagosGroupIcon("highlights"),
-      items: displayProfile.highlights.map((h) => h.label.trim()).filter(Boolean),
+      items: displayProfile.highlights
+        .map((h) => h.label.trim())
+        .filter(Boolean)
+        .map((label) => ({ label })),
     });
   }
 

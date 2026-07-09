@@ -9,6 +9,11 @@ import {
   resolveServiciosPagosGroupIcon,
 } from "../lib/serviciosPagosBeneficiosData";
 import {
+  resolveServiciosBenefitChipLeading,
+  resolveServiciosPaymentChipLeading,
+} from "../lib/serviciosPaymentChipVisual";
+import { ServiciosPaymentChipMarker } from "./ServiciosPaymentChipMarker";
+import {
   SVC_AMENITY_CHIP,
   SVC_AMENITY_GROUP_CARD,
   SVC_PAGOS_BENEFICIOS_GRID,
@@ -72,11 +77,18 @@ export function ServiciosPagosBeneficiosSection({
                   <span className="min-w-0">{g.title}</span>
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {items.map((item, ii) => (
-                    <span key={`${g.id}-${ii}`} className={SVC_AMENITY_CHIP} title={item}>
-                      <span className="min-w-0 truncate">{item}</span>
-                    </span>
-                  ))}
+                  {items.map((item, ii) => {
+                    const leading =
+                      g.id === "highlights"
+                        ? resolveServiciosBenefitChipLeading()
+                        : resolveServiciosPaymentChipLeading(item.label, item.paymentMethodId);
+                    return (
+                      <span key={`${g.id}-${ii}`} className={SVC_AMENITY_CHIP} title={item.label}>
+                        <ServiciosPaymentChipMarker leading={leading} />
+                        <span className="min-w-0 truncate">{item.label}</span>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             );

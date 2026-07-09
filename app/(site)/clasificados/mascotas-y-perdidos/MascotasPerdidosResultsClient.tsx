@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -9,7 +8,6 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { MascotasPerdidosNoticeCard } from "./MascotasPerdidosNoticeCard";
 import { MascotasResultsSearchPanel } from "./MascotasResultsSearchPanel";
 import {
-  CAT_STD_BTN_PRIMARY,
   CAT_STD_REFINE_EYEBROW,
   CAT_STD_RESULTS_REFINE_PANEL,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
@@ -82,7 +80,6 @@ export function MascotasPerdidosResultsClient() {
   const [loading, setLoading] = useState(true);
 
   const landingHref = appendLangToPath("/clasificados/mascotas-y-perdidos", lang);
-  const postHref = appendLangToPath("/clasificados/publicar/mascotas-y-perdidos", lang);
   const backLabel =
     lang === "es" ? "Volver a Mascotas y Perdidos" : "Back to Pets & Lost & Found";
 
@@ -148,13 +145,9 @@ export function MascotasPerdidosResultsClient() {
               {t.count(filtered.length)}
             </p>
             {filtered.length === 0 ? (
-              <section className="rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFF9ED]/90 px-4 py-10 text-center">
-                <p className="text-sm font-semibold text-[#1E1810]">{t.emptyTitle}</p>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]/90">{t.emptyBody}</p>
-                <Link href={postHref} className={`mt-5 ${CAT_STD_BTN_PRIMARY}`}>
-                  {t.ctaPost}
-                </Link>
-              </section>
+              <p className="rounded-xl border border-[#D6C7AD]/60 bg-[#FFFCF7]/95 px-4 py-5 text-sm leading-relaxed text-[#5C5346]">
+                {t.emptyTitle}. {t.emptyBody}
+              </p>
             ) : (
               <ul className="grid gap-4" data-testid="mascotas-perdidos-results-list">
                 {filtered.map((r) => {

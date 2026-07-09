@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -19,7 +18,6 @@ import {
 } from "./shared/buscoSearchText";
 import { lightweightLocationMatchesFilter } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
 import {
-  CAT_STD_BTN_PRIMARY,
   CAT_STD_REFINE_EYEBROW,
   CAT_STD_RESULTS_REFINE_PANEL,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
@@ -107,7 +105,6 @@ export function BuscoResultsClient() {
   const [loading, setLoading] = useState(true);
 
   const landingHref = appendLangToPath("/clasificados/busco", lang);
-  const postHref = appendLangToPath("/publicar/busco/quick", lang);
   const backLabel = lang === "es" ? "Volver a Busco / Se busca" : "Back to Looking for / Wanted";
 
   const reload = useCallback(async () => {
@@ -163,7 +160,7 @@ export function BuscoResultsClient() {
         zone={zone}
         budget={budget}
         contact={contact}
-        postHref={postHref}
+        clearHref={appendLangToPath("/clasificados/busco/results", lang)}
       />
     </BuscoShellLayout>
   );
@@ -181,11 +178,9 @@ function BuscoResultsInner(props: {
   zone: string;
   budget: string;
   contact: string;
-  postHref: string;
+  clearHref: string;
 }) {
-  const { t, lang, loading, loadErr, filtered, postHref } = props;
-
-  const clearHref = appendLangToPath("/clasificados/busco/results", lang);
+  const { t, lang, loading, loadErr, filtered, clearHref } = props;
 
   const refineEyebrow = lang === "es" ? "Afina tu búsqueda" : "Refine your search";
 
@@ -214,13 +209,9 @@ function BuscoResultsInner(props: {
             {t.count(filtered.length)}
           </p>
           {filtered.length === 0 ? (
-            <section className="rounded-2xl border border-dashed border-[#B8C8EA]/45 bg-[#F8FAFF]/90 px-4 py-10 text-center">
-              <p className="text-sm font-semibold text-[#1E1810]">{t.emptyTitle}</p>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]/90">{t.emptyBody}</p>
-              <Link href={postHref} className={`mt-5 ${CAT_STD_BTN_PRIMARY}`}>
-                {t.ctaPost}
-              </Link>
-            </section>
+            <p className="rounded-xl border border-[#D6C7AD]/60 bg-[#FFFCF7]/95 px-4 py-5 text-sm leading-relaxed text-[#5C5346]">
+              {t.emptyTitle}. {t.emptyBody}
+            </p>
           ) : (
             <ul className="grid gap-4" data-testid="busco-results-list">
               {filtered.map((r) => {
