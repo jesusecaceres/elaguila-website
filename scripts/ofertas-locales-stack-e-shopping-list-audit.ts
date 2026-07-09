@@ -129,6 +129,19 @@ function run() {
     "legacy inline cart row removed in favor of floating entry"
   );
 
+  assert.ok(client.includes("intentResultsHref"), "discovery intent route helper");
+  assert.ok(client.includes('mode: "flyers"'), "weekly flyer intent mode");
+  assert.ok(client.includes('mode: "coupons"'), "coupon intent mode");
+  assert.ok(client.includes('mode: "promos"'), "promotion intent mode");
+  assert.ok(client.includes('mode: "stores"'), "local store intent mode");
+  assert.ok(client.includes('mode: "services"'), "local service intent mode");
+  assert.ok(client.includes('mode: "food"'), "food intent mode");
+  assert.ok(copy.includes("Destacados en Leonix"), "ES featured visibility copy");
+  assert.ok(copy.includes("Featured on Leonix"), "EN featured visibility copy");
+  assert.ok(!copy.includes("Patrocinadores de Leonix"), "removed Patrocinadores de Leonix from Ofertas base copy");
+  assert.ok(!copy.toLowerCase().includes("magazine holder"), "no magazine holder pipeline wording");
+  assert.ok(!copy.toLowerCase().includes("where to find us"), "no where-to-find-us pipeline wording");
+
   assert.ok(
     copy.includes("Agregar a lista") && copy.includes("Add to list"),
     "add to list copy"

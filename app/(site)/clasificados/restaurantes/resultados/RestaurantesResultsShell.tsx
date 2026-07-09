@@ -16,7 +16,14 @@ import {
   type Lang as V2Lang,
   type ViewMode,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import {
+  labelForBusinessType,
+  labelForCuisine,
+  labelForHighlight,
+  labelForLanguage,
+  labelForPriceLevel,
   RESTAURANTE_BUSINESS_TYPES,
   RESTAURANTE_CUISINES,
   RESTAURANTE_HIGHLIGHTS,
@@ -25,6 +32,7 @@ import {
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 import { type RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { filterRestaurantesBlueprintRows, sortRestaurantesBlueprintRows } from "@/app/clasificados/restaurantes/lib/filterRestaurantesBlueprintRows";
+import { dietUiLabel } from "@/app/clasificados/restaurantes/application/restaurantesTaxonomyUiLabels";
 import {
   buildRestaurantesResultsHref,
   clearRestaurantesDiscoveryFilters,
@@ -33,7 +41,6 @@ import {
   type RestaurantesDiscoveryLang,
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
-import { getRestauranteAmenityGroupMeta } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import { loadRestaurantesBuyerSavedIdSet } from "@/app/clasificados/restaurantes/lib/restaurantesBuyerSavedIds";
 import { rememberRestaurantesDiscoveryFromState } from "@/app/clasificados/restaurantes/lib/restaurantesFirstPartyPreferences";
 import { applyRestaurantesVisibilityRanking } from "@/app/clasificados/restaurantes/lib/restaurantesVisibilityRanking";
@@ -102,8 +109,15 @@ export function RestaurantesResultsShell({
   const sp = useSearchParams();
   const spStr = sp?.toString() ?? "";
 
-  const parsed = useMemo(() => parseRestaurantesResultsSearchParams(new URLSearchParams(spStr)), [spStr]);
-  const lang: RestaurantesDiscoveryLang = parsed.lang;
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [spStr, sp],
+  );
+
+  const parsed = useMemo(
+    () => parseRestaurantesResultsSearchParams(new URLSearchParams(spStr), routeLang),
+    [spStr, routeLang],
+  );
 
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -166,10 +180,10 @@ export function RestaurantesResultsShell({
 
   const pushState = useCallback(
     (next: RestaurantesDiscoveryState) => {
-      const href = buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(next));
+      const href = buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(next));
       router.push(href);
     },
-    [lang, router],
+    [routeLang, router],
   );
 
   const submitSearch = () => {
@@ -366,7 +380,7 @@ export function RestaurantesResultsShell({
     };
   }, [lang]);
 
-  const landingHref = appendLangToPath("/clasificados/restaurantes", lang);
+  const landingHref = appendLangToPath("/clasificados/restaurantes", routeLang);
 
   const amenityLabel = useMemo(() => {
     const payments = getRestauranteAmenityGroupMeta("payments");
@@ -406,7 +420,7 @@ export function RestaurantesResultsShell({
             <option value="">{t.all}</option>
             {RESTAURANTE_CUISINES.filter((c) => c.key !== "other").map((c) => (
               <option key={c.key} value={c.key}>
-                {c.labelEs}
+                {labelForCuisine(c.key, lang)}
               </option>
             ))}
           </select>
@@ -575,7 +589,7 @@ export function RestaurantesResultsShell({
             <option value="">{t.any}</option>
             {RESTAURANTE_PRICE_LEVELS.map((p) => (
               <option key={p.key} value={p.key}>
-                {p.labelEs}
+                {labelForPriceLevel(p.key, lang)}
               </option>
             ))}
           </select>
@@ -601,7 +615,7 @@ export function RestaurantesResultsShell({
             <option value="">{t.any}</option>
             {RESTAURANTE_BUSINESS_TYPES.filter((b) => b.key !== "other").map((b) => (
               <option key={b.key} value={b.key}>
-                {b.labelEs}
+                {labelForBusinessType(b.key, lang)}
               </option>
             ))}
           </select>
@@ -640,9 +654,9 @@ export function RestaurantesResultsShell({
               }
             >
               <option value="">{t.any}</option>
-              <option value="vegan">Vegano (opciones)</option>
-              <option value="glutenfree">Sin gluten</option>
-              <option value="halal">Halal</option>
+              <option value="vegan">{dietUiLabel("vegan", lang)}</option>
+              <option value="glutenfree">{dietUiLabel("glutenfree", lang)}</option>
+              <option value="halal">{dietUiLabel("halal", lang)}</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -750,7 +764,7 @@ export function RestaurantesResultsShell({
                 checked={parsed.spoken.includes(it.key)}
                 onChange={() => pushState(mergeDiscovery(parsed, { spoken: toggleKey(parsed.spoken, it.key), page: 1 }))}
               />
-              <span className="leading-snug">{it.labelEs}</span>
+              <span className="leading-snug">{labelForLanguage(it.key, lang)}</span>
             </label>
           ))}
         </div>
@@ -862,7 +876,7 @@ export function RestaurantesResultsShell({
               <option value="">{t.any}</option>
               {RESTAURANTE_HIGHLIGHTS.slice(0, 14).map((h) => (
                 <option key={h.key} value={h.key}>
-                  {h.labelEs}
+                  {labelForHighlight(h.key, lang)}
                 </option>
               ))}
             </select>
@@ -936,7 +950,7 @@ export function RestaurantesResultsShell({
         type="button"
         className="w-full min-h-[48px] rounded-[12px] border border-[color:var(--lx-border)]/40 text-sm font-semibold text-[color:var(--lx-text)]/80 hover:bg-[color:var(--lx-card)]"
         onClick={() =>
-          router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+          router.push(buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
         }
       >
         {t.reset}
@@ -962,13 +976,13 @@ export function RestaurantesResultsShell({
     if (parsed.cuisine)
       chips.push({
         id: "cuisine",
-        label: RESTAURANTE_CUISINES.find((c) => c.key === parsed.cuisine)?.labelEs ?? parsed.cuisine,
+        label: labelForCuisine(parsed.cuisine, lang),
         clear: () => pushState(mergeDiscovery(parsed, { cuisine: "", page: 1 })),
       });
     if (parsed.biz)
       chips.push({
         id: "biz",
-        label: RESTAURANTE_BUSINESS_TYPES.find((b) => b.key === parsed.biz)?.labelEs ?? parsed.biz,
+        label: labelForBusinessType(parsed.biz, lang),
         clear: () => pushState(mergeDiscovery(parsed, { biz: "", page: 1 })),
       });
     if (parsed.svc)
@@ -979,7 +993,7 @@ export function RestaurantesResultsShell({
       });
     if (parsed.family) chips.push({ id: "family", label: t.family, clear: () => pushState(mergeDiscovery(parsed, { family: false, page: 1 })) });
     if (parsed.price) {
-      const priceLabel = RESTAURANTE_PRICE_LEVELS.find((p) => p.key === parsed.price)?.labelEs ?? parsed.price;
+      const priceLabel = labelForPriceLevel(parsed.price, lang);
       chips.push({
         id: "price",
         label: priceLabel,
@@ -1005,7 +1019,7 @@ export function RestaurantesResultsShell({
         label: t.pickupOnly,
         clear: () => pushState(mergeDiscovery(parsed, { pickupOnly: false, page: 1 })),
       });
-    if (parsed.diet) chips.push({ id: "diet", label: parsed.diet, clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
+    if (parsed.diet) chips.push({ id: "diet", label: dietUiLabel(parsed.diet, lang), clear: () => pushState(mergeDiscovery(parsed, { diet: "", page: 1 })) });
     for (const id of parsed.food) {
       chips.push({
         id: `food:${id}`,
@@ -1044,7 +1058,7 @@ export function RestaurantesResultsShell({
     for (const id of parsed.spoken) {
       chips.push({
         id: `spoken:${id}`,
-        label: RESTAURANTE_LANGUAGES.find((x) => x.key === id)?.labelEs ?? id,
+        label: labelForLanguage(id, lang),
         clear: () => pushState(mergeDiscovery(parsed, { spoken: parsed.spoken.filter((x) => x !== id), page: 1 })),
       });
     }
@@ -1071,7 +1085,7 @@ export function RestaurantesResultsShell({
     if (parsed.hl)
       chips.push({
         id: "hl",
-        label: RESTAURANTE_HIGHLIGHTS.find((h) => h.key === parsed.hl)?.labelEs ?? parsed.hl,
+        label: labelForHighlight(parsed.hl, lang),
         clear: () => pushState(mergeDiscovery(parsed, { hl: "", page: 1 })),
       });
     if (parsed.movingVendor)
@@ -1111,7 +1125,7 @@ export function RestaurantesResultsShell({
     return chips;
   }, [parsed, pushState, t, lang]);
 
-  const clearHref = buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang)));
+  const clearHref = buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang)));
   const resultItems = (
     <ul className="flex w-full min-w-0 list-none flex-col gap-3 sm:gap-4">
       {shown.map((row) => (
@@ -1121,6 +1135,7 @@ export function RestaurantesResultsShell({
             lang={lang}
             cta={t.verMas}
             narrowLabel={t.resultNarrowInResults}
+            routeLang={routeLang}
           />
         </li>
       ))}
@@ -1132,7 +1147,7 @@ export function RestaurantesResultsShell({
       <nav className="mt-4 flex flex-wrap items-center justify-center gap-2" aria-label={lang === "es" ? "Paginación" : "Pagination"}>
         {currentPage > 1 ? (
           <Link
-            href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage - 1 })))}
+            href={buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage - 1 })))}
             className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
           >
             {lang === "es" ? "Anterior" : "Previous"}
@@ -1143,7 +1158,7 @@ export function RestaurantesResultsShell({
         </span>
         {currentPage < pageCount ? (
           <Link
-            href={buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage + 1 })))}
+            href={buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(mergeDiscovery(parsed, { page: currentPage + 1 })))}
             className="rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2 text-sm font-semibold hover:bg-[#FAF6EE]"
           >
             {lang === "es" ? "Siguiente" : "Next"}
@@ -1197,8 +1212,12 @@ export function RestaurantesResultsShell({
           }`}
           role="status"
         >
-          {inventorySource === "inventory_unavailable" ? <span className="font-semibold">Inventario no disponible: </span> : null}
-          {inventorySource === "inventory_query_failed" ? <span className="font-semibold">Error al cargar listados: </span> : null}
+          {inventorySource === "inventory_unavailable" ? (
+            <span className="font-semibold">{lang === "es" ? "Inventario no disponible: " : "Inventory unavailable: "}</span>
+          ) : null}
+          {inventorySource === "inventory_query_failed" ? (
+            <span className="font-semibold">{lang === "es" ? "Error al cargar listados: " : "Error loading listings: "}</span>
+          ) : null}
           {inventoryBannerNote}
         </p>
       ) : null}
@@ -1231,7 +1250,7 @@ export function RestaurantesResultsShell({
               }))}
               clearAllLabel={t.clearAll}
               onClearAll={() =>
-                router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+                router.push(buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
               }
             />
             {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
@@ -1268,7 +1287,7 @@ export function RestaurantesResultsShell({
             clearAllLabel={activeChips.length > 0 ? t.clearAll : undefined}
             onClearAll={
               activeChips.length > 0
-                ? () => router.push(buildRestaurantesResultsHref(lang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
+                ? () => router.push(buildRestaurantesResultsHref(routeLang, restaurantesDiscoveryStateToParams(clearRestaurantesDiscoveryFilters(lang))))
                 : undefined
             }
           />

@@ -27,8 +27,8 @@ function TeaserCard({ row, lang }: { row: RestaurantePublicResultsRow; lang: Lan
 
   const href = `/clasificados/restaurantes/${encodeURIComponent(row.slug)}`;
   const cuisineLine = [
-    row.primaryCuisineKey ? labelForCuisine(row.primaryCuisineKey) : null,
-    row.secondaryCuisineKey ? labelForCuisine(row.secondaryCuisineKey) : null,
+    row.primaryCuisineKey ? labelForCuisine(row.primaryCuisineKey, lang) : null,
+    row.secondaryCuisineKey ? labelForCuisine(row.secondaryCuisineKey, lang) : null,
   ]
     .filter(Boolean)
     .join(" · ");

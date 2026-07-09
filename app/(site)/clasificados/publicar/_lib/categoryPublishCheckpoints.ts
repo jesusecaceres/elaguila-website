@@ -295,30 +295,32 @@ export function getRentasPrivadoCheckpointCard(
     id: "rentas_privado",
     variant: "paid",
     eyebrow: es ? "Particular" : "Private",
-    title: es ? "Rentas privado" : "Private rental",
+    title: es ? "Publicar renta" : "Publish rental",
     priceLabel: price,
     shortDescription: es
-      ? "Publica una renta por 30 días: fotos, disponibilidad, requisitos, contacto y ubicación en el mapa."
-      : "Publish a rental for 30 days: photos, availability, requirements, contact, and map location.",
+      ? "Publica una propiedad en renta por 30 días. Si tienes otra propiedad, crea un nuevo anuncio."
+      : "Publish one rental property for 30 days. If you have another property, create a new listing.",
     ctaLabel: es ? "Publicar renta" : "Publish rental",
     ctaHref: privadoHref,
     moreLabel: es ? "Ver más" : "See more",
-    modalTitle: es ? `Qué incluye Rentas privado — ${price}` : `What's included with Private Rentas — ${price}`,
+    modalTitle: es ? `Qué incluye Publicar renta — ${price}` : `What's included — Publish rental — ${price}`,
     modalIntro: es
-      ? "Anuncio de renta para propietarios o arrendadores particulares. El pago se confirma en checkout después de la vista previa."
-      : "Rental listing for individual owners or landlords. Payment is confirmed at checkout after preview.",
+      ? "Anuncio pagado para propietarios o arrendadores particulares. El pago se confirma en checkout después de la vista previa."
+      : "Paid listing for individual owners or landlords. Payment is confirmed at checkout after preview.",
     includedBullets: es
       ? [
           "Ficha de renta con fotos y descripción",
           "Disponibilidad, requisitos y contacto",
           "Ubicación y mapa cuando aplique",
           `Precio: ${price}`,
+          "Este paquete no incluye inventario adicional. Cada renta debe tener su propio anuncio.",
         ]
       : [
           "Rental listing with photos and description",
           "Availability, requirements, and contact",
           "Location and map when applicable",
           `Price: ${price}`,
+          "This package does not include extra inventory. Each rental needs its own listing.",
         ],
     couponEligible: isPromoEligible("rentas_30d"),
   };
@@ -335,11 +337,11 @@ export function getRentasNegocioCheckpointCard(
     id: "rentas_negocio",
     variant: "paid",
     eyebrow: es ? "Negocio" : "Business",
-    title: es ? "Rentas negocio" : "Business rentals",
+    title: es ? "Publicar renta (negocio)" : "Publish rental (business)",
     priceLabel: pricePerListing,
     shortDescription: es
-      ? "Publica una renta con información de negocio, contacto, requisitos, disponibilidad y ubicación."
-      : "Publish a rental with business information, contact, requirements, availability, and location.",
+      ? "Publica una propiedad en renta por 30 días. Si tienes otra propiedad, crea un nuevo anuncio."
+      : "Publish one rental property for 30 days. If you have another property, create a new listing.",
     ctaLabel: es ? "Publicar como negocio" : "Publish as business",
     ctaHref: negocioHref,
     moreLabel: es ? "Ver más" : "See more",
@@ -347,21 +349,21 @@ export function getRentasNegocioCheckpointCard(
       ? `Qué incluye Rentas negocio — ${pricePerListing}`
       : `What's included with Business rentals — ${pricePerListing}`,
     modalIntro: es
-      ? "Cada anuncio de renta cuesta $24.99 por 30 días. El camino de negocio recopila más información comercial y administrativa — no es un paquete con inventario incluido."
-      : "Each rental listing costs $24.99 for 30 days. The business path collects more business and admin information — it is not a bulk inventory package.",
+      ? "Cada anuncio de renta cuesta $24.99 por 30 días (misma tarifa que privado). El pago se confirma en checkout después de la vista previa."
+      : "Each rental listing costs $24.99 for 30 days (same rate as private). Payment is confirmed at checkout after preview.",
     includedBullets: es
       ? [
-          `Precio por anuncio: ${pricePerListing} (misma tarifa que privado; matriz: ${matrixPrice})`,
+          `Precio por anuncio: ${pricePerListing} (matriz: ${matrixPrice})`,
           "Para arrendadores, administradores de propiedades o negocios",
           "Más campos de negocio/contacto en el anuncio",
-          "No incluye paquete de inventario ni precio mayor por volumen",
+          "Este paquete no incluye inventario adicional. Cada renta debe tener su propio anuncio.",
           "Checkout y aplicación son la fuente de verdad del precio final",
         ]
       : [
-          `Price per listing: ${pricePerListing} (same rate as private; matrix: ${matrixPrice})`,
+          `Price per listing: ${pricePerListing} (matrix: ${matrixPrice})`,
           "For landlords, property managers, or businesses",
           "More business/contact fields on the listing",
-          "Does not include inventory package or higher bulk pricing",
+          "This package does not include extra inventory. Each rental needs its own listing.",
           "Application and checkout are the source of truth for final price",
         ],
     couponEligible: isPromoEligible("rentas_30d"),

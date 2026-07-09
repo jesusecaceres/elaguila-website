@@ -287,6 +287,7 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     imageSources: orderedGallery,
     lang,
     activationMode: opts?.activationMode,
+    rentasPaymentLane: "privado",
     ...(muxPid
       ? {
           muxAssetId: mux!.muxAssetId.trim(),
@@ -388,6 +389,7 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   state: RentasNegocioFormState,
   lang: "es" | "en",
   mux?: RentasListingPublishMuxFields | null,
+  opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
   if (!orderedGallery.length) {
@@ -440,6 +442,8 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     contactEmail: trim(state.negocioEmail) || null,
     imageSources: orderedGallery,
     lang,
+    activationMode: opts?.activationMode,
+    rentasPaymentLane: "negocio",
     ...(muxPid
       ? {
           muxAssetId: mux!.muxAssetId.trim(),

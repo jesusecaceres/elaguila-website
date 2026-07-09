@@ -33,6 +33,9 @@ export const SERVICIOS_BASE_MONTHLY_PACKAGE_KEY = "servicios_base_monthly";
 /** Canonical Revenue OS package key for Servicios category-owned offers/coupons module. */
 export const SERVICIOS_OFFERS_ADDON_PACKAGE_KEY = "servicios_offers_addon";
 
+/** Canonical Revenue OS base package key for Rentas 30-day listing ($24.99 one-time). */
+export const RENTAS_30D_PACKAGE_KEY = "rentas_30d";
+
 /** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
@@ -334,6 +337,15 @@ export function resolvePublishCheckoutCheckpoint(
         detailEs: "Módulo de ofertas/cupones seleccionado en tu solicitud",
       });
     }
+  } else if (config.category === "rentas" && config.packageKey === RENTAS_30D_PACKAGE_KEY) {
+    lineItems.push({
+      id: "base",
+      labelEn: config.baseLineItem?.labelEn ?? "Rental listing (30 days)",
+      labelEs: config.baseLineItem?.labelEs ?? "Anuncio de renta (30 días)",
+      priceCents: baseCents,
+      detailEn: config.baseLineItem?.detailEn ?? "One rental property — no inventory add-on",
+      detailEs: config.baseLineItem?.detailEs ?? "Una propiedad en renta — sin paquete de inventario",
+    });
   } else if (config.baseLineItem) {
     lineItems.push({
       id: config.baseLineItem.id ?? "base",
@@ -369,7 +381,8 @@ export function resolvePublishCheckoutCheckpoint(
   const discountCents = Math.max(0, opts?.promoDiscountCents ?? 0);
   const totalCents = Math.max(0, subtotalCents - discountCents);
 
-  const totalLabel = formatPublishCheckpointMoney(totalCents, lang, { monthly: true });
+  const billingMonthly = packageDef?.billingMode === "monthly_subscription";
+  const totalLabel = formatPublishCheckpointMoney(totalCents, lang, { monthly: billingMonthly });
   const monthlyTotalLabel = totalLabel;
 
   const promoEligible = config.promoEligible ?? packageDef?.promoEligible ?? false;
@@ -429,6 +442,13 @@ export function resolvePublishCheckoutCheckpoint(
     if (config.serviciosOffersAddonSelected && REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED) {
       metadata.servicios_offers_addon_package_key = SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
       metadata.servicios_offers_addon_price_cents = serviciosOffersDef?.priceCents ?? 9900;
+    }
+  }
+
+  if (config.category === "rentas") {
+    if (config.pipeline?.trim()) {
+      metadata.pipeline = config.pipeline.trim();
+      metadata.lane = config.pipeline.trim();
     }
   }
 
@@ -591,6 +611,39 @@ export const SERVICIOS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[]
       "I understand payment is required before this Servicios listing and any selected offers/coupons module become active.",
     labelEs:
       "Entiendo que el pago es requerido antes de que este anuncio de Servicios y cualquier módulo de ofertas/cupones seleccionado queden activos.",
+  },
+];
+
+export const RENTAS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_rental_info",
+    required: true,
+    labelEn:
+      "I confirm the rental information, price, availability, address/area, and contact details are accurate and up to date.",
+    labelEs:
+      "Confirmo que la información de la renta, precio, disponibilidad, dirección/área y datos de contacto es correcta y está actualizada.",
+  },
+  {
+    id: "authorized_to_publish",
+    required: true,
+    labelEn:
+      "I confirm I am authorized to publish this rental property and any photos or details included.",
+    labelEs:
+      "Confirmo que estoy autorizado para publicar esta propiedad en renta y cualquier foto o detalle incluido.",
+  },
+  {
+    id: "rentas_rules",
+    required: true,
+    labelEn:
+      "I confirm this listing follows Leonix rental rules and that I am responsible for the published information.",
+    labelEs:
+      "Confirmo que este anuncio sigue las reglas de Rentas de Leonix y que soy responsable por la información publicada.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn: "I understand payment is required before this rental listing becomes active.",
+    labelEs: "Entiendo que el pago es requerido antes de que este anuncio de renta quede activo.",
   },
 ];
 

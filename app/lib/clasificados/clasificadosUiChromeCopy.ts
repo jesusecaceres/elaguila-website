@@ -73,6 +73,55 @@ export function previewBackToEditLabel(lang: ClasificadosUiLang): string {
   return PREVIEW_PUBLISH[lang].backToEdit;
 }
 
+const CATEGORY_CHROME = {
+  es: {
+    search: "Buscar",
+    filters: "Filtros",
+    category: "Categoría",
+    city: "Ciudad",
+    state: "Estado",
+    zipCode: "Código postal",
+    noResults: "No hay resultados",
+    noMatchesYet: "Aún no hay coincidencias",
+    backToHome: "Volver al inicio",
+    viewDetails: "Ver detalles",
+    call: "Llamar",
+    message: "Mensaje",
+    email: "Correo",
+    website: "Sitio web",
+    map: "Mapa",
+    needAnotherLanguage: "¿Necesitas otro idioma?",
+    useBrowserTranslation: "Usa la traducción del navegador",
+    googleLensPrintedHelp: "Google Lens puede ayudar con páginas impresas",
+  },
+  en: {
+    search: "Search",
+    filters: "Filters",
+    category: "Category",
+    city: "City",
+    state: "State",
+    zipCode: "ZIP code",
+    noResults: "No results",
+    noMatchesYet: "No matches yet",
+    backToHome: "Back to home",
+    viewDetails: "View details",
+    call: "Call",
+    message: "Message",
+    email: "Email",
+    website: "Website",
+    map: "Map",
+    needAnotherLanguage: "Need another language?",
+    useBrowserTranslation: "Use your browser translation",
+    googleLensPrintedHelp: "Google Lens can help with printed pages",
+  },
+} as const;
+
+export type ClasificadosCategoryChromeCopy = (typeof CATEGORY_CHROME)[ClasificadosUiLang];
+
+export function clasificadosCategoryChromeCopy(lang: ClasificadosUiLang): ClasificadosCategoryChromeCopy {
+  return CATEGORY_CHROME[lang];
+}
+
 export function publicListingActionLabels(lang: ClasificadosUiLang) {
   const c = PREVIEW_PUBLISH[lang];
   return {

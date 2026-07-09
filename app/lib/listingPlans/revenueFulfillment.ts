@@ -19,6 +19,10 @@ import {
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import {
+  activatePaidRentasListingFromRevenueOs,
+  RENTAS_30D_PACKAGE_KEY,
+} from "./revenueRentasFulfillment";
+import {
   loadPaymentRecordById,
   loadPaymentRecordByStripeSessionId,
   markPaymentRecordExpiredOrCanceled,
@@ -338,6 +342,89 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
   return { ok: true };
 }
 
+async function tryActivateRentasListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+  stripePaymentIntentId?: string | null;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== RENTAS_30D_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidRentasListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    paymentRecordId: input.paymentRecord.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripeEventId: input.stripeEventId,
+    stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    leonixAdId: input.paymentRecord.leonix_ad_id,
+  });
+
+  if (
+    activation.outcome === "skipped_wrong_package" ||
+    activation.outcome === "already_published" ||
+    activation.outcome === "wrong_category"
+  ) {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "rentas_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `rentas_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Rentas listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "rentas_listing_activated_after_payment",
+    targetType: "listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
 export async function fulfillCheckoutSessionCompleted(input: {
   session: Stripe.Checkout.Session;
   eventId: string;
@@ -524,6 +611,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const rentasActivation = await tryActivateRentasListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+      stripePaymentIntentId: resolveStripePaymentIntentId(session),
+    });
+    if (!rentasActivation.ok) {
+      return {
+        ok: false,
+        code: rentasActivation.code,
+        message: rentasActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -671,6 +778,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: serviciosActivation.code,
       message: serviciosActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const rentasActivation = await tryActivateRentasListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId: resolveStripePaymentIntentId(session),
+  });
+  if (!rentasActivation.ok) {
+    return {
+      ok: false,
+      code: rentasActivation.code,
+      message: rentasActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,

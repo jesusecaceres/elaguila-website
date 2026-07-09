@@ -42,7 +42,7 @@
  * | `sort` | Sort only | `newest` → `publishedAt`/`listedAt`; `name-asc` → `businessName`; `rating-desc` → rating. |
  * | `top` | “Best rated” shortcut | Rating ≥ 4.5 + ties to sort. |
  * | `page` | Pagination | |
- * | `lang` | UI language | `es` / `en`. |
+ * | `lang` | UI language | Official route lang; UI chrome uses ES or EN via `navCopyLang`. |
  * | `nbh` | `neighborhood` | Substring match on published neighborhood. |
  * | `rsv` | `reservationsAvailable` | `1` = only listings that accept reservations. |
  * | `pre` | `preorderRequired` | `1` = only listings that mark preorder required. |
@@ -73,6 +73,7 @@ import {
   catStdPerPageToParam,
   parseCatStdPerPage,
 } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
+import { navCopyLang, normalizeLang, type SupportedLang } from "@/app/lib/language";
 
 export const RESTAURANTES_RESULTADOS_PATH = "/clasificados/restaurantes/results" as const;
 
@@ -255,11 +256,20 @@ function parseCsvList(raw: string | null | undefined): string[] {
   return Array.from(new Set(parts));
 }
 
+export function parseRestaurantesRouteLang(
+  sp: URLSearchParams,
+  fallbackRouteLang: SupportedLang = "es",
+): SupportedLang {
+  const raw = sp.get("lang");
+  return raw ? normalizeLang(raw) : fallbackRouteLang;
+}
+
 export function parseRestaurantesResultsSearchParams(
   sp: URLSearchParams,
-  fallbackLang: RestaurantesDiscoveryLang = "es",
+  fallbackRouteLang: SupportedLang = "es",
 ): RestaurantesDiscoveryState {
-  const lang = sp.get("lang") === "en" ? "en" : fallbackLang;
+  const routeLang = parseRestaurantesRouteLang(sp, fallbackRouteLang);
+  const lang = navCopyLang(routeLang);
   const dietRaw = (sp.get("diet") ?? "").trim();
   const diet =
     dietRaw === "glutenfree" || dietRaw === "halal" || dietRaw === "vegan"
@@ -328,7 +338,6 @@ export function restaurantesDiscoveryStateToParams(
 ): Record<string, string | undefined> {
   const join = (arr: string[]) => (arr?.length ? arr.join(",") : undefined);
   const out: Record<string, string | undefined> = {
-    lang: s.lang,
     q: s.q || undefined,
     city: s.city || undefined,
     state: s.state?.trim() || undefined,
@@ -378,15 +387,15 @@ export function restaurantesDiscoveryStateToParams(
 }
 
 export function buildRestaurantesResultsHref(
-  lang: RestaurantesDiscoveryLang,
+  routeLang: SupportedLang,
   params: Record<string, string | undefined | null>,
 ): string {
   const sp = new URLSearchParams();
-  sp.set("lang", lang);
   for (const [k, v] of Object.entries(params)) {
-    if (v === undefined || v === null || v === "") continue;
+    if (v === undefined || v === null || v === "" || k === "lang") continue;
     sp.set(k, v);
   }
+  sp.set("lang", routeLang);
   return `${RESTAURANTES_RESULTADOS_PATH}?${sp.toString()}`;
 }
 

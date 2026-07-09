@@ -15,13 +15,28 @@ import {
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
-import { buildRentasResultCardPreviewListingFromNegocioVm, rentasPreviewResultCardFlowOverlay } from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
+import {
+  buildRentasResultCardPreviewListingFromNegocioVm,
+  rentasPreviewResultCardFlowOverlay,
+} from "@/app/clasificados/rentas/preview/shared/rentasPreviewResultCardListing";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import {
   clearRentasNegocioDraft,
   loadRentasNegocioDraft,
 } from "@/app/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft";
 import { resolveRentasNegocioDraftMediaToRemoteUrls } from "@/app/clasificados/rentas/shared/rentasDraftPublishPrepare";
+import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { RENTAS_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
   rentasPublishStepTracePatch,
   rentasPublishStepTraceReset,
@@ -31,17 +46,18 @@ import {
   mergePartialRentasNegocioState,
   type RentasNegocioFormState,
 } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
-import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
-  rentasListingPublicPath,
   RENTAS_PREVIEW_NEGOCIO,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import {
+  applyRentasPreviewPromoCode,
+  rentasPreviewCheckpointConfig,
+  RENTAS_NEWSLETTER_INTERESTS,
+  RENTAS_PREVIEW_RULES_MODAL,
+} from "@/app/clasificados/rentas/preview/shared/rentasPreviewPaidCheckout";
 
 type Phase = "loading" | "ready" | "recovery";
-
-const PUBLISH_BTN =
-  "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
 
 export default function RentasNegocioPreviewClient() {
   const router = useRouter();
@@ -53,8 +69,8 @@ export default function RentasNegocioPreviewClient() {
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [draft, setDraft] = useState<RentasNegocioFormState | null>(null);
-  const [publishBusy, setPublishBusy] = useState(false);
-  const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
   const lang = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
@@ -65,65 +81,110 @@ export default function RentasNegocioPreviewClient() {
     [searchParams],
   );
 
-  const onPublishLive = useCallback(async () => {
-    rentasPublishStepTraceReset();
-    rentasPublishStepTracePatch({
-      publishClicked: true,
-      existingErrorBeforePublish: publishErr != null && publishErr !== "",
-    });
-    setPublishErr(null);
-    rentasPublishStepTracePatch({ errorClearedAtStart: true });
-    setPublishBusy(true);
+  const publishReadiness = useMemo(() => {
+    if (!draft) return { ok: false as const, message: null };
+    return gateRentasNegocioPreview(draft);
+  }, [draft]);
 
-    const d = loadRentasNegocioDraft();
-    if (!d) {
-      setPublishBusy(false);
-      return;
-    }
+  const checkpointConfig = useMemo(
+    () => rentasPreviewCheckpointConfig(lang, "negocio"),
+    [lang],
+  );
 
-    let toPublish = d;
-    const draftSessionId =
-      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rentas-${Date.now()}`;
-    rentasPublishStepTracePatch({ draftId: draftSessionId, draftSource: "localStorage" });
+  const handlePromoApply = useCallback(
+    async (code: string) => applyRentasPreviewPromoCode({ code, lang }),
+    [lang],
+  );
 
-    const imagesCountBeforeUpload = d.media.photoDataUrls.filter((u) => typeof u === "string" && u.trim()).length;
-    rentasPublishStepTracePatch({ imagesCountBeforeUpload, imagesUploadStarted: true });
+  const onCheckout = useCallback(
+    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+      rentasPublishStepTraceReset();
+      rentasPublishStepTracePatch({ publishClicked: true, errorClearedAtStart: true });
+      setCheckoutErr(null);
+      setCheckoutBusy(true);
 
-    try {
-      toPublish = await resolveRentasNegocioDraftMediaToRemoteUrls(d, draftSessionId);
-    } catch (e) {
-      setPublishBusy(false);
-      rentasPublishStepTracePatch({ imagesUploadFinished: false, finalErrorSet: true });
-      setPublishErr(
-        e instanceof Error
-          ? e.message
-          : lang === "es"
-            ? "No se pudieron subir las fotos o el logo. Comprueba BLOB_READ_WRITE_TOKEN en el servidor y tu conexión."
-            : "Photos or logo could not be uploaded. Check BLOB_READ_WRITE_TOKEN on the server and your connection.",
-      );
-      return;
-    }
+      const d = loadRentasNegocioDraft();
+      if (!d) {
+        setCheckoutBusy(false);
+        return;
+      }
+      const gate = gateRentasNegocioPreview(d);
+      if (!gate.ok) {
+        setCheckoutBusy(false);
+        setCheckoutErr(gate.message);
+        return;
+      }
 
-    const imagesDurableCount = toPublish.media.photoDataUrls.filter(
-      (u) => typeof u === "string" && /^https:\/\//i.test(u.trim()),
-    ).length;
-    rentasPublishStepTracePatch({ imagesUploadFinished: true, imagesDurableCount });
+      let toPublish = d;
+      const draftSessionId =
+        typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rentas-${Date.now()}`;
 
-    rentasPublishStepTracePatch({ finalPayloadBuildStarted: true });
-    const r = await publishLeonixListingFromRentasNegocioDraft(toPublish, lang);
-    rentasPublishStepTracePatch({
-      finalPayloadBuildFinished: true,
-      redirectStarted: r.ok,
-      finalErrorSet: !r.ok,
-    });
-    setPublishBusy(false);
-    if (r.ok) {
+      try {
+        toPublish = await resolveRentasNegocioDraftMediaToRemoteUrls(d, draftSessionId);
+      } catch (e) {
+        setCheckoutBusy(false);
+        setCheckoutErr(
+          e instanceof Error
+            ? e.message
+            : lang === "es"
+              ? "No se pudieron subir las fotos o el logo. Comprueba BLOB_READ_WRITE_TOKEN en el servidor y tu conexión."
+              : "Photos or logo could not be uploaded. Check BLOB_READ_WRITE_TOKEN on the server and your connection.",
+        );
+        return;
+      }
+
+      const r = await publishLeonixListingFromRentasNegocioDraft(toPublish, lang, null, {
+        activationMode: "pending_payment",
+      });
+      if (!r.ok) {
+        setCheckoutBusy(false);
+        setCheckoutErr(r.error);
+        return;
+      }
+
+      let leonixAdId: string | null = null;
+      let customerEmail: string | null = null;
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: auth } = await supabase.auth.getUser();
+        customerEmail = auth.user?.email ?? null;
+        const { data: adRow } = await supabase
+          .from("listings")
+          .select("leonix_ad_id")
+          .eq("id", r.listingId)
+          .maybeSingle();
+        leonixAdId = (adRow as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+      } catch {
+        /* optional metadata */
+      }
+
+      void captureCheckoutNewsletterSubscriber({
+        email: customerEmail,
+        lang,
+        preferredLanguage: lang,
+        source: CHECKOUT_NEWSLETTER_SOURCES.rentas,
+        interests: RENTAS_NEWSLETTER_INTERESTS.negocio,
+        checked: ctx.newsletterOptIn,
+      });
+
+      const checkout = await startRevenueCategoryCheckout({
+        ...RENTAS_CATEGORY_CHECKOUT,
+        listingId: r.listingId,
+        leonixAdId,
+        locale: lang,
+        promoCode: ctx.promoCode,
+      });
+      setCheckoutBusy(false);
+      if (!checkout.ok) {
+        setCheckoutErr(checkout.userMessage);
+        return;
+      }
+
       clearRentasNegocioDraft();
-      router.push(withRentasLandingLang(`${rentasListingPublicPath(r.listingId)}?published=1`, routeLang));
-    } else {
-      setPublishErr(r.error);
-    }
-  }, [lang, routeLang, router, publishErr]);
+      redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+    },
+    [lang],
+  );
 
   useEffect(() => {
     const raw = loadRentasNegocioDraft();
@@ -208,27 +269,7 @@ export default function RentasNegocioPreviewClient() {
   });
 
   return (
-    <LeonixPreviewPageShell
-      editHref={editHref}
-      publishSlot={
-        <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-          <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
-            {publishBusy
-              ? lang === "es"
-                ? "Publicando…"
-                : "Publishing…"
-              : lang === "es"
-                ? "Publicar anuncio"
-                : "Publish listing"}
-          </button>
-          {publishErr ? (
-            <p className="max-w-[280px] text-right text-[11px] text-red-700" role="alert">
-              {publishErr}
-            </p>
-          ) : null}
-        </div>
-      }
-    >
+    <LeonixPreviewPageShell editHref={editHref}>
       <RentasPreviewResultCardSection
         listing={rentasPreviewResultCardFlowOverlay(draft, buildRentasResultCardPreviewListingFromNegocioVm(vm, draft.categoriaPropiedad))}
         lang={lang}
@@ -238,7 +279,50 @@ export default function RentasNegocioPreviewClient() {
           {lang === "en" ? "Full listing preview" : "Vista previa completa"}
         </h2>
       </section>
-      <RentasVisualMatchPreviewView vm={vm} lang={lang} videoUrls={draft.media.videoUrls?.length ? draft.media.videoUrls : draft.media.videoUrl ? [draft.media.videoUrl] : []} />
+      <RentasVisualMatchPreviewView
+        vm={vm}
+        lang={lang}
+        videoUrls={
+          draft.media.videoUrls?.length
+            ? draft.media.videoUrls
+            : draft.media.videoUrl
+              ? [draft.media.videoUrl]
+              : []
+        }
+      />
+
+      <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-[#1E1810]">
+            {lang === "en" ? "Final checkout" : "Pago final"}
+          </h2>
+          <p className="mt-1 text-sm text-[#5C5346]">
+            {lang === "en"
+              ? "The preview above does not require confirmations. Complete the summary and checkboxes below only when you are ready for secure payment."
+              : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
+          </p>
+        </div>
+        <PublishCheckoutCheckpoint
+          id="rentas-negocio-publish-checkout-checkpoint"
+          config={checkpointConfig}
+          lang={lang}
+          busy={checkoutBusy}
+          errorMessage={checkoutErr}
+          draftReady={publishReadiness.ok}
+          draftReadyMessage={
+            publishReadiness.ok
+              ? null
+              : publishReadiness.message ??
+                (lang === "es"
+                  ? "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
+                  : "Complete the required fields in the form before starting secure checkout.")
+          }
+          onPromoApply={handlePromoApply}
+          onCheckout={(ctx) => void onCheckout(ctx)}
+          editHref={editHref}
+          rulesModal={RENTAS_PREVIEW_RULES_MODAL}
+        />
+      </div>
     </LeonixPreviewPageShell>
   );
 }

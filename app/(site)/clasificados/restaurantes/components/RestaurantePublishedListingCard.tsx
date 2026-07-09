@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { SupportedLang } from "@/app/lib/language";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import {
@@ -22,17 +23,20 @@ const ACCENT = "#D4A574";
 export function RestaurantePublishedListingCard({
   row,
   lang,
+  routeLang,
   badge,
   cta,
   narrowLabel,
 }: {
   row: RestaurantesPublicBlueprintRow;
   lang: RestaurantesDiscoveryLang | Lang;
+  routeLang?: SupportedLang;
   badge?: string;
   cta: string;
   narrowLabel: string;
 }) {
-  const narrowHref = buildRestaurantesResultsHref(lang as RestaurantesDiscoveryLang, {
+  const hrefLang = routeLang ?? (lang as SupportedLang);
+  const narrowHref = buildRestaurantesResultsHref(hrefLang, {
     ...restaurantesDiscoveryParamsForRowDeepLink({
       name: row.name,
       city: row.city,
@@ -43,7 +47,7 @@ export function RestaurantePublishedListingCard({
   });
   const slug = row.slug?.trim();
   const primaryHref = slug
-    ? appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, lang as Lang)
+    ? appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(slug)}`, hrefLang)
     : "";
 
   const shell = row.previewShellData;

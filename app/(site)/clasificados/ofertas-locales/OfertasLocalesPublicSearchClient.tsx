@@ -289,12 +289,25 @@ export function OfertasLocalesPublicSearchClient({
         params.set("offerType", next.offerType.trim());
       }
       if (next.sort && next.sort !== "newest" && (!isCupones || next.sort !== "price_low")) params.set("sort", next.sort);
+      const mode = searchParams?.get("mode")?.trim();
+      if (mode) params.set("mode", mode);
       router.push(`${resultsPath}?${params.toString()}`);
     },
-    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort, isCupones, resultsPath]
+    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort, isCupones, resultsPath, searchParams]
   );
 
   const browseAllHref = `${browsePath}?lang=${lang}`;
+
+  const intentResultsHref = useCallback(
+    (intent: { offerType?: string; marketType?: string; category?: string; mode: string }) => {
+      const params = new URLSearchParams({ lang, mode: intent.mode });
+      if (intent.offerType) params.set("offerType", intent.offerType);
+      if (intent.marketType) params.set("marketType", intent.marketType);
+      if (intent.category) params.set("category", intent.category);
+      return `${resultsPath}?${params.toString()}`;
+    },
+    [lang, resultsPath]
+  );
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -510,42 +523,42 @@ export function OfertasLocalesPublicSearchClient({
                     id: "weekly-flyer",
                     label: lang === "es" ? "Volante semanal" : "Weekly flyer",
                     hint: lang === "es" ? "Especiales de tienda" : "Store specials",
-                    href: `${browseAllHref}&offerType=weekly_flyer`,
+                    href: intentResultsHref({ offerType: "weekly_flyer", mode: "flyers" }),
                     icon: FiShoppingCart,
                   },
                   {
                     id: "coupon",
                     label: lang === "es" ? "Cupón" : "Coupon",
                     hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
-                    href: `${browseAllHref}&offerType=coupon`,
+                    href: intentResultsHref({ offerType: "coupon", mode: "coupons" }),
                     icon: FiTag,
                   },
                   {
                     id: "promotion",
                     label: lang === "es" ? "Promoción" : "Promotion",
                     hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
-                    href: `${browseAllHref}&offerType=promotion`,
+                    href: intentResultsHref({ offerType: "promotion", mode: "promos" }),
                     icon: FiGift,
                   },
                   {
                     id: "local-store",
                     label: lang === "es" ? "Tienda local" : "Local store",
                     hint: lang === "es" ? "Negocios cerca de ti" : "Nearby businesses",
-                    href: `${browseAllHref}&marketType=retail`,
+                    href: intentResultsHref({ marketType: "retail", mode: "stores" }),
                     icon: FiShoppingBag,
                   },
                   {
                     id: "local-service",
                     label: lang === "es" ? "Servicio local" : "Local service",
                     hint: lang === "es" ? "Promos de servicios" : "Service promos",
-                    href: `${browseAllHref}&marketType=service`,
+                    href: intentResultsHref({ marketType: "service", mode: "services" }),
                     icon: FiTool,
                   },
                   {
                     id: "food",
                     label: lang === "es" ? "Comida" : "Food",
                     hint: lang === "es" ? "Restaurantes y mercados" : "Restaurants and markets",
-                    href: `${browseAllHref}&category=food`,
+                    href: intentResultsHref({ category: "food", mode: "food" }),
                     icon: FiCoffee,
                   },
                 ]}

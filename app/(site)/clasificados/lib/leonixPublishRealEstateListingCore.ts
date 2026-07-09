@@ -30,6 +30,7 @@ import {
 import {
   mergeBrListingPaymentMeta,
 } from "@/app/lib/clasificados/bienes-raices/brListingPaymentMetadata";
+import { mergeRentasListingPaymentMeta } from "@/app/lib/clasificados/rentas/rentasListingPaymentMetadata";
 import {
   buildRentasPublishFinalPayloadDebug,
   rentasPublishFinalBoundaryPreflight,
@@ -158,6 +159,11 @@ export function buildListingsInsertRowForLeonixPublish(
       payment_status: "pending",
       lane: params.brPaymentLane ?? (sellerType === "business" ? "negocio" : "privado"),
     });
+  } else if (params.activationMode === "pending_payment" && category === "rentas") {
+    insertPayload.listing_json = mergeRentasListingPaymentMeta(listingJsonBase, {
+      payment_status: "pending",
+      lane: params.rentasPaymentLane ?? (sellerType === "business" ? "negocio" : "privado"),
+    });
   } else if (listingJsonBase) {
     insertPayload.listing_json = listingJsonBase;
   }
@@ -277,6 +283,8 @@ export type PublishLeonixRealEstateListingCoreParams = {
   /** BR publish: immediate live row vs pending until Stripe (negocio/privado paid lane). */
   activationMode?: "immediate" | "pending_payment";
   brPaymentLane?: "negocio" | "privado";
+  /** Rentas publish: privado vs negocio lane metadata for pending checkout. */
+  rentasPaymentLane?: "negocio" | "privado";
 };
 
 export type PublishLeonixRealEstateListingCoreResult =

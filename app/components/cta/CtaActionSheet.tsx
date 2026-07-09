@@ -68,6 +68,8 @@ const COPY = {
     emailDraftMissing: "No hay asunto ni mensaje para enviar.",
     recipientOptional: "Sin destinatario fijo: se abrirá tu app de correo con este borrador.",
     openGmail: "Abrir en Gmail",
+    emailCopyFirstHint: "Copia el correo o el mensaje y pégalo en la app que prefieras.",
+    openEmailAppHint: "Puede abrir Outlook u otra app de correo predeterminada.",
     prefilledMessage: "Mensaje",
     sendWhatsApp: "Enviar por WhatsApp",
     sendSms: "Enviar por SMS",
@@ -134,6 +136,8 @@ const COPY = {
     emailDraftMissing: "No subject or message to send.",
     recipientOptional: "No fixed recipient — your mail app opens with this draft.",
     openGmail: "Open in Gmail",
+    emailCopyFirstHint: "Copy the email or message and paste it into the app you prefer.",
+    openEmailAppHint: "This may open Outlook or another default email app.",
     prefilledMessage: "Message",
     sendWhatsApp: "Send via WhatsApp",
     sendSms: "Send via SMS",
@@ -164,6 +168,8 @@ const COPY = {
 
 const BTN_PRIMARY =
   "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-3 py-2.5 text-sm font-semibold transition border border-transparent bg-[#E67E22] text-[#FFFCF7] hover:brightness-105";
+const EMAIL_PRIMARY =
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-3 py-2.5 text-sm font-semibold transition border border-transparent bg-[#7A1E2C] text-[#FFFCF7] hover:brightness-105";
 const BTN_SECONDARY =
   "inline-flex min-h-[44px] w-full items-center justify-center rounded-xl px-3 py-2.5 text-sm font-semibold transition border border-black/15 bg-white text-[#111111] hover:bg-[#F5F5F5]";
 const MONO = "break-all font-mono text-sm text-[#111111]";
@@ -661,35 +667,13 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             </div>
           </>
         ) : null}
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#5C564E]">{t.sectionNative}</p>
-        <p className="text-xs leading-snug text-[#7A7268]">{t.shareWithAppsHint}</p>
-        {btnRow(
-          t.shareWithApps,
-          "email_native_share",
-          BTN_PRIMARY,
-          async (emit) => {
-            if (!canCompose || !draftShareText.trim()) return;
-            const shareTitle = sub || (lang === "en" ? "Leonix" : "Leonix");
-            const outcome = await tryWebShare({
-              title: shareTitle,
-              text: draftShareText,
-              url: pub || undefined,
-            });
-            if (outcome === "shared") {
-              emit();
-              return;
-            }
-            if (outcome === "aborted") return;
-            const ok = await copyToClipboard(draftShareText);
-            flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
-            if (ok) emit({ outcome: "fallback_copy" });
-          },
-          !canCompose,
-        )}
+        {canCompose ? (
+          <p className="text-xs leading-snug text-[#7A7268]">{t.emailCopyFirstHint}</p>
+        ) : null}
         {btnRow(
           t.copyEmail,
           "copy_email",
-          BTN_SECONDARY,
+          EMAIL_PRIMARY,
           async (emit) => {
             if (!hasAddr) return;
             const ok = await copyToClipboard(em);
@@ -728,13 +712,25 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           !canCompose,
         )}
         {btnRow(
-          t.openEmailApp,
-          "open_email",
+          t.shareWithApps,
+          "email_native_share",
           BTN_SECONDARY,
-          (emit) => {
-            if (!canCompose) return;
-            emit();
-            openMailto(em, sub, bod);
+          async (emit) => {
+            if (!canCompose || !draftShareText.trim()) return;
+            const shareTitle = sub || (lang === "en" ? "Leonix" : "Leonix");
+            const outcome = await tryWebShare({
+              title: shareTitle,
+              text: draftShareText,
+              url: pub || undefined,
+            });
+            if (outcome === "shared") {
+              emit();
+              return;
+            }
+            if (outcome === "aborted") return;
+            const ok = await copyToClipboard(draftShareText);
+            flash(ok ? (lang === "en" ? "Message copied." : "Mensaje copiado.") : t.copyFailed, ok ? "ok" : "err");
+            if (ok) emit({ outcome: "fallback_copy" });
           },
           !canCompose,
         )}
@@ -751,6 +747,20 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             {t.openGmail}
           </a>
         ) : null}
+        {canCompose ? (
+          <p className="text-xs leading-snug text-[#7A7268]">{t.openEmailAppHint}</p>
+        ) : null}
+        {btnRow(
+          t.openEmailApp,
+          "open_email",
+          BTN_SECONDARY,
+          (emit) => {
+            if (!canCompose) return;
+            emit();
+            openMailto(em, sub, bod);
+          },
+          !canCompose,
+        )}
       </div>
     );
   } else if (intent.kind === "send_message") {

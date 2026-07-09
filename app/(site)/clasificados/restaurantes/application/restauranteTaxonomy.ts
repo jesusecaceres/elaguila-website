@@ -6,6 +6,14 @@ import type {
   RestaurantePriceLevel,
   RestauranteServiceMode,
 } from "./restauranteListingApplicationModel";
+import type { RestaurantesDiscoveryLang } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import {
+  businessTypeUiLabel,
+  cuisineUiLabel,
+  highlightUiLabel,
+  priceLevelUiLabel,
+  spokenLanguageUiLabel,
+} from "./restaurantesTaxonomyUiLabels";
 
 export type TaxonomyOption<T extends string = string> = { key: T; labelEs: string; chipEmoji?: string };
 
@@ -145,24 +153,55 @@ export const RESTAURANTE_EVENT_SIZES = [
   { key: "150+", labelEs: "150+ personas" },
 ] as const;
 
-export function labelForBusinessType(key: string): string {
-  return RESTAURANTE_BUSINESS_TYPES.find((x) => x.key === key)?.labelEs ?? key;
+export function labelForBusinessType(key: string, lang: RestaurantesDiscoveryLang = "es"): string {
+  const item = RESTAURANTE_BUSINESS_TYPES.find((x) => x.key === key);
+  if (!item) return key;
+  return businessTypeUiLabel(item.key, item.labelEs, lang);
 }
 
-export function labelForCuisine(key: string): string {
-  return RESTAURANTE_CUISINES.find((x) => x.key === key)?.labelEs ?? key;
+export function labelForCuisine(key: string, lang: RestaurantesDiscoveryLang = "es"): string {
+  const item = RESTAURANTE_CUISINES.find((x) => x.key === key);
+  if (!item) return key;
+  return cuisineUiLabel(item.key, item.labelEs, lang);
 }
 
-export function labelForHighlight(key: string): string {
-  return RESTAURANTE_HIGHLIGHTS.find((x) => x.key === key)?.labelEs ?? key;
+export function labelForHighlight(key: string, lang: RestaurantesDiscoveryLang = "es"): string {
+  const item = RESTAURANTE_HIGHLIGHTS.find((x) => x.key === key);
+  if (!item) return key;
+  return highlightUiLabel(item.key, item.labelEs, lang);
 }
 
-export function labelForServiceMode(key: RestauranteServiceMode): string {
-  return RESTAURANTE_SERVICE_MODES.find((x) => x.key === key)?.labelEs ?? key;
+export function labelForServiceMode(key: RestauranteServiceMode, lang: RestaurantesDiscoveryLang = "es"): string {
+  const item = RESTAURANTE_SERVICE_MODES.find((x) => x.key === key);
+  if (!item) return key;
+  if (lang === "en") {
+    const en: Partial<Record<RestauranteServiceMode, string>> = {
+      dine_in: "Dine-in",
+      takeout: "Takeout",
+      delivery: "Delivery",
+      catering: "Catering",
+      events: "Events",
+      pop_up: "Pop-up",
+      food_truck: "Food truck",
+      personal_chef: "Personal chef",
+      meal_prep: "Meal prep",
+      other: "Other",
+    };
+    return en[key] ?? item.labelEs;
+  }
+  return item.labelEs;
 }
 
-export function labelForLanguage(key: string): string {
-  return RESTAURANTE_LANGUAGES.find((x) => x.key === key)?.labelEs ?? key;
+export function labelForPriceLevel(key: string, lang: RestaurantesDiscoveryLang = "es"): string {
+  const item = RESTAURANTE_PRICE_LEVELS.find((x) => x.key === key);
+  if (!item) return key;
+  return priceLevelUiLabel(item.key, item.labelEs, lang);
+}
+
+export function labelForLanguage(key: string, lang: RestaurantesDiscoveryLang = "es"): string {
+  const item = RESTAURANTE_LANGUAGES.find((x) => x.key === key);
+  if (!item) return key;
+  return spokenLanguageUiLabel(item.key, item.labelEs, lang);
 }
 
 /** Stable catalog keys for “Otra” supplemental text fields */
