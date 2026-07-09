@@ -17,6 +17,7 @@ import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewFact,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import { RentasFauxMap } from "@/app/clasificados/rentas/shared/RentasFauxMap";
 
 type Vm = BienesRaicesPrivadoPreviewVm | BienesRaicesNegocioPreviewVm;
 
@@ -559,6 +560,9 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
 
           {vm.location?.hasMeaningfulAddress ? (
             <Section eyebrow={lang === "es" ? "Zona de la renta" : "Rental area"} title={lang === "es" ? "Ubicación" : "Location"}>
+              <div className="mb-4">
+                <RentasFauxMap />
+              </div>
               <p className="text-sm font-semibold leading-6" style={{ color: BODY }}>
                 {locationLine}
               </p>
@@ -649,7 +653,10 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
               <p className="text-[0.62rem] font-bold uppercase tracking-[0.16em]" style={{ color: GREEN }}>
                 {lang === "es" ? "Ubicación" : "Location"}
               </p>
-              <p className="mt-1 text-xs font-semibold leading-5" style={{ color: BODY }}>
+              <div className="mt-2">
+                <RentasFauxMap />
+              </div>
+              <p className="mt-2 text-xs font-semibold leading-5" style={{ color: BODY }}>
                 {locationLine}
               </p>
             </div>

@@ -76,11 +76,20 @@ function RentasSqftPreview({ value }: { value: string }) {
 }
 
 const RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS = {
-  preview: "Validar y ver vista previa",
-  openPreview: "Ver vista previa (sin validar)",
-  openPreviewTitle:
-    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
-  deleteApplication: "Eliminar borrador",
+  es: {
+    preview: "Validar y ver vista previa",
+    openPreview: "Ver vista previa (sin validar)",
+    openPreviewTitle:
+      "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
+    deleteApplication: "Eliminar borrador",
+  },
+  en: {
+    preview: "Validate and preview",
+    openPreview: "View preview (without validation)",
+    openPreviewTitle:
+      "Opens preview immediately with draft saved in this tab. Does not require final confirmations or all minimum fields.",
+    deleteApplication: "Delete draft",
+  },
 } as const;
 
 const RENTAS_SECTION = {
@@ -259,7 +268,7 @@ export function RentasNegocioForm() {
     onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll,
     validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
-    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
+    labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS[lang],
     onDeleteApplication: async () => {
       clearRentasNegocioDraft();
       const empty = createEmptyRentasNegocioFormState();
@@ -272,7 +281,7 @@ export function RentasNegocioForm() {
       }
       setPreviewGateMessage(null);
     },
-    deleteConfirmMessage: "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+    deleteConfirmMessage: lang === "en" ? "Delete this draft and start over?" : "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
   };
 
   return (
@@ -364,7 +373,7 @@ export function RentasNegocioForm() {
             </p>
           ) : null}
           <div className="mt-4">
-            <span className={aiLabelClass}>Fotos del anuncio</span>
+            <span className={aiLabelClass}>{lang === "en" ? "Listing photos" : "Fotos del anuncio"}</span>
             <input
               ref={photosInputRef}
               type="file"
@@ -379,25 +388,34 @@ export function RentasNegocioForm() {
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                 onClick={() => photosInputRef.current?.click()}
               >
-                Subir o añadir fotos
+                {lang === "en" ? "Upload or add photos" : "Subir o añadir fotos"}
               </button>
               <span className="self-center text-xs text-[#5C5346]">
-                {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
+                {state.media.photoDataUrls.length}/{MAX_PHOTOS} {lang === "en" ? "selected" : "seleccionadas"}
               </span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-              Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}
-              para arrastrar y reordenar. La portada puede ser distinta del primer casillero.
+              {lang === "en" ? (
+                <>
+                  Each photo is a card with preview. Use the <strong className="text-[#1E1810]">⋮⋮ Order</strong> control{" "}
+                  to drag and reorder. The cover image can be different from the first slot.
+                </>
+              ) : (
+                <>
+                  Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}
+                  para arrastrar y reordenar. La portada puede ser distinta del primer casillero.
+                </>
+              )}
             </p>
             {state.media.photoDataUrls.length > 0 ? (
               <LeonixRealEstateSortablePhotoStrip
                 urls={state.media.photoDataUrls}
-                primaryImageIndex={state.media.primaryImageIndex}
-                onReorder={(nextUrls, nextPrimary) => {
+                primaryImageIndex={0}
+                onReorder={(nextUrls) => {
                   setState((s) => {
                     const out: RentasNegocioFormState = {
                       ...s,
-                      media: { ...s.media, photoDataUrls: nextUrls, primaryImageIndex: nextPrimary },
+                      media: { ...s.media, photoDataUrls: nextUrls, primaryImageIndex: 0 },
                     };
                     queueMicrotask(() => saveRentasNegocioDraft(out));
                     return out;
@@ -406,26 +424,15 @@ export function RentasNegocioForm() {
                 onRemove={(i) =>
                   setState((s) => {
                     const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
-                    let pi = s.media.primaryImageIndex;
-                    if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
                     const out: RentasNegocioFormState = {
                       ...s,
-                      media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
+                      media: { ...s.media, photoDataUrls: urls, primaryImageIndex: 0 },
                     };
                     queueMicrotask(() => saveRentasNegocioDraft(out));
                     return out;
                   })
                 }
-                onSetPrimary={(i) =>
-                  setState((s) => {
-                    const out: RentasNegocioFormState = {
-                      ...s,
-                      media: { ...s.media, primaryImageIndex: i },
-                    };
-                    queueMicrotask(() => saveRentasNegocioDraft(out));
-                    return out;
-                  })
-                }
+                onSetPrimary={() => null}
               />
             ) : null}
           </div>
@@ -443,8 +450,8 @@ export function RentasNegocioForm() {
                 return (
                   <AiField
                     key={i}
-                    label={`Video ${i + 1}`}
-                    hint={i === 0 ? "El primer enlace es el principal para la vista previa y la salida publicada." : undefined}
+                    label={lang === "en" ? `Video ${i + 1}` : `Video ${i + 1}`}
+                    hint={i === 0 ? (lang === "en" ? "The first link is primary for preview and published output." : "El primer enlace es el principal para la vista previa y la salida publicada.") : undefined}
                   >
                     <input
                       className={fieldClass}
@@ -457,7 +464,7 @@ export function RentasNegocioForm() {
                     />
                     {invalid ? (
                       <p className="mt-2 text-xs font-medium text-amber-800">
-                        Usa una URL completa que empiece con http:// o https://.
+                        {lang === "en" ? "Use a full URL starting with http:// or https://." : "Usa una URL completa que empiece con http:// o https://."}
                       </p>
                     ) : null}
                   </AiField>
@@ -1127,13 +1134,79 @@ export function RentasNegocioForm() {
           onRules={(v) => setState((s) => ({ ...s, confirmCommunityRules: v }))}
         />
 
-        <div className="min-w-0 space-y-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7] p-4 sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">Vista previa del anuncio</p>
-          <p className="text-xs leading-relaxed text-[#5C5346]/90">
-            Mismas acciones que arriba: no necesitas desplazarte otra vez al inicio del formulario.
+        <section className={`${aiCardClass} min-w-0`} aria-labelledby="sec-review">
+          <h2 id="sec-review" className={aiTitleClass}>
+            {lang === "es" ? "Revisión final" : "Final review"}
+          </h2>
+          <p className={aiSubClass}>
+            {lang === "en"
+              ? "When your content is ready, use the buttons below to open the preview or start publishing."
+              : "Cuando tu contenido esté listo, usa los botones de abajo para abrir la vista previa o iniciar la publicación."}
           </p>
-          <ClasificadosApplicationTopActions {...previewActionsProps} />
-        </div>
+
+          {/* Pricing summary */}
+          <div className="mt-5 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
+            <p className="text-xs font-semibold text-[#8a7a62]">
+              {lang === "en" ? "Price summary" : "Resumen de precios"}
+            </p>
+            <div className="mt-2 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-[#5D4A25]">
+                  {lang === "en" ? "Rental listing" : "Anuncio de renta"}
+                </span>
+                <span className="font-semibold text-[#3D2C12]">$24.99 / 30 {lang === "en" ? "days" : "días"}</span>
+              </div>
+              <div className="mt-2 flex justify-between border-t border-[#D8C79A]/40 pt-2">
+                <span className="font-semibold text-[#3D2C12]">
+                  {lang === "en" ? "Total" : "Total"}
+                </span>
+                <span className="font-bold text-[#C9782F]">$24.99</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#5D4A25]/80">
+              {lang === "en"
+                ? "Paid listing activation happens after secure payment."
+                : "La activación del anuncio pagado ocurre después del pago seguro."}
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 border-t border-[#D8C79A]/40 pt-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+              <button
+                type="button"
+                onClick={previewActionsProps.onPreviewValidated}
+                disabled={previewActionsProps.disableValidatedPreview}
+                className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-xs"
+              >
+                {lang === "en" ? "Preview" : "Vista previa"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  previewActionsProps.onBeforeOpenUnvalidatedPreview();
+                  router.push(previewActionsProps.openPreviewHref);
+                }}
+                className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
+              >
+                {lang === "en" ? "View preview (draft)" : "Ver vista previa (borrador)"}
+              </button>
+            </div>
+            {previewActionsProps.validationBlockedMessage ? (
+              <p className="text-sm font-medium text-amber-900" role="status">
+                {previewActionsProps.validationBlockedMessage}
+              </p>
+            ) : null}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={previewActionsProps.onDeleteApplication}
+                className="text-xs font-medium text-red-800/90 underline decoration-red-800/30 underline-offset-2 hover:text-red-950"
+              >
+                {previewActionsProps.labels.deleteApplication}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
           Borrador guardado solo en este dispositivo. Ruta:{" "}

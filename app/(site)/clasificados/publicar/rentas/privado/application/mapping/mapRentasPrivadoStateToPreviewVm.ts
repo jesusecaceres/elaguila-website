@@ -133,7 +133,7 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
     estadoAnuncio: s.estadoAnuncio === "rentado" ? "vendido" : s.estadoAnuncio,
     media: {
       photoDataUrls: s.media.photoDataUrls,
-      primaryImageIndex: s.media.primaryImageIndex,
+      primaryImageIndex: 0,
       videoUrl: videos[0] ?? "",
       videoLocalDataUrl: "",
     },
