@@ -128,6 +128,7 @@
     "verify:paid-publish-entry-checkpoints": "node scripts/verify-paid-publish-entry-checkpoints.mjs",
     "verify:clasificados-landing-hub": "node scripts/verify-clasificados-landing-hub.mjs",
     "verify:negocios-locales-landing-hub": "node scripts/verify-negocios-locales-landing-hub.mjs",
+    "verify:checkpoint-first-routes": "node scripts/verify-checkpoint-first-routes.mjs",
     "verify:checkout-newsletter-capture": "node scripts/verify-checkout-newsletter-capture.mjs",
     "verify:launch-25-opportunity-surfaces": "node scripts/verify-launch-25-opportunity-surfaces.mjs",
     "verify:admin-dashboard-promo-code-generator-top-cta-01": "node scripts/verify-admin-dashboard-promo-code-generator-top-cta-01.mjs",

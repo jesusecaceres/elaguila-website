@@ -30,9 +30,9 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
 const LANE_ADVERTISE_PATH: Record<BusinessLaneKey, string> = {
   "ofertas-locales": "/publicar/ofertas-locales",
   servicios: "/clasificados/publicar/servicios",
-  restaurantes: "/publicar/restaurantes",
+  restaurantes: "/clasificados/publicar/restaurantes",
   "comida-local": "/publicar/comida-local",
-  "autos-dealer": "/publicar/autos/negocios",
+  "autos-dealer": "/clasificados/publicar/autos",
   "bienes-raices": "/clasificados/publicar/bienes-raices",
 };
 
@@ -71,8 +71,8 @@ export const NEGOCIOS_LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
     labelEn: "Restaurants",
     descEs: "Restaurantes, cafés y negocios de comida con perfil premium en Leonix.",
     descEn: "Restaurants, cafés, and food businesses with premium Leonix presence.",
-    noteEs: "Pipeline de negocio — aplicación de restaurante.",
-    noteEn: "Business pipeline — restaurant application.",
+    noteEs: "Checkpoint primero — luego aplicación de restaurante.",
+    noteEn: "Checkpoint first — then restaurant application.",
     advertiseEs: "Anunciar en Restaurantes",
     advertiseEn: "Advertise in Restaurants",
   },
@@ -89,8 +89,8 @@ export const NEGOCIOS_LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
     labelEn: "Auto Dealers",
     descEs: "Concesionarios y negocios de autos para conectar compradores con inventario local.",
     descEn: "Dealerships and auto businesses connecting buyers with local inventory.",
-    noteEs: "Pipeline de negocio — no vendedor privado.",
-    noteEn: "Business pipeline — not private seller.",
+    noteEs: "Checkpoint primero — elige dealer o privado en el siguiente paso.",
+    noteEn: "Checkpoint first — choose dealer or private on the next step.",
     advertiseEs: "Publicar en Dealers de Autos",
     advertiseEn: "Publish as Auto Dealer",
   },

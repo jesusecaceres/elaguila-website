@@ -70,14 +70,17 @@ for (const s of [
 ok("landing page structure and key strings present");
 
 const lanesSrc = read(lanes);
-if (!lanesSrc.includes('restaurantes: "/publicar/restaurantes"')) {
-  fail("Restaurantes advertise path must be /publicar/restaurantes");
+if (!lanesSrc.includes('restaurantes: "/clasificados/publicar/restaurantes"')) {
+  fail("Restaurantes advertise path must be /clasificados/publicar/restaurantes (checkpoint-first)");
 }
-if (!lanesSrc.includes('"/publicar/autos/negocios"')) {
-  fail("Dealers advertise path must include /publicar/autos/negocios");
+if (!lanesSrc.includes('"/clasificados/publicar/autos"')) {
+  fail("Dealers advertise path must be /clasificados/publicar/autos (checkpoint-first)");
 }
-if (lanesSrc.includes("/publicar/autos/privado")) {
-  fail("Negocios Locales lanes must not route dealer to /publicar/autos/privado");
+if (lanesSrc.includes("/publicar/autos/privado") || lanesSrc.includes("/publicar/autos/negocios")) {
+  fail("Negocios Locales hub lanes must not skip checkpoint to raw autos application routes");
+}
+if (lanesSrc.includes('restaurantes: "/publicar/restaurantes"')) {
+  fail("Negocios Locales must not skip restaurant checkpoint");
 }
 if (lanesSrc.includes("Concesionarios de Autos")) {
   fail('Visible dealer label must be "Dealers de Autos", not Concesionarios de Autos');
@@ -85,10 +88,13 @@ if (lanesSrc.includes("Concesionarios de Autos")) {
 ok("restaurant and dealer route cleanup verified");
 
 const clasificadosSrc = read(clasificadosPage);
-if (!clasificadosSrc.includes('restaurantes: "/publicar/restaurantes"')) {
-  fail("Clasificados Restaurantes publish path must reach /publicar/restaurantes");
+if (!clasificadosSrc.includes('restaurantes: "/clasificados/publicar/restaurantes"')) {
+  fail("Clasificados Restaurantes publish path must point to checkpoint");
 }
-ok("Clasificados restaurant business pipeline path verified");
+if (!clasificadosSrc.includes('autos: "/clasificados/publicar/autos"')) {
+  fail("Clasificados Autos publish path must point to checkpoint");
+}
+ok("Clasificados checkpoint-first routes verified");
 
 if (!read(landingCopy).includes('return: "negocios-locales"')) {
   fail("Newsletter href must include return=negocios-locales");
@@ -114,8 +120,8 @@ for (const s of [
 }
 ok("no forbidden coupon/placement claims");
 
-if (!read(doc).includes("/publicar/restaurantes")) fail("Doc must document restaurant route fix");
-if (!read(doc).includes("/publicar/autos/negocios")) fail("Doc must document dealer route");
+if (!read(doc).includes("/clasificados/publicar/restaurantes")) fail("Doc must document restaurant checkpoint route");
+if (!read(doc).includes("/clasificados/publicar/autos")) fail("Doc must document autos checkpoint route");
 ok("documentation present");
 
 if (!read(pkg).includes('"verify:negocios-locales-landing-hub"')) fail("package script missing");

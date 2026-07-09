@@ -249,7 +249,7 @@ export function getAutosCheckpointCards(
       id: "autos_dealer",
       variant: "dealer",
       eyebrow: es ? "Dealer / negocio" : "Dealer / business",
-      title: es ? "Dealer de Autos" : "Dealer de Autos",
+      title: es ? "Dealers de Autos" : "Auto Dealers",
       priceLabel: dealerPrice,
       billingLabel: es ? "10 vehículos incluidos" : "10 vehicles included",
       shortDescription: es

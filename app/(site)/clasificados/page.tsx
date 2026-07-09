@@ -46,8 +46,8 @@ const CATEGORY_PUBLISH_PATH: Record<HubCategoryKey, string> = {
   empleos: "/clasificados/publicar/empleos",
   "bienes-raices": BR_PUBLICAR_HUB,
   servicios: "/clasificados/publicar/servicios",
-  autos: "/publicar/autos",
-  restaurantes: "/publicar/restaurantes",
+  autos: "/clasificados/publicar/autos",
+  restaurantes: "/clasificados/publicar/restaurantes",
   travel: "/publicar/viajes",
   comunidad: "/clasificados/publicar/comunidad",
   clases: "/clasificados/publicar/clases",
@@ -90,7 +90,7 @@ function ClasificadosPageInner() {
 
   const postEntryHref = buildHubPostEntryHref(routeLang);
   const dealerBrowseHref = appendLangToPath("/clasificados/dealers-de-autos", routeLang);
-  const dealerPublishHref = appendLangToPath("/publicar/autos/negocios", routeLang);
+  const dealerPublishHref = appendLangToPath("/clasificados/publicar/autos", routeLang);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -161,10 +161,7 @@ function ClasificadosPageInner() {
             {C1_CATEGORY_ORDER.map((k) => {
               const copy = getPublicCategoryCardCopy(k, routeLang);
               const browseHref = buildHubCategoryPageUrl(k, routeLang);
-              const publishHref =
-                k === "autos"
-                  ? appendLangToPath("/publicar/autos/privado", routeLang)
-                  : buildCategoryPublishHref(k, routeLang);
+              const publishHref = buildCategoryPublishHref(k, routeLang);
               const priority = PRIORITY_KEYS.has(k);
 
               return (

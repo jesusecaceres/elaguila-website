@@ -28,13 +28,14 @@ Polish `/negocios-locales` to match the Clasificados landing hub quality and fix
 - CTAs: **Ver ofertas** → `/clasificados/ofertas-locales`, **Publicar ofertas locales** → `/publicar/ofertas-locales`
 - Ofertas removed from sector grid (featured once at top, like Clasificados)
 
-### Route cleanup
+### Route cleanup (checkpoint-first — follow-up gate)
 
-| Sector | Advertise CTA destination | Notes |
-|--------|---------------------------|-------|
-| Restaurantes | `/publicar/restaurantes` | **Fixed** — was `/clasificados/publicar/restaurantes`; now direct business application pipeline |
-| Dealers de Autos | `/publicar/autos/negocios` | Unchanged — correct dealer/business pipeline |
-| Autos privado | *(not on Negocios page)* | Remains separate on Clasificados `/publicar/autos` checkpoint |
+| Sector | Hub CTA | Checkpoint | Application |
+|--------|---------|------------|-------------|
+| Restaurantes | `/clasificados/publicar/restaurantes` | checkpoint cards | `/publicar/restaurantes` |
+| Dealers de Autos | `/clasificados/publicar/autos` | privado + dealer split | `/publicar/autos/negocios` |
+
+See `docs/checkpoint-first-route-restoration-autos-crash-01.md` for the restored front-door chain.
 
 ### Clasificados Restaurantes path (reference)
 

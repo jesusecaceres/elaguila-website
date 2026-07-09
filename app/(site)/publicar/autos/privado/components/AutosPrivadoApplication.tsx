@@ -113,12 +113,9 @@ export function AutosPrivadoApplication() {
   const [customEquipmentInput, setCustomEquipmentInput] = useState("");
   const customEquipmentArray = useMemo(() => listing.customEquipment ?? [], [listing.customEquipment]);
 
-  if (!hydrated) {
-    return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
-  }
-
   // Initialize customEquipment from legacy otherEquipmentDetails on first load if customEquipment is empty
   useEffect(() => {
+    if (!hydrated) return;
     if (customEquipmentArray.length === 0 && listing.otherEquipmentDetails) {
       const legacyItems = listing.otherEquipmentDetails
         .split(/[,;\n]/)
@@ -128,7 +125,11 @@ export function AutosPrivadoApplication() {
         setListingPatch({ customEquipment: legacyItems });
       }
     }
-  }, []); // Run once on mount
+  }, [hydrated, customEquipmentArray.length, listing.otherEquipmentDetails, setListingPatch]);
+
+  if (!hydrated) {
+    return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
 
   function addCustomEquipment() {
     const trimmed = customEquipmentInput.trim();
