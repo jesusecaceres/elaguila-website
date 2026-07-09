@@ -324,6 +324,51 @@ export function getRentasPrivadoCheckpointCard(
   };
 }
 
+export function getRentasNegocioCheckpointCard(
+  lang: PublishCheckpointLang,
+  negocioHref: string,
+): PublishCheckpointCardData {
+  const es = lang === "es";
+  const pricePerListing = es ? "$24.99 / 30 días por anuncio" : "$24.99 / 30 days per listing";
+  const matrixPrice = oneTimePrice("rentas_30d", "rentas", 30);
+  return {
+    id: "rentas_negocio",
+    variant: "paid",
+    eyebrow: es ? "Negocio" : "Business",
+    title: es ? "Rentas negocio" : "Business rentals",
+    priceLabel: pricePerListing,
+    shortDescription: es
+      ? "Publica una renta con información de negocio, contacto, requisitos, disponibilidad y ubicación."
+      : "Publish a rental with business information, contact, requirements, availability, and location.",
+    ctaLabel: es ? "Publicar como negocio" : "Publish as business",
+    ctaHref: negocioHref,
+    moreLabel: es ? "Ver más" : "See more",
+    modalTitle: es
+      ? `Qué incluye Rentas negocio — ${pricePerListing}`
+      : `What's included with Business rentals — ${pricePerListing}`,
+    modalIntro: es
+      ? "Cada anuncio de renta cuesta $24.99 por 30 días. El camino de negocio recopila más información comercial y administrativa — no es un paquete con inventario incluido."
+      : "Each rental listing costs $24.99 for 30 days. The business path collects more business and admin information — it is not a bulk inventory package.",
+    includedBullets: es
+      ? [
+          `Precio por anuncio: ${pricePerListing} (misma tarifa que privado; matriz: ${matrixPrice})`,
+          "Para arrendadores, administradores de propiedades o negocios",
+          "Más campos de negocio/contacto en el anuncio",
+          "No incluye paquete de inventario ni precio mayor por volumen",
+          "Checkout y aplicación son la fuente de verdad del precio final",
+        ]
+      : [
+          `Price per listing: ${pricePerListing} (same rate as private; matrix: ${matrixPrice})`,
+          "For landlords, property managers, or businesses",
+          "More business/contact fields on the listing",
+          "Does not include inventory package or higher bulk pricing",
+          "Application and checkout are the source of truth for final price",
+        ],
+    couponEligible: isPromoEligible("rentas_30d"),
+    highlighted: true,
+  };
+}
+
 export function getBienesRaicesCheckpointCards(
   lang: PublishCheckpointLang,
   privadoHref: string,

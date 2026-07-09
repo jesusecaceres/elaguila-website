@@ -28,7 +28,7 @@ function PhotoBlock({
   layout: CardLayout;
 }) {
   const [failed, setFailed] = useState(false);
-  const showImg = url && !failed;
+  const showImg = url && isDisplayablePhotoUrl(url) && !failed;
   const sizeClass =
     layout === "showcase"
       ? "h-36 w-full shrink-0 overflow-hidden rounded-lg bg-[#F3EDE3] sm:h-44 sm:w-52 md:w-60 lg:w-64"
@@ -66,7 +66,62 @@ function PhotoBlock({
   );
 }
 
-/** BR-INV-D/E — owner-only inventory card (no public URLs / IDs). */
+function isDisplayablePhotoUrl(url: string): boolean {
+  const u = url.trim();
+  return Boolean(u && !u.startsWith("__LX_BR_AGENTE_IDB__"));
+}
+
+function GallerySlot({
+  url,
+  slotNumber,
+  lang,
+}: {
+  url: string;
+  slotNumber: number;
+  lang: BrNegocioPrePublishInventoryLang;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImg = isDisplayablePhotoUrl(url) && !failed;
+  const label = lang === "es" ? `Galería ${slotNumber + 1}` : `Gallery ${slotNumber + 1}`;
+
+  if (showImg) {
+    return (
+      <div className="aspect-square overflow-hidden rounded-md border border-[#E8DFD0] bg-[#F3EDE3]">
+        <img src={url} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex aspect-square items-center justify-center rounded-md border border-dashed border-[#E8DFD0] bg-[#F9F5EE] text-[9px] font-medium text-[#9A9288]"
+      aria-hidden
+    >
+      {label}
+    </div>
+  );
+}
+
+function GallerySlotGrid({
+  slots,
+  lang,
+}: {
+  slots: string[];
+  lang: BrNegocioPrePublishInventoryLang;
+}) {
+  return (
+    <div className="w-full shrink-0 sm:w-[168px] md:w-[184px]">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#6E5418]">
+        {lang === "es" ? "Galería tarjeta" : "Results gallery"}
+      </p>
+      <div className="grid grid-cols-3 gap-1.5">
+        {slots.map((url, index) => (
+          <GallerySlot key={`gallery-${index}`} url={url} slotNumber={index} lang={lang} />
+        ))}
+      </div>
+    </div>
+  );
+}
 export function BrNegocioPrePublishInventoryCard({
   card,
   lang,
@@ -103,10 +158,12 @@ export function BrNegocioPrePublishInventoryCard({
     resolvedLayout === "showcase" ? "mt-3 text-xs" : resolvedLayout === "compact" ? "mt-1 text-[10px]" : "mt-2 text-[11px]";
   const rowClass =
     resolvedLayout === "showcase"
-      ? "flex flex-col gap-4 sm:flex-row sm:items-stretch"
+      ? "flex flex-col gap-4 lg:flex-row lg:items-stretch"
       : resolvedLayout === "compact"
         ? "flex items-center gap-2.5"
         : "flex flex-col gap-3 sm:flex-row sm:items-start";
+
+  const gallerySlots = card.gallerySlotUrls ?? [];
 
   return (
     <article
@@ -149,6 +206,7 @@ export function BrNegocioPrePublishInventoryCard({
           ) : null}
           <p className={`font-medium text-[#9A9288] ${noteTextClass}`}>{card.leonixDraftNote}</p>
         </div>
+        {resolvedLayout === "showcase" ? <GallerySlotGrid slots={gallerySlots} lang={lang} /> : null}
       </div>
       {showActions ? (
         <div

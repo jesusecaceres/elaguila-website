@@ -23,7 +23,6 @@ import {
 import {
   buildServiciosGetQuoteIntent,
   buildServiciosSendEmailIntentFromMailto,
-  serviciosContactShareExtras,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
 } from "../lib/serviciosCtaIntents";
@@ -46,20 +45,29 @@ import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
-import { SV } from "./serviciosDesignTokens";
+import { ServiciosHubReviewLinkButton } from "./ServiciosHubReviewLinkButton";
 import {
-  LX,
-  LX_CTA_HUB_SECONDARY,
-  LX_CTA_PRIMARY,
-  LX_CTA_PRIMARY_LG,
-  LX_CTA_WHATSAPP,
-  LX_HUB_CARD,
-  LX_HUB_CARD_PRO,
-  resolveProfessionalHubQuoteCtaLabel,
-} from "./serviciosLeonixBrand";
+  SCH_COMPACT_CTA,
+  SCH_CTA_PRIMARY,
+  SCH_CTA_SECONDARY,
+  SCH_CTA_WHATSAPP,
+  SCH_HUB_CARD,
+  SCH_LX,
+  SCH_LINK_CARD,
+  SCH_MAP_WRAP,
+  SCH_PRIMARY_GRID,
+  SCH_SECONDARY_GRID,
+  SCH_SOCIAL_CHIP,
+} from "../lib/serviciosContactHubLeonix";
+import {
+  SVC_SECTION_CARD,
+  SVC_SECTION_PADDING,
+  SVC_SECTION_TITLE,
+} from "../lib/serviciosShellSectionTokens";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
+import { resolveProfessionalHubQuoteCtaLabel } from "./serviciosLeonixBrand";
 
-const HUB_GOLD = LX.gold;
+const HUB_GOLD = SCH_LX.gold;
 
 function analyticsForQuoteKind(kind: ServiciosQuoteDestinationKind): string {
   if (kind === "sms") return "cta_quote_sms_click";
@@ -120,14 +128,10 @@ function cleanHubLinkLabel(label: string, url: string, lang: ServiciosLang): str
 
 function HubSectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="border-b border-[#E8D9C4]/80 pb-2 text-sm font-bold tracking-tight text-[#1E1814] sm:text-base">
+    <h3 className="border-b border-[#E8D9C4]/80 pb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#1E1814] sm:text-sm">
       {children}
     </h3>
   );
-}
-
-function HubDivider() {
-  return <hr className="my-4 border-0 border-t sm:my-5" style={{ borderColor: "#E8D9C4" }} />;
 }
 
 function CopyChip({ value }: { value: string }) {
@@ -257,7 +261,6 @@ export function ServiciosBusinessHubContactCard({
     return null;
   }
 
-  const contactExtras = serviciosContactShareExtras(profile, listingSlug, listingShareUrl);
   const quote = resolveServiciosQuoteDestination(profile, lang);
   const quoteMsgText = serviciosUniversalQuoteMessage(lang);
   const primaryCtaLabel = resolveProfessionalHubQuoteCtaLabel(
@@ -375,20 +378,32 @@ export function ServiciosBusinessHubContactCard({
     });
   }
 
-  const isProfessionalHub = Boolean(listingTemplate);
-  const hubCardClass = isProfessionalHub ? LX_HUB_CARD_PRO : LX_HUB_CARD;
+  const labels = {
+    contact: lang === "en" ? "Contact us" : "Contáctanos",
+    reviews: lang === "en" ? "Reviews" : "Opiniones",
+    social: lang === "en" ? "Follow us" : "Síguenos",
+    find: lang === "en" ? "Find us online" : "Búscanos aquí",
+    location: lang === "en" ? "Our location" : "Nuestra ubicación",
+    hours: lang === "en" ? "Hours" : "Horarios",
+    section: lang === "en" ? "Contact & location" : "Contacto y ubicación",
+  };
+
   const callAction = contactActions.find((a) => a.id === "call");
-  const gridContactActions = isProfessionalHub && callAction
-    ? contactActions.filter((a) => a.id !== "call")
-    : contactActions;
-  const hasContactGridVisible = gridContactActions.length > 0 || (isProfessionalHub && Boolean(callAction));
-  const lxListingIdForEngagement = (engagementListingId ?? "").trim() || profile.identity.slug;
-  const showEngagementRow =
-    (persistListingEngagement && Boolean(lxListingIdForEngagement)) ||
-    Boolean(lxListingIdForEngagement) ||
-    Boolean((listingShareUrl ?? "").trim());
+  const gridContactActions = contactActions.filter((a) => a.id !== "call");
+  const showContact = contactActions.length > 0;
+
+  const contactGridClass =
+    gridContactActions.length === 1
+      ? "mt-2 grid max-w-full grid-cols-1 gap-2"
+      : gridContactActions.length === 3
+        ? "mt-2 grid grid-cols-2 gap-2 [&>*:last-child]:col-span-2"
+        : "mt-2 grid grid-cols-2 gap-2";
+
   const showSocial = vm.social.length > 0;
-  const showMore = vm.moreLinks.length > 0;
+  const showReviews = vm.reviews.length > 0;
+  const showFindUs = vm.moreLinks.length > 0;
+  const showSecondary = showReviews || showSocial || showFindUs;
+
   const showLocation = Boolean(
     vm.location?.addressDisplay?.trim() ||
       vm.location?.mapsHref ||
@@ -396,23 +411,9 @@ export function ServiciosBusinessHubContactCard({
       vm.location?.mapImageUrl,
   );
 
-  const primaryClass = `${LX_CTA_PRIMARY} ${isProfessionalHub ? LX_CTA_PRIMARY_LG : ""} w-full`;
-
-  const contactBtnBase =
-    "flex min-h-[48px] w-full flex-col items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-center text-xs font-bold shadow-md transition active:scale-[0.99] sm:min-h-[50px] sm:text-sm";
-
-  const contactGridClass =
-    gridContactActions.length === 1
-      ? "mt-4 grid max-w-full grid-cols-1 gap-2.5"
-      : gridContactActions.length === 3
-        ? "mt-4 grid grid-cols-2 gap-2.5 [&>*:last-child]:col-span-2"
-        : "mt-4 grid grid-cols-2 gap-2.5";
-
-  const socialChipClass =
-    "flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg shadow-md transition hover:scale-[1.03] hover:shadow-lg active:scale-[0.98]";
-
-  const moreLinkClass =
-    "flex min-h-[48px] w-full items-center gap-2.5 rounded-lg border-2 border-[#D4C4A8] bg-[#FFFCF7] px-3 py-3 text-left text-sm font-bold text-[#1E1814] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FFFDF9] active:scale-[0.99]";
+  const showHours = Boolean(
+    hours?.weeklyRows?.length || (hours?.openNowLabel && nonEmpty(hours.todayHoursLine)),
+  );
 
   const showPrimaryQuote =
     quote &&
@@ -420,293 +421,303 @@ export function ServiciosBusinessHubContactCard({
       quote.kind === "sms" ||
       quote.kind === "whatsapp");
 
+  const openReviewLink = (link: (typeof vm.reviews)[number]) => {
+    trackServiciosListingCta(listingSlug, "cta_review_click", { ...analyticsBase, source: "business_hub", reviewId: link.id });
+    window.open(link.url, "_blank", "noopener,noreferrer");
+  };
+
   return (
-    <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
-      <article className={hubCardClass} data-servicios-business-hub="1">
-        <div
-          className="pointer-events-none -mx-4 -mt-4 mb-4 h-1 bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent sm:-mx-6 sm:-mt-6"
-          aria-hidden
-        />
-        {featured ? (
-          <div className="mb-4 flex flex-wrap items-center gap-2 border-b pb-4" style={{ borderColor: SV.borderSoft }}>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]"
-              style={{ backgroundColor: SV.goldSoft, border: `1px solid ${SV.goldBorder}` }}
-            >
-              <FaStar className="h-3.5 w-3.5" style={{ color: HUB_GOLD }} aria-hidden />
-              {featuredLabel}
-            </span>
-            {rating != null && reviewCount != null ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--lx-text-2)]">
-                <ServiciosStarRating value={rating} size="sm" />
-                {rating.toFixed(1)} ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
-              </span>
-            ) : null}
-          </div>
-        ) : rating != null && reviewCount != null ? (
-          <div className="mb-4 flex flex-wrap items-center gap-2 border-b pb-4" style={{ borderColor: SV.borderSoft }}>
-            <ServiciosStarRating value={rating} size="sm" />
-            <span className="text-xs font-semibold text-[color:var(--lx-text-2)]">
-              {rating.toFixed(1)} ({reviewCount})
-            </span>
-          </div>
-        ) : null}
+    <div className="flex min-w-0 flex-col gap-3 md:gap-5">
+      <section className={SVC_SECTION_CARD} aria-labelledby="servicios-contact-hub-heading">
+        <div className={SVC_SECTION_PADDING}>
+          <h2 id="servicios-contact-hub-heading" className={SVC_SECTION_TITLE}>
+            {labels.section}
+          </h2>
 
-        {showPrimaryQuote && quote?.kind === "mailto" && primaryMailto && primaryEmailAddr ? (
-          <ContactEmailMenu
-            email={primaryEmailAddr}
-            mailtoHref={primaryMailto}
-            messagePlain={quoteMsgText}
-            lang={lang}
-            listingSlug={listingSlug}
-            listingSourceId={listingSourceId}
-            engagementListingId={engagementListingId}
-            ownerUserId={engagementOwnerUserId}
-            analyticsEventType={analyticsForQuoteKind("mailto")}
-            triggerClassName={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} justify-between`}
-            triggerStyle={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
-          >
-            <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-            {primaryCtaLabel}
-          </ContactEmailMenu>
-        ) : showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
-          <button
-            type="button"
-            className={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} w-full border-0`}
-            style={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
-            onClick={openPrimaryMailtoSheet}
-          >
-            <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-            {primaryCtaLabel}
-          </button>
-        ) : showPrimaryQuote && quote && (quote.kind === "sms" || quote.kind === "whatsapp") ? (
-          <button
-            type="button"
-            className={`${primaryClass} ${hasContactGridVisible ? "mb-4" : ""} w-full border-0`}
-            style={{ backgroundColor: LX.burgundy, boxShadow: "0 12px 32px rgba(92, 22, 34, 0.28)" }}
-            onClick={openPrimaryQuoteSheet}
-          >
-            <FiZap className="h-5 w-5 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-            {primaryCtaLabel}
-          </button>
-        ) : null}
+          <article className={SCH_HUB_CARD} data-servicios-business-hub="1">
+            <div
+              className="pointer-events-none -mx-4 -mt-4 mb-3 h-0.5 bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent sm:-mx-5 sm:-mt-5"
+              aria-hidden
+            />
 
-        {hasContactGridVisible ? (
-          <section aria-labelledby="hub-contact-heading">
-            <HubSectionTitle>
-              <span id="hub-contact-heading">{lang === "en" ? "Contact us" : "Contáctanos"}</span>
-            </HubSectionTitle>
-            {directContactFasterResponseHint ? (
-              <p className="mt-2 text-xs leading-snug text-[#6F6254]" data-servicios-direct-contact-hint="1">
-                {lang === "en"
-                  ? "Contact the business directly for a faster response."
-                  : "Contacta directamente al negocio para una respuesta más rápida."}
-              </p>
+            {featured || (rating != null && reviewCount != null) ? (
+              <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-[#E8D9C4]/80 pb-2">
+                {featured ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#D4C4A8] bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1E1814]">
+                    <FaStar className="h-3 w-3 text-[#C9A84A]" aria-hidden />
+                    {featuredLabel}
+                  </span>
+                ) : null}
+                {rating != null && reviewCount != null ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6F6254]">
+                    <ServiciosStarRating value={rating} size="sm" />
+                    {rating.toFixed(1)} ({reviewCount})
+                  </span>
+                ) : null}
+              </div>
             ) : null}
-            {isProfessionalHub && callAction ? (
+
+            {showPrimaryQuote && quote?.kind === "mailto" && primaryMailto && primaryEmailAddr ? (
+              <ContactEmailMenu
+                email={primaryEmailAddr}
+                mailtoHref={primaryMailto}
+                messagePlain={quoteMsgText}
+                lang={lang}
+                listingSlug={listingSlug}
+                listingSourceId={listingSourceId}
+                engagementListingId={engagementListingId}
+                ownerUserId={engagementOwnerUserId}
+                analyticsEventType={analyticsForQuoteKind("mailto")}
+                triggerClassName={`${SCH_CTA_PRIMARY} mb-3 justify-between`}
+                triggerStyle={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
+              >
+                <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
+                {primaryCtaLabel}
+              </ContactEmailMenu>
+            ) : showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
               <button
                 type="button"
-                className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} mt-4 w-full border-0`}
-                style={{ backgroundColor: LX.burgundy, boxShadow: "0 10px 28px rgba(92, 22, 34, 0.3)" }}
-                onClick={callAction.onClick}
+                className={`${SCH_CTA_PRIMARY} mb-3 w-full border-0`}
+                style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
+                onClick={openPrimaryMailtoSheet}
               >
-                {callAction.icon}
-                <span>{callAction.label}</span>
+                <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
+                {primaryCtaLabel}
+              </button>
+            ) : showPrimaryQuote && quote && (quote.kind === "sms" || quote.kind === "whatsapp") ? (
+              <button
+                type="button"
+                className={`${SCH_CTA_PRIMARY} mb-3 w-full border-0`}
+                style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
+                onClick={openPrimaryQuoteSheet}
+              >
+                <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
+                {primaryCtaLabel}
               </button>
             ) : null}
-            {gridContactActions.length > 0 ? (
-            <div className={contactGridClass}>
-              {gridContactActions.map((action) => {
-                const isWhatsApp = action.id === "whatsapp";
-                const isSecondary = action.id === "message" || action.id === "email";
-                return (
-                <button
-                  key={action.id}
-                  type="button"
-                  className={
-                    isSecondary && isProfessionalHub
-                      ? `${LX_CTA_HUB_SECONDARY} hover:brightness-100`
-                      : `${contactBtnBase} border-0 text-white hover:brightness-[1.04]`
-                  }
-                  style={
-                    isSecondary && isProfessionalHub
-                      ? undefined
-                      : {
-                          backgroundColor: isWhatsApp ? LX.whatsApp : LX.burgundy,
-                          boxShadow: isWhatsApp ? LX.whatsAppShadow : "0 6px 16px rgba(92, 22, 34, 0.2)",
-                        }
-                  }
-                  onClick={action.onClick}
-                >
-                  {action.icon}
-                  <span>{action.label}</span>
-                </button>
-              );
-              })}
-            </div>
-            ) : null}
-          </section>
-        ) : null}
 
-        <ServiciosBusinessHubEngagementRow
-          profile={profile}
-          lang={lang}
-          listingSlug={listingSlug}
-          listingSourceId={listingSourceId}
-          engagementListingId={engagementListingId}
-          engagementOwnerUserId={engagementOwnerUserId}
-          listingShareUrl={listingShareUrl}
-          persistListingEngagement={persistListingEngagement}
-          publicLikeCount={publicLikeCount}
-        />
-
-        {showSocial ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="hub-social-heading">
-              <HubSectionTitle>
-                <span id="hub-social-heading">{lang === "en" ? "Follow us" : "Síguenos"}</span>
-              </HubSectionTitle>
-              <div className="mt-3 flex max-w-full flex-wrap gap-2.5 break-words sm:mt-3.5">
-                {vm.social.map((link) => {
-                  const brand = businessHubSocialBrandStyle(link.platform);
-                  return (
+            <div className={SCH_PRIMARY_GRID}>
+              {showContact ? (
+                <section aria-labelledby="hub-contact-heading" className="min-w-0">
+                  <HubSectionTitle>
+                    <span id="hub-contact-heading">{labels.contact}</span>
+                  </HubSectionTitle>
+                  {directContactFasterResponseHint ? (
+                    <p className="mt-1.5 text-[11px] leading-snug text-[#6F6254]" data-servicios-direct-contact-hint="1">
+                      {lang === "en"
+                        ? "Contact the business directly for a faster response."
+                        : "Contacta directamente al negocio para una respuesta más rápida."}
+                    </p>
+                  ) : null}
+                  {callAction ? (
                     <button
-                      key={link.platform}
                       type="button"
-                      onClick={() => openSocialOutbound(link.url, socialHeadline(link.platform))}
-                      className={socialChipClass}
-                      style={{
-                        background: brand.background,
-                        color: brand.color,
-                        border: brand.border ?? "2px solid transparent",
-                      }}
-                      aria-label={socialHeadline(link.platform)}
+                      className={`${SCH_COMPACT_CTA} mt-2 w-full border-0 text-[#FFFCF7]`}
+                      style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
+                      onClick={callAction.onClick}
                     >
-                      <span className="inline-flex" style={{ color: brand.color }}>
-                        <BusinessHubSocialBrandIcon platform={link.platform} />
-                      </span>
+                      <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+                      <span>{callAction.label}</span>
                     </button>
-                  );
-                })}
-              </div>
-            </section>
-          </>
-        ) : null}
-
-        {showMore ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="hub-more-heading">
-              <HubSectionTitle>
-                <span id="hub-more-heading">{lang === "en" ? "Find us online" : "Búscanos aquí"}</span>
-              </HubSectionTitle>
-              <div className="mt-3 flex flex-col gap-2.5 sm:mt-3.5">
-                {vm.moreLinks.map((link, i) => (
-                  <button
-                    key={`${link.label}-${i}`}
-                    type="button"
-                    onClick={() => openLink(link.url)}
-                    className={moreLinkClass}
-                  >
-                    <FiGlobe className="h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
-                    <span className="min-w-0 flex-1 break-words">{cleanHubLinkLabel(link.label, link.url, lang)}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          </>
-        ) : null}
-
-        {showLocation ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="hub-location-heading">
-              <HubSectionTitle>
-                <span id="hub-location-heading">{lang === "en" ? "Our location" : "Nuestra ubicación"}</span>
-              </HubSectionTitle>
-              {vm.location?.addressDisplay?.trim() ? (
-                <p className="mt-3 flex items-start gap-1 whitespace-pre-line text-sm font-medium leading-relaxed text-[#1E1814]">
-                  <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
-                  <span className="flex-1">{vm.location.addressDisplay}</span>
-                  <CopyChip value={vm.location.addressDisplay.trim()} />
-                </p>
+                  ) : null}
+                  {gridContactActions.length > 0 ? (
+                    <div className={contactGridClass}>
+                      {gridContactActions.map((action) => {
+                        const isWhatsApp = action.id === "whatsapp";
+                        const isSecondary = action.id === "message" || action.id === "email";
+                        return (
+                          <button
+                            key={action.id}
+                            type="button"
+                            className={
+                              isSecondary
+                                ? `${SCH_CTA_SECONDARY} min-h-[44px] py-2`
+                                : isWhatsApp
+                                  ? `${SCH_CTA_WHATSAPP} min-h-[44px] py-2`
+                                  : `${SCH_COMPACT_CTA} border-0 text-[#FFFCF7]`
+                            }
+                            style={
+                              isSecondary
+                                ? undefined
+                                : isWhatsApp
+                                  ? { backgroundColor: SCH_LX.whatsApp, boxShadow: SCH_LX.whatsAppShadow }
+                                  : { backgroundColor: SCH_LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.18)" }
+                            }
+                            onClick={action.onClick}
+                          >
+                            {action.icon}
+                            <span>{action.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </section>
               ) : null}
-              <div className="mt-3 overflow-hidden rounded-lg border-2 border-[#D4C4A8] shadow-md ring-1 ring-[#C9A84A]/20">
-                <ServiciosBusinessHubMapPanel
-                  mapImageUrl={vm.location?.mapImageUrl}
-                  mapEmbedSrc={vm.location?.mapEmbedSrc}
-                  addressDisplay={vm.location?.addressDisplay}
-                  lang={lang}
-                />
-              </div>
-              {vm.location?.mapsHref || vm.location?.addressDisplay?.trim() ? (
-                <button
-                  type="button"
-                  className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} mt-3 w-full border-2 border-[#C9A84A]/40`}
-                  style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.28)" }}
-                  onClick={() => {
-                    const mapsHref = vm.location?.mapsHref?.trim();
-                    const address = vm.location?.addressDisplay?.trim() ?? "";
-                    if (mapsHref) openDirections(mapsHref, true);
-                    else if (address) openDirections(address, false);
-                  }}
-                >
-                  <FiMapPin className="h-5 w-5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Get directions" : "Cómo llegar"}
-                </button>
+
+              {showLocation ? (
+                <section aria-labelledby="hub-location-heading" className="min-w-0">
+                  <HubSectionTitle>
+                    <span id="hub-location-heading">{labels.location}</span>
+                  </HubSectionTitle>
+                  {vm.location?.addressDisplay?.trim() ? (
+                    <p className="mt-2 flex items-start gap-1 text-sm font-medium leading-snug text-[#1E1814]">
+                      <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
+                      <span className="flex-1 whitespace-pre-line">{vm.location.addressDisplay}</span>
+                      <CopyChip value={vm.location.addressDisplay.trim()} />
+                    </p>
+                  ) : null}
+                  <div className={SCH_MAP_WRAP}>
+                    <ServiciosBusinessHubMapPanel
+                      mapImageUrl={vm.location?.mapImageUrl}
+                      mapEmbedSrc={vm.location?.mapEmbedSrc}
+                      addressDisplay={vm.location?.addressDisplay}
+                      lang={lang}
+                    />
+                  </div>
+                  {vm.location?.mapsHref || vm.location?.addressDisplay?.trim() ? (
+                    <button
+                      type="button"
+                      className={`${SCH_COMPACT_CTA} mt-2 w-full border-2 border-[#C9A84A]/40 text-[#FFFCF7]`}
+                      style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 6px 18px rgba(92, 22, 34, 0.24)" }}
+                      onClick={() => {
+                        const mapsHref = vm.location?.mapsHref?.trim();
+                        const address = vm.location?.addressDisplay?.trim() ?? "";
+                        if (mapsHref) openDirections(mapsHref, true);
+                        else if (address) openDirections(address, false);
+                      }}
+                    >
+                      <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                      {lang === "en" ? "Get directions" : "Cómo llegar"}
+                    </button>
+                  ) : null}
+                </section>
               ) : null}
-            </section>
-          </>
-        ) : null}
 
-        {hours?.openNowLabel && nonEmpty(hours.todayHoursLine) ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="hub-hours-heading">
-              <HubSectionTitle>
-                <span id="hub-hours-heading">{lang === "en" ? "Hours" : "Horarios"}</span>
-              </HubSectionTitle>
-              <p className="mt-3 flex items-start gap-2 text-xs text-[#6F6254]">
-                <FiClock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: LX.burgundy }} aria-hidden />
-                <span>
-                  <span className="font-semibold text-[#1E1814]">{hours.openNowLabel}:</span> {hours.todayHoursLine}
-                </span>
-              </p>
-            </section>
-          </>
-        ) : null}
+              {showHours && hours ? (
+                <section aria-labelledby="hub-hours-heading" className="min-w-0">
+                  <HubSectionTitle>
+                    <span id="hub-hours-heading">{labels.hours}</span>
+                  </HubSectionTitle>
+                  {hours.openNowLabel && nonEmpty(hours.todayHoursLine) ? (
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-[#6F6254]">
+                      <FiClock className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: SCH_LX.burgundy }} aria-hidden />
+                      <span>
+                        <span className="font-semibold text-[#1E1814]">{hours.openNowLabel}:</span> {hours.todayHoursLine}
+                      </span>
+                    </p>
+                  ) : null}
+                  {hours.weeklyRows && hours.weeklyRows.length > 0 ? (
+                    <ul className="mt-2 space-y-0.5">
+                      {hours.weeklyRows.map((r, i) => (
+                        <li
+                          key={`${r.dayLabel}-${i}`}
+                          className={`flex justify-between gap-2 text-[11px] sm:text-xs ${i === 0 && hours.openNowLabel ? "rounded bg-[#F5F0E8]/90 px-1.5 py-0.5" : ""}`}
+                        >
+                          <span className="min-w-0 shrink font-medium text-[#1E1814]">{r.dayLabel}</span>
+                          <span className="shrink-0 text-right tabular-nums text-[#6F6254]">{r.line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+              ) : null}
+            </div>
 
-        {hours?.weeklyRows && hours.weeklyRows.length > 0 ? (
-          <>
-            {!hours?.openNowLabel ? (
-              <>
-                <HubDivider />
-                <HubSectionTitle>
-                  <span>{lang === "en" ? "Hours" : "Horarios"}</span>
-                </HubSectionTitle>
-              </>
+            {showSecondary ? (
+              <div className={SCH_SECONDARY_GRID}>
+                {showReviews ? (
+                  <section aria-labelledby="hub-reviews-heading" className="min-w-0">
+                    <HubSectionTitle>
+                      <span id="hub-reviews-heading">{labels.reviews}</span>
+                    </HubSectionTitle>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {vm.reviews.map((link) => (
+                        <ServiciosHubReviewLinkButton
+                          key={link.id}
+                          link={link}
+                          lang={lang}
+                          onClick={() => openReviewLink(link)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {showSocial ? (
+                  <section aria-labelledby="hub-social-heading" className="min-w-0">
+                    <HubSectionTitle>
+                      <span id="hub-social-heading">{labels.social}</span>
+                    </HubSectionTitle>
+                    <div className="mt-2 flex max-w-full flex-wrap gap-2">
+                      {vm.social.map((link) => {
+                        const brand = businessHubSocialBrandStyle(link.platform);
+                        return (
+                          <button
+                            key={link.platform}
+                            type="button"
+                            onClick={() => openSocialOutbound(link.url, socialHeadline(link.platform))}
+                            className={SCH_SOCIAL_CHIP}
+                            style={{
+                              background: brand.background,
+                              color: brand.color,
+                              border: brand.border ?? "2px solid transparent",
+                            }}
+                            aria-label={socialHeadline(link.platform)}
+                          >
+                            <span className="inline-flex" style={{ color: brand.color }}>
+                              <BusinessHubSocialBrandIcon platform={link.platform} />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : null}
+
+                {showFindUs ? (
+                  <section aria-labelledby="hub-more-heading" className="min-w-0">
+                    <HubSectionTitle>
+                      <span id="hub-more-heading">{labels.find}</span>
+                    </HubSectionTitle>
+                    <div className="mt-2 flex flex-col gap-2">
+                      {vm.moreLinks.map((link, i) => (
+                        <button
+                          key={`${link.label}-${i}`}
+                          type="button"
+                          onClick={() => openLink(link.url)}
+                          className={SCH_LINK_CARD}
+                        >
+                          <FiGlobe className="h-4 w-4 shrink-0" style={{ color: SCH_LX.burgundy }} aria-hidden />
+                          <span className="min-w-0 flex-1 break-words">{cleanHubLinkLabel(link.label, link.url, lang)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </div>
             ) : null}
-            <ul className={`space-y-1.5 ${hours?.openNowLabel ? "mt-3" : "mt-3"}`}>
-              {hours.weeklyRows.map((r, i) => (
-                <li key={`${r.dayLabel}-${i}`} className="flex justify-between gap-3 text-xs text-[#6F6254]">
-                  <span className="min-w-0 shrink font-medium text-[#1E1814]">{r.dayLabel}</span>
-                  <span className="shrink-0 text-right tabular-nums">{r.line}</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
 
-        {vm.showLeonixVerifiedCue ? (
-          <>
-            <HubDivider />
-            <p className="text-center text-[11px] font-medium tracking-wide text-[color:var(--lx-text-2)] opacity-80">
-              {lang === "en" ? "Ad verified by Leonix" : "Anuncio verificado por Leonix"}
-            </p>
-          </>
-        ) : null}
-      </article>
+            {vm.showLeonixVerifiedCue ? (
+              <p className="mt-3 text-center text-[10px] font-medium tracking-wide text-[#6F6254]">
+                {lang === "en" ? "Ad verified by Leonix" : "Anuncio verificado por Leonix"}
+              </p>
+            ) : null}
+
+            <ServiciosBusinessHubEngagementRow
+              profile={profile}
+              lang={lang}
+              listingSlug={listingSlug}
+              listingSourceId={listingSourceId}
+              engagementListingId={engagementListingId}
+              engagementOwnerUserId={engagementOwnerUserId}
+              listingShareUrl={listingShareUrl}
+              persistListingEngagement={persistListingEngagement}
+              publicLikeCount={publicLikeCount}
+            />
+          </article>
+        </div>
+      </section>
 
       <ServiciosActionPanelAreasMap
         profile={profile}

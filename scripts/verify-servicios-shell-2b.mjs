@@ -55,6 +55,8 @@ function assertBuyerJourney(shell, label) {
   indexAfter(body, "ServiciosCouponsCard", "ServiciosGalleryWithTabs", label);
   indexAfter(body, "ServiciosGalleryWithTabs", "ServiciosOfferedSection", label);
   indexAfter(body, "ServiciosOfferedSection", "ServiciosPublicDetailsCanvas", label);
+  indexAfter(body, "ServiciosPublicDetailsCanvas", "ServiciosGroupedHowSection", label);
+  indexAfter(body, "ServiciosGroupedHowSection", "ServiciosPagosBeneficiosSection", label);
 }
 
 assertBuyerJourney(proShell, "professional shell");

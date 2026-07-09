@@ -104,6 +104,16 @@ function mirrorDraftToLocalStorage(json: string): void {
   }
 }
 
+/** After session restore, keep in-memory bridges aligned with compact persisted JSON. */
+function syncDraftMediaBridgesFromState(state: AgenteIndividualResidencialFormState): void {
+  try {
+    setFullDraftMediaBridge(state);
+    setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
+  } catch {
+    /* ignore */
+  }
+}
+
 function readDraftFromLocalStorageFallback(): string | null {
   if (typeof window === "undefined") return null;
   try {
@@ -195,12 +205,9 @@ function savePreviewPayload(state: AgenteIndividualResidencialFormState, tryStri
   }
   for (const payload of attempts) {
     try {
-      writePreviewKey(JSON.stringify(payload));
-      try {
-        localStorage.removeItem(BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY);
-      } catch {
-        /* ignore */
-      }
+      const json = JSON.stringify(payload);
+      writePreviewKey(json);
+      mirrorDraftToLocalStorage(json);
       return true;
     } catch (e) {
       if (!isQuotaError(e)) {
@@ -224,7 +231,9 @@ function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boo
   }
   for (const p of attempts) {
     try {
-      writeReturnKey(JSON.stringify(p));
+      const json = JSON.stringify(p);
+      writeReturnKey(json);
+      mirrorDraftToLocalStorage(json);
       return true;
     } catch (e) {
       if (!isQuotaError(e)) {
@@ -282,8 +291,7 @@ export async function rehydrateAgenteResDraftMediaFromIdb(
         inlined.additionalInventoryProperties ?? [],
       ),
     });
-    setFullDraftMediaBridge(merged);
-    setChildInventoryMediaBridge(merged.additionalInventoryProperties ?? []);
+    syncDraftMediaBridgesFromState(merged);
     return merged;
   } catch {
     return state;
@@ -347,6 +355,11 @@ export function readAgenteResPreviewDraftRaw(): string | null {
  * Bootstrap publicar: memoria Strict Mode → return draft → vacío.
  * No hidratar desde `BR_AGENTE_RES_PREVIEW_DRAFT_KEY` en visita fría (sólo lo lee la ruta preview).
  */
+export async function bootstrapAgenteIndividualResidencialApplicationStateResolved(): Promise<AgenteIndividualResidencialFormState> {
+  const boot = bootstrapAgenteIndividualResidencialApplicationState();
+  return rehydrateAgenteResDraftMediaFromIdb(boot);
+}
+
 export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIndividualResidencialFormState {
   if (typeof window === "undefined") return createEmptyAgenteIndividualResidencialState();
   restoreMediaBridgesFromLocalStorageFallback();
@@ -372,7 +385,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
             ),
           });
           sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
-          fullDraftMediaBridge = null;
+          syncDraftMediaBridgesFromState(merged);
           previewReturnMemory = merged;
           scheduleClearReturnMemory();
           return merged;
@@ -386,7 +399,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
           if (cat) {
             const recovered = mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
             sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
-            fullDraftMediaBridge = null;
+            syncDraftMediaBridgesFromState(recovered);
             previewReturnMemory = recovered;
             scheduleClearReturnMemory();
             return recovered;
@@ -409,6 +422,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
             mergedBase.additionalInventoryProperties ?? [],
           ),
         });
+        syncDraftMediaBridgesFromState(merged);
         previewReturnMemory = merged;
         scheduleClearReturnMemory();
         return merged;

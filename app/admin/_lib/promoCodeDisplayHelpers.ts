@@ -180,6 +180,28 @@ export function buildPromoFollowUpGuidance(input: {
 export const PROMO_MANUAL_FOLLOW_UP_REMINDER =
   "Manual outreach only. This page does not send bulk newsletters.";
 
+export function formatPromoUsageMoney(cents: number | null | undefined): string | null {
+  if (cents == null || !Number.isFinite(cents)) return null;
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+export function formatPromoUsageField(value: string | null | undefined): string {
+  const v = String(value ?? "").trim();
+  return v || "Not captured";
+}
+
+export function formatPromoUsageAddress(input: {
+  line1?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+}): string | null {
+  const parts = [input.line1, input.city, input.state, input.zip]
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
+
 export function buildPromoOperationalNextAction(input: {
   row: Pick<LeonixPromoCodeRow, "code_type" | "metadata">;
   effectiveStatus: string;

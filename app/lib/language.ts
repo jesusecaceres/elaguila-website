@@ -771,8 +771,12 @@ export function buildPathWithLang(
 
 /** URL lang → cookie/localStorage → default. Client-safe. */
 export function resolveRouteLang(queryLang: string | null | undefined): SupportedLang {
-  const fromUrl = readUrlLang(queryLang);
-  if (fromUrl) return fromUrl;
+  const raw = (queryLang ?? "").trim();
+  if (raw) {
+    const fromUrl = readUrlLang(raw);
+    if (fromUrl) return fromUrl;
+    return normalizeLang(raw);
+  }
   const stored = readClientStoredLangPreference();
   if (stored) return stored;
   return DEFAULT_LANG;

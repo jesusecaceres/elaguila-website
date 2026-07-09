@@ -1,6 +1,7 @@
 import "server-only";
 
 import { resolveEffectivePromoCodeStatus } from "@/app/lib/listingPlans/promoCodeLifecycle";
+import { parsePromoRedemptionBusinessAttribution } from "@/app/lib/listingPlans/revenuePromoRedemptions";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export type LeonixPromoCodeRow = {
@@ -68,13 +69,25 @@ export type PromoCodeUsageEntry = {
   usedBusinessName: string | null;
   category: string | null;
   packageKey: string | null;
+  addOnKeys: string[];
+  ownerUserId: string | null;
+  businessPhone: string | null;
+  businessEmail: string | null;
+  businessAddressLine1: string | null;
+  businessCity: string | null;
+  businessState: string | null;
+  businessZip: string | null;
   stripeCheckoutSessionId: string | null;
+  stripePaymentIntentId: string | null;
   paymentRecordId: string | null;
   paymentStatus: string | null;
+  subtotalCents: number | null;
   amountTotalCents: number | null;
   amountDiscountCents: number | null;
+  currency: string | null;
   publicAdUrl: string | null;
   paymentTrackerHref: string | null;
+  webhookRedeemed: boolean;
   mismatchFlags: PromoCodeAttentionFlag[];
 };
 
@@ -217,6 +230,43 @@ export function matchesPromoCodeSearch(row: LeonixPromoCodeRow, q: string): bool
     .join(" ")
     .toLowerCase();
   return hay.includes(needle);
+}
+
+/** Search enriched usage attribution fields (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
+export function matchesPromoUsageEntrySearch(entry: PromoCodeUsageEntry, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  const hay = [
+    entry.usedBusinessName,
+    entry.usedEmail,
+    entry.businessEmail,
+    entry.businessPhone,
+    entry.listingId,
+    entry.leonixAdId,
+    entry.paymentRecordId,
+    entry.stripeCheckoutSessionId,
+    entry.stripePaymentIntentId,
+    entry.category,
+    entry.packageKey,
+    ...(entry.addOnKeys ?? []),
+    entry.businessAddressLine1,
+    entry.businessCity,
+    entry.businessState,
+    entry.businessZip,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return hay.includes(needle);
+}
+
+export function matchesPromoCodeOrUsageSearch(
+  row: LeonixPromoCodeRow,
+  usage: PromoCodeUsageEntry[],
+  q: string,
+): boolean {
+  if (matchesPromoCodeSearch(row, q)) return true;
+  return usage.some((entry) => matchesPromoUsageEntrySearch(entry, q));
 }
 
 export type PromoCodeTrackerFilters = {
@@ -413,13 +463,15 @@ export async function fetchPromoUsageLedgerForCodes(
     }
 
     const restaurantListingIds = new Set<string>();
+    const serviciosListingIds = new Set<string>();
     for (const red of redemptions) {
       const cat = String((red as { category?: string }).category ?? "").toLowerCase();
       const listingId = String((red as { listing_id?: string }).listing_id ?? "").trim();
       if (cat === "restaurantes" && listingId) restaurantListingIds.add(listingId);
+      if (cat === "servicios" && listingId) serviciosListingIds.add(listingId);
     }
 
-    const slugByListingId = new Map<string, string>();
+    const slugByListingId = new Map<string, { slug: string; category: string }>();
     if (restaurantListingIds.size) {
       const { data: listings } = await supabase
         .from("restaurantes_public_listings")
@@ -429,7 +481,19 @@ export async function fetchPromoUsageLedgerForCodes(
         const id = String((listing as { id: string }).id);
         const slug = String((listing as { slug?: string }).slug ?? "").trim();
         const status = String((listing as { status?: string }).status ?? "");
-        if (slug && status === "published") slugByListingId.set(id, slug);
+        if (slug && status === "published") slugByListingId.set(id, { slug, category: "restaurantes" });
+      }
+    }
+    if (serviciosListingIds.size) {
+      const { data: listings } = await supabase
+        .from("servicios_public_listings")
+        .select("id, slug, listing_status")
+        .in("id", [...serviciosListingIds].slice(0, 100));
+      for (const listing of listings ?? []) {
+        const id = String((listing as { id: string }).id);
+        const slug = String((listing as { slug?: string }).slug ?? "").trim();
+        const listingStatus = String((listing as { listing_status?: string }).listing_status ?? "published");
+        if (slug && listingStatus === "published") slugByListingId.set(id, { slug, category: "servicios" });
       }
     }
 
@@ -445,8 +509,16 @@ export async function fetchPromoUsageLedgerForCodes(
           ? (payment.metadata as Record<string, unknown>)
           : {};
 
+      const redemptionMeta =
+        red.metadata && typeof red.metadata === "object" && !Array.isArray(red.metadata)
+          ? (red.metadata as Record<string, unknown>)
+          : {};
+      const storedAttribution = parsePromoRedemptionBusinessAttribution(redemptionMeta);
+
       const listingId = red.listing_id != null ? String(red.listing_id).trim() || null : null;
-      const category = red.category != null ? String(red.category) : null;
+      const category =
+        storedAttribution?.category ??
+        (red.category != null ? String(red.category) : null);
       const redemptionStatus = String(red.status ?? "pending");
       const paymentStatus = payment?.payment_status != null ? String(payment.payment_status) : null;
       const promoCodeFromPayment =
@@ -456,15 +528,20 @@ export async function fetchPromoUsageLedgerForCodes(
             ? String(paymentMeta.promo_code)
             : null;
 
-      let publicAdUrl: string | null = null;
+      let publicAdUrl: string | null = storedAttribution?.publicUrl ?? null;
       if (
-        category === "restaurantes" &&
+        !publicAdUrl &&
         listingId &&
         slugByListingId.has(listingId) &&
         redemptionStatus === "redeemed" &&
         paymentStatus === "paid"
       ) {
-        publicAdUrl = `/clasificados/restaurantes/${encodeURIComponent(slugByListingId.get(listingId)!)}?lang=es`;
+        const resolved = slugByListingId.get(listingId)!;
+        if (resolved.category === "restaurantes") {
+          publicAdUrl = `/clasificados/restaurantes/${encodeURIComponent(resolved.slug)}?lang=es`;
+        } else if (resolved.category === "servicios") {
+          publicAdUrl = `/clasificados/servicios/${encodeURIComponent(resolved.slug)}?lang=es`;
+        }
       }
 
       let paymentTrackerHref: string | null = null;
@@ -474,27 +551,58 @@ export async function fetchPromoUsageLedgerForCodes(
         paymentTrackerHref = `/admin/workspace/payment-tracker?promo_code=${encodeURIComponent(promoCodeFromPayment)}`;
       }
 
+      const subtotalCents =
+        storedAttribution?.subtotalCents ??
+        numOrNull(payment?.amount_subtotal_cents ?? paymentMeta.subtotal_cents ?? paymentMeta.promo_subtotal_cents);
+      const amountDiscountCents =
+        storedAttribution?.discountCents ??
+        numOrNull(payment?.amount_discount_cents ?? paymentMeta.promo_discount_cents ?? paymentMeta.discount_cents) ??
+        (numOrNull(red.discount_cents) ?? null);
+      const amountTotalCents =
+        storedAttribution?.finalAmountCents ??
+        numOrNull(payment?.amount_total_cents ?? payment?.amount_cents);
+
       const entry: PromoCodeUsageEntry = {
         redemptionId: String(red.id),
         redemptionStatus,
-        redeemedAt: red.redeemed_at != null ? String(red.redeemed_at) : null,
-        discountCents: numOrNull(red.discount_cents) ?? 0,
-        listingId,
-        leonixAdId: red.leonix_ad_id != null ? String(red.leonix_ad_id).trim() || null : null,
+        redeemedAt: red.redeemed_at != null ? String(red.redeemed_at) : storedAttribution?.redeemedAt ?? null,
+        discountCents: amountDiscountCents ?? numOrNull(red.discount_cents) ?? 0,
+        listingId: storedAttribution?.listingId ?? listingId,
+        leonixAdId:
+          storedAttribution?.leonixAdId ??
+          (red.leonix_ad_id != null ? String(red.leonix_ad_id).trim() || null : null),
         usedEmail:
+          storedAttribution?.customerEmail ??
           (payment?.customer_email != null ? String(payment.customer_email) : null) ??
           (red.email != null ? String(red.email) : null),
-        usedBusinessName: payment?.business_name != null ? String(payment.business_name) : null,
+        usedBusinessName:
+          storedAttribution?.businessName ??
+          (payment?.business_name != null ? String(payment.business_name) : null),
         category,
-        packageKey: red.package_key != null ? String(red.package_key) : null,
+        packageKey: storedAttribution?.packageKey ?? (red.package_key != null ? String(red.package_key) : null),
+        addOnKeys: storedAttribution?.addOnKeys ?? [],
+        ownerUserId: storedAttribution?.ownerUserId ?? (payment?.owner_user_id != null ? String(payment.owner_user_id) : null),
+        businessPhone: storedAttribution?.businessPhone ?? null,
+        businessEmail: storedAttribution?.businessEmail ?? null,
+        businessAddressLine1: storedAttribution?.businessAddressLine1 ?? null,
+        businessCity: storedAttribution?.businessCity ?? null,
+        businessState: storedAttribution?.businessState ?? null,
+        businessZip: storedAttribution?.businessZip ?? null,
         stripeCheckoutSessionId:
-          red.stripe_checkout_session_id != null ? String(red.stripe_checkout_session_id) : null,
-        paymentRecordId: paymentId,
+          storedAttribution?.stripeCheckoutSessionId ??
+          (red.stripe_checkout_session_id != null ? String(red.stripe_checkout_session_id) : null),
+        stripePaymentIntentId:
+          storedAttribution?.stripePaymentIntentId ??
+          (payment?.stripe_payment_intent_id != null ? String(payment.stripe_payment_intent_id) : null),
+        paymentRecordId: storedAttribution?.paymentRecordId ?? paymentId,
         paymentStatus,
-        amountTotalCents: numOrNull(payment?.amount_total_cents ?? payment?.amount_cents),
-        amountDiscountCents: numOrNull(payment?.amount_discount_cents ?? paymentMeta.promo_discount_cents),
+        subtotalCents,
+        amountTotalCents,
+        amountDiscountCents,
+        currency: storedAttribution?.currency ?? (payment?.currency != null ? String(payment.currency) : null),
         publicAdUrl,
         paymentTrackerHref,
+        webhookRedeemed: redemptionStatus === "redeemed" && paymentStatus === "paid",
         mismatchFlags: [],
       };
 
@@ -546,7 +654,10 @@ export async function fetchPromoCodesForTracker(
     const totalFetched = rows.length;
 
     if (filters.q) {
-      rows = rows.filter((r) => matchesPromoCodeSearch(r, filters.q!));
+      const usageLedger = await fetchPromoUsageLedgerForCodes(rows.map((r) => r.id));
+      rows = rows.filter((r) =>
+        matchesPromoCodeOrUsageSearch(r, usageLedger.get(r.id) ?? [], filters.q!),
+      );
     }
 
     const statusFilter = filters.status?.trim();

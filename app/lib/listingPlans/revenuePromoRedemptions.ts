@@ -7,6 +7,10 @@ import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { resolveEffectivePromoCodeStatus } from "./promoCodeLifecycle";
 import { promoScopeIsUnrestricted, validatePromoEligibility } from "./promoCodeRules";
+import {
+  loadPaymentRecordForPromoAttribution,
+  type LeonixPaymentRecordAttributionRow,
+} from "./revenuePaymentRecords";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
 
 export type PromoRow = {
@@ -487,8 +491,316 @@ export type PromoRedemptionRow = {
   payment_record_id: string | null;
   status: string;
   stripe_checkout_session_id: string | null;
+  listing_id?: string | null;
+  leonix_ad_id?: string | null;
+  email?: string | null;
+  category?: string | null;
+  package_key?: string | null;
+  discount_cents?: number | null;
+  redeemed_at?: string | null;
   metadata: Record<string, unknown> | null;
 };
+
+/** Stored on redemption.metadata.business_attribution after successful paid webhook. */
+export type PromoRedemptionBusinessAttribution = {
+  promoCode?: string | null;
+  promoCodeId?: string | null;
+  category?: string | null;
+  packageKey?: string | null;
+  addOnKeys?: string[] | null;
+  listingId?: string | null;
+  leonixAdId?: string | null;
+  publicUrl?: string | null;
+  paymentRecordId?: string | null;
+  stripeCheckoutSessionId?: string | null;
+  stripePaymentIntentId?: string | null;
+  customerEmail?: string | null;
+  customerName?: string | null;
+  ownerUserId?: string | null;
+  businessName?: string | null;
+  businessPhone?: string | null;
+  businessEmail?: string | null;
+  businessAddressLine1?: string | null;
+  businessCity?: string | null;
+  businessState?: string | null;
+  businessZip?: string | null;
+  subtotalCents?: number | null;
+  discountCents?: number | null;
+  finalAmountCents?: number | null;
+  currency?: string | null;
+  paidAt?: string | null;
+  redeemedAt?: string | null;
+  source?: string | null;
+  assignedRep?: string | null;
+  notes?: string | null;
+};
+
+export const PROMO_REDEMPTION_BUSINESS_ATTRIBUTION_KEY = "business_attribution" as const;
+
+function readMetaString(obj: Record<string, unknown>, key: string): string | null {
+  const raw = obj[key];
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  return null;
+}
+
+function parseAddOnKeysFromPaymentMeta(meta: Record<string, unknown>): string[] {
+  const addOns = meta.add_ons;
+  if (!Array.isArray(addOns)) return [];
+  return addOns
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return "";
+      return readMetaString(item as Record<string, unknown>, "key") ?? "";
+    })
+    .filter(Boolean);
+}
+
+function buildPublicAdUrl(category: string, slug: string, published: boolean): string | null {
+  if (!published || !slug.trim()) return null;
+  const cat = category.trim().toLowerCase();
+  if (cat === "restaurantes") {
+    return `/clasificados/restaurantes/${encodeURIComponent(slug)}?lang=es`;
+  }
+  if (cat === "servicios") {
+    return `/clasificados/servicios/${encodeURIComponent(slug)}?lang=es`;
+  }
+  return null;
+}
+
+type ListingAttributionContext = {
+  businessName?: string | null;
+  businessPhone?: string | null;
+  businessEmail?: string | null;
+  businessAddressLine1?: string | null;
+  businessCity?: string | null;
+  businessState?: string | null;
+  businessZip?: string | null;
+  publicUrl?: string | null;
+};
+
+async function fetchListingContextForPromoAttribution(input: {
+  category: string;
+  listingId: string;
+}): Promise<ListingAttributionContext | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const category = input.category.trim().toLowerCase();
+  const listingId = input.listingId.trim();
+  if (!listingId) return null;
+
+  const supabase = getAdminSupabase();
+
+  if (category === "restaurantes") {
+    const { data } = await supabase
+      .from("restaurantes_public_listings")
+      .select("id, slug, status, business_name, city_canonical, zip_code, listing_json")
+      .eq("id", listingId)
+      .maybeSingle();
+    if (!data) return null;
+    const row = data as Record<string, unknown>;
+    const listingJson = asRecord(row.listing_json);
+    const slug = readMetaString(row, "slug") ?? "";
+    const status = readMetaString(row, "status") ?? "";
+    return {
+      businessName: readMetaString(row, "business_name"),
+      businessPhone: readMetaString(listingJson, "phoneNumber"),
+      businessEmail: readMetaString(listingJson, "email"),
+      businessAddressLine1: readMetaString(listingJson, "addressLine1"),
+      businessCity: readMetaString(row, "city_canonical") ?? readMetaString(listingJson, "city"),
+      businessState: readMetaString(listingJson, "state") ?? readMetaString(listingJson, "addressState"),
+      businessZip: readMetaString(row, "zip_code") ?? readMetaString(listingJson, "zipCode"),
+      publicUrl: buildPublicAdUrl("restaurantes", slug, status === "published"),
+    };
+  }
+
+  if (category === "servicios") {
+    const { data } = await supabase
+      .from("servicios_public_listings")
+      .select("id, slug, listing_status, business_name, city, profile_json")
+      .eq("id", listingId)
+      .maybeSingle();
+    if (!data) return null;
+    const row = data as Record<string, unknown>;
+    const profile = asRecord(row.profile_json);
+    const contact = asRecord(profile.contact);
+    const hero = asRecord(profile.hero);
+    const identity = asRecord(profile.identity);
+    const slug = readMetaString(row, "slug") ?? "";
+    const listingStatus = readMetaString(row, "listing_status") ?? "published";
+    return {
+      businessName: readMetaString(row, "business_name") ?? readMetaString(identity, "businessName"),
+      businessPhone: readMetaString(contact, "phone") ?? readMetaString(contact, "phoneOffice"),
+      businessEmail: readMetaString(contact, "email"),
+      businessAddressLine1: readMetaString(contact, "physicalStreet"),
+      businessCity:
+        readMetaString(row, "city") ??
+        readMetaString(contact, "physicalCity") ??
+        readMetaString(hero, "locationSummary"),
+      businessState: readMetaString(contact, "physicalRegion") ?? readMetaString(hero, "state"),
+      businessZip: readMetaString(contact, "physicalPostalCode"),
+      publicUrl: buildPublicAdUrl("servicios", slug, listingStatus === "published"),
+    };
+  }
+
+  return null;
+}
+
+export function parsePromoRedemptionBusinessAttribution(
+  metadata: Record<string, unknown> | null | undefined,
+): PromoRedemptionBusinessAttribution | null {
+  const root = asRecord(metadata);
+  const raw = root[PROMO_REDEMPTION_BUSINESS_ATTRIBUTION_KEY];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const attr = raw as Record<string, unknown>;
+  const addOnKeysRaw = attr.addOnKeys;
+  const addOnKeys = Array.isArray(addOnKeysRaw)
+    ? addOnKeysRaw.map((v) => String(v ?? "").trim()).filter(Boolean)
+    : null;
+  return {
+    promoCode: readMetaString(attr, "promoCode"),
+    promoCodeId: readMetaString(attr, "promoCodeId"),
+    category: readMetaString(attr, "category"),
+    packageKey: readMetaString(attr, "packageKey"),
+    addOnKeys,
+    listingId: readMetaString(attr, "listingId"),
+    leonixAdId: readMetaString(attr, "leonixAdId"),
+    publicUrl: readMetaString(attr, "publicUrl"),
+    paymentRecordId: readMetaString(attr, "paymentRecordId"),
+    stripeCheckoutSessionId: readMetaString(attr, "stripeCheckoutSessionId"),
+    stripePaymentIntentId: readMetaString(attr, "stripePaymentIntentId"),
+    customerEmail: readMetaString(attr, "customerEmail"),
+    customerName: readMetaString(attr, "customerName"),
+    ownerUserId: readMetaString(attr, "ownerUserId"),
+    businessName: readMetaString(attr, "businessName"),
+    businessPhone: readMetaString(attr, "businessPhone"),
+    businessEmail: readMetaString(attr, "businessEmail"),
+    businessAddressLine1: readMetaString(attr, "businessAddressLine1"),
+    businessCity: readMetaString(attr, "businessCity"),
+    businessState: readMetaString(attr, "businessState"),
+    businessZip: readMetaString(attr, "businessZip"),
+    subtotalCents: numOrNullAttr(attr.subtotalCents),
+    discountCents: numOrNullAttr(attr.discountCents),
+    finalAmountCents: numOrNullAttr(attr.finalAmountCents),
+    currency: readMetaString(attr, "currency"),
+    paidAt: readMetaString(attr, "paidAt"),
+    redeemedAt: readMetaString(attr, "redeemedAt"),
+    source: readMetaString(attr, "source"),
+    assignedRep: readMetaString(attr, "assignedRep"),
+    notes: readMetaString(attr, "notes"),
+  };
+}
+
+function numOrNullAttr(raw: unknown): number | null {
+  if (raw == null || !Number.isFinite(Number(raw))) return null;
+  return Math.floor(Number(raw));
+}
+
+export async function buildPromoRedemptionBusinessAttribution(input: {
+  payment: LeonixPaymentRecordAttributionRow;
+  redemption?: PromoRedemptionRow | null;
+  stripeCheckoutSessionId: string;
+  stripePaymentIntentId?: string | null;
+  redeemedAt?: string | null;
+  promoCode?: string | null;
+}): Promise<PromoRedemptionBusinessAttribution> {
+  const paymentMeta = asRecord(input.payment.metadata);
+  const category =
+    readMetaString({ category: input.payment.category }, "category") ??
+    readMetaString({ category: input.redemption?.category ?? "" }, "category");
+  const listingId =
+    input.payment.listing_id?.trim() ||
+    input.redemption?.listing_id?.trim() ||
+    null;
+
+  let listingContext: ListingAttributionContext | null = null;
+  if (category && listingId) {
+    listingContext = await fetchListingContextForPromoAttribution({ category, listingId });
+  }
+
+  const subtotalCents =
+    input.payment.amount_subtotal_cents ??
+    numOrNullAttr(paymentMeta.subtotal_cents ?? paymentMeta.promo_subtotal_cents) ??
+    input.payment.amount_cents;
+  const discountCents =
+    input.payment.amount_discount_cents ??
+    numOrNullAttr(paymentMeta.promo_discount_cents ?? paymentMeta.discount_cents) ??
+    input.redemption?.discount_cents ??
+    null;
+  const finalAmountCents =
+    input.payment.amount_total_cents ?? input.payment.amount_cents ?? null;
+
+  const promoCode =
+    input.promoCode?.trim() ||
+    readMetaString(paymentMeta, "promo_code") ||
+    null;
+
+  return {
+    promoCode,
+    promoCodeId: input.payment.promo_code_id ?? input.redemption?.promo_code_id ?? null,
+    category,
+    packageKey: input.payment.package_key ?? input.redemption?.package_key ?? null,
+    addOnKeys: parseAddOnKeysFromPaymentMeta(paymentMeta),
+    listingId,
+    leonixAdId: input.payment.leonix_ad_id ?? input.redemption?.leonix_ad_id ?? null,
+    publicUrl: listingContext?.publicUrl ?? null,
+    paymentRecordId: input.payment.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripePaymentIntentId:
+      input.stripePaymentIntentId ?? input.payment.stripe_payment_intent_id ?? null,
+    customerEmail:
+      input.payment.customer_email?.trim() ||
+      input.redemption?.email?.trim() ||
+      null,
+    customerName: null,
+    ownerUserId: input.payment.owner_user_id ?? null,
+    businessName:
+      listingContext?.businessName ??
+      input.payment.business_name?.trim() ??
+      null,
+    businessPhone: listingContext?.businessPhone ?? null,
+    businessEmail: listingContext?.businessEmail ?? null,
+    businessAddressLine1: listingContext?.businessAddressLine1 ?? null,
+    businessCity: listingContext?.businessCity ?? null,
+    businessState: listingContext?.businessState ?? null,
+    businessZip: listingContext?.businessZip ?? null,
+    subtotalCents,
+    discountCents,
+    finalAmountCents,
+    currency: input.payment.currency ?? "usd",
+    paidAt: input.payment.paid_at ?? null,
+    redeemedAt: input.redeemedAt ?? input.redemption?.redeemed_at ?? null,
+    source: input.payment.source ?? null,
+    assignedRep: null,
+    notes: null,
+  };
+}
+
+export async function markPromoRedemptionRedeemedWithBusinessAttribution(input: {
+  redemptionId: string;
+  stripeCheckoutSessionId: string;
+  paymentRecordId: string;
+  stripePaymentIntentId?: string | null;
+  webhookMeta: Record<string, unknown>;
+}): Promise<{ ok: boolean; idempotent?: boolean; code?: string; message?: string }> {
+  const payment = await loadPaymentRecordForPromoAttribution(input.paymentRecordId);
+  const redemption = await loadPromoRedemptionById(input.redemptionId);
+  const businessAttribution =
+    payment != null
+      ? await buildPromoRedemptionBusinessAttribution({
+          payment,
+          redemption,
+          stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+          stripePaymentIntentId: input.stripePaymentIntentId,
+          redeemedAt: new Date().toISOString(),
+        })
+      : undefined;
+
+  return markPromoRedemptionRedeemed({
+    redemptionId: input.redemptionId,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    paymentRecordId: input.paymentRecordId,
+    webhookMeta: input.webhookMeta,
+    businessAttribution,
+  });
+}
 
 export async function loadPromoRedemptionById(
   redemptionId: string,
@@ -497,10 +809,17 @@ export async function loadPromoRedemptionById(
   const supabase = getAdminSupabase();
   const { data } = await supabase
     .from("leonix_promo_code_redemptions")
-    .select("id, promo_code_id, payment_record_id, status, stripe_checkout_session_id, metadata")
+    .select(
+      "id, promo_code_id, payment_record_id, status, stripe_checkout_session_id, listing_id, leonix_ad_id, email, category, package_key, discount_cents, redeemed_at, metadata",
+    )
     .eq("id", redemptionId)
     .maybeSingle();
-  return (data as PromoRedemptionRow | null) ?? null;
+  const row = (data as PromoRedemptionRow | null) ?? null;
+  if (!row) return null;
+  const meta = row.metadata;
+  row.metadata =
+    meta && typeof meta === "object" && !Array.isArray(meta) ? (meta as Record<string, unknown>) : null;
+  return row;
 }
 
 export async function markPromoRedemptionRedeemed(input: {
@@ -508,6 +827,7 @@ export async function markPromoRedemptionRedeemed(input: {
   stripeCheckoutSessionId: string;
   paymentRecordId: string;
   webhookMeta: Record<string, unknown>;
+  businessAttribution?: PromoRedemptionBusinessAttribution | null;
 }): Promise<{ ok: boolean; idempotent?: boolean; code?: string; message?: string }> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
@@ -519,6 +839,23 @@ export async function markPromoRedemptionRedeemed(input: {
   }
 
   if (row.status === "redeemed") {
+    if (
+      input.businessAttribution &&
+      !parsePromoRedemptionBusinessAttribution(row.metadata ?? {})
+    ) {
+      const supabase = getAdminSupabase();
+      await supabase
+        .from("leonix_promo_code_redemptions")
+        .update({
+          metadata: {
+            ...(row.metadata ?? {}),
+            [PROMO_REDEMPTION_BUSINESS_ATTRIBUTION_KEY]: input.businessAttribution,
+            gate: "REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01",
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.redemptionId);
+    }
     return { ok: true, idempotent: true };
   }
 
@@ -553,6 +890,9 @@ export async function markPromoRedemptionRedeemed(input: {
       metadata: {
         ...(row.metadata ?? {}),
         ...input.webhookMeta,
+        ...(input.businessAttribution
+          ? { [PROMO_REDEMPTION_BUSINESS_ATTRIBUTION_KEY]: input.businessAttribution }
+          : {}),
         gate: "STRIPE-REVENUE-OS-WEBHOOK-FULFILLMENT-01",
       },
     })

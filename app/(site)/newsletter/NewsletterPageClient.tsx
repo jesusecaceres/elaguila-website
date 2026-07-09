@@ -17,6 +17,7 @@ import {
 import type { LeadLang } from "@/app/lib/leonix/leadCaptureValidation";
 import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
 import { getLanguageLabel } from "@/app/lib/language";
+import { PAID_CHECKPOINT_LAUNCH_SOURCE } from "@/app/clasificados/publicar/_lib/publishCheckpointCopy";
 
 const inputClass =
   "w-full rounded-lg border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-3 text-[#1F241C] placeholder:text-[#5F6258] focus:outline-none focus:ring-2 focus:ring-[#C9A84A]/40";
@@ -30,6 +31,8 @@ export default function NewsletterPageClient() {
   const lang = useMemo(() => parseGateLang(searchParams?.get("lang")), [searchParams]);
   const source = searchParams?.get("source") ?? "";
   const sourceCta = searchParams?.get("sourceCta") ?? "";
+  const checkpointCategory = searchParams?.get("category")?.trim() ?? "";
+  const returnCheckpoint = searchParams?.get("return") === "checkpoint";
   const emailPrefill = searchParams?.get("email") ?? "";
   const locale = getPublicLocaleCopy(lang);
   const t = locale.newsletter;
@@ -41,9 +44,14 @@ export default function NewsletterPageClient() {
   const [consent, setConsent] = useState(false);
   const [city, setCity] = useState("");
   const [promoEmailSent, setPromoEmailSent] = useState(false);
+  const [closeWindowHint, setCloseWindowHint] = useState(false);
 
   const preserveQueryKeys = source || sourceCta ? (["source", "sourceCta"] as const) : undefined;
-  const resolvedSource = source.trim() || "newsletter_page";
+  const baseSource = source.trim() || "newsletter_page";
+  const resolvedSource =
+    baseSource === PAID_CHECKPOINT_LAUNCH_SOURCE && checkpointCategory
+      ? `${PAID_CHECKPOINT_LAUNCH_SOURCE}_${checkpointCategory}`
+      : baseSource;
   const fromComingSoon = isComingSoonSource(resolvedSource);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -87,6 +95,11 @@ export default function NewsletterPageClient() {
     setError(result.message || getPublicLeadErrorMessage(lang));
   }
 
+  function handleCloseWindow() {
+    window.close();
+    setCloseWindowHint(true);
+  }
+
   if (submitted) {
     const promoMessage = promoEmailSent
       ? lang === "en"
@@ -105,6 +118,29 @@ export default function NewsletterPageClient() {
         preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
       >
         <p className="text-sm font-medium text-[#556B3E]">{promoMessage}</p>
+        {returnCheckpoint ? (
+          <div className="mt-4 rounded-xl border border-[#C9A84A]/50 bg-[#FFFCF7] p-4 text-sm text-[#3D3428]">
+            <p className="font-medium">
+              {lang === "en"
+                ? "You're set. You can close this window and return to your publish checkpoint page."
+                : "Listo. Ya puedes cerrar esta ventana y regresar a tu página de publicación."}
+            </p>
+            <button
+              type="button"
+              onClick={handleCloseWindow}
+              className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5E1722] sm:w-auto"
+            >
+              {lang === "en" ? "Close window" : "Cerrar ventana"}
+            </button>
+            {closeWindowHint ? (
+              <p className="mt-2 text-xs text-[#7A7164]">
+                {lang === "en"
+                  ? "If your browser did not close this tab automatically, close it manually and return to the previous page."
+                  : "Si tu navegador no la cierra automáticamente, cierra esta pestaña y vuelve a la página anterior."}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <p className="mt-2 text-sm text-[#5F6258]">
           {t.languageLabel}: <span className="font-semibold text-[#3D3428]">{getLanguageLabel(lang)}</span>
         </p>

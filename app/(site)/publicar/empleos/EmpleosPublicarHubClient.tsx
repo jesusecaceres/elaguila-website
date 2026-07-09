@@ -186,6 +186,8 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
         body={t.subtitle}
         backHref={appendLangToPath("/clasificados/publicar", routeLang)}
         backLabel={t.backCategories}
+        checkpointCategory="empleos"
+        launchBannerCards={empleosCheckpointCards}
       >
         <PublishEntryCheckpointStack cards={empleosCheckpointCards} lang={lang} />
         <ul className="mt-6 grid gap-2 text-sm font-semibold text-[#4D3A19] sm:grid-cols-3">

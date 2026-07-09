@@ -23,6 +23,8 @@ import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
 import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
 import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
+import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
+import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSection";
 import { SV } from "./serviciosDesignTokens";
 import { LX_LINK_ACCENT } from "./serviciosLeonixBrand";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
@@ -164,6 +166,14 @@ export function ServiciosProfileView({
                   ) : null}
 
                   <ServiciosPublicDetailsCanvas
+                    profile={profile}
+                    displayProfile={displayProfile}
+                    lang={lang}
+                  />
+
+                  <ServiciosGroupedHowSection profile={profile} lang={lang} />
+
+                  <ServiciosPagosBeneficiosSection
                     profile={profile}
                     displayProfile={displayProfile}
                     lang={lang}

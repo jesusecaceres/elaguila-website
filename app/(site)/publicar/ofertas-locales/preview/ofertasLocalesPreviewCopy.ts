@@ -339,8 +339,12 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   couponViewerHelperEs: "Desliza para ver el cupón completo.",
   couponViewerHelperEn: "Scroll to view the full coupon.",
   // V2.3 — compact membership / digital coupon CTA labels
-  membershipSignUpShortEs: "Registrarse",
-  membershipSignUpShortEn: "Sign up",
+  membershipSignUpShortEs: "Registrarse para membresía",
+  membershipSignUpShortEn: "Sign up for membership",
+  membershipInstructionsLabelEs: "Instrucciones",
+  membershipInstructionsLabelEn: "Instructions",
+  digitalCouponInstructionsLabelEs: "Instrucciones",
+  digitalCouponInstructionsLabelEn: "Instructions",
   digitalCouponActivateShortEs: "Activar",
   digitalCouponActivateShortEn: "Activate",
   // V2.3 — premium header quick actions

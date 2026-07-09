@@ -54,6 +54,8 @@ export type LeonixLaunchCouponCardProps = {
   finePrintMode?: "full" | "short" | "none";
   /** Show the official logo tile. Defaults on for public/dashboard/compact/mini. */
   showLogo?: boolean;
+  /** Open CTA in a new tab (e.g. paid checkpoint → newsletter without leaving publish flow). */
+  openInNewTab?: boolean;
 };
 
 export function LeonixLaunchCouponCard({
@@ -65,6 +67,7 @@ export function LeonixLaunchCouponCard({
   showCta = true,
   finePrintMode,
   showLogo,
+  openInNewTab = false,
 }: LeonixLaunchCouponCardProps) {
   const t = COPY[lang];
 
@@ -161,9 +164,15 @@ export function LeonixLaunchCouponCard({
 
           {showCta && href ? (
             <div className={isMini ? "mt-2.5" : "mt-4"}>
-              <Link href={href} className={ctaClass}>
-                {cta}
-              </Link>
+              {openInNewTab ? (
+                <a href={href} target="_blank" rel="noopener noreferrer" className={ctaClass}>
+                  {cta}
+                </a>
+              ) : (
+                <Link href={href} className={ctaClass}>
+                  {cta}
+                </Link>
+              )}
             </div>
           ) : null}
 

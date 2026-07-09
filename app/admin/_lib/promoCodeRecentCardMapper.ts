@@ -20,6 +20,9 @@ import {
   formatPromoCustomerBlock,
   formatPromoDeliveryStatus,
   formatPromoSourceLabel,
+  formatPromoUsageAddress,
+  formatPromoUsageField,
+  formatPromoUsageMoney,
   formatPromoUsageSummary,
   getPromoDeliveryStatusKey,
 } from "./promoCodeDisplayHelpers";
@@ -29,15 +32,25 @@ export type PromoRecentUsageView = {
   redemptionId: string;
   usedBusinessName: string | null;
   usedEmail: string | null;
+  businessPhone: string | null;
+  businessEmail: string | null;
+  businessAddress: string | null;
+  category: string | null;
+  packageKey: string | null;
+  addOnKeys: string[];
   listingId: string | null;
   leonixAdId: string | null;
+  ownerUserId: string | null;
   paymentRecordId: string | null;
   stripeCheckoutSessionId: string | null;
+  stripePaymentIntentId: string | null;
   paymentStatus: string | null;
   webhookRedeemed: boolean;
   redeemedAt: string | null;
-  amountDiscountCents: number | null;
-  amountTotalCents: number | null;
+  subtotalCents: string | null;
+  amountDiscountCents: string | null;
+  amountTotalCents: string | null;
+  currency: string | null;
   paymentTrackerHref: string | null;
   publicAdUrl: string | null;
   mismatchLabels: string[];
@@ -120,11 +133,6 @@ function truncateId(id: string | null | undefined, len = 8): string {
   return id.length > len ? `${id.slice(0, len)}…` : id;
 }
 
-function money(cents: number | null | undefined) {
-  if (cents == null || !Number.isFinite(cents)) return null;
-  return cents;
-}
-
 export function buildPromoRecentCardViews(
   rows: LeonixPromoCodeRow[],
   usageLedger: Map<string, PromoCodeUsageEntry[]>,
@@ -200,17 +208,36 @@ export function buildPromoRecentCardViews(
           redemptionId: entry.redemptionId,
           usedBusinessName: entry.usedBusinessName,
           usedEmail: entry.usedEmail,
+          businessPhone: entry.businessPhone,
+          businessEmail: entry.businessEmail,
+          businessAddress: formatPromoUsageAddress({
+            line1: entry.businessAddressLine1,
+            city: entry.businessCity,
+            state: entry.businessState,
+            zip: entry.businessZip,
+          }),
+          category: entry.category,
+          packageKey: entry.packageKey,
+          addOnKeys: entry.addOnKeys,
           listingId: entry.listingId ? truncateId(entry.listingId, 12) : null,
           leonixAdId: entry.leonixAdId ? truncateId(entry.leonixAdId, 12) : null,
+          ownerUserId: entry.ownerUserId ? truncateId(entry.ownerUserId, 12) : null,
           paymentRecordId: entry.paymentRecordId ? truncateId(entry.paymentRecordId, 12) : null,
           stripeCheckoutSessionId: entry.stripeCheckoutSessionId
             ? truncateId(entry.stripeCheckoutSessionId, 16)
             : null,
+          stripePaymentIntentId: entry.stripePaymentIntentId
+            ? truncateId(entry.stripePaymentIntentId, 16)
+            : null,
           paymentStatus: entry.paymentStatus,
-          webhookRedeemed: entry.redemptionStatus === "redeemed" && entry.paymentStatus === "paid",
+          webhookRedeemed: entry.webhookRedeemed,
           redeemedAt: entry.redeemedAt,
-          amountDiscountCents: money(entry.amountDiscountCents ?? (entry.discountCents > 0 ? entry.discountCents : null)),
-          amountTotalCents: money(entry.amountTotalCents),
+          subtotalCents: formatPromoUsageMoney(entry.subtotalCents),
+          amountDiscountCents: formatPromoUsageMoney(
+            entry.amountDiscountCents ?? (entry.discountCents > 0 ? entry.discountCents : null),
+          ),
+          amountTotalCents: formatPromoUsageMoney(entry.amountTotalCents),
+          currency: entry.currency,
           paymentTrackerHref: entry.paymentTrackerHref,
           publicAdUrl: entry.publicAdUrl,
           mismatchLabels: mismatch.map((f) => promoAttentionFlagLabel(f)),

@@ -2,11 +2,34 @@
 
 export type PublishCheckpointLang = "es" | "en";
 
+export const PAID_CHECKPOINT_LAUNCH_SOURCE = "paid_checkpoint_launch_25";
+
+export function buildPaidCheckpointNewsletterHref(
+  lang: PublishCheckpointLang,
+  category: string,
+): string {
+  const params = new URLSearchParams({
+    lang,
+    source: PAID_CHECKPOINT_LAUNCH_SOURCE,
+    return: "checkpoint",
+    category,
+  });
+  return `/newsletter?${params.toString()}`;
+}
+
 export function publishCheckpointCouponLine(lang: PublishCheckpointLang, eligible: boolean): string | null {
   if (!eligible) return null;
   return lang === "es"
     ? "Puedes usar tu código Launch 25 si este producto web es elegible. El descuento se valida en checkout."
     : "You can use your Launch 25 code if this website product is eligible. The discount is validated at checkout.";
+}
+
+/** Short per-card line when top Launch 25 banner is shown on the page. */
+export function publishCheckpointCouponLineShort(lang: PublishCheckpointLang, eligible: boolean): string | null {
+  if (!eligible) return null;
+  return lang === "es"
+    ? "Código Launch 25 elegible en checkout."
+    : "Launch 25 code eligible at checkout.";
 }
 
 export function publishCheckpointCouponExclusions(lang: PublishCheckpointLang): string {

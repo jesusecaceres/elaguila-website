@@ -28,7 +28,7 @@ import {
 import { getRevenuePackageDefinition, type RevenuePackageDefinition } from "./revenuePricingMatrix";
 import {
   markPromoRedemptionExpiredOrCancelled,
-  markPromoRedemptionRedeemed,
+  markPromoRedemptionRedeemedWithBusinessAttribution,
 } from "./revenuePromoRedemptions";
 import {
   isRevenueOsCheckoutSession,
@@ -569,10 +569,11 @@ export async function fulfillCheckoutSessionCompleted(input: {
 
   let promoRedemptionId = paymentRecord.promo_redemption_id ?? metadata.promoRedemptionId;
   if (promoRedemptionId) {
-    const promoResult = await markPromoRedemptionRedeemed({
+    const promoResult = await markPromoRedemptionRedeemedWithBusinessAttribution({
       redemptionId: promoRedemptionId,
       stripeCheckoutSessionId: session.id,
       paymentRecordId: paymentRecord.id,
+      stripePaymentIntentId: resolveStripePaymentIntentId(session),
       webhookMeta,
     });
 

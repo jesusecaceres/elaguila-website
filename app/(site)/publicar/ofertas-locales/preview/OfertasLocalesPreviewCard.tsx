@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiAward, FiCopy, FiGlobe, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiAward, FiCopy, FiGlobe, FiInfo, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -88,6 +88,8 @@ const PILL_TRUST =
 // V2.3 — compact header quick-action row (real actions only)
 const QUICK_ACTION =
   "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition sm:text-sm";
+const INSTRUCTION_HINT =
+  "inline-flex min-h-10 max-w-full cursor-pointer list-none items-center gap-1 rounded-lg border border-[#D4C4A8]/70 bg-white/80 px-2.5 py-1.5 text-[11px] font-medium text-[#1E1814]/70 transition hover:border-[#B8860B]/45 hover:bg-[#FDF8F0] [&::-webkit-details-marker]:hidden";
 
 const SOCIAL_BRAND: Record<OfertaLocalSocialLinkKey, { background: string; color: string; border?: string }> = {
   facebook: { background: "#1877F2", color: "#FFFFFF" },
@@ -626,6 +628,8 @@ export function OfertasLocalesPreviewCard({
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
+  const membershipInstructions = draft.membershipNote.trim();
+  const digitalCouponInstructions = draft.digitalCouponNote.trim();
   const hasAiProducts = draft.wantsAiSearchableSpecials && approvedAiItems.length > 0;
 
   const [shareCopied, setShareCopied] = useState(false);
@@ -924,34 +928,76 @@ export function OfertasLocalesPreviewCard({
               </a>
             ) : null}
             {showMembership && membershipHref ? (
-              <a
-                href={membershipHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cx(
-                  QUICK_ACTION,
-                  "border border-[#B8860B]/45 bg-[#FDF8F0] text-[#7A1E2C] hover:border-[#7A1E2C]/35"
-                )}
-                title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
-              >
-                <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
-                {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
-              </a>
+              <>
+                <a
+                  href={membershipHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cx(
+                    QUICK_ACTION,
+                    "border border-[#B8860B]/45 bg-[#FDF8F0] text-[#7A1E2C] hover:border-[#7A1E2C]/35"
+                  )}
+                  title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+                >
+                  <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                  {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
+                </a>
+                {membershipInstructions ? (
+                  <details className="max-w-full shrink">
+                    <summary
+                      className={INSTRUCTION_HINT}
+                      title={membershipInstructions}
+                      aria-label={
+                        lang === "en"
+                          ? `${c.membershipInstructionsLabelEn}: ${membershipInstructions}`
+                          : `${c.membershipInstructionsLabelEs}: ${membershipInstructions}`
+                      }
+                    >
+                      <FiInfo className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+                      {lang === "en" ? c.membershipInstructionsLabelEn : c.membershipInstructionsLabelEs}
+                    </summary>
+                    <p className="mt-1 max-w-[min(100%,20rem)] rounded-lg border border-[#D4C4A8]/60 bg-[#FFFCF7] px-2.5 py-1.5 text-[11px] leading-relaxed text-[#1E1814]/75">
+                      {membershipInstructions}
+                    </p>
+                  </details>
+                ) : null}
+              </>
             ) : null}
             {showDigitalCoupon && digitalCouponHref ? (
-              <a
-                href={digitalCouponHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cx(
-                  QUICK_ACTION,
-                  "border border-[#D4C4A8] bg-white text-[#7A1E2C] hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
-                )}
-                title={lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
-              >
-                <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
-                {lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
-              </a>
+              <>
+                <a
+                  href={digitalCouponHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cx(
+                    QUICK_ACTION,
+                    "border border-[#D4C4A8] bg-white text-[#7A1E2C] hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
+                  )}
+                  title={lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
+                >
+                  <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                  {lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
+                </a>
+                {digitalCouponInstructions ? (
+                  <details className="max-w-full shrink">
+                    <summary
+                      className={INSTRUCTION_HINT}
+                      title={digitalCouponInstructions}
+                      aria-label={
+                        lang === "en"
+                          ? `${c.digitalCouponInstructionsLabelEn}: ${digitalCouponInstructions}`
+                          : `${c.digitalCouponInstructionsLabelEs}: ${digitalCouponInstructions}`
+                      }
+                    >
+                      <FiInfo className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+                      {lang === "en" ? c.digitalCouponInstructionsLabelEn : c.digitalCouponInstructionsLabelEs}
+                    </summary>
+                    <p className="mt-1 max-w-[min(100%,20rem)] rounded-lg border border-[#D4C4A8]/60 bg-[#FFFCF7] px-2.5 py-1.5 text-[11px] leading-relaxed text-[#1E1814]/75">
+                      {digitalCouponInstructions}
+                    </p>
+                  </details>
+                ) : null}
+              </>
             ) : null}
             <button
               type="button"

@@ -45,6 +45,7 @@ export function ServiciosCheckpointClient({
       body={t.subtitle}
       backHref={clasificadosHref}
       backLabel={t.backToClasificados}
+      checkpointCategory="servicios"
     >
       <PaidPublishCheckpointCard card={card} lang={lang} onMoreClick={() => setModalOpen(true)} />
       <PaidPublishCheckpointModal

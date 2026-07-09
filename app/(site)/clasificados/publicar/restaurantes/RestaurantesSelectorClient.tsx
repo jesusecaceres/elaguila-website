@@ -35,7 +35,13 @@ export function RestaurantesSelectorClient({
   const cards = useMemo(() => getRestaurantesCheckpointCards(lang, withLang), [lang, routeLang]);
 
   return (
-    <PublishEntryCheckpointLayout lang={lang} title={t.title} body={t.body}>
+    <PublishEntryCheckpointLayout
+      lang={lang}
+      title={t.title}
+      body={t.body}
+      checkpointCategory="restaurantes"
+      launchBannerCards={cards}
+    >
       <PublishEntryCheckpointStack cards={cards} lang={lang} />
     </PublishEntryCheckpointLayout>
   );

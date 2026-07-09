@@ -34,6 +34,8 @@ export function PublicarAutosBranchClient() {
       body={c.intro}
       backHref={publicarHref}
       backLabel={c.backToPublicar}
+      checkpointCategory="autos"
+      launchBannerCards={cards}
     >
       <PublishEntryCheckpointStack cards={cards} lang={copyLang} />
     </PublishEntryCheckpointLayout>

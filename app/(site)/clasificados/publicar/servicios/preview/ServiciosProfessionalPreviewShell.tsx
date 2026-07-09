@@ -22,6 +22,8 @@ import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/Serv
 import { ServiciosCouponsCard } from "@/app/servicios/components/ServiciosCouponsCard";
 import { ServiciosVisualProofRow } from "@/app/servicios/components/ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "@/app/servicios/components/ServiciosPublicDetailsCanvas";
+import { ServiciosGroupedHowSection } from "@/app/servicios/components/ServiciosGroupedHowSection";
+import { ServiciosPagosBeneficiosSection } from "@/app/servicios/components/ServiciosPagosBeneficiosSection";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
@@ -167,6 +169,14 @@ export function ServiciosProfessionalPreviewShell({
             displayProfile={displayProfile}
             lang={lang}
             template={template}
+          />
+
+          <ServiciosGroupedHowSection profile={displayProfile} lang={lang} />
+
+          <ServiciosPagosBeneficiosSection
+            profile={displayProfile}
+            displayProfile={displayProfile}
+            lang={lang}
           />
 
           {hasReviewsSectionResolved(displayProfile) ? (

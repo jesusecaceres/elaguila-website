@@ -94,6 +94,11 @@ export const BR_COPY_ES = {
     title: "Fotos y medios",
     sub: "La imagen principal es la portada. Video, tour y folleto se usan en la vista previa cuando activas los botones correspondientes.",
     fotos: "Fotos",
+    mainPortraitTitle: "Foto principal / retrato",
+    mainPortraitHint: "Esta primera imagen será la foto principal de esta propiedad.",
+    resultsGalleryTitle: "Galería para tarjeta de resultados",
+    resultsGalleryHint:
+      "Agrega hasta 6 imágenes adicionales. Estas imágenes se usarán para mostrar esta propiedad en las tarjeta de resultados y vistas previas.",
     agregarFotos: "Agregar fotos",
     portada: "Imagen principal (portada)",
     portadaHint: "Elige cuál foto es la portada.",

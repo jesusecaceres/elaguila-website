@@ -30,10 +30,9 @@ import {
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import {
-  bootstrapAgenteIndividualResidencialApplicationState,
+  bootstrapAgenteIndividualResidencialApplicationStateResolved,
   persistAgenteResApplicationDraftQuiet,
-  rehydrateAgenteResDraftMediaFromIdb,
-  saveAgenteResPreviewDraft,
+  persistAgenteResApplicationDraftResolved,
   saveAgenteResPreviewReturnDraft,
 } from "./utils/previewDraft";
 import { agenteResFormHasProgress } from "./formProgress";
@@ -133,28 +132,35 @@ export default function AgenteIndividualResidencialApplication() {
   }, [inventoryAdd.context]);
 
   useLayoutEffect(() => {
-    if (isExistingDashboardListingMode) return;
-    let boot = bootstrapAgenteIndividualResidencialApplicationState();
-    boot = applyBrNegocioBranchQuery(boot, searchParams);
+    if (isExistingDashboardListingMode) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      let boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved();
+      boot = applyBrNegocioBranchQuery(boot, searchParams);
 
-    if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
-      const queue = getQueue();
-      const prefill = readQueuePrefillForAddMode();
-      if (queue?.formKind === "agente" && queue.inheritedAgenteSnapshot) {
-        boot = queue.inheritedAgenteSnapshot;
-        if (prefill) boot = applyInventoryDraftToAgenteFormState(boot, prefill, lang);
-        boot = applyBrNegocioBranchQuery(boot, searchParams);
+      if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
+        const queue = getQueue();
+        const prefill = readQueuePrefillForAddMode();
+        if (queue?.formKind === "agente" && queue.inheritedAgenteSnapshot) {
+          boot = queue.inheritedAgenteSnapshot;
+          if (prefill) boot = applyInventoryDraftToAgenteFormState(boot, prefill, lang);
+          boot = applyBrNegocioBranchQuery(boot, searchParams);
+        }
       }
-    }
 
-    setState(boot);
-    void rehydrateAgenteResDraftMediaFromIdb(boot).then((resolved) => {
-      setState(resolved);
-    });
-    if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && readQueuePrefillForAddMode()) {
-      syncAgenteAddModePreviewHandoff(boot);
-      addModePreviewSyncedRef.current = true;
-    }
+      if (cancelled) return;
+      setState(boot);
+      setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
+      if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && readQueuePrefillForAddMode()) {
+        syncAgenteAddModePreviewHandoff(boot);
+        addModePreviewSyncedRef.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
   }, [isExistingDashboardListingMode]);
 
@@ -162,17 +168,15 @@ export default function AgenteIndividualResidencialApplication() {
     if (!isExistingDashboardListingMode || !editListingId || dashboardHydratedRef.current) return;
     dashboardHydratedRef.current = true;
     setEditHydration({ status: "loading" });
-    void hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang }).then((result) => {
+    void hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang }).then(async (result) => {
       if (!result.ok) {
         setEditHydration({ status: "error", message: result.userMessage });
         return;
       }
-      const boot = bootstrapAgenteIndividualResidencialApplicationState();
+      const boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved();
       setState(boot);
-      void rehydrateAgenteResDraftMediaFromIdb(boot).then((resolved) => {
-        setState(resolved);
-        setEditHydration({ status: "idle" });
-      });
+      setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
+      setEditHydration({ status: "idle" });
     });
   }, [editListingId, isExistingDashboardListingMode, lang]);
 
@@ -304,10 +308,10 @@ export default function AgenteIndividualResidencialApplication() {
     state.confirmPaymentAfterPreview &&
     (childInventoryCount >= 1 ? state.confirmInventoryPackPricing : true);
 
-  const openPreview = useCallback(() => {
+  const openPreview = useCallback(async () => {
     if (!confirmAll) return;
     markPublishFlowOpeningPreview();
-    saveAgenteResPreviewDraft(state);
+    await persistAgenteResApplicationDraftResolved(state);
     saveAgenteResPreviewReturnDraft(state);
     const previewQs = new URLSearchParams();
     if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {

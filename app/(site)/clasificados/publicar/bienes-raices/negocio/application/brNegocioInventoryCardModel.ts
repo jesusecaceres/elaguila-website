@@ -24,6 +24,9 @@ import { formatBrCityStatePostalLine } from "@/app/lib/clasificados/bienes-raice
 
 export type BrNegocioInventoryCardKind = "main" | "additional";
 
+/** Six results-card gallery slots (images 2–7; image 1 is portraitPhotoUrl). */
+export const BR_INVENTORY_GALLERY_SLOT_COUNT = 6;
+
 export type BrNegocioInventoryCardModel = {
   kind: BrNegocioInventoryCardKind;
   /** Local draft id — additional only. */
@@ -36,7 +39,10 @@ export type BrNegocioInventoryCardModel = {
   bathrooms: string;
   interiorSqft: string;
   lotSqft: string;
+  /** Image 1 — main portrait / cover. */
   photoUrl: string;
+  /** Images 2–7 for results-card gallery preview slots. */
+  gallerySlotUrls: string[];
   photoCount: number;
   statusLabel: string;
   roleLabel: string;
@@ -56,7 +62,19 @@ function safePhotoUrl(raw: string | undefined): string {
   const u = trim(raw ?? "");
   if (!u) return "";
   if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/")) return u;
+  if (u.startsWith("__LX_BR_AGENTE_IDB__")) return u;
   return "";
+}
+
+function inventoryGallerySlotUrls(photos: string[], primaryIndex: number): string[] {
+  const cleaned = photos.map((u) => trim(String(u))).filter(Boolean);
+  const primary = Math.min(Math.max(0, primaryIndex), Math.max(0, cleaned.length - 1));
+  const gallery = cleaned.filter((_, index) => index !== primary);
+  const slots: string[] = [];
+  for (let i = 0; i < BR_INVENTORY_GALLERY_SLOT_COUNT; i++) {
+    slots.push(safePhotoUrl(gallery[i]) || "");
+  }
+  return slots;
 }
 
 function resolveAdditionalDraftCardPhotoUrl(
@@ -104,6 +122,7 @@ export function mapNegocioFormToMainInventoryCard(
     interiorSqft: trim(state.piesCuadrados),
     lotSqft: trim(state.tamanoLote),
     photoUrl: safePhotoUrl(photos[idx]),
+    gallerySlotUrls: inventoryGallerySlotUrls(photos, idx),
     photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
@@ -140,6 +159,7 @@ export function mapAgenteFormToMainInventoryCard(
     interiorSqft: trim(state.tamanoInteriorSqft),
     lotSqft: trim(state.tamanoLoteSqft),
     photoUrl: safePhotoUrl(photos[idx]),
+    gallerySlotUrls: inventoryGallerySlotUrls(photos, idx),
     photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
@@ -159,6 +179,7 @@ export function mapAdditionalDraftToInventoryCard(
     ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
     : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };
   const photos = normalized.photoUrls.filter((u) => trim(String(u)));
+  const primary = Math.min(Math.max(0, normalized.primaryPhotoIndex), Math.max(0, photos.length - 1));
 
   return {
     kind: "additional",
@@ -172,6 +193,7 @@ export function mapAdditionalDraftToInventoryCard(
     interiorSqft: trim(normalized.interiorSqft),
     lotSqft: trim(normalized.lotSqft),
     photoUrl: resolveAdditionalDraftCardPhotoUrl(normalized),
+    gallerySlotUrls: inventoryGallerySlotUrls(photos, primary),
     photoCount: photos.length,
     statusLabel: copy.status,
     roleLabel: copy.role,
@@ -193,10 +215,15 @@ export function applyLiveEditorPhotosToInventoryCard(
   for (const candidate of [photos[idx], photos[0], ...photos]) {
     const photoUrl = safePhotoUrl(candidate);
     if (photoUrl) {
-      return { ...card, photoUrl, photoCount: Math.max(card.photoCount, photos.length) };
+      return {
+        ...card,
+        photoUrl,
+        gallerySlotUrls: inventoryGallerySlotUrls(photos, idx),
+        photoCount: Math.max(card.photoCount, photos.length),
+      };
     }
   }
-  return { ...card, photoCount: Math.max(card.photoCount, photos.length) };
+  return { ...card, gallerySlotUrls: inventoryGallerySlotUrls(photos, idx), photoCount: Math.max(card.photoCount, photos.length) };
 }
 
 /** Beds / baths / sqft line for card facet row. */

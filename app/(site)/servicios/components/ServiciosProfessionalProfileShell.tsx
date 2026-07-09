@@ -32,6 +32,8 @@ import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
+import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
+import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSection";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import {
   serviciosSavedListingExtras,
@@ -327,6 +329,14 @@ export function ServiciosProfessionalProfileShell({
                 displayProfile={displayProfile}
                 lang={lang}
                 template={template}
+              />
+
+              <ServiciosGroupedHowSection profile={profile} lang={lang} />
+
+              <ServiciosPagosBeneficiosSection
+                profile={profile}
+                displayProfile={displayProfile}
+                lang={lang}
               />
             </section>
 

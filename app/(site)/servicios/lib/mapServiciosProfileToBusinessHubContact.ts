@@ -93,18 +93,6 @@ export function mapServiciosProfileToBusinessHubContact(
       url: googleBusiness,
     });
   }
-  if (googleRev) {
-    moreLinks.push({
-      label: lang === "en" ? "Google Reviews" : "Google Reviews",
-      url: googleRev,
-    });
-  }
-  if (yelpRev) {
-    moreLinks.push({
-      label: lang === "en" ? "Yelp" : "Yelp",
-      url: yelpRev,
-    });
-  }
   for (const row of profile.contact.extraLinks ?? []) {
     const url = row.url?.trim();
     if (!url) continue;

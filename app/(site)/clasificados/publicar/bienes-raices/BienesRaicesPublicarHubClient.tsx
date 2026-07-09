@@ -46,7 +46,13 @@ export function BienesRaicesPublicarHubClient({ lang }: Props) {
   );
 
   return (
-    <PublishEntryCheckpointLayout lang={lang} title={hub.title} body={hub.body}>
+    <PublishEntryCheckpointLayout
+      lang={lang}
+      title={hub.title}
+      body={hub.body}
+      checkpointCategory="bienes-raices"
+      launchBannerCards={cards}
+    >
       <PublishEntryCheckpointStack cards={cards} lang={lang} />
     </PublishEntryCheckpointLayout>
   );

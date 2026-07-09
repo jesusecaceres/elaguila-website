@@ -6,6 +6,7 @@ import { adminBtnSecondary } from "@/app/admin/_components/adminTheme";
 import type { PromoRecentCardView } from "@/app/admin/_lib/promoCodeRecentCardMapper";
 import {
   buildPromoFollowUpCopyLine,
+  formatPromoUsageField,
   PROMO_MANUAL_FOLLOW_UP_REMINDER,
 } from "@/app/admin/_lib/promoCodeDisplayHelpers";
 import {
@@ -323,24 +324,73 @@ export function PromoCodeRecentCodesPanel({
                       <li key={entry.redemptionId} className="rounded-md border border-[#E8DFD0]/50 p-2">
                         {entry.usedBusinessName ? (
                           <p>
-                            <span className="font-semibold text-[#1E1810]">Used by:</span> {entry.usedBusinessName}
+                            <span className="font-semibold text-[#1E1810]">Business:</span> {entry.usedBusinessName}
                           </p>
                         ) : null}
                         {entry.usedEmail ? (
                           <p>
-                            <span className="font-semibold text-[#1E1810]">Email:</span> {entry.usedEmail}
+                            <span className="font-semibold text-[#1E1810]">Customer email:</span> {entry.usedEmail}
                           </p>
                         ) : null}
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Phone:</span>{" "}
+                          {formatPromoUsageField(entry.businessPhone)}
+                        </p>
+                        {entry.businessEmail ? (
+                          <p>
+                            <span className="font-semibold text-[#1E1810]">Business email:</span> {entry.businessEmail}
+                          </p>
+                        ) : null}
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Address:</span>{" "}
+                          {entry.businessAddress ?? "Not captured"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Category / package:</span>{" "}
+                          {formatPromoUsageField(entry.category)} · {formatPromoUsageField(entry.packageKey)}
+                        </p>
+                        {entry.addOnKeys.length ? (
+                          <p>
+                            <span className="font-semibold text-[#1E1810]">Add-ons:</span> {entry.addOnKeys.join(", ")}
+                          </p>
+                        ) : null}
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Listing ID:</span>{" "}
+                          {formatPromoUsageField(entry.listingId)}
+                          {" · "}
+                          <span className="font-semibold text-[#1E1810]">Leonix Ad ID:</span>{" "}
+                          {formatPromoUsageField(entry.leonixAdId)}
+                        </p>
                         <p>
                           <span className="font-semibold text-[#1E1810]">Payment:</span> {entry.paymentStatus ?? "—"}
                           {entry.webhookRedeemed ? " · redeemed after webhook" : ""}
                         </p>
-                        {entry.amountDiscountCents != null ? (
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Payment record:</span>{" "}
+                          {formatPromoUsageField(entry.paymentRecordId)}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Stripe session:</span>{" "}
+                          {formatPromoUsageField(entry.stripeCheckoutSessionId)}
+                        </p>
+                        {entry.stripePaymentIntentId ? (
                           <p>
-                            <span className="font-semibold text-[#1E1810]">Discount:</span>{" "}
-                            {money(entry.amountDiscountCents)}
+                            <span className="font-semibold text-[#1E1810]">Stripe payment intent:</span>{" "}
+                            {entry.stripePaymentIntentId}
                           </p>
                         ) : null}
+                        {entry.redeemedAt ? (
+                          <p>
+                            <span className="font-semibold text-[#1E1810]">Redeemed at:</span> {fmt(entry.redeemedAt)}
+                          </p>
+                        ) : null}
+                        <p>
+                          <span className="font-semibold text-[#1E1810]">Amounts:</span>{" "}
+                          {entry.subtotalCents ? `Original ${entry.subtotalCents}` : "Original —"}
+                          {entry.amountDiscountCents ? ` · Discount ${entry.amountDiscountCents}` : ""}
+                          {entry.amountTotalCents ? ` · Final ${entry.amountTotalCents}` : ""}
+                          {entry.currency ? ` (${entry.currency.toUpperCase()})` : ""}
+                        </p>
                         {entry.mismatchLabels.length ? (
                           <div className="mt-1 flex flex-wrap gap-1">
                             {entry.mismatchLabels.map((lbl) => (

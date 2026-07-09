@@ -204,7 +204,15 @@ export type LeonixPaymentRecordRow = {
 };
 
 const PAYMENT_RECORD_SELECT =
-  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, metadata";
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
+
+/** Extended payment row for promo redemption business attribution (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
+export type LeonixPaymentRecordAttributionRow = LeonixPaymentRecordRow & {
+  customer_email?: string | null;
+  business_name?: string | null;
+  amount_subtotal_cents?: number | null;
+  amount_discount_cents?: number | null;
+};
 
 export async function loadPaymentRecordById(
   paymentRecordId: string,
@@ -217,6 +225,13 @@ export async function loadPaymentRecordById(
     .eq("id", paymentRecordId)
     .maybeSingle();
   return (data as LeonixPaymentRecordRow | null) ?? null;
+}
+
+export async function loadPaymentRecordForPromoAttribution(
+  paymentRecordId: string,
+): Promise<LeonixPaymentRecordAttributionRow | null> {
+  const row = await loadPaymentRecordById(paymentRecordId);
+  return (row as LeonixPaymentRecordAttributionRow | null) ?? null;
 }
 
 export async function loadPaymentRecordByStripeSessionId(

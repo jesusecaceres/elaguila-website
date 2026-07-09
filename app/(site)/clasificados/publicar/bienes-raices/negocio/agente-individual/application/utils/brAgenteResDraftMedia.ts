@@ -2,6 +2,7 @@ import type { AgenteIndividualResidencialFormState } from "../../schema/agenteIn
 import { mergePartialAgenteIndividualResidencial } from "../../schema/agenteIndividualResidencialFormState";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../../application/brNegocioAdditionalInventoryDraft";
 import { normalizeChildInventoryDraft } from "../../../application/brNegocioAdditionalInventoryDraft";
+import type { AgenteChildPropertyFormSlice } from "../../../application/brNegocioChildInventoryFormMapping";
 import { idbBrAgenteGetDataUrl, idbBrAgentePutDataUrl, idbBrAgenteClearNamespace } from "./brAgenteResDraftMediaIdb";
 
 export const BR_AGENTE_IDB_PREFIX = "__LX_BR_AGENTE_IDB__";
@@ -216,4 +217,91 @@ export function brAgenteDraftJsonMayContainIdbRefs(state: AgenteIndividualReside
 
 export async function clearBrAgenteResDraftMediaNamespace(namespace: string): Promise<void> {
   await idbBrAgenteClearNamespace(namespace);
+}
+
+function childEditorPhotoSegment(editingId: string): string {
+  return `CHILD_EDITOR_${editingId}_FORM_PHOTO`;
+}
+
+function childEditorScalarSegment(editingId: string, kind: "LISTADO" | "VIDEO" | "TOUR" | "BROCHURE"): string {
+  return `CHILD_EDITOR_${editingId}_${kind}`;
+}
+
+/** Isolated child editor offload — avoids MAIN_PHOTO collisions with parent draft. */
+export async function offloadChildEditorPropertySliceToIdb(
+  namespace: string,
+  editingId: string,
+  slice: AgenteChildPropertyFormSlice,
+): Promise<AgenteChildPropertyFormSlice> {
+  const seg = childEditorPhotoSegment(editingId);
+  const fotosDataUrls = await offloadPhotoArray(namespace, seg, slice.fotosDataUrls ?? []);
+  const coverIdx = Math.min(Math.max(0, slice.fotoPortadaIndex), Math.max(0, fotosDataUrls.length - 1));
+  return {
+    ...slice,
+    fotosDataUrls,
+    fotoPortadaIndex: coverIdx,
+    listadoArchivoDataUrl: await offloadScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "LISTADO"),
+      undefined,
+      slice.listadoArchivoDataUrl ?? "",
+    ),
+    videoDataUrl: await offloadScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "VIDEO"),
+      undefined,
+      slice.videoDataUrl ?? "",
+    ),
+    tourDataUrl: await offloadScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "TOUR"),
+      undefined,
+      slice.tourDataUrl ?? "",
+    ),
+    brochureDataUrl: await offloadScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "BROCHURE"),
+      undefined,
+      slice.brochureDataUrl ?? "",
+    ),
+  };
+}
+
+export async function inlineChildEditorPropertySliceFromIdb(
+  namespace: string,
+  editingId: string,
+  slice: AgenteChildPropertyFormSlice,
+): Promise<AgenteChildPropertyFormSlice> {
+  const seg = childEditorPhotoSegment(editingId);
+  const fotosDataUrls = await inlinePhotoArray(namespace, seg, slice.fotosDataUrls ?? []);
+  const coverIdx = Math.min(Math.max(0, slice.fotoPortadaIndex), Math.max(0, fotosDataUrls.length - 1));
+  return {
+    ...slice,
+    fotosDataUrls,
+    fotoPortadaIndex: coverIdx,
+    listadoArchivoDataUrl: await inlineScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "LISTADO"),
+      undefined,
+      slice.listadoArchivoDataUrl ?? "",
+    ),
+    videoDataUrl: await inlineScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "VIDEO"),
+      undefined,
+      slice.videoDataUrl ?? "",
+    ),
+    tourDataUrl: await inlineScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "TOUR"),
+      undefined,
+      slice.tourDataUrl ?? "",
+    ),
+    brochureDataUrl: await inlineScalar(
+      namespace,
+      childEditorScalarSegment(editingId, "BROCHURE"),
+      undefined,
+      slice.brochureDataUrl ?? "",
+    ),
+  };
 }

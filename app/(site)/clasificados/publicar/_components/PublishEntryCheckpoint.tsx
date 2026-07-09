@@ -1,13 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import type { PublishCheckpointCardData } from "../_lib/categoryPublishCheckpoints";
 import {
+  buildPaidCheckpointNewsletterHref,
   publishCheckpointCouponExclusions,
   publishCheckpointCouponLine,
+  publishCheckpointCouponLineShort,
   type PublishCheckpointLang,
 } from "../_lib/publishCheckpointCopy";
+
+function hasPaidStyleCard(cards: PublishCheckpointCardData[]): boolean {
+  return cards.some(
+    (c) => c.variant === "paid" || c.variant === "dealer" || c.variant === "upgrade",
+  );
+}
+
+export function PublishEntryCheckpointLaunchBanner({
+  lang,
+  category,
+}: {
+  lang: PublishCheckpointLang;
+  category: string;
+}) {
+  const href = buildPaidCheckpointNewsletterHref(lang, category);
+  return (
+    <LeonixLaunchCouponCard
+      lang={lang}
+      variant="public"
+      href={href}
+      openInNewTab
+      finePrintMode="full"
+    />
+  );
+}
 
 type PaidPublishCheckpointCardProps = {
   card: PublishCheckpointCardData;
@@ -23,8 +51,15 @@ function cardSurfaceClass(card: PublishCheckpointCardData): string {
   return `${base} border-[#E8DFD0] bg-[#FFFCF7] hover:border-[#C9B46A]/50`;
 }
 
-export function PaidPublishCheckpointCard({ card, lang, onMoreClick }: PaidPublishCheckpointCardProps) {
-  const couponLine = publishCheckpointCouponLine(lang, card.couponEligible);
+export function PaidPublishCheckpointCard({
+  card,
+  lang,
+  onMoreClick,
+  compactCouponLine = true,
+}: PaidPublishCheckpointCardProps & { compactCouponLine?: boolean }) {
+  const couponLine = compactCouponLine
+    ? publishCheckpointCouponLineShort(lang, card.couponEligible)
+    : publishCheckpointCouponLine(lang, card.couponEligible);
 
   return (
     <Link
@@ -157,6 +192,10 @@ type PublishEntryCheckpointLayoutProps = {
   children: React.ReactNode;
   backHref?: string;
   backLabel?: string;
+  /** Category slug for Launch 25 banner source tracking (e.g. rentas, servicios). */
+  checkpointCategory?: string;
+  /** When set, banner shows only if at least one paid-style card exists (mixed free/paid pages). */
+  launchBannerCards?: PublishCheckpointCardData[];
 };
 
 export function PublishEntryCheckpointLayout({
@@ -166,7 +205,15 @@ export function PublishEntryCheckpointLayout({
   children,
   backHref,
   backLabel,
+  checkpointCategory,
+  launchBannerCards,
 }: PublishEntryCheckpointLayoutProps) {
+  const showLaunchBanner = useMemo(() => {
+    if (!checkpointCategory) return false;
+    if (!launchBannerCards?.length) return true;
+    return hasPaidStyleCard(launchBannerCards);
+  }, [checkpointCategory, launchBannerCards]);
+
   return (
     <main className="min-h-screen bg-[#F6F0E2] px-4 pb-20 pt-28 text-[#2C2416]">
       <div className="mx-auto max-w-lg">
@@ -180,6 +227,11 @@ export function PublishEntryCheckpointLayout({
         ) : null}
         <h1 className={`text-3xl font-extrabold text-[#1E1810] ${backHref ? "mt-3" : ""}`}>{title}</h1>
         <p className="mt-2 text-sm text-[#5C5346]/88">{body}</p>
+        {showLaunchBanner && checkpointCategory ? (
+          <div className="mt-6">
+            <PublishEntryCheckpointLaunchBanner lang={lang} category={checkpointCategory} />
+          </div>
+        ) : null}
         <div className="mt-8 space-y-4">{children}</div>
       </div>
     </main>

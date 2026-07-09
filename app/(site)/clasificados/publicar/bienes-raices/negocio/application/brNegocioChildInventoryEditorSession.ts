@@ -9,8 +9,9 @@ import { createEmptyAgenteIndividualResidencialFormState } from "../agente-indiv
 import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
   BR_AGENTE_IDB_PREFIX,
+  inlineChildEditorPropertySliceFromIdb,
   inlineBrAgenteResHeavyMediaFromIdb,
-  offloadBrAgenteResHeavyMediaToIdb,
+  offloadChildEditorPropertySliceToIdb,
 } from "../agente-individual/application/utils/brAgenteResDraftMedia";
 import { mergeParentHubWithChildProperty } from "./brNegocioChildInventoryFormMapping";
 
@@ -40,18 +41,23 @@ function stripDataUrlsFromSlice(slice: AgenteChildPropertyFormSlice): AgenteChil
 }
 
 function normalizeSessionPropertyFormUrls(slice: AgenteChildPropertyFormSlice): AgenteChildPropertyFormSlice {
+  const preserve = (raw: string | undefined) => {
+    const u = String(raw ?? "").trim();
+    if (!u || u.startsWith("data:")) return "";
+    return u;
+  };
   const videoUrls = Array.isArray(slice.videoUrls)
-    ? slice.videoUrls.map((u) => String(u ?? "").trim()).filter((u) => u && !u.startsWith("data:"))
+    ? slice.videoUrls.map((u) => preserve(String(u))).filter(Boolean).slice(0, 4)
     : [];
-  const videoUrl = String(slice.videoUrl ?? "").trim() || videoUrls[0] || "";
-  const normalizedVideos = videoUrls.length ? videoUrls.slice(0, 4) : videoUrl ? [videoUrl] : [];
+  const videoUrl = preserve(slice.videoUrl) || videoUrls[0] || "";
+  const normalizedVideos = videoUrls.length ? videoUrls : videoUrl ? [videoUrl] : [];
   return {
     ...slice,
     videoUrls: normalizedVideos,
     videoUrl: normalizedVideos[0] ?? videoUrl,
-    listadoUrl: String(slice.listadoUrl ?? "").trim(),
-    tourUrl: String(slice.tourUrl ?? "").trim(),
-    brochureUrl: String(slice.brochureUrl ?? "").trim(),
+    listadoUrl: preserve(slice.listadoUrl),
+    tourUrl: preserve(slice.tourUrl),
+    brochureUrl: preserve(slice.brochureUrl),
   };
 }
 
@@ -66,13 +72,13 @@ async function persistChildInventoryEditorSessionResolved(
 ): Promise<void> {
   childEditorMemoryBridge = session;
   let propertyForm = normalizeSessionPropertyFormUrls(session.propertyForm);
+  const editingId = session.editingId?.trim() || "new-child";
   try {
-    const hub = mergeParentHubWithChildProperty(
-      createEmptyAgenteIndividualResidencialFormState(),
+    propertyForm = await offloadChildEditorPropertySliceToIdb(
+      BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+      editingId,
       propertyForm,
     );
-    const offloaded = await offloadBrAgenteResHeavyMediaToIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
-    propertyForm = pickChildPropertySlice(offloaded);
   } catch {
     propertyForm = stripDataUrlsFromSlice(session.propertyForm);
   }
@@ -93,14 +99,15 @@ export async function loadChildInventoryEditorSessionResolved(): Promise<BrNegoc
   const sync = loadChildInventoryEditorSession();
   if (!sync) return null;
   try {
-    const hub = mergeParentHubWithChildProperty(
-      createEmptyAgenteIndividualResidencialFormState(),
+    const editingId = sync.editingId?.trim() || "new-child";
+    const propertyForm = await inlineChildEditorPropertySliceFromIdb(
+      BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+      editingId,
       sync.propertyForm,
     );
-    const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, hub);
     return {
       ...sync,
-      propertyForm: normalizeSessionPropertyFormUrls(pickChildPropertySlice(inlined)),
+      propertyForm: normalizeSessionPropertyFormUrls(propertyForm),
     };
   } catch {
     return sync;
