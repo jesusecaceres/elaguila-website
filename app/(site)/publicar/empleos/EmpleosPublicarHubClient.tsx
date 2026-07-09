@@ -10,6 +10,11 @@ import { LEONIX_CATEGORY_VISUALS } from "@/app/clasificados/config/categoryVisua
 import { appendLangToPath, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
 import { navCopyLang } from "@/app/lib/language";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
+import {
+  getEmpleosFreeCheckpointCard,
+  getEmpleosPaidCheckpointCard,
+} from "@/app/clasificados/publicar/_lib/categoryPublishCheckpoints";
+import { PublishEntryCheckpointLayout, PublishEntryCheckpointStack } from "@/app/clasificados/publicar/_components/PublishEntryCheckpoint";
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 const CARD_SITE =
@@ -77,6 +82,14 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
 
   const quickHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.quick, routeLang);
   const feriaHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.feria, routeLang);
+
+  const empleosCheckpointCards = useMemo(
+    () => [
+      getEmpleosPaidCheckpointCard(lang, quickHref),
+      getEmpleosFreeCheckpointCard(lang, feriaHref),
+    ],
+    [lang, quickHref, feriaHref],
+  );
 
   const visual = LEONIX_CATEGORY_VISUALS.empleos;
   const CARD_CLASIFICADOS = (extra: string) =>
@@ -167,41 +180,23 @@ export default function EmpleosPublicarHubClient({ variant = "default" }: Props)
 
   if (variant === "clasificadosPublicar") {
     return (
-      <main className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12] pb-16 pt-28">
-        <div className="mx-auto max-w-6xl min-w-0 px-4 sm:px-6">
-          <section className="rounded-3xl border border-[#D8C79A]/70 bg-[#FFFDF7] p-6 shadow-[0_18px_48px_rgba(113,84,22,0.10)] sm:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <h1 className="text-3xl font-extrabold tracking-tight text-[#3D2C12] sm:text-4xl">{t.title}</h1>
-                <p className="mt-2 max-w-2xl text-base text-[#5D4A25]/85 sm:text-lg">{t.subtitle}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 self-start rounded-xl border border-[#D8C79A]/65 bg-[#FFF6E7] p-1.5 shadow-sm">
-                <Link
-                  href={appendLangToPath("/clasificados/publicar", routeLang)}
-                  className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
-                >
-                  {t.backCategories}
-                </Link>
-                <Link
-                  href={appendLangToPath("/dashboard/empleos", routeLang)}
-                  className="rounded-lg border border-[#2A6B4A]/35 bg-[#E8F5EE] px-4 py-2 text-sm font-semibold text-[#1E4D33] hover:bg-[#d4ecdf]"
-                >
-                  {t.myListings}
-                </Link>
-              </div>
-            </div>
-            <div className="mt-8">{grid}</div>
-            <ul className="mt-6 grid gap-2 text-sm font-semibold text-[#4D3A19] sm:grid-cols-3">
-              {t.trust.map((line) => (
-                <li key={line} className="flex items-center gap-2">
-                  <FiCheckCircle className="h-4 w-4 shrink-0 text-[#2E7D4A]" aria-hidden />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-      </main>
+      <PublishEntryCheckpointLayout
+        lang={lang}
+        title={t.title}
+        body={t.subtitle}
+        backHref={appendLangToPath("/clasificados/publicar", routeLang)}
+        backLabel={t.backCategories}
+      >
+        <PublishEntryCheckpointStack cards={empleosCheckpointCards} lang={lang} />
+        <ul className="mt-6 grid gap-2 text-sm font-semibold text-[#4D3A19] sm:grid-cols-3">
+          {t.trust.map((line) => (
+            <li key={line} className="flex items-center gap-2">
+              <FiCheckCircle className="h-4 w-4 shrink-0 text-[#2E7D4A]" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </PublishEntryCheckpointLayout>
     );
   }
 

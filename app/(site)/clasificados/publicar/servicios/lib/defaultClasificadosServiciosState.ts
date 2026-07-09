@@ -114,6 +114,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     socialX: "",
     socialSnapchat: "",
     googleReviewsUrl: "",
+    googleBusinessUrl: "",
     yelpReviewsUrl: "",
     extraLink1Url: "",
     extraLink1Label: "",

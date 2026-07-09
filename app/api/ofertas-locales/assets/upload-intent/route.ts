@@ -10,7 +10,7 @@ import { ofertasLocalesOwnerIdFromBearer } from "@/app/lib/ofertas-locales/ofert
 export const runtime = "nodejs";
 
 function isAssetKind(v: string): v is OfertaLocalClientAssetKind {
-  return v === "flyer" || v === "coupon";
+  return v === "flyer" || v === "coupon" || v === "logo";
 }
 
 /**

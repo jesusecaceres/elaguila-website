@@ -29,6 +29,29 @@ export type LanguageCode = SupportedLang | HeldRtlLang;
 
 export const DEFAULT_LANG: SupportedLang = "es";
 
+/** Official Leonix launch UI languages — public selectors and routable ?lang=. */
+export const OFFICIAL_LAUNCH_LANGUAGES = ["es", "en", "pt", "tl"] as const satisfies readonly SupportedLang[];
+
+export type OfficialLaunchLang = (typeof OFFICIAL_LAUNCH_LANGUAGES)[number];
+
+/**
+ * Hidden future languages — preserved in registry/docs, inactive until trusted reviewer activation.
+ * Route aliases zh-Hans / zh-Hant normalize to fallback (not official).
+ */
+export const HIDDEN_FUTURE_LANGUAGE_CODES = [
+  "vi",
+  "zh",
+  "km",
+  "ja",
+  "ko",
+  "hi",
+  "hy",
+  "ru",
+  "pa",
+] as const satisfies readonly SupportedLang[];
+
+export type HiddenFutureLang = (typeof HIDDEN_FUTURE_LANGUAGE_CODES)[number];
+
 export const PRIMARY_LANGUAGES = ["es", "en"] as const satisfies readonly SupportedLang[];
 
 /** Magazine hub + June 2026 HTML reader — all active public languages. */
@@ -58,28 +81,20 @@ export function magazineRouteAdditionalLanguages(): readonly SupportedLang[] {
   return MAGAZINE_ROUTE_LANGUAGES.filter((c) => c !== "es" && c !== "en");
 }
 
-/** Active community languages in More Languages dropdown (non-primary). */
-export const ADDITIONAL_LANGUAGES = [
-  "vi",
-  "pt",
-  "tl",
-  "km",
-  "zh",
-  "ja",
-  "ko",
-  "hi",
-  "hy",
-  "ru",
-  "pa",
-] as const satisfies readonly SupportedLang[];
+/** Official non-primary languages in public More Languages dropdown. */
+export const ADDITIONAL_LANGUAGES = ["pt", "tl"] as const satisfies readonly SupportedLang[];
 
 /** @deprecated Alias for ADDITIONAL_LANGUAGES */
 export const ACTIVE_ADDITIONAL_LANGUAGES = ADDITIONAL_LANGUAGES;
 
-export const ALL_SUPPORTED_LANGS = [...PRIMARY_LANGUAGES, ...ADDITIONAL_LANGUAGES] as const satisfies readonly SupportedLang[];
+/** All known route codes — official launch + hidden future (excludes held RTL). */
+export const ALL_SUPPORTED_LANGS = [
+  ...OFFICIAL_LAUNCH_LANGUAGES,
+  ...HIDDEN_FUTURE_LANGUAGE_CODES,
+] as const satisfies readonly SupportedLang[];
 
-/** Alias for public-site active language list (LANG-MAG-FINALLOCK1). */
-export const ACTIVE_PUBLIC_LANGS = ALL_SUPPORTED_LANGS;
+/** Public-site routable + selector-visible languages (launch scope). */
+export const ACTIVE_PUBLIC_LANGS = OFFICIAL_LAUNCH_LANGUAGES;
 
 export type HeldRtlLanguageEntry = {
   code: HeldRtlLang;
@@ -160,7 +175,9 @@ export const LANGUAGE_SHORT: Record<SupportedLang, string> = {
   pa: "PA",
 };
 
-const SUPPORTED_LANG_SET = new Set<string>(ALL_SUPPORTED_LANGS);
+const OFFICIAL_LAUNCH_LANG_SET = new Set<string>(OFFICIAL_LAUNCH_LANGUAGES);
+const HIDDEN_FUTURE_LANG_SET = new Set<string>(HIDDEN_FUTURE_LANGUAGE_CODES);
+const ALL_KNOWN_LANG_SET = new Set<string>(ALL_SUPPORTED_LANGS);
 
 const MAGAZINE_HERO_CTA_ES = {
   read: "Leer la revista",
@@ -272,7 +289,7 @@ export const FUTURE_LANGUAGES: FutureLanguage[] = [];
 /** @deprecated Use HELD_RTL_LANGUAGES entries — registry retained for direction lookup. */
 export type HeldRtlLanguageCode = HeldRtlLang;
 
-export type LanguageStatus = "active" | "held";
+export type LanguageStatus = "active" | "held" | "future";
 
 export type LanguageDefinition = {
   code: LanguageCode;
@@ -314,8 +331,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.vi,
     englishLabel: LANGUAGE_ENGLISH_NAMES.vi,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "vi",
+    notes: "Hidden until trusted Vietnamese reviewer/team activation.",
   },
   pt: {
     code: "pt",
@@ -345,8 +363,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: "ភាសាខ្មែរ",
     englishLabel: LANGUAGE_ENGLISH_NAMES.km,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "km",
+    notes: "Hidden until trusted reviewer/team activation.",
   },
   zh: {
     code: "zh",
@@ -355,9 +374,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: "简体中文",
     englishLabel: LANGUAGE_ENGLISH_NAMES.zh,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "zh-CN",
-    notes: "Route code zh; provider uses zh-CN (Simplified).",
+    notes: "Route code zh; zh-Hans/zh-Hant aliases; hidden until trusted reviewer activation.",
   },
   ja: {
     code: "ja",
@@ -366,8 +385,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.ja,
     englishLabel: LANGUAGE_ENGLISH_NAMES.ja,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "ja",
+    notes: "Hidden until trusted reviewer/team activation.",
   },
   ko: {
     code: "ko",
@@ -376,8 +396,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.ko,
     englishLabel: LANGUAGE_ENGLISH_NAMES.ko,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "ko",
+    notes: "Hidden until trusted reviewer/team activation.",
   },
   hi: {
     code: "hi",
@@ -386,8 +407,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.hi,
     englishLabel: LANGUAGE_ENGLISH_NAMES.hi,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "hi",
+    notes: "Hidden until trusted reviewer/team activation.",
   },
   hy: {
     code: "hy",
@@ -396,8 +418,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.hy,
     englishLabel: LANGUAGE_ENGLISH_NAMES.hy,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "hy",
+    notes: "Hidden until trusted reviewer/team activation.",
   },
   ru: {
     code: "ru",
@@ -406,8 +429,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.ru,
     englishLabel: LANGUAGE_ENGLISH_NAMES.ru,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "ru",
+    notes: "Hidden until trusted reviewer/team activation.",
   },
   pa: {
     code: "pa",
@@ -416,8 +440,9 @@ const REGISTRY: Record<LanguageCode, LanguageDefinition> = {
     nativeLabel: LANGUAGE_LABELS.pa,
     englishLabel: LANGUAGE_ENGLISH_NAMES.pa,
     direction: "ltr",
-    status: "active",
+    status: "future",
     providerCode: "pa",
+    notes: "Hidden until trusted Punjabi reviewer/team activation.",
   },
   ar: {
     code: "ar",
@@ -454,20 +479,32 @@ export function isHeldRtlLang(input: string | null | undefined): boolean {
   return raw === "ar" || raw === "fa";
 }
 
-export function isSupportedLang(input: string | null | undefined): boolean {
+export function isOfficialLaunchLang(input: string | null | undefined): input is OfficialLaunchLang {
   const raw = normalizeLangInput(input);
   if (!raw || isHeldRtlLang(raw)) return false;
   if (raw === "fil") return true;
-  if (raw === "zh-cn" || raw === "zh-hans") return true;
-  return SUPPORTED_LANG_SET.has(raw);
+  return OFFICIAL_LAUNCH_LANG_SET.has(raw);
+}
+
+export function isHiddenFutureLang(input: string | null | undefined): boolean {
+  const raw = normalizeLangInput(input);
+  if (!raw) return false;
+  if (raw === "zh-cn" || raw === "zh-hans" || raw === "zh-hant") return true;
+  return HIDDEN_FUTURE_LANG_SET.has(raw);
+}
+
+/** Official launch languages only — used for public ?lang= and selectors. */
+export function isSupportedLang(input: string | null | undefined): boolean {
+  return isOfficialLaunchLang(input);
 }
 
 export function normalizeLang(input: string | null | undefined): SupportedLang {
   const raw = normalizeLangInput(input);
   if (!raw || isHeldRtlLang(raw)) return DEFAULT_LANG;
   if (raw === "fil") return "tl";
-  if (raw === "zh-cn" || raw === "zh-hans") return "zh";
-  if (SUPPORTED_LANG_SET.has(raw)) return raw as SupportedLang;
+  if (raw === "zh-cn" || raw === "zh-hans" || raw === "zh-hant") return DEFAULT_LANG;
+  if (OFFICIAL_LAUNCH_LANG_SET.has(raw)) return raw as OfficialLaunchLang;
+  if (HIDDEN_FUTURE_LANG_SET.has(raw) || ALL_KNOWN_LANG_SET.has(raw)) return DEFAULT_LANG;
   return DEFAULT_LANG;
 }
 
@@ -553,6 +590,19 @@ export function languageAriaLabel(lang: SupportedLang): string {
 
 /** Universal dropdown trigger — never localized per QR-FRONTDOOR1. */
 export const UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER = "🌐 Languages";
+
+/** Honest browser/Google fallback note — official launch scope only. */
+export const OFFICIAL_LAUNCH_LANGUAGE_FALLBACK_NOTE: Record<OfficialLaunchLang, string> = {
+  es: "¿Necesitas otro idioma? Tu navegador puede ofrecer Google Translate y Google Lens puede ayudar con páginas impresas o visuales. Los idiomas oficiales de Leonix son Español, English, Português y Tagalog/Filipino.",
+  en: "Need another language? Your browser may offer Google Translate, and Google Lens can help translate printed or visual magazine pages. Leonix official launch languages are Spanish, English, Portuguese, and Tagalog/Filipino.",
+  pt: "Precisa de outro idioma? Seu navegador pode oferecer o Google Translate e o Google Lens pode ajudar com páginas impressas ou visuais. Os idiomas oficiais de lançamento da Leonix são Espanhol, Inglês, Português e Tagalog/Filipino.",
+  tl: "Kailangan ng ibang wika? Maaaring mag-alok ang iyong browser ng Google Translate, at makakatulong ang Google Lens sa naka-print o visual na mga pahina. Ang opisyal na launch languages ng Leonix ay Spanish, English, Portuguese, at Tagalog/Filipino.",
+};
+
+export function getOfficialLaunchLanguageFallbackNote(lang: SupportedLang): string {
+  const normalized = normalizeLang(lang);
+  return OFFICIAL_LAUNCH_LANGUAGE_FALLBACK_NOTE[normalized as OfficialLaunchLang];
+}
 
 export function moreLanguagesDropdownLabel(_currentLang: SupportedLang): string {
   return UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER;

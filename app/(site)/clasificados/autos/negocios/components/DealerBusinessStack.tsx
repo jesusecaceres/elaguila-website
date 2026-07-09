@@ -22,7 +22,7 @@ import {
   AutosBusinessHubSocialBrandIcon,
   autosBusinessHubSocialBrandStyle,
 } from "../lib/autosNegociosBusinessHubSocialBrand";
-import { AutosNegociosBusinessHubFauxMap } from "./AutosNegociosBusinessHubFauxMap";
+import { AutosNegociosBusinessHubMapPreview } from "./AutosNegociosBusinessHubMapPreview";
 import { AutosNegociosHubReviewLinkButton } from "./AutosNegociosHubReviewLinkButton";
 import type { AutosNegociosBusinessHubSocialPlatform } from "../lib/autosNegociosBusinessHubContactTypes";
 import {
@@ -145,7 +145,9 @@ export function DealerBusinessStack({
   const showReviews = hub.reviews.length > 0;
   const showMoreLinks = hub.moreLinks.length > 0;
   const showLanguages = (hub.languages?.length ?? 0) > 0;
-  const showLocation = Boolean(hub.location?.addressDisplay?.trim() || hub.location?.mapsHref);
+  const showLocation = Boolean(
+    hub.location?.addressDisplay?.trim() || hub.location?.mapsHref || hub.location?.mapEmbedUrl,
+  );
   const showFinance = hasDealerFinanceContact(data);
 
   let sectionBorder = false;
@@ -438,26 +440,13 @@ export function DealerBusinessStack({
       {showLocation ? (
         <SectionBlock showTopBorder={nextSection()} premium={showPremiumHubHeader}>
           <p className={sectionLabelClass}>{sb.locationHeading}</p>
-          <div className="mt-4 space-y-4">
-            <AutosNegociosBusinessHubFauxMap />
-            {nonEmpty(hub.location?.addressDisplay) ? (
-              <p className="flex gap-2 text-left text-sm leading-relaxed text-[color:var(--lx-text-2)] lg:text-[15px]">
-                <FiMapPin className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                <span className="font-medium text-[color:var(--lx-text)]">{hub.location?.addressDisplay}</span>
-              </p>
-            ) : null}
-            {hub.location?.mapsHref ? (
-              <a
-                href={hub.location.mapsHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackHref(hub.location!.mapsHref!)}
-                className={`${BTN_SECONDARY} gap-2 border-[color:var(--lx-gold-border)]`}
-              >
-                <FiMapPin className="h-[18px] w-[18px] shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
-                {sb.openInMaps}
-              </a>
-            ) : null}
+          <div className="mt-4">
+            <AutosNegociosBusinessHubMapPreview
+              locationLine={hub.location?.addressDisplay ?? ""}
+              directionsHref={hub.location?.mapsHref}
+              quickMapLabel={sb.quickMapView}
+              directionsLabel={sb.directionsCta}
+            />
           </div>
         </SectionBlock>
       ) : null}

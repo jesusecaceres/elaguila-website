@@ -39,6 +39,7 @@ function parseClientPayload(raw: string | null): UploadClientPayload | null {
 }
 
 function allowedMimesForKind(kind: OfertaLocalClientAssetKind): string[] {
+  if (kind === "logo") return ["image/jpeg", "image/png", "image/webp"];
   return kind === "flyer"
     ? [...OFERTAS_LOCALES_CLIENT_UPLOAD_FLYER_MIME_TYPES]
     : [...OFERTAS_LOCALES_CLIENT_UPLOAD_COUPON_MIME_TYPES];

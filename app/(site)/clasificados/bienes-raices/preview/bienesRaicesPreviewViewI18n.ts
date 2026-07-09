@@ -160,6 +160,11 @@ export type NegocioPreviewUi = {
   ubicacion: string;
   verEnMapa: string;
   masInformacion: string;
+  googleBusiness: string;
+  googleReviews: string;
+  yelp: string;
+  businessHubReviews: string;
+  getDirections: string;
 };
 
 const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
@@ -200,6 +205,11 @@ const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
     ubicacion: "Ubicación",
     verEnMapa: "Ver ubicación",
     masInformacion: "Más información",
+    googleBusiness: "Google Business",
+    googleReviews: "Opiniones en Google",
+    yelp: "Yelp",
+    businessHubReviews: "Opiniones",
+    getDirections: "Cómo llegar",
   },
   en: {
     galeriaMultimedia: "Media gallery",
@@ -238,6 +248,11 @@ const NEGOCIO_UI: Record<RentasLandingLang, NegocioPreviewUi> = {
     ubicacion: "Location",
     verEnMapa: "View on map",
     masInformacion: "Website / more information",
+    googleBusiness: "Google Business",
+    googleReviews: "Google Reviews",
+    yelp: "Yelp",
+    businessHubReviews: "Reviews",
+    getDirections: "Get directions",
   },
 };
 

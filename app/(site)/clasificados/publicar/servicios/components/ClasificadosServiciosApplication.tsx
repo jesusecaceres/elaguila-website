@@ -648,6 +648,7 @@ export function ClasificadosServiciosApplication() {
     x: state.socialX.trim() && !isProbablyValidWebUrl(state.socialX),
     sc: state.socialSnapchat.trim() && !isProbablyValidWebUrl(state.socialSnapchat),
     google: state.googleReviewsUrl.trim() && !isProbablyValidWebUrl(state.googleReviewsUrl),
+    googleBusiness: state.googleBusinessUrl.trim() && !isProbablyValidWebUrl(state.googleBusinessUrl),
     yelp: state.yelpReviewsUrl.trim() && !isProbablyValidWebUrl(state.yelpReviewsUrl),
     extra1: state.extraLink1Url.trim() && !isProbablyValidWebUrl(state.extraLink1Url),
     extra2: state.extraLink2Url.trim() && !isProbablyValidWebUrl(state.extraLink2Url),
@@ -1453,6 +1454,21 @@ export function ClasificadosServiciosApplication() {
                   : "Links to your review profiles only — we never invent ratings."}
               </p>
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0 sm:col-span-2">
+                  <label className={labelClass}>{copy.labels.googleBusiness}</label>
+                  <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.googleBusinessHint}</p>
+                  <input
+                    className={`${inputClass} mt-2 ${socialInvalid.googleBusiness ? inputWarn : ""}`}
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://business.google.com/…"
+                    value={state.googleBusinessUrl}
+                    onChange={(e) => setState((s) => ({ ...s, googleBusinessUrl: e.target.value }))}
+                  />
+                  {socialInvalid.googleBusiness ? (
+                    <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p>
+                  ) : null}
+                </div>
                 {(
                   [
                     ["googleReviewsUrl", copy.labels.googleReviews, state.googleReviewsUrl, socialInvalid.google, "https://g.page/r/…/review"] as const,

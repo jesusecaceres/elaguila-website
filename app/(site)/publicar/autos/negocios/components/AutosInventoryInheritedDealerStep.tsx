@@ -109,6 +109,7 @@ export function AutosInventoryInheritedDealerStep({
         ) : null}
         <Field label={t.app.dealer.googleReviews} value={parentListing.googleReviewsUrl} />
         <Field label={t.app.dealer.yelpReviews} value={parentListing.yelpReviewsUrl} />
+        <Field label={t.app.dealer.googleBusiness} value={parentListing.googleBusinessUrl} />
       </dl>
 
       {socialEntries.length > 0 ? (

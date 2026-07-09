@@ -54,7 +54,7 @@ export type PromoEligibilityInput = {
 };
 
 /** Scope tokens that mean "matches everything" (admin "Any category" / "Any package"). */
-const SCOPE_WILDCARD_TOKENS = new Set([
+export const PROMO_SCOPE_WILDCARD_TOKENS = new Set([
   "any",
   "all",
   "*",
@@ -66,13 +66,21 @@ const SCOPE_WILDCARD_TOKENS = new Set([
   "anypackage",
 ]);
 
+/** True when a stored scope list means unrestricted (Any category / Any package). */
+export function promoScopeIsUnrestricted(scope: string[] | null | undefined): boolean {
+  if (!scope?.length) return true;
+  const normalizedScope = scope.map((s) => String(s ?? "").trim().toLowerCase()).filter(Boolean);
+  if (!normalizedScope.length) return true;
+  return normalizedScope.some((s) => PROMO_SCOPE_WILDCARD_TOKENS.has(s));
+}
+
 function scopeMatches(scope: string[] | null | undefined, value: string | null | undefined): boolean {
   // Missing/empty scope = unrestricted ("Any category" / "Any package").
   if (!scope?.length) return true;
   const normalizedScope = scope.map((s) => String(s ?? "").trim().toLowerCase()).filter(Boolean);
   if (!normalizedScope.length) return true;
   // A literal wildcard token anywhere in the scope list also means unrestricted.
-  if (normalizedScope.some((s) => SCOPE_WILDCARD_TOKENS.has(s))) return true;
+  if (normalizedScope.some((s) => PROMO_SCOPE_WILDCARD_TOKENS.has(s))) return true;
   const token = String(value ?? "").trim().toLowerCase();
   if (!token) return false;
   return normalizedScope.includes(token);

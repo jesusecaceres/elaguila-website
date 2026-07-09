@@ -131,6 +131,7 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     socialX: cleanPlainText(n.socialX),
     socialSnapchat: cleanPlainText(n.socialSnapchat),
     googleReviewsUrl: cleanPlainText(n.googleReviewsUrl),
+    googleBusinessUrl: cleanPlainText(n.googleBusinessUrl),
     yelpReviewsUrl: cleanPlainText(n.yelpReviewsUrl),
     extraLink1Url: cleanPlainText(n.extraLink1Url),
     extraLink1Label: cleanPlainText(n.extraLink1Label).slice(0, 48),

@@ -50,5 +50,7 @@ export type ServiciosBusinessHubContactViewModel = {
   location?: {
     addressDisplay: string;
     mapsHref?: string;
+    mapEmbedSrc?: string;
+    mapImageUrl?: string;
   };
 };

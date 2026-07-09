@@ -1,4 +1,10 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import {
+  AUTOS_DEFAULT_COUNTRY,
+  normalizeAutosCountry,
+  normalizeAutosPostalCode,
+  normalizeAutosStateCode,
+} from "./autosLocationContract";
 
 export type DealerStructuredAddressPatch = Pick<
   AutoDealerListing,
@@ -8,6 +14,7 @@ export type DealerStructuredAddressPatch = Pick<
   | "dealerAddressCity"
   | "dealerAddressState"
   | "dealerAddressZip"
+  | "dealerAddressCountry"
   | "dealerAddress"
 >;
 
@@ -47,13 +54,15 @@ export function buildDealerDisplayAddress(L: Pick<AutoDealerListing, keyof Deale
 
   const city = seg(L.dealerAddressCity);
   const state = seg(L.dealerAddressState).toUpperCase();
-  const zip = seg(L.dealerAddressZip).replace(/\D/g, "").slice(0, 5);
+  const zip = seg(L.dealerAddressZip);
+  const country = seg(L.dealerAddressCountry) || AUTOS_DEFAULT_COUNTRY;
 
   const locality: string[] = [];
   if (city && state) locality.push(`${city}, ${state}`);
   else if (city) locality.push(city);
   else if (state) locality.push(state);
-  if (zip.length === 5) locality.push(zip);
+  if (zip) locality.push(zip);
+  if (country && country !== AUTOS_DEFAULT_COUNTRY) locality.push(country);
 
   const line1 = streetParts.join(" ").trim();
   const line2 = locality.join(" ").trim();
@@ -61,19 +70,23 @@ export function buildDealerDisplayAddress(L: Pick<AutoDealerListing, keyof Deale
   return line1 || line2 || legacy;
 }
 
-/** Google Maps search URL — street preferred; falls back to city/state/ZIP. */
+/** Preview-only Google Maps embed URL from a real address line (no API key). */
+export function buildAutosDealerMapEmbedUrl(locationLine: string): string {
+  const q = locationLine.trim();
+  if (!q) return "";
+  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+}
+
+/** Google Maps search / directions URL — street preferred; falls back to city/state/ZIP. */
 export function buildDealerMapsHref(L: Pick<AutoDealerListing, keyof DealerStructuredAddressPatch>): string | undefined {
   const q = buildDealerDisplayAddress(L);
   if (!q) return undefined;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
-/** Normalize ZIP to up to 5 digits; preserve partial drafts. */
+/** Normalize postal code; preserve partial drafts. */
 export function normalizeDealerAddressZip(raw: unknown): string | undefined {
-  const d = String(raw ?? "")
-    .replace(/\D/g, "")
-    .slice(0, 5);
-  return d.length > 0 ? d : undefined;
+  return normalizeAutosPostalCode(raw);
 }
 
 /**
@@ -85,7 +98,8 @@ export function syncDealerAddressFromStructured(L: AutoDealerListing): AutoDeale
   const next: AutoDealerListing = {
     ...L,
     dealerAddressZip: zip,
-    dealerAddressState: L.dealerAddressState?.trim() ? L.dealerAddressState.trim().toUpperCase() : L.dealerAddressState,
+    dealerAddressState: normalizeAutosStateCode(L.dealerAddressState) ?? L.dealerAddressState,
+    dealerAddressCountry: normalizeAutosCountry(L.dealerAddressCountry),
   };
   if (!hasStructuredDealerAddressFields(next)) return next;
   const display = buildDealerDisplayAddress(next);
@@ -103,6 +117,7 @@ export function dealerAddressHaystackParts(L: Pick<AutoDealerListing, keyof Deal
     L.dealerAddressCity,
     L.dealerAddressState,
     L.dealerAddressZip,
+    L.dealerAddressCountry,
   ]) {
     const t = seg(v);
     if (t) parts.push(t);

@@ -1,7 +1,7 @@
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
 import { parseAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
-import { listingMatchesAutosCityFilter, listingMatchesAutosZipFilter } from "../../filters/autosPublicLocationMatch";
+import { listingMatchesAutosCityFilter, listingMatchesAutosCountryFilter, listingMatchesAutosStateFilter, listingMatchesAutosZipFilter } from "../../filters/autosPublicLocationMatch";
 import { compareNewestAutosPublic } from "@/app/lib/clasificados/autos/autosPublicRanking";
 import { compareAutosListingFairTieBreak } from "../../lib/autosPublicListingScore";
 
@@ -43,6 +43,7 @@ export function applyAutosPublicFilters(
         row.city,
         row.state,
         row.zip ?? "",
+        row.country ?? "",
         row.dealerName ?? "",
         row.privateSellerLabel ?? "",
         row.sellerType,
@@ -57,6 +58,8 @@ export function applyAutosPublicFilters(
     const cityActive = Boolean(f.city.trim());
     const cityOk = listingMatchesAutosCityFilter(row.city, f.city);
     if (cityActive && !cityOk) return false;
+    if (!listingMatchesAutosStateFilter(row.state, f.state)) return false;
+    if (!listingMatchesAutosCountryFilter(row.country, f.country)) return false;
     if (
       !listingMatchesAutosZipFilter(row.zip, f.zip, cityActive, cityOk)
     ) {

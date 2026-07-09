@@ -15,7 +15,7 @@ import type { OfertaLocalUploadedAssetResult } from "@/app/lib/ofertas-locales/o
 export const runtime = "nodejs";
 
 function isAssetKind(v: string): v is OfertaLocalClientAssetKind {
-  return v === "flyer" || v === "coupon";
+  return v === "flyer" || v === "coupon" || v === "logo";
 }
 
 function fail(
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   const assetId = String(form.get("assetId") ?? "").trim();
 
   if (!isAssetKind(assetKindRaw) || !assetId) {
-    return fail(400, "bad_request", "assetKind (flyer|coupon) and assetId are required.");
+    return fail(400, "bad_request", "assetKind (flyer|coupon|logo) and assetId are required.");
   }
 
   const file = form.get("file");

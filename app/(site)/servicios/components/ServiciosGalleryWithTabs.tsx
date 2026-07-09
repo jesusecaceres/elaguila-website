@@ -7,6 +7,7 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { serviciosCombinedVideoGridClass } from "../lib/serviciosGalleryVideoLayout";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
 import { ServiciosMediaLightbox } from "./ServiciosMediaLightbox";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
@@ -165,13 +166,7 @@ export function ServiciosGalleryWithTabs({
                 <h3 className="text-sm font-semibold text-[#1F1A17]">
                   {videos.length > 1 ? (lang === "en" ? "Videos" : "Videos") : lang === "en" ? "Video" : "Video"}
                 </h3>
-                <div
-                  className={
-                    videos.length === 1
-                      ? "grid grid-cols-1 gap-2 sm:max-w-sm"
-                      : "grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4"
-                  }
-                >
+                <div className={serviciosCombinedVideoGridClass(videos.length)}>
                   {videos.map((v) => (
                     <div key={v.id} className="min-w-0">
                       <ServiciosGalleryVideoTile v={v} lang={lang} />

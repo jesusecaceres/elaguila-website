@@ -35,8 +35,9 @@ export function BrNegocioPrePublishInventoryPreview({
   const showMainCard = variant !== "package";
   const childListClass =
     variant === "package"
-      ? "mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2"
-      : "mt-4 space-y-2";
+      ? "mt-4 space-y-4"
+      : "mt-4 space-y-3";
+  const additionalLayout = variant === "package" ? "showcase" : "showcase";
 
   return (
     <section className="mt-4 rounded-xl border border-[#C9B46A]/35 bg-[#FFFCF7] px-3 py-4 sm:px-4">
@@ -50,7 +51,7 @@ export function BrNegocioPrePublishInventoryPreview({
         {showMainCard ? <BrNegocioPrePublishInventoryCard card={mainProperty} lang={lang} /> : null}
 
         {additionalCount === 0 ? (
-          <p className="rounded-xl border border-dashed border-[#E8DFD0] bg-white/80 px-4 py-4 text-center text-sm text-[#5C5346]/88 sm:col-span-2">
+          <p className="rounded-xl border border-dashed border-[#E8DFD0] bg-white/80 px-4 py-6 text-center text-sm text-[#5C5346]/88">
             {copy.previewEmptyAdditional}
           </p>
         ) : (
@@ -59,7 +60,7 @@ export function BrNegocioPrePublishInventoryPreview({
               key={draft.id}
               card={mapAdditionalDraftToInventoryCard(draft, lang)}
               lang={lang}
-              compact
+              layout={additionalLayout}
               onEdit={onEdit}
               onRemove={onRemove}
               onPreview={onPreview}

@@ -1,5 +1,6 @@
 import type { AutoDealerListing, DealerHoursEntry } from "../types/autoDealerListing";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
+import { normalizeAutosCountry, normalizeAutosPostalCode } from "@/app/lib/clasificados/autos/autosLocationContract";
 import { deriveHeroImageUrls, migrateHeroImagesToMediaImages, normalizeMediaImagesOrder } from "./autoDealerHeroImages";
 import { applyAutosVehicleMediaDraftFields } from "@/app/lib/clasificados/autos/autosVehicleMediaDraft";
 import { coerceVehicleIdentityFromTaxonomy } from "@/app/lib/clasificados/autos/autosVehicleTaxonomy";
@@ -22,12 +23,9 @@ function normalizeCityField(raw: string | undefined): string | undefined {
   return leadingTrimmed;
 }
 
-/** Digits only, max 5 — partial OK in draft; treat full 5 as structured ZIP. */
+/** Any postal / ZIP format — partial OK in draft. */
 function normalizeZipField(raw: unknown): string | undefined {
-  const d = String(raw ?? "")
-    .replace(/\D/g, "")
-    .slice(0, 5);
-  return d.length > 0 ? d : undefined;
+  return normalizeAutosPostalCode(raw);
 }
 
 /** Optional starting point for the hours editor (form button). */
@@ -56,6 +54,7 @@ export function createEmptyListing(): AutoDealerListing {
     city: undefined,
     state: undefined,
     zip: undefined,
+    country: undefined,
     vin: undefined,
     stockNumber: undefined,
     version: undefined,
@@ -117,12 +116,14 @@ export function createEmptyListing(): AutoDealerListing {
     dealerAddressCity: undefined,
     dealerAddressState: undefined,
     dealerAddressZip: undefined,
+    dealerAddressCountry: undefined,
     engineNormalized: undefined,
     dealerHours: [],
     dealerWebsite: undefined,
     dealerBookingUrl: undefined,
     dealerSocials: {},
     googleReviewsUrl: undefined,
+    googleBusinessUrl: undefined,
     yelpReviewsUrl: undefined,
     dealerCustomLinks: [],
     listingAnalytics: undefined,
@@ -194,6 +195,13 @@ export function normalizeLoadedListing(
 
   merged.city = normalizeCityField(merged.city);
   merged.zip = normalizeZipField(merged.zip);
+  merged.country = merged.country?.trim() ? normalizeAutosCountry(merged.country) : merged.country;
+  merged.dealerAddressCountry = merged.dealerAddressCountry?.trim()
+    ? normalizeAutosCountry(merged.dealerAddressCountry)
+    : merged.dealerAddressCountry;
+  merged.googleBusinessUrl = liveDraft
+    ? merged.googleBusinessUrl || undefined
+    : merged.googleBusinessUrl?.trim() || undefined;
 
   // Drop legacy self-entered reputation keys from older drafts (not in product).
   delete (merged as Record<string, unknown>).dealerRating;

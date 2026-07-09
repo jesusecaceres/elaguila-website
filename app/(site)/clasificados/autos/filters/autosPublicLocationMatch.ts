@@ -1,7 +1,12 @@
 import {
   getCanonicalCityName,
-  normalizeZipInput,
 } from "@/app/data/locations/californiaLocationHelpers";
+import {
+  listingMatchesAutosCountryFilter,
+  listingMatchesAutosPostalFilter,
+  listingMatchesAutosStateFilter,
+  normalizeAutosPostalCode,
+} from "@/app/lib/clasificados/autos/autosLocationContract";
 
 /**
  * City filter for Autos public browse: canonical NorCal/CA equality first; substring fallback for legacy text.
@@ -19,7 +24,7 @@ export function listingMatchesAutosCityFilter(listingCityRaw: string, filterCity
 }
 
 /**
- * ZIP filter: normalized 5-digit match; allow ZIP-less listings when city already matched (sparse data).
+ * ZIP/postal filter: normalized match; allow ZIP-less listings when city already matched (sparse data).
  */
 export function listingMatchesAutosZipFilter(
   listingZipRaw: string | null | undefined,
@@ -27,10 +32,7 @@ export function listingMatchesAutosZipFilter(
   cityFilterActive: boolean,
   cityAlreadyMatches: boolean,
 ): boolean {
-  const fz = normalizeZipInput(filterZipRaw);
-  if (!fz) return true;
-  const lz = normalizeZipInput(listingZipRaw ?? "");
-  if (lz && lz === fz) return true;
-  if (!lz && cityFilterActive && cityAlreadyMatches) return true;
-  return false;
+  return listingMatchesAutosPostalFilter(listingZipRaw, filterZipRaw, cityFilterActive, cityAlreadyMatches);
 }
+
+export { listingMatchesAutosStateFilter, listingMatchesAutosCountryFilter, normalizeAutosPostalCode };

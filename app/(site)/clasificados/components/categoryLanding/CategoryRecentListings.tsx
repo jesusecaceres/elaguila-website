@@ -6,9 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import {
-  LEONIX_LANDING_SECTION,
-} from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
 import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
 import { prepareComunidadDiscoveryRows } from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
@@ -26,8 +23,6 @@ type Props = {
   /** Landing preview cap — full results page shows more. */
   previewLimit?: number;
 };
-
-const SECTION_PAD = "px-4 py-4 sm:px-5 sm:py-5";
 
 export function CategoryRecentListings({
   category,
@@ -66,7 +61,7 @@ export function CategoryRecentListings({
 
   if (err) {
     return (
-      <section className="rounded-xl border border-red-200/70 bg-red-50/90 px-4 py-3.5 text-sm text-red-950">
+      <section className="rounded-2xl border border-red-200/70 bg-red-50/90 px-4 py-4 text-sm text-red-950">
         <p className="font-semibold">{errorPrefix}</p>
         <p className="mt-1 opacity-90">{err}</p>
       </section>
@@ -75,22 +70,25 @@ export function CategoryRecentListings({
 
   if (loading) {
     return (
-      <section className={LEONIX_LANDING_SECTION} aria-busy="true" data-testid="community-discovery-landing-recent">
-        <div className={SECTION_PAD}>
-          <h2 className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">{title}</h2>
-          <p className="mt-2 text-sm text-[#5C564E]">{lang === "es" ? "Cargando…" : "Loading…"}</p>
-        </div>
+      <section
+        className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5"
+        aria-busy="true"
+        data-testid="community-discovery-landing-recent"
+      >
+        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
+        <p className="mt-3 text-sm text-[#5C564E]">{lang === "es" ? "Cargando…" : "Loading…"}</p>
       </section>
     );
   }
 
   if (!rows.length) {
     return (
-      <section className={LEONIX_LANDING_SECTION} data-testid="community-discovery-landing-recent">
-        <div className={`${SECTION_PAD} text-center sm:text-left`}>
-          <h2 className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">{title}</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-[#5C564E] sm:mx-0">{emptyNote}</p>
-        </div>
+      <section
+        className="rounded-2xl border border-black/10 bg-white/80 px-4 py-4 text-sm text-[#111111]/75"
+        data-testid="community-discovery-landing-recent"
+      >
+        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#3d5a73]/85">{title}</h2>
+        <p className="mt-2">{emptyNote}</p>
       </section>
     );
   }
@@ -98,34 +96,30 @@ export function CategoryRecentListings({
   const resultsHref = buildCategoryResultsUrl(category, lang);
 
   return (
-    <section className={LEONIX_LANDING_SECTION} data-testid="community-discovery-landing-recent">
-      <div className={SECTION_PAD}>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="font-serif text-base font-bold text-[#2A4536] sm:text-lg">{title}</h2>
-            <p className="mt-0.5 text-xs text-[#5C564E]">
-              {lang === "es" ? "Vista previa — afina en Resultados." : "Preview — refine on Results."}
-            </p>
-          </div>
-          <Link
-            href={resultsHref}
-            className="shrink-0 text-sm font-semibold text-[#556B3E] underline underline-offset-2 hover:text-[#7A1E2C]"
-          >
-            {lang === "es" ? "Ver todos →" : "View all →"}
-          </Link>
-        </div>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-          {rows.map((r) => {
-            const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
-            const model = buildCommunityDiscoveryCardModel(r, category, lang, href);
-            return (
-              <li key={r.id} className="min-w-0">
-                <CommunityDiscoveryListingCard model={model} lang={lang} variant={category} />
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+    <section
+      className="rounded-2xl border border-[#C9B46A]/22 bg-[#FFFCF7]/98 px-4 py-4 shadow-[0_6px_28px_-18px_rgba(42,36,22,0.14)] ring-1 ring-[#C9B46A]/10 sm:px-5"
+      data-testid="community-discovery-landing-recent"
+    >
+      <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-[#556B3E]">{title}</h2>
+      <p className="mt-1 text-xs text-[#5C564E]">
+        {lang === "es" ? "Vista previa — afina en Resultados." : "Preview — refine on Results."}
+      </p>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+        {rows.map((r) => {
+          const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
+          const model = buildCommunityDiscoveryCardModel(r, category, lang, href);
+          return (
+            <li key={r.id} className="min-w-0">
+              <CommunityDiscoveryListingCard model={model} lang={lang} variant={category} />
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-4 text-center sm:text-left">
+        <Link href={resultsHref} className="text-sm font-semibold text-[#A67C00] underline underline-offset-2 hover:text-[#8a6810]">
+          {lang === "es" ? "Ver todos los anuncios" : "View all listings"}
+        </Link>
+      </p>
     </section>
   );
 }

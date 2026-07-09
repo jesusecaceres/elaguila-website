@@ -20,6 +20,7 @@ export type DetectedBuyerActionId =
   | "brochure"
   | "socials"
   | "google_reviews"
+  | "google_business"
   | "yelp_reviews";
 
 export type DetectedBuyerAction = {
@@ -39,6 +40,7 @@ const LABELS: Record<DetectedBuyerActionId, { es: string; en: string }> = {
   tour: { es: "Ver tour", en: "View tour" },
   brochure: { es: "Ver folleto", en: "View brochure" },
   socials: { es: "Redes sociales", en: "Social links" },
+  google_business: { es: "Google Business", en: "Google Business" },
   google_reviews: { es: "Opiniones en Google", en: "Google reviews" },
   yelp_reviews: { es: "Opiniones en Yelp", en: "Yelp reviews" },
 };
@@ -66,6 +68,7 @@ export function detectAgenteResBuyerActions(
     { id: "tour", active: cr.showVerTour },
     { id: "brochure", active: cr.showVerFolleto },
     { id: "socials", active: hub.hasSocialIcons },
+    { id: "google_business", active: Boolean(hub.googleBusinessUrl) },
     { id: "google_reviews", active: Boolean(hub.googleReviewsUrl) },
     { id: "yelp_reviews", active: Boolean(hub.yelpReviewsUrl) },
   ];

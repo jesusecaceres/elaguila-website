@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { FiSliders } from "react-icons/fi";
+import {
+  LEONIX_LB_DEFAULT_STATE,
+  US_STATE_OPTIONS,
+} from "@/app/clasificados/shared/constants/leonixLocalBusinessLocationContract";
 import type { LeonixCategorySearchCanvasProps } from "./types";
 import {
   LEONIX_BTN_PRIMARY,
@@ -188,21 +192,16 @@ export function LeonixCategorySearchCanvas({
 
         <label className={`${fieldClass} sm:col-span-2`}>
           <select
-            value={state}
+            value={state || LEONIX_LB_DEFAULT_STATE}
             onChange={(e) => onState(e.target.value)}
             aria-label={statePh}
             className={`${inputClass} appearance-none`}
           >
-            <option value="CA">CA</option>
-            <option value="TX">TX</option>
-            <option value="FL">FL</option>
-            <option value="NY">NY</option>
-            <option value="IL">IL</option>
-            <option value="AZ">AZ</option>
-            <option value="GA">GA</option>
-            <option value="NC">NC</option>
-            <option value="WA">WA</option>
-            <option value="CO">CO</option>
+            {US_STATE_OPTIONS.map((opt) => (
+              <option key={opt.code} value={opt.code}>
+                {opt.code}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -213,8 +212,6 @@ export function LeonixCategorySearchCanvas({
             onChange={(e) => onZip(e.target.value)}
             placeholder={zipPh}
             aria-label={zipPh}
-            inputMode="numeric"
-            maxLength={5}
             className={`${inputClass} px-2 text-center`}
             autoComplete="postal-code"
           />

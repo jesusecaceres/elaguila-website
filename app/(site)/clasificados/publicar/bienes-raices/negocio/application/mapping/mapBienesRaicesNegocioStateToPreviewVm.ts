@@ -552,12 +552,14 @@ function buildLocationVm(s: BienesRaicesNegocioFormState): BienesRaicesPreviewLo
     country,
   });
   const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : null;
+  const mapLocationLine = trim(fullAddress) || [colonia, cityPart].filter(Boolean).join(", ");
   const hasMeaningfulAddress = Boolean((showExact && streetLine) || colonia || cityPart || mapsUrl);
   return {
     line1: showExact ? streetLine : "",
     colonia,
     cityStateZip: cityPart,
     fullAddress,
+    mapLocationLine,
     mapsUrl,
     hasMeaningfulAddress,
   };
@@ -675,6 +677,12 @@ function cleanHttpUrls(raw: readonly string[] | undefined, max: number): string[
   return out;
 }
 
+function resolveHttpUrl(raw: string | undefined): string | null {
+  const url = trim(raw ?? "");
+  if (!/^https?:\/\/\S+/i.test(url)) return null;
+  return url;
+}
+
 function numberedCtaLabel(base: string, index: number): string {
   return index === 0 ? base : `${base} ${index + 1}`;
 }
@@ -746,6 +754,9 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
     socialIconLinks: socialIconLinks.length ? socialIconLinks : undefined,
     usefulLinks: usefulLinks.length ? usefulLinks : undefined,
     preferredContactLine: preferredContactLine || undefined,
+    googleBusinessUrl: resolveHttpUrl(s.googleBusinessUrl),
+    googleReviewsUrl: resolveHttpUrl(s.googleReviewsUrl),
+    yelpReviewsUrl: resolveHttpUrl(s.yelpReviewsUrl),
   };
 }
 

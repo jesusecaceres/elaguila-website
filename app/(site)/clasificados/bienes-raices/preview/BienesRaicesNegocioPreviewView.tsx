@@ -28,6 +28,7 @@ import {
   type NegocioPreviewUi,
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
+import { BrLeonixPreviewMiniMap } from "@/app/clasificados/publicar/bienes-raices/shared/BrLeonixPreviewMiniMap";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 const IVORY = "#F9F6F1";
@@ -581,6 +582,48 @@ function BienesRaicesNegocioDarkContactAside({
               ))}
             </div>
           ) : null}
+          {vm.contact.googleBusinessUrl ? (
+            <a
+              href={vm.contact.googleBusinessUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+              style={{ borderColor: "rgba(197,160,89,0.45)" }}
+            >
+              {ui.googleBusiness}
+            </a>
+          ) : null}
+          {vm.contact.googleReviewsUrl || vm.contact.yelpReviewsUrl ? (
+            <div className="space-y-2">
+              {(vm.contact.googleBusinessUrl || (vm.contact.socialIconLinks?.length ?? 0) > 0) ? (
+                <p className="text-center text-[10px] font-bold uppercase tracking-wide text-[#C5A059]">
+                  {ui.businessHubReviews}
+                </p>
+              ) : null}
+              {vm.contact.googleReviewsUrl ? (
+                <a
+                  href={vm.contact.googleReviewsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                  style={{ borderColor: "rgba(197,160,89,0.45)" }}
+                >
+                  {ui.googleReviews}
+                </a>
+              ) : null}
+              {vm.contact.yelpReviewsUrl ? (
+                <a
+                  href={vm.contact.yelpReviewsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
+                  style={{ borderColor: "rgba(197,160,89,0.45)" }}
+                >
+                  {ui.yelp}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
           {(vm.contact.usefulLinks?.length ?? 0) > 0 ? (
             <div className="space-y-2">
               {(vm.contact.usefulLinks ?? []).map((link) => (
@@ -600,22 +643,14 @@ function BienesRaicesNegocioDarkContactAside({
           {(vm.location.line1 || vm.location.colonia || vm.location.cityStateZip || vm.location.mapsUrl) ? (
             <div className="rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">{ui.ubicacion}</p>
-              {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
-              {vm.location.colonia ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.colonia}</p> : null}
-              {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
-              {vm.location.mapsUrl ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    track();
-                    brCta.openMaps();
-                  }}
-                  className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
-                  style={{ borderColor: "rgba(255,255,255,0.35)" }}
-                >
-                  {ui.verEnMapa}
-                </button>
-              ) : null}
+              <div className="mt-2">
+                <BrLeonixPreviewMiniMap
+                  locationLine={vm.location.mapLocationLine || vm.location.fullAddress}
+                  directionsHref={vm.location.mapsUrl ?? ""}
+                  lang={lang}
+                  variant="dark"
+                />
+              </div>
             </div>
           ) : null}
         </div>

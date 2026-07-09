@@ -186,6 +186,9 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
     googleReviewUrl: sanitizeSocialUrl(stored.googleReviewUrl),
     yelpUrl: sanitizeSocialUrl(stored.yelpUrl),
     email: String(stored.email ?? "").trim().slice(0, 120),
+    businessLogoUrl: sanitizeUrl(stored.businessLogoUrl),
+    businessLogoUploadedUrl: sanitizeUrl(stored.businessLogoUploadedUrl),
+    businessLogoUploadedFileName: String(stored.businessLogoUploadedFileName ?? "").slice(0, 160),
     flyerAssets: sanitizeAssetList(stored.flyerAssets),
     couponAssets: sanitizeAssetList(stored.couponAssets),
   } as OfertaLocalDraft;

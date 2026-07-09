@@ -47,5 +47,6 @@ export type AutosNegociosBusinessHubContactViewModel = {
   location?: {
     addressDisplay: string;
     mapsHref?: string;
+    mapEmbedUrl?: string;
   };
 };

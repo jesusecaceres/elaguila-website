@@ -14,6 +14,7 @@ import type {
   ServiciosCredentialsWire,
   ServiciosCredentialsResolved,
 } from "../types/serviciosBusinessProfile";
+import { MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS } from "./serviciosGalleryVideoCaps";
 import {
   sanitizeCertificationLabels,
   SERVICIOS_CREDENTIAL_STRING_MAX,
@@ -296,11 +297,11 @@ export function filterGalleryVideos(videos: ServiciosGalleryVideo[] | undefined)
     const poster = trimText(v.posterUrl);
     if (poster && isAllowedServiciosImageUrl(poster)) row.posterUrl = poster;
     tmp.push(row);
-    if (tmp.length >= 2) break;
+    if (tmp.length >= MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS) break;
   }
   const primary = tmp.filter((x) => x.isPrimary);
   const rest = tmp.filter((x) => !x.isPrimary);
-  return [...primary, ...rest].slice(0, 2);
+  return [...primary, ...rest].slice(0, MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS);
 }
 
 export function filterGallery(items: ServiciosGalleryImage[] | undefined): ServiciosGalleryImage[] {

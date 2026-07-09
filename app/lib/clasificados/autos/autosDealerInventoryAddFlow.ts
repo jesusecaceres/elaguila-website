@@ -97,11 +97,13 @@ export function prefillDealerListingForInventoryAdd(parent: AutoDealerListing): 
     dealerAddressCity: parent.dealerAddressCity,
     dealerAddressState: parent.dealerAddressState,
     dealerAddressZip: parent.dealerAddressZip,
+    dealerAddressCountry: parent.dealerAddressCountry,
     dealerHours: Array.isArray(parent.dealerHours) ? parent.dealerHours.map((r, i) => ({ ...r, rowId: r.rowId ?? `prefill-hour-${i}` })) : [],
     dealerWebsite: parent.dealerWebsite,
     dealerBookingUrl: parent.dealerBookingUrl,
     dealerSocials: parent.dealerSocials ? { ...parent.dealerSocials } : {},
     googleReviewsUrl: parent.googleReviewsUrl,
+    googleBusinessUrl: parent.googleBusinessUrl,
     yelpReviewsUrl: parent.yelpReviewsUrl,
     dealerCustomLinks: Array.isArray(parent.dealerCustomLinks)
       ? parent.dealerCustomLinks.map((r, i) => ({ ...r, id: r.id ?? `prefill-link-${i}` }))

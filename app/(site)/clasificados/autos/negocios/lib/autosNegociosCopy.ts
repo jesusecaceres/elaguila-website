@@ -70,6 +70,8 @@ export type AutosNegociosCopy = {
       smsPhone: string;
       smsPhoneHint: string;
       googleReviews: string;
+      googleBusiness: string;
+      googleBusinessHint: string;
       yelpReviews: string;
       reviewsHelper: string;
       dealershipContactsHeading: string;
@@ -242,6 +244,8 @@ export type AutosNegociosCopy = {
       moreLinksHeading: string;
       languagesHeading: string;
       locationHeading: string;
+      quickMapView: string;
+      directionsCta: string;
     };
     specs: { title: string; subtitle: string; rows: Record<string, string> };
     highlights: { title: string; subtitle: string };
@@ -317,6 +321,7 @@ const ES: AutosNegociosCopy = {
       city: "Ciudad",
       state: "Estado",
       zip: "Código postal (ZIP)",
+      country: "País",
       vin: "VIN",
       stock: "Número de stock",
       engine: "Motor",
@@ -344,6 +349,7 @@ const ES: AutosNegociosCopy = {
       dealerAddressCity: "Ciudad",
       dealerAddressState: "Estado",
       dealerAddressZip: "Código postal",
+      dealerAddressCountry: "País",
     },
     placeholders: {
       monthly: "Ej. Desde $450/mes",
@@ -436,6 +442,8 @@ const ES: AutosNegociosCopy = {
       smsPhoneHint:
         "Opcional. Solo se mostrará si deseas recibir mensajes de texto de compradores.",
       googleReviews: "Opiniones en Google",
+      googleBusiness: "Perfil de Google",
+      googleBusinessHint: "Enlace público de tu perfil de negocio en Google (no confundir con reseñas).",
       yelpReviews: "Opiniones en Yelp",
       reviewsHelper:
         "Agrega enlaces reales de reseñas. No mostraremos calificaciones inventadas.",
@@ -622,9 +630,11 @@ const ES: AutosNegociosCopy = {
       viewDealerInventory: "Ver inventario del dealer",
       textMessageCta: "Enviar texto",
       reviewsHeading: "Reseñas del dealer",
-      moreLinksHeading: "Encuentra más sobre nosotros",
+      moreLinksHeading: "Más información",
       languagesHeading: "Idiomas",
       locationHeading: "Nuestra ubicación",
+      quickMapView: "Visita rápida del mapa",
+      directionsCta: "Cómo llegar",
     },
     specs: {
       title: "Especificaciones",
@@ -768,6 +778,7 @@ const EN: AutosNegociosCopy = {
       city: "City",
       state: "State",
       zip: "ZIP code",
+      country: "Country",
       vin: "VIN",
       stock: "Stock number",
       engine: "Engine",
@@ -795,6 +806,7 @@ const EN: AutosNegociosCopy = {
       dealerAddressCity: "City",
       dealerAddressState: "State",
       dealerAddressZip: "ZIP code",
+      dealerAddressCountry: "Country",
     },
     placeholders: {
       monthly: "e.g. From $450/mo",
@@ -885,6 +897,8 @@ const EN: AutosNegociosCopy = {
       smsPhone: "Text message number",
       smsPhoneHint: "Optional. Shown only if you want buyers to text you.",
       googleReviews: "Google Reviews",
+      googleBusiness: "Google Business Profile URL",
+      googleBusinessHint: "Public link to your Google Business Profile (not the same as reviews).",
       yelpReviews: "Yelp Reviews",
       reviewsHelper: "Add real review links only. We will not show invented ratings.",
       dealershipContactsHeading: "Dealership contacts and links",
@@ -1065,9 +1079,11 @@ const EN: AutosNegociosCopy = {
       viewDealerInventory: "View dealer inventory",
       textMessageCta: "Text dealer",
       reviewsHeading: "Dealer reviews",
-      moreLinksHeading: "Find more about us",
+      moreLinksHeading: "More information",
       languagesHeading: "Languages",
       locationHeading: "Our location",
+      quickMapView: "Quick map view",
+      directionsCta: "Get directions",
     },
     specs: {
       title: "Specifications",

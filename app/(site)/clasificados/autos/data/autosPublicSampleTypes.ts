@@ -34,6 +34,7 @@ export type AutosPublicListing = {
   city: string;
   state: string;
   zip?: string;
+  country?: string;
   bodyStyle: string;
   transmission: string;
   drivetrain: string;

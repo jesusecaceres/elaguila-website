@@ -32,7 +32,6 @@ import {
   serviciosBusinessHubHasVisibleContent,
 } from "../lib/mapServiciosProfileToBusinessHubContact";
 import type {
-  ServiciosBusinessHubReviewLink,
   ServiciosBusinessHubSocialLink,
 } from "../lib/serviciosBusinessHubContactTypes";
 import {
@@ -41,7 +40,7 @@ import {
 } from "../lib/serviciosBusinessHubSocialBrand";
 import { ServiciosStarRating } from "./ServiciosStarRating";
 import { ServiciosBusinessHubEngagementRow } from "./ServiciosBusinessHubEngagementRow";
-import { ServiciosBusinessHubFauxMap } from "./ServiciosBusinessHubFauxMap";
+import { ServiciosBusinessHubMapPanel } from "./ServiciosBusinessHubMapPanel";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
@@ -59,7 +58,6 @@ import {
   resolveProfessionalHubQuoteCtaLabel,
 } from "./serviciosLeonixBrand";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
-import { ServiciosHubReviewLinkButton } from "./ServiciosHubReviewLinkButton";
 
 const HUB_GOLD = LX.gold;
 
@@ -330,11 +328,6 @@ export function ServiciosBusinessHubContactCard({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const openReviewLink = (link: ServiciosBusinessHubReviewLink) => {
-    trackServiciosListingCta(listingSlug, "cta_review_click", { ...analyticsBase, source: "business_hub", reviewId: link.id });
-    window.open(link.url, "_blank", "noopener,noreferrer");
-  };
-
   const openDirections = (addressOrUrl: string, isMapsUrl: boolean) => {
     trackServiciosListingCta(listingSlug, "cta_maps_click", { ...analyticsBase, source: "business_hub" });
     if (isMapsUrl) {
@@ -395,9 +388,13 @@ export function ServiciosBusinessHubContactCard({
     Boolean(lxListingIdForEngagement) ||
     Boolean((listingShareUrl ?? "").trim());
   const showSocial = vm.social.length > 0;
-  const showReviews = vm.reviews.length > 0;
   const showMore = vm.moreLinks.length > 0;
-  const showLocation = Boolean(vm.location?.addressDisplay?.trim() || vm.location?.mapsHref);
+  const showLocation = Boolean(
+    vm.location?.addressDisplay?.trim() ||
+      vm.location?.mapsHref ||
+      vm.location?.mapEmbedSrc ||
+      vm.location?.mapImageUrl,
+  );
 
   const primaryClass = `${LX_CTA_PRIMARY} ${isProfessionalHub ? LX_CTA_PRIMARY_LG : ""} w-full`;
 
@@ -597,27 +594,6 @@ export function ServiciosBusinessHubContactCard({
           </>
         ) : null}
 
-        {showReviews ? (
-          <>
-            <HubDivider />
-            <section aria-labelledby="hub-reviews-heading">
-              <HubSectionTitle>
-                <span id="hub-reviews-heading">{lang === "en" ? "Reviews" : "Opiniones"}</span>
-              </HubSectionTitle>
-              <div className="mt-3 flex flex-col gap-2.5 sm:mt-3.5">
-                {vm.reviews.map((link) => (
-                  <ServiciosHubReviewLinkButton
-                    key={link.id}
-                    link={link}
-                    lang={lang}
-                    onClick={() => openReviewLink(link)}
-                  />
-                ))}
-              </div>
-            </section>
-          </>
-        ) : null}
-
         {showMore ? (
           <>
             <HubDivider />
@@ -657,14 +633,24 @@ export function ServiciosBusinessHubContactCard({
                 </p>
               ) : null}
               <div className="mt-3 overflow-hidden rounded-lg border-2 border-[#D4C4A8] shadow-md ring-1 ring-[#C9A84A]/20">
-                <ServiciosBusinessHubFauxMap />
+                <ServiciosBusinessHubMapPanel
+                  mapImageUrl={vm.location?.mapImageUrl}
+                  mapEmbedSrc={vm.location?.mapEmbedSrc}
+                  addressDisplay={vm.location?.addressDisplay}
+                  lang={lang}
+                />
               </div>
-              {vm.location?.mapsHref ? (
+              {vm.location?.mapsHref || vm.location?.addressDisplay?.trim() ? (
                 <button
                   type="button"
                   className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} mt-3 w-full border-2 border-[#C9A84A]/40`}
                   style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.28)" }}
-                  onClick={() => openDirections(vm.location!.mapsHref!, true)}
+                  onClick={() => {
+                    const mapsHref = vm.location?.mapsHref?.trim();
+                    const address = vm.location?.addressDisplay?.trim() ?? "";
+                    if (mapsHref) openDirections(mapsHref, true);
+                    else if (address) openDirections(address, false);
+                  }}
                 >
                   <FiMapPin className="h-5 w-5 shrink-0" aria-hidden />
                   {lang === "en" ? "Get directions" : "Cómo llegar"}

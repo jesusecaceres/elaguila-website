@@ -17,6 +17,7 @@ import {
   normalizeOfertaLocalEmailInput,
 } from "./ofertasLocalesApplicationHelpers";
 import { validateOfertaLocalDraftForFuturePublish } from "./ofertasLocalesValidation";
+import { getOfertaLocalBusinessLogoUrl } from "./ofertasLocalesPreviewHelpers";
 import type {
   OfertaLocalDbInsertPayload,
   OfertaLocalDraft,
@@ -143,6 +144,8 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
   if (customMarket) metadata.customMarketType = customMarket;
   const primaryAdFormat = inferPrimaryAdFormatFromDraft(draft);
   if (primaryAdFormat) metadata.primaryAdFormat = primaryAdFormat;
+  const businessLogoUrl = getOfertaLocalBusinessLogoUrl(draft);
+  if (businessLogoUrl) metadata.businessLogoUrl = businessLogoUrl;
 
   if (Object.keys(metadata).length) {
     chunks.push(`${INTERNAL_METADATA_PREFIX}${JSON.stringify(metadata)}`);

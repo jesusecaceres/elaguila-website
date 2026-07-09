@@ -18,6 +18,7 @@ import type {
   ServiciosServiceCard,
   ServiciosTrustItem,
 } from "../types/serviciosBusinessProfile";
+import { MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS } from "./serviciosGalleryVideoCaps";
 import type { ServiciosApplicationCouponDraft } from "../types/serviciosApplicationDraft";
 import {
   sanitizeCustomPaymentMethodLabels,
@@ -156,6 +157,8 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (sX) socialLinks.xUrl = sX;
   const sSc = trim(c?.socialSnapchatUrl);
   if (sSc) socialLinks.snapchatUrl = sSc;
+  const sGb = trim(c?.googleBusinessUrl);
+  if (sGb) socialLinks.googleBusinessUrl = sGb;
   if (Object.keys(socialLinks).length > 0) {
     contact.socialLinks = socialLinks;
   }
@@ -451,9 +454,11 @@ function mapGalleryVideos(raw: ServiciosApplicationDraft["galleryVideos"]): Serv
     const skip = trim((v as { muxPublishSkipReason?: string }).muxPublishSkipReason);
     if (skip) row.muxPublishSkipReason = skip.slice(0, 480);
     out.push(row);
-    if (out.length >= 2) break;
+    if (out.length >= MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS) break;
   }
-  return out;
+  const primary = out.filter((x) => x.isPrimary);
+  const rest = out.filter((x) => !x.isPrimary);
+  return [...primary, ...rest];
 }
 
 function mapTrust(raw: ServiciosApplicationDraft["trust"]): ServiciosTrustItem[] {

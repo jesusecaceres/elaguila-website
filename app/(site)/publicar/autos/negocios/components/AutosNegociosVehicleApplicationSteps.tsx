@@ -57,8 +57,10 @@ import { autosDrawerNativeSelectProps } from "@/app/lib/clasificados/autos/autos
 import {
   autosVehicleCityHelper,
   autosVehicleCityPlaceholder,
+  autosVehicleCountryHelper,
   autosVehicleZipHelper,
 } from "@/app/lib/clasificados/autos/autosVehicleLocationCopy";
+import { AUTOS_DEFAULT_COUNTRY, AUTOS_DEFAULT_STATE } from "@/app/lib/clasificados/autos/autosLocationContract";
 
 import {
   AUTOS_NEGOCIOS_FORM_CARD,
@@ -303,7 +305,7 @@ export function AutosNegociosVehicleApplicationSteps({
           </div>
           <div>
             <label className={LABEL}>{t.app.labels.state}</label>
-            <select {...modalSelect()} value={draft.state ?? ""} onChange={(e) => onPatch({ state: e.target.value || undefined })}>
+            <select {...modalSelect()} value={draft.state?.trim() || AUTOS_DEFAULT_STATE} onChange={(e) => onPatch({ state: e.target.value || undefined })}>
               {US_STATE_OPTIONS.map((s) => (
                 <option key={s || "empty"} value={s}>
                   {s || t.taxonomy.selectEmpty}
@@ -315,12 +317,20 @@ export function AutosNegociosVehicleApplicationSteps({
             <label className={LABEL}>{t.app.labels.zip}</label>
             <input
               className={INPUT}
-              inputMode="numeric"
-              maxLength={5}
               value={draft.zip ?? ""}
-              onChange={(e) => onPatch({ zip: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
+              onChange={(e) => onPatch({ zip: e.target.value.trim() || undefined })}
             />
             <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{autosVehicleZipHelper(lang)}</p>
+          </div>
+          <div className="sm:col-span-2">
+            <label className={LABEL}>{t.app.labels.country}</label>
+            <input
+              className={INPUT}
+              autoComplete="country-name"
+              value={draft.country ?? AUTOS_DEFAULT_COUNTRY}
+              onChange={(e) => onPatch({ country: e.target.value.trim() || undefined })}
+            />
+            <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{autosVehicleCountryHelper(lang)}</p>
           </div>
           <div>
             <label className={LABEL}>{t.app.labels.stock}</label>

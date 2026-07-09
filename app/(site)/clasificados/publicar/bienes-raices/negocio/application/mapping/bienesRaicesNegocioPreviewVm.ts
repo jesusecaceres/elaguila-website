@@ -95,6 +95,10 @@ export type BienesRaicesPreviewContactVm = {
   socialIconLinks?: Array<{ kind: "instagram" | "facebook" | "youtube" | "tiktok"; href: string }>;
   usefulLinks?: Array<{ label: string; href: string }>;
   preferredContactLine?: string;
+  /** Business hub profile/review URLs when captured in the form. */
+  googleBusinessUrl?: string | null;
+  googleReviewsUrl?: string | null;
+  yelpReviewsUrl?: string | null;
   secondAgent: null | {
     name: string;
     role: string;
@@ -133,6 +137,8 @@ export type BienesRaicesPreviewLocationVm = {
   colonia: string;
   cityStateZip: string;
   fullAddress: string;
+  /** Query line for free Google Maps embed (Ofertas Locales pattern). */
+  mapLocationLine?: string;
   mapsUrl: string | null;
   hasMeaningfulAddress: boolean;
 };

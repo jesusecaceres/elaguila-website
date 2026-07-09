@@ -389,6 +389,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     socialX: str("socialX", d.socialX),
     socialSnapchat: str("socialSnapchat", d.socialSnapchat),
     googleReviewsUrl: str("googleReviewsUrl", d.googleReviewsUrl),
+    googleBusinessUrl: str("googleBusinessUrl", d.googleBusinessUrl),
     yelpReviewsUrl: str("yelpReviewsUrl", d.yelpReviewsUrl),
     extraLink1Url: str("extraLink1Url", d.extraLink1Url),
     extraLink1Label: str("extraLink1Label", d.extraLink1Label).slice(0, 48),

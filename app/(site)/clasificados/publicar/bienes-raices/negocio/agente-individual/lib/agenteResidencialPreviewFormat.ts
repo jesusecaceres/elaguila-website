@@ -822,10 +822,12 @@ export type MainAgentBusinessHub = {
   socialOtro: string | null;
   googleReviewsUrl: string | null;
   yelpReviewsUrl: string | null;
+  googleBusinessUrl: string | null;
   websiteHref: string | null;
   businessExtraLinks: Array<{ label: string; href: string }>;
   hasSocialIcons: boolean;
   hasReviewCards: boolean;
+  hasBusinessLinks: boolean;
 };
 
 export function buildMainAgentBusinessHub(
@@ -840,6 +842,7 @@ export function buildMainAgentBusinessHub(
   const socialLinkedin = resolveAnyHref(s.socialLinkedin);
   const socialSnapchat = resolveAnyHref(s.socialSnapchat);
   const socialOtro = resolveAnyHref(s.socialOtro);
+  const googleBusinessUrl = resolveAnyHref(s.googleBusinessUrl);
   const googleReviewsUrl = resolveAnyHref(s.googleReviewsUrl);
   const yelpReviewsUrl = resolveAnyHref(s.yelpReviewsUrl);
   const websiteHref = hrefFromUserInput(s.agenteSitioWeb);
@@ -863,12 +866,14 @@ export function buildMainAgentBusinessHub(
     socialLinkedin,
     socialSnapchat,
     socialOtro,
+    googleBusinessUrl,
     googleReviewsUrl,
     yelpReviewsUrl,
     websiteHref,
     businessExtraLinks,
     hasSocialIcons,
     hasReviewCards: Boolean(googleReviewsUrl || yelpReviewsUrl),
+    hasBusinessLinks: Boolean(googleBusinessUrl || googleReviewsUrl || yelpReviewsUrl),
   };
 }
 

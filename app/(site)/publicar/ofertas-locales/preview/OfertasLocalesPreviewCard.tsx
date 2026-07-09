@@ -61,7 +61,15 @@ const CHIP =
   "inline-flex min-h-9 shrink-0 items-center rounded-full border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#7A1E2C] shadow-sm transition hover:border-[#7A1E2C]/40 hover:bg-[#FDF8F0] sm:px-3 sm:py-2 sm:text-xs";
 const STICKY_ACTION =
   "flex min-h-10 min-w-[40px] flex-1 flex-col items-center justify-center gap-0 rounded-md px-0.5 py-1 text-[9px] font-semibold leading-tight text-[#1E1814] transition hover:bg-[#FDF8F0] sm:min-h-11 sm:min-w-[44px] sm:gap-0.5 sm:rounded-lg sm:px-1 sm:py-1.5 sm:text-[10px]";
-const CARD = "rounded-2xl border border-[#D4C4A8]/80 bg-white shadow-sm";
+const CARD =
+  "rounded-2xl border border-[#B8860B]/35 bg-gradient-to-br from-[#FFFCF7] via-[#FDF8F0] to-[#F5EBD8]/35 shadow-sm ring-1 ring-[#D4C4A8]/25";
+const LOGO_FRAME =
+  "flex items-center justify-center overflow-hidden rounded-2xl border-2 border-[#B8860B]/45 bg-white p-2 shadow-md ring-2 ring-[#D4C4A8]/25";
+const LOGO_SIZE = "h-[88px] w-[88px] sm:h-[96px] sm:w-[96px] lg:h-[132px] lg:w-[132px]";
+const MONOGRAM_SIZE =
+  "flex items-center justify-center rounded-2xl border-2 border-[#B8860B]/45 bg-gradient-to-br from-[#7A1E2C]/14 via-[#FDF8F0] to-[#F5EBD8]/70 font-serif font-bold text-[#7A1E2C] shadow-md ring-2 ring-[#D4C4A8]/25";
+const VALID_BADGE =
+  "inline-flex flex-wrap items-center gap-2 rounded-xl border border-[#B8860B]/50 bg-[#FDF8F0] px-3 py-2 shadow-sm";
 const BTN_PRIMARY =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_OUTLINE =
@@ -776,84 +784,103 @@ export function OfertasLocalesPreviewCard({
 
         <PreviewSectionNav items={sectionNavItems} lang={lang} />
 
-        {/* 3. Title / info section — compact business strip that supports the flyer (not a profile card) */}
-        <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "p-3 lg:p-4")}>
-          {/* Identity row — premium logo/monogram anchor + business meta */}
-          <div className="flex items-start gap-3 sm:gap-4">
-            <div className="shrink-0">
-              {businessLogoUrl && !logoFailed ? (
-                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-[#B8860B]/35 bg-white p-1.5 shadow-sm ring-1 ring-[#D4C4A8]/30 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={businessLogoUrl}
-                    alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
-                    onError={() => setLogoFailed(true)}
-                    className="h-full w-full rounded-lg object-contain"
-                  />
-                </div>
-              ) : (
-                <span
-                  aria-label={lang === "en" ? c.businessInitialEn : c.businessInitialEs}
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#B8860B]/35 bg-gradient-to-br from-[#7A1E2C]/12 via-[#FDF8F0] to-[#F5EBD8]/60 font-serif text-2xl font-bold text-[#7A1E2C] shadow-sm ring-1 ring-[#D4C4A8]/30 sm:h-20 sm:w-20 sm:text-3xl lg:h-24 lg:w-24 lg:text-4xl"
-                >
-                  {businessInitial}
-                </span>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {primaryFormatLabel ? <span className={PILL_PRIMARY}>{primaryFormatLabel}</span> : null}
-                {offerLabel && offerLabel !== primaryFormatLabel ? (
-                  <span className={PILL_MUTED}>{offerLabel}</span>
-                ) : null}
-                {draft.wantsAiSearchableSpecials ? (
-                  <span className={PILL_TRUST}>{lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}</span>
-                ) : null}
+        {/* 3. Offer identity — premium store header that anchors the flyer */}
+        <section id="oferta" className={cx(SECTION_ANCHOR, CARD, "overflow-hidden p-4 sm:p-5 lg:p-5")}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
+            {/* Left — logo + business identity cluster */}
+            <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
+              <div className="shrink-0">
+                {businessLogoUrl && !logoFailed ? (
+                  <div className={cx(LOGO_FRAME, LOGO_SIZE)}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={businessLogoUrl}
+                      alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
+                      onError={() => setLogoFailed(true)}
+                      className="h-full w-full rounded-xl object-contain"
+                    />
+                  </div>
+                ) : (
+                  <span
+                    aria-label={lang === "en" ? c.businessInitialEn : c.businessInitialEs}
+                    className={cx(MONOGRAM_SIZE, LOGO_SIZE, "text-3xl sm:text-4xl lg:text-5xl")}
+                  >
+                    {businessInitial}
+                  </span>
+                )}
               </div>
 
-              {/* Business name — premium serif anchor */}
-              <h2 className="mt-2 break-words font-serif text-2xl font-bold leading-tight text-[#1E1814] sm:text-3xl lg:text-[2.15rem]">
-                {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
-              </h2>
-              {draft.businessName.trim() && draft.title.trim() ? (
-                <p className="mt-1 font-serif text-base font-semibold text-[#7A1E2C] sm:text-lg">
-                  {draft.title}
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#B8860B] sm:text-[11px]">
+                  {lang === "en" ? c.headerStoreLabelEn : c.headerStoreLabelEs}
                 </p>
-              ) : null}
 
-              {(categoryLabel || marketLabel) ? (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {categoryLabel ? <span className={PILL_MUTED}>{categoryLabel}</span> : null}
-                  {marketLabel ? <span className={PILL_MUTED}>{marketLabel}</span> : null}
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {primaryFormatLabel ? <span className={PILL_PRIMARY}>{primaryFormatLabel}</span> : null}
+                  {offerLabel && offerLabel !== primaryFormatLabel ? (
+                    <span className={PILL_MUTED}>{offerLabel}</span>
+                  ) : null}
+                  {draft.wantsAiSearchableSpecials ? (
+                    <span className={PILL_TRUST}>{lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}</span>
+                  ) : null}
                 </div>
-              ) : null}
+
+                <h2 className="mt-2 break-words font-serif text-[1.75rem] font-bold leading-[1.12] text-[#1E1814] sm:text-4xl lg:text-[2.35rem]">
+                  {draft.businessName.trim() || draft.title.trim() || defaultOfferTitle}
+                </h2>
+
+                {draft.businessName.trim() && draft.title.trim() ? (
+                  <p className="mt-1.5 font-serif text-lg font-semibold leading-snug text-[#7A1E2C] sm:text-xl">
+                    {lang === "en" ? c.headerOfferAtEn : c.headerOfferAtEs}{" "}
+                    <span className="text-[#1E1814]">{draft.title}</span>
+                  </p>
+                ) : null}
+
+                {(categoryLabel || marketLabel) ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {categoryLabel ? <span className={PILL_MUTED}>{categoryLabel}</span> : null}
+                    {marketLabel ? <span className={PILL_MUTED}>{marketLabel}</span> : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
+
+            {/* Right — valid dates badge (desktop) */}
+            {dateRange ? (
+              <div className="hidden shrink-0 lg:block">
+                <div className={VALID_BADGE}>
+                  <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#7A1E2C]">
+                    {lang === "en" ? c.validBadgeEn : c.validBadgeEs}
+                  </span>
+                  <span className="text-sm font-semibold text-[#1E1814]">{dateRange}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
 
-          {/* Validity + address — one tight inline row on desktop, short stack on mobile */}
+          {/* Valid dates + location — prominent on mobile, inline on desktop */}
           {(dateRange || locationLine) ? (
-            <div className="mt-2.5 flex flex-col gap-1 text-xs text-[#1E1814]/75 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
               {dateRange ? (
-                <span className="inline-flex flex-wrap items-baseline gap-1">
-                  <span className="font-semibold uppercase tracking-wide text-[#7A1E2C]">
-                    {lang === "en" ? c.validLabelEn : c.validLabelEs}:
+                <div className={cx(VALID_BADGE, "lg:hidden")}>
+                  <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#7A1E2C]">
+                    {lang === "en" ? c.validBadgeEn : c.validBadgeEs}
                   </span>
-                  <span className="font-medium text-[#1E1814]">{dateRange}</span>
-                </span>
+                  <span className="text-sm font-semibold text-[#1E1814]">{dateRange}</span>
+                </div>
               ) : null}
               {locationLine ? (
-                <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <FiMapPin className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+                <span className="inline-flex min-w-0 items-center gap-1.5 rounded-lg border border-[#D4C4A8]/60 bg-white/70 px-2.5 py-1.5 text-sm text-[#1E1814]/80">
+                  <FiMapPin className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
                   <span className="truncate">{locationLine}</span>
                 </span>
               ) : null}
             </div>
           ) : null}
 
-          {/* Quick actions — compact real-only row; Business Hub keeps the full contact center */}
+          {/* Quick actions — real CTAs + compact membership/rewards when URLs exist */}
           <div
-            className="mt-3 flex flex-wrap gap-2"
+            className="mt-3 flex flex-wrap gap-2 sm:mt-4"
             role="group"
             aria-label={lang === "en" ? c.quickActionsTitleEn : c.quickActionsTitleEs}
           >
@@ -896,6 +923,36 @@ export function OfertasLocalesPreviewCard({
                 {lang === "en" ? c.website : c.websiteEs}
               </a>
             ) : null}
+            {showMembership && membershipHref ? (
+              <a
+                href={membershipHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cx(
+                  QUICK_ACTION,
+                  "border border-[#B8860B]/45 bg-[#FDF8F0] text-[#7A1E2C] hover:border-[#7A1E2C]/35"
+                )}
+                title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+              >
+                <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
+              </a>
+            ) : null}
+            {showDigitalCoupon && digitalCouponHref ? (
+              <a
+                href={digitalCouponHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cx(
+                  QUICK_ACTION,
+                  "border border-[#D4C4A8] bg-white text-[#7A1E2C] hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
+                )}
+                title={lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
+              >
+                <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                {lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={() => void handleShare()}
@@ -913,17 +970,16 @@ export function OfertasLocalesPreviewCard({
           </div>
 
           {expired ? (
-            <p className="mt-2 rounded-md border border-amber-300/80 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
+            <p className="mt-2.5 rounded-md border border-amber-300/80 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
               {lang === "en" ? c.expiredWarning : c.expiredWarningEs}
             </p>
           ) : null}
           {notYetActive ? (
-            <p className="mt-2 rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1.5 text-[11px] text-[#1E1814]/70">
+            <p className="mt-2.5 rounded-md border border-[#D4C4A8] bg-[#FDF8F0] px-2.5 py-1.5 text-[11px] text-[#1E1814]/70">
               {lang === "en" ? c.notYetActive : c.notYetActiveEs}
             </p>
           ) : null}
 
-          {/* About — short excerpt, muted, line-clamped so it never dominates */}
           {draft.description.trim() ? (
             <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-[#1E1814]/65">
               {draft.description}
@@ -939,46 +995,6 @@ export function OfertasLocalesPreviewCard({
             </div>
           ) : null}
 
-          {/* Compact rewards / membership mini notice — slim ivory/gold row, not a big red card */}
-          {(showMembership && membershipHref) || (showDigitalCoupon && digitalCouponHref) ? (
-            <div className="mt-2.5 rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/70 p-2.5 sm:flex sm:items-center sm:gap-3">
-              <div className="flex min-w-0 items-start gap-1.5 sm:flex-1">
-                <FiAward className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-[#7A1E2C]">
-                    {lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
-                  </p>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#1E1814]/60 sm:line-clamp-1">
-                    {lang === "en" ? c.membershipCopyEn : c.membershipCopyEs}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2 sm:mt-0 sm:shrink-0">
-                {showMembership && membershipHref ? (
-                  <a
-                    href={membershipHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#6a1926]"
-                  >
-                    {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
-                  </a>
-                ) : null}
-                {showDigitalCoupon && digitalCouponHref ? (
-                  <a
-                    href={digitalCouponHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#B8860B]/45 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#7A1E2C] transition hover:border-[#7A1E2C]/35 hover:bg-[#FDF8F0]"
-                  >
-                    {lang === "en" ? c.digitalCouponActivateShortEn : c.digitalCouponActivateShortEs}
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Published trust cue — subtle green/charcoal, not a tall footer row */}
           <p className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[#2D5A3D]/85">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#2D5A3D]/70" aria-hidden />
             {lang === "en" ? c.publishedOnLeonixEn : c.publishedOnLeonixEs}

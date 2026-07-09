@@ -39,6 +39,7 @@ function buildSearchableBlurb(L: AutoDealerListing): string {
   if (L.city?.trim()) parts.push(L.city.trim());
   if (L.state?.trim()) parts.push(L.state.trim());
   if (L.zip?.trim()) parts.push(L.zip.trim());
+  if (L.country?.trim()) parts.push(L.country.trim());
   if (L.dealerName?.trim()) parts.push(L.dealerName.trim());
   if (L.condition?.trim()) parts.push(L.condition.trim());
   if (resolveTransmission(L)) parts.push(resolveTransmission(L) ?? "");
@@ -116,7 +117,8 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
     mileage: L.mileage ?? 0,
     city: L.city ?? "",
     state: L.state ?? "",
-    zip: L.zip != null && L.zip !== "" ? String(L.zip).replace(/\D/g, "").slice(0, 5) : "",
+    zip: L.zip != null && L.zip !== "" ? String(L.zip).trim() : "",
+    country: L.country?.trim() || undefined,
     bodyStyle,
     transmission,
     drivetrain,

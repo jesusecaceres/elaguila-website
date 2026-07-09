@@ -7,7 +7,9 @@ export type AutosPublicSortKey = "newest" | "priceAsc" | "priceDesc" | "mileage"
 
 export type AutosPublicFilterState = {
   city: string;
+  state: string;
   zip: string;
+  country: string;
   priceMin: string;
   priceMax: string;
   make: string;
@@ -37,7 +39,9 @@ export type AutosPublicFilterState = {
 export function emptyAutosPublicFilters(): AutosPublicFilterState {
   return {
     city: "",
+    state: "",
     zip: "",
+    country: "",
     priceMin: "",
     priceMax: "",
     make: "",
