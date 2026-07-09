@@ -78,6 +78,7 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     categoryCustom: catCustom || undefined,
     experienceLevel: d.experienceLevel,
     workModality: d.workModality,
+    workModalityCustom: d.workModality.trim() || undefined,
     city: d.city.trim(),
     state: d.state.trim(),
     jobType: d.jobType === "otro" && d.jobTypeCustom.trim() ? d.jobTypeCustom.trim() : d.jobType.trim(),

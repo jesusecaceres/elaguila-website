@@ -30,7 +30,7 @@ import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/emple
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
 
 const MODALITIES: { value: JobFairModality; es: string; en: string }[] = [
-  { value: "presencial", es: "Presencial", en: "In person" },
+  { value: "presencial", es: "En persona", en: "In person" },
   { value: "virtual", es: "Virtual", en: "Virtual" },
   { value: "híbrida", es: "Híbrida", en: "Hybrid" },
 ];

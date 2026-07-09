@@ -25,7 +25,7 @@ function modalityShort(job: SampleRecentJob, lang: Lang) {
   if (lang === "en") {
     return job.modality === "presencial" ? "On-site" : job.modality === "hibrido" ? "Hybrid" : "Remote";
   }
-  return job.modality === "presencial" ? "Presencial" : job.modality === "hibrido" ? "Híbrido" : "Remoto";
+  return job.modality === "presencial" ? "En persona" : job.modality === "hibrido" ? "Híbrido" : "Remoto";
 }
 
 export function LatestJobsAndEmployer({ lang, jobs, liveInventory = false }: Props) {

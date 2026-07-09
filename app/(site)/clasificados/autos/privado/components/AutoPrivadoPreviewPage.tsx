@@ -15,7 +15,7 @@ import {
   formatVinDisplay,
 } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
 import { AutoGallery } from "@/app/clasificados/autos/negocios/components/AutoGallery";
-import { VehicleDescription } from "@/app/clasificados/autos/negocios/components/VehicleDescription";
+import { PrivadoVehicleDescription } from "./PrivadoVehicleDescription";
 import { VehicleHighlights } from "@/app/clasificados/autos/negocios/components/VehicleHighlights";
 import { VehicleSpecsGrid } from "@/app/clasificados/autos/negocios/components/VehicleSpecsGrid";
 import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/AutosEngagementRow";
@@ -187,7 +187,7 @@ export function AutoPrivadoPreviewPage({
             ) : null}
             {showDesc ? (
               <div className={showSpecs || showHighlights ? "mt-6" : ""}>
-                <VehicleDescription data={display} />
+                <PrivadoVehicleDescription data={display} />
               </div>
             ) : null}
           </div>

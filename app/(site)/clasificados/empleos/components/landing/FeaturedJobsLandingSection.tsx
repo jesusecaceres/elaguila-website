@@ -23,7 +23,7 @@ function modalityLabel(m: SampleFeaturedJob["modality"], lang: Lang) {
   if (lang === "en") {
     return m === "presencial" ? "On-site" : m === "hibrido" ? "Hybrid" : "Remote";
   }
-  return m === "presencial" ? "Presencial" : m === "hibrido" ? "Híbrido" : "Remoto";
+  return m === "presencial" ? "En persona" : m === "hibrido" ? "Híbrido" : "Remoto";
 }
 
 function visibilityBadge(job: SampleFeaturedJob, lang: Lang): { label: string; className: string } {

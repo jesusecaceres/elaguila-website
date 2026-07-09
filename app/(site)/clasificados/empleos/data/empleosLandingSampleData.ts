@@ -163,7 +163,7 @@ export const sampleSalaryBandOptions: readonly { value: string; label: string; m
 
 export const sampleModalityOptions: readonly { value: string; label: string }[] = [
   { value: "", label: "Todas las modalidades" },
-  { value: "presencial", label: "Presencial" },
+  { value: "presencial", label: "En persona" },
   { value: "remoto", label: "Remoto" },
   { value: "hibrido", label: "Híbrido" },
   { value: "campo", label: "Trabajo en campo" },
@@ -270,7 +270,7 @@ export const sampleQuickFilters: SampleQuickFilter[] = [
   { id: "pt", label: "Medio tiempo", params: { jobType: "medio-tiempo" }, icon: "clock" },
   { id: "rem", label: "Remoto", params: { modality: "remoto" }, icon: "home" },
   { id: "hyb", label: "Híbrido", params: { modality: "hibrido" }, icon: "building2" },
-  { id: "pres", label: "Presencial", params: { modality: "presencial" }, icon: "building2" },
+  { id: "pres", label: "En persona", params: { modality: "presencial" }, icon: "building2" },
   { id: "salud", label: "Salud", params: { category: "salud" }, icon: "heart" },
   { id: "const", label: "Construcción", params: { category: "oficios" }, icon: "hardhat" },
   { id: "sales", label: "Ventas", params: { category: "ventas" }, icon: "tag" },

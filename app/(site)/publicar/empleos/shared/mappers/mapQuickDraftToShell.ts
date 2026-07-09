@@ -24,13 +24,13 @@ function pickMainImage(d: EmpleosQuickDraft): { src: string; alt: string } {
   return { src: main.url, alt: main.alt || "Imagen principal" };
 }
 
-function modalityLabelEs(m: JobModalitySlug): string {
+function modalityLabelEs(m: JobModalitySlug, custom?: string): string {
   if (m === "remoto") return "Remoto";
   if (m === "hibrido") return "Híbrido";
   if (m === "campo") return "Trabajo en campo";
   if (m === "varias-ubicaciones") return "Varias ubicaciones";
-  if (m === "otro") return "Otro";
-  return "Presencial";
+  if (m === "otro") return custom?.trim() || "Otro";
+  return "En persona";
 }
 
 function labelFromOptions(
@@ -117,7 +117,7 @@ export function mapQuickDraftToShell(d: EmpleosQuickDraft): QuickJobDetailSample
     schedule: scheduleFull,
     scheduleSummary,
     scheduleRows,
-    workModalityLabel: modalityLabelEs(d.workModality),
+    workModalityLabel: modalityLabelEs(d.workModality, d.workModalityCustom),
     description: d.description.trim() || "—",
     benefits: d.benefits.map((b) => b.trim()).filter(Boolean),
     applyLink: sanitizeHttpUrl(d.applyLink) ?? undefined,

@@ -35,6 +35,8 @@ export type EmpleosQuickPublishSnapshot = {
   categoryCustom?: string;
   experienceLevel: ExperienceSlug;
   workModality?: JobModalitySlug;
+  /** Custom workplace type label when workModality === "otro". */
+  workModalityCustom?: string;
   jobType: string;
   schedule: string;
   /** Structured schedule rows (optional on legacy snapshots). */

@@ -17,7 +17,7 @@ import type {
   BienesRaicesNegocioPreviewVm,
   BienesRaicesPreviewFact,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
-import { RentasFauxMap } from "@/app/clasificados/rentas/shared/RentasFauxMap";
+import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 
 type Vm = BienesRaicesPrivadoPreviewVm | BienesRaicesNegocioPreviewVm;
 
@@ -561,7 +561,20 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
           {vm.location?.hasMeaningfulAddress ? (
             <Section eyebrow={lang === "es" ? "Zona de la renta" : "Rental area"} title={lang === "es" ? "Ubicación" : "Location"}>
               <div className="mb-4">
-                <RentasFauxMap />
+                {locationLine ? (
+                  <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/40">
+                    <p className="border-b border-[#E8D9C4]/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                      {lang === "es" ? "Vista del mapa" : "Map preview"}
+                    </p>
+                    <iframe
+                      title={lang === "es" ? "Vista del mapa" : "Map preview"}
+                      src={buildOfertaLocalPreviewMapEmbedUrl(locationLine)}
+                      className="h-40 w-full max-w-full border-0 sm:h-44"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                ) : null}
               </div>
               <p className="text-sm font-semibold leading-6" style={{ color: BODY }}>
                 {locationLine}
@@ -654,7 +667,18 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls }: Props) {
                 {lang === "es" ? "Ubicación" : "Location"}
               </p>
               <div className="mt-2">
-                <RentasFauxMap />
+                <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/40">
+                  <p className="border-b border-[#E8D9C4]/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                    {lang === "es" ? "Vista del mapa" : "Map preview"}
+                  </p>
+                  <iframe
+                    title={lang === "es" ? "Vista del mapa" : "Map preview"}
+                    src={buildOfertaLocalPreviewMapEmbedUrl(locationLine)}
+                    className="h-32 w-full max-w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
               </div>
               <p className="mt-2 text-xs font-semibold leading-5" style={{ color: BODY }}>
                 {locationLine}

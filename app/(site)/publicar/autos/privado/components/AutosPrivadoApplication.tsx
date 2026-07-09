@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
@@ -109,8 +109,48 @@ export function AutosPrivadoApplication() {
 
   const previewHref = withLangParam("/clasificados/autos/privado/preview", routeLang);
 
+  // Custom equipment pills UI state
+  const [customEquipmentInput, setCustomEquipmentInput] = useState("");
+  const customEquipmentArray = useMemo(() => listing.customEquipment ?? [], [listing.customEquipment]);
+
   if (!hydrated) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
+
+  // Initialize customEquipment from legacy otherEquipmentDetails on first load if customEquipment is empty
+  useEffect(() => {
+    if (customEquipmentArray.length === 0 && listing.otherEquipmentDetails) {
+      const legacyItems = listing.otherEquipmentDetails
+        .split(/[,;\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (legacyItems.length > 0) {
+        setListingPatch({ customEquipment: legacyItems });
+      }
+    }
+  }, []); // Run once on mount
+
+  function addCustomEquipment() {
+    const trimmed = customEquipmentInput.trim();
+    if (!trimmed) return;
+    
+    const current = listing.customEquipment ?? [];
+    if (current.includes(trimmed)) return; // Avoid duplicates
+    
+    setListingPatch({ customEquipment: [...current, trimmed] });
+    setCustomEquipmentInput("");
+  }
+
+  function removeCustomEquipment(item: string) {
+    const current = listing.customEquipment ?? [];
+    setListingPatch({ customEquipment: current.filter((i) => i !== item) });
+  }
+
+  function handleCustomEquipmentKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addCustomEquipment();
+    }
   }
 
   function toggleFeature(label: string) {
@@ -432,18 +472,51 @@ export function AutosPrivadoApplication() {
             </div>
             <div className="mt-8">
               <label className={LABEL}>
-                {lang === "es" ? "Otros equipos, mejoras o detalles" : "Other equipment, upgrades, or details"}
+                {lang === "es" ? "Equipo, mejoras o mantenimiento agregado" : "Added equipment, upgrades, or maintenance"}
               </label>
               <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
                 {lang === "es"
-                  ? "Agrega mejoras, equipo no listado, mantenimiento reciente o detalles importantes."
-                  : "Add upgrades, unlisted equipment, recent maintenance, or important details."}
+                  ? "Agrega uno por uno: llantas nuevas, batería nueva, rines, estéreo, cámara, mantenimiento reciente."
+                  : "Add one at a time: new tires, new battery, wheels, stereo, camera, recent maintenance."}
               </p>
-              <textarea
-                className={`${INPUT} mt-2 min-h-[100px]`}
-                value={listing.otherEquipmentDetails ?? ""}
-                onChange={(e) => setListingPatch({ otherEquipmentDetails: e.target.value || undefined })}
-              />
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  className={`${INPUT} flex-1`}
+                  value={customEquipmentInput}
+                  onChange={(e) => setCustomEquipmentInput(e.target.value)}
+                  onKeyDown={handleCustomEquipmentKeyDown}
+                  placeholder={lang === "es" ? "Ej. llantas nuevas" : "E.g. new tires"}
+                />
+                <button
+                  type="button"
+                  onClick={addCustomEquipment}
+                  disabled={!customEquipmentInput.trim()}
+                  className="min-h-[46px] shrink-0 rounded-xl bg-[color:var(--lx-cta-dark)] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[color:var(--lx-cta-dark-hover)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[color:var(--lx-cta-dark)]"
+                >
+                  {lang === "es" ? "Agregar" : "Add"}
+                </button>
+              </div>
+              {customEquipmentArray.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {customEquipmentArray.map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-gold-border)] bg-[#FFFDF7] px-3 py-1.5 text-sm font-medium text-[#3D2C12]"
+                    >
+                      {item}
+                      <button
+                        type="button"
+                        onClick={() => removeCustomEquipment(item)}
+                        className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#C9782F]/20 text-[#8B6914] hover:bg-[#C9782F]/30"
+                        aria-label={lang === "es" ? "Eliminar" : "Remove"}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 
@@ -464,8 +537,8 @@ export function AutosPrivadoApplication() {
             <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{t.app.sections.dealer}</h2>
             <p className="mt-1 text-sm text-[color:var(--lx-muted)]">
               {lang === "es"
-                ? "Nombre y canales de contacto reales para compradores. Privado no muestra perfil, redes o herramientas de dealer."
-                : "Real contact channels for buyers. Private listings do not show dealer profiles, socials, or business tools."}
+                ? "Agrega los canales reales donde los compradores pueden contactarte. Solo mostraremos los datos que completes."
+                : "Add the real channels buyers can use to contact you. We only show the fields you complete."}
             </p>
             <p className="mt-2 text-xs font-semibold text-[color:var(--lx-text-2)]">
               <span className="text-red-800" aria-hidden>
@@ -520,6 +593,61 @@ export function AutosPrivadoApplication() {
                   value={listing.dealerEmail ?? ""}
                   onChange={(e) => setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })}
                 />
+              </div>
+            </div>
+            
+            {/* Optional meeting location */}
+            <div className="mt-6">
+              <label className={LABEL}>
+                {lang === "es" ? "Lugar de encuentro o ubicación opcional" : "Optional meeting location"}
+              </label>
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+                {lang === "es"
+                  ? "Opcional. Solo se mostrará si quieres que el comprador vea dónde revisar o recoger el vehículo."
+                  : "Optional. Only shown if you want buyers to see where to inspect or pick up the vehicle."}
+              </p>
+              <div className={`${GRID2} mt-3`}>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
+                    {lang === "es" ? "Dirección o zona de encuentro" : "Address or meeting area"}
+                  </label>
+                  <input
+                    className={`${INPUT} mt-1.5`}
+                    value={listing.dealerAddress ?? ""}
+                    onChange={(e) => setListingPatch({ dealerAddress: e.target.value.trim() || undefined })}
+                    placeholder={lang === "es" ? "Ej. 123 Main St" : "E.g. 123 Main St"}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
+                    {lang === "es" ? "Ciudad" : "City"}
+                  </label>
+                  <input
+                    className={`${INPUT} mt-1.5`}
+                    value={listing.dealerAddressCity ?? ""}
+                    onChange={(e) => setListingPatch({ dealerAddressCity: e.target.value.trim() || undefined })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
+                    {lang === "es" ? "Estado" : "State"}
+                  </label>
+                  <input
+                    className={`${INPUT} mt-1.5`}
+                    value={listing.dealerAddressState ?? ""}
+                    onChange={(e) => setListingPatch({ dealerAddressState: e.target.value.trim() || undefined })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
+                    {lang === "es" ? "Código postal" : "ZIP code"}
+                  </label>
+                  <input
+                    className={`${INPUT} mt-1.5`}
+                    value={listing.dealerAddressZip ?? ""}
+                    onChange={(e) => setListingPatch({ dealerAddressZip: e.target.value.trim() || undefined })}
+                  />
+                </div>
               </div>
             </div>
           </section>
