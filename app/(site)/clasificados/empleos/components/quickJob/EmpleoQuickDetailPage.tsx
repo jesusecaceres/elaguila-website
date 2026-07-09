@@ -144,6 +144,8 @@ function ctaCardProps(
     companySnapchat: data.companySnapchat?.trim() || undefined,
     companyOtherLinkLabel: data.companyOtherLinkLabel?.trim() || undefined,
     companyOtherLinkUrl: data.companyOtherLinkUrl?.trim() || undefined,
+    listingTitle: data.title,
+    businessName: data.businessName,
   };
 }
 

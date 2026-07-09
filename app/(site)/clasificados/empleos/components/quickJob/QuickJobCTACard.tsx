@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
+import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaShareAlt, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
 import { SiTiktok, SiWhatsapp, SiX } from "react-icons/si";
 import { normalizePayDisplayParts } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import { empleosPhoneDigits, formatEmpleosPhoneDisplay } from "@/app/publicar/empleos/shared/lib/empleosPhoneDisplay";
@@ -58,6 +58,8 @@ type Props = {
   companySnapchat?: string;
   companyOtherLinkLabel?: string;
   companyOtherLinkUrl?: string;
+  listingTitle?: string;
+  businessName?: string;
 };
 
 const BURGUNDY_BTN = "border border-[#7A1E2C]/15 bg-[#7A1E2C] text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.4)] hover:bg-[#5e1721]";
@@ -115,8 +117,11 @@ export function QuickJobCTACard({
   companySnapchat,
   companyOtherLinkLabel,
   companyOtherLinkUrl,
+  listingTitle,
+  businessName,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const validEmail = email && looksLikeEmail(email) ? email : undefined;
   const hasApplyLink = Boolean(applyLink?.trim().startsWith("http"));
   const hasSms = Boolean(smsPhone?.trim());
@@ -165,6 +170,30 @@ export function QuickJobCTACard({
     if (!site.startsWith("http")) return;
     trackEmpleosSidebarContactCta("website", contactAnalyticsMeta);
     openSheet(buildWebsiteIntent({ url: site, headline: websiteLabel, kind: "website" }));
+  };
+
+  const handleNativeShare = async () => {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    const shareTitle = listingTitle || businessName || "Leonix Media";
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          url: shareUrl,
+        });
+      } catch {
+        // User canceled or share failed silently
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        // Clipboard failed silently
+      }
+    }
   };
 
   const primaryIsApply = hasApplyLink;
@@ -298,6 +327,18 @@ export function QuickJobCTACard({
               {websiteLabel}
             </button>
           ) : null}
+          <button type="button" onClick={handleNativeShare} className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${SOFT_BTN}`}>
+            {shareCopied ? (
+              <>
+                <span className="text-xs">{lang === "es" ? "Enlace copiado" : "Link copied"}</span>
+              </>
+            ) : (
+              <>
+                <FaShareAlt className="h-4 w-4 shrink-0" aria-hidden />
+                {lang === "es" ? "Compartir" : "Share"}
+              </>
+            )}
+          </button>
         </div>
       ) : null}
 
