@@ -4,13 +4,11 @@ import Link from "next/link";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import {
   brAnalyticsContextFromListing,
   trackBrResultCardClickGlobal,
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
+import { BrEngagementRow } from "@/app/clasificados/bienes-raices/listing/BrEngagementRow";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
@@ -122,11 +120,9 @@ const cardShell = `group relative flex h-full flex-col overflow-hidden rounded-3
 const ENGAGEMENT_LABELS = {
   es: {
     title: "Interacción",
-    metricsNote: "Las métricas de engagement se mostrarán cuando estén disponibles",
   },
   en: {
     title: "Engagement",
-    metricsNote: "Engagement metrics will appear when available.",
   },
 } as const;
 
@@ -184,7 +180,7 @@ export function BienesRaicesNegocioCard({
         </Link>
       </div>
 
-      {/* Engagement Section */}
+      {/* Engagement Section — real like/share against this card's listing UUID */}
       {!horizontal ? (
       <div className="mt-4 pt-4 border-t border-[#E5E5E5]/50">
         <div className="flex items-center justify-between mb-4">
@@ -192,35 +188,13 @@ export function BienesRaicesNegocioCard({
             {eg.title}
           </h4>
         </div>
-        
-        {/* Engagement Actions */}
-        <div className="flex items-center gap-3 mb-4">
-          <LeonixLikeButton
-            listingId={listing.id}
-            category="bienes-raices"
-            variant="small"
-            lang={lang === "en" ? "en" : "es"}
-          />
-          <LeonixSaveButton
-            listingId={listing.id}
-            category="bienes-raices"
-            variant="small"
-            lang={lang === "en" ? "en" : "es"}
-          />
-          <LeonixShareButton
-            listingId={listing.id}
-            category="bienes-raices"
-            listingTitle={listing.title}
-            listingUrl={typeof window !== "undefined" ? window.location.origin + href : ""}
-            variant="small"
-            lang={lang === "en" ? "en" : "es"}
-          />
-        </div>
-
-        {/* Note about real metrics */}
-        <div className="text-xs text-[#7A7A7A] italic">
-          {eg.metricsNote}
-        </div>
+        <BrEngagementRow
+          lang={lang === "en" ? "en" : "es"}
+          mode="live"
+          listingUuid={listing.id}
+          listingTitle={listing.title}
+          listingUrl={typeof window !== "undefined" ? `${window.location.origin}${href}` : href}
+        />
       </div>
       ) : null}
     </>

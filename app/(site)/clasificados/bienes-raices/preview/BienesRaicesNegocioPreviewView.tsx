@@ -28,6 +28,7 @@ import {
   type NegocioPreviewUi,
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
+import { BrEngagementRow } from "@/app/clasificados/bienes-raices/listing/BrEngagementRow";
 import { BrLeonixPreviewMiniMap } from "@/app/clasificados/publicar/bienes-raices/shared/BrLeonixPreviewMiniMap";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
@@ -1047,6 +1048,13 @@ export function BienesRaicesNegocioPreviewView({
                 {vm.operationSummary}
               </p>
             ) : null}
+            <div className="mt-4">
+              <BrEngagementRow
+                lang={locale === "en" ? "en" : "es"}
+                mode="preview"
+                listingTitle={vm.heroTitle}
+              />
+            </div>
 
             <LeonixPreviewQuickFactsStrip quickFacts={quickFacts} />
 

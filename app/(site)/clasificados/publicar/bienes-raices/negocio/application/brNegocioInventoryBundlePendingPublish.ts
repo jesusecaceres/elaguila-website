@@ -247,9 +247,19 @@ export async function publishBrAgenteInventoryBundlePendingRows(input: {
       continue;
     }
 
-    const leonixAdId = await fetchLeonixAdId(result.listingId);
+    const childListingId = result.listingId.trim();
+    if (!childListingId || childListingId === parentListingId) {
+      warnings.push(
+        input.lang === "es"
+          ? `La propiedad «${childState.titulo.trim()}» no recibió un UUID de listado independiente.`
+          : `Property «${childState.titulo.trim()}» did not receive an independent listing UUID.`,
+      );
+      continue;
+    }
+
+    const leonixAdId = await fetchLeonixAdId(childListingId);
     createdChildren.push({
-      id: result.listingId,
+      id: childListingId,
       leonixAdId,
       title: childState.titulo.trim() || childDraft.title.trim(),
       inventoryRole: "inventory_property",

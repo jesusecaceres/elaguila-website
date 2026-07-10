@@ -1,11 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiHeart, FiBookmark, FiShare2, FiHome, FiMessageCircle, FiGlobe, FiCalendar } from "react-icons/fi";
+import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiHome, FiMessageCircle, FiGlobe, FiCalendar } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { BrEngagementRow } from "@/app/clasificados/bienes-raices/listing/BrEngagementRow";
 import type { BienesRaicesNegocioPreviewVm } from "@/app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
 
@@ -45,11 +43,11 @@ const ENGAGEMENT_SECTION = "mt-6 pt-6 border-t border-[#E5E5E5]/50";
 const ENGAGEMENT_LABELS = {
   es: {
     title: "Interacción",
-    metricsNote: "Las métricas de engagement se mostrarán cuando estén disponibles",
+    unpublishedHint: "Disponible cuando el anuncio esté publicado.",
   },
   en: {
     title: "Engagement",
-    metricsNote: "Engagement metrics will appear when available.",
+    unpublishedHint: "Available when the listing is published.",
   },
 } as const;
 
@@ -236,45 +234,26 @@ export function BienesRaicesPreviewCard({
           </div>
         )}
 
-        {/* Engagement Section */}
-        {showEngagementMetrics && listingId && (
+        {/* Engagement — live when listing UUID exists; otherwise truthful disabled preview */}
+        {showEngagementMetrics ? (
           <div className={ENGAGEMENT_SECTION}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
                 {eg.title}
               </h3>
             </div>
-            
-            {/* Engagement Actions */}
-            <div className="flex items-center gap-3 mb-4">
-              <LeonixLikeButton
-                listingId={listingId}
-                category="bienes-raices"
-                variant="small"
-                lang={lang}
-              />
-              <LeonixSaveButton
-                listingId={listingId}
-                category="bienes-raices"
-                variant="small"
-                lang={lang}
-              />
-              <LeonixShareButton
-                listingId={listingId}
-                category="bienes-raices"
-                listingTitle={data.heroTitle}
-                listingUrl={typeof window !== "undefined" ? window.location.href : ""}
-                variant="small"
-                lang={lang}
-              />
-            </div>
-
-            {/* Note about real metrics */}
-            <div className="text-xs text-[#7A7A7A] italic">
-              {eg.metricsNote}
-            </div>
+            <BrEngagementRow
+              lang={lang}
+              mode={listingId?.trim() ? "live" : "preview"}
+              listingUuid={listingId?.trim() || null}
+              listingTitle={data.heroTitle}
+              listingUrl={typeof window !== "undefined" ? window.location.href : ""}
+            />
+            {!listingId?.trim() ? (
+              <p className="mt-2 text-xs text-[#7A7A7A] italic">{eg.unpublishedHint}</p>
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

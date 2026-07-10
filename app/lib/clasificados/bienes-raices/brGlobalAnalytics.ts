@@ -97,8 +97,16 @@ export function trackBrListingViewGlobal(ctx: BrGlobalAnalyticsContext): void {
   void trackBrGlobalEvent(ctx, "listing_view", "detail");
 }
 
+export function trackBrListingOpenGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "listing_open", "detail");
+}
+
 export function trackBrResultCardClickGlobal(ctx: BrGlobalAnalyticsContext): void {
   void trackBrGlobalEvent(ctx, "result_card_click", "results_card", { cooldownMs: 1000 });
+}
+
+export function trackBrLikeGlobal(ctx: BrGlobalAnalyticsContext, isLike: boolean): void {
+  void trackBrGlobalEvent(ctx, isLike ? "listing_like" : "listing_unlike", "detail");
 }
 
 /** Similar / substitute listing click from BR detail (other-client section). */
@@ -144,6 +152,38 @@ export function trackBrWebsiteClickGlobal(ctx: BrGlobalAnalyticsContext): void {
 
 export function trackBrTourVideoClickGlobal(ctx: BrGlobalAnalyticsContext, kind: "video" | "tour"): void {
   void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: kind === "tour" ? "virtual_tour" : "video" } });
+}
+
+export function trackBrMlsClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "mls" } });
+}
+
+export function trackBrBrochureClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "brochure" } });
+}
+
+export function trackBrFloorPlanClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "floor_plan" } });
+}
+
+export function trackBrGoogleBusinessClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "google_business" } });
+}
+
+export function trackBrGoogleReviewsClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "google_reviews" } });
+}
+
+export function trackBrYelpClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "yelp" } });
+}
+
+export function trackBrRequestInfoClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "request_info" } });
+}
+
+export function trackBrScheduleVisitClickGlobal(ctx: BrGlobalAnalyticsContext): void {
+  void trackBrGlobalEvent(ctx, "cta_click", "detail", { metadata: { cta: "schedule_visit" } });
 }
 
 export function trackBrReportSubmitGlobal(ctx: BrGlobalAnalyticsContext): void {

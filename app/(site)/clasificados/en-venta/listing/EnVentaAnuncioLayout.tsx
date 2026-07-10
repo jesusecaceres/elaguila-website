@@ -48,11 +48,13 @@ import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
 import { BrLiveDetailAnalyticsMount } from "@/app/clasificados/bienes-raices/listing/BrLiveDetailAnalyticsMount";
+import { BrEngagementRow } from "@/app/clasificados/bienes-raices/listing/BrEngagementRow";
 import { BrRelatedAgentPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrRelatedAgentPropertiesSection";
 import { BrSimilarOtherClientPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrSimilarOtherClientPropertiesSection";
 import { extractBrFacetsFromDetailPairs } from "@/app/clasificados/bienes-raices/resultados/lib/brFacetFromDetailPairs";
 import {
   trackBrContactClickGlobal,
+  trackBrListingShareGlobal,
   type BrGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import { EnVentaListingReportDrawer } from "./EnVentaListingReportDrawer";
@@ -76,7 +78,6 @@ import {
   trackEnVentaContactClickGlobal,
   type EnVentaGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
-import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
 import {
   enVentaCategoryLine,
@@ -559,14 +560,18 @@ export function EnVentaAnuncioLayout({
         /* ignore */
       }
     }
+    if (premiumBr) {
+      trackBrListingShareGlobal(brAnalyticsCtx, shareMethod);
+      return;
+    }
     void trackListingShare(listing.id, {
       ownerUserId: ownerId ?? undefined,
       eventSource: "detail",
       shareMethod,
-      category: surface === "en-venta" ? "en-venta" : "bienes-raices",
+      category: "en-venta",
       metadata: { actorHint: user?.id ?? null },
     });
-  }, [lang, listing.id, listing.title, ownerId, surface]);
+  }, [brAnalyticsCtx, lang, listing.id, listing.title, ownerId, premiumBr, surface]);
 
   const publicListingPath = useMemo(
     () => `/clasificados/anuncio/${encodeURIComponent(listing.id)}?lang=${encodeURIComponent(lang)}`,
@@ -926,33 +931,15 @@ export function EnVentaAnuncioLayout({
                 </p>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
-                <LeonixLikeButton
-                  listingId={listing.id}
-                  ownerUserId={ownerId}
-                  variant="small"
+                <BrEngagementRow
                   lang={lang}
-                  category="bienes-raices"
+                  mode="live"
+                  listingUuid={listing.id}
+                  leonixAdId={listing.leonix_ad_id}
+                  listingUrl={publicListingUrl}
+                  listingTitle={listing.title[lang]}
+                  ownerUserId={ownerId}
                 />
-                <button
-                  type="button"
-                  title={saveHint}
-                  disabled={!saveReady}
-                  onClick={() => void onToggleSave()}
-                  className={
-                    premiumBr
-                      ? "inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#E8DFD0] bg-white/95 px-3 py-2 text-xs font-bold text-[#2A2620] shadow-sm transition hover:border-[#C9B46A]/55 hover:bg-[#FFFCF7] disabled:opacity-50"
-                      : "inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#C9B46A]/55 bg-[#FBF7EF] px-3 py-2 text-xs font-bold text-[#1E1810] shadow-sm transition hover:bg-[#F3EBDD] disabled:opacity-50"
-                  }
-                >
-                  {saveLabel}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void onShareListing()}
-                  className="inline-flex min-h-[40px] items-center rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/90 px-3 py-2 text-xs font-bold text-[#2A2620] transition hover:bg-white"
-                >
-                  ↗️ {shareLabel}
-                </button>
               </div>
               {fulfillmentLine && premiumBr ? (
                 <p className="mt-3 text-sm font-medium text-[#111111]/85">

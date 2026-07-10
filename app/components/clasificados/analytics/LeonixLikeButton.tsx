@@ -23,6 +23,13 @@ type Props = {
   persistEngagement?: boolean;
   /** When set, replaces default clasificados analytics insert. */
   recordLikeEvent?: (isLike: boolean) => void | Promise<void>;
+  /**
+   * Real durable like count (e.g. `user_liked_listings` rows).
+   * With `countDisplay="numeric"`: 0 → heart only; N≥1 → "N" + heart.
+   */
+  likeCount?: number;
+  /** Default `label` keeps Like/Liked text. `numeric` uses heart + optional count. */
+  countDisplay?: "label" | "numeric";
 };
 
 const LABELS = {
@@ -63,6 +70,8 @@ export function LeonixLikeButton({
   ownerUserId,
   persistEngagement,
   recordLikeEvent,
+  likeCount,
+  countDisplay = "label",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const allowEngage = persistEngagement !== false && Boolean(effectiveId);
@@ -70,9 +79,19 @@ export function LeonixLikeButton({
   const [isLiking, setIsLiking] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [engageErr, setEngageErr] = useState<string | null>(null);
+  const [displayCount, setDisplayCount] = useState(() =>
+    typeof likeCount === "number" && Number.isFinite(likeCount) ? Math.max(0, Math.floor(likeCount)) : 0,
+  );
   const labels = LABELS[lang];
   /** After a user toggle, do not let async hydration overwrite UI (Strict Mode / slow network races). */
   const userToggledRef = useRef(false);
+  const numericMode = countDisplay === "numeric";
+
+  useEffect(() => {
+    if (typeof likeCount === "number" && Number.isFinite(likeCount)) {
+      setDisplayCount(Math.max(0, Math.floor(likeCount)));
+    }
+  }, [likeCount, effectiveId]);
 
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
@@ -242,13 +261,28 @@ export function LeonixLikeButton({
         }
       }
 
+      if (numericMode && user) {
+        setDisplayCount((c) => Math.max(0, c + (nextState ? 1 : -1)));
+      }
+
       onToggle?.(nextState);
     } finally {
       setIsLiking(false);
     }
-  }, [allowEngage, effectiveId, isLiked, isLiking, onToggle, category, ownerUserId, lang, recordLikeEvent]);
+  }, [allowEngage, effectiveId, isLiked, isLiking, onToggle, category, ownerUserId, lang, recordLikeEvent, numericMode]);
 
   const inert = !allowEngage || !effectiveId;
+  const countLabel =
+    numericMode && displayCount > 0 ? String(displayCount) : null;
+  const textLabel = isLiking
+    ? labels.liking
+    : inert
+      ? labels.preview
+      : numericMode
+        ? countLabel
+        : isLiked
+          ? labels.liked
+          : labels.like;
 
   return (
     <div className="flex w-full max-w-[13.5rem] flex-col items-stretch gap-1">
@@ -258,6 +292,7 @@ export function LeonixLikeButton({
         disabled={isLiking || !hydrated || inert}
         title={inert ? labels.preview : undefined}
         data-leonix-like-active={isLiked && !inert ? "1" : "0"}
+        data-leonix-like-count={numericMode ? String(displayCount) : undefined}
         aria-pressed={inert ? undefined : isLiked}
         className={[
           "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all duration-200",
@@ -270,7 +305,19 @@ export function LeonixLikeButton({
         ]
           .filter(Boolean)
           .join(" ")}
-        aria-label={inert ? labels.preview : isLiked ? labels.liked : labels.like}
+        aria-label={
+          inert
+            ? labels.preview
+            : numericMode
+              ? displayCount > 0
+                ? `${displayCount} ${isLiked ? labels.liked : labels.like}`
+                : isLiked
+                  ? labels.liked
+                  : labels.like
+              : isLiked
+                ? labels.liked
+                : labels.like
+        }
         aria-disabled={inert || !hydrated}
       >
         {isLiked ? (
@@ -278,9 +325,9 @@ export function LeonixLikeButton({
         ) : (
           <FiHeart className={`${iconSizes[variant]} shrink-0 stroke-neutral-700 text-neutral-700`} aria-hidden />
         )}
-        <span className={isLiked && !inert ? "text-rose-950" : ""}>
-          {isLiking ? labels.liking : inert ? labels.preview : isLiked ? labels.liked : labels.like}
-        </span>
+        {textLabel ? (
+          <span className={isLiked && !inert ? "text-rose-950" : ""}>{textLabel}</span>
+        ) : null}
       </button>
       {engageErr ? (
         <p className="text-center text-[10px] font-semibold leading-snug text-red-800 sm:text-[11px]" role="alert" data-leonix-like-error="1">

@@ -19,6 +19,7 @@
     "verify:br:launch-gate": "npm run typecheck && npm run lint:br && npm run verify:br",
     "verify:bienes-application-pricing-checkpoints-inventory-pack-01": "node scripts/verify-bienes-application-pricing-checkpoints-inventory-pack-01.mjs",
     "verify:bienes-agent-inventory-bundle-pending-row-creation-01": "node scripts/verify-bienes-agent-inventory-bundle-pending-row-creation-01.mjs",
+    "verify:bienes-parent-child-analytics-truth-01": "node scripts/verify-bienes-parent-child-analytics-truth-01.mjs",
     "verify:bienes-child-inventory-preview-media-navigation-truth-01": "node scripts/verify-bienes-child-inventory-preview-media-navigation-truth-01.mjs",
     "verify:bienes-child-step10-preview-card-media-hard-refresh-fix-01": "node scripts/verify-bienes-child-step10-preview-card-media-hard-refresh-fix-01.mjs",
     "verify:bienes-child-editor-step10-media-url-truth-force-patch-01": "node scripts/verify-bienes-child-editor-step10-media-url-truth-force-patch-01.mjs",
