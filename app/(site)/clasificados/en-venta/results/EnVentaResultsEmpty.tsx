@@ -36,18 +36,6 @@ export function EnVentaResultsEmpty({
             : "Try another search, adjust filters, or post the first item."}
       </p>
       <div className="mt-3 flex flex-wrap justify-center gap-2">
-        <Link
-          href={`/clasificados/publicar/en-venta?lang=${lang}`}
-          className="inline-flex min-h-[2.625rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
-        >
-          {lang === "es" ? "Publicar artículo" : "Post item"}
-        </Link>
-        <Link
-          href={home}
-          className="inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
-        >
-          {lang === "es" ? "Ver todos los anuncios" : "Browse all listings"}
-        </Link>
         {onReset ? (
           <button
             type="button"
@@ -57,6 +45,12 @@ export function EnVentaResultsEmpty({
             {lang === "es" ? "Limpiar filtros" : "Clear filters"}
           </button>
         ) : null}
+        <Link
+          href={home}
+          className="inline-flex min-h-[2.625rem] items-center justify-center rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] px-3.5 text-sm font-semibold text-[#3D3428] hover:bg-[#FBF7EF]"
+        >
+          {lang === "es" ? "Ver todos los anuncios" : "Browse all listings"}
+        </Link>
       </div>
     </div>
   );

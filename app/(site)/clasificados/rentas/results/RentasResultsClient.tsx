@@ -7,7 +7,6 @@ import { RentasCompactSearchCanvas } from "@/app/clasificados/rentas/components/
 import { RentasFiltersDrawer } from "@/app/clasificados/rentas/components/RentasFiltersDrawer";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import { useRentasPublicBrowseInventory } from "@/app/clasificados/rentas/hooks/useRentasPublicBrowseInventory";
-import { RentasLandingVisibilityStrip } from "@/app/clasificados/rentas/landing/RentasLandingVisibilityStrip";
 import {
   RENTAS_BTN_PRIMARY,
 } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
@@ -370,15 +369,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       <RentasResultsGatewayPanel
         lang={lang}
         title={copy.title}
-        tagline={copy.tagline}
-        intro={copy.intro}
-        introSecondary={copy.introSecondary}
         countLine={countLine}
-        publishHref={withRentasLandingLang(RENTAS_PUBLICAR_PRIVADO, routeLang)}
-        publishLabel={lang === "es" ? "Publicar renta" : "Post a rental"}
         searchSlot={
           <RentasCompactSearchCanvas
-            layout="landing"
+            layout="results"
             lang={lang}
             query={query}
             city={cityDraft}
@@ -492,15 +486,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
           </nav>
         ) : null}
       </section>
-
-      <footer className="mt-12 space-y-6 border-t border-[#D4C4A8]/50 pt-8">
-        <RentasLandingVisibilityStrip lang={lang} />
-        <p className="text-center text-sm text-[#4A4338]/88">
-          <Link href={withRentasLandingLang(RENTAS_LANDING, routeLang)} className="font-semibold text-[#7A1E2C] underline decoration-[#C9A84A]/35">
-            {copy.results.backToHub}
-          </Link>
-        </p>
-      </footer>
 
       <RentasFiltersDrawer
         open={filtersOpen}

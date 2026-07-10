@@ -7,7 +7,6 @@ import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
-  labelForLanguage,
   RESTAURANTE_CONTACT_PLACEHOLDERS,
   RESTAURANTE_CUISINES,
   RESTAURANTE_EVENT_SIZES,
@@ -43,6 +42,23 @@ import {
   restauranteOffersModuleHeading,
 } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { clasificadosPreviewPublishCopy } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
+import {
+  labelForBusinessType,
+  labelForCuisine,
+  labelForHighlight,
+  labelForLanguage,
+  labelForPriceLevel,
+  restauranteDayLabel,
+  restauranteEventSizeLabel,
+  restauranteFormServiceOptionLabel,
+  restaurantePreviewGateCopy,
+  type RestauranteAppUiLang,
+} from "./restauranteApplicationUiCopy";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
@@ -82,15 +98,14 @@ const OTHER_INPUT =
 /** UI cap for additional cuisine tags (stored arrays may be longer from older sessions; user can only add up to this). */
 const MAX_ADDITIONAL_CUISINES = 3;
 
-const DAY_ROWS: { key: keyof Pick<RestauranteListingDraft, "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday">; label: string }[] = [
-  { key: "monday", label: "Lunes" },
-  { key: "tuesday", label: "Martes" },
-  { key: "wednesday", label: "Miércoles" },
-  { key: "thursday", label: "Jueves" },
-  { key: "friday", label: "Viernes" },
-  { key: "saturday", label: "Sábado" },
-  { key: "sunday", label: "Domingo" },
-];
+const DAY_ROW_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+function dayRows(lang: RestauranteAppUiLang) {
+  return DAY_ROW_KEYS.map((key) => ({
+    key,
+    label: restauranteDayLabel(key, lang),
+  }));
+}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{children}</h2>;
@@ -100,17 +115,19 @@ function FieldLabel({
   children,
   optional,
   required,
+  lang = "es",
 }: {
   children: React.ReactNode;
   optional?: boolean;
-  /** Structural requirement for premium preview / open-card (shows *). */
   required?: boolean;
+  lang?: RestauranteAppUiLang;
 }) {
   const showStar = Boolean(required) && !optional;
+  const optionalLabel = clasificadosPreviewPublishCopy(lang).optional;
   return (
     <label className="block text-sm font-semibold text-[color:var(--lx-text-2)]">
       {children}
-      {optional ? <span className="ml-1 font-normal text-[color:var(--lx-muted)]">(opcional)</span> : null}
+      {optional ? <span className="ml-1 font-normal text-[color:var(--lx-muted)]">({optionalLabel.toLowerCase()})</span> : null}
       {showStar ? (
         <span className="ml-0.5 text-red-600" aria-hidden>
           *
@@ -141,7 +158,11 @@ function TaxonomyChipLeading({ chipEmoji }: { chipEmoji?: string }) {
 export default function RestauranteApplicationClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
+  const previewGate = useMemo(() => restaurantePreviewGateCopy(lang), [lang]);
   const dashboardSource = searchParams?.get("source") === "dashboard";
   const dashboardMode = searchParams?.get("mode");
   const dashboardListingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -164,7 +185,7 @@ export default function RestauranteApplicationClient() {
     isDashboardListingEditMode || isDashboardCouponEditMode || isDashboardAddonMode;
   const dashboardReturnHref =
     returnPanel === "restaurantes"
-      ? appendLangToPath("/dashboard/restaurantes", lang)
+      ? appendLangToPath("/dashboard/restaurantes", routeLang)
       : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
   const [serviceErr, setServiceErr] = useState(false);
@@ -373,7 +394,7 @@ export default function RestauranteApplicationClient() {
     [setDraftPatch]
   );
 
-  const sectionNavItems = useMemo(() => buildRestauranteApplicationSectionNavItems(draft), [draft]);
+  const sectionNavItems = useMemo(() => buildRestauranteApplicationSectionNavItems(draft, lang), [draft, lang]);
 
   const [activeSectionId, setActiveSectionId] = useState("restaurantes-section-a");
 
@@ -408,9 +429,9 @@ export default function RestauranteApplicationClient() {
    * Internal mapping: missing plan defaults to base tier for API compatibility, but user-facing URLs omit plan parameter. */
   const publishPlanLane = searchParams?.get("plan") === "pro" ? "pro" : undefined;
   const previewHrefWithPlan = useMemo(() => {
-    if (publishPlanLane === "pro") return `${PREVIEW_HREF}?plan=pro`;
-    return PREVIEW_HREF; // No plan parameter for base tier
-  }, [publishPlanLane]);
+    const extra = publishPlanLane === "pro" ? { plan: "pro" } : undefined;
+    return withClasificadosPublishLang(PREVIEW_HREF, routeLang, extra);
+  }, [publishPlanLane, routeLang]);
 
   const goPreview = useCallback(async () => {
     if (isExistingDashboardListingMode) return;
@@ -863,17 +884,12 @@ export default function RestauranteApplicationClient() {
           role="alert"
           aria-live="polite"
         >
-          <p className="font-semibold">No se puede usar &quot;Vista previa&quot; todavía</p>
-          <p className="mt-1">
-            Completa los campos mínimos requeridos para una vista previa publicable: nombre, tipo, cocina, ciudad, foto principal, al menos un contacto y señal de horario.
-          </p>
+          <p className="font-semibold">{previewGate.previewBlockedTitle}</p>
+          <p className="mt-1">{previewGate.previewBlockedBody}</p>
         </div>
       ) : null}
       {!minPreviewOk ? (
-        <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-          Para una vista previa publicable completa: nombre, tipo, cocina, ciudad, foto principal, al menos un contacto y
-          señal de horario.
-        </p>
+        <p className="mt-2 text-sm text-[color:var(--lx-muted)]">{previewGate.previewHint}</p>
       ) : null}
 
       <div className="lg:hidden sticky top-14 z-30 -mx-4 mb-4 border-b border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-page)]/95 px-4 py-2.5 backdrop-blur-md">
@@ -882,6 +898,7 @@ export default function RestauranteApplicationClient() {
           sections={sectionNavItems}
           activeId={activeSectionId}
           onSelect={setActiveSectionId}
+          lang={lang}
         />
       </div>
 
@@ -892,6 +909,7 @@ export default function RestauranteApplicationClient() {
               sections={sectionNavItems}
               activeId={activeSectionId}
               onSelect={setActiveSectionId}
+              lang={lang}
             />
           </div>
         </aside>
@@ -932,7 +950,7 @@ export default function RestauranteApplicationClient() {
                 <option value="">Seleccionar…</option>
                 {RESTAURANTE_FORM_BUSINESS_TYPES.map((o) => (
                   <option key={o.key} value={o.key}>
-                    {o.labelEs}
+                    {labelForBusinessType(o.key, lang)}
                   </option>
                 ))}
               </select>
@@ -969,7 +987,7 @@ export default function RestauranteApplicationClient() {
                   <option value="">Seleccionar…</option>
                   {RESTAURANTE_CUISINES.map((o) => (
                     <option key={o.key} value={o.key}>
-                      {o.labelEs}
+                      {labelForCuisine(o.key, lang)}
                     </option>
                   ))}
                 </select>
@@ -993,7 +1011,7 @@ export default function RestauranteApplicationClient() {
                   <option value="">—</option>
                   {RESTAURANTE_CUISINES.map((o) => (
                     <option key={o.key} value={o.key}>
-                      {o.labelEs}
+                      {labelForCuisine(o.key, lang)}
                     </option>
                   ))}
                 </select>
@@ -1060,7 +1078,7 @@ export default function RestauranteApplicationClient() {
                           onChange={() => toggleAdditionalCuisine(o.key)}
                         />
                         <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                        <span className="min-w-0">{o.labelEs}</span>
+                        <span className="min-w-0">{labelForCuisine(o.key, lang)}</span>
                       </label>
                     );
                   })}
@@ -1116,7 +1134,7 @@ export default function RestauranteApplicationClient() {
                 <option value="">—</option>
                 {RESTAURANTE_PRICE_LEVELS.map((o) => (
                   <option key={o.key} value={o.key}>
-                    {o.labelEs}
+                    {labelForPriceLevel(o.key, lang)}
                   </option>
                 ))}
               </select>
@@ -1137,7 +1155,7 @@ export default function RestauranteApplicationClient() {
                       onChange={() => toggleLanguage(o.key)}
                     />
                     <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                    <span className="min-w-0">{o.labelEs}</span>
+                    <span className="min-w-0">{labelForLanguage(o.key, lang)}</span>
                   </label>
                 ))}
               </div>
@@ -1277,7 +1295,7 @@ export default function RestauranteApplicationClient() {
                                 });
                               }}
                             />
-                            {size.labelEs}
+                            {restauranteEventSizeLabel(size.key, size.labelEs, lang)}
                           </label>
                         ))}
                       </div>
@@ -1325,7 +1343,7 @@ export default function RestauranteApplicationClient() {
                     onChange={() => toggleFormService(o)}
                   />
                   <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                  <span className="min-w-0">{o.labelEs}</span>
+                  <span className="min-w-0">{restauranteFormServiceOptionLabel(o, lang)}</span>
                 </label>
               ))}
             </div>
@@ -1385,7 +1403,7 @@ export default function RestauranteApplicationClient() {
             indiques; sirven para excepciones, feriados o cambios puntuales visibles junto al bloque de horas.
           </HelperText>
           <div className="mt-4 space-y-3">
-            {DAY_ROWS.map(({ key, label }) => {
+            {dayRows(lang).map(({ key, label }) => {
               const s = draft[key] as RestauranteDaySchedule;
               return (
                 <div
@@ -1401,7 +1419,7 @@ export default function RestauranteApplicationClient() {
                         setDay(key, { closed: e.target.checked, openTime: s.openTime, closeTime: s.closeTime })
                       }
                     />
-                    Cerrado
+                    {lang === "en" ? "Closed" : "Cerrado"}
                   </label>
                   <input
                     type="time"
@@ -2482,7 +2500,7 @@ export default function RestauranteApplicationClient() {
                     onChange={() => toggleHighlight(o.key)}
                   />
                   <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                  <span className="min-w-0">{o.labelEs}</span>
+                  <span className="min-w-0">{labelForHighlight(o.key, lang)}</span>
                 </label>
               );
             })}
@@ -2498,7 +2516,7 @@ export default function RestauranteApplicationClient() {
               Opcional. No es obligatorio para publicar. Las opciones aparecen en la vista previa y en la ficha pública
               solo cuando marcas al menos una.
             </HelperText>
-            <RestauranteAmenitiesFormBlock draft={draft} setDraftPatch={setDraftPatch} />
+            <RestauranteAmenitiesFormBlock draft={draft} setDraftPatch={setDraftPatch} lang={lang} />
           </section>
         ) : null}
 
@@ -2528,7 +2546,7 @@ export default function RestauranteApplicationClient() {
                           });
                         }}
                       />
-                      {o.labelEs}
+                      {labelForCuisine(o.key, lang)}
                     </label>
                   ))}
                 </div>
@@ -2713,7 +2731,7 @@ export default function RestauranteApplicationClient() {
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm("¿Eliminar toda la solicitud y empezar de nuevo? Esta acción no se puede deshacer.")) {
+                  if (confirm(previewGate.deleteConfirm)) {
                     void resetDraft();
                   }
                 }}

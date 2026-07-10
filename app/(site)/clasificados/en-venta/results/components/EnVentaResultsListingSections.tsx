@@ -2,7 +2,7 @@
 
 import { EnVentaResultListingCard } from "../EnVentaResultListingCard";
 import { buildEnVentaResultsCardModel } from "../buildEnVentaResultsCardModel";
-import { promotedSectionHelp, sortSectionCaption, type SortId } from "../utils/enVentaResultsSummary";
+import { sortSectionCaption, type SortId } from "../utils/enVentaResultsSummary";
 import type { EnVentaAnuncioDTO } from "../../shared/types/enVentaListing.types";
 
 type RowPack = {
@@ -61,42 +61,11 @@ export function EnVentaResultsListingSections({
       ? "grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4"
       : "flex flex-col gap-2 sm:gap-2.5";
 
+  const allRows = featuredOnly ? standardSlice : [...promotedPool, ...standardSlice];
+
   return (
     <>
-      {!featuredOnly && promotedPool.length > 0 ? (
-        <section className="mt-3 w-full sm:mt-8" aria-labelledby="ev-promoted-heading">
-          <div className="mb-3 border-b border-[#E8DFD0]/80 pb-3 sm:mb-5 sm:pb-4">
-            <h2 id="ev-promoted-heading" className="text-lg font-bold tracking-tight text-[#1E1810] sm:text-xl">
-              {t.promoted}
-            </h2>
-            <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-[#5C5346]">{promotedSectionHelp(lang)}</p>
-          </div>
-          <div className="flex flex-col gap-2 md:grid md:grid-cols-1 md:gap-2.5">
-            {promotedPool.map((p) => (
-              <EnVentaResultListingCard
-                key={p.dto.id}
-                model={buildEnVentaResultsCardModel(p.dto, {
-                  lang,
-                  effectiveDeptKey: p.effectiveDept,
-                  featuredHighlight: p.featuredHighlight,
-                  row: p.row,
-                })}
-                lang={lang}
-                isFav={isFav(p.dto.id)}
-                onToggleFav={onFav}
-                href={listingHref(p.dto.id)}
-                layout="list"
-                density="compact"
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section
-        className={`w-full ${!featuredOnly && promotedPool.length > 0 ? "mt-4 sm:mt-14" : "mt-2 sm:mt-12"}`}
-        aria-labelledby="ev-catalog-heading"
-      >
+      <section className="mt-2 w-full sm:mt-4" aria-labelledby="ev-catalog-heading">
         {featuredOnly ? (
           <div className="mb-3 rounded-2xl border border-[#C9A84A]/35 bg-gradient-to-br from-[#FFFBF0]/95 to-[#F5F8FB]/90 px-4 py-2.5 sm:mb-5 sm:px-5 sm:py-3">
             <p className="text-sm font-medium leading-relaxed text-[#2F4A65]">{t.featuredBanner}</p>
@@ -141,13 +110,13 @@ export function EnVentaResultsListingSections({
         </div>
 
         <div className={gridClass}>
-          {standardSlice.map((p) => (
+          {allRows.map((p) => (
             <EnVentaResultListingCard
               key={p.dto.id}
               model={buildEnVentaResultsCardModel(p.dto, {
                 lang,
                 effectiveDeptKey: p.effectiveDept,
-                featuredHighlight: featuredOnly ? p.featuredHighlight : false,
+                featuredHighlight: featuredOnly ? p.featuredHighlight : p.featuredHighlight,
                 row: p.row,
               })}
               lang={lang}

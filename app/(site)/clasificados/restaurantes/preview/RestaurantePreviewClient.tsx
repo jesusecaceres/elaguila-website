@@ -37,6 +37,14 @@ import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
 } from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import {
+  resolveClasificadosPublishLang,
+  withClasificadosPublishLang,
+} from "@/app/lib/clasificados/clasificadosPublishLang";
+import {
+  restaurantePreviewPageCopy,
+  restaurantePreviewShellCopy,
+} from "@/app/(site)/publicar/restaurantes/restauranteApplicationUiCopy";
 // Leonix premium visual tokens
 
 const LEONIX_PAGE_BG = "#F4F1EB";
@@ -56,7 +64,7 @@ const LEONIX_ELEVATED_CHIP = "#F6EBDD";
  * param lets the application page (future follow-up) scroll/highlight the
  * coupon module the user must turn off before secure checkout.
  */
-const EDIT_HREF = "/publicar/restaurantes?focus=coupon-upgrade";
+const EDIT_HREF_BASE = "/publicar/restaurantes?focus=coupon-upgrade";
 
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();
@@ -64,7 +72,16 @@ export default function RestaurantePreviewClient() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
+  const shellCopy = useMemo(() => restaurantePreviewShellCopy(lang), [lang]);
+  const pageCopy = useMemo(() => restaurantePreviewPageCopy(lang), [lang]);
+  const editHref = useMemo(
+    () => withClasificadosPublishLang(EDIT_HREF_BASE, routeLang),
+    [routeLang],
+  );
   const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
   const shellData = useMemo(() => mapRestauranteDraftToShellData(draft, { lang }), [draft, lang]);
 
@@ -144,11 +161,7 @@ export default function RestaurantePreviewClient() {
         try {
           draftForSave = await resolveRestauranteDraftMediaToRemoteUrls(normalizedDraft);
         } catch {
-          setCheckoutErr(
-            lang === "es"
-              ? "No se pudieron preparar las fotos. Comprueba la conexión e intenta de nuevo."
-              : "We could not prepare photos. Check your connection and try again.",
-          );
+          setCheckoutErr(pageCopy.photoPrepError);
           setCheckoutBusy(false);
           return;
         }
@@ -198,35 +211,28 @@ export default function RestaurantePreviewClient() {
 
         redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
       } catch {
-        setCheckoutErr(
-          lang === "es"
-            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
-            : "We could not start secure payment. Please try again or contact Leonix.",
-        );
+        setCheckoutErr(pageCopy.checkoutStartError);
         setCheckoutBusy(false);
       }
     },
-    [lang, normalizedDraft, couponUpgradeSelected],
+    [lang, normalizedDraft, couponUpgradeSelected, pageCopy],
   );
 
   if (!hydrated) {
     return (
-      <RestaurantesShellChrome lang="es" previewEditHref={EDIT_HREF}>
-        <div className="mx-auto max-w-xl px-4 py-24 text-center text-[color:var(--lx-muted)]">Cargando vista previa…</div>
+      <RestaurantesShellChrome lang={lang} previewEditHref={editHref}>
+        <div className="mx-auto max-w-xl px-4 py-24 text-center text-[color:var(--lx-muted)]">{shellCopy.loading}</div>
       </RestaurantesShellChrome>
     );
   }
 
   if (pristine) {
     return (
-      <RestaurantesShellChrome lang="es" previewEditHref={EDIT_HREF}>
+      <RestaurantesShellChrome lang={lang} previewEditHref={editHref}>
         <div className="mx-auto max-w-lg px-4 py-16 sm:py-24">
           <div className="rounded-[24px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-8 py-12 text-center shadow-[0_24px_80px_-32px_rgba(42,36,22,0.12)]">
-            <h1 className="text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">Aún no hay datos del anuncio</h1>
-            <p className="mt-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-              Completa el formulario de publicación para ver cómo se verá tu restaurante. Solo los campos que llenes aparecerán
-              en la página. Usa <strong className="text-[color:var(--lx-text)]">Volver a editar</strong> arriba.
-            </p>
+            <h1 className="text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">{shellCopy.emptyTitle}</h1>
+            <p className="mt-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{shellCopy.emptyBody}</p>
           </div>
         </div>
       </RestaurantesShellChrome>
@@ -234,15 +240,15 @@ export default function RestaurantePreviewClient() {
   }
 
   return (
-    <RestaurantesShellChrome lang="es" previewEditHref={EDIT_HREF}>
+    <RestaurantesShellChrome lang={lang} previewEditHref={editHref}>
       <div className="mx-auto max-w-[1280px] space-y-4 px-4 pb-16 pt-2 md:px-5 lg:px-6">
         {/* Top CTAs */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
-            href={EDIT_HREF}
+            href={editHref}
             className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
           >
-            {lang === "en" ? "Back to edit" : "Volver a editar"}
+            {pageCopy.backToEdit}
           </Link>
           <button
             type="button"
@@ -251,40 +257,30 @@ export default function RestaurantePreviewClient() {
             }}
             className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
           >
-            {lang === "en" ? "Continue to payment" : "Continuar al pago"}
+            {pageCopy.continueToPayment}
           </button>
         </div>
 
         <details className="rounded-2xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/50 px-4 py-3 text-sm text-[color:var(--lx-text-2)]">
           <summary className="cursor-pointer select-none font-semibold text-[color:var(--lx-text)]">
-            {lang === "en" ? "Session help" : "Ayuda de sesión"}
+            {pageCopy.sessionHelp}
           </summary>
           <div className="mt-3 space-y-3 border-t border-[color:var(--lx-nav-border)]/60 pt-3">
             {!minOk ? (
               <div className="text-xs text-[color:var(--lx-muted)] space-y-1">
-                <p>{lang === "en" ? "Draft incomplete for checkout." : "Borrador incompleto para pago."}</p>
+                <p>{pageCopy.draftIncomplete}</p>
                 {readiness.missingFields.length > 0 ? (
                   <p className="font-medium text-[color:var(--lx-text-2)]">
-                    {lang === "en" ? "Missing:" : "Falta:"} {readiness.missingFields.join(", ")}.
+                    {pageCopy.missing} {readiness.missingFields.join(", ")}.
                   </p>
                 ) : (
-                  <p>
-                    {lang === "en"
-                      ? "Check name, type, cuisine, city, image, contact, and hours."
-                      : "Revisa nombre, tipo, cocina, ciudad, imagen, contacto y horario."}
-                  </p>
+                  <p>{pageCopy.checkRequiredFields}</p>
                 )}
               </div>
             ) : (
-              <p className="text-xs font-medium text-emerald-800">
-                {lang === "en" ? "Draft ready for secure checkout (minimum validation OK)." : "Listo para pago seguro (validación mínima OK)."}
-              </p>
+              <p className="text-xs font-medium text-emerald-800">{pageCopy.draftReady}</p>
             )}
-            <p className="text-xs leading-relaxed">
-              {lang === "en"
-                ? "Your draft stays in this browser session until you close the tab. Scroll to the bottom for the final checkout section."
-                : "El borrador vive en esta sesión del navegador hasta que cierres la pestaña. Desplázate al final para el pago."}
-            </p>
+            <p className="text-xs leading-relaxed">{pageCopy.sessionNote}</p>
           </div>
         </details>
 
@@ -296,13 +292,13 @@ export default function RestaurantePreviewClient() {
                 className="text-2xl font-bold text-[#1F1A17] mb-3 tracking-tight"
                 style={{ color: LEONIX_PRIMARY_TEXT }}
               >
-                1. Vista previa de la tarjeta
+                {pageCopy.cardPreviewTitle}
               </h2>
               <p 
                 className="text-base font-medium leading-relaxed"
                 style={{ color: LEONIX_SECONDARY_TEXT }}
               >
-                Así se verá tu anuncio en resultados, búsquedas y tarjetas destacadas.
+                {pageCopy.cardPreviewBody}
               </p>
             </div>
             <div
@@ -326,13 +322,13 @@ export default function RestaurantePreviewClient() {
                 className="text-2xl font-bold text-[#1F1A17] mb-3 tracking-tight"
                 style={{ color: LEONIX_PRIMARY_TEXT }}
               >
-                2. Vista previa completa del anuncio
+                {pageCopy.fullPreviewTitle}
               </h2>
               <p 
                 className="text-base font-medium leading-relaxed"
                 style={{ color: LEONIX_SECONDARY_TEXT }}
               >
-                Así se verá tu anuncio cuando una persona abra la publicación completa.
+                {pageCopy.fullPreviewBody}
               </p>
             </div>
             <div 
@@ -354,12 +350,10 @@ export default function RestaurantePreviewClient() {
               className="mb-3 text-2xl font-bold tracking-tight"
               style={{ color: LEONIX_PRIMARY_TEXT }}
             >
-              {lang === "en" ? "3. Final checkout" : "3. Pago final"}
+              {pageCopy.finalCheckoutTitle}
             </h2>
             <p className="text-base font-medium leading-relaxed" style={{ color: LEONIX_SECONDARY_TEXT }}>
-              {lang === "en"
-                ? "Preview above does not require confirmations. Complete the plan summary and checkboxes below only when you are ready for secure payment."
-                : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
+              {pageCopy.finalCheckoutBody}
             </p>
           </div>
           <div
@@ -372,16 +366,10 @@ export default function RestaurantePreviewClient() {
                 busy={checkoutBusy}
                 errorMessage={checkoutErr}
                 draftReady={minOk}
-                draftReadyMessage={
-                  minOk
-                    ? null
-                    : lang === "en"
-                      ? "Complete the required fields in the form before starting secure checkout."
-                      : "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
-                }
+                draftReadyMessage={minOk ? null : pageCopy.draftNotReady}
                 onPromoApply={handlePromoApply}
                 onCheckout={(ctx) => void onCheckout(ctx)}
-                editHref={lang === "en" ? `${EDIT_HREF}&lang=en` : EDIT_HREF}
+                editHref={editHref}
               />
           </div>
         </div>

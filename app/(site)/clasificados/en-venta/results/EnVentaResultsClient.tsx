@@ -12,7 +12,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import { leonixPromotedFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app/clasificados/components/savedListings";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
@@ -965,20 +964,6 @@ export function EnVentaResultsClient() {
         {loading ? (
           <div className="mt-8 text-center text-sm text-[#5C5346]">{t.loading}</div>
         ) : null}
-
-        <footer className="mt-8 border-t border-[#D6C7AD]/50 pt-6">
-          <CategoryVisibilityCta lang={lang} category="en-venta" surface="results" compact />
-        </footer>
-
-        <p className="mt-6 text-center text-[12px] font-medium tracking-wide text-[#7A7164]">{t.trust}</p>
-
-        <div className="mt-6 text-center">
-          <Link href={`/clasificados/en-venta?lang=${lang}`} className="text-sm font-semibold text-[#2A2620] underline">
-            {lang === "es"
-              ? `← Volver al inicio ${enVentaPublicLabel("es")}`
-              : `← Back to ${enVentaPublicLabel("en")} home`}
-          </Link>
-        </div>
       </main>
     </div>
   );

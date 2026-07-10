@@ -4,13 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import type { BrNegocioListing } from "./cards/listingTypes";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
-import { BienesRaicesSponsorsLane } from "@/app/clasificados/bienes-raices/components/BienesRaicesSponsorsLane";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
 import { BienesRaicesResultsFilterDrawer } from "./components/BienesRaicesResultsFilterDrawer";
@@ -19,7 +18,6 @@ import { BienesRaicesResultsHeader } from "./components/BienesRaicesResultsHeade
 import { BienesRaicesResultsShell } from "./components/BienesRaicesResultsShell";
 import { BR_BTN_PRIMARY } from "../shared/bienesRaicesLeonixPublicUi";
 import { getBrResultsCopy } from "./bienesRaicesResultsCopy";
-import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
 import {
   filterBrListings,
   paginateListings,
@@ -172,8 +170,6 @@ export function BienesRaicesResultsClient() {
           lang={lang}
           title={copy.heroTitle}
           countLine={countLine}
-          publishHref={appendLangToPath(BR_PUBLICAR_HUB, lang)}
-          publishLabel={copy.footerPublish}
           searchSlot={
             <BienesRaicesCompactSearchCanvas
               lang={lang}
@@ -192,7 +188,7 @@ export function BienesRaicesResultsClient() {
               browseAllHref={appendLangToPath(BR_RESULTS, lang)}
               searchButtonLabel={searchLabel}
               filtersButtonLabel={filtersLabel}
-              layout="landing"
+              layout="results"
             />
           }
         />
@@ -202,13 +198,6 @@ export function BienesRaicesResultsClient() {
           copy={copy}
           onPatch={(p) => patchUrl(p)}
           onClearAll={clearAllFilters}
-        />
-
-        <BienesRaicesSponsorsLane
-          lang={lang}
-          listings={listingPool}
-          surface="results"
-          maxItems={8}
         />
 
         <BienesRaicesResultsHeader
@@ -285,10 +274,6 @@ export function BienesRaicesResultsClient() {
           </nav>
         ) : null}
       </section>
-
-      <footer className="mt-8 border-t border-[#D6C7AD]/50 pt-6">
-        <CategoryVisibilityCta lang={lang} category="bienes-raices" surface="results" compact />
-      </footer>
 
       <BienesRaicesResultsFilterDrawer
         open={filterDrawerOpen}

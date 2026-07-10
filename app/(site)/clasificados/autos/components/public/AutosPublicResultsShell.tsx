@@ -12,7 +12,6 @@ import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy"
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
-import { AutosPublicFeaturedCard } from "./AutosPublicFeaturedCard";
 import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
 import { useAutosPublicListingsFetch } from "./useAutosPublicListingsFetch";
 import {
@@ -21,9 +20,7 @@ import {
   type AutosPublicSortKey,
 } from "./autosPublicFilters";
 import { AutosPublicFilterRail, type AutosPublicFilterOptions } from "./AutosPublicFilterRail";
-import { partitionAutosResultsVisibility } from "../../lib/autosPublicResultsVisibility";
 import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilters";
-import { AutosPublicResultsQuickChips } from "./AutosPublicResultsQuickChips";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
 import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
 import { AutosMarketPeerCrossLink } from "./AutosMarketPeerCrossLink";
@@ -131,12 +128,7 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
 
   const sorted = useMemo(() => sortAutosPublicListings(filtered, applied.sort), [filtered, applied.sort]);
 
-  const { featuredDealerBand, recentLane, mainGridPool } = useMemo(
-    () => partitionAutosResultsVisibility(sorted, applied.sort),
-    [sorted, applied.sort],
-  );
-
-  const gridListings = mainGridPool;
+  const gridListings = sorted;
 
   const totalPages = Math.max(1, Math.ceil(gridListings.length / perPage));
   const currentPage = Math.min(Math.max(1, applied.page), totalPages);
@@ -238,14 +230,6 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
     }
     return copy.resultsSubheadNoGeo;
   }, [applied.filters.city, applied.filters.zip, copy, sorted]);
-
-  const featuredTitle = useMemo(() => {
-    const city = displayCity.trim();
-    const st = inferredState.trim();
-    if (city && st) return copy.featuredZoneTitle.replace("{city}", city).replace("{state}", st);
-    if (city) return copy.featuredZoneTitleCityOnly.replace("{city}", city);
-    return copy.featuredZoneGeneric;
-  }, [copy, displayCity, inferredState]);
 
   const pageQs = (page: number) => `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({ ...applied, page })}`;
 
@@ -435,10 +419,6 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
           />
         </div>
 
-        <div className="mb-3 rounded-xl border border-[#D6C7AD]/60 bg-[#FFFDF7] px-3 py-2">
-          <AutosPublicResultsQuickChips bundle={applied} copy={copy} market={market} resultsPath={RESULTADOS_PATH} />
-        </div>
-
         <div className="mb-3">
           <AutosPublicResultsActiveFilters bundle={applied} pushBundle={pushBundle} copy={copy} />
         </div>
@@ -453,36 +433,8 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
               </div>
             ) : null}
 
-            {loaded && featuredDealerBand.length > 0 ? (
-              <section className="mb-6 lg:mb-8">
-                <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{featuredTitle}</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneFeaturedSubtitle}</p>
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {featuredDealerBand.map((l) => (
-                    <AutosPublicFeaturedCard key={l.id} listing={l} copy={copy} lang={lang} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {recentLane.length > 0 ? (
-              <section className="mb-8 lg:mb-10">
-                <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsRecentSection}</h2>
-                <p className="mt-2 max-w-3xl text-sm text-[#7A7A7A]">{copy.resultsLaneRecentSubtitle}</p>
-                <div className="-mx-1 mt-4 flex gap-3 overflow-x-auto pb-2 pl-1 pr-2 pt-1 [scrollbar-width:thin]">
-                  {recentLane.map((l) => (
-                    <div key={l.id} className="w-[min(20rem,calc(100vw-2.5rem))] shrink-0">
-                      <AutosPublicStandardCard listing={l} copy={copy} lang={lang} compact />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             {loaded ? (
             <section>
-              <h2 className="font-serif text-xl font-semibold tracking-tight text-[#1A1A1A] sm:text-2xl">{copy.resultsMainSection}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7A7A7A]">{copy.resultsLaneMainSubtitle}</p>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
                 {pagedGrid.map((l) => (
                   <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />

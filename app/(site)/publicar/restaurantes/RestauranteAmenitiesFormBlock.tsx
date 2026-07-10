@@ -9,13 +9,24 @@ import {
   RESTAURANTE_AMENITY_GROUP_ORDER,
   type RestauranteAmenityGroupId,
   sanitizeRestauranteAmenities,
-} from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+} from "@/app/(site)/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import { clasificadosPreviewPublishCopy } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
+import type { RestauranteAppUiLang } from "./restauranteApplicationUiCopy";
 
-function FieldLabel({ children, optional }: { children: ReactNode; optional?: boolean }) {
+function FieldLabel({
+  children,
+  optional,
+  lang,
+}: {
+  children: ReactNode;
+  optional?: boolean;
+  lang: RestauranteAppUiLang;
+}) {
+  const optionalLabel = clasificadosPreviewPublishCopy(lang).optional;
   return (
     <div className="text-sm font-semibold text-[color:var(--lx-text)]">
       {children}
-      {optional ? <span className="ml-1 text-xs font-normal text-[color:var(--lx-muted)]">(opcional)</span> : null}
+      {optional ? <span className="ml-1 text-xs font-normal text-[color:var(--lx-muted)]">{optionalLabel}</span> : null}
     </div>
   );
 }
@@ -27,9 +38,11 @@ function HelperText({ children }: { children: ReactNode }) {
 export function RestauranteAmenitiesFormBlock({
   draft,
   setDraftPatch,
+  lang,
 }: {
   draft: RestauranteListingDraft;
   setDraftPatch: (patch: RestauranteDraftPatch) => void;
+  lang: RestauranteAppUiLang;
 }) {
   const cur = sanitizeRestauranteAmenities(draft.restaurantAmenities) ?? {};
 
@@ -46,32 +59,35 @@ export function RestauranteAmenitiesFormBlock({
     });
   };
 
+  const blockTitle = lang === "en" ? "Amenities & more" : "Amenidades y más";
+  const blockHelper =
+    lang === "en"
+      ? "Optional. Payments, service, accessibility, atmosphere, amenities, and food options. Shown on the listing only when you select at least one."
+      : "Opcional. Pagos, servicio, accesibilidad, ambiente, comodidades y opciones de comida. Solo aparece en la ficha si eliges al menos una opción.";
+
   return (
     <div className="mt-4 space-y-8">
       <div>
-        <FieldLabel optional>Amenidades y más</FieldLabel>
-        <HelperText>
-          <span className="font-semibold text-[color:var(--lx-text-2)]">Amenities &amp; More</span> — opcional. Pagos,
-          servicio, accesibilidad, ambiente, comodidades y opciones de comida. Solo aparece en la ficha si eliges al menos
-          una opción.
-        </HelperText>
+        <FieldLabel optional lang={lang}>
+          {blockTitle}
+        </FieldLabel>
+        <HelperText>{blockHelper}</HelperText>
       </div>
 
       {RESTAURANTE_AMENITY_GROUP_ORDER.map((group) => {
         const meta = getRestauranteAmenityGroupMeta(group);
         const selected = new Set(cur[group] ?? []);
+        const groupTitle = lang === "en" ? meta.titleEn : meta.titleEs;
         return (
           <div
             key={group}
             className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/40 p-4 sm:p-5"
           >
-            <h3 className="text-sm font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
-              {meta.titleEs}
-              <span className="ml-2 font-normal normal-case text-[color:var(--lx-muted)]">/ {meta.titleEn}</span>
-            </h3>
+            <h3 className="text-sm font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">{groupTitle}</h3>
             <div className="mt-3 flex flex-wrap gap-2">
               {meta.items.map((item) => {
                 const checked = selected.has(item.id);
+                const itemLabel = lang === "en" ? item.labelEn : item.labelEs;
                 return (
                   <label
                     key={item.id}
@@ -84,7 +100,7 @@ export function RestauranteAmenitiesFormBlock({
                       onChange={() => toggle(group, item.id)}
                     />
                     <RestaurantePublishChipMarker leading={item.leading} compact />
-                    <span className="min-w-0">{item.labelEs}</span>
+                    <span className="min-w-0">{itemLabel}</span>
                   </label>
                 );
               })}

@@ -33,7 +33,6 @@ import {
   EMPLEOS_CTA_SECONDARY,
   EMPLEOS_LINK_MUTED,
 } from "../lib/empleosPremiumUi";
-import { EMPLEOS_RESULTS_FEATURED_STRIP_MAX } from "../lib/empleosPublicRankingPolicy";
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
 import { CategoryStandardFiltersDrawerShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardFiltersDrawerShell";
@@ -330,14 +329,6 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     return sortEmpleosJobs(f, parsed.sort);
   }, [mergedCatalog, parsed, clock]);
 
-  const featuredRowsAll = useMemo(
-    () => filtered.filter((j) => j.listingTier === "featured" || j.listingTier === "promoted"),
-    [filtered],
-  );
-  const featuredStripRows = useMemo(
-    () => featuredRowsAll.slice(0, EMPLEOS_RESULTS_FEATURED_STRIP_MAX),
-    [featuredRowsAll],
-  );
   const [q, setQ] = useState(parsed.q);
   const [city, setCity] = useState(parsed.city);
   const [stateCode, setStateCode] = useState(parsed.state || LEONIX_LB_DEFAULT_STATE);
@@ -486,20 +477,6 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     }
     return actions;
   }, [filtered.length, urlSp, lang, parsed.q, parsed.zip, parsed.city, parsed.recentOnly, t]);
-
-  const exploreAdjacentCategories = useMemo(() => {
-    const pool = ["ventas", "salud", "tecnologia", "oficina", "bodega"] as const;
-    return pool.filter((slug) => slug !== parsed.category).slice(0, 3);
-  }, [parsed.category]);
-
-  const showFeaturedBlock = featuredStripRows.length > 0 && !parsed.featuredOnly;
-  /** Everything except the small featured strip, preserving `filtered` order (overflow featured + standard). */
-  const listMain = useMemo(() => {
-    if (parsed.featuredOnly) return filtered;
-    if (featuredStripRows.length === 0) return filtered;
-    const stripIds = new Set(featuredStripRows.map((j) => j.id));
-    return filtered.filter((j) => !stripIds.has(j.id));
-  }, [filtered, featuredStripRows, parsed.featuredOnly]);
 
   const clearResultsHref = buildEmpleosResultadosUrl(lang, {});
 
@@ -741,72 +718,24 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
               >
                 {t.resetShort}
               </button>
-              <Link href={landingHref} className={`${EMPLEOS_LINK_MUTED} text-sm`}>
-                {t.emptyExplore}
-              </Link>
             </div>
           </div>
         ) : (
           <>
-            {filtered.length > 0 && filtered.length <= 3 ? (
-              <div className="mt-10 rounded-2xl border border-[#E8DFD0] bg-[#FFFBF7]/90 p-5 shadow-[0_12px_36px_rgba(42,40,38,0.06)]">
-                <p className="text-sm font-semibold text-[#2A2826]">{t.lowResultsHint}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {exploreAdjacentCategories.map((slug) => {
-                    const opt = sampleCategorySelectOptions.find((o) => o.value === slug);
-                    const href = buildEmpleosResultadosUrl(lang, { ...empleosParamsFromSearchParams(urlSp), category: slug, sort: parsed.sort });
-                    return (
-                      <Link
-                        key={slug}
-                        href={href}
-                        className="inline-flex min-h-10 items-center rounded-full border border-[#E8DFD0] bg-white px-3.5 text-xs font-semibold text-[#2A2826] transition hover:border-[#D9A23A]/45"
-                      >
-                        {opt?.label ?? slug}
-                      </Link>
-                    );
-                  })}
-                </div>
-                <p className="mt-3 text-[11px] text-[#7A756E]">{t.exploreMore}</p>
-              </div>
-            ) : null}
-
-            {showFeaturedBlock ? (
-              <section className="mt-12 sm:mt-14" aria-labelledby="empleos-res-featured">
-                <div className="relative mb-6">
-                  <div className="absolute inset-x-0 top-0 h-1 rounded-full bg-gradient-to-r from-[#D9A23A]/55 via-[#E8A54B]/35 to-transparent" aria-hidden />
-                  <h2 id="empleos-res-featured" className="pt-5 text-2xl font-bold tracking-tight text-[#2A2826] sm:text-3xl">
-                    {t.featuredBlock}
-                  </h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#5B6F82] sm:text-base">{t.featuredIntro}</p>
-                </div>
-                <div className="grid grid-cols-1 gap-7 xl:grid-cols-2 xl:gap-8">
-                  {featuredStripRows.map((job) => (
-                    <EmpleosJobResultCard
-                      key={job.id}
-                      job={job}
-                      lang={lang}
-                      variant="grid"
-                      showRecentRibbon={job.listingTier === "standard" && isRecentPosting(job, clock)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {listMain.length > 0 ? (
-              <section className="mt-12 sm:mt-14" aria-labelledby="empleos-res-all">
-                <div className="mb-6">
-                  <h2 id="empleos-res-all" className="text-2xl font-bold tracking-tight text-[#2A2826] sm:text-3xl">
+            {filtered.length > 0 ? (
+              <section className="mt-8 sm:mt-10" aria-labelledby="empleos-res-all">
+                <div className="mb-4">
+                  <h2 id="empleos-res-all" className="text-lg font-bold tracking-tight text-[#2A2826] sm:text-xl">
                     {parsed.featuredOnly ? t.featuredBlock : t.allBlock}
                   </h2>
                   {!parsed.featuredOnly ? (
-                    <p className="mt-2 max-w-3xl text-sm text-[#5B6F82] sm:text-base">
+                    <p className="mt-1 max-w-3xl text-sm text-[#5B6F82]">
                       {parsed.recentOnly ? t.listIntroRecent : t.listIntro}
                     </p>
                   ) : null}
                 </div>
                 <div className="flex flex-col gap-5 sm:gap-6">
-                  {listMain.map((job) => (
+                  {filtered.map((job) => (
                     <EmpleosJobResultCard
                       key={job.id}
                       job={job}

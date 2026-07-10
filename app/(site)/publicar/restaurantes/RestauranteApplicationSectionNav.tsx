@@ -1,6 +1,7 @@
 "use client";
 
 import type { RestauranteAppSectionItem } from "./restauranteApplicationSectionModel";
+import { restauranteApplicationNavCopy, type RestauranteAppUiLang } from "./restauranteApplicationUiCopy";
 
 export type { RestauranteAppSectionItem };
 
@@ -24,19 +25,23 @@ export function RestauranteApplicationSectionNav({
   variant = "sidebar",
   activeId,
   onSelect,
+  lang = "es",
 }: {
   sections: RestauranteAppSectionItem[];
   variant?: "sidebar" | "chips";
   activeId: string;
   onSelect?: (id: string) => void;
+  lang?: RestauranteAppUiLang;
 }) {
+  const navCopy = restauranteApplicationNavCopy(lang);
+
   const pick = (id: string) => {
     onSelect?.(id);
   };
 
   if (variant === "chips") {
     return (
-      <nav aria-label="Ir a sección" className="w-full">
+      <nav aria-label={navCopy.jumpToSection} className="w-full">
         <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {sections.map((s) => (
             <button
@@ -59,8 +64,8 @@ export function RestauranteApplicationSectionNav({
   }
 
   return (
-    <nav aria-label="Secciones del formulario" className="w-full">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">Secciones</p>
+    <nav aria-label={navCopy.formSections} className="w-full">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{navCopy.sections}</p>
       <ul className="space-y-1.5">
         {sections.map((s) => (
           <li key={s.id}>

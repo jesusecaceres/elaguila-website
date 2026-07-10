@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ServiciosResultsPageShell } from "../ServiciosResultsPageShell";
 import { ServiciosHorizontalResultCard } from "../components/ServiciosHorizontalResultCard";
 import { ServiciosResultsActiveSummary } from "../ServiciosResultsActiveSummary";
 import { ServiciosResultsFilters } from "../ServiciosResultsFilters";
-import { ServiciosDestacadosSection } from "../components/ServiciosDestacadosSection";
-import { getServiciosDestacadosRows } from "../lib/serviciosDestacados";
 import {
   filterServiciosPublicListingRows,
   filterServiciosRowsByKeyword,
@@ -151,11 +148,9 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   // Gate G2A: overlay active entitlements onto filtered results only (public-safe fields)
   const overlaid = await overlayActiveEntitlementsForServiciosResults(rows);
 
-  const destacadosRows = getServiciosDestacadosRows(overlaid);
   const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort);
 
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
-  const landingHref = `/clasificados/servicios?lang=${lang}`;
   const perPage = parseCatStdPerPage(sp.perPage);
   const pageCount = Math.max(1, Math.ceil(displayRows.length / perPage));
   const currentPage = Math.min(parseCatStdPage(sp.page), pageCount);
@@ -205,71 +200,19 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             ) : null}
 
             {displayRows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#c9b8a4] bg-gradient-to-b from-[#FFFCF7] to-[#faf6f0] px-4 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                <p className="mx-auto max-w-md text-sm font-medium leading-relaxed text-[#142a42]">
-                  {hasActiveFilters
-                    ? lang === "en"
-                      ? "No listings match these filters yet."
-                      : "Aún no hay anuncios que coincidan con estos filtros."
-                    : lang === "en"
-                      ? "No public Servicios showcases yet."
-                      : "Aún no hay vitrinas públicas en Servicios."}
-                </p>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#4a5d6e]">
-                  {hasActiveFilters
-                    ? lang === "en"
-                      ? "Try clearing filters or searching with broader keywords."
-                      : "Prueba limpiar filtros o buscar con palabras más amplias."
-                    : lang === "en"
-                      ? "When businesses publish, they will appear here automatically."
-                      : "Cuando se publiquen negocios, aparecerán aquí automáticamente."}
-                </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-3">
-                  {hasActiveFilters ? (
-                    <Link
-                      href={`${SERVICIOS_RESULTS_PATH}?lang=${lang}`}
-                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#3B66AD]/30 bg-white px-5 text-sm font-bold text-[#3B66AD] shadow-sm transition hover:bg-[#3B66AD]/5"
-                    >
-                      {lang === "en" ? "Show all listings" : "Ver todos los anuncios"}
-                    </Link>
-                  ) : null}
-                  <Link
-                    href={landingHref}
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#3B66AD] px-5 text-sm font-bold text-white shadow-md transition hover:bg-[#2f5699]"
-                  >
-                    {lang === "en" ? "Back to landing" : "Volver al inicio"}
-                  </Link>
-                  {hasActiveFilters ? (
-                    <Link
-                      href={`/clasificados/servicios?lang=${lang}#categorias`}
-                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#e5ddd2] bg-[#FFFCF7] px-5 text-sm font-bold text-[#142a42] shadow-sm transition hover:bg-white"
-                    >
-                      {lang === "en" ? "Explore categories" : "Explorar categorías"}
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
+              <p className="rounded-xl border border-[#D6C7AD]/60 bg-[#FFFCF7]/95 px-4 py-5 text-sm leading-relaxed text-[#5C5346]">
+                {hasActiveFilters
+                  ? lang === "en"
+                    ? "No listings match these filters. Try clearing filters or searching with broader keywords."
+                    : "No hay anuncios que coincidan. Prueba limpiar filtros o buscar con palabras más amplias."
+                  : lang === "en"
+                    ? "No public Servicios showcases yet. When businesses publish, they will appear here."
+                    : "Aún no hay vitrinas públicas. Cuando se publiquen negocios, aparecerán aquí."}
+              </p>
             ) : null}
 
-            {destacadosRows.length > 0 ? (
-              <div className="mb-4">
-                <ServiciosDestacadosSection
-                  rows={destacadosRows}
-                  lang={lang}
-                  id="servicios-res-destacados"
-                />
-              </div>
-            ) : null}
             {displayRows.length > 0 ? (
               <section aria-labelledby="servicios-res-listings">
-                {destacadosRows.length > 0 ? (
-                  <h2
-                    id="servicios-res-listings"
-                    className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#3d5a73]/90"
-                  >
-                    {lang === "en" ? "All matching showcases" : "Todas las vitrinas coincidentes"}
-                  </h2>
-                ) : null}
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3">
                   {pagedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
