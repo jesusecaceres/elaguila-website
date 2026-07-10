@@ -22,6 +22,8 @@ import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/A
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import { PrivadoContactStrip } from "./PrivadoContactStrip";
 import { PrivadoPreviewChrome } from "./PrivadoPreviewChrome";
+import { PrivadoPreviewPromiseTiles } from "./PrivadoPreviewPromiseTiles";
+import { PrivadoQuickPreviewCard } from "./PrivadoQuickPreviewCard";
 import { useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
 import { buildVehicleTitle, normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
@@ -231,6 +233,13 @@ export function AutoPrivadoPreviewPage({
                 publishedOnLeonix: lang === "es" ? "Publicado en Leonix" : "Published on Leonix",
               }}
             />
+
+        {/* Quick preview card */}
+        <section className="mx-auto mt-6 max-w-[1280px] px-4 md:px-5 lg:px-6">
+          <PrivadoQuickPreviewCard data={display} />
+        </section>
+
+        <PrivadoPreviewPromiseTiles lang={lang} />
           </aside>
         </div>
       </main>
