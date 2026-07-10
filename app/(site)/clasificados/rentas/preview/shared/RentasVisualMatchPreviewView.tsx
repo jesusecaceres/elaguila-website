@@ -13,6 +13,7 @@ import {
   FiPlayCircle,
   FiShare2,
 } from "react-icons/fi";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-raices/preview/privado/model/bienesRaicesPrivadoPreviewVm";
 import type {
   BienesRaicesNegocioPreviewVm,
@@ -707,21 +708,30 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }:
               ) : null}
             </div>
           ) : null}
-          <button
-            type="button"
-            onClick={handleNativeShare}
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition hover:bg-[#FBF7EF]"
-            style={{ borderColor: `${GOLD}88`, color: CHARCOAL }}
-          >
-            <FiShare2 className="h-4 w-4" />
-            {shareCopied
-              ? lang === "es"
-                ? "Enlace copiado"
-                : "Link copied"
-              : lang === "es"
-                ? "Compartir"
-                : "Share"}
-          </button>
+          <div className="mt-4 flex items-center gap-2">
+            <LeonixLikeButton
+              listingId={listingId}
+              lang={lang}
+              category="rentas"
+              variant="small"
+              persistEngagement={Boolean(listingId)}
+            />
+            <button
+              type="button"
+              onClick={handleNativeShare}
+              className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition hover:bg-[#FBF7EF]"
+              style={{ borderColor: `${GOLD}88`, color: CHARCOAL }}
+            >
+              <FiShare2 className="h-4 w-4" />
+              {shareCopied
+                ? lang === "es"
+                  ? "Enlace copiado"
+                  : "Link copied"
+                : lang === "es"
+                  ? "Compartir"
+                  : "Share"}
+            </button>
+          </div>
           {c.showSolicitarInfo && c.mailHref ? (
             <ActionLink href={c.mailHref} variant="primary" onClick={handleEmailClick}>
               <FiMail className="h-4 w-4" />

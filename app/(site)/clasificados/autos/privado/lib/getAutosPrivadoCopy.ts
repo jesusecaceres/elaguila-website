@@ -32,6 +32,14 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
           ? "Cifras de ejemplo en borrador. Tras publicar, conectaremos métricas reales desde tu panel."
           : "Sample figures while drafting. After publish, we’ll wire real metrics from your dashboard.",
       },
+      specs: {
+        ...base.preview.specs,
+        subtitle: isEs ? "Información proporcionada por el vendedor" : "Information provided by the seller",
+      },
+      highlights: {
+        ...base.preview.highlights,
+        subtitle: isEs ? "Equipo seleccionado por el vendedor" : "Equipment selected by the seller",
+      },
       description: {
         title: isEs ? "Descripción" : "Description",
         byline: (seller) =>
