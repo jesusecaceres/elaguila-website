@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -31,9 +31,6 @@ import { getAutosApplicationStepShellCopy } from "@/app/publicar/autos/shared/li
 import { AutosUnsavedChangesModal } from "@/app/publicar/autos/shared/components/AutosUnsavedChangesModal";
 import type { AutosApplicationStepContext } from "@/app/publicar/autos/shared/components/AutosApplicationSteppedShell";
 import { AutosNegociosInventoryChildApplication } from "./AutosNegociosInventoryChildApplication";
-import {
-  shouldIgnoreAutosDrawerOutsideInteraction,
-} from "@/app/lib/clasificados/autos/autosDrawerNativeSelectInteraction";
 
 type Props = {
   open: boolean;
@@ -193,15 +190,6 @@ export function AutosNegociosAddInventoryDrawer({
     onEditParentDealerStep?.();
   }, [draft, flushDraft, isDirty, onEditParentDealerStep, onInProgressChange]);
 
-  const handleBackdropClose = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      if (shouldIgnoreAutosDrawerOutsideInteraction(event.nativeEvent)) return;
-      if (event.target !== event.currentTarget) return;
-      requestClose();
-    },
-    [requestClose],
-  );
-
   if (!open) return null;
 
   const persist = async (andAnother: boolean) => {
@@ -240,39 +228,40 @@ export function AutosNegociosAddInventoryDrawer({
   return (
     <>
       <div
-        className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-6"
+        className="fixed inset-0 z-[80] flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#FAF7F2] text-[#1E1810]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="autos-add-inventory-title"
         data-autos-inventory-drawer-mode={drawerMode}
-        onMouseDown={handleBackdropClose}
+        data-autos-inventory-full-window="1"
       >
-        <div
-          className="pointer-events-none absolute inset-0 bg-[#1E1810]/45 backdrop-blur-[2px]"
-          aria-hidden
-        />
-        <div
-          className="relative z-[1] flex h-[calc(100vh-48px)] w-full max-w-[min(1120px,calc(100vw-48px))] flex-col rounded-t-[24px] border border-[#E8DFD0] bg-[#FAF7F2] shadow-2xl sm:rounded-[24px]"
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[#D4C4A8] sm:hidden" aria-hidden />
-          <div className="sticky top-0 z-10 shrink-0 border-b border-[#E8DFD0] bg-[#FAF7F2]/95 px-4 py-3 backdrop-blur-sm sm:px-5">
-            <h2 id="autos-add-inventory-title" className="font-serif text-lg font-semibold text-[#1E1810]">
-              {isEditing
-                ? lang === "es"
-                  ? "Editar vehículo adicional"
-                  : "Edit additional vehicle"
-                : autosAddInventoryDrawerTitle(lang)}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#2C2416]">{autosAddInventoryDrawerHelper(lang)}</p>
-            <p className="mt-2 text-xs font-semibold text-[#6E5418]">
-              {autosAddInventoryCountLabel(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
-            </p>
+        <header className="shrink-0 border-b border-[#E8DFD0] bg-[#FAF7F2]/95 backdrop-blur-sm">
+          <div className="mx-auto flex w-full max-w-[min(96vw,1500px)] items-start justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+            <div className="min-w-0 flex-1">
+              <h2 id="autos-add-inventory-title" className="font-serif text-lg font-semibold text-[#1E1810] sm:text-xl">
+                {isEditing
+                  ? lang === "es"
+                    ? "Editar vehículo adicional"
+                    : "Edit additional vehicle"
+                  : autosAddInventoryDrawerTitle(lang)}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#2C2416]">{autosAddInventoryDrawerHelper(lang)}</p>
+              <p className="mt-2 text-xs font-semibold text-[#6E5418]">
+                {autosAddInventoryCountLabel(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={requestClose}
+              className="min-h-[44px] shrink-0 touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
+            >
+              {autosAddInventoryCancelCta(lang)}
+            </button>
           </div>
+        </header>
 
-          <div className="autos-drawer-scroll min-h-0 flex-1 overscroll-contain px-4 py-4 sm:px-5">
+        <div className="autos-drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="mx-auto w-full max-w-[min(96vw,1500px)] px-4 py-4 sm:px-6 sm:py-5">
             {missingSavedChild ? (
               <p className="rounded-xl border border-amber-200/90 bg-amber-50/95 px-4 py-3 text-sm text-amber-950" role="alert">
                 {autosAddInventorySavedChildMissing(lang)}
@@ -300,8 +289,10 @@ export function AutosNegociosAddInventoryDrawer({
               </p>
             ) : null}
           </div>
+        </div>
 
-          <div className="sticky bottom-0 z-10 shrink-0 space-y-2 border-t border-[#E8DFD0] bg-[#FAF7F2] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
+        <footer className="shrink-0 border-t border-[#E8DFD0] bg-[#FAF7F2]">
+          <div className="mx-auto w-full max-w-[min(96vw,1500px)] space-y-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5">
             {showForm && stepNav && !onFinalStep ? (
               <div className="flex gap-2">
                 <button
@@ -353,7 +344,7 @@ export function AutosNegociosAddInventoryDrawer({
               {autosAddInventoryCancelCta(lang)}
             </button>
           </div>
-        </div>
+        </footer>
       </div>
 
       <AutosUnsavedChangesModal

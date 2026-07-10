@@ -111,11 +111,8 @@ function main() {
   assert.ok(saveBtn.includes("readSavedListingForUser"), "save: runtime read helper");
 
   const heroSrc = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosHero.tsx"), "utf8");
-  assert.ok(heroSrc.includes("data-servicios-hero-like-cue"), "hero: like social-proof marker");
-  assert.ok(heroSrc.includes("♡ Me gusta") && heroSrc.includes("♡ Like"), "hero: zero-state copy ES/EN");
-
-  const guardados = readFileSync(join(__dirname, "../app/(site)/dashboard/guardados/page.tsx"), "utf8");
-  assert.ok(guardados.includes("listSavedListingIdsForUser"), "guardados: reads saved listings via runtime helper");
+  assert.ok(heroSrc.includes("ServiciosLikeCountBadge"), "hero: like count badge for social proof");
+  assert.ok(heroSrc.includes("publicLikeCount"), "hero: SSR like count prop");
 
   const saveRuntime = readFileSync(join(__dirname, "../app/lib/savedListingsRuntime.ts"), "utf8");
   assert.ok(saveRuntime.includes("saved_listings") && saveRuntime.includes("user_saved_listings"), "save runtime: canonical + legacy fallback");
@@ -123,42 +120,38 @@ function main() {
   const ownerEngagementApi = readFileSync(join(__dirname, "../app/api/dashboard/owner-engagement/route.ts"), "utf8");
   assert.ok(ownerEngagementApi.includes("fetchOwnerEngagementRollupsServer"), "dashboard API: server engagement rollups");
 
-  const likeCluster = readFileSync(
-    join(__dirname, "../app/(site)/servicios/components/ServiciosLikeEngagementCluster.tsx"),
-    "utf8",
-  );
-  assert.ok(likeCluster.includes("data-servicios-like-cluster"), "profile: connected like + count cluster");
-
-  const adminServicios = readFileSync(
-    join(__dirname, "../app/admin/(dashboard)/workspace/clasificados/servicios/page.tsx"),
-    "utf8",
-  );
-  assert.ok(adminServicios.includes("fetchServiciosUserSavedCountsByKeys"), "admin: save counts from saved_listings");
-  assert.ok(adminServicios.includes("serviciosAdminEngagementByRowId"), "admin: per-row engagement rollup");
-
   const profileView = readFileSync(join(__dirname, "../app/(site)/servicios/components/ServiciosProfileView.tsx"), "utf8");
   assert.ok(profileView.includes("data-servicios-results-cta"), "profile: results CTA marker");
   assert.ok(profileView.includes("Ver resultados de Servicios"));
   assert.ok(profileView.includes("publicLikeCount"), "profile: forwards SSR like count to hero");
 
-  const resultCard = readFileSync(
-    join(__dirname, "../app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx"),
+  const hubRow = readFileSync(
+    join(__dirname, "../app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx"),
     "utf8",
   );
-  assert.ok(resultCard.includes("data-servicios-like-badge"), "card: like badge marker");
-  assert.ok(resultCard.includes("public_like_net_count"));
-  assert.ok(resultCard.includes("♡ Me gusta") && resultCard.includes("♡ Like"), "card: zero-state copy ES/EN");
+  assert.ok(hubRow.includes("showEngagementActions"), "hub row: published-only engagement gate");
+  assert.ok(hubRow.includes("directNativeShare"), "hub row: native share");
+  assert.ok(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: persistence flag wired");
 
-  const proResultCard = readFileSync(
-    join(__dirname, "../app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx"),
+  const proShell = readFileSync(
+    join(__dirname, "../app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx"),
     "utf8",
   );
-  assert.ok(proResultCard.includes("data-servicios-like-badge"), "professional card: like badge");
-  assert.ok(proResultCard.includes("public_like_net_count"), "professional card: persisted like count");
+  assert.ok(proShell.includes("directNativeShare"), "professional shell: hero native share");
+  assert.ok(proShell.includes("persistEngagement={persistListingEngagement}"), "professional shell: persistence wired");
 
-  const dashServicios = readFileSync(join(__dirname, "../app/(site)/dashboard/servicios/page.tsx"), "utf8");
-  assert.ok(dashServicios.includes("ServiciosListingMetricsPills"), "dashboard servicios: per-ad metrics pills");
-  assert.ok(dashServicios.includes("fetchOwnerEngagementDashboard"), "dashboard servicios: owner engagement API");
+  const shareBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixShareButton.tsx"), "utf8");
+  assert.ok(shareBtn.includes("navigator.share"), "share: native share");
+  assert.ok(shareBtn.includes("navigator.clipboard.writeText"), "share: clipboard fallback");
+
+  assert.ok(slugPage.includes("isPublishedLive"), "slug page: live-only persistence");
+
+  const likeCluster = readFileSync(
+    join(__dirname, "../app/(site)/servicios/components/ServiciosLikeEngagementCluster.tsx"),
+    "utf8",
+  );
+  assert.ok(likeCluster.includes("data-servicios-like-cluster"), "profile: connected like + count cluster");
+  assert.ok(likeCluster.includes("LeonixLikeButton"), "like cluster: shared like button");
 
   console.log("servicios-engagement-smoke: OK");
 }

@@ -68,10 +68,10 @@ export function ServiciosBusinessHubEngagementRow({
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
 
-  const showSaveLike = persistEngagement && Boolean(lxListingId);
-  const showShare = Boolean(lxListingId) || Boolean((listingShareUrl ?? "").trim());
+  /** Published listings only — preview drafts must not surface like/share/save actions. */
+  const showEngagementActions = persistEngagement && Boolean(lxListingId);
 
-  if (!showSaveLike && !showShare) return null;
+  if (!showEngagementActions) return null;
 
   const title = lang === "en" ? "Actions" : "Acciones";
 
@@ -83,58 +83,21 @@ export function ServiciosBusinessHubEngagementRow({
       >
         {title}
       </h3>
-      {showSaveLike ? (
-        <div className="mt-2.5 grid max-w-full grid-cols-3 gap-2 sm:gap-2.5">
-          <div className={utilityCellClass}>
-            <LeonixSaveButton
-              listingId={lxListingId}
-              ownerUserId={lxOwner}
-              variant="default"
-              lang={lang}
-              category="servicios"
-              persistEngagement
-              saveExtras={saveExtras}
-              recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
-              className="!shadow-sm"
-            />
-          </div>
-          {showShare ? (
-            <div className={utilityCellClass}>
-              <LeonixShareButton
-                listingId={lxListingId}
-                listingUrl={listingShareUrl}
-                ownerUserId={lxOwner}
-                listingTitle={profile.identity.businessName}
-                variant="default"
-                lang={lang}
-                category="servicios"
-                className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
-                persistEngagement={persistEngagement}
-                recordShareEvent={
-                  globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
-                }
-                directNativeShare
-              />
-            </div>
-          ) : (
-            <div className="min-h-[44px] min-w-0" aria-hidden />
-          )}
-          <div className={utilityCellClass}>
-            <ServiciosLikeEngagementCluster
-              listingId={lxListingId}
-              ownerUserId={lxOwner}
-              lang={lang}
-              publicLikeCount={likeCueN}
-              persistEngagement
-              variant="default"
-              tone="hub"
-              recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
-              className="w-full [&_button]:!w-full"
-            />
-          </div>
+      <div className="mt-2.5 grid max-w-full grid-cols-3 gap-2 sm:gap-2.5">
+        <div className={utilityCellClass}>
+          <LeonixSaveButton
+            listingId={lxListingId}
+            ownerUserId={lxOwner}
+            variant="default"
+            lang={lang}
+            category="servicios"
+            persistEngagement={persistEngagement}
+            saveExtras={saveExtras}
+            recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
+            className="!shadow-sm"
+          />
         </div>
-      ) : showShare ? (
-        <div className={`mt-2.5 ${utilityCellClass}`}>
+        <div className={utilityCellClass}>
           <LeonixShareButton
             listingId={lxListingId}
             listingUrl={listingShareUrl}
@@ -143,15 +106,26 @@ export function ServiciosBusinessHubEngagementRow({
             variant="default"
             lang={lang}
             category="servicios"
-            className="!w-full !max-w-full !border-[color:var(--lx-border,#E8D7B8)]"
+            className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
             persistEngagement={persistEngagement}
-            recordShareEvent={
-              globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
-            }
+            recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
             directNativeShare
           />
         </div>
-      ) : null}
+        <div className={utilityCellClass}>
+          <ServiciosLikeEngagementCluster
+            listingId={lxListingId}
+            ownerUserId={lxOwner}
+            lang={lang}
+            publicLikeCount={likeCueN}
+            persistEngagement={persistEngagement}
+            variant="default"
+            tone="hub"
+            recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
+            className="w-full [&_button]:!w-full"
+          />
+        </div>
+      </div>
     </section>
   );
 }

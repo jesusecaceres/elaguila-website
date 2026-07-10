@@ -124,7 +124,8 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     ) : null;
   const listingShareUrl = await buildServiciosClasificadosListingShareUrl(slug, lang);
   const engagementKey = serviciosEngagementListingKey(row);
-  const persistListingEngagement = Boolean(engagementKey.trim());
+  const persistListingEngagement =
+    isPublishedLive && Boolean(engagementKey.trim()) && Boolean((listingShareUrl ?? "").trim());
   const likeKeys = serviciosLikeCountAliasKeys(row);
   const likeCountMap = await fetchServiciosNetLikeCountsByEngagementKeys(likeKeys);
   const publicLikeCount = serviciosNetLikeCountForPublicRow(row, likeCountMap);

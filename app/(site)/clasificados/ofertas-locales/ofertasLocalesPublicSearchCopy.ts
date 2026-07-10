@@ -347,6 +347,171 @@ const CUPONES_COPY = {
   },
 } as const satisfies Record<OfertasLocalesAppLang, OfertasLocalesPublicSearchCopy>;
 
+export type OfertasLocalesResultMode =
+  | "all"
+  | "flyers"
+  | "coupons"
+  | "promos"
+  | "stores"
+  | "services"
+  | "food"
+  | "products";
+
+const OFERTAS_LOCALES_RESULT_MODE_SET = new Set<string>([
+  "all",
+  "flyers",
+  "coupons",
+  "promos",
+  "stores",
+  "services",
+  "food",
+  "products",
+]);
+
+export function parseOfertasLocalesResultMode(raw: string | null | undefined): OfertasLocalesResultMode {
+  const normalized = raw?.trim().toLowerCase() ?? "";
+  return OFERTAS_LOCALES_RESULT_MODE_SET.has(normalized)
+    ? (normalized as OfertasLocalesResultMode)
+    : "all";
+}
+
+export type OfertasLocalesResultModeCopy = {
+  title: string;
+  helper: string;
+  pill: string;
+  emptyTitle: string;
+  emptyHint: string;
+  listNote?: string;
+};
+
+const RESULT_MODE_COPY: Record<OfertasLocalesAppLang, Record<OfertasLocalesResultMode, OfertasLocalesResultModeCopy>> = {
+  es: {
+    all: {
+      title: "Todas las ofertas locales",
+      helper: "Explora volantes, cupones, productos y especiales de negocios locales.",
+      pill: "Todas",
+      emptyTitle: "No encontramos ofertas con esos filtros.",
+      emptyHint: "Intenta buscar otro producto o ciudad.",
+    },
+    flyers: {
+      title: "Volantes semanales",
+      helper: "Encuentra especiales de tienda y volantes activos cerca de ti.",
+      pill: "Volantes",
+      emptyTitle: "Todavía no hay volantes semanales activos con estos filtros.",
+      emptyHint: "Prueba otra ciudad, código postal o vuelve pronto.",
+    },
+    coupons: {
+      title: "Cupones locales",
+      helper: "Descuentos y cupones digitales de negocios locales.",
+      pill: "Cupones",
+      emptyTitle: "No encontramos cupones con esos filtros.",
+      emptyHint: "Prueba otra ciudad, categoría o promoción.",
+    },
+    promos: {
+      title: "Promociones locales",
+      helper: "Ofertas por tiempo limitado, combos y especiales destacados.",
+      pill: "Promociones",
+      emptyTitle: "No encontramos promociones con esos filtros.",
+      emptyHint: "Prueba otra ciudad, categoría o tipo de oferta.",
+    },
+    stores: {
+      title: "Tiendas locales",
+      helper: "Ofertas de tiendas, mercados y negocios cerca de ti.",
+      pill: "Tiendas",
+      emptyTitle: "Todavía no hay ofertas de tiendas con estos filtros.",
+      emptyHint: "Prueba otra ciudad, código postal o categoría.",
+    },
+    services: {
+      title: "Servicios locales con ofertas",
+      helper: "Promociones y especiales de negocios de servicios.",
+      pill: "Servicios",
+      emptyTitle: "Todavía no hay ofertas de servicios con estos filtros.",
+      emptyHint: "Prueba otra ciudad, código postal o categoría.",
+    },
+    food: {
+      title: "Comida, mercados y restaurantes",
+      helper: "Especiales de comida, mercados, restaurantes y productos para tu visita.",
+      pill: "Comida",
+      emptyTitle: "Todavía no hay ofertas de comida o mercados con estos filtros.",
+      emptyHint: "Prueba otra ciudad, categoría o producto.",
+    },
+    products: {
+      title: "Buscar por producto",
+      helper: "Encuentra productos del volante y agrégalos a tu lista de compras.",
+      pill: "Productos",
+      emptyTitle: "No encontramos productos con esa búsqueda.",
+      emptyHint: "Prueba otro producto, ciudad o código postal.",
+      listNote: "Agrega productos a tu lista de compras mientras exploras.",
+    },
+  },
+  en: {
+    all: {
+      title: "All local deals",
+      helper: "Browse flyers, coupons, products, and specials from local businesses.",
+      pill: "All",
+      emptyTitle: "We didn't find deals with those filters.",
+      emptyHint: "Try another product or city.",
+    },
+    flyers: {
+      title: "Weekly flyers",
+      helper: "Find active store specials and weekly flyers near you.",
+      pill: "Flyers",
+      emptyTitle: "No active weekly flyers match these filters yet.",
+      emptyHint: "Try another city, postal code, or check back soon.",
+    },
+    coupons: {
+      title: "Local coupons",
+      helper: "Discounts and digital coupons from local businesses.",
+      pill: "Coupons",
+      emptyTitle: "We didn't find coupons with those filters.",
+      emptyHint: "Try another city, category, or promotion.",
+    },
+    promos: {
+      title: "Local promotions",
+      helper: "Limited-time deals, bundles, and featured specials.",
+      pill: "Promotions",
+      emptyTitle: "We didn't find promotions with those filters.",
+      emptyHint: "Try another city, category, or offer type.",
+    },
+    stores: {
+      title: "Local stores",
+      helper: "Deals from shops, markets, and nearby businesses.",
+      pill: "Stores",
+      emptyTitle: "No store deals match these filters yet.",
+      emptyHint: "Try another city, postal code, or category.",
+    },
+    services: {
+      title: "Local service deals",
+      helper: "Promotions and specials from service businesses.",
+      pill: "Services",
+      emptyTitle: "No service deals match these filters yet.",
+      emptyHint: "Try another city, postal code, or category.",
+    },
+    food: {
+      title: "Food, markets, and restaurants",
+      helper: "Food specials, markets, restaurants, and products for your visit.",
+      pill: "Food",
+      emptyTitle: "No food or market deals match these filters yet.",
+      emptyHint: "Try another city, category, or product.",
+    },
+    products: {
+      title: "Search by product",
+      helper: "Find flyer products and add them to your shopping list.",
+      pill: "Products",
+      emptyTitle: "We didn't find products with that search.",
+      emptyHint: "Try another product, city, or postal code.",
+      listNote: "Add products to your shopping list as you browse.",
+    },
+  },
+};
+
+export function ofertasLocalesResultModeCopy(
+  lang: OfertasLocalesAppLang,
+  mode: OfertasLocalesResultMode
+): OfertasLocalesResultModeCopy {
+  return RESULT_MODE_COPY[lang][mode];
+}
+
 export function ofertasLocalesPublicSearchCopy(
   lang: OfertasLocalesAppLang,
   surface: "ofertas" | "cupones" = "ofertas"

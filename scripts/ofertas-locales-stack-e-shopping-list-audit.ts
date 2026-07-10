@@ -1,5 +1,5 @@
 /**
- * Stack E — Ofertas Locales shopping list audit (V1.1A).
+ * Stack E — Ofertas Locales shopping list audit (V1.1A + Results Mode V1).
  * Run: npm run ofertas-locales:stack-e-shopping-list-audit
  */
 import assert from "node:assert/strict";
@@ -142,6 +142,17 @@ function run() {
   assert.ok(!copy.toLowerCase().includes("magazine holder"), "no magazine holder pipeline wording");
   assert.ok(!copy.toLowerCase().includes("where to find us"), "no where-to-find-us pipeline wording");
 
+  assert.ok(copy.includes("parseOfertasLocalesResultMode") || client.includes("parseOfertasLocalesResultMode"), "result mode parser wired");
+  assert.ok(copy.includes("ofertasLocalesResultModeCopy") || client.includes("ofertasLocalesResultModeCopy"), "result mode copy helper");
+  assert.ok(copy.includes("Volantes semanales"), "ES flyers mode title");
+  assert.ok(copy.includes("Weekly flyers"), "EN flyers mode title");
+  assert.ok(copy.includes("Buscar por producto"), "ES products mode title");
+  assert.ok(copy.includes("Search by product"), "EN products mode title");
+  assert.ok(client.includes("ofertas-results-mode-intro"), "mode-aware results intro block");
+  assert.ok(client.includes("showItemsFirst"), "product-first ordering logic");
+  assert.ok(!copy.toLowerCase().includes("magazine holder pipeline"), "no magazine holder pipeline wording");
+  assert.ok(!copy.toLowerCase().includes("fake partner"), "no fake partner wording");
+
   assert.ok(
     copy.includes("Agregar a lista") && copy.includes("Add to list"),
     "add to list copy"
@@ -211,7 +222,7 @@ function run() {
     "package script for stack E audit"
   );
 
-  console.log("Stack E — Ofertas Locales shopping list audit (V1.1A) passed.");
+  console.log("Stack E — Ofertas Locales shopping list + results mode audit passed.");
 }
 
 run();

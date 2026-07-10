@@ -168,10 +168,15 @@ export function LeonixShareButton({
   const triggerNativeShare = useCallback(async () => {
     const safeTitle = (listingTitle ?? "").trim() || (lang === "en" ? "Leonix listing" : "Anuncio Leonix");
     const body = (shareText ?? "").trim();
+    const urlToShare =
+      publicUrl ||
+      (allowTrack && typeof window !== "undefined" ? window.location.href.trim() : "");
+    if (!urlToShare) return;
+
     const shareData: ShareData = {
       title: safeTitle,
       text: body || safeTitle,
-      url: publicUrl || undefined,
+      url: urlToShare,
     };
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -182,11 +187,11 @@ export function LeonixShareButton({
       }
     } else {
       try {
-        await navigator.clipboard.writeText(publicUrl || window.location.href);
+        await navigator.clipboard.writeText(urlToShare);
         void trackShare("copy_link", { direct: true, nativeFallback: true });
       } catch { /* silent */ }
     }
-  }, [listingTitle, shareText, publicUrl, lang, trackShare]);
+  }, [listingTitle, shareText, publicUrl, lang, trackShare, allowTrack]);
 
   const openShareHub = () => {
     if (directNativeShare) {
@@ -218,7 +223,7 @@ export function LeonixShareButton({
         aria-label={labels.share}
       >
         <FiShare2 className={iconSizes[variant]} />
-        <span>{directNativeShare ? labels.shareDirect : labels.share}</span>
+        <span>{labels.share}</span>
       </button>
 
       <CtaActionSheet

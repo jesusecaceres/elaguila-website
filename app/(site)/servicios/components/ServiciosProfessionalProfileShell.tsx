@@ -217,7 +217,7 @@ export function ServiciosProfessionalProfileShell({
                     ownerUserId={lxOwner}
                     lang={lang}
                     publicLikeCount={likeCueN}
-                    persistEngagement
+                    persistEngagement={persistListingEngagement}
                     variant="small"
                     tone="hero"
                     recordLikeEvent={
@@ -230,7 +230,7 @@ export function ServiciosProfessionalProfileShell({
                     variant="small"
                     lang={lang}
                     category="servicios"
-                    persistEngagement
+                    persistEngagement={persistListingEngagement}
                     saveExtras={saveExtras}
                     recordSaveEvent={
                       globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined
@@ -244,10 +244,11 @@ export function ServiciosProfessionalProfileShell({
                     variant="small"
                     lang={lang}
                     category="servicios"
-                    persistEngagement
+                    persistEngagement={persistListingEngagement}
                     recordShareEvent={
                       globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
                     }
+                    directNativeShare
                   />
                 </div>
               ) : undefined

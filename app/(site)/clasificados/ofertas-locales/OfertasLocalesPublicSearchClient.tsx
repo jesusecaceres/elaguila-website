@@ -15,7 +15,7 @@ import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItem
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
 import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
-import { ofertasLocalesPublicSearchCopy } from "./ofertasLocalesPublicSearchCopy";
+import { ofertasLocalesPublicSearchCopy, ofertasLocalesResultModeCopy, parseOfertasLocalesResultMode } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import {
   LeonixCategoryPageShell,
@@ -320,6 +320,11 @@ export function OfertasLocalesPublicSearchClient({
   const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
   const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
   const resultCount = offers.length + items.length;
+  const parsedResultMode = parseOfertasLocalesResultMode(searchParams?.get("mode"));
+  const displayResultMode =
+    !isCupones && q.trim() && parsedResultMode === "all" ? "products" : parsedResultMode;
+  const resultModeCopy = !isCupones ? ofertasLocalesResultModeCopy(lang, displayResultMode) : null;
+  const showItemsFirst = !isCupones && (parsedResultMode === "products" || Boolean(q.trim()));
   const activeFilterChips = [
     ...(q ? [{ id: "q", label: `“${q}”`, onClear: () => pushSearch({ q: "" }) }] : []),
     ...(city ? [{ id: "city", label: city, onClear: () => pushSearch({ city: "" }) }] : []),
@@ -404,6 +409,29 @@ export function OfertasLocalesPublicSearchClient({
 
   const resultsContent = (
     <div id="ofertas-browse" className="scroll-mt-24 space-y-5">
+      {isResults && !isCupones && resultModeCopy ? (
+        <section
+          className="rounded-xl border border-[#B8860B]/40 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3.5 py-3 shadow-sm"
+          data-testid="ofertas-results-mode-intro"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex rounded-full border border-[#2A4536]/25 bg-[#2A4536]/8 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2A4536]">
+              {resultModeCopy.pill}
+            </span>
+            {q.trim() ? (
+              <span className="inline-flex rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/8 px-2.5 py-0.5 text-[11px] font-medium text-[#7A1E2C]">
+                {lang === "es" ? `Búsqueda: “${q.trim()}”` : `Search: “${q.trim()}”`}
+              </span>
+            ) : null}
+          </div>
+          <h2 className="mt-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{resultModeCopy.title}</h2>
+          <p className="mt-1 text-sm leading-snug text-[#1E1814]/70">{resultModeCopy.helper}</p>
+          {showItemsFirst && resultModeCopy.listNote ? (
+            <p className="mt-1.5 text-xs font-medium text-[#7A1E2C]/90">{resultModeCopy.listNote}</p>
+          ) : null}
+        </section>
+      ) : null}
+
       {error ? (
         <p className="text-sm text-red-700" role="alert">
           {error}
@@ -412,44 +440,89 @@ export function OfertasLocalesPublicSearchClient({
 
       {loading ? <p className="text-sm text-[#3D3428]/65">{c.searching}</p> : null}
 
-      {!loading && offers.length > 0 ? (
-        <section>
-          <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
-            {offers.map((offer) => (
-              <li key={offer.id}>
-                <OfertasLocalesPublicOfferCard
-                  lang={lang}
-                  offer={offer}
-                  surface={surface}
-                  onSelect={isCupones ? setSelectedCouponOffer : undefined}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      {showItemsFirst ? (
+        <>
+          {!isCupones && !loading && items.length > 0 ? (
+            <section>
+              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <OfertasLocalesPublicItemCard
+                      lang={lang}
+                      item={item}
+                      isAdded={shoppingList.isAdded(item.id)}
+                      onSelect={setSelectedItem}
+                      onAdd={shoppingList.addFromPublicItem}
+                      onRemove={shoppingList.removeItem}
+                      onOpenList={() => setListOpen(true)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
-      {!isCupones && !loading && items.length > 0 ? (
-        <section>
-          <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
-            {items.map((item) => (
-              <li key={item.id}>
-                <OfertasLocalesPublicItemCard
-                  lang={lang}
-                  item={item}
-                  isAdded={shoppingList.isAdded(item.id)}
-                  onSelect={setSelectedItem}
-                  onAdd={shoppingList.addFromPublicItem}
-                  onRemove={shoppingList.removeItem}
-                  onOpenList={() => setListOpen(true)}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+          {!loading && offers.length > 0 ? (
+            <section>
+              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+                {offers.map((offer) => (
+                  <li key={offer.id}>
+                    <OfertasLocalesPublicOfferCard
+                      lang={lang}
+                      offer={offer}
+                      surface={surface}
+                      onSelect={isCupones ? setSelectedCouponOffer : undefined}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <>
+          {!loading && offers.length > 0 ? (
+            <section>
+              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+                {offers.map((offer) => (
+                  <li key={offer.id}>
+                    <OfertasLocalesPublicOfferCard
+                      lang={lang}
+                      offer={offer}
+                      surface={surface}
+                      onSelect={isCupones ? setSelectedCouponOffer : undefined}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {!isCupones && !loading && items.length > 0 ? (
+            <section>
+              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <OfertasLocalesPublicItemCard
+                      lang={lang}
+                      item={item}
+                      isAdded={shoppingList.isAdded(item.id)}
+                      onSelect={setSelectedItem}
+                      onAdd={shoppingList.addFromPublicItem}
+                      onRemove={shoppingList.removeItem}
+                      onOpenList={() => setListOpen(true)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </>
+      )}
     </div>
   );
 
@@ -499,8 +572,20 @@ export function OfertasLocalesPublicSearchClient({
             }
             emptyState={
               <LeonixCategoryCompactEmptyState
-                title={showPipelineEmpty ? c.pipelineEmptyTitle : c.emptyTitle}
-                body={showPipelineEmpty ? c.pipelineEmptyBody : c.emptyHint}
+                title={
+                  showPipelineEmpty
+                    ? c.pipelineEmptyTitle
+                    : !isCupones && resultModeCopy
+                      ? resultModeCopy.emptyTitle
+                      : c.emptyTitle
+                }
+                body={
+                  showPipelineEmpty
+                    ? c.pipelineEmptyBody
+                    : !isCupones && resultModeCopy
+                      ? resultModeCopy.emptyHint
+                      : c.emptyHint
+                }
                 ctaLabel={hasFilters ? c.clearFiltersLink : c.browseAllDeals}
                 ctaHref={hasFilters ? undefined : browseAllHref}
               />
