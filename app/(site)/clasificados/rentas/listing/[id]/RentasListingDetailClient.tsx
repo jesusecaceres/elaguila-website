@@ -160,16 +160,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
             <div className="border-t border-[#C9D4E0]/55 pt-6">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1810]">{eg.title}</h2>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <LeonixLikeButton listingId={listing.id} category="rentas" variant="small" lang={lang} />
                 <LeonixSaveButton listingId={listing.id} category="rentas" variant="small" lang={lang} />
-                <LeonixShareButton
-                  listingId={listing.id}
-                  category="rentas"
-                  listingTitle={proseListing.title}
-                  listingUrl={shareListingUrl}
-                  variant="small"
-                  lang={lang}
-                />
               </div>
               <p className="mt-3 text-xs italic text-[#5C5346]/88">{eg.metricsNote}</p>
             </div>

@@ -40,9 +40,13 @@
    - Updated `ActionLink` component to accept `onClick` prop
    - Updated contact CTAs to call analytics handlers when listingId is available
    - Native share button does NOT track analytics in preview (correct - no real listing ID)
+   - **[ENGAGEMENT ROW FIX]** Added LeonixLikeButton import and engagement row (heart + share) to contact card
+   - **[ENGAGEMENT ROW FIX]** Engagement row uses `persistEngagement={Boolean(listingId)}` to avoid fake analytics in preview
+   - **[ENGAGEMENT ROW FIX]** Share button uses native share with clipboard fallback
 
 3. **`app/(site)/clasificados/rentas/listing/[id]/RentasListingDetailClient.tsx`**
    - Updated to pass `listingId` to `RentasVisualMatchPreviewView` for analytics tracking
+   - **[ENGAGEMENT ROW FIX]** Removed duplicate LeonixLikeButton and LeonixShareButton from engagement section below preview (kept LeonixSaveButton and message button)
 
 ---
 
@@ -205,3 +209,28 @@ Rentas analytics truth has been implemented:
 - No changes outside Rentas category
 
 The only unrelated dirty files are in the autos category from previous work and must be locked/committed separately.
+
+---
+
+## Engagement Row Visual Bug Fix (2025-01-09)
+
+**Issue:** Rentas preview/detail contact card was missing the heart/like engagement controls visible to buyers. Owner QA showed only Share, Email seller, Call, Send text, View website, View on map buttons.
+
+**Fix:**
+- Added LeonixLikeButton import to `RentasVisualMatchPreviewView.tsx`
+- Added engagement row (heart + share) to contact card in `RentasVisualMatchPreviewView.tsx`
+- Engagement row uses `persistEngagement={Boolean(listingId)}` to avoid fake analytics in preview mode
+- Share button uses native share with clipboard fallback
+- Removed duplicate LeonixLikeButton and LeonixShareButton from public detail page's engagement section (kept LeonixSaveButton and message button)
+
+**Behavior:**
+- Preview mode: Heart shows but does not persist analytics (no fake likes)
+- Public detail mode: Heart persists real likes via LeonixLikeButton with internal listing UUID
+- Count behavior: Heart shows only at 0 likes, then shows count after first like (handled by LeonixLikeButton)
+- Share: Native share modal where supported, clipboard fallback where not
+- Share analytics: Only recorded in public detail mode with real listingId
+
+**Verification:**
+- Contact CTAs (Email, Call, WhatsApp, SMS, Website, Map) remain working and tracked
+- Mobile/desktop layout preserved with flex row
+- Spanish/English labels preserved
