@@ -49,6 +49,40 @@ const GH = {
   greenBg: "#E8F3EA",
 } as const;
 
+function buildCommunityLocationLine({
+  address,
+  city,
+  state,
+  zipCode,
+  country,
+}: {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}): string {
+  const parts: string[] = [];
+  if (address.trim()) parts.push(address.trim());
+  if (city.trim()) parts.push(city.trim());
+  if (state.trim()) parts.push(state.trim());
+  if (zipCode.trim()) parts.push(zipCode.trim());
+  if (country.trim()) parts.push(country.trim());
+  return parts.join(", ");
+}
+
+function buildCommunityGoogleMapsEmbedUrl(locationLine: string): string {
+  if (!locationLine.trim()) return "";
+  const encoded = encodeURIComponent(locationLine.trim());
+  return `https://www.google.com/maps?q=${encoded}&output=embed`;
+}
+
+function buildCommunityGoogleMapsDirectionsUrl(locationLine: string): string {
+  if (!locationLine.trim()) return "";
+  const encoded = encodeURIComponent(locationLine.trim());
+  return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+}
+
 const SMS_BODY = {
   clases: {
     es: "Vi tu clase en Leonix Media y quisiera más información.",
@@ -260,6 +294,16 @@ export function CommunityContactCanvas({
   if (country) locationParts.push(country);
   const cityStateZip = locationParts.join(", ");
 
+  const locationLine = buildCommunityLocationLine({
+    address: draft.addressLine1,
+    city: cityDisplay,
+    state: st,
+    zipCode: zip,
+    country,
+  });
+  const mapsEmbedUrl = buildCommunityGoogleMapsEmbedUrl(locationLine);
+  const mapsDirectionsUrl = buildCommunityGoogleMapsDirectionsUrl(locationLine);
+
   const smsBody = SMS_BODY[k][lang];
   const mailSub = MAIL_SUBJECT[k][lang];
   const mailHref = email ? mailtoCommunity({ to: email, subject: mailSub }) : "";
@@ -271,15 +315,16 @@ export function CommunityContactCanvas({
     Icon: ComponentType<{ className?: string }>;
     ariaLabel: string;
     label: string;
+    brandColor: string;
   }[] = [
-    { key: "fb", href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"), Icon: FaFacebook, ariaLabel: sAria.facebook, label: "Facebook" },
-    { key: "ig", href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"), Icon: FaInstagram, ariaLabel: sAria.instagram, label: "Instagram" },
-    { key: "tt", href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"), Icon: FaTiktok, ariaLabel: sAria.tiktok, label: "TikTok" },
-    { key: "yt", href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"), Icon: FaYoutube, ariaLabel: sAria.youtube, label: "YouTube" },
-    { key: "x", href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"), Icon: FaXTwitter, ariaLabel: sAria.x, label: "X" },
-    { key: "li", href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"), Icon: FaLinkedin, ariaLabel: sAria.linkedin, label: "LinkedIn" },
-    { key: "sc", href: normalizeSocialUrlForOpen(draft.socialLinks.snapchat ?? "", "snapchat"), Icon: FaSnapchat, ariaLabel: sAria.snapchat, label: "Snapchat" },
-    { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest, label: "Pinterest" },
+    { key: "fb", href: normalizeSocialUrlForOpen(draft.socialLinks.facebook, "facebook"), Icon: FaFacebook, ariaLabel: sAria.facebook, label: "Facebook", brandColor: "#1877F2" },
+    { key: "ig", href: normalizeSocialUrlForOpen(draft.socialLinks.instagram, "instagram"), Icon: FaInstagram, ariaLabel: sAria.instagram, label: "Instagram", brandColor: "#E4405F" },
+    { key: "tt", href: normalizeSocialUrlForOpen(draft.socialLinks.tiktok, "tiktok"), Icon: FaTiktok, ariaLabel: sAria.tiktok, label: "TikTok", brandColor: "#000000" },
+    { key: "yt", href: normalizeSocialUrlForOpen(draft.socialLinks.youtube, "youtube"), Icon: FaYoutube, ariaLabel: sAria.youtube, label: "YouTube", brandColor: "#FF0000" },
+    { key: "x", href: normalizeSocialUrlForOpen(draft.socialLinks.xTwitter, "xTwitter"), Icon: FaXTwitter, ariaLabel: sAria.x, label: "X", brandColor: "#000000" },
+    { key: "li", href: normalizeSocialUrlForOpen(draft.socialLinks.linkedin, "linkedin"), Icon: FaLinkedin, ariaLabel: sAria.linkedin, label: "LinkedIn", brandColor: "#0A66C2" },
+    { key: "sc", href: normalizeSocialUrlForOpen(draft.socialLinks.snapchat ?? "", "snapchat"), Icon: FaSnapchat, ariaLabel: sAria.snapchat, label: "Snapchat", brandColor: "#FFFC00" },
+    { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest, label: "Pinterest", brandColor: "#E60023" },
   ].filter((x) => x.href);
 
   /** Build the ordered list of event-specific useful link CTAs (Comunidad only). */
@@ -439,7 +484,7 @@ export function CommunityContactCanvas({
               {t.socialTitle}
             </div>
             <div className="flex flex-wrap gap-2">
-              {socialItems.map(({ key, href, Icon, ariaLabel, label }) => (
+              {socialItems.map(({ key, href, Icon, ariaLabel, label, brandColor }) => (
                 <a
                   key={key}
                   href={href!}
@@ -447,8 +492,11 @@ export function CommunityContactCanvas({
                   rel="noopener noreferrer"
                   aria-label={ariaLabel}
                   className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[#C9B46A]/45 bg-[#FFFDF8] px-3 py-1.5 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9B46A] hover:bg-[#FCF9F2]"
+                  style={{ color: brandColor === "#FFFC00" ? "#3D3428" : brandColor }}
                 >
-                  <Icon className="h-4 w-4 shrink-0 text-[#7B2D42]" aria-hidden />
+                  <span className="h-4 w-4 shrink-0" style={{ color: brandColor }} aria-hidden>
+                    <Icon className="h-4 w-4" />
+                  </span>
                   {label}
                 </a>
               ))}
@@ -499,7 +547,7 @@ export function CommunityContactCanvas({
 
         {/* ── Section 4: Event / class location card ─────────────────────── */}
         {hasLocation ? (
-          <div className="space-y-2 rounded-xl border border-[#C9B46A]/35 bg-white/70 p-3 sm:p-4">
+          <div className="space-y-3 rounded-xl border border-[#C9B46A]/35 bg-white/70 p-3 sm:p-4">
             <h3
               className="text-[11px] font-bold uppercase tracking-widest"
               style={{ color: GH.burgundy }}
@@ -517,31 +565,44 @@ export function CommunityContactCanvas({
                     {draft.venue.trim()}
                   </p>
                 ) : null}
+                {cityStateZip ? (
+                  <p className="text-base font-bold" style={{ color: GH.charcoal }}>
+                    {cityStateZip}
+                  </p>
+                ) : null}
                 {draft.addressLine1.trim() ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine1.trim()}</p>
                 ) : null}
                 {draft.addressLine2?.trim() ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine2.trim()}</p>
                 ) : null}
-                {cityStateZip ? (
-                  <p className="text-sm font-medium" style={{ color: GH.charcoal }}>{cityStateZip}</p>
+                {country ? (
+                  <p className="text-sm" style={{ color: GH.muted }}>{country}</p>
                 ) : null}
-                {mapsUrl ? (
-                  <>
-                    <CommunityLeonixMapVisual
-                      label={lang === "es" ? "Mapa del lugar del evento" : "Event location map"}
-                    />
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${btnPrimaryClass()} mt-1`}
-                      style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
-                    >
-                      <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
-                      {t.map}
-                    </a>
-                  </>
+                {mapsEmbedUrl && locationLine ? (
+                  <div className="mt-2 space-y-2">
+                    <div className="overflow-hidden rounded-lg h-[160px] sm:h-[200px]">
+                      <iframe
+                        src={mapsEmbedUrl}
+                        title={lang === "es" ? "Mapa del lugar del evento" : "Event location map"}
+                        className="h-full w-full border-0"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </div>
+                    {mapsDirectionsUrl ? (
+                      <a
+                        href={mapsDirectionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${btnPrimaryClass()} w-full sm:w-auto`}
+                        style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
+                      >
+                        <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
+                        {t.map}
+                      </a>
+                    ) : null}
+                  </div>
                 ) : null}
               </>
             )}

@@ -191,6 +191,7 @@ export function CommunityQuickAnuncioDetail({
   const contactDraft = {
     kind: category as "clases" | "comunidad",
     organizer: org,
+    organizerLogoUrl: pairs["Leonix:organizerLogoUrl"] ?? "",
     phone: pairs["Leonix:phoneDigits"] ?? "",
     whatsapp: pairs["Leonix:whatsappDigits"] ?? "",
     smsPhone: pairs["Leonix:smsPhone"] ?? "",

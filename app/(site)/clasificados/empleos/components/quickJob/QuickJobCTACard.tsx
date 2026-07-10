@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaShareAlt, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
 import { SiTiktok, SiWhatsapp, SiX } from "react-icons/si";
 import { normalizePayDisplayParts } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
@@ -172,29 +172,32 @@ export function QuickJobCTACard({
     openSheet(buildWebsiteIntent({ url: site, headline: websiteLabel, kind: "website" }));
   };
 
-  const handleNativeShare = async () => {
-    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-    const shareTitle = listingTitle || businessName || "Leonix Media";
+  const handleNativeShare = useCallback(async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (!url) return;
 
-    if (navigator.share) {
-      try {
+    const title =
+      businessName?.trim() ||
+      listingTitle?.trim() ||
+      "Leonix Media";
+
+    try {
+      if (typeof navigator.share === "function") {
         await navigator.share({
-          title: shareTitle,
-          url: shareUrl,
+          title,
+          text: title,
+          url,
         });
-      } catch {
-        // User canceled or share failed silently
+        return;
       }
-    } else {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2000);
-      } catch {
-        // Clipboard failed silently
-      }
+
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // User cancelled native share or browser blocked it.
     }
-  };
+  }, [businessName, listingTitle]);
 
   const primaryIsApply = hasApplyLink;
   const primaryIsWhatsApp = !primaryIsApply && preferredApplyMethod === "whatsapp" && whatsapp;
