@@ -18,8 +18,8 @@ import {
   fetchPublishedMascotasPerdidosListings,
   type MascotasPerdidosListingBrowseRow,
 } from "./shared/loadMascotasPerdidosListings";
-import { mascotasPerdidosCityMatches } from "./shared/mascotasPerdidosCityMatch";
 import { buildMascotasPerdidosSearchBlob } from "./shared/mascotasPerdidosSearchText";
+import { lightweightLocationMatchesFilter } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
 
 function textMatch(hay: string, needle: string): boolean {
   if (!needle.trim()) return true;
@@ -101,7 +101,19 @@ export function MascotasPerdidosResultsClient() {
       const pairs = detailPairsToMap(row.detail_pairs);
       const blob = buildMascotasPerdidosSearchBlob(row, pairs, lang);
       if (!textMatch(blob, q)) return false;
-      if (city && !mascotasPerdidosCityMatches(row.city, city)) return false;
+      if (
+        !lightweightLocationMatchesFilter(
+          {
+            city: row.city,
+            state: pairs["Leonix:state"],
+            zip: pairs["Leonix:zip"],
+            country: pairs["Leonix:country"],
+          },
+          { city, state, zip, country },
+        )
+      ) {
+        return false;
+      }
       if (lastSeenArea && !textMatch(pairs["Leonix:lastSeenLocation"] ?? "", lastSeenArea)) return false;
       if (hasPhoto) {
         const imgs = row.images;

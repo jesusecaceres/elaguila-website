@@ -26,5 +26,8 @@ export async function GET(request: Request, { params }: Props) {
     lane: bundle.lane,
     lang,
     leonix_ad_id: bundle.leonix_ad_id,
+    inventory_role: bundle.inventory_role,
+    dealer_inventory_group_id: bundle.dealer_inventory_group_id,
+    dealer_inventory_parent_listing_id: bundle.dealer_inventory_parent_listing_id,
   });
 }

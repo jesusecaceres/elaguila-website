@@ -9,12 +9,24 @@ import { CategoryStandardActiveFilterChips } from "@/app/(site)/clasificados/com
 import { CategoryStandardCompactSearchBar } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardCompactSearchBar";
 import { ComunidadClasesDrawerFields } from "@/app/(site)/clasificados/components/categoryStandard/lightweightCategoryDrawerFields";
 import { parseLightweightBrowseFromSearchParams } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
+import {
+  buildLocationFilterChips,
+  buildResultsFilterChipHref,
+  cleanResultsFilterParams,
+  type ResultsFilterParams,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardResultsFilterChips";
 import { categoryStandardSearchPlaceholder } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
+import type { ActiveFilterChip } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
+import {
+  CLASES_SKILL_LEVEL_OPTIONS,
+  COMUNIDAD_ACCESSIBILITY_OPTIONS,
+  COMMUNITY_AUDIENCE_OPTIONS,
+  COMMUNITY_REGISTRATION_OPTIONS,
+} from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 
 type Props = {
   category: "clases" | "comunidad";
   lang: Lang;
-  resultsAction: string;
   clearHref: string;
 };
 
@@ -41,12 +53,10 @@ function readDrawerParams(category: "clases" | "comunidad", sp: URLSearchParams)
 }
 
 function mergeNavigateParams(
-  category: "clases" | "comunidad",
-  lang: Lang,
   loc: { q: string; city: string; state: string; zip: string; country: string },
   drawer: Record<string, string>,
-): Record<string, string | undefined> {
-  const base: Record<string, string | undefined> = {
+): ResultsFilterParams {
+  const base: ResultsFilterParams = {
     q: loc.q || undefined,
     city: loc.city || undefined,
     state: loc.state || undefined,
@@ -60,7 +70,88 @@ function mergeNavigateParams(
   return base;
 }
 
-export function CommunityResultsSearchPanel({ category, lang, resultsAction, clearHref }: Props) {
+function optionLabel(
+  options: readonly { value: string; labelEs: string; labelEn: string }[],
+  value: string,
+  lang: Lang,
+): string {
+  const row = options.find((o) => o.value === value);
+  if (!row) return value;
+  return lang === "en" ? row.labelEn : row.labelEs;
+}
+
+function drawerFilterChips(
+  category: "clases" | "comunidad",
+  lang: Lang,
+  drawer: Record<string, string>,
+  allParams: ResultsFilterParams,
+): ActiveFilterChip[] {
+  const L = lang === "es";
+  const chips: ActiveFilterChip[] = [];
+  const push = (key: string, label: string) => {
+    chips.push({
+      key,
+      label,
+      href: buildResultsFilterChipHref(category, lang, allParams, key),
+    });
+  };
+
+  if (category === "clases") {
+    if (drawer.classType) push("classType", `${L ? "Tipo" : "Type"}: ${drawer.classType}`);
+    if (drawer.cost && drawer.cost !== "all") {
+      const costLabel =
+        drawer.cost === "gratis" ? (L ? "Gratis" : "Free") : drawer.cost === "pagada" ? (L ? "Pagada" : "Paid") : drawer.cost;
+      push("cost", `${L ? "Costo" : "Cost"}: ${costLabel}`);
+    }
+    if (drawer.mode && drawer.mode !== "all") {
+      const modeLabel =
+        drawer.mode === "presencial"
+          ? L
+            ? "Presencial"
+            : "In person"
+          : drawer.mode === "enLinea"
+            ? L
+              ? "En línea"
+              : "Online"
+            : drawer.mode === "hibrida"
+              ? L
+                ? "Híbrida"
+                : "Hybrid"
+              : drawer.mode;
+      push("mode", `${L ? "Modalidad" : "Mode"}: ${modeLabel}`);
+    }
+    if (drawer.level && drawer.level !== "all") {
+      push("level", `${L ? "Nivel" : "Level"}: ${optionLabel(CLASES_SKILL_LEVEL_OPTIONS, drawer.level, lang)}`);
+    }
+  } else {
+    if (drawer.eventType) push("eventType", `${L ? "Tipo" : "Type"}: ${drawer.eventType}`);
+    if (drawer.eventCost && drawer.eventCost !== "all") {
+      push("eventCost", `${L ? "Costo" : "Cost"}: ${drawer.eventCost}`);
+    }
+    if (drawer.dateFrom) push("dateFrom", `${L ? "Desde" : "From"}: ${drawer.dateFrom}`);
+    if (drawer.dateTo) push("dateTo", `${L ? "Hasta" : "To"}: ${drawer.dateTo}`);
+    if (drawer.accessibility && drawer.accessibility !== "all") {
+      push(
+        "accessibility",
+        `${L ? "Acceso" : "Access"}: ${optionLabel(COMUNIDAD_ACCESSIBILITY_OPTIONS, drawer.accessibility, lang)}`,
+      );
+    }
+  }
+
+  if (drawer.audience && drawer.audience !== "all") {
+    push("audience", `${L ? "Audiencia" : "Audience"}: ${optionLabel(COMMUNITY_AUDIENCE_OPTIONS, drawer.audience, lang)}`);
+  }
+  if (drawer.registration && drawer.registration !== "all") {
+    push(
+      "registration",
+      `${L ? "Registro" : "Registration"}: ${optionLabel(COMMUNITY_REGISTRATION_OPTIONS, drawer.registration, lang)}`,
+    );
+  }
+
+  return chips;
+}
+
+export function CommunityResultsSearchPanel({ category, lang, clearHref }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
   const loc = parseLightweightBrowseFromSearchParams(sp ?? new URLSearchParams());
@@ -73,7 +164,7 @@ export function CommunityResultsSearchPanel({ category, lang, resultsAction, cle
 
   const navigate = useCallback(
     (locValues: { q: string; city: string; state: string; zip: string; country: string }, drawerValues: Record<string, string>) => {
-      router.push(buildCategoryResultsUrl(category, lang, mergeNavigateParams(category, lang, locValues, drawerValues)));
+      router.push(buildCategoryResultsUrl(category, lang, cleanResultsFilterParams(mergeNavigateParams(locValues, drawerValues))));
     },
     [category, lang, router],
   );
@@ -82,24 +173,11 @@ export function CommunityResultsSearchPanel({ category, lang, resultsAction, cle
     setDrawer((prev) => ({ ...prev, [key]: value }));
   };
 
+  const allParams = useMemo(() => mergeNavigateParams(loc, drawerFromUrl), [loc, drawerFromUrl]);
+
   const activeChips = useMemo(() => {
-    const chips: { key: string; label: string; href: string }[] = [];
-    const add = (key: string, label: string) => {
-      const params = mergeNavigateParams(category, lang, loc, { ...drawerFromUrl, [key]: "" });
-      delete params[key as keyof typeof params];
-      chips.push({
-        key,
-        label,
-        href: buildCategoryResultsUrl(category, lang, params),
-      });
-    };
-    if (loc.q) add("q", `${lang === "es" ? "Palabra" : "Keyword"}: ${loc.q}`);
-    if (loc.city) add("city", `${lang === "es" ? "Ciudad" : "City"}: ${loc.city}`);
-    if (loc.state && loc.state !== "CA") add("state", `${lang === "es" ? "Estado" : "State"}: ${loc.state}`);
-    if (loc.zip) add("zip", `ZIP: ${loc.zip}`);
-    if (loc.country && loc.country !== "United States") add("country", loc.country);
-    return chips;
-  }, [category, drawerFromUrl, lang, loc]);
+    return [...buildLocationFilterChips(category, lang, loc, allParams), ...drawerFilterChips(category, lang, drawerFromUrl, allParams)];
+  }, [allParams, category, drawerFromUrl, lang, loc]);
 
   return (
     <div className="space-y-3">

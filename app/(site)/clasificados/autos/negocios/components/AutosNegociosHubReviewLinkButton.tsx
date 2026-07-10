@@ -31,9 +31,11 @@ function YelpMark() {
 export function AutosNegociosHubReviewLinkButton({
   link,
   lang,
+  onOpen,
 }: {
   link: AutosNegociosBusinessHubReviewLink;
   lang: AutosNegociosLang;
+  onOpen?: () => void;
 }) {
   const isGoogle = link.id === "google";
   const isYelp = link.id === "yelp";
@@ -44,6 +46,7 @@ export function AutosNegociosHubReviewLinkButton({
       target="_blank"
       rel="noopener noreferrer"
       className={autosPreviewRectReviewCardClass}
+      onClick={() => onOpen?.()}
       style={{
         borderColor: isYelp ? "rgba(211, 35, 35, 0.35)" : isGoogle ? "rgba(66, 133, 244, 0.28)" : "#D6C7AD",
         backgroundColor: isYelp ? "#FFF8F8" : isGoogle ? "#FFFFFF" : "#FFFCF7",

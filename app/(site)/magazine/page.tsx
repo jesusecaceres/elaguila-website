@@ -15,6 +15,7 @@ import {
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { magazineJune2026ReaderHref } from "@/app/lib/magazine/qrBridge";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -209,6 +210,8 @@ export default function MagazineHubPage() {
   const t = getMagazineHubPageCopy(lang);
   const ui = getMagazineUi(lang);
   const advertiseLang: AdvertiseLang = lang === "en" ? "en" : "es";
+  const cardLang: "es" | "en" = lang === "en" ? "en" : "es";
+  const launch25Href = `/newsletter?lang=${cardLang}&source=digital_magazine&sourceCta=launch_25`;
   const readMoreHref = `/magazine/2026/june/read?lang=${lang}`;
 
   const [manifest, setManifest] = useState<PublicMagazineManifest | null>(null);
@@ -289,6 +292,10 @@ export default function MagazineHubPage() {
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
                 {t.heroDescription}
               </p>
+            </section>
+
+            <section className="max-w-3xl" aria-labelledby="magazine-launch-25-title">
+              <LeonixLaunchCouponCard lang={cardLang} variant="compact" href={launch25Href} />
             </section>
 
             {/* 2 — Current edition */}

@@ -12,11 +12,13 @@ export function AutosNegociosBusinessHubMapPreview({
   directionsHref,
   quickMapLabel,
   directionsLabel,
+  onDirectionsClick,
 }: {
   locationLine: string;
   directionsHref?: string;
   quickMapLabel: string;
   directionsLabel: string;
+  onDirectionsClick?: () => void;
 }) {
   const line = locationLine.trim();
   const embedUrl = buildAutosDealerMapEmbedUrl(line);
@@ -52,6 +54,7 @@ export function AutosNegociosBusinessHubMapPreview({
           target="_blank"
           rel="noopener noreferrer"
           className={`${autosPreviewBurgundyPrimaryBtnClass} inline-flex min-h-[48px] w-full items-center justify-center gap-2 sm:w-auto sm:min-w-[12rem]`}
+          onClick={() => onDirectionsClick?.()}
         >
           <FiMapPin className="h-4 w-4 shrink-0" aria-hidden />
           {directionsLabel}

@@ -30,7 +30,7 @@ import {
   autosSheetCtaAnalyticsProps,
   type AutosPublicListingAnalyticsProps,
 } from "../../lib/autosAnalyticsIdentity";
-import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
+import { trackAutosContactFromHref, trackAutosCustomDealershipLinkCta, trackAutosDealerInventoryOpenCta, trackAutosGoogleBusinessCta, trackAutosGoogleReviewsCta, trackAutosScheduleTestDriveCta, trackAutosYelpCta } from "../../lib/autosCtaTracking";
 import {
   AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewBurgundyPrimaryBtnClass,
@@ -128,11 +128,19 @@ export function DealerBusinessStack({
           sourceId: publicAnalytics.listingSourceId,
           leonixAdId: publicAnalytics.leonixAdId,
           lane: publicAnalytics.lane,
+          inventoryRole: publicAnalytics.inventoryRole,
+          dealerInventoryGroupId: publicAnalytics.dealerInventoryGroupId,
+          dealerInventoryParentListingId: publicAnalytics.dealerInventoryParentListingId,
           source: "detail_contact",
         })
       : undefined;
-  const trackHref = (href: string) => {
-    if (contactMeta) trackAutosContactFromHref(href, contactMeta);
+  const trackHref = (href: string, kind?: "schedule" | "website" | "directions") => {
+    if (!contactMeta) return;
+    if (kind === "schedule") {
+      trackAutosScheduleTestDriveCta(contactMeta);
+      return;
+    }
+    trackAutosContactFromHref(href, contactMeta);
   };
   const showWhatsapp = Boolean(c.whatsappHref);
   const showCall = Boolean(c.callTelHref);
@@ -188,7 +196,7 @@ export function DealerBusinessStack({
         target="_blank"
         rel="noopener noreferrer"
         className={BTN_SECONDARY}
-        onClick={() => trackHref(c.bookingHref!)}
+        onClick={() => trackHref(c.bookingHref!, "schedule")}
       >
         <FiCalendar className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
         <span className="text-center leading-tight">{sb.scheduleAppointment}</span>
@@ -332,7 +340,19 @@ export function DealerBusinessStack({
           <p className={sectionLabelClass}>{sb.reviewsHeading}</p>
           <div className={`flex flex-col gap-3 ${showPremiumHubHeader ? "mt-5" : "mt-4"}`}>
             {hub.reviews.map((link) => (
-              <AutosNegociosHubReviewLinkButton key={link.id} link={link} lang={lang} />
+              <AutosNegociosHubReviewLinkButton
+                key={link.id}
+                link={link}
+                lang={lang}
+                onOpen={
+                  contactMeta
+                    ? () => {
+                        if (link.id === "google") trackAutosGoogleReviewsCta(contactMeta);
+                        else if (link.id === "yelp") trackAutosYelpCta(contactMeta);
+                      }
+                    : undefined
+                }
+              />
             ))}
           </div>
         </SectionBlock>
@@ -346,18 +366,27 @@ export function DealerBusinessStack({
               hub.moreLinks.length >= 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
             }`}
           >
-            {hub.moreLinks.map((link, i) => (
+            {hub.moreLinks.map((link, i) => {
+              const isGoogleBusiness =
+                link.label?.toLowerCase().includes("google business") ||
+                link.label?.toLowerCase().includes("perfil de google");
+              return (
               <a
                 key={`${link.url}-${i}`}
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackHref(link.url)}
+                onClick={() => {
+                  if (!contactMeta) return;
+                  if (isGoogleBusiness) trackAutosGoogleBusinessCta(contactMeta);
+                  else trackAutosCustomDealershipLinkCta(contactMeta);
+                }}
                 className={`${BTN_SECONDARY} min-h-[48px] px-4`}
               >
                 {link.label}
               </a>
-            ))}
+            );
+            })}
           </div>
         </SectionBlock>
       ) : null}
@@ -446,6 +475,11 @@ export function DealerBusinessStack({
               directionsHref={hub.location?.mapsHref}
               quickMapLabel={sb.quickMapView}
               directionsLabel={sb.directionsCta}
+              onDirectionsClick={
+                contactMeta && hub.location?.mapsHref
+                  ? () => trackHref(hub.location!.mapsHref!, "directions")
+                  : undefined
+              }
             />
           </div>
         </SectionBlock>
@@ -453,7 +487,13 @@ export function DealerBusinessStack({
 
       {showBuyerInventory && buyerInventoryHref ? (
         <SectionBlock showTopBorder={nextSection()} premium={showPremiumHubHeader}>
-          <a href={buyerInventoryHref} className={BTN_PRIMARY}>
+          <a
+            href={buyerInventoryHref}
+            className={BTN_PRIMARY}
+            onClick={() => {
+              if (contactMeta) trackAutosDealerInventoryOpenCta(contactMeta);
+            }}
+          >
             {sb.viewDealerInventory}
           </a>
         </SectionBlock>

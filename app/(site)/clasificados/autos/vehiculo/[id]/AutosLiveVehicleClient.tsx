@@ -25,6 +25,9 @@ type PublicListingApiOk = {
   lane: AutosClassifiedsLane;
   lang: "es" | "en";
   leonix_ad_id?: string | null;
+  inventory_role?: "main" | "inventory_vehicle" | null;
+  dealer_inventory_group_id?: string | null;
+  dealer_inventory_parent_listing_id?: string | null;
 };
 
 export function AutosLiveVehicleClient({
@@ -37,7 +40,10 @@ export function AutosLiveVehicleClient({
   const [data, setData] = useState<AutoDealerListing | null>(null);
   const [lane, setLane] = useState<AutosClassifiedsLane | null>(null);
   const [leonixAdId, setLeonixAdId] = useState<string | null>(null);
-  const [listingLang, setListingLang] = useState<string | null>(null);
+  const [inventoryRole, setInventoryRole] = useState<"main" | "inventory_vehicle" | null>(null);
+  const [dealerInventoryGroupId, setDealerInventoryGroupId] = useState<string | null>(null);
+  const [dealerInventoryParentListingId, setDealerInventoryParentListingId] = useState<string | null>(null);
+  const [listingLang, setListingLang] = useState<"es" | "en" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,11 +62,17 @@ export function AutosLiveVehicleClient({
           setLane(payload.lane);
           setLeonixAdId(payload.leonix_ad_id?.trim() || null);
           setListingLang(payload.lang ?? null);
+          setInventoryRole(payload.inventory_role ?? null);
+          setDealerInventoryGroupId(payload.dealer_inventory_group_id?.trim() || null);
+          setDealerInventoryParentListingId(payload.dealer_inventory_parent_listing_id?.trim() || null);
         } else {
           setData(null);
           setLane(null);
           setLeonixAdId(null);
           setListingLang(null);
+          setInventoryRole(null);
+          setDealerInventoryGroupId(null);
+          setDealerInventoryParentListingId(null);
         }
       } catch {
         if (!cancelled) {
@@ -68,6 +80,9 @@ export function AutosLiveVehicleClient({
           setLane(null);
           setLeonixAdId(null);
           setListingLang(null);
+          setInventoryRole(null);
+          setDealerInventoryGroupId(null);
+          setDealerInventoryParentListingId(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -126,6 +141,9 @@ export function AutosLiveVehicleClient({
     listingSourceId: listingId,
     leonixAdId,
     lane,
+    inventoryRole,
+    dealerInventoryGroupId,
+    dealerInventoryParentListingId,
   };
   const publicUrl = typeof window !== "undefined" ? window.location.href : "";
 

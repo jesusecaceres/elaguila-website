@@ -59,6 +59,10 @@ import {
   restaurantePreviewGateCopy,
   type RestauranteAppUiLang,
 } from "./restauranteApplicationUiCopy";
+import {
+  restauranteApplicationFormCopy,
+  restauranteSectionHeading,
+} from "./restauranteApplicationFormCopy";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplicationSectionModel";
@@ -163,6 +167,7 @@ export default function RestauranteApplicationClient() {
     [searchParams],
   );
   const previewGate = useMemo(() => restaurantePreviewGateCopy(lang), [lang]);
+  const fc = useMemo(() => restauranteApplicationFormCopy(lang), [lang]);
   const dashboardSource = searchParams?.get("source") === "dashboard";
   const dashboardMode = searchParams?.get("mode");
   const dashboardListingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -234,11 +239,7 @@ export default function RestauranteApplicationClient() {
 
   const startDashboardAddonCheckout = useCallback(async () => {
     if (!dashboardListingId) {
-      setDashboardContextErr(
-        lang === "es"
-          ? "Falta el identificador del anuncio. Vuelve al panel e intenta de nuevo."
-          : "Listing id is missing. Return to the dashboard and try again.",
-      );
+      setDashboardContextErr(fc.dashboard.missingListingId);
       return;
     }
     setDashboardAddonCheckoutBusy(true);
@@ -258,23 +259,15 @@ export default function RestauranteApplicationClient() {
         setDashboardAddonCheckoutBusy(false);
       }
     } catch {
-      setDashboardContextErr(
-        lang === "es"
-          ? "No pudimos iniciar el pago del módulo de cupones."
-          : "We could not start coupon module checkout.",
-      );
+      setDashboardContextErr(fc.dashboard.couponCheckoutFailed);
       setDashboardAddonCheckoutBusy(false);
     }
-  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath]);
+  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath, fc]);
 
   const saveExistingDashboardListing = useCallback(async () => {
     if (!isExistingDashboardListingMode || !dashboardListingId) return;
     if (isDashboardCouponEditMode && !draftRef.current.couponUpgradeEnabled) {
-      setDashboardContextErr(
-        lang === "es"
-          ? "Activa el módulo de ofertas antes de guardar."
-          : "Enable the offers module before saving.",
-      );
+      setDashboardContextErr(fc.dashboard.enableOffersBeforeSave);
       return;
     }
     setDashboardSaveBusy(true);
@@ -284,9 +277,7 @@ export default function RestauranteApplicationClient() {
       const { data: auth } = await supabase.auth.getUser();
       const ownerUserId = auth.user?.id?.trim();
       if (!ownerUserId) {
-        setDashboardContextErr(
-          lang === "es" ? "Inicia sesión para guardar los cambios." : "Sign in to save changes.",
-        );
+        setDashboardContextErr(fc.dashboard.signInToSave);
         setDashboardSaveBusy(false);
         return;
       }
@@ -295,11 +286,7 @@ export default function RestauranteApplicationClient() {
       try {
         draftForSave = await resolveRestauranteDraftMediaToRemoteUrls(draftForSave);
       } catch {
-        setDashboardContextErr(
-          lang === "es"
-            ? "No se pudieron preparar las imágenes. Comprueba la conexión e intenta de nuevo."
-            : "We could not prepare images. Check your connection and try again.",
-        );
+        setDashboardContextErr(fc.dashboard.imagesPrepareFailed);
         setDashboardSaveBusy(false);
         return;
       }
@@ -316,15 +303,9 @@ export default function RestauranteApplicationClient() {
         router.push(dashboardReturnHref);
         return;
       }
-      setDashboardContextErr(
-        lang === "es"
-          ? "No se pudieron guardar los cambios. Intenta de nuevo."
-          : "Could not save changes. Please try again.",
-      );
+      setDashboardContextErr(fc.dashboard.saveChangesFailedRetry);
     } catch {
-      setDashboardContextErr(
-        lang === "es" ? "No se pudieron guardar los cambios." : "Could not save changes.",
-      );
+      setDashboardContextErr(fc.dashboard.saveChangesFailed);
     } finally {
       setDashboardSaveBusy(false);
     }
@@ -336,6 +317,7 @@ export default function RestauranteApplicationClient() {
     lang,
     router,
     dashboardReturnHref,
+    fc,
   ]);
 
   const minPreviewOk = useMemo(() => satisfiesRestauranteMinimumDraftForPreview(draft), [draft]);
@@ -738,7 +720,7 @@ export default function RestauranteApplicationClient() {
   if (!hydrated) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center text-[color:var(--lx-muted)]">
-        {lang === "en" ? "Loading draft…" : "Cargando borrador…"}
+        {fc.header.loadingDraft}
       </div>
     );
   }
@@ -746,18 +728,14 @@ export default function RestauranteApplicationClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 pb-24 sm:py-10">
       <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{lang === "en" ? "Leonix Classifieds" : "Leonix Clasificados"}</p>
-        <h1 className="mt-2 text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">{lang === "en" ? "Publish restaurant" : "Publicar restaurante"}</h1>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.header.brand}</p>
+        <h1 className="mt-2 text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">{fc.header.title}</h1>
         <p className="mt-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-          {lang === "en"
-            ? "Completed fields will appear in the preview. Empty fields will not be shown to the buyer."
-            : "Los campos completados aparecerán en la vista previa. Los campos vacíos no se mostrarán al comprador."}
+          {fc.header.intro}
         </p>
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">
-          {lang === "en"
-            ? "Draft in this browser session: persists when navigating to preview, returning, and refreshing in the same tab; discarded when closing the tab or browser. Key "
-            : "Borrador en esta sesión del navegador: se mantiene al ir a vista previa, volver y actualizar la página en la misma pestaña; al cerrar la pestaña o el navegador se descarta. Clave "}
-          <code className="rounded bg-[color:var(--lx-section)] px-1">restaurantes-draft</code>{lang === "en" ? " (session storage)." : " (almacenamiento de sesión)."}
+          {fc.header.draftNote}
+          <code className="rounded bg-[color:var(--lx-section)] px-1">restaurantes-draft</code>{fc.header.draftNoteSuffix}
         </p>
       </div>
 
@@ -773,9 +751,7 @@ export default function RestauranteApplicationClient() {
       {isDashboardAddonMode ? (
         <div className="mb-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)]">
           <p className="text-sm font-semibold text-[color:var(--lx-text)]">
-            {lang === "en"
-              ? "You are enabling coupons for an existing listing. Only the coupon module will be charged: $99/mo."
-              : "Estás activando cupones para un anuncio existente. Solo se cobrará el módulo de cupones: $99/mes."}
+            {fc.dashboard.addonModeMessage}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
@@ -784,17 +760,13 @@ export default function RestauranteApplicationClient() {
               onClick={() => void startDashboardAddonCheckout()}
               className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
             >
-              {dashboardAddonCheckoutBusy
-                ? lang === "en"
-                  ? "Starting checkout…"
-                  : "Iniciando pago…"
-                : restauranteCouponAddonUpgradeLabel(lang)}
+              {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
             </button>
             <Link
               href={dashboardReturnHref}
               className="inline-flex min-h-[44px] items-center rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
             >
-              {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+              {fc.common.backToDashboard}
             </Link>
           </div>
         </div>
@@ -803,15 +775,13 @@ export default function RestauranteApplicationClient() {
       {isDashboardCouponEditMode ? (
         <div className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] p-5">
           <p className="text-sm font-semibold text-[color:var(--lx-text)]">
-            {lang === "en"
-              ? "You are editing coupons for an existing listing."
-              : "Estás editando cupones para un anuncio existente."}
+            {fc.dashboard.couponEditModeMessage}
           </p>
           <Link
             href={dashboardReturnHref}
             className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline"
           >
-            {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+            {fc.common.backToDashboard}
           </Link>
         </div>
       ) : null}
@@ -819,15 +789,13 @@ export default function RestauranteApplicationClient() {
       {isDashboardListingEditMode ? (
         <div className="mb-6 rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] p-5">
           <p className="text-sm font-semibold text-[color:var(--lx-text)]">
-            {lang === "en"
-              ? "You are editing your published restaurant listing. Save changes here — the base plan will not be charged again."
-              : "Estás editando tu anuncio publicado. Guarda los cambios aquí — no se volverá a cobrar el plan base."}
+            {fc.dashboard.listingEditModeMessage}
           </p>
           <Link
             href={dashboardReturnHref}
             className="mt-3 inline-flex text-sm font-semibold text-[color:var(--lx-text)] underline"
           >
-            {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+            {fc.common.backToDashboard}
           </Link>
         </div>
       ) : null}
@@ -837,9 +805,7 @@ export default function RestauranteApplicationClient() {
           className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
           role="alert"
         >
-          {lang === "en"
-            ? "This dashboard coupon flow requires a listing id. Open it from Dashboard → My listings."
-            : "Este flujo de cupones requiere un identificador de anuncio. Ábrelo desde Panel → Mis anuncios."}
+          {fc.dashboard.focusCouponMissingListingId}
         </div>
       ) : null}
 
@@ -847,12 +813,10 @@ export default function RestauranteApplicationClient() {
       {(!draft.couponUpgradeEnabled && minPreviewOk && !isExistingDashboardListingMode) ? (
         <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
           <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-            {lang === "en" ? "Want to attract more customers with coupons?" : "¿Quieres atraer más clientes con cupones?"}
+            {fc.couponUpsell.title}
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            {lang === "en"
-              ? "$99/month to show featured offers inside your restaurant ad. You can publish up to 4 main coupons and add a flyer or external link for more promotions."
-              : "$99/mes para mostrar ofertas destacadas dentro de tu anuncio. Puedes publicar hasta 4 cupones principales y agregar un flyer o enlace externo para más promociones."}
+            {fc.couponUpsell.body}
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <button
@@ -863,7 +827,7 @@ export default function RestauranteApplicationClient() {
               }}
               className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
             >
-              {lang === "en" ? "Add coupons" : "Agregar cupones"}
+              {fc.couponUpsell.addCoupons}
             </button>
             <button
               type="button"
@@ -872,7 +836,7 @@ export default function RestauranteApplicationClient() {
               }}
               className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
             >
-              {lang === "en" ? "Continue without coupons" : "Continuar sin cupones"}
+              {fc.couponUpsell.continueWithoutCoupons}
             </button>
           </div>
         </div>
@@ -918,15 +882,12 @@ export default function RestauranteApplicationClient() {
         {/* A */}
         {activeSectionId === "restaurantes-section-a" ? (
         <section id="restaurantes-section-a" className={stepPanel}>
-          <SectionTitle>A · Identidad del negocio</SectionTitle>
-          <HelperText>
-            Esta sección define cómo te reconocen en resultados y en la ficha: nombre, cocinas y ciudad canónica son la base
-            del anuncio.
-          </HelperText>
+          <SectionTitle>{restauranteSectionHeading("A", "a", lang)}</SectionTitle>
+          <HelperText>{fc.sectionA.intro}</HelperText>
           <div className="mt-4 grid gap-4">
             <div>
-              <FieldLabel required>Nombre del negocio</FieldLabel>
-              <HelperText>Título principal del listado y de la tarjeta abierta.</HelperText>
+              <FieldLabel required lang={lang}>{fc.sectionA.businessNameLabel}</FieldLabel>
+              <HelperText>{fc.sectionA.businessNameHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.businessName}
@@ -934,8 +895,8 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel required>Tipo de negocio</FieldLabel>
-              <HelperText>Clasificación del negocio; ayuda a filtros y contexto en la ficha.</HelperText>
+              <FieldLabel required lang={lang}>{fc.sectionA.businessTypeLabel}</FieldLabel>
+              <HelperText>{fc.sectionA.businessTypeHelper}</HelperText>
               <select
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.businessType}
@@ -947,7 +908,7 @@ export default function RestauranteApplicationClient() {
                   });
                 }}
               >
-                <option value="">Seleccionar…</option>
+                <option value="">{fc.common.selectPlaceholder}</option>
                 {RESTAURANTE_FORM_BUSINESS_TYPES.map((o) => (
                   <option key={o.key} value={o.key}>
                     {labelForBusinessType(o.key, lang)}
@@ -957,11 +918,11 @@ export default function RestauranteApplicationClient() {
             </div>
             {draft.businessType === TAXONOMY_KEY_OTHER ? (
               <div>
-                <FieldLabel>Especifica el tipo (Otro)</FieldLabel>
+                <FieldLabel>{fc.sectionA.businessTypeOtherLabel}</FieldLabel>
                 <input
                   className={OTHER_INPUT}
                   maxLength={80}
-                  placeholder="Ej. cocina oculta especializada"
+                  placeholder={fc.sectionA.businessTypeOtherPlaceholder}
                   value={draft.businessTypeCustom ?? ""}
                   onChange={(e) => setDraftPatch({ businessTypeCustom: e.target.value || undefined })}
                 />
@@ -969,10 +930,8 @@ export default function RestauranteApplicationClient() {
             ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <FieldLabel required>Cocina principal</FieldLabel>
-                <HelperText>
-                  Identidad culinaria principal: en la ficha aparece en la <strong className="text-[color:var(--lx-text-2)]">línea de cocina bajo el título</strong> del héroe y alimenta datos estructurados para filtros. Una sola elección.
-                </HelperText>
+                <FieldLabel required lang={lang}>{fc.sectionA.primaryCuisineLabel}</FieldLabel>
+                <HelperText>{fc.sectionA.primaryCuisineHelper}</HelperText>
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.primaryCuisine}
@@ -984,7 +943,7 @@ export default function RestauranteApplicationClient() {
                     });
                   }}
                 >
-                  <option value="">Seleccionar…</option>
+                  <option value="">{fc.common.selectPlaceholder}</option>
                   {RESTAURANTE_CUISINES.map((o) => (
                     <option key={o.key} value={o.key}>
                       {labelForCuisine(o.key, lang)}
@@ -993,10 +952,8 @@ export default function RestauranteApplicationClient() {
                 </select>
               </div>
               <div>
-                <FieldLabel optional>Cocina secundaria</FieldLabel>
-                <HelperText>
-                  Segunda identidad culinaria opcional: se une a la principal en la <strong className="text-[color:var(--lx-text-2)]">misma línea bajo el título</strong>. No sustituye la principal. Una sola elección.
-                </HelperText>
+                <FieldLabel optional lang={lang}>{fc.sectionA.secondaryCuisineLabel}</FieldLabel>
+                <HelperText>{fc.sectionA.secondaryCuisineHelper}</HelperText>
                 <select
                   className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                   value={draft.secondaryCuisine ?? ""}
@@ -1008,7 +965,7 @@ export default function RestauranteApplicationClient() {
                     });
                   }}
                 >
-                  <option value="">—</option>
+                  <option value="">{fc.common.dashPlaceholder}</option>
                   {RESTAURANTE_CUISINES.map((o) => (
                     <option key={o.key} value={o.key}>
                       {labelForCuisine(o.key, lang)}
@@ -1019,12 +976,12 @@ export default function RestauranteApplicationClient() {
             </div>
             {draft.primaryCuisine === TAXONOMY_KEY_OTHER ? (
               <div>
-                <FieldLabel>Especifica la cocina principal (Otra)</FieldLabel>
-                <HelperText>Texto corto que verá el comprador donde corresponda «Otra» en cocina principal.</HelperText>
+                <FieldLabel>{fc.sectionA.primaryCuisineOtherLabel}</FieldLabel>
+                <HelperText>{fc.sectionA.primaryCuisineOtherHelper}</HelperText>
                 <input
                   className={OTHER_INPUT}
                   maxLength={80}
-                  placeholder="Ej. Sichuan, Oaxaca, fusión indo-mexicana…"
+                  placeholder={fc.sectionA.primaryCuisineOtherPlaceholder}
                   value={draft.primaryCuisineCustom ?? ""}
                   onChange={(e) => setDraftPatch({ primaryCuisineCustom: e.target.value || undefined })}
                 />
@@ -1032,31 +989,24 @@ export default function RestauranteApplicationClient() {
             ) : null}
             {draft.secondaryCuisine === TAXONOMY_KEY_OTHER ? (
               <div>
-                <FieldLabel>Especifica la cocina secundaria (Otra)</FieldLabel>
-                <HelperText>Complementa la etiqueta cuando la secundaria es «Otra».</HelperText>
+                <FieldLabel>{fc.sectionA.secondaryCuisineOtherLabel}</FieldLabel>
+                <HelperText>{fc.sectionA.secondaryCuisineOtherHelper}</HelperText>
                 <input
                   className={OTHER_INPUT}
                   maxLength={80}
-                  placeholder="Breve descripción"
+                  placeholder={fc.sectionA.secondaryCuisineOtherPlaceholder}
                   value={draft.secondaryCuisineCustom ?? ""}
                   onChange={(e) => setDraftPatch({ secondaryCuisineCustom: e.target.value || undefined })}
                 />
               </div>
             ) : null}
             <div>
-              <FieldLabel optional>Cocinas adicionales</FieldLabel>
-              <HelperText>
-                Etiquetas de apoyo para descubrimiento: en la ficha salen como <strong className="text-[color:var(--lx-text-2)]">chips «Descub.»</strong> bajo la línea principal/secundaria, no en esa línea. Por eso existen las tres: identidad clara + etiquetas selectivas. Elige hasta{" "}
-                <strong className="font-semibold text-[color:var(--lx-text-2)]">{MAX_ADDITIONAL_CUISINES}</strong>. La ciudad
-                canónica y la cocina principal siguen anclando filtros y resultados.
-              </HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionA.additionalCuisinesLabel}</FieldLabel>
+              <HelperText>{fc.sectionA.additionalCuisinesHelper}</HelperText>
               <p className="mt-1 text-xs font-medium text-[color:var(--lx-text-2)]">
-                {(draft.additionalCuisines ?? []).length}/{MAX_ADDITIONAL_CUISINES} seleccionadas
+                {(draft.additionalCuisines ?? []).length}/{MAX_ADDITIONAL_CUISINES} {fc.sectionA.additionalCuisinesCountSuffix}
                 {(draft.additionalCuisines ?? []).length > MAX_ADDITIONAL_CUISINES ? (
-                  <span className="ml-1 text-amber-800">
-                    — Tienes más etiquetas de las recomendadas; desmarca hasta {MAX_ADDITIONAL_CUISINES} para un listado más
-                    limpio.
-                  </span>
+                  <span className="ml-1 text-amber-800">{fc.sectionA.additionalCuisinesOverCapWarning}</span>
                 ) : null}
               </p>
               <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 p-3">
@@ -1086,12 +1036,12 @@ export default function RestauranteApplicationClient() {
               </div>
               {(draft.additionalCuisines ?? []).includes(TAXONOMY_KEY_OTHER) ? (
                 <div className="mt-3">
-                  <FieldLabel optional>Especifica “Otra” en cocinas adicionales</FieldLabel>
-                  <HelperText>Una línea clara; se muestra donde aplique la etiqueta «Otra».</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionA.additionalCuisineOtherLabel}</FieldLabel>
+                  <HelperText>{fc.sectionA.additionalCuisineOtherHelper}</HelperText>
                   <input
                     className={OTHER_INPUT}
                     maxLength={80}
-                    placeholder="Una línea, p. ej. comida nikkei"
+                    placeholder={fc.sectionA.additionalCuisineOtherPlaceholder}
                     value={draft.additionalCuisineOtherCustom ?? ""}
                     onChange={(e) => setDraftPatch({ additionalCuisineOtherCustom: e.target.value || undefined })}
                   />
@@ -1099,13 +1049,11 @@ export default function RestauranteApplicationClient() {
               ) : null}
             </div>
             <div>
-              <FieldLabel optional>
-                Sobre nosotros <span className="font-normal text-[color:var(--lx-muted)]">(recomendado)</span>
+              <FieldLabel optional lang={lang}>
+                {fc.sectionA.aboutUsLabel}{" "}
+                <span className="font-normal text-[color:var(--lx-muted)]">({fc.common.recommended})</span>
               </FieldLabel>
-              <HelperText>
-                Cuéntales a los clientes la historia, ambiente, especialidades o experiencia del restaurante. Aparece más abajo
-                en la ficha, no en la cabecera.
-              </HelperText>
+              <HelperText>{fc.sectionA.aboutUsHelper}</HelperText>
               <textarea
                 className="mt-1 min-h-[120px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.longDescription ?? ""}
@@ -1113,10 +1061,8 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Zona del restaurante</FieldLabel>
-              <HelperText>
-                Texto libre de zona o distrito: aparece en la tarjeta <strong className="text-[color:var(--lx-text-2)]">«Zona»</strong> de la franja de información rápida, junto a la ciudad canónica. No sustituye la ciudad estructurada ni los filtros NorCal.
-              </HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionA.neighborhoodLabel}</FieldLabel>
+              <HelperText>{fc.sectionA.neighborhoodHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.neighborhood ?? ""}
@@ -1124,14 +1070,14 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Nivel de precio</FieldLabel>
-              <HelperText>Referencia rápida en la ficha cuando la completes.</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionA.priceLevelLabel}</FieldLabel>
+              <HelperText>{fc.sectionA.priceLevelHelper}</HelperText>
               <select
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.priceLevel ?? ""}
                 onChange={(e) => setDraftPatch({ priceLevel: (e.target.value as RestauranteListingDraft["priceLevel"]) || undefined })}
               >
-                <option value="">—</option>
+                <option value="">{fc.common.dashPlaceholder}</option>
                 {RESTAURANTE_PRICE_LEVELS.map((o) => (
                   <option key={o.key} value={o.key}>
                     {labelForPriceLevel(o.key, lang)}
@@ -1140,11 +1086,8 @@ export default function RestauranteApplicationClient() {
               </select>
             </div>
             <div>
-              <FieldLabel optional>Idiomas</FieldLabel>
-              <HelperText>
-                Idiomas en los que el equipo puede atender al cliente en persona, por teléfono o mensaje — no es una lista
-                decorativa. Aparecen en la franja de información rápida como una línea compacta. Si seleccionas <strong className="text-[color:var(--lx-text-2)]">Otro</strong>, especifica el idioma concreto.
-              </HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionA.languagesLabel}</FieldLabel>
+              <HelperText>{fc.sectionA.languagesHelper}</HelperText>
               <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 p-3">
                 {RESTAURANTE_LANGUAGES.map((o) => (
                   <label key={o.key} className="inline-flex items-center gap-1.5 text-sm">
@@ -1172,7 +1115,7 @@ export default function RestauranteApplicationClient() {
                           <button
                             type="button"
                             className="ml-0.5 rounded-full px-1 text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]"
-                            aria-label={`Quitar ${lang}`}
+                            aria-label={`${fc.common.removeLanguageAria} ${lang}`}
                             onClick={() => removeCustomLanguageAt(index)}
                           >
                             ×
@@ -1183,16 +1126,13 @@ export default function RestauranteApplicationClient() {
                   ) : null}
                   {customLanguages.length < RESTAURANTE_MAX_CUSTOM_LANGUAGES ? (
                     <>
-                      <FieldLabel optional>Especifica el idioma (Otro)</FieldLabel>
-                      <HelperText>
-                        Escribe el idioma concreto y pulsa Añadir. Máximo {RESTAURANTE_MAX_CUSTOM_LANGUAGES} idiomas
-                        personalizados.
-                      </HelperText>
+                      <FieldLabel optional lang={lang}>{fc.sectionA.languageOtherLabel}</FieldLabel>
+                      <HelperText>{fc.sectionA.languageOtherHelper}</HelperText>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           className={`${OTHER_INPUT} mt-0 flex-1 min-w-[10rem]`}
                           maxLength={48}
-                          placeholder="Ej. portugués, ASL…"
+                          placeholder={fc.sectionA.languageOtherPlaceholder}
                           value={languageOtherPending}
                           onChange={(e) => setLanguageOtherPending(e.target.value)}
                           onKeyDown={(e) => {
@@ -1207,7 +1147,7 @@ export default function RestauranteApplicationClient() {
                           className="shrink-0 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
                           onClick={addCustomLanguage}
                         >
-                          Añadir
+                          {fc.common.add}
                         </button>
                       </div>
                     </>
@@ -1222,26 +1162,16 @@ export default function RestauranteApplicationClient() {
         {/* B */}
         {activeSectionId === "restaurantes-section-b" ? (
         <section id="restaurantes-section-b" className={stepPanel}>
-          <SectionTitle>B · Modelo de operación</SectionTitle>
-          <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
-            Los <strong>modos de servicio</strong> son opcionales. Por defecto se asume restaurante físico/local. Usa esta
-            sección si el negocio también ofrece catering/eventos, delivery, takeout, reservas, etc. La selección mejora el
-            listado pero no se requiere para vista previa.
-          </p>
-          <HelperText>
-            Marca <strong className="text-[color:var(--lx-text)]">Catering y eventos</strong> si necesitas la sección extra{" "}
-            <strong>K</strong>. Usa <strong className="text-[color:var(--lx-text)]">Modos y servicios disponibles</strong>{" "}
-            para la identidad de servicio en datos y vista previa.
-          </HelperText>
+          <SectionTitle>{restauranteSectionHeading("B", "b", lang)}</SectionTitle>
+          <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">{fc.sectionB.serviceModesIntro}</p>
+          <HelperText>{fc.sectionB.helper}</HelperText>
           <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">
-            Catering y eventos (stack K)
+            {fc.sectionB.cateringStackLabel}
           </p>
           <div className="mt-4 max-w-xl">
             <div className={PRIMARY_OP_CARD}>
-              <div className="text-base font-bold text-[color:var(--lx-text)]">Catering y eventos</div>
-              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
-                Activa la configuración de <strong className="text-[color:var(--lx-text-2)]">catering y eventos</strong>.
-              </p>
+              <div className="text-base font-bold text-[color:var(--lx-text)]">{fc.sectionB.cateringCardTitle}</div>
+              <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{fc.sectionB.cateringCardBody}</p>
               <div className="mt-3 space-y-2.5">
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <input
@@ -1255,7 +1185,7 @@ export default function RestauranteApplicationClient() {
                       setDraftPatch(patch);
                     }}
                   />
-                  Catering
+                  {fc.sectionB.cateringCheckbox}
                 </label>
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
                   <input
@@ -1269,16 +1199,16 @@ export default function RestauranteApplicationClient() {
                       setDraftPatch(patch);
                     }}
                   />
-                  Comida para eventos
+                  {fc.sectionB.eventFoodCheckbox}
                 </label>
               </div>
               {(draft.cateringAvailable || draft.eventFoodService) && (
                 <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
-                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de catering y eventos</p>
+                  <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">{fc.sectionB.cateringConfigTitle}</p>
                   <div className="space-y-3">
                     <div>
-                      <FieldLabel optional>Tamaños de evento</FieldLabel>
-                      <HelperText>Capacidad de eventos que puedes atender.</HelperText>
+                      <FieldLabel optional lang={lang}>{fc.sectionB.eventSizesLabel}</FieldLabel>
+                      <HelperText>{fc.sectionB.eventSizesHelper}</HelperText>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {RESTAURANTE_EVENT_SIZES.map((size) => (
                           <label key={size.key} className="inline-flex items-center gap-1 text-sm">
@@ -1301,8 +1231,8 @@ export default function RestauranteApplicationClient() {
                       </div>
                     </div>
                     <div>
-                      <FieldLabel optional>URL de consulta de catering</FieldLabel>
-                      <HelperText>Enlace para que los clientes soliciten información de catering.</HelperText>
+                      <FieldLabel optional lang={lang}>{fc.sectionB.cateringInquiryUrlLabel}</FieldLabel>
+                      <HelperText>{fc.sectionB.cateringInquiryUrlHelper}</HelperText>
                       <input
                         className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                         value={draft.cateringEventsStack?.cateringInquiryUrl ?? ""}
@@ -1321,12 +1251,9 @@ export default function RestauranteApplicationClient() {
 
           <div className="mt-8 border-t border-[color:var(--lx-nav-border)] pt-6">
             <p className="text-sm font-semibold text-[color:var(--lx-text)]">
-              Modos y servicios disponibles <span className="text-red-600">*</span>
+              {fc.sectionB.serviceModesTitle} <span className="text-red-600">*</span>
             </p>
-            <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-              Una sola lista para comer en local, para llevar, entrega, recogida, reservas, catering, eventos y más. Al
-              menos una opción para la vista previa con validación.
-            </p>
+            <p className="mt-2 text-sm text-[color:var(--lx-muted)]">{fc.sectionB.serviceModesBody}</p>
           </div>
 
           <div className="mt-3 rounded-2xl border border-[color:var(--lx-nav-border)]/85 bg-white/50 p-3 sm:p-4">
@@ -1350,16 +1277,12 @@ export default function RestauranteApplicationClient() {
           </div>
           {(draft.serviceModes ?? []).includes(TAXONOMY_KEY_OTHER as RestauranteServiceMode) ? (
             <div className="mt-3 max-w-lg">
-              <FieldLabel optional>Especifica el modo de servicio (Otro)</FieldLabel>
-              <HelperText>
-                Texto corto que verá el cliente en la <strong className="text-[color:var(--lx-text-2)]">franja Servicio</strong>{" "}
-                (información rápida) y como etiqueta «Modo: …» cuando aplique; forma parte de la identidad canónica igual que
-                los demás modos marcados.
-              </HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionB.serviceModeOtherLabel}</FieldLabel>
+              <HelperText>{fc.sectionB.serviceModeOtherHelper}</HelperText>
               <input
                 className={OTHER_INPUT}
                 maxLength={64}
-                placeholder="Ej. venta en ferias, solo suscripciones…"
+                placeholder={fc.sectionB.serviceModeOtherPlaceholder}
                 value={draft.serviceModeOtherCustom ?? ""}
                 onChange={(e) => setDraftPatch({ serviceModeOtherCustom: e.target.value || undefined })}
               />
@@ -1367,12 +1290,10 @@ export default function RestauranteApplicationClient() {
           ) : null}
           {deliveryRelevant && (
             <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)]/60 bg-[color:var(--lx-section)]/40 p-4">
-              <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">Configuración de entrega</p>
+              <p className="text-sm font-semibold text-[color:var(--lx-text)] mb-3">{fc.sectionB.deliveryConfigTitle}</p>
               <div>
-                <FieldLabel optional>Radio de entrega (millas)</FieldLabel>
-                <HelperText>
-                  Alcance aproximado cuando ofreces <strong className="text-[color:var(--lx-text-2)]">entrega</strong>. Déjalo vacío si no entregas o si prefieres no especificar radio.
-                </HelperText>
+                <FieldLabel optional lang={lang}>{fc.sectionB.deliveryRadiusLabel}</FieldLabel>
+                <HelperText>{fc.sectionB.deliveryRadiusHelper}</HelperText>
                 <input
                   type="number"
                   min={0}
@@ -1393,15 +1314,11 @@ export default function RestauranteApplicationClient() {
         {/* C */}
         {activeSectionId === "restaurantes-section-c" ? (
         <section id="restaurantes-section-c" className={stepPanel}>
-          <SectionTitle>C · Horarios</SectionTitle>
+          <SectionTitle>{restauranteSectionHeading("C", "c", lang)}</SectionTitle>
           <p className="mt-2 text-xs text-[color:var(--lx-text-2)]">
-            <span className="font-semibold text-red-600">*</span> Completa cada día (cerrado u horario) o indica la situación
-            con las notas de abajo — necesario para la vista previa estructural.
+            <span className="font-semibold text-red-600">*</span> {fc.sectionC.requiredNote}
           </p>
-          <HelperText>
-            La cuadrícula semanal es la base en la ficha. Las notas <strong>no sustituyen</strong> horarios salvo que así lo
-            indiques; sirven para excepciones, feriados o cambios puntuales visibles junto al bloque de horas.
-          </HelperText>
+          <HelperText>{fc.sectionC.helper}</HelperText>
           <div className="mt-4 space-y-3">
             {dayRows(lang).map(({ key, label }) => {
               const s = draft[key] as RestauranteDaySchedule;
@@ -1419,7 +1336,7 @@ export default function RestauranteApplicationClient() {
                         setDay(key, { closed: e.target.checked, openTime: s.openTime, closeTime: s.closeTime })
                       }
                     />
-                    {lang === "en" ? "Closed" : "Cerrado"}
+                    {fc.common.closed}
                   </label>
                   <input
                     type="time"
@@ -1441,12 +1358,8 @@ export default function RestauranteApplicationClient() {
           </div>
           <div className="mt-4 grid gap-3">
             <div>
-              <FieldLabel optional>Nota de horario especial</FieldLabel>
-              <HelperText>
-                Aviso <strong className="text-[color:var(--lx-text-2)]">recurrente o general</strong> (p. ej. «cerrado lunes
-                festivos», «cocina cierra a las 9 pm»): no reemplaza la cuadrícula semanal. Se muestra en el resumen de horario cuando aplica y en el bloque
-                «Horarios completos» bajo la lista de días.
-              </HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionC.specialHoursLabel}</FieldLabel>
+              <HelperText>{fc.sectionC.specialHoursHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.specialHoursNote ?? ""}
@@ -1460,25 +1373,18 @@ export default function RestauranteApplicationClient() {
         {/* D */}
         {activeSectionId === "restaurantes-section-d" ? (
         <section id="restaurantes-section-d" className={stepPanel}>
-          <SectionTitle>D · Contacto y CTAs</SectionTitle>
+          <SectionTitle>{restauranteSectionHeading("D", "d", lang)}</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-            <span className="text-red-600">*</span> Al menos una vía de contacto (sitio, teléfono, correo, redes, menú/archivo,
-            etc.) para la vista previa mínima.
+            <span className="text-red-600">*</span> {fc.sectionD.requiredNote}
           </p>
-          <HelperText>
-            Los enlaces web se convierten en botones en la ficha. <strong className="text-[color:var(--lx-text-2)]">Menú URL</strong>{" "}
-            abre la carta en el sitio del restaurante (vista previa: confirmación y luego pestaña nueva).{" "}
-            <strong className="text-[color:var(--lx-text-2)]">Menú archivo</strong> se abre en un visor dentro de la vista previa
-            (PDF/imagen). Si hay ambos, verás dos botones: menú en línea y carta en archivo; el bloque de contacto también puede
-            repetir el archivo para descarga/visualización.
-          </HelperText>
+          <HelperText>{fc.sectionD.helper}</HelperText>
           <div className="mt-4 space-y-4">
             <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Contacto principal</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.sectionD.primaryContactHeader}</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <FieldLabel optional>Sitio web</FieldLabel>
-                  <HelperText>Destino principal de tu marca; botón «Sitio web» en la fila de acciones.</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.websiteLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.websiteHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.websiteUrl}
@@ -1487,8 +1393,8 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div>
-                  <FieldLabel optional>Teléfono</FieldLabel>
-                  <HelperText>Visible y usable para «Llamar»; se formateará automáticamente como (408) 555-1234.</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.phoneLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.phoneHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
@@ -1501,8 +1407,8 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div>
-                  <FieldLabel optional>WhatsApp (número)</FieldLabel>
-                  <HelperText>Genera el botón de WhatsApp con el número en formato internacional.</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.whatsAppLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.whatsAppHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.whatsAppNumber}
@@ -1515,7 +1421,7 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <FieldLabel optional>Correo</FieldLabel>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.emailLabel}</FieldLabel>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.email}
@@ -1527,21 +1433,21 @@ export default function RestauranteApplicationClient() {
             </div>
 
             <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Redes sociales</p>
-              <HelperText className="!mt-0">Enlaces a perfiles; iconos de plataforma en la ficha solo cuando completes la URL.</HelperText>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.sectionD.socialHeader}</p>
+              <HelperText className="!mt-0">{fc.sectionD.socialHelper}</HelperText>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {(
                   [
-                    ["instagramUrl", "Instagram (URL)"],
-                    ["facebookUrl", "Facebook (URL)"],
-                    ["tiktokUrl", "TikTok (URL)"],
-                    ["youtubeUrl", "YouTube (URL)"],
-                    ["snapchatUrl", "Snapchat (URL)"],
-                    ["xTwitterUrl", "X / Twitter (URL)"],
+                    ["instagramUrl", fc.sectionD.instagramLabel],
+                    ["facebookUrl", fc.sectionD.facebookLabel],
+                    ["tiktokUrl", fc.sectionD.tiktokLabel],
+                    ["youtubeUrl", fc.sectionD.youtubeLabel],
+                    ["snapchatUrl", fc.sectionD.snapchatLabel],
+                    ["xTwitterUrl", fc.sectionD.xTwitterLabel],
                   ] as const
                 ).map(([key, lab]) => (
                   <div key={key}>
-                    <FieldLabel optional>{lab}</FieldLabel>
+                    <FieldLabel optional lang={lang}>{lab}</FieldLabel>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS[key] ?? undefined}
@@ -1554,16 +1460,12 @@ export default function RestauranteApplicationClient() {
             </div>
 
             <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Opiniones / reputación</p>
-              <HelperText className="!mt-0">
-                Enlaces opcionales a reseñas públicas; solo aparecen en la ficha cuando los completes.
-              </HelperText>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.sectionD.reviewsHeader}</p>
+              <HelperText className="!mt-0">{fc.sectionD.reviewsHelper}</HelperText>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <FieldLabel optional>Google reseñas o perfil</FieldLabel>
-                  <HelperText>
-                    Enlace a tu perfil de Google o reseñas públicas. Aparece como acceso de opiniones cuando lo completas.
-                  </HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.googleReviewsLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.googleReviewsHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.googleReviewUrl}
@@ -1572,7 +1474,7 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div>
-                  <FieldLabel optional>Yelp</FieldLabel>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.yelpLabel}</FieldLabel>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.yelpReviewUrl}
@@ -1584,14 +1486,12 @@ export default function RestauranteApplicationClient() {
             </div>
 
             <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">Acciones de restaurante</p>
-              <HelperText className="!mt-0">
-                Enlaces de reservas, pedidos y menú. El archivo de menú se abre en visor dentro de la vista previa.
-              </HelperText>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.sectionD.actionsHeader}</p>
+              <HelperText className="!mt-0">{fc.sectionD.actionsHelper}</HelperText>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <FieldLabel optional>Reservas (URL)</FieldLabel>
-                  <HelperText>Enlace directo a reservar. Botón «Reservar» si existe.</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.reservationLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.reservationHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.reservationUrl}
@@ -1600,8 +1500,8 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div>
-                  <FieldLabel optional>Pedidos (URL)</FieldLabel>
-                  <HelperText>Donde el cliente ordena en línea. Botón «Ordenar» si existe.</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.orderLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.orderHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.orderUrl}
@@ -1610,8 +1510,8 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <FieldLabel optional>Menú (URL)</FieldLabel>
-                  <HelperText>Página pública donde está la carta en línea.</HelperText>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.menuUrlLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.menuUrlHelper}</HelperText>
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
@@ -1620,18 +1520,17 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <FieldLabel optional>Menú (archivo — vista previa local)</FieldLabel>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.menuFileLabel}</FieldLabel>
                   <HelperText>
-                    PDF o imagen de la carta guardada en el borrador de sesión.{" "}
-                    <strong className="text-[color:var(--lx-text-2)]">Estado actual:</strong>{" "}
-                    {draft.menuFile ? "✅ Archivo aceptado y listo para vista previa" : "⭕ Sin archivo"}
+                    {fc.sectionD.menuFileHelperPrefix}{" "}
+                    {draft.menuFile ? fc.sectionD.menuFileReady : fc.sectionD.menuFileEmpty}
                   </HelperText>
                   <RestauranteUploadRow
-                    buttonLabel="Subir archivo"
-                    helperText="PDF o imagen. Se guarda en el borrador de sesión."
+                    buttonLabel={fc.common.uploadFile}
+                    helperText={fc.sectionD.menuFileUploadHelper}
                     accept="image/*,application/pdf"
                     selectedLabel={
-                      uploadLabels.menu ?? (draft.menuFile ? "✅ Archivo guardado en el borrador" : null)
+                      uploadLabels.menu ?? (draft.menuFile ? fc.common.fileSavedInDraft : null)
                     }
                     onFilesSelected={async (files) => {
                       const f = files?.[0];
@@ -1650,7 +1549,7 @@ export default function RestauranteApplicationClient() {
                   />
                   {draft.menuFile ? (
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="text-xs font-medium text-green-700">✅ Archivo aceptado</span>
+                      <span className="text-xs font-medium text-green-700">{fc.common.fileAccepted}</span>
                       <button
                         type="button"
                         className="text-xs font-semibold text-red-800 underline"
@@ -1663,7 +1562,7 @@ export default function RestauranteApplicationClient() {
                           });
                         }}
                       >
-                        Quitar archivo
+                        {fc.common.removeFile}
                       </button>
                     </div>
                   ) : null}
@@ -1677,15 +1576,12 @@ export default function RestauranteApplicationClient() {
         {/* E */}
         {activeSectionId === "restaurantes-section-e" ? (
         <section id="restaurantes-section-e" className={stepPanel}>
-          <SectionTitle>E · Ubicación del establecimiento</SectionTitle>
-          <HelperText>
-            Esta dirección se usa para mostrar a los clientes dónde está tu restaurante y para generar el botón de mapa /
-            direcciones en la ficha.
-          </HelperText>
+          <SectionTitle>{restauranteSectionHeading("E", "e", lang)}</SectionTitle>
+          <HelperText>{fc.sectionE.intro}</HelperText>
           <div className="mt-4 grid gap-3">
             <div>
-              <FieldLabel optional>Dirección / número y calle</FieldLabel>
-              <HelperText>Calle y número del local.</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionE.addressLine1Label}</FieldLabel>
+              <HelperText>{fc.sectionE.addressLine1Helper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.addressLine1 ?? ""}
@@ -1693,8 +1589,8 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Dirección línea 2</FieldLabel>
-              <HelperText>Suite, piso, edificio o indicaciones; opcional.</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionE.addressLine2Label}</FieldLabel>
+              <HelperText>{fc.sectionE.addressLine2Helper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.addressLine2 ?? ""}
@@ -1702,32 +1598,30 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>Ciudad</FieldLabel>
-              <HelperText>
-                Sugerencias de ciudades de California cuando coinciden; puedes escribir cualquier ciudad.
-              </HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionE.cityLabel}</FieldLabel>
+              <HelperText>{fc.sectionE.cityHelper}</HelperText>
               <CityAutocomplete
-                lang="es"
+                lang={lang}
                 variant="light"
                 freeText
                 value={draft.cityCanonical}
                 onChange={(v) => setDraftPatch({ cityCanonical: v })}
-                placeholder="Ej. San José, Portland, Austin…"
+                placeholder={fc.sectionE.cityPlaceholder}
               />
             </div>
             <div>
-              <FieldLabel optional>Estado / Región</FieldLabel>
-              <HelperText>Estado, provincia o región donde opera el restaurante.</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionE.stateLabel}</FieldLabel>
+              <HelperText>{fc.sectionE.stateHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.state ?? ""}
                 onChange={(e) => setDraftPatch({ state: e.target.value || undefined })}
-                placeholder="Ej. California, Jalisco, Madrid…"
+                placeholder={fc.sectionE.statePlaceholder}
               />
             </div>
             <div>
-              <FieldLabel optional>Código postal</FieldLabel>
-              <HelperText>Código postal de 5 dígitos; se incluye en la dirección y en la búsqueda del mapa.</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionE.zipLabel}</FieldLabel>
+              <HelperText>{fc.sectionE.zipHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 inputMode="numeric"
@@ -1736,13 +1630,13 @@ export default function RestauranteApplicationClient() {
               />
             </div>
             <div>
-              <FieldLabel optional>País</FieldLabel>
-              <HelperText>País donde opera el restaurante. Se usa para búsqueda y claridad para los clientes.</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionE.countryLabel}</FieldLabel>
+              <HelperText>{fc.sectionE.countryHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.country ?? ""}
                 onChange={(e) => setDraftPatch({ country: e.target.value || undefined })}
-                placeholder="Ej. Estados Unidos, México, España…"
+                placeholder={fc.sectionE.countryPlaceholder}
               />
             </div>
           </div>
@@ -1752,25 +1646,21 @@ export default function RestauranteApplicationClient() {
         {/* F */}
         {activeSectionId === "restaurantes-section-f" ? (
         <section id="restaurantes-section-f" className={stepPanel}>
-          <SectionTitle>F · Platos destacados (máx. 4)</SectionTitle>
-          <HelperText>
-            Módulo propio en la ficha abierta (no es la galería G): vende el menú con foto + título + nota. En vista previa
-            los dos primeros destacan; el resto se despliega con «Ver más platillos». El precio se muestra en formato USD
-            limpio; el enlace es opcional por plato.
-          </HelperText>
+          <SectionTitle>{fc.sectionF.title}</SectionTitle>
+          <HelperText>{fc.sectionF.intro}</HelperText>
           <div className="mt-4 space-y-6">
             {(draft.featuredDishes ?? []).map((dish, i) => (
               <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold">Plato {i + 1}</span>
+                  <span className="text-sm font-semibold">{fc.common.dishNumber} {i + 1}</span>
                   <button type="button" className="text-sm text-red-700 underline" onClick={() => removeFeatured(i)}>
-                    Quitar
+                    {fc.common.remove}
                   </button>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <FieldLabel>Título</FieldLabel>
-                    <HelperText>Nombre del plato en el bloque «Platillos destacados».</HelperText>
+                    <FieldLabel>{fc.sectionF.dishTitleLabel}</FieldLabel>
+                    <HelperText>{fc.sectionF.dishTitleHelper}</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={dish.title}
@@ -1778,8 +1668,8 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <FieldLabel>Nota corta</FieldLabel>
-                    <HelperText>Subtítulo bajo el título (ingredientes, estilo).</HelperText>
+                    <FieldLabel>{fc.sectionF.dishNoteLabel}</FieldLabel>
+                    <HelperText>{fc.sectionF.dishNoteHelper}</HelperText>
                     <textarea
                       className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={dish.shortNote}
@@ -1787,8 +1677,8 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Precio / etiqueta</FieldLabel>
-                    <HelperText>Número o texto; si es importe, la ficha lo formatea como USD (ej. 12 → $12.00).</HelperText>
+                    <FieldLabel optional lang={lang}>{fc.sectionF.dishPriceLabel}</FieldLabel>
+                    <HelperText>{fc.sectionF.dishPriceHelper}</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={dish.priceLabel ?? ""}
@@ -1796,8 +1686,8 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Enlace al menú</FieldLabel>
-                    <HelperText>Opcional: ancla a una sección del menú online si aplica.</HelperText>
+                    <FieldLabel optional lang={lang}>{fc.sectionF.dishMenuLinkLabel}</FieldLabel>
+                    <HelperText>{fc.sectionF.dishMenuLinkHelper}</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.menuUrl}
@@ -1806,18 +1696,18 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <FieldLabel>Imagen</FieldLabel>
-                    <HelperText>Foto del plato; sin foto el bloque igual muestra el título con marcador visual.</HelperText>
+                    <FieldLabel>{fc.sectionF.dishImageLabel}</FieldLabel>
+                    <HelperText>{fc.sectionF.dishImageHelper}</HelperText>
                     <div className="space-y-2">
                       <RestauranteUploadRow
-                        buttonLabel={featuredUploading[i] ? "Subiendo..." : "Subir imagen"}
-                        helperText="Foto del plato."
+                        buttonLabel={featuredUploading[i] ? fc.common.uploading : fc.common.uploadImage}
+                        helperText={fc.sectionF.dishImageUploadHelper}
                         accept="image/*"
                         disabled={featuredUploading[i]}
                         selectedLabel={
-                          featuredUploading[i] 
-                            ? "📤 Procesando imagen..." 
-                            : uploadLabels[`featured-${i}`] ?? (dish.image ? "✅ Imagen guardada en el borrador" : null)
+                          featuredUploading[i]
+                            ? `📤 ${fc.common.processingImage}`
+                            : uploadLabels[`featured-${i}`] ?? (dish.image ? fc.common.savedInDraft : null)
                         }
                         onFilesSelected={async (files) => {
                           const f = files?.[0];
@@ -1828,13 +1718,13 @@ export default function RestauranteApplicationClient() {
                       {featuredUploading[i] && (
                         <div className="flex items-center gap-2 text-xs text-blue-600">
                           <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                          Procesando imagen...
+                          {fc.common.processingImage}
                         </div>
                       )}
                       {dish.image && !featuredUploading[i] ? (
                         <div className="relative mt-2 aspect-video w-full max-w-xs overflow-hidden rounded-lg border border-green-200">
                           <div className="absolute top-1 right-1 z-10 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                            ✅ Lista
+                            {fc.common.ready}
                           </div>
                           <RestauranteMediaPreviewImg
                             src={dish.image}
@@ -1859,7 +1749,7 @@ export default function RestauranteApplicationClient() {
                 onClick={addFeaturedSlot}
                 className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
               >
-                + Añadir plato
+                {fc.common.addDish}
               </button>
             ) : null}
           </div>
@@ -1878,9 +1768,7 @@ export default function RestauranteApplicationClient() {
                     {restauranteOffersModuleHeading(lang)}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                    {lang === "en"
-                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers."
-                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas."}
+                    {fc.sectionG.dashboardAddonBody}
                   </p>
                   <button
                     type="button"
@@ -1888,30 +1776,24 @@ export default function RestauranteApplicationClient() {
                     onClick={() => void startDashboardAddonCheckout()}
                     className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
                   >
-                    {dashboardAddonCheckoutBusy
-                      ? lang === "en"
-                        ? "Starting checkout…"
-                        : "Iniciando pago…"
-                      : restauranteCouponAddonUpgradeLabel(lang)}
+                    {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
                   </button>
                 </div>
               </>
             ) : (
             <>
-              <SectionTitle>G · Cupones y ofertas</SectionTitle>
+              <SectionTitle>{restauranteSectionHeading("G", "g", lang)}</SectionTitle>
               <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
                 <div>
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
-                    {lang === "en" ? "Do you want to add featured coupons to your profile?" : "¿Quieres agregar cupones destacados a tu perfil?"}
+                    {fc.sectionG.upsellQuestion}
                   </h3>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${fc.sectionG.upsellPrice}</p>
                   <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                    {lang === "en" ? "Special price for restaurants. Previously $199/month as a standalone product." : "Precio especial para restaurantes. Antes era $199/mes como producto independiente."}
+                    {fc.sectionG.upsellPriceNote}
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                    {lang === "en"
-                      ? "Add up to 4 featured coupons within your profile. You can promote combos, seasonal discounts, lunch specials, catering, or events. Customers will be able to share the coupon by link, message, email, or compatible apps."
-                      : "Agrega hasta 4 cupones destacados dentro de tu perfil. Puedes promocionar combos, descuentos de temporada, especiales de almuerzo, catering o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles."}
+                    {fc.sectionG.upsellBody}
                   </p>
                 </div>
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1920,7 +1802,7 @@ export default function RestauranteApplicationClient() {
                     onClick={() => setCouponDetailDrawer(true)}
                     className="min-h-[44px] shrink-0 rounded-full border-2 border-[color:var(--lx-gold-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                   >
-                    {lang === "en" ? "See more" : "Ver más"}
+                    {fc.common.seeMore}
                   </button>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <button
@@ -1930,7 +1812,7 @@ export default function RestauranteApplicationClient() {
                       }}
                       className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
                     >
-                      {lang === "en" ? "Add coupons for $99/month" : "Agregar cupones por $99/mes"}
+                      {fc.sectionG.addCouponsForPrice}
                     </button>
                     <button
                       type="button"
@@ -1939,7 +1821,7 @@ export default function RestauranteApplicationClient() {
                       }}
                       className="min-h-[44px] shrink-0 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] transition hover:bg-[color:var(--lx-nav-hover)]"
                     >
-                      {lang === "en" ? "Continue without coupons" : "Continuar sin cupones"}
+                      {fc.couponUpsell.continueWithoutCoupons}
                     </button>
                   </div>
                 </div>
@@ -1953,7 +1835,7 @@ export default function RestauranteApplicationClient() {
                 {!isExistingDashboardListingMode ? (
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold text-[color:var(--lx-text)]">
-                    {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
+                    {fc.sectionG.couponsEnabled}
                   </span>
                   <button
                     type="button"
@@ -1962,27 +1844,25 @@ export default function RestauranteApplicationClient() {
                     }}
                     className="text-sm font-semibold text-red-700 underline"
                   >
-                    {lang === "en" ? "Remove" : "Quitar"}
+                    {fc.common.remove}
                   </button>
                 </div>
                 ) : null}
               </div>
-              <HelperText>
-                Agrega hasta <strong className="text-[color:var(--lx-text-2)]">4</strong> ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.
-              </HelperText>
+              <HelperText>{fc.sectionG.enabledHelper}</HelperText>
               <div className="mt-4 grid gap-4">
             {(draft.coupons ?? []).map((coupon, i) => (
               <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold">Cupón {i + 1}</span>
+                  <span className="text-sm font-semibold">{fc.common.couponNumber} {i + 1}</span>
                   <button type="button" className="text-sm text-red-700 underline" onClick={() => removeCoupon(i)}>
-                    Quitar
+                    {fc.common.remove}
                   </button>
                 </div>
                 <div className="mt-3 grid gap-3">
                   <div>
-                    <FieldLabel>Título del cupón</FieldLabel>
-                    <HelperText>Ej. "2x1 en tacos", "10% de descuento", "Combo familiar"</HelperText>
+                    <FieldLabel>{fc.sectionG.couponTitleLabel}</FieldLabel>
+                    <HelperText>{fc.sectionG.couponTitleHelper}</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.title}
@@ -1990,8 +1870,8 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel>Descripción</FieldLabel>
-                    <HelperText>Describe la oferta, condiciones o restricciones.</HelperText>
+                    <FieldLabel>{fc.sectionG.couponDescriptionLabel}</FieldLabel>
+                    <HelperText>{fc.sectionG.couponDescriptionHelper}</HelperText>
                     <textarea
                       className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.description}
@@ -1999,18 +1879,18 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Código de cupón</FieldLabel>
-                    <HelperText>Código que el cliente debe mencionar o ingresar (si aplica).</HelperText>
+                    <FieldLabel optional lang={lang}>{fc.sectionG.couponCodeLabel}</FieldLabel>
+                    <HelperText>{fc.sectionG.couponCodeHelper}</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.couponCode ?? ""}
                       onChange={(e) => patchCoupon(i, { couponCode: e.target.value || undefined })}
-                      placeholder="Ej. LEONIX10"
+                      placeholder={fc.sectionG.couponCodePlaceholder}
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Fecha de expiración</FieldLabel>
-                    <HelperText>Fecha límite de vigencia (si aplica).</HelperText>
+                    <FieldLabel optional lang={lang}>{fc.sectionG.couponExpirationLabel}</FieldLabel>
+                    <HelperText>{fc.sectionG.couponExpirationHelper}</HelperText>
                     <input
                       className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       type="date"
@@ -2019,8 +1899,8 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Nota de canje</FieldLabel>
-                    <HelperText>Ej. Menciona este cupón al ordenar.</HelperText>
+                    <FieldLabel optional lang={lang}>{fc.sectionG.couponRedemptionLabel}</FieldLabel>
+                    <HelperText>{fc.sectionG.couponRedemptionHelper}</HelperText>
                     <textarea
                       className="mt-1 min-h-[64px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                       value={coupon.redemptionNote ?? ""}
@@ -2028,8 +1908,8 @@ export default function RestauranteApplicationClient() {
                     />
                   </div>
                   <div>
-                    <FieldLabel optional>Imagen del cupón</FieldLabel>
-                    <HelperText>Sube una imagen del cupón o pega una URL.</HelperText>
+                    <FieldLabel optional lang={lang}>{fc.sectionG.couponImageLabel}</FieldLabel>
+                    <HelperText>{fc.sectionG.couponImageHelper}</HelperText>
                     <div className="mt-1 space-y-2">
                       <div
                         className="rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
@@ -2054,14 +1934,14 @@ export default function RestauranteApplicationClient() {
                           }}
                         />
                         <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                          {uploadLabels[`coupon-${i}`] ? `✅ ${uploadLabels[`coupon-${i}`]}` : lang === "en" ? "Or drag and drop an image" : "O arrastra y suelta una imagen"}
+                          {uploadLabels[`coupon-${i}`] ? `✅ ${uploadLabels[`coupon-${i}`]}` : fc.common.dragDropImage}
                         </p>
                       </div>
                       <input
                         className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                         value={coupon.imageUrl ?? ""}
                         onChange={(e) => patchCoupon(i, { imageUrl: e.target.value || undefined })}
-                        placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
+                        placeholder={fc.common.pasteImageUrl}
                       />
                       {coupon.imageUrl && (
                         <div className="mt-2 flex items-center gap-2">
@@ -2078,7 +1958,7 @@ export default function RestauranteApplicationClient() {
                             onClick={() => patchCoupon(i, { imageUrl: undefined })}
                             className="text-xs font-semibold text-red-600 hover:text-red-700"
                           >
-                            {lang === "en" ? "Remove" : "Eliminar"}
+                            {fc.common.delete}
                           </button>
                         </div>
                       )}
@@ -2093,14 +1973,14 @@ export default function RestauranteApplicationClient() {
                 onClick={addCoupon}
                 className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
               >
-                + Añadir cupón
+                {fc.common.addCoupon}
               </button>
             ) : null}
           </div>
 
           <div className="mt-6 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
-            <FieldLabel optional>Flyer de cupones o promociones</FieldLabel>
-            <HelperText>Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales.</HelperText>
+            <FieldLabel optional lang={lang}>{fc.sectionG.flyerLabel}</FieldLabel>
+            <HelperText>{fc.sectionG.flyerHelper}</HelperText>
             <div className="mt-2 space-y-2">
               <div
                 className="rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
@@ -2125,14 +2005,14 @@ export default function RestauranteApplicationClient() {
                   }}
                 />
                 <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                  {uploadLabels.flyer ? `✅ ${uploadLabels.flyer}` : lang === "en" ? "Or drag and drop an image" : "O arrastra y suelta una imagen"}
+                  {uploadLabels.flyer ? `✅ ${uploadLabels.flyer}` : fc.common.dragDropImage}
                 </p>
               </div>
               <input
                 className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.couponFlyer?.imageUrl ?? ""}
                 onChange={(e) => setDraftPatch({ couponFlyer: { imageUrl: e.target.value || undefined } })}
-                placeholder={lang === "en" ? "Or paste image URL" : "O pega URL de imagen"}
+                placeholder={fc.common.pasteImageUrl}
               />
               {draft.couponFlyer?.imageUrl && (
                 <div className="mt-2 flex items-center gap-2">
@@ -2149,7 +2029,7 @@ export default function RestauranteApplicationClient() {
                     onClick={() => setDraftPatch({ couponFlyer: { imageUrl: undefined } })}
                     className="text-xs font-semibold text-red-600 hover:text-red-700"
                   >
-                    {lang === "en" ? "Remove" : "Eliminar"}
+                    {fc.common.delete}
                   </button>
                 </div>
               )}
@@ -2157,22 +2037,22 @@ export default function RestauranteApplicationClient() {
           </div>
 
           <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
-            <FieldLabel optional>Enlace para ver más ofertas</FieldLabel>
-            <HelperText>URL externa donde los clientes pueden ver más cupones o promociones.</HelperText>
+            <FieldLabel optional lang={lang}>{fc.sectionG.moreOffersUrlLabel}</FieldLabel>
+            <HelperText>{fc.sectionG.moreOffersUrlHelper}</HelperText>
             <input
               className="mt-2 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
               value={draft.couponMoreOffers?.url ?? ""}
               onChange={(e) => setDraftPatch({ couponMoreOffers: { ...draft.couponMoreOffers, url: e.target.value || undefined } })}
-              placeholder="https://ejemplo.com/mas-cupones"
+              placeholder={fc.sectionG.moreOffersUrlPlaceholder}
             />
             <div className="mt-3">
-              <FieldLabel optional>Texto del botón</FieldLabel>
-              <HelperText>Texto personalizado para el botón (por defecto: "Ver más cupones").</HelperText>
+              <FieldLabel optional lang={lang}>{fc.sectionG.moreOffersButtonLabel}</FieldLabel>
+              <HelperText>{fc.sectionG.moreOffersButtonHelper}</HelperText>
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.couponMoreOffers?.buttonLabel ?? ""}
                 onChange={(e) => setDraftPatch({ couponMoreOffers: { ...draft.couponMoreOffers, buttonLabel: e.target.value || undefined } })}
-                placeholder="Ej. Ver menú con especiales"
+                placeholder={fc.sectionG.moreOffersButtonPlaceholder}
               />
             </div>
           </div>
@@ -2184,19 +2064,13 @@ export default function RestauranteApplicationClient() {
                 onClick={() => void saveExistingDashboardListing()}
                 className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
               >
-                {dashboardSaveBusy
-                  ? lang === "en"
-                    ? "Saving…"
-                    : "Guardando…"
-                  : lang === "en"
-                    ? "Save offers"
-                    : "Guardar ofertas"}
+                {dashboardSaveBusy ? fc.common.saving : fc.dashboard.saveOffers}
               </button>
               <Link
                 href={dashboardReturnHref}
                 className="inline-flex min-h-[44px] items-center rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
               >
-                {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                {fc.common.backToDashboard}
               </Link>
             </div>
           ) : null}
@@ -2208,20 +2082,12 @@ export default function RestauranteApplicationClient() {
         {/* H */}
         {activeSectionId === "restaurantes-section-h" ? (
         <section id="restaurantes-section-h" className={stepPanel}>
-          <SectionTitle>H · Galería y medios</SectionTitle>
-          <HelperText>
-            <strong className="text-[color:var(--lx-text-2)]">Hero</strong> = ancla visual superior de la ficha.{" "}
-            <strong className="text-[color:var(--lx-text-2)]">Interiores / Comida / Exterior</strong> = grupos
-            etiquetados en el detalle (no sustituyen a los platillos F). Usa <strong className="text-[color:var(--lx-text-2)]">Video opcional</strong>{" "}
-            para hasta 4 enlaces externos (YouTube, TikTok, etc.).
-          </HelperText>
+          <SectionTitle>{restauranteSectionHeading("H", "h", lang)}</SectionTitle>
+          <HelperText>{fc.sectionH.intro}</HelperText>
           <div className="mt-4 grid gap-4">
             <div>
-              <FieldLabel required>Foto principal (hero)</FieldLabel>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                Si no subes hero, la <strong>primera imagen</strong> del orden en G (galería) actúa como portada en vista previa,
-                resultados y publicación.
-              </p>
+              <FieldLabel required lang={lang}>{fc.sectionH.heroLabel}</FieldLabel>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{fc.sectionH.heroFallbackNote}</p>
               <div
                 className="mt-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
                 onDragOver={(e) => {
@@ -2236,16 +2102,16 @@ export default function RestauranteApplicationClient() {
                 }}
               >
                 <RestauranteUploadRow
-                  buttonLabel={mediaUploading.hero ? "Subiendo..." : "Subir imagen"}
-                  helperText="Clic o arrastra una imagen aquí. Miniatura en cuanto se guarde en el borrador de sesión."
+                  buttonLabel={mediaUploading.hero ? fc.common.uploading : fc.common.uploadImage}
+                  helperText={fc.sectionH.heroUploadHelper}
                   accept="image/*"
                   disabled={mediaUploading.hero}
                   selectedLabel={
-                    mediaUploading.hero 
-                      ? "📤 Procesando imagen..."
+                    mediaUploading.hero
+                      ? `📤 ${fc.common.processingImage}`
                       : uploadLabels.hero ??
                         (draft.heroImage?.trim()
-                          ? "✅ Imagen guardada en el borrador"
+                          ? fc.common.savedInDraft
                           : null)
                   }
                   onFilesSelected={async (files) => {
@@ -2265,7 +2131,7 @@ export default function RestauranteApplicationClient() {
                 {mediaUploading.hero && (
                   <div className="flex items-center gap-2 text-xs text-blue-600 mt-2">
                     <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    Procesando imagen hero...
+                    {fc.common.processingHeroImage}
                   </div>
                 )}
               </div>
@@ -2290,7 +2156,7 @@ export default function RestauranteApplicationClient() {
                         className="rounded-lg border border-[color:var(--lx-nav-border)] bg-white px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
                         onClick={() => document.getElementById("restaurante-hero-file")?.click()}
                       >
-                        Reemplazar
+                        {fc.common.replace}
                       </button>
                       <button
                         type="button"
@@ -2304,7 +2170,7 @@ export default function RestauranteApplicationClient() {
                           });
                         }}
                       >
-                        Quitar imagen
+                        {fc.common.removeImage}
                       </button>
                     </div>
                   </div>
@@ -2342,11 +2208,8 @@ export default function RestauranteApplicationClient() {
             
             {/* Business Logo Upload */}
             <div>
-              <FieldLabel optional>Logo del negocio</FieldLabel>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                Logo opcional que aparecerá como una pequeña insignia redonda sobre la imagen hero. 
-                Formato cuadrado recomendado. Se mostrará en la esquina superior izquierda de la imagen hero.
-              </p>
+              <FieldLabel optional lang={lang}>{fc.sectionH.logoLabel}</FieldLabel>
+              <p className="mt-1 text-xs text-[color:var(--lx-muted)]">{fc.sectionH.logoHelper}</p>
               <div
                 className="mt-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/25 p-3"
                 onDragOver={(e) => {
@@ -2361,16 +2224,16 @@ export default function RestauranteApplicationClient() {
                 }}
               >
                 <RestauranteUploadRow
-                  buttonLabel={mediaUploading.logo ? "Subiendo..." : "Subir logo"}
-                  helperText="Clic o arrastra una imagen cuadrada aquí. El logo se mostrará como una insignia redonda."
+                  buttonLabel={mediaUploading.logo ? fc.common.uploading : fc.common.uploadLogo}
+                  helperText={fc.sectionH.logoUploadHelper}
                   accept="image/*"
                   disabled={mediaUploading.logo}
                   selectedLabel={
-                    mediaUploading.logo 
-                      ? "📤 Procesando logo..."
-                      : uploadLabels.logo ?? 
+                    mediaUploading.logo
+                      ? `📤 ${fc.common.processingLogo}`
+                      : uploadLabels.logo ??
                         (draft.businessLogo?.trim()
-                          ? "✅ Logo guardado en el borrador"
+                          ? fc.common.logoSavedInDraft
                           : null)
                   }
                   onFilesSelected={async (files) => {
@@ -2390,7 +2253,7 @@ export default function RestauranteApplicationClient() {
                 {mediaUploading.logo && (
                   <div className="flex items-center gap-2 text-xs text-blue-600 mt-2">
                     <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    Procesando logo...
+                    {fc.common.processingLogo}
                   </div>
                 )}
               </div>
@@ -2401,7 +2264,7 @@ export default function RestauranteApplicationClient() {
                       <RestauranteMediaPreviewImg
                         src={logoPreviewSrc ?? draft.businessLogo}
                         draftListingId={draft.draftListingId}
-                        alt="Logo del negocio"
+                        alt={fc.sectionH.logoAlt}
                         className="absolute inset-0 h-full w-full object-contain"
                         loading="lazy"
                         decoding="async"
@@ -2415,7 +2278,7 @@ export default function RestauranteApplicationClient() {
                         className="rounded-lg border border-[color:var(--lx-nav-border)] bg-white px-3 py-1.5 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
                         onClick={() => document.getElementById("restaurante-logo-file")?.click()}
                       >
-                        Reemplazar
+                        {fc.common.replace}
                       </button>
                       <button
                         type="button"
@@ -2429,7 +2292,7 @@ export default function RestauranteApplicationClient() {
                           });
                         }}
                       >
-                        Quitar logo
+                        {fc.common.removeLogo}
                       </button>
                     </div>
                   </div>
@@ -2469,7 +2332,7 @@ export default function RestauranteApplicationClient() {
               draft={draft}
               onChange={setDraftPatch}
             />
-            <RestauranteExternalVideoUrlsSection draft={draft} setDraftPatch={setDraftPatch} />
+            <RestauranteExternalVideoUrlsSection draft={draft} setDraftPatch={setDraftPatch} lang={lang} />
           </div>
         </section>
         ) : null}
@@ -2477,11 +2340,8 @@ export default function RestauranteApplicationClient() {
         {/* I */}
         {activeSectionId === "restaurantes-section-i" ? (
         <section id="restaurantes-section-i" className={stepPanel}>
-          <SectionTitle>I · Destacados del lugar</SectionTitle>
-          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">
-            Máximo <strong className="text-[color:var(--lx-text-2)]">6</strong> etiquetas en la ficha; aquí no puedes pasar de
-            seis seleccionadas.
-          </p>
+          <SectionTitle>{restauranteSectionHeading("I", "i", lang)}</SectionTitle>
+          <p className="mt-2 text-sm text-[color:var(--lx-muted)]">{fc.sectionI.intro}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {RESTAURANTE_HIGHLIGHTS.map((o) => {
               const cur = draft.highlights ?? [];
@@ -2511,11 +2371,8 @@ export default function RestauranteApplicationClient() {
         {/* J — Amenidades y más */}
         {activeSectionId === "restaurantes-section-j" ? (
           <section id="restaurantes-section-j" className={stepPanel}>
-            <SectionTitle>J · Amenidades y más</SectionTitle>
-            <HelperText>
-              Opcional. No es obligatorio para publicar. Las opciones aparecen en la vista previa y en la ficha pública
-              solo cuando marcas al menos una.
-            </HelperText>
+            <SectionTitle>{restauranteSectionHeading("J", "j", lang)}</SectionTitle>
+            <HelperText>{fc.sectionJ.intro}</HelperText>
             <RestauranteAmenitiesFormBlock draft={draft} setDraftPatch={setDraftPatch} lang={lang} />
           </section>
         ) : null}
@@ -2523,15 +2380,12 @@ export default function RestauranteApplicationClient() {
         {/* K */}
         {(draft.cateringAvailable || draft.eventFoodService) && activeSectionId === "restaurantes-section-k" ? (
           <section id="restaurantes-section-k" className={stepPanel}>
-            <SectionTitle>K · Catering y eventos</SectionTitle>
-            <HelperText>
-              Alcance de <strong className="text-[color:var(--lx-text-2)]">catering y comida para eventos</strong>. Aquí
-              defines anticipación, dónde solicitar cotización y radio de servicio.
-            </HelperText>
+            <SectionTitle>{restauranteSectionHeading("K", "k", lang)}</SectionTitle>
+            <HelperText>{fc.sectionK.intro}</HelperText>
             <div className="mt-4 grid gap-3">
               <div>
-                <FieldLabel optional>Tamaños de evento</FieldLabel>
-                <HelperText>Qué tamaños de grupo puedes atender.</HelperText>
+                <FieldLabel optional lang={lang}>{fc.sectionK.eventSizesLabel}</FieldLabel>
+                <HelperText>{fc.sectionK.eventSizesHelper}</HelperText>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {RESTAURANTE_EVENT_SIZES.map((o) => (
                     <label key={o.key} className="inline-flex items-center gap-2 text-sm">
@@ -2546,26 +2400,26 @@ export default function RestauranteApplicationClient() {
                           });
                         }}
                       />
-                      {labelForCuisine(o.key, lang)}
+                      {restauranteEventSizeLabel(o.key, o.labelEs, lang)}
                     </label>
                   ))}
                 </div>
               </div>
               {(
                 [
-                  ["bookingLeadTimeText", "Anticipación de reserva"],
-                  ["cateringInquiryUrl", "URL de solicitud"],
-                  ["cateringNote", "Nota"],
+                  ["bookingLeadTimeText", fc.sectionK.bookingLeadTimeLabel],
+                  ["cateringInquiryUrl", fc.sectionK.inquiryUrlLabel],
+                  ["cateringNote", fc.sectionK.cateringNoteLabel],
                 ] as const
               ).map(([k, lab]) => (
                 <div key={k}>
-                  <FieldLabel optional>{lab}</FieldLabel>
+                  <FieldLabel optional lang={lang}>{lab}</FieldLabel>
                   {k === "bookingLeadTimeText" ? (
-                    <HelperText>Con cuánta anticipación deben contactarte (ej. «mín. 2 semanas»).</HelperText>
+                    <HelperText>{fc.sectionK.bookingLeadTimeHelper}</HelperText>
                   ) : k === "cateringInquiryUrl" ? (
-                    <HelperText>Formulario o página donde el cliente pide presupuesto.</HelperText>
+                    <HelperText>{fc.sectionK.inquiryUrlHelper}</HelperText>
                   ) : (
-                    <HelperText>Añade algo importante para eventos: mínimo de personas, montaje, cargos extra por distancia o condiciones especiales.</HelperText>
+                    <HelperText>{fc.sectionK.cateringNoteHelper}</HelperText>
                   )}
                   <input
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
@@ -2579,8 +2433,8 @@ export default function RestauranteApplicationClient() {
                 </div>
               ))}
               <div>
-                <FieldLabel optional>Radio de servicio (millas)</FieldLabel>
-                <HelperText>Distancia aproximada desde tu base de operación donde ofreces catering o servicio en sitio.</HelperText>
+                <FieldLabel optional lang={lang}>{fc.sectionK.serviceRadiusLabel}</FieldLabel>
+                <HelperText>{fc.sectionK.serviceRadiusHelper}</HelperText>
                 <input
                   type="number"
                   min={0}
@@ -2603,15 +2457,9 @@ export default function RestauranteApplicationClient() {
         {/* Final — Confirmación antes de la vista previa */}
         {activeSectionId === "restaurantes-section-final" ? (
         <section id="restaurantes-section-final" className={stepPanel}>
-          <SectionTitle>Final · Confirmación antes de la vista previa</SectionTitle>
+          <SectionTitle>{fc.sectionFinal.title}</SectionTitle>
           <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
-            {isExistingDashboardListingMode
-              ? lang === "en"
-                ? "Save your restaurant changes here. The base plan will not be charged again. Use section G for offers if your module is active."
-                : "Guarda los cambios de tu restaurante aquí. No se volverá a cobrar el plan base. Usa la sección G para ofertas si tu módulo está activo."
-              : lang === "en"
-                ? "Check these boxes before reviewing your ad. Payment is completed after the preview."
-                : "Marca estas casillas antes de revisar tu anuncio. El pago se completa después de la vista previa."}
+            {isExistingDashboardListingMode ? fc.sectionFinal.introDashboard : fc.sectionFinal.introNew}
           </p>
           <div className="mt-4 space-y-3">
             <label className="flex cursor-pointer items-start gap-3">
@@ -2622,9 +2470,7 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setConfirmBusinessInfo(e.target.checked)}
               />
               <span className="text-sm text-[color:var(--lx-text)]">
-                {lang === "en"
-                  ? "I confirm that the restaurant information is truthful and up to date."
-                  : "Confirmo que la información del restaurante es veraz y actualizada."}
+                {fc.sectionFinal.confirmBusinessInfo}
               </span>
             </label>
             <label className="flex cursor-pointer items-start gap-3">
@@ -2635,9 +2481,7 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setConfirmPhotosRepresent(e.target.checked)}
               />
               <span className="text-sm text-[color:var(--lx-text)]">
-                {lang === "en"
-                  ? "I confirm that the photos, dishes, hours, offers, and contact details represent my business correctly."
-                  : "Confirmo que las fotos, platillos, horarios, ofertas y datos de contacto representan mi negocio correctamente."}
+                {fc.sectionFinal.confirmPhotosRepresent}
               </span>
             </label>
             <label className="flex cursor-pointer items-start gap-3">
@@ -2648,9 +2492,7 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setConfirmCommunityRules(e.target.checked)}
               />
               <span className="text-sm text-[color:var(--lx-text)]">
-                {lang === "en"
-                  ? "I confirm that my ad complies with Leonix rules and that I am responsible for the published information."
-                  : "Confirmo que mi anuncio cumple con las reglas de Leonix y que soy responsable por la información publicada."}
+                {fc.sectionFinal.confirmCommunityRules}
               </span>
             </label>
             {hasCouponContent ? (
@@ -2662,9 +2504,7 @@ export default function RestauranteApplicationClient() {
                   onChange={(e) => setConfirmCouponTerms(e.target.checked)}
                 />
                 <span className="text-sm text-[color:var(--lx-text)]">
-                  {lang === "en"
-                    ? "I confirm that the coupons and promotions are valid, with correct expiration dates and clear terms."
-                    : "Confirmo que los cupones y promociones son válidos, con fechas de expiración correctas y términos claros."}
+                  {fc.sectionFinal.confirmCouponTerms}
                 </span>
               </label>
             ) : null}
@@ -2672,23 +2512,23 @@ export default function RestauranteApplicationClient() {
           {!canContinueToPreview ? (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <p className="font-semibold">
-                {lang === "en" ? "To enable Preview, complete the following:" : "Para habilitar Vista previa, completa lo siguiente:"}
+                {fc.sectionFinal.previewGateTitle}
               </p>
               <ul className="mt-2 space-y-1 text-xs">
                 {!minPreviewOk && (
-                  <li>• {lang === "en" ? "Complete minimum required fields" : "Completa los campos mínimos requeridos"}</li>
+                  <li>• {fc.sectionFinal.previewGateMinFields}</li>
                 )}
                 {!confirmBusinessInfo && (
-                  <li>• {lang === "en" ? "Confirm restaurant information is correct" : "Confirma que la información del restaurante es correcta"}</li>
+                  <li>• {fc.sectionFinal.previewGateConfirmInfo}</li>
                 )}
                 {!confirmPhotosRepresent && (
-                  <li>• {lang === "en" ? "Confirm photos and data represent your business" : "Confirma que las fotos y datos representan tu negocio"}</li>
+                  <li>• {fc.sectionFinal.previewGateConfirmPhotos}</li>
                 )}
                 {!confirmCommunityRules && (
-                  <li>• {lang === "en" ? "Confirm you comply with Leonix rules" : "Confirma que cumples las reglas de Leonix"}</li>
+                  <li>• {fc.sectionFinal.previewGateConfirmRules}</li>
                 )}
                 {hasCouponContent && !confirmCouponTerms && (
-                  <li>• {lang === "en" ? "Confirm promotions are valid" : "Confirma que las promociones son válidas"}</li>
+                  <li>• {fc.sectionFinal.previewGateConfirmPromos}</li>
                 )}
               </ul>
             </div>
@@ -2702,19 +2542,13 @@ export default function RestauranteApplicationClient() {
                   onClick={() => void saveExistingDashboardListing()}
                   className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
                 >
-                  {dashboardSaveBusy
-                    ? lang === "en"
-                      ? "Saving…"
-                      : "Guardando…"
-                    : lang === "en"
-                      ? "Save restaurant changes"
-                      : "Guardar cambios del restaurante"}
+                  {dashboardSaveBusy ? fc.common.saving : fc.dashboard.saveRestaurantChanges}
                 </button>
                 <Link
                   href={dashboardReturnHref}
                   className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--lx-text)]"
                 >
-                  {lang === "en" ? "Back to dashboard" : "Volver al panel"}
+                  {fc.common.backToDashboard}
                 </Link>
               </>
             ) : (
@@ -2726,7 +2560,7 @@ export default function RestauranteApplicationClient() {
                 disabled={!canContinueToPreview}
                 className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {lang === "en" ? "Preview" : "Vista previa"}
+                {fc.sectionFinal.preview}
               </button>
               <button
                 type="button"
@@ -2737,7 +2571,7 @@ export default function RestauranteApplicationClient() {
                 }}
                 className="min-h-[44px] rounded-full border border-[color:var(--lx-nav-border)] bg-white px-6 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
               >
-                {lang === "en" ? "Delete request" : "Eliminar solicitud"}
+                {fc.sectionFinal.deleteRequest}
               </button>
             </div>
             <button
@@ -2746,7 +2580,7 @@ export default function RestauranteApplicationClient() {
               disabled={!canContinueToPreview}
               className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[200px]"
             >
-              {lang === "en" ? "Continue to preview" : "Continuar a vista previa"}
+              {fc.sectionFinal.continueToPreview}
             </button>
             </>
             )}
@@ -2764,7 +2598,7 @@ export default function RestauranteApplicationClient() {
               if (prev) setActiveSectionId(prev.id);
             }}
           >
-            Atrás
+            {fc.common.back}
           </button>
           <button
             type="button"
@@ -2775,7 +2609,7 @@ export default function RestauranteApplicationClient() {
               if (next) setActiveSectionId(next.id);
             }}
           >
-            Siguiente
+            {fc.common.next}
           </button>
         </div>
         </div>
@@ -2786,40 +2620,40 @@ export default function RestauranteApplicationClient() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCouponDetailDrawer(false)}>
           <div className="max-w-lg rounded-2xl bg-[#FFFCF7] p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-[#1E1810]">
-              {lang === "en" ? "What's included with Featured Coupons" : "Qué incluye Cupones Destacados"}
+              {fc.sectionG.drawerTitle}
             </h2>
             <ul className="mt-4 space-y-2">
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Up to 4 main coupons within the restaurant profile" : "Hasta 4 cupones principales dentro del perfil del restaurante"}</span>
+                <span>{fc.sectionG.drawerItem1}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Fields for title, description, code, expiration, and redemption note" : "Campos para título, descripción, código, vencimiento y nota de canje"}</span>
+                <span>{fc.sectionG.drawerItem2}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Option to add coupon flyer/image or promotion image" : "Opción para agregar flyer/imagen del cupón o promoción"}</span>
+                <span>{fc.sectionG.drawerItem3}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Option to add external URL for coupon, menu, landing page, or promotion" : "Opción para agregar URL externa de cupón, menú, landing page o promoción"}</span>
+                <span>{fc.sectionG.drawerItem4}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Customer can share coupon by link, SMS/email/app share when supported" : "El cliente puede compartir el cupón por enlace, SMS/email/app share cuando esté disponible"}</span>
+                <span>{fc.sectionG.drawerItem5}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Coupons appear below \"House Specialties\" on the public profile" : "Los cupones aparecen debajo de \"Especialidades de la Casa\" en la ficha pública"}</span>
+                <span>{fc.sectionG.drawerItem6}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Coupons carry Leonix branding / \"Published on Leonix\" where appropriate" : "Los cupones llevan marca Leonix / \"Publicado en Leonix\" donde corresponda"}</span>
+                <span>{fc.sectionG.drawerItem7}</span>
               </li>
               <li className="flex items-start gap-2 text-sm text-[#5C5346]">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#B8954A]" />
-                <span>{lang === "en" ? "Final review before publication" : "Revisión final antes de publicación"}</span>
+                <span>{fc.sectionG.drawerItem8}</span>
               </li>
             </ul>
             <button
@@ -2827,7 +2661,7 @@ export default function RestauranteApplicationClient() {
               onClick={() => setCouponDetailDrawer(false)}
               className="mt-6 min-h-[44px] w-full rounded-full bg-[#1E1810] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3D2C12]"
             >
-              {lang === "en" ? "Close" : "Cerrar"}
+              {fc.common.close}
             </button>
           </div>
         </div>

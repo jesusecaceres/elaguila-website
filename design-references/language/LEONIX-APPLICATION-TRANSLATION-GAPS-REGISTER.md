@@ -1,10 +1,12 @@
 # LEONIX APPLICATION TRANSLATION GAPS REGISTER
 
-Gate: `LEONIX-APPLICATION-TRANSLATION-COVERAGE-AUDIT-AND-FIX1`
+Gate: `LEONIX-APPLICATION-TRANSLATION-COVERAGE-AUDIT-AND-FIX1` + final pass `LEONIX-RESTAURANTES-LANDING-APPLICATION-PREVIEW-TRANSLATION-FINAL-PASS1`
 Date: 2026-07-10
 Future batch gate: `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1`
 
 Official languages: `es`, `en`, `pt`, `tl` (PT/TL UI chrome falls back to EN via `navCopyLang` until dedicated dictionaries exist).
+
+**Restaurantes status (final pass):** Landing, application (sections A–K + Final), preview, publish/checkout chrome, and primary results filters — **ES/EN complete**. See [`LEONIX-RESTAURANTES-LANDING-APPLICATION-PREVIEW-TRANSLATION-FINAL-PASS.md`](LEONIX-RESTAURANTES-LANDING-APPLICATION-PREVIEW-TRANSLATION-FINAL-PASS.md).
 
 ---
 
@@ -12,8 +14,9 @@ Official languages: `es`, `en`, `pt`, `tl` (PT/TL UI chrome falls back to EN via
 
 | Category | Surface | Gap | Risk | Recommended Future Gate |
 |----------|---------|-----|------|-------------------------|
-| Restaurantes | Application section body copy (A–K helper paragraphs, field labels outside taxonomy) | Many section titles and helper paragraphs remain Spanish-only inline (`A · Identidad del negocio`, contact/location blocks) | Medium — EN users see mixed chrome on deep form sections | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` (Restaurantes body copy pass) |
-| Restaurantes | `Seleccionar…` / select placeholders | Spanish-only placeholder on taxonomy selects | Low | Same batch — extend `restauranteApplicationUiCopy` |
+| Restaurantes | ~~Application section body copy~~ | **RESOLVED** — `restauranteApplicationFormCopy.ts` + client wiring (final pass) | — | — |
+| Restaurantes | ~~Select placeholders / field labels~~ | **RESOLVED** — `fc.common.selectPlaceholder` and section dictionaries | — | — |
+| Restaurantes | Static page metadata title (`/publicar/restaurantes`) | Spanish-only browser tab title | Low | Optional metadata gate |
 | Autos | `AutosPrivadoApplication.tsx`, `AutosNegociosPublishConfirm.tsx`, `AutosPublishConfirmCore.tsx` | Binary `?lang=en` parsing; no `resolveClasificadosPublishLang` | High — same root cause as pre-fix Restaurantes | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
 | Servicios | `ServiciosApplicationForm.tsx`, servicios publish/preview flows | Binary lang checks; Spanish-only validation/issue strings | High | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
 | Empleos | `EmpleoQuickApplicationClient.tsx`, `EmpleoPremiumApplicationClient.tsx`, `EmpleoFeriaApplicationClient.tsx` | Binary `sp?.get("lang") === "en"` | High | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |

@@ -574,6 +574,9 @@ export async function getActiveLiveAutosBundle(
   lane: AutosClassifiedsLane;
   publicRow: AutosPublicListing;
   leonix_ad_id: string | null;
+  inventory_role: "main" | "inventory_vehicle" | null;
+  dealer_inventory_group_id: string | null;
+  dealer_inventory_parent_listing_id: string | null;
 } | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
@@ -614,5 +617,13 @@ export async function getActiveLiveAutosBundle(
     }
   }
   const leonix_ad_id = row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null;
-  return { listing: normalized, lane: row.lane, publicRow: currentPublic, leonix_ad_id };
+  return {
+    listing: normalized,
+    lane: row.lane,
+    publicRow: currentPublic,
+    leonix_ad_id,
+    inventory_role: row.inventory_role ?? null,
+    dealer_inventory_group_id: row.dealer_inventory_group_id?.trim() || null,
+    dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id?.trim() || null,
+  };
 }

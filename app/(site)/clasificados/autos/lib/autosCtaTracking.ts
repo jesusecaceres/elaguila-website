@@ -1,5 +1,22 @@
 import type { ListingAnalyticsEventType } from "@/app/lib/listingAnalyticsEventTypes";
 import {
+  autosAnalyticsContextFromProps,
+  trackAutosCustomLinkClickGlobal,
+  trackAutosDirectionsClickGlobal,
+  trackAutosEmailClickGlobal,
+  trackAutosFinancePreapprovalClickGlobal,
+  trackAutosGoogleBusinessClickGlobal,
+  trackAutosGoogleReviewsClickGlobal,
+  trackAutosNamedCtaClick,
+  trackAutosPhoneClickGlobal,
+  trackAutosScheduleTestDriveClickGlobal,
+  trackAutosTextMessageClickGlobal,
+  trackAutosWebsiteClickGlobal,
+  trackAutosWhatsAppClickGlobal,
+  trackAutosYelpClickGlobal,
+} from "@/app/lib/clasificados/autos/analytics/autosGlobalAnalytics";
+import type { AutosPublicListingAnalyticsProps } from "./autosAnalyticsIdentity";
+import {
   autosGlobalListingFromRow,
   recordAutosGlobalAnalyticsEvent,
   type AutosGlobalAnalyticsListing,
@@ -21,6 +38,19 @@ function listingFromMeta(meta?: AutosAnalyticsTrackMeta): AutosGlobalAnalyticsLi
   return autosGlobalListingFromRow({ id: sourceId, leonix_ad_id: meta?.leonixAdId });
 }
 
+function analyticsContextFromMeta(meta?: AutosAnalyticsTrackMeta) {
+  const sourceId = (meta?.sourceId ?? "").trim();
+  if (!sourceId) return null;
+  return autosAnalyticsContextFromProps({
+    listingSourceId: sourceId,
+    leonixAdId: meta?.leonixAdId,
+    lane: meta?.lane,
+    inventoryRole: meta?.inventoryRole as AutosPublicListingAnalyticsProps["inventoryRole"],
+    dealerInventoryGroupId: meta?.dealerInventoryGroupId as string | null | undefined,
+    dealerInventoryParentListingId: meta?.dealerInventoryParentListingId as string | null | undefined,
+  });
+}
+
 function eventSourceForMeta(meta?: AutosAnalyticsTrackMeta): string {
   const source = String(meta?.source ?? "");
   if (source.includes("card") || source.includes("result")) return "results_card_contact";
@@ -31,7 +61,23 @@ export function trackAutosListingContactCta(
   ctaType: AutosContactCtaType,
   meta?: AutosAnalyticsTrackMeta,
 ): void {
+  const ctx = analyticsContextFromMeta(meta);
   const listing = listingFromMeta(meta);
+  const eventSource = eventSourceForMeta(meta);
+
+  if (ctx) {
+    if (ctaType === "phone") trackAutosPhoneClickGlobal(ctx, eventSource);
+    else if (ctaType === "whatsapp") trackAutosWhatsAppClickGlobal(ctx, eventSource);
+    else if (ctaType === "email") trackAutosEmailClickGlobal(ctx, eventSource);
+    else if (ctaType === "message") trackAutosTextMessageClickGlobal(ctx, eventSource);
+    else if (ctaType === "website") trackAutosWebsiteClickGlobal(ctx, eventSource);
+    else if (ctaType === "directions") trackAutosDirectionsClickGlobal(ctx, eventSource);
+    else if (ctaType === "contact") {
+      trackAutosEventLegacy(listing, "contact_click", eventSource, meta);
+    }
+    return;
+  }
+
   if (!listing) return;
 
   const map: Record<AutosContactCtaType, ListingAnalyticsEventType> = {
@@ -54,6 +100,57 @@ export function trackAutosListingContactCta(
       ...(meta ?? {}),
     },
   });
+}
+
+function trackAutosEventLegacy(
+  listing: AutosGlobalAnalyticsListing | null,
+  eventType: ListingAnalyticsEventType,
+  eventSource: string,
+  meta?: AutosAnalyticsTrackMeta,
+): void {
+  if (!listing) return;
+  recordAutosGlobalAnalyticsEvent(listing, eventType, {
+    event_source: eventSource,
+    metadata: {
+      lane: meta?.lane,
+      ...(meta ?? {}),
+    },
+  });
+}
+
+export function trackAutosGoogleReviewsCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosGoogleReviewsClickGlobal(ctx);
+}
+
+export function trackAutosYelpCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosYelpClickGlobal(ctx);
+}
+
+export function trackAutosGoogleBusinessCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosGoogleBusinessClickGlobal(ctx);
+}
+
+export function trackAutosCustomDealershipLinkCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosCustomLinkClickGlobal(ctx);
+}
+
+export function trackAutosScheduleTestDriveCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosScheduleTestDriveClickGlobal(ctx);
+}
+
+export function trackAutosFinancePreapprovalCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosFinancePreapprovalClickGlobal(ctx);
+}
+
+export function trackAutosDealerInventoryOpenCta(meta?: AutosAnalyticsTrackMeta): void {
+  const ctx = analyticsContextFromMeta(meta);
+  if (ctx) trackAutosNamedCtaClick(ctx, "dealer_inventory_open");
 }
 
 /** Infer contact CTA type from href and record global analytics (AUTO1). */

@@ -6,8 +6,15 @@ import { FiMapPin } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import {
+  autosGlobalLikeRecorder,
+  autosGlobalListingFromRow,
+  autosGlobalSaveRecorder,
+  autosGlobalShareRecorder,
+} from "../lib/recordAutosGlobalAnalytics";
 import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
 import { trackAutosListingEvent } from "../lib/autosListingAnalyticsClient";
+import { trackAutosResultCardClick } from "../lib/autosCtaTracking";
 import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../lib/autosPublicBlueprintCopy";
 import type { AutosPublicListing } from "../data/autosPublicSampleTypes";
 import { autosLiveVehiclePath } from "../filters/autosBrowseFilterContract";
@@ -66,14 +73,17 @@ export function AutosResultCard({
 }: AutosResultCardProps) {
   // Track click when card is clicked
   const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
+  const isDealer = listing.sellerType === "dealer";
   const handleCardClick = () => {
+    if (isDealer) {
+      trackAutosResultCardClick({ id: listing.id, leonix_ad_id: listing.leonixAdId, lane: "negocios" });
+    }
     trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, {
       lane: trackLane,
       leonixAdId: listing.leonixAdId,
     });
   };
 
-  const isDealer = listing.sellerType === "dealer";
   const hasMonthlyEstimate = Boolean(listing.monthlyEstimate);
 
   // Build vehicle facts for compact display
@@ -112,6 +122,10 @@ export function AutosResultCard({
 
   const copy = AUTOS_PUBLIC_BLUEPRINT_COPY[lang === "en" ? "en" : "es"];
   const detailHref = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
+  const globalListing = isDealer
+    ? autosGlobalListingFromRow({ id: listing.id, leonix_ad_id: listing.leonixAdId })
+    : null;
+  const listingShareUrl = typeof window !== "undefined" ? `${window.location.origin}${detailHref}` : "";
 
   const sellerName = isDealer ? listing.dealerName : listing.privateSellerLabel;
   const sellerLabel = isDealer ? copy.sellerLaneBadgeDealer : copy.sellerLaneBadgePrivate;
@@ -209,35 +223,41 @@ export function AutosResultCard({
         </div>
 
         {/* Engagement Metrics */}
-        {showEngagementMetrics && (
+        {showEngagementMetrics && isDealer && globalListing ? (
           <div className={ENGAGEMENT_ROW}>
-            <div className="flex items-center gap-3 flex-1">
+            <div className="flex items-center gap-3 flex-1" onClick={(e) => e.preventDefault()}>
               <LeonixLikeButton
-                listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+                listingId={listing.id}
                 ownerUserId={listing.ownerUserId ?? undefined}
                 variant="small"
                 lang={lang}
                 category="autos"
+                persistEngagement
+                recordLikeEvent={autosGlobalLikeRecorder(globalListing)}
               />
               <LeonixSaveButton
-                listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+                listingId={listing.id}
                 ownerUserId={listing.ownerUserId ?? undefined}
                 variant="small"
                 lang={lang}
                 category="autos"
+                persistEngagement
+                recordSaveEvent={autosGlobalSaveRecorder(globalListing)}
               />
               <LeonixShareButton
-                listingId={(listing.leonixAdId ?? "").trim() || listing.id}
+                listingId={listing.id}
                 ownerUserId={listing.ownerUserId ?? undefined}
                 listingTitle={listing.vehicleTitle}
-                listingUrl={typeof window !== "undefined" ? `${window.location.origin}${detailHref}` : ""}
+                listingUrl={listingShareUrl}
                 variant="small"
                 lang={lang}
                 category="autos"
+                persistEngagement
+                recordShareEvent={autosGlobalShareRecorder(globalListing, "results_card_share")}
               />
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </Link>
   );

@@ -73,6 +73,12 @@ Pricing can be updated centrally in `packagePricingRules.ts` — do not scatter 
 - Promo code never grants placement/ranking/verification — only discounts eligible checkout when redemption is wired.
 - See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
+### 5b. Public CTA placements (Home + Digital Magazine)
+
+- **Home / Inicio** (`/home`): `LeonixLaunchCouponCard` compact — `source=home`, `sourceCta=launch_25`.
+- **Digital magazine** (`/magazine`): same card — `source=digital_magazine`, `sourceCta=launch_25`.
+- Routes to `/newsletter` signup only; no print/combo/manual promise on these surfaces.
+
 ---
 
 ## 6. Sales rep attribution

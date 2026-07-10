@@ -197,3 +197,18 @@ See also **`docs/newsletter-operations-readiness.md`** for the full admin operat
 8. Confirm no package entitlement was created.
 9. Confirm no public ranking/placement changed.
 10. Confirm `npm run build` passes.
+
+---
+
+## 9. Public Launch 25 placements (Home + Digital Magazine)
+
+**Gate:** LAUNCH-25-PUBLIC-PLACEMENTS-01
+
+| Surface | Route | Newsletter source |
+|---------|-------|-------------------|
+| Home / Inicio | `/home?lang=es` | `source=home` |
+| Digital magazine | `/magazine?lang=es` | `source=digital_magazine` |
+
+Both use `LeonixLaunchCouponCard` (`variant="compact"`) with `sourceCta=launch_25`. No newsletter API or checkout changes in this gate.
+
+**Verifier:** `npm run verify:launch-25-public-placements`

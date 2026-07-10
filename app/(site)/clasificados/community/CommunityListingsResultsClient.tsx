@@ -266,7 +266,6 @@ export function CommunityListingsResultsClient({
             <CommunityResultsSearchPanel
               category={category}
               lang={lang}
-              resultsAction={resultsAction}
               clearHref={clearHref}
             />
           </div>

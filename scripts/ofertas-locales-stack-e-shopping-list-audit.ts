@@ -153,6 +153,20 @@ function run() {
   assert.ok(!copy.toLowerCase().includes("magazine holder pipeline"), "no magazine holder pipeline wording");
   assert.ok(!copy.toLowerCase().includes("fake partner"), "no fake partner wording");
 
+  const publicOffersRoute = read("app/api/ofertas-locales/public-offers/route.ts");
+  const publicSearchRoute = read("app/api/ofertas-locales/public-search/route.ts");
+  const publishRoute = read("app/api/ofertas-locales/publish/route.ts");
+  assert.ok(publicOffersRoute.includes('.eq("status", "approved")'), "public offers require approved status");
+  assert.ok(
+    publicSearchRoute.includes('.eq("review_status", "approved")') &&
+      publicSearchRoute.includes(".eq(\"is_active\", true)") &&
+      publicSearchRoute.includes('.eq("ofertas_locales.status", "approved")'),
+    "public search triple gate on items"
+  );
+  assert.ok(publishRoute.includes("pending_review"), "publish inserts pending_review not public approved");
+  assert.ok(client.includes("/api/ofertas-locales/public-offers"), "client calls public offers API");
+  assert.ok(client.includes("/api/ofertas-locales/public-search"), "client calls public search API");
+
   assert.ok(
     copy.includes("Agregar a lista") && copy.includes("Add to list"),
     "add to list copy"

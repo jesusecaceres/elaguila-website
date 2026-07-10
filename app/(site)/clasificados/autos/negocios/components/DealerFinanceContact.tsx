@@ -18,7 +18,7 @@ import {
   autosSheetCtaAnalyticsProps,
   type AutosPublicListingAnalyticsProps,
 } from "../../lib/autosAnalyticsIdentity";
-import { trackAutosContactFromHref } from "../../lib/autosCtaTracking";
+import { trackAutosFinancePreapprovalCta } from "../../lib/autosCtaTracking";
 import {
   autosPreviewBusinessHubSectionLabelClass,
   autosPreviewRectActionClass,
@@ -56,6 +56,9 @@ export function DealerFinanceContact({
           sourceId: publicAnalytics.listingSourceId,
           leonixAdId: publicAnalytics.leonixAdId,
           lane: publicAnalytics.lane,
+          inventoryRole: publicAnalytics.inventoryRole,
+          dealerInventoryGroupId: publicAnalytics.dealerInventoryGroupId,
+          dealerInventoryParentListingId: publicAnalytics.dealerInventoryParentListingId,
           source: "detail_contact",
         })
       : undefined;
@@ -117,7 +120,7 @@ export function DealerFinanceContact({
             rel="noopener noreferrer"
             className={`${actionClass} min-h-[44px] gap-2`}
             onClick={() => {
-              if (contactMeta) trackAutosContactFromHref(appHref, contactMeta);
+              if (contactMeta) trackAutosFinancePreapprovalCta(contactMeta);
             }}
           >
             <FiExternalLink className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />

@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -78,6 +78,20 @@ export function CategoryStandardCompactSearchBar({
   const [state, setState] = useState(defaultValues?.state ?? LEONIX_LB_DEFAULT_STATE);
   const [zip, setZip] = useState(defaultValues?.zip ?? "");
   const [country, setCountry] = useState(defaultValues?.country ?? LEONIX_LB_DEFAULT_COUNTRY);
+
+  useEffect(() => {
+    setQ(defaultValues?.q ?? "");
+    setCity(defaultValues?.city ?? "");
+    setState(defaultValues?.state ?? LEONIX_LB_DEFAULT_STATE);
+    setZip(defaultValues?.zip ?? "");
+    setCountry(defaultValues?.country ?? LEONIX_LB_DEFAULT_COUNTRY);
+  }, [
+    defaultValues?.q,
+    defaultValues?.city,
+    defaultValues?.state,
+    defaultValues?.zip,
+    defaultValues?.country,
+  ]);
 
   const cityPh = lang === "es" ? "Ciudad" : "City";
   const statePh = lang === "es" ? "Estado" : "State";

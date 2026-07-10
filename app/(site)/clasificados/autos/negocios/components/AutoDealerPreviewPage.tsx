@@ -257,7 +257,8 @@ export function AutoDealerPreviewPage({
                 lang={lang}
                 listingTitle={h1}
                 listingUrl={publicUrl}
-                likeCount={analyticsMetrics?.likes}
+                likeCount={analyticsMetrics?.likes ?? 0}
+                publicAnalytics={publicAnalytics}
               />
             ) : null}
             <div className={`${autosPreviewBusinessHubShellClass} lg:sticky lg:top-28`}>

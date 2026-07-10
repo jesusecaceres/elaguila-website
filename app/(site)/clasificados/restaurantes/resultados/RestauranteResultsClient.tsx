@@ -7,12 +7,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   labelForBusinessType,
   labelForCuisine,
+  labelForHighlight,
+  labelForPriceLevel,
+  labelForServiceMode,
   RESTAURANTE_BUSINESS_TYPES,
   RESTAURANTE_CUISINES,
   RESTAURANTE_HIGHLIGHTS,
   RESTAURANTE_PRICE_LEVELS,
   RESTAURANTE_SERVICE_MODES,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type {
   RestauranteCuisineKey,
   RestauranteHighlightKey,
@@ -85,7 +89,10 @@ function rowMatchesCuisineFilter(param: string, row: RestaurantePublicResultsRow
 export function RestauranteResultsClient({ initialListings }: { initialListings: RestaurantePublicResultsRow[] }) {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [sp],
+  );
 
   const q = (sp?.get("q") ?? "").trim();
   const city = (sp?.get("city") ?? "").trim();
@@ -124,14 +131,14 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
   const setParam = useCallback(
     (patch: Record<string, string | undefined>) => {
       const next = new URLSearchParams(sp?.toString() ?? "");
-      next.set("lang", lang);
+      next.set("lang", routeLang);
       for (const [k, v] of Object.entries(patch)) {
         if (v === undefined || v === "") next.delete(k);
         else next.set(k, v);
       }
       router.push(`/clasificados/restaurantes/resultados?${next.toString()}`);
     },
-    [lang, router, sp]
+    [routeLang, router, sp]
   );
 
   const filtered = useMemo(() => {
@@ -226,7 +233,7 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
                 type="button"
                 className="w-full rounded-xl border border-[color:var(--lx-nav-border)] py-2 text-sm font-semibold text-[color:var(--lx-text-2)] hover:bg-[color:var(--lx-nav-hover)]"
                 onClick={() => {
-                  router.push(`/clasificados/restaurantes/resultados?lang=${lang}`);
+                  router.push(`/clasificados/restaurantes/resultados?lang=${routeLang}`);
                 }}
               >
                 {t.reset}
@@ -357,7 +364,7 @@ function FilterFields({
           <option value="">{lab("Todas", "All")}</option>
           {RESTAURANTE_CUISINES.filter((c) => c.key !== "other").map((c) => (
             <option key={c.key} value={c.key}>
-              {c.labelEs}
+              {labelForCuisine(c.key, lang)}
             </option>
           ))}
         </select>
@@ -372,7 +379,7 @@ function FilterFields({
           <option value="">{lab("Todos", "All")}</option>
           {RESTAURANTE_BUSINESS_TYPES.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.labelEs}
+              {labelForBusinessType(c.key, lang)}
             </option>
           ))}
         </select>
@@ -387,7 +394,7 @@ function FilterFields({
           <option value="">{lab("Todos", "All")}</option>
           {RESTAURANTE_PRICE_LEVELS.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.labelEs}
+              {labelForPriceLevel(c.key, lang)}
             </option>
           ))}
         </select>
@@ -402,7 +409,7 @@ function FilterFields({
           <option value="">{lab("Cualquiera", "Any")}</option>
           {RESTAURANTE_SERVICE_MODES.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.labelEs}
+              {labelForServiceMode(c.key, lang)}
             </option>
           ))}
         </select>
@@ -417,7 +424,7 @@ function FilterFields({
           <option value="">{lab("Cualquiera", "Any")}</option>
           {RESTAURANTE_HIGHLIGHTS.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.labelEs}
+              {labelForHighlight(c.key, lang)}
             </option>
           ))}
         </select>

@@ -10,6 +10,7 @@ import {
   autosRelatedInventoryAvailableAfterPublish,
   autosRelatedInventoryDraftCardLabel,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import { trackAutosResultCardClick } from "../../lib/autosCtaTracking";
 
 export type AutosDealerInventoryVehicleCardRow = {
   id: string;
@@ -124,7 +125,11 @@ export function AutosDealerInventoryVehicleCard({
           {body}
         </div>
       ) : (
-        <Link href={href} className="flex min-h-0 flex-1 flex-col">
+        <Link
+          href={href}
+          className="flex min-h-0 flex-1 flex-col"
+          onClick={() => trackAutosResultCardClick({ id: car.id, lane: "negocios" })}
+        >
           {body}
         </Link>
       )}
