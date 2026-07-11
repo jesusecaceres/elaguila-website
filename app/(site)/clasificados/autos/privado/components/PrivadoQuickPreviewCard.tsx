@@ -7,7 +7,7 @@ import { buildVehicleTitle, normalizeVehicleSegment } from "@/app/(site)/publica
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
 import { useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
 
-const CARD = "rounded-[20px] border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)]";
+const CARD = "rounded-[24px] border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] p-6 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-8";
 
 export function PrivadoQuickPreviewCard({ data }: { data: AutoDealerListing }) {
   const { lang } = useAutosPrivadoPreviewCopy();

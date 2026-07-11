@@ -36,18 +36,19 @@ export function PrivadoPreviewChrome({
   return (
     <div className="min-h-screen overflow-x-hidden pb-16 pt-4 text-[color:var(--lx-text)] sm:pt-6 md:pb-20" style={AUTO_DEALER_PREVIEW_PAGE_BG}>
       {/* Premium header */}
-      <header className="mx-auto max-w-[1280px] px-4 md:px-5 lg:px-6">
-        <div className="flex flex-col gap-4 rounded-[20px] border border-[color:var(--lx-gold-border)] bg-[#FFFDF7] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:flex-row sm:items-start sm:justify-between sm:p-6">
-          {/* Left: Logo + Title + Subtitle */}
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <Link href={classifiedsHref} className="block w-[min(140px,40vw)] max-w-[160px] shrink-0">
+      <header className="mx-auto max-w-[1440px] px-4 md:px-5 lg:px-6">
+        <div className="flex flex-col gap-4 rounded-[24px] border border-[color:var(--lx-gold-border)] bg-[#FFFDF7] p-6 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:flex-row sm:items-center sm:gap-8 sm:p-8">
+          {/* Left: Logo + Vertical Gold Divider + Title + Subtitle */}
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <Link href={classifiedsHref} className="block w-[min(160px,40vw)] max-w-[180px] shrink-0">
               <Image src={newLogo} alt="LEONIX MEDIA" className="h-auto w-full object-contain" priority />
             </Link>
+            <div className="hidden h-24 w-px shrink-0 bg-gradient-to-b from-transparent via-[#C9A84A] to-transparent sm:block" />
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-extrabold tracking-tight text-[#7A1E2C] sm:text-2xl">
+              <h1 className="font-serif text-3xl font-extrabold leading-tight tracking-tight text-[#7A1E2C] sm:text-4xl md:text-5xl lg:text-6xl">
                 {isEs ? "Autos en Leonix" : "Autos on Leonix"}
               </h1>
-              <p className="mt-1 text-sm font-medium text-[color:var(--lx-text-2)] sm:text-base">
+              <p className="mt-2 text-base font-medium leading-relaxed text-[color:var(--lx-text-2)] sm:text-lg">
                 {isEs
                   ? "Vendedores particulares y compradores en una experiencia clara."
                   : "Private sellers and buyers in one clear experience."}
