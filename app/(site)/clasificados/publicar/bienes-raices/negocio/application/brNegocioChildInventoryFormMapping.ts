@@ -7,6 +7,7 @@ import {
   resolveBrListingCity,
   isBrUsCountry,
 } from "@/app/lib/clasificados/bienes-raices/brLocationHelpers";
+import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   createEmptyAgenteIndividualResidencialState,
@@ -435,12 +436,16 @@ export function buildChildInventoryEditorState(
   parentHub: AgenteIndividualResidencialFormState,
   draft: BrNegocioAdditionalInventoryPropertyDraft | null,
   lang: "es" | "en" = "es",
+  opts?: { preferredCategoria?: BrNegocioCategoriaPropiedad | null },
 ): AgenteIndividualResidencialFormState {
   const hub = pickParentHubSlice(parentHub);
   if (!draft) {
+    const emptyChild = pickChildPropertySlice(createEmptyAgenteIndividualResidencialState());
+    const preferred = opts?.preferredCategoria;
     return mergePartialAgenteIndividualResidencial({
       ...hub,
-      ...pickChildPropertySlice(createEmptyAgenteIndividualResidencialState()),
+      ...emptyChild,
+      ...(preferred ? { categoriaPropiedad: preferred } : {}),
       additionalInventoryProperties: [],
     });
   }
@@ -467,7 +472,12 @@ export function buildChildInventoryEditorState(
       direccionPais: savedCountry,
     };
   }
-  return applyInventoryDraftToAgenteFormState(hub, normalized, lang);
+  const fromFlat = applyInventoryDraftToAgenteFormState(hub, normalized, lang);
+  const preferred = opts?.preferredCategoria;
+  if (preferred && !normalized.propertyForm) {
+    return { ...fromFlat, categoriaPropiedad: preferred };
+  }
+  return fromFlat;
 }
 
 export function validateAgenteChildInventoryForSave(

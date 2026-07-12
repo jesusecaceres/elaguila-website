@@ -31,8 +31,17 @@ const empleosModal = "app/(site)/publicar/empleos/shared/publish/EmpleosPublishC
 const empleosCheckout = "app/(site)/publicar/empleos/shared/publish/empleosRevenueCheckout.ts";
 const empleosQuick = "app/(site)/publicar/empleos/quick/EmpleoQuickApplicationClient.tsx";
 const empleosPremium = "app/(site)/publicar/empleos/premium/EmpleoPremiumApplicationClient.tsx";
-const autos = "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx";
+const empleosQuickPreview = "app/(site)/clasificados/empleos/quick-preview/EmpleoQuickPreviewClient.tsx";
+const empleosPremiumPreview = "app/(site)/clasificados/empleos/premium-preview/EmpleoPremiumPreviewClient.tsx";
+const autosPrivadoPreview = "app/(site)/clasificados/autos/privado/preview/AutosPrivadoPreviewClient.tsx";
+const autosConfirmCore = "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx";
+const restaurantesPreview = "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx";
+const bienesAgentPreview =
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx";
 const doc = "docs/newsletter-promo-code-readiness.md";
+const docPromoUi = "docs/publish-checkout-promo-validation-ui-01.md";
+const docStripe = "docs/stripe-revenue-os-category-checkout-wiring-01.md";
+const docPricing = "docs/pricing-promo-code-sales-model.md";
 const pkg = "package.json";
 
 for (const rel of [
@@ -46,8 +55,16 @@ for (const rel of [
   empleosCheckout,
   empleosQuick,
   empleosPremium,
-  autos,
+  empleosQuickPreview,
+  empleosPremiumPreview,
+  autosPrivadoPreview,
+  autosConfirmCore,
+  restaurantesPreview,
+  bienesAgentPreview,
   doc,
+  docPromoUi,
+  docStripe,
+  docPricing,
   pkg,
 ]) {
   if (!existsSync(path.join(root, rel))) fail(`Missing required file: ${rel}`);
@@ -63,7 +80,6 @@ const empleosModalSrc = read(empleosModal);
 const empleosCheckoutSrc = read(empleosCheckout);
 const empleosQuickSrc = read(empleosQuick);
 const empleosPremiumSrc = read(empleosPremium);
-const autosSrc = read(autos);
 const docSrc = read(doc);
 const pkgSrc = read(pkg);
 
@@ -72,8 +88,38 @@ if (!redemptionsSrc.includes("website_launch_25")) fail("Redemptions must recogn
 if (!redemptionsSrc.includes("WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS")) {
   fail("Redemptions must define the allowlisted package keys");
 }
-for (const key of ["rentas_30d", "empleos_job_post_paid", "autos_privado_30d", "restaurantes_base_monthly", "servicios_base_monthly"]) {
+const LAUNCH_25_READY_PACKAGE_KEYS = [
+  "rentas_30d",
+  "empleos_job_post_paid",
+  "autos_privado_30d",
+  "restaurantes_base_monthly",
+  "servicios_base_monthly",
+];
+for (const key of LAUNCH_25_READY_PACKAGE_KEYS) {
   if (!redemptionsSrc.includes(key)) fail(`Allowlist missing package key: ${key}`);
+}
+// Ineligible / not-ready keys must never appear in the Launch 25 allowlist.
+const LAUNCH_25_FORBIDDEN_ALLOWLIST_KEYS = [
+  "br_agent_monthly",
+  "br_fsbo_45d",
+  "br_inventory_pack_monthly",
+  "autos_dealer_monthly",
+  "autos_dealer_inventory_pack_monthly",
+  "restaurantes_offers_addon",
+  "servicios_offers_addon",
+  "clases_paid_30d",
+  "clases_free",
+  "comunidad_free",
+  "en_venta_free_v1",
+  "empleos_job_fair_free",
+  "viajes_business_monthly",
+  "mascotas_free",
+  "busco_free",
+];
+for (const key of LAUNCH_25_FORBIDDEN_ALLOWLIST_KEYS) {
+  if (new RegExp(`["']${key}["']`).test(redemptionsSrc.match(/WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS[\s\S]*?];/)?.[0] ?? "")) {
+    fail(`Allowlist must not include ineligible package key: ${key}`);
+  }
 }
 if (!redemptionsSrc.includes("isWebsiteLaunch25Promo") || !redemptionsSrc.includes("resolveWebsiteLaunch25Rejection")) {
   fail("Redemptions must expose Launch 25 detection + rejection helpers");
@@ -128,29 +174,56 @@ if (fieldSrcNoComments.match(/placement|ranking|verified|verification/i)) {
 }
 ok("shared promo field copy present, no placement/ranking claims");
 
-// Category surfaces forward promo code — RevenuePromoField (Empleos, Autos) or PublishCheckoutCheckpoint (Rentas, Servicios)
+// Category surfaces forward promo code via PublishCheckoutCheckpoint (central Revenue OS pattern)
 if (!rentasSrc.includes("PublishCheckoutCheckpoint") || !rentasSrc.includes("onPromoApply")) {
   fail("Rentas privado must use PublishCheckoutCheckpoint with server promo validation");
 }
 if (!rentasSrc.includes("promoCode: ctx.promoCode") || !rentasSrc.includes("startRevenueCategoryCheckout")) {
   fail("Rentas privado must forward promo code into central Revenue OS checkout");
 }
-if (!empleosModalSrc.includes("RevenuePromoField") || !/onConfirm\(promoCode\b/.test(empleosModalSrc)) {
-  fail("Empleos confirm modal must render promo field and forward code");
+const empleosQuickPreviewSrc = read(empleosQuickPreview);
+const empleosPremiumPreviewSrc = read(empleosPremiumPreview);
+for (const [name, src] of [
+  ["Empleos quick preview", empleosQuickPreviewSrc],
+  ["Empleos premium preview", empleosPremiumPreviewSrc],
+]) {
+  if (!src.includes("PublishCheckoutCheckpoint") || !src.includes("onPromoApply")) {
+    fail(`${name} must use PublishCheckoutCheckpoint with server promo validation`);
+  }
+  if (!src.includes("promoCode: ctx.promoCode")) {
+    fail(`${name} must forward promo code into checkout`);
+  }
+  if (!src.includes("saveEmpleosDraftAndStartPaidJobCheckout") && !src.includes("startRevenueCategoryCheckout")) {
+    fail(`${name} must call central Revenue OS checkout helper`);
+  }
 }
 if (!empleosCheckoutSrc.includes("promoCode")) fail("Empleos checkout helper must accept promo code");
-if (!empleosQuickSrc.includes("promo={{") || !empleosPremiumSrc.includes("promo={{")) {
-  fail("Empleos quick + premium must pass promo props");
+const autosPrivadoPreviewSrc = read(autosPrivadoPreview);
+const autosConfirmCoreSrc = read(autosConfirmCore);
+if (!autosPrivadoPreviewSrc.includes("PublishCheckoutCheckpoint") || !autosPrivadoPreviewSrc.includes("onPromoApply")) {
+  fail("Autos privado preview must use PublishCheckoutCheckpoint with server promo validation");
 }
-if (!autosSrc.includes("RevenuePromoField") || !autosSrc.includes("promoCode: appliedPromoCode")) {
-  fail("Autos privado must render promo field and forward code");
-}
-if (!autosSrc.includes('lane === "privado" && publishConfirmMode === "stripe"')) {
-  fail("Autos promo field must be gated to private paid Stripe checkout");
+if (!autosPrivadoPreviewSrc.includes("promoCode: ctx.promoCode") || !autosPrivadoPreviewSrc.includes("startRevenueCategoryCheckout")) {
+  fail("Autos privado preview must forward promo code into central Revenue OS checkout");
 }
 // Autos dealer/negocios legacy checkout must remain untouched by promo field
-if (autosSrc.includes("AUTOS_NEGOCIOS_CHECKOUT_PROMO") || autosSrc.match(/negocios[^\n]*RevenuePromoField/)) {
+if (autosConfirmCoreSrc.includes("AUTOS_NEGOCIOS_CHECKOUT_PROMO") || autosConfirmCoreSrc.match(/negocios[^\n]*RevenuePromoField/)) {
   fail("Autos negocio/dealer checkout must not receive promo field");
+}
+const restaurantesPreviewSrc = read(restaurantesPreview);
+if (!restaurantesPreviewSrc.includes("PublishCheckoutCheckpoint") || !restaurantesPreviewSrc.includes("onPromoApply")) {
+  fail("Restaurantes preview must use PublishCheckoutCheckpoint with server promo validation");
+}
+if (!restaurantesPreviewSrc.includes("promoCode: ctx.promoCode") || !restaurantesPreviewSrc.includes("startRevenueCategoryCheckout")) {
+  fail("Restaurantes preview must forward promo code into central Revenue OS checkout");
+}
+// Bienes negocio is NOT Launch 25 ready — promo deferred without onPromoApply forward
+const bienesAgentPreviewSrc = read(bienesAgentPreview);
+if (bienesAgentPreviewSrc.includes("onPromoApply")) {
+  fail("Bienes negocio must not wire Launch 25 promo apply until a future gate");
+}
+if (new RegExp(`["']br_agent_monthly["']`).test(redemptionsSrc.match(/WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS[\s\S]*?];/)?.[0] ?? "")) {
+  fail("Bienes br_agent_monthly must not be in Launch 25 allowlist until promo forward is complete");
 }
 
 // Servicios — Revenue OS checkpoint checkout (PublishCheckoutCheckpoint + server validation)
@@ -190,11 +263,30 @@ if (serviciosPreviewSrc.match(/print discount|combo package|manual contract|free
 }
 ok("eligible category surfaces wired; Servicios Revenue OS checkpoint included; dealer/legacy untouched");
 
-// Doc mentions doctrine
+// Doc mentions doctrine + final eligibility matrix (LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01)
+const docPromoUiSrc = read(docPromoUi);
+const docStripeSrc = read(docStripe);
+const docPricingSrc = read(docPricing);
 for (const s of ["website checkout only", "webhook"]) {
   if (!docSrc.toLowerCase().includes(s)) fail(`Doc must mention: ${s}`);
 }
-ok("documentation doctrine present");
+for (const [name, src] of [
+  ["newsletter-promo-code-readiness", docSrc],
+  ["publish-checkout-promo-validation-ui-01", docPromoUiSrc],
+  ["stripe-revenue-os-category-checkout-wiring-01", docStripeSrc],
+  ["pricing-promo-code-sales-model", docPricingSrc],
+]) {
+  if (!src.includes("LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01")) {
+    fail(`${name} must document LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01 matrix`);
+  }
+  for (const key of LAUNCH_25_READY_PACKAGE_KEYS) {
+    if (!src.includes(key)) fail(`${name} matrix must list ready package key: ${key}`);
+  }
+  if (!src.includes("NOT READY") || !src.includes("EXCLUDED")) {
+    fail(`${name} matrix must document NOT READY and EXCLUDED categories`);
+  }
+}
+ok("documentation doctrine + eligibility matrix present");
 
 // LAUNCH-25-COUPON-DESIGN-SYSTEM-UNIFICATION-01: one official Launch 25 component family
 const officialCard = "app/components/leonix/LeonixLaunchCouponCard.tsx";

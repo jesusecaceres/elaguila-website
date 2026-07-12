@@ -38,6 +38,7 @@ import {
 import type { ServiciosPublicAdminRow } from "./_lib/serviciosAdminOpsTypes";
 import { ServiciosAdminFilterPanel, ServiciosAdminQuickActions } from "./_components/ServiciosAdminOpsChrome";
 import { ServiciosAdminOpsListingCard } from "./_components/ServiciosAdminOpsListingCard";
+import { fetchServiciosAdminCanonicalAnalyticsByRows } from "./_lib/serviciosAdminCanonicalAnalytics";
 
 export const dynamic = "force-dynamic";
 
@@ -193,6 +194,11 @@ export default async function AdminServiciosWorkspacePage(props: {
       saves: serviciosNetLikeCountForPublicRow(rowLike, serviciosAdminSaveMap),
     });
   }
+  const serviciosAdminCanonicalBySourceId = unavailable
+    ? new Map()
+    : await fetchServiciosAdminCanonicalAnalyticsByRows(
+        rows.map((r) => ({ id: r.id, slug: r.slug, leonix_ad_id: r.leonix_ad_id ?? null })),
+      );
   const devAdminRows = filterDevServiciosRows(devFileRowsAsAdmin(), queueFilters.q);
   const pendingReviews = await listPendingServiciosReviews(80);
   const recentLeads = await fetchServiciosLeadsForAdmin();
@@ -304,6 +310,7 @@ export default async function AdminServiciosWorkspacePage(props: {
           ) : (
             rowsFiltered.map((r) => {
               const engagement = serviciosAdminEngagementByRowId.get(r.id) ?? { likes: 0, saves: 0 };
+              const canonical = serviciosAdminCanonicalBySourceId.get(r.id);
               const highlighted = actionProof?.target === r.id;
               return (
                 <ServiciosAdminOpsListingCard
@@ -311,6 +318,16 @@ export default async function AdminServiciosWorkspacePage(props: {
                   row={r}
                   likes={engagement.likes}
                   saves={engagement.saves}
+                  canonicalViews={canonical?.views ?? 0}
+                  canonicalCtaClicks={
+                    (canonical?.phone_clicks ?? 0) +
+                    (canonical?.whatsapp_clicks ?? 0) +
+                    (canonical?.email_clicks ?? 0) +
+                    (canonical?.website_clicks ?? 0) +
+                    (canonical?.directions_clicks ?? 0) +
+                    (canonical?.message_clicks ?? 0)
+                  }
+                  canonicalLeads={canonical?.leads ?? 0}
                   highlighted={highlighted}
                 />
               );

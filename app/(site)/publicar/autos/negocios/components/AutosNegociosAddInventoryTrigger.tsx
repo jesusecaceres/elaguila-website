@@ -16,6 +16,7 @@ export function AutosNegociosAddInventoryTrigger({
   additionalCount,
   additionalVehicles,
   parentListing,
+  inventoryVehicleLimit,
   onSave,
   flushDraft,
   onAtLimit,
@@ -34,6 +35,7 @@ export function AutosNegociosAddInventoryTrigger({
   additionalCount: number;
   additionalVehicles: AutosAdditionalInventoryVehicleDraft[];
   parentListing: AutoDealerListing;
+  inventoryVehicleLimit?: number;
   onSave: (vehicle: AutosAdditionalInventoryVehicleDraft) => boolean;
   flushDraft?: () => Promise<void>;
   onAtLimit?: () => void;
@@ -52,7 +54,7 @@ export function AutosNegociosAddInventoryTrigger({
       : "inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-white px-4 text-sm font-semibold text-[#6E5418]";
 
   const openNew = () => {
-    if (!applicationCanAddInventoryVehicle(additionalCount)) {
+    if (!applicationCanAddInventoryVehicle(additionalCount, inventoryVehicleLimit)) {
       onAtLimit?.();
       return;
     }
@@ -72,6 +74,7 @@ export function AutosNegociosAddInventoryTrigger({
         parentListing={parentListing}
         additionalVehicles={additionalVehicles}
         additionalCount={additionalCount}
+        inventoryVehicleLimit={inventoryVehicleLimit}
         editingVehicle={null}
         inProgressDraft={inProgressDraft}
         drawerEditingId={drawerEditingId}

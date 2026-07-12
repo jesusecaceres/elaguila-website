@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import {
   autosInventoryBoostNoPaymentNote,
-  autosInventoryBoostStripeReturnNote,
   autosInventoryBoostPanelIntro,
+  autosInventoryBoostPanelSupportingCopy,
   autosInventoryBoostPanelTitle,
   autosInventoryBoostPricingBullets,
   type AutosInventoryBoostReturnContext,
@@ -16,6 +17,8 @@ import {
   redirectAutosDealerInventoryPackCheckout,
   REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED,
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { redirectAutosDealerInventoryPackApplicationCheckout } from "@/app/lib/clasificados/autos/autosDealerInventoryBoostCheckoutClient";
+import { ensureAutosNegociosDraftListingForBoost } from "../lib/ensureAutosNegociosDraftListingForBoost";
 
 export type AutosInventoryBoostEditorContext = Omit<AutosInventoryBoostReturnContext, "savedAt" | "status">;
 
@@ -25,9 +28,12 @@ type Props = {
   lang: AutosNegociosLang;
   flushDraft?: () => Promise<void>;
   editorContext: AutosInventoryBoostEditorContext;
-  /** Parent dealer listing id — required for Revenue OS add-on checkout. */
+  /** Parent dealer listing id when already persisted (dashboard or draft sync). */
   parentListingId?: string | null;
   leonixAdId?: string | null;
+  /** Pre-publish application — sync draft listing + application checkout API. */
+  prePublishMode?: boolean;
+  parentListing?: AutoDealerListing;
 };
 
 export function AutosNegociosInventoryBoostPanel({
@@ -38,12 +44,13 @@ export function AutosNegociosInventoryBoostPanel({
   editorContext,
   parentListingId,
   leonixAdId,
+  prePublishMode = false,
+  parentListing,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bullets = autosInventoryBoostPricingBullets(lang);
   const checkoutEnabled = REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED;
-  const listingId = parentListingId?.trim() || editorContext.parentListingId?.trim() || "";
 
   useEffect(() => {
     if (!open) return;
@@ -70,24 +77,65 @@ export function AutosNegociosInventoryBoostPanel({
         );
         return;
       }
-      if (!listingId) {
-        setError(
-          lang === "es"
-            ? "Publica primero tu anuncio dealer principal para activar el inventario."
-            : "Publish your main dealer listing first to activate inventory.",
-        );
-        return;
-      }
+
       const returnPath =
         editorContext.editorPath && editorContext.editorSearch
           ? `${editorContext.editorPath}${editorContext.editorSearch}`
           : undefined;
-      const result = await redirectAutosDealerInventoryPackCheckout({
-        listingId,
-        leonixAdId,
-        lang,
-        returnPath: returnPath ?? null,
-      });
+
+      let listingId = parentListingId?.trim() || editorContext.parentListingId?.trim() || "";
+      let resolvedLeonixAdId = leonixAdId?.trim() || null;
+
+      if (prePublishMode) {
+        if (!parentListing) {
+          setError(
+            lang === "es"
+              ? "Guarda tu solicitud antes de activar Inventory Boost."
+              : "Save your application before activating Inventory Boost.",
+          );
+          return;
+        }
+        const ensured = await ensureAutosNegociosDraftListingForBoost({
+          listing: parentListing,
+          lang,
+        });
+        if (!ensured.ok) {
+          setError(ensured.userMessage);
+          return;
+        }
+        listingId = ensured.listingId;
+        resolvedLeonixAdId = ensured.leonixAdId ?? resolvedLeonixAdId;
+      }
+
+      if (!listingId) {
+        setError(
+          lang === "es"
+            ? "No pudimos preparar tu solicitud para Inventory Boost."
+            : "We could not prepare your application for Inventory Boost.",
+        );
+        return;
+      }
+
+      const boostReturnContext = {
+        ...editorContext,
+        parentListingId: listingId,
+      };
+
+      const result = prePublishMode
+        ? await redirectAutosDealerInventoryPackApplicationCheckout({
+            listingId,
+            leonixAdId: resolvedLeonixAdId,
+            lang,
+            returnPath: returnPath ?? null,
+            boostReturnContext,
+          })
+        : await redirectAutosDealerInventoryPackCheckout({
+            listingId,
+            leonixAdId: resolvedLeonixAdId,
+            lang,
+            returnPath: returnPath ?? null,
+          });
+
       if (!result.ok) {
         setError(result.userMessage);
       }
@@ -125,7 +173,7 @@ export function AutosNegociosInventoryBoostPanel({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
           <p className="text-sm leading-relaxed text-[#2C2416]">{autosInventoryBoostPanelIntro(lang)}</p>
-          <p className="mt-3 text-sm leading-relaxed text-[#2C2416]">{autosInventoryBoostStripeReturnNote(lang)}</p>
+          <p className="mt-3 text-sm leading-relaxed text-[#2C2416]">{autosInventoryBoostPanelSupportingCopy(lang)}</p>
           <ul className="mt-4 space-y-2.5">
             {bullets.map((line) => (
               <li key={line} className="flex gap-2 text-sm text-[#2C2416]">

@@ -222,6 +222,13 @@ export const BR_COPY_EN = {
     enlaceSocialAdicional: "Additional social link (optional)",
     enlacesNegocio: "Additional business links",
     enlacesNegocioSub: "Optional profile, portfolio, review, or business URLs. Shown as clean useful-link buttons only when filled.",
+    enlacesNegocioHelper:
+      "Add a short title visitors will understand, such as 'Agent portfolio,' 'Client reviews,' or 'Office website.'",
+    businessLinkTitleLabel: "Link title",
+    businessLinkTitlePlaceholder: "e.g. Agent portfolio",
+    businessLinkUrlLabel: "URL",
+    addBusinessLink: "Add another business link",
+    removeBusinessLink: "Remove",
     addLink: "Add link",
     linkAdded: "Link added",
     businessUrlLabel: (n: number) => (n === 1 ? "Additional business URL" : `Additional business URL ${n}`),

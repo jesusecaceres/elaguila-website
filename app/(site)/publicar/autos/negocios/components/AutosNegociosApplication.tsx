@@ -44,6 +44,7 @@ import {
   hydrateAutosDealerListingForDashboardEdit,
   redirectAutosDealerInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { resolveDealerActiveVehicleLimit } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
@@ -123,6 +124,17 @@ export function AutosNegociosApplication() {
   const [inventoryEntitlement, setInventoryEntitlement] = useState<
     "idle" | "loading" | "active" | "inactive" | "pending"
   >("idle");
+  const [draftListingIdForBoost, setDraftListingIdForBoost] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isExistingDashboardListingMode || !hydrated) return;
+    try {
+      const cached = window.sessionStorage.getItem("lx-autos-publish-listing-negocios");
+      setDraftListingIdForBoost(cached?.trim() || null);
+    } catch {
+      setDraftListingIdForBoost(null);
+    }
+  }, [hydrated, isExistingDashboardListingMode]);
 
   useEffect(() => {
     if (!isExistingDashboardListingMode || !editListingId || dashboardHydratedRef.current) return;
@@ -155,14 +167,17 @@ export function AutosNegociosApplication() {
   ]);
 
   useEffect(() => {
-    if (!isExistingDashboardListingMode || !editListingId) {
+    const entitlementListingId = isExistingDashboardListingMode
+      ? editListingId
+      : draftListingIdForBoost;
+    if (!entitlementListingId) {
       setInventoryEntitlement("idle");
       return;
     }
     let cancelled = false;
     setInventoryEntitlement("loading");
     void fetchAutosDealerInventoryPackEntitlementActive({
-      listingId: editListingId,
+      listingId: entitlementListingId,
       leonixAdId: editLeonixAdId,
     }).then((result) => {
       if (cancelled) return;
@@ -174,16 +189,28 @@ export function AutosNegociosApplication() {
         setInventoryEntitlement("pending");
         return;
       }
-      const postPaymentReturn = isDashboardInventoryEditMode && focusInventoryPack;
+      const postPaymentReturn =
+        (isDashboardInventoryEditMode && focusInventoryPack) ||
+        (!isExistingDashboardListingMode && focusInventoryPack);
       setInventoryEntitlement(postPaymentReturn ? "pending" : "inactive");
     });
     return () => {
       cancelled = true;
     };
-  }, [editLeonixAdId, editListingId, focusInventoryPack, isDashboardInventoryEditMode, isExistingDashboardListingMode]);
+  }, [
+    draftListingIdForBoost,
+    editLeonixAdId,
+    editListingId,
+    focusInventoryPack,
+    isDashboardInventoryEditMode,
+    isExistingDashboardListingMode,
+  ]);
 
   const inventoryPackActive = inventoryEntitlement === "active";
-  const dashboardParentListingId = isExistingDashboardListingMode ? editListingId : null;
+  const inventoryVehicleLimit = resolveDealerActiveVehicleLimit(inventoryPackActive);
+  const dashboardParentListingId = isExistingDashboardListingMode
+    ? editListingId
+    : draftListingIdForBoost;
 
   const inventoryDrawerProps = {
     drawerOpen: inventoryDrawerOpen,
@@ -675,6 +702,7 @@ export function AutosNegociosApplication() {
                   lang={lang}
                   listing={listing}
                   additionalCount={additionalInventoryVehicles.length}
+                  inventoryVehicleLimit={inventoryVehicleLimit}
                 />
                 <AutosNegociosInventoryBundlePreview
                   lang={lang}
@@ -688,7 +716,7 @@ export function AutosNegociosApplication() {
                   inventoryAddContext={inventoryAddContext}
                   backToEditLabel={t.preview.chrome.backToEdit}
                   onSaveVehicle={(vehicle) => {
-                    const ok = upsertAdditionalInventoryVehicle(vehicle);
+                    const ok = upsertAdditionalInventoryVehicle(vehicle, inventoryVehicleLimit);
                     if (ok) void flushDraft();
                     return ok;
                   }}
@@ -705,6 +733,7 @@ export function AutosNegociosApplication() {
                   postPublishDashboardMode={isExistingDashboardListingMode}
                   inventoryPackActive={inventoryPackActive}
                   inventoryEntitlementPending={inventoryEntitlement === "pending"}
+                  inventoryVehicleLimit={inventoryVehicleLimit}
                   copy={t}
                   parentListing={listing}
                   parentListingId={
@@ -716,7 +745,7 @@ export function AutosNegociosApplication() {
                   additionalInventoryCount={additionalInventoryVehicles.length}
                   additionalVehicles={additionalInventoryVehicles}
                   onSaveAdditionalVehicle={(vehicle) => {
-                    const ok = upsertAdditionalInventoryVehicle(vehicle);
+                    const ok = upsertAdditionalInventoryVehicle(vehicle, inventoryVehicleLimit);
                     if (ok) void flushDraft();
                     return ok;
                   }}

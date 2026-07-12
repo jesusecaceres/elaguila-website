@@ -469,13 +469,19 @@ function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
 }
 
 export function serviciosPublicRowToEntitlementListing(row: ServiciosPublicListingRow): Record<string, unknown> {
+  const tier = row.package_entitlement_tier ?? null;
   return {
     id: row.id ?? null,
     slug: row.slug,
     leonix_ad_id: row.leonix_ad_id ?? null,
-    package_entitlement_tier: row.package_entitlement_tier ?? null,
+    package_entitlement_tier: tier,
+    print_package_tier: tier,
+    entitlement_starts_at: row.entitlement_starts_at ?? null,
+    entitlement_ends_at: row.entitlement_ends_at ?? null,
     starts_at: row.entitlement_starts_at ?? null,
     ends_at: row.entitlement_ends_at ?? null,
+    republished_at: row.republished_at ?? null,
+    leonix_verified: row.leonix_verified === true,
     category: "servicios",
   };
 }

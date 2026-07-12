@@ -557,9 +557,25 @@ export function isHeldLanguage(lang: string | null | undefined): boolean {
   return isHeldRtlLang(lang);
 }
 
-/** Nav chrome copy: Spanish for es; English for all other active languages until dedicated copy exists. */
+/** Launch-critical public UI copy language. Official langs map 1:1; hidden/unsupported route codes → es. */
+export function launchUiCopyLang(routeLang: SupportedLang): OfficialLaunchLang {
+  if (routeLang === "es" || routeLang === "en" || routeLang === "pt" || routeLang === "tl") {
+    return routeLang;
+  }
+  return "es";
+}
+
+/** Four-language UI dictionary for launch-critical surfaces (ES/EN/PT/TL). */
+export type LaunchUiDictionary<T> = Record<OfficialLaunchLang, T>;
+
+/** Resolve hand-authored launch UI copy — no silent English fallback for PT/TL. */
+export function getLaunchUiCopy<T>(routeLang: SupportedLang, dictionary: LaunchUiDictionary<T>): T {
+  return dictionary[launchUiCopyLang(routeLang)];
+}
+
+/** Legacy nav / binary-dictionary chrome: EN only for `en`; ES for es, pt, tl, and hidden (no EN fallback for PT/TL). */
 export function navCopyLang(routeLang: SupportedLang): "es" | "en" {
-  return routeLang === "es" ? "es" : "en";
+  return launchUiCopyLang(routeLang) === "en" ? "en" : "es";
 }
 
 /** Hand-authored static page copy (ES/EN/VI today); community langs fall back to EN. */

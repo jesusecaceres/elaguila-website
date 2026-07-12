@@ -5,6 +5,10 @@ import {
 } from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
 import { buildCategoryResultsUrl, type CatStdAllSlug } from "./categoryStandardRoutes";
 import { cleanResultsFilterParams, type ResultsFilterParams } from "./categoryStandardResultsFilterChips";
+import {
+  type LocationUrlSanitizeOpts,
+  sanitizeLocationParamsForUrl,
+} from "./lightweightBrowseLocation";
 
 export type CommunitySimpleSlug = "busco" | "mascotas-y-perdidos" | "clases" | "comunidad";
 
@@ -71,13 +75,15 @@ export function defaultDrawerForCategory(category: CommunitySimpleSlug): Record<
 export function mergeLocationAndDrawerParams(
   loc: BrowseLocationValues,
   drawer: Record<string, string>,
+  sanitizeOpts?: LocationUrlSanitizeOpts,
 ): ResultsFilterParams {
+  const sanitized = sanitizeLocationParamsForUrl(loc, sanitizeOpts);
   const params: ResultsFilterParams = {
-    q: loc.q || undefined,
-    city: loc.city || undefined,
-    state: loc.state || undefined,
-    zip: loc.zip || undefined,
-    country: loc.country || undefined,
+    q: sanitized.q,
+    city: sanitized.city,
+    state: sanitized.state,
+    zip: sanitized.zip,
+    country: sanitized.country,
   };
   for (const [k, v] of Object.entries(drawer)) {
     if (!v || v === "all") continue;
@@ -91,8 +97,35 @@ export function buildCommunitySimpleResultsHref(
   lang: Lang,
   loc: BrowseLocationValues,
   drawer: Record<string, string>,
+  sanitizeOpts?: LocationUrlSanitizeOpts,
 ): string {
-  return buildCategoryResultsUrl(category, lang, cleanResultsFilterParams(mergeLocationAndDrawerParams(loc, drawer)));
+  return buildCategoryResultsUrl(
+    category,
+    lang,
+    cleanResultsFilterParams(mergeLocationAndDrawerParams(loc, drawer, sanitizeOpts)),
+  );
+}
+
+export function activeFilterParamsFromUrl(sp: URLSearchParams, drawer: Record<string, string>): ResultsFilterParams {
+  const params: ResultsFilterParams = {};
+  const q = (sp.get("q") ?? "").trim();
+  if (q) params.q = q;
+  const city = (sp.get("city") ?? "").trim();
+  if (city) params.city = city;
+  if (sp.has("state")) {
+    const state = (sp.get("state") ?? "").trim();
+    if (state) params.state = state;
+  }
+  const zip = (sp.get("zip") ?? "").trim();
+  if (zip) params.zip = zip;
+  if (sp.has("country")) {
+    const country = (sp.get("country") ?? "").trim();
+    if (country) params.country = country;
+  }
+  for (const [k, v] of Object.entries(drawer)) {
+    if (v && v !== "all") params[k] = v;
+  }
+  return params;
 }
 
 export function readBuscoDrawerFromParams(sp: URLSearchParams): Record<string, string> {

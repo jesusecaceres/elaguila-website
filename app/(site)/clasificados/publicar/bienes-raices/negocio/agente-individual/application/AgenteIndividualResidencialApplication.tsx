@@ -22,6 +22,7 @@ import {
   BR_CATEGORY_HOME,
   BR_PREVIEW_NEGOCIO,
   BR_PUBLICAR_HUB,
+  BR_PUBLICAR_NEGOCIO,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import {
   abandonLeonixPublishFlowClient,
@@ -53,6 +54,12 @@ import { useBrAgenteResidencialCopy } from "./BrAgenteResidencialLocaleContext";
 import { withBrAgenteResLangParam } from "./brAgenteResidencialLang";
 import { brAgenteApplicationPricingCopy } from "../../../shared/brAgenteApplicationPricingCopy";
 import { BrNegocioPrePublishInventoryShell } from "../../application/sections/shared/BrNegocioPrePublishInventoryShell";
+import type { BrPendingInventoryChildOpen } from "../../application/sections/shared/BrNegocioPrePublishInventoryShell";
+import {
+  clearBrInventoryChildContext,
+  parseBrInventoryChildSearchParams,
+  readBrInventoryChildContext,
+} from "../../application/brNegocioInventoryChildContext";
 import { BrAgenteApplicationPricingSummary } from "../../application/sections/shared/BrAgenteApplicationPricingSummary";
 import { BrAgenteApplicationConfirmations } from "../../application/sections/shared/BrAgenteApplicationConfirmations";
 import { mapAgenteFormToMainInventoryCard } from "../../application/brNegocioInventoryCardModel";
@@ -85,6 +92,15 @@ export default function AgenteIndividualResidencialApplication() {
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],
   );
+  const inventoryChildRoute = useMemo(
+    () => parseBrInventoryChildSearchParams(searchParams ?? new URLSearchParams()),
+    [searchParams],
+  );
+  const [pendingInventoryChildOpen, setPendingInventoryChildOpen] = useState<BrPendingInventoryChildOpen | null>(
+    null,
+  );
+  const [parentDraftReady, setParentDraftReady] = useState(false);
+  const inventoryChildConsumedRef = useRef(false);
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
@@ -153,6 +169,7 @@ export default function AgenteIndividualResidencialApplication() {
       if (cancelled) return;
       setState(boot);
       setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
+      setParentDraftReady(true);
       if (inventoryAdd.inventoryModeAdd && inventoryAdd.context && readQueuePrefillForAddMode()) {
         syncAgenteAddModePreviewHandoff(boot);
         addModePreviewSyncedRef.current = true;
@@ -162,6 +179,10 @@ export default function AgenteIndividualResidencialApplication() {
       cancelled = true;
     };
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
+  }, [isExistingDashboardListingMode]);
+
+  useEffect(() => {
+    if (isExistingDashboardListingMode) setParentDraftReady(true);
   }, [isExistingDashboardListingMode]);
 
   useEffect(() => {
@@ -275,8 +296,39 @@ export default function AgenteIndividualResidencialApplication() {
   useEffect(() => {
     const prop = parseBrNegocioPropiedadParam(propiedadParam);
     if (!prop) return;
+    // Never apply childPropiedad to parent — only parent `propiedad` query.
     setState((s) => (s.categoriaPropiedad === prop ? s : { ...s, categoriaPropiedad: prop }));
   }, [propiedadParam]);
+
+  useEffect(() => {
+    if (!parentDraftReady) return;
+    if (!inventoryChildRoute.active) return;
+    if (inventoryChildConsumedRef.current) return;
+    inventoryChildConsumedRef.current = true;
+    const session = readBrInventoryChildContext();
+    const childDraftId =
+      inventoryChildRoute.childDraftId?.trim() || session?.childDraftId?.trim() || "";
+    const childPropiedad =
+      inventoryChildRoute.childPropiedad || session?.childPropiedad || null;
+    if (!childDraftId || !childPropiedad) {
+      clearBrInventoryChildContext();
+      return;
+    }
+    setPendingInventoryChildOpen({ childDraftId, childPropiedad });
+    clearBrInventoryChildContext();
+    const qs = new URLSearchParams(searchParams?.toString() ?? "");
+    qs.delete("mode");
+    qs.delete("childDraftId");
+    qs.delete("childPropiedad");
+    qs.set("focus", "inventory-pack");
+    if (inventoryChildRoute.parentPropiedad) {
+      qs.set(BR_NEGOCIO_Q_PROPIEDAD, inventoryChildRoute.parentPropiedad);
+    } else if (session?.parentPropiedad) {
+      qs.set(BR_NEGOCIO_Q_PROPIEDAD, session.parentPropiedad);
+    }
+    const next = qs.toString();
+    router.replace(next ? `${BR_PUBLICAR_NEGOCIO}?${next}` : BR_PUBLICAR_NEGOCIO);
+  }, [inventoryChildRoute, parentDraftReady, router, searchParams]);
 
   const stepLabels = t.stepLabels;
   const total = stepLabels.length;
@@ -572,6 +624,8 @@ export default function AgenteIndividualResidencialApplication() {
                     mainProperty={mapAgenteFormToMainInventoryCard(state, lang)}
                     items={state.additionalInventoryProperties}
                     inventoryPackAccepted={inventoryPackAcceptedForShell}
+                    pendingInventoryChildOpen={pendingInventoryChildOpen}
+                    onPendingInventoryChildConsumed={() => setPendingInventoryChildOpen(null)}
                     onInventoryPackAcceptedChange={
                       isExistingDashboardListingMode
                         ? undefined

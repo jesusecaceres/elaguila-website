@@ -13,7 +13,8 @@ import {
   validateAutosDealerInventoryAddonOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
-import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_PRIVADO_30D_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
   attachStripeSessionToPaymentRecord,
   attachPromoRedemptionToPaymentRecord,
@@ -310,6 +311,14 @@ export async function POST(request: NextRequest) {
       redemptionId: promoRedemptionId,
       stripeCheckoutSessionId: stripeResult.sessionId,
     });
+  }
+
+  if (
+    packageDef.category === "autos" &&
+    packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY &&
+    listingRef
+  ) {
+    await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);
   }
 
   return NextResponse.json({

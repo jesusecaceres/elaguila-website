@@ -16,6 +16,10 @@ import {
   syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 import {
+  channelLabelForInventoryCard,
+  resolveChildDraftCategoria,
+} from "./brNegocioInventoryChildContext";
+import {
   formatDetailCountDisplay,
   formatSqftDisplay,
   formatUsdWhole,
@@ -172,9 +176,11 @@ export function mapAdditionalDraftToInventoryCard(
   lang: BrNegocioPrePublishInventoryLang,
 ): BrNegocioInventoryCardModel {
   const normalized = syncChildInventoryDraftMedia(draft);
+  const channel = resolveChildDraftCategoria(normalized);
+  const channelLabel = channelLabelForInventoryCard(channel, lang);
   const typeLabel = brInventoryPropertyTypeLabel(normalized.propertyType, lang);
   const subLabel = brInventoryPropertySubtypeLabel(normalized.propertyType, normalized.propertySubtype, lang);
-  const typeLine = subLabel ? `${typeLabel} · ${subLabel}` : typeLabel;
+  const typeLine = subLabel ? `${channelLabel} · ${typeLabel} · ${subLabel}` : `${channelLabel} · ${typeLabel}`;
   const copy = lang === "es"
     ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
     : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };

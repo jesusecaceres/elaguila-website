@@ -212,3 +212,29 @@ See also **`docs/newsletter-operations-readiness.md`** for the full admin operat
 Both use `LeonixLaunchCouponCard` (`variant="compact"`) with `sourceCta=launch_25`. No newsletter API or checkout changes in this gate.
 
 **Verifier:** `npm run verify:launch-25-public-placements`
+
+## 10. LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01
+
+Audit of remaining paid website categories. **No new wiring in this gate** — the five READY categories below were confirmed; all others documented as NOT READY or EXCLUDED.
+
+| Category | Launch 25 status | Package key | Newsletter source |
+|----------|------------------|-------------|-------------------|
+| Servicios base | READY | `servicios_base_monthly` | `servicios_checkout` |
+| Autos privado | READY | `autos_privado_30d` | `autos_privado_checkout` |
+| Rentas | READY | `rentas_30d` | `rentas_checkout` |
+| Empleos paid | READY | `empleos_job_post_paid` | `empleos_checkout` |
+| Restaurantes base | READY | `restaurantes_base_monthly` | `restaurantes_checkout` |
+| Bienes negocio | NOT READY / FUTURE | `br_agent_monthly` | — (future gate) |
+| Bienes FSBO | NOT READY / FUTURE | `br_fsbo_45d` | — |
+| Ofertas Locales | NOT READY / FUTURE | — | — |
+| Nuestros Negocios | NOT READY / FUTURE | — | — |
+| Clases paid | NOT READY / FUTURE | `clases_paid_30d` | — |
+| Viajes business | NOT READY / FUTURE | `viajes_business_monthly` | — |
+| Autos dealer | EXCLUDED | `autos_dealer_monthly` | — |
+| Add-ons (offers/inventory) | EXCLUDED | `*_offers_addon`, `*_inventory_pack_*` | — |
+| Free categories | EXCLUDED | `*_free*` | — |
+| Print / combo / manual | EXCLUDED | — | — |
+
+Promo validation: server-owned discount fields only; webhook-only redemption; website checkout only.
+
+**Verifier:** `npm run verify:website-launch-25-checkout-wiring`

@@ -1,9 +1,5 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import {
-  LEONIX_LB_DEFAULT_COUNTRY,
-  LEONIX_LB_DEFAULT_STATE,
-} from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
-import {
   buildCategoryResultsUrl,
   type CatStdAllSlug,
 } from "./categoryStandardRoutes";
@@ -35,43 +31,42 @@ export function buildResultsFilterChipHref(
 export function buildLocationFilterChips(
   slug: CatStdAllSlug,
   lang: Lang,
-  loc: { q: string; city: string; state: string; zip: string; country: string },
   allParams: ResultsFilterParams,
 ): ActiveFilterChip[] {
   const L = lang === "es";
   const chips: ActiveFilterChip[] = [];
-  if (loc.q.trim()) {
+  if (allParams.q?.trim()) {
     chips.push({
       key: "q",
-      label: `${L ? "Palabra" : "Keyword"}: ${loc.q.trim()}`,
+      label: `${L ? "Palabra" : "Keyword"}: ${allParams.q.trim()}`,
       href: buildResultsFilterChipHref(slug, lang, allParams, "q"),
     });
   }
-  if (loc.city.trim()) {
+  if (allParams.city?.trim()) {
     chips.push({
       key: "city",
-      label: `${L ? "Ciudad" : "City"}: ${loc.city.trim()}`,
+      label: `${L ? "Ciudad" : "City"}: ${allParams.city.trim()}`,
       href: buildResultsFilterChipHref(slug, lang, allParams, "city"),
     });
   }
-  if (loc.state.trim() && loc.state.trim() !== LEONIX_LB_DEFAULT_STATE) {
+  if (allParams.state?.trim()) {
     chips.push({
       key: "state",
-      label: `${L ? "Estado" : "State"}: ${loc.state.trim()}`,
+      label: `${L ? "Estado" : "State"}: ${allParams.state.trim()}`,
       href: buildResultsFilterChipHref(slug, lang, allParams, "state"),
     });
   }
-  if (loc.zip.trim()) {
+  if (allParams.zip?.trim()) {
     chips.push({
       key: "zip",
-      label: `ZIP: ${loc.zip.trim()}`,
+      label: `ZIP: ${allParams.zip.trim()}`,
       href: buildResultsFilterChipHref(slug, lang, allParams, "zip"),
     });
   }
-  if (loc.country.trim() && loc.country.trim() !== LEONIX_LB_DEFAULT_COUNTRY) {
+  if (allParams.country?.trim()) {
     chips.push({
       key: "country",
-      label: loc.country.trim(),
+      label: allParams.country.trim(),
       href: buildResultsFilterChipHref(slug, lang, allParams, "country"),
     });
   }

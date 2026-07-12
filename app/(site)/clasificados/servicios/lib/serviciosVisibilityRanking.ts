@@ -12,7 +12,12 @@ import {
   resolveListingVisibilityRank,
   compareVisibilityRank,
   type VisibilityRankSummary,
+  VISIBILITY_RANK_WEIGHTS,
 } from "@/app/lib/listingPlans/printDigitalVisibilityRank";
+import {
+  resolveListingPlacementEntitlement,
+} from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
 import { serviciosPublicRowToEntitlementListing } from "./serviciosResultsFilter";
 import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer";
 
@@ -26,9 +31,30 @@ export type ServiciosRankedRow = {
  * Safe if entitlement fields are missing — returns organic fallback with warnings.
  */
 export function resolveServiciosListingRank(row: ServiciosPublicListingRow): VisibilityRankSummary {
+  const listing = serviciosPublicRowToEntitlementListing(row);
+  const entitlement = resolveListingPlacementEntitlement({
+    category: "servicios",
+    listing,
+  });
+  if (entitlement.isActive === true && entitlement.tier !== "none" && entitlement.tier !== "unknown") {
+    const def = getPackageEntitlementBenefits(entitlement.tier);
+    const bucket = def.visibilityBucket;
+    return {
+      category: "servicios",
+      bucket,
+      rankWeight: VISIBILITY_RANK_WEIGHTS[bucket],
+      label: def.label,
+      reason: `Active package entitlement (${entitlement.tier})`,
+      source: "listing_package_entitlements",
+      eligibleForResultsPriority: def.eligibleForResultsPriority,
+      eligibleForDestacadosModule: def.eligibleForDestacadosModule,
+      searchFilterMustMatchFirst: true,
+      warnings: [],
+    };
+  }
   return resolveListingVisibilityRank({
     category: "servicios",
-    listing: serviciosPublicRowToEntitlementListing(row),
+    listing,
   });
 }
 

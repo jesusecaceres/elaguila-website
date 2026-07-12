@@ -72,7 +72,6 @@ function readAutosPrivadoDraftJson(namespace: string): string | null {
     const fromLocal = window.localStorage.getItem(legacyKey);
     if (!fromLocal) return null;
     window.sessionStorage.setItem(sessionKey, fromLocal);
-    window.localStorage.removeItem(legacyKey);
     return fromLocal;
   } catch {
     return null;
@@ -88,7 +87,7 @@ function writeAutosPrivadoDraftJson(namespace: string, json: string): void {
     /* quota */
   }
   try {
-    window.localStorage.removeItem(buildAutosPrivadoDraftLocalStorageKey(namespace));
+    window.localStorage.setItem(buildAutosPrivadoDraftLocalStorageKey(namespace), json);
   } catch {
     /* ignore */
   }

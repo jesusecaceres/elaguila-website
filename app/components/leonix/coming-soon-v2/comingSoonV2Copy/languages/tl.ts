@@ -9,7 +9,7 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       { label: "Ano ang makukuha mo", href: "#que-obtienes" },
       { label: "Paano ito gumagana", href: "#como-funciona" },
       { label: "QR access", href: "#qr" },
-      { label: "Contact", href: "#contacto" },
+      { label: "Kontak", href: "#contacto" },
     ],
     launchCta: "Sumali sa launch",
     brandName: "Leonix Media",
@@ -69,12 +69,12 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
       bridge:
         "Mas maraming dahilan para bisitahin ang Leonix ay mas maraming oportunidad para makita ang mga negosyo.",
       featuredCard: {
-        badge: "New category",
-        title: "Local Deals",
+        badge: "Bagong kategorya",
+        title: "Mga Lokal na Alok",
         body:
-          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+          "Lingguhang flyer, kupon, at espesyal na alok mula sa mga lokal na negosyo sa malinaw na karanasan na tumutulong sa komunidad na makatipid at sa negosyo na mas makita.",
         supportingLine:
-          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+          "Mas maraming dahilan para bisitahin ang Leonix ay mas maraming pagkakataon para makita ang mga lokal na negosyo.",
       },
       cardsAria: "Mga kategorya ng lokal na marketplace",
       cards: [
@@ -83,24 +83,24 @@ export function getTlCopy(lang: SupportedLang): ComingSoonV2Copy {
           body: "Mga lokal na item, gamit sa bahay, tools, damit, libreng hanap, at pang-araw-araw na listing na tumutulong sa kapitbahay bumili, magbenta, magbahagi, at tumuklas ng kapaki-pakinabang na oportunidad.",
         },
         {
-          title: "Rentals",
-          body: "Mga kwarto, apartment, espasyo, at housing opportunities na may photos, description, location, presyo, at contact.",
+          title: "Paupahan",
+          body: "Mga kwarto, apartment, espasyo, at housing opportunities na may larawan, deskripsyon, lokasyon, presyo, at kontak.",
         },
         {
           title: "Trabaho",
           body: "Ang mga negosyong nagha-hire ay maaaring kumonekta sa mga tao sa komunidad na naghahanap ng trabaho at bagong oportunidad.",
         },
         {
-          title: "Private autos",
-          body: "Mga listing ng kotse na may photos, description, presyo, at contact para sa lokal na buyers.",
+          title: "Mga kotse (pribado)",
+          body: "Mga listing ng kotse na may larawan, deskripsyon, presyo, at kontak para sa lokal na mamimili.",
         },
         {
-          title: "Pagkain + events",
-          body: "Pop-ups, lokal na pagkain, activities, community events, at mga sandaling nagpapabalik sa mga tao.",
+          title: "Pagkain + mga event",
+          body: "Pop-ups, lokal na pagkain, aktibidad, community event, at mga sandaling nagpapabalik sa mga tao.",
         },
         {
-          title: "Hinahanap + pets",
-          body: "Maaari ring maghanap, magbahagi ng pangangailangan, at kumonekta tungkol sa pets, nawawalang items, adoption, o lokal na suporta ang komunidad.",
+          title: "Hinahanap + mga alaga",
+          body: "Maaari ring maghanap, magbahagi ng pangangailangan, at kumonekta tungkol sa alagang hayop, nawawalang gamit, adoption, o lokal na suporta ang komunidad.",
         },
       ],
       closing:

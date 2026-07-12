@@ -7,6 +7,11 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { CategoryStandardActiveFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import { CategoryStandardCompactSearchBar } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardCompactSearchBar";
+import {
+  activeFilterParamsFromUrl,
+  mergeLocationAndDrawerParams,
+  readCommunityDrawerFromParams,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardCommunitySimpleBrowse";
 import { ComunidadClasesDrawerFields } from "@/app/(site)/clasificados/components/categoryStandard/lightweightCategoryDrawerFields";
 import { parseLightweightBrowseFromSearchParams } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
 import {
@@ -29,46 +34,6 @@ type Props = {
   lang: Lang;
   clearHref: string;
 };
-
-function readDrawerParams(category: "clases" | "comunidad", sp: URLSearchParams): Record<string, string> {
-  if (category === "clases") {
-    return {
-      classType: (sp.get("classType") ?? "").trim(),
-      cost: (sp.get("cost") ?? "all").trim(),
-      mode: (sp.get("mode") ?? "all").trim(),
-      level: (sp.get("level") ?? "all").trim(),
-      audience: (sp.get("audience") ?? "all").trim(),
-      registration: (sp.get("registration") ?? "all").trim(),
-    };
-  }
-  return {
-    eventType: (sp.get("eventType") ?? "").trim(),
-    eventCost: (sp.get("eventCost") ?? "all").trim(),
-    dateFrom: (sp.get("dateFrom") ?? "").trim(),
-    dateTo: (sp.get("dateTo") ?? "").trim(),
-    audience: (sp.get("audience") ?? "all").trim(),
-    registration: (sp.get("registration") ?? "all").trim(),
-    accessibility: (sp.get("accessibility") ?? "all").trim(),
-  };
-}
-
-function mergeNavigateParams(
-  loc: { q: string; city: string; state: string; zip: string; country: string },
-  drawer: Record<string, string>,
-): ResultsFilterParams {
-  const base: ResultsFilterParams = {
-    q: loc.q || undefined,
-    city: loc.city || undefined,
-    state: loc.state || undefined,
-    zip: loc.zip || undefined,
-    country: loc.country || undefined,
-  };
-  for (const [k, v] of Object.entries(drawer)) {
-    if (!v || v === "all") continue;
-    base[k] = v;
-  }
-  return base;
-}
 
 function optionLabel(
   options: readonly { value: string; labelEs: string; labelEn: string }[],
@@ -154,8 +119,9 @@ function drawerFilterChips(
 export function CommunityResultsSearchPanel({ category, lang, clearHref }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
-  const loc = parseLightweightBrowseFromSearchParams(sp ?? new URLSearchParams());
-  const drawerFromUrl = useMemo(() => readDrawerParams(category, sp ?? new URLSearchParams()), [category, sp]);
+  const spObj = sp ?? new URLSearchParams();
+  const loc = parseLightweightBrowseFromSearchParams(spObj);
+  const drawerFromUrl = useMemo(() => readCommunityDrawerFromParams(category, spObj), [category, sp]);
   const [drawer, setDrawer] = useState(drawerFromUrl);
 
   useEffect(() => {
@@ -163,21 +129,51 @@ export function CommunityResultsSearchPanel({ category, lang, clearHref }: Props
   }, [drawerFromUrl]);
 
   const navigate = useCallback(
-    (locValues: { q: string; city: string; state: string; zip: string; country: string }, drawerValues: Record<string, string>) => {
-      router.push(buildCategoryResultsUrl(category, lang, cleanResultsFilterParams(mergeNavigateParams(locValues, drawerValues))));
+    (
+      locValues: {
+        q: string;
+        city: string;
+        state: string;
+        zip: string;
+        country: string;
+        stateTouched?: boolean;
+        countryTouched?: boolean;
+      },
+      drawerValues: Record<string, string>,
+    ) => {
+      router.push(
+        buildCategoryResultsUrl(
+          category,
+          lang,
+          cleanResultsFilterParams(
+            mergeLocationAndDrawerParams(locValues, drawerValues, {
+              urlHadState: spObj.has("state"),
+              urlHadCountry: spObj.has("country"),
+              stateTouched: locValues.stateTouched,
+              countryTouched: locValues.countryTouched,
+            }),
+          ),
+        ),
+      );
     },
-    [category, lang, router],
+    [category, lang, router, spObj],
   );
 
   const onDrawerChange = (key: string, value: string) => {
     setDrawer((prev) => ({ ...prev, [key]: value }));
   };
 
-  const allParams = useMemo(() => mergeNavigateParams(loc, drawerFromUrl), [loc, drawerFromUrl]);
+  const allParams = useMemo(
+    () => activeFilterParamsFromUrl(spObj, drawerFromUrl),
+    [drawerFromUrl, spObj],
+  );
 
   const activeChips = useMemo(() => {
-    return [...buildLocationFilterChips(category, lang, loc, allParams), ...drawerFilterChips(category, lang, drawerFromUrl, allParams)];
-  }, [allParams, category, drawerFromUrl, lang, loc]);
+    return [
+      ...buildLocationFilterChips(category, lang, allParams),
+      ...drawerFilterChips(category, lang, drawerFromUrl, allParams),
+    ];
+  }, [allParams, category, drawerFromUrl, lang]);
 
   return (
     <div className="space-y-3">
@@ -186,6 +182,8 @@ export function CommunityResultsSearchPanel({ category, lang, clearHref }: Props
         routeLang={lang}
         keywordPlaceholder={categoryStandardSearchPlaceholder(category, lang)}
         defaultValues={loc}
+        urlHadState={spObj.has("state")}
+        urlHadCountry={spObj.has("country")}
         initialDrawerOpen={sp?.get("filters") === "1"}
         showBrowseAll={false}
         drawerContent={

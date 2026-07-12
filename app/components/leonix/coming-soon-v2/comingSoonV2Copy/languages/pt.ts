@@ -70,12 +70,12 @@ export function getPtCopy(lang: SupportedLang): ComingSoonV2Copy {
       bridge:
         "Mais motivos para visitar Leonix significa mais oportunidades para os negócios serem vistos.",
       featuredCard: {
-        badge: "New category",
-        title: "Local Deals",
+        badge: "Nova categoria",
+        title: "Ofertas Locais",
         body:
-          "Weekly flyers, coupons, and specials from local businesses in a clear experience designed to help the community discover real savings and help businesses gain more visibility.",
+          "Panfletos, cupons e especiais semanais de negócios locais em uma experiência clara, pensada para a comunidade descobrir economias reais e os negócios ganharem mais visibilidade.",
         supportingLine:
-          "More reasons to visit Leonix means more opportunities for local businesses to be seen.",
+          "Mais motivos para visitar a Leonix significa mais oportunidades para os negócios serem vistos.",
       },
       cardsAria: "Categorias do marketplace local",
       cards: [

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import type { HomeMarketingResolved } from "@/app/lib/siteSectionContent/homeMarketingMerge";
-import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
+import { launchUiCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { HomeDestacadosSection } from "./HomeDestacadosSection";
@@ -23,8 +23,9 @@ export function HomeMarketingClient({ content }: { content: HomeMarketingResolve
 function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   const searchParams = useSearchParams();
   const routeLang = normalizeLang(searchParams?.get("lang"));
-  const lang = navCopyLang(routeLang) as HomePageLang;
-  const L = content[lang];
+  const lang = launchUiCopyLang(routeLang);
+  const cmsLang: "es" | "en" = lang === "en" || lang === "tl" ? "en" : "es";
+  const L = content[cmsLang];
   const pageCopy = HOME_PAGE_COPY[lang];
   const magazineLink = replaceLangInHref("/magazine", routeLang);
 
@@ -40,7 +41,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   };
 
   const withLang = (href: string) => replaceLangInHref(href, routeLang);
-  const cardLang: "es" | "en" = lang === "en" ? "en" : "es";
+  const cardLang: "es" | "en" = cmsLang;
   const launch25Href = `/newsletter?lang=${cardLang}&source=home&sourceCta=launch_25`;
 
   const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
