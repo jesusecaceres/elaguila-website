@@ -1,6 +1,8 @@
 "use client";
 
 import type { QuickJobLocationBlock } from "../../data/empleoQuickJobSampleData";
+import { trackEmpleosContactFromHref } from "../../lib/empleosCtaTracking";
+import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 
 type Props = {
   location: QuickJobLocationBlock;
@@ -8,6 +10,7 @@ type Props = {
   ctaLabel: string;
   onOpen?: () => void;
   compact?: boolean;
+  contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
 };
 
 /** Build Google Maps embed URL from a real address line (no fake coordinates). */
@@ -17,7 +20,7 @@ function buildEmpleosPreviewMapEmbedUrl(locationLine: string): string {
   return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
 }
 
-export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen, compact }: Props) {
+export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen, compact, contactAnalyticsMeta }: Props) {
   const locality = [location.city, location.state, location.country].filter((x) => (x ?? "").trim()).join(", ");
   const fullLine = [locality, location.zip].filter((x) => (x ?? "").trim()).join(" · ");
   const query = [location.addressLine1, fullLine].filter((x) => x.trim() && x !== "—" && x !== "Remoto").join(", ");
@@ -26,6 +29,14 @@ export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen,
     : null;
   const showMap = !location.isRemote && Boolean(location.addressLine1?.trim() && location.addressLine1 !== "—");
   const embedUrl = showMap ? buildEmpleosPreviewMapEmbedUrl(query) : "";
+
+  const handleMapClick = () => {
+    if (mapsHref) {
+      trackEmpleosContactFromHref(mapsHref, contactAnalyticsMeta);
+      window.open(mapsHref, "_blank", "noopener,noreferrer");
+      onOpen?.();
+    }
+  };
 
   return (
     <section className={`rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)] ${compact ? "p-4" : "p-5 sm:p-6"}`}>
@@ -66,10 +77,7 @@ export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen,
       {mapsHref ? (
         <button
           type="button"
-          onClick={() => {
-            window.open(mapsHref, "_blank", "noopener,noreferrer");
-            onOpen?.();
-          }}
+          onClick={handleMapClick}
           className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#C9A84A]/55 bg-[#FFFDF7] font-semibold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] ${compact ? "min-h-[36px] px-3 py-1.5 text-xs" : "min-h-[40px] px-3 py-2 text-xs"}`}
         >
           <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

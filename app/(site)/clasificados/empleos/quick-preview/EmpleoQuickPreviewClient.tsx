@@ -169,13 +169,24 @@ export function EmpleoQuickPreviewClient() {
 
   if (fromPublicar && draft) {
     const data = mapQuickDraftToShell(draft);
+    const shareAbs = typeof window !== "undefined" ? window.location.href : "";
+    const previewEngagement = {
+      listingId: `preview_${Date.now()}`, // Draft-only: no real ID
+      ownerUserId: null,
+      shareUrl: shareAbs,
+      persistEngagement: false, // Inert analytics in preview
+      listingSourceId: null, // No real DB identity in preview
+      slug: null,
+      leonixAdId: null,
+      likeCount: 0, // No fake counts in preview
+    };
     return (
       <LeonixPreviewPageShell
         editHref={editHref}
         lang={lang}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       >
-        <EmpleoQuickDetailPage data={data} withSiteChrome={false} hideResultsNav />
+        <EmpleoQuickDetailPage data={data} withSiteChrome={false} hideResultsNav engagement={previewEngagement} />
         <div className="mx-auto mt-8 max-w-3xl px-4 pb-12 md:px-6">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-[#1E1810]">

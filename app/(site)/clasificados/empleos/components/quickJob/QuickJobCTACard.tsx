@@ -7,6 +7,7 @@ import { normalizePayDisplayParts } from "@/app/publicar/empleos/shared/lib/empl
 import { empleosPhoneDigits, formatEmpleosPhoneDisplay } from "@/app/publicar/empleos/shared/lib/empleosPhoneDisplay";
 import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
 import { trackEmpleosSidebarContactCta } from "../../lib/empleosCtaTracking";
+import { empleosGlobalListingFromRow, empleosGlobalShareRecorder } from "../../lib/recordEmpleosGlobalAnalytics";
 import {
   buildCallIntent,
   buildSendEmailIntent,
@@ -181,6 +182,17 @@ export function QuickJobCTACard({
       listingTitle?.trim() ||
       "Leonix Media";
 
+    // Build global listing for analytics when real identity exists
+    const globalListing = contactAnalyticsMeta?.sourceId?.trim()
+      ? empleosGlobalListingFromRow({
+          id: contactAnalyticsMeta.sourceId.trim(),
+          slug: contactAnalyticsMeta.slug,
+          leonix_ad_id: contactAnalyticsMeta.leonixAdId,
+        })
+      : null;
+
+    const recordShare = globalListing ? empleosGlobalShareRecorder(globalListing, "detail_share") : undefined;
+
     try {
       if (typeof navigator.share === "function") {
         await navigator.share({
@@ -188,16 +200,18 @@ export function QuickJobCTACard({
           text: title,
           url,
         });
+        if (recordShare) recordShare("web_share", { direct: true });
         return;
       }
 
       await navigator.clipboard.writeText(url);
       setShareCopied(true);
       window.setTimeout(() => setShareCopied(false), 2000);
+      if (recordShare) recordShare("copy_link", { direct: true, nativeFallback: true });
     } catch {
       // User cancelled native share or browser blocked it.
     }
-  }, [businessName, listingTitle]);
+  }, [businessName, listingTitle, contactAnalyticsMeta]);
 
   const primaryIsApply = hasApplyLink;
   const primaryIsWhatsApp = !primaryIsApply && preferredApplyMethod === "whatsapp" && whatsapp;

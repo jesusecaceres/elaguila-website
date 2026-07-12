@@ -1,4 +1,8 @@
 import Image from "next/image";
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { empleosGlobalListingFromRow } from "../../lib/recordEmpleosGlobalAnalytics";
 
 type Props = {
   title: string;
@@ -14,6 +18,18 @@ type Props = {
   chips?: string[];
   /** Formatted pay highlight (shown as secondary badge). */
   payHighlight?: string;
+  /** Engagement props for like/share in header. */
+  engagement?: {
+    listingId: string;
+    ownerUserId?: string | null;
+    shareUrl: string;
+    persistEngagement: boolean;
+    listingSourceId?: string | null;
+    slug?: string | null;
+    leonixAdId?: string | null;
+    likeCount?: number;
+  } | null;
+  lang?: Lang;
 };
 
 function Chip({ label }: { label: string }) {
@@ -37,11 +53,34 @@ export function QuickJobHeaderCard({
   filterRegionFootnote,
   chips = [],
   payHighlight,
+  engagement,
+  lang = "es",
 }: Props) {
   const st = stateRegion || state;
   const parts = [city, st, country].filter(Boolean);
   const locationLine = parts.join(", ");
   const visibleChips = chips.filter((c) => c.trim() && c !== "—");
+
+  // Build global analytics listing for real engagement tracking
+  const globalListing = engagement?.listingSourceId?.trim()
+    ? empleosGlobalListingFromRow({
+        id: engagement.listingSourceId.trim(),
+        slug: engagement.slug,
+        leonix_ad_id: engagement.leonixAdId,
+      })
+    : null;
+
+  const recordLikeEvent = globalListing ? async (isLike: boolean) => {
+    if (!globalListing) return;
+    const { empleosGlobalLikeRecorder } = await import("../../lib/recordEmpleosGlobalAnalytics");
+    empleosGlobalLikeRecorder(globalListing);
+  } : undefined;
+
+  const recordShareEvent = globalListing ? (shareMethod: string, extraMeta?: Record<string, unknown>) => {
+    if (!globalListing) return;
+    const { empleosGlobalShareRecorder } = require("../../lib/recordEmpleosGlobalAnalytics");
+    empleosGlobalShareRecorder(globalListing, "detail_share");
+  } : undefined;
 
   return (
     <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-6">
@@ -67,6 +106,32 @@ export function QuickJobHeaderCard({
             </p>
           ) : null}
         </div>
+        {engagement ? (
+          <div className="flex shrink-0 gap-2">
+            <LeonixLikeButton
+              listingId={engagement.listingId}
+              ownerUserId={engagement.ownerUserId ?? undefined}
+              variant="small"
+              lang={lang}
+              category="empleos"
+              persistEngagement={engagement.persistEngagement}
+              recordLikeEvent={recordLikeEvent}
+              likeCount={engagement.likeCount}
+              countDisplay="numeric"
+            />
+            <LeonixShareButton
+              listingId={engagement.listingId}
+              ownerUserId={engagement.ownerUserId ?? undefined}
+              listingTitle={title}
+              listingUrl={engagement.shareUrl}
+              variant="small"
+              lang={lang}
+              category="empleos"
+              persistEngagement={engagement.persistEngagement}
+              recordShareEvent={recordShareEvent}
+            />
+          </div>
+        ) : null}
       </div>
       <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#2A2826] sm:text-3xl lg:text-[2rem] lg:leading-tight">
         {title}
