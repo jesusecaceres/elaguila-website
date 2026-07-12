@@ -43,12 +43,16 @@ export function CategoryStandardLandingSearchPanel({
   const [loc, setLoc] = useState<BrowseLocationValues>({ ...DEFAULT_BROWSE_LOCATION });
   const [drawer, setDrawer] = useState(() => defaultDrawerForCategory(category));
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [stateTouched, setStateTouched] = useState(false);
+  const [countryTouched, setCountryTouched] = useState(false);
+
+  const locationSanitizeOpts = { stateTouched, countryTouched };
 
   const navigateToResults = useCallback(
     (locValues: BrowseLocationValues, drawerValues: Record<string, string>) => {
-      router.push(buildCommunitySimpleResultsHref(category, routeLang, locValues, drawerValues));
+      router.push(buildCommunitySimpleResultsHref(category, routeLang, locValues, drawerValues, locationSanitizeOpts));
     },
-    [category, routeLang, router],
+    [category, routeLang, router, stateTouched, countryTouched],
   );
 
   const onSearch = useCallback(() => {
@@ -64,6 +68,8 @@ export function CategoryStandardLandingSearchPanel({
     setDrawerOpen(false);
     setLoc({ ...DEFAULT_BROWSE_LOCATION });
     setDrawer(defaultDrawerForCategory(category));
+    setStateTouched(false);
+    setCountryTouched(false);
   }, [category]);
 
   const onDrawerChange = (key: string, value: string) => {
@@ -105,9 +111,15 @@ export function CategoryStandardLandingSearchPanel({
         country={loc.country}
         onQuery={(v) => setLoc((p) => ({ ...p, q: v }))}
         onCity={(v) => setLoc((p) => ({ ...p, city: v }))}
-        onState={(v) => setLoc((p) => ({ ...p, state: v }))}
+        onState={(v) => {
+          setStateTouched(true);
+          setLoc((p) => ({ ...p, state: v }));
+        }}
         onZip={(v) => setLoc((p) => ({ ...p, zip: v }))}
-        onCountry={(v) => setLoc((p) => ({ ...p, country: v }))}
+        onCountry={(v) => {
+          setCountryTouched(true);
+          setLoc((p) => ({ ...p, country: v }));
+        }}
         onSearch={onSearch}
         onOpenFilters={() => setDrawerOpen(true)}
         browseAllHref={browseAllHref}

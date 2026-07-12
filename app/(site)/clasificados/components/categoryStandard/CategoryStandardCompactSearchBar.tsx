@@ -21,6 +21,7 @@ import {
 } from "@/app/(site)/clasificados/shared/components/LeonixLocalBusinessCompactSearchCanvas";
 import { categoryStandardUi } from "./categoryStandardTheme";
 import { CategoryStandardFiltersDrawerShell } from "./CategoryStandardFiltersDrawerShell";
+import { sanitizeLocationParamsForUrl } from "./lightweightBrowseLocation";
 
 export type CompactSearchValues = {
   q: string;
@@ -28,6 +29,8 @@ export type CompactSearchValues = {
   state: string;
   zip: string;
   country: string;
+  stateTouched?: boolean;
+  countryTouched?: boolean;
 };
 
 type Props = {
@@ -44,6 +47,10 @@ type Props = {
   extraFields?: Record<string, string>;
   secondRow?: ReactNode;
   showFiltersButton?: boolean;
+  /** Whether the loaded URL already contained `state` (preserves explicit CA). */
+  urlHadState?: boolean;
+  /** Whether the loaded URL already contained `country`. */
+  urlHadCountry?: boolean;
   showBrowseAll?: boolean;
   initialDrawerOpen?: boolean;
   /** Tighter mobile spacing for results surfaces. */
@@ -67,6 +74,8 @@ export function CategoryStandardCompactSearchBar({
   showBrowseAll = true,
   initialDrawerOpen = false,
   density = "default",
+  urlHadState = false,
+  urlHadCountry = false,
 }: Props) {
   const ui = categoryStandardUi(lang);
   const router = useRouter();
@@ -78,6 +87,8 @@ export function CategoryStandardCompactSearchBar({
   const [state, setState] = useState(defaultValues?.state ?? LEONIX_LB_DEFAULT_STATE);
   const [zip, setZip] = useState(defaultValues?.zip ?? "");
   const [country, setCountry] = useState(defaultValues?.country ?? LEONIX_LB_DEFAULT_COUNTRY);
+  const [stateTouched, setStateTouched] = useState(false);
+  const [countryTouched, setCountryTouched] = useState(false);
 
   useEffect(() => {
     setQ(defaultValues?.q ?? "");
@@ -85,6 +96,8 @@ export function CategoryStandardCompactSearchBar({
     setState(defaultValues?.state ?? LEONIX_LB_DEFAULT_STATE);
     setZip(defaultValues?.zip ?? "");
     setCountry(defaultValues?.country ?? LEONIX_LB_DEFAULT_COUNTRY);
+    setStateTouched(false);
+    setCountryTouched(false);
   }, [
     defaultValues?.q,
     defaultValues?.city,
@@ -105,6 +118,8 @@ export function CategoryStandardCompactSearchBar({
     state: state.trim(),
     zip: zip.trim(),
     country: country.trim(),
+    stateTouched,
+    countryTouched,
   });
 
   const submitValues = useCallback(
@@ -116,11 +131,17 @@ export function CategoryStandardCompactSearchBar({
       if (!action) return;
       const sp = new URLSearchParams();
       sp.set("lang", routeLang);
-      if (values.q) sp.set("q", values.q);
-      if (values.city) sp.set("city", values.city);
-      if (values.state) sp.set("state", values.state);
-      if (values.zip) sp.set("zip", values.zip);
-      if (values.country) sp.set("country", values.country);
+      const loc = sanitizeLocationParamsForUrl(values, {
+        urlHadState,
+        urlHadCountry,
+        stateTouched: values.stateTouched,
+        countryTouched: values.countryTouched,
+      });
+      if (loc.q) sp.set("q", loc.q);
+      if (loc.city) sp.set("city", loc.city);
+      if (loc.state) sp.set("state", loc.state);
+      if (loc.zip) sp.set("zip", loc.zip);
+      if (loc.country) sp.set("country", loc.country);
       if (extraFields) {
         for (const [k, v] of Object.entries(extraFields)) {
           if (v.trim()) sp.set(k, v.trim());
@@ -128,7 +149,7 @@ export function CategoryStandardCompactSearchBar({
       }
       router.push(`${action}?${sp.toString()}`);
     },
-    [action, extraFields, onSearch, routeLang, router],
+    [action, extraFields, onSearch, routeLang, router, urlHadCountry, urlHadState],
   );
 
   const onSubmit = (e: FormEvent) => {
@@ -202,7 +223,10 @@ export function CategoryStandardCompactSearchBar({
             <select
               name="state"
               value={state}
-              onChange={(e) => setState(e.target.value)}
+              onChange={(e) => {
+                setStateTouched(true);
+                setState(e.target.value);
+              }}
               aria-label={statePh}
               className={`${LX_LB_SEARCH_INPUT} appearance-none`}
             >
@@ -239,7 +263,10 @@ export function CategoryStandardCompactSearchBar({
               name="country"
               type="text"
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {
+                setCountryTouched(true);
+                setCountry(e.target.value);
+              }}
               placeholder={countryPh}
               aria-label={countryPh}
               autoComplete="country-name"

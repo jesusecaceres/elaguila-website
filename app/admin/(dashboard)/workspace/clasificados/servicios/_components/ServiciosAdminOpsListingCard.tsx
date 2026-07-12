@@ -31,11 +31,17 @@ export function ServiciosAdminOpsListingCard({
   row,
   likes,
   saves,
+  canonicalViews = 0,
+  canonicalCtaClicks = 0,
+  canonicalLeads = 0,
   highlighted,
 }: {
   row: ServiciosPublicAdminRow;
   likes: number;
   saves: number;
+  canonicalViews?: number;
+  canonicalCtaClicks?: number;
+  canonicalLeads?: number;
   highlighted: boolean;
 }) {
   const publicLive = (row.listing_status ?? "") === "published";
@@ -83,6 +89,12 @@ export function ServiciosAdminOpsListingCard({
               <dt className="font-bold uppercase tracking-wide text-[#7A7164]">Engagement</dt>
               <dd className="mt-0.5 tabular-nums">
                 MG {likes} · Saved {saves}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-bold uppercase tracking-wide text-[#7A7164]">Canonical analytics</dt>
+              <dd className="mt-0.5 tabular-nums">
+                Views {canonicalViews} · CTA {canonicalCtaClicks} · Leads {canonicalLeads}
               </dd>
             </div>
           </dl>
@@ -193,7 +205,7 @@ export function ServiciosAdminOpsListingCard({
           </div>
 
           <p className="text-[10px] leading-relaxed text-[#7A7164]">
-            Analytics: partial — engagement counts from user_liked_listings / saved_listings when available.
+            Analytics: likes/saves from engagement tables; views/CTA/leads from canonical listing_analytics (servicios_public_listings source_id).
           </p>
         </div>
       </div>

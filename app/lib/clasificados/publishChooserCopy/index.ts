@@ -65,12 +65,16 @@ export const PUBLISH_CHOOSER_COPY: Record<SupportedLang, PublishChooserCopy> = {
     back: "Voltar aos Classificados",
     featuredTitle: "Imóveis",
     featuredCta: "Continuar para publicar BR",
+    ofertasLocalesTitle: "Ofertas locais",
+    ofertasLocalesPublish: "Publique suas ofertas locais",
   }),
   tl: fromEn({
     title: "Mag-post ng listing",
     subtitle: "Pumili ng kategorya para magpatuloy.",
     back: "Bumalik sa Classifieds",
     featuredCta: "Magpatuloy sa BR posting",
+    ofertasLocalesTitle: "Mga lokal na alok",
+    ofertasLocalesPublish: "I-publish ang iyong lokal na alok",
   }),
   km: fromEn({
     title: "បង្ហោះការផ្សាយ",

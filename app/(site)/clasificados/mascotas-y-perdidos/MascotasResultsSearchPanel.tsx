@@ -7,6 +7,11 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { CategoryStandardActiveFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import { CategoryStandardCompactSearchBar } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardCompactSearchBar";
+import {
+  activeFilterParamsFromUrl,
+  mergeLocationAndDrawerParams,
+  readMascotasDrawerFromParams,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardCommunitySimpleBrowse";
 import { MascotasDrawerFields } from "@/app/(site)/clasificados/components/categoryStandard/lightweightCategoryDrawerFields";
 import { parseLightweightBrowseFromSearchParams } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
 import {
@@ -18,32 +23,6 @@ import {
 import { categoryStandardSearchPlaceholder } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import type { ActiveFilterChip } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import { resolveMascotasPerdidosNoticeLabel } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
-
-function readMascotasDrawer(sp: URLSearchParams): Record<string, string> {
-  return {
-    tipo: (sp.get("tipo") ?? "all").trim(),
-    lastSeenArea: (sp.get("lastSeenArea") ?? "").trim(),
-    hasPhoto: (sp.get("hasPhoto") ?? "").trim(),
-  };
-}
-
-function mergeMascotasParams(
-  loc: { q: string; city: string; state: string; zip: string; country: string },
-  drawer: Record<string, string>,
-): ResultsFilterParams {
-  const params: ResultsFilterParams = {
-    q: loc.q || undefined,
-    city: loc.city || undefined,
-    state: loc.state || undefined,
-    zip: loc.zip || undefined,
-    country: loc.country || undefined,
-  };
-  for (const [k, v] of Object.entries(drawer)) {
-    if (!v || v === "all") continue;
-    params[k] = v;
-  }
-  return params;
-}
 
 function mascotasDrawerChips(lang: Lang, drawer: Record<string, string>, allParams: ResultsFilterParams): ActiveFilterChip[] {
   const L = lang === "es";
@@ -66,8 +45,9 @@ function mascotasDrawerChips(lang: Lang, drawer: Record<string, string>, allPara
 export function MascotasResultsSearchPanel({ lang, clearHref }: { lang: Lang; clearHref: string }) {
   const router = useRouter();
   const sp = useSearchParams();
-  const loc = parseLightweightBrowseFromSearchParams(sp ?? new URLSearchParams());
-  const drawerFromUrl = useMemo(() => readMascotasDrawer(sp ?? new URLSearchParams()), [sp]);
+  const spObj = sp ?? new URLSearchParams();
+  const loc = parseLightweightBrowseFromSearchParams(spObj);
+  const drawerFromUrl = useMemo(() => readMascotasDrawerFromParams(spObj), [sp]);
   const [drawer, setDrawer] = useState(drawerFromUrl);
 
   useEffect(() => {
@@ -75,22 +55,44 @@ export function MascotasResultsSearchPanel({ lang, clearHref }: { lang: Lang; cl
   }, [drawerFromUrl]);
 
   const navigate = useCallback(
-    (locValues: { q: string; city: string; state: string; zip: string; country: string }) => {
+    (locValues: {
+      q: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+      stateTouched?: boolean;
+      countryTouched?: boolean;
+    }) => {
       router.push(
-        buildCategoryResultsUrl("mascotas-y-perdidos", lang, cleanResultsFilterParams(mergeMascotasParams(locValues, drawer))),
+        buildCategoryResultsUrl(
+          "mascotas-y-perdidos",
+          lang,
+          cleanResultsFilterParams(
+            mergeLocationAndDrawerParams(locValues, drawer, {
+              urlHadState: spObj.has("state"),
+              urlHadCountry: spObj.has("country"),
+              stateTouched: locValues.stateTouched,
+              countryTouched: locValues.countryTouched,
+            }),
+          ),
+        ),
       );
     },
-    [drawer, lang, router],
+    [drawer, lang, router, spObj],
   );
 
-  const allParams = useMemo(() => mergeMascotasParams(loc, drawerFromUrl), [loc, drawerFromUrl]);
+  const allParams = useMemo(
+    () => activeFilterParamsFromUrl(spObj, drawerFromUrl),
+    [drawerFromUrl, spObj],
+  );
 
   const activeChips = useMemo(
     () => [
-      ...buildLocationFilterChips("mascotas-y-perdidos", lang, loc, allParams),
+      ...buildLocationFilterChips("mascotas-y-perdidos", lang, allParams),
       ...mascotasDrawerChips(lang, drawerFromUrl, allParams),
     ],
-    [allParams, drawerFromUrl, lang, loc],
+    [allParams, drawerFromUrl, lang],
   );
 
   return (
@@ -100,6 +102,8 @@ export function MascotasResultsSearchPanel({ lang, clearHref }: { lang: Lang; cl
         routeLang={lang}
         keywordPlaceholder={categoryStandardSearchPlaceholder("mascotas-y-perdidos", lang)}
         defaultValues={loc}
+        urlHadState={spObj.has("state")}
+        urlHadCountry={spObj.has("country")}
         initialDrawerOpen={sp?.get("filters") === "1"}
         showBrowseAll={false}
         drawerContent={

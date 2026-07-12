@@ -7,6 +7,11 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { CategoryStandardActiveFilterChips } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import { CategoryStandardCompactSearchBar } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardCompactSearchBar";
+import {
+  activeFilterParamsFromUrl,
+  mergeLocationAndDrawerParams,
+  readBuscoDrawerFromParams,
+} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardCommunitySimpleBrowse";
 import { BuscoDrawerFields } from "@/app/(site)/clasificados/components/categoryStandard/lightweightCategoryDrawerFields";
 import { parseLightweightBrowseFromSearchParams } from "@/app/(site)/clasificados/components/categoryStandard/lightweightBrowseLocation";
 import {
@@ -18,33 +23,6 @@ import {
 import { categoryStandardSearchPlaceholder } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import type { ActiveFilterChip } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import { resolveBuscoTypePublicLabel } from "@/app/(site)/publicar/busco/shared/buscoTaxonomy";
-
-function readBuscoDrawer(sp: URLSearchParams): Record<string, string> {
-  return {
-    tipo: (sp.get("tipo") ?? "all").trim(),
-    zone: (sp.get("zone") ?? "").trim(),
-    budget: (sp.get("budget") ?? "").trim(),
-    contact: (sp.get("contact") ?? "all").trim(),
-  };
-}
-
-function mergeBuscoParams(
-  loc: { q: string; city: string; state: string; zip: string; country: string },
-  drawer: Record<string, string>,
-): ResultsFilterParams {
-  const params: ResultsFilterParams = {
-    q: loc.q || undefined,
-    city: loc.city || undefined,
-    state: loc.state || undefined,
-    zip: loc.zip || undefined,
-    country: loc.country || undefined,
-  };
-  for (const [k, v] of Object.entries(drawer)) {
-    if (!v || v === "all") continue;
-    params[k] = v;
-  }
-  return params;
-}
 
 function buscoDrawerChips(lang: Lang, drawer: Record<string, string>, allParams: ResultsFilterParams): ActiveFilterChip[] {
   const L = lang === "es";
@@ -78,8 +56,9 @@ function buscoDrawerChips(lang: Lang, drawer: Record<string, string>, allParams:
 export function BuscoResultsSearchPanel({ lang, clearHref }: { lang: Lang; clearHref: string }) {
   const router = useRouter();
   const sp = useSearchParams();
-  const loc = parseLightweightBrowseFromSearchParams(sp ?? new URLSearchParams());
-  const drawerFromUrl = useMemo(() => readBuscoDrawer(sp ?? new URLSearchParams()), [sp]);
+  const spObj = sp ?? new URLSearchParams();
+  const loc = parseLightweightBrowseFromSearchParams(spObj);
+  const drawerFromUrl = useMemo(() => readBuscoDrawerFromParams(spObj), [sp]);
   const [drawer, setDrawer] = useState(drawerFromUrl);
 
   useEffect(() => {
@@ -87,17 +66,41 @@ export function BuscoResultsSearchPanel({ lang, clearHref }: { lang: Lang; clear
   }, [drawerFromUrl]);
 
   const navigate = useCallback(
-    (locValues: { q: string; city: string; state: string; zip: string; country: string }) => {
-      router.push(buildCategoryResultsUrl("busco", lang, cleanResultsFilterParams(mergeBuscoParams(locValues, drawer))));
+    (locValues: {
+      q: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+      stateTouched?: boolean;
+      countryTouched?: boolean;
+    }) => {
+      router.push(
+        buildCategoryResultsUrl(
+          "busco",
+          lang,
+          cleanResultsFilterParams(
+            mergeLocationAndDrawerParams(locValues, drawer, {
+              urlHadState: spObj.has("state"),
+              urlHadCountry: spObj.has("country"),
+              stateTouched: locValues.stateTouched,
+              countryTouched: locValues.countryTouched,
+            }),
+          ),
+        ),
+      );
     },
-    [drawer, lang, router],
+    [drawer, lang, router, spObj],
   );
 
-  const allParams = useMemo(() => mergeBuscoParams(loc, drawerFromUrl), [loc, drawerFromUrl]);
+  const allParams = useMemo(
+    () => activeFilterParamsFromUrl(spObj, drawerFromUrl),
+    [drawerFromUrl, spObj],
+  );
 
   const activeChips = useMemo(
-    () => [...buildLocationFilterChips("busco", lang, loc, allParams), ...buscoDrawerChips(lang, drawerFromUrl, allParams)],
-    [allParams, drawerFromUrl, lang, loc],
+    () => [...buildLocationFilterChips("busco", lang, allParams), ...buscoDrawerChips(lang, drawerFromUrl, allParams)],
+    [allParams, drawerFromUrl, lang],
   );
 
   return (
@@ -107,6 +110,8 @@ export function BuscoResultsSearchPanel({ lang, clearHref }: { lang: Lang; clear
         routeLang={lang}
         keywordPlaceholder={categoryStandardSearchPlaceholder("busco", lang)}
         defaultValues={loc}
+        urlHadState={spObj.has("state")}
+        urlHadCountry={spObj.has("country")}
         initialDrawerOpen={sp?.get("filters") === "1"}
         showBrowseAll={false}
         drawerContent={

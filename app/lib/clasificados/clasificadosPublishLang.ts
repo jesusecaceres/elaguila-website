@@ -1,6 +1,6 @@
 /**
  * Clasificados publish / application pipeline — route lang vs UI copy lang.
- * Route URLs preserve full SupportedLang; UI chrome uses ES/EN via navCopyLang.
+ * Route URLs preserve full SupportedLang; 4-lang surfaces use launchUiCopyLang; legacy binary paths use navCopyLang.
  */
 
 import {

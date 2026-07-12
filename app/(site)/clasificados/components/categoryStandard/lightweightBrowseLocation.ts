@@ -1,6 +1,8 @@
 import {
   formatLeonixLbPublicLocationLine,
   isLeonixLbUsCountry,
+  LEONIX_LB_DEFAULT_COUNTRY,
+  LEONIX_LB_DEFAULT_STATE,
   leonixLbStateMatchesFilter,
   normalizeLeonixLbCountry,
   normalizeLeonixLbStateCode,
@@ -28,6 +30,65 @@ export function parseLightweightBrowseFromSearchParams(sp: URLSearchParams): Req
     q: (sp.get("q") ?? "").trim(),
     ...parseLightweightLocationFromSearchParams(sp),
   };
+}
+
+export type LocationUrlSanitizeOpts = {
+  /** URL already contained a `state` param (even CA). */
+  urlHadState?: boolean;
+  /** URL already contained a `country` param (even United States). */
+  urlHadCountry?: boolean;
+  /** User changed state on the form since load/reset. */
+  stateTouched?: boolean;
+  /** User changed country on the form since load/reset. */
+  countryTouched?: boolean;
+};
+
+/** Omit display-only defaults (CA / United States) unless explicitly in URL or user-touched. */
+export function sanitizeLocationParamsForUrl(
+  loc: { q?: string; city?: string; state?: string; zip?: string; country?: string },
+  opts: LocationUrlSanitizeOpts = {},
+): { q?: string; city?: string; state?: string; zip?: string; country?: string } {
+  const out: { q?: string; city?: string; state?: string; zip?: string; country?: string } = {};
+  const q = (loc.q ?? "").trim();
+  if (q) out.q = q;
+  const city = (loc.city ?? "").trim();
+  if (city) out.city = city;
+  const zip = (loc.zip ?? "").trim();
+  if (zip) out.zip = zip;
+
+  const state = (loc.state ?? "").trim();
+  if (state) {
+    const emit = Boolean(opts.stateTouched || opts.urlHadState || state !== LEONIX_LB_DEFAULT_STATE);
+    if (emit) out.state = state;
+  }
+
+  const country = (loc.country ?? "").trim();
+  if (country) {
+    const emit = Boolean(opts.countryTouched || opts.urlHadCountry || country !== LEONIX_LB_DEFAULT_COUNTRY);
+    if (emit) out.country = country;
+  }
+
+  return out;
+}
+
+/** Active URL params only — no display defaults injected. */
+export function activeLocationParamsFromSearchParams(sp: URLSearchParams): LightweightLocationParams & { q?: string } {
+  const out: LightweightLocationParams & { q?: string } = {};
+  const q = (sp.get("q") ?? "").trim();
+  if (q) out.q = q;
+  const city = (sp.get("city") ?? "").trim();
+  if (city) out.city = city;
+  if (sp.has("state")) {
+    const state = (sp.get("state") ?? "").trim();
+    if (state) out.state = state;
+  }
+  const zip = (sp.get("zip") ?? "").trim();
+  if (zip) out.zip = zip;
+  if (sp.has("country")) {
+    const country = (sp.get("country") ?? "").trim();
+    if (country) out.country = country;
+  }
+  return out;
 }
 
 export function lightweightLocationSearchBlob(parts: {
