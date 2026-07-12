@@ -15,6 +15,11 @@ import {
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../brNegocioAdditionalInventoryDraft";
 import { mergeAdditionalInventoryProperties } from "../brNegocioAdditionalInventoryDraft";
+import {
+  type BienesAdditionalBusinessLink,
+  normalizeBusinessExtraLinks,
+  BIENES_MAX_ADDITIONAL_BUSINESS_LINKS,
+} from "../bienesAdditionalBusinessLinks";
 
 export type BienesRaicesAdvertiserType =
   | ""
@@ -297,8 +302,8 @@ export type BienesRaicesNegocioFormState = {
   /** Gate 12C — optional website/social URLs + channel toggles (shared with Rentas negocio contract). */
   contactChannels: LeonixContactChannelsFormSlice;
 
-  /** Additional business/profile URLs rendered as useful-link CTAs. */
-  businessExtraUrls?: string[];
+  /** Additional business/profile links rendered as useful-link CTAs. */
+  businessExtraUrls?: BienesAdditionalBusinessLink[];
 
   /** Business hub profile/review URLs (form JSON only; no SQL migration). */
   googleBusinessUrl?: string;
@@ -824,7 +829,7 @@ export function mergePartialBienesRaicesNegocioState(partial: LegacyPartial): Bi
       base.contactChannels,
       partial.contactChannels as Partial<LeonixContactChannelsFormSlice> | undefined,
     ),
-    businessExtraUrls: coerceUrlList((partial as Partial<BienesRaicesNegocioFormState>).businessExtraUrls, 2),
+    businessExtraUrls: normalizeBusinessExtraLinks((partial as Partial<BienesRaicesNegocioFormState>).businessExtraUrls, BIENES_MAX_ADDITIONAL_BUSINESS_LINKS),
     googleBusinessUrl:
       typeof partial.googleBusinessUrl === "string" ? partial.googleBusinessUrl : base.googleBusinessUrl,
     googleReviewsUrl:

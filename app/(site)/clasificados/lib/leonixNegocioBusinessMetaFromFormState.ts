@@ -4,6 +4,7 @@
 
 import type { BienesRaicesNegocioFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState";
 import { buildGate12cNegocioMetaOverlayFromRentasNegocio } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import { durableBusinessExtraLinks } from "@/app/clasificados/publicar/bienes-raices/negocio/application/bienesAdditionalBusinessLinks";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -131,7 +132,7 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
 
   const externalVideoUrls = cleanHttpUrls(s.media?.externalVideoUrls, 4);
   if (externalVideoUrls.length) meta.negocioExternalVideoUrls = JSON.stringify(externalVideoUrls);
-  const businessExtraUrls = cleanHttpUrls(s.businessExtraUrls, 2);
+  const businessExtraUrls = durableBusinessExtraLinks(s.businessExtraUrls, 2);
   if (businessExtraUrls.length) meta.negocioBusinessExtraUrls = JSON.stringify(businessExtraUrls);
 
   return Object.keys(meta).length ? JSON.stringify(meta) : null;

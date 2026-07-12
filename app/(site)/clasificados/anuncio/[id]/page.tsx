@@ -76,6 +76,11 @@ import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosA
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
 import { AutosAnuncioAnalyticsStrip } from "../../autos/listing/components/AutosAnuncioAnalyticsStrip";
 import type { AutosAnuncioListingLike } from "../../autos/listing/types/autosAnuncioLiveTypes";
+import {
+  businessLinkHref,
+  businessLinkPublicLabel,
+  parsePublishedBusinessExtraLinks,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/application/bienesAdditionalBusinessLinks";
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
@@ -655,9 +660,9 @@ export default function AnuncioDetallePage() {
         href,
         label: numberedPublicCtaLabel(lang === "en" ? "View video" : "Ver video", index),
       })),
-      usefulLinks: parseBusinessMetaUrlList(meta.negocioBusinessExtraUrls, 2).map((href, index) => ({
-        href,
-        label: numberedPublicCtaLabel(lang === "en" ? "More information" : "Más información", index),
+      usefulLinks: parsePublishedBusinessExtraLinks(meta.negocioBusinessExtraUrls, 2).map((link) => ({
+        href: businessLinkHref(link)!,
+        label: businessLinkPublicLabel(link, lang === "en" ? "en" : "es"),
       })),
     };
   }, [listing, lang]);

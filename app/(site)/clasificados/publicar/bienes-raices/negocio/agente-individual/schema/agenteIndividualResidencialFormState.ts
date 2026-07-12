@@ -16,6 +16,11 @@ import {
   type TipoPropiedadCodigo,
 } from "./agenteResidencialTipoMeta";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../application/brNegocioAdditionalInventoryDraft";
+import {
+  type BienesAdditionalBusinessLink,
+  normalizeBusinessExtraLinks,
+  BIENES_MAX_ADDITIONAL_BUSINESS_LINKS,
+} from "../../application/bienesAdditionalBusinessLinks";
 import { mergeAdditionalInventoryProperties } from "../../application/brNegocioAdditionalInventoryDraft";
 import type { ComercialDestacadoId, TerrenoDestacadoId } from "./agenteComercialTerrenoMeta";
 import {
@@ -46,7 +51,8 @@ export type AgentePrincipalLlamadas = "personal" | "oficina";
 
 export const AGENTE_RES_MAX_OPEN_HOUSE_SLOTS = 4;
 export const AGENTE_RES_MAX_VIDEO_URLS = 4;
-export const AGENTE_RES_MAX_BUSINESS_URLS = 2;
+export const AGENTE_RES_MAX_BUSINESS_URLS = BIENES_MAX_ADDITIONAL_BUSINESS_LINKS;
+export type { BienesAdditionalBusinessLink };
 
 export type AgenteResidencialDestacadoId =
   | "piscina"
@@ -224,8 +230,8 @@ export type AgenteIndividualResidencialFormState = {
   /** Yelp business reviews URL (main agent hub). */
   yelpReviewsUrl: string;
   socialOtro: string;
-  /** Additional professional/business URLs shown as useful links, not as social icons. */
-  businessExtraUrls: string[];
+  /** Additional professional/business links (title + URL) shown as useful links, not as social icons. */
+  businessExtraUrls: BienesAdditionalBusinessLink[];
 
   agenteAreaServicio: string;
   agenteIdiomas: string;
@@ -985,8 +991,8 @@ export function mergePartialAgenteIndividualResidencial(
     [...(videoUrlsFromFlat.length ? videoUrlsFromFlat : videoUrlsFromNested), legacyVideoUrl],
     AGENTE_RES_MAX_VIDEO_URLS,
   );
-  const businessExtraUrlsFromFlat = coerceUrlList(flat.businessExtraUrls, AGENTE_RES_MAX_BUSINESS_URLS);
-  const businessExtraUrlsFromNested = coerceUrlList(nested.businessExtraUrls, AGENTE_RES_MAX_BUSINESS_URLS);
+  const businessExtraUrlsFromFlat = normalizeBusinessExtraLinks(flat.businessExtraUrls, AGENTE_RES_MAX_BUSINESS_URLS);
+  const businessExtraUrlsFromNested = normalizeBusinessExtraLinks(nested.businessExtraUrls, AGENTE_RES_MAX_BUSINESS_URLS);
   const businessExtraUrls = businessExtraUrlsFromFlat.length ? businessExtraUrlsFromFlat : businessExtraUrlsFromNested;
 
   const fotoPortadaIndexRaw =

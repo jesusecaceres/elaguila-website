@@ -26,6 +26,8 @@ function durableHttpUrl(raw: string): string {
   return "";
 }
 
+import { durableBusinessExtraLinks } from "../bienesAdditionalBusinessLinks";
+
 function durableUrlList(raw: readonly string[] | undefined, max: number): string[] {
   const out: string[] = [];
   for (const item of raw ?? []) {
@@ -189,7 +191,7 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       permitirWhatsapp: s.permitirWhatsApp,
     },
     contactChannels: contactChannelsFromAgente(s),
-    businessExtraUrls: durableUrlList(s.businessExtraUrls, 2),
+    businessExtraUrls: durableBusinessExtraLinks(s.businessExtraUrls, 2),
     googleBusinessUrl: durableHttpUrl(s.googleBusinessUrl),
     googleReviewsUrl: durableHttpUrl(s.googleReviewsUrl),
     yelpReviewsUrl: durableHttpUrl(s.yelpReviewsUrl),

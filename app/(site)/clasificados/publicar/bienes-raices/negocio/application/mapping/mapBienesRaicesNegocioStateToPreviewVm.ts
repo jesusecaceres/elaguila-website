@@ -22,6 +22,7 @@ import type {
   BienesRaicesListingStatus,
   DeepDetailGroupKey,
 } from "../schema/bienesRaicesNegocioFormState";
+import { businessExtraLinksToPreviewCtas } from "../bienesAdditionalBusinessLinks";
 import {
   buildLeonixContactChannelsV1PayloadFromFormSlice,
   formatLeonixPreferredContactLine,
@@ -729,10 +730,7 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
   });
   const socialIconLinks = socialLinksFromChannelsPayload(ch);
   const preferredContactLine = formatLeonixPreferredContactLine(ch, "es");
-  const usefulLinks = cleanHttpUrls(s.businessExtraUrls, 2).map((href, index) => ({
-    label: numberedCtaLabel("Más información", index),
-    href,
-  }));
+  const usefulLinks = businessExtraLinksToPreviewCtas(s.businessExtraUrls, "es", 2);
 
   return {
     showSolicitarInfo: Boolean(s.cta.permitirSolicitarInfo && solicitarInfoHref),

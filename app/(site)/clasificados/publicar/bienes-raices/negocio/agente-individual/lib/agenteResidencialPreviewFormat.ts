@@ -10,6 +10,11 @@ import {
   type AgenteResidencialDestacadoId,
 } from "../schema/agenteIndividualResidencialFormState";
 import {
+  businessLinkHref,
+  businessLinkPublicLabel,
+  durableBusinessExtraLinks,
+} from "../../application/bienesAdditionalBusinessLinks";
+import {
   labelForSubtipo,
   labelForSubtipoEn,
   TIPO_PROPIEDAD_LABEL_EN,
@@ -169,14 +174,11 @@ export function additionalBusinessLinks(
   s: AgenteIndividualResidencialFormState,
   locale: AgenteResPreviewLocale,
 ): Array<{ label: string; href: string }> {
-  const out: Array<{ label: string; href: string }> = [];
-  for (const item of s.businessExtraUrls ?? []) {
-    const href = hrefFromUserInput(item);
-    if (!href || out.some((x) => x.href === href)) continue;
-    out.push({ label: defaultBusinessLinkLabel(out.length, locale), href });
-    if (out.length >= 2) break;
-  }
-  return out;
+  const loc = locale === "en" ? "en" : "es";
+  return durableBusinessExtraLinks(s.businessExtraUrls, 2).map((link) => ({
+    label: businessLinkPublicLabel(link, loc),
+    href: businessLinkHref(link)!,
+  }));
 }
 
 export function listadoBloqueHref(s: AgenteIndividualResidencialFormState): string | null {

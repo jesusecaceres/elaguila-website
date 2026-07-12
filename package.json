@@ -26,6 +26,7 @@
     "verify:bienes-business-hub-map-contact-inventory-showcase-01": "node scripts/verify-bienes-business-hub-map-contact-inventory-showcase-01.mjs",
     "verify:bienes-draft-hydration-media-lock-01": "node scripts/verify-bienes-draft-hydration-media-lock-01.mjs",
     "verify:bienes-hydration-proof-01": "node scripts/verify-bienes-hydration-proof-01.mjs",
+    "verify:bienes-titled-business-links-hydration-01": "node scripts/verify-bienes-titled-business-links-hydration-01.mjs",
     "verify:bienes-multichannel-child-inventory-01": "node scripts/verify-bienes-multichannel-child-inventory-01.mjs",
     "bienes:br-july1-inventory-analytics-os-01": "tsx scripts/bienes-br-july1-inventory-analytics-os-01-audit.ts",
     "bienes:final-publish-stripe-rotation-05": "tsx scripts/bienes-final-publish-stripe-rotation-05-audit.ts",
