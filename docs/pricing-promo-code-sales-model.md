@@ -180,6 +180,18 @@ npm run verify:admin-promo-code-lifecycle
 - Discount is server-owned (`percent_off`/`amount_off_cents`); never inferred from the code text.
 - Server revalidates at `POST /api/revenue-os/checkout` and charges the discounted final amount; redemption is webhook-only after payment. The code never grants placement/ranking/verification/entitlement.
 
+## 11c. LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01
+
+Full matrix in **`docs/publish-checkout-promo-validation-ui-01.md` §20**.
+
+**READY (allowlisted today):** `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`, `servicios_base_monthly`.
+
+**NOT READY / FUTURE:** `br_agent_monthly` (checkout without promo forward), `br_fsbo_45d`, `clases_paid_30d`, `viajes_business_monthly`, Ofertas Locales, Nuestros Negocios — no safe central checkout promo path.
+
+**EXCLUDED:** `autos_dealer_monthly`, `autos_dealer_inventory_pack_monthly`, `restaurantes_offers_addon`, `servicios_offers_addon`, all free package keys, print/combo/manual contracts.
+
+This gate added **zero** new allowlist keys. Discount remains server-owned; never inferred from code text.
+
 ## 12. Gate boundaries
 
 | Gate | In scope | Out of scope |

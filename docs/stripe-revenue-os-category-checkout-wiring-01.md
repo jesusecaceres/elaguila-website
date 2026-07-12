@@ -205,3 +205,20 @@ Every Launch 25 placement now renders from one component family, `app/components
 **Not eligible:** dashboard listing edit (already paid), add-on-only dashboard checkout (`servicios_offers_addon`), print/combo/manual packages, free paths.
 
 Server validation + webhook-only redemption unchanged. Promo never grants placement/ranking/verification.
+
+## 20. LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01
+
+See **`docs/publish-checkout-promo-validation-ui-01.md` §20** for the full matrix. Summary:
+
+| Category | Status | Package key |
+|----------|--------|-------------|
+| Rentas | READY | `rentas_30d` |
+| Empleos paid | READY | `empleos_job_post_paid` |
+| Autos privado | READY | `autos_privado_30d` |
+| Restaurantes base | READY | `restaurantes_base_monthly` |
+| Servicios base | READY | `servicios_base_monthly` |
+| Bienes negocio | NOT READY / FUTURE | `br_agent_monthly` |
+| Ofertas Locales / Negocios / Clases / Viajes | NOT READY / FUTURE | various / none |
+| Dealer / add-ons / free / print / combo / manual | EXCLUDED | — |
+
+No new categories wired in this gate. Allowlist unchanged (five keys only).

@@ -199,3 +199,42 @@ Changes:
 - Props added safely: `finePrintMode` (`full` | `short` | `none`) and `showLogo`; existing `showCta` / `href` / `ctaLabel` / `className` preserved.
 
 No backend, checkout, Stripe, or schema logic changed. Future work: do not create a second Launch 25 card or copy source — extend `LeonixLaunchCouponCard`.
+
+## 20. LAUNCH-25-PAID-CATEGORY-ELIGIBILITY-AUDIT-01 (remaining paid categories)
+
+Battlefield audit of remaining paid candidates. **No new allowlist keys were added in this gate** — only categories already on central Revenue OS checkout with full promo forward were confirmed READY.
+
+### Final Launch 25 category matrix
+
+| Category | Launch 25 status | Package key | Notes |
+|----------|------------------|-------------|-------|
+| Servicios base | **READY** | `servicios_base_monthly` | `PublishCheckoutCheckpoint` + `onPromoApply`; newsletter `servicios_checkout` |
+| Autos privado | **READY** | `autos_privado_30d` | Preview `PublishCheckoutCheckpoint`; newsletter `autos_privado_checkout` |
+| Rentas privado / negocio | **READY** | `rentas_30d` | Preview checkpoint; newsletter `rentas_checkout` |
+| Empleos paid job post | **READY** | `empleos_job_post_paid` | Quick + premium preview checkpoints; newsletter `empleos_checkout` |
+| Restaurantes base | **READY** | `restaurantes_base_monthly` | Preview checkpoint; newsletter `restaurantes_checkout` |
+| Bienes Raíces negocio (agent) | **NOT READY / FUTURE** | `br_agent_monthly` | Revenue OS checkout exists but `promoEligible` shows deferred promo only — no `onPromoApply`, promo not forwarded to `startRevenueCategoryCheckout` |
+| Bienes Raíces FSBO privado | **NOT READY / FUTURE** | `br_fsbo_45d` | Package in matrix; no central Revenue OS publish checkout wiring found |
+| Ofertas Locales | **NOT READY / FUTURE** | — | No `startRevenueCategoryCheckout` publish path |
+| Nuestros Negocios / Negocios Locales | **NOT READY / FUTURE** | — | No Revenue OS website checkout found |
+| Autos negocio / dealer | **EXCLUDED** | `autos_dealer_monthly` | Legacy `/api/clasificados/autos/checkout`; not website Launch 25 scope |
+| Autos dealer inventory pack | **EXCLUDED** | `autos_dealer_inventory_pack_monthly` | Dashboard add-on only |
+| Restaurantes offers add-on | **EXCLUDED** | `restaurantes_offers_addon` | Dashboard add-on only; not base website package |
+| Servicios offers add-on | **EXCLUDED** | `servicios_offers_addon` | Dashboard add-on only |
+| Clases paid | **NOT READY / FUTURE** | `clases_paid_30d` | Package in matrix; no Revenue OS checkout wiring |
+| Viajes business | **NOT READY / FUTURE** | `viajes_business_monthly` | No publish checkout wiring found |
+| En Venta / Comunidad / Mascotas / Busco | **EXCLUDED** | `en_venta_free_v1`, `comunidad_free`, etc. | Free products |
+| Empleos job fair | **EXCLUDED** | `empleos_job_fair_free` | Free |
+| Print / combo / manual contracts | **EXCLUDED** | — | Business rule: never Launch 25 eligible |
+
+### Newsletter checkbox capture (ready categories)
+
+| Category | Checkbox at final checkout | Source label | Non-blocking |
+|----------|---------------------------|--------------|--------------|
+| Servicios | Yes | `servicios_checkout` | Yes |
+| Autos privado | Yes | `autos_privado_checkout` | Yes |
+| Rentas | Yes | `rentas_checkout` | Yes |
+| Empleos paid | Yes | `empleos_checkout` | Yes |
+| Restaurantes | Yes | `restaurantes_checkout` | Yes |
+
+**Verifier:** `npm run verify:website-launch-25-checkout-wiring` (extended with forbidden allowlist keys + NOT READY guards).
