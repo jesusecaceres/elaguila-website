@@ -37,6 +37,7 @@ import {
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import type { DashboardEntitlementBadgePayload } from "../lib/dashboardPackageEntitlementBadges";
 import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
 
 type Row = {
@@ -103,6 +104,7 @@ export function LeonixRealEstateListingManageCard({
   republishBusy = false,
   parentLeonixAdIdByListingId = new Map<string, string>(),
   brNegocioInventoryRows,
+  packageEntitlementBadge = null,
 }: {
   row: Row;
   lang: Lang;
@@ -120,6 +122,8 @@ export function LeonixRealEstateListingManageCard({
   republishBusy?: boolean;
   parentLeonixAdIdByListingId?: ReadonlyMap<string, string>;
   brNegocioInventoryRows?: readonly BrPropertyInventoryRowLike[];
+  /** Active listing_package_entitlements badge for this exact listing UUID. */
+  packageEntitlementBadge?: DashboardEntitlementBadgePayload | null;
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   const inferredRentasBranch: LeonixClasificadosBranch | null =
@@ -234,19 +238,56 @@ export function LeonixRealEstateListingManageCard({
             <>
               <p className="mt-2 text-xs text-[#7A7164]">
                 {lang === "es"
-                  ? "Bienes raíces: la parrilla principal ordena por frescura (publicación o republicación). El carril “spotlight” de negocios es limitado y editorial — no es subasta por pago en el grid."
-                  : "Real estate: the main grid sorts by freshness (publish or republish). The business spotlight band is limited and editorial — not pay-to-win grid ranking."}
+                  ? "Bienes raíces: el carril patrocinado solo aplica con un entitlement activo de paquete (print/digital). El spotlight editorial de negocios no es subasta por pago."
+                  : "Real estate: the sponsored lane only applies with an active package entitlement (print/digital). The business editorial spotlight is not pay-to-win."}
                 {republishWindowActive ? (
                   <span className="mt-1 block text-[11px] text-[#7A7164]/85">
                     {lang === "es"
-                      ? "Nota: la ventana de visibilidad por republicación no sustituye el ranking por frescura en Leonix."
-                      : "Note: republish visibility windows do not override freshness-based ranking on Leonix."}
+                      ? "Nota: la ventana de visibilidad por republicación no sustituye el entitlement de paquete."
+                      : "Note: republish visibility windows do not replace package entitlement."}
                   </span>
                 ) : null}
               </p>
               <p className="mt-2 text-xs text-[#7A7164]">
                 <span className="font-semibold text-[#3D3428]">{planField}:</span> {planLine}
               </p>
+              {packageEntitlementBadge &&
+              (packageEntitlementBadge.grantsDestacado || packageEntitlementBadge.grantsResultsPriority) ? (
+                <div className="mt-2 rounded-xl border border-[#C9B46A]/40 bg-[#FFF8E8]/90 px-3 py-2 text-xs text-[#3D3428]">
+                  <p className="font-semibold text-[#6E5418]">
+                    {packageEntitlementBadge.grantsDestacado
+                      ? lang === "es"
+                        ? "Colocación Destacado activa"
+                        : "Destacado placement active"
+                      : lang === "es"
+                        ? "Colocación Prioridad (página completa) activa"
+                        : "Full-page priority placement active"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-[#5C5346]">
+                    {lang === "es" ? "Paquete" : "Package"}: {packageEntitlementBadge.tier}
+                    {packageEntitlementBadge.endsAt
+                      ? ` · ${lang === "es" ? "Vence" : "Ends"} ${new Date(packageEntitlementBadge.endsAt).toLocaleDateString(
+                          lang === "es" ? "es-US" : "en-US",
+                          { dateStyle: "medium" },
+                        )}`
+                      : ""}
+                  </p>
+                  {packageEntitlementBadge.startsAt ? (
+                    <p className="mt-0.5 text-[11px] text-[#7A7164]">
+                      {lang === "es" ? "Inicio" : "Starts"}{" "}
+                      {new Date(packageEntitlementBadge.startsAt).toLocaleDateString(lang === "es" ? "es-US" : "en-US", {
+                        dateStyle: "medium",
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+              ) : isBr ? (
+                <p className="mt-2 text-[11px] text-[#7A7164]">
+                  {lang === "es"
+                    ? "Sin colocación print/digital activa en este anuncio."
+                    : "No active print/digital placement on this listing."}
+                </p>
+              ) : null}
             </>
           ) : (
             <p className="mt-2 text-xs text-[#7A7164]">

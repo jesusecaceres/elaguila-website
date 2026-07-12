@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
@@ -17,14 +18,6 @@ import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/Emp
 import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/EmpleosVideoDraftField";
 import { buildEmpleosPublishEnvelopeFromPremium } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
-import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
-import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
-import { EMPLEOS_PAID_JOB_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
-import {
-  CHECKOUT_NEWSLETTER_SOURCES,
-  captureCheckoutNewsletterSubscriber,
-} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydratePremiumDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
@@ -49,7 +42,10 @@ const INPUT_CITY_LOCKED = `${INPUT} cursor-not-allowed bg-black/[0.04]`;
 export default function EmpleoPremiumApplicationClient() {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [sp],
+  );
   const copy = EMPLEOS_PUBLISH_SHARED_COPY[lang];
 
   const { state, patch, reset, hydrated } = useEmpleosDraftSession<EmpleosPremiumDraft>(
@@ -57,8 +53,6 @@ export default function EmpleoPremiumApplicationClient() {
     emptyEmpleosPremiumDraft()
   );
 
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
   const loadedEditRef = useRef<string | null>(null);
@@ -99,7 +93,7 @@ export default function EmpleoPremiumApplicationClient() {
     if (previewDisabled) return;
     flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.premium, state);
     markPublishFlowOpeningPreview();
-    router.push(empleosHandoffPreviewUrl("premium", lang));
+    router.push(empleosHandoffPreviewUrl("premium", routeLang));
   }, [lang, previewDisabled, router, state]);
 
   const handleDeleteApplication = useCallback(() => {
@@ -452,13 +446,16 @@ export default function EmpleoPremiumApplicationClient() {
         </div>
 
         <EmpleosApplicationFinalStep
-          copy={copy.finalStep}
+          copy={{
+            ...copy.finalStep,
+            publishCta:
+              lang === "es"
+                ? "Continuar a vista previa y pago"
+                : "Continue to preview & checkout",
+          }}
           previewDisabled={previewDisabled}
           onVistaPrevia={goPreview}
-          onPublicar={() => {
-            if (previewDisabled) return;
-            setPublishOpen(true);
-          }}
+          onPublicar={goPreview}
           onDelete={handleDeleteApplication}
           stagedSuccessText={stagedNotice ? copy.stagedSuccess : null}
           publishGateBlockedHint={previewDisabled ? copy.publishBlocked : null}
@@ -495,70 +492,6 @@ export default function EmpleoPremiumApplicationClient() {
           }}
         />
       </div>
-
-      <EmpleosPublishConfirmModal
-        open={publishOpen}
-        onClose={() => setPublishOpen(false)}
-        promo={{
-          category: EMPLEOS_PAID_JOB_CHECKOUT.category,
-          packageKey: EMPLEOS_PAID_JOB_CHECKOUT.packageKey,
-          subtotalCents: getRevenuePackageDefinition(EMPLEOS_PAID_JOB_CHECKOUT.packageKey)?.priceCents ?? 2499,
-          lang: lang === "es" ? "es" : "en",
-        }}
-        newsletter={{ lang: lang === "es" ? "es" : "en" }}
-        onConfirm={(promoCode, newsletterOptIn) => {
-          void (async () => {
-            const g = gateEmpleosPremiumPreview(state, lang);
-            if (!g.ok) return;
-            const sb = createSupabaseBrowserClient();
-            const { data } = await sb.auth.getSession();
-            if (!data.session?.access_token) {
-              window.alert(lang === "es" ? "Inicia sesión para publicar." : "Sign in to publish.");
-              return;
-            }
-            // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
-            void captureCheckoutNewsletterSubscriber({
-              email: data.session.user?.email ?? null,
-              lang,
-              preferredLanguage: lang,
-              source: CHECKOUT_NEWSLETTER_SOURCES.empleos,
-              interests: ["package:empleos_premium", "launch_25"],
-              checked: newsletterOptIn,
-            });
-            setCheckoutBusy(true);
-            const base = buildEmpleosPublishEnvelopeFromPremium(state, lang);
-            const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
-            const paid = await saveEmpleosDraftAndStartPaidJobCheckout({
-              envelope,
-              accessToken: data.session.access_token,
-              lang,
-              promoCode,
-            });
-            setCheckoutBusy(false);
-            if (!paid.ok) {
-              window.alert(paid.message);
-              return;
-            }
-            clearEmpleosStagedPublish();
-            setPublishOpen(false);
-          })();
-        }}
-        title={copy.publishModal.title}
-        intro={copy.publishModal.intro}
-        checks={copy.publishModal.checks}
-        confirmCta={
-          checkoutBusy
-            ? lang === "es"
-              ? "Creando pago seguro…"
-              : "Creating secure checkout…"
-            : lang === "es"
-              ? "Pagar y publicar empleo"
-              : "Pay and publish job post"
-        }
-        cancelCta={copy.publishModal.cancelCta}
-        blockedHint={copy.publishModal.blockedHint}
-        closeOverlayAria={copy.publishModal.closeOverlayAria}
-      />
     </main>
   );
 }

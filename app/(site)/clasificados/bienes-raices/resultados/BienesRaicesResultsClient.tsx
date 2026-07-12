@@ -9,6 +9,7 @@ import type { BrNegocioListing } from "./cards/listingTypes";
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
+import { overlayActiveEntitlementsOnBrListings } from "../lib/brPublicEntitlementOverlay";
 import { BienesRaicesCompactSearchCanvas } from "@/app/clasificados/bienes-raices/components/BienesRaicesCompactSearchCanvas";
 import { BienesRaicesNegocioCard } from "./cards/BienesRaicesNegocioCard";
 import { BienesRaicesResultsActiveFilters } from "./components/BienesRaicesResultsActiveFilters";
@@ -63,9 +64,11 @@ export function BienesRaicesResultsClient() {
         if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live listings query", error);
         return;
       }
-      setLiveBrListings(listings);
+      const withEntitlements = await overlayActiveEntitlementsOnBrListings(listings);
+      if (cancelled) return;
+      setLiveBrListings(withEntitlements);
       setLiveFetchErr(null);
-      if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live rows", listings.length, "query", spKey);
+      if (BR_RESULTS_DEV_LOG) console.info("[br resultados] live rows", withEntitlements.length, "query", spKey);
     })();
     return () => {
       cancelled = true;

@@ -1,4 +1,5 @@
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
+import { compareBrSponsoredRank } from "../lib/brPublicEntitlementOverlay";
 import { brDemoPriceNumber } from "../resultados/lib/brResultsFilters";
 import {
   selectLandingDestacadas,
@@ -9,6 +10,10 @@ import {
 
 function pickFeaturedFromPool(pool: BrNegocioListing[]): BrNegocioListing | null {
   if (!pool.length) return null;
+  const sponsored = [...pool]
+    .filter((l) => l.isSponsored === true || l.badges.includes("destacada") || l.badges.includes("promocionada"))
+    .sort(compareBrSponsoredRank)[0];
+  if (sponsored) return sponsored;
   const editorial = selectLandingDestacadas(pool, 1)[0];
   if (editorial) return editorial;
   const byPrice = [...pool].sort((a, b) => brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price));

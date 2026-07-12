@@ -122,6 +122,11 @@ export function clasificadosCategoryChromeCopy(lang: ClasificadosUiLang): Clasif
   return CATEGORY_CHROME[lang];
 }
 
+/** Bilingual UI chrome string — use for inline labels not yet in a dictionary. */
+export function clasificadosTr(lang: ClasificadosUiLang, es: string, en: string): string {
+  return lang === "en" ? en : es;
+}
+
 export function publicListingActionLabels(lang: ClasificadosUiLang) {
   const c = PREVIEW_PUBLISH[lang];
   return {

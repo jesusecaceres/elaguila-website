@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { normalizeAutosNegociosLang, resolveAutosRouteLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
 import { serializeAutosBrowseUrl, autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
@@ -50,7 +51,8 @@ function readBundleResult(): AutosBundlePublishSessionResult | null {
 export function AutosPagoExitoClient() {
   const sp = useSearchParams();
   const qs = sp ?? new URLSearchParams();
-  const lang = qs.get("lang") === "en" ? "en" : "es";
+  const routeLang = resolveAutosRouteLang(qs.get("lang"));
+  const lang = normalizeAutosNegociosLang(qs.get("lang"));
   const sessionId = qs.get("session_id")?.trim() ?? "";
   const internal = qs.get("internal") === "1";
   const testPublish = qs.get("test_publish") === "1";
@@ -85,7 +87,7 @@ export function AutosPagoExitoClient() {
         }
         try {
           const r = await fetchAutosSuccess(
-            `/api/clasificados/autos/checkout/verify-internal?listing_id=${encodeURIComponent(internalListingId)}&lang=${lang}`,
+            `/api/clasificados/autos/checkout/verify-internal?listing_id=${encodeURIComponent(internalListingId)}&lang=${routeLang}`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
           const j = (await r.json().catch(() => ({}))) as { ok?: boolean; liveUrl?: string; lane?: string; listingId?: string };
@@ -132,7 +134,7 @@ export function AutosPagoExitoClient() {
     void (async () => {
       try {
         const r = await fetchAutosSuccess(
-          `/api/clasificados/autos/checkout/verify?session_id=${encodeURIComponent(sessionId)}&lang=${lang}`,
+          `/api/clasificados/autos/checkout/verify?session_id=${encodeURIComponent(sessionId)}&lang=${routeLang}`,
         );
         const j = (await r.json().catch(() => ({}))) as { ok?: boolean; liveUrl?: string; lane?: string; listingId?: string; leonixAdId?: string | null };
         if (cancelled) return;
@@ -153,7 +155,7 @@ export function AutosPagoExitoClient() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, lang, internal, internalListingId, testPublish]);
+  }, [sessionId, routeLang, internal, internalListingId, testPublish]);
 
   const resultsQs = serializeAutosBrowseUrl({
     filters: emptyAutosPublicFilters(),
@@ -161,13 +163,13 @@ export function AutosPagoExitoClient() {
     sort: "newest",
     page: 1,
     lang,
-    routeLang: lang,
+    routeLang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
-  const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}&cat=autos`;
+  const dashboardHref = `/dashboard/mis-anuncios?lang=${routeLang}&cat=autos`;
   const returnToListingId = qs.get("return_to")?.trim() ?? "";
   const returnToHref = returnToListingId
-    ? `${autosLiveVehiclePath(returnToListingId)}?lang=${lang}`
+    ? `${autosLiveVehiclePath(returnToListingId)}?lang=${routeLang}`
     : null;
 
   useEffect(() => {
@@ -270,7 +272,7 @@ export function AutosPagoExitoClient() {
           {publishedList.map((v) => (
             <li key={v.id}>
               <Link
-                href={`${autosLiveVehiclePath(v.id)}?lang=${lang}`}
+                href={`${autosLiveVehiclePath(v.id)}?lang=${routeLang}`}
                 className="font-semibold text-[color:var(--lx-gold)] underline"
               >
                 {v.title}

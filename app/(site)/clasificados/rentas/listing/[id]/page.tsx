@@ -7,6 +7,7 @@ import {
   getRentasListingDetailExtra,
 } from "@/app/clasificados/rentas/listing/rentasListingDetailModel";
 import { RentasListingDetailClient } from "./RentasListingDetailClient";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -16,7 +17,7 @@ type Props = {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { id } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   const live = await fetchRentasListingForPublicDetail(id, lang);
   const listing = live ?? (process.env.NODE_ENV !== "production" ? findRentasDemoListingById(id) : undefined);
   if (!listing) return { title: "Rentas | Leonix" };
@@ -29,7 +30,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 export default async function RentasListingDetailPage(props: Props) {
   const { id } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   const live = await fetchRentasListingForPublicDetail(id, lang);
   const listing = live ?? (process.env.NODE_ENV !== "production" ? findRentasDemoListingById(id) : undefined);
   if (!listing) notFound();

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { normalizeAutosNegociosLang, resolveAutosRouteLang, withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
 import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
@@ -15,7 +15,8 @@ function parseLane(raw: string | null): AutosClassifiedsLane {
 export function AutosPagoErrorClient() {
   const sp = useSearchParams();
   const qs = sp ?? new URLSearchParams();
-  const lang = qs.get("lang") === "en" ? "en" : "es";
+  const routeLang = resolveAutosRouteLang(qs.get("lang"));
+  const lang = normalizeAutosNegociosLang(qs.get("lang"));
   const listingId = qs.get("listing_id")?.trim() ?? "";
   const lane = parseLane(qs.get("lane"));
   const c = getAutosPublishFlowCopy(lang, lane);
@@ -26,10 +27,10 @@ export function AutosPagoErrorClient() {
     sort: "newest",
     page: 1,
     lang,
-    routeLang: lang,
+    routeLang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
-  const confirmHref = listingId ? withLangParam(`/publicar/autos/${lane}/confirm`, lang) : null;
+  const confirmHref = listingId ? withLangParam(`/publicar/autos/${lane}/confirm`, routeLang) : null;
 
   return (
     <div className="mx-auto max-w-md px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">

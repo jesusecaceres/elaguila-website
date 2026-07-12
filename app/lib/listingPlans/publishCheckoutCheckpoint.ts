@@ -36,6 +36,9 @@ export const SERVICIOS_OFFERS_ADDON_PACKAGE_KEY = "servicios_offers_addon";
 /** Canonical Revenue OS base package key for Rentas 30-day listing ($24.99 one-time). */
 export const RENTAS_30D_PACKAGE_KEY = "rentas_30d";
 
+/** Canonical Revenue OS package key for Empleos regular paid job post ($24.99 / 30 days). */
+export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
+
 /** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
@@ -346,6 +349,18 @@ export function resolvePublishCheckoutCheckpoint(
       detailEn: config.baseLineItem?.detailEn ?? "One rental property — no inventory add-on",
       detailEs: config.baseLineItem?.detailEs ?? "Una propiedad en renta — sin paquete de inventario",
     });
+  } else if (config.category === "empleos" && config.packageKey === EMPLEOS_JOB_POST_PAID_PACKAGE_KEY) {
+    lineItems.push({
+      id: "base",
+      labelEn: config.baseLineItem?.labelEn ?? "Job post (30 days)",
+      labelEs: config.baseLineItem?.labelEs ?? "Publicar empleo (30 días)",
+      priceCents: baseCents,
+      detailEn:
+        config.baseLineItem?.detailEn ?? "One job listing — no upgrades. Another job needs a new listing.",
+      detailEs:
+        config.baseLineItem?.detailEs ??
+        "Un anuncio de empleo — sin upgrades. Otro empleo requiere un nuevo anuncio.",
+    });
   } else if (config.baseLineItem) {
     lineItems.push({
       id: config.baseLineItem.id ?? "base",
@@ -446,6 +461,13 @@ export function resolvePublishCheckoutCheckpoint(
   }
 
   if (config.category === "rentas") {
+    if (config.pipeline?.trim()) {
+      metadata.pipeline = config.pipeline.trim();
+      metadata.lane = config.pipeline.trim();
+    }
+  }
+
+  if (config.category === "empleos") {
     if (config.pipeline?.trim()) {
       metadata.pipeline = config.pipeline.trim();
       metadata.lane = config.pipeline.trim();
@@ -644,6 +666,39 @@ export const RENTAS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = 
     required: true,
     labelEn: "I understand payment is required before this rental listing becomes active.",
     labelEs: "Entiendo que el pago es requerido antes de que este anuncio de renta quede activo.",
+  },
+];
+
+export const EMPLEOS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_job_info",
+    required: true,
+    labelEn:
+      "I confirm the job title, pay, location, schedule, and contact details are accurate and up to date.",
+    labelEs:
+      "Confirmo que el título del empleo, pago, ubicación, horario y datos de contacto son correctos y están actualizados.",
+  },
+  {
+    id: "authorized_to_publish",
+    required: true,
+    labelEn:
+      "I confirm I am authorized to publish this job listing and any photos or employer details included.",
+    labelEs:
+      "Confirmo que estoy autorizado para publicar este anuncio de empleo y cualquier foto o dato del empleador incluido.",
+  },
+  {
+    id: "empleos_rules",
+    required: true,
+    labelEn:
+      "I confirm this listing follows Leonix Empleos rules and that I am responsible for the published information.",
+    labelEs:
+      "Confirmo que este anuncio sigue las reglas de Empleos de Leonix y que soy responsable por la información publicada.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn: "I understand payment is required before this job listing becomes active.",
+    labelEs: "Entiendo que el pago es requerido antes de que este anuncio de empleo quede activo.",
   },
 ];
 

@@ -167,6 +167,56 @@ function run() {
   assert.ok(client.includes("/api/ofertas-locales/public-offers"), "client calls public offers API");
   assert.ok(client.includes("/api/ofertas-locales/public-search"), "client calls public search API");
 
+  const adminReviewMutations = read("app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts");
+  const itemReviewActivation = read("app/lib/ofertas-locales/ofertasLocalesItemReviewActivation.ts");
+  const itemReviewMapper = read("app/lib/ofertas-locales/ofertasLocalesItemReviewMapper.ts");
+  const adminReviewRoute = read("app/api/ofertas-locales/admin/[id]/review/route.ts");
+  const itemsRoute = read("app/api/ofertas-locales/items/[itemId]/route.ts");
+
+  assert.ok(
+    adminReviewMutations.includes("syncOfertaLocalItemsActivationAfterAdminReview"),
+    "admin review syncs child item activation"
+  );
+  assert.ok(
+    adminReviewMutations.includes('.eq("review_status", "approved")') &&
+      adminReviewMutations.includes("is_active: true"),
+    "parent approve activates already-approved items"
+  );
+  assert.ok(
+    adminReviewMutations.includes("item_activation_failed") ||
+      adminReviewMutations.includes("item_deactivation_failed"),
+    "admin item sync surfaces errors"
+  );
+  assert.ok(
+    adminReviewMutations.includes("published_at"),
+    "parent approve sets published_at"
+  );
+  assert.ok(
+    itemReviewActivation.includes("shouldOfertaLocalItemBePubliclyActive"),
+    "public activation rule helper exported"
+  );
+  assert.ok(
+    itemReviewActivation.includes('parentOfferStatus !== "approved"'),
+    "item activation requires approved parent"
+  );
+  assert.ok(
+    itemReviewMapper.includes("resolveOfertaLocalItemIsActiveOnReviewPatch"),
+    "item PATCH uses activation resolver"
+  );
+  assert.ok(
+    adminReviewRoute.includes("mutateOfertaLocalAdminReview"),
+    "admin review route uses mutation helper"
+  );
+  assert.ok(
+    adminReviewRoute.includes("/clasificados/ofertas-locales/results"),
+    "admin approve revalidates public results"
+  );
+  assert.ok(
+    itemsRoute.includes("mapOfertaLocalItemReviewPatchToDbUpdate") &&
+      itemsRoute.includes("parentStatus"),
+    "item PATCH route passes parent status into review mapper"
+  );
+
   assert.ok(
     copy.includes("Agregar a lista") && copy.includes("Add to list"),
     "add to list copy"

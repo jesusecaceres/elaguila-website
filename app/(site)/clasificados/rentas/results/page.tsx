@@ -4,6 +4,7 @@ import { fetchRentasPublicListingsForBrowse } from "@/app/clasificados/rentas/li
 import { rentasPublicIncludeDemoPool } from "@/app/clasificados/rentas/lib/rentasPublicInventoryMode";
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsClient } from "./RentasResultsClient";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const metadata: Metadata = {
   title: "Rentas — Resultados | Leonix Clasificados",
@@ -35,7 +36,7 @@ async function RentasResultsWithData({ lang }: { lang: "es" | "en" }) {
 
 export default async function RentasResultsPage(props: Props) {
   const sp = props.searchParams ? await props.searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   return (
     <Suspense fallback={<RentasResultsLoadingShell />}>
       <RentasResultsWithData lang={lang} />

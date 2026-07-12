@@ -419,6 +419,7 @@ export function RentasPrivadoForm() {
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
           estadoOptions={ESTADOS.map((o) => ({ id: o.id, label: o.label[lang] }))}
+          lang={lang}
         />
 
         <RentasShowingTourSection
@@ -426,6 +427,7 @@ export function RentasPrivadoForm() {
           setState={setState}
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
+          lang={lang}
         />
 
         <section className={`${aiCardClass} min-w-0`}>

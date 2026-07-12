@@ -178,6 +178,36 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     }
   }
 
+  const supabase = getAdminSupabase();
+
+  // Prevent silent unlimited duplicate active/scheduled entitlements on the same listing.
+  if (listingId) {
+    const { data: existingRows } = await supabase
+      .from("listing_package_entitlements")
+      .select("id,status,starts_at,ends_at,revoked_at")
+      .eq("listing_id", listingId)
+      .eq("category", category)
+      .eq("listing_source", listingSource)
+      .in("status", ["active", "scheduled"])
+      .limit(20);
+    const nowMs = now.getTime();
+    const conflict = (existingRows ?? []).find((row) => {
+      const r = row as {
+        status?: string | null;
+        starts_at?: string | null;
+        ends_at?: string | null;
+        revoked_at?: string | null;
+      };
+      if (r.revoked_at) return false;
+      const endMs = r.ends_at ? new Date(r.ends_at).getTime() : NaN;
+      if (Number.isFinite(endMs) && endMs <= nowMs) return false;
+      return true;
+    });
+    if (conflict) {
+      redirectWith({ error: "duplicate_active_entitlement" });
+    }
+  }
+
   const def = getPackageEntitlementBenefits(tier as PackageEntitlementTier);
   const status = initialStatus(startsAt, endsAt, now);
   const metadata = mergeMetadata(
@@ -204,7 +234,6 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     },
   );
 
-  const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("listing_package_entitlements")
     .insert({

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { normalizeAutosNegociosLang, resolveAutosRouteLang, withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { emptyAutosPublicFilters } from "@/app/clasificados/autos/filters/autosPublicFilterTypes";
 import { serializeAutosBrowseUrl } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
@@ -17,7 +17,8 @@ function parseLane(raw: string | null): AutosClassifiedsLane {
 export function AutosPagoCanceladoClient() {
   const sp = useSearchParams();
   const qs = sp ?? new URLSearchParams();
-  const lang = qs.get("lang") === "en" ? "en" : "es";
+  const routeLang = resolveAutosRouteLang(qs.get("lang"));
+  const lang = normalizeAutosNegociosLang(qs.get("lang"));
   const listingId = qs.get("listing_id")?.trim() ?? "";
   const lane = parseLane(qs.get("lane"));
   const c = getAutosPublishFlowCopy(lang, lane);
@@ -28,11 +29,11 @@ export function AutosPagoCanceladoClient() {
     sort: "newest",
     page: 1,
     lang,
-    routeLang: lang,
+    routeLang,
   });
   const resultsHref = `/clasificados/autos/resultados?${resultsQs}`;
-  const confirmHref = withLangParam(`/publicar/autos/${lane}/confirm`, lang);
-  const editHref = withLangParam(lane === "negocios" ? "/publicar/autos/negocios" : "/publicar/autos/privado", lang);
+  const confirmHref = withLangParam(`/publicar/autos/${lane}/confirm`, routeLang);
+  const editHref = withLangParam(lane === "negocios" ? "/publicar/autos/negocios" : "/publicar/autos/privado", routeLang);
 
   useEffect(() => {
     if (!listingId) return;

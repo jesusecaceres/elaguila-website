@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { ClasificadosUiLang } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import {
@@ -223,13 +224,13 @@ function toEmpleosParams(sortKey: EmpleosSortKey, f: EmpleosFormFields): Empleos
   };
 }
 
-function sortChipLabel(lang: Lang, sort: EmpleosSortKey): string {
+function sortChipLabel(lang: ClasificadosUiLang, sort: EmpleosSortKey): string {
   if (sort === "date_desc") return lang === "es" ? "Orden: más recientes" : "Sort: newest first";
   if (sort === "salary_desc") return lang === "es" ? "Orden: salario mayor" : "Sort: highest salary";
   return lang === "es" ? "Orden: relevancia" : "Sort: relevance";
 }
 
-function chipLabel(lang: Lang, key: string, val: string): string {
+function chipLabel(lang: ClasificadosUiLang, key: string, val: string): string {
   if (key === "featured" && val === "1") return lang === "es" ? "Solo destacados" : "Featured only";
   if (key === "recent" && val === "1") return lang === "es" ? "Publicados recientes" : "Recently posted";
   if (key === "category") {
@@ -286,7 +287,10 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   // its internal snapshot. Depending on `[sp]` alone can freeze `parsed` at the first render.
   const querySignature = sp?.toString() ?? "";
   const urlSp = useMemo(() => new URLSearchParams(querySignature), [querySignature]);
-  const lang = useMemo<Lang>(() => (urlSp.get("lang") === "en" ? "en" : "es"), [urlSp]);
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(urlSp.get("lang")),
+    [urlSp],
+  );
   const t = COPY[lang];
 
   const [runtimeJobs, setRuntimeJobs] = useState<EmpleosJobRecord[] | null>(null);
@@ -431,8 +435,8 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
     pushFromFields({});
   };
 
-  const landingHref = appendLangToPath("/clasificados/empleos", lang);
-  const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
+  const landingHref = appendLangToPath("/clasificados/empleos", routeLang);
+  const publishHref = appendLangToPath("/clasificados/publicar/empleos", routeLang);
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; href: string }[] = [];

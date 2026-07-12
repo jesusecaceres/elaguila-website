@@ -350,6 +350,7 @@ export function RentasNegocioForm() {
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
           estadoOptions={ESTADOS}
+          lang={lang}
         />
 
         <RentasShowingTourSection
@@ -357,6 +358,7 @@ export function RentasNegocioForm() {
           setState={setState}
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
+          lang={lang}
         />
 
         <section className={`${aiCardClass} min-w-0`}>

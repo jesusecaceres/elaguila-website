@@ -7,6 +7,7 @@ import {
   OfertasLocalesPublicDetailUnavailable,
   OfertasLocalesPublicDetailView,
 } from "../OfertasLocalesPublicDetailView";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ type PageProps = {
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { id } = await props.params;
   const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   if (!isSupabaseAdminConfigured()) {
     return { title: lang === "en" ? "Local deal" : "Oferta local" };
   }
@@ -39,7 +40,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 export default async function OfertasLocalesPublicDetailPage(props: PageProps) {
   const { id } = await props.params;
   const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
 
   if (!isSupabaseAdminConfigured()) {
     return <OfertasLocalesPublicDetailUnavailable lang={lang} />;

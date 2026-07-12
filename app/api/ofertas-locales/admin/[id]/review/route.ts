@@ -57,6 +57,7 @@ export async function POST(
   }
 
   revalidatePath("/clasificados/ofertas-locales");
+  revalidatePath("/clasificados/ofertas-locales/results");
   revalidatePath("/admin/workspace/clasificados/ofertas-locales");
 
   return NextResponse.json({

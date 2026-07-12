@@ -1420,6 +1420,10 @@ export default function MyListingsPage() {
                       republishBusy={busy}
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
                       brNegocioInventoryRows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]}
+                      packageEntitlementBadge={dashboardEntitlementBadgeForKey(entitlementBadges, [
+                        x.id,
+                        x.leonix_ad_id ?? "",
+                      ])}
                     />
                   );
                 }

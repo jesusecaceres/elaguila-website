@@ -97,10 +97,11 @@ Stored in `promo_type`, `percent_off`, `amount_off_cents`, `category_scope`, `pa
 `website_launch_25` codes (captured via newsletter/account/dashboard signup) are now honored at eligible **website checkout** surfaces beyond Restaurantes. They are **website checkout only**, one-time, non-stackable, and never grant placement/ranking/verification/entitlement.
 
 - Detection: `isWebsiteLaunch25Promo(row)` — `metadata.promo_family === "website_launch_25"` OR (`code_type === "newsletter"` AND `metadata.website_checkout_only`).
-- Allowlist (`WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS`): `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`. Any other package key (print/combo/manual/free/unknown) is rejected with a calm message.
+- Allowlist (`WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS`): `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`, `servicios_base_monthly`. Any other package key (print/combo/manual/free/unknown) is rejected with a calm message.
 - Enforcement runs in **both** the preview validation (`validatePromoForPublishCheckout`) and the checkout revalidation (`resolvePromoForCheckout`).
 - Discount is still **server-owned** (`percent_off`/`amount_off_cents`/`promo_type`) — never inferred from code text.
-- New surfaces reuse the shared `RevenuePromoField` (Rentas privado preview, Empleos quick + premium confirm modal, Autos privado confirm). Restaurantes keeps its existing `PublishCheckoutCheckpoint` promo UI.
+- New surfaces reuse the shared `RevenuePromoField` (Rentas privado preview, Empleos quick + premium confirm modal, Autos privado confirm). Restaurantes and **Servicios** keep the existing `PublishCheckoutCheckpoint` promo UI with `onPromoApply` → `validateRevenuePromoForCheckout` and `promoCode` forwarded to `startRevenueCategoryCheckout`.
+- **Servicios** (`servicios_base_monthly`, $399/mo): final preview checkout only — not dashboard edit, not add-on-only dashboard checkout (`servicios_offers_addon`). Newsletter opt-in at checkout uses source `servicios_checkout` (non-blocking).
 - Payment record metadata records `promo_family`, `website_checkout_only`, `base_amount_cents`, `final_amount_cents`. Redemption stays **webhook-only**; abandoned/cancelled checkouts never consume the code.
 
 ## 12. Files Inspected

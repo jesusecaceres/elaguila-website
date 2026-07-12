@@ -3,6 +3,8 @@ export type DashboardEntitlementBadgePayload = {
   grantsResultsPriority: boolean;
   includesNuestrosNegocios: boolean;
   tier: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
   /** Revenue OS listing/ad plan badge when webhook-backed entitlement exists. */
   revenueAdPlanBadge?: string | null;
   revenuePackageKey?: string | null;

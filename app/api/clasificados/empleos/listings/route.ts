@@ -52,10 +52,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   revalidatePath("/clasificados/empleos");
   revalidatePath("/dashboard/empleos");
 
+  let leonixAdId: string | null = null;
+  try {
+    const { getAdminSupabase } = await import("@/app/lib/supabase/server");
+    const supabase = getAdminSupabase();
+    const { data } = await supabase
+      .from("empleos_public_listings")
+      .select("leonix_ad_id")
+      .eq("id", res.id)
+      .maybeSingle();
+    leonixAdId = (data as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+  } catch {
+    /* optional */
+  }
+
   return NextResponse.json({
     ok: true,
     id: res.id,
     slug: res.slug,
     lifecycle_status: res.lifecycle_status,
+    leonix_ad_id: leonixAdId,
   });
 }

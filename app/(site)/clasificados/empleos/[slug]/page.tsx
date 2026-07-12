@@ -14,6 +14,7 @@ import {
 } from "../lib/empleosPublicListingsDbServer";
 import { empleosOmitMarketingSeedCatalog } from "../lib/empleosPublicCatalogPolicy";
 import { empleosJobPublicAbsoluteUrl } from "../lib/empleosSiteUrl";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ type Props = {
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
   const sp = searchParams ? await searchParams : {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   const canonicalAbs = empleosJobPublicAbsoluteUrl(slug, lang);
   const omitSeed = empleosOmitMarketingSeedCatalog();
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);
@@ -74,7 +75,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function EmpleoPublicDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const sp = (await searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
 
   const omitSeed = empleosOmitMarketingSeedCatalog();
   const row = await fetchEmpleosPublishedListingRowBySlug(slug);

@@ -69,4 +69,12 @@ export type BrNegocioListing = {
   adPlanKey?: "paid_private" | "paid_business" | "unknown";
   monetizationWarnings?: string[];
   placementSignals?: string[];
+  /**
+   * Active package entitlement overlay (public API).
+   * Source of truth is `listing_package_entitlements`, not account plan.
+   */
+  isSponsored?: boolean;
+  packageEntitlementTier?: string;
+  entitlementEndsAt?: string;
+  digitalPlacementPriority?: number | null;
 };

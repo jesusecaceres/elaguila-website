@@ -114,6 +114,12 @@ function alertFromSearch(sp: Record<string, string | undefined>) {
   if (sp.error === "duplicate_code") {
     return { kind: "err" as const, text: "Entitlement code already exists. Use another code or leave the field empty to generate one." };
   }
+  if (sp.error === "duplicate_active_entitlement") {
+    return {
+      kind: "err" as const,
+      text: "This listing already has an active or scheduled package entitlement for the same category/source. Revoke or expire it before creating another.",
+    };
+  }
   if (sp.error) {
     return { kind: "err" as const, text: `Could not complete action (${sp.error}${sp.detail ? `: ${sp.detail}` : ""}).` };
   }
@@ -327,6 +333,10 @@ export default async function AdminPackageEntitlementsPage(props: {
                 </option>
               ))}
             </select>
+            <span className="mt-1 block text-[10px] font-normal text-[#7A7164]">
+              Bienes Raíces / Rentas / En Venta: use <span className="font-mono">listings</span> with category{" "}
+              <span className="font-mono">bienes-raices</span> (or rentas). Full-page → results priority; Premium → Destacados.
+            </span>
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
             Listing ID (optional)

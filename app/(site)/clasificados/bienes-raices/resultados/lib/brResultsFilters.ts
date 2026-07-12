@@ -7,6 +7,7 @@ import {
   leonixLbStateMatchesFilter,
   leonixPropertyCountryMatchesFilter,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import { compareBrSponsoredRank } from "../../lib/brPublicEntitlementOverlay";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "../search/filterTypes";
 import type { BrResultsParsedState } from "./brResultsUrlState";
@@ -260,20 +261,27 @@ export function filterBrListings(
 
   const sorted = [...rows];
   const sort = state.sort || "reciente";
+  /** Filters first; then sponsored entitlement lane; then price/freshness within lane. */
   if (sort === "precio_asc") {
     sorted.sort((a, b) => {
+      const s = compareBrSponsoredRank(a, b);
+      if (s !== 0) return s;
       const p = brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price);
       if (p !== 0) return p;
       return compareBrListingFairness(a, b);
     });
   } else if (sort === "precio_desc") {
     sorted.sort((a, b) => {
+      const s = compareBrSponsoredRank(a, b);
+      if (s !== 0) return s;
       const p = brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price);
       if (p !== 0) return p;
       return compareBrListingFairness(a, b);
     });
   } else {
     sorted.sort((a, b) => {
+      const s = compareBrSponsoredRank(a, b);
+      if (s !== 0) return s;
       const t = effectivePublishedMsForSort(b) - effectivePublishedMsForSort(a);
       if (t !== 0) return t;
       return compareBrListingFairness(a, b);

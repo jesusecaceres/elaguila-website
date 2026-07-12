@@ -19,6 +19,7 @@ import {
   parseCatStdPage,
   parseCatStdPerPage,
 } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,7 @@ function parseTruthyResultsFlag(raw: string | undefined): "1" | undefined {
 
 export default async function ClasificadosServiciosResultadosPage(props: PageProps) {
   const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
 
   const filterQuery: ServiciosResultsFilterQuery = {
     city: sp.city,
@@ -157,7 +158,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   const startIdx = (currentPage - 1) * perPage;
   const pagedRows = displayRows.slice(startIdx, startIdx + perPage);
   const paginationParams = new URLSearchParams();
-  paginationParams.set("lang", lang);
+  paginationParams.set("lang", routeLang);
   for (const [k, v] of Object.entries(sp)) {
     if (v != null && v !== "" && k !== "page") paginationParams.set(k, v);
   }
