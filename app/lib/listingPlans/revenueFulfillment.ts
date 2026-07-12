@@ -23,6 +23,10 @@ import {
   RENTAS_30D_PACKAGE_KEY,
 } from "./revenueRentasFulfillment";
 import {
+  activatePaidEmpleosListingFromRevenueOs,
+} from "./revenueEmpleosFulfillment";
+import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
+import {
   loadPaymentRecordById,
   loadPaymentRecordByStripeSessionId,
   markPaymentRecordExpiredOrCanceled,
@@ -425,6 +429,86 @@ async function tryActivateRentasListingAfterEntitlement(input: {
   return { ok: true };
 }
 
+async function tryActivateEmpleosListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== EMPLEOS_JOB_POST_PAID_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidEmpleosListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    paymentRecordId: input.paymentRecord.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripeEventId: input.stripeEventId,
+    leonixAdId: input.paymentRecord.leonix_ad_id,
+  });
+
+  if (
+    activation.outcome === "skipped_wrong_package" ||
+    activation.outcome === "already_published"
+  ) {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "empleos_public_listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "empleos_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "empleos_public_listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `empleos_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Empleos listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "empleos_listing_activated_after_payment",
+    targetType: "empleos_public_listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
 export async function fulfillCheckoutSessionCompleted(input: {
   session: Stripe.Checkout.Session;
   eventId: string;
@@ -631,6 +715,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const empleosActivation = await tryActivateEmpleosListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+    });
+    if (!empleosActivation.ok) {
+      return {
+        ok: false,
+        code: empleosActivation.code,
+        message: empleosActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -797,6 +900,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: rentasActivation.code,
       message: rentasActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const empleosActivation = await tryActivateEmpleosListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+  });
+  if (!empleosActivation.ok) {
+    return {
+      ok: false,
+      code: empleosActivation.code,
+      message: empleosActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,

@@ -19,10 +19,13 @@ type Props = {
  * Returns null if no sponsor-qualified entries exist.
  */
 export function BienesRaicesSponsorsLane({ lang, listings, surface, maxItems = 8 }: Props) {
-  // Sponsor-qualified logic: only listings with destacada or promocionada badges
-  // Do NOT qualify: sellerKind negocio alone, adPlanKey paid_business alone, normal recent listings
+  // Sponsor-qualified: active package entitlement overlay (isSponsored) or Destacada/Promo badges.
+  // Do NOT qualify: sellerKind negocio alone, adPlanKey paid_business alone, normal recent listings.
   const sponsorListings = listings.filter(
-    (listing) => listing.badges.includes("destacada") || listing.badges.includes("promocionada")
+    (listing) =>
+      listing.isSponsored === true ||
+      listing.badges.includes("destacada") ||
+      listing.badges.includes("promocionada"),
   );
 
   // If no sponsor-qualified entries, return null (no public placeholder)

@@ -11,6 +11,9 @@ const SOURCE_TABLE = "listings";
 export type BrGlobalAnalyticsContext = {
   listingUuid: string;
   leonixAdId?: string | null;
+  /** Public-safe sponsored placement flags (no promo codes). */
+  sponsored?: boolean;
+  packageEntitlementTier?: string | null;
 };
 
 function getAnonymousSessionId(): string {
@@ -70,6 +73,13 @@ async function trackBrGlobalEvent(
   const needsAuth = AUTH_REQUIRED.has(eventType);
   const accessToken = await resolveAccessToken(needsAuth);
 
+  const metadata: Record<string, unknown> = { ...(opts.metadata ?? {}) };
+  if (ctx.sponsored) {
+    metadata.sponsored = true;
+    metadata.placement_lane = "patrocinadores_de_leonix";
+    metadata.package_entitlement_tier = ctx.packageEntitlementTier ?? null;
+  }
+
   void recordAnalyticsEvent({
     event_type: eventType,
     source_table: SOURCE_TABLE,
@@ -79,17 +89,21 @@ async function trackBrGlobalEvent(
     canonical_ad_id: ctx.leonixAdId?.trim() || undefined,
     anonymous_session_id: accessToken ? undefined : getAnonymousSessionId(),
     accessToken,
-    metadata: opts.metadata,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
   });
 }
 
 export function brAnalyticsContextFromListing(row: {
   id: string;
   leonix_ad_id?: string | null;
+  isSponsored?: boolean;
+  packageEntitlementTier?: string | null;
 }): BrGlobalAnalyticsContext {
   return {
     listingUuid: row.id.trim(),
     leonixAdId: row.leonix_ad_id?.trim() || undefined,
+    sponsored: row.isSponsored === true,
+    packageEntitlementTier: row.packageEntitlementTier ?? null,
   };
 }
 

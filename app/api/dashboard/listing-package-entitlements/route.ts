@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
       grantsResultsPriority: boolean;
       includesNuestrosNegocios: boolean;
       tier: string;
+      startsAt?: string | null;
+      endsAt?: string | null;
       revenueAdPlanBadge?: string | null;
       revenuePackageKey?: string | null;
     }
@@ -102,6 +104,8 @@ export async function POST(req: NextRequest) {
         grantsDestacado: packageEntitlementGrantsDestacado(summary),
         grantsResultsPriority: packageEntitlementGrantsResultsPriority(summary),
         includesNuestrosNegocios: packageEntitlementIncludesNuestrosNegocios(summary),
+        startsAt: ent?.startsAt ?? null,
+        endsAt: ent?.endsAt ?? null,
       };
       revenueLookupItems.push({
         category,

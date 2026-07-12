@@ -23,6 +23,7 @@ import { buildBrLandingInventorySections } from "./buildBrLandingInventorySectio
 import { buildBrDemoListingPool } from "../lib/brDemoListingPool";
 import { brShouldMergeDemoInventoryWithLive } from "../lib/brPublicInventoryMode";
 import { fetchBrPublishedListingsForBrowse } from "../lib/fetchBrPublishedListingsBrowser";
+import { overlayActiveEntitlementsOnBrListings } from "../lib/brPublicEntitlementOverlay";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { getBrLandingCopy } from "./bienesRaicesLandingCopy";
@@ -54,7 +55,9 @@ export function BienesRaicesLandingView() {
     void (async () => {
       const r = await fetchBrPublishedListingsForBrowse({ lang, limit: 60 });
       if (cancelled) return;
-      setLivePool(r.listings);
+      const withEntitlements = r.error ? [] : await overlayActiveEntitlementsOnBrListings(r.listings);
+      if (cancelled) return;
+      setLivePool(withEntitlements);
       setLiveErr(r.error);
       setLiveReady(true);
     })();

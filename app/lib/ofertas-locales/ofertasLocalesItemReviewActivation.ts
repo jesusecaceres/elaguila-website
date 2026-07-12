@@ -5,8 +5,20 @@
 import type {
   OfertaLocalItemDbRow,
   OfertaLocalItemReviewPatch,
+  OfertaLocalItemReviewStatus,
   OfertaLocalPublishStatus,
 } from "./ofertasLocalesTypes";
+
+/** Whether an item may be publicly active given review + parent offer status. */
+export function shouldOfertaLocalItemBePubliclyActive(
+  reviewStatus: OfertaLocalItemReviewStatus | string,
+  parentOfferStatus: OfertaLocalPublishStatus
+): boolean {
+  if (reviewStatus === "rejected") return false;
+  if (reviewStatus !== "approved") return false;
+  if (parentOfferStatus !== "approved") return false;
+  return true;
+}
 
 export function resolveOfertaLocalItemIsActiveOnReviewPatch(
   patch: OfertaLocalItemReviewPatch,
@@ -14,10 +26,5 @@ export function resolveOfertaLocalItemIsActiveOnReviewPatch(
   parentOfferStatus: OfertaLocalPublishStatus
 ): boolean {
   const nextReviewStatus = patch.reviewStatus ?? existing.review_status;
-
-  if (nextReviewStatus === "rejected") return false;
-  if (nextReviewStatus !== "approved") return false;
-  if (parentOfferStatus !== "approved") return false;
-
-  return true;
+  return shouldOfertaLocalItemBePubliclyActive(nextReviewStatus, parentOfferStatus);
 }

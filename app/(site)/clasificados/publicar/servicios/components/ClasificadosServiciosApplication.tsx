@@ -20,6 +20,7 @@ import {
   getBusinessTypePreset,
 } from "../lib/businessTypePresets";
 import { getClasificadosServiciosCopy } from "../lib/clasificadosServiciosApplicationCopy";
+import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { ServiciosPublishSortableGallery } from "./ServiciosPublishSortableGallery";
 import type {
   ChipDef,
@@ -893,6 +894,16 @@ export function ClasificadosServiciosApplication() {
           >
             {isExistingDashboardListingMode ? (lang === "en" ? "← Back to dashboard" : "← Volver al panel") : copy.linkBack}
           </Link>
+
+          {!isExistingDashboardListingMode ? (
+            <div className="mt-5 max-w-md">
+              <LeonixLaunchCouponCard
+                lang={lang === "en" ? "en" : "es"}
+                variant="mini"
+                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=servicios_publish&sourceCta=launch_25`}
+              />
+            </div>
+          ) : null}
 
           {editHydration.status === "loading" ? (
             <div className="mt-4 rounded-xl border border-[#D8C79A]/70 bg-[#FBF7EF] px-3 py-2 text-sm font-semibold text-[#5D4A25]" role="status">

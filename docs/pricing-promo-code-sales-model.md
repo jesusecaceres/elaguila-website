@@ -73,11 +73,12 @@ Pricing can be updated centrally in `packagePricingRules.ts` — do not scatter 
 - Promo code never grants placement/ranking/verification — only discounts eligible checkout when redemption is wired.
 - See [`newsletter-promo-code-readiness.md`](./newsletter-promo-code-readiness.md).
 
-### 5b. Public CTA placements (Home + Digital Magazine)
+### 5c. Servicios Launch 25 checkout eligibility
 
-- **Home / Inicio** (`/home`): `LeonixLaunchCouponCard` compact — `source=home`, `sourceCta=launch_25`.
-- **Digital magazine** (`/magazine`): same card — `source=digital_magazine`, `sourceCta=launch_25`.
-- Routes to `/newsletter` signup only; no print/combo/manual promise on these surfaces.
+- **Eligible:** `servicios_base_monthly` — new-application preview checkout via central Revenue OS (`PublishCheckoutCheckpoint` + `startRevenueCategoryCheckout`).
+- **Not eligible:** `servicios_offers_addon` (add-on-only), dashboard edit re-checkout, print/combo/manual, free posts.
+- Newsletter checkbox at Servicios checkout: source `servicios_checkout` (non-blocking; does not block payment).
+- See [`revenue-os-newsletter-promo-checkout-validation-01.md`](./revenue-os-newsletter-promo-checkout-validation-01.md) for allowlist patch history.
 
 ---
 

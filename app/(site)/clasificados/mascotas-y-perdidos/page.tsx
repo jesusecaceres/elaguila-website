@@ -5,9 +5,9 @@ import { useSearchParams } from "next/navigation";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
-  LeonixCategorySearchCanvas,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { CategoryStandardLandingSearchPanel } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingSearchPanel";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { mascotasPerdidosPublishEntryUrl } from "./shared/mascotasPerdidosBrowseUrls";
 import { mascotasPerdidosLangFromSearchParams, mascotasPerdidosRouteLangFromSearchParams } from "./shared/mascotasPerdidosShellCopy";
@@ -44,25 +44,12 @@ function MascotasPerdidosLandingPageInner() {
   );
 
   const mascotasSearchForm = (
-    <LeonixCategorySearchCanvas
-      lang={lang as V2Lang}
-      surface="landing"
-      query=""
-      city=""
-      state=""
-      zip=""
-      country=""
-      onQuery={() => {}}
-      onCity={() => {}}
-      onState={() => {}}
-      onZip={() => {}}
-      onCountry={() => {}}
-      onSearch={() => {}}
-      onOpenFilters={() => {}}
+    <CategoryStandardLandingSearchPanel
+      category="mascotas-y-perdidos"
+      lang={routeLang as "es" | "en"}
+      routeLang={routeLang as "es" | "en"}
       browseAllHref={resultsHref}
       browseAllLabel={t.ctaView}
-      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
-      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
       publishHref={postHref}
       publishLabel={t.ctaPost}
     />

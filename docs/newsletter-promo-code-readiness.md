@@ -162,8 +162,8 @@ Discount fields (percent/amount) may also be saved for `newsletter` / `sms` when
 
 `website_launch_25` codes now redeem at eligible website checkout surfaces (website checkout only):
 
-- Eligible package keys only: `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`. All other products (print/combo/manual/free/renewal/unknown) are rejected.
-- The code is applied client-side (shared `RevenuePromoField`, or the Restaurantes `PublishCheckoutCheckpoint`), then **revalidated server-side** in `POST /api/revenue-os/checkout`, which uses the server `finalAmountCents` for the Stripe session amount.
+- Eligible package keys only: `rentas_30d`, `empleos_job_post_paid`, `autos_privado_30d`, `restaurantes_base_monthly`, `servicios_base_monthly`. All other products (print/combo/manual/free/renewal/unknown) are rejected.
+- The code is applied client-side (shared `RevenuePromoField`, or category `PublishCheckoutCheckpoint` for Restaurantes/Servicios), then **revalidated server-side** in `POST /api/revenue-os/checkout`, which uses the server `finalAmountCents` for the Stripe session amount.
 - Discount is server-owned (`percent_off`/`amount_off_cents`); it is never inferred from the code text.
 - Redemption is **webhook-only**: the code is marked redeemed only after a successful Stripe payment webhook. Abandoned or cancelled checkouts never consume the code.
 - Still **no** placement/ranking/verification/entitlement is granted by the code, and one-time/non-stackable limits are enforced via `redemption_count` / `max_redemptions`.
@@ -181,7 +181,7 @@ See also **`docs/newsletter-operations-readiness.md`** for the full admin operat
 - User dashboard **“My active code”** status panel (benefit card links to newsletter only)
 - Automatic package entitlement creation from a newsletter code
 - Stripe **Coupon object** creation/sync (discount is applied via server-computed final amount, not a Stripe Coupon)
-- Promo support for categories not yet on central Revenue OS checkout (Servicios, Bienes privado, Ofertas Locales, Autos negocio/dealer, Nuestros Negocios)
+- Promo support for categories not yet on central Revenue OS checkout (Bienes privado, Ofertas Locales, Autos negocio/dealer, Nuestros Negocios)
 - Public ranking / placement boost
 - Print/combo/admin contract promo system
 

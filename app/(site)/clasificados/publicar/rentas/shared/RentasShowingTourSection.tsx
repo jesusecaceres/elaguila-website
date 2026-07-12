@@ -18,6 +18,7 @@ type Props<T extends RentasShowingFormSlice> = {
   setState: Dispatch<SetStateAction<T>>;
   fieldClass: string;
   textareaFieldClass: string;
+  lang: "es" | "en";
 };
 
 export function RentasShowingTourSection<T extends RentasShowingFormSlice>({
@@ -25,8 +26,8 @@ export function RentasShowingTourSection<T extends RentasShowingFormSlice>({
   setState,
   fieldClass,
   textareaFieldClass,
+  lang,
 }: Props<T>) {
-  const lang = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("lang") === "en" ? "en" : "es" : "es";
   return (
     <section className={`${aiCardClass} min-w-0`}>
       <h2 className={aiTitleClass}>{lang === "en" ? "Showings and tours" : "Visitas y recorridos"}</h2>

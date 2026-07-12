@@ -72,7 +72,7 @@ if (!redemptionsSrc.includes("website_launch_25")) fail("Redemptions must recogn
 if (!redemptionsSrc.includes("WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS")) {
   fail("Redemptions must define the allowlisted package keys");
 }
-for (const key of ["rentas_30d", "empleos_job_post_paid", "autos_privado_30d", "restaurantes_base_monthly"]) {
+for (const key of ["rentas_30d", "empleos_job_post_paid", "autos_privado_30d", "restaurantes_base_monthly", "servicios_base_monthly"]) {
   if (!redemptionsSrc.includes(key)) fail(`Allowlist missing package key: ${key}`);
 }
 if (!redemptionsSrc.includes("isWebsiteLaunch25Promo") || !redemptionsSrc.includes("resolveWebsiteLaunch25Rejection")) {
@@ -128,9 +128,12 @@ if (fieldSrcNoComments.match(/placement|ranking|verified|verification/i)) {
 }
 ok("shared promo field copy present, no placement/ranking claims");
 
-// Category surfaces forward promo code
-if (!rentasSrc.includes("RevenuePromoField") || !rentasSrc.includes("promoCode: appliedPromoCode")) {
-  fail("Rentas privado must render promo field and forward code");
+// Category surfaces forward promo code — RevenuePromoField (Empleos, Autos) or PublishCheckoutCheckpoint (Rentas, Servicios)
+if (!rentasSrc.includes("PublishCheckoutCheckpoint") || !rentasSrc.includes("onPromoApply")) {
+  fail("Rentas privado must use PublishCheckoutCheckpoint with server promo validation");
+}
+if (!rentasSrc.includes("promoCode: ctx.promoCode") || !rentasSrc.includes("startRevenueCategoryCheckout")) {
+  fail("Rentas privado must forward promo code into central Revenue OS checkout");
 }
 if (!empleosModalSrc.includes("RevenuePromoField") || !/onConfirm\(promoCode\b/.test(empleosModalSrc)) {
   fail("Empleos confirm modal must render promo field and forward code");
@@ -149,7 +152,43 @@ if (!autosSrc.includes('lane === "privado" && publishConfirmMode === "stripe"'))
 if (autosSrc.includes("AUTOS_NEGOCIOS_CHECKOUT_PROMO") || autosSrc.match(/negocios[^\n]*RevenuePromoField/)) {
   fail("Autos negocio/dealer checkout must not receive promo field");
 }
-ok("eligible category surfaces wired; dealer/legacy untouched");
+
+// Servicios — Revenue OS checkpoint checkout (PublishCheckoutCheckpoint + server validation)
+const serviciosPreview = "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx";
+const serviciosApp = "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx";
+for (const rel of [serviciosPreview, serviciosApp]) {
+  if (!existsSync(path.join(root, rel))) fail(`Missing Servicios file: ${rel}`);
+}
+const serviciosPreviewSrc = read(serviciosPreview);
+const serviciosAppSrc = read(serviciosApp);
+if (!serviciosPreviewSrc.includes("PublishCheckoutCheckpoint") || !serviciosPreviewSrc.includes("onPromoApply")) {
+  fail("Servicios preview must use PublishCheckoutCheckpoint with server promo validation");
+}
+if (!serviciosPreviewSrc.includes("promoCode: ctx.promoCode") || !serviciosPreviewSrc.includes("startRevenueCategoryCheckout")) {
+  fail("Servicios preview must forward promo code into central Revenue OS checkout");
+}
+if (!serviciosPreviewSrc.includes("promoEligible: true")) {
+  fail("Servicios preview checkpoint must mark promoEligible");
+}
+if (!serviciosPreviewSrc.includes("LeonixLaunchCouponCard")) {
+  fail("Servicios preview checkout must render LeonixLaunchCouponCard");
+}
+if (!serviciosPreviewSrc.match(/variant="(mini|compact)"/)) {
+  fail("Servicios preview must use mini/compact Launch 25 coupon variant");
+}
+if (!serviciosPreviewSrc.includes("Usa tu código Leonix Launch 25 si aplica a este pago.")) {
+  fail("Servicios preview must show Launch 25 checkout helper copy");
+}
+if (!serviciosAppSrc.includes("LeonixLaunchCouponCard") || !serviciosAppSrc.includes('variant="mini"')) {
+  fail("Servicios paid application form must render LeonixLaunchCouponCard mini variant");
+}
+if (!serviciosAppSrc.includes("!isExistingDashboardListingMode")) {
+  fail("Servicios Launch 25 reminder must exclude dashboard edit mode");
+}
+if (serviciosPreviewSrc.match(/print discount|combo package|manual contract|free post|guaranteed placement/i)) {
+  fail("Servicios checkout must not promise print/combo/manual/free/placement");
+}
+ok("eligible category surfaces wired; Servicios Revenue OS checkpoint included; dealer/legacy untouched");
 
 // Doc mentions doctrine
 for (const s of ["website checkout only", "webhook"]) {
@@ -228,12 +267,12 @@ if (!newsletterSrc.includes("LeonixLaunchCouponCard") || !newsletterSrc.includes
   fail("Newsletter must keep the official public coupon card");
 }
 
-// Selector cards use the official badge variant; free/dealer excluded.
+// Selector cards: Empleos hub uses badge variant; Autos privado form uses mini (checkpoint-first routing).
 if (!empleosHubSrc.includes("LeonixLaunchCouponCard") || !empleosHubSrc.includes('variant="badge"')) {
   fail("Empleos paid selector must use the official badge variant");
 }
-if (!autosBranchClientSrc.includes("LeonixLaunchCouponCard") || !autosBranchClientSrc.includes('variant="badge"')) {
-  fail("Autos private selector must use the official badge variant");
+if (!autosPrivadoAppSrc.includes("LeonixLaunchCouponCard") || !autosPrivadoAppSrc.match(/variant="(mini|compact)"/)) {
+  fail("Autos privado paid form must use the official mini/compact coupon variant");
 }
 // No page defines its own Launch 25 marketing copy anymore.
 for (const [name, src] of [

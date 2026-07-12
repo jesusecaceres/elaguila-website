@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { publishLeonixListingFromBienesRaicesNegocioDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
@@ -76,7 +77,10 @@ function tryReadPreviewDraftForMap(): BienesRaicesNegocioPreviewVm | null {
 export default function BienesRaicesNegocioPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const inventoryAdd = useMemo(
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],
@@ -177,7 +181,7 @@ export default function BienesRaicesNegocioPreviewClient() {
           router.push(
             appendLangToPath(
               resolveBrInventoryAddReturnHref({ returnToListingId: inventoryCtx.parentListingId, lang }),
-              lang,
+              routeLang,
             ),
           );
           return;
@@ -195,7 +199,7 @@ export default function BienesRaicesNegocioPreviewClient() {
           return;
         }
 
-        router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
+        router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), routeLang));
       } else {
         setPublishErr(r.error);
       }
@@ -203,12 +207,12 @@ export default function BienesRaicesNegocioPreviewClient() {
       setPublishBusy(false);
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
-  }, [inventoryCtx, lang, router]);
+  }, [inventoryCtx, lang, routeLang, router]);
 
   const onPublishNextFromBridge = useCallback(() => {
     const href = navigateToNextQueuedChild();
-    if (href) router.push(appendLangToPath(href, lang));
-  }, [lang, router]);
+    if (href) router.push(appendLangToPath(href, routeLang));
+  }, [routeLang, router]);
 
   useEffect(() => {
     let cancelled = false;

@@ -188,3 +188,20 @@ Every Launch 25 placement now renders from one component family, `app/components
 - Newsletter keeps `variant="public"`. Rentas privado, Empleos quick+premium, and Autos privado forms use `variant="mini"`. Empleos paid job card and Autos private-seller card use `variant="badge"`.
 - The standalone `LeonixLaunch25MiniNotice` component and all per-page `launchBadge` copy were removed. Autos dealer keeps only a neutral separate-promotions note; Empleos free job fair has no badge.
 - No backend/checkout/Stripe/schema changes. Do not create a second Launch 25 card or copy source.
+
+## 19. Servicios Launch 25 publish readiness (SERVICIOS-LAUNCH-25-PUBLISH-READINESS-01)
+
+**Status: ELIGIBLE** — Chuy can use a valid Launch 25 newsletter code on Servicios **new-application** paid checkout today.
+
+| Item | Value |
+|------|-------|
+| Package key | `servicios_base_monthly` ($399/mo) |
+| Checkout path | `ClasificadosServiciosPreviewClient` → `PublishCheckoutCheckpoint` → `startRevenueCategoryCheckout` → `POST /api/revenue-os/checkout` |
+| Promo UI | `onPromoApply` → `validateRevenuePromoForCheckout`; `promoCode` forwarded in checkout payload |
+| Allowlist | `servicios_base_monthly` in `WEBSITE_LAUNCH_25_ALLOWLISTED_PACKAGE_KEYS` |
+| Launch 25 reminder | `LeonixLaunchCouponCard` mini on new application form; compact at final preview checkout |
+| Newsletter checkbox | Optional at checkout; source `servicios_checkout` via `captureCheckoutNewsletterSubscriber` (non-blocking) |
+
+**Not eligible:** dashboard listing edit (already paid), add-on-only dashboard checkout (`servicios_offers_addon`), print/combo/manual packages, free paths.
+
+Server validation + webhook-only redemption unchanged. Promo never grants placement/ranking/verification.

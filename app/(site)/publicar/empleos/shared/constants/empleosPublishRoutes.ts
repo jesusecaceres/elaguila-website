@@ -1,4 +1,4 @@
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import type { SupportedLang } from "@/app/lib/language";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 /** Publish envelope + admin projection: `shared/publish/buildEmpleosPublishEnvelope.ts`, `shared/types/empleosAdminListingCompatibility.ts`. */
@@ -19,7 +19,7 @@ export const EMPLEOS_PREVIEW_ROUTES = {
 } as const;
 
 /** Preview URL with `from=publicar` so the shell uses Leonix preview chrome + session draft. */
-export function empleosHandoffPreviewUrl(route: keyof typeof EMPLEOS_PREVIEW_ROUTES, lang: Lang): string {
+export function empleosHandoffPreviewUrl(route: keyof typeof EMPLEOS_PREVIEW_ROUTES, lang: SupportedLang): string {
   const base = EMPLEOS_PREVIEW_ROUTES[route];
   return appendLangToPath(`${base}?from=publicar`, lang);
 }

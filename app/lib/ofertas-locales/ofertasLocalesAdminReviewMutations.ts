@@ -68,6 +68,37 @@ function isTransitionAllowed(
   }
 }
 
+/** Activate approved child items when parent offer is approved; deactivate on reject/archive. */
+export async function syncOfertaLocalItemsActivationAfterAdminReview(
+  sb: SupabaseClient,
+  offerId: string,
+  action: OfertaLocalAdminReviewAction,
+  now: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (action === "approve") {
+    const { error } = await sb
+      .from("oferta_local_items")
+      .update({ is_active: true, updated_at: now })
+      .eq("oferta_local_id", offerId)
+      .eq("review_status", "approved");
+
+    if (error) return { ok: false, error: "item_activation_failed" };
+    return { ok: true };
+  }
+
+  if (action === "reject" || action === "archive") {
+    const { error } = await sb
+      .from("oferta_local_items")
+      .update({ is_active: false, updated_at: now })
+      .eq("oferta_local_id", offerId);
+
+    if (error) return { ok: false, error: "item_deactivation_failed" };
+    return { ok: true };
+  }
+
+  return { ok: true };
+}
+
 export async function mutateOfertaLocalAdminReview(
   sb: SupabaseClient,
   id: string,
@@ -98,29 +129,35 @@ export async function mutateOfertaLocalAdminReview(
     adminNote
   );
 
+  const now = new Date().toISOString();
+  const parentUpdate: Record<string, unknown> = {
+    status: newStatus,
+    internal_notes,
+    updated_at: now,
+  };
+
+  if (action === "approve") {
+    parentUpdate.published_at = now;
+  }
+
   const { error: updateError } = await sb
     .from("ofertas_locales")
-    .update({
-      status: newStatus,
-      internal_notes,
-      updated_at: new Date().toISOString(),
-    })
+    .update(parentUpdate)
     .eq("id", offerId);
 
   if (updateError) return { ok: false, error: "update_failed" };
 
-  const now = new Date().toISOString();
-  if (action === "approve") {
+  const itemSync = await syncOfertaLocalItemsActivationAfterAdminReview(sb, offerId, action, now);
+  if (!itemSync.ok) {
     await sb
-      .from("oferta_local_items")
-      .update({ is_active: true, updated_at: now })
-      .eq("oferta_local_id", offerId)
-      .eq("review_status", "approved");
-  } else if (action === "reject" || action === "archive") {
-    await sb
-      .from("oferta_local_items")
-      .update({ is_active: false, updated_at: now })
-      .eq("oferta_local_id", offerId);
+      .from("ofertas_locales")
+      .update({
+        status: current,
+        updated_at: now,
+      })
+      .eq("id", offerId);
+
+    return { ok: false, error: itemSync.error };
   }
 
   return { ok: true, id: offerId, previousStatus: current, newStatus };

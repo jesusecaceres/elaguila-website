@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { JobFairModality } from "@/app/clasificados/empleos/data/empleoJobFairSampleData";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -38,7 +39,10 @@ const MODALITIES: { value: JobFairModality; es: string; en: string }[] = [
 export default function EmpleoFeriaApplicationClient() {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [sp],
+  );
   const copy = EMPLEOS_PUBLISH_SHARED_COPY[lang];
 
   const { state, patch, reset, hydrated } = useEmpleosDraftSession<EmpleosFeriaDraft>(
@@ -87,7 +91,7 @@ export default function EmpleoFeriaApplicationClient() {
     if (previewDisabled) return;
     flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.feria, state);
     markPublishFlowOpeningPreview();
-    router.push(empleosHandoffPreviewUrl("feria", lang));
+    router.push(empleosHandoffPreviewUrl("feria", routeLang));
   }, [lang, previewDisabled, router, state]);
 
   const handleDeleteApplication = useCallback(() => {
@@ -439,7 +443,7 @@ export default function EmpleoFeriaApplicationClient() {
             clearEmpleosStagedPublish();
             setPublishOpen(false);
             setStagedNotice(true);
-            router.push(appendLangToPath(`/clasificados/empleos/${json.slug}`, lang));
+            router.push(appendLangToPath(`/clasificados/empleos/${json.slug}`, routeLang));
             router.refresh();
           })();
         }}

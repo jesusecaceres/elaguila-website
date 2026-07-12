@@ -5,9 +5,9 @@ import { useSearchParams } from "next/navigation";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
-  LeonixCategorySearchCanvas,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { CategoryStandardLandingSearchPanel } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingSearchPanel";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { BUSCO_PRODUCT, buscoLangFromSearchParams, buscoPathWithLang, buscoRouteLangFromSearchParams } from "./shared/buscoShellCopy";
 
@@ -37,25 +37,12 @@ function BuscoLandingPageInner() {
   const resultsHref = useMemo(() => buildCategoryResultsUrl("busco", routeLang as "es" | "en"), [routeLang]);
 
   const buscoSearchForm = (
-    <LeonixCategorySearchCanvas
-      lang={lang as V2Lang}
-      surface="landing"
-      query=""
-      city=""
-      state=""
-      zip=""
-      country=""
-      onQuery={() => {}}
-      onCity={() => {}}
-      onState={() => {}}
-      onZip={() => {}}
-      onCountry={() => {}}
-      onSearch={() => {}}
-      onOpenFilters={() => {}}
+    <CategoryStandardLandingSearchPanel
+      category="busco"
+      lang={routeLang as "es" | "en"}
+      routeLang={routeLang as "es" | "en"}
       browseAllHref={resultsHref}
       browseAllLabel={t.ctaView}
-      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
-      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
       publishHref={postHref}
       publishLabel={t.ctaPost}
     />

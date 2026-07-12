@@ -64,23 +64,14 @@ export function resolveBrMonetizationVisibility(row: {
     badgesToAdd.push("negocio");
   }
 
-  // Currently NO real featured/promoted fields exist in listings table
-  // Do NOT fake destacada/promocionada badges
+  // Listing rows do not denormalize package entitlements.
+  // Public Destacada/Promocionada come from `/api/clasificados/bienes-raices/public/entitlement-overlay`
+  // applied after browse fetch — do NOT fake badges here from account plan or missing columns.
   const isFeatured = false;
   const isPromoted = false;
   const isVerified = false;
 
-  // Document deferred fields for future implementation
-  // When these fields are added to listings table, we can safely parse them:
-  // - package_tier / package_key / package_entitlement_id
-  // - placement_tier / placement_tier_key
-  // - is_featured / featured_until
-  // - is_promoted / promoted_until
-  // - is_verified / verified_at
-  warnings.push(
-    "Monetization placement fields (package_tier, is_featured, is_promoted) not yet present in listings table. " +
-      "Destacada/Promocionada badges deferred until real active placement signals exist."
-  );
+  activePlacementSignals.push("entitlement:overlay_api");
 
   return {
     sellerKind,

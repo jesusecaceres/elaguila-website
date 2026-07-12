@@ -10,6 +10,7 @@ import {
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   BR_PREVIEW_PRIVADO,
@@ -59,7 +60,10 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const [draft, setDraft] = useState<BienesRaicesPrivadoFormState | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
-  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
 
   const onPublishLive = useCallback(async () => {
     const d = loadBienesRaicesPrivadoDraft();
@@ -78,11 +82,11 @@ export default function BienesRaicesPrivadoPreviewClient() {
           /* ignore */
         }
       }
-      router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), lang));
+      router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), routeLang));
     } else {
       setPublishErr(r.error);
     }
-  }, [lang, router]);
+  }, [lang, routeLang, router]);
 
   useEffect(() => {
     const d = loadBienesRaicesPrivadoDraft();
@@ -94,9 +98,9 @@ export default function BienesRaicesPrivadoPreviewClient() {
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
     if (draft.categoriaPropiedad !== urlCategoria) {
-      router.replace(`${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}&lang=${lang}`);
+      router.replace(`${BR_PREVIEW_PRIVADO}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}&lang=${routeLang}`);
     }
-  }, [phase, draft, urlCategoria, router]);
+  }, [phase, draft, urlCategoria, router, routeLang]);
 
   if (phase === "loading") {
     return (

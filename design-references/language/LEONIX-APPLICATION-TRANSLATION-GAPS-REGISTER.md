@@ -19,10 +19,9 @@ Official languages: `es`, `en`, `pt`, `tl` (PT/TL UI chrome falls back to EN via
 | Restaurantes | Static page metadata title (`/publicar/restaurantes`) | Spanish-only browser tab title | Low | Optional metadata gate |
 | Autos | `AutosPrivadoApplication.tsx`, `AutosNegociosPublishConfirm.tsx`, `AutosPublishConfirmCore.tsx` | Binary `?lang=en` parsing; no `resolveClasificadosPublishLang` | High — same root cause as pre-fix Restaurantes | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
 | Servicios | `ServiciosApplicationForm.tsx`, servicios publish/preview flows | Binary lang checks; Spanish-only validation/issue strings | High | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
-| Empleos | `EmpleoQuickApplicationClient.tsx`, `EmpleoPremiumApplicationClient.tsx`, `EmpleoFeriaApplicationClient.tsx` | Binary `sp?.get("lang") === "en"` | High | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
-| Bienes Raíces | `brNegocio*` application sections, `AgenteIndividual*` preview | Binary locale checks; mixed ES inventory labels | High | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
-| Rentas | `RentasPrivadoForm.tsx`, `RentasAnuncioFormSection.tsx`, `RentasShowingTourSection.tsx` | Window/searchParams binary lang; Spanish form chrome | High | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
-| En Venta | `LeonixEnVentaStorefrontApplication.tsx` | Binary lang on application entry | Medium | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
+| Empleos | `EmpleoQuickApplicationClient.tsx`, `EmpleoPremiumApplicationClient.tsx`, `EmpleoFeriaApplicationClient.tsx` | **PARTIAL** — resolver + routeLang preview handoff (Batch 2) | Medium — detail shell clients still binary | Batch 2 follow-up or Batch 3 |
+| Rentas | `RentasPrivadoForm.tsx`, `RentasAnuncioFormSection.tsx`, `RentasShowingTourSection.tsx` | **PARTIAL** — explicit `lang` prop; server results/detail resolver (Batch 2) | Low | Optional polish |
+| En Venta | `LeonixEnVentaStorefrontApplication.tsx` | **RESOLVED** — resolver pattern (Batch 2; future storefront) | — | — |
 | Comunidad | `ComunidadQuickAdCanvas.tsx` | Sched lang forced to es/en binary | Medium | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
 | Clases | `ClasesQuickAdCanvas.tsx` | Same sched lang binary pattern | Medium | `LEONIX-APPLICATION-TRANSLATION-COVERAGE-BATCH2-CATEGORIES1` |
 | All categories | Dedicated PT/TL application dictionaries | No PT/TL UI copy objects; honest EN fallback only | Low (documented) | Future PT/TL dictionary gate after ES/EN batch |

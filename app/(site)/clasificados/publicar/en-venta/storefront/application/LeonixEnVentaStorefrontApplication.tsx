@@ -9,6 +9,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { EN_VENTA_PUBLICAR_PRO } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import EnVentaPlanIntakeCallout from "@/app/clasificados/en-venta/shared/components/EnVentaPlanIntakeCallout";
@@ -32,7 +34,10 @@ type Lang = "es" | "en";
 
 export default function LeonixEnVentaStorefrontApplication() {
   const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(searchParams?.get("lang")),
+    [searchParams],
+  );
   const [state, setState] = useState(createEmptyEnVentaStorefrontState);
 
   const copy = useMemo(
@@ -53,8 +58,10 @@ export default function LeonixEnVentaStorefrontApplication() {
     [lang]
   );
 
-  const qs = new URLSearchParams();
-  qs.set("lang", lang);
+  const backHref = useMemo(
+    () => withClasificadosPublishLang(EN_VENTA_PUBLICAR_PRO, routeLang),
+    [routeLang],
+  );
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] text-[#F5F5F5] pt-28 pb-16">
@@ -66,7 +73,7 @@ export default function LeonixEnVentaStorefrontApplication() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              href={`${EN_VENTA_PUBLICAR_PRO}?${qs.toString()}`}
+              href={backHref}
               className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-white hover:bg-white/10"
             >
               {copy.back}

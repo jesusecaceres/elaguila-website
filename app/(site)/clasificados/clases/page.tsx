@@ -5,11 +5,11 @@ import { useSearchParams } from "next/navigation";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
-  LeonixCategorySearchCanvas,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { CategoryStandardLandingSearchPanel } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardLandingSearchPanel";
 import { appendLangToPath, resolveHubCopyLang, resolveRouteLang } from "@/app/clasificados/lib/hubUrl";
-import { buildClasesListaUrl } from "./shared/utils/clasesListaUrl";
+import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 
 type Lang = "es" | "en";
 
@@ -38,29 +38,16 @@ function ClasesLandingPageInner() {
   const lang = resolveHubCopyLang(sp?.get("lang"));
   const t = COPY[lang];
 
-  const listaHref = useMemo(() => buildClasesListaUrl("clases", routeLang as Lang), [routeLang]);
+  const resultsHref = useMemo(() => buildCategoryResultsUrl("clases", routeLang as Lang), [routeLang]);
   const postHref = useMemo(() => appendLangToPath("/clasificados/publicar/clases", routeLang as Lang), [routeLang]);
 
   const clasesSearchForm = (
-    <LeonixCategorySearchCanvas
-      lang={lang as V2Lang}
-      surface="landing"
-      query=""
-      city=""
-      state=""
-      zip=""
-      country=""
-      onQuery={() => {}}
-      onCity={() => {}}
-      onState={() => {}}
-      onZip={() => {}}
-      onCountry={() => {}}
-      onSearch={() => {}}
-      onOpenFilters={() => {}}
-      browseAllHref={listaHref}
+    <CategoryStandardLandingSearchPanel
+      category="clases"
+      lang={routeLang as Lang}
+      routeLang={routeLang as Lang}
+      browseAllHref={resultsHref}
       browseAllLabel={t.ctaView}
-      searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
-      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
       publishHref={postHref}
       publishLabel={t.ctaPost}
     />

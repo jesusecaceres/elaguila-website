@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { previewBackToEditLabel } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { clearLeonixPreviewNavSessionFlag, markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
@@ -17,7 +18,10 @@ import { normalizeEmpleosFeriaDraft, type EmpleosFeriaDraft } from "@/app/public
 
 export function EmpleoFeriaPreviewClient() {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  const { routeLang, copyLang: lang } = useMemo(
+    () => resolveClasificadosPublishLang(sp?.get("lang")),
+    [sp],
+  );
   const fromPublicar = sp?.get("from") === "publicar";
   const [draft, setDraft] = useState<EmpleosFeriaDraft | null>(null);
   const [ready, setReady] = useState(false);
@@ -42,8 +46,8 @@ export function EmpleoFeriaPreviewClient() {
     }
   }, []);
 
-  const editHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.feria, lang);
-  const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
+  const editHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.feria, routeLang);
+  const backLabel = previewBackToEditLabel(lang);
   const prevCopy = EMPLEOS_PUBLISH_SHARED_COPY[lang].previewNoDraft;
 
   if (!ready) {
@@ -67,6 +71,7 @@ export function EmpleoFeriaPreviewClient() {
       <LeonixPreviewPageShell
         editHref={editHref}
         backLabel={backLabel}
+        lang={lang}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       >
         <EmpleoJobFairDetailPage data={data} withSiteChrome={false} />

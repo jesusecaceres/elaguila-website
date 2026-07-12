@@ -43,6 +43,7 @@ type Props<T extends RentasPrivadoFormState | RentasNegocioFormState> = {
   fieldClass: string;
   textareaFieldClass: string;
   estadoOptions: EstadoOpt<T["estadoAnuncio"]>[];
+  lang: "es" | "en";
 };
 
 export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | RentasNegocioFormState>({
@@ -51,9 +52,8 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
   fieldClass,
   textareaFieldClass,
   estadoOptions,
+  lang,
 }: Props<T>) {
-  const lang = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("lang") === "en" ? "en" : "es" : "es";
-  
   // Translated labels
   const sectionTitle = lang === "en" ? "Listing" : "Anuncio";
   const titleLabel = lang === "en" ? "Title" : "Título";
