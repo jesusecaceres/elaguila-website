@@ -9,7 +9,7 @@ import {
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   buildRentasAssembledAddressLine,
-  buildRentasCityStateZipLine,
+  buildRentasCityStatePostalLine,
   buildRentasGoogleMapsSearchQuery,
   buildRentasStreetLine,
   formatRentasDepositUsdPreview,
@@ -216,12 +216,40 @@ export function mapRentasPrivadoStateToPreviewVm(
   const exact = s.mostrarDireccionExacta === true;
   const cross = trim(s.direccionCruceCercano);
   const line1 = exact ? buildRentasStreetLine(s) : cross;
-  const cityStateZip = buildRentasCityStateZipLine(s);
-  const mapsQ = buildRentasGoogleMapsSearchQuery(s);
+  const cityStateZip = buildRentasCityStatePostalLine({
+    ciudad: s.ciudad,
+    direccionEstado: s.direccionEstado,
+    direccionCodigoPostal: s.direccionCodigoPostal,
+    direccionPais: s.direccionPais,
+  });
+  const mapsQ = buildRentasGoogleMapsSearchQuery({
+    direccionLinea1: s.direccionLinea1,
+    direccionLinea2: s.direccionLinea2,
+    direccionNumero: s.direccionNumero,
+    direccionCalle: s.direccionCalle,
+    ubicacionLinea: s.ubicacionLinea,
+    direccionCruceCercano: s.direccionCruceCercano,
+    mostrarDireccionExacta: s.mostrarDireccionExacta,
+    zonaVecindario: s.zonaVecindario,
+    ciudad: s.ciudad,
+    direccionEstado: s.direccionEstado,
+    direccionCodigoPostal: s.direccionCodigoPostal,
+    direccionPais: s.direccionPais,
+  });
   const mapsUrl = rentasGoogleMapsUrlFromQuery(mapsQ);
   const hasMeaningfulAddress = Boolean(line1 || trim(s.ciudad) || trim(s.direccionCodigoPostal) || mapsUrl);
   const addressLine = exact
-    ? buildRentasAssembledAddressLine(s)
+    ? buildRentasAssembledAddressLine({
+      direccionLinea1: s.direccionLinea1,
+      direccionLinea2: s.direccionLinea2,
+      direccionNumero: s.direccionNumero,
+      direccionCalle: s.direccionCalle,
+      ubicacionLinea: s.ubicacionLinea,
+      ciudad: s.ciudad,
+      direccionEstado: s.direccionEstado,
+      direccionCodigoPostal: s.direccionCodigoPostal,
+      direccionPais: s.direccionPais,
+    })
     : [cityStateZip || trim(s.ciudad), trim(s.zonaVecindario)].filter(Boolean).join(" · ");
 
   const lead: BienesRaicesPreviewFact[] = [];

@@ -209,9 +209,13 @@ function cityStateZipLine(listing: RentasPublicListing): string {
   const city = trim(listing.city);
   const st = trim(listing.stateRegion);
   const zip = trim(listing.postalCode);
+  const country = trim(listing.country);
+  const isUs = !country || country.toLowerCase() === "united states" || country.toLowerCase() === "us" || country.toLowerCase() === "usa";
   const a = [city, st].filter(Boolean).join(", ");
-  if (a && zip) return `${a} ${zip}`;
-  return a || zip;
+  if (a && zip) return isUs ? `${a} ${zip}` : `${a} ${zip}, ${country}`;
+  if (a) return isUs ? a : `${a}, ${country}`;
+  if (zip) return isUs ? zip : `${zip}, ${country}`;
+  return isUs ? "" : country;
 }
 
 function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {

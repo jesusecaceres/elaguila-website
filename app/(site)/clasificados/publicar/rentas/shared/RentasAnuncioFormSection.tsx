@@ -11,11 +11,12 @@ import {
 import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   RENTAS_SERVICIOS_INCLUIDOS_DEFS,
-  coerceRentasPostalDigits5,
   formatRentasDepositUsdPreview,
   formatRentasMensualAnuncioPreview,
   rentasDisponibilidadIsIsoDate,
   type RentasServicioIncluidoId,
+  RENTAS_US_STATE_DATALIST_OPTIONS,
+  RENTAS_COUNTRY_SUGGESTIONS,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "../privado/schema/rentasPrivadoFormState";
@@ -454,29 +455,54 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
               onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
             />
           </AiField>
-          <AiField label="Estado">
-            <input
+          <AiField label="Estado / provincia">
+            <select
               className={fieldClass}
               value={state.direccionEstado}
               onChange={(e) => setState((s) => ({ ...s, direccionEstado: e.target.value }))}
               autoComplete="address-level1"
-              placeholder="CA"
-            />
+            >
+              {RENTAS_US_STATE_DATALIST_OPTIONS.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </AiField>
-          <AiField label="Código postal" hint="Hasta 5 dígitos (EE. UU.).">
+          <AiField label="Código postal" hint="Código postal o ZIP (flexible, acepta cualquier formato).">
             <input
               className={fieldClass}
-              inputMode="numeric"
-              maxLength={5}
               value={state.direccionCodigoPostal}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
-                  direccionCodigoPostal: coerceRentasPostalDigits5(e.target.value),
+                  direccionCodigoPostal: e.target.value.trim(),
                 }))
               }
               autoComplete="postal-code"
             />
+          </AiField>
+        </div>
+        <div className="sm:col-span-2">
+          <AiField
+            label="País"
+            hint="Escribe cualquier país o elige una sugerencia."
+          >
+            <input
+              className={fieldClass}
+              list="rentas-country-suggestions"
+              value={state.direccionPais}
+              onChange={(e) => setState((s) => ({ ...s, direccionPais: e.target.value }))}
+              autoComplete="country"
+              placeholder="United States"
+            />
+            <datalist id="rentas-country-suggestions">
+              {RENTAS_COUNTRY_SUGGESTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </datalist>
           </AiField>
         </div>
         {showLegacyUbicacionExtra ? (
