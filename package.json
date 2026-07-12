@@ -144,6 +144,7 @@
     "verify:checkout-newsletter-capture": "node scripts/verify-checkout-newsletter-capture.mjs",
     "verify:launch-25-opportunity-surfaces": "node scripts/verify-launch-25-opportunity-surfaces.mjs",
     "verify:launch-25-public-placements": "node scripts/verify-launch-25-public-placements.mjs",
+    "verify:autos-privado-revenue-os-checkout": "node scripts/verify-autos-privado-revenue-os-checkout.mjs",
     "verify:admin-dashboard-promo-code-generator-top-cta-01": "node scripts/verify-admin-dashboard-promo-code-generator-top-cta-01.mjs",
     "verify:revenue-os-promo-admin-os-tracking-01": "node scripts/verify-revenue-os-promo-admin-os-tracking-01.mjs",
     "verify:promo-admin-os-quick-create-and-restaurante-blocker-ux-01": "node scripts/verify-promo-admin-os-quick-create-and-restaurante-blocker-ux-01.mjs",

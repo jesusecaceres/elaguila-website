@@ -39,6 +39,9 @@ export const RENTAS_30D_PACKAGE_KEY = "rentas_30d";
 /** Canonical Revenue OS package key for Empleos regular paid job post ($24.99 / 30 days). */
 export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 
+/** Canonical Revenue OS package key for Autos privado 30-day listing ($24.99 one-time). */
+export const AUTOS_PRIVADO_30D_PACKAGE_KEY = "autos_privado_30d";
+
 /** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
@@ -360,6 +363,18 @@ export function resolvePublishCheckoutCheckpoint(
       detailEs:
         config.baseLineItem?.detailEs ??
         "Un anuncio de empleo — sin upgrades. Otro empleo requiere un nuevo anuncio.",
+    });
+  } else if (config.category === "autos" && config.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY) {
+    lineItems.push({
+      id: "base",
+      labelEn: config.baseLineItem?.labelEn ?? "Private seller vehicle listing (30 days)",
+      labelEs: config.baseLineItem?.labelEs ?? "Anuncio vendedor privado (30 días)",
+      priceCents: baseCents,
+      detailEn:
+        config.baseLineItem?.detailEn ?? "$24.99 · 30 days · one vehicle — no upgrades or inventory add-on",
+      detailEs:
+        config.baseLineItem?.detailEs ??
+        "$24.99 · 30 días · un vehículo — sin upgrades ni paquete de inventario",
     });
   } else if (config.baseLineItem) {
     lineItems.push({
@@ -699,6 +714,39 @@ export const EMPLEOS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] =
     required: true,
     labelEn: "I understand payment is required before this job listing becomes active.",
     labelEs: "Entiendo que el pago es requerido antes de que este anuncio de empleo quede activo.",
+  },
+];
+
+export const AUTOS_PRIVADO_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_vehicle_info",
+    required: true,
+    labelEn:
+      "I confirm the vehicle year, make, model, mileage, price, location, and seller contact details are accurate and up to date.",
+    labelEs:
+      "Confirmo que año, marca, modelo, millaje, precio, ubicación y datos de contacto del vendedor son correctos y están actualizados.",
+  },
+  {
+    id: "one_vehicle_per_listing",
+    required: true,
+    labelEn:
+      "I confirm this paid listing covers one vehicle only. Another vehicle requires a separate paid listing.",
+    labelEs:
+      "Confirmo que este anuncio pagado es para un solo vehículo. Otro vehículo requiere un anuncio pagado aparte.",
+  },
+  {
+    id: "autos_privado_rules",
+    required: true,
+    labelEn:
+      "I confirm this listing follows Leonix Autos private-seller rules and I am responsible for the published information.",
+    labelEs:
+      "Confirmo que este anuncio sigue las reglas de Autos vendedor privado de Leonix y soy responsable por la información publicada.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn: "I understand payment is required before this vehicle listing becomes active on Leonix.",
+    labelEs: "Entiendo que el pago es requerido antes de que este anuncio de vehículo quede activo en Leonix.",
   },
 ];
 

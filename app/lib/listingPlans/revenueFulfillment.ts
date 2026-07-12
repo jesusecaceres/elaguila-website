@@ -25,7 +25,10 @@ import {
 import {
   activatePaidEmpleosListingFromRevenueOs,
 } from "./revenueEmpleosFulfillment";
-import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
+import {
+  activatePaidAutosPrivadoListingFromRevenueOs,
+} from "./revenueAutosPrivadoFulfillment";
+import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, AUTOS_PRIVADO_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import {
   loadPaymentRecordById,
   loadPaymentRecordByStripeSessionId,
@@ -509,6 +512,69 @@ async function tryActivateEmpleosListingAfterEntitlement(input: {
   return { ok: true };
 }
 
+async function tryActivateAutosPrivadoListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+  stripePaymentIntentId?: string | null;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== AUTOS_PRIVADO_30D_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidAutosPrivadoListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+  });
+
+  if (
+    activation.outcome === "skipped_wrong_package" ||
+    activation.outcome === "already_published" ||
+    activation.outcome === "wrong_lane"
+  ) {
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "autos_classifieds_listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `autos_privado_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Autos Privado listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "autos_privado_listing_activated_after_payment",
+    targetType: "autos_classifieds_listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
 export async function fulfillCheckoutSessionCompleted(input: {
   session: Stripe.Checkout.Session;
   eventId: string;
@@ -734,6 +800,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const autosPrivadoActivation = await tryActivateAutosPrivadoListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+      stripePaymentIntentId: resolveStripePaymentIntentId(session),
+    });
+    if (!autosPrivadoActivation.ok) {
+      return {
+        ok: false,
+        code: autosPrivadoActivation.code,
+        message: autosPrivadoActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -918,6 +1004,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: empleosActivation.code,
       message: empleosActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const autosPrivadoActivation = await tryActivateAutosPrivadoListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId: resolveStripePaymentIntentId(session),
+  });
+  if (!autosPrivadoActivation.ok) {
+    return {
+      ok: false,
+      code: autosPrivadoActivation.code,
+      message: autosPrivadoActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,

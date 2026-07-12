@@ -15,6 +15,7 @@ export type RevenueAuditAction =
   | "servicios_listing_activated_after_payment"
   | "rentas_listing_activated_after_payment"
   | "empleos_listing_activated_after_payment"
+  | "autos_privado_listing_activated_after_payment"
   | "revenue_webhook_ignored"
   | "revenue_webhook_validation_failed";
 

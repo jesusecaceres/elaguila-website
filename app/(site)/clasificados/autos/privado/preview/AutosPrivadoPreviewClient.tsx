@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AutoPrivadoPreviewPage } from "../components/AutoPrivadoPreviewPage";
 import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreviewEmptyState";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
@@ -11,6 +11,25 @@ import { mockAutosPrivadoListing } from "../mock/mockAutosPrivadoListing";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { AutosPrivadoPreviewLocaleProvider, useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
 import { withAutosEditorResumeFromPreview } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import { isAutosPreviewStructurallyComplete } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import {
+  applyAutosPrivadoPreviewPromoCode,
+  autosPrivadoPreviewCheckpointConfig,
+  AUTOS_PRIVADO_NEWSLETTER_INTERESTS,
+  AUTOS_PRIVADO_PREVIEW_RULES_MODAL,
+} from "../lib/autosPrivadoPreviewPaidCheckout";
+import { saveAutosPrivadoPendingBeforeCheckout } from "../lib/saveAutosPrivadoPendingBeforeCheckout";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { AUTOS_PRIVADO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const EDIT_BASE = "/publicar/autos/privado";
 
@@ -52,8 +71,6 @@ async function resolvePreviewState(): Promise<{
     }
 
     const normalized = safeNormalizePrivadoListing({ ...d.listing, autosLane: "privado" });
-    // Persisted draft record exists → show real preview (do not gate on `isMeaningful*`; it can disagree
-    // with lane-specific / IDB-hydrated payloads and incorrectly force the empty fallback).
     return { mode: "draft", listing: normalized };
   } catch {
     return { mode: "empty", listing: safeNormalizePrivadoListing(undefined) };
@@ -70,7 +87,106 @@ function AutosPrivadoPreviewInner({
   listing: AutoDealerListing;
 }) {
   const { lang } = useAutosPrivadoPreviewCopy();
+  const cardLang = lang === "en" ? "en" : "es";
   const editBackHref = withAutosEditorResumeFromPreview(EDIT_BASE, lang);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+
+  const showSellerCheckout = mode === "draft";
+  const publishReadinessOk = useMemo(
+    () => isAutosPreviewStructurallyComplete("privado", listing),
+    [listing],
+  );
+  const checkpointConfig = useMemo(() => autosPrivadoPreviewCheckpointConfig(cardLang), [cardLang]);
+
+  const handlePromoApply = useCallback(
+    async (code: string) => applyAutosPrivadoPreviewPromoCode({ code, lang: cardLang }),
+    [cardLang],
+  );
+
+  const onCheckout = useCallback(
+    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+      setCheckoutErr(null);
+      setCheckoutBusy(true);
+
+      if (!publishReadinessOk) {
+        setCheckoutBusy(false);
+        setCheckoutErr(
+          cardLang === "es"
+            ? "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
+            : "Complete the required fields in the form before starting secure checkout.",
+        );
+        return;
+      }
+
+      const supabase = createSupabaseBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token ?? null;
+      const customerEmail = sessionData.session?.user?.email ?? null;
+
+      if (!accessToken) {
+        setCheckoutBusy(false);
+        setCheckoutErr(
+          cardLang === "es"
+            ? "Inicia sesión para continuar al pago seguro."
+            : "Sign in to continue to secure checkout.",
+        );
+        return;
+      }
+
+      void captureCheckoutNewsletterSubscriber({
+        email: customerEmail,
+        lang: cardLang,
+        preferredLanguage: cardLang,
+        source: CHECKOUT_NEWSLETTER_SOURCES.autosPrivado,
+        interests: AUTOS_PRIVADO_NEWSLETTER_INTERESTS,
+        checked: ctx.newsletterOptIn,
+      });
+
+      const pending = await saveAutosPrivadoPendingBeforeCheckout({
+        listing,
+        lang: cardLang,
+        accessToken,
+      });
+      if (!pending.ok) {
+        setCheckoutBusy(false);
+        setCheckoutErr(pending.userMessage);
+        return;
+      }
+
+      let leonixAdId = pending.leonixAdId;
+      if (!leonixAdId) {
+        try {
+          const ownerRes = await fetch(`/api/clasificados/autos/listings/${pending.listingId}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (ownerRes.ok) {
+            const ownerJson = (await ownerRes.json()) as { leonixAdId?: string | null };
+            leonixAdId = ownerJson.leonixAdId?.trim() || null;
+          }
+        } catch {
+          /* optional metadata */
+        }
+      }
+
+      const checkout = await startRevenueCategoryCheckout({
+        ...AUTOS_PRIVADO_CHECKOUT,
+        listingId: pending.listingId,
+        leonixAdId,
+        locale: cardLang,
+        customerEmail,
+        promoCode: ctx.promoCode,
+      });
+      setCheckoutBusy(false);
+      if (!checkout.ok) {
+        setCheckoutErr(checkout.userMessage);
+        return;
+      }
+
+      redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+    },
+    [cardLang, listing, publishReadinessOk],
+  );
 
   if (!ready) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
@@ -83,6 +199,40 @@ function AutosPrivadoPreviewInner({
   return (
     <AutosDraftPreviewErrorBoundary logLabel="privado" fallback={<AutosPrivadoPreviewEmptyState />}>
       <AutoPrivadoPreviewPage data={listing} editBackHref={editBackHref} />
+
+      {showSellerCheckout ? (
+        <div className="mx-auto mt-8 max-w-3xl px-4 pb-12 sm:px-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-[#1E1810]">
+              {cardLang === "en" ? "Final checkout" : "Pago final"}
+            </h2>
+            <p className="mt-1 text-sm text-[#5C5346]">
+              {cardLang === "en"
+                ? "The preview above does not require confirmations. Complete the summary and checkboxes below only when you are ready for secure payment."
+                : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
+            </p>
+          </div>
+          <PublishCheckoutCheckpoint
+            id="autos-privado-publish-checkout-checkpoint"
+            config={checkpointConfig}
+            lang={cardLang}
+            busy={checkoutBusy}
+            errorMessage={checkoutErr}
+            draftReady={publishReadinessOk}
+            draftReadyMessage={
+              publishReadinessOk
+                ? null
+                : cardLang === "es"
+                  ? "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
+                  : "Complete the required fields in the form before starting secure checkout."
+            }
+            onPromoApply={handlePromoApply}
+            onCheckout={(ctx) => void onCheckout(ctx)}
+            editHref={editBackHref}
+            rulesModal={AUTOS_PRIVADO_PREVIEW_RULES_MODAL}
+          />
+        </div>
+      ) : null}
     </AutosDraftPreviewErrorBoundary>
   );
 }
