@@ -34,14 +34,191 @@ export const RENTAS_SERVICIOS_INCLUIDOS_DEFS: readonly {
   { id: "piscina", label: "Piscina", emoji: "🏊" },
 ] as const;
 
-const SERVICIO_LABEL = new Map(
-  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, d.label] as const),
-);
+// === GLOBAL LOCATION HELPERS ===
+
+export const RENTAS_DEFAULT_COUNTRY = "United States";
+
+export const RENTAS_COUNTRY_SUGGESTIONS = [
+  "United States",
+  "Mexico",
+  "Canada",
+  "Guatemala",
+  "El Salvador",
+  "Honduras",
+  "Nicaragua",
+  "Costa Rica",
+  "Colombia",
+  "Spain",
+  "Argentina",
+  "Chile",
+  "Peru",
+  "Brazil",
+  "United Kingdom",
+  "France",
+  "Germany",
+  "Italy",
+] as const;
+
+export const RENTAS_US_STATE_OPTIONS = [
+  "",
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+  "DC",
+] as const;
+
+/** Full U.S. state / territory names keyed by two-letter code (suggestions only). */
+export const RENTAS_US_STATE_LABELS: Record<string, string> = {
+  AL: "Alabama",
+  AK: "Alaska",
+  AZ: "Arizona",
+  AR: "Arkansas",
+  CA: "California",
+  CO: "Colorado",
+  CT: "Connecticut",
+  DE: "Delaware",
+  FL: "Florida",
+  GA: "Georgia",
+  HI: "Hawaii",
+  ID: "Idaho",
+  IL: "Illinois",
+  IN: "Indiana",
+  IA: "Iowa",
+  KS: "Kansas",
+  KY: "Kentucky",
+  LA: "Louisiana",
+  ME: "Maine",
+  MD: "Maryland",
+  MA: "Massachusetts",
+  MI: "Michigan",
+  MN: "Minnesota",
+  MS: "Mississippi",
+  MO: "Missouri",
+  MT: "Montana",
+  NE: "Nebraska",
+  NV: "Nevada",
+  NH: "New Hampshire",
+  NJ: "New Jersey",
+  NM: "New Mexico",
+  NY: "New York",
+  NC: "North Carolina",
+  ND: "North Dakota",
+  OH: "Ohio",
+  OK: "Oklahoma",
+  OR: "Oregon",
+  PA: "Pennsylvania",
+  RI: "Rhode Island",
+  SC: "South Carolina",
+  SD: "South Dakota",
+  TN: "Tennessee",
+  TX: "Texas",
+  UT: "Utah",
+  VT: "Vermont",
+  VA: "Virginia",
+  WA: "Washington",
+  WV: "West Virginia",
+  WI: "Wisconsin",
+  WY: "Wyoming",
+  DC: "District of Columbia",
+};
+
+export const RENTAS_US_STATE_DATALIST_OPTIONS = RENTAS_US_STATE_OPTIONS.filter(Boolean).map((code) => ({
+  code,
+  label: RENTAS_US_STATE_LABELS[code] ? `${code} — ${RENTAS_US_STATE_LABELS[code]}` : code,
+}));
 
 function trim(s: unknown): string {
   if (s == null) return "";
   return typeof s === "string" ? s.trim() : String(s).trim();
 }
+
+export function isRentasUsCountry(country: string): boolean {
+  const c = trim(country).toLowerCase();
+  return c === "us" || c === "usa" || c === "u.s." || c === "u.s.a." || c === "united states";
+}
+
+/** Accept U.S. state codes, full names, or preserve manual region text. */
+export function resolveRentasUsStateInput(raw: string): string {
+  const t = trim(raw);
+  if (!t) return "";
+  const upper = t.toUpperCase();
+  if ((RENTAS_US_STATE_OPTIONS as readonly string[]).includes(upper)) return upper;
+  const byName = Object.entries(RENTAS_US_STATE_LABELS).find(
+    ([, name]) => name.toLowerCase() === t.toLowerCase(),
+  );
+  if (byName) return byName[0];
+  if (t.length === 2) return upper;
+  return t;
+}
+
+/** Flexible postal code formatting: accepts any format, trims whitespace. For U.S., keeps digits only up to 10. */
+export function formatRentasPostalCode(postal: string, country: string): string {
+  const p = trim(postal);
+  if (!p) return "";
+  if (isRentasUsCountry(country)) {
+    const digits = p.replace(/\D/g, "").slice(0, 10);
+    if (digits.length >= 5) return digits;
+    return p;
+  }
+  return p;
+}
+
+/** Normalize country input; default to United States if empty. */
+export function normalizeRentasCountry(raw: string): string {
+  const t = trim(raw);
+  return t || RENTAS_DEFAULT_COUNTRY;
+}
+
+const SERVICIO_LABEL = new Map(
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, d.label] as const),
+);
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -155,14 +332,14 @@ export function buildRentasStreetLine(parts: {
   return structured || legacy;
 }
 
-/** Código postal US: hasta 5 dígitos. */
+/** Código postal US: hasta 5 dígitos. DEPRECATED: Use formatRentasPostalCode for flexible postal codes. */
 export function coerceRentasPostalDigits5(raw: string): string {
   return String(raw ?? "")
     .replace(/\D/g, "")
     .slice(0, 5);
 }
 
-/** Hero / summary: «Dirección, Ciudad, Estado CP» (sin zona; la zona va aparte). */
+/** Hero / summary: «Dirección, Ciudad, Estado CP, País» (sin zona; la zona va aparte). */
 export function buildRentasAssembledAddressLine(parts: {
   direccionLinea1?: string;
   direccionLinea2?: string;
@@ -172,26 +349,33 @@ export function buildRentasAssembledAddressLine(parts: {
   ciudad: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
+  direccionPais: string;
 }): string {
   const line1 = buildRentasStreetLine(parts);
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
-  const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
+  const zip = formatRentasPostalCode(parts.direccionCodigoPostal, parts.direccionPais);
+  const country = normalizeRentasCountry(parts.direccionPais);
   const stZip = [st, zip].filter(Boolean).join(" ").trim();
-  const tail = [city, stZip].filter(Boolean).join(", ");
-  return [line1, tail].filter(Boolean).join(", ");
+  const cityStZip = [city, stZip].filter(Boolean).join(", ");
+  const withCountry = [cityStZip, country].filter(Boolean).join(", ");
+  return [line1, withCountry].filter(Boolean).join(", ");
 }
 
-export function buildRentasCityStateZipLine(parts: {
+export function buildRentasCityStatePostalLine(parts: {
   ciudad: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
+  direccionPais: string;
 }): string {
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
-  const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
+  const zip = formatRentasPostalCode(parts.direccionCodigoPostal, parts.direccionPais);
+  const country = normalizeRentasCountry(parts.direccionPais);
   const stZip = [st, zip].filter(Boolean).join(" ").trim();
-  return [city, stZip].filter(Boolean).join(", ");
+  const cityStZip = [city, stZip].filter(Boolean).join(", ");
+  if (isRentasUsCountry(country)) return cityStZip;
+  return [cityStZip, country].filter(Boolean).join(", ");
 }
 
 /** Query string for Google Maps search (no API key). */
@@ -207,18 +391,23 @@ export function buildRentasGoogleMapsSearchQuery(parts: {
   ciudad: string;
   direccionEstado: string;
   direccionCodigoPostal: string;
+  direccionPais: string;
 }): string | null {
   const exactOk = parts.mostrarDireccionExacta === true;
   const cross = trim(parts.direccionCruceCercano);
   const street = exactOk ? buildRentasStreetLine(parts) : "";
   const city = trim(parts.ciudad);
   const st = trim(parts.direccionEstado);
-  const zip = coerceRentasPostalDigits5(parts.direccionCodigoPostal);
+  const zip = formatRentasPostalCode(parts.direccionCodigoPostal, parts.direccionPais);
+  const country = normalizeRentasCountry(parts.direccionPais);
   const zona = trim(parts.zonaVecindario);
   const cityStZip = [city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   let q = exactOk ? street : cross;
   q = appendRentasMapSegment(q, cityStZip);
   q = appendRentasMapSegment(q, zona);
+  if (!isRentasUsCountry(country)) {
+    q = appendRentasMapSegment(q, country);
+  }
   return q.trim() || null;
 }
 

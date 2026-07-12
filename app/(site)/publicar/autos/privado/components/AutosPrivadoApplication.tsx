@@ -615,7 +615,7 @@ export function AutosPrivadoApplication() {
                   <input
                     className={`${INPUT} mt-1.5`}
                     value={listing.dealerAddress ?? ""}
-                    onChange={(e) => setListingPatch({ dealerAddress: e.target.value.trim().trim().trim() || undefined })}
+                    onChange={(e) => setListingPatch({ dealerAddress: e.target.value || undefined })}
                     placeholder={lang === "es" ? "Ej. 123 Main St" : "E.g. 123 Main St"}
                   />
                 </div>

@@ -234,3 +234,47 @@ The only unrelated dirty files are in the autos category from previous work and 
 - Contact CTAs (Email, Call, WhatsApp, SMS, Website, Map) remain working and tracked
 - Mobile/desktop layout preserved with flex row
 - Spanish/English labels preserved
+
+## Global Location Standard (2025-01-09)
+
+**Issue:** Rentas location inputs were California/NorCal restricted with 5-digit ZIP constraint. No country field visible in form.
+
+**Fix:**
+- Added global location helpers to `rentasPublishFormHelpers.ts`:
+  - `RENTAS_US_STATE_OPTIONS` and `RENTAS_US_STATE_LABELS` - all U.S. states with full names
+  - `RENTAS_COUNTRY_SUGGESTIONS` - common countries (United States, Mexico, Canada, etc.)
+  - `formatRentasPostalCode` - flexible postal code formatting (accepts any format, trims whitespace)
+  - `normalizeRentasCountry` - defaults to United States if empty
+  - `isRentasUsCountry` - checks if country is U.S.
+  - `resolveRentasUsStateInput` - accepts state codes, full names, or manual text
+- Updated address building functions to include country:
+  - `buildRentasAssembledAddressLine` - now includes country in address line
+  - `buildRentasCityStatePostalLine` (renamed from `buildRentasCityStateZipLine`) - includes country for non-U.S.
+  - `buildRentasGoogleMapsSearchQuery` - includes country in map query for non-U.S.
+- Updated `RentasAnuncioFormSection.tsx`:
+  - State changed from text input to dropdown with all U.S. states
+  - ZIP changed to flexible input (removed 5-digit constraint, accepts any postal code format)
+  - Added country field with datalist suggestions (any country can be typed)
+  - Labels updated: "Estado / provincia", "Código postal" hint updated to "Código postal o ZIP (flexible, acepta cualquier formato)"
+- Updated form state schema (`rentasPrivadoFormState.ts`):
+  - Changed from `coerceRentasPostalDigits5` to `formatRentasPostalCode` with country parameter
+  - Country field already existed in schema with default "United States"
+- Updated mapping files:
+  - `mapRentasPrivadoStateToPreviewVm.ts` - passes country to address building functions
+  - `mapRentasNegocioStateToPreviewVm.ts` - passes country to address building functions
+  - `mapRentasListingLiveToPreviewVm.ts` - `cityStateZipLine` function updated to include country for non-U.S. locations
+
+**Behavior:**
+- City: NorCal suggestions remain via `BrPrivadoCiudadZonaCombobox`, but user can type any city manually
+- State: U.S. state dropdown with all 50 states + DC, formatted as "CA — California"
+- Country: Text input with datalist suggestions, accepts any country, defaults to United States
+- ZIP/Postal: Flexible input, accepts any postal code format (U.S. ZIP, Canadian postal, etc.)
+- Map queries: Include country for non-U.S. locations
+- Address display: Shows country for non-U.S. locations in public detail and preview
+- Results/search: Shared helpers already support global location filtering
+
+**Verification:**
+- Results/landing search uses shared `leonixLbStateMatchesFilter` and `leonixPropertyCountryMatchesFilter` which are global-friendly
+- Browse filters handle city (with canonical fallback to text), state, country, and ZIP flexibly
+- No hardcoded California/NorCal restrictions in filter logic
+- UI initial states (CA, United States) are defaults, not restrictions

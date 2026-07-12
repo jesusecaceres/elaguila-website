@@ -13,7 +13,9 @@ import {
 } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { RentasServicioIncluidoId } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { emptyRentasShowingSlice } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
-import { coerceRentasPostalDigits5 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import {
+  formatRentasPostalCode,
+} from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { coerceRentasTipoDeRentaId } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
@@ -502,8 +504,11 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       typeof partial.direccionEstado === "string" && partial.direccionEstado.trim()
         ? partial.direccionEstado.trim()
         : base.direccionEstado,
-    direccionCodigoPostal: coerceRentasPostalDigits5(
+    direccionCodigoPostal: formatRentasPostalCode(
       typeof partial.direccionCodigoPostal === "string" ? partial.direccionCodigoPostal : base.direccionCodigoPostal,
+      typeof partial.direccionPais === "string" && partial.direccionPais.trim()
+        ? partial.direccionPais.trim()
+        : base.direccionPais,
     ),
     direccionPais:
       typeof partial.direccionPais === "string" && partial.direccionPais.trim()
