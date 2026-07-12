@@ -33,13 +33,21 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const EDIT_BASE = "/publicar/autos/privado";
 
-type AutosPrivadoPreviewMode = "empty" | "draft" | "mock";
+type AutosPrivadoPreviewMode = "empty" | "draft" | "mock" | "dashboard_edit";
 
 function isDemoQuery(): boolean {
   if (typeof window === "undefined") return false;
   const q = new URLSearchParams(window.location.search);
   const v = q.get("demo");
   return v === "1" || v === "true";
+}
+
+function getDashboardEditListingId(): string | null {
+  if (typeof window === "undefined") return null;
+  const q = new URLSearchParams(window.location.search);
+  if (q.get("source") !== "dashboard" || q.get("edit") !== "1") return null;
+  const listingId = q.get("listingId")?.trim();
+  return listingId || null;
 }
 
 async function resolvePreviewState(): Promise<{
@@ -53,6 +61,29 @@ async function resolvePreviewState(): Promise<{
         mode: "mock",
         listing: safeNormalizePrivadoListing({ ...mockAutosPrivadoListing, autosLane: "privado" }),
       };
+    }
+
+    const dashboardEditListingId = getDashboardEditListingId();
+    if (dashboardEditListingId) {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token?.trim()) {
+        const res = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(dashboardEditListingId)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          lane?: string;
+          listing?: AutoDealerListing;
+        };
+        if (res.ok && json.ok && json.lane === "privado" && json.listing) {
+          return {
+            mode: "dashboard_edit",
+            listing: safeNormalizePrivadoListing({ ...json.listing, autosLane: "privado" }),
+          };
+        }
+      }
     }
 
     const hint = peekAutosDraftNamespaceHint("privado");
@@ -88,7 +119,19 @@ function AutosPrivadoPreviewInner({
 }) {
   const { lang } = useAutosPrivadoPreviewCopy();
   const cardLang = lang === "en" ? "en" : "es";
-  const editBackHref = withAutosEditorResumeFromPreview(EDIT_BASE, lang);
+  const [dashboardEditListingId, setDashboardEditListingId] = useState("");
+  useEffect(() => {
+    setDashboardEditListingId(getDashboardEditListingId() ?? "");
+  }, []);
+  const editBaseHref = dashboardEditListingId
+    ? `${EDIT_BASE}?${new URLSearchParams({
+        edit: "1",
+        source: "dashboard",
+        listingId: dashboardEditListingId,
+        returnPanel: "autos",
+      }).toString()}`
+    : EDIT_BASE;
+  const editBackHref = withAutosEditorResumeFromPreview(editBaseHref, lang);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 

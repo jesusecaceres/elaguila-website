@@ -1,18 +1,33 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { AgenteIndividualResidencialFormState } from "../../../agente-individual/schema/agenteIndividualResidencialFormState";
+import { saveAgenteResPreviewReturnDraft } from "../../../agente-individual/application/utils/previewDraft";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brAgenteApplicationPricingCopy } from "../../../../shared/brAgenteApplicationPricingCopy";
 import { BR_INVENTORY_PACK_MAX_CHILDREN } from "../../../../shared/brAgenteApplicationPricingHelpers";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
+import { createEmptyBrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
 import { normalizeChildInventoryList, mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
+import {
+  BR_INVENTORY_CHILD_MODE_VALUE,
+  buildBrInventoryChildSelectorHref,
+  createBrInventoryChildDraftId,
+  writeBrInventoryChildContext,
+} from "../../brNegocioInventoryChildContext";
 import { BrAgenteInventoryPackCheckpoint } from "./BrAgenteInventoryPackCheckpoint";
 import { BrNegocioChildInventoryFullApplication } from "./BrNegocioChildInventoryFullApplication";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
 import { BrNegocioPrePublishInventoryPreview } from "./BrNegocioPrePublishInventoryPreview";
+
+export type BrPendingInventoryChildOpen = {
+  childDraftId: string;
+  childPropiedad: BrNegocioCategoriaPropiedad;
+};
 
 type Props = {
   lang?: BrNegocioPrePublishInventoryLang;
@@ -30,6 +45,9 @@ type Props = {
   onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void;
   /** After child save — open parent full preview (step 10 publish review). */
   onGoToParentPreview?: () => void;
+  /** Resume child editor after selector → return (inventory-child mode). */
+  pendingInventoryChildOpen?: BrPendingInventoryChildOpen | null;
+  onPendingInventoryChildConsumed?: () => void;
 };
 
 /** BR-INV-B/C/D/E — pricing checkpoint + owner preview cards + full child application (pre-publish only). */
@@ -45,10 +63,16 @@ export function BrNegocioPrePublishInventoryShell({
   onInventoryPackCancel,
   onItemsChange,
   onGoToParentPreview,
+  pendingInventoryChildOpen = null,
+  onPendingInventoryChildConsumed,
 }: Props) {
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
+  const [preferredChildCategoria, setPreferredChildCategoria] = useState<BrNegocioCategoriaPropiedad | null>(null);
+  const [reservedNewChildId, setReservedNewChildId] = useState<string | null>(null);
+  const [selectorNavBusy, setSelectorNavBusy] = useState(false);
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
   const pricingCopy = brAgenteApplicationPricingCopy(lang);
   const additionalCount = items.length;
@@ -62,11 +86,21 @@ export function BrNegocioPrePublishInventoryShell({
   );
 
   const editingDraft = useMemo(() => {
-    if (!editingId) return null;
-    const hit = hydratedItems.find((x) => x.id === editingId) ?? null;
-    if (!hit) return null;
-    return hit;
-  }, [editingId, hydratedItems]);
+    if (editingId) {
+      const hit = hydratedItems.find((x) => x.id === editingId) ?? null;
+      if (hit) return hit;
+    }
+    if (drawerOpen && reservedNewChildId && !editingId) {
+      const empty = createEmptyBrNegocioAdditionalInventoryPropertyDraft(reservedNewChildId);
+      return {
+        ...empty,
+        propertyForm: preferredChildCategoria
+          ? { categoriaPropiedad: preferredChildCategoria }
+          : empty.propertyForm,
+      };
+    }
+    return null;
+  }, [drawerOpen, editingId, hydratedItems, preferredChildCategoria, reservedNewChildId]);
 
   const previewDraft = useMemo(() => {
     if (!previewDraftId) return null;
@@ -92,11 +126,40 @@ export function BrNegocioPrePublishInventoryShell({
       window.alert(pricingCopy.fifthChildBlock);
       return;
     }
-    setEditingId(null);
-    setDrawerOpen(true);
-  }, [additionalCount, pricingCopy.fifthChildBlock]);
+    if (selectorNavBusy) return;
+    setSelectorNavBusy(true);
+    const childDraftId = createBrInventoryChildDraftId();
+    const parentPropiedad = parentHubSnapshot.categoriaPropiedad;
+    writeBrInventoryChildContext({
+      mode: BR_INVENTORY_CHILD_MODE_VALUE,
+      childDraftId,
+      parentPropiedad,
+      childPropiedad: null,
+      inventoryGroupId: null,
+      lang,
+      savedAt: Date.now(),
+    });
+    saveAgenteResPreviewReturnDraft(packageState);
+    const href = buildBrInventoryChildSelectorHref({
+      childDraftId,
+      parentPropiedad,
+      lang,
+      highlightPropiedad: parentPropiedad,
+    });
+    router.push(href);
+  }, [
+    additionalCount,
+    lang,
+    packageState,
+    parentHubSnapshot.categoriaPropiedad,
+    pricingCopy.fifthChildBlock,
+    router,
+    selectorNavBusy,
+  ]);
 
   const openForEdit = useCallback((id: string) => {
+    setPreferredChildCategoria(null);
+    setReservedNewChildId(null);
     setEditingId(id);
     setDrawerOpen(true);
   }, []);
@@ -104,19 +167,57 @@ export function BrNegocioPrePublishInventoryShell({
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
     setEditingId(null);
+    setPreferredChildCategoria(null);
+    setReservedNewChildId(null);
   }, []);
+
+  useEffect(() => {
+    if (!pendingInventoryChildOpen) return;
+    const { childDraftId, childPropiedad } = pendingInventoryChildOpen;
+    const existing = hydratedItems.find((x) => x.id === childDraftId);
+    setPreferredChildCategoria(childPropiedad);
+    if (existing) {
+      setReservedNewChildId(null);
+      setEditingId(existing.id);
+    } else {
+      setEditingId(null);
+      setReservedNewChildId(childDraftId);
+    }
+    setDrawerOpen(true);
+    onPendingInventoryChildConsumed?.();
+  }, [hydratedItems, onPendingInventoryChildConsumed, pendingInventoryChildOpen]);
 
   const handleSave = useCallback(
     (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother" | "goToParentPreview") => {
       const normalized = draft;
-      const nextItems = editingId
-        ? items.map((x) => (x.id === editingId ? normalized : x))
-        : [...items, normalized];
+      const targetId = editingId ?? reservedNewChildId ?? normalized.id;
+      const withId = { ...normalized, id: targetId };
+      const exists = items.some((x) => x.id === targetId);
+      const nextItems = exists
+        ? items.map((x) => (x.id === targetId ? withId : x))
+        : [...items, withId];
       onItemsChange(normalizeChildInventoryList(nextItems));
       if (!inventoryPackAccepted && onInventoryPackAcceptedChange) onInventoryPackAcceptedChange(true);
-      if (mode === "addAnother") setEditingId(null);
+      setReservedNewChildId(null);
+      setPreferredChildCategoria(null);
+      if (mode === "addAnother") {
+        setEditingId(null);
+        setDrawerOpen(false);
+        queueMicrotask(() => openForAdd());
+        return;
+      }
+      closeDrawer();
     },
-    [editingId, inventoryPackAccepted, items, onInventoryPackAcceptedChange, onItemsChange],
+    [
+      closeDrawer,
+      editingId,
+      inventoryPackAccepted,
+      items,
+      onInventoryPackAcceptedChange,
+      onItemsChange,
+      openForAdd,
+      reservedNewChildId,
+    ],
   );
 
   const handleRemove = useCallback(
@@ -168,10 +269,16 @@ export function BrNegocioPrePublishInventoryShell({
             <button
               type="button"
               onClick={openForAdd}
-              disabled={additionalCount >= BR_INVENTORY_PACK_MAX_CHILDREN}
+              disabled={additionalCount >= BR_INVENTORY_PACK_MAX_CHILDREN || selectorNavBusy}
               className="mt-4 min-h-[48px] w-full touch-manipulation rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-3 text-sm font-bold text-[#6E5418] hover:bg-[#FFEFD8] disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-0 sm:w-auto sm:px-5 sm:py-2.5"
             >
-              {additionalCount > 0 ? copy.ctaAlt : copy.cta}
+              {selectorNavBusy
+                ? lang === "en"
+                  ? "Opening…"
+                  : "Abriendo…"
+                : additionalCount > 0
+                  ? copy.ctaAlt
+                  : copy.cta}
             </button>
           </>
         ) : null}
@@ -185,6 +292,7 @@ export function BrNegocioPrePublishInventoryShell({
         parentFullState={packageState}
         editingId={editingId}
         initialDraft={editingDraft}
+        preferredCategoria={preferredChildCategoria}
         onSave={handleSave}
         onGoToParentPreview={onGoToParentPreview}
       />

@@ -40,6 +40,7 @@ type Props = {
   parentListing: AutoDealerListing;
   additionalVehicles: AutosAdditionalInventoryVehicleDraft[];
   additionalCount: number;
+  inventoryVehicleLimit?: number;
   editingVehicle: AutosAdditionalInventoryVehicleDraft | null;
   inProgressDraft?: AutosAdditionalInventoryVehicleDraft | null;
   drawerEditingId?: string | null;
@@ -78,6 +79,7 @@ export function AutosNegociosAddInventoryDrawer({
   parentListing,
   additionalVehicles,
   additionalCount,
+  inventoryVehicleLimit,
   editingVehicle,
   inProgressDraft = null,
   drawerEditingId = null,
@@ -110,7 +112,7 @@ export function AutosNegociosAddInventoryDrawer({
   const isEditing = Boolean(isEditMode && savedEditingVehicle);
   const missingSavedChild = isEditMode && !savedEditingVehicle;
   const used = countApplicationInventoryVehicles(additionalCount);
-  const canAddNew = applicationCanAddInventoryVehicle(additionalCount);
+  const canAddNew = applicationCanAddInventoryVehicle(additionalCount, inventoryVehicleLimit);
 
   useEffect(() => {
     if (!open) return;
@@ -247,7 +249,11 @@ export function AutosNegociosAddInventoryDrawer({
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[#2C2416]">{autosAddInventoryDrawerHelper(lang)}</p>
               <p className="mt-2 text-xs font-semibold text-[#6E5418]">
-                {autosAddInventoryCountLabel(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
+                {autosAddInventoryCountLabel(
+                  lang,
+                  used,
+                  inventoryVehicleLimit ?? STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+                )}
               </p>
             </div>
             <button

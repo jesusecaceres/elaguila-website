@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
@@ -49,6 +49,7 @@ import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/Auto
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -84,6 +85,13 @@ export function AutosPrivadoApplication() {
     editorMaxReached,
     setEditorProgress,
   } = useAutoPrivadoDraft();
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const isDashboardListingEditMode = dashboardSource && searchParams?.get("edit") === "1" && Boolean(editListingId);
+  const dashboardHydratedRef = useRef(false);
+  const [editHydration, setEditHydration] = useState<
+    { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
+  >({ status: "idle" });
 
   const autoTitlePreview = useMemo(
     () => buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim),
@@ -93,6 +101,53 @@ export function AutosPrivadoApplication() {
   useEffect(() => {
     document.title = t.meta.applicationTitle;
   }, [t.meta.applicationTitle]);
+
+  useEffect(() => {
+    if (!hydrated || !isDashboardListingEditMode || dashboardHydratedRef.current) return;
+    dashboardHydratedRef.current = true;
+    setEditHydration({ status: "loading" });
+    void (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token?.trim()) {
+          setEditHydration({
+            status: "error",
+            message: lang === "es" ? "Inicia sesión para editar tu anuncio de Autos." : "Sign in to edit your Autos listing.",
+          });
+          return;
+        }
+        const res = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(editListingId)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          lane?: string;
+          listing?: AutoDealerListing;
+        };
+        if (!res.ok || !json.ok || json.lane !== "privado" || !json.listing) {
+          setEditHydration({
+            status: "error",
+            message: lang === "es" ? "No se pudo cargar este anuncio privado." : "Could not load this private listing.",
+          });
+          return;
+        }
+        await flushDraft({
+          listing: { ...json.listing, autosLane: "privado" },
+          editorStep: AUTOS_PUBLISH_FINAL_STEP_INDEX,
+          editorMaxReached: AUTOS_PUBLISH_FINAL_STEP_INDEX,
+        });
+        setEditorProgress(AUTOS_PUBLISH_FINAL_STEP_INDEX, AUTOS_PUBLISH_FINAL_STEP_INDEX);
+        setEditHydration({ status: "idle" });
+      } catch {
+        setEditHydration({
+          status: "error",
+          message: lang === "es" ? "No se pudo cargar este anuncio privado." : "Could not load this private listing.",
+        });
+      }
+    })();
+  }, [editListingId, flushDraft, hydrated, isDashboardListingEditMode, lang, setEditorProgress]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -107,7 +162,17 @@ export function AutosPrivadoApplication() {
   const stepLabels = getAutosApplicationStepLabels(lang, "privado");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("privado", listing), [listing]);
 
-  const previewHref = withLangParam("/clasificados/autos/privado/preview", routeLang);
+  const previewHref = isDashboardListingEditMode
+    ? withLangParam(
+        `/clasificados/autos/privado/preview?${new URLSearchParams({
+          edit: "1",
+          source: "dashboard",
+          listingId: editListingId,
+          returnPanel: "autos",
+        }).toString()}`,
+        routeLang,
+      )
+    : withLangParam("/clasificados/autos/privado/preview", routeLang);
 
   // Custom equipment pills UI state
   const [customEquipmentInput, setCustomEquipmentInput] = useState("");
@@ -127,8 +192,16 @@ export function AutosPrivadoApplication() {
     }
   }, [hydrated, customEquipmentArray.length, listing.otherEquipmentDetails, setListingPatch]);
 
-  if (!hydrated) {
+  if (!hydrated || (isDashboardListingEditMode && editHydration.status === "loading")) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
+
+  if (isDashboardListingEditMode && editHydration.status === "error") {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <p className="text-sm text-red-900">{editHydration.message}</p>
+      </div>
+    );
   }
 
   function addCustomEquipment() {

@@ -28,8 +28,14 @@ export function autosInventoryBoostPanelTitle(lang: AutosClassifiedsLang): strin
 
 export function autosInventoryBoostPanelIntro(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? `Amplía tu inventario activo más allá de los ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehículos incluidos en tu plan Autos Negocio.`
-    : `Expand your active inventory beyond the ${STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT} vehicles included in your Autos Negocio plan.`;
+    ? "Activa Inventory Boost ahora para desbloquear 10 espacios más antes de publicar."
+    : "Activate Inventory Boost now to unlock 10 more vehicle slots before publishing.";
+}
+
+export function autosInventoryBoostPanelSupportingCopy(lang: AutosClassifiedsLang): string {
+  return lang === "es"
+    ? "Después de activar, regresarás a esta misma solicitud y podrás seguir agregando vehículos sin perder tu información."
+    : "After activation, you'll return to this same application and can continue adding vehicles without losing your information.";
 }
 
 export function autosInventoryBoostPricingBullets(lang: AutosClassifiedsLang): string[] {

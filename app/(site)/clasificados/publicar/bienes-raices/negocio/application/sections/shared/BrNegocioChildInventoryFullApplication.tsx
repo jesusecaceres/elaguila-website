@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import type { BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import type { AgenteIndividualResidencialFormState } from "../../../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
   Step01TipoAnuncio,
@@ -42,6 +43,7 @@ import {
   resolveChildPropertySliceMediaFromIdb,
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
+import { channelLabelForInventoryCard } from "../../brNegocioInventoryChildContext";
 
 type ChildInventorySaveMode = "close" | "addAnother" | "goToParentPreview";
 
@@ -54,6 +56,8 @@ type Props = {
   parentFullState?: AgenteIndividualResidencialFormState;
   editingId: string | null;
   initialDraft: BrNegocioAdditionalInventoryPropertyDraft | null;
+  /** Locked channel for new children (from inventory selector). Edit uses draft channel. */
+  preferredCategoria?: BrNegocioCategoriaPropiedad | null;
   onSave: (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: ChildInventorySaveMode) => void;
   onGoToParentPreview?: () => void;
 };
@@ -93,6 +97,7 @@ export function BrNegocioChildInventoryFullApplication({
   parentFullState,
   editingId,
   initialDraft,
+  preferredCategoria = null,
   onSave,
   onGoToParentPreview,
 }: Props) {
@@ -100,9 +105,12 @@ export function BrNegocioChildInventoryFullApplication({
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
   const parentHubRef = useRef(pickParentHubSlice(parentHubSnapshot));
   const baselinePropertyRef = useRef("");
+  const lockedChildCategoriaRef = useRef<BrNegocioCategoriaPropiedad | null>(null);
   const [step, setStep] = useState(0);
   const [state, setStateRaw] = useState<AgenteIndividualResidencialFormState>(() =>
-    buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang),
+    buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang, {
+      preferredCategoria,
+    }),
   );
   const [errors, setErrors] = useState<ReturnType<typeof validateAgenteChildInventoryForSave>>({});
   const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
@@ -133,9 +141,16 @@ export function BrNegocioChildInventoryFullApplication({
         }
         setStep(Math.min(session.step, total - 1));
       } else {
-        bootState = buildChildInventoryEditorState(parentHubRef.current, hydratedDraft, lang);
+        bootState = buildChildInventoryEditorState(parentHubRef.current, hydratedDraft, lang, {
+          preferredCategoria,
+        });
         setStep(0);
       }
+      // Lock channel: new child uses selector choice; existing draft keeps its stored channel.
+      if (preferredCategoria && !hydratedDraft?.propertyForm?.categoriaPropiedad) {
+        bootState = { ...bootState, categoriaPropiedad: preferredCategoria };
+      }
+      lockedChildCategoriaRef.current = bootState.categoriaPropiedad;
       setStateRaw(bootState);
       setErrors({});
       setFullPreviewOpen(false);
@@ -144,11 +159,26 @@ export function BrNegocioChildInventoryFullApplication({
     return () => {
       cancelled = true;
     };
-  }, [open, editingId, initialDraft, parentHubSnapshot, lang, total]);
+  }, [open, editingId, initialDraft, parentHubSnapshot, lang, total, preferredCategoria]);
 
   const isDirty = useCallback(() => {
     return JSON.stringify(pickChildPropertySlice(state)) !== baselinePropertyRef.current;
   }, [state]);
+
+  const setState = useCallback<Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>>(
+    (updater) => {
+      setStateRaw((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        const slice = pickChildPropertySlice(next);
+        const locked = lockedChildCategoriaRef.current;
+        return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, {
+          ...slice,
+          ...(locked ? { categoriaPropiedad: locked } : {}),
+        });
+      });
+    },
+    [],
+  );
 
   const confirmClose = useCallback(
     (action: () => void) => {
@@ -181,16 +211,6 @@ export function BrNegocioChildInventoryFullApplication({
       document.body.style.overflow = prev;
     };
   }, [open]);
-
-  const setState = useCallback<Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>>(
-    (updater) => {
-      setStateRaw((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
-        return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, pickChildPropertySlice(next));
-      });
-    },
-    [],
-  );
 
   useEffect(() => {
     if (!open) return;
@@ -332,6 +352,17 @@ export function BrNegocioChildInventoryFullApplication({
         <div className="mx-auto max-w-3xl">
           <div className="mb-4 rounded-xl border border-[#C9B46A]/35 bg-[#FFF6E7] px-3 py-3 text-sm text-[#5C5346]">
             {copy.inheritedNotice}
+          </div>
+          <div className="mb-4 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#3D3428]">
+            <span className="font-semibold">
+              {lang === "en" ? "Property channel (locked): " : "Canal de propiedad (fijo): "}
+            </span>
+            {channelLabelForInventoryCard(state.categoriaPropiedad, lang === "en" ? "en" : "es")}
+            <span className="mt-1 block text-xs text-[#7A7164]">
+              {lang === "en"
+                ? "Cancel and use Add property again to choose a different channel. This does not change the main listing."
+                : "Cancela y usa Agregar propiedad otra vez para elegir otro canal. Esto no cambia el anuncio principal."}
+            </span>
           </div>
           <div className="mb-4 lg:hidden">
             <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-2 shadow-sm">

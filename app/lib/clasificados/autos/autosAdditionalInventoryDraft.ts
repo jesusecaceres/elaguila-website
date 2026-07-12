@@ -439,6 +439,7 @@ export function sanitizeAdditionalInventoryVehiclesForDraft(
 export function upsertAdditionalInventoryVehicleInArray(
   prev: AutosAdditionalInventoryVehicleDraft[],
   vehicle: AutosAdditionalInventoryVehicleDraft,
+  limit = STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
 ): { next: AutosAdditionalInventoryVehicleDraft[]; ok: boolean } {
   if (!validateInventoryVehicleDraftForSave(vehicle)) return { next: prev, ok: false };
   const prepared = prepareInventoryVehicleForSave(vehicle);
@@ -446,7 +447,7 @@ export function upsertAdditionalInventoryVehicleInArray(
   if (!preparedId) return { next: prev, ok: false };
 
   const existsIdx = prev.findIndex((v) => resolveAdditionalInventoryVehicleId(v) === preparedId);
-  if (existsIdx < 0 && !applicationCanAddInventoryVehicle(prev.length)) return { next: prev, ok: false };
+  if (existsIdx < 0 && !applicationCanAddInventoryVehicle(prev.length, limit)) return { next: prev, ok: false };
 
   const next =
     existsIdx >= 0

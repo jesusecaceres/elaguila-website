@@ -14,8 +14,16 @@ import {
   autosDealerInventoryValueMainVehicleLine,
   autosDealerInventoryValueTitle,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
-import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
-import { summarizeDealerInventory, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import {
+  countApplicationInventoryVehicles,
+  applicationCanAddInventoryVehicle,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  resolveDealerActiveVehicleLimit,
+  summarizeDealerInventory,
+  STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+  type AutosDealerInventoryCount,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
 import { AutosNegociosAddInventoryTrigger } from "./AutosNegociosAddInventoryTrigger";
 import { AutosNegociosInventoryBoostPanel } from "./AutosNegociosInventoryBoostPanel";
@@ -46,6 +54,7 @@ export function AutosNegociosInventoryValueModule({
   postPublishDashboardMode = false,
   inventoryPackActive = false,
   inventoryEntitlementPending = false,
+  inventoryVehicleLimit,
   leonixAdId = null,
   onStartInventoryCheckout,
 }: {
@@ -60,6 +69,8 @@ export function AutosNegociosInventoryValueModule({
   postPublishDashboardMode?: boolean;
   inventoryPackActive?: boolean;
   inventoryEntitlementPending?: boolean;
+  /** Application vehicle cap — 10 base or 20 with boost. */
+  inventoryVehicleLimit?: number;
   leonixAdId?: string | null;
   onStartInventoryCheckout?: () => void;
   dealerInventoryCounts?: AutosDealerInventoryCount | null;
@@ -111,8 +122,22 @@ export function AutosNegociosInventoryValueModule({
     void loadCounts();
   }, [loadCounts]);
 
-  const counts = fetchedCounts ?? summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
-  const limitReached = atLimit || !counts.canAddActiveVehicle;
+  const resolvedLimit =
+    inventoryVehicleLimit ??
+    resolveDealerActiveVehicleLimit(inventoryPackActive);
+
+  const applicationCounts = useMemo(
+    () =>
+      summarizeDealerInventory(
+        countApplicationInventoryVehicles(additionalInventoryCount),
+        resolvedLimit,
+      ),
+    [additionalInventoryCount, resolvedLimit],
+  );
+
+  const counts = prePublishMode ? applicationCounts : fetchedCounts ?? summarizeDealerInventory(0, resolvedLimit);
+  const limitReached =
+    atLimit || !applicationCanAddInventoryVehicle(additionalInventoryCount, resolvedLimit);
   const showBoostCta =
     !postPublishDashboardMode &&
     (prePublishMode || limitReached || counts.remainingSlots <= INVENTORY_BOOST_APPROACHING_SLOTS);
@@ -202,6 +227,7 @@ export function AutosNegociosInventoryValueModule({
               additionalCount={additionalInventoryCount}
               additionalVehicles={additionalVehicles}
               parentListing={parentListing}
+              inventoryVehicleLimit={resolvedLimit}
               onSave={onSaveAdditionalVehicle}
               flushDraft={flushDraft}
               onAtLimit={() => {
@@ -233,6 +259,8 @@ export function AutosNegociosInventoryValueModule({
               editorContext={boostContext}
               parentListingId={parentListingId}
               leonixAdId={leonixAdId}
+              prePublishMode={prePublishMode}
+              parentListing={parentListing}
             />
           </>
         ) : null}

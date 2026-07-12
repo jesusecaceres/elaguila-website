@@ -29,7 +29,9 @@ import {
   publishNegociosBundleAdditionalVehicles,
 } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
 import { isAutosNegociosQaPublishAllowlisted, parseAutosNegociosQaPublishAllowlist } from "@/app/lib/clasificados/autos/autosNegociosQaPublishAllowlist";
-import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT, resolveDealerActiveVehicleLimit } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { listingHasActiveDealerInventoryPack } from "@/app/lib/clasificados/autos/autosDealerInventoryPackEntitlement";
+import { validateNegociosApplicationPublishInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryApplicationPublishGuard";
 import { buildAutosListingApiErrorPayload } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 
 export const runtime = "nodejs";
@@ -173,9 +175,28 @@ export async function POST(request: Request) {
   const additionalDrafts =
     row.lane === "negocios" ? normalizeAdditionalInventoryVehicles(body.additionalInventoryVehicles ?? []) : [];
   if (row.lane === "negocios") {
+    const totalVehicles = countApplicationInventoryVehicles(additionalDrafts.length);
+    const boostActive = await listingHasActiveDealerInventoryPack(listingId);
+    const applicationGuard = validateNegociosApplicationPublishInventory({
+      totalVehicles,
+      boostActive,
+      lang,
+    });
+    if (!applicationGuard.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: applicationGuard.error,
+          message: applicationGuard.message,
+        },
+        { status: 409 },
+      );
+    }
+
+    const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive);
     const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
     const slotsNeeded = countApplicationInventoryVehicles(additionalDrafts.length);
-    if (dealerInventory.activeCount + slotsNeeded > STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT) {
+    if (dealerInventory.activeCount + slotsNeeded > vehicleLimit) {
       return NextResponse.json(
         {
           ok: false,

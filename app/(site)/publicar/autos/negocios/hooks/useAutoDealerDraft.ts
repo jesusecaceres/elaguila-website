@@ -425,19 +425,22 @@ export function useAutoDealerDraft() {
     setInProgressInventoryVehicleDraft(null);
   }, []);
 
-  const upsertAdditionalInventoryVehicle = useCallback((vehicle: AutosAdditionalInventoryVehicleDraft) => {
-    const prev = additionalInventoryRef.current;
-    const { next, ok } = upsertAdditionalInventoryVehicleInArray(prev, vehicle);
-    if (!ok) return false;
-    additionalInventoryRef.current = next;
-    setAdditionalInventoryVehicles(next);
-    const savedId = resolveAdditionalInventoryVehicleId(vehicle);
-    if (savedId && resolveAdditionalInventoryVehicleId(inProgressInventoryRef.current) === savedId) {
-      inProgressInventoryRef.current = null;
-      setInProgressInventoryVehicleDraft(null);
-    }
-    return true;
-  }, []);
+  const upsertAdditionalInventoryVehicle = useCallback(
+    (vehicle: AutosAdditionalInventoryVehicleDraft, limit?: number) => {
+      const prev = additionalInventoryRef.current;
+      const { next, ok } = upsertAdditionalInventoryVehicleInArray(prev, vehicle, limit);
+      if (!ok) return false;
+      additionalInventoryRef.current = next;
+      setAdditionalInventoryVehicles(next);
+      const savedId = resolveAdditionalInventoryVehicleId(vehicle);
+      if (savedId && resolveAdditionalInventoryVehicleId(inProgressInventoryRef.current) === savedId) {
+        inProgressInventoryRef.current = null;
+        setInProgressInventoryVehicleDraft(null);
+      }
+      return true;
+    },
+    [],
+  );
 
   const removeAdditionalInventoryVehicle = useCallback((id: string) => {
     setAdditionalInventoryVehicles((prev) => {

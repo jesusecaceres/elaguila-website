@@ -12,7 +12,7 @@ export function publishCheckpointNewsletterLabel(lang: PublishCheckpointLanguage
 }
 
 export function publishCheckpointFinalActionCheckout(lang: PublishCheckpointLanguage): string {
-  return lang === "es" ? "Continuar al pago seguro" : "Continue to secure payment";
+  return lang === "es" ? "Continuar al pago seguro" : "Continue to Secure Checkout";
 }
 
 export function publishCheckpointFinalActionFreePublish(lang: PublishCheckpointLanguage): string {
@@ -28,7 +28,7 @@ export function publishCheckpointAddOnsTitle(lang: PublishCheckpointLanguage): s
 }
 
 export function publishCheckpointTotalMonthlyLabel(lang: PublishCheckpointLanguage): string {
-  return lang === "es" ? "Total mensual" : "Total monthly";
+  return lang === "es" ? "Total" : "Total";
 }
 
 export function publishCheckpointConfirmationsTitle(lang: PublishCheckpointLanguage): string {

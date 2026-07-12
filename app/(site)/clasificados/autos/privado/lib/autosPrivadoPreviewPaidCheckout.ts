@@ -21,8 +21,8 @@ export function autosPrivadoPreviewCheckpointConfig(lang: "es" | "en"): PublishC
     mode: "checkout",
     pipeline: "privado",
     baseLineItem: {
-      labelEn: "Private seller vehicle listing",
-      labelEs: "Anuncio vendedor privado",
+      labelEn: "Autos Privado package",
+      labelEs: "Paquete Autos Privado",
       priceCents,
       detailEn: "$24.99 · 30 days · one vehicle per listing",
       detailEs: "$24.99 · 30 días · un vehículo por anuncio",

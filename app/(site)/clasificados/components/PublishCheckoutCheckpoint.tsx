@@ -115,6 +115,7 @@ export function PublishCheckoutCheckpoint({
   const showPromoDeferred = config.promoEligible && !onPromoApply;
   const finalButtonEnabled = resolved.finalActionEnabled && draftReady && !busy;
   const restaurantCouponBlocked = isRestaurantCouponCheckoutBlocked(config);
+  const basePackageIsMonthly = resolved.packageDef?.billingMode === "monthly_subscription";
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -216,7 +217,7 @@ export function PublishCheckoutCheckpoint({
                 ) : null}
               </div>
               <span className="shrink-0 font-semibold tabular-nums" style={{ color: LEONIX_CHARCOAL }}>
-                {formatPublishCheckpointMoney(item.priceCents, lang, { monthly: true })}
+                {formatPublishCheckpointMoney(item.priceCents, lang, { monthly: basePackageIsMonthly })}
               </span>
             </li>
           ))}
@@ -323,7 +324,7 @@ export function PublishCheckoutCheckpoint({
         style={{ borderColor: `${LEONIX_BORDER}99`, color: LEONIX_CHARCOAL }}
       >
         <span>{publishCheckpointTotalMonthlyLabel(lang)}</span>
-        <span className="tabular-nums">{resolved.monthlyTotalLabel}</span>
+        <span className="tabular-nums">{resolved.totalLabel}</span>
       </div>
 
       {resolved.discountCents > 0 ? (

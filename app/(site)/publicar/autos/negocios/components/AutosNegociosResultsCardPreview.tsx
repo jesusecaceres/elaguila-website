@@ -43,10 +43,12 @@ export function AutosNegociosResultsCardPreview({
   lang,
   listing,
   additionalCount,
+  inventoryVehicleLimit = STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
 }: {
   lang: AutosNegociosLang;
   listing: AutoDealerListing;
   additionalCount: number;
+  inventoryVehicleLimit?: number;
 }) {
   const title =
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
@@ -109,7 +111,7 @@ export function AutosNegociosResultsCardPreview({
           {location ? <p className="mt-1 text-sm text-[#5C5346]">{location}</p> : null}
           {specs ? <p className="mt-1 text-xs leading-relaxed text-[#5C5346]">{specs}</p> : null}
           <p className="mt-2 text-xs font-medium text-[#8A6B1F]">
-            {autosResultsCardInventoryHint(lang, used, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT)}
+            {autosResultsCardInventoryHint(lang, used, inventoryVehicleLimit)}
           </p>
           <p className="mt-2 text-[10px] leading-relaxed text-[#8A7A68]">{autosResultsCardLeonixIdNote(lang)}</p>
           <div className="mt-auto pt-3">

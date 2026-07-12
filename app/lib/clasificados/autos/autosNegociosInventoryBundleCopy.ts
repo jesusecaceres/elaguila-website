@@ -195,8 +195,8 @@ export function autosBundlePublishSuccessIntro(lang: AutosClassifiedsLang, publi
 
 export function autosInventoryBoostStripeReturnNote(lang: AutosClassifiedsLang): string {
   return lang === "es"
-    ? "Inventory Boost agrega 10 espacios adicionales por $129/mes. Después del pago, regresarás a esta misma solicitud para seguir agregando vehículos sin perder tu información."
-    : "Inventory Boost adds 10 more slots for $129/month. After payment, you will return to this same application so you can keep adding vehicles without losing your information.";
+    ? "Después de activar, regresarás a esta misma solicitud y podrás seguir agregando vehículos sin perder tu información."
+    : "After activation, you'll return to this same application and can continue adding vehicles without losing your information.";
 }
 
 export function autosInventoryBundlePreviewCta(lang: AutosClassifiedsLang): string {
