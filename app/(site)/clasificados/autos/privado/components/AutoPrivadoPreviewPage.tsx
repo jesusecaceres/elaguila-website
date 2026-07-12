@@ -97,151 +97,165 @@ export function AutoPrivadoPreviewPage({
       }}
       editBackHref={editBackHref}
     >
-      <main className="mx-auto mt-5 max-w-[1280px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-8 pr-[max(1rem,env(safe-area-inset-right))] pt-1 sm:mt-8 sm:pb-10 md:px-5 lg:px-6">
-        <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-7 lg:grid-cols-12 lg:gap-6">
+      <main className="mx-auto mt-8 max-w-[1440px] overflow-x-hidden px-[max(1rem,env(safe-area-inset-left))] pb-12 pr-[max(1rem,env(safe-area-inset-right))] pt-2 sm:mt-10 sm:pb-16 md:px-5 lg:px-6">
+        {/* Single premium framed card */}
+        <div className={MAIN_CARD}>
+          {/* Breadcrumb row */}
+          <nav aria-label="Breadcrumb" className="mb-6 text-xs text-[color:var(--lx-muted)]">
+            <ol className="flex flex-wrap items-center gap-1.5">
+              <li>
+                <span className="font-medium text-[color:var(--lx-text-2)]">
+                  {lang === "es" ? "Vista previa" : "Preview"}
+                </span>
+              </li>
+              <li aria-hidden className="text-[color:var(--lx-muted)]">
+                /
+              </li>
+              <li>
+                <span className="font-medium text-[color:var(--lx-text-2)]">
+                  {lang === "es" ? "Privado" : "Private"}
+                </span>
+              </li>
+              <li aria-hidden className="text-[color:var(--lx-muted)]">
+                /
+              </li>
+              <li>
+                <span className="font-semibold text-[color:var(--lx-text)]">
+                  {lang === "es" ? "Autos" : "Autos"}
+                </span>
+              </li>
+            </ol>
+          </nav>
+
+          {/* Centered preview label */}
+          <div className="mb-8 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">
+              {lang === "es" ? "VISTA PREVIA DEL ANUNCIO" : "LISTING PREVIEW"}
+            </p>
+          </div>
+
+          {/* Title and location row */}
           {showTitle ? (
-            <section className={`${MAIN_CARD} max-lg:order-1 lg:order-none lg:col-span-12`}>
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
-                {showLeft ? (
-                  <div className="min-w-0 max-w-full flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
-                        {lang === "es" ? "Privado" : "Private"}
-                      </span>
-                      {priceOk ? (
-                        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-gold)] lg:hidden">
-                          {formatUsd(display.price)}
-                        </span>
-                      ) : null}
-                    </div>
-                    {h1 ? (
-                      <h1 className="mt-3 text-pretty text-3xl font-extrabold leading-[1.12] tracking-tight text-[color:var(--lx-text)] sm:text-4xl md:text-[2.35rem]">
-                        {h1}
-                      </h1>
-                    ) : null}
-                    {showYmmtSubline ? (
-                      <p className="mt-2 text-base font-bold leading-snug text-[color:var(--lx-text-2)] sm:text-lg">{ymmtLine}</p>
-                    ) : null}
-                    {showMeta ? (
-                      <dl className="mt-5 grid grid-cols-1 gap-3 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2 sm:gap-2">
-                        {showMileage ? (
-                          <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>
-                            <dd className="font-semibold text-[color:var(--lx-text)]">{formatMiles(display.mileage)}</dd>
-                          </div>
-                        ) : null}
-                        {showLoc ? (
-                          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
-                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
-                            <dd className="min-w-0 max-w-full break-words font-semibold text-[color:var(--lx-text)]">{loc}</dd>
-                          </div>
-                        ) : null}
-                        {showVin ? (
-                          <div className="flex min-w-0 flex-wrap gap-2 sm:col-span-2">
-                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.vin}</dt>
-                            <dd className="min-w-0 break-all font-mono text-[13px] font-semibold tracking-wide text-[color:var(--lx-text)]">
-                              {formatVinDisplay(display.vin)}
-                            </dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                    ) : null}
-                  </div>
-                ) : null}
-                {showPriceCol ? (
-                  <div
-                    className={`min-w-0 shrink-0 text-left lg:max-w-[min(100%,280px)] lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-5 lg:border-t-0 lg:pt-0" : ""}`}
-                  >
-                    {priceOk ? (
-                      <>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className="mt-1 text-pretty text-4xl font-extrabold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-5xl">
-                          {formatUsd(display.price)}
-                        </p>
-                      </>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-
-          {showGallery ? (
-            <div className="max-lg:order-2 lg:order-none lg:col-span-12">
-              <AutoGallery data={display} publicPlaybackOnly={publicPlaybackOnly} />
+            <div className="mb-8">
+              {h1 ? (
+                <h1 className="mb-3 text-pretty font-serif text-4xl font-extrabold leading-tight tracking-tight text-[color:var(--lx-text)] sm:text-5xl md:text-6xl">
+                  {h1}
+                </h1>
+              ) : null}
+              {showLoc ? (
+                <div className="flex items-center gap-2 text-sm text-[color:var(--lx-text-2)]">
+                  <span>{loc}</span>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          {showAnalyticsStrip && liveMetrics ? (
-            <div className="max-lg:order-3 lg:order-none lg:col-span-12">
-              <AutosListingAnalyticsRow
-                variant="compact"
-                metrics={liveMetrics}
-                labels={{
-                  kicker: pa.kicker,
-                  views: pa.views,
-                  saves: pa.saves,
-                  shares: pa.shares,
-                  contacts: pa.contacts,
-                  footnote: publicPlaybackOnly ? undefined : pa.footnote,
-                }}
-              />
-            </div>
-          ) : null}
-
-          <div className="min-w-0 max-lg:order-5 lg:order-none lg:col-span-7 lg:col-start-1">
-            {showSpecs ? <VehicleSpecsGrid data={display} hiddenRowKeys={["stock"]} /> : null}
-            {showHighlights ? (
-              <div className={showSpecs ? "mt-6" : ""}>
-                <PrivadoVehicleHighlights data={display} />
+          {/* Price and facts row */}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {priceOk ? (
+              <div>
+                <p className="text-pretty text-4xl font-extrabold leading-none tracking-tight text-[#7A1E2C] sm:text-5xl md:text-6xl">
+                  {formatUsd(display.price)}
+                </p>
               </div>
             ) : null}
-            {showDesc ? (
-              <div className={showSpecs || showHighlights ? "mt-6" : ""}>
-                <PrivadoVehicleDescription data={display} />
+            {showMeta ? (
+              <div className="flex flex-wrap gap-4 text-sm text-[color:var(--lx-text-2)]">
+                {showMileage ? (
+                  <div>
+                    <span className="text-[color:var(--lx-muted)]">{pt.mileage}:</span>{" "}
+                    <span className="font-semibold">{formatMiles(display.mileage)}</span>
+                  </div>
+                ) : null}
+                {showVin ? (
+                  <div>
+                    <span className="text-[color:var(--lx-muted)]">{pt.vin}:</span>{" "}
+                    <span className="font-mono font-semibold">{formatVinDisplay(display.vin)}</span>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
 
-          <aside className="flex min-w-0 flex-col gap-4 sm:gap-6 max-lg:order-4 lg:order-none lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:self-start">
-            {publicPlaybackOnly && publicAnalytics?.listingSourceId ? (
-              <AutosEngagementRow
-                listingSourceId={publicAnalytics.listingSourceId}
-                leonixAdId={publicAnalytics.leonixAdId}
+          {/* Gallery and contact grid */}
+          <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+            {/* Left: Gallery and details */}
+            <div className="min-w-0 flex flex-col gap-8">
+              {showGallery ? (
+                <div>
+                  <AutoGallery data={display} publicPlaybackOnly={publicPlaybackOnly} />
+                </div>
+              ) : null}
+
+              {showAnalyticsStrip && liveMetrics ? (
+                <AutosListingAnalyticsRow
+                  variant="compact"
+                  metrics={liveMetrics}
+                  labels={{
+                    kicker: pa.kicker,
+                    views: pa.views,
+                    saves: pa.saves,
+                    shares: pa.shares,
+                    contacts: pa.contacts,
+                    footnote: publicPlaybackOnly ? undefined : pa.footnote,
+                  }}
+                />
+              ) : null}
+
+              {showSpecs ? <VehicleSpecsGrid data={display} hiddenRowKeys={["stock"]} /> : null}
+              {showHighlights ? (
+                <div className={showSpecs ? "mt-8" : ""}>
+                  <PrivadoVehicleHighlights data={display} />
+                </div>
+              ) : null}
+              {showDesc ? (
+                <div className={showSpecs || showHighlights ? "mt-8" : ""}>
+                  <PrivadoVehicleDescription data={display} />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Right: Contact card */}
+            <aside className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-8 lg:self-start">
+              {publicPlaybackOnly && publicAnalytics?.listingSourceId ? (
+                <AutosEngagementRow
+                  listingSourceId={publicAnalytics.listingSourceId}
+                  leonixAdId={publicAnalytics.leonixAdId}
+                  lang={lang}
+                  listingTitle={h1}
+                  listingUrl={publicUrl}
+                  likeCount={liveMetrics?.likes}
+                />
+              ) : null}
+              <PrivadoContactStrip
+                data={display}
                 lang={lang}
-                listingTitle={h1}
-                listingUrl={publicUrl}
-                likeCount={liveMetrics?.likes}
+                publicAnalytics={publicAnalytics}
+                labels={{
+                  call: sb.call,
+                  whatsapp: sb.whatsappCta,
+                  messageSite: sb.messageSite,
+                  emailSeller: sb.emailSeller,
+                  sms: lang === "es" ? "Enviar SMS" : "Text seller",
+                  sellerHeading: lang === "es" ? "Contactar vendedor" : "Contact seller",
+                  seller: lang === "es" ? "Vendedor privado" : "Private seller",
+                  safetyNote:
+                    lang === "es"
+                      ? "Usa lugares públicos y seguros para revisar el vehículo."
+                      : "Meet in a safe public place when checking the vehicle.",
+                  publishedOnLeonix: lang === "es" ? "Publicado en Leonix" : "Published on Leonix",
+                }}
               />
-            ) : null}
-            <PrivadoContactStrip
-              data={display}
-              lang={lang}
-              publicAnalytics={publicAnalytics}
-              labels={{
-                call: sb.call,
-                whatsapp: sb.whatsappCta,
-                messageSite: sb.messageSite,
-                emailSeller: sb.emailSeller,
-                sms: lang === "es" ? "Enviar SMS" : "Text seller",
-                sellerHeading: lang === "es" ? "Contactar vendedor" : "Contact seller",
-                seller: lang === "es" ? "Vendedor privado" : "Private seller",
-                safetyNote:
-                  lang === "es"
-                    ? "Usa lugares públicos y seguros para revisar el vehículo."
-                    : "Meet in a safe public place when checking the vehicle.",
-                publishedOnLeonix: lang === "es" ? "Publicado en Leonix" : "Published on Leonix",
-              }}
-            />
+            </aside>
+          </div>
+        </div>
 
         {/* Quick preview card */}
-        <section className="mx-auto mt-6 max-w-[1280px] px-4 md:px-5 lg:px-6">
+        <section className="mx-auto mt-8 max-w-[1440px] px-4 md:px-5 lg:px-6">
           <PrivadoQuickPreviewCard data={display} />
         </section>
 
         <PrivadoPreviewPromiseTiles lang={lang} />
-          </aside>
-        </div>
       </main>
     </PrivadoPreviewChrome>
   );
