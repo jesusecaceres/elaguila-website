@@ -30,8 +30,10 @@ import {
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
+import { brShouldIgnoreWizardShortcut } from "../../application/brWizardKeyboard";
 import {
   bootstrapAgenteIndividualResidencialApplicationStateResolved,
+  flushAgenteResDraftSyncForUnload,
   persistAgenteResApplicationDraftQuiet,
   persistAgenteResApplicationDraftResolved,
   saveAgenteResPreviewReturnDraft,
@@ -142,6 +144,36 @@ export default function AgenteIndividualResidencialApplication() {
     }, 800);
     return () => clearTimeout(timer);
   }, [state]);
+
+  /** Hard-refresh safety: flush draft sync before unload (debounced async may still be pending). */
+  useEffect(() => {
+    const onPageHide = () => {
+      flushAgenteResDraftSyncForUnload(state);
+    };
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onPageHide);
+    };
+  }, [state]);
+
+  /** Defensive: any future page-level wizard shortcuts must ignore editable targets (Spacebar contract). */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (brShouldIgnoreWizardShortcut(e)) return;
+      // Intentionally no Space/letter shortcuts — next/prev are explicit buttons only.
+      if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        setStep((s) => Math.max(0, s - 1));
+      } else if (e.altKey && e.key === "ArrowRight") {
+        e.preventDefault();
+        setStep((s) => Math.min(9, s + 1));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useLayoutEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -262,8 +294,13 @@ export default function AgenteIndividualResidencialApplication() {
   }, [editLeonixAdId, editListingId, editListingSlug, lang]);
 
   useEffect(() => {
+    // Pre-publish inventory-child return uses `focus=inventory-pack` so the shell (and drawer) mount.
+    if (focusInventoryPack) {
+      setStep(9);
+      return;
+    }
     if (!isExistingDashboardListingMode) return;
-    if (!focusInventoryPack && !isDashboardInventoryEditMode && !isDashboardInventoryAddonMode) return;
+    if (!isDashboardInventoryEditMode && !isDashboardInventoryAddonMode) return;
     setStep(9);
   }, [focusInventoryPack, isDashboardInventoryEditMode, isDashboardInventoryAddonMode, isExistingDashboardListingMode]);
 

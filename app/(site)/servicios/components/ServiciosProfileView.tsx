@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import {
@@ -20,7 +22,7 @@ import { ServiciosHours } from "./ServiciosHours";
 import { ServiciosBusinessHubContactCard } from "./ServiciosBusinessHubContactCard";
 import { ServiciosLeadInquiryForm } from "./ServiciosLeadInquiryForm";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
-import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
+import { useServiciosPublicTranslation } from "./ServiciosPublicTranslationLayer";
 import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
@@ -80,6 +82,7 @@ export function ServiciosProfileView({
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
+  const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
@@ -103,9 +106,7 @@ export function ServiciosProfileView({
             {noticeBanner}
           </p>
         ) : null}
-        <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
-          {(displayProfile, translateControl) => (
-            <>
+        <>
               {hasHeroIdentityResolved(profile) ? (
                 <ServiciosHero profile={displayProfile} lang={lang} publicLikeCount={publicLikeCount} />
               ) : null}
@@ -219,9 +220,7 @@ export function ServiciosProfileView({
                   />
                 </aside>
               </div>
-            </>
-          )}
-        </ServiciosPublicTranslationLayer>
+        </>
 
         {leonixAdIdFooter ? (
           <p className="mx-auto mt-8 max-w-3xl border-t border-black/[0.06] pt-4 text-center text-[11px] leading-relaxed text-[#7A7164]">

@@ -279,9 +279,25 @@ export type BienesRaicesNegocioFormState = {
     horarioPreferido: string;
     openHouseActivo: boolean;
     openHouseFecha: string;
+    /** Optional ending date for the primary open-house event. */
+    openHouseFechaFin: string;
     openHouseInicio: string;
     openHouseFin: string;
+    /** Free-text additional days/hours for the primary event. */
+    openHouseDiasAdicionales: string;
     openHouseNotas: string;
+    /**
+     * Full open-house event list for Gate12d / public (JSON-serializable).
+     * Prefer this over flattening to one day.
+     */
+    openHouseEvents: Array<{
+      startDate: string;
+      endDate: string;
+      startTime: string;
+      endTime: string;
+      additionalDaysHours: string;
+      notes: string;
+    }>;
   };
 
   /**
@@ -642,9 +658,12 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       horarioPreferido: "",
       openHouseActivo: false,
       openHouseFecha: "",
+      openHouseFechaFin: "",
       openHouseInicio: "",
       openHouseFin: "",
+      openHouseDiasAdicionales: "",
       openHouseNotas: "",
+      openHouseEvents: [],
     },
     contactChannels: createEmptyLeonixContactChannelsFormSlice(),
     businessExtraUrls: [],

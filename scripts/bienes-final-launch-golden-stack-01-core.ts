@@ -78,14 +78,18 @@ function buildParentFixture() {
     openHouseSlots: [
       {
         fecha: "2026-08-15",
+        fechaFin: "2026-08-16",
         inicio: "11:00",
         fin: "14:00",
+        diasHorariosAdicionales: "Saturday and Sunday from 11:00 AM to 3:00 PM; Monday by appointment.",
         notas: OH_NOTE_EN,
       },
       {
-        fecha: "2026-08-16",
+        fecha: "2026-08-25",
+        fechaFin: "2026-08-26",
         inicio: "12:00",
         fin: "15:00",
+        diasHorariosAdicionales: "",
         notas: OH_NOTE_ES,
       },
     ],

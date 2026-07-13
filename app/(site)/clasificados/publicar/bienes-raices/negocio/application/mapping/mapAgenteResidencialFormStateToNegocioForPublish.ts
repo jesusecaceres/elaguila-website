@@ -105,10 +105,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
   const openHouseSlots = normalizeOpenHouseSlots(s);
   const openHouseSummaries = buildOpenHouseSlotSummaries(s, "es");
   const openHousePrimary = openHouseSlots[0];
-  const openHouseNotes =
-    openHouseSummaries.length > 1
-      ? openHouseSummaries.slice(1).join("\n\n—\n\n")
-      : trim(openHousePrimary?.notas) || trim(s.openHouseNotas);
+  const openHouseNotes = openHouseSummaries.length
+    ? openHouseSummaries.join("\n\n—\n\n")
+    : trim(openHousePrimary?.notas) || trim(s.openHouseNotas);
 
   return mergePartialBienesRaicesNegocioState({
     advertiserType: "agente_individual",
@@ -199,9 +198,19 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       permitirWhatsapp: s.permitirWhatsApp,
       openHouseActivo: openHouseSlots.length > 0,
       openHouseFecha: trim(openHousePrimary?.fecha) || trim(s.openHouseFecha),
+      openHouseFechaFin: trim(openHousePrimary?.fechaFin),
       openHouseInicio: trim(openHousePrimary?.inicio) || trim(s.openHouseInicio),
       openHouseFin: trim(openHousePrimary?.fin) || trim(s.openHouseFin),
+      openHouseDiasAdicionales: trim(openHousePrimary?.diasHorariosAdicionales),
       openHouseNotas: openHouseNotes,
+      openHouseEvents: openHouseSlots.map((slot) => ({
+        startDate: trim(slot.fecha),
+        endDate: trim(slot.fechaFin),
+        startTime: trim(slot.inicio),
+        endTime: trim(slot.fin),
+        additionalDaysHours: trim(slot.diasHorariosAdicionales),
+        notes: trim(slot.notas),
+      })),
     },
     contactChannels: contactChannelsFromAgente(s),
     businessExtraUrls: durableBusinessExtraLinks(s.businessExtraUrls, 2),

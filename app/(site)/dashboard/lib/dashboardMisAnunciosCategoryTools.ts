@@ -91,7 +91,7 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     analytics: "ready",
   },
   "comida-local": { publicView: "ready", analytics: "unproven" },
-  autos: { publicView: "ready", archive: "ready", analytics: "unproven" },
+  autos: { publicView: "ready", archive: "ready", analytics: "ready" },
   empleos: {
     publicView: "ready",
     edit: "ready",

@@ -123,9 +123,21 @@ export function buildBrNegocioDesignerDemoState(): BienesRaicesNegocioFormState 
       horarioPreferido: "",
       openHouseActivo: true,
       openHouseFecha: "2026-04-12",
+      openHouseFechaFin: "",
       openHouseInicio: "11:00",
       openHouseFin: "14:00",
+      openHouseDiasAdicionales: "",
       openHouseNotas: "Open house el sábado.",
+      openHouseEvents: [
+        {
+          startDate: "2026-04-12",
+          endDate: "",
+          startTime: "11:00",
+          endTime: "14:00",
+          additionalDaysHours: "",
+          notes: "Open house el sábado.",
+        },
+      ],
     },
   });
 }

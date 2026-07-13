@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { shouldOfferTranslateAd } from "@/app/lib/translation/helpers";
@@ -13,14 +13,10 @@ import {
   requestServiciosAdTranslation,
 } from "../lib/serviciosTranslateAd";
 
-export type ServiciosPublicTranslationLayerProps = {
+export type ServiciosPublicTranslationState = {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
   listingKey: string;
-  children: (
-    displayProfile: ServiciosProfileResolved,
-    translateControl: React.ReactNode,
-  ) => React.ReactNode;
 };
 
 /** No DB `original_language` yet — listings default to unknown until publish pipeline stores locale. */
@@ -31,12 +27,14 @@ function inferServiciosOriginalLocale(_profile: ServiciosProfileResolved): Conte
 /**
  * Servicios pilot (T4): session + server cache via TranslateAdControl; overlay only — source profile unchanged.
  */
-export function ServiciosPublicTranslationLayer({
+export function useServiciosPublicTranslation({
   profile,
   lang,
   listingKey,
-  children,
-}: ServiciosPublicTranslationLayerProps) {
+}: ServiciosPublicTranslationState): {
+  displayProfile: ServiciosProfileResolved;
+  translateControl: ReactNode;
+} {
   const [showTranslated, setShowTranslated] = useState(false);
   const [translation, setTranslation] = useState<AdTranslationResult | null>(null);
 
@@ -80,5 +78,5 @@ export function ServiciosPublicTranslationLayer({
     </div>
   ) : null;
 
-  return <>{children(displayProfile, translateControl)}</>;
+  return { displayProfile, translateControl };
 }

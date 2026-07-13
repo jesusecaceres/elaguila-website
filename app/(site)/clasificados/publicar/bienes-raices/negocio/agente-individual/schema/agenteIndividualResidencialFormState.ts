@@ -38,11 +38,20 @@ export type AgenteResidencialEstadoAnuncio = "disponible" | "pendiente" | "bajo_
 
 export type AgenteResidencialCondicionPropiedad = "excelente" | "buena" | "regular" | "necesita_reparacion";
 
-/** Hasta 4 fechas de open house en «Más información». */
+/** Hasta 4 eventos de open house en «Más información».
+ * `fecha` = starting date (legacy-compatible).
+ * `fechaFin` = optional ending date.
+ * `diasHorariosAdicionales` = free-text schedule differences (not a recurrence engine).
+ */
 export type AgenteResOpenHouseSlot = {
+  /** Starting date (YYYY-MM-DD). Legacy field name kept for draft compatibility. */
   fecha: string;
+  /** Optional ending date (YYYY-MM-DD). */
+  fechaFin: string;
   inicio: string;
   fin: string;
+  /** Optional free-text additional days/hours. */
+  diasHorariosAdicionales: string;
   notas: string;
 };
 
@@ -751,12 +760,52 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
 export const createEmptyAgenteIndividualResidencialState = createEmptyAgenteIndividualResidencialFormState;
 
 function coerceOpenHouseSlot(o: unknown): AgenteResOpenHouseSlot {
-  const r = o as Record<string, unknown>;
+  const r = (o && typeof o === "object" ? o : {}) as Record<string, unknown>;
+  const startDate =
+    typeof r.fecha === "string"
+      ? r.fecha
+      : typeof r.startDate === "string"
+        ? r.startDate
+        : typeof r.date === "string"
+          ? r.date
+          : "";
+  const endDate =
+    typeof r.fechaFin === "string"
+      ? r.fechaFin
+      : typeof r.endDate === "string"
+        ? r.endDate
+        : "";
+  const inicio =
+    typeof r.inicio === "string"
+      ? r.inicio
+      : typeof r.startTime === "string"
+        ? r.startTime
+        : "";
+  const fin =
+    typeof r.fin === "string"
+      ? r.fin
+      : typeof r.endTime === "string"
+        ? r.endTime
+        : "";
+  const dias =
+    typeof r.diasHorariosAdicionales === "string"
+      ? r.diasHorariosAdicionales
+      : typeof r.additionalDaysHours === "string"
+        ? r.additionalDaysHours
+        : "";
+  const notas =
+    typeof r.notas === "string"
+      ? r.notas
+      : typeof r.notes === "string"
+        ? r.notes
+        : "";
   return {
-    fecha: typeof r?.fecha === "string" ? r.fecha : "",
-    inicio: typeof r?.inicio === "string" ? r.inicio : "",
-    fin: typeof r?.fin === "string" ? r.fin : "",
-    notas: typeof r?.notas === "string" ? r.notas : "",
+    fecha: startDate,
+    fechaFin: endDate,
+    inicio,
+    fin,
+    diasHorariosAdicionales: dias,
+    notas,
   };
 }
 
@@ -785,7 +834,7 @@ function mergeOpenHouseSlots(
   const fin = typeof flat.openHouseFin === "string" ? flat.openHouseFin : base.openHouseFin;
   const notas = typeof flat.openHouseNotas === "string" ? flat.openHouseNotas : base.openHouseNotas;
   if (ex && (trim(fecha) || trim(ini) || trim(fin) || trim(notas))) {
-    return [{ fecha, inicio: ini, fin, notas }];
+    return [{ fecha, fechaFin: "", inicio: ini, fin, diasHorariosAdicionales: "", notas }];
   }
   return [];
 }

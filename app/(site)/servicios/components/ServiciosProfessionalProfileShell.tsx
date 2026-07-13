@@ -20,7 +20,7 @@ import {
 } from "../lib/serviciosProfilePresence";
 import { ServiciosTopBar } from "./ServiciosTopBar";
 import { ServiciosProfileViewAnalytics } from "./ServiciosProfileViewAnalytics";
-import { ServiciosPublicTranslationLayer } from "./ServiciosPublicTranslationLayer";
+import { useServiciosPublicTranslation } from "./ServiciosPublicTranslationLayer";
 import { ServiciosAbout } from "./ServiciosAbout";
 import { ServiciosOfferedSection } from "./ServiciosServicesGrid";
 import { ServiciosGalleryWithTabs } from "./ServiciosGalleryWithTabs";
@@ -137,6 +137,7 @@ export function ServiciosProfessionalProfileShell({
   serviciosDiscoveryResultsHref,
 }: ServiciosProfessionalProfileShellProps) {
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
+  const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
   const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
 
   const scrollToSection = useCallback((id: string) => {
@@ -172,6 +173,10 @@ export function ServiciosProfessionalProfileShell({
 
   const showServicesSection = hasServicesSectionResolved(profile);
   const showReviewsSection = hasReviewsSectionResolved(profile);
+  const showCouponBlock =
+    hasPaidCouponsSectionResolved(displayProfile) ||
+    Boolean(displayProfile.couponFlyer?.imageUrl?.trim()) ||
+    Boolean(displayProfile.couponMoreOffers?.url?.trim());
 
   if (!hasHeroIdentityResolved(profile)) {
     return null;
@@ -257,14 +262,6 @@ export function ServiciosProfessionalProfileShell({
             }
           />
 
-          <ServiciosPublicTranslationLayer profile={profile} lang={lang} listingKey={listingKey}>
-            {(displayProfile, translateControl) => {
-              const showCouponBlock =
-                hasPaidCouponsSectionResolved(displayProfile) ||
-                Boolean(displayProfile.couponFlyer?.imageUrl?.trim()) ||
-                Boolean(displayProfile.couponMoreOffers?.url?.trim());
-
-              return (
           <div className={LX_PRO_INNER_PAD}>
             <section id="servicios-pro-overview" className={`${SECTION_SCROLL} ${LX_PRO_SECTION_GAP}`}>
               {translateControl ? <div>{translateControl}</div> : null}
@@ -386,9 +383,6 @@ export function ServiciosProfessionalProfileShell({
               </div>
             ) : null}
           </div>
-              );
-            }}
-          </ServiciosPublicTranslationLayer>
         </div>
       </main>
 

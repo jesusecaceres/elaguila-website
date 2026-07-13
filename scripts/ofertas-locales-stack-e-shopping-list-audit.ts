@@ -346,6 +346,80 @@ function run() {
     "package script for stack E audit"
   );
 
+  const OFFER_CARD = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferCard.tsx";
+  const CUPONES_AUDIT_DOC = "app/lib/website-audit/CUPONES_LANDING_RESULTS_FINAL_POLISH_V1_AUDIT.md";
+  const CUPONES_LANDING = "app/(site)/cupones/page.tsx";
+  const CUPONES_RESULTS = "app/(site)/cupones/resultados/page.tsx";
+  const OFFER_DRAWER = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx";
+
+  assert.ok(exists(CUPONES_AUDIT_DOC), "Cupones polish audit doc must exist");
+  assert.ok(exists(CUPONES_LANDING), "Cupones landing route must exist");
+  assert.ok(exists(CUPONES_RESULTS), "Cupones results route must exist");
+
+  const cuponesLanding = read(CUPONES_LANDING);
+  const cuponesResults = read(CUPONES_RESULTS);
+  const offerDrawer = read(OFFER_DRAWER);
+
+  assert.ok(cuponesLanding.includes('surface="cupones"'), "Cupones landing passes explicit surface");
+  assert.ok(cuponesResults.includes('surface="cupones"'), "Cupones results passes explicit surface");
+  assert.ok(cuponesLanding.includes('mode="landing"'), "Cupones landing mode");
+  assert.ok(cuponesResults.includes('mode="results"'), "Cupones results mode");
+
+  assert.ok(client.includes('surface === "cupones"') || client.includes("isCupones"), "Cupones surface branch");
+  assert.ok(client.includes("cupones-public-surface"), "Cupones public surface test id");
+  assert.ok(client.includes("cupones-public-results"), "Cupones results test id");
+  assert.ok(client.includes("cupones-results-intro"), "Cupones results intro");
+  assert.ok(client.includes("setSelectedCouponOffer"), "Cupones coupon drawer selection");
+  assert.ok(client.includes("!isCupones && selectedItem"), "item drawer gated off Cupones");
+  assert.ok(client.includes("!isCupones && listOpen"), "shopping list panel gated off Cupones");
+
+  assert.ok(offerCard.includes("cupones-public-offer-card"), "Cupones offer card test id");
+  assert.ok(offerCard.includes('surface === "cupones"'), "offer card Cupones surface branch");
+  assert.ok(offerDrawer.includes("cupones-offer-detail-drawer"), "Cupones offer detail drawer test id");
+  assert.ok(offerDrawer.includes('surface === "cupones"'), "offer drawer Cupones branch");
+
+  assert.ok(copy.includes("Aún no hay cupones aprobados para estos filtros."), "ES Cupones approved empty title");
+  assert.ok(copy.includes("No approved coupons match these filters yet."), "EN Cupones approved empty title");
+  assert.ok(copy.includes("couponImageUnavailable"), "Cupones honest image placeholder copy");
+
+  const CUPONES_SURFACE_FILES = [CUPONES_LANDING, CUPONES_RESULTS, OFFER_CARD, OFFER_DRAWER] as const;
+  const CUPONES_PROHIBITED = [
+    "Agregar a lista",
+    "Add to list",
+    "Quitar de lista",
+    "Remove from list",
+    "shopping cart",
+    "checkout",
+    "buy now",
+    "wallet",
+    "payment",
+    "demo coupon",
+    "sample coupon",
+    "placeholder business",
+    "fake savings",
+    "fake discount",
+    "redeem now",
+    "account synced",
+  ] as const;
+
+  for (const rel of CUPONES_SURFACE_FILES) {
+    const src = read(rel);
+    for (const bad of CUPONES_PROHIBITED) {
+      assert.ok(!src.includes(bad), `Cupones surface file ${rel} must not include: ${bad}`);
+    }
+  }
+
+  assert.ok(!offerDrawer.includes("onAdd"), "Cupones offer drawer must not wire onAdd");
+  assert.ok(!offerDrawer.includes("onRemove"), "Cupones offer drawer must not wire onRemove");
+  assert.ok(!offerDrawer.includes("addToList"), "Cupones offer drawer must not show addToList");
+  assert.ok(
+    !client.includes('surface="cupones"') || client.includes("!isCupones && selectedItem"),
+    "item drawer remains Ofertas-only"
+  );
+
+  assert.ok(client.includes("OfertasFloatingShoppingListCart"), "Ofertas floating cart component still wired");
+  assert.ok(client.includes("!isCupones"), "floating cart remains gated with !isCupones");
+
   console.log("Stack E — Ofertas Locales shopping list + results mode audit passed.");
 }
 

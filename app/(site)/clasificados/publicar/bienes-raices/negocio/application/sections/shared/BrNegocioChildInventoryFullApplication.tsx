@@ -44,6 +44,7 @@ import {
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 import { channelLabelForInventoryCard } from "../../brNegocioInventoryChildContext";
+import { brShouldIgnoreWizardShortcut } from "../../brWizardKeyboard";
 
 type ChildInventorySaveMode = "close" | "addAnother" | "goToParentPreview";
 
@@ -190,14 +191,14 @@ export function BrNegocioChildInventoryFullApplication({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        confirmClose(() => {
-          clearChildInventoryEditorSession();
-          setErrors({});
-          onClose();
-        });
-      }
+      if (e.key !== "Escape") return;
+      if (brShouldIgnoreWizardShortcut(e)) return;
+      e.preventDefault();
+      confirmClose(() => {
+        clearChildInventoryEditorSession();
+        setErrors({});
+        onClose();
+      });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -325,6 +326,7 @@ export function BrNegocioChildInventoryFullApplication({
       className="fixed inset-0 z-[80] flex flex-col bg-[#F6F0E2] text-[#2C2416]"
       role="dialog"
       aria-modal="true"
+      data-br-child-inventory-app
       aria-labelledby="br-child-inventory-full-app-title"
     >
       <header className="shrink-0 border-b border-[#E8DFD0] bg-[#FFFCF7] px-4 py-3 sm:px-6">
@@ -364,7 +366,7 @@ export function BrNegocioChildInventoryFullApplication({
                 : "Cancela y usa Agregar propiedad otra vez para elegir otro canal. Esto no cambia el anuncio principal."}
             </span>
           </div>
-          <div className="mb-4 lg:hidden">
+          <div className="mb-4" data-br-child-step-nav>
             <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-2 shadow-sm">
               <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/75">{t.app.navPasos}</p>
               <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
@@ -372,6 +374,7 @@ export function BrNegocioChildInventoryFullApplication({
                   <button
                     key={`child-m-${i}-${label}`}
                     type="button"
+                    data-br-child-step={i}
                     onClick={() => setStep(i)}
                     className={
                       "min-h-[52px] w-[min(100%,9.5rem)] shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold leading-snug transition touch-manipulation " +
@@ -388,12 +391,6 @@ export function BrNegocioChildInventoryFullApplication({
                 ))}
               </div>
             </div>
-          </div>
-          <div className="mb-4 rounded-xl border border-[#E8DFD0]/80 bg-white/60 px-3 py-3 text-sm text-[#5C5346] hidden sm:block">
-            {t.app.pasoDe}{" "}
-            <span className="font-bold text-[#1E1810]">{step + 1}</span> {t.app.de} {total}
-            <span className="mx-2 text-[#C9B46A]">·</span>
-            {stepLabels[step]}
           </div>
 
           {step === 0 ? <Step01TipoAnuncio state={state} setState={setState} /> : null}

@@ -68,7 +68,11 @@ export function normalizeBusinessExtraLinks(raw: unknown, max = BIENES_MAX_ADDIT
   return out;
 }
 
-/** Draft storage — keep in-progress pairs that have any user input. */
+/**
+ * Draft storage — keep in-progress pairs without live trim.
+ * Trimming mid-typing destroys trailing spaces (Spacebar) between multi-word titles.
+ * Emptiness is judged with trim, but stored values preserve typed whitespace.
+ */
 export function sanitizeBusinessExtraLinksForDraft(
   raw: readonly BienesAdditionalBusinessLink[] | undefined,
   max = BIENES_MAX_ADDITIONAL_BUSINESS_LINKS,
@@ -76,22 +80,33 @@ export function sanitizeBusinessExtraLinksForDraft(
   const out: BienesAdditionalBusinessLink[] = [];
   for (const item of raw ?? []) {
     if (out.length >= max) break;
-    const title = trim(item?.title);
-    const url = trim(item?.url);
-    if (!title && !url) continue;
+    const title = typeof item?.title === "string" ? item.title : item?.title != null ? String(item.title) : "";
+    const url = typeof item?.url === "string" ? item.url : item?.url != null ? String(item.url) : "";
+    if (!title.trim() && !url.trim()) continue;
     out.push({ title, url });
   }
   return out;
 }
 
+/**
+ * Visible editor slots. Prefer raw draft values (no re-normalize/trim) so Space while typing survives.
+ */
 export function paddedBusinessExtraLinks(
   raw: readonly BienesAdditionalBusinessLink[] | undefined,
   visibleCount: number,
   max = BIENES_MAX_ADDITIONAL_BUSINESS_LINKS,
 ): BienesAdditionalBusinessLink[] {
-  const normalized = sanitizeBusinessExtraLinksForDraft(normalizeBusinessExtraLinks(raw, max), max);
+  const source = Array.isArray(raw) ? raw : [];
+  const kept: BienesAdditionalBusinessLink[] = [];
+  for (const item of source) {
+    if (kept.length >= max) break;
+    const title = typeof item?.title === "string" ? item.title : "";
+    const url = typeof item?.url === "string" ? item.url : "";
+    if (!title.trim() && !url.trim() && kept.length > 0) continue;
+    kept.push({ title, url });
+  }
   const slots = Math.min(max, Math.max(1, visibleCount));
-  return Array.from({ length: slots }, (_, i) => normalized[i] ?? emptyBusinessExtraLink());
+  return Array.from({ length: slots }, (_, i) => kept[i] ?? emptyBusinessExtraLink());
 }
 
 /** Publish / preview — only links with durable http(s) URLs; titles preserved. */

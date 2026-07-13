@@ -62,7 +62,16 @@ export function agenteResFormHasProgress(state: AgenteIndividualResidencialFormS
   )
     return true;
   if (st(state.descripcionPrincipal)) return true;
-  if (state.openHouseSlots.some((slot) => st(slot.fecha) || st(slot.inicio) || st(slot.fin) || st(slot.notas))) return true;
+  if (state.openHouseSlots.some(
+    (slot) =>
+      st(slot.fecha) ||
+      st(slot.fechaFin) ||
+      st(slot.inicio) ||
+      st(slot.fin) ||
+      st(slot.diasHorariosAdicionales) ||
+      st(slot.notas),
+  ))
+    return true;
   if (state.extraOpenHouse && (st(state.openHouseFecha) || st(state.openHouseInicio) || st(state.openHouseFin) || st(state.openHouseNotas)))
     return true;
   if (

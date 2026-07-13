@@ -311,6 +311,21 @@ export function persistAgenteResApplicationDraftQuiet(state: AgenteIndividualRes
   void persistAgenteResApplicationDraftResolved(state);
 }
 
+/**
+ * Sync flush for hard refresh / pagehide — skips IndexedDB offload so open-house + text survive
+ * an immediate reload before the debounced async autosave finishes.
+ */
+export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidencialFormState): void {
+  if (typeof window === "undefined") return;
+  if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys()) return;
+  if (!draftHasPersistableProgress(state)) return;
+  setFullDraftMediaBridge(state);
+  setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
+  const compact = stripHeavyDataUrlsForSession(state);
+  savePreviewPayload(compact, false);
+  saveReturnPayload({ state: compact, savedAt: Date.now() }, false);
+}
+
 /** Rehydrate IndexedDB-backed media after refresh (same tab/session). */
 export async function rehydrateAgenteResDraftMediaFromIdb(
   state: AgenteIndividualResidencialFormState,

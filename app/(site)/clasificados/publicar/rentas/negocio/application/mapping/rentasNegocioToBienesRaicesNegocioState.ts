@@ -141,9 +141,12 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       horarioPreferido: "",
       openHouseActivo: false,
       openHouseFecha: "",
+      openHouseFechaFin: "",
       openHouseInicio: "",
       openHouseFin: "",
+      openHouseDiasAdicionales: "",
       openHouseNotas: "",
+      openHouseEvents: [],
     },
     petsAllowed: s.mascotas === "permitidas" ? "yes" : s.mascotas === "no_permitidas" ? "no" : "",
     ...(s.categoriaPropiedad === "residencial"

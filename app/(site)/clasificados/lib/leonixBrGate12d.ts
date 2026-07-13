@@ -48,8 +48,19 @@ export type BrGate12dV1Payload = {
   parkingRules?: string;
   openHouseEnabled?: boolean;
   openHouseDate?: string;
+  openHouseEndDate?: string;
   openHouseStartTime?: string;
   openHouseEndTime?: string;
+  openHouseAdditionalDaysHours?: string;
+  /** Full multi-day open-house events (exact dates; no fake recurrence). */
+  openHouseEvents?: Array<{
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+    additionalDaysHours?: string;
+    notes?: string;
+  }>;
   showingByAppointment?: boolean;
   showingInstructions?: string;
   virtualTourUrl?: string;
@@ -293,8 +304,33 @@ export function buildBrGate12dV1FromNegocioState(s: BienesRaicesNegocioFormState
   if (s.cta.openHouseActivo) {
     p.openHouseEnabled = true;
     pushS("openHouseDate", s.cta.openHouseFecha);
+    pushS("openHouseEndDate", s.cta.openHouseFechaFin ?? "");
     pushS("openHouseStartTime", s.cta.openHouseInicio);
     pushS("openHouseEndTime", s.cta.openHouseFin);
+    pushS("openHouseAdditionalDaysHours", s.cta.openHouseDiasAdicionales ?? "");
+  }
+  const events = Array.isArray(s.cta.openHouseEvents) ? s.cta.openHouseEvents : [];
+  if (events.length) {
+    p.openHouseEvents = events
+      .map((ev) => ({
+        startDate: trim(ev.startDate),
+        endDate: trim(ev.endDate),
+        startTime: trim(ev.startTime),
+        endTime: trim(ev.endTime),
+        additionalDaysHours: trim(ev.additionalDaysHours),
+        notes: trim(ev.notes),
+      }))
+      .filter(
+        (ev) =>
+          ev.startDate ||
+          ev.endDate ||
+          ev.startTime ||
+          ev.endTime ||
+          ev.additionalDaysHours ||
+          ev.notes,
+      )
+      .slice(0, 12);
+    if (!p.openHouseEnabled && p.openHouseEvents.length) p.openHouseEnabled = true;
   }
   const showingNotes = [trim(s.cta.openHouseNotas), trim(s.deepDetails?.observacionesAgente?.instruccionesShowing)]
     .filter(Boolean)
@@ -420,8 +456,11 @@ export function brGate12dOpenHouseSectionHasContent(g: BrGate12dV1Payload | null
   return Boolean(
     g.openHouseEnabled ||
       trim(g.openHouseDate) ||
+      trim(g.openHouseEndDate) ||
       trim(g.openHouseStartTime) ||
       trim(g.openHouseEndTime) ||
+      trim(g.openHouseAdditionalDaysHours) ||
+      (Array.isArray(g.openHouseEvents) && g.openHouseEvents.length > 0) ||
       g.showingByAppointment ||
       trim(g.showingInstructions) ||
       trim(g.virtualTourUrl),
@@ -488,25 +527,49 @@ export function buildBrLiveGate12dOpenHouseCard(
     if (!v) return;
     rows.push({ label, value: v });
   };
-  if (g.openHouseEnabled) {
+  const formatRange = (start?: string, end?: string) => {
+    const a = trim(start);
+    const b = trim(end);
+    if (a && b && a !== b) return `${a}–${b}`;
+    return a || b;
+  };
+  const events = Array.isArray(g.openHouseEvents) ? g.openHouseEvents : [];
+  if (events.length > 0) {
+    events.forEach((ev, i) => {
+      const prefix = events.length > 1 ? ` ${i + 1}` : "";
+      const range = formatRange(ev.startDate, ev.endDate);
+      if (range) push(`${L("Fecha", "Date")}${prefix}`, range);
+      const tw = [trim(ev.startTime), trim(ev.endTime)].filter(Boolean).join(" – ");
+      if (tw) push(`${L("Horario", "Hours")}${prefix}`, tw);
+      if (trim(ev.additionalDaysHours)) {
+        push(`${L("Días/horarios adicionales", "Additional days/hours")}${prefix}`, trim(ev.additionalDaysHours));
+      }
+      if (trim(ev.notes)) push(`${L("Notas", "Notes")}${prefix}`, trim(ev.notes));
+    });
+  } else if (g.openHouseEnabled || trim(g.openHouseDate) || trim(g.openHouseEndDate)) {
     push(L("Open house", "Open house"), L("Sí", "Yes"));
-    if (trim(g.openHouseDate)) push(L("Fecha", "Date"), trim(g.openHouseDate));
+    const range = formatRange(g.openHouseDate, g.openHouseEndDate);
+    if (range) push(L("Fecha", "Date"), range);
     const tw = [trim(g.openHouseStartTime), trim(g.openHouseEndTime)].filter(Boolean).join(" – ");
     if (tw) push(L("Horario", "Hours"), tw);
+    if (trim(g.openHouseAdditionalDaysHours)) {
+      push(L("Días/horarios adicionales", "Additional days/hours"), trim(g.openHouseAdditionalDaysHours));
+    }
   }
   if (g.showingByAppointment) push(L("Visitas con cita", "Showings by appointment"), L("Sí", "Yes"));
-  const extraOh = trim(g.showingInstructions);
-  if (extraOh) {
-    const blocks = extraOh.split(/\n\n—\n\n/).map((b) => b.trim()).filter(Boolean);
-    if (blocks.length > 1) {
-      blocks.forEach((block, i) => {
-        push(
-          L(`Open house adicional ${i + 1}`, `Additional open house ${i + 1}`),
-          block,
-        );
+  // Only show freeform showingInstructions when structured events are absent (avoid duplicate dump).
+  if (!events.length && trim(g.showingInstructions)) {
+    push(L("Instrucciones para visitas", "Showing instructions"), trim(g.showingInstructions));
+  } else if (events.length && trim(g.showingInstructions) && !events.some((ev) => trim(ev.notes) || trim(ev.additionalDaysHours))) {
+    // Legacy multi-block text when events lack notes — keep once.
+    const blocks = trim(g.showingInstructions)
+      .split(/\n\n—\n\n/)
+      .map((b) => b.trim())
+      .filter(Boolean);
+    if (blocks.length > events.length) {
+      blocks.slice(events.length).forEach((block, i) => {
+        push(L(`Detalle adicional ${i + 1}`, `Additional detail ${i + 1}`), block);
       });
-    } else {
-      push(L("Instrucciones para visitas", "Showing instructions"), extraOh);
     }
   }
   const vt = normalizeLeonixHttpsUrl(trim(g.virtualTourUrl));

@@ -571,6 +571,7 @@ function AdditionalBusinessLinks({
                   onChange={(e) => patchLink(index, { title: e.target.value })}
                   placeholder={s7.businessLinkTitlePlaceholder}
                   autoComplete="off"
+                  data-br-business-link-title={index}
                 />
               </AiField>
               <AiField label={s7.businessLinkUrlLabel}>
@@ -1216,8 +1217,10 @@ export function Step08CtaEnlaces({
 
 const emptyOpenHouseSlot = (): AgenteResOpenHouseSlot => ({
   fecha: "",
+  fechaFin: "",
   inicio: "",
   fin: "",
+  diasHorariosAdicionales: "",
   notas: "",
 });
 
@@ -1262,10 +1265,15 @@ export function Step09ExtrasOpcionales({
           <div className="mt-3 space-y-4">
             {slots.map((slot, i) => (
               <div
-                key={i}
+                key={`oh-event-${i}`}
                 className="rounded-lg border border-[#E8DFD0] bg-[#FFFDF9] p-3"
+                data-br-open-house-event={i}
               >
-                <div className="mb-2 flex justify-end">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">
+                    {s9.openHouse}
+                    {slots.length > 1 ? ` ${i + 1}` : ""}
+                  </p>
                   <button
                     type="button"
                     className="text-xs font-semibold text-[#8B7355] underline-offset-2 hover:underline"
@@ -1281,17 +1289,56 @@ export function Step09ExtrasOpcionales({
                       className={aiInputClass}
                       value={slot.fecha}
                       onChange={(e) => patchSlot(i, { fecha: e.target.value })}
+                      data-br-oh-start-date={i}
+                    />
+                  </AiField>
+                  <AiField label={s9.fechaFin}>
+                    <input
+                      type="date"
+                      className={aiInputClass}
+                      value={slot.fechaFin ?? ""}
+                      onChange={(e) => patchSlot(i, { fechaFin: e.target.value })}
+                      data-br-oh-end-date={i}
                     />
                   </AiField>
                   <AiField label={s9.horaInicio}>
-                    <input type="time" className={aiInputClass} value={slot.inicio} onChange={(e) => patchSlot(i, { inicio: e.target.value })} />
+                    <input
+                      type="time"
+                      className={aiInputClass}
+                      value={slot.inicio}
+                      onChange={(e) => patchSlot(i, { inicio: e.target.value })}
+                      data-br-oh-start-time={i}
+                    />
                   </AiField>
                   <AiField label={s9.horaFin}>
-                    <input type="time" className={aiInputClass} value={slot.fin} onChange={(e) => patchSlot(i, { fin: e.target.value })} />
+                    <input
+                      type="time"
+                      className={aiInputClass}
+                      value={slot.fin}
+                      onChange={(e) => patchSlot(i, { fin: e.target.value })}
+                      data-br-oh-end-time={i}
+                    />
                   </AiField>
                   <div className="sm:col-span-2">
+                    <AiField label={s9.diasAdicionales} hint={s9.diasAdicionalesHelper}>
+                      <textarea
+                        className={aiTextareaClass}
+                        rows={2}
+                        value={slot.diasHorariosAdicionales ?? ""}
+                        onChange={(e) => patchSlot(i, { diasHorariosAdicionales: e.target.value })}
+                        data-br-oh-additional-days={i}
+                      />
+                    </AiField>
+                  </div>
+                  <div className="sm:col-span-2">
                     <AiField label={s9.notasOh}>
-                      <input className={aiInputClass} value={slot.notas} onChange={(e) => patchSlot(i, { notas: e.target.value })} />
+                      <textarea
+                        className={aiTextareaClass}
+                        rows={2}
+                        value={slot.notas}
+                        onChange={(e) => patchSlot(i, { notas: e.target.value })}
+                        data-br-oh-notes={i}
+                      />
                     </AiField>
                   </div>
                 </div>
@@ -1303,6 +1350,7 @@ export function Step09ExtrasOpcionales({
               type="button"
               className="mt-4 w-full rounded-lg border border-dashed border-[#C9B46A]/60 bg-[#FFFCF7] px-3 py-2.5 text-sm font-semibold text-[#5C4A28] transition hover:border-[#B8954A]/80 hover:bg-[#FFF6E7]"
               onClick={addSlot}
+              data-br-oh-add-event
             >
               {s9.agregarOpenHouse}
             </button>

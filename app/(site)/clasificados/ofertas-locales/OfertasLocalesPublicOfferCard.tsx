@@ -153,7 +153,11 @@ export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas"
       <OfferPreviewImage
         href={offer.primaryAssetHref}
         label={offer.primaryAssetLabel || offer.title}
-        unavailableLabel={c.flyerUnavailable}
+        unavailableLabel={
+          surface === "cupones"
+            ? ("couponImageUnavailable" in c ? String(c.couponImageUnavailable) : c.flyerUnavailable)
+            : c.flyerUnavailable
+        }
         variant={previewVariant}
       />
       <OfferCardBody
@@ -171,7 +175,7 @@ export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas"
       <button
         type="button"
         className={CARD_BASE}
-        data-testid="ofertas-public-offer-card"
+        data-testid="cupones-public-offer-card"
         onClick={() => onSelect(offer)}
         aria-label={`${ctaLabel}: ${offer.title}`}
       >

@@ -57,5 +57,6 @@ export async function GET(request: Request) {
   const lane = row?.lane === "negocios" ? "negocios" : "privado";
   const q = lang === "en" ? "lang=en" : "lang=es";
   const livePath = `${getAutosSiteOrigin()}${autosLiveVehiclePath(listingId)}?${q}`;
-  return NextResponse.json({ ok: true, listingId, liveUrl: livePath, lang, lane });
+  const leonixAdId = row?.leonix_ad_id?.trim() || null;
+  return NextResponse.json({ ok: true, listingId, liveUrl: livePath, lang, lane, leonixAdId });
 }

@@ -7,6 +7,7 @@ import {
   autosDealerListingEditHref,
   autosDealerListingPreviewHref,
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/autosPaidListingAnalyticsHref";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import {
   buildServiciosDashboardActionContract,
@@ -265,7 +266,11 @@ export function buildAutosClassifiedsInventoryItems(
       editHref,
       previewHref,
       resultsHref: `/clasificados/autos/resultados?${q}`,
-      analyticsHref: `/dashboard/analytics?${q}`,
+      analyticsHref: autosPaidListingAnalyticsHref({
+        listingId: row.id,
+        lang,
+        leonixAdId: typeof row.leonix_ad_id === "string" ? row.leonix_ad_id : null,
+      }),
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
       image: null,

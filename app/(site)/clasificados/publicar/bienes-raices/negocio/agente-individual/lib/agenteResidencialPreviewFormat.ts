@@ -940,8 +940,10 @@ export function normalizeOpenHouseSlots(s: AgenteIndividualResidencialFormState)
     return [
       {
         fecha: s.openHouseFecha,
+        fechaFin: "",
         inicio: s.openHouseInicio,
         fin: s.openHouseFin,
+        diasHorariosAdicionales: "",
         notas: s.openHouseNotas,
       },
     ];
@@ -965,7 +967,20 @@ function formatOpenHouseDateForPreview(raw: string, locale: AgenteResPreviewLoca
   return t;
 }
 
-/** Un resumen por fecha (texto para mini tarjeta). */
+function formatOpenHouseDateRange(
+  startRaw: string,
+  endRaw: string,
+  locale: AgenteResPreviewLocale,
+): string {
+  const startDisp = formatOpenHouseDateForPreview(startRaw, locale);
+  const endDisp = formatOpenHouseDateForPreview(endRaw, locale);
+  if (startDisp && endDisp && trim(startRaw) !== trim(endRaw)) {
+    return `${startDisp}–${endDisp}`;
+  }
+  return startDisp || endDisp;
+}
+
+/** Un resumen por evento (texto para mini tarjeta / public). */
 export function buildOpenHouseSlotSummaries(
   s: AgenteIndividualResidencialFormState,
   locale: AgenteResPreviewLocale = "es",
@@ -973,14 +988,17 @@ export function buildOpenHouseSlotSummaries(
   const slots = normalizeOpenHouseSlots(s);
   const labDate = locale === "en" ? "Date:" : "Fecha:";
   const labHours = locale === "en" ? "Hours:" : "Horario:";
+  const labExtra = locale === "en" ? "Additional days/hours:" : "Días/horarios adicionales:";
+  const labNotes = locale === "en" ? "Notes:" : "Notas:";
   const out: string[] = [];
   for (const slot of slots) {
     const parts: string[] = [];
-    const fechaDisp = formatOpenHouseDateForPreview(slot.fecha, locale);
-    if (fechaDisp) parts.push(`${labDate} ${fechaDisp}`);
+    const range = formatOpenHouseDateRange(slot.fecha, slot.fechaFin ?? "", locale);
+    if (range) parts.push(`${labDate} ${range}`);
     const r = [trim(slot.inicio), trim(slot.fin)].filter(Boolean);
     if (r.length) parts.push(`${labHours} ${r.join(" – ")}`);
-    if (trim(slot.notas)) parts.push(trim(slot.notas));
+    if (trim(slot.diasHorariosAdicionales)) parts.push(`${labExtra} ${trim(slot.diasHorariosAdicionales)}`);
+    if (trim(slot.notas)) parts.push(`${labNotes} ${trim(slot.notas)}`);
     if (parts.length) out.push(parts.join("\n"));
   }
   return out;

@@ -106,9 +106,11 @@ export const FILLED_SHELL_AGENTE_INDIVIDUAL_RESIDENCIAL: AgenteIndividualResiden
   openHouseNotas: "",
   openHouseSlots: [
     {
-      fecha: "Sábado 12 de abril",
+      fecha: "2026-04-12",
+      fechaFin: "",
       inicio: "13:00",
       fin: "16:00",
+      diasHorariosAdicionales: "",
       notas: "Refreshments en cocina; estacionamiento en calle.",
     },
   ],

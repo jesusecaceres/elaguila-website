@@ -15,9 +15,14 @@ import {
   type AutosBundlePublishSessionResult,
 } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
 import {
+  buildAutosDealerPublishedProfileHref,
+  getAutosDealerBasePublishSuccessCopy,
+} from "@/app/lib/clasificados/autos/autosDealerPublishSuccessCopy";
+import {
   autosBundlePublishSuccessIntro,
   autosQaPublishSuccessLabel,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import { autosDealerInventoryEditHref } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 
 const AUTOS_SUCCESS_VERIFY_TIMEOUT_MS = 15_000;
 
@@ -223,14 +228,38 @@ export function AutosPagoExitoClient() {
   const totalPublished = bundleResult?.totalPublished ?? 1;
   const inventoryLimit = bundleResult?.inventoryLimit ?? 10;
 
+  const dealerSuccessCopy = getAutosDealerBasePublishSuccessCopy(lang);
+  const isDealerBasePublishSuccess = lane === "negocios" && !returnToHref && Boolean(verifiedListingId);
+  const profileHref =
+    verifiedListingId && isDealerBasePublishSuccess
+      ? buildAutosDealerPublishedProfileHref(verifiedListingId, lang)
+      : null;
+  const manageInventoryHref =
+    verifiedListingId && lane === "negocios"
+      ? autosDealerInventoryEditHref({
+          lang,
+          listingId: verifiedListingId,
+          leonixAdId: leonixAdId,
+        })
+      : null;
+
   return (
     <div className="mx-auto max-w-lg px-[max(1rem,env(safe-area-inset-left))] py-16 pb-[max(4rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] pt-12 text-center text-[color:var(--lx-text)] sm:py-20">
       <h1 className="text-2xl font-bold tracking-tight">
         {internal && testPublish ? c.successTitleTest : internal ? c.successTitleInternal : c.successTitle}
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-        {internal && testPublish ? c.successBodyTest : internal ? c.successBodyInternal : c.successBody}
+        {isDealerBasePublishSuccess
+          ? dealerSuccessCopy.body
+          : internal && testPublish
+            ? c.successBodyTest
+            : internal
+              ? c.successBodyInternal
+              : c.successBody}
       </p>
+      {isDealerBasePublishSuccess ? (
+        <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{dealerSuccessCopy.inventoryFlowNote}</p>
+      ) : null}
       {qaBypass ? (
         <p className="mt-3 inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950">
           {autosQaPublishSuccessLabel(lang)}
@@ -258,15 +287,25 @@ export function AutosPagoExitoClient() {
         </p>
       ) : null}
       <Link
-        href={returnToHref ?? livePath}
+        href={returnToHref ?? profileHref ?? livePath}
         className="mt-8 inline-flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-2xl bg-[color:var(--lx-cta-dark)] px-6 text-sm font-bold text-[#FFFCF7] transition active:opacity-90"
       >
         {returnToHref
           ? lang === "es"
             ? "Volver al inventario del dealer"
             : "Back to dealer inventory"
-          : c.viewLive}
+          : isDealerBasePublishSuccess
+            ? dealerSuccessCopy.viewProfile
+            : c.viewLive}
       </Link>
+      {isDealerBasePublishSuccess && manageInventoryHref ? (
+        <Link
+          href={manageInventoryHref}
+          className="mt-3 inline-flex min-h-[44px] w-full max-w-sm items-center justify-center rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-6 text-sm font-bold text-[color:var(--lx-text)]"
+        >
+          {dealerSuccessCopy.manageInventory}
+        </Link>
+      ) : null}
       {publishedList.length > 1 ? (
         <ul className="mt-6 space-y-2 text-left text-sm">
           {publishedList.map((v) => (

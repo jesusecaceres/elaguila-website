@@ -34,6 +34,7 @@ import {
   autosDealerInventoryActiveCountLine,
   autosDealerInventoryRemainingSlotsLine,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryDisplay";
+import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/autosPaidListingAnalyticsHref";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 type Lang = "es" | "en";
@@ -137,6 +138,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           inventory: "Inventario",
           manageListing: "Gestión disponible desde vista pública / admin",
           viewLive: "Ver público",
+          analytics: "Analíticas",
           unpublish: "Retirar",
           publish: "Publicar",
           publishAutos: "Publicar en Autos",
@@ -157,6 +159,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           inventory: "Inventory",
           manageListing: "Manage from public view / admin",
           viewLive: "View live",
+          analytics: "Analytics",
           unpublish: "Unpublish",
           publish: "Publish",
           publishAutos: "Publish in Autos",
@@ -276,6 +279,16 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                         <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
                           {t.viewLive}
                         </Link>
+                        <Link
+                          href={autosPaidListingAnalyticsHref({
+                            listingId: row.id,
+                            lang,
+                            leonixAdId: row.leonix_ad_id,
+                          })}
+                          className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
+                        >
+                          {t.analytics}
+                        </Link>
                         <button
                           type="button"
                           disabled={busy}
@@ -384,6 +397,16 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                             <>
                               <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
                                 {t.viewLive}
+                              </Link>
+                              <Link
+                                href={autosPaidListingAnalyticsHref({
+                                  listingId: row.id,
+                                  lang,
+                                  leonixAdId: row.leonix_ad_id,
+                                })}
+                                className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
+                              >
+                                {t.analytics}
                               </Link>
                               <button
                                 type="button"

@@ -7,6 +7,12 @@ import {
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { resolveBienesInventoryPackSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import { resolveAutosDealerInventoryPackPaymentSuccessPresentation } from "@/app/lib/clasificados/autos/autosDealerInventoryBoostReturnContract";
+import {
+  getAutosDealerBasePublishSuccessCopy,
+  resolveAutosDealerBasePublishPaymentSuccessPresentation,
+} from "@/app/lib/clasificados/autos/autosDealerPublishSuccessCopy";
+import { autosDealerInventoryEditHref } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { AUTOS_DEALER_MONTHLY_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { resolveRestauranteOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 import { resolveServiciosOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 
@@ -48,6 +54,25 @@ function resolveCopy(
     returnTo: safeReturnTo,
     boostSource,
   });
+  const autosDealerBasePublishPresentation = resolveAutosDealerBasePublishPaymentSuccessPresentation({
+    packageKey: proof.packageKey,
+    listingId: proof.listingId,
+    leonixAdId: proof.leonixAdId,
+    lang,
+    entitlementActive: proof.paymentState === "confirmed" && proof.entitlementState === "active",
+  });
+  const autosDealerPublishCopy = getAutosDealerBasePublishSuccessCopy(lang);
+  const autosDealerPendingManageCta =
+    proof.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY && proof.listingId?.trim()
+      ? {
+          href: autosDealerInventoryEditHref({
+            lang,
+            listingId: proof.listingId.trim(),
+            leonixAdId: proof.leonixAdId,
+          }),
+          label: autosDealerPublishCopy.manageInventory,
+        }
+      : null;
   const offersAddonPrimaryCta =
     resolveRestauranteOffersAddonSuccessPrimaryCta({
       packageKey: proof.packageKey,
@@ -68,6 +93,7 @@ function resolveCopy(
       lang,
     }) ??
     autosInventoryPackPresentation?.primaryCta ??
+    autosDealerBasePublishPresentation?.primaryCta ??
     null;
 
   const detailLines: Copy["detailLines"] = [];
@@ -114,18 +140,21 @@ function resolveCopy(
             : "Ad plan active",
       body:
         autosDraftReturn?.bodyOverride ??
+        autosDealerBasePublishPresentation?.body ??
         (lang === "es"
           ? "Stripe confirmó tu pago. Tu plan del anuncio está activo según nuestro registro verificado."
           : "Stripe confirmed your payment. Your listing ad plan is active per our verified records."),
       detailLines,
       note:
-        lang === "es"
+        autosDealerBasePublishPresentation?.inventoryFlowNote ??
+        (lang === "es"
           ? "Activado por webhook verificado de Stripe — no por esta página."
-          : "Activated by verified Stripe webhook — not by this page.",
+          : "Activated by verified Stripe webhook — not by this page."),
       primaryHref: offersAddonPrimaryCta?.href ?? dashboardHref,
       primaryLabel: offersAddonPrimaryCta?.label ?? (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
       secondaryHref:
         autosInventoryPackPresentation?.secondaryCta?.href ??
+        autosDealerBasePublishPresentation?.secondaryCta?.href ??
         (offersAddonPrimaryCta
           ? dashboardHref
           : safeReturnTo && safeReturnTo !== dashboardHref
@@ -133,6 +162,7 @@ function resolveCopy(
             : categoryHref),
       secondaryLabel:
         autosInventoryPackPresentation?.secondaryCta?.label ??
+        autosDealerBasePublishPresentation?.secondaryCta?.label ??
         (offersAddonPrimaryCta
           ? lang === "es"
             ? "Volver a mi panel"
@@ -157,15 +187,26 @@ function resolveCopy(
           ? lang === "es"
             ? "Estamos confirmando tu pago de Inventory Boost. Regresa a tu solicitud de Autos para continuar; el límite se actualizará cuando Stripe confirme el pago."
             : "We are confirming your Inventory Boost payment. Return to your Autos application to continue; your limit will update when Stripe confirms payment."
-          : lang === "es"
-            ? "Estamos confirmando la publicación de tu anuncio. Tu anuncio se activará cuando Stripe confirme el pago."
-            : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
+          : proof.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY
+            ? autosDealerPublishCopy.pendingBody
+            : lang === "es"
+              ? "Estamos confirmando la publicación de tu anuncio. Tu anuncio se activará cuando Stripe confirme el pago."
+              : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
       detailLines,
-      note: lang === "es" ? "Actualiza esta página en un momento." : "Refresh this page in a moment.",
-      primaryHref: offersAddonPrimaryCta?.href ?? dashboardHref,
-      primaryLabel: offersAddonPrimaryCta?.label ?? (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
+      note:
+        proof.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY
+          ? `${autosDealerPublishCopy.inventoryFlowNote} ${lang === "es" ? "Actualiza esta página en un momento." : "Refresh this page in a moment."}`
+          : lang === "es"
+            ? "Actualiza esta página en un momento."
+            : "Refresh this page in a moment.",
+      primaryHref: offersAddonPrimaryCta?.href ?? autosDealerPendingManageCta?.href ?? dashboardHref,
+      primaryLabel:
+        offersAddonPrimaryCta?.label ??
+        autosDealerPendingManageCta?.label ??
+        (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
       secondaryHref:
         autosInventoryPackPresentation?.secondaryCta?.href ??
+        (autosDealerPendingManageCta ? dashboardHref : null) ??
         (offersAddonPrimaryCta
           ? dashboardHref
           : safeReturnTo && safeReturnTo !== dashboardHref
@@ -173,6 +214,11 @@ function resolveCopy(
             : categoryHref),
       secondaryLabel:
         autosInventoryPackPresentation?.secondaryCta?.label ??
+        (autosDealerPendingManageCta
+          ? lang === "es"
+            ? "Volver a mi panel"
+            : "Back to my dashboard"
+          : null) ??
         (offersAddonPrimaryCta
           ? lang === "es"
             ? "Volver a mi panel"

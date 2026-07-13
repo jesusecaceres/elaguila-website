@@ -15,7 +15,7 @@ import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItem
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
 import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
-import { ofertasLocalesPublicSearchCopy, ofertasLocalesResultModeCopy, parseOfertasLocalesResultMode } from "./ofertasLocalesPublicSearchCopy";
+import { ofertasLocalesPublicSearchCopy, ofertasLocalesResultModeCopy, ofertasLocalesCuponesResultsIntroCopy, parseOfertasLocalesResultMode } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import {
   LeonixCategoryPageShell,
@@ -309,6 +309,17 @@ export function OfertasLocalesPublicSearchClient({
     [lang, resultsPath]
   );
 
+  const cuponesResultsHref = useCallback(
+    (offerType?: string) => {
+      const params = new URLSearchParams({ lang });
+      if (offerType) params.set("offerType", offerType);
+      return `${resultsPath}?${params.toString()}`;
+    },
+    [lang, resultsPath]
+  );
+
+  const cuponesIntroCopy = isCupones ? ofertasLocalesCuponesResultsIntroCopy(lang) : null;
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     pushSearch();
@@ -408,7 +419,31 @@ export function OfertasLocalesPublicSearchClient({
   ) : null;
 
   const resultsContent = (
-    <div id="ofertas-browse" className="scroll-mt-24 space-y-6 sm:space-y-8">
+    <div
+      id={isCupones ? "cupones-browse" : "ofertas-browse"}
+      className="scroll-mt-24 space-y-6 sm:space-y-8"
+      data-testid={isCupones ? "cupones-public-results" : undefined}
+    >
+      {isResults && isCupones && cuponesIntroCopy ? (
+        <section
+          className="rounded-xl border border-[#B8860B]/40 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3.5 py-3 shadow-sm"
+          data-testid="cupones-results-intro"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex rounded-full border border-[#2A4536]/25 bg-[#2A4536]/8 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2A4536]">
+              {lang === "es" ? "Cupones" : "Coupons"}
+            </span>
+            {q.trim() ? (
+              <span className="inline-flex rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/8 px-2.5 py-0.5 text-[11px] font-medium text-[#7A1E2C]">
+                {lang === "es" ? `Búsqueda: “${q.trim()}”` : `Search: “${q.trim()}”`}
+              </span>
+            ) : null}
+          </div>
+          <h2 className="mt-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{cuponesIntroCopy.title}</h2>
+          <p className="mt-1 text-sm leading-snug text-[#1E1814]/70">{cuponesIntroCopy.helper}</p>
+        </section>
+      ) : null}
+
       {isResults && !isCupones && resultModeCopy ? (
         <section
           className="rounded-xl border border-[#B8860B]/40 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3.5 py-3 shadow-sm"
@@ -529,6 +564,7 @@ export function OfertasLocalesPublicSearchClient({
   return (
     <>
       <LeonixCategoryPageShell surface={isResults ? "results" : "landing"}>
+        <div data-testid={isCupones ? "cupones-public-surface" : undefined} className="contents">
         {isResults ? (
           <LeonixCategoryResultsShell
             surface="results"
@@ -607,50 +643,83 @@ export function OfertasLocalesPublicSearchClient({
                 surface="landing"
                 heading={c.discoveryTitle}
                 subtitle={c.discoverySubtitle}
-                items={[
-                  {
-                    id: "weekly-flyer",
-                    label: lang === "es" ? "Volante semanal" : "Weekly flyer",
-                    hint: lang === "es" ? "Especiales de tienda" : "Store specials",
-                    href: intentResultsHref({ offerType: "weekly_flyer", mode: "flyers" }),
-                    icon: FiShoppingCart,
-                  },
-                  {
-                    id: "coupon",
-                    label: lang === "es" ? "Cupón" : "Coupon",
-                    hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
-                    href: intentResultsHref({ offerType: "coupon", mode: "coupons" }),
-                    icon: FiTag,
-                  },
-                  {
-                    id: "promotion",
-                    label: lang === "es" ? "Promoción" : "Promotion",
-                    hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
-                    href: intentResultsHref({ offerType: "promotion", mode: "promos" }),
-                    icon: FiGift,
-                  },
-                  {
-                    id: "local-store",
-                    label: lang === "es" ? "Tienda local" : "Local store",
-                    hint: lang === "es" ? "Negocios cerca de ti" : "Nearby businesses",
-                    href: intentResultsHref({ marketType: "retail", mode: "stores" }),
-                    icon: FiShoppingBag,
-                  },
-                  {
-                    id: "local-service",
-                    label: lang === "es" ? "Servicio local" : "Local service",
-                    hint: lang === "es" ? "Promos de servicios" : "Service promos",
-                    href: intentResultsHref({ marketType: "service", mode: "services" }),
-                    icon: FiTool,
-                  },
-                  {
-                    id: "food",
-                    label: lang === "es" ? "Comida" : "Food",
-                    hint: lang === "es" ? "Restaurantes y mercados" : "Restaurants and markets",
-                    href: intentResultsHref({ category: "food", mode: "food" }),
-                    icon: FiCoffee,
-                  },
-                ]}
+                items={
+                  isCupones
+                    ? [
+                        {
+                          id: "coupon",
+                          label: lang === "es" ? "Cupones" : "Coupons",
+                          hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
+                          href: cuponesResultsHref("coupon"),
+                          icon: FiTag,
+                        },
+                        {
+                          id: "promotion",
+                          label: lang === "es" ? "Promociones" : "Promotions",
+                          hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
+                          href: cuponesResultsHref("promotion"),
+                          icon: FiGift,
+                        },
+                        {
+                          id: "bundle",
+                          label: lang === "es" ? "Combos" : "Bundles",
+                          hint: lang === "es" ? "Paquetes y combos" : "Bundles and combos",
+                          href: cuponesResultsHref("bundle"),
+                          icon: FiShoppingBag,
+                        },
+                        {
+                          id: "seasonal",
+                          label: lang === "es" ? "Especiales" : "Seasonal specials",
+                          hint: lang === "es" ? "Temporada y eventos" : "Seasonal and events",
+                          href: cuponesResultsHref("seasonal_special"),
+                          icon: FiStar,
+                        },
+                      ]
+                    : [
+                        {
+                          id: "weekly-flyer",
+                          label: lang === "es" ? "Volante semanal" : "Weekly flyer",
+                          hint: lang === "es" ? "Especiales de tienda" : "Store specials",
+                          href: intentResultsHref({ offerType: "weekly_flyer", mode: "flyers" }),
+                          icon: FiShoppingCart,
+                        },
+                        {
+                          id: "coupon",
+                          label: lang === "es" ? "Cupón" : "Coupon",
+                          hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
+                          href: intentResultsHref({ offerType: "coupon", mode: "coupons" }),
+                          icon: FiTag,
+                        },
+                        {
+                          id: "promotion",
+                          label: lang === "es" ? "Promoción" : "Promotion",
+                          hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
+                          href: intentResultsHref({ offerType: "promotion", mode: "promos" }),
+                          icon: FiGift,
+                        },
+                        {
+                          id: "local-store",
+                          label: lang === "es" ? "Tienda local" : "Local store",
+                          hint: lang === "es" ? "Negocios cerca de ti" : "Nearby businesses",
+                          href: intentResultsHref({ marketType: "retail", mode: "stores" }),
+                          icon: FiShoppingBag,
+                        },
+                        {
+                          id: "local-service",
+                          label: lang === "es" ? "Servicio local" : "Local service",
+                          hint: lang === "es" ? "Promos de servicios" : "Service promos",
+                          href: intentResultsHref({ marketType: "service", mode: "services" }),
+                          icon: FiTool,
+                        },
+                        {
+                          id: "food",
+                          label: lang === "es" ? "Comida" : "Food",
+                          hint: lang === "es" ? "Restaurantes y mercados" : "Restaurants and markets",
+                          href: intentResultsHref({ category: "food", mode: "food" }),
+                          icon: FiCoffee,
+                        },
+                      ]
+                }
               />
 
               <LeonixCategoryPartnerSection
@@ -665,6 +734,7 @@ export function OfertasLocalesPublicSearchClient({
                 secondaryCta={{ label: c.sponsorSecondaryCta, href: browseAllHref }}
               />
 
+              {!isCupones ? (
               <LeonixCategoryVisibilityStrip
                 lang={lang as V2Lang}
                 surface="landing"
@@ -678,9 +748,11 @@ export function OfertasLocalesPublicSearchClient({
                 ctaLabel={lang === "es" ? "Conocer opciones de visibilidad" : "Explore visibility options"}
                 ctaHref={`/contacto?lang=${lang}&categoria=ofertas-locales&surface=landing`}
               />
+              ) : null}
             </main>
           </div>
         )}
+        </div>
       </LeonixCategoryPageShell>
 
       <OfertasLocalesFiltersDrawer

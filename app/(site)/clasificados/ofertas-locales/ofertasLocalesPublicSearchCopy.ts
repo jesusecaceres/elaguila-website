@@ -274,14 +274,18 @@ type WidenCopy<T> =
           ? { readonly [K in keyof T]: WidenCopy<T[K]> }
         : T;
 
-export type OfertasLocalesPublicSearchCopy = WidenCopy<(typeof COPY)[OfertasLocalesAppLang]>;
+export type OfertasLocalesPublicSearchCopy = WidenCopy<(typeof COPY)[OfertasLocalesAppLang]> & {
+  couponImageUnavailable?: string;
+  cuponesResultsIntroTitle?: string;
+  cuponesResultsIntroHelper?: string;
+};
 
 const CUPONES_COPY = {
   es: {
     ...COPY.es,
     pageTitle: "Cupones locales",
     pageSubtitle: "Promociones, descuentos y especiales cerca de ti.",
-    heroEyebrow: "Cupones locales",
+    heroEyebrow: "LEONIX · CUPONES LOCALES",
     heroTitle: "Ahorra con cupones de negocios locales",
     heroTagline: "Promociones, descuentos y especiales cerca de ti.",
     heroIntro: "Explora cupones y promociones de restaurantes, servicios, tiendas y negocios locales en Leonix.",
@@ -313,12 +317,19 @@ const CUPONES_COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 cupón encontrado" : `${n} cupones encontrados`),
     emptyTitle: "No encontramos cupones con esos filtros.",
     emptyHint: "Intenta buscar otra ciudad, categoría o promoción.",
-    pipelineEmptyTitle: "Todavía estamos cargando cupones locales.",
-    pipelineEmptyBody: "Todavía estamos cargando cupones locales. Vuelve pronto o publica el primero.",
+    pipelineEmptyTitle: "Aún no hay cupones aprobados publicados",
+    pipelineEmptyBody: "Cuando los negocios publiquen y Leonix apruebe sus cupones, aparecerán aquí.",
     pipelineEmptyHint: "¿Tienes un negocio? Publica tu primer cupón.",
+    approvedEmptyTitle: "Aún no hay cupones aprobados para estos filtros.",
+    approvedEmptyBody: "Cuando los negocios publiquen y Leonix apruebe sus cupones, aparecerán aquí.",
+    approvedEmptyHint: "Prueba cambiar o limpiar los filtros.",
+    couponImageUnavailable: "Imagen no disponible",
+    cuponesResultsIntroTitle: "Cupones y promociones locales",
+    cuponesResultsIntroHelper:
+      "Explora descuentos y especiales de negocios locales. Abre un cupón para ver detalles, vigencia e información del negocio.",
     loadFailed: "No se pudieron cargar los cupones.",
     viewDeal: "Ver cupón",
-    validDates: "Válido hasta",
+    validDates: "Vigencia",
     publishCta: "Publicar cupón",
     viewAllDeals: "Ver todos los cupones",
     browseAllDeals: "Ver todos los cupones",
@@ -331,7 +342,7 @@ const CUPONES_COPY = {
     ...COPY.en,
     pageTitle: "Local coupons",
     pageSubtitle: "Promotions, discounts, and specials near you.",
-    heroEyebrow: "Local coupons",
+    heroEyebrow: "LEONIX · LOCAL COUPONS",
     heroTitle: "Save with local business coupons",
     heroTagline: "Promotions, discounts, and specials near you.",
     heroIntro: "Explore coupons and promotions from restaurants, services, shops, and local businesses on Leonix.",
@@ -363,12 +374,19 @@ const CUPONES_COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 coupon found" : `${n} coupons found`),
     emptyTitle: "We didn't find coupons with those filters.",
     emptyHint: "Try another city, category, or promotion.",
-    pipelineEmptyTitle: "We are still loading local coupons.",
-    pipelineEmptyBody: "We are still loading local coupons. Check back soon or publish the first one.",
+    pipelineEmptyTitle: "No approved coupons published yet",
+    pipelineEmptyBody: "Once businesses publish and Leonix approves their coupons, they will appear here.",
     pipelineEmptyHint: "Have a business? Publish your first coupon.",
+    approvedEmptyTitle: "No approved coupons match these filters yet.",
+    approvedEmptyBody: "Once businesses publish and Leonix approves their coupons, they will appear here.",
+    approvedEmptyHint: "Try changing or clearing the filters.",
+    couponImageUnavailable: "Image unavailable",
+    cuponesResultsIntroTitle: "Local coupons & promotions",
+    cuponesResultsIntroHelper:
+      "Browse discounts and specials from local businesses. Open a coupon for details, validity, and business info.",
     loadFailed: "Could not load coupons.",
     viewDeal: "View coupon",
-    validDates: "Valid until",
+    validDates: "Valid dates",
     publishCta: "Publish coupon",
     viewAllDeals: "View all coupons",
     browseAllDeals: "View all coupons",
@@ -549,6 +567,16 @@ export function ofertasLocalesPublicSearchCopy(
   surface: "ofertas" | "cupones" = "ofertas"
 ): OfertasLocalesPublicSearchCopy {
   return surface === "cupones" ? CUPONES_COPY[lang] : COPY[lang];
+}
+
+export function ofertasLocalesCuponesResultsIntroCopy(lang: OfertasLocalesAppLang): {
+  title: string;
+  helper: string;
+} {
+  return {
+    title: CUPONES_COPY[lang].cuponesResultsIntroTitle,
+    helper: CUPONES_COPY[lang].cuponesResultsIntroHelper,
+  };
 }
 
 const CUPON_OFFER_TYPE_SET = new Set<string>([

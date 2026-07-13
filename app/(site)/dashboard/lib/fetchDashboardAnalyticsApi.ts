@@ -145,6 +145,9 @@ export type DashboardListingAnalyticsResponse = {
   source_table: string;
   source_id: string;
   category: string;
+  title?: string | null;
+  status?: string | null;
+  leonix_ad_id?: string | null;
   metrics: {
     views: number;
     unique_views_estimate: number;
@@ -182,6 +185,12 @@ export async function fetchDashboardListingAnalytics(
   stats: ListingAnalyticsBucket & { lastEngagement?: string };
   degraded: boolean;
   forbidden: boolean;
+  meta?: {
+    title?: string | null;
+    status?: string | null;
+    leonixAdId?: string | null;
+    category?: string | null;
+  };
 } | null> {
   if (!accessToken.trim()) return null;
   const q = new URLSearchParams({
@@ -232,6 +241,12 @@ export async function fetchDashboardListingAnalytics(
       },
       degraded: data.analytics_unavailable,
       forbidden: false,
+      meta: {
+        title: data.title ?? null,
+        status: data.status ?? null,
+        leonixAdId: data.leonix_ad_id ?? null,
+        category: data.category ?? null,
+      },
     };
   } catch {
     return { stats: emptyStats(), degraded: true, forbidden: false };
