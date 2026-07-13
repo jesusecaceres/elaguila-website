@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import type { OfficialLaunchLang } from "@/app/lib/language";
+
 export type LeonixLaunchCouponVariant = "public" | "dashboard" | "compact" | "mini" | "badge";
 
-type Lang = "es" | "en";
+type Lang = OfficialLaunchLang;
 
 /**
  * Single source of truth for all Launch 25 UI (LAUNCH-25-COUPON-DESIGN-SYSTEM-UNIFICATION-01).
@@ -38,6 +40,32 @@ const COPY = {
     finePrintFull:
       "Valid only for eligible website checkout products. Not valid for printed magazine packages, magazine combo deals, free posts, or future renewals. The code does not guarantee placement, ranking, or verification.",
     finePrintShort: "Valid only for eligible website checkout products.",
+    eligibleBadge: "LAUNCH 25 CODE ELIGIBLE",
+  },
+  pt: {
+    badge: "25% DE DESCONTO",
+    codeLabel: "LEONIX LAUNCH CODE",
+    titlePublic: "Receba seu código Leonix Launch 25",
+    titleDashboard: "Benefício de lançamento",
+    mainPublic: "Receba 25% de desconto no seu primeiro anúncio ou pacote web elegível.",
+    mainDashboard: "Obtenha 25% de desconto no seu primeiro anúncio ou pacote web elegível.",
+    cta: "Obter meu código",
+    finePrintFull:
+      "Válido apenas para produtos web elegíveis no checkout. Não se aplica a pacotes impressos, combos de revista, publicações gratuitas nem renovações futuras. O código não garante posicionamento, ranking nem verificação.",
+    finePrintShort: "Válido apenas para produtos web elegíveis no checkout.",
+    eligibleBadge: "ACEITA CÓDIGO LEONIX LAUNCH 25",
+  },
+  tl: {
+    badge: "25% OFF",
+    codeLabel: "LEONIX LAUNCH CODE",
+    titlePublic: "Kunin ang iyong Leonix Launch 25 code",
+    titleDashboard: "Launch benefit",
+    mainPublic: "Makakuha ng 25% off sa iyong unang eligible website ad o package.",
+    mainDashboard: "Makakuha ng 25% off sa iyong unang eligible website ad o package.",
+    cta: "Kunin ang aking code",
+    finePrintFull:
+      "Valid lang para sa eligible website checkout products. Hindi valid para sa printed magazine packages, magazine combo deals, free posts, o future renewals. Hindi ginagarantiya ng code ang placement, ranking, o verification.",
+    finePrintShort: "Valid lang para sa eligible website checkout products.",
     eligibleBadge: "LAUNCH 25 CODE ELIGIBLE",
   },
 } as const;

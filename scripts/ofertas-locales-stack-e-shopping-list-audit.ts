@@ -37,6 +37,13 @@ const FAKE_STRINGS = [
   "account synced",
   "saved to account",
   "routeOptimization",
+  "fake flyer",
+  "fake product",
+  "placeholder store",
+  "paid",
+  "sponsored partner",
+  "magazine holder",
+  "route optimization backend",
 ] as const;
 
 function read(rel: string): string {
@@ -241,6 +248,28 @@ function run() {
   assert.ok(copy.includes("Copiar lista") || copy.includes("Copy list"), "copy list copy");
 
   assert.ok(card.includes("onAdd") || card.includes("addToList"), "item card supports add");
+  assert.ok(card.includes("viewDetail") || card.includes("c.viewDetail"), "item card view detail CTA");
+  assert.ok(card.includes("ofertas-public-item-card"), "item card test id");
+  assert.ok(card.includes("object-contain"), "item card controlled image fit");
+  assert.ok(card.includes("productImageUnavailable"), "honest empty product image placeholder");
+
+  const offerCard = read("app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferCard.tsx");
+  assert.ok(offerCard.includes("ofertaLocalPublicDetailPath"), "offer card links to public detail route");
+  assert.ok(offerCard.includes("ofertas-public-offer-card"), "offer card test id");
+  assert.ok(offerCard.includes("ofertas-offer-card-preview"), "offer card flyer preview region");
+  assert.ok(offerCard.includes("object-contain"), "offer card flyer uses contain fit");
+  assert.ok(offerCard.includes("max-h-[280px]") || offerCard.includes("max-h-[min(48vh,360px)]"), "flyer preview size controlled");
+  assert.ok(offerCard.includes("flyerUnavailable"), "honest flyer unavailable placeholder");
+  assert.ok(offerCard.includes("#7A1E2C"), "offer card burgundy CTA branding");
+  assert.ok(offerCard.includes("#B8860B"), "offer card gold border branding");
+  assert.ok(offerCard.includes("ofertaLocalPublicOfferCardCta"), "offer card mode-aware CTA helper");
+
+  assert.ok(copy.includes("approvedEmptyTitle"), "approved empty state title copy");
+  assert.ok(copy.includes("approvedEmptyBody"), "approved empty state body copy");
+  assert.ok(copy.includes("viewFlyer"), "view flyer CTA copy");
+  assert.ok(copy.includes("viewDetail"), "view detail CTA copy");
+
+  assertNoFakeStrings("offer card", offerCard);
 
   assert.ok(drawer.includes("isAdded"), "detail drawer isAdded prop");
   assert.ok(drawer.includes("onAdd"), "detail drawer onAdd prop");

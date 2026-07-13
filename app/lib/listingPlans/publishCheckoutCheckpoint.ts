@@ -42,6 +42,9 @@ export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 /** Canonical Revenue OS package key for Autos privado 30-day listing ($24.99 one-time). */
 export const AUTOS_PRIVADO_30D_PACKAGE_KEY = "autos_privado_30d";
 
+/** Canonical Revenue OS package key for Autos dealer base plan ($399/mo). */
+export const AUTOS_DEALER_MONTHLY_PACKAGE_KEY = "autos_dealer_monthly";
+
 /** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
@@ -376,6 +379,15 @@ export function resolvePublishCheckoutCheckpoint(
         config.baseLineItem?.detailEs ??
         "$24.99 · 30 días · un vehículo — sin upgrades ni paquete de inventario",
     });
+  } else if (config.category === "autos" && config.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) {
+    lineItems.push({
+      id: "base",
+      labelEn: config.baseLineItem?.labelEn ?? "Autos dealer monthly",
+      labelEs: config.baseLineItem?.labelEs ?? "Dealer de autos mensual",
+      priceCents: baseCents,
+      detailEn: config.baseLineItem?.detailEn ?? "Includes 10 active vehicles",
+      detailEs: config.baseLineItem?.detailEs ?? "Incluye 10 vehiculos activos",
+    });
   } else if (config.baseLineItem) {
     lineItems.push({
       id: config.baseLineItem.id ?? "base",
@@ -501,9 +513,31 @@ export function resolvePublishCheckoutCheckpoint(
     Boolean(config.serviciosOffersAddonSelected) &&
     REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED;
 
+  const autosDealerInventoryAddOnSelected =
+    config.category === "autos" &&
+    config.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY &&
+    addOns.some((a) => a.selected && a.id === "autos_dealer_inventory_pack") &&
+    REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED;
+
   if (config.listingId?.trim()) metadata.listing_id = config.listingId.trim();
   if (config.leonixAdId?.trim()) metadata.leonix_ad_id = config.leonixAdId.trim();
   if (opts?.promoCode?.trim()) metadata.promo_code = opts.promoCode.trim();
+
+  if (config.category === "autos") {
+    if (config.pipeline?.trim()) {
+      metadata.pipeline = config.pipeline.trim();
+      metadata.lane = config.pipeline.trim();
+    }
+    if (config.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) {
+      metadata.inventory_child_count = childCount;
+      metadata.inventory_pack_selected = autosDealerInventoryAddOnSelected;
+      metadata.inventory_pack_slots = AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES;
+      metadata.base_included_vehicles = AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
+      metadata.total_active_vehicle_limit = autosDealerInventoryAddOnSelected
+        ? AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT
+        : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
+    }
+  }
 
   const checkoutPayload: PublishCheckpointResolvedState["checkoutPayload"] = {
     category: config.category,
@@ -520,6 +554,9 @@ export function resolvePublishCheckoutCheckpoint(
       : {}),
     ...(serviciosOffersAddOnSelected
       ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
+      : {}),
+    ...(autosDealerInventoryAddOnSelected
+      ? { addOns: [{ key: AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] }
       : {}),
   };
 
@@ -749,6 +786,38 @@ export const AUTOS_PRIVADO_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmati
     required: true,
     labelEn: "I understand payment is required before this vehicle listing becomes active on Leonix.",
     labelEs: "Entiendo que el pago es requerido antes de que este anuncio de vehículo quede activo en Leonix.",
+  },
+];
+
+export const AUTOS_DEALER_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_dealer_info",
+    required: true,
+    labelEn: "I confirm the dealership, inventory, pricing, and contact information is accurate and current.",
+    labelEs:
+      "Confirmo que la informacion del concesionario, inventario, precios y datos de contacto es correcta y esta actualizada.",
+  },
+  {
+    id: "authorized_business",
+    required: true,
+    labelEn: "I confirm I am authorized to publish this business and the included vehicles.",
+    labelEs: "Confirmo que estoy autorizado para publicar este negocio y los vehiculos incluidos.",
+  },
+  {
+    id: "accurate_vehicle_details",
+    required: true,
+    labelEn:
+      "I confirm the vehicle details, photos, VIN, mileage, and condition are accurate to the best of my knowledge.",
+    labelEs:
+      "Confirmo que los vehiculos, fotos, VIN, millaje y condiciones publicados son exactos segun mi conocimiento.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn:
+      "I understand payment and any additional inventory package are required before those features become active.",
+    labelEs:
+      "Entiendo que el pago y cualquier paquete adicional de inventario son requeridos antes de activar esas funciones.",
   },
 ];
 

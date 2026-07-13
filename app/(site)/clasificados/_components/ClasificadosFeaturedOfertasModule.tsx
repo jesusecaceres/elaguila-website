@@ -48,7 +48,7 @@ export function ClasificadosFeaturedOfertasModule({ routeLang }: Props) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[#7A1E2C]">
-            {routeLang === "en" ? "Featured" : "Destacado"}
+            {copy.eyebrow}
           </p>
           <h2 id="clasificados-featured-ofertas-title" className="mt-1 text-2xl font-bold text-[#1E1810] sm:text-[1.65rem]">
             {copy.title}

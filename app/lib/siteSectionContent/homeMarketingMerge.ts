@@ -18,6 +18,8 @@ export type HomeMarketingLangBlock = {
 export type HomeMarketingResolved = {
   es: HomeMarketingLangBlock;
   en: HomeMarketingLangBlock;
+  pt: HomeMarketingLangBlock;
+  tl: HomeMarketingLangBlock;
   coverImageSrc: string;
   ctaPrimaryHref: string | null;
   ctaSecondaryHref: string | null;
@@ -68,6 +70,38 @@ const BASE: HomeMarketingResolved = {
     ctaSecondary: "Advertise with us",
     microcopy: "Digital edition + print presence",
     coverAlt: "Leonix Media magazine cover",
+    announcement: "",
+    promoStrip: "",
+  },
+  pt: {
+    title: "LEONIX",
+    identity: "Comunidade, Cultura e Fé",
+    precedent: "Revista de comunidade, cultura e negócios.",
+    valuePrimary:
+      "Encontre aluguéis, empregos, autos, artigos à venda, eventos e oportunidades locais em um só espaço feito para a nossa comunidade.",
+    valueSecondary:
+      "Conectamos negócios locais, famílias e organizações com uma audiência ativa por meio de uma revista premium, presença digital bilíngue e ferramentas que geram ação.",
+    valueLabels: ["Revista premium", "Comunidade ativa", "Presença digital bilíngue"],
+    ctaPrimary: "Explore a revista",
+    ctaSecondary: "Anuncie conosco",
+    microcopy: "Edição digital + presença impressa",
+    coverAlt: "Capa da revista Leonix Media",
+    announcement: "",
+    promoStrip: "",
+  },
+  tl: {
+    title: "LEONIX",
+    identity: "Komunidad, Kultura, at Pananampalataya",
+    precedent: "Magasin para sa komunidad, kultura, at negosyo.",
+    valuePrimary:
+      "Maghanap ng paupahan, trabaho, kotse, binebentang gamit, event, at lokal na oportunidad sa isang espasyong ginawa para sa ating komunidad.",
+    valueSecondary:
+      "Ikinokonekta namin ang lokal na negosyo, pamilya, at organisasyon sa aktibong audience sa pamamagitan ng premium magazine, bilingual digital presence, at mga tool na nagdadala ng aksyon.",
+    valueLabels: ["Premium magazine", "Aktibong komunidad", "Bilingual digital presence"],
+    ctaPrimary: "Tingnan ang magasin",
+    ctaSecondary: "Mag-advertise sa amin",
+    microcopy: "Digital na edisyon + presensya sa print",
+    coverAlt: "Cover ng Leonix Media magazine",
     announcement: "",
     promoStrip: "",
   },
@@ -135,6 +169,8 @@ export function mergeHomeMarketing(patch: HomeMarketingPayload | null | undefine
       announcement: s(patch.announcementBar?.en, ""),
       promoStrip: s(patch.promoStrip?.en, ""),
     },
+    pt: { ...BASE.pt },
+    tl: { ...BASE.tl },
     coverImageSrc: resolveHomeCoverImageSrc(patch.coverImageSrc),
     ctaPrimaryHref: patch.ctaPrimaryHref?.trim() || null,
     ctaSecondaryHref: patch.ctaSecondaryHref?.trim() || null,

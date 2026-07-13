@@ -21,12 +21,35 @@ import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificado
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { AutosNegociosPreviewPromiseStrip } from "../components/AutosNegociosPreviewPromiseStrip";
 import { mapAutosNegociosBuyerPreviewViewModel } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { AUTOS_DEALER_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import { prepareAutosListingForApiTransport } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
+import { resolveAutosDraftPhotosForPublish } from "@/app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
+import { resolveAutosNegociosDraftNamespace } from "../lib/autosNegociosDraftNamespace";
+import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  applyAutosDealerPreviewPromoCode,
+  AUTOS_DEALER_NEWSLETTER_INTERESTS,
+  AUTOS_DEALER_PREVIEW_RULES_MODAL,
+  autosDealerPreviewCheckpointConfig,
+  autosDealerSelectedAddOns,
+} from "../lib/autosDealerRevenueCheckout";
 import {
   autosPreviewPageMaxWidthClass,
   autosPreviewSectionEyebrowClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const EDIT_BASE = "/publicar/autos/negocios";
+const AUTOS_DEALER_PENDING_CHECKOUT_KEY = "lx-autos-publish-listing-negocios";
 
 type AutosNegociosPreviewMode = "empty" | "draft" | "mock";
 
@@ -35,6 +58,24 @@ function isDemoQuery(): boolean {
   const q = new URLSearchParams(window.location.search);
   const v = q.get("demo");
   return v === "1" || v === "true";
+}
+
+function readCachedDealerListingId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(AUTOS_DEALER_PENDING_CHECKOUT_KEY)?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedDealerListingId(listingId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(AUTOS_DEALER_PENDING_CHECKOUT_KEY, listingId);
+  } catch {
+    /* ignore */
+  }
 }
 
 async function resolvePreviewState(): Promise<{
@@ -84,9 +125,145 @@ function AutosNegociosPreviewInner({
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
   const editBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const viewModel = useMemo(
     () => mapAutosNegociosBuyerPreviewViewModel(listing, additionalInventoryVehicles, lang),
     [listing, additionalInventoryVehicles, lang],
+  );
+  const totalVehicleCount = countApplicationInventoryVehicles(additionalInventoryVehicles.length);
+  const checkpointConfig = useMemo(
+    () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount }),
+    [lang, totalVehicleCount],
+  );
+
+  const ensurePendingDealerListing = useCallback(async (): Promise<
+    | { ok: true; listingId: string; leonixAdId: string | null; customerEmail: string | null }
+    | { ok: false; message: string }
+  > => {
+    const sb = createSupabaseBrowserClient();
+    const { data } = await sb.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token?.trim()) {
+      return {
+        ok: false,
+        message: lang === "es" ? "Inicia sesion para continuar al pago." : "Sign in to continue to payment.",
+      };
+    }
+
+    const namespace = await resolveAutosNegociosDraftNamespace();
+    const photoPrep = await resolveAutosDraftPhotosForPublish({
+      listing,
+      additionalInventoryVehicles,
+      draftNamespace: namespace,
+      draftId: namespace.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "negocios",
+      authToken: token,
+      lang,
+    });
+    if (!photoPrep.ok) return { ok: false, message: photoPrep.message };
+
+    const preparedListing = prepareAutosListingForApiTransport(photoPrep.listing);
+    const cached = readCachedDealerListingId();
+    if (cached) {
+      const sync = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(cached)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ listing: preparedListing, lang }),
+      });
+      if (sync.ok) {
+        const j = (await sync.json().catch(() => ({}))) as {
+          id?: string;
+          leonixAdId?: string | null;
+          leonix_ad_id?: string | null;
+        };
+        return {
+          ok: true,
+          listingId: cached,
+          leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
+          customerEmail: data.session?.user?.email ?? null,
+        };
+      }
+      try {
+        window.sessionStorage.removeItem(AUTOS_DEALER_PENDING_CHECKOUT_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const res = await fetch("/api/clasificados/autos/listings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ listing: preparedListing, lane: "negocios", lang }),
+    });
+    const j = (await res.json().catch(() => ({}))) as {
+      id?: string;
+      leonixAdId?: string | null;
+      leonix_ad_id?: string | null;
+      message?: string;
+    };
+    if (!res.ok || !j.id?.trim()) {
+      return {
+        ok: false,
+        message:
+          j.message?.trim() ||
+          (lang === "es"
+            ? "No pudimos preparar tu dealer para el pago seguro."
+            : "We could not prepare your dealer listing for secure checkout."),
+      };
+    }
+    writeCachedDealerListingId(j.id.trim());
+    return {
+      ok: true,
+      listingId: j.id.trim(),
+      leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
+      customerEmail: data.session?.user?.email ?? null,
+    };
+  }, [additionalInventoryVehicles, lang, listing]);
+
+  const onStartDealerCheckout = useCallback(
+    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+      setCheckoutBusy(true);
+      setCheckoutError(null);
+      const pending = await ensurePendingDealerListing();
+      if (!pending.ok) {
+        setCheckoutBusy(false);
+        setCheckoutError(pending.message);
+        return;
+      }
+
+      void captureCheckoutNewsletterSubscriber({
+        checked: ctx.newsletterOptIn,
+        email: pending.customerEmail,
+        businessName: listing.dealerName,
+        city: listing.city,
+        zipCode: listing.zip,
+        preferredLanguage: lang,
+        lang,
+        source: CHECKOUT_NEWSLETTER_SOURCES.autosDealer,
+        interests: AUTOS_DEALER_NEWSLETTER_INTERESTS,
+        consentText:
+          lang === "es"
+            ? "Acepto recibir promociones y novedades de Leonix relacionadas con mi checkout dealer."
+            : "I agree to receive Leonix promotions and updates related to my dealer checkout.",
+      });
+
+      const checkout = await startRevenueCategoryCheckout({
+        ...AUTOS_DEALER_CHECKOUT,
+        listingId: pending.listingId,
+        leonixAdId: pending.leonixAdId,
+        locale: lang,
+        customerEmail: pending.customerEmail,
+        promoCode: ctx.promoCode,
+        addOns: autosDealerSelectedAddOns(totalVehicleCount),
+      });
+      setCheckoutBusy(false);
+      if (!checkout.ok) {
+        setCheckoutError(checkout.userMessage);
+        return;
+      }
+      redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+    },
+    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, totalVehicleCount],
   );
 
   if (!ready) {
@@ -135,6 +312,18 @@ function AutosNegociosPreviewInner({
             viewModelCards={viewModel.additionalInventory}
           />
           <AutosNegociosPreviewPromiseStrip lang={lang} />
+          <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 pb-10 pt-2 md:px-6 lg:px-8`}>
+            <PublishCheckoutCheckpoint
+              config={checkpointConfig}
+              lang={lang}
+              busy={checkoutBusy}
+              errorMessage={checkoutError}
+              onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount })}
+              onCheckout={(ctx) => void onStartDealerCheckout(ctx)}
+              rulesModal={AUTOS_DEALER_PREVIEW_RULES_MODAL}
+              className="mx-auto w-full max-w-xl"
+            />
+          </div>
         </AutoDealerPreviewChrome>
         </div>
       </AutosDraftPreviewErrorBoundary>

@@ -295,7 +295,7 @@ function wireWeekendOpen(p: ServiciosBusinessProfile): boolean {
   if (!rows?.length) return false;
   return rows.some((r) => {
     const d = normalize(r.dayLabel);
-    const isWeekend = d.includes("sáb") || d.includes("dom") || d.includes("sat") || d.includes("sun");
+    const isWeekend = d.includes("sab") || d.includes("dom") || d.includes("sat") || d.includes("sun");
     if (!isWeekend) return false;
     const line = normalize(r.line);
     return line.length > 0 && !line.includes("cerrado") && !line.includes("closed");

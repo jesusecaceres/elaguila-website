@@ -51,6 +51,11 @@ const CHECKOUT_ADDON_ALLOWLIST: Record<
     basePackageKey: "servicios_base_monthly",
     allowedKeys: [SERVICIOS_OFFERS_ADDON_PACKAGE_KEY],
   },
+  autos: {
+    category: "autos",
+    basePackageKey: "autos_dealer_monthly",
+    allowedKeys: [AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY],
+  },
 };
 
 export function validateRevenueCheckoutAddOns(input: {
@@ -266,6 +271,23 @@ export function validateRevenueCheckoutRequest(
         ok: false,
         code: "listing_id_required",
         message: "listingId is required for Restaurante add-on-only checkout.",
+      };
+    }
+    if (input.addOns?.length) {
+      return {
+        ok: false,
+        code: "add_ons_not_allowed",
+        message: "Add-on-only checkout cannot include nested add-ons.",
+      };
+    }
+  }
+
+  if (packageKey === AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY) {
+    if (!String(input.listingId ?? "").trim()) {
+      return {
+        ok: false,
+        code: "listing_id_required",
+        message: "listingId is required for Autos dealer inventory add-on checkout.",
       };
     }
     if (input.addOns?.length) {

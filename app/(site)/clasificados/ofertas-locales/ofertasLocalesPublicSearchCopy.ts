@@ -57,9 +57,25 @@ const COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 oferta encontrada" : `${n} ofertas encontradas`),
     emptyTitle: "No encontramos ofertas con esos filtros.",
     emptyHint: "Intenta buscar otro producto o ciudad.",
-    pipelineEmptyTitle: "Aún no hay ofertas locales",
-    pipelineEmptyBody: "Publica la primera oferta o explora todas las ofertas.",
-    pipelineEmptyHint: "¿Tienes un negocio? Publica tus ofertas locales.",
+    pipelineEmptyTitle: "Aún no hay ofertas aprobadas publicadas",
+    pipelineEmptyBody: "Cuando los negocios publiquen y Leonix apruebe sus volantes, aparecerán aquí.",
+    pipelineEmptyHint: "Vuelve a revisar más tarde o publica la primera oferta.",
+    approvedEmptyTitle: "Aún no hay ofertas aprobadas para estos filtros.",
+    approvedEmptyBody: "Cuando los negocios publiquen y Leonix apruebe sus volantes, aparecerán aquí.",
+    approvedEmptyHint: "Prueba limpiar filtros o vuelve a revisar más tarde.",
+    flyerUnavailable: "Volante no disponible",
+    productImageUnavailable: "Imagen no disponible",
+    viewFlyer: "Ver volante",
+    viewOffers: "Ver ofertas",
+    viewCoupon: "Ver cupón",
+    viewPromotion: "Ver promoción",
+    viewDetail: "Ver detalle",
+    offerTypeWeeklyFlyer: "Volante semanal",
+    offerTypeCoupon: "Cupón",
+    offerTypePromotion: "Promoción",
+    offerTypeSeasonalSpecial: "Especial de temporada",
+    offerTypeBundle: "Combo",
+    offerTypeFeaturedDeal: "Oferta destacada",
     loadFailed: "No se pudieron cargar las ofertas.",
     viewDeal: "Ver oferta",
     sourcePage: "Página",
@@ -171,9 +187,25 @@ const COPY = {
     resultsCount: (n: number) => (n === 1 ? "1 deal found" : `${n} deals found`),
     emptyTitle: "We didn't find deals with those filters.",
     emptyHint: "Try another product or city.",
-    pipelineEmptyTitle: "No local deals yet",
-    pipelineEmptyBody: "Publish the first deal or browse all listings.",
-    pipelineEmptyHint: "Have a business? Publish your local deals.",
+    pipelineEmptyTitle: "No approved deals published yet",
+    pipelineEmptyBody: "Once businesses publish and Leonix approves their flyers, they will appear here.",
+    pipelineEmptyHint: "Check back later or publish the first deal.",
+    approvedEmptyTitle: "No approved offers match these filters yet.",
+    approvedEmptyBody: "Once businesses publish and Leonix approves their flyers, they will appear here.",
+    approvedEmptyHint: "Try clearing filters or check back later.",
+    flyerUnavailable: "Flyer unavailable",
+    productImageUnavailable: "Image unavailable",
+    viewFlyer: "View flyer",
+    viewOffers: "View offers",
+    viewCoupon: "View coupon",
+    viewPromotion: "View promotion",
+    viewDetail: "View detail",
+    offerTypeWeeklyFlyer: "Weekly flyer",
+    offerTypeCoupon: "Coupon",
+    offerTypePromotion: "Promotion",
+    offerTypeSeasonalSpecial: "Seasonal special",
+    offerTypeBundle: "Bundle",
+    offerTypeFeaturedDeal: "Featured deal",
     loadFailed: "Could not load deals.",
     viewDeal: "View deal",
     sourcePage: "Page",
@@ -390,8 +422,8 @@ const RESULT_MODE_COPY: Record<OfertasLocalesAppLang, Record<OfertasLocalesResul
       title: "Todas las ofertas locales",
       helper: "Explora volantes, cupones, productos y especiales de negocios locales.",
       pill: "Todas",
-      emptyTitle: "No encontramos ofertas con esos filtros.",
-      emptyHint: "Intenta buscar otro producto o ciudad.",
+      emptyTitle: "Aún no hay ofertas aprobadas para estos filtros.",
+      emptyHint: "Prueba limpiar filtros o vuelve a revisar más tarde.",
     },
     flyers: {
       title: "Volantes semanales",
@@ -449,8 +481,8 @@ const RESULT_MODE_COPY: Record<OfertasLocalesAppLang, Record<OfertasLocalesResul
       title: "All local deals",
       helper: "Browse flyers, coupons, products, and specials from local businesses.",
       pill: "All",
-      emptyTitle: "We didn't find deals with those filters.",
-      emptyHint: "Try another product or city.",
+      emptyTitle: "No approved offers match these filters yet.",
+      emptyHint: "Try clearing filters or check back later.",
     },
     flyers: {
       title: "Weekly flyers",
@@ -517,4 +549,52 @@ export function ofertasLocalesPublicSearchCopy(
   surface: "ofertas" | "cupones" = "ofertas"
 ): OfertasLocalesPublicSearchCopy {
   return surface === "cupones" ? CUPONES_COPY[lang] : COPY[lang];
+}
+
+const CUPON_OFFER_TYPE_SET = new Set<string>([
+  "coupon",
+  "promotion",
+  "seasonal_special",
+  "bundle",
+  "featured_deal",
+]);
+
+export function isOfertaLocalCouponOfferType(offerType: string): boolean {
+  return CUPON_OFFER_TYPE_SET.has(offerType.trim());
+}
+
+export function ofertaLocalPublicOfferTypeLabel(lang: OfertasLocalesAppLang, offerType: string): string {
+  const c = COPY[lang];
+  switch (offerType.trim()) {
+    case "weekly_flyer":
+      return c.offerTypeWeeklyFlyer;
+    case "coupon":
+      return c.offerTypeCoupon;
+    case "promotion":
+      return c.offerTypePromotion;
+    case "seasonal_special":
+      return c.offerTypeSeasonalSpecial;
+    case "bundle":
+      return c.offerTypeBundle;
+    case "featured_deal":
+      return c.offerTypeFeaturedDeal;
+    default:
+      return offerType.replace(/_/g, " ");
+  }
+}
+
+export function ofertaLocalPublicOfferCardCta(
+  lang: OfertasLocalesAppLang,
+  surface: "ofertas" | "cupones",
+  offerType: string
+): string {
+  const c = ofertasLocalesPublicSearchCopy(lang, surface);
+  if (surface === "cupones") return c.viewDeal;
+  if (offerType === "weekly_flyer") return c.viewFlyer;
+  if (isOfertaLocalCouponOfferType(offerType)) {
+    return offerType === "promotion" || offerType === "seasonal_special" || offerType === "bundle"
+      ? c.viewPromotion
+      : c.viewCoupon;
+  }
+  return c.viewOffers;
 }

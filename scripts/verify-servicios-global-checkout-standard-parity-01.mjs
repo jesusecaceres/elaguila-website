@@ -95,6 +95,7 @@ ok("preview final checkout UI (promo/newsletter/rules) for both lanes");
 // Pending save + publish route pending_payment
 if (!pendingHelper.includes('activationMode: "pending_payment"')) fail("pending helper must request pending_payment");
 if (!publishRoute.includes("pending_payment")) fail("publish route must support pending_payment");
+if (!publishRoute.includes("payment_required")) fail("publish route must block unpaid first publish in strict env");
 if (!publishRoute.includes("pendingPayment: true")) fail("publish route must return pendingPayment result with listingId");
 if (!publishRoute.includes("persistedListingId")) fail("publish route must return real listingId for checkout");
 ok("pending_payment save + Revenue OS handoff");

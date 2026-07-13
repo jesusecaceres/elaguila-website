@@ -234,6 +234,38 @@ export async function POST(req: NextRequest) {
   const pendingPayment =
     (body as Record<string, unknown>).activationMode === "pending_payment" ||
     (body as Record<string, unknown>).activation_mode === "pending_payment";
+
+  /** Production: first publication requires Revenue OS checkout (pending_payment save or paid webhook). */
+  if (strict && isSupabaseAdminConfigured() && !pendingPayment) {
+    const existingForGuard = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+    const ownerOk =
+      existingForGuard &&
+      ownerUserId &&
+      (!existingForGuard.owner_user_id || existingForGuard.owner_user_id === ownerUserId);
+    const allowedOwnerRepublish =
+      ownerOk &&
+      existingForGuard &&
+      (existingForGuard.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED ||
+        existingForGuard.listing_status === "paused_unpublished" ||
+        existingForGuard.listing_status === SERVICIOS_LISTING_STATUS_PENDING_REVIEW);
+    if (!allowedOwnerRepublish) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: slug,
+        eventType: "publish_failure",
+        meta: { reason: "payment_required", strict: true },
+      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "payment_required",
+          message:
+            "Servicios is a paid category. Save your listing for secure checkout before it can go live.",
+        },
+        { status: 402 },
+      );
+    }
+  }
+
   const listingStatus = pendingPayment ? SERVICIOS_LISTING_STATUS_PENDING_PAYMENT : initialListingStatus();
 
   let persistedToDatabase = false;

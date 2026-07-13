@@ -1,7 +1,7 @@
 "use client";
 
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
-import type { SupportedLang } from "@/app/lib/language";
+import { launchUiCopyLang, type SupportedLang } from "@/app/lib/language";
 import { buildClasificadosLandingNewsletterHref } from "../_lib/clasificadosLandingHubCopy";
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
 };
 
 export function ClasificadosLandingLaunchBanner({ routeLang }: Props) {
-  const cardLang: "es" | "en" = routeLang === "en" ? "en" : "es";
+  const cardLang = launchUiCopyLang(routeLang);
   const href = buildClasificadosLandingNewsletterHref(routeLang);
 
   return (

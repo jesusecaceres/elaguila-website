@@ -84,6 +84,17 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
         </div>
 
         <div className="space-y-4 px-4 py-4 text-sm">
+          {offer.primaryAssetHref ? (
+            <div className="overflow-hidden rounded-xl border border-[#B8860B]/45 bg-[#FDF8F0] p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={offer.primaryAssetHref}
+                alt={offer.primaryAssetLabel || offer.title}
+                className="mx-auto max-h-[min(40vh,280px)] w-full object-contain object-center"
+              />
+            </div>
+          ) : null}
+
           <div className="space-y-1.5">
             <p className="font-medium text-[#1E1814]">{offer.businessName}</p>
             {offer.businessCategory ? <p className="text-[#1E1814]/70">{offer.businessCategory}</p> : null}

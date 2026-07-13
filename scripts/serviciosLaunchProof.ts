@@ -23,7 +23,7 @@ function assert(cond: unknown, msg: string): asserts cond {
 function baseState(): ClasificadosServiciosApplicationState {
   return normalizeClasificadosServiciosApplicationState({
     applicationStepIndex: 0,
-    businessTypeId: "plomero",
+    businessTypeId: "plomeria",
     businessName: "Test Plumbing Co",
     city: "San José",
     physicalStreet: "",
@@ -174,7 +174,7 @@ function main() {
   const stBad = { ...st, confirmCommunityRules: false };
   const readyBad = evaluateServiciosPublishReadiness(stBad, "en");
   assert(!readyBad.ok, "readiness: missing attestations must fail");
-  assert(readyBad.missing.some((m) => m.id === "legal_attest"), "readiness: expected legal_attest missing");
+  assert(readyBad.missing.some((m) => m.id === "confirm_rules"), "readiness: expected confirm_rules missing");
 
   const rows = [
     rowFixture({ slug: "a", leonix_verified: false, published_at: "2020-01-02T00:00:00.000Z" }),

@@ -78,9 +78,9 @@ const STEP = {
   services: 4,
   /** Contact source fields live on step 2 (index 1) */
   contact: 1,
-  confirm_accurate: 8,
-  confirm_photos: 8,
-  confirm_rules: 8,
+  confirm_accurate: 7,
+  confirm_photos: 7,
+  confirm_rules: 7,
 } as const;
 
 type ReadinessId = keyof typeof STEP;

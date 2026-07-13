@@ -24,8 +24,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   const searchParams = useSearchParams();
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = launchUiCopyLang(routeLang);
-  const cmsLang: "es" | "en" = lang === "en" || lang === "tl" ? "en" : "es";
-  const L = content[cmsLang];
+  const L = content[lang];
   const pageCopy = HOME_PAGE_COPY[lang];
   const magazineLink = replaceLangInHref("/magazine", routeLang);
 
@@ -41,8 +40,7 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   };
 
   const withLang = (href: string) => replaceLangInHref(href, routeLang);
-  const cardLang: "es" | "en" = cmsLang;
-  const launch25Href = `/newsletter?lang=${cardLang}&source=home&sourceCta=launch_25`;
+  const launch25Href = `/newsletter?lang=${routeLang}&source=home&sourceCta=launch_25`;
 
   const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
   const advertiseOverrideHref = injectLang(content.ctaSecondaryHref);
@@ -115,14 +113,22 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
             </div>
 
             <div className="mx-auto mt-6 max-w-xl lg:mx-0 lg:max-w-[34rem]">
-              <LeonixLaunchCouponCard lang={cardLang} variant="compact" href={launch25Href} />
+              <LeonixLaunchCouponCard lang={lang} variant="compact" href={launch25Href} />
             </div>
 
             <p className="mt-3.5 text-xs font-medium tracking-wide text-[#3D3428]/70 sm:text-sm">{L.microcopy}</p>
 
             <ul
               className="mx-auto mt-6 flex max-w-md flex-col gap-2 border-t border-[#D6C7AD]/70 pt-5 text-left sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-0 lg:mx-0"
-              aria-label={lang === "es" ? "Pilares de Leonix" : "Leonix pillars"}
+              aria-label={
+                lang === "es"
+                  ? "Pilares de Leonix"
+                  : lang === "en"
+                    ? "Leonix pillars"
+                    : lang === "pt"
+                      ? "Pilares Leonix"
+                      : "Mga haligi ng Leonix"
+              }
             >
               {L.valueLabels.map((label, i) => (
                 <li
@@ -217,7 +223,11 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
                   <h3 className="text-base font-bold text-[#2A4536] group-hover:text-[#7A1E2C]">{item.title}</h3>
                   <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{item.description}</p>
                   <span className="mt-4 text-xs font-bold uppercase tracking-[0.1em] text-[#7A1E2C]">
-                    {lang === "es" ? "Explorar →" : "Explore →"}
+                    {lang === "es" || lang === "pt"
+                      ? "Explorar →"
+                      : lang === "tl"
+                        ? "Tuklasin →"
+                        : "Explore →"}
                   </span>
                 </a>
               </li>

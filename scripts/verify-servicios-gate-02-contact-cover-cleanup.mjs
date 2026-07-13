@@ -21,7 +21,8 @@ const mapper = read("app/(site)/clasificados/publicar/servicios/lib/mapClasifica
 const hero = read("app/(site)/servicios/components/ServiciosHero.tsx");
 const pkg = read("package.json");
 
-assert(steps.includes("SERVICIOS_APPLICATION_STEP_COUNT = 9"), "Step count must be 9");
+assert(steps.includes("SERVICIOS_APPLICATION_STEP_COUNT = 8"), "Step count must be 8");
+assert(steps.includes("SERVICIOS_LEGACY_STEP_COUNT_GATE02 = 9"), "Legacy 9-step migration marker preserved");
 assert(!steps.includes("Vista de contacto y opciones"), "Spanish contact preview step label removed");
 assert(!steps.includes("Contact preview & options"), "English contact preview step label removed");
 assert(steps.includes("migrateServiciosApplicationStepIndex"), "Legacy step migration helper present");
@@ -31,8 +32,8 @@ assert(!app.includes("copy.sections.contact"), "Contact preview section heading 
 assert(!app.includes("copy.labels.cover"), "Cover upload label not rendered in application");
 assert(!app.includes("coverInputRef"), "Cover file input ref removed");
 assert(!app.includes("coverUrlDraft"), "Cover URL draft input removed");
-assert(!app.includes("step === 9"), "No step index 9 in application UI");
-assert(app.includes("step === 8"), "Final review step uses index 8");
+assert(!app.includes("step === 9"), "No legacy step index 9 in application UI");
+assert(app.includes("step === 7"), "Final review step uses index 7");
 assert(app.includes("migrateServiciosApplicationStepIndex"), "Application migrates legacy step indices");
 
 assert(!mapper.includes("coverImageUrl: state.coverUrl"), "Mapper must not set hero cover from coverUrl");
@@ -48,7 +49,7 @@ assert(app.includes("SERVICIOS_MAX_VIDEO_URLS"), "Gate 01: video URL cap preserv
 
 assert(pkg.includes('"verify:servicios-gate-02"'), "package.json verifier registered");
 
-console.log("OK: 9-step flow without contact preview");
+console.log("OK: 8-step flow without contact preview");
 console.log("OK: cover upload removed from application");
 console.log("OK: mapper + hero standard background");
 console.log("OK: contact output mapping preserved");

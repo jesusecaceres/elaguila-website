@@ -22,6 +22,7 @@ const ALLOWED_SOURCES = new Set([
   "rentas_checkout",
   "empleos_checkout",
   "autos_privado_checkout",
+  "autos_dealer_checkout",
   "bienes_fsbo_checkout",
 ]);
 
@@ -31,6 +32,7 @@ const SOURCE_TAGS: Record<string, string[]> = {
   rentas_checkout: ["category:rentas", "audience:seller"],
   empleos_checkout: ["category:empleos", "audience:business"],
   autos_privado_checkout: ["category:autos", "seller:private", "audience:seller"],
+  autos_dealer_checkout: ["category:autos", "seller:dealer", "audience:business"],
   bienes_fsbo_checkout: ["category:bienes-raices", "seller:fsbo", "audience:seller"],
 };
 

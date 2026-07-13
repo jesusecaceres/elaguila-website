@@ -408,7 +408,7 @@ export function OfertasLocalesPublicSearchClient({
   ) : null;
 
   const resultsContent = (
-    <div id="ofertas-browse" className="scroll-mt-24 space-y-5">
+    <div id="ofertas-browse" className="scroll-mt-24 space-y-6 sm:space-y-8">
       {isResults && !isCupones && resultModeCopy ? (
         <section
           className="rounded-xl border border-[#B8860B]/40 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3.5 py-3 shadow-sm"
@@ -444,8 +444,8 @@ export function OfertasLocalesPublicSearchClient({
         <>
           {!isCupones && !loading && items.length > 0 ? (
             <section>
-              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.itemsSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
                 {items.map((item) => (
                   <li key={item.id}>
                     <OfertasLocalesPublicItemCard
@@ -465,8 +465,8 @@ export function OfertasLocalesPublicSearchClient({
 
           {!loading && offers.length > 0 ? (
             <section>
-              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.offersSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
                 {offers.map((offer) => (
                   <li key={offer.id}>
                     <OfertasLocalesPublicOfferCard
@@ -485,8 +485,8 @@ export function OfertasLocalesPublicSearchClient({
         <>
           {!loading && offers.length > 0 ? (
             <section>
-              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.offersSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.offersSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
                 {offers.map((offer) => (
                   <li key={offer.id}>
                     <OfertasLocalesPublicOfferCard
@@ -503,8 +503,8 @@ export function OfertasLocalesPublicSearchClient({
 
           {!isCupones && !loading && items.length > 0 ? (
             <section>
-              <h2 className="mb-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{c.itemsSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4">
+              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.itemsSectionTitle}</h2>
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
                 {items.map((item) => (
                   <li key={item.id}>
                     <OfertasLocalesPublicItemCard
@@ -575,16 +575,20 @@ export function OfertasLocalesPublicSearchClient({
                 title={
                   showPipelineEmpty
                     ? c.pipelineEmptyTitle
-                    : !isCupones && resultModeCopy
-                      ? resultModeCopy.emptyTitle
-                      : c.emptyTitle
+                    : hasFilters
+                      ? c.approvedEmptyTitle
+                      : !isCupones && resultModeCopy
+                        ? resultModeCopy.emptyTitle
+                        : c.emptyTitle
                 }
                 body={
                   showPipelineEmpty
-                    ? c.pipelineEmptyBody
-                    : !isCupones && resultModeCopy
-                      ? resultModeCopy.emptyHint
-                      : c.emptyHint
+                    ? `${c.pipelineEmptyBody} ${c.pipelineEmptyHint}`
+                    : hasFilters
+                      ? `${c.approvedEmptyBody} ${c.approvedEmptyHint}`
+                      : !isCupones && resultModeCopy
+                        ? resultModeCopy.emptyHint
+                        : c.emptyHint
                 }
                 ctaLabel={hasFilters ? c.clearFiltersLink : c.browseAllDeals}
                 ctaHref={hasFilters ? undefined : browseAllHref}
