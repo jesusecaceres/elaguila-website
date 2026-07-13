@@ -142,18 +142,20 @@ export default function RentasNegocioPreviewClient() {
         return;
       }
 
-      let leonixAdId: string | null = null;
+      let leonixAdId: string | null = r.leonixAdId?.trim() || null;
       let customerEmail: string | null = null;
       try {
         const supabase = createSupabaseBrowserClient();
         const { data: auth } = await supabase.auth.getUser();
         customerEmail = auth.user?.email ?? null;
-        const { data: adRow } = await supabase
-          .from("listings")
-          .select("leonix_ad_id")
-          .eq("id", r.listingId)
-          .maybeSingle();
-        leonixAdId = (adRow as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+        if (!leonixAdId) {
+          const { data: adRow } = await supabase
+            .from("listings")
+            .select("leonix_ad_id")
+            .eq("id", r.listingId)
+            .maybeSingle();
+          leonixAdId = (adRow as { leonix_ad_id?: string | null } | null)?.leonix_ad_id?.trim() || null;
+        }
       } catch {
         /* optional metadata */
       }

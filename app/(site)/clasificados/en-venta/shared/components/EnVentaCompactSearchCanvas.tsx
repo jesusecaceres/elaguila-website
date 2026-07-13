@@ -33,6 +33,10 @@ type Props = {
   browseAllLabel?: string;
   /** Row 2 — Filters button slot */
   secondRow?: ReactNode;
+  onStateChange?: () => void;
+  onCountryChange?: () => void;
+  /** Remount inputs when URL-driven defaults change */
+  remountKey?: string;
 };
 
 export function EnVentaCompactSearchCanvas({
@@ -56,6 +60,9 @@ export function EnVentaCompactSearchCanvas({
   browseAllHref,
   browseAllLabel,
   secondRow,
+  onStateChange,
+  onCountryChange,
+  remountKey,
 }: Props) {
   const ph = searchLabel ?? enVentaBrowseSearchPlaceholder(lang);
   const cityPh = cityLabel ?? (lang === "es" ? "Ciudad" : "City");
@@ -85,6 +92,7 @@ export function EnVentaCompactSearchCanvas({
               </svg>
             </span>
             <input
+              key={remountKey ? `q-${remountKey}` : undefined}
               name="q"
               type="search"
               autoComplete="off"
@@ -96,6 +104,7 @@ export function EnVentaCompactSearchCanvas({
           </label>
           <label className={`${EV_SEARCH_CELL} border-b sm:col-span-2 sm:border-b-0 sm:border-r`}>
             <input
+              key={remountKey ? `city-${remountKey}` : undefined}
               name="city"
               type="text"
               list="en-venta-city-presets"
@@ -113,10 +122,12 @@ export function EnVentaCompactSearchCanvas({
           </label>
           <label className={`${EV_SEARCH_CELL} border-b sm:col-span-2 sm:border-b-0 sm:border-r`}>
             <select
+              key={remountKey ? `state-${remountKey}` : undefined}
               name="state"
               defaultValue={defaultState || "CA"}
               aria-label={statePh}
               className={`${EV_SEARCH_INPUT} appearance-none`}
+              onChange={() => onStateChange?.()}
             >
               {US_STATE_OPTIONS.map((opt) => (
                 <option key={opt.code} value={opt.code}>
@@ -127,6 +138,7 @@ export function EnVentaCompactSearchCanvas({
           </label>
           <label className={`${EV_SEARCH_CELL} border-b sm:col-span-2 sm:border-b-0 sm:border-r`}>
             <input
+              key={remountKey ? `zip-${remountKey}` : undefined}
               name="zip"
               type="text"
               inputMode="numeric"
@@ -147,6 +159,7 @@ export function EnVentaCompactSearchCanvas({
         <div className="flex flex-col gap-1.5 p-1.5 sm:grid sm:grid-cols-12 sm:items-center">
           <label className={`${EV_SEARCH_CELL} order-1 sm:order-none sm:col-span-3`}>
             <input
+              key={remountKey ? `country-${remountKey}` : undefined}
               name="country"
               type="text"
               defaultValue={defaultCountry}
@@ -154,6 +167,7 @@ export function EnVentaCompactSearchCanvas({
               aria-label={countryPh}
               autoComplete="country-name"
               className={EV_SEARCH_INPUT}
+              onChange={() => onCountryChange?.()}
             />
           </label>
           <div className="order-2 flex flex-wrap items-center gap-1.5 sm:order-none sm:col-span-5">

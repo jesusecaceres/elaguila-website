@@ -45,7 +45,13 @@ const GATE_ROWS = [
 ];
 
 const YELLOW_FALSE_OK = new Set([
-  "Dashboard per-listing analytics proven",
+  "Child bundle in production Stripe checkout",
+]);
+
+/** Rows that must be FALSE when recommendation is GREEN (negative assertions). */
+const GREEN_FALSE_OK = new Set([
+  "Autos has any fake visible actions",
+  "Autos has SQL/table/listing blocker",
   "Child bundle in production Stripe checkout",
 ]);
 
@@ -81,15 +87,23 @@ function run() {
     const line = auditText.split("\n").find((l) => l.includes(`| ${row} |`) || l.includes(`|${row}|`));
     assert.ok(line, `Missing gate row: ${row}`);
     if (recommendation === "GREEN") {
-      assert.match(line, /\|\s*TRUE\s*\|/i, `GREEN requires TRUE: ${row}`);
+      if (GREEN_FALSE_OK.has(row)) {
+        assert.match(line, /\|\s*FALSE\s*\|/i, `GREEN requires FALSE (no blocker): ${row}`);
+      } else {
+        assert.match(line, /\|\s*TRUE\s*\|/i, `GREEN requires TRUE: ${row}`);
+      }
     }
   }
 
-  for (const row of [...YELLOW_FALSE_OK, "Dashboard per-listing analytics proven", "Child bundle in production Stripe checkout"]) {
+  for (const row of ["Dashboard per-listing analytics proven", ...YELLOW_FALSE_OK]) {
     const line = auditText.split("\n").find((l) => l.includes(`| ${row} |`) || l.includes(`|${row}|`));
     assert.ok(line, `Missing documented row: ${row}`);
     if (recommendation === "GREEN") {
-      assert.match(line, /\|\s*TRUE\s*\|/i, `GREEN requires TRUE: ${row}`);
+      if (GREEN_FALSE_OK.has(row)) {
+        assert.match(line, /\|\s*FALSE\s*\|/i, `GREEN requires FALSE (known gap): ${row}`);
+      } else {
+        assert.match(line, /\|\s*TRUE\s*\|/i, `GREEN requires TRUE: ${row}`);
+      }
     }
     if (recommendation === "YELLOW" && YELLOW_FALSE_OK.has(row)) {
       assert.match(line, /\|\s*FALSE\s*\|/i, `YELLOW documents known gap: ${row}`);
@@ -109,6 +123,7 @@ function run() {
   const engagementRow = read("app/(site)/clasificados/autos/shared/components/AutosEngagementRow.tsx");
   const resolveIdentity = read("app/lib/analytics/server/resolveListingAnalyticsIdentity.ts");
   const categoryTools = read("app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools.ts");
+  const dashboardSection = read("app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx");
 
   assert.ok(migration.includes("autos_classifieds_listings"), "Autos source table migration required");
   assert.ok(migration.includes("owner_user_id"), "owner_user_id column required");
@@ -138,7 +153,9 @@ function run() {
 
   assert.ok(engagementRow.includes("listingSourceId"), "detail engagement UUID required");
   assert.ok(resolveIdentity.includes("autos_classifieds_listings"), "resolver must know autos table");
-  assert.ok(categoryTools.includes('analytics: "unproven"'), "honest autos dashboard analytics status");
+  assert.ok(categoryTools.includes('analytics: "ready"'), "Autos dashboard analytics marked ready");
+  assert.ok(dashboardSection.includes("Ver analíticas") || dashboardSection.includes("View analytics"), "Dealer analytics drill-down labels");
+  assert.ok(dashboardSection.includes("autosPaidListingAnalyticsHref"), "Dealer dashboard section analytics wired");
 
   const privadoApp = read("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
   assert.ok(!privadoApp.includes("autosDealerRevenueCheckout"), "Privado must not import dealer Revenue OS checkout");

@@ -13,6 +13,7 @@ import {
 } from "../../../application/brNegocioInventoryDraftPersistence";
 import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+  BR_AGENTE_IDB_PREFIX,
   clearBrAgenteResDraftMediaNamespace,
   inlineBrAgenteResHeavyMediaFromIdb,
   offloadBrAgenteResHeavyMediaToIdb,
@@ -314,6 +315,10 @@ export function persistAgenteResApplicationDraftQuiet(state: AgenteIndividualRes
 /**
  * Sync flush for hard refresh / pagehide — skips IndexedDB offload so open-house + text survive
  * an immediate reload before the debounced async autosave finishes.
+ *
+ * CRITICAL: never wipe durable photo / media refs that async persist already wrote.
+ * `stripHeavyDataUrlsForSession` drops `data:` blobs; if we save that over an existing
+ * payload that held `__LX_BR_AGENTE_IDB__` refs, hard refresh loses the gallery.
  */
 export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidencialFormState): void {
   if (typeof window === "undefined") return;
@@ -321,9 +326,139 @@ export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidenc
   if (!draftHasPersistableProgress(state)) return;
   setFullDraftMediaBridge(state);
   setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
-  const compact = stripHeavyDataUrlsForSession(state);
+
+  let previous: AgenteIndividualResidencialFormState | null = null;
+  try {
+    const raw =
+      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ??
+      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ??
+      readDraftFromLocalStorageFallback();
+    previous = raw ? parsePersistedStateFromJson(raw) : null;
+  } catch {
+    previous = null;
+  }
+
+  const compact = preserveDurableMediaOnSyncFlush(stripHeavyDataUrlsForSession(state), state, previous);
   savePreviewPayload(compact, false);
   saveReturnPayload({ state: compact, savedAt: Date.now() }, false);
+}
+
+function isDurableMediaUrl(url: string): boolean {
+  const u = String(url ?? "");
+  if (!u) return false;
+  if (u.startsWith(BR_AGENTE_IDB_PREFIX)) return true;
+  if (u.startsWith("data:")) return false;
+  return true;
+}
+
+function preferDurableMediaField(current: string, previous: string): string {
+  const c = String(current ?? "");
+  const p = String(previous ?? "");
+  if (isDurableMediaUrl(c)) return c;
+  if (isDurableMediaUrl(p)) return p;
+  return "";
+}
+
+function preservePhotoListForSyncFlush(current: string[], previous: string[] | undefined): string[] {
+  const cur = Array.isArray(current) ? current : [];
+  const prev = Array.isArray(previous) ? previous : [];
+  const durableCurrent = cur.filter((u) => isDurableMediaUrl(String(u ?? "")));
+  if (durableCurrent.length > 0 && durableCurrent.length === cur.filter(Boolean).length) {
+    return durableCurrent;
+  }
+  const len = Math.max(cur.length, prev.length);
+  if (len === 0) return [];
+  const out: string[] = [];
+  for (let i = 0; i < len; i++) {
+    const chosen = preferDurableMediaField(String(cur[i] ?? ""), String(prev[i] ?? ""));
+    if (chosen) out.push(chosen);
+  }
+  if (out.length > 0) return out;
+  return cur.filter((u) => isDurableMediaUrl(String(u ?? "")));
+}
+
+function preserveDurableMediaOnSyncFlush(
+  stripped: AgenteIndividualResidencialFormState,
+  live: AgenteIndividualResidencialFormState,
+  previous: AgenteIndividualResidencialFormState | null,
+): AgenteIndividualResidencialFormState {
+  const prev = previous;
+  const fotos = preservePhotoListForSyncFlush(live.fotosDataUrls ?? [], prev?.fotosDataUrls);
+  const fotoPortadaIndex = Math.min(
+    Math.max(0, live.fotoPortadaIndex ?? 0),
+    Math.max(0, fotos.length - 1),
+  );
+  return {
+    ...stripped,
+    fotosDataUrls: fotos,
+    fotoPortadaIndex,
+    agenteFotoDataUrl: preferDurableMediaField(live.agenteFotoDataUrl ?? "", prev?.agenteFotoDataUrl ?? ""),
+    agente2FotoDataUrl: preferDurableMediaField(live.agente2FotoDataUrl ?? "", prev?.agente2FotoDataUrl ?? ""),
+    marcaLogoDataUrl: preferDurableMediaField(live.marcaLogoDataUrl ?? "", prev?.marcaLogoDataUrl ?? ""),
+    videoDataUrl: preferDurableMediaField(live.videoDataUrl ?? "", prev?.videoDataUrl ?? ""),
+    tourDataUrl: preferDurableMediaField(live.tourDataUrl ?? "", prev?.tourDataUrl ?? ""),
+    brochureDataUrl: preferDurableMediaField(live.brochureDataUrl ?? "", prev?.brochureDataUrl ?? ""),
+    listadoArchivoDataUrl: preferDurableMediaField(live.listadoArchivoDataUrl ?? "", prev?.listadoArchivoDataUrl ?? ""),
+    additionalInventoryProperties: preserveChildInventoryMediaOnSyncFlush(
+      stripped.additionalInventoryProperties ?? [],
+      live.additionalInventoryProperties ?? [],
+      prev?.additionalInventoryProperties ?? [],
+    ),
+  };
+}
+
+function preserveChildInventoryMediaOnSyncFlush(
+  strippedChildren: AgenteIndividualResidencialFormState["additionalInventoryProperties"],
+  liveChildren: AgenteIndividualResidencialFormState["additionalInventoryProperties"],
+  previousChildren: AgenteIndividualResidencialFormState["additionalInventoryProperties"],
+): AgenteIndividualResidencialFormState["additionalInventoryProperties"] {
+  const live = Array.isArray(liveChildren) ? liveChildren : [];
+  const prev = Array.isArray(previousChildren) ? previousChildren : [];
+  const stripped = Array.isArray(strippedChildren) ? strippedChildren : live;
+  return stripped.map((child, index) => {
+    const liveChild = live.find((c) => c.id === child.id) ?? live[index];
+    const prevChild = prev.find((c) => c.id === child.id) ?? prev[index];
+    const photoUrls = preservePhotoListForSyncFlush(
+      liveChild?.photoUrls ?? child.photoUrls ?? [],
+      prevChild?.photoUrls,
+    );
+    const primaryPhotoIndex = Math.min(
+      Math.max(0, liveChild?.primaryPhotoIndex ?? child.primaryPhotoIndex ?? 0),
+      Math.max(0, photoUrls.length - 1),
+    );
+    const liveForm = liveChild?.propertyForm;
+    const prevForm = prevChild?.propertyForm;
+    const formFotos = preservePhotoListForSyncFlush(
+      liveForm?.fotosDataUrls ?? child.propertyForm?.fotosDataUrls ?? [],
+      prevForm?.fotosDataUrls,
+    );
+    return {
+      ...child,
+      photoUrls,
+      primaryPhotoIndex,
+      mainPhotoUrl: photoUrls[primaryPhotoIndex] ?? photoUrls[0] ?? "",
+      propertyForm: child.propertyForm
+        ? {
+            ...child.propertyForm,
+            fotosDataUrls: formFotos,
+            fotoPortadaIndex: Math.min(
+              Math.max(0, liveForm?.fotoPortadaIndex ?? child.propertyForm.fotoPortadaIndex ?? 0),
+              Math.max(0, formFotos.length - 1),
+            ),
+            listadoArchivoDataUrl: preferDurableMediaField(
+              liveForm?.listadoArchivoDataUrl ?? "",
+              prevForm?.listadoArchivoDataUrl ?? "",
+            ),
+            videoDataUrl: preferDurableMediaField(liveForm?.videoDataUrl ?? "", prevForm?.videoDataUrl ?? ""),
+            tourDataUrl: preferDurableMediaField(liveForm?.tourDataUrl ?? "", prevForm?.tourDataUrl ?? ""),
+            brochureDataUrl: preferDurableMediaField(
+              liveForm?.brochureDataUrl ?? "",
+              prevForm?.brochureDataUrl ?? "",
+            ),
+          }
+        : child.propertyForm,
+    };
+  });
 }
 
 /** Rehydrate IndexedDB-backed media after refresh (same tab/session). */

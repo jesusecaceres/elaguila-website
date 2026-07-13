@@ -288,7 +288,14 @@ export type PublishLeonixRealEstateListingCoreParams = {
 };
 
 export type PublishLeonixRealEstateListingCoreResult =
-  | { ok: true; listingId: string; warnings: string[]; pendingPayment?: boolean }
+  | {
+      ok: true;
+      listingId: string;
+      warnings: string[];
+      pendingPayment?: boolean;
+      leonixAdId?: string | null;
+      listingStatus?: string | null;
+    }
   | { ok: false; error: string };
 
 export async function publishLeonixRealEstateListingCore(
@@ -412,8 +419,53 @@ export async function publishLeonixRealEstateListingCore(
     rentasPublishStepTracePatch({ publicListingInsertStarted: true });
   }
 
-  const { data: inserted, error: insErr } = await insertListingsRowResilient(supabase, insertPayload);
-  if (insErr || !inserted?.id) {
+  const reusableRentasPending =
+    category === "rentas" && params.activationMode === "pending_payment"
+      ? await supabase
+          .from("listings")
+          .select("id, leonix_ad_id, status")
+          .eq("owner_id", userId)
+          .eq("category", "rentas")
+          .eq("seller_type", sellerType)
+          .eq("status", "pending")
+          .eq("is_published", false)
+          .eq("title", titlePrep.titleForDb)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null, error: null };
+
+  const reusablePendingId =
+    !reusableRentasPending.error && typeof reusableRentasPending.data?.id === "string"
+      ? reusableRentasPending.data.id
+      : "";
+
+  let listingId = reusablePendingId;
+  let persistedLeonixAdId =
+    !reusableRentasPending.error && typeof reusableRentasPending.data?.leonix_ad_id === "string"
+      ? reusableRentasPending.data.leonix_ad_id
+      : null;
+  let persistedListingStatus =
+    !reusableRentasPending.error && typeof reusableRentasPending.data?.status === "string"
+      ? reusableRentasPending.data.status
+      : null;
+  let insertedThisAttempt = false;
+
+  let insErr: { message: string; code?: string } | null = null;
+  if (reusablePendingId) {
+    const patch = { ...insertPayload };
+    delete patch.owner_id;
+    delete patch.created_at;
+    const upd = await updateListingsRowResilient(supabase, reusablePendingId, patch);
+    insErr = upd.error;
+  } else {
+    const insertedRes = await insertListingsRowResilient(supabase, insertPayload);
+    insErr = insertedRes.error;
+    listingId = insertedRes.data?.id ?? "";
+    insertedThisAttempt = Boolean(listingId);
+  }
+
+  if (insErr || !listingId) {
     const err = insErr ?? { message: "unknown", code: "" };
     devLog("insert error", err);
     const code = typeof err.code === "string" ? err.code : "";
@@ -450,8 +502,6 @@ export async function publishLeonixRealEstateListingCore(
     };
   }
 
-  const listingId = inserted.id;
-
   if (category === "bienes-raices" && sellerType === "business") {
     const role = params.brInventoryRole;
     const needsMainGroupPatch = role === "main" && !params.brInventoryGroupId?.trim();
@@ -473,8 +523,11 @@ export async function publishLeonixRealEstateListingCore(
       publicListingReturnedId: listingId,
     });
     if (PUBLISH_DIAG) {
-      const { data: adPeek } = await supabase.from("listings").select("leonix_ad_id").eq("id", listingId).maybeSingle();
+      const { data: adPeek } = await supabase.from("listings").select("leonix_ad_id, status").eq("id", listingId).maybeSingle();
       const lid = (adPeek as { leonix_ad_id?: string | null } | null)?.leonix_ad_id;
+      const st = (adPeek as { status?: string | null } | null)?.status;
+      persistedLeonixAdId = typeof lid === "string" && lid.trim() ? lid.trim() : persistedLeonixAdId;
+      persistedListingStatus = typeof st === "string" && st.trim() ? st.trim() : persistedListingStatus;
       rentasPublishStepTracePatch({
         publicListingReturnedLeonixAdId: typeof lid === "string" && lid.trim() ? lid.trim() : null,
       });
@@ -519,7 +572,7 @@ export async function publishLeonixRealEstateListingCore(
     }
 
     if (ordered.length > 0 && photoUrls.length === 0) {
-      await supabase.from("listings").delete().eq("id", listingId);
+      if (insertedThisAttempt) await supabase.from("listings").delete().eq("id", listingId);
       return {
         ok: false,
         error:
@@ -540,7 +593,7 @@ export async function publishLeonixRealEstateListingCore(
       if (category === "rentas") {
         const galBlock = rentasPublishGalleryUrlsPreflight(photoUrls, lang);
         if (galBlock) {
-          await supabase.from("listings").delete().eq("id", listingId);
+          if (insertedThisAttempt) await supabase.from("listings").delete().eq("id", listingId);
           return { ok: false, error: galBlock };
         }
       }
@@ -549,9 +602,11 @@ export async function publishLeonixRealEstateListingCore(
       const galleryPatch: Record<string, unknown> = {
         description: descriptionForDb,
         images: photoUrls,
-        published_at: touch,
         updated_at: touch,
       };
+      if (params.activationMode !== "pending_payment") {
+        galleryPatch.published_at = touch;
+      }
       if (muxPid) {
         galleryPatch.mux_playback_id = muxPid;
         const aid = String(params.muxAssetId ?? "").trim();
@@ -564,7 +619,7 @@ export async function publishLeonixRealEstateListingCore(
       const { error: updErr } = await updateListingsRowResilient(supabase, listingId, galleryPatch);
       if (updErr) {
         devLog("description/images update failed", updErr);
-        await supabase.from("listings").delete().eq("id", listingId);
+        if (insertedThisAttempt) await supabase.from("listings").delete().eq("id", listingId);
         const updFriendly = mapLeonixListingsDescriptionConstraintToUserMessage(updErr, lang);
         return {
           ok: false,
@@ -585,7 +640,7 @@ export async function publishLeonixRealEstateListingCore(
     console.warn("[leonix publish] media upload error", e);
     devLog("media block error", e);
     if (ordered.length > 0 && !listingImagesPersisted) {
-      await supabase.from("listings").delete().eq("id", listingId);
+      if (insertedThisAttempt) await supabase.from("listings").delete().eq("id", listingId);
       return {
         ok: false,
         error:
@@ -597,7 +652,7 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   if (ordered.length > 0 && !listingImagesPersisted) {
-    await supabase.from("listings").delete().eq("id", listingId);
+    if (insertedThisAttempt) await supabase.from("listings").delete().eq("id", listingId);
     return {
       ok: false,
       error:
@@ -608,10 +663,23 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   devLog("publish ok", listingId, "warnings", warnings.length);
+  if (category === "rentas" && (!persistedLeonixAdId || !persistedListingStatus)) {
+    const { data: finalIdentity } = await supabase
+      .from("listings")
+      .select("leonix_ad_id, status")
+      .eq("id", listingId)
+      .maybeSingle();
+    const lid = (finalIdentity as { leonix_ad_id?: string | null } | null)?.leonix_ad_id;
+    const st = (finalIdentity as { status?: string | null } | null)?.status;
+    persistedLeonixAdId = typeof lid === "string" && lid.trim() ? lid.trim() : persistedLeonixAdId;
+    persistedListingStatus = typeof st === "string" && st.trim() ? st.trim() : persistedListingStatus;
+  }
   return {
     ok: true,
     listingId,
     warnings,
     pendingPayment: params.activationMode === "pending_payment",
+    leonixAdId: persistedLeonixAdId,
+    listingStatus: persistedListingStatus,
   };
 }

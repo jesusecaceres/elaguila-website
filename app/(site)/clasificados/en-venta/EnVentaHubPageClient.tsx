@@ -9,19 +9,18 @@ import type { EnVentaHubLandingResolved } from "@/app/lib/clasificados/mergeClas
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
-  LeonixCategorySearchCanvas,
   LeonixCategoryCta,
   LeonixCategoryDiscoveryGrid,
   LeonixCategoryShortcutSection,
   LeonixCategoryVisibilityStrip,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { EnVentaLandingSearchPanel } from "./shared/components/EnVentaLandingSearchPanel";
 import {
   LEONIX_LANDING_SECTION,
   LEONIX_LANDING_SECTION_PAD,
 } from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import {
-  categoryStandardSearchPlaceholder,
   categoryStandardTitle,
   categoryStandardDescription,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
@@ -75,28 +74,14 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
   const t = hub;
 
   const enVentaSearchForm = (
-    <LeonixCategorySearchCanvas
-      lang={lang as V2Lang}
-      surface="landing"
-      query=""
-      city=""
-      state=""
-      zip=""
-      country=""
-      onQuery={() => {}}
-      onCity={() => {}}
-      onState={() => {}}
-      onZip={() => {}}
-      onCountry={() => {}}
-      onSearch={() => {}}
-      onOpenFilters={() => {}}
+    <EnVentaLandingSearchPanel
+      lang={lang}
+      routeLang={routeLang as Lang}
       browseAllHref={allListingsHref}
       browseAllLabel={t.lista}
-      queryPlaceholder={categoryStandardSearchPlaceholder("en-venta", lang)}
-      searchButtonLabel={t.search}
-      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
       publishHref={publishHref}
       publishLabel={t.publish}
+      searchButtonLabel={t.search}
     />
   );
 

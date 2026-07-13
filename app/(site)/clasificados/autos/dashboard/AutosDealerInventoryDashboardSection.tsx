@@ -138,7 +138,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           inventory: "Inventario",
           manageListing: "Gestión disponible desde vista pública / admin",
           viewLive: "Ver público",
-          analytics: "Analíticas",
+          viewAnalytics: "Ver analíticas",
           unpublish: "Retirar",
           publish: "Publicar",
           publishAutos: "Publicar en Autos",
@@ -159,7 +159,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           inventory: "Inventory",
           manageListing: "Manage from public view / admin",
           viewLive: "View live",
-          analytics: "Analytics",
+          viewAnalytics: "View analytics",
           unpublish: "Unpublish",
           publish: "Publish",
           publishAutos: "Publish in Autos",
@@ -287,7 +287,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           })}
                           className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
                         >
-                          {t.analytics}
+                          {t.viewAnalytics}
                         </Link>
                         <button
                           type="button"
@@ -355,6 +355,18 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                       {lang === "es" ? "Editar anuncio" : "Edit listing"}
                     </Link>
                   ) : null}
+                  {parentId && group.rows.find((r) => r.id === parentId)?.status === "active" ? (
+                    <Link
+                      href={autosPaidListingAnalyticsHref({
+                        listingId: parentId,
+                        lang,
+                        leonixAdId: group.rows.find((r) => r.id === parentId)?.leonix_ad_id ?? null,
+                      })}
+                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-white/70 px-3 text-xs font-bold text-[#2C2416]"
+                    >
+                      {t.viewAnalytics}
+                    </Link>
+                  ) : null}
                   {parentId ? (
                     <Link
                       href={autosDealerInventoryEditHref({ lang, listingId: parentId })}
@@ -406,7 +418,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                                 })}
                                 className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
                               >
-                                {t.analytics}
+                                {t.viewAnalytics}
                               </Link>
                               <button
                                 type="button"

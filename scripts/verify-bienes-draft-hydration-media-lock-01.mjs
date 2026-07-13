@@ -60,5 +60,11 @@ assert(app.includes("bootstrapAgenteIndividualResidencialApplicationStateResolve
 assert(app.includes("persistAgenteResApplicationDraftResolved"), "preview awaits persist before navigate");
 assert(previewDraft.includes("resolveFullDraftMediaBridgeState"), "bootstrap uses validated media bridge");
 assert(previewDraft.includes("parsePersistedStateFromJson(raw)"), "LS fallback parses return wrapper");
+assert(previewDraft.includes("flushAgenteResDraftSyncForUnload"), "pagehide sync flush exists");
+assert(
+  previewDraft.includes("preserveDurableMediaOnSyncFlush") && previewDraft.includes("preservePhotoListForSyncFlush"),
+  "sync unload flush must preserve IDB/http photo refs (not wipe gallery on hard refresh)",
+);
+assert(cardUi.includes("grid grid-cols-3") && /gap-1\.5|gap-2/.test(cardUi), "results gallery has small tile gap");
 
 console.log("OK: bienes-draft-hydration-media-lock-01");

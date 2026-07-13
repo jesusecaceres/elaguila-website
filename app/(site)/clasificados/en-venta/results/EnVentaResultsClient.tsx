@@ -56,6 +56,11 @@ import { isEnVentaListingPubliclyVisible } from "../lib/enVentaListingVisibility
 import { queryEnVentaBrowseListings } from "../lib/enVentaListingPublicSelect";
 import { EnVentaCompactSearchCanvas } from "../shared/components/EnVentaCompactSearchCanvas";
 import {
+  EN_VENTA_DEFAULT_COUNTRY,
+  EN_VENTA_DEFAULT_STATE,
+} from "../shared/constants/enVentaLocationContract";
+import { sanitizeEnVentaLocationForUrl } from "../shared/enVentaBrowseParams";
+import {
   EV_BTN_SECONDARY,
   EV_PUBLIC_SHELL,
   enVentaBrowseSearchPlaceholder,
@@ -142,6 +147,16 @@ export function EnVentaResultsClient() {
   const [, setFavTick] = useState(0);
   const [geoHint, setGeoHint] = useState<string | null>(null);
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
+  const [stateTouched, setStateTouched] = useState(false);
+  const [countryTouched, setCountryTouched] = useState(false);
+
+  const urlHadState = sp?.has("state") ?? false;
+  const urlHadCountry = sp?.has("country") ?? false;
+
+  useEffect(() => {
+    setStateTouched(false);
+    setCountryTouched(false);
+  }, [q, city, state, zip, country, evDept, evSub, itemType, cond, priceMin, priceMax, pickup, ship, delivery, seller, freeOnly, negotiableOnly, meetupOnly, hasPhotoOnly, hasVideoOnly, featuredOnly, sort, view, page, perPage]);
 
   useEffect(() => {
     if (!filtersPanelOpen) return;
@@ -499,12 +514,18 @@ export function EnVentaResultsClient() {
     const photoOn = fd.get("hasPhoto") === "1";
     const videoOn = fd.get("hasVideo") === "1";
     const nextSort = String(fd.get("sort") ?? sort).trim() as SortId;
+    const locParams = sanitizeEnVentaLocationForUrl(
+      {
+        q: String(fd.get("q") ?? "").trim(),
+        city: String(fd.get("city") ?? "").trim(),
+        state: String(fd.get("state") ?? "").trim(),
+        zip: String(fd.get("zip") ?? "").trim(),
+        country: String(fd.get("country") ?? "").trim(),
+      },
+      { urlHadState, urlHadCountry, stateTouched, countryTouched },
+    );
     pushParams({
-      q: String(fd.get("q") ?? "").trim() || undefined,
-      city: String(fd.get("city") ?? "").trim() || undefined,
-      state: String(fd.get("state") ?? "").trim() || undefined,
-      zip: String(fd.get("zip") ?? "").trim() || undefined,
-      country: String(fd.get("country") ?? "").trim() || undefined,
+      ...locParams,
       itemType: String(fd.get("itemType") ?? "").trim() || undefined,
       sort: nextSort,
       view: String(fd.get("view") ?? view),
@@ -603,9 +624,14 @@ export function EnVentaResultsClient() {
         label: `${lang === "es" ? "Ciudad" : "City"}: ${city}`,
         onRemove: () => rm({ city: undefined }),
       });
-    if (state.trim()) out.push({ key: "state", label: state.toUpperCase(), onRemove: () => rm({ state: undefined }) });
+    if (urlHadState && state.trim())
+      out.push({ key: "state", label: state.toUpperCase(), onRemove: () => rm({ state: undefined }) });
     if (zip.trim()) out.push({ key: "zip", label: `ZIP: ${zip}`, onRemove: () => rm({ zip: undefined }) });
-    if (country.trim() && !/^(united states|estados unidos|us|usa)$/i.test(country.trim()))
+    if (
+      urlHadCountry &&
+      country.trim() &&
+      !/^(united states|estados unidos|us|usa)$/i.test(country.trim())
+    )
       out.push({ key: "country", label: country, onRemove: () => rm({ country: undefined }) });
     if (itemType) out.push({ key: "itemType", label: itemType, onRemove: () => rm({ itemType: undefined }) });
     if (evDept) {
@@ -689,6 +715,8 @@ export function EnVentaResultsClient() {
     t.freeOnly,
     t.negoOnly,
     t.meetupOnly,
+    urlHadState,
+    urlHadCountry,
   ]);
 
   const countLine =
@@ -757,6 +785,7 @@ export function EnVentaResultsClient() {
           <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
           <div className="mt-2">
             <EnVentaCompactSearchCanvas
+            key={`${q}|${city}|${state}|${zip}|${country}`}
             lang={lang}
             routeLang={lang}
             action={EN_VENTA_RESULTS_PATH}
@@ -764,14 +793,17 @@ export function EnVentaResultsClient() {
             onSubmit={onSubmitSearch}
             defaultQ={q}
             defaultCity={city}
-            defaultState={state || "CA"}
+            defaultState={state || EN_VENTA_DEFAULT_STATE}
             defaultZip={zip}
-            defaultCountry={country || "United States"}
+            defaultCountry={country || EN_VENTA_DEFAULT_COUNTRY}
             searchLabel={enVentaBrowseSearchPlaceholder(lang)}
             cityLabel={t.cityPh}
             zipLabel={t.zip}
             searchButtonLabel={t.go}
             browseAllHref={buildEnVentaResultsUrl(lang)}
+            onStateChange={() => setStateTouched(true)}
+            onCountryChange={() => setCountryTouched(true)}
+            remountKey={`${q}|${city}|${state}|${zip}|${country}`}
             secondRow={
               <button
                 type="button"

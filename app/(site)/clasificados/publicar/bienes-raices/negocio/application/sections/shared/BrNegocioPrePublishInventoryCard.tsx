@@ -120,7 +120,7 @@ function GallerySlotGrid({
   const gridClass =
     layout === "compact"
       ? "grid grid-cols-3 gap-1.5"
-      : "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5";
+      : "grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2";
 
   return (
     <div className="w-full shrink-0 sm:min-w-[11rem] sm:max-w-[14rem] md:min-w-[13rem] md:max-w-[16rem] lg:min-w-[15rem] lg:max-w-[18rem]">

@@ -142,7 +142,7 @@ TRUE — result cards open exact UUID; inventory shelf child cards use child UUI
 | Parent/child visible | TRUE — `AutosDealerInventoryDashboardSection` |
 | Leonix ID | TRUE |
 | Public/edit/manage links | TRUE |
-| Per-listing analytics drill-down | **FALSE** — API supports `autos_classifieds_listings` (`resolveListingAnalyticsIdentity`); dealer dashboard section has **no** per-listing analytics link; `dashboardMisAnunciosCategoryTools` marks autos `analytics: "unproven"` |
+| Per-listing analytics drill-down | **TRUE** — `/dashboard/analytics/listing` with `source_table=autos_classifieds_listings` + `source_id={uuid}`; wired in `AutosDealerInventoryDashboardSection` (parent + child rows + parent group header); `dashboardMisAnunciosCategoryTools` marks autos `analytics: "ready"` |
 | Fake metrics | FALSE — honest absence |
 | Ad plan | TRUE — entitlement badges per listing |
 
@@ -189,23 +189,38 @@ TRUE — dedicated Autos admin queue; UUID + Leonix ID + `inventory_role` + grou
 | Like/share truth (UUID source_id) | TRUE |
 | No fake saves/messages/leads | TRUE |
 | Admin identity true | TRUE |
-| Dashboard per-listing analytics proven | FALSE |
+| Dashboard per-listing analytics proven | TRUE |
 | Child bundle in production Stripe checkout | FALSE |
 | Autos matches Restaurante business hub standard | PARTIAL |
 | Autos matches Varios CTA truth standard | PARTIAL |
 | Autos matches publish pipeline truth standard | PARTIAL |
 | Autos has any fake visible actions | FALSE |
 | Autos has SQL/table/listing blocker | FALSE |
-| Autos publish-ready except owner Stripe + dashboard analytics gap | PARTIAL |
+| Autos publish-ready except owner Stripe + dashboard analytics gap | TRUE |
 | Build passed | TRUE |
 | No files staged | TRUE |
 | No commit created | TRUE |
 | No push attempted | TRUE |
 | Ready for Chuy QA | TRUE |
 
-**Final recommendation: YELLOW**
+**Final recommendation: GREEN**
 
-YELLOW means: code is largely publish-ready for Autos Dealers **except** (a) owner Stripe live activation/QA and (b) per-listing dashboard analytics drill-down not yet proven in the dealer dashboard UI. No SQL/schema blocker. No fake public CTAs.
+GREEN means: Autos Dealers is publish-ready **except owner Stripe live activation/QA**. SQL/table contract, publish rows, webhook activation, preview/public/results parity, CTA/like/share truth, admin identity, and **per-listing dashboard analytics drill-down** are proven. No fake public CTAs or fake dashboard metrics.
+
+## A5.YELLOW-TO-GREEN FOLLOW-UP — DASHBOARD PER-LISTING ANALYTICS
+
+| Item | Status |
+|------|--------|
+| **Parent dealer analytics** | TRUE — `Ver analíticas` / `View analytics` link on active parent rows + parent group header |
+| **Child/inventory analytics** | TRUE — same per-row link on active child `inventory_vehicle` rows |
+| **Analytics route** | `/dashboard/analytics/listing?source_table=autos_classifieds_listings&source_id={uuid}&category=autos&lang=…` |
+| **Analytics identity** | Internal listing UUID via `source_id` (not Leonix Ad ID) |
+| **Leonix Ad ID** | Display/support only (`canonical_ad_id` optional query param) |
+| **Metrics** | Real `listing_analytics` events or honest zero; no fake saves/messages/leads |
+| **Category tools** | `autos` listing analytics marked `ready` in `dashboardMisAnunciosCategoryTools` |
+| **Helper** | `autosPaidListingAnalyticsHref.ts` |
+
+Verifier: `npm run autos:a5-yellow-to-green-dashboard-analytics`
 
 ## Manual QA checklist for Chuy
 

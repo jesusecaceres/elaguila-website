@@ -48,3 +48,5 @@ export const EV_LISTING_PARAM = {
 } as const;
 
 export type EvResultsParamKey = (typeof EV_RESULTS_PARAM)[keyof typeof EV_RESULTS_PARAM];
+
+/** Location + drawer URL builders: `../shared/enVentaBrowseParams.ts` (`sanitizeEnVentaLocationForUrl`, `buildEnVentaBrowseHref`). */
