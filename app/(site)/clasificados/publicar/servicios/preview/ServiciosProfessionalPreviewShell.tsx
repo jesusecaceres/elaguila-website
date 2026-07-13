@@ -19,6 +19,8 @@ import { ServiciosOfferedSection } from "@/app/servicios/components/ServiciosSer
 import { ServiciosGalleryWithTabs } from "@/app/servicios/components/ServiciosGalleryWithTabs";
 import { ServiciosReviews } from "@/app/servicios/components/ServiciosReviews";
 import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/ServiciosBusinessHubContactCard";
+import { ServiciosLikeEngagementCluster } from "@/app/servicios/components/ServiciosLikeEngagementCluster";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { ServiciosCouponsCard } from "@/app/servicios/components/ServiciosCouponsCard";
 import { ServiciosVisualProofRow } from "@/app/servicios/components/ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "@/app/servicios/components/ServiciosPublicDetailsCanvas";
@@ -104,6 +106,8 @@ export function ServiciosProfessionalPreviewShell({
     return null;
   }
 
+  const previewEngagementListingId = (draftSlug ?? displayProfile.identity.slug).trim();
+
   return (
     <div
       className="min-w-0 overflow-x-hidden rounded-xl border shadow-sm sm:rounded-2xl"
@@ -115,6 +119,26 @@ export function ServiciosProfessionalPreviewShell({
         template={template}
         cityFallback={cityFallback}
         contactScrollTargetId="servicios-preview-contact"
+        engagementSlot={
+          <div className="flex flex-wrap items-center gap-2">
+            <ServiciosLikeEngagementCluster
+              listingId={previewEngagementListingId}
+              lang={lang}
+              persistEngagement={false}
+              variant="small"
+              tone="hero"
+            />
+            <LeonixShareButton
+              listingId={previewEngagementListingId}
+              listingTitle={displayProfile.identity.businessName}
+              variant="small"
+              lang={lang}
+              category="servicios"
+              persistEngagement={false}
+              directNativeShare
+            />
+          </div>
+        }
       />
 
       <p className="border-b border-[#E8D9C4]/80 bg-[#FFFDF9] px-4 py-2.5 text-center text-[11px] leading-snug text-[#6F6254] sm:px-6">
@@ -134,6 +158,10 @@ export function ServiciosProfessionalPreviewShell({
               profile={displayProfile}
               lang={lang}
               listingTemplate={template}
+              listingSlug={previewEngagementListingId}
+              engagementListingId={previewEngagementListingId}
+              showEngagementControls
+              persistListingEngagement={false}
               directContactFasterResponseHint
               showOfferSidebarTeaser={false}
             />

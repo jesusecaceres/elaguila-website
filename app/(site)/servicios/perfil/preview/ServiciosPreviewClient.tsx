@@ -67,5 +67,5 @@ export function ServiciosPreviewClient() {
     );
   }
 
-  return <ServiciosProfileView profile={profile} lang={lang} />;
+  return <ServiciosProfileView profile={profile} lang={lang} showEngagementControls persistListingEngagement={false} engagementListingId={profile.identity.slug} analyticsListingSlug={profile.identity.slug} />;
 }

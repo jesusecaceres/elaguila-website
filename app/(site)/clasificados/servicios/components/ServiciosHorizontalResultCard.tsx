@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
@@ -29,6 +29,7 @@ import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicio
 import { ServiciosProfessionalResultCard } from "../ServiciosProfessionalResultCard";
 import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/ServiciosAdaptiveLogoPlate";
 import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
+import { ServiciosResultCardEngagementStrip } from "@/app/servicios/components/ServiciosResultCardEngagementStrip";
 import { ServiciosServiceChipsRow } from "@/app/servicios/components/ServiciosServiceChipsRow";
 import {
   LX,
@@ -43,6 +44,7 @@ import {
   isWeakProfessionalChipLabel,
 } from "@/app/(site)/servicios/components/serviciosLeonixBrand";
 import { formatServiciosPublicLocationLine } from "../lib/formatServiciosPublicLocationLine";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -286,6 +288,29 @@ export function ServiciosHorizontalResultCard({
       ? Math.floor(row.public_like_net_count)
       : 0;
 
+  const [resolvedShareUrl, setResolvedShareUrl] = useState((listingShareUrl ?? "").trim());
+  useEffect(() => {
+    const fromProp = (listingShareUrl ?? "").trim();
+    if (fromProp) {
+      setResolvedShareUrl(fromProp);
+      return;
+    }
+    if (!row?.slug || previewProfile) {
+      setResolvedShareUrl("");
+      return;
+    }
+    const rel = `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
+    setResolvedShareUrl(`${window.location.origin}${rel}`);
+  }, [listingShareUrl, row?.slug, lang, previewProfile]);
+
+  const persistListingEngagement = useMemo(() => {
+    if (!row?.id?.trim()) return false;
+    if (row.listing_status && row.listing_status !== SERVICIOS_LISTING_STATUS_PUBLISHED) return false;
+    return Boolean(ctaAnalyticsListingKey.trim()) && Boolean(resolvedShareUrl.trim());
+  }, [ctaAnalyticsListingKey, resolvedShareUrl, row]);
+
+  const showEngagementControls = Boolean(ctaAnalyticsListingKey.trim());
+
   const officeTel = (profile.contact.phoneOfficeTelHref || "").trim();
   const officeDisplay = (profile.contact.phoneOfficeDisplay || "").trim();
   const tel = (profile.contact.phoneTelHref || "").trim();
@@ -437,6 +462,19 @@ export function ServiciosHorizontalResultCard({
             >
               {vitrinaLabel}
             </Link>
+
+            <ServiciosResultCardEngagementStrip
+              listingId={ctaAnalyticsListingKey}
+              ownerUserId={row?.owner_user_id ?? null}
+              listingTitle={profile.identity.businessName}
+              listingShareUrl={resolvedShareUrl || undefined}
+              listingSlug={listingSlug}
+              listingSourceId={row?.id ?? null}
+              lang={lang}
+              publicLikeCount={likeBadgeCount}
+              showEngagementControls={showEngagementControls}
+              persistListingEngagement={persistListingEngagement}
+            />
 
             {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
               <Link

@@ -16,6 +16,7 @@ export default async function RevenueOsPagoExitoPage({
   const category = typeof params.category === "string" ? params.category : "";
   const packageKey = typeof params.package_key === "string" ? params.package_key : "";
   const returnToRaw = typeof params.return_to === "string" ? params.return_to : null;
+  const boostSource = typeof params.boost_source === "string" ? params.boost_source : null;
   const returnTo = resolveRevenueOsSuccessReturnPath({
     returnTo: returnToRaw,
     category,
@@ -35,6 +36,7 @@ export default async function RevenueOsPagoExitoPage({
       lang={lang}
       returnTo={returnTo}
       category={category}
+      boostSource={boostSource}
       showRefreshHint
     />
   );

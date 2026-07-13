@@ -14,6 +14,7 @@ import {
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
+import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./lib/serviciosListingLifecycle";
 import {
   readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
@@ -29,6 +30,7 @@ import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(si
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/ServiciosAdaptiveLogoPlate";
 import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
+import { ServiciosResultCardEngagementStrip } from "@/app/servicios/components/ServiciosResultCardEngagementStrip";
 import { ServiciosServiceChipsRow } from "@/app/servicios/components/ServiciosServiceChipsRow";
 import {
   LX,
@@ -148,6 +150,14 @@ export function ServiciosProfessionalResultCard({
   useEffect(() => {
     setListingShareUrl(`${window.location.origin}${href}`);
   }, [href]);
+
+  const persistListingEngagement = useMemo(() => {
+    if (!row.id?.trim()) return false;
+    if (row.listing_status && row.listing_status !== SERVICIOS_LISTING_STATUS_PUBLISHED) return false;
+    return Boolean(ctaAnalyticsKey.trim()) && Boolean(listingShareUrl.trim());
+  }, [ctaAnalyticsKey, listingShareUrl, row.id, row.listing_status]);
+
+  const showEngagementControls = Boolean(ctaAnalyticsKey.trim());
 
   const contactExtras = useMemo(
     () => serviciosContactShareExtras(profile, row.slug, listingShareUrl || undefined),
@@ -336,6 +346,18 @@ export function ServiciosProfessionalResultCard({
             >
               {secondaryLabel}
             </Link>
+            <ServiciosResultCardEngagementStrip
+              listingId={ctaAnalyticsKey}
+              ownerUserId={row.owner_user_id ?? null}
+              listingTitle={profile.identity.businessName}
+              listingShareUrl={persistListingEngagement ? listingShareUrl || undefined : undefined}
+              listingSlug={row.slug}
+              listingSourceId={row.id ?? null}
+              lang={lang}
+              publicLikeCount={likeBadgeCount}
+              showEngagementControls={showEngagementControls}
+              persistListingEngagement={persistListingEngagement}
+            />
           </div>
         </div>
       </article>

@@ -49,6 +49,7 @@ export function ServiciosProfileView({
   listingSourceId = null,
   engagementListingId = null,
   engagementOwnerUserId = null,
+  showEngagementControls = true,
   persistListingEngagement = false,
   publicLikeCount,
   listingShareUrl,
@@ -68,6 +69,7 @@ export function ServiciosProfileView({
   listingSourceId?: string | null;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
+  showEngagementControls?: boolean;
   persistListingEngagement?: boolean;
   publicLikeCount?: number;
   listingShareUrl?: string;
@@ -124,6 +126,7 @@ export function ServiciosProfileView({
                     listingShareUrl={listingShareUrl}
                     engagementListingId={engagementListingId}
                     engagementOwnerUserId={engagementOwnerUserId}
+                    showEngagementControls={showEngagementControls}
                     persistListingEngagement={persistListingEngagement}
                     publicLikeCount={publicLikeCount}
                     directContactFasterResponseHint={directContactFasterResponseHint}

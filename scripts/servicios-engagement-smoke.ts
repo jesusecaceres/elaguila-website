@@ -129,7 +129,9 @@ function main() {
     join(__dirname, "../app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx"),
     "utf8",
   );
-  assert.ok(hubRow.includes("showEngagementActions"), "hub row: published-only engagement gate");
+  assert.ok(hubRow.includes("showEngagementControls"), "hub row: visibility prop separate from persistence");
+  assert.ok(hubRow.includes("showEngagementActions"), "hub row: visibility gate");
+  assert.ok(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub row: visibility not tied to persistence");
   assert.ok(hubRow.includes("directNativeShare"), "hub row: native share");
   assert.ok(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: persistence flag wired");
 

@@ -29,6 +29,7 @@ export function ServiciosBusinessHubEngagementRow({
   engagementListingId = null,
   engagementOwnerUserId = null,
   listingShareUrl,
+  showEngagementControls = true,
   persistListingEngagement = false,
   publicLikeCount,
 }: {
@@ -39,6 +40,8 @@ export function ServiciosBusinessHubEngagementRow({
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
   listingShareUrl?: string;
+  /** When true, Like / Share / Save render (preview + published). */
+  showEngagementControls?: boolean;
   persistListingEngagement?: boolean;
   publicLikeCount?: number;
 }) {
@@ -68,8 +71,7 @@ export function ServiciosBusinessHubEngagementRow({
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
 
-  /** Published listings only — preview drafts must not surface like/share/save actions. */
-  const showEngagementActions = persistEngagement && Boolean(lxListingId);
+  const showEngagementActions = showEngagementControls && Boolean(lxListingId);
 
   if (!showEngagementActions) return null;
 

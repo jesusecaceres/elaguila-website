@@ -150,6 +150,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     listingSourceId: row.id,
     engagementListingId: engagementKey,
     engagementOwnerUserId: row.owner_user_id ?? null,
+    showEngagementControls: true,
     persistListingEngagement,
     publicLikeCount,
     listingShareUrl,

@@ -49,10 +49,13 @@ assert(hubRow.includes("ServiciosLikeEngagementCluster"), "hub row: like cluster
 assert(hubRow.includes("LeonixShareButton"), "hub row: share button");
 assert(hubRow.includes("directNativeShare"), "hub row: direct native share");
 assert(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: like uses route persistence flag");
-assert(hubRow.includes("showEngagementActions"), "hub row: published-only engagement gate");
+assert(hubRow.includes("showEngagementControls"), "hub row: visibility prop separate from persistence");
+assert(hubRow.includes("showEngagementActions"), "hub row: visibility gate");
+assert(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub row: visibility not tied to persistence");
 assert(!hubRow.includes("showShare ?"), "hub row: no preview-only share branch");
 
 assert(proShell.includes("directNativeShare"), "professional shell: hero native share");
+assert(proShell.includes("showEngagementControls ?"), "professional shell: hero engagement visibility gate");
 assert(proShell.includes("persistEngagement={persistListingEngagement}"), "professional shell: route persistence on hero");
 
 assert(shareBtn.includes("navigator.share"), "share button: native share path");
@@ -65,8 +68,9 @@ assert(likeBtn.includes(".delete()"), "like button: delete on unlike");
 assert(likeBtn.includes("FaHeart"), "like button: red filled heart");
 assert(likeBtn.includes("setIsLiked(prev)"), "like button: rollback on failure");
 
-assert(!previewClient.includes("persistListingEngagement"), "legacy preview: no persistence props");
-assert(!clasPreview.includes("persistListingEngagement"), "clas preview: no persistence props");
+assert(previewClient.includes("persistListingEngagement={false}"), "legacy preview: persistence explicitly disabled");
+assert(clasPreview.includes("persistListingEngagement={false}"), "clas preview: persistence explicitly disabled");
+assert(!clasPreview.includes("persistListingEngagement={true}"), "clas preview: persistence never enabled");
 
 const locked = [
   "app/(site)/servicios/components/ServiciosPagosBeneficiosSection.tsx",

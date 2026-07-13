@@ -6,7 +6,7 @@ import {
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { resolveBienesInventoryPackSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
-import { resolveAutosDealerInventoryPackSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { resolveAutosDealerInventoryPackPaymentSuccessPresentation } from "@/app/lib/clasificados/autos/autosDealerInventoryBoostReturnContract";
 import { resolveRestauranteOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 import { resolveServiciosOffersAddonSuccessPrimaryCta } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 
@@ -32,6 +32,7 @@ function resolveCopy(
   lang: "en" | "es",
   returnTo?: string | null,
   category?: string | null,
+  boostSource?: string | null,
 ): Copy {
   const dashboardHref = buildDashboardMisAnunciosReturnPath(lang);
   const categoryHref = resolveRevenueCategoryDefaultReturnPath(category ?? proof.category ?? "", lang);
@@ -39,6 +40,14 @@ function resolveCopy(
     ? sanitizeRevenueOsReturnPath(returnTo, dashboardHref)
     : null;
   const supportHref = lang === "es" ? "/contacto?lang=es" : "/contact?lang=en";
+  const autosInventoryPackPresentation = resolveAutosDealerInventoryPackPaymentSuccessPresentation({
+    packageKey: proof.packageKey,
+    listingId: proof.listingId,
+    leonixAdId: proof.leonixAdId,
+    lang,
+    returnTo: safeReturnTo,
+    boostSource,
+  });
   const offersAddonPrimaryCta =
     resolveRestauranteOffersAddonSuccessPrimaryCta({
       packageKey: proof.packageKey,
@@ -58,12 +67,8 @@ function resolveCopy(
       leonixAdId: proof.leonixAdId,
       lang,
     }) ??
-    resolveAutosDealerInventoryPackSuccessPrimaryCta({
-      packageKey: proof.packageKey,
-      listingId: proof.listingId,
-      leonixAdId: proof.leonixAdId,
-      lang,
-    });
+    autosInventoryPackPresentation?.primaryCta ??
+    null;
 
   const detailLines: Copy["detailLines"] = [];
   if (proof.categoryLabel) detailLines.push({ label: lang === "es" ? "Categoría" : "Category", value: proof.categoryLabel });
@@ -95,13 +100,23 @@ function resolveCopy(
   }
 
   if (proof.paymentState === "confirmed" && proof.entitlementState === "active") {
+    const autosDraftReturn =
+      autosInventoryPackPresentation?.source === "draft" ? autosInventoryPackPresentation : null;
     return {
       title: lang === "es" ? "Pago recibido" : "Payment received",
-      subtitle: lang === "es" ? "Plan del anuncio activo" : "Ad plan active",
+      subtitle:
+        autosDraftReturn
+          ? lang === "es"
+            ? "Inventory Boost está activo"
+            : "Inventory Boost is active"
+          : lang === "es"
+            ? "Plan del anuncio activo"
+            : "Ad plan active",
       body:
-        lang === "es"
+        autosDraftReturn?.bodyOverride ??
+        (lang === "es"
           ? "Stripe confirmó tu pago. Tu plan del anuncio está activo según nuestro registro verificado."
-          : "Stripe confirmed your payment. Your listing ad plan is active per our verified records.",
+          : "Stripe confirmed your payment. Your listing ad plan is active per our verified records."),
       detailLines,
       note:
         lang === "es"
@@ -109,18 +124,22 @@ function resolveCopy(
           : "Activated by verified Stripe webhook — not by this page.",
       primaryHref: offersAddonPrimaryCta?.href ?? dashboardHref,
       primaryLabel: offersAddonPrimaryCta?.label ?? (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
-      secondaryHref: offersAddonPrimaryCta
-        ? dashboardHref
-        : safeReturnTo && safeReturnTo !== dashboardHref
-          ? safeReturnTo
-          : categoryHref,
-      secondaryLabel: offersAddonPrimaryCta
-        ? lang === "es"
-          ? "Volver a mi panel"
-          : "Back to my dashboard"
-        : lang === "es"
-          ? "Ver categoría"
-          : "View category",
+      secondaryHref:
+        autosInventoryPackPresentation?.secondaryCta?.href ??
+        (offersAddonPrimaryCta
+          ? dashboardHref
+          : safeReturnTo && safeReturnTo !== dashboardHref
+            ? safeReturnTo
+            : categoryHref),
+      secondaryLabel:
+        autosInventoryPackPresentation?.secondaryCta?.label ??
+        (offersAddonPrimaryCta
+          ? lang === "es"
+            ? "Volver a mi panel"
+            : "Back to my dashboard"
+          : lang === "es"
+            ? "Ver categoría"
+            : "View category"),
       supportHref,
       supportLabel: lang === "es" ? "Ayuda" : "Help",
       tone: "success",
@@ -128,29 +147,39 @@ function resolveCopy(
   }
 
   if (proof.paymentState === "confirmed" && proof.entitlementState !== "active") {
+    const autosDraftReturn =
+      autosInventoryPackPresentation?.source === "draft" ? autosInventoryPackPresentation : null;
     return {
       title: lang === "es" ? "Pago recibido" : "Payment received",
       subtitle: lang === "es" ? "Confirmando tu anuncio…" : "Confirming your listing…",
       body:
-        lang === "es"
-          ? "Estamos confirmando la publicación de tu anuncio. Tu anuncio se activará cuando Stripe confirme el pago."
-          : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
+        autosDraftReturn
+          ? lang === "es"
+            ? "Estamos confirmando tu pago de Inventory Boost. Regresa a tu solicitud de Autos para continuar; el límite se actualizará cuando Stripe confirme el pago."
+            : "We are confirming your Inventory Boost payment. Return to your Autos application to continue; your limit will update when Stripe confirms payment."
+          : lang === "es"
+            ? "Estamos confirmando la publicación de tu anuncio. Tu anuncio se activará cuando Stripe confirme el pago."
+            : "We're confirming your listing. Your listing will activate when Stripe confirms payment.",
       detailLines,
       note: lang === "es" ? "Actualiza esta página en un momento." : "Refresh this page in a moment.",
       primaryHref: offersAddonPrimaryCta?.href ?? dashboardHref,
       primaryLabel: offersAddonPrimaryCta?.label ?? (lang === "es" ? "Volver a mi panel" : "Back to my dashboard"),
-      secondaryHref: offersAddonPrimaryCta
-        ? dashboardHref
-        : safeReturnTo && safeReturnTo !== dashboardHref
-          ? safeReturnTo
-          : categoryHref,
-      secondaryLabel: offersAddonPrimaryCta
-        ? lang === "es"
-          ? "Volver a mi panel"
-          : "Back to my dashboard"
-        : lang === "es"
-          ? "Ver categoría"
-          : "View category",
+      secondaryHref:
+        autosInventoryPackPresentation?.secondaryCta?.href ??
+        (offersAddonPrimaryCta
+          ? dashboardHref
+          : safeReturnTo && safeReturnTo !== dashboardHref
+            ? safeReturnTo
+            : categoryHref),
+      secondaryLabel:
+        autosInventoryPackPresentation?.secondaryCta?.label ??
+        (offersAddonPrimaryCta
+          ? lang === "es"
+            ? "Volver a mi panel"
+            : "Back to my dashboard"
+          : lang === "es"
+            ? "Ver categoría"
+            : "View category"),
       supportHref,
       supportLabel: lang === "es" ? "Contactar soporte" : "Contact support",
       tone: "warn",
@@ -230,15 +259,17 @@ export function RevenueOsPagoResultView({
   lang,
   returnTo,
   category,
+  boostSource,
   showRefreshHint,
 }: {
   proof: RevenuePaymentProof;
   lang: "en" | "es";
   returnTo?: string | null;
   category?: string | null;
+  boostSource?: string | null;
   showRefreshHint?: boolean;
 }) {
-  const copy = resolveCopy(proof, lang, returnTo, category);
+  const copy = resolveCopy(proof, lang, returnTo, category, boostSource);
   const tone = toneClasses(copy.tone);
 
   return (

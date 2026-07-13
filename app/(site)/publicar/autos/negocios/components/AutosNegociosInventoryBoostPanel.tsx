@@ -11,6 +11,7 @@ import {
   autosInventoryBoostPricingBullets,
   type AutosInventoryBoostReturnContext,
 } from "@/app/lib/clasificados/autos/autosInventoryBoostPipeline";
+import { ensureAutosNegociosDraftBoostReturnFocus } from "@/app/lib/clasificados/autos/autosDealerInventoryBoostReturnContract";
 import {
   autosDealerInventoryPackAddonUpgradeBusyLabel,
   autosDealerInventoryPackAddonUpgradeLabel,
@@ -80,7 +81,12 @@ export function AutosNegociosInventoryBoostPanel({
 
       const returnPath =
         editorContext.editorPath && editorContext.editorSearch
-          ? `${editorContext.editorPath}${editorContext.editorSearch}`
+          ? prePublishMode
+            ? ensureAutosNegociosDraftBoostReturnFocus(
+                `${editorContext.editorPath}${editorContext.editorSearch}`,
+                lang,
+              )
+            : `${editorContext.editorPath}${editorContext.editorSearch}`
           : undefined;
 
       let listingId = parentListingId?.trim() || editorContext.parentListingId?.trim() || "";

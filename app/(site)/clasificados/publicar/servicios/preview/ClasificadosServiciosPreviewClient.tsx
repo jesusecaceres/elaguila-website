@@ -688,7 +688,15 @@ export function ClasificadosServiciosPreviewClient() {
                 applicationState={appState}
               />
             ) : (
-              <ServiciosProfileView profile={profile} lang={lang} showTopBar={false} />
+              <ServiciosProfileView
+                profile={profile}
+                lang={lang}
+                showTopBar={false}
+                showEngagementControls
+                persistListingEngagement={false}
+                engagementListingId={profile.identity.slug}
+                analyticsListingSlug={profile.identity.slug}
+              />
             )}
           </div>
         </ClasificadosPreviewAdCanvas>

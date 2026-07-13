@@ -176,6 +176,7 @@ export function ServiciosBusinessHubContactCard({
   listingShareUrl,
   engagementListingId = null,
   engagementOwnerUserId = null,
+  showEngagementControls = true,
   persistListingEngagement = false,
   publicLikeCount,
   directContactFasterResponseHint = false,
@@ -192,6 +193,7 @@ export function ServiciosBusinessHubContactCard({
   listingShareUrl?: string;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
+  showEngagementControls?: boolean;
   persistListingEngagement?: boolean;
   publicLikeCount?: number;
   directContactFasterResponseHint?: boolean;
@@ -712,6 +714,7 @@ export function ServiciosBusinessHubContactCard({
               engagementListingId={engagementListingId}
               engagementOwnerUserId={engagementOwnerUserId}
               listingShareUrl={listingShareUrl}
+              showEngagementControls={showEngagementControls}
               persistListingEngagement={persistListingEngagement}
               publicLikeCount={publicLikeCount}
             />

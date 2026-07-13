@@ -20,6 +20,10 @@ import {
   resolveRevenueCategoryDefaultReturnPath,
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import {
+  appendAutosInventoryBoostSuccessQuery,
+  ensureAutosNegociosDraftBoostReturnFocus,
+} from "@/app/lib/clasificados/autos/autosDealerInventoryBoostReturnContract";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -123,7 +127,8 @@ export async function POST(request: NextRequest) {
   const { packageDef, listingRef, amountCents, subtotalCents, addOns, currency, stripeMode } = validated;
   const locale = checkoutBody.locale === "en" ? "en" : "es";
   const returnFallback = resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
-  const safeReturnPath = sanitizeRevenueOsReturnPath(checkoutBody.returnPath, returnFallback);
+  const draftFocusedReturn = ensureAutosNegociosDraftBoostReturnFocus(checkoutBody.returnPath, locale);
+  const safeReturnPath = sanitizeRevenueOsReturnPath(draftFocusedReturn, returnFallback);
 
   const paymentInsert = await createPendingPaymentRecord({
     category: packageDef.category,
@@ -147,12 +152,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const successUrl = buildCheckoutSuccessUrl({
-    category: packageDef.category,
-    packageKey: packageDef.packageKey,
-    locale: checkoutBody.locale,
-    returnPath: safeReturnPath,
-  });
+  const successUrl = appendAutosInventoryBoostSuccessQuery(
+    buildCheckoutSuccessUrl({
+      category: packageDef.category,
+      packageKey: packageDef.packageKey,
+      locale: checkoutBody.locale,
+      returnPath: safeReturnPath,
+    }),
+    "draft",
+  );
 
   const cancelUrl = buildCheckoutCancelUrl({
     category: packageDef.category,

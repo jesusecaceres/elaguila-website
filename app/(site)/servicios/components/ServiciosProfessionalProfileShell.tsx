@@ -105,6 +105,7 @@ export type ServiciosProfessionalProfileShellProps = {
   listingSourceId?: string | null;
   engagementListingId?: string | null;
   engagementOwnerUserId?: string | null;
+  showEngagementControls?: boolean;
   persistListingEngagement?: boolean;
   publicLikeCount?: number;
   listingShareUrl?: string;
@@ -126,6 +127,7 @@ export function ServiciosProfessionalProfileShell({
   listingSourceId = null,
   engagementListingId = null,
   engagementOwnerUserId = null,
+  showEngagementControls = true,
   persistListingEngagement = false,
   publicLikeCount,
   listingShareUrl,
@@ -210,7 +212,7 @@ export function ServiciosProfessionalProfileShell({
             engagementListingId={engagementListingId}
             engagementOwnerUserId={engagementOwnerUserId}
             engagementSlot={
-              persistListingEngagement ? (
+              showEngagementControls ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <ServiciosLikeEngagementCluster
                     listingId={lxListingId}
@@ -281,6 +283,7 @@ export function ServiciosProfessionalProfileShell({
                   listingShareUrl={listingShareUrl}
                   engagementListingId={engagementListingId}
                   engagementOwnerUserId={engagementOwnerUserId}
+                  showEngagementControls={showEngagementControls}
                   persistListingEngagement={persistListingEngagement}
                   publicLikeCount={publicLikeCount}
                   directContactFasterResponseHint={directContactFasterResponseHint}
