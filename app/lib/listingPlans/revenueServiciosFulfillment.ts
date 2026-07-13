@@ -7,12 +7,16 @@
  */
 
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import type { LeonixPaymentRecordRow } from "./revenuePaymentRecords";
+import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
 
 /** Hidden DB status for unpaid Servicios listings saved before Revenue OS Stripe checkout. */
 export const SERVICIOS_PENDING_CHECKOUT_STATUS = "pending_payment" as const;
 
 export const SERVICIOS_BASE_MONTHLY_PACKAGE_KEY = "servicios_base_monthly" as const;
+export const SERVICIOS_OFFERS_ADDON_PACKAGE_KEY = "servicios_offers_addon" as const;
 
 /** Statuses the webhook may activate to `published` after successful payment. */
 export const SERVICIOS_ACTIVATABLE_PRE_PUBLISH_STATUSES = [
@@ -21,6 +25,82 @@ export const SERVICIOS_ACTIVATABLE_PRE_PUBLISH_STATUSES = [
 ] as const;
 
 const ACTIVATABLE_FROM_STATUSES = new Set<string>(SERVICIOS_ACTIVATABLE_PRE_PUBLISH_STATUSES);
+
+function generateEntitlementCode(): string {
+  return `LX-SVC-OFFER-${randomBytes(4).toString("hex").toUpperCase()}`;
+}
+
+function paymentRecordIncludesServiciosOffersAddon(row: LeonixPaymentRecordRow): boolean {
+  const addOns = row.metadata?.add_ons;
+  if (!Array.isArray(addOns)) return false;
+  return addOns.some(
+    (a) =>
+      a &&
+      typeof a === "object" &&
+      String((a as Record<string, unknown>).key ?? "").trim().toLowerCase() ===
+        SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+  );
+}
+
+export async function grantServiciosOffersAddonEntitlementFromBasePayment(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; message?: string }> {
+  if (!paymentRecordIncludesServiciosOffersAddon(input.paymentRecord)) return { ok: true };
+  if (!isSupabaseAdminConfigured()) return { ok: false, message: "Supabase admin is not configured." };
+
+  const listingId = input.paymentRecord.listing_id?.trim();
+  if (!listingId) return { ok: false, message: "listingId is required for Servicios offers entitlement." };
+
+  const packageDef = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
+  if (!packageDef) return { ok: false, message: "Servicios offers package definition is missing." };
+
+  const supabase = getAdminSupabase();
+  const { data: existing } = await supabase
+    .from("listing_package_entitlements")
+    .select("id, status")
+    .eq("listing_id", listingId)
+    .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)
+    .eq("payment_record_id", input.paymentRecord.id)
+    .maybeSingle();
+
+  if (existing?.id && existing.status === "active") return { ok: true };
+
+  const startsAt = new Date();
+  const endsAt = new Date(startsAt);
+  endsAt.setUTCDate(endsAt.getUTCDate() + 30);
+
+  const { error } = await supabase.from("listing_package_entitlements").insert({
+    category: "servicios",
+    listing_source: "servicios_public_listings",
+    listing_id: listingId,
+    package_tier: "digital_only",
+    entitlement_code: generateEntitlementCode(),
+    starts_at: startsAt.toISOString(),
+    ends_at: endsAt.toISOString(),
+    status: "active",
+    package_key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+    billing_mode: packageDef.billingMode,
+    payment_record_id: input.paymentRecord.id,
+    promo_code_id: input.paymentRecord.promo_code_id,
+    promo_redemption_id: input.paymentRecord.promo_redemption_id,
+    benefits: { offers_module: true },
+    placement_scope: [],
+    metadata: {
+      source: "stripe_webhook",
+      gate: "SERVICIOS-PRODUCTION-READINESS-CLOSURE-02",
+      stripe_event_id: input.stripeEventId,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      package_key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+      parent_package_key: SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
+      subscription_active: true,
+    },
+  });
+
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
 
 export type ServiciosRevenueActivationOutcome =
   | "activated"

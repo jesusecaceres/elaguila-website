@@ -930,6 +930,13 @@ export type OfertaLocalPublicOfferDetail = OfertaLocalPublicOfferCard & {
   socialLinks: OfertaLocalPublicOfferSocialLinks;
   wantsAiSearchableSpecials: boolean;
   isExpired: boolean;
+  businessLogoHref: string | null;
+  phoneDisplay: string;
+};
+
+/** Public detail hub item — approved search item plus optional bbox for flyer overlay (detail page only). */
+export type OfertaLocalPublicDetailHubItem = OfertaLocalPublicSearchItem & {
+  sourceBbox: OfertaLocalSourceBoundingBox | null;
 };
 
 export type OfertaLocalPublicOfferDetailApiResponse = {

@@ -100,11 +100,15 @@ if (dashboard.includes("Destacar ofertas") || dashboard.includes("Feature offers
 ok("dashboard actions: listing-edit + active offers-edit shortcut + inactive hint, no outside paid CTA");
 
 // --- Owner API entitlement source ---
-if (!myListings.includes("serviciosListingJsonOffersEnabled")) fail("my-listings must compute offers active");
+if (myListings.includes("serviciosListingJsonOffersEnabled")) {
+  fail("my-listings must not use profile_json offer content as paid entitlement truth");
+}
+if (!myListings.includes("listing_package_entitlements")) fail("my-listings must read server-backed entitlements");
+if (!myListings.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY")) fail("my-listings must target servicios_offers_addon");
 if (!myListings.includes("offers_addon_active")) fail("my-listings must return offers_addon_active");
 if (!myListings.includes("auth_required") && !myListings.includes("invalid_token")) fail("my-listings must keep auth guard");
 if (!myListings.includes("listServiciosPublicListingsForOwner")) fail("my-listings must keep owner filtering");
-ok("owner API returns offers entitlement display flag with auth + owner filtering preserved");
+ok("owner API returns server-backed offers entitlement flag with auth + owner filtering preserved");
 
 // --- Application modes ---
 if (!application.includes('searchParams?.get("mode")')) fail("Application must read mode param");
@@ -135,7 +139,9 @@ ok("revenue success CTA handles servicios add-on; restaurante preserved");
 const disallowed = [
   "app/api/revenue-os/webhook",
   "app/api/stripe",
-  "supabase/migrations",
+  "supabase/migrations/202604",
+  "supabase/migrations/202605",
+  "supabase/migrations/202606",
   "app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout",
   "app/(site)/publicar/restaurantes",
   "app/(site)/dashboard/restaurantes",

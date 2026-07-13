@@ -90,6 +90,7 @@
     "verify:servicios-shell-2d": "node scripts/verify-servicios-shell-2d.mjs",
     "verify:servicios-shell-2e": "node scripts/verify-servicios-shell-2e.mjs",
     "verify:servicios-shell-2f": "node scripts/verify-servicios-shell-2f.mjs",
+    "verify:servicios-production-readiness-closure-02": "node scripts/verify-servicios-production-readiness-closure-02.mjs",
     "verify:servicios-cta-email-modal": "node scripts/verify-servicios-cta-email-modal.mjs",
     "verify:servicios-engagement-1": "node scripts/verify-servicios-engagement-1.mjs",
     "verify:servicios-engagement-2": "node scripts/verify-servicios-engagement-2.mjs",

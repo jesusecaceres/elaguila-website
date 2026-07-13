@@ -28,10 +28,12 @@ import {
 import type {
   OfertaLocalItemDbRow,
   OfertaLocalItemReviewViewModel,
+  OfertaLocalPublicDetailHubItem,
   OfertaLocalPublicSearchItem,
   OfertaLocalPublicSearchSort,
   OfertaLocalPublishedAssetMetadata,
   OfertaLocalPublishStatus,
+  OfertaLocalSourceBoundingBox,
 } from "./ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "./useOfertasLocalesAppLang";
 import {
@@ -211,6 +213,28 @@ export function isOfertaLocalPublicSearchRowEligible(
     },
     parent.status
   ) && !isOfertaLocalExpired(validUntil, now);
+}
+
+function parseOfertaLocalPublicSourceBbox(
+  raw: Record<string, unknown> | null | undefined
+): OfertaLocalSourceBoundingBox | null {
+  if (!raw) return null;
+  const xMin = Number(raw.xMin);
+  const yMin = Number(raw.yMin);
+  const xMax = Number(raw.xMax);
+  const yMax = Number(raw.yMax);
+  if (![xMin, yMin, xMax, yMax].every((n) => Number.isFinite(n))) return null;
+  return { xMin, yMin, xMax, yMax };
+}
+
+export function mapOfertaLocalPublicDetailHubItemFromRow(
+  row: OfertaLocalPublicSearchJoinedRow,
+  lang: OfertasLocalesAppLang = "es"
+): OfertaLocalPublicDetailHubItem {
+  return {
+    ...mapOfertaLocalPublicSearchRowToItem(row, lang),
+    sourceBbox: parseOfertaLocalPublicSourceBbox(row.source_bbox),
+  };
 }
 
 export function mapOfertaLocalPublicSearchRowToItem(

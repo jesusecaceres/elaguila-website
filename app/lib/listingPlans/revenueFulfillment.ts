@@ -16,6 +16,7 @@ import {
 } from "./revenueRestaurantFulfillment";
 import {
   activatePaidServiciosListingFromRevenueOs,
+  grantServiciosOffersAddonEntitlementFromBasePayment,
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import {
@@ -334,6 +335,31 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
       ok: false,
       code: activation.outcome,
       message: activation.message ?? "Servicios listing activation failed.",
+    };
+  }
+
+  const offersEntitlement = await grantServiciosOffersAddonEntitlementFromBasePayment({
+    paymentRecord: input.paymentRecord,
+    stripeEventId: input.stripeEventId,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+  });
+  if (!offersEntitlement.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "servicios_public_listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: "servicios_offers_addon_entitlement_failed",
+        message: offersEntitlement.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: "servicios_offers_addon_entitlement_failed",
+      message: offersEntitlement.message ?? "Servicios offers add-on entitlement failed.",
     };
   }
 
@@ -1043,7 +1069,7 @@ export async function fulfillCheckoutSessionCompleted(input: {
     },
   });
 
-  let promoRedemptionId = paymentRecord.promo_redemption_id ?? metadata.promoRedemptionId;
+  const promoRedemptionId = paymentRecord.promo_redemption_id ?? metadata.promoRedemptionId;
   if (promoRedemptionId) {
     const promoResult = await markPromoRedemptionRedeemedWithBusinessAttribution({
       redemptionId: promoRedemptionId,

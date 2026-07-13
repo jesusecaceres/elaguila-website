@@ -8,8 +8,10 @@ import { parseOfertaLocalAdminMetadataFromInternalNotes } from "./ofertasLocales
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
   OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT,
+  OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT,
   parseOfertaLocalDraftSnapshot,
   readDraftSnapshotMembershipFields,
+  type OfertaLocalDraftSnapshot,
 } from "./ofertasLocalesDbSchema";
 import { isOfertaLocalExpired } from "./ofertasLocalesFormatting";
 import { buildOfertaLocalWhatsAppHref } from "./ofertasLocalesPreviewHelpers";
@@ -18,9 +20,15 @@ import {
   mapOfertaLocalPublicOfferRowToCard,
   type OfertaLocalPublicOfferRow,
 } from "./ofertasLocalesPublicOfferHelpers";
-import { parseOfertaLocalPublishedSocialLinksFromInternalNotes } from "./ofertasLocalesPublicSearchHelpers";
+import {
+  isOfertaLocalPublicSearchRowEligible,
+  mapOfertaLocalPublicDetailHubItemFromRow,
+  parseOfertaLocalPublishedSocialLinksFromInternalNotes,
+  type OfertaLocalPublicSearchJoinedRow,
+} from "./ofertasLocalesPublicSearchHelpers";
 import type {
   OfertaLocalPublicDetailAsset,
+  OfertaLocalPublicDetailHubItem,
   OfertaLocalPublicOfferDetail,
 } from "./ofertasLocalesTypes";
 
@@ -70,6 +78,12 @@ function mapAssetList(assets: unknown, kind: "flyer" | "coupon"): OfertaLocalPub
   return out;
 }
 
+function resolvePublicBusinessLogoFromSnapshot(snapshot: OfertaLocalDraftSnapshot): string | null {
+  const uploaded = getSafeOfertaLocalSourceAssetHref(String(snapshot.businessLogoUploadedUrl ?? ""));
+  if (uploaded) return uploaded;
+  return getSafeOfertaLocalSourceAssetHref(String(snapshot.businessLogoUrl ?? ""));
+}
+
 export function mapOfertaLocalPublicDetailRowToDetail(
   row: OfertaLocalPublicDetailRow,
   now: Date = new Date()
@@ -83,6 +97,8 @@ export function mapOfertaLocalPublicDetailRowToDetail(
   const phone = sanitizeText(row.phone, 40);
   const whatsapp = sanitizeText(row.whatsapp, 40);
   const businessName = sanitizeText(row.business_name, 200);
+  const draft = parseOfertaLocalDraftSnapshot(row.draft_snapshot);
+  const businessLogoHref = resolvePublicBusinessLogoFromSnapshot(draft);
 
   return {
     ...card,
@@ -101,6 +117,8 @@ export function mapOfertaLocalPublicDetailRowToDetail(
     socialLinks,
     wantsAiSearchableSpecials: meta.wantsAiSearchableSpecials,
     isExpired: isOfertaLocalExpired(row.valid_until, now),
+    businessLogoHref,
+    phoneDisplay: phone,
   };
 }
 
@@ -119,6 +137,30 @@ export async function fetchPublicOfertaLocalDetailById(
 
   if (error || !data) return null;
   return mapOfertaLocalPublicDetailRowToDetail(data as OfertaLocalPublicDetailRow);
+}
+
+export async function fetchPublicOfertaLocalItemsForOfferId(
+  sb: SupabaseClient,
+  offerId: string,
+  lang: "es" | "en" = "es"
+): Promise<OfertaLocalPublicDetailHubItem[]> {
+  const id = offerId.trim();
+  if (!id) return [];
+
+  const { data, error } = await sb
+    .from("oferta_local_items")
+    .select(OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT)
+    .eq("oferta_local_id", id)
+    .eq("review_status", "approved")
+    .eq("is_active", true)
+    .eq("ofertas_locales.status", "approved")
+    .order("updated_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as OfertaLocalPublicSearchJoinedRow[])
+    .filter((row) => isOfertaLocalPublicSearchRowEligible(row))
+    .map((row) => mapOfertaLocalPublicDetailHubItemFromRow(row, lang));
 }
 
 export function ofertaLocalPublicDetailPath(id: string, lang: "es" | "en"): string {

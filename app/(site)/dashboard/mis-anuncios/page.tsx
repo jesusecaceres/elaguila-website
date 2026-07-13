@@ -108,6 +108,7 @@ import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
 import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
 import {
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   serviciosListingEditHref,
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
@@ -1302,7 +1303,12 @@ export default function MyListingsPage() {
                         listingSlug: item.slug,
                         leonixAdId: item.leonixAdId,
                       }),
-                      serviciosOffersActive: item.serviciosOffersAddonActive,
+                      serviciosOffersActive:
+                        dashboardEntitlementBadgeForKey(entitlementBadges, [
+                          item.id,
+                          item.slug ?? "",
+                          item.leonixAdId ?? "",
+                        ])?.revenuePackageKey === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
                       serviciosOffersEditHref: serviciosOffersEditHref({
                         lang,
                         listingId: item.actionContract?.listingId ?? null,

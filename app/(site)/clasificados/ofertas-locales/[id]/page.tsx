@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { fetchPublicOfertaLocalDetailById } from "@/app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers";
+import { fetchPublicOfertaLocalDetailById, fetchPublicOfertaLocalItemsForOfferId } from "@/app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 import {
@@ -51,5 +51,7 @@ export default async function OfertasLocalesPublicDetailPage(props: PageProps) {
     return <OfertasLocalesPublicDetailUnavailable lang={lang} />;
   }
 
-  return <OfertasLocalesPublicDetailView lang={lang} offer={offer} />;
+  const items = await fetchPublicOfertaLocalItemsForOfferId(getAdminSupabase(), id, lang);
+
+  return <OfertasLocalesPublicDetailView lang={lang} offer={offer} items={items} />;
 }

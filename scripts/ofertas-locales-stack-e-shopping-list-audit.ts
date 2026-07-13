@@ -271,6 +271,37 @@ function run() {
 
   assertNoFakeStrings("offer card", offerCard);
 
+  const detailPage = read("app/(site)/clasificados/ofertas-locales/[id]/page.tsx");
+  const detailView = read("app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicDetailView.tsx");
+  const detailHelpers = read("app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers.ts");
+  const detailCopy = read("app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicDetailCopy.ts");
+  const hubAuditDoc = "app/lib/website-audit/OFERTAS_STORE_FLYER_PUBLIC_HUB_POLISH_V1_AUDIT.md";
+
+  assert.ok(exists(hubAuditDoc), "store/flyer hub audit doc must exist");
+  assert.ok(detailPage.includes("fetchPublicOfertaLocalItemsForOfferId"), "detail page fetches approved products");
+  assert.ok(detailView.includes("useOfertasLocalesShoppingList"), "detail view uses shopping list");
+  assert.ok(detailView.includes("OfertasLocalesPublicItemDetailDrawer"), "detail view product drawer");
+  assert.ok(detailView.includes("ofertas-floating-shopping-list-cart"), "detail view floating cart");
+  assert.ok(detailView.includes("ofertas-public-flyer-viewer"), "detail flyer viewer region");
+  assert.ok(detailView.includes("ofertas-public-detail-products"), "detail product grid region");
+  assert.ok(detailView.includes("ofertas-public-contact-hub"), "detail contact hub region");
+  assert.ok(detailView.includes("mapOfertaLocalSourceBboxToDisplayRect"), "bbox overlay uses real mapper");
+  assert.ok(detailView.includes("sourceBbox"), "overlay reads real sourceBbox only");
+  assert.ok(detailCopy.includes("productsEmptyTitle"), "honest product empty state copy");
+  assert.ok(detailHelpers.includes("fetchPublicOfertaLocalItemsForOfferId"), "detail items fetch helper");
+  assert.ok(
+    detailHelpers.includes('.eq("review_status", "approved")') &&
+      detailHelpers.includes('.eq("is_active", true)') &&
+      detailHelpers.includes('.eq("ofertas_locales.status", "approved")'),
+    "detail items triple gate"
+  );
+  assert.ok(!detailView.toLowerCase().includes("checkout"), "detail view no checkout");
+  assert.ok(!detailView.toLowerCase().includes("buy now"), "detail view no buy now");
+  assert.ok(!detailView.includes("fake bounding box"), "no fake bbox strings");
+  assert.ok(!detailView.includes("test coordinates"), "no test coordinates");
+
+  assertNoFakeStrings("detail view", detailView);
+
   assert.ok(drawer.includes("isAdded"), "detail drawer isAdded prop");
   assert.ok(drawer.includes("onAdd"), "detail drawer onAdd prop");
   assert.ok(drawer.includes("onRemove"), "detail drawer onRemove prop");

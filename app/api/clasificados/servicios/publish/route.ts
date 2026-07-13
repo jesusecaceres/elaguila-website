@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getBusinessTypePreset } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
 import { normalizeClasificadosServiciosApplicationState } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize";
@@ -28,6 +29,49 @@ import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from 
 export const runtime = "nodejs";
 
 const MAX_PUBLISH_BODY_BYTES = 1024 * 1024;
+
+type ServiciosPublishPersistOperation =
+  | "lookup"
+  | "update"
+  | "insert"
+  | "identity-return"
+  | "exception";
+
+type ServiciosPublishPersistenceDiagnostic = {
+  diagnosticId: string;
+  operation: ServiciosPublishPersistOperation;
+  requestedListingStatus: string;
+  slug: string;
+  existingFound?: boolean;
+  supabase?: {
+    code?: string | null;
+    message?: string | null;
+    details?: string | null;
+    hint?: string | null;
+  };
+};
+
+function sanitizeSupabaseError(error: unknown): ServiciosPublishPersistenceDiagnostic["supabase"] {
+  if (!error || typeof error !== "object") return undefined;
+  const e = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
+  return {
+    code: typeof e.code === "string" ? e.code.slice(0, 80) : null,
+    message: typeof e.message === "string" ? e.message.slice(0, 500) : null,
+    details: typeof e.details === "string" ? e.details.slice(0, 500) : null,
+    hint: typeof e.hint === "string" ? e.hint.slice(0, 500) : null,
+  };
+}
+
+function buildPersistenceDiagnostic(input: Omit<ServiciosPublishPersistenceDiagnostic, "diagnosticId">): ServiciosPublishPersistenceDiagnostic {
+  return {
+    diagnosticId: randomUUID(),
+    ...input,
+  };
+}
+
+function logPersistenceDiagnostic(diag: ServiciosPublishPersistenceDiagnostic): void {
+  console.error("[servicios publish api] persistence failure", diag);
+}
 
 /** Reject transport payloads that still contain local-only media (defense in depth). */
 function detectServiciosHeavyTransport(value: unknown, path = ""): string[] {
@@ -271,6 +315,7 @@ export async function POST(req: NextRequest) {
   let persistedToDatabase = false;
   let persistedListingId: string | null = null;
   let persistedLeonixAdId: string | null = null;
+  let persistenceDiagnostic: ServiciosPublishPersistenceDiagnostic | null = null;
   if (isSupabaseAdminConfigured()) {
     try {
       const supabase = getAdminSupabase();
@@ -305,9 +350,26 @@ export async function POST(req: NextRequest) {
           .select("id, leonix_ad_id")
           .maybeSingle();
         if (!error) {
-          persistedToDatabase = true;
           persistedListingId = updated?.id ? String(updated.id) : null;
           persistedLeonixAdId = updated?.leonix_ad_id ? String(updated.leonix_ad_id) : null;
+          if (persistedListingId) {
+            persistedToDatabase = true;
+          } else {
+            persistenceDiagnostic = buildPersistenceDiagnostic({
+              operation: "identity-return",
+              requestedListingStatus: nextStatus,
+              slug,
+              existingFound: true,
+            });
+          }
+        } else {
+          persistenceDiagnostic = buildPersistenceDiagnostic({
+            operation: "update",
+            requestedListingStatus: nextStatus,
+            slug,
+            existingFound: true,
+            supabase: sanitizeSupabaseError(error),
+          });
         }
       } else {
         const insertRow: Record<string, unknown> = {
@@ -328,12 +390,43 @@ export async function POST(req: NextRequest) {
           .select("id, leonix_ad_id")
           .maybeSingle();
         if (!error) {
-          persistedToDatabase = true;
           persistedListingId = inserted?.id ? String(inserted.id) : null;
           persistedLeonixAdId = inserted?.leonix_ad_id ? String(inserted.leonix_ad_id) : null;
+          if (persistedListingId) {
+            persistedToDatabase = true;
+          } else {
+            persistenceDiagnostic = buildPersistenceDiagnostic({
+              operation: "identity-return",
+              requestedListingStatus: listingStatus,
+              slug,
+              existingFound: false,
+            });
+          }
+        } else {
+          persistenceDiagnostic = buildPersistenceDiagnostic({
+            operation: "insert",
+            requestedListingStatus: listingStatus,
+            slug,
+            existingFound: false,
+            supabase: sanitizeSupabaseError(error),
+          });
         }
       }
-    } catch {
+    } catch (error) {
+      persistenceDiagnostic = buildPersistenceDiagnostic({
+        operation: "exception",
+        requestedListingStatus: listingStatus,
+        slug,
+        supabase:
+          error instanceof Error
+            ? {
+                code: error.name.slice(0, 80),
+                message: error.message.slice(0, 500),
+                details: null,
+                hint: null,
+              }
+            : undefined,
+      });
       persistedToDatabase = false;
     }
   }
@@ -358,10 +451,22 @@ export async function POST(req: NextRequest) {
       : "none";
 
   if (strict && !persistedToDatabase) {
+    if (persistenceDiagnostic) logPersistenceDiagnostic(persistenceDiagnostic);
     await insertServiciosAnalyticsEvent({
       listingSlug: slug,
       eventType: "publish_failure",
-      meta: { reason: "persist_failed", persistence, strict: true },
+      meta: {
+        reason: "persist_failed",
+        persistence,
+        strict: true,
+        diagnostic_id: persistenceDiagnostic?.diagnosticId ?? null,
+        operation: persistenceDiagnostic?.operation ?? null,
+        requested_listing_status: listingStatus,
+        supabase_code: persistenceDiagnostic?.supabase?.code ?? null,
+        supabase_message: persistenceDiagnostic?.supabase?.message ?? null,
+        supabase_details: persistenceDiagnostic?.supabase?.details ?? null,
+        supabase_hint: persistenceDiagnostic?.supabase?.hint ?? null,
+      },
     });
     return NextResponse.json(
       {
@@ -370,16 +475,29 @@ export async function POST(req: NextRequest) {
         persistence,
         persistedToDatabase,
         persistedToDevWorkspace,
+        diagnosticId: persistenceDiagnostic?.diagnosticId ?? null,
       },
       { status: 503 },
     );
   }
 
   if (!strict && persistence === "none") {
+    if (persistenceDiagnostic) logPersistenceDiagnostic(persistenceDiagnostic);
     await insertServiciosAnalyticsEvent({
       listingSlug: slug,
       eventType: "publish_failure",
-      meta: { reason: "persist_failed", persistence, strict: false },
+      meta: {
+        reason: "persist_failed",
+        persistence,
+        strict: false,
+        diagnostic_id: persistenceDiagnostic?.diagnosticId ?? null,
+        operation: persistenceDiagnostic?.operation ?? null,
+        requested_listing_status: listingStatus,
+        supabase_code: persistenceDiagnostic?.supabase?.code ?? null,
+        supabase_message: persistenceDiagnostic?.supabase?.message ?? null,
+        supabase_details: persistenceDiagnostic?.supabase?.details ?? null,
+        supabase_hint: persistenceDiagnostic?.supabase?.hint ?? null,
+      },
     });
     return NextResponse.json(
       {
@@ -396,10 +514,21 @@ export async function POST(req: NextRequest) {
   // Revenue OS pending-payment save: require a real DB row so we can hand a listingId to checkout.
   if (pendingPayment) {
     if (!persistedToDatabase || !persistedListingId) {
+      if (persistenceDiagnostic) logPersistenceDiagnostic(persistenceDiagnostic);
       await insertServiciosAnalyticsEvent({
         listingSlug: slug,
         eventType: "publish_failure",
-        meta: { reason: "pending_payment_persist_failed", persistence },
+        meta: {
+          reason: "pending_payment_persist_failed",
+          persistence,
+          diagnostic_id: persistenceDiagnostic?.diagnosticId ?? null,
+          operation: persistenceDiagnostic?.operation ?? null,
+          requested_listing_status: listingStatus,
+          supabase_code: persistenceDiagnostic?.supabase?.code ?? null,
+          supabase_message: persistenceDiagnostic?.supabase?.message ?? null,
+          supabase_details: persistenceDiagnostic?.supabase?.details ?? null,
+          supabase_hint: persistenceDiagnostic?.supabase?.hint ?? null,
+        },
       });
       return NextResponse.json(
         {
@@ -408,6 +537,7 @@ export async function POST(req: NextRequest) {
           message:
             "Could not save your service listing before checkout. Please try again or contact Leonix.",
           persistence,
+          diagnosticId: persistenceDiagnostic?.diagnosticId ?? null,
         },
         { status: 503 },
       );
