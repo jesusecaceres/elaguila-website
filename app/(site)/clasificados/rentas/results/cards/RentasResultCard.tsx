@@ -11,6 +11,7 @@ import {
   buildRentasResultsCardSummaryEs,
   type RentasPublicListingFlowSlice,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasTipoDeRentaDisplay } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 function browseLocationLine(listing: RentasPublicListing): string {
   const r = listing.resultBrowseLocation?.trim();
@@ -203,6 +204,8 @@ function CardContentBody({ listing, copy, lang }: BodyProps) {
   }
 
   const chips: string[] = [];
+  const rentalTypeDisplay = formatRentasTipoDeRentaDisplay(listing.rentalTypeCode ?? "", listing.rentalTypeCustom ?? "");
+  if (rentalTypeDisplay) chips.push(rentalTypeDisplay);
   if (listing.mascotasPermitidas === true) chips.push(copy.quickExplore.chipMascotas);
   if (listing.amueblado === true) chips.push(copy.quickExplore.chipAmueblado);
   chips.push(cat);

@@ -23,6 +23,7 @@ import {
   buildRentasRentaMensualRow,
   rentasFlowGroupActive,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasTipoDeRentaDisplay } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import type { RentasPrivadoFormState } from "../../schema/rentasPrivadoFormState";
 import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import {
@@ -301,6 +302,7 @@ export function mapRentasPrivadoStateToPreviewVm(
     priceDisplay: formatUsdMonthly(s.rentaMensual),
     listingStatusLabel: ESTADO_RENTAS[s.estadoAnuncio],
     operationSummary: rentOperationSummary(s.categoriaPropiedad),
+    rentalTypeDisplay: formatRentasTipoDeRentaDisplay(s.tipoDeRenta, s.tipoDeRentaOtro),
     quickFacts,
     propertyDetailsRows: [...postedByRows, ...rentRows, ...propertyBody],
     highlightsRows,

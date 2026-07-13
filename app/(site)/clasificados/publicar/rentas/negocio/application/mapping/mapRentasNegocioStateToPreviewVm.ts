@@ -25,6 +25,7 @@ import {
   buildRentasRentaMensualRow,
   rentasFlowGroupActive,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { formatRentasTipoDeRentaDisplay } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { buildRentasShowingPreviewCard } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
@@ -209,6 +210,7 @@ export function mapRentasNegocioStateToPreviewVm(
     ...vm,
     priceDisplay,
     addressLine: assembled || vm.addressLine,
+    rentalTypeDisplay: formatRentasTipoDeRentaDisplay(s.tipoDeRenta, s.tipoDeRentaOtro),
     quickFacts,
     propertyDetailsRows,
     highlightsRows,

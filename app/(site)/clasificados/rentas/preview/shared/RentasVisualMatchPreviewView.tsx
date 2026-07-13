@@ -459,6 +459,16 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }:
                 <span className="min-w-0 break-words">{vm.addressLine}</span>
               </p>
             ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {vm.rentalTypeDisplay ? (
+                <span
+                  className="rounded-full border px-3 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em]"
+                  style={{ borderColor: BORDER, background: CREAM, color: BODY }}
+                >
+                  {vm.rentalTypeDisplay}
+                </span>
+              ) : null}
+            </div>
             <div className="mt-4 flex flex-wrap items-end gap-2.5">
               <span className="font-serif text-[2rem] font-bold leading-none tracking-tight sm:text-[2.55rem]" style={{ color: BURGUNDY }}>
                 {vm.priceDisplay}

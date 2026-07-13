@@ -118,6 +118,7 @@ export function QuickJobHeaderCard({
               recordLikeEvent={recordLikeEvent}
               likeCount={engagement.likeCount}
               countDisplay="numeric"
+              previewLabelMode={engagement.persistEngagement ? "preview" : "iconOnly"}
             />
             <LeonixShareButton
               listingId={engagement.listingId}

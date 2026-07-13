@@ -51,22 +51,22 @@ export function CommunityPremiumOrganizerCard({
   const logo = logoSrc?.trim();
 
   return (
-    <div className="mx-auto mt-4 flex max-w-sm items-center gap-3 rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF]/80 px-4 py-3 shadow-sm">
+    <div className="mx-auto mt-5 flex max-w-md items-center gap-4 rounded-2xl border border-[#C9B46A]/50 bg-[#FBF7EF]/90 px-5 py-4 shadow-md">
       {logo ? (
-        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#C9B46A]/45 bg-white shadow-sm">
-          <Image src={logo} alt="" fill className="object-cover" sizes="48px" unoptimized />
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-[#C9B46A]/45 bg-white shadow-sm">
+          <Image src={logo} alt="" fill className="object-cover" sizes="64px" unoptimized />
         </div>
       ) : (
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#C9B46A]/45 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-sm font-bold text-[#7A6B4A]"
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-[#C9B46A]/45 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-xl font-bold text-[#7A6B4A]"
           aria-hidden
         >
           {initial}
         </div>
       )}
       <div className="min-w-0 text-left">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#8A6B1F]">{label}</p>
-        <p className="mt-0.5 truncate text-base font-bold leading-snug text-[#2A2826]">{display}</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-[#8A6B1F]">{label}</p>
+        <p className="mt-1 truncate text-lg font-bold leading-tight text-[#2A2826] sm:text-xl">{display}</p>
       </div>
     </div>
   );
@@ -89,7 +89,7 @@ export function CommunityPremiumIdentitySection({
 
   return (
     <header className="text-center" data-testid="community-premium-identity">
-      <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[#2A2826] sm:text-3xl lg:text-[2rem] lg:leading-tight">
+      <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#2A2826] sm:text-4xl lg:text-5xl lg:leading-tight">
         {title.trim() || "—"}
       </h1>
       <CommunityPremiumOrganizerCard label={organizerLabel} name={organizerName} logoSrc={organizerLogoUrl} />

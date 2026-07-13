@@ -152,6 +152,8 @@ export type BienesRaicesNegocioPreviewVm = {
   priceDisplay: string;
   listingStatusLabel: string;
   operationSummary: string;
+  /** Rentas: rental type display (e.g., "Garaje", "Casa") */
+  rentalTypeDisplay?: string;
   quickFacts: BienesRaicesPreviewQuickFactVm[];
   contactRailTitle: string;
   identity: BienesRaicesPreviewIdentityVm;
