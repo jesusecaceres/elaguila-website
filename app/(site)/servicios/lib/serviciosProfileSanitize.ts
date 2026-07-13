@@ -54,10 +54,14 @@ export function trimText(s: string | undefined | null): string {
   return (s ?? "").trim().replace(/\s+/g, " ");
 }
 
-/** Allow http(s) URLs only; strip dangerous schemes */
+/** Allow http(s) URLs only; strip dangerous schemes; normalize scheme-less advertiser URLs to https. */
 export function safeExternalWebsiteHref(raw: string | undefined | null): string | null {
-  const t = trimText(raw);
+  let t = trimText(raw);
   if (!t) return null;
+  if (/^(javascript|data|blob|file|vbscript):/i.test(t)) return null;
+  if (!/^https?:\/\//i.test(t)) {
+    t = `https://${t.replace(/^\/+/, "")}`;
+  }
   try {
     const u = new URL(t);
     if (u.protocol !== "http:" && u.protocol !== "https:") return null;

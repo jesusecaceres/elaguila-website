@@ -91,6 +91,8 @@
     "verify:servicios-shell-2e": "node scripts/verify-servicios-shell-2e.mjs",
     "verify:servicios-shell-2f": "node scripts/verify-servicios-shell-2f.mjs",
     "verify:servicios-production-readiness-closure-02": "node scripts/verify-servicios-production-readiness-closure-02.mjs",
+    "verify:servicios-post-payment-persistence-public-render-repair-01": "node scripts/verify-servicios-post-payment-persistence-public-render-repair-01.mjs",
+    "smoke:servicios-post-payment-persistence-public-render-repair-01": "node scripts/smoke-servicios-post-payment-persistence-public-render-repair-01.mjs",
     "verify:servicios-cta-email-modal": "node scripts/verify-servicios-cta-email-modal.mjs",
     "verify:servicios-engagement-1": "node scripts/verify-servicios-engagement-1.mjs",
     "verify:servicios-engagement-2": "node scripts/verify-servicios-engagement-2.mjs",

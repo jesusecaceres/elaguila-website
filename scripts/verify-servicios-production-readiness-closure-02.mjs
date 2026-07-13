@@ -79,12 +79,15 @@ const allowed = changedFiles.every((f) =>
   f.startsWith("app/api/clasificados/servicios/") ||
   f.startsWith("app/(site)/clasificados/servicios/") ||
   f.startsWith("app/(site)/clasificados/publicar/servicios/") ||
+  f.startsWith("app/(site)/servicios/") ||
   f.startsWith("app/(site)/dashboard/") ||
   f.startsWith("app/lib/listingPlans/revenueServiciosFulfillment.ts") ||
   f.startsWith("app/lib/listingPlans/revenueFulfillment.ts") ||
   f.startsWith("supabase/migrations/20260713153000_servicios_pending_payment_status_and_published_at.sql") ||
   f.startsWith("scripts/verify-servicios-production-readiness-closure-02.mjs") ||
   f.startsWith("scripts/verify-servicios-p0c-dashboard-addon-only-stripe-edit-route-parity.mjs") ||
+  f.startsWith("scripts/verify-servicios-post-payment-persistence-public-render-repair-01.mjs") ||
+  f.startsWith("scripts/smoke-servicios-post-payment-persistence-public-render-repair-01.mjs") ||
   f === "package.json"
 );
 ok("no unrelated category files changed", allowed);
