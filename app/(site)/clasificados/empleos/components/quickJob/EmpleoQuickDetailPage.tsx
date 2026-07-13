@@ -90,6 +90,7 @@ type EngagementProps = {
   listingSourceId?: string | null;
   slug?: string | null;
   leonixAdId?: string | null;
+  likeCount?: number;
 };
 
 type Props = {
@@ -250,23 +251,18 @@ export function EmpleoQuickDetailPage({
           filterRegionFootnote={data.filterRegionFootnote}
           chips={headerChips}
           payHighlight={data.pay && data.pay !== "—" ? data.pay : undefined}
+          engagement={hasEngagement ? {
+            listingId: engagement!.listingId,
+            ownerUserId: engagement!.ownerUserId,
+            shareUrl: engagement!.shareUrl || shareAbs,
+            persistEngagement: engagement!.persistEngagement ?? false,
+            listingSourceId: engagement!.listingSourceId,
+            slug: engagement!.slug,
+            leonixAdId: engagement!.leonixAdId,
+            likeCount: engagement!.likeCount,
+          } : null}
+          lang={lang}
         />
-
-        {hasEngagement ? (
-          <div className="mt-4">
-            <EmpleosClasificadosEngagementRow
-              lang={lang}
-              listingId={engagement!.listingId}
-              ownerUserId={engagement!.ownerUserId}
-              listingTitle={data.title}
-              shareUrl={engagement!.shareUrl || shareAbs}
-              persistEngagement={engagement!.persistEngagement ?? false}
-              listingSourceId={engagement!.listingSourceId}
-              slug={engagement!.slug}
-              leonixAdId={engagement!.leonixAdId}
-            />
-          </div>
-        ) : null}
 
         {/* Mobile: CTA near top */}
         <div className="mt-5 lg:hidden">
@@ -319,6 +315,7 @@ export function EmpleoQuickDetailPage({
                   sectionTitle={t.ubicacion}
                   ctaLabel={t.verUbicacion}
                   onOpen={() => setLocationOpen(true)}
+                  contactAnalyticsMeta={contactAnalyticsMeta}
                 />
               </div>
             ) : null}
@@ -334,6 +331,7 @@ export function EmpleoQuickDetailPage({
                   ctaLabel={t.verUbicacion}
                   onOpen={() => setLocationOpen(true)}
                   compact
+                  contactAnalyticsMeta={contactAnalyticsMeta}
                 />
               ) : null}
             </div>
