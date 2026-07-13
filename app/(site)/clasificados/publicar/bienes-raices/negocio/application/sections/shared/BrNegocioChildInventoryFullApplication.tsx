@@ -215,9 +215,11 @@ export function BrNegocioChildInventoryFullApplication({
 
   useEffect(() => {
     if (!open) return;
+    const hasRawPhotos = (state.fotosDataUrls ?? []).some((u) => String(u ?? "").startsWith("data:"));
+    const delay = hasRawPhotos ? 0 : 400;
     const timer = setTimeout(() => {
       persistChildInventoryEditorSession(childEditorSessionFromState(editingId, step, state));
-    }, 400);
+    }, delay);
     return () => clearTimeout(timer);
   }, [open, editingId, step, state]);
 
@@ -395,7 +397,15 @@ export function BrNegocioChildInventoryFullApplication({
 
           {step === 0 ? <Step01TipoAnuncio state={state} setState={setState} /> : null}
           {step === 1 ? <Step02InformacionBasica state={state} setState={setState} /> : null}
-          {step === 2 ? <Step03Media state={state} setState={setState} /> : null}
+          {step === 2 ? (
+            <Step03Media
+              state={state}
+              setState={setState}
+              onMediaDraftCommit={(next) => {
+                persistChildInventoryEditorSession(childEditorSessionFromState(editingId, step, next));
+              }}
+            />
+          ) : null}
           {step === 3 ? <Step04DetallesEsenciales state={state} setState={setState} /> : null}
           {step === 4 ? <Step05Caracteristicas state={state} setState={setState} /> : null}
           {step === 5 ? <Step06Descripcion state={state} setState={setState} /> : null}

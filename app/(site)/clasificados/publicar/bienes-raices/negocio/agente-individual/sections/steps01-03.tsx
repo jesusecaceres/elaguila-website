@@ -496,12 +496,19 @@ export function Step02InformacionBasica({
 export function Step03Media({
   state,
   setState,
+  onMediaDraftCommit,
 }: {
   state: AgenteIndividualResidencialFormState;
   setState: React.Dispatch<React.SetStateAction<AgenteIndividualResidencialFormState>>;
+  /** Immediate durable persist after photo mutations (parent IDB draft or child editor session). */
+  onMediaDraftCommit?: (next: AgenteIndividualResidencialFormState) => void;
 }) {
   const { t } = useBrAgenteResidencialCopy();
   const photos = state.fotosDataUrls;
+
+  const commitMedia = (next: AgenteIndividualResidencialFormState) => {
+    onMediaDraftCommit?.(next);
+  };
 
   return (
     <section className={aiCardClass}>
@@ -527,10 +534,14 @@ export function Step03Media({
                 const files = Array.from(e.target.files ?? []);
                 e.target.value = "";
                 void Promise.all(files.map((f) => readFileAsDataUrl(f))).then((urls) => {
-                  setState((s) => ({
-                    ...s,
-                    fotosDataUrls: [...s.fotosDataUrls, ...urls].slice(0, 40),
-                  }));
+                  setState((s) => {
+                    const next = {
+                      ...s,
+                      fotosDataUrls: [...s.fotosDataUrls, ...urls].slice(0, 40),
+                    };
+                    commitMedia(next);
+                    return next;
+                  });
                 });
               }}
             />
@@ -540,17 +551,29 @@ export function Step03Media({
               urls={photos}
               primaryImageIndex={state.fotoPortadaIndex}
               onReorder={(nextUrls, nextPrimary) =>
-                setState((s) => ({ ...s, fotosDataUrls: nextUrls, fotoPortadaIndex: nextPrimary }))
+                setState((s) => {
+                  const next = { ...s, fotosDataUrls: nextUrls, fotoPortadaIndex: nextPrimary };
+                  commitMedia(next);
+                  return next;
+                })
               }
               onRemove={(i) =>
                 setState((s) => {
-                  const next = s.fotosDataUrls.filter((_, j) => j !== i);
+                  const nextUrls = s.fotosDataUrls.filter((_, j) => j !== i);
                   let idx = s.fotoPortadaIndex;
-                  if (idx >= next.length) idx = Math.max(0, next.length - 1);
-                  return { ...s, fotosDataUrls: next, fotoPortadaIndex: idx };
+                  if (idx >= nextUrls.length) idx = Math.max(0, nextUrls.length - 1);
+                  const next = { ...s, fotosDataUrls: nextUrls, fotoPortadaIndex: idx };
+                  commitMedia(next);
+                  return next;
                 })
               }
-              onSetPrimary={(i) => setState((s) => ({ ...s, fotoPortadaIndex: i }))}
+              onSetPrimary={(i) =>
+                setState((s) => {
+                  const next = { ...s, fotoPortadaIndex: i };
+                  commitMedia(next);
+                  return next;
+                })
+              }
             />
           ) : null}
         </div>

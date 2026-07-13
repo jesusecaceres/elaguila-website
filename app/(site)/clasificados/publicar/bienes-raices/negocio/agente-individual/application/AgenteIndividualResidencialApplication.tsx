@@ -34,9 +34,9 @@ import { brShouldIgnoreWizardShortcut } from "../../application/brWizardKeyboard
 import {
   bootstrapAgenteIndividualResidencialApplicationStateResolved,
   flushAgenteResDraftSyncForUnload,
+  agenteResStateHasUnpersistedDataUrlPhotos,
   persistAgenteResApplicationDraftQuiet,
   persistAgenteResApplicationDraftResolved,
-  saveAgenteResPreviewReturnDraft,
 } from "./utils/previewDraft";
 import { agenteResFormHasProgress } from "./formProgress";
 import {
@@ -139,9 +139,11 @@ export default function AgenteIndividualResidencialApplication() {
       skipFirstPersistRef.current = false;
       return;
     }
+    // Raw data: gallery blobs must offload to IndexedDB immediately — not after an 800ms wait.
+    const delay = agenteResStateHasUnpersistedDataUrlPhotos(state) ? 0 : 800;
     const timer = setTimeout(() => {
       persistAgenteResApplicationDraftQuiet(state);
-    }, 800);
+    }, delay);
     return () => clearTimeout(timer);
   }, [state]);
 
@@ -400,8 +402,8 @@ export default function AgenteIndividualResidencialApplication() {
   const openPreview = useCallback(async () => {
     if (!confirmAll) return;
     markPublishFlowOpeningPreview();
+    // Single awaited offload+persist writes preview + return keys with durable IDB media refs.
     await persistAgenteResApplicationDraftResolved(state);
-    saveAgenteResPreviewReturnDraft(state);
     const previewQs = new URLSearchParams();
     if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
       previewQs.set("inventoryMode", "add");
@@ -612,7 +614,15 @@ export default function AgenteIndividualResidencialApplication() {
 
             {step === 0 ? <Step01TipoAnuncio state={state} setState={setState} /> : null}
             {step === 1 ? <Step02InformacionBasica state={state} setState={setState} /> : null}
-            {step === 2 ? <Step03Media state={state} setState={setState} /> : null}
+            {step === 2 ? (
+              <Step03Media
+                state={state}
+                setState={setState}
+                onMediaDraftCommit={(next) => {
+                  void persistAgenteResApplicationDraftResolved(next);
+                }}
+              />
+            ) : null}
             {step === 3 ? <Step04DetallesEsenciales state={state} setState={setState} /> : null}
             {step === 4 ? <Step05Caracteristicas state={state} setState={setState} /> : null}
             {step === 5 ? <Step06Descripcion state={state} setState={setState} /> : null}

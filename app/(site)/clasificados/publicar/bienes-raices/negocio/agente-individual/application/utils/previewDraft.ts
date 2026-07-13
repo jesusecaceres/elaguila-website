@@ -290,11 +290,43 @@ export function saveAgenteResPreviewReturnDraft(state: AgenteIndividualResidenci
 }
 
 /** BR-DRAFT-PERSIST-01 — async persist with IndexedDB media offload (Servicios pattern). */
+let draftPersistEpoch = 0;
+
+function readPreviousPersistedFormState(): AgenteIndividualResidencialFormState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw =
+      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ??
+      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ??
+      readDraftFromLocalStorageFallback();
+    return raw ? parsePersistedStateFromJson(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function durablePhotoCount(state: AgenteIndividualResidencialFormState | null | undefined): number {
+  if (!state || !Array.isArray(state.fotosDataUrls)) return 0;
+  return state.fotosDataUrls.filter((u) => isDurableMediaUrl(String(u ?? ""))).length;
+}
+
+/**
+ * Never let a late/failed compact write erase IDB/http gallery refs already on disk.
+ */
+function mergeCompactAvoidEmptyMediaOverwrite(
+  compact: AgenteIndividualResidencialFormState,
+): AgenteIndividualResidencialFormState {
+  const previous = readPreviousPersistedFormState();
+  if (!previous) return compact;
+  return preserveDurableMediaOnSyncFlush(compact, compact, previous);
+}
+
 export async function persistAgenteResApplicationDraftResolved(
   state: AgenteIndividualResidencialFormState,
 ): Promise<void> {
   if (typeof window === "undefined") return;
   if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys()) return;
+  const epoch = ++draftPersistEpoch;
   setFullDraftMediaBridge(state);
   setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
   let compact = state;
@@ -303,8 +335,28 @@ export async function persistAgenteResApplicationDraftResolved(
   } catch {
     compact = stripHeavyDataUrlsForSession(state);
   }
+  if (epoch !== draftPersistEpoch) return;
+  compact = mergeCompactAvoidEmptyMediaOverwrite(compact);
+  if (epoch !== draftPersistEpoch) return;
+  // Refuse to persist a zero-photo compact when live still has photos and nothing durable is on disk yet.
+  const livePhotoCount = (state.fotosDataUrls ?? []).filter((u) => String(u ?? "").trim()).length;
+  if (livePhotoCount > 0 && durablePhotoCount(compact) === 0) {
+    const previous = readPreviousPersistedFormState();
+    if (previous && durablePhotoCount(previous) > 0) {
+      compact = preserveDurableMediaOnSyncFlush(stripHeavyDataUrlsForSession(state), state, previous);
+    } else {
+      // Offload failed / race — do not write an empty gallery draft that would clobber a later success.
+      return;
+    }
+  }
+  if (epoch !== draftPersistEpoch) return;
   savePreviewPayload(compact, true);
   saveReturnPayload({ state: compact, savedAt: Date.now() }, true);
+}
+
+/** True when in-memory state still holds raw data: gallery blobs that must be offloaded now. */
+export function agenteResStateHasUnpersistedDataUrlPhotos(state: AgenteIndividualResidencialFormState): boolean {
+  return (state.fotosDataUrls ?? []).some((u) => typeof u === "string" && u.startsWith("data:"));
 }
 
 /** BR-INV-FIX-01D — debounced autosave without clearing in-memory return bridge. */
@@ -313,12 +365,8 @@ export function persistAgenteResApplicationDraftQuiet(state: AgenteIndividualRes
 }
 
 /**
- * Sync flush for hard refresh / pagehide — skips IndexedDB offload so open-house + text survive
- * an immediate reload before the debounced async autosave finishes.
- *
- * CRITICAL: never wipe durable photo / media refs that async persist already wrote.
- * `stripHeavyDataUrlsForSession` drops `data:` blobs; if we save that over an existing
- * payload that held `__LX_BR_AGENTE_IDB__` refs, hard refresh loses the gallery.
+ * Sync flush for hard refresh / pagehide — updates text/schedule without wiping durable media.
+ * Always kicks urgent async IDB offload when raw data: photos remain (best-effort before unload ends).
  */
 export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidencialFormState): void {
   if (typeof window === "undefined") return;
@@ -327,18 +375,30 @@ export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidenc
   setFullDraftMediaBridge(state);
   setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
 
-  let previous: AgenteIndividualResidencialFormState | null = null;
-  try {
-    const raw =
-      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ??
-      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ??
-      readDraftFromLocalStorageFallback();
-    previous = raw ? parsePersistedStateFromJson(raw) : null;
-  } catch {
-    previous = null;
+  if (agenteResStateHasUnpersistedDataUrlPhotos(state)) {
+    // Fire async offload; also avoid writing a stripped empty gallery if no prior durable refs exist.
+    void persistAgenteResApplicationDraftResolved(state);
   }
 
-  const compact = preserveDurableMediaOnSyncFlush(stripHeavyDataUrlsForSession(state), state, previous);
+  const previous = readPreviousPersistedFormState();
+  const stripped = stripHeavyDataUrlsForSession(state);
+  const compact = preserveDurableMediaOnSyncFlush(stripped, state, previous);
+
+  // Do not replace a populated durable gallery with empty when live still only has data: blobs.
+  if (
+    durablePhotoCount(compact) === 0 &&
+    (state.fotosDataUrls ?? []).some((u) => String(u ?? "").startsWith("data:")) &&
+    durablePhotoCount(previous) === 0
+  ) {
+    // Text/open-house only update onto previous shell if any; otherwise skip destructive photo wipe.
+    if (previous) {
+      const textOverlay = preserveDurableMediaOnSyncFlush(stripped, state, previous);
+      savePreviewPayload(textOverlay, false);
+      saveReturnPayload({ state: textOverlay, savedAt: Date.now() }, false);
+    }
+    return;
+  }
+
   savePreviewPayload(compact, false);
   saveReturnPayload({ state: compact, savedAt: Date.now() }, false);
 }

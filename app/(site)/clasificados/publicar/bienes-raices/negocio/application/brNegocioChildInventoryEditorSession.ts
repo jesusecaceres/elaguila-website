@@ -26,6 +26,7 @@ export type BrNegocioChildInventoryEditorSession = {
 };
 
 let childEditorMemoryBridge: BrNegocioChildInventoryEditorSession | null = null;
+let childSessionPersistEpoch = 0;
 
 function stripDataUrlsFromSlice(slice: AgenteChildPropertyFormSlice): AgenteChildPropertyFormSlice {
   const j = JSON.parse(JSON.stringify(slice)) as AgenteChildPropertyFormSlice;
@@ -38,6 +39,27 @@ function stripDataUrlsFromSlice(slice: AgenteChildPropertyFormSlice): AgenteChil
   j.tourDataUrl = z(j.tourDataUrl);
   j.brochureDataUrl = z(j.brochureDataUrl);
   return j;
+}
+
+function durableChildPhotoCount(slice: AgenteChildPropertyFormSlice | null | undefined): number {
+  if (!slice || !Array.isArray(slice.fotosDataUrls)) return 0;
+  return slice.fotosDataUrls.filter((u) => {
+    const s = String(u ?? "");
+    return Boolean(s) && !s.startsWith("data:");
+  }).length;
+}
+
+function readPreviousChildSessionPhotos(): AgenteChildPropertyFormSlice | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw) as BrNegocioChildInventoryEditorSession;
+    if (j?.version !== 1) return null;
+    return j.propertyForm ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeSessionPropertyFormUrls(slice: AgenteChildPropertyFormSlice): AgenteChildPropertyFormSlice {
@@ -70,9 +92,11 @@ export function persistChildInventoryEditorSession(session: BrNegocioChildInvent
 async function persistChildInventoryEditorSessionResolved(
   session: BrNegocioChildInventoryEditorSession,
 ): Promise<void> {
+  const epoch = ++childSessionPersistEpoch;
   childEditorMemoryBridge = session;
   let propertyForm = normalizeSessionPropertyFormUrls(session.propertyForm);
   const editingId = session.editingId?.trim() || "new-child";
+  const livePhotoCount = (session.propertyForm.fotosDataUrls ?? []).filter((u) => String(u ?? "").trim()).length;
   try {
     propertyForm = await offloadChildEditorPropertySliceToIdb(
       BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
@@ -82,6 +106,22 @@ async function persistChildInventoryEditorSessionResolved(
   } catch {
     propertyForm = stripDataUrlsFromSlice(session.propertyForm);
   }
+  if (epoch !== childSessionPersistEpoch) return;
+
+  // Never let a failed/stripped write erase durable child gallery refs already persisted.
+  const previousForm = readPreviousChildSessionPhotos();
+  if (durableChildPhotoCount(propertyForm) === 0 && durableChildPhotoCount(previousForm) > 0) {
+    propertyForm = {
+      ...propertyForm,
+      fotosDataUrls: previousForm!.fotosDataUrls,
+      fotoPortadaIndex: previousForm!.fotoPortadaIndex,
+    };
+  }
+  if (livePhotoCount > 0 && durableChildPhotoCount(propertyForm) === 0 && durableChildPhotoCount(previousForm) === 0) {
+    // Offload still failed — keep memory bridge; avoid wiping session to empty gallery.
+    return;
+  }
+  if (epoch !== childSessionPersistEpoch) return;
   try {
     sessionStorage.setItem(
       BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY,

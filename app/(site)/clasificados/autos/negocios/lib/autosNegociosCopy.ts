@@ -147,9 +147,9 @@ export type AutosNegociosCopy = {
     pickerMultiNote: string;
     urlSectionHeading: string;
     singleUrl: string;
-    batchUrls: string;
+    imageUrlPlaceholder: string;
+    duplicateImageUrl: string;
     addImage: string;
-    addImages: string;
     urlHelper: string;
     videoUrlRejected: string;
     invalidImageUrl: string;
@@ -528,7 +528,7 @@ const ES: AutosNegociosCopy = {
   },
   media: {
     sectionTitle: "Fotos y medios",
-    sectionIntro: "Puedes pegar URLs o subir archivos. Ordena las fotos y elige la portada.",
+    sectionIntro: "Sube fotos, ordénalas y luego agrega URLs de imagen o videos si lo necesitas.",
     photosHeading: "Fotos del vehículo",
     reorderHeading: "Ordenar fotos",
     reorderHint:
@@ -542,10 +542,10 @@ const ES: AutosNegociosCopy = {
     pickerMultiNote:
       "En escritorio puedes elegir varias fotos a la vez. En algunos teléfonos el selector solo permite una por vez: vuelve a pulsar «Añadir fotos» para más.",
     singleUrl: "Enlace directo de una imagen",
-    batchUrls: "Varias URLs de imágenes, una por línea",
+    imageUrlPlaceholder: "Pega una URL válida de imagen que empiece con https://",
+    duplicateImageUrl: "Esta imagen ya fue agregada.",
     urlSectionHeading: "Agregar fotos por URL",
     addImage: "Agregar imagen",
-    addImages: "Agregar imágenes",
     urlHelper: "Usa enlaces directos a imágenes. Para videos, usa la sección Video / recorrido.",
     videoUrlRejected: "Este enlace parece ser de video. Agrégalo en la sección Video / recorrido.",
     invalidImageUrl: "No pudimos agregar esta imagen. Usa un enlace directo a una imagen válida.",
@@ -978,7 +978,7 @@ const EN: AutosNegociosCopy = {
   },
   media: {
     sectionTitle: "Photos & media",
-    sectionIntro: "Paste URLs or upload files. Reorder photos and choose the cover image.",
+    sectionIntro: "Upload photos, reorder them, then add image URLs or videos if needed.",
     photosHeading: "Vehicle photos",
     reorderHeading: "Reorder photos",
     reorderHint:
@@ -992,10 +992,10 @@ const EN: AutosNegociosCopy = {
     pickerMultiNote:
       "On desktop you can pick several photos at once. Some phones only allow one file per pick—tap “Add photos” again to add more.",
     singleUrl: "Direct image URL",
-    batchUrls: "Multiple image URLs, one per line",
+    imageUrlPlaceholder: "Paste a valid image URL that starts with https://",
+    duplicateImageUrl: "This image has already been added.",
     urlSectionHeading: "Add photos by URL",
     addImage: "Add image",
-    addImages: "Add images",
     urlHelper: "Use direct image links. For videos, use the Video / walkthrough section.",
     videoUrlRejected: "This looks like a video link. Add it in the Video / walkthrough section.",
     invalidImageUrl: "We could not add this image. Use a direct link to a valid image.",

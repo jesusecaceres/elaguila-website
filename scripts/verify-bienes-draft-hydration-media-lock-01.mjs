@@ -65,6 +65,32 @@ assert(
   previewDraft.includes("preserveDurableMediaOnSyncFlush") && previewDraft.includes("preservePhotoListForSyncFlush"),
   "sync unload flush must preserve IDB/http photo refs (not wipe gallery on hard refresh)",
 );
+assert(
+  previewDraft.includes("mergeCompactAvoidEmptyMediaOverwrite") &&
+    previewDraft.includes("agenteResStateHasUnpersistedDataUrlPhotos") &&
+    previewDraft.includes("draftPersistEpoch"),
+  "immediate media offload + empty-gallery overwrite guard required",
+);
+assert(
+  previewDraft.includes("livePhotoCount > 0 && durablePhotoCount(compact) === 0"),
+  "must refuse empty gallery write when live photos exist",
+);
+assert(
+  app.includes("onMediaDraftCommit") && app.includes("agenteResStateHasUnpersistedDataUrlPhotos(state) ? 0 : 800"),
+  "parent must persist photos immediately on upload (not 800ms-only)",
+);
+assert(
+  read(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/sections/steps01-03.tsx",
+  ).includes("onMediaDraftCommit"),
+  "Step03 media commit hook",
+);
+assert(
+  read(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",
+  ).includes("onMediaDraftCommit") && childSession.includes("childSessionPersistEpoch"),
+  "child immediate media persist + epoch guard",
+);
 assert(cardUi.includes("grid grid-cols-3") && /gap-1\.5|gap-2/.test(cardUi), "results gallery has small tile gap");
 
 console.log("OK: bienes-draft-hydration-media-lock-01");
