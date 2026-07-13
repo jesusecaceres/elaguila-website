@@ -213,12 +213,14 @@ function buildDetailPairs(
   kind: CommunityKind,
   d: ClasesQuickDraft | ComunidadQuickDraft,
   lang: Lang,
+  organizerLogoUploadedUrl: string | null,
 ): Array<{ label: string; value: string }> {
   const pairs: Array<{ label: string; value: string }> = [];
   pairs.push({ label: "Leonix:communityLane", value: "quick" });
   pairs.push({ label: "Leonix:communityKind", value: kind });
   pairs.push({ label: "Leonix:organizer", value: d.organizer.trim() });
-  const logoUrl = normalizeWebsiteForOpen(d.organizerLogoUrl) ?? d.organizerLogoUrl.trim();
+  // Use uploaded URL if available, otherwise use original URL if it's http
+  const logoUrl = organizerLogoUploadedUrl ?? (normalizeWebsiteForOpen(d.organizerLogoUrl) ?? d.organizerLogoUrl.trim());
   if (logoUrl && logoUrl.startsWith("http")) {
     pairs.push({ label: "Leonix:organizerLogoUrl", value: logoUrl });
   }
@@ -408,6 +410,11 @@ export async function publishCommunityQuickToListings(input: {
     };
   }
 
+  // Include organizer logo URL if it's a data URL (file upload) that needs upload
+  const organizerLogoRaw = d.organizerLogoUrl.trim();
+  const organizerLogoNeedsUpload = organizerLogoRaw.startsWith("data:image/");
+  const organizerLogoHttpUrl = organizerLogoRaw.startsWith("http") ? organizerLogoRaw : null;
+
   let supabase: ReturnType<typeof createSupabaseBrowserClient>;
   try {
     supabase = createSupabaseBrowserClient();
@@ -426,7 +433,7 @@ export async function publishCommunityQuickToListings(input: {
   const title = d.title.trim().slice(0, 500);
   const descriptionBase =
     kind === "clases" ? buildDescriptionClases(d as ClasesQuickDraft, lang) : buildDescriptionComunidad(d as ComunidadQuickDraft, lang);
-  const pairs = buildDetailPairs(kind, d, lang);
+  const pairs = buildDetailPairs(kind, d, lang, null);
   const contact_phone = resolveContactPhone(d);
   const contact_email = d.email.trim() || null;
 
@@ -463,12 +470,14 @@ export async function publishCommunityQuickToListings(input: {
 
   const basePath = `${userId}/${listingId}/photos`;
   const photoUrls: string[] = [];
+  let organizerLogoUploadedUrl: string | null = null;
 
   const markPublishFailedNonPublic = async () => {
     await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);
   };
 
   try {
+    // Upload main gallery images
     for (let i = 0; i < orderedUrls.length; i++) {
       const src = orderedUrls[i];
       const blob = await fetchAsBlob(src);
@@ -502,6 +511,39 @@ export async function publishCommunityQuickToListings(input: {
       if (url) photoUrls.push(url);
     }
 
+    // Upload organizer logo if it's a data URL
+    if (organizerLogoNeedsUpload) {
+      const blob = await fetchAsBlob(organizerLogoRaw);
+      if (blob.size > MAX_IMAGE_BYTES) {
+        await markPublishFailedNonPublic();
+        return {
+          ok: false,
+          error: err(
+            `El logo del organizador supera el límite de ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB.`,
+            `Organizer logo exceeds the ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB limit.`,
+          ),
+        };
+      }
+      const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+      const fileName = `organizer-logo.${ext}`;
+      const path = `${basePath}/${fileName}`;
+      const up = await supabase.storage
+        .from("listing-images")
+        .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
+      if (up.error) {
+        await markPublishFailedNonPublic();
+        return {
+          ok: false,
+          error: err(
+            `No se pudo subir el logo del organizador (${up.error.message}).`,
+            `Organizer logo upload failed (${up.error.message}).`,
+          ),
+        };
+      }
+      const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+      if (url) organizerLogoUploadedUrl = url;
+    }
+
     if (photoUrls.length) {
       const marker = `[LEONIX_IMAGES]\n` + photoUrls.map((u) => `url=${u}`).join("\n") + `\n[/LEONIX_IMAGES]`;
       const appendix =
@@ -510,6 +552,12 @@ export async function publishCommunityQuickToListings(input: {
           : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
       const descriptionForUpdate = `${descriptionBase}${appendix}`.trim();
       await supabase.from("listings").update({ description: descriptionForUpdate, images: photoUrls }).eq("id", listingId);
+    }
+
+    // Update detail pairs with uploaded organizer logo URL if it was uploaded
+    if (organizerLogoUploadedUrl) {
+      const updatedPairs = buildDetailPairs(kind, d, lang, organizerLogoUploadedUrl);
+      await supabase.from("listings").update({ detail_pairs: updatedPairs.length ? updatedPairs : null }).eq("id", listingId);
     }
   } catch (e: unknown) {
     await markPublishFailedNonPublic();

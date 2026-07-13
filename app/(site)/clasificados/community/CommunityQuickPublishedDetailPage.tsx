@@ -43,6 +43,10 @@ const TOP_COPY = {
     signIn: "Iniciar sesión",
     published: "Tu anuncio fue publicado correctamente.",
     adId: "ID de anuncio",
+    viewListing: "Ver anuncio publicado",
+    copyLink: "Copiar enlace del anuncio",
+    linkCopied: "Enlace copiado",
+    shareListing: "Compartir anuncio",
   },
   en: {
     back: "Back to Classifieds",
@@ -50,6 +54,10 @@ const TOP_COPY = {
     signIn: "Sign in",
     published: "Your listing was published successfully.",
     adId: "Ad ID",
+    viewListing: "View published listing",
+    copyLink: "Copy listing link",
+    linkCopied: "Link copied",
+    shareListing: "Share listing",
   },
 } as const;
 
@@ -101,6 +109,7 @@ export function CommunityQuickPublishedDetailPage({
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
   const [publishSuccessVisible, setPublishSuccessVisible] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const leonixAdId = formatLeonixAdId(listing.id);
 
   const isOwner = Boolean(
@@ -143,6 +152,13 @@ export function CommunityQuickPublishedDetailPage({
     } catch {
       window.prompt(lang === "es" ? "Copia este enlace:" : "Copy this link:", text);
     }
+  };
+
+  const handleCopyLink = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    await copyText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const buildShareMessage = useCallback(() => {
@@ -232,7 +248,34 @@ export function CommunityQuickPublishedDetailPage({
                 data-testid="community-publish-success-banner"
                 role="status"
               >
-                {t.published} {leonixAdId ? `${t.adId}: ${leonixAdId}` : null}
+                <div className="flex flex-col gap-3">
+                  <div>
+                    {t.published} {leonixAdId ? `${t.adId}: ${leonixAdId}` : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => window.location.reload()}
+                      className="inline-flex min-h-[36px] items-center rounded-lg border border-emerald-600/40 bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-200"
+                    >
+                      {t.viewListing}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyLink()}
+                      className="inline-flex min-h-[36px] items-center rounded-lg border border-emerald-600/40 bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-200"
+                    >
+                      {linkCopied ? t.linkCopied : t.copyLink}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleShare()}
+                      className="inline-flex min-h-[36px] items-center rounded-lg border border-emerald-600/40 bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-200"
+                    >
+                      {t.shareListing}
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : null}
             <div className="flex flex-wrap items-center justify-between gap-4">

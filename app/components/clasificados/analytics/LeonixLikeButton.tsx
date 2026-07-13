@@ -30,6 +30,13 @@ type Props = {
   likeCount?: number;
   /** Default `label` keeps Like/Liked text. `numeric` uses heart + optional count. */
   countDisplay?: "label" | "numeric";
+  /**
+   * Controls what label to show when inert (preview mode with no real listing identity).
+   * - "preview": shows "Preview" / "Vista previa" (default for backward compatibility)
+   * - "like": shows "Like" / "Me gusta" even when inert
+   * - "iconOnly": shows heart icon only, no text (ideal for Empleos preview)
+   */
+  previewLabelMode?: "preview" | "like" | "iconOnly";
 };
 
 const LABELS = {
@@ -72,6 +79,7 @@ export function LeonixLikeButton({
   recordLikeEvent,
   likeCount,
   countDisplay = "label",
+  previewLabelMode = "preview",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const allowEngage = persistEngagement !== false && Boolean(effectiveId);
@@ -277,7 +285,11 @@ export function LeonixLikeButton({
   const textLabel = isLiking
     ? labels.liking
     : inert
-      ? labels.preview
+      ? previewLabelMode === "iconOnly"
+        ? null
+        : previewLabelMode === "like"
+          ? labels.like
+          : labels.preview
       : numericMode
         ? countLabel
         : isLiked

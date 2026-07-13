@@ -412,8 +412,8 @@ export function AutosPrivadoApplication() {
                   placeholder={t.app.placeholders.zip}
                   value={listing.zip ?? ""}
                   onChange={(e) => {
-                    const v = e.target.value.trim();
-                    setListingPatch({ zip: v ? v : undefined });
+                    const v = e.target.value;
+                    setListingPatch({ zip: v === "" ? undefined : v });
                   }}
                   aria-label={t.app.labels.zip}
                 />
@@ -425,7 +425,7 @@ export function AutosPrivadoApplication() {
                   className={INPUT}
                   autoComplete="country-name"
                   value={listing.country ?? AUTOS_DEFAULT_COUNTRY}
-                  onChange={(e) => setListingPatch({ country: e.target.value.trim() || undefined })}
+                  onChange={(e) => setListingPatch({ country: e.target.value || undefined })}
                   aria-label={t.app.labels.country}
                 />
                 <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{autosVehicleCountryHelper(lang)}</p>

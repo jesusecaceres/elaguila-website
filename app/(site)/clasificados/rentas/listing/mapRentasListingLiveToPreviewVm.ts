@@ -456,6 +456,7 @@ export function mapRentasListingToPrivadoPreviewVm(
   const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : safeRentasMapUrl(listing.mapUrl);
   const showingCard = buildRentasLiveShowingCard(listing, lang);
   const tourUrl = normalizeLeonixHttpsUrl(listing.virtualTourUrl);
+  const rentalTypeDisplay = formatRentasTipoDeRentaDisplay(listing.rentalTypeCode ?? "", listing.rentalTypeCustom ?? "");
 
   return {
     categoria: listing.categoriaPropiedad,
@@ -465,6 +466,7 @@ export function mapRentasListingToPrivadoPreviewVm(
     priceDisplay: trim(listing.rentDisplay),
     listingStatusLabel: rentasAvailabilityLabel(listing.rentasListingAvailability, lang) || "—",
     operationSummary: operationSummary(listing.categoriaPropiedad),
+    rentalTypeDisplay,
     quickFacts,
     seller: {
       photoUrl: null,
@@ -602,6 +604,7 @@ export function mapRentasListingToNegocioPreviewVm(
   const socialLinks = mergeRentasLiveSocialIdentityLinks(channelRowsForIdentity, redesParsed);
   const webFromLegacy = hrefFromUserInput(trim(listing.businessWebsite ?? ""));
   const web = (ch?.website ?? "").trim() || webFromLegacy;
+  const rentalTypeDisplay = formatRentasTipoDeRentaDisplay(listing.rentalTypeCode ?? "", listing.rentalTypeCustom ?? "");
 
   return {
     publicationType: "",
@@ -611,6 +614,7 @@ export function mapRentasListingToNegocioPreviewVm(
     priceDisplay: trim(listing.rentDisplay),
     listingStatusLabel: rentasAvailabilityLabel(listing.rentasListingAvailability, lang) || "—",
     operationSummary: operationSummary(listing.categoriaPropiedad),
+    rentalTypeDisplay,
     quickFacts,
     contactRailTitle: lang === "es" ? "Contacto" : "Contact",
     identity: {
