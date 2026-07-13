@@ -41,7 +41,7 @@ export async function fetchBrRelatedInventoryListingsForDetail(
         .select(cols)
         .eq("category", "bienes-raices")
         .eq("is_published", true)
-        .in("status", ["active", "sold"])
+        .eq("status", "active")
         .neq("id", args.currentListingId)
         .limit(Math.min(limit + 4, 24));
       if (groupId) {

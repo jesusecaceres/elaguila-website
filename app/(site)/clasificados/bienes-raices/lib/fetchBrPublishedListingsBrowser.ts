@@ -47,7 +47,7 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
         .select(cols)
         .eq("category", "bienes-raices")
         .eq("is_published", true)
-        .in("status", ["active", "sold"])
+        .eq("status", "active")
         .order("republish_sort_at", { ascending: false, nullsFirst: true })
         .limit(limit);
       return { data: res.data as unknown[] | null, error: res.error ? { message: res.error.message } : null };
@@ -59,7 +59,7 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
           .select(cols)
           .eq("category", "bienes-raices")
           .eq("is_published", true)
-          .in("status", ["active", "sold"])
+          .eq("status", "active")
           .limit(limit);
         return { data: res.data as unknown[] | null, error: res.error ? { message: res.error.message } : null };
       });

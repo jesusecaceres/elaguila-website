@@ -85,7 +85,7 @@ export async function fetchBrSimilarOtherClientListingsForDetail(
         .select(cols)
         .eq("category", "bienes-raices")
         .eq("is_published", true)
-        .in("status", ["active", "sold"])
+        .eq("status", "active")
         .neq("id", args.currentListingId)
         .order("created_at", { ascending: false })
         .limit(48);

@@ -615,6 +615,7 @@ export default function MyListingsPage() {
 
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
+    if (status === "sold") patch.is_published = false;
 
     const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
 
@@ -625,7 +626,19 @@ export default function MyListingsPage() {
     }
 
     setListings((prev) =>
-      prev.map((x) => (x.id === id ? { ...x, status, ...(status === "active" ? { is_published: true } : {}) } : x)),
+      prev.map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              status,
+              ...(status === "active"
+                ? { is_published: true }
+                : status === "sold"
+                  ? { is_published: false }
+                  : {}),
+            }
+          : x,
+      ),
     );
     setBusyId(null);
   }
@@ -1415,6 +1428,15 @@ export default function MyListingsPage() {
                       onPause={() => void markPauseListing(x.id)}
                       onResume={() => void markResumeListing(x.id)}
                       onArchive={() => void softArchiveListing(x.id)}
+                      onMarkSold={() => {
+                        const ok = window.confirm(
+                          lang === "es"
+                            ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                            : "Mark this listing as sold? It will leave public results.",
+                        );
+                        if (!ok) return;
+                        void markStatus(x.id, "sold");
+                      }}
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}

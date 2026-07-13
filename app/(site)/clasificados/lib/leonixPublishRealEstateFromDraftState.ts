@@ -225,11 +225,18 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
 
 export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
   state: BienesRaicesPrivadoFormState,
-  lang: "es" | "en"
+  lang: "es" | "en",
+  opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const built = buildPublishParamsFromBienesRaicesPrivadoDraft(state, lang);
   if (!built.ok) return built;
-  if ("params" in built) return publishLeonixRealEstateListingCore(built.params);
+  if ("params" in built) {
+    return publishLeonixRealEstateListingCore({
+      ...built.params,
+      activationMode: opts?.activationMode,
+      brPaymentLane: "privado",
+    });
+  }
   return built;
 }
 

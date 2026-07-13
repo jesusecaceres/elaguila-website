@@ -22,6 +22,7 @@ const ALLOWED_SOURCES = new Set([
   "rentas_checkout",
   "empleos_checkout",
   "autos_privado_checkout",
+  "bienes_fsbo_checkout",
 ]);
 
 /** Category/audience tags derived from source so admin/export is always clear. */
@@ -30,6 +31,7 @@ const SOURCE_TAGS: Record<string, string[]> = {
   rentas_checkout: ["category:rentas", "audience:seller"],
   empleos_checkout: ["category:empleos", "audience:business"],
   autos_privado_checkout: ["category:autos", "seller:private", "audience:seller"],
+  bienes_fsbo_checkout: ["category:bienes-raices", "seller:fsbo", "audience:seller"],
 };
 
 const OPT_IN_TAG = "cta:checkout_newsletter_opt_in";

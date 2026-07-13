@@ -495,7 +495,20 @@ export function buildBrLiveGate12dOpenHouseCard(
     if (tw) push(L("Horario", "Hours"), tw);
   }
   if (g.showingByAppointment) push(L("Visitas con cita", "Showings by appointment"), L("Sí", "Yes"));
-  if (trim(g.showingInstructions)) push(L("Instrucciones para visitas", "Showing instructions"), trim(g.showingInstructions));
+  const extraOh = trim(g.showingInstructions);
+  if (extraOh) {
+    const blocks = extraOh.split(/\n\n—\n\n/).map((b) => b.trim()).filter(Boolean);
+    if (blocks.length > 1) {
+      blocks.forEach((block, i) => {
+        push(
+          L(`Open house adicional ${i + 1}`, `Additional open house ${i + 1}`),
+          block,
+        );
+      });
+    } else {
+      push(L("Instrucciones para visitas", "Showing instructions"), extraOh);
+    }
+  }
   const vt = normalizeLeonixHttpsUrl(trim(g.virtualTourUrl));
   if (!rows.length && !vt) return null;
   return { title: L("Open house y visitas", "Open house and showings"), rows, virtualTourUrl: vt };

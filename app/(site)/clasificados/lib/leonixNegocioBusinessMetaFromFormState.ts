@@ -135,5 +135,12 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
   const businessExtraUrls = durableBusinessExtraLinks(s.businessExtraUrls, 2);
   if (businessExtraUrls.length) meta.negocioBusinessExtraUrls = JSON.stringify(businessExtraUrls);
 
+  const googleBusiness = trim(s.googleBusinessUrl);
+  if (/^https?:\/\/\S+/i.test(googleBusiness)) meta.negocioGoogleBusinessUrl = googleBusiness;
+  const googleReviews = trim(s.googleReviewsUrl);
+  if (/^https?:\/\/\S+/i.test(googleReviews)) meta.negocioGoogleReviewsUrl = googleReviews;
+  const yelpReviews = trim(s.yelpReviewsUrl);
+  if (/^https?:\/\/\S+/i.test(yelpReviews)) meta.negocioYelpReviewsUrl = yelpReviews;
+
   return Object.keys(meta).length ? JSON.stringify(meta) : null;
 }

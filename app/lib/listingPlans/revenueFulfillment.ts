@@ -28,6 +28,9 @@ import {
 import {
   activatePaidAutosPrivadoListingFromRevenueOs,
 } from "./revenueAutosPrivadoFulfillment";
+import {
+  activatePaidBienesFsboListingFromRevenueOs,
+} from "./revenueBienesFsboFulfillment";
 import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, AUTOS_PRIVADO_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import {
   loadPaymentRecordById,
@@ -575,6 +578,80 @@ async function tryActivateAutosPrivadoListingAfterEntitlement(input: {
   return { ok: true };
 }
 
+async function tryActivateBienesFsboListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripePaymentIntentId?: string | null;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  const activation = await activatePaidBienesFsboListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+  });
+
+  if (
+    activation.outcome === "skipped_wrong_package" ||
+    activation.outcome === "already_published" ||
+    activation.outcome === "wrong_category" ||
+    activation.outcome === "wrong_lane"
+  ) {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "bienes_fsbo_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `bienes_fsbo_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Bienes Raices FSBO listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "bienes_fsbo_listing_activated_after_payment",
+    targetType: "listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
 export async function fulfillCheckoutSessionCompleted(input: {
   session: Stripe.Checkout.Session;
   eventId: string;
@@ -820,6 +897,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const bienesFsboActivation = await tryActivateBienesFsboListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripePaymentIntentId: resolveStripePaymentIntentId(session),
+    });
+    if (!bienesFsboActivation.ok) {
+      return {
+        ok: false,
+        code: bienesFsboActivation.code,
+        message: bienesFsboActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -1023,6 +1119,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: autosPrivadoActivation.code,
       message: autosPrivadoActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const bienesFsboActivation = await tryActivateBienesFsboListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripePaymentIntentId: resolveStripePaymentIntentId(session),
+  });
+  if (!bienesFsboActivation.ok) {
+    return {
+      ok: false,
+      code: bienesFsboActivation.code,
+      message: bienesFsboActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,

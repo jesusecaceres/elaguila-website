@@ -62,6 +62,7 @@ async function finishBrBypassCheckout(opts: {
   return NextResponse.json({
     ok: true,
     ...(opts.testPublish ? { testPublishBypass: true as const } : { internalBypass: true as const }),
+    listingId: opts.listingId,
     liveUrl: `${origin}${livePath}`,
     successUrl,
   });

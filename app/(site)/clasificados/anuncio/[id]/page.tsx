@@ -655,15 +655,25 @@ export default function AnuncioDetallePage() {
       return { videoLinks: [], usefulLinks: [] };
     }
     const meta = parseBusinessMetaObject(listing.business_meta ?? null);
+    const usefulLinks = parsePublishedBusinessExtraLinks(meta.negocioBusinessExtraUrls, 2).map((link) => ({
+      href: businessLinkHref(link)!,
+      label: businessLinkPublicLabel(link, lang === "en" ? "en" : "es"),
+    }));
+    const pushMetaLink = (raw: unknown, en: string, es: string) => {
+      const href = String(raw ?? "").trim();
+      if (!/^https?:\/\/\S+/i.test(href)) return;
+      if (usefulLinks.some((l) => l.href === href)) return;
+      usefulLinks.push({ href, label: lang === "en" ? en : es });
+    };
+    pushMetaLink(meta.negocioGoogleBusinessUrl, "Google Business", "Google Business");
+    pushMetaLink(meta.negocioGoogleReviewsUrl, "Google Reviews", "Reseñas de Google");
+    pushMetaLink(meta.negocioYelpReviewsUrl, "Yelp", "Yelp");
     return {
       videoLinks: parseBusinessMetaUrlList(meta.negocioExternalVideoUrls, 4).map((href, index) => ({
         href,
         label: numberedPublicCtaLabel(lang === "en" ? "View video" : "Ver video", index),
       })),
-      usefulLinks: parsePublishedBusinessExtraLinks(meta.negocioBusinessExtraUrls, 2).map((link) => ({
-        href: businessLinkHref(link)!,
-        label: businessLinkPublicLabel(link, lang === "en" ? "en" : "es"),
-      })),
+      usefulLinks,
     };
   }, [listing, lang]);
 

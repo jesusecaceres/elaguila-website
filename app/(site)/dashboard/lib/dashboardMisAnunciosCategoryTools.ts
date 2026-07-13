@@ -111,7 +111,9 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     analytics: "ready",
     pause: "ready",
     archive: "ready",
+    markSold: "ready",
     reactivate: "ready",
+    edit: "ready",
   },
   viajes: {
     publicView: "ready",

@@ -99,6 +99,7 @@ export function LeonixRealEstateListingManageCard({
   onPause,
   onResume,
   onArchive,
+  onMarkSold,
   republishPrimaryLabel = null,
   onRepublish,
   republishBusy = false,
@@ -116,6 +117,8 @@ export function LeonixRealEstateListingManageCard({
   onPause: () => void;
   onResume: () => void;
   onArchive: () => void;
+  /** Mark sold — null/undefined hides the CTA. */
+  onMarkSold?: () => void;
   /** Move to top / Republish — null hides republish CTA (ineligible or unknown). */
   republishPrimaryLabel?: string | null;
   onRepublish?: () => void;
@@ -154,8 +157,11 @@ export function LeonixRealEstateListingManageCard({
   const canPause = st === "active" && row.is_published !== false;
   const canResume = st === "paused" || st === "unpublished";
 
-  const brNegocioDashboardEditHref =
-    effectiveBranch === "bienes_raices_negocio" && isBr
+  const fsboDashboardEditHref = `/dashboard/mis-anuncios/${encodeURIComponent(row.id)}/editar?lang=${lang}`;
+  const brDashboardEditHref =
+    effectiveBranch === "bienes_raices_privado" && isBr
+      ? fsboDashboardEditHref
+      : effectiveBranch === "bienes_raices_negocio" && isBr
       ? bienesListingEditHref({
           lang,
           listingId: row.id,
@@ -163,8 +169,10 @@ export function LeonixRealEstateListingManageCard({
           categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
         })
       : scaffoldEditHref(effectiveBranch, lx.categoriaPropiedad);
-  const brNegocioDashboardPreviewHref =
-    effectiveBranch === "bienes_raices_negocio" && isBr
+  const brDashboardPreviewHref =
+    effectiveBranch === "bienes_raices_privado" && isBr
+      ? leonixLiveAnuncioPath(row.id)
+      : effectiveBranch === "bienes_raices_negocio" && isBr
       ? bienesListingPreviewHref({
           lang,
           listingId: row.id,
@@ -332,14 +340,14 @@ export function LeonixRealEstateListingManageCard({
             {publicViewLabel(lang)}
           </Link>
           <Link
-            href={brNegocioDashboardEditHref}
+            href={brDashboardEditHref}
             className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
           >
             {editListingLabel(lang)}
           </Link>
-          {brNegocioDashboardPreviewHref ? (
+          {brDashboardPreviewHref ? (
             <Link
-              href={brNegocioDashboardPreviewHref}
+              href={brDashboardPreviewHref}
               className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
             >
               {lang === "es" ? "Vista previa" : "Preview"}
@@ -371,6 +379,21 @@ export function LeonixRealEstateListingManageCard({
           >
             {resumeListingLabel(lang)}
           </button>
+          {onMarkSold && canPause ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onMarkSold}
+              title={
+                lang === "es"
+                  ? "Marcar vendido: quita el anuncio del público. Requiere confirmación."
+                  : "Mark sold: removes the listing from public results. Requires confirmation."
+              }
+              className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF8E8] px-4 py-2 text-sm font-semibold text-[#5C4A28] disabled:opacity-50"
+            >
+              {lang === "es" ? "Marcar vendido" : "Mark sold"}
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={busy || st === "removed"}

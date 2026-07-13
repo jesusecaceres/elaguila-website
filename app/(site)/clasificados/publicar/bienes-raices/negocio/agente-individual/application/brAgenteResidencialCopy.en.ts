@@ -324,6 +324,8 @@ export const BR_COPY_EN = {
     horaInicio: "Start time",
     horaFin: "End time",
     notasOh: "Notes",
+    openHouseHelper:
+      "Hosting an open house on multiple days? Add each date separately. Use notes for details such as “Also available Monday through Saturday by appointment.”",
     agregarOpenHouse: "Add open house date",
     eliminarFecha: "Remove this date",
   },

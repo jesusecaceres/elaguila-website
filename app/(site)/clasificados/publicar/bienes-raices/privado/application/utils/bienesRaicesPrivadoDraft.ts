@@ -60,7 +60,7 @@ export function saveBienesRaicesPrivadoDraft(state: BienesRaicesPrivadoFormState
   try {
     sessionStorage.setItem(BR_PRIVADO_DRAFT_STORAGE_KEY, raw);
     try {
-      localStorage.removeItem(BR_PRIVADO_DRAFT_LS_FALLBACK_KEY);
+      localStorage.setItem(BR_PRIVADO_DRAFT_LS_FALLBACK_KEY, raw);
     } catch {
       /* ignore */
     }

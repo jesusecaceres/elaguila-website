@@ -21,6 +21,7 @@ export const CHECKOUT_NEWSLETTER_SOURCES = {
   rentas: "rentas_checkout",
   empleos: "empleos_checkout",
   autosPrivado: "autos_privado_checkout",
+  bienesFsbo: "bienes_fsbo_checkout",
 } as const;
 
 export type CheckoutNewsletterSource =

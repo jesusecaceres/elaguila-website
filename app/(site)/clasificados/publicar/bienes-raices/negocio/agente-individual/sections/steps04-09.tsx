@@ -1258,6 +1258,7 @@ export function Step09ExtrasOpcionales({
       <div className="mt-5 space-y-6">
         <div className="rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
           <p className="text-sm font-semibold">{s9.openHouse}</p>
+          <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">{s9.openHouseHelper}</p>
           <div className="mt-3 space-y-4">
             {slots.map((slot, i) => (
               <div

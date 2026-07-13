@@ -238,3 +238,5 @@ Audit of remaining paid website categories. **No new wiring in this gate** — t
 Promo validation: server-owned discount fields only; webhook-only redemption; website checkout only.
 
 **Verifier:** `npm run verify:website-launch-25-checkout-wiring`
+
+See also **`docs/bienes-autos-dealer-paid-readiness-01.md`** for Bienes agent/FSBO and Autos dealer paid-pipeline truth (Launch 25 excluded until fulfillment/migration gates).

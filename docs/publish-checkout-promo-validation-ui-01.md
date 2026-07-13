@@ -238,3 +238,5 @@ Battlefield audit of remaining paid candidates. **No new allowlist keys were add
 | Restaurantes | Yes | `restaurantes_checkout` | Yes |
 
 **Verifier:** `npm run verify:website-launch-25-checkout-wiring` (extended with forbidden allowlist keys + NOT READY guards).
+
+See **`docs/bienes-autos-dealer-paid-readiness-01.md`** for Bienes/Autos dealer paid pipeline status.

@@ -222,3 +222,5 @@ See **`docs/publish-checkout-promo-validation-ui-01.md` §20** for the full matr
 | Dealer / add-ons / free / print / combo / manual | EXCLUDED | — |
 
 No new categories wired in this gate. Allowlist unchanged (five keys only).
+
+See **`docs/bienes-autos-dealer-paid-readiness-01.md`** — Bienes `br_agent_monthly` needs webhook fulfillment before Launch 25; Autos dealer stays on legacy checkout (Launch 25 excluded).

@@ -270,7 +270,11 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
 
   const stNeg = normalizeLeonixLbStateCode(String(state.estado ?? "").trim());
   if (stNeg) push(out, LEONIX_PROP_STATE, stNeg);
-  push(out, LEONIX_PROP_COUNTRY, normalizeLeonixLbCountry("United States"));
+  push(
+    out,
+    LEONIX_PROP_COUNTRY,
+    normalizeLeonixLbCountry(String(state.pais ?? "").trim() || "United States"),
+  );
 
   const fur = parseAmuebladoNegocio(state.amueblado);
   if (fur != null) push(out, LEONIX_DP_FURNISHED, fur);

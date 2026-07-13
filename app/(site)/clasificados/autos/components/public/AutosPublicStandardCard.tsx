@@ -9,7 +9,6 @@ import { LeonixShareButton } from "@/app/components/clasificados/analytics/Leoni
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
 import { autosSavedListingExtras } from "@/app/lib/autosSavedListingIdentity";
 import {
-  autosEngagementListingKey,
   autosGlobalLikeRecorder,
   autosGlobalListingFromRow,
   autosGlobalSaveRecorder,
@@ -42,10 +41,6 @@ export function AutosPublicStandardCard({
   const href = `${autosLiveVehiclePath(listing.id)}?lang=${lang}`;
   const trackLane = listing.sellerType === "dealer" ? "negocios" : "privado";
   const globalListing = autosGlobalListingFromRow({
-    id: listing.id,
-    leonix_ad_id: listing.leonixAdId,
-  });
-  const engagementKey = autosEngagementListingKey({
     id: listing.id,
     leonix_ad_id: listing.leonixAdId,
   });
@@ -145,33 +140,33 @@ export function AutosPublicStandardCard({
         {/* Engagement Metrics */}
         <div className={ENGAGEMENT_ROW}>
           <LeonixLikeButton
-            listingId={engagementKey}
+            listingId={listing.id}
             ownerUserId={listing.ownerUserId ?? undefined}
             variant="small"
             lang={lang as "es" | "en"}
             category="autos"
-            persistEngagement={Boolean(engagementKey)}
+            persistEngagement={Boolean(listing.id)}
             recordLikeEvent={globalListing ? autosGlobalLikeRecorder(globalListing) : undefined}
           />
           <LeonixSaveButton
-            listingId={engagementKey}
+            listingId={listing.id}
             ownerUserId={listing.ownerUserId ?? undefined}
             variant="small"
             lang={lang as "es" | "en"}
             category="autos"
-            persistEngagement={Boolean(engagementKey)}
+            persistEngagement={Boolean(listing.id)}
             saveExtras={saveExtras}
             recordSaveEvent={globalListing ? autosGlobalSaveRecorder(globalListing) : undefined}
           />
           <LeonixShareButton
-            listingId={engagementKey}
+            listingId={listing.id}
             ownerUserId={listing.ownerUserId ?? undefined}
             listingTitle={listing.vehicleTitle}
             listingUrl={listingShareUrl}
             variant="small"
             lang={lang as "es" | "en"}
             category="autos"
-            persistEngagement={Boolean(engagementKey)}
+            persistEngagement={Boolean(listing.id)}
             recordShareEvent={
               globalListing ? autosGlobalShareRecorder(globalListing, "results_card_share") : undefined
             }

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -16,7 +15,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
-import { IconBath, IconBed, IconCalendar, IconHeart, IconMapPin, IconRuler } from "./cardIcons";
+import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
 
 function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
   if (listing.sellerKind) return listing.sellerKind;
@@ -51,7 +50,6 @@ export function BienesRaicesNegocioFeaturedCard({
   const neg = sellerKindLabels?.negocio ?? "Negocio";
   const lane = sellerKindUi(listing);
   const op = operationKind(listing);
-  const [fav, setFav] = useState(false);
   const detailHref = lang ? appendLangToPath(leonixLiveAnuncioPath(listing.id), lang) : leonixLiveAnuncioPath(listing.id);
 
   const surface = `group relative overflow-hidden rounded-[24px] border border-[#D4C4A8]/45 ${brLuxuryHeroPanelClass} ${brLuxuryCardHoverClass}`;
@@ -68,19 +66,6 @@ export function BienesRaicesNegocioFeaturedCard({
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1E1810]/35 via-transparent to-transparent" />
             <BadgeStack badges={listing.badges} operation={op} lane={lane} />
-            <button
-              type="button"
-              aria-pressed={fav}
-              aria-label={lang === "en" ? "Save listing" : "Guardar anuncio"}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setFav((v) => !v);
-              }}
-              className="pointer-events-auto absolute right-4 top-4 z-[3] flex h-11 w-11 items-center justify-center rounded-full border border-white/75 bg-[#FFFCF7]/92 text-[#8A6F3A] shadow-lg backdrop-blur-sm transition hover:bg-white"
-            >
-              <IconHeart className="h-5 w-5" filled={fav} />
-            </button>
           </div>
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#E8DFD0]/70 bg-[#FFFCF7]/95 px-4 py-3">
             <p className="text-xl font-bold tracking-tight text-[#B8954A] sm:text-2xl">{listing.price}</p>

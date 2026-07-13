@@ -42,6 +42,13 @@ export const BIENES_RAICES_NEGOCIO_CHECKOUT = {
   returnPath: "/clasificados/bienes-raices",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Bienes Raices FSBO / private seller — 45-day paid listing (Revenue OS matrix). */
+export const BIENES_RAICES_FSBO_CHECKOUT = {
+  category: "bienes-raices",
+  packageKey: "br_fsbo_45d",
+  returnPath: "/clasificados/bienes-raices",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 /** Restaurantes established restaurant — monthly subscription (Revenue OS matrix). */
 export const RESTAURANTES_BASE_CHECKOUT = {
   category: "restaurantes",

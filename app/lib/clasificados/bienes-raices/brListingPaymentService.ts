@@ -63,10 +63,11 @@ export type TryActivateBrResult = { ok: boolean; transitioned: boolean };
 
 /**
  * Idempotent activation after Stripe paid. Only transitions rows with status=pending and unpublished.
+ * When a Bienes inventory listing activates, pending siblings in the same group also activate (bundle checkout).
  */
 export async function tryActivateBrListingAfterPayment(
   listingId: string,
-  opts?: { stripePaymentIntentId?: string | null },
+  opts?: { stripePaymentIntentId?: string | null; activateInventorySiblings?: boolean },
 ): Promise<TryActivateBrResult> {
   if (!isSupabaseAdminConfigured()) return { ok: false, transitioned: false };
   const existing = await getBrListingById(listingId);
@@ -110,6 +111,30 @@ export async function tryActivateBrListingAfterPayment(
     if (existing.category === "bienes-raices" && data.inventory_role === "main") {
       const patch = mainListingInventoryPatchAfterInsert(listingId);
       await supabase.from("listings").update({ ...patch, updated_at: now }).eq("id", listingId);
+    }
+    const fanOut = opts?.activateInventorySiblings !== false;
+    if (fanOut && existing.category === "bienes-raices") {
+      const groupId =
+        String(data.br_inventory_group_id ?? "").trim() ||
+        (data.inventory_role === "main" ? listingId : "");
+      if (groupId) {
+        const { data: siblings } = await supabase
+          .from("listings")
+          .select("id")
+          .eq("category", "bienes-raices")
+          .eq("br_inventory_group_id", groupId)
+          .eq("status", "pending")
+          .eq("is_published", false)
+          .neq("id", listingId);
+        for (const sib of siblings ?? []) {
+          const sibId = String((sib as { id?: string }).id ?? "").trim();
+          if (!sibId) continue;
+          await tryActivateBrListingAfterPayment(sibId, {
+            stripePaymentIntentId: opts?.stripePaymentIntentId,
+            activateInventorySiblings: false,
+          });
+        }
+      }
     }
     return { ok: true, transitioned: true };
   }

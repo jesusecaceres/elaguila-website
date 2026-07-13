@@ -192,6 +192,8 @@ Full matrix in **`docs/publish-checkout-promo-validation-ui-01.md` §20**.
 
 This gate added **zero** new allowlist keys. Discount remains server-owned; never inferred from code text.
 
+Bienes (`br_agent_monthly`) and Autos dealer (`autos_dealer_monthly`) remain **outside** Launch 25 — see `docs/bienes-autos-dealer-paid-readiness-01.md`.
+
 ## 12. Gate boundaries
 
 | Gate | In scope | Out of scope |

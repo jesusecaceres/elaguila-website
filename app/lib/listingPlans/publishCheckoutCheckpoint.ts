@@ -442,13 +442,15 @@ export function resolvePublishCheckoutCheckpoint(
     childCount >= 1 &&
     childCount <= BR_INVENTORY_PACK_MAX_CHILDREN;
 
+  const bienesLane = config.pipeline?.trim() || "negocio";
   const metadata: Record<string, string | number | boolean> = {
-    lane: config.category === "bienes-raices" ? "negocio" : config.category,
+    lane: config.category === "bienes-raices" ? bienesLane : config.category,
     newsletter_opt_in: Boolean(opts?.newsletterOptIn),
     lang,
   };
 
   if (config.category === "bienes-raices") {
+    if (config.pipeline?.trim()) metadata.pipeline = config.pipeline.trim();
     metadata.inventory_child_count = childCount;
     metadata.inventory_pack_selected = inventoryPackSelected && REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED;
     metadata.inventory_pack_slots = BR_INVENTORY_PACK_MAX_CHILDREN;

@@ -27,6 +27,7 @@ function durableHttpUrl(raw: string): string {
 }
 
 import { durableBusinessExtraLinks } from "../bienesAdditionalBusinessLinks";
+import { buildOpenHouseSlotSummaries, normalizeOpenHouseSlots } from "../../agente-individual/lib/agenteResidencialPreviewFormat";
 
 function durableUrlList(raw: readonly string[] | undefined, max: number): string[] {
   const out: string[] = [];
@@ -101,6 +102,13 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
   const brochureUrl = durableHttpUrl(s.brochureUrl);
   const slot0 = base.media.listingVideoSlots[0];
   const slot1 = base.media.listingVideoSlots[1];
+  const openHouseSlots = normalizeOpenHouseSlots(s);
+  const openHouseSummaries = buildOpenHouseSlotSummaries(s, "es");
+  const openHousePrimary = openHouseSlots[0];
+  const openHouseNotes =
+    openHouseSummaries.length > 1
+      ? openHouseSummaries.slice(1).join("\n\n—\n\n")
+      : trim(openHousePrimary?.notas) || trim(s.openHouseNotas);
 
   return mergePartialBienesRaicesNegocioState({
     advertiserType: "agente_individual",
@@ -189,6 +197,11 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       permitirProgramarVisita: s.permitirProgramarVisita,
       permitirLlamar: s.permitirLlamar,
       permitirWhatsapp: s.permitirWhatsApp,
+      openHouseActivo: openHouseSlots.length > 0,
+      openHouseFecha: trim(openHousePrimary?.fecha) || trim(s.openHouseFecha),
+      openHouseInicio: trim(openHousePrimary?.inicio) || trim(s.openHouseInicio),
+      openHouseFin: trim(openHousePrimary?.fin) || trim(s.openHouseFin),
+      openHouseNotas: openHouseNotes,
     },
     contactChannels: contactChannelsFromAgente(s),
     businessExtraUrls: durableBusinessExtraLinks(s.businessExtraUrls, 2),
