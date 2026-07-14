@@ -46,6 +46,7 @@ export function LeonixCategoryHeroGateway({
   searchSlot,
   tilesSlot,
   eyebrow,
+  icon,
 }: LeonixCategoryHeroGatewayProps) {
   // For results, tilesSlot is ignored (hard rule)
   const showTiles = surface === "landing" && tilesSlot;
@@ -56,14 +57,19 @@ export function LeonixCategoryHeroGateway({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
           {/* Icon wrapper - category should provide appropriate icon */}
           <span className={LEONIX_GATEWAY_ICON}>
-            {/* Icon should be passed via children or category-specific wrapper */}
-            <span className="flex h-6 w-6 items-center justify-center" aria-hidden>
-              {/* Default placeholder - category should override */}
-              <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeLinecap="round" strokeLinejoin="round" />
-                <polyline points="9 22 9 12 15 12 15 22" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
+            {icon ? (
+              <span className="flex h-6 w-6 items-center justify-center" aria-hidden>
+                {icon}
+              </span>
+            ) : (
+              <span className="flex h-6 w-6 items-center justify-center" aria-hidden>
+                {/* Default placeholder - category should override */}
+                <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points="9 22 9 12 15 12 15 22" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            )}
           </span>
           
           <div className="min-w-0 flex-1">

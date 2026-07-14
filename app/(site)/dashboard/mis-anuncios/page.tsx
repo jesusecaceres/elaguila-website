@@ -98,6 +98,9 @@ import {
   dashboardRepublishPrimaryKind,
   dashboardRepublishPrimaryLabel,
 } from "../lib/dashboardRepublishUi";
+import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
+import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
 import {
@@ -345,6 +348,7 @@ export default function MyListingsPage() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
+  const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
@@ -690,6 +694,25 @@ export default function MyListingsPage() {
       ),
     );
     setBusyId(null);
+  }
+
+  async function startRentasRenewal(row: ListingRow) {
+    setRenewalCheckoutBusyId(row.id);
+    setError(null);
+    const result = await startListingRenewalCheckout({
+      category: "rentas",
+      packageKey: "rentas_30d",
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+      lang,
+      returnPath: `${pathname}?lang=${lang}&cat=rentas`,
+    });
+    if (!result.ok) {
+      setError(result.userMessage);
+      setRenewalCheckoutBusyId(null);
+      return;
+    }
+    window.location.href = result.checkoutUrl;
   }
 
   async function renewEnVentaRepublish(row: ListingRow) {
@@ -1416,8 +1439,22 @@ export default function MyListingsPage() {
                 if (lx.branch) {
                   const catKey = String(x.category ?? "").toLowerCase();
                   const rowRec = x as unknown as Record<string, unknown>;
+                  const rentasLifecycle =
+                    catKey === "rentas"
+                      ? resolveListingLifecycle(
+                          {
+                            category: "rentas",
+                            packageKey: "rentas_30d",
+                            status: x.status,
+                            isPublished: x.is_published,
+                            publishedAt: x.published_at,
+                            expiresAt: x.expires_at,
+                          },
+                          RENTAS_LISTING_LIFECYCLE_CONFIG,
+                        )
+                      : null;
                   const repKind =
-                    republishColsAvailable && dashboardCanRepublishListingsRow(rowRec, catKey)
+                    catKey !== "rentas" && republishColsAvailable && dashboardCanRepublishListingsRow(rowRec, catKey)
                       ? dashboardRepublishPrimaryKind(rowRec, catKey)
                       : null;
                   const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
@@ -1446,6 +1483,9 @@ export default function MyListingsPage() {
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
+                      lifecycle={rentasLifecycle}
+                      renewalBusy={renewalCheckoutBusyId === x.id}
+                      onRenew={rentasLifecycle?.isRenewalEligible ? () => void startRentasRenewal(x) : undefined}
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
                       brNegocioInventoryRows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]}
                       packageEntitlementBadge={dashboardEntitlementBadgeForKey(entitlementBadges, [

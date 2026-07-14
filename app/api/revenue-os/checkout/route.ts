@@ -37,6 +37,7 @@ import {
   resolveRevenueCategoryDefaultReturnPath,
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import { validateRentasRenewalCheckoutOwnership } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -70,6 +71,9 @@ export async function POST(request: NextRequest) {
 
   const categoryEarly = String(body.category ?? "").trim().toLowerCase();
   const packageKeyEarly = String(body.packageKey ?? "").trim().toLowerCase();
+  const operationEarly = body.operation === "renew_listing" ? "renew_listing" : null;
+  const isRentasRenewalEarly =
+    operationEarly === "renew_listing" && categoryEarly === "rentas" && packageKeyEarly === "rentas_30d";
   const isRestauranteAddonOnlyEarly =
     categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
   const isAutosDealerInventoryAddonEarly =
@@ -116,8 +120,27 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly
-    ? bearerUserId
+  let serverVerifiedCurrentExpiresAt: string | null = null;
+  let serverVerifiedLeonixAdId: string | null = null;
+  let serverVerifiedOwnerUserId: string | null = null;
+  if (isRentasRenewalEarly) {
+    const ownerGate = await validateRentasRenewalCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt;
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
+
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isRentasRenewalEarly
+    ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
   const addOnValidation = validateRevenueCheckoutAddOns({
@@ -213,10 +236,16 @@ export async function POST(request: NextRequest) {
   const isBienesInventoryAddonOnly =
     packageDef.packageKey === BR_INVENTORY_PACK_PACKAGE_KEY &&
     packageDef.category === "bienes-raices";
+  const isRentasRenewal =
+    body.operation === "renew_listing" &&
+    packageDef.packageKey === "rentas_30d" &&
+    packageDef.category === "rentas";
   const returnFallback = isRestauranteAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
     : isBienesInventoryAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
+    : isRentasRenewal
+    ? buildDashboardMisAnunciosReturnPath(locale, "rentas")
     : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
   const safeReturnPath = sanitizeRevenueOsReturnPath(body.returnPath, returnFallback);
 
@@ -229,7 +258,7 @@ export async function POST(request: NextRequest) {
     addOns,
     currency,
     listingId: listingRef,
-    leonixAdId: body.leonixAdId,
+    leonixAdId: serverVerifiedLeonixAdId ?? body.leonixAdId,
     ownerUserId,
     customerEmail: body.customerEmail,
     promoCodeId,
@@ -240,6 +269,10 @@ export async function POST(request: NextRequest) {
     promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
     promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly,
+    operation: isRentasRenewal ? "renew_listing" : null,
+    sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
+    currentExpiresAt: isRentasRenewal ? serverVerifiedCurrentExpiresAt : body.currentExpiresAt,
+    returnContext: isRentasRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
   });
 
   if (!paymentInsert.ok) {
@@ -315,7 +348,7 @@ export async function POST(request: NextRequest) {
     paymentRecordId: paymentInsert.paymentRecordId,
     ownerUserId,
     listingId: listingRef,
-    leonixAdId: body.leonixAdId,
+    leonixAdId: serverVerifiedLeonixAdId ?? body.leonixAdId,
     promoCodeId,
     promoRedemptionId,
   });

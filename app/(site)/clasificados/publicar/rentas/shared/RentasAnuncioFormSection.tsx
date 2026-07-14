@@ -14,15 +14,20 @@ import {
   formatRentasDepositUsdPreview,
   formatRentasMensualAnuncioPreview,
   rentasDisponibilidadIsIsoDate,
+  rentasServicioIncluidoLabel,
   type RentasServicioIncluidoId,
   RENTAS_US_STATE_DATALIST_OPTIONS,
   RENTAS_COUNTRY_SUGGESTIONS,
 } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasNegocioFormState } from "../negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "../privado/schema/rentasPrivadoFormState";
-import { RENTAS_TIPO_DE_RENTA_OPTIONS } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import {
+  RENTAS_TIPO_DE_RENTA_OPTIONS,
+  rentasTipoDeRentaOptionLabel,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { RentasTipoFlowDetailFields } from "@/app/clasificados/publicar/rentas/shared/RentasTipoFlowDetailFields";
+import { getRentasAnuncioFormCopy } from "./rentasAnuncioFormCopy";
 import type { Dispatch, SetStateAction } from "react";
 
 function precioDigitsUnbounded(raw: string): string {
@@ -55,41 +60,8 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
   estadoOptions,
   lang,
 }: Props<T>) {
-  // Translated labels
-  const sectionTitle = lang === "en" ? "Listing" : "Anuncio";
-  const titleLabel = lang === "en" ? "Title" : "Título";
-  const rentalTypeLabel = lang === "en" ? "Rental type" : "Tipo de renta";
-  const rentalTypeHint = lang === "en" 
-    ? "Describe in more detail what you offer; helps preview and results." 
-    : "Describe con más detalle qué ofreces; ayuda a la vista previa y a los resultados.";
-  const specifyOtherTypeLabel = lang === "en" ? "Specify rental type" : "Especifica el tipo de renta";
-  const specifyOtherTypeHint = lang === "en" 
-    ? "Will be shown exactly as you write it (not just \"Other\")." 
-    : "Se mostrará tal como lo escribas (no solo \"Otro\").";
-  const conditionsLabel = lang === "en" ? "Important rental conditions" : "Condiciones importantes del alquiler";
-  const conditionsHint = lang === "en"
-    ? "Add rules, conditions or important details about the space. Avoid discriminatory language; focus on house rules, occupancy, space use and clear requirements."
-    : "Agrega reglas, condiciones o detalles importantes del espacio. Evita lenguaje discriminatorio; enfócate en reglas del hogar, ocupación, uso del espacio y requisitos claros.";
-  const conditionsPlaceholder = lang === "en"
-    ? "E.g. quiet environment, no smoking, max 1 person, ideal for student or worker, proof of income required…"
-    : "Ej. ambiente tranquilo, no fumar, máximo 1 persona, ideal para estudiante o trabajador, se requiere comprobante de ingresos…";
-  const monthlyRentLabel = lang === "en" ? "Monthly rent (USD)" : "Renta mensual (USD)";
-  const monthlyRentHint = lang === "en" 
-    ? "Enter numbers only (no symbols). Below you'll see how it will appear in the listing." 
-    : "Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio.";
-  const inListingText = lang === "en" ? "In listing: " : "En el anuncio: ";
-  const rentReviewText = lang === "en" ? "Review the number (must be greater than zero)." : "Revisa el número (debe ser mayor que cero).";
-  const rentExampleText = lang === "en" 
-    ? "Example: typing 2500 will display the rent in dollars formatted with \"/ month\"." 
-    : "Ejemplo: al escribir 2500 se mostrará la renta en dólares con formato y \"/ mes\".";
-  const depositLabel = lang === "en" ? "Deposit (USD)" : "Depósito (USD)";
-  const depositHint = lang === "en" ? "Numbers only (whole dollars). No \"/ month\" in the listing." : "Solo números (dólares enteros). Sin \"/ mes\" en el anuncio.";
-  const depositReviewText = lang === "en" ? "Review the amount (must be greater than zero)." : "Revisa el monto (debe ser mayor que cero).";
-  const depositExampleText = lang === "en" 
-    ? "Example: 10000 will be displayed as a formatted dollar deposit." 
-    : "Ejemplo: 10000 se mostrará como depósito en dólares con formato.";
-  const contractTermLabel = lang === "en" ? "Contract term" : "Plazo del contrato";
-  
+  const c = getRentasAnuncioFormCopy(lang);
+
   const rentPreview = formatRentasMensualAnuncioPreview(state.rentaMensual);
   const depositPreview = formatRentasDepositUsdPreview(state.deposito);
   const dispIso = rentasDisponibilidadIsIsoDate(state.disponibilidad);
@@ -103,10 +75,10 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
-      <h2 className={aiTitleClass}>{sectionTitle}</h2>
+      <h2 className={aiTitleClass}>{c.sectionTitle}</h2>
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
         <div className="sm:col-span-2">
-          <AiField required label={titleLabel}>
+          <AiField required label={c.titleLabel}>
             <input
               className={fieldClass}
               value={state.titulo}
@@ -116,7 +88,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           </AiField>
         </div>
         <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-          <AiField label={rentalTypeLabel} hint={rentalTypeHint}>
+          <AiField label={c.rentalTypeLabel} hint={c.rentalTypeHint}>
             <select
               className={fieldClass}
               value={state.tipoDeRenta}
@@ -131,13 +103,13 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
               <option value="">—</option>
               {RENTAS_TIPO_DE_RENTA_OPTIONS.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.label}
+                  {rentasTipoDeRentaOptionLabel(o.id, lang)}
                 </option>
               ))}
             </select>
           </AiField>
           {state.tipoDeRenta === "otro" ? (
-            <AiField label="Especifica el tipo de renta" hint="Se mostrará tal como lo escribas (no solo “Otro”).">
+            <AiField label={c.specifyOtherTypeLabel} hint={c.specifyOtherTypeHint}>
               <input
                 className={fieldClass}
                 value={state.tipoDeRentaOtro}
@@ -148,25 +120,18 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           ) : null}
         </div>
         <div className="sm:col-span-2">
-          <AiField
-            label={conditionsLabel}
-            hint={conditionsHint}
-          >
+          <AiField label={c.conditionsLabel} hint={c.conditionsHint}>
             <textarea
               className={textareaFieldClass}
               rows={3}
               value={state.condicionesAlquiler}
               onChange={(e) => setState((s) => ({ ...s, condicionesAlquiler: e.target.value }))}
-              placeholder={conditionsPlaceholder}
+              placeholder={c.conditionsPlaceholder}
             />
           </AiField>
         </div>
-        <RentasTipoFlowDetailFields state={state} setState={setState} fieldClass={fieldClass} />
-        <AiField
-          required
-          label={monthlyRentLabel}
-          hint={monthlyRentHint}
-        >
+        <RentasTipoFlowDetailFields state={state} setState={setState} fieldClass={fieldClass} lang={lang} />
+        <AiField required label={c.monthlyRentLabel} hint={c.monthlyRentHint}>
           <input
             className={fieldClass}
             inputMode="numeric"
@@ -176,20 +141,18 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           />
           {rentPreview ? (
             <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-              {inListingText}
+              {c.inListingText}
               <span className="text-[#1E1810]" aria-live="polite">
                 {rentPreview}
               </span>
             </p>
           ) : (
             <p className="mt-2 text-xs text-[#5C5346]/85">
-              {state.rentaMensual.trim()
-                ? "Revisa el número (debe ser mayor que cero)."
-                : "Ejemplo: al escribir 2500 se mostrará la renta en dólares con formato y “/ mes”."}
+              {state.rentaMensual.trim() ? c.rentReviewText : c.rentExampleText}
             </p>
           )}
         </AiField>
-        <AiField label="Depósito (USD)" hint="Solo números (dólares enteros). Sin “/ mes” en el anuncio.">
+        <AiField label={c.depositLabel} hint={c.depositHint}>
           <input
             className={fieldClass}
             inputMode="numeric"
@@ -199,20 +162,18 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           />
           {depositPreview ? (
             <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-              {inListingText}
+              {c.inListingText}
               <span className="text-[#1E1810]" aria-live="polite">
                 {depositPreview}
               </span>
             </p>
           ) : (
             <p className="mt-2 text-xs text-[#5C5346]/85">
-              {state.deposito.trim()
-                ? depositReviewText
-                : depositExampleText}
+              {state.deposito.trim() ? c.depositReviewText : c.depositExampleText}
             </p>
           )}
         </AiField>
-        <AiField label={contractTermLabel}>
+        <AiField label={c.contractTermLabel}>
           <select
             className={fieldClass}
             value={state.plazoContrato}
@@ -228,28 +189,25 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             <option value="">—</option>
             {Object.entries(RENTAS_PLAZO_LABELS).map(([key, lbl]) => (
               <option key={key} value={key}>
-                {lbl.es}
+                {lbl[lang]}
               </option>
             ))}
           </select>
         </AiField>
         {showOtroPlazo ? (
           <div className="sm:col-span-2">
-            <AiField
-              label="Especifica el plazo"
-              hint="Ej. 3 meses renovable, temporada, contrato flexible…"
-            >
+            <AiField label={c.specifyTermLabel} hint={c.specifyTermHint}>
               <input
                 className={fieldClass}
                 value={state.plazoContratoOtro}
                 onChange={(e) => setState((s) => ({ ...s, plazoContratoOtro: e.target.value }))}
                 autoComplete="off"
-                placeholder="Ej. 3 meses renovable, temporada, contrato flexible…"
+                placeholder={c.specifyTermPlaceholder}
               />
             </AiField>
           </div>
         ) : null}
-        <AiField label="Disponibilidad" hint="Elige la fecha en que estará disponible (o conserva un texto guardado antes).">
+        <AiField label={c.availabilityLabel} hint={c.availabilityHint}>
           <input
             className={fieldClass}
             type="date"
@@ -261,14 +219,15 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           />
           {dispLegacyNote ? (
             <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-              Texto guardado anteriormente: «{dispLegacyNote}». Elige una fecha arriba para reemplazarlo, o déjalo y seguirá
-              mostrándose así en el anuncio.
+              {c.availabilityLegacyPrefix}
+              {dispLegacyNote}
+              {c.availabilityLegacySuffix}
             </p>
           ) : null}
         </AiField>
         {hideAmuebladoMascotas ? null : (
           <>
-            <AiField label="Amueblado">
+            <AiField label={c.furnishedLabel}>
               <select
                 className={fieldClass}
                 value={state.amueblado}
@@ -277,26 +236,26 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                 }
               >
                 <option value="">—</option>
-                <option value="amueblado">Amueblado</option>
-                <option value="sin_amueblar">Sin amueblar</option>
+                <option value="amueblado">{c.furnishedOption}</option>
+                <option value="sin_amueblar">{c.unfurnishedOption}</option>
               </select>
             </AiField>
-            <AiField label="Mascotas">
+            <AiField label={c.petsLabel}>
               <select
                 className={fieldClass}
                 value={state.mascotas}
                 onChange={(e) => setState((s) => ({ ...s, mascotas: e.target.value as typeof s.mascotas }))}
               >
                 <option value="">—</option>
-                <option value="permitidas">Permitidas</option>
-                <option value="no_permitidas">No permitidas</option>
+                <option value="permitidas">{c.petsAllowedOption}</option>
+                <option value="no_permitidas">{c.petsNotAllowedOption}</option>
               </select>
             </AiField>
           </>
         )}
         <div className="sm:col-span-2">
-          <span className={aiLabelClass}>Servicios incluidos</span>
-          <p className={aiHintClass}>Marca lo que aplica. En el anuncio se listan en limpio, sin emojis.</p>
+          <span className={aiLabelClass}>{c.servicesHeading}</span>
+          <p className={aiHintClass}>{c.servicesHint}</p>
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-2">
             {RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => (
               <label key={d.id} className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug">
@@ -311,9 +270,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                     }))
                   }
                 />
-                <span className="min-w-0">
-                  {d.label}
-                </span>
+                <span className="min-w-0">{rentasServicioIncluidoLabel(d.id, lang)}</span>
               </label>
             ))}
             <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug">
@@ -334,12 +291,12 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                   })
                 }
               />
-              <span className="min-w-0">Otro</span>
+              <span className="min-w-0">{c.otherServiceLabel}</span>
             </label>
           </div>
           {servicioOtro ? (
             <div className="mt-3">
-              <AiField label="Especifica el servicio" hint="Aparece junto a los demás en el anuncio.">
+              <AiField label={c.specifyServiceLabel} hint={c.specifyServiceHint}>
                 <input
                   className={fieldClass}
                   value={state.serviciosIncluidosOtro}
@@ -351,10 +308,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           ) : null}
         </div>
         <div className="sm:col-span-2">
-          <AiField
-            label="Requisitos"
-            hint="Ej. comprobante de ingresos, meses de depósito, carta de recomendación, verificación de antecedentes…"
-          >
+          <AiField label={c.requirementsLabel} hint={c.requirementsHint}>
             <textarea
               className={textareaFieldClass}
               rows={3}
@@ -364,7 +318,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           </AiField>
         </div>
         <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:items-end sm:gap-5">
-          <AiField label="Estado del anuncio">
+          <AiField label={c.listingStatusLabel}>
             <select
               className={fieldClass}
               value={state.estadoAnuncio}
@@ -377,7 +331,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
               ))}
             </select>
           </AiField>
-          <AiField label="Zona o vecindario" hint="Opcional. Barrio, colonia o referencia local (no sustituye la ciudad).">
+          <AiField label={c.zoneLabel} hint={c.zoneHint}>
             <input
               className={fieldClass}
               value={state.zonaVecindario}
@@ -387,7 +341,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField label="Dirección línea 1" hint="Calle y número para ubicar la propiedad.">
+          <AiField label={c.addressLine1Label} hint={c.addressLine1Hint}>
             <input
               className={fieldClass}
               value={state.direccionLinea1}
@@ -400,24 +354,21 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                 }))
               }
               autoComplete="street-address"
-              placeholder="Calle y número"
+              placeholder={c.addressLine1Placeholder}
             />
           </AiField>
         </div>
         <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-2 sm:items-end sm:gap-5">
-          <AiField label="Dirección línea 2" hint="Departamento, unidad, suite, edificio… (opcional).">
+          <AiField label={c.addressLine2Label} hint={c.addressLine2Hint}>
             <input
               className={fieldClass}
               value={state.direccionLinea2}
               onChange={(e) => setState((s) => ({ ...s, direccionLinea2: e.target.value }))}
               autoComplete="address-line2"
-              placeholder="Departamento, unidad, suite…"
+              placeholder={c.addressLine2Placeholder}
             />
           </AiField>
-          <AiField
-            label="Mostrar dirección exacta cuando aplique"
-            hint="Si no activas esta opción, mostraremos una ubicación aproximada. / If you do not enable this, we will show an approximate location."
-          >
+          <AiField label={c.showExactAddressLabel} hint={c.showExactAddressHint}>
             <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
               <input
                 type="checkbox"
@@ -425,37 +376,30 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                 checked={Boolean(state.mostrarDireccionExacta)}
                 onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
               />
-              <span className="min-w-0">Permitir mostrar la dirección exacta en el anuncio.</span>
+              <span className="min-w-0">{c.showExactAddressCheckbox}</span>
             </label>
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField
-            label="Calles principales o cruce cercano (opcional)"
-            hint="Si no quieres mostrar la dirección exacta, puedes indicar calles principales, un cruce cercano o una referencia general."
-          >
+          <AiField label={c.crossStreetLabel} hint={c.crossStreetHint}>
             <input
               className={fieldClass}
               value={state.direccionCruceCercano}
               onChange={(e) => setState((s) => ({ ...s, direccionCruceCercano: e.target.value }))}
               autoComplete="off"
-              placeholder="Calles principales o cruce cercano"
+              placeholder={c.crossStreetPlaceholder}
             />
           </AiField>
         </div>
         <div className="sm:col-span-2 grid min-w-0 gap-4 sm:grid-cols-3 sm:gap-5">
-          <AiField
-            required
-            label="Ciudad"
-            hint="Escribe y elige una sugerencia, o escribe la ciudad. Sirve para ubicación y filtros."
-          >
+          <AiField required label={c.cityLabel} hint={c.cityHint}>
             <BrPrivadoCiudadZonaCombobox
               className={fieldClass}
               value={state.ciudad}
               onChange={(v) => setState((s) => ({ ...s, ciudad: v }))}
             />
           </AiField>
-          <AiField label="Estado / provincia">
+          <AiField label={c.stateLabel}>
             <select
               className={fieldClass}
               value={state.direccionEstado}
@@ -469,7 +413,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
               ))}
             </select>
           </AiField>
-          <AiField label="Código postal" hint="Código postal o ZIP (flexible, acepta cualquier formato).">
+          <AiField label={c.zipLabel} hint={c.zipHint}>
             <input
               className={fieldClass}
               value={state.direccionCodigoPostal}
@@ -484,10 +428,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField
-            label="País"
-            hint="Escribe cualquier país o elige una sugerencia."
-          >
+          <AiField label={c.countryLabel} hint={c.countryHint}>
             <input
               className={fieldClass}
               list="rentas-country-suggestions"
@@ -497,9 +438,9 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
               placeholder="United States"
             />
             <datalist id="rentas-country-suggestions">
-              {RENTAS_COUNTRY_SUGGESTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {RENTAS_COUNTRY_SUGGESTIONS.map((country) => (
+                <option key={country} value={country}>
+                  {country}
                 </option>
               ))}
             </datalist>
@@ -507,12 +448,8 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
         </div>
         {showLegacyUbicacionExtra ? (
           <details className="sm:col-span-2 min-w-0 rounded-lg border border-[#E8DFD0] bg-[#FAF6EE] px-3 py-2.5">
-            <summary className="cursor-pointer text-sm font-medium text-[#5C5346]">
-              Texto de ubicación adicional (borrador anterior)
-            </summary>
-            <p className={`${aiHintClass} mt-2`}>
-              Solo si necesitas conservar o editar un texto distinto a la dirección principal.
-            </p>
+            <summary className="cursor-pointer text-sm font-medium text-[#5C5346]">{c.legacyLocationSummary}</summary>
+            <p className={`${aiHintClass} mt-2`}>{c.legacyLocationHint}</p>
             <input
               className={`mt-2 ${fieldClass}`}
               value={state.ubicacionLinea}
@@ -521,19 +458,9 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             />
           </details>
         ) : null}
-        <p className="sm:col-span-2 text-xs text-[#5C5346]">
-          Para vista previa indica la ciudad
-          <span className="text-[#B8954A]" aria-hidden>
-            {" "}
-            *
-          </span>{" "}
-          y la referencia (dirección exacta o cruce cercano). El mapa se genera automáticamente a partir de la referencia reunida.
-        </p>
+        <p className="sm:col-span-2 text-xs text-[#5C5346]">{c.previewLocationNote}</p>
         <div className="sm:col-span-2">
-          <AiField
-            label="Descripción principal"
-            hint="Describe la propiedad, el espacio, las reglas importantes y lo que debe saber la persona interesada."
-          >
+          <AiField label={c.descriptionLabel} hint={c.descriptionHint}>
             <textarea
               className={textareaFieldClass}
               rows={8}

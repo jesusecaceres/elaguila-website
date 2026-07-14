@@ -437,123 +437,244 @@ export type OfertasLocalesResultModeCopy = {
 const RESULT_MODE_COPY: Record<OfertasLocalesAppLang, Record<OfertasLocalesResultMode, OfertasLocalesResultModeCopy>> = {
   es: {
     all: {
-      title: "Todas las ofertas locales",
-      helper: "Explora volantes, cupones, productos y especiales de negocios locales.",
+      title: "Todas las ofertas",
+      helper: "Explora volantes, promociones, cupones, productos y negocios locales aprobados por Leonix.",
       pill: "Todas",
-      emptyTitle: "Aún no hay ofertas aprobadas para estos filtros.",
-      emptyHint: "Prueba limpiar filtros o vuelve a revisar más tarde.",
+      emptyTitle: "Aún no hay ofertas aprobadas publicadas.",
+      emptyHint: "Cuando los negocios publiquen y Leonix apruebe sus ofertas, aparecerán aquí.",
     },
     flyers: {
       title: "Volantes semanales",
-      helper: "Encuentra especiales de tienda y volantes activos cerca de ti.",
+      helper: "Explora volantes completos, especiales vigentes y ofertas de negocios locales.",
       pill: "Volantes",
-      emptyTitle: "Todavía no hay volantes semanales activos con estos filtros.",
-      emptyHint: "Prueba otra ciudad, código postal o vuelve pronto.",
+      emptyTitle: "Aún no hay volantes semanales aprobados.",
+      emptyHint: "Cuando los negocios publiquen y Leonix apruebe sus volantes, aparecerán aquí.",
     },
     coupons: {
-      title: "Cupones locales",
-      helper: "Descuentos y cupones digitales de negocios locales.",
+      title: "Cupones",
+      helper: "Encuentra descuentos y cupones aprobados de negocios locales.",
       pill: "Cupones",
-      emptyTitle: "No encontramos cupones con esos filtros.",
-      emptyHint: "Prueba otra ciudad, categoría o promoción.",
+      emptyTitle: "Aún no hay cupones aprobados para estos filtros.",
+      emptyHint: "Cuando los negocios publiquen y Leonix apruebe sus cupones, aparecerán aquí.",
     },
     promos: {
-      title: "Promociones locales",
-      helper: "Ofertas por tiempo limitado, combos y especiales destacados.",
+      title: "Promociones",
+      helper: "Descubre promociones vigentes y ofertas especiales de negocios locales.",
       pill: "Promociones",
-      emptyTitle: "No encontramos promociones con esos filtros.",
-      emptyHint: "Prueba otra ciudad, categoría o tipo de oferta.",
+      emptyTitle: "Aún no hay promociones aprobadas para estos filtros.",
+      emptyHint: "Prueba cambiar o limpiar los filtros.",
     },
     stores: {
       title: "Tiendas locales",
-      helper: "Ofertas de tiendas, mercados y negocios cerca de ti.",
+      helper: "Explora negocios y mercados con volantes y ofertas activas en Leonix.",
       pill: "Tiendas",
-      emptyTitle: "Todavía no hay ofertas de tiendas con estos filtros.",
-      emptyHint: "Prueba otra ciudad, código postal o categoría.",
+      emptyTitle: "Aún no hay tiendas aprobadas para estos filtros.",
+      emptyHint: "Prueba cambiar o limpiar los filtros.",
     },
     services: {
-      title: "Servicios locales con ofertas",
+      title: "Servicios locales",
       helper: "Promociones y especiales de negocios de servicios.",
       pill: "Servicios",
-      emptyTitle: "Todavía no hay ofertas de servicios con estos filtros.",
-      emptyHint: "Prueba otra ciudad, código postal o categoría.",
+      emptyTitle: "Aún no hay ofertas de servicios aprobadas para estos filtros.",
+      emptyHint: "Prueba cambiar o limpiar los filtros.",
     },
     food: {
-      title: "Comida, mercados y restaurantes",
-      helper: "Especiales de comida, mercados, restaurantes y productos para tu visita.",
+      title: "Comida y mercados",
+      helper: "Encuentra restaurantes, mercados y ofertas de comida cerca de ti.",
       pill: "Comida",
-      emptyTitle: "Todavía no hay ofertas de comida o mercados con estos filtros.",
-      emptyHint: "Prueba otra ciudad, categoría o producto.",
+      emptyTitle: "Aún no hay ofertas de comida aprobadas para estos filtros.",
+      emptyHint: "Prueba cambiar o limpiar los filtros.",
     },
     products: {
-      title: "Buscar por producto",
-      helper: "Encuentra productos del volante y agrégalos a tu lista de compras.",
+      title: "Productos encontrados",
+      helper: "Compara productos aprobados de distintos negocios y agrégalos a tu Lista de compras.",
       pill: "Productos",
-      emptyTitle: "No encontramos productos con esa búsqueda.",
-      emptyHint: "Prueba otro producto, ciudad o código postal.",
+      emptyTitle: "Aún no hay productos aprobados para esta búsqueda.",
+      emptyHint: "Prueba otra palabra o revisa nuevamente cuando los negocios publiquen nuevos productos.",
       listNote: "Agrega productos a tu lista de compras mientras exploras.",
     },
   },
   en: {
     all: {
-      title: "All local deals",
-      helper: "Browse flyers, coupons, products, and specials from local businesses.",
+      title: "All offers",
+      helper: "Browse approved flyers, promotions, coupons, products, and local businesses.",
       pill: "All",
-      emptyTitle: "No approved offers match these filters yet.",
-      emptyHint: "Try clearing filters or check back later.",
+      emptyTitle: "No approved offers published yet.",
+      emptyHint: "Once businesses publish and Leonix approves their offers, they will appear here.",
     },
     flyers: {
       title: "Weekly flyers",
-      helper: "Find active store specials and weekly flyers near you.",
+      helper: "Browse complete flyers, current specials, and offers from local businesses.",
       pill: "Flyers",
-      emptyTitle: "No active weekly flyers match these filters yet.",
-      emptyHint: "Try another city, postal code, or check back soon.",
+      emptyTitle: "No approved weekly flyers yet.",
+      emptyHint: "Once businesses publish and Leonix approves their flyers, they will appear here.",
     },
     coupons: {
-      title: "Local coupons",
-      helper: "Discounts and digital coupons from local businesses.",
+      title: "Coupons",
+      helper: "Find approved discounts and coupons from local businesses.",
       pill: "Coupons",
-      emptyTitle: "We didn't find coupons with those filters.",
-      emptyHint: "Try another city, category, or promotion.",
+      emptyTitle: "No approved coupons match these filters yet.",
+      emptyHint: "Once businesses publish and Leonix approves their coupons, they will appear here.",
     },
     promos: {
-      title: "Local promotions",
-      helper: "Limited-time deals, bundles, and featured specials.",
+      title: "Promotions",
+      helper: "Discover current promotions and special offers from local businesses.",
       pill: "Promotions",
-      emptyTitle: "We didn't find promotions with those filters.",
-      emptyHint: "Try another city, category, or offer type.",
+      emptyTitle: "No approved promotions match these filters yet.",
+      emptyHint: "Try changing or clearing the filters.",
     },
     stores: {
       title: "Local stores",
-      helper: "Deals from shops, markets, and nearby businesses.",
+      helper: "Browse businesses and markets with active flyers and offers on Leonix.",
       pill: "Stores",
-      emptyTitle: "No store deals match these filters yet.",
-      emptyHint: "Try another city, postal code, or category.",
+      emptyTitle: "No approved stores match these filters yet.",
+      emptyHint: "Try changing or clearing the filters.",
     },
     services: {
-      title: "Local service deals",
+      title: "Local services",
       helper: "Promotions and specials from service businesses.",
       pill: "Services",
-      emptyTitle: "No service deals match these filters yet.",
-      emptyHint: "Try another city, postal code, or category.",
+      emptyTitle: "No approved service offers match these filters yet.",
+      emptyHint: "Try changing or clearing the filters.",
     },
     food: {
-      title: "Food, markets, and restaurants",
-      helper: "Food specials, markets, restaurants, and products for your visit.",
+      title: "Food & markets",
+      helper: "Find restaurants, markets, and food offers near you.",
       pill: "Food",
-      emptyTitle: "No food or market deals match these filters yet.",
-      emptyHint: "Try another city, category, or product.",
+      emptyTitle: "No approved food offers match these filters yet.",
+      emptyHint: "Try changing or clearing the filters.",
     },
     products: {
-      title: "Search by product",
-      helper: "Find flyer products and add them to your shopping list.",
+      title: "Products found",
+      helper: "Compare approved products from local businesses and add them to your shopping list.",
       pill: "Products",
-      emptyTitle: "We didn't find products with that search.",
-      emptyHint: "Try another product, city, or postal code.",
+      emptyTitle: "No approved products match this search yet.",
+      emptyHint: "Try another keyword or check back when businesses publish new products.",
       listNote: "Add products to your shopping list as you browse.",
     },
   },
 };
+
+export type OfertasLocalesShopperModePresentation = {
+  mode: OfertasLocalesResultMode;
+  showOffers: boolean;
+  showItems: boolean;
+  offersFirst: boolean;
+  offersSectionTitle: string;
+  itemsSectionTitle: string;
+};
+
+export function resolveOfertasLocalesShopperMode(input: {
+  modeParam: string | null | undefined;
+  offerTypeParam: string;
+  marketTypeParam: string;
+  categoryParam: string;
+  query: string;
+}): OfertasLocalesResultMode {
+  const parsed = parseOfertasLocalesResultMode(input.modeParam);
+  const offerType = input.offerTypeParam.trim();
+  const marketType = input.marketTypeParam.trim();
+  const category = input.categoryParam.trim();
+  if (offerType === "weekly_flyer") return "flyers";
+  if (offerType === "coupon") return "coupons";
+  if (offerType === "promotion") return "promos";
+  if (parsed === "all" && marketType === "retail") return "stores";
+  if (parsed === "all" && marketType === "service") return "services";
+  if (parsed === "all" && category === "food") return "food";
+  if (input.query.trim() && parsed === "all") return "products";
+  return parsed;
+}
+
+export function ofertasLocalesShopperModePresentation(
+  lang: OfertasLocalesAppLang,
+  mode: OfertasLocalesResultMode,
+  baseCopy: OfertasLocalesPublicSearchCopy
+): OfertasLocalesShopperModePresentation {
+  const modeCopy = ofertasLocalesResultModeCopy(lang, mode);
+  switch (mode) {
+    case "flyers":
+      return {
+        mode,
+        showOffers: true,
+        showItems: false,
+        offersFirst: true,
+        offersSectionTitle: modeCopy.title,
+        itemsSectionTitle: baseCopy.itemsSectionTitle,
+      };
+    case "products":
+      return {
+        mode,
+        showOffers: false,
+        showItems: true,
+        offersFirst: false,
+        offersSectionTitle: baseCopy.offersSectionTitle,
+        itemsSectionTitle: modeCopy.title,
+      };
+    case "coupons":
+    case "promos":
+    case "stores":
+    case "services":
+    case "food":
+      return {
+        mode,
+        showOffers: true,
+        showItems: false,
+        offersFirst: true,
+        offersSectionTitle: modeCopy.title,
+        itemsSectionTitle: baseCopy.itemsSectionTitle,
+      };
+    case "all":
+    default:
+      return {
+        mode: "all",
+        showOffers: true,
+        showItems: true,
+        offersFirst: true,
+        offersSectionTitle: baseCopy.offersSectionTitle,
+        itemsSectionTitle: baseCopy.itemsSectionTitle,
+      };
+  }
+}
+
+export function filterOfertasLocalesOffersForShopperMode(
+  offers: readonly { offerType: string; marketType: string; businessCategory: string }[],
+  mode: OfertasLocalesResultMode
+) {
+  switch (mode) {
+    case "flyers":
+      return offers.filter((offer) => offer.offerType.trim() === "weekly_flyer");
+    case "coupons":
+      return offers.filter((offer) => offer.offerType.trim() === "coupon");
+    case "promos":
+      return offers.filter((offer) => offer.offerType.trim() === "promotion");
+    case "stores":
+      return offers.filter(
+        (offer) =>
+          offer.marketType.trim() === "retail" ||
+          offer.offerType.trim() === "weekly_flyer"
+      );
+    case "services":
+      return offers.filter((offer) => offer.marketType.trim() === "service");
+    case "food":
+      return offers.filter((offer) => {
+        const category = offer.businessCategory.trim().toLowerCase();
+        return category.includes("food") || category.includes("restaurant") || category.includes("mercado");
+      });
+    case "products":
+      return [];
+    case "all":
+    default:
+      return offers;
+  }
+}
+
+export function filterOfertasLocalesItemsForShopperMode<T>(
+  items: readonly T[],
+  mode: OfertasLocalesResultMode
+): T[] {
+  if (mode === "products" || mode === "all") return [...items];
+  return [];
+}
 
 export function ofertasLocalesResultModeCopy(
   lang: OfertasLocalesAppLang,

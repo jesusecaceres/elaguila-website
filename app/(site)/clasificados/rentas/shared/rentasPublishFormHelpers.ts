@@ -18,21 +18,31 @@ export type RentasServicioIncluidoId =
 
 export const RENTAS_SERVICIOS_INCLUIDOS_DEFS: readonly {
   id: Exclude<RentasServicioIncluidoId, "otro">;
-  label: string;
+  label: { es: string; en: string };
   emoji: string;
 }[] = [
-  { id: "agua", label: "Agua", emoji: "💧" },
-  { id: "luz", label: "Luz", emoji: "💡" },
-  { id: "gas", label: "Gas", emoji: "🔥" },
-  { id: "internet", label: "Internet", emoji: "🌐" },
-  { id: "mantenimiento", label: "Mantenimiento", emoji: "🧹" },
-  { id: "basura", label: "Basura", emoji: "🗑️" },
-  { id: "estacionamiento", label: "Estacionamiento", emoji: "🚗" },
-  { id: "lavanderia", label: "Lavandería", emoji: "🧺" },
-  { id: "aire_acondicionado", label: "Aire acondicionado", emoji: "❄️" },
-  { id: "seguridad", label: "Seguridad", emoji: "🛡️" },
-  { id: "piscina", label: "Piscina", emoji: "🏊" },
+  { id: "agua", label: { es: "Agua", en: "Water" }, emoji: "💧" },
+  { id: "luz", label: { es: "Luz", en: "Electric" }, emoji: "💡" },
+  { id: "gas", label: { es: "Gas", en: "Gas" }, emoji: "🔥" },
+  { id: "internet", label: { es: "Internet", en: "Internet" }, emoji: "🌐" },
+  { id: "mantenimiento", label: { es: "Mantenimiento", en: "Maintenance" }, emoji: "🧹" },
+  { id: "basura", label: { es: "Basura", en: "Trash" }, emoji: "🗑️" },
+  { id: "estacionamiento", label: { es: "Estacionamiento", en: "Parking" }, emoji: "🚗" },
+  { id: "lavanderia", label: { es: "Lavandería", en: "Laundry" }, emoji: "🧺" },
+  { id: "aire_acondicionado", label: { es: "Aire acondicionado", en: "Air conditioning" }, emoji: "❄️" },
+  { id: "seguridad", label: { es: "Seguridad", en: "Security" }, emoji: "🛡️" },
+  { id: "piscina", label: { es: "Piscina", en: "Pool" }, emoji: "🏊" },
 ] as const;
+
+export type RentasPublishFormLang = "es" | "en";
+
+export function rentasServicioIncluidoLabel(
+  id: Exclude<RentasServicioIncluidoId, "otro">,
+  lang: RentasPublishFormLang,
+): string {
+  const def = RENTAS_SERVICIOS_INCLUIDOS_DEFS.find((d) => d.id === id);
+  return def?.label[lang] ?? id;
+}
 
 // === GLOBAL LOCATION HELPERS ===
 
@@ -217,7 +227,7 @@ export function normalizeRentasCountry(raw: string): string {
 }
 
 const SERVICIO_LABEL = new Map(
-  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, d.label] as const),
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, d.label.es] as const),
 );
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;

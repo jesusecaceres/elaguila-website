@@ -39,6 +39,9 @@ import {
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import type { DashboardEntitlementBadgePayload } from "../lib/dashboardPackageEntitlementBadges";
 import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
+import type { ListingLifecycleResolved } from "@/app/lib/listingLifecycle/listingLifecycleTypes";
+import { ListingLifecycleStatusCard } from "./ListingLifecycleStatusCard";
+import { ListingRenewalAction } from "./ListingRenewalAction";
 
 type Row = {
   id: string;
@@ -59,6 +62,7 @@ type Row = {
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
   inventory_role?: string | null;
+  expires_at?: string | null;
 };
 
 function scaffoldEditHref(branch: LeonixClasificadosBranch, categoria: string | null): string {
@@ -70,6 +74,25 @@ function scaffoldEditHref(branch: LeonixClasificadosBranch, categoria: string | 
   if (branch === "bienes_raices_negocio") return `/publicar/bienes-raices${q}`;
   if (branch === "rentas_privado") return `/publicar/rentas/privado${q}`;
   return `/publicar/rentas/negocio${q}`;
+}
+
+function rentasDashboardEditHref(input: {
+  branch: LeonixClasificadosBranch;
+  listingId: string;
+  leonixAdId?: string | null;
+  lang: Lang;
+}): string {
+  const lane = input.branch === "rentas_negocio" ? "negocio" : "privado";
+  const params = new URLSearchParams({
+    edit: "1",
+    source: "dashboard",
+    mode: "listing-edit",
+    listingId: input.listingId,
+    lane,
+    lang: input.lang,
+  });
+  if (input.leonixAdId?.trim()) params.set("leonixAdId", input.leonixAdId.trim());
+  return `/clasificados/publicar/rentas/${lane}?${params.toString()}`;
 }
 
 function branchLabel(branch: LeonixClasificadosBranch, lang: Lang): string {
@@ -106,6 +129,9 @@ export function LeonixRealEstateListingManageCard({
   parentLeonixAdIdByListingId = new Map<string, string>(),
   brNegocioInventoryRows,
   packageEntitlementBadge = null,
+  lifecycle = null,
+  renewalBusy = false,
+  onRenew,
 }: {
   row: Row;
   lang: Lang;
@@ -127,6 +153,9 @@ export function LeonixRealEstateListingManageCard({
   brNegocioInventoryRows?: readonly BrPropertyInventoryRowLike[];
   /** Active listing_package_entitlements badge for this exact listing UUID. */
   packageEntitlementBadge?: DashboardEntitlementBadgePayload | null;
+  lifecycle?: ListingLifecycleResolved | null;
+  renewalBusy?: boolean;
+  onRenew?: () => void;
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   const inferredRentasBranch: LeonixClasificadosBranch | null =
@@ -167,6 +196,13 @@ export function LeonixRealEstateListingManageCard({
           listingId: row.id,
           leonixAdId: row.leonix_ad_id,
           categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
+        })
+      : effectiveBranch === "rentas_privado" || effectiveBranch === "rentas_negocio"
+      ? rentasDashboardEditHref({
+          branch: effectiveBranch,
+          listingId: row.id,
+          leonixAdId: row.leonix_ad_id,
+          lang,
         })
       : scaffoldEditHref(effectiveBranch, lx.categoriaPropiedad);
   const brDashboardPreviewHref =
@@ -313,6 +349,7 @@ export function LeonixRealEstateListingManageCard({
               {lang === "es" ? "Disponibilidad (formulario)" : "Availability (form)"}: {rentasRx.listingStatus}
             </p>
           ) : null}
+          {lifecycle ? <ListingLifecycleStatusCard lifecycle={lifecycle} lang={lang} /> : null}
           <p className="mt-2 text-[11px] leading-snug text-[#5C5346]/80">
             {lang === "es"
               ? "Ciclo: borrador local / listing_drafts → publicación → listado vivo en ruta canónica (no preview)."
@@ -320,6 +357,9 @@ export function LeonixRealEstateListingManageCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {lifecycle ? (
+            <ListingRenewalAction lifecycle={lifecycle} lang={lang} busy={renewalBusy} onRenew={onRenew} />
+          ) : null}
           {republishPrimaryLabel && onRepublish ? (
             <button
               type="button"

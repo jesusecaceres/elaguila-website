@@ -10,7 +10,7 @@ export const RENTAS_LISTING_PUBLIC_ROW_BASE =
   "id, title, description, city, state, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, leonix_ad_id";
 
 /** Rich row for browse + detail (republish ordering + timestamps). */
-export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, republished_at, republish_sort_at, updated_at, mux_asset_id, mux_playback_id, mux_thumbnail_url, mux_status`;
+export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, expires_at, republished_at, republish_sort_at, updated_at, mux_asset_id, mux_playback_id, mux_thumbnail_url, mux_status`;
 
 /** @deprecated Use `RENTAS_LISTING_PUBLIC_ROW_RICH` — kept for external imports during transition. */
 export const RENTAS_LISTING_PUBLIC_ROW_WITH_BOOST = RENTAS_LISTING_PUBLIC_ROW_RICH;

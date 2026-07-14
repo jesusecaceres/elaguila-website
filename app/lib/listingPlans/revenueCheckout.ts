@@ -201,6 +201,7 @@ export function buildRevenueStripeLineItems(input: {
 }
 
 export type RevenueCheckoutRequest = {
+  operation?: "renew_listing" | null;
   category: string;
   packageKey: string;
   listingId?: string | null;
@@ -212,6 +213,9 @@ export type RevenueCheckoutRequest = {
   locale?: "es" | "en" | null;
   returnPath?: string | null;
   addOns?: RevenueCheckoutAddOnInput[] | null;
+  sourceTable?: string | null;
+  currentExpiresAt?: string | null;
+  returnContext?: string | null;
 };
 
 export type RevenueCheckoutValidationError = {

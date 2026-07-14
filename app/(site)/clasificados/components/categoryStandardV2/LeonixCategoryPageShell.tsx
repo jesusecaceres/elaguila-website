@@ -3,7 +3,7 @@ import type { LeonixCategoryPageShellProps } from "./types";
 import {
   LEONIX_HEADER_SAFE_TOP,
   LEONIX_LANDING_BG,
-  LEONIX_LANDING_LANE,
+  LEONIX_LANDING_SHELL,
   LEONIX_RESULTS_PAGE_BG,
   LEONIX_RESULTS_SHELL,
   LEONIX_TEXTURE_GRID,
@@ -30,10 +30,9 @@ export function LeonixCategoryPageShell({
   className,
 }: LeonixCategoryPageShellProps) {
   const isLanding = surface === "landing";
-  
+
   const bgClass = isLanding ? LEONIX_LANDING_BG : LEONIX_RESULTS_PAGE_BG;
-  const laneClass = isLanding ? LEONIX_LANDING_LANE : LEONIX_RESULTS_SHELL;
-  const safeTop = isLanding ? LEONIX_HEADER_SAFE_TOP : "";
+  const laneClass = isLanding ? LEONIX_LANDING_SHELL : LEONIX_RESULTS_SHELL;
 
   return (
     <div className={`relative min-h-screen overflow-x-hidden ${bgClass} ${className || ""}`}>
@@ -57,7 +56,7 @@ export function LeonixCategoryPageShell({
       <div className="relative z-[1]">
         {topSlot}
 
-        <div className={`${laneClass} ${safeTop}`}>
+        <div className={`${laneClass} ${LEONIX_HEADER_SAFE_TOP}`}>
           {children}
         </div>
       </div>
