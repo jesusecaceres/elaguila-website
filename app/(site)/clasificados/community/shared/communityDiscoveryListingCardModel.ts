@@ -17,6 +17,9 @@ import {
   resolveClasesCategoryPublicLabel,
   resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import type { ClasesQuickDraft, ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
+import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
+import { normalizeWeeklyScheduleArray } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 
 export type CommunityDiscoveryCardModel = {
   id: string;
@@ -243,4 +246,134 @@ export function buildCommunityDiscoveryCardModel(
     excerpt,
     detailHref,
   };
+}
+
+/** Build card model from draft data for preview purposes. */
+export function buildCommunityDiscoveryCardModelFromDraft(
+  draft: ClasesQuickDraft | ComunidadQuickDraft,
+  category: "clases" | "comunidad",
+  lang: Lang,
+  detailHref: string,
+): CommunityDiscoveryCardModel {
+  const title = draft.title.trim() || "—";
+  const organizer = draft.organizer.trim() || null;
+  const city = getCanonicalCityName(draft.publicCity.trim()) || draft.publicCity.trim();
+  const locationLine = formatLocationLineFromDraft(draft, city);
+  const imageUrl = pickMainDraftImageUrl(draft.images);
+  const excerpt = excerptFromDescription(draft.description);
+
+  const scheduleLine = summarizeWeeklySchedule(draft.weeklySchedule, lang) || draftScheduleHint(draft, category, lang);
+
+  if (category === "clases") {
+    const clasesDraft = draft as ClasesQuickDraft;
+    const typeChip = resolveClasesCategoryPublicLabel(clasesDraft.category, clasesDraft.categoryCustom, lang);
+    const ct = clasesDraft.classCostType.trim();
+    let costBadge: string | null = null;
+    if (ct === "pagada") {
+      const amt = clasesDraft.priceAmount.trim();
+      const fq = clasesDraft.priceFrequency.trim();
+      const fqL = fq ? clasesPriceFrequencyLabel(fq, lang) : "";
+      const costBase = clasesCostTypeLabel(ct, lang);
+      costBadge = amt ? `${amt} ${fqL}`.trim() : costBase;
+    } else if (ct === "gratis") {
+      costBadge = clasesCostTypeLabel(ct, lang);
+    } else if (ct) {
+      costBadge = clasesCostTypeLabel(ct, lang);
+    }
+    const modeRaw = clasesDraft.mode.trim();
+    const modeL = modeRaw ? clasesModeLabel(modeRaw, lang) : "";
+    const aud = clasesDraft.audience ? labelCommunityAudience(clasesDraft.audience, lang) : "";
+    const lvl = clasesDraft.skillLevel ? labelClasesSkillLevel(clasesDraft.skillLevel, lang) : "";
+    const secondary = [modeL, aud, lvl].filter(Boolean).join(" · ") || null;
+    return {
+      id: draft.previewListingId,
+      title,
+      organizer,
+      locationLine,
+      imageUrl,
+      costBadge: costBadge || null,
+      typeChip: typeChip || null,
+      secondaryChip: secondary,
+      scheduleLine: scheduleLine || null,
+      excerpt,
+      detailHref,
+    };
+  }
+
+  const comunidadDraft = draft as ComunidadQuickDraft;
+  const typeChip = resolveComunidadEventTypePublicLabel(comunidadDraft.category, comunidadDraft.categoryCustom, lang);
+  const ecRaw = comunidadDraft.eventCost.trim();
+  const costBadge = ecRaw ? comunidadEventCostLabel(ecRaw, lang) : null;
+  const dr = [comunidadDraft.date.trim(), comunidadDraft.eventEndDate.trim()].filter(Boolean).join(" → ");
+  const aud = comunidadDraft.audience ? labelCommunityAudience(comunidadDraft.audience, lang) : "";
+  const secondaryParts = [dr, aud].filter(Boolean);
+  const secondary = secondaryParts.length ? secondaryParts.join(" · ") : null;
+
+  return {
+    id: draft.previewListingId,
+    title,
+    organizer,
+    locationLine,
+    imageUrl,
+    costBadge: costBadge || null,
+    typeChip: typeChip || null,
+    secondaryChip: secondary,
+    scheduleLine: scheduleLine || null,
+    excerpt,
+    detailHref,
+  };
+}
+
+function formatLocationLineFromDraft(draft: ClasesQuickDraft | ComunidadQuickDraft, city: string): string {
+  const st = draft.state.trim();
+  const zip = draft.zip.trim();
+  const country = draft.country.trim();
+  const venue = draft.venue.trim();
+  const parts: string[] = [];
+  if (city) parts.push(city);
+  if (st && zip) parts.push(`${st} ${zip}`);
+  else if (st) parts.push(st);
+  else if (zip) parts.push(zip);
+  if (country) parts.push(country);
+  const line = parts.join(", ");
+  if (venue && line) return `${venue} · ${line}`;
+  if (venue) return venue;
+  return line || city || "";
+}
+
+function draftScheduleHint(draft: ClasesQuickDraft | ComunidadQuickDraft, category: "clases" | "comunidad", lang: Lang): string | null {
+  const normalized = normalizeWeeklyScheduleArray(draft.weeklySchedule);
+  const weekly = summarizeWeeklySchedule(normalized, lang);
+  if (weekly) return weekly;
+  if (category === "comunidad") {
+    const cd = draft as ComunidadQuickDraft;
+    const d = cd.date.trim();
+    const s = cd.eventSessionStart.trim();
+    const e = cd.eventSessionEnd.trim();
+    if (d && s && e) return lang === "es" ? `${d} · ${s}–${e}` : `${d} · ${s}–${e}`;
+    if (d) return d;
+  }
+  return null;
+}
+
+function pickMainDraftImageUrl(images: unknown): string | null {
+  if (images == null) return null;
+  if (!Array.isArray(images) || images.length === 0) return null;
+  const items = images as unknown[];
+  let mainUrl: string | null = null;
+  for (const x of items) {
+    if (typeof x === "string" && x.trim()) {
+      const u = x.trim();
+      if (!isPublicPersistedListingImageUrl(u)) continue;
+      return u;
+    }
+    if (x && typeof x === "object") {
+      const o = x as { url?: unknown; isMain?: unknown };
+      const u = typeof o.url === "string" ? o.url.trim() : "";
+      if (!u || !isPublicPersistedListingImageUrl(u)) continue;
+      if (o.isMain === true) mainUrl = u;
+      return mainUrl || u;
+    }
+  }
+  return mainUrl;
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { CommunityQuickPublicDetailShell } from "@/app/(site)/clasificados/community/CommunityQuickPublicDetailShell";
 import { CommunityQuickPublicDetailSidebar } from "@/app/(site)/clasificados/community/CommunityQuickPublicDetailSidebar";
@@ -13,6 +14,8 @@ import {
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { ClasesQuickAdCanvas } from "@/app/(site)/publicar/clases/components/ClasesQuickAdCanvas";
 import { ComunidadQuickAdCanvas } from "@/app/(site)/publicar/comunidad/components/ComunidadQuickAdCanvas";
+import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
+import { buildCommunityDiscoveryCardModelFromDraft } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
 
 import {
   COMMUNITY_SESSION_KEYS,
@@ -119,6 +122,12 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
   const organizerName = draft.organizer.trim() || "—";
   const previewLeonixAdId = formatLeonixAdId(draft.previewListingId);
 
+  const cardModel = useMemo(() => {
+    if (!draft) return null;
+    const detailHref = typeof window !== "undefined" ? window.location.href : "";
+    return buildCommunityDiscoveryCardModelFromDraft(draft, kind, lang, detailHref);
+  }, [draft, kind, lang]);
+
   const adBody =
     kind === "clases" ? (
       <ClasesQuickAdCanvas
@@ -162,7 +171,28 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
           </Link>
         </div>
       }
-      adBody={adBody}
+      adBody={
+        <>
+          {adBody}
+          {cardModel ? (
+            <div className="mt-8 rounded-2xl border border-[#C9B46A]/35 bg-[#FFFDF7] p-5 shadow-sm">
+              <div className="mb-4">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C564E]">
+                  {lang === "es" ? "Vista previa en resultados" : "Results card preview"}
+                </h2>
+                <p className="mt-1 text-xs text-[#5C564E]/80">
+                  {lang === "es"
+                    ? "Así puede aparecer tu evento en los resultados de Comunidad/Eventos."
+                    : "This is how your event may appear in Community/Event results."}
+                </p>
+              </div>
+              <div className="max-w-md">
+                <CommunityDiscoveryListingCard model={cardModel} lang={lang} variant={kind} />
+              </div>
+            </div>
+          ) : null}
+        </>
+      }
       sidebar={
         <CommunityQuickPublicDetailSidebar
           lang={lang}

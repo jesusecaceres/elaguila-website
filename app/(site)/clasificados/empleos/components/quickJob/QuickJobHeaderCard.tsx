@@ -83,15 +83,15 @@ export function QuickJobHeaderCard({
   } : undefined;
 
   return (
-    <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-6">
-      <div className="flex items-start gap-4">
+    <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-5">
+      <div className="flex items-start gap-3 sm:gap-4">
         {logoSrc ? (
-          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[#D6C7AD]/80 bg-neutral-100 shadow-sm sm:h-[4.5rem] sm:w-[4.5rem]">
-            <Image src={logoSrc} alt={logoAlt ?? businessName} fill className="object-cover" sizes="72px" />
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-[#D6C7AD]/80 bg-neutral-100 shadow-sm sm:h-[4rem] sm:w-[4rem]">
+            <Image src={logoSrc} alt={logoAlt ?? businessName} fill className="object-cover" sizes="56px" />
           </div>
         ) : (
           <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-[#D6C7AD]/80 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-xl font-bold text-[#7A6B4A] shadow-inner sm:h-[4.5rem] sm:w-[4.5rem]"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#D6C7AD]/80 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-lg font-bold text-[#7A6B4A] shadow-inner sm:h-[4rem] sm:w-[4rem]"
             aria-hidden
           >
             {businessName.slice(0, 1).toUpperCase()}
@@ -134,11 +134,11 @@ export function QuickJobHeaderCard({
           </div>
         ) : null}
       </div>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#2A2826] sm:text-3xl lg:text-[2rem] lg:leading-tight">
+      <h1 className="mt-3 text-xl font-bold tracking-tight text-[#2A2826] sm:text-2xl lg:text-[1.75rem] lg:leading-tight">
         {title}
       </h1>
       {(visibleChips.length > 0 || payHighlight) ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {visibleChips.map((c) => (
             <Chip key={c} label={c} />
           ))}
