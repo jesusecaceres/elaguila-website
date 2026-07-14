@@ -19,6 +19,10 @@ import {
   createBrInventoryChildDraftId,
   writeBrInventoryChildContext,
 } from "../../brNegocioInventoryChildContext";
+import {
+  childEditorSliceHasUnresolvedIdbMedia,
+  loadChildInventoryEditorSession,
+} from "../../brNegocioChildInventoryEditorSession";
 import { BrAgenteInventoryPackCheckpoint } from "./BrAgenteInventoryPackCheckpoint";
 import { BrNegocioChildInventoryFullApplication } from "./BrNegocioChildInventoryFullApplication";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
@@ -186,6 +190,36 @@ export function BrNegocioPrePublishInventoryShell({
     setDrawerOpen(true);
     onPendingInventoryChildConsumed?.();
   }, [hydratedItems, onPendingInventoryChildConsumed, pendingInventoryChildOpen]);
+
+  /**
+   * Hard refresh while a child editor was open: restore the same draft id from the
+   * child session key so CHILD_EDITOR_* IDB media can hydrate (never mint a new id).
+   * Runs whenever the inventory shell mounts (Preview step) — does not require packActive.
+   */
+  useEffect(() => {
+    if (hidden || drawerOpen || pendingInventoryChildOpen) return;
+    const session = loadChildInventoryEditorSession();
+    const sessionId = session?.editingId?.trim() || "";
+    if (!sessionId) return;
+    const photos = session?.propertyForm?.fotosDataUrls ?? [];
+    const hasPhotos = photos.some((u) => String(u ?? "").trim().length > 0);
+    const hasIdb = session?.propertyForm ? childEditorSliceHasUnresolvedIdbMedia(session.propertyForm) : false;
+    if (!hasPhotos && !hasIdb) return;
+    const existing = hydratedItems.find((x) => x.id === sessionId);
+    if (existing) {
+      setEditingId(existing.id);
+      setReservedNewChildId(null);
+      setPreferredChildCategoria(null);
+    } else {
+      setEditingId(null);
+      setReservedNewChildId(sessionId);
+      const cat = session?.propertyForm?.categoriaPropiedad;
+      if (cat === "residencial" || cat === "comercial" || cat === "terreno_lote") {
+        setPreferredChildCategoria(cat);
+      }
+    }
+    setDrawerOpen(true);
+  }, [hidden, drawerOpen, pendingInventoryChildOpen, hydratedItems]);
 
   const handleSave = useCallback(
     (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother" | "goToParentPreview") => {

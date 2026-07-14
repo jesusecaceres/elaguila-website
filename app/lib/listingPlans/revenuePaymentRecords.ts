@@ -7,7 +7,10 @@ import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
 import type { ValidatedRevenueCheckoutAddOn } from "./revenueCheckout";
-import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
+import {
+  BR_INVENTORY_PACK_PACKAGE_KEY,
+  RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+} from "./publishCheckoutCheckpoint";
 
 export type CreatePendingPaymentRecordInput = {
   category: string;
@@ -61,6 +64,9 @@ export async function createPendingPaymentRecord(
   const restaurantCouponSelected =
     input.addonOnly === true ||
     addOns.some((a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
+  const bienesInventorySelected =
+    input.packageKey === BR_INVENTORY_PACK_PACKAGE_KEY ||
+    addOns.some((a) => a.key === BR_INVENTORY_PACK_PACKAGE_KEY);
 
   const { data, error } = await supabase
     .from("leonix_payment_records")
@@ -109,6 +115,21 @@ export async function createPendingPaymentRecord(
                         ? input.packageDef.priceCents
                         : addOns.find((a) => a.key === RESTAURANTES_COUPON_ADDON_PACKAGE_KEY)
                             ?.unitPriceCents,
+                  }
+                : {}),
+            }
+          : {}),
+        ...(input.category === "bienes-raices"
+          ? {
+              bienes_inventory_pack_selected: bienesInventorySelected,
+              ...(input.packageKey === BR_INVENTORY_PACK_PACKAGE_KEY ? { checkout_mode: "addon_only" } : {}),
+              ...(bienesInventorySelected
+                ? {
+                    bienes_inventory_pack_package_key: BR_INVENTORY_PACK_PACKAGE_KEY,
+                    bienes_inventory_pack_price_cents:
+                      input.packageKey === BR_INVENTORY_PACK_PACKAGE_KEY
+                        ? input.packageDef.priceCents
+                        : addOns.find((a) => a.key === BR_INVENTORY_PACK_PACKAGE_KEY)?.unitPriceCents,
                   }
                 : {}),
             }

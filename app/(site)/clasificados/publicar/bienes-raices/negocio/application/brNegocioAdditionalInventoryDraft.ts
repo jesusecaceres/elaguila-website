@@ -119,7 +119,13 @@ function clampPrimaryIndex(photoUrls: string[], index: number): number {
 
 function isDurablePhotoUrl(url: string): boolean {
   const u = url.trim();
-  return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/");
+  // IndexedDB child/parent draft refs must survive normalize/sync (not only http/data URLs).
+  return (
+    u.startsWith("http://") ||
+    u.startsWith("https://") ||
+    u.startsWith("data:image/") ||
+    u.startsWith("__LX_BR_AGENTE_IDB__")
+  );
 }
 
 function coercePropertyForm(raw: unknown): Partial<AgenteIndividualResidencialFormState> | null {

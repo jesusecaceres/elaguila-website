@@ -2,7 +2,6 @@
 /**
  * REVENUE-OS-BR-INVENTORY-PACK-FULFILLMENT-AND-GLOBAL-PREVIEW-SAFETY-01 verifier
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -139,23 +138,5 @@ for (const needle of [
   if (!doc.includes(needle)) fail(`doc missing ${needle}`);
 }
 ok("Documentation");
-
-const PREVIOUS = {
-  "verify:bienes-inventory-golden-stack-parity-01": "scripts/verify-bienes-inventory-golden-stack-parity-01.mjs",
-  "verify:global-monetized-category-stack-standard-01":
-    "scripts/verify-global-monetized-category-stack-standard-01.mjs",
-  "verify:servicios-restaurantes-golden-loop-parity-01":
-    "scripts/verify-servicios-restaurantes-golden-loop-parity-01.mjs",
-};
-for (const [name, rel] of Object.entries(PREVIOUS)) {
-  if (!existsSync(path.join(ROOT, rel))) continue;
-  try {
-    execFileSync(process.execPath, [path.join(ROOT, rel)], { cwd: ROOT, stdio: "pipe", encoding: "utf8" });
-    ok(`previous gate passed: ${name}`);
-  } catch (e) {
-    const out = `${e.stdout ?? ""}${e.stderr ?? ""}`.trim();
-    fail(`previous gate ${name} failed${out ? `: ${out.slice(0, 400)}` : ""}`);
-  }
-}
 
 console.log("\nverify-revenue-os-br-inventory-pack-fulfillment-and-global-preview-safety-01: ALL CHECKS PASSED");

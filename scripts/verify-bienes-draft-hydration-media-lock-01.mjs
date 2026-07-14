@@ -91,6 +91,34 @@ assert(
   ).includes("onMediaDraftCommit") && childSession.includes("childSessionPersistEpoch"),
   "child immediate media persist + epoch guard",
 );
+assert(
+  childSession.includes("resolveChildEditorMediaId") && childSession.includes("childSessionMatchesEditor"),
+  "child must use stable draft media id (not null→new-child bucket)",
+);
+assert(
+  childSession.includes("inlineChildEditorPropertySliceFromIdb") &&
+    childSession.includes("resolveChildPropertySliceMediaFromIdb") &&
+    !/inlineBrAgenteResHeavyMediaFromIdb\(BR_AGENTE_DRAFT_MEDIA_NAMESPACE,\s*hub\)/.test(childSession),
+  "child hard-refresh inline must use CHILD_EDITOR_* segments (not MAIN_PHOTO)",
+);
+const childApp = read(
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",
+);
+assert(
+  childSession.includes("persistChildInventoryEditorSessionResolved") &&
+    childApp.includes("persistChildInventoryEditorSessionResolved"),
+  "child save/preview must await durable media commit",
+);
+assert(
+  /clearChildInventoryEditorSession\(\);\s*\n\s*onSave\(draft, mode\)/.test(childApp),
+  "child save must clear session before onSave so shell restore cannot reopen mid-save",
+);
+assert(
+  read(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioAdditionalInventoryDraft.ts",
+  ).includes("__LX_BR_AGENTE_IDB__"),
+  "child inventory draft sync must treat IDB refs as durable",
+);
 assert(cardUi.includes("grid grid-cols-3") && /gap-1\.5|gap-2/.test(cardUi), "results gallery has small tile gap");
 
 console.log("OK: bienes-draft-hydration-media-lock-01");

@@ -16,6 +16,10 @@ import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfi
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./lib/serviciosListingLifecycle";
 import {
+  ServiciosResultCardBodyLink,
+  SERVICIOS_RESULT_CARD_INTERACTIVE,
+} from "./components/ServiciosResultCardBodyLink";
+import {
   readServiciosProfileBusinessTypeId,
   resolveServiciosListingTemplate,
   type ServiciosListingTemplate,
@@ -224,6 +228,15 @@ export function ServiciosProfessionalResultCard({
     }
   }, [ctaTrackMeta, profile.contact.mapsSearchHref, profile.contact.physicalAddressDisplay, row.slug]);
 
+  const onCardNavigate = useCallback(() => {
+    trackServiciosResultCardClick(row);
+  }, [row]);
+
+  const cardNavigateLabel =
+    lang === "en"
+      ? `View profile for ${profile.identity.businessName}`
+      : `Ver perfil de ${profile.identity.businessName}`;
+
   const cardSurface = promoted
     ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : LX_IVORY_CARD;
@@ -233,11 +246,13 @@ export function ServiciosProfessionalResultCard({
   const body = (
     <>
       <article
-        className={`${cardSurface} ${
+        className={`${cardSurface} relative ${
           isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(9.25rem,auto)] sm:items-stretch" : ""
         }`.trim()}
       >
-        <div className={isCompact ? "flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
+        <ServiciosResultCardBodyLink href={href} ariaLabel={cardNavigateLabel} onNavigate={onCardNavigate} />
+
+        <div className={isCompact ? "pointer-events-none relative z-[2] flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5"}>
           <ServiciosAdaptiveLogoPlate
             src={thumb}
             alt={profile.hero.logoAlt || profile.identity.businessName}
@@ -297,7 +312,7 @@ export function ServiciosProfessionalResultCard({
         </div>
 
         {displayChips.length > 0 ? (
-          <div className={isCompact ? "px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "px-4 pb-3 sm:px-5"}>
+          <div className={isCompact ? "pointer-events-none relative z-[2] px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "pointer-events-none relative z-[2] px-4 pb-3 sm:px-5"}>
             <ServiciosServiceChipsRow
               chips={displayChips}
               lang={lang}
@@ -307,7 +322,9 @@ export function ServiciosProfessionalResultCard({
           </div>
         ) : null}
 
-        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
+        <div
+          className={`${SERVICIOS_RESULT_CARD_INTERACTIVE} ${isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}`}
+        >
           <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5" : "flex flex-col gap-2"}>
             {tel ? (
               <button

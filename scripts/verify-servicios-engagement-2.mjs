@@ -37,7 +37,10 @@ assert(!hubRow.includes("persistEngagement && Boolean(lxListingId)"), "hub row: 
 assert(contactCard.includes("showEngagementControls"), "contact card: forwards visibility prop");
 assert(profileView.includes("showEngagementControls"), "profile view: exposes visibility prop");
 assert(proShell.includes("showEngagementControls"), "professional shell: exposes visibility prop");
-assert(proShell.includes("showEngagementControls ?"), "professional shell: hero engagement uses visibility gate");
+assert(
+  proShell.includes("showEngagementControls ?") || proShell.includes("heroEngagementActive"),
+  "professional shell: hero engagement uses visibility gate",
+);
 
 assert(proPreview.includes("showEngagementControls"), "professional preview: hub visibility enabled");
 assert(proPreview.includes("persistListingEngagement={false}"), "professional preview: persistence disabled");

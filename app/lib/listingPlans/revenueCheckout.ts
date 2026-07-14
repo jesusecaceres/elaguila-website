@@ -12,6 +12,7 @@ import {
 import {
   RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+  BR_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import {
@@ -50,6 +51,11 @@ const CHECKOUT_ADDON_ALLOWLIST: Record<
     category: "servicios",
     basePackageKey: "servicios_base_monthly",
     allowedKeys: [SERVICIOS_OFFERS_ADDON_PACKAGE_KEY],
+  },
+  "bienes-raices": {
+    category: "bienes-raices",
+    basePackageKey: "br_agent_monthly",
+    allowedKeys: [BR_INVENTORY_PACK_PACKAGE_KEY],
   },
   autos: {
     category: "autos",
@@ -543,6 +549,106 @@ export async function validateAutosDealerInventoryAddonOwnership(input: {
       status: 422,
       code: "listing_not_eligible",
       message: "Inventory add-on can only be purchased for an active dealer listing.",
+    };
+  }
+
+  return { ok: true };
+}
+
+export type BienesInventoryAddonOwnerValidationResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string };
+
+/**
+ * Server gate: Bienes dashboard inventory add-on-only checkout.
+ * Listing must belong to bearer user, be negocio/business, and already be active/published.
+ */
+export async function validateBienesInventoryAddonOwnership(input: {
+  listingId: string;
+  bearerUserId: string | null;
+}): Promise<BienesInventoryAddonOwnerValidationResult> {
+  if (!input.bearerUserId?.trim()) {
+    return {
+      ok: false,
+      status: 401,
+      code: "auth_required",
+      message: "Authentication required for Bienes inventory add-on checkout.",
+    };
+  }
+
+  const listingId = String(input.listingId ?? "").trim();
+  if (!listingId) {
+    return {
+      ok: false,
+      status: 400,
+      code: "listing_id_required",
+      message: "listingId is required for Bienes inventory add-on checkout.",
+    };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return {
+      ok: false,
+      status: 503,
+      code: "supabase_not_configured",
+      message: "Supabase admin is not configured.",
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("listings")
+    .select("id, owner_id, category, seller_type, status, is_published, inventory_role")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "listing_not_found",
+      message: "Bienes listing not found.",
+    };
+  }
+
+  if (String(data.owner_id ?? "").trim() !== input.bearerUserId.trim()) {
+    return {
+      ok: false,
+      status: 403,
+      code: "listing_owner_mismatch",
+      message: "Listing does not belong to the authenticated user.",
+    };
+  }
+
+  if (String(data.category ?? "").trim().toLowerCase() !== "bienes-raices") {
+    return { ok: false, status: 422, code: "wrong_category", message: "Listing is not Bienes Raices." };
+  }
+
+  if (String(data.seller_type ?? "").trim().toLowerCase() !== "business") {
+    return {
+      ok: false,
+      status: 422,
+      code: "private_fsbo_not_eligible",
+      message: "Inventory add-on applies only to Bienes negocio/agent listings.",
+    };
+  }
+
+  if (String(data.inventory_role ?? "").trim().toLowerCase() === "inventory_property") {
+    return {
+      ok: false,
+      status: 422,
+      code: "child_listing_not_eligible",
+      message: "Inventory add-on must be purchased from the parent agent listing.",
+    };
+  }
+
+  const status = String(data.status ?? "").trim().toLowerCase();
+  if (status !== "active" || data.is_published === false) {
+    return {
+      ok: false,
+      status: 422,
+      code: "listing_not_eligible",
+      message: "Inventory add-on can only be purchased for an active published Bienes negocio listing.",
     };
   }
 

@@ -513,6 +513,12 @@ export function resolvePublishCheckoutCheckpoint(
     Boolean(config.serviciosOffersAddonSelected) &&
     REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED;
 
+  const bienesInventoryAddOnSelected =
+    config.category === "bienes-raices" &&
+    config.packageKey === "br_agent_monthly" &&
+    inventoryPackSelected &&
+    REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED;
+
   const autosDealerInventoryAddOnSelected =
     config.category === "autos" &&
     config.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY &&
@@ -554,6 +560,9 @@ export function resolvePublishCheckoutCheckpoint(
       : {}),
     ...(serviciosOffersAddOnSelected
       ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
+      : {}),
+    ...(bienesInventoryAddOnSelected
+      ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] }
       : {}),
     ...(autosDealerInventoryAddOnSelected
       ? { addOns: [{ key: AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] }
@@ -628,30 +637,29 @@ export const BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmat
   {
     id: "accurate_info",
     required: true,
-    labelEn: "I confirm my property and agent information is accurate and up to date.",
-    labelEs: "Confirmo que la información de la propiedad y del agente es correcta y está actualizada.",
+    labelEn: "I confirm the agent, business, and property information is truthful and current.",
+    labelEs: "Confirmo que la información del agente, negocio y propiedades es verdadera y está actualizada.",
   },
   {
     id: "rights_to_publish",
     required: true,
-    labelEn:
-      "I confirm I have rights to publish these photos, videos, documents, property details, and agent information.",
-    labelEs:
-      "Confirmo que tengo derecho a publicar estas fotos, videos, documentos, detalles de la propiedad e información del agente.",
+    labelEn: "I confirm I am authorized to publish these properties, photos, prices, and details.",
+    labelEs: "Confirmo que tengo autorización para publicar estas propiedades, fotos, precios y detalles.",
   },
   {
     id: "marketplace_rules",
     required: true,
-    labelEn: "I confirm this listing follows Leonix real estate and marketplace rules.",
-    labelEs: "Confirmo que este anuncio sigue las reglas de bienes raíces y marketplace de Leonix.",
+    labelEn: "I confirm the contact, licensing, availability, and terms accurately represent this listing.",
+    labelEs:
+      "Confirmo que la información de contacto, licencias, disponibilidad y condiciones representa correctamente este anuncio.",
   },
   {
     id: "payment_required",
     required: true,
     labelEn:
-      "I understand payment is required before this listing and any additional inventory become active.",
+      "I understand payment is required before the selected profile and properties become active.",
     labelEs:
-      "Entiendo que el pago es requerido antes de que este anuncio y cualquier inventario adicional queden activos.",
+      "Entiendo que el pago es requerido antes de activar el perfil y las propiedades seleccionadas.",
   },
 ];
 

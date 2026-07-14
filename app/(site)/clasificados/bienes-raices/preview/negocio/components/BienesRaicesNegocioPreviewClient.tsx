@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
-import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { publishLeonixListingFromBienesRaicesNegocioDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
@@ -26,15 +25,12 @@ import {
   type BrNegocioPublishInventoryContext,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
-  brPropertyInventoryAddToInventoryCtaLabel,
   brPropertyInventoryBaseLimitMessage,
   brPropertyInventoryMaxTotalLimitMessage,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
 import {
-  clearBrInventoryAddContextFromSession,
   parseBrInventoryAddSearchParams,
   readBrInventoryAddContextFromSession,
-  resolveBrInventoryAddReturnHref,
   resolveBrInventoryGroupIdForParent,
   writeBrInventoryAddContextToSession,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
@@ -42,10 +38,6 @@ import { fetchBrOwnerInventoryListingRows } from "@/app/clasificados/bienes-raic
 import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raices/lib/fetchBrParentListingMetaBrowser";
 import { BrNegocioInventoryPublishBridgePanel } from "@/app/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioInventoryPublishBridgePanel";
 import {
-  handleMainPublishWithOptionalQueue,
-  handleQueuedChildPublishSuccess,
-  isQueueDrivenChildPublish,
-  navigateToNextQueuedChild,
   type BrNegocioInventoryBridgeView,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/brNegocioInventoryPostPublishFlow";
 import {
@@ -53,14 +45,55 @@ import {
   brLeonixAdIdPlaceholderLine,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryCopy";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS,
+  BR_INVENTORY_PACK_PACKAGE_KEY,
+  type PublishCheckpointConfig,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+  validateRevenuePromoForCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { BIENES_RAICES_NEGOCIO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
+import { publishBrAgenteInventoryBundlePendingRows } from "@/app/clasificados/publicar/bienes-raices/negocio/application/brNegocioInventoryBundlePendingPublish";
 
 const GRACE_STEP_MS = 200;
 const GRACE_TOTAL_MS = 1000;
 
-const PUBLISH_BTN =
-  "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
-
 type Phase = "loading" | "ready" | "recovery";
+
+function bienesNegocioCheckpointConfig(
+  lang: "es" | "en",
+  childCount: number,
+): PublishCheckpointConfig {
+  const base = getRevenuePackageDefinition("br_agent_monthly");
+  return {
+    category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
+    packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
+    lang,
+    mode: "checkout",
+    pipeline: "negocio",
+    childInventoryCount: childCount,
+    baseLineItem: {
+      labelEn: "Bienes Raices professional",
+      labelEs: "Bienes Raíces profesional",
+      priceCents: base?.priceCents ?? 39900,
+      detailEn: "Professional agent/business profile plus one primary property.",
+      detailEs: "Perfil profesional de agente/negocio con una propiedad principal.",
+    },
+    confirmations: BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS,
+    newsletterEligible: true,
+    promoEligible: true,
+    returnPath: "/clasificados/bienes-raices/preview/negocio",
+  };
+}
 
 function tryReadPreviewDraftForMap(): BienesRaicesNegocioPreviewVm | null {
   const raw = readBienesRaicesNegocioPreviewDraftRaw();
@@ -126,7 +159,36 @@ export default function BienesRaicesNegocioPreviewClient() {
     };
   }, [inventoryCtx?.parentListingId]);
 
-  const onPublishLive = useCallback(async () => {
+  const handlePromoApply = useCallback(
+    async (code: string) => {
+      const draft = loadBienesRaicesNegocioPreviewDraft();
+      const hasInventory = (draft?.additionalInventoryProperties?.length ?? 0) > 0;
+      const addOns = hasInventory ? [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] : undefined;
+      const subtotalCents =
+        (getRevenuePackageDefinition("br_agent_monthly")?.priceCents ?? 39900) +
+        (hasInventory ? getRevenuePackageDefinition(BR_INVENTORY_PACK_PACKAGE_KEY)?.priceCents ?? 9900 : 0);
+      const result = await validateRevenuePromoForCheckout({
+        code,
+        category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
+        packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
+        subtotalCents,
+        addOns,
+        locale: lang,
+      });
+      if (!result.ok) return { ok: false, message: result.userMessage };
+      return {
+        ok: true,
+        discountCents: result.discountCents,
+        message:
+          lang === "es"
+            ? `${result.discountLabel} aplicado. Total: $${(result.totalCents / 100).toFixed(2)}`
+            : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}`,
+      };
+    },
+    [lang],
+  );
+
+  const onCheckout = useCallback(async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
     const st = loadBienesRaicesNegocioPreviewDraft();
     if (!st) return;
     setPublishBusy(true);
@@ -137,9 +199,7 @@ export default function BienesRaicesNegocioPreviewClient() {
       const sb = createSupabaseBrowserClient();
       const { data: auth } = await sb.auth.getUser();
       const ownerId = auth.user?.id;
-      const publishInventory: BrNegocioPublishInventoryContext | null = inventoryCtx
-        ? inventoryCtx
-        : { mode: "main" };
+      const publishInventory: BrNegocioPublishInventoryContext | null = inventoryCtx ? inventoryCtx : { mode: "main" };
 
       if (ownerId && publishInventory.mode === "add") {
         const rows = await fetchBrOwnerInventoryListingRows(ownerId);
@@ -157,7 +217,9 @@ export default function BienesRaicesNegocioPreviewClient() {
         }
       }
 
-      const r = await publishLeonixListingFromBienesRaicesNegocioDraft(st, lang, publishInventory);
+      const r = await publishLeonixListingFromBienesRaicesNegocioDraft(st, lang, publishInventory, {
+        activationMode: "pending_payment",
+      });
       setPublishBusy(false);
       if (r.ok) {
         if (r.warnings.length) {
@@ -168,38 +230,54 @@ export default function BienesRaicesNegocioPreviewClient() {
           }
         }
 
-        if (isQueueDrivenChildPublish(inventoryCtx)) {
-          const bridgeView = handleQueuedChildPublishSuccess(r.listingId, lang);
-          if (bridgeView) {
-            setBridge(bridgeView);
-            return;
-          }
-        }
+        const childCount = Math.min(4, st.additionalInventoryProperties?.length ?? 0);
+        const children =
+          childCount > 0
+            ? await publishBrAgenteInventoryBundlePendingRows({
+                parentListingId: r.listingId,
+                parentDraft: st as never,
+                childDrafts: st.additionalInventoryProperties,
+                lang,
+                ownerUserId: ownerId,
+              })
+            : null;
 
-        if (inventoryCtx) {
-          clearBrInventoryAddContextFromSession();
-          router.push(
-            appendLangToPath(
-              resolveBrInventoryAddReturnHref({ returnToListingId: inventoryCtx.parentListingId, lang }),
-              routeLang,
-            ),
-          );
+        if (children && !children.ok) {
+          setPublishErr(children.error ?? (lang === "es" ? "No se pudieron preparar las propiedades adicionales." : "Additional properties could not be prepared."));
           return;
         }
 
-        const queueBridge = handleMainPublishWithOptionalQueue({
-          listingId: r.listingId,
+        let customerEmail: string | null = null;
+        try {
+          const { data: auth } = await sb.auth.getUser();
+          customerEmail = auth.user?.email ?? null;
+        } catch {
+          customerEmail = null;
+        }
+
+        void captureCheckoutNewsletterSubscriber({
+          email: customerEmail,
           lang,
-          formKind: "negocio",
-          additionalItems: st.additionalInventoryProperties,
-          inheritedNegocioSnapshot: st,
+          preferredLanguage: lang,
+          source: CHECKOUT_NEWSLETTER_SOURCES.bienesFsbo,
+          interests: childCount > 0 ? ["package:br_agent_monthly", "package:br_inventory_pack_monthly"] : ["package:br_agent_monthly"],
+          checked: ctx.newsletterOptIn,
         });
-        if (queueBridge) {
-          setBridge(queueBridge);
+
+        const checkout = await startRevenueCategoryCheckout({
+          ...BIENES_RAICES_NEGOCIO_CHECKOUT,
+          listingId: r.listingId,
+          leonixAdId: r.leonixAdId,
+          locale: lang,
+          promoCode: ctx.promoCode,
+          returnPath: appendLangToPath("/clasificados/bienes-raices/preview/negocio?checkout=cancelled", routeLang),
+          ...(childCount > 0 ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] } : {}),
+        });
+        if (!checkout.ok) {
+          setPublishErr(checkout.userMessage);
           return;
         }
-
-        router.push(appendLangToPath(leonixLiveAnuncioPath(r.listingId), routeLang));
+        redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
       } else {
         setPublishErr(r.error);
       }
@@ -207,12 +285,7 @@ export default function BienesRaicesNegocioPreviewClient() {
       setPublishBusy(false);
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
-  }, [inventoryCtx, lang, routeLang, router]);
-
-  const onPublishNextFromBridge = useCallback(() => {
-    const href = navigateToNextQueuedChild();
-    if (href) router.push(appendLangToPath(href, routeLang));
-  }, [routeLang, router]);
+  }, [inventoryCtx, lang, routeLang]);
 
   useEffect(() => {
     let cancelled = false;
@@ -253,11 +326,9 @@ export default function BienesRaicesNegocioPreviewClient() {
     };
   }, [retryKey, inventoryCtx, parentLeonixAdId, lang]);
 
-  const publishLabel = inventoryCtx
-    ? brPropertyInventoryAddToInventoryCtaLabel(lang)
-    : lang === "es"
-      ? "Publicar anuncio"
-      : "Publish listing";
+  const currentDraftForCheckout = phase === "ready" ? loadBienesRaicesNegocioPreviewDraft() : null;
+  const selectedChildCount = Math.min(4, currentDraftForCheckout?.additionalInventoryProperties?.length ?? 0);
+  const checkpointConfig = bienesNegocioCheckpointConfig(lang, selectedChildCount);
 
   return (
     <>
@@ -269,18 +340,6 @@ export default function BienesRaicesNegocioPreviewClient() {
         <LeonixPreviewPageShell
           editHref={BR_PUBLICAR_NEGOCIO}
           onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
-          publishSlot={
-            <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-              <button type="button" className={PUBLISH_BTN} disabled={publishBusy} onClick={() => void onPublishLive()}>
-                {publishBusy ? (lang === "es" ? "Publicando…" : "Publishing…") : publishLabel}
-              </button>
-              {publishErr ? (
-                <p className="max-w-[280px] text-right text-[11px] text-red-700" role="alert">
-                  {publishErr}
-                </p>
-              ) : null}
-            </div>
-          }
         >
           {inventoryCtx ? (
             <div className="mx-auto mb-4 max-w-[1240px] rounded-xl border border-[#C9B46A]/40 bg-[#FFF6E7] px-4 py-3 text-sm text-[#2C2416]">
@@ -303,11 +362,38 @@ export default function BienesRaicesNegocioPreviewClient() {
                 remainingCount={bridge.remainingCount}
                 mainListingHref={bridge.mainListingHref}
                 childListingHref={bridge.childListingHref}
-                onPublishNext={bridge.remainingCount > 0 ? onPublishNextFromBridge : undefined}
               />
             </div>
           ) : null}
           <BienesRaicesNegocioPreviewView vm={vm} lang={lang} />
+          <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
+            <PublishCheckoutCheckpoint
+              config={checkpointConfig}
+              lang={lang}
+              busy={publishBusy}
+              errorMessage={publishErr}
+              draftReady={true}
+              onPromoApply={handlePromoApply}
+              onCheckout={(ctx) => void onCheckout(ctx)}
+              editHref={BR_PUBLICAR_NEGOCIO}
+              rulesModal={{
+                titleEn: "Leonix real estate publishing rules",
+                titleEs: "Reglas de publicación de bienes raíces en Leonix",
+                bulletsEn: [
+                  "Agent, business, license, contact, and property information must be accurate and current.",
+                  "You must be authorized to publish every selected property, image, price, and detail.",
+                  "The inventory package allows up to four additional properties only after paid entitlement.",
+                  "Payment is required before the profile and selected properties become active.",
+                ],
+                bulletsEs: [
+                  "La información del agente, negocio, licencia, contacto y propiedades debe ser correcta y actual.",
+                  "Debes tener autorización para publicar cada propiedad, imagen, precio y detalle seleccionado.",
+                  "El paquete de inventario permite hasta cuatro propiedades adicionales solo con entitlement pagado.",
+                  "El pago es requerido antes de activar el perfil y las propiedades seleccionadas.",
+                ],
+              }}
+            />
+          </div>
         </LeonixPreviewPageShell>
       ) : (
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#F9F6F1] px-4 text-[#2C2416]">

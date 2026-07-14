@@ -182,6 +182,7 @@ export function ServiciosBusinessHubContactCard({
   directContactFasterResponseHint = false,
   showOfferSidebarTeaser = true,
   listingTemplate,
+  hubEngagementVariant = "full",
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -198,6 +199,7 @@ export function ServiciosBusinessHubContactCard({
   publicLikeCount?: number;
   directContactFasterResponseHint?: boolean;
   showOfferSidebarTeaser?: boolean;
+  hubEngagementVariant?: "full" | "save_only";
 }) {
   const L = getServiciosProfileLabels(lang);
   const vm = useMemo(() => mapServiciosProfileToBusinessHubContact(profile, lang), [profile, lang]);
@@ -717,6 +719,7 @@ export function ServiciosBusinessHubContactCard({
               showEngagementControls={showEngagementControls}
               persistListingEngagement={persistListingEngagement}
               publicLikeCount={publicLikeCount}
+              hubEngagementVariant={hubEngagementVariant}
             />
           </article>
         </div>

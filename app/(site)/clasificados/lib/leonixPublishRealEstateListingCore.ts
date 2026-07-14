@@ -419,35 +419,46 @@ export async function publishLeonixRealEstateListingCore(
     rentasPublishStepTracePatch({ publicListingInsertStarted: true });
   }
 
-  const reusableRentasPending =
-    category === "rentas" && params.activationMode === "pending_payment"
+  const reusableRealEstatePending =
+    params.activationMode === "pending_payment" &&
+    (category === "rentas" || (category === "bienes-raices" && sellerType === "business"))
       ? await supabase
           .from("listings")
           .select("id, leonix_ad_id, status")
           .eq("owner_id", userId)
-          .eq("category", "rentas")
+          .eq("category", category)
           .eq("seller_type", sellerType)
           .eq("status", "pending")
           .eq("is_published", false)
           .eq("title", titlePrep.titleForDb)
+          .match(
+            category === "bienes-raices" && sellerType === "business"
+              ? {
+                  inventory_role: params.brInventoryRole ?? "main",
+                  ...(params.brInventoryParentListingId?.trim()
+                    ? { br_inventory_parent_listing_id: params.brInventoryParentListingId.trim() }
+                    : {}),
+                }
+              : {},
+          )
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle()
       : { data: null, error: null };
 
   const reusablePendingId =
-    !reusableRentasPending.error && typeof reusableRentasPending.data?.id === "string"
-      ? reusableRentasPending.data.id
+    !reusableRealEstatePending.error && typeof reusableRealEstatePending.data?.id === "string"
+      ? reusableRealEstatePending.data.id
       : "";
 
   let listingId = reusablePendingId;
   let persistedLeonixAdId =
-    !reusableRentasPending.error && typeof reusableRentasPending.data?.leonix_ad_id === "string"
-      ? reusableRentasPending.data.leonix_ad_id
+    !reusableRealEstatePending.error && typeof reusableRealEstatePending.data?.leonix_ad_id === "string"
+      ? reusableRealEstatePending.data.leonix_ad_id
       : null;
   let persistedListingStatus =
-    !reusableRentasPending.error && typeof reusableRentasPending.data?.status === "string"
-      ? reusableRentasPending.data.status
+    !reusableRealEstatePending.error && typeof reusableRealEstatePending.data?.status === "string"
+      ? reusableRealEstatePending.data.status
       : null;
   let insertedThisAttempt = false;
 
@@ -663,7 +674,7 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   devLog("publish ok", listingId, "warnings", warnings.length);
-  if (category === "rentas" && (!persistedLeonixAdId || !persistedListingStatus)) {
+  if ((category === "rentas" || category === "bienes-raices") && (!persistedLeonixAdId || !persistedListingStatus)) {
     const { data: finalIdentity } = await supabase
       .from("listings")
       .select("leonix_ad_id, status")

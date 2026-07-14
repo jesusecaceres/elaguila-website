@@ -37,9 +37,12 @@ import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventory
 import {
   childEditorSessionFromState,
   childEditorSliceHasUnresolvedIdbMedia,
+  childSessionMatchesEditor,
   clearChildInventoryEditorSession,
   loadChildInventoryEditorSessionResolved,
   persistChildInventoryEditorSession,
+  persistChildInventoryEditorSessionResolved,
+  resolveChildEditorMediaId,
   resolveChildPropertySliceMediaFromIdb,
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
@@ -89,6 +92,10 @@ const CHILD_STEP_LABELS_EN = [
   "Preview and save",
 ] as const;
 
+function childSliceHasPhotos(slice: { fotosDataUrls?: string[] } | null | undefined): boolean {
+  return (slice?.fotosDataUrls ?? []).some((u) => String(u ?? "").trim().length > 0);
+}
+
 /** BR-INV-FIX-01D — full Agente property application for child inventory (save only, no publish). */
 export function BrNegocioChildInventoryFullApplication({
   open,
@@ -119,6 +126,8 @@ export function BrNegocioChildInventoryFullApplication({
 
   const stepLabels = lang === "en" ? CHILD_STEP_LABELS_EN : CHILD_STEP_LABELS_ES;
   const total = stepLabels.length;
+  /** Stable inventory draft id for IDB/session — not the nullable `editingId` edit-mode flag. */
+  const childMediaId = resolveChildEditorMediaId(editingId, initialDraft?.id ?? null, null);
 
   useEffect(() => {
     if (!open) return;
@@ -130,7 +139,8 @@ export function BrNegocioChildInventoryFullApplication({
         ? mergeChildInventoryWithMediaBridge([initialDraft])[0] ?? initialDraft
         : null;
       let bootState: AgenteIndividualResidencialFormState;
-      if (session && session.editingId === editingId) {
+      // Match reserved new-child draft id OR saved editingId (never require editingId === null sentinel).
+      if (session && childSessionMatchesEditor(session, editingId, initialDraft?.id ?? null)) {
         if (hydratedDraft) {
           bootState = buildChildInventoryEditorState(
             parentHubRef.current,
@@ -160,7 +170,9 @@ export function BrNegocioChildInventoryFullApplication({
     return () => {
       cancelled = true;
     };
-  }, [open, editingId, initialDraft, parentHubSnapshot, lang, total, preferredCategoria]);
+    // Intentionally omit parentHubSnapshot identity churn — hub text updates must not wipe child media boot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable child media id + open/editing only
+  }, [open, editingId, childMediaId, initialDraft?.id, lang, total, preferredCategoria]);
 
   const isDirty = useCallback(() => {
     return JSON.stringify(pickChildPropertySlice(state)) !== baselinePropertyRef.current;
@@ -214,17 +226,35 @@ export function BrNegocioChildInventoryFullApplication({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !childMediaId) return;
     const hasRawPhotos = (state.fotosDataUrls ?? []).some((u) => String(u ?? "").startsWith("data:"));
     const delay = hasRawPhotos ? 0 : 400;
     const timer = setTimeout(() => {
-      persistChildInventoryEditorSession(childEditorSessionFromState(editingId, step, state));
+      persistChildInventoryEditorSession(
+        childEditorSessionFromState(editingId, step, state, initialDraft?.id ?? null),
+      );
     }, delay);
     return () => clearTimeout(timer);
-  }, [open, editingId, step, state]);
+  }, [open, editingId, childMediaId, initialDraft?.id, step, state]);
+
+  /** Hard refresh while child drawer is open — kick durable child session write (never MAIN_PHOTO). */
+  useEffect(() => {
+    if (!open || !childMediaId) return;
+    const onPageHide = () => {
+      void persistChildInventoryEditorSessionResolved(
+        childEditorSessionFromState(editingId, step, state, initialDraft?.id ?? null),
+      );
+    };
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onPageHide);
+    };
+  }, [open, childMediaId, editingId, step, state, initialDraft?.id]);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || !childMediaId) {
       setIdbResolvedSlice(null);
       return;
     }
@@ -234,13 +264,13 @@ export function BrNegocioChildInventoryFullApplication({
       return;
     }
     let cancelled = false;
-    void resolveChildPropertySliceMediaFromIdb(slice).then((resolved) => {
+    void resolveChildPropertySliceMediaFromIdb(slice, childMediaId).then((resolved) => {
       if (!cancelled) setIdbResolvedSlice(resolved);
     });
     return () => {
       cancelled = true;
     };
-  }, [open, state]);
+  }, [open, state, childMediaId]);
 
   const previewStateForCard = useMemo(() => {
     if (!idbResolvedSlice) return state;
@@ -276,8 +306,10 @@ export function BrNegocioChildInventoryFullApplication({
     const nextErrors = validateAgenteChildInventoryForSave(state, lang);
     setErrors(nextErrors);
     if (childInventorySaveHasErrors(nextErrors)) return;
-    setFullPreviewOpen(true);
-  }, [state, lang]);
+    void persistChildInventoryEditorSessionResolved(
+      childEditorSessionFromState(editingId, step, state, initialDraft?.id ?? null),
+    ).then(() => setFullPreviewOpen(true));
+  }, [state, lang, editingId, step, initialDraft?.id]);
 
   const handleCancel = useCallback(() => {
     confirmClose(() => {
@@ -292,31 +324,42 @@ export function BrNegocioChildInventoryFullApplication({
       const nextErrors = validateAgenteChildInventoryForSave(state, lang);
       setErrors(nextErrors);
       if (childInventorySaveHasErrors(nextErrors)) return;
-      const draft = childInventoryDraftFromEditorState(
-        parentHubRef.current,
-        state,
-        initialDraft,
-        lang,
-      );
-      onSave(draft, mode);
-      clearChildInventoryEditorSession();
-      baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(state));
-      setFullPreviewOpen(false);
-      if (mode === "close" || mode === "goToParentPreview") {
-        setErrors({});
-        onClose();
-        if (mode === "goToParentPreview") onGoToParentPreview?.();
-      } else {
-        parentHubRef.current = pickParentHubSlice(parentHubSnapshot);
-        setStateRaw(buildChildInventoryEditorState(parentHubRef.current, null, lang));
-        baselinePropertyRef.current = JSON.stringify(
-          pickChildPropertySlice(buildChildInventoryEditorState(parentHubRef.current, null, lang)),
+      void (async () => {
+        // Final durable media commit before parent inventory card receives the draft.
+        const committed = await persistChildInventoryEditorSessionResolved(
+          childEditorSessionFromState(editingId, step, state, initialDraft?.id ?? null),
         );
-        setStep(0);
-        setErrors({});
-      }
+        const stateForSave =
+          committed.propertyForm && childSliceHasPhotos(committed.propertyForm)
+            ? mergeParentHubWithChildPropertyForEditor(parentHubRef.current, committed.propertyForm)
+            : state;
+        const draft = childInventoryDraftFromEditorState(
+          parentHubRef.current,
+          stateForSave,
+          initialDraft,
+          lang,
+        );
+        // Clear before onSave/close: inventory shell restore effect reopens from session when drawer closes.
+        clearChildInventoryEditorSession();
+        onSave(draft, mode);
+        baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(state));
+        setFullPreviewOpen(false);
+        if (mode === "close" || mode === "goToParentPreview") {
+          setErrors({});
+          onClose();
+          if (mode === "goToParentPreview") onGoToParentPreview?.();
+        } else {
+          parentHubRef.current = pickParentHubSlice(parentHubSnapshot);
+          setStateRaw(buildChildInventoryEditorState(parentHubRef.current, null, lang));
+          baselinePropertyRef.current = JSON.stringify(
+            pickChildPropertySlice(buildChildInventoryEditorState(parentHubRef.current, null, lang)),
+          );
+          setStep(0);
+          setErrors({});
+        }
+      })();
     },
-    [state, lang, initialDraft, onSave, onClose, parentHubSnapshot, onGoToParentPreview],
+    [state, lang, editingId, step, initialDraft, onSave, onClose, parentHubSnapshot, onGoToParentPreview],
   );
 
   if (!open) return null;
@@ -402,7 +445,9 @@ export function BrNegocioChildInventoryFullApplication({
               state={state}
               setState={setState}
               onMediaDraftCommit={(next) => {
-                persistChildInventoryEditorSession(childEditorSessionFromState(editingId, step, next));
+                void persistChildInventoryEditorSessionResolved(
+                  childEditorSessionFromState(editingId, step, next, initialDraft?.id ?? null),
+                );
               }}
             />
           ) : null}

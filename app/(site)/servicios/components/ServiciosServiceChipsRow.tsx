@@ -37,7 +37,7 @@ export function ServiciosServiceChipsRow({
         </span>
       ))}
       {extreme && href ? (
-        <Link href={href} className={`${LX_LINK_ACCENT} self-center text-[11px] sm:text-xs`}>
+        <Link href={href} className={`${LX_LINK_ACCENT} pointer-events-auto self-center text-[11px] sm:text-xs`}>
           {lang === "en" ? "View all services" : "Ver todos los servicios"}
         </Link>
       ) : null}

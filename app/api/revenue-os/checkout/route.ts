@@ -11,12 +11,14 @@ import {
   validateRevenueCheckoutRequest,
   validateRestauranteAddonOnlyListingOwnership,
   validateAutosDealerInventoryAddonOwnership,
+  validateBienesInventoryAddonOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
 import {
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
+  BR_INVENTORY_PACK_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
@@ -72,6 +74,8 @@ export async function POST(request: NextRequest) {
     categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
   const isAutosDealerInventoryAddonEarly =
     categoryEarly === "autos" && packageKeyEarly === AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY;
+  const isBienesInventoryAddonOnlyEarly =
+    categoryEarly === "bienes-raices" && packageKeyEarly === BR_INVENTORY_PACK_PACKAGE_KEY;
 
   if (isRestauranteAddonOnlyEarly) {
     const ownerGate = await validateRestauranteAddonOnlyListingOwnership({
@@ -99,7 +103,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly
+  if (isBienesInventoryAddonOnlyEarly) {
+    const ownerGate = await validateBienesInventoryAddonOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+  }
+
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly
     ? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
@@ -193,8 +210,13 @@ export async function POST(request: NextRequest) {
   const isRestauranteAddonOnly =
     packageDef.packageKey === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY &&
     packageDef.category === "restaurantes";
+  const isBienesInventoryAddonOnly =
+    packageDef.packageKey === BR_INVENTORY_PACK_PACKAGE_KEY &&
+    packageDef.category === "bienes-raices";
   const returnFallback = isRestauranteAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
+    : isBienesInventoryAddonOnly
+    ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
   const safeReturnPath = sanitizeRevenueOsReturnPath(body.returnPath, returnFallback);
 
@@ -217,7 +239,7 @@ export async function POST(request: NextRequest) {
     promoFamily: promoFamilyForRecord ?? null,
     promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
     promoBaseAmountCents: promoBaseAmountForRecord,
-    addonOnly: isRestauranteAddonOnly,
+    addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly,
   });
 
   if (!paymentInsert.ok) {

@@ -85,7 +85,11 @@ export function ServiciosProfileView({
   const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
 
   return (
-    <div className="min-h-screen overflow-x-hidden pb-20 sm:pb-16" style={{ backgroundColor: SV.bg }}>
+    <div
+      className="min-h-screen overflow-x-hidden pb-20 sm:pb-16"
+      style={{ backgroundColor: SV.bg }}
+      data-servicios-public-shell={showTopBar ? undefined : "trade"}
+    >
       {analyticsListingSlug && listingSourceId?.trim() ? (
         <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} listingSourceId={listingSourceId.trim()} />
       ) : null}

@@ -34,15 +34,9 @@ import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
 import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSection";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
-import {
-  serviciosSavedListingExtras,
-  serviciosSavedListingExtrasFromClient,
-} from "@/app/lib/serviciosSavedListingIdentity";
 import {
   serviciosGlobalListingFromRow,
   serviciosGlobalLikeRecorder,
-  serviciosGlobalSaveRecorder,
   serviciosGlobalShareRecorder,
 } from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
@@ -113,6 +107,10 @@ export type ServiciosProfessionalProfileShellProps = {
   directContactFasterResponseHint?: boolean;
   leonixAdIdFooter?: string | null;
   serviciosDiscoveryResultsHref?: string | null;
+  /** Public visitor pages hide dashboard-style chrome; edit/dashboard flows may show it. */
+  showTopBar?: boolean;
+  showMobileSectionNav?: boolean;
+  hubEngagementVariant?: "full" | "save_only";
 };
 
 export function ServiciosProfessionalProfileShell({
@@ -135,6 +133,9 @@ export function ServiciosProfessionalProfileShell({
   directContactFasterResponseHint = false,
   leonixAdIdFooter,
   serviciosDiscoveryResultsHref,
+  showTopBar,
+  showMobileSectionNav,
+  hubEngagementVariant = "full",
 }: ServiciosProfessionalProfileShellProps) {
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
   const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
@@ -148,16 +149,6 @@ export function ServiciosProfessionalProfileShell({
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
   const sourceId = (listingSourceId ?? "").trim();
-  const saveExtras = sourceId
-    ? serviciosSavedListingExtras({
-        slug: profile.identity.slug,
-        id: sourceId,
-        leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
-      })
-    : serviciosSavedListingExtrasFromClient({
-        slug: profile.identity.slug,
-        engagementListingId: lxListingId,
-      });
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount)
       ? Math.max(0, Math.floor(publicLikeCount))
@@ -182,15 +173,24 @@ export function ServiciosProfessionalProfileShell({
     return null;
   }
 
+  const visitorPublicMode = !editBackHref?.trim();
+  const renderTopBar = showTopBar ?? !visitorPublicMode;
+  const renderMobileNav = showMobileSectionNav ?? !visitorPublicMode;
+  const heroEngagementActive = showEngagementControls && Boolean(lxListingId.trim());
+  const hubVariant = hubEngagementVariant ?? (heroEngagementActive ? "save_only" : "full");
+
   return (
     <div
-      className="min-h-screen overflow-x-hidden pb-[5.5rem] sm:pb-[5rem] lg:pb-16"
+      className={`min-h-screen overflow-x-hidden ${renderMobileNav ? "pb-[5.5rem] sm:pb-[5rem] lg:pb-16" : "pb-16"}`}
       style={{ backgroundColor: SV.bg }}
+      data-servicios-public-shell="professional"
     >
       {analyticsListingSlug && listingSourceId?.trim() ? (
         <ServiciosProfileViewAnalytics listingSlug={analyticsListingSlug} listingSourceId={listingSourceId.trim()} />
       ) : null}
-      <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
+      {renderTopBar ? (
+        <ServiciosTopBar lang={lang} editBackHref={editBackHref} beforeEditBackNavigate={beforeEditBackNavigate} />
+      ) : null}
 
       <main className={`${LX_PRO_MAIN_MAX} px-3 py-4 sm:px-6 sm:py-6 lg:px-8`} style={{ backgroundColor: SV.bg }}>
         <div
@@ -217,8 +217,8 @@ export function ServiciosProfessionalProfileShell({
             engagementListingId={engagementListingId}
             engagementOwnerUserId={engagementOwnerUserId}
             engagementSlot={
-              showEngagementControls ? (
-                <div className="flex flex-wrap items-center gap-2">
+              heroEngagementActive ? (
+                <div className="flex flex-wrap items-center gap-2" data-servicios-hero-engagement="1">
                   <ServiciosLikeEngagementCluster
                     listingId={lxListingId}
                     ownerUserId={lxOwner}
@@ -229,18 +229,6 @@ export function ServiciosProfessionalProfileShell({
                     tone="hero"
                     recordLikeEvent={
                       globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined
-                    }
-                  />
-                  <LeonixSaveButton
-                    listingId={lxListingId}
-                    ownerUserId={lxOwner}
-                    variant="small"
-                    lang={lang}
-                    category="servicios"
-                    persistEngagement={persistListingEngagement}
-                    saveExtras={saveExtras}
-                    recordSaveEvent={
-                      globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined
                     }
                   />
                   <LeonixShareButton
@@ -283,6 +271,7 @@ export function ServiciosProfessionalProfileShell({
                   showEngagementControls={showEngagementControls}
                   persistListingEngagement={persistListingEngagement}
                   publicLikeCount={publicLikeCount}
+                  hubEngagementVariant={hubVariant}
                   directContactFasterResponseHint={directContactFasterResponseHint}
                   showOfferSidebarTeaser={false}
                 />
@@ -386,7 +375,7 @@ export function ServiciosProfessionalProfileShell({
         </div>
       </main>
 
-      <ServiciosProfessionalMobileNav items={navItems} onNavigate={scrollToSection} />
+      {renderMobileNav ? <ServiciosProfessionalMobileNav items={navItems} onNavigate={scrollToSection} /> : null}
     </div>
   );
 }

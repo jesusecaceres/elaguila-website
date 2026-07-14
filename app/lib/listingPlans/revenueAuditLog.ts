@@ -18,6 +18,7 @@ export type RevenueAuditAction =
   | "autos_privado_listing_activated_after_payment"
   | "autos_dealer_listing_activated_after_payment"
   | "bienes_fsbo_listing_activated_after_payment"
+  | "bienes_negocio_listing_activated_after_payment"
   | "revenue_webhook_ignored"
   | "revenue_webhook_validation_failed";
 

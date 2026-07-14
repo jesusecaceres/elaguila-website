@@ -45,6 +45,10 @@ import {
 } from "@/app/(site)/servicios/components/serviciosLeonixBrand";
 import { formatServiciosPublicLocationLine } from "../lib/formatServiciosPublicLocationLine";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
+import {
+  ServiciosResultCardBodyLink,
+  SERVICIOS_RESULT_CARD_INTERACTIVE,
+} from "./ServiciosResultCardBodyLink";
 
 function cleanOtherLabel(raw: string): string {
   const t = String(raw ?? "").trim();
@@ -226,6 +230,10 @@ export function ServiciosHorizontalResultCard({
     [contactExtras, lang, listingShareUrl, listingSlug, openOutbound, profile],
   );
 
+  const onCardNavigate = useCallback(() => {
+    if (row) trackServiciosResultCardClick(row);
+  }, [row]);
+
   if (!profile) return null;
 
   const isCompact = density === "compact";
@@ -275,6 +283,10 @@ export function ServiciosHorizontalResultCard({
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
   const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View profile" : "Ver perfil");
   const servicesLabel = lang === "en" ? "Services" : "Servicios";
+  const cardNavigateLabel =
+    lang === "en"
+      ? `View profile for ${profile.identity.businessName}`
+      : `Ver perfil de ${profile.identity.businessName}`;
 
   const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, lang).slice(0, 3) : [];
 
@@ -322,11 +334,17 @@ export function ServiciosHorizontalResultCard({
   return (
     <>
       <article
-        className={`${LX_IVORY_CARD} w-full min-w-0 ${
+        className={`${LX_IVORY_CARD} relative w-full min-w-0 ${
           isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(9.25rem,auto)] sm:items-stretch" : ""
         } ${className}`.trim()}
       >
-        <div className={isCompact ? "flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "flex gap-3 p-4 sm:gap-4 sm:p-5"}>
+        <ServiciosResultCardBodyLink
+          href={vitrinaHref}
+          ariaLabel={cardNavigateLabel}
+          onNavigate={onCardNavigate}
+        />
+
+        <div className={isCompact ? "pointer-events-none relative z-[2] flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5"}>
           <ServiciosAdaptiveLogoPlate
             src={logoUrl}
             alt={logoAlt}
@@ -381,7 +399,7 @@ export function ServiciosHorizontalResultCard({
         </div>
 
         {displayServiceChips.length > 0 ? (
-          <div className={isCompact ? "px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "px-4 pb-3 sm:px-5"}>
+          <div className={isCompact ? "pointer-events-none relative z-[2] px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "pointer-events-none relative z-[2] px-4 pb-3 sm:px-5"}>
             <ServiciosServiceChipsRow
               chips={displayServiceChips}
               lang={lang}
@@ -391,7 +409,9 @@ export function ServiciosHorizontalResultCard({
           </div>
         ) : null}
 
-        <div className={isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}>
+        <div
+          className={`${SERVICIOS_RESULT_CARD_INTERACTIVE} ${isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}`}
+        >
           <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5" : "flex flex-col gap-2"}>
             {primaryCall ? (
               <button

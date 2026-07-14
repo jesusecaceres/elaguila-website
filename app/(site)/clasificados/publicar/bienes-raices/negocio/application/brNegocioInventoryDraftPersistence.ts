@@ -30,7 +30,12 @@ function clampPrimaryIndex(photoUrls: string[], index: number): number {
 
 function isDurablePhotoUrl(url: string): boolean {
   const u = url.trim();
-  return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/");
+  return (
+    u.startsWith("http://") ||
+    u.startsWith("https://") ||
+    u.startsWith("data:image/") ||
+    u.startsWith("__LX_BR_AGENTE_IDB__")
+  );
 }
 
 /** Drop data: blobs from child photos for sessionStorage / queue JSON. */

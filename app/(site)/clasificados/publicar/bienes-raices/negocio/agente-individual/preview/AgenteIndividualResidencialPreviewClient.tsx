@@ -11,13 +11,20 @@ import { brPublishPaymentRequired } from "@/app/lib/clasificados/bienes-raices/b
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
 import {
   BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS,
+  BR_INVENTORY_PACK_PACKAGE_KEY,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   redirectToRevenueCategoryCheckout,
   revenueCategoryCheckoutLoadingMessage,
   startRevenueCategoryCheckout,
+  validateRevenuePromoForCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { BIENES_RAICES_NEGOCIO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   computeBrPropertyInventoryCounts,
@@ -210,7 +217,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
     };
   }, [childInventoryCount, inventoryCtx, lang, needsNegocioPayment]);
 
-  const onPublishLive = useCallback(async () => {
+  const onPublishLive = useCallback(async (ctx?: { newsletterOptIn?: boolean; promoCode?: string | null }) => {
     if (listingBoundPreview) {
       setPublishErr(
         lang === "es"
@@ -299,11 +306,27 @@ export default function AgenteIndividualResidencialPreviewClient() {
           }
         }
 
+        if (ctx?.newsletterOptIn && auth.user?.email) {
+          void captureCheckoutNewsletterSubscriber({
+            email: auth.user.email,
+            lang,
+            preferredLanguage: lang,
+            source: CHECKOUT_NEWSLETTER_SOURCES.bienesFsbo,
+            interests: bundleCreatedCount > 0
+              ? ["package:br_agent_monthly", "package:br_inventory_pack_monthly"]
+              : ["package:br_agent_monthly"],
+            checked: true,
+          });
+        }
+
         const checkout = await startRevenueCategoryCheckout({
           ...BIENES_RAICES_NEGOCIO_CHECKOUT,
           listingId: r.listingId,
-          leonixAdId,
+          leonixAdId: r.leonixAdId?.trim() || leonixAdId,
           locale: lang,
+          promoCode: ctx?.promoCode ?? null,
+          returnPath: withBrAgenteResLangParam("/clasificados/publicar/bienes-raices/negocio/agente-individual/preview?checkout=cancelled", lang),
+          ...(bundleCreatedCount > 0 ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] } : {}),
         });
         if (!checkout.ok) {
           setPublishBusy(false);
@@ -361,6 +384,34 @@ export default function AgenteIndividualResidencialPreviewClient() {
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
   }, [data, inventoryCtx, lang, router]);
+
+  const handlePromoApply = useCallback(
+    async (code: string) => {
+      const hasInventory = childInventoryCount > 0;
+      const addOns = hasInventory ? [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] : undefined;
+      const subtotalCents =
+        (getRevenuePackageDefinition("br_agent_monthly")?.priceCents ?? 39900) +
+        (hasInventory ? getRevenuePackageDefinition(BR_INVENTORY_PACK_PACKAGE_KEY)?.priceCents ?? 9900 : 0);
+      const result = await validateRevenuePromoForCheckout({
+        code,
+        category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
+        packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
+        subtotalCents,
+        addOns,
+        locale: lang,
+      });
+      if (!result.ok) return { ok: false, message: result.userMessage };
+      return {
+        ok: true,
+        discountCents: result.discountCents,
+        message:
+          lang === "es"
+            ? `${result.discountLabel} aplicado. Total: $${(result.totalCents / 100).toFixed(2)}`
+            : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}`,
+      };
+    },
+    [childInventoryCount, lang],
+  );
 
   const onPublishNextFromBridge = useCallback(() => {
     const href = navigateToNextQueuedChild();
@@ -463,7 +514,25 @@ export default function AgenteIndividualResidencialPreviewClient() {
             lang={lang}
             busy={publishBusy}
             errorMessage={publishErr}
-            onCheckout={() => void onPublishLive()}
+            onPromoApply={handlePromoApply}
+            onCheckout={(ctx) => void onPublishLive(ctx)}
+            editHref={editHref}
+            rulesModal={{
+              titleEn: "Leonix real estate publishing rules",
+              titleEs: "Reglas de publicación de bienes raíces en Leonix",
+              bulletsEn: [
+                "Agent, business, license, contact, and property information must be truthful and current.",
+                "You must be authorized to publish every selected property, photo, price, and detail.",
+                "The inventory package allows up to four additional properties only after paid entitlement.",
+                "Payment is required before the profile and selected properties become active.",
+              ],
+              bulletsEs: [
+                "La información del agente, negocio, licencia, contacto y propiedades debe ser verdadera y actual.",
+                "Debes tener autorización para publicar cada propiedad, foto, precio y detalle seleccionado.",
+                "El paquete de inventario permite hasta cuatro propiedades adicionales solo con entitlement pagado.",
+                "El pago es requerido antes de activar el perfil y las propiedades seleccionadas.",
+              ],
+            }}
           />
         </div>
       ) : null}

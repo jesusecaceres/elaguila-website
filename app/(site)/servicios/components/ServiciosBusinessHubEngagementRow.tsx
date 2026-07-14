@@ -32,6 +32,7 @@ export function ServiciosBusinessHubEngagementRow({
   showEngagementControls = true,
   persistListingEngagement = false,
   publicLikeCount,
+  hubEngagementVariant = "full",
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
@@ -44,6 +45,8 @@ export function ServiciosBusinessHubEngagementRow({
   showEngagementControls?: boolean;
   persistListingEngagement?: boolean;
   publicLikeCount?: number;
+  /** `save_only` — hub Save only; Like/Share render in professional hero. */
+  hubEngagementVariant?: "full" | "save_only";
 }) {
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
@@ -76,6 +79,7 @@ export function ServiciosBusinessHubEngagementRow({
   if (!showEngagementActions) return null;
 
   const title = lang === "en" ? "Actions" : "Acciones";
+  const saveOnly = hubEngagementVariant === "save_only";
 
   return (
     <section aria-labelledby="hub-engagement-heading" className="mt-4" data-servicios-business-hub-engagement="1">
@@ -85,7 +89,9 @@ export function ServiciosBusinessHubEngagementRow({
       >
         {title}
       </h3>
-      <div className="mt-2.5 grid max-w-full grid-cols-3 gap-2 sm:gap-2.5">
+      <div
+        className={`mt-2.5 grid max-w-full gap-2 sm:gap-2.5 ${saveOnly ? "grid-cols-1 max-w-[12rem]" : "grid-cols-3"}`}
+      >
         <div className={utilityCellClass}>
           <LeonixSaveButton
             listingId={lxListingId}
@@ -99,34 +105,38 @@ export function ServiciosBusinessHubEngagementRow({
             className="!shadow-sm"
           />
         </div>
-        <div className={utilityCellClass}>
-          <LeonixShareButton
-            listingId={lxListingId}
-            listingUrl={listingShareUrl}
-            ownerUserId={lxOwner}
-            listingTitle={profile.identity.businessName}
-            variant="default"
-            lang={lang}
-            category="servicios"
-            className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
-            persistEngagement={persistEngagement}
-            recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
-            directNativeShare
-          />
-        </div>
-        <div className={utilityCellClass}>
-          <ServiciosLikeEngagementCluster
-            listingId={lxListingId}
-            ownerUserId={lxOwner}
-            lang={lang}
-            publicLikeCount={likeCueN}
-            persistEngagement={persistEngagement}
-            variant="default"
-            tone="hub"
-            recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
-            className="w-full [&_button]:!w-full"
-          />
-        </div>
+        {saveOnly ? null : (
+          <>
+            <div className={utilityCellClass}>
+              <LeonixShareButton
+                listingId={lxListingId}
+                listingUrl={listingShareUrl}
+                ownerUserId={lxOwner}
+                listingTitle={profile.identity.businessName}
+                variant="default"
+                lang={lang}
+                category="servicios"
+                className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
+                persistEngagement={persistEngagement}
+                recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
+                directNativeShare
+              />
+            </div>
+            <div className={utilityCellClass}>
+              <ServiciosLikeEngagementCluster
+                listingId={lxListingId}
+                ownerUserId={lxOwner}
+                lang={lang}
+                publicLikeCount={likeCueN}
+                persistEngagement={persistEngagement}
+                variant="default"
+                tone="hub"
+                recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
+                className="w-full [&_button]:!w-full"
+              />
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

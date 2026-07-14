@@ -172,9 +172,14 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         {slug} · {profile.identity.businessName}
       </div>
       {isServiciosProfessionalTemplate(listingTemplate) ? (
-        <ServiciosProfessionalProfileShell {...profileShellProps} template={listingTemplate} />
+        <ServiciosProfessionalProfileShell
+          {...profileShellProps}
+          template={listingTemplate}
+          showTopBar={false}
+          showMobileSectionNav={false}
+        />
       ) : (
-        <ServiciosProfileView {...profileShellProps} />
+        <ServiciosProfileView {...profileShellProps} showTopBar={false} />
       )}
     </>
   );

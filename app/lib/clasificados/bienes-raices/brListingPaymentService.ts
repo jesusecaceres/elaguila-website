@@ -8,11 +8,13 @@ import {
   mergeBrListingPaymentMeta,
   readBrListingPaymentMeta,
 } from "./brListingPaymentMetadata";
+import { BR_INVENTORY_PACK_MAX_CHILDREN } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 export type BrListingRowForPayment = {
   id: string;
   owner_id?: string | null;
   category?: string | null;
+  seller_type?: string | null;
   status?: string | null;
   is_published?: boolean | null;
   listing_json?: unknown;
@@ -25,7 +27,7 @@ export async function getBrListingById(listingId: string): Promise<BrListingRowF
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("listings")
-    .select("id, owner_id, category, status, is_published, listing_json, inventory_role, br_inventory_group_id")
+    .select("id, owner_id, category, seller_type, status, is_published, listing_json, inventory_role, br_inventory_group_id")
     .eq("id", listingId)
     .maybeSingle();
   if (error || !data) return null;
@@ -120,12 +122,15 @@ export async function tryActivateBrListingAfterPayment(
       if (groupId) {
         const { data: siblings } = await supabase
           .from("listings")
-          .select("id")
+          .select("id, created_at")
           .eq("category", "bienes-raices")
           .eq("br_inventory_group_id", groupId)
+          .eq("inventory_role", "inventory_property")
           .eq("status", "pending")
           .eq("is_published", false)
-          .neq("id", listingId);
+          .neq("id", listingId)
+          .order("created_at", { ascending: true })
+          .limit(BR_INVENTORY_PACK_MAX_CHILDREN);
         for (const sib of siblings ?? []) {
           const sibId = String((sib as { id?: string }).id ?? "").trim();
           if (!sibId) continue;

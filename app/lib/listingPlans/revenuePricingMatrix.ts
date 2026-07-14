@@ -119,7 +119,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     billingMode: "monthly_subscription",
     durationDays: null,
     includedInventory: "1 business/agent package",
-    addOnInventory: "+4 properties add-on (price TBD)",
+    addOnInventory: "+4 properties via br_inventory_pack_monthly ($99/mo)",
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,

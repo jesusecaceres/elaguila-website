@@ -232,7 +232,12 @@ export function childInventoryDraftFromEditorState(
 
 function isDurablePhotoUrl(url: string): boolean {
   const u = url.trim();
-  return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/");
+  return (
+    u.startsWith("http://") ||
+    u.startsWith("https://") ||
+    u.startsWith("data:image/") ||
+    u.startsWith("__LX_BR_AGENTE_IDB__")
+  );
 }
 
 function clampEditorPhotoIndex(photos: string[], index: number): number {
