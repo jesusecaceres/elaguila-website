@@ -60,7 +60,7 @@ export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
               loading="lazy"
               decoding="async"
               data-testid="community-discovery-card-photo"
-              className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              className="absolute inset-0 h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.02]"
               onError={() => setListingPhotoFailed(true)}
             />
           ) : (

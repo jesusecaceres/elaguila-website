@@ -725,6 +725,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }:
               category="rentas"
               variant="small"
               persistEngagement={Boolean(listingId)}
+              previewLabelMode="like"
             />
             <button
               type="button"

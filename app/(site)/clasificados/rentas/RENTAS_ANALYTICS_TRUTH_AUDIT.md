@@ -235,6 +235,29 @@ The only unrelated dirty files are in the autos category from previous work and 
 - Mobile/desktop layout preserved with flex row
 - Spanish/English labels preserved
 
+## Engagement Label Contract Fix (2025-01-13)
+
+**Issue:** Rentas preview page heart engagement button showed "Preview" as the user-facing CTA label instead of the correct "Like" / "Me gusta". Preview is a technical mode, not a user-facing action label.
+
+**Fix:**
+- Added `previewLabelMode="like"` prop to `LeonixLikeButton` in `RentasVisualMatchPreviewView.tsx`
+- This ensures the heart button shows "Like" (English) / "Me gusta" (Spanish) even in preview/inert mode
+- Technical preview mode (`persistEngagement={Boolean(listingId)}`) remains unchanged and controls persistence/analytics behavior
+- User-facing label (`previewLabelMode`) is now correctly separated from technical mode
+
+**Behavior:**
+- Preview mode: Heart shows "Like" / "Me gusta" as the label (not "Preview"), does not persist analytics
+- Public detail mode: Heart shows "Like" / "Me gusta", persists real analytics with listing UUID
+- ARIA labels remain correct: "Like" / "Me gusta" for both modes
+- Zero-like visual rule preserved: Heart only at 0 likes, then shows count after first like
+
+**Verification:**
+- Share labels correct: "Compartir"/"Share", "Enlace copiado"/"Link copied"
+- Email label correct: "Enviar correo"/"Email seller"
+- Email mailto URL properly constructed with validation and encoding
+- No schema changes
+- No analytics behavior changes (preview still does not write DB analytics)
+
 ## Global Location Standard (2025-01-09)
 
 **Issue:** Rentas location inputs were California/NorCal restricted with 5-digit ZIP constraint. No country field visible in form.
