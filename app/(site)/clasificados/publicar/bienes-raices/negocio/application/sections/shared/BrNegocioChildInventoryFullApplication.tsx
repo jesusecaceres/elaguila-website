@@ -21,7 +21,7 @@ import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioA
 import {
   buildChildInventoryEditorState,
   buildLiveChildInventoryPreviewDraft,
-  childInventoryDraftFromEditorState,
+  childInventoryDraftFromCommittedEditorMedia,
   childInventorySaveHasErrors,
   mergeChildEditorSessionWithDraft,
   mergeParentHubWithChildPropertyForEditor,
@@ -64,7 +64,10 @@ type Props = {
   initialDraft: BrNegocioAdditionalInventoryPropertyDraft | null;
   /** Locked channel for new children (from inventory selector). Edit uses draft channel. */
   preferredCategoria?: BrNegocioCategoriaPropiedad | null;
-  onSave: (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: ChildInventorySaveMode) => void;
+  onSave: (
+    draft: BrNegocioAdditionalInventoryPropertyDraft,
+    mode: ChildInventorySaveMode,
+  ) => void | Promise<void>;
   onGoToParentPreview?: () => void;
 };
 
@@ -367,23 +370,28 @@ export function BrNegocioChildInventoryFullApplication({
       setErrors(nextErrors);
       if (childInventorySaveHasErrors(nextErrors)) return;
       void (async () => {
-        // Final durable media commit before parent inventory card receives the draft.
+        // Final durable media commit — saved draft must come from committed media, not stale React-only state.
         const committed = await persistChildInventoryEditorSessionResolved(
           childEditorSessionFromState(editingId, step, state, initialDraft?.id ?? null),
         );
-        const stateForSave =
-          committed.propertyForm && childSliceHasPhotos(committed.propertyForm)
-            ? mergeParentHubWithChildPropertyForEditor(parentHubRef.current, committed.propertyForm)
-            : state;
-        const draft = childInventoryDraftFromEditorState(
+        const stableChildId = resolveChildEditorMediaId(
+          editingId,
+          initialDraft?.id ?? null,
+          committed.editingId,
+        );
+        const draft = childInventoryDraftFromCommittedEditorMedia(
           parentHubRef.current,
-          stateForSave,
+          committed.propertyForm && childSliceHasPhotos(committed.propertyForm)
+            ? committed.propertyForm
+            : pickChildPropertySlice(state),
+          state,
           initialDraft,
           lang,
+          stableChildId,
         );
-        // Clear before onSave/close: inventory shell restore effect reopens from session when drawer closes.
+        // Parent must own inventory media before the temporary child editor session is cleared.
+        await Promise.resolve(onSave(draft, mode));
         clearChildInventoryEditorSession();
-        onSave(draft, mode);
         baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(state));
         setFullPreviewOpen(false);
         if (mode === "close" || mode === "goToParentPreview") {

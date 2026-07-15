@@ -11,6 +11,7 @@ import {
   setChildInventoryMediaBridge,
   stripChildInventoryForSession,
 } from "../../../application/brNegocioInventoryDraftPersistence";
+import { clearChildInventoryEditorSession } from "../../../application/brNegocioChildInventoryEditorSession";
 import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
   BR_AGENTE_IDB_PREFIX,
@@ -18,6 +19,18 @@ import {
   inlineBrAgenteResHeavyMediaFromIdb,
   offloadBrAgenteResHeavyMediaToIdb,
 } from "./brAgenteResDraftMedia";
+
+/** Mirrors `LEONIX_RETURNING_TO_EDIT_SESSION_FLAG` — kept local to avoid circular import with publishFlowLifecycleClient. */
+const BR_AGENTE_RETURNING_TO_EDIT_FLAG = "leonix-publish-flow-returning-to-edit";
+
+function clearReturningToEditFlagLocal(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(BR_AGENTE_RETURNING_TO_EDIT_FLAG);
+  } catch {
+    /* ignore */
+  }
+}
 
 /** When JSON merge fails, recover QA routing only if the payload explicitly set a category. */
 function explicitCategoriaInPayload(o: unknown): BrNegocioCategoriaPropiedad | null {
@@ -280,13 +293,13 @@ function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boo
 }
 
 export function saveAgenteResPreviewDraft(state: AgenteIndividualResidencialFormState): void {
-  void persistAgenteResApplicationDraftResolved(state);
+  void persistAgenteResApplicationDraftResolved(state, { writeReturn: true });
 }
 
 export function saveAgenteResPreviewReturnDraft(state: AgenteIndividualResidencialFormState): void {
   if (typeof window === "undefined") return;
   previewReturnMemory = null;
-  void persistAgenteResApplicationDraftResolved(state);
+  void persistAgenteResApplicationDraftResolved(state, { writeReturn: true });
 }
 
 /** BR-DRAFT-PERSIST-01 — async persist with IndexedDB media offload (Servicios pattern). */
@@ -310,6 +323,34 @@ function durablePhotoCount(state: AgenteIndividualResidencialFormState | null | 
   return state.fotosDataUrls.filter((u) => isDurableMediaUrl(String(u ?? ""))).length;
 }
 
+function durableChildInventoryPhotoCount(state: AgenteIndividualResidencialFormState | null | undefined): number {
+  if (!state || !Array.isArray(state.additionalInventoryProperties)) return 0;
+  let n = 0;
+  for (const child of state.additionalInventoryProperties) {
+    const photos = Array.isArray(child.photoUrls) ? child.photoUrls : [];
+    const formPhotos =
+      child.propertyForm && Array.isArray(child.propertyForm.fotosDataUrls)
+        ? child.propertyForm.fotosDataUrls
+        : [];
+    n += [...photos, ...formPhotos].filter((u) => isDurableMediaUrl(String(u ?? ""))).length;
+  }
+  return n;
+}
+
+function liveChildInventoryPhotoCount(state: AgenteIndividualResidencialFormState | null | undefined): number {
+  if (!state || !Array.isArray(state.additionalInventoryProperties)) return 0;
+  let n = 0;
+  for (const child of state.additionalInventoryProperties) {
+    const photos = Array.isArray(child.photoUrls) ? child.photoUrls : [];
+    const formPhotos =
+      child.propertyForm && Array.isArray(child.propertyForm.fotosDataUrls)
+        ? child.propertyForm.fotosDataUrls
+        : [];
+    n += [...photos, ...formPhotos].filter((u) => String(u ?? "").trim()).length;
+  }
+  return n;
+}
+
 /**
  * Never let a late/failed compact write erase IDB/http gallery refs already on disk.
  */
@@ -321,8 +362,14 @@ function mergeCompactAvoidEmptyMediaOverwrite(
   return preserveDurableMediaOnSyncFlush(compact, compact, previous);
 }
 
+export type PersistAgenteResDraftOptions = {
+  /** When true, always write the Preview→Volver return key (openPreview / explicit return). */
+  writeReturn?: boolean;
+};
+
 export async function persistAgenteResApplicationDraftResolved(
   state: AgenteIndividualResidencialFormState,
+  opts?: PersistAgenteResDraftOptions,
 ): Promise<void> {
   if (typeof window === "undefined") return;
   if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys()) return;
@@ -340,9 +387,16 @@ export async function persistAgenteResApplicationDraftResolved(
   if (epoch !== draftPersistEpoch) return;
   // Refuse to persist a zero-photo compact when live still has photos and nothing durable is on disk yet.
   const livePhotoCount = (state.fotosDataUrls ?? []).filter((u) => String(u ?? "").trim()).length;
-  if (livePhotoCount > 0 && durablePhotoCount(compact) === 0) {
+  const liveChildPhotos = liveChildInventoryPhotoCount(state);
+  if (
+    (livePhotoCount > 0 && durablePhotoCount(compact) === 0) ||
+    (liveChildPhotos > 0 && durableChildInventoryPhotoCount(compact) === 0)
+  ) {
     const previous = readPreviousPersistedFormState();
-    if (previous && durablePhotoCount(previous) > 0) {
+    if (
+      previous &&
+      (durablePhotoCount(previous) > 0 || durableChildInventoryPhotoCount(previous) > 0)
+    ) {
       compact = preserveDurableMediaOnSyncFlush(stripHeavyDataUrlsForSession(state), state, previous);
     } else {
       // Offload failed / race — do not write an empty gallery draft that would clobber a later success.
@@ -351,7 +405,18 @@ export async function persistAgenteResApplicationDraftResolved(
   }
   if (epoch !== draftPersistEpoch) return;
   savePreviewPayload(compact, true);
-  saveReturnPayload({ state: compact, savedAt: Date.now() }, true);
+  const shouldWriteReturn =
+    Boolean(opts?.writeReturn) ||
+    (() => {
+      try {
+        return Boolean(sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY));
+      } catch {
+        return false;
+      }
+    })();
+  if (shouldWriteReturn) {
+    saveReturnPayload({ state: compact, savedAt: Date.now() }, true);
+  }
 }
 
 /** True when in-memory state still holds raw data: gallery blobs that must be offloaded now. */
@@ -595,91 +660,123 @@ export function readAgenteResPreviewDraftRaw(): string | null {
 }
 
 /**
- * Bootstrap publicar: memoria Strict Mode → return draft → vacío.
- * No hidratar desde `BR_AGENTE_RES_PREVIEW_DRAFT_KEY` en visita fría (sólo lo lee la ruta preview).
+ * Bootstrap publicar intents (isolated):
+ * A. Resume/return — in-memory Strict Mode bridge, OR explicit Volver (`LEONIX_RETURNING_TO_EDIT` + return key)
+ * B. Hard refresh of an active application — preview draft only when navigation type is reload
+ * C. Brand-new application — empty state; never auto-hydrate stale Preview/Return/LS as a new visit
+ *
+ * Preview route still reads `BR_AGENTE_RES_PREVIEW_DRAFT_KEY` via `loadAgenteResPreviewDraftResolved`.
  */
 export async function bootstrapAgenteIndividualResidencialApplicationStateResolved(): Promise<AgenteIndividualResidencialFormState> {
   const boot = bootstrapAgenteIndividualResidencialApplicationState();
   return rehydrateAgenteResDraftMediaFromIdb(boot);
 }
 
+function isBrowserHardReload(): boolean {
+  try {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (nav && typeof nav.type === "string") return nav.type === "reload";
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+function isExplicitReturningToEditIntent(): boolean {
+  try {
+    return sessionStorage.getItem(BR_AGENTE_RETURNING_TO_EDIT_FLAG) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function hydrateBootStateFromPersisted(
+  rawState: AgenteIndividualResidencialFormState,
+): AgenteIndividualResidencialFormState {
+  const bridged = resolveFullDraftMediaBridgeState();
+  const mergedBase = bridged
+    ? mergePartialAgenteIndividualResidencial(
+        bridged as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
+      )
+    : mergePartialAgenteIndividualResidencial(rawState as Partial<AgenteIndividualResidencialFormState>);
+  return mergePartialAgenteIndividualResidencial({
+    ...mergedBase,
+    additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
+      mergedBase.additionalInventoryProperties ?? [],
+    ),
+  });
+}
+
 export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIndividualResidencialFormState {
   if (typeof window === "undefined") return createEmptyAgenteIndividualResidencialState();
-  restoreMediaBridgesFromLocalStorageFallback();
   if (previewReturnMemory) {
     scheduleClearReturnMemory();
     return previewReturnMemory;
   }
+
+  const returningIntent = isExplicitReturningToEditIntent();
+  const hardReload = isBrowserHardReload();
+  let hasReturnKey = false;
   try {
-    const raw =
-      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ?? readDraftFromLocalStorageFallback();
-    const returnState = raw ? parsePersistedStateFromJson(raw) : null;
-    if (returnState) {
-      try {
-          const bridgedReturn = resolveFullDraftMediaBridgeState();
-          const mergedBase = bridgedReturn
-            ? mergePartialAgenteIndividualResidencial(
-                bridgedReturn as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
-              )
-            : mergePartialAgenteIndividualResidencial(returnState as Partial<AgenteIndividualResidencialFormState>);
-          const merged = mergePartialAgenteIndividualResidencial({
-            ...mergedBase,
-            additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
-              mergedBase.additionalInventoryProperties ?? [],
-            ),
-          });
-          sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
-          syncDraftMediaBridgesFromState(merged);
+    hasReturnKey = Boolean(sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY));
+  } catch {
+    hasReturnKey = false;
+  }
+
+  try {
+    // A — Resume / Volver / preview browser-back (return draft key written only when opening Preview)
+    if (returningIntent || hasReturnKey) {
+      restoreMediaBridgesFromLocalStorageFallback();
+      const raw = sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY);
+      const returnState = raw ? parsePersistedStateFromJson(raw) : null;
+      if (returnState) {
+        try {
+          const merged = hydrateBootStateFromPersisted(returnState);
+          // Strict Mode: stash before consuming keys so remount can reuse memory.
           previewReturnMemory = merged;
           scheduleClearReturnMemory();
+          sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
+          clearReturningToEditFlagLocal();
+          syncDraftMediaBridgesFromState(merged);
           return merged;
         } catch (e) {
           if (process.env.NODE_ENV === "development") {
             console.warn("[agente-res preview] merge return draft failed", e);
           }
-          const cat =
-            explicitCategoriaInPayload(resolveFullDraftMediaBridgeState()) ??
-            explicitCategoriaInPayload(returnState as Record<string, unknown>);
-          if (cat) {
-            const recovered = mergePartialAgenteIndividualResidencial({ categoriaPropiedad: cat });
-            sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
-            syncDraftMediaBridgesFromState(recovered);
-            previewReturnMemory = recovered;
-            scheduleClearReturnMemory();
-            return recovered;
-          }
+          sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
+          clearReturningToEditFlagLocal();
         }
-    }
-    const previewRaw =
-      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ?? readDraftFromLocalStorageFallback();
-    const previewState = previewRaw ? parsePersistedStateFromJson(previewRaw) : null;
-    if (previewState) {
-      try {
-        const bridgedPreview = resolveFullDraftMediaBridgeState();
-        const mergedBase = bridgedPreview
-          ? mergePartialAgenteIndividualResidencial(
-              bridgedPreview as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>,
-            )
-          : mergePartialAgenteIndividualResidencial(previewState as Partial<AgenteIndividualResidencialFormState>);
-        const merged = mergePartialAgenteIndividualResidencial({
-          ...mergedBase,
-          additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
-            mergedBase.additionalInventoryProperties ?? [],
-          ),
-        });
-        syncDraftMediaBridgesFromState(merged);
-        previewReturnMemory = merged;
-        scheduleClearReturnMemory();
-        return merged;
-      } catch {
-        /* fall through to empty */
+      } else {
+        clearReturningToEditFlagLocal();
       }
+    }
+
+    // B — Hard refresh of an in-progress application (preview draft / LS mirror)
+    if (hardReload) {
+      restoreMediaBridgesFromLocalStorageFallback();
+      const previewRaw =
+        sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ?? readDraftFromLocalStorageFallback();
+      const previewState = previewRaw ? parsePersistedStateFromJson(previewRaw) : null;
+      if (previewState) {
+        try {
+          const merged = hydrateBootStateFromPersisted(previewState);
+          previewReturnMemory = merged;
+          scheduleClearReturnMemory();
+          syncDraftMediaBridgesFromState(merged);
+          return merged;
+        } catch {
+          /* keep going — still a hard reload, so do not wipe IDB/child sessions */
+        }
+      }
+      // Reload without a parent preview yet (e.g. child editor mid-upload) — preserve IDB media.
+      return createEmptyAgenteIndividualResidencialState();
     }
   } catch {
     /* fall through */
   }
-  if (!hasPersistedDraftKeys()) {
-    void clearBrAgenteResDraftMediaNamespace(BR_AGENTE_DRAFT_MEDIA_NAMESPACE);
-  }
+
+  // C — Brand-new application: ignore stale Preview/Return/LS; start clean
+  clearAgenteIndividualResidencialPublishTempState();
+  clearChildInventoryEditorSession();
   return createEmptyAgenteIndividualResidencialState();
 }

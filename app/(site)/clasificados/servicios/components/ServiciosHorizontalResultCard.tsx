@@ -352,7 +352,9 @@ export function ServiciosHorizontalResultCard({
                   {b.label}
                 </span>
               ))}
-              <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+              {!showEngagementControls ? (
+                <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+              ) : null}
             </div>
 
             <h2 className={LX_COMPACT_CARD_TITLE}>

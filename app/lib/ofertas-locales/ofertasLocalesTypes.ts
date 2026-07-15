@@ -327,7 +327,7 @@ export type OfertaLocalDraft = {
   /** Featured / Destacado placement intent — maps to is_featured_requested on publish (Stack 8). */
   wantsFeaturedPlacement: boolean;
   featuredPlacementScope: OfertaLocalFeaturedPlacementScope;
-  /** Optional AI Searchable Specials add-on intent (Stack 6.5A — not active yet). */
+  /** @deprecated Legacy AI add-on flag — AI is included in both publish products; normalized on load. */
   wantsAiSearchableSpecials: boolean;
   languageTags: OfertaLocalLanguageTag[];
   /** Optional rewards / membership program link and CTA copy. */

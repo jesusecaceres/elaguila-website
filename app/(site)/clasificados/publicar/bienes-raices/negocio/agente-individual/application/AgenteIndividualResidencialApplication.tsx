@@ -403,7 +403,7 @@ export default function AgenteIndividualResidencialApplication() {
     if (!confirmAll) return;
     markPublishFlowOpeningPreview();
     // Single awaited offload+persist writes preview + return keys with durable IDB media refs.
-    await persistAgenteResApplicationDraftResolved(state);
+    await persistAgenteResApplicationDraftResolved(state, { writeReturn: true });
     const previewQs = new URLSearchParams();
     if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
       previewQs.set("inventoryMode", "add");
@@ -700,9 +700,10 @@ export default function AgenteIndividualResidencialApplication() {
                         if (confirmAll) openPreview();
                       });
                     }}
-                    onItemsChange={(items) => {
+                    onItemsChange={async (items) => {
                       if (isExistingDashboardListingMode && !dashboardInventoryPackUnlocked) return;
                       setChildInventoryMediaBridge(items);
+                      let nextState: typeof state | null = null;
                       setState((s) => {
                         const next = {
                           ...s,
@@ -715,9 +716,12 @@ export default function AgenteIndividualResidencialApplication() {
                           confirmInventoryPackPricing:
                             items.length === 0 ? false : s.confirmInventoryPackPricing,
                         };
-                        persistAgenteResApplicationDraftQuiet(next);
+                        nextState = next;
                         return next;
                       });
+                      if (nextState) {
+                        await persistAgenteResApplicationDraftResolved(nextState);
+                      }
                     }}
                     hidden={inventoryAdd.inventoryModeAdd}
                   />

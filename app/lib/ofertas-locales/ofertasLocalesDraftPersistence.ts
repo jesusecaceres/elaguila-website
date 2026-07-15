@@ -1,4 +1,5 @@
 import { createEmptyOfertaLocalDraft } from "./createEmptyOfertaLocalDraft";
+import { normalizeOfertaLocalDraftProductEntitlements } from "./ofertasLocalesApplicationHelpers";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import type { OfertaLocalPrimaryAdFormat } from "./ofertasLocalesTypes";
@@ -199,7 +200,7 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
       ? primaryAdFormatRaw
       : inferPrimaryAdFormatFromDraft(merged);
   const withLane = { ...merged, ...normalizedCategory, primaryAdFormat };
-  return migrateOfertaLocalDraftFields(withLane);
+  return normalizeOfertaLocalDraftProductEntitlements(migrateOfertaLocalDraftFields(withLane));
 }
 
 /** Backward-compatible title migration — do not wipe saved flyerTitle. */
@@ -221,7 +222,9 @@ export function loadOfertaLocalDraftFromStorage(): OfertaLocalDraft | null {
 }
 
 export function saveOfertaLocalDraftToStorage(draft: OfertaLocalDraft): void {
-  const payload = JSON.stringify(migrateOfertaLocalDraftFields(draft));
+  const payload = JSON.stringify(
+    normalizeOfertaLocalDraftProductEntitlements(migrateOfertaLocalDraftFields(draft))
+  );
   try {
     getLocalDraftStorage()?.setItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY, payload);
   } catch {

@@ -15,6 +15,33 @@ const COPY = {
     publishDisabled: "Publicar — más adelante",
     offerTypeSection: "Tipo de oferta",
     step1PrimaryFormatQuestion: "¿Qué quieres publicar principalmente?",
+    step1InteractiveFlyerTitle: "Volante interactivo Leonix",
+    step1InteractiveFlyerDescription:
+      "Publica tu volante completo con escaneo por IA, productos buscables, revisión antes de publicar y Lista de compras.",
+    step1InteractiveFlyerBullets: [
+      "Volante completo",
+      "Escaneo y extracción con IA",
+      "Revisión y corrección de productos",
+      "Productos buscables",
+      "Volante interactivo",
+      "Lista de compras",
+      "Publicación por 30 días",
+    ] as const,
+    step1CouponsTitle: "Cupones Leonix",
+    step1CouponsDescription:
+      "Publica cupones y promociones locales con asistencia de IA, vigencia, términos y presencia en resultados.",
+    step1CouponsBullets: [
+      "Cupón o promoción",
+      "Asistencia con IA",
+      "Revisión antes de publicar",
+      "Vigencia y términos",
+      "Detalle público del cupón",
+      "Publicación por 30 días",
+    ] as const,
+    step1PackageNote: "Un solo precio. La asistencia con IA ya está incluida.",
+    perDuration: " / 30 días",
+    aiIncludedLabel: "IA incluida",
+    step7AiIncludedNote: "IA incluida",
     step2OfferTitleLabel: "Título de la oferta",
     step2PromotionTitleLabel: "Título de la promoción",
     laneShoppingSectionTitle: "Detalles del volante",
@@ -89,13 +116,12 @@ const COPY = {
     aiAddOnLabel: "Agregar AI Searchable Specials",
     aiAddOnHelper:
       "Podemos ayudar a que tu volante o cupón sea buscable por producto, como carne asada, tomates, tortillas, cambio de aceite, especiales de comida y más.",
-    aiProductSearchTitle: "Búsqueda por producto con AI",
-    aiProductSearchPrice: "+$199/mo",
+    aiProductSearchTitle: "Escaneo y productos con IA",
     aiProductSearchBody:
-      "AI puede sugerir productos o cupones desde archivos subidos. Tú revisas y apruebas antes de que aparezcan públicamente.",
+      "La IA puede sugerir productos o cupones desde archivos subidos. Tú revisas y apruebas antes de que aparezcan públicamente.",
     aiProductSearchExamples:
       "Ejemplos: carne asada, bananas, tortillas, cambio de aceite, especiales de comida.",
-    flatPricingCopy: "Precio mensual fijo. Sin cargos sorpresa por clics.",
+    flatPricingCopy: "Un solo precio. La asistencia con IA ya está incluida.",
     step1MoreExposureTitle: "¿Quieres más exposición?",
     step1MoreExposureBody:
       "Aumenta tu visibilidad con opciones de revista impresa, ubicación destacada en Leonix, newsletter, redes sociales y campañas especiales.",
@@ -422,6 +448,33 @@ const COPY = {
     publishDisabled: "Publish — not available yet",
     offerTypeSection: "Offer type",
     step1PrimaryFormatQuestion: "What do you mainly want to publish?",
+    step1InteractiveFlyerTitle: "Leonix Interactive Flyer",
+    step1InteractiveFlyerDescription:
+      "Publish your complete flyer with AI scanning, searchable products, review before publishing, and shopping list.",
+    step1InteractiveFlyerBullets: [
+      "Complete flyer",
+      "AI scan and extraction",
+      "Product review and correction",
+      "Searchable products",
+      "Interactive flyer",
+      "Shopping list",
+      "30-day publication",
+    ] as const,
+    step1CouponsTitle: "Leonix Coupons",
+    step1CouponsDescription:
+      "Publish local coupons and promotions with AI assistance, validity, terms, and results presence.",
+    step1CouponsBullets: [
+      "Coupon or promotion",
+      "AI assistance",
+      "Review before publishing",
+      "Validity and terms",
+      "Public coupon detail",
+      "30-day publication",
+    ] as const,
+    step1PackageNote: "One price. AI assistance is already included.",
+    perDuration: " / 30 days",
+    aiIncludedLabel: "AI included",
+    step7AiIncludedNote: "AI included",
     step2OfferTitleLabel: "Offer title",
     step2PromotionTitleLabel: "Promotion title",
     laneShoppingSectionTitle: "Flyer details",
@@ -495,13 +548,12 @@ const COPY = {
     aiAddOnLabel: "Add AI Searchable Specials",
     aiAddOnHelper:
       "We can help make your flyer or coupon searchable by item, like carne asada, tomatoes, tortillas, oil change, lunch specials, and more.",
-    aiProductSearchTitle: "AI Product Search",
-    aiProductSearchPrice: "+$199/mo",
+    aiProductSearchTitle: "AI scan and products",
     aiProductSearchBody:
       "AI can suggest products or coupons from uploaded files. You review and approve before they appear publicly.",
     aiProductSearchExamples:
       "Examples: carne asada, bananas, tortillas, oil change, lunch specials.",
-    flatPricingCopy: "Flat monthly pricing. No surprise click charges.",
+    flatPricingCopy: "One price. AI assistance is already included.",
     step1MoreExposureTitle: "Want more exposure?",
     step1MoreExposureBody:
       "Increase your visibility with print magazine options, featured placement on Leonix, newsletter exposure, social media, and special campaigns.",

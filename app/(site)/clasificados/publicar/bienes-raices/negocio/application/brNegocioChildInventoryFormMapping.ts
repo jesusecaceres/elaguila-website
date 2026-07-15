@@ -215,7 +215,8 @@ export function childInventoryDraftFromEditorState(
   lang: "es" | "en" = "es",
 ): BrNegocioAdditionalInventoryPropertyDraft {
   const hub = pickParentHubSlice(parentHub);
-  const merged = mergeParentHubWithChildProperty(hub, pickChildPropertySlice(editorState));
+  // Prefer editor merge so IDB refs / data: gallery slots are not normalized away.
+  const merged = mergeParentHubWithChildPropertyForEditor(hub, pickChildPropertySlice(editorState));
   const slice = {
     ...pickChildPropertySlice(merged),
     ciudad: resolveChildInventoryCity(merged.ciudad),
@@ -232,6 +233,69 @@ export function childInventoryDraftFromEditorState(
       updatedAt: now,
     }),
   );
+}
+
+/**
+ * Build the parent-owned saved child draft from the committed editor media handoff.
+ * Prefers durable committed refs; falls back to live editor slots so save never drops
+ * a gallery that is still visible (data:) while one representation is unresolved.
+ */
+export function childInventoryDraftFromCommittedEditorMedia(
+  parentHub: AgenteIndividualResidencialFormState,
+  committedPropertyForm: Partial<AgenteChildPropertyFormSlice> | null | undefined,
+  liveEditorState: AgenteIndividualResidencialFormState,
+  existing: BrNegocioAdditionalInventoryPropertyDraft | null,
+  lang: "es" | "en" = "es",
+  stableChildId?: string | null,
+): BrNegocioAdditionalInventoryPropertyDraft {
+  const liveSlice = pickChildPropertySlice(liveEditorState);
+  const committedFotos = (Array.isArray(committedPropertyForm?.fotosDataUrls)
+    ? committedPropertyForm!.fotosDataUrls!
+    : []
+  )
+    .map((u) => String(u ?? "").trim())
+    .filter(Boolean);
+  const liveFotos = (Array.isArray(liveSlice.fotosDataUrls) ? liveSlice.fotosDataUrls : [])
+    .map((u) => String(u ?? "").trim())
+    .filter(Boolean);
+  const committedDurable = committedFotos.filter(isDurablePhotoUrl);
+  const liveDurable = liveFotos.filter(isDurablePhotoUrl);
+  const fotos =
+    committedDurable.length > 0
+      ? committedDurable
+      : committedFotos.length > 0
+        ? committedFotos
+        : liveDurable.length > 0
+          ? liveDurable
+          : liveFotos;
+  const portadaRaw =
+    committedPropertyForm && committedFotos.length > 0
+      ? Number(committedPropertyForm.fotoPortadaIndex) || 0
+      : Number(liveSlice.fotoPortadaIndex) || 0;
+  const fotoPortadaIndex = clampEditorPhotoIndex(fotos, portadaRaw);
+  const stateForSave = mergeParentHubWithChildPropertyForEditor(parentHub, {
+    ...liveSlice,
+    ...(committedPropertyForm ?? {}),
+    fotosDataUrls: fotos,
+    fotoPortadaIndex,
+  });
+  const draft = childInventoryDraftFromEditorState(parentHub, stateForSave, existing, lang);
+  const id =
+    String(stableChildId ?? "").trim() ||
+    String(existing?.id ?? "").trim() ||
+    draft.id;
+  return syncChildInventoryDraftMedia({
+    ...draft,
+    id,
+    photoUrls: fotos,
+    primaryPhotoIndex: fotoPortadaIndex,
+    mainPhotoUrl: fotos[fotoPortadaIndex] ?? fotos[0] ?? "",
+    propertyForm: {
+      ...(draft.propertyForm ?? {}),
+      fotosDataUrls: fotos,
+      fotoPortadaIndex,
+    },
+  });
 }
 
 function isDurablePhotoUrl(url: string): boolean {

@@ -30,6 +30,8 @@ type Props = {
   likeCount?: number;
   /** Default `label` keeps Like/Liked text. `numeric` uses heart + optional count. */
   countDisplay?: "label" | "numeric";
+  /** With `countDisplay="numeric"`, show `0` before the heart (Servicios compact display). */
+  numericShowZero?: boolean;
   /**
    * Controls what label to show when inert (preview mode with no real listing identity).
    * - "preview": shows "Preview" / "Vista previa" (default for backward compatibility)
@@ -79,6 +81,7 @@ export function LeonixLikeButton({
   recordLikeEvent,
   likeCount,
   countDisplay = "label",
+  numericShowZero = false,
   previewLabelMode = "preview",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
@@ -281,20 +284,25 @@ export function LeonixLikeButton({
 
   const inert = !allowEngage || !effectiveId;
   const countLabel =
-    numericMode && displayCount > 0 ? String(displayCount) : null;
+    numericMode && (displayCount > 0 || numericShowZero) ? String(displayCount) : null;
   const textLabel = isLiking
     ? labels.liking
     : inert
-      ? previewLabelMode === "iconOnly"
-        ? null
-        : previewLabelMode === "like"
-          ? labels.like
-          : labels.preview
+      ? numericMode && (displayCount > 0 || numericShowZero)
+        ? countLabel
+        : previewLabelMode === "iconOnly"
+          ? null
+          : previewLabelMode === "like"
+            ? labels.like
+            : labels.preview
       : numericMode
         ? countLabel
         : isLiked
           ? labels.liked
           : labels.like;
+
+  const ariaCountPhrase =
+    lang === "en" ? (displayCount === 1 ? "like" : "likes") : "me gusta";
 
   return (
     <div className="flex w-full max-w-[13.5rem] flex-col items-stretch gap-1">
@@ -319,13 +327,11 @@ export function LeonixLikeButton({
           .join(" ")}
         aria-label={
           inert
-            ? labels.preview
+            ? numericMode
+              ? `${displayCount} ${ariaCountPhrase}`
+              : labels.preview
             : numericMode
-              ? displayCount > 0
-                ? `${displayCount} ${isLiked ? labels.liked : labels.like}`
-                : isLiked
-                  ? labels.liked
-                  : labels.like
+              ? `${displayCount} ${ariaCountPhrase}`
               : isLiked
                 ? labels.liked
                 : labels.like

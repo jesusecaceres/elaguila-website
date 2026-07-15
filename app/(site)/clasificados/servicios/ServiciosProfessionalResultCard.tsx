@@ -280,7 +280,9 @@ export function ServiciosProfessionalResultCard({
                   {lang === "en" ? "Verified" : "Verificado"}
                 </span>
               ) : null}
-              <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+              {!showEngagementControls ? (
+                <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+              ) : null}
             </div>
 
             <h3 className={isCompact ? "font-serif text-[14px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-[15px]" : LX_COMPACT_CARD_TITLE}>

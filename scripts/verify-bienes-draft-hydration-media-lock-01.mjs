@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Verifier — Bienes Raíces draft hydration + media lock (hard refresh / volver a editar).
+ * Verifier — Bienes Raíces draft hydration + media lock
+ * + child save-to-parent media contract + new/resume intent isolation.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -42,6 +43,15 @@ const cardUi = read(
 const app = read(
   "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/AgenteIndividualResidencialApplication.tsx",
 );
+const formMapping = read(
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryFormMapping.ts",
+);
+const childApp = read(
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",
+);
+const shell = read(
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioPrePublishInventoryShell.tsx",
+);
 
 assert(previewDraft.includes("bootstrapAgenteIndividualResidencialApplicationStateResolved"), "async bootstrap with IDB");
 assert(previewDraft.includes("mirrorDraftToLocalStorage(json)"), "localStorage mirror on save");
@@ -72,8 +82,9 @@ assert(
   "immediate media offload + empty-gallery overwrite guard required",
 );
 assert(
-  previewDraft.includes("livePhotoCount > 0 && durablePhotoCount(compact) === 0"),
-  "must refuse empty gallery write when live photos exist",
+  previewDraft.includes("livePhotoCount > 0 && durablePhotoCount(compact) === 0") ||
+    previewDraft.includes("liveChildPhotos > 0 && durableChildInventoryPhotoCount(compact) === 0"),
+  "must refuse empty gallery write when live photos exist (parent and/or child)",
 );
 assert(
   app.includes("onMediaDraftCommit") && app.includes("agenteResStateHasUnpersistedDataUrlPhotos(state) ? 0 : 800"),
@@ -86,9 +97,7 @@ assert(
   "Step03 media commit hook",
 );
 assert(
-  read(
-    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",
-  ).includes("onMediaDraftCommit") && childSession.includes("childSessionPersistEpoch"),
+  childApp.includes("onMediaDraftCommit") && childSession.includes("childSessionPersistEpoch"),
   "child immediate media persist + epoch guard",
 );
 assert(
@@ -101,17 +110,46 @@ assert(
     !/inlineBrAgenteResHeavyMediaFromIdb\(BR_AGENTE_DRAFT_MEDIA_NAMESPACE,\s*hub\)/.test(childSession),
   "child hard-refresh inline must use CHILD_EDITOR_* segments (not MAIN_PHOTO)",
 );
-const childApp = read(
-  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",
-);
 assert(
   childSession.includes("persistChildInventoryEditorSessionResolved") &&
     childApp.includes("persistChildInventoryEditorSessionResolved"),
   "child save/preview must await durable media commit",
 );
 assert(
-  /clearChildInventoryEditorSession\(\);\s*\n\s*onSave\(draft, mode\)/.test(childApp),
-  "child save must clear session before onSave so shell restore cannot reopen mid-save",
+  formMapping.includes("childInventoryDraftFromCommittedEditorMedia"),
+  "committed child media → saved child draft helper",
+);
+assert(
+  childApp.includes("childInventoryDraftFromCommittedEditorMedia") &&
+    childApp.includes("await Promise.resolve(onSave(draft, mode))") &&
+    /await Promise\.resolve\(onSave\(draft, mode\)\);\s*\n\s*clearChildInventoryEditorSession\(\)/.test(childApp),
+  "child save must commit→draft→await parent onSave→then clear session (no premature clear)",
+);
+assert(
+  shell.includes("clearChildInventoryEditorSession()") &&
+    shell.includes("await Promise.resolve(onItemsChange") &&
+    /await Promise\.resolve\(onItemsChange[\s\S]*?clearChildInventoryEditorSession\(\)/.test(shell),
+  "shell must await parent inventory update then clear child session before close",
+);
+assert(
+  app.includes("await persistAgenteResApplicationDraftResolved(nextState)"),
+  "parent must await draft persist immediately after child inventory save",
+);
+assert(
+  previewDraft.includes("writeReturn") &&
+    previewDraft.includes("isBrowserHardReload") &&
+    previewDraft.includes("isExplicitReturningToEditIntent") &&
+    previewDraft.includes("leonix-publish-flow-returning-to-edit") &&
+    previewDraft.includes("clearAgenteIndividualResidencialPublishTempState()"),
+  "new application vs resume intent isolation required",
+);
+assert(
+  previewDraft.includes("Brand-new application") || previewDraft.includes("brand-new"),
+  "bootstrap must document brand-new isolation",
+);
+assert(
+  app.includes('persistAgenteResApplicationDraftResolved(state, { writeReturn: true })'),
+  "openPreview must write return key for Volver",
 );
 assert(
   read(
@@ -164,5 +202,14 @@ assert(
   "child full Preview must hydrate canonical display media",
 );
 assert(cardUi.includes("grid grid-cols-3") && /gap-1\.5|gap-2/.test(cardUi), "results gallery has small tile gap");
+assert(
+  childPersist.includes("bridgePhotos.length > 0 ? bridged.primaryPhotoIndex") ||
+    childPersist.includes("sessionPhotos.length > 0 ? sessionPhotos : bridgePhotos"),
+  "media bridge must prefer complete durable galleries (including IDB), not data:-only",
+);
+assert(
+  previewDraft.includes("durableChildInventoryPhotoCount"),
+  "parent persist must guard child inventory empty media overwrites",
+);
 
 console.log("OK: bienes-draft-hydration-media-lock-01");

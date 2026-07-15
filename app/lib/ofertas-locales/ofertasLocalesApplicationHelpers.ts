@@ -2,8 +2,11 @@ import {
   OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS,
   OFERTAS_LOCALES_MARKET_TYPE_OPTIONS,
   OFERTAS_LOCALES_PRICING,
+  OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG,
   OFERTAS_LOCALES_STEP1_BASE_PRODUCTS,
+  type OfertaLocalPublishProductKey,
 } from "./ofertasLocalesConstants";
+import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import {
   businessCategoryUsesCustomTypeText,
   labelForBusinessSubtype,
@@ -66,10 +69,50 @@ export function normalizeOfertaLocalOfferTypeToProduct(
   return "";
 }
 
+type OfertaLocalProductDraftPick = Pick<OfertaLocalDraft, "offerType"> &
+  Partial<Pick<OfertaLocalDraft, "primaryAdFormat">>;
+
+export function getOfertaLocalPublishProductKey(
+  draft: OfertaLocalProductDraftPick
+): OfertaLocalPublishProductKey | "" {
+  const format = inferPrimaryAdFormatFromDraft({
+    primaryAdFormat: draft.primaryAdFormat ?? "",
+    offerType: draft.offerType,
+  });
+  if (format === "shopping_specials") return "interactive_flyer";
+  if (format === "local_coupons") return "coupons";
+  return "";
+}
+
+export function getOfertaLocalPublishProductCatalogEntry(draft: OfertaLocalProductDraftPick) {
+  const key = getOfertaLocalPublishProductKey(draft);
+  if (!key) return null;
+  return OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG[key];
+}
+
+/** AI scan/review is included with both publish products when a lane is selected. */
+export function isOfertaLocalAiIncludedInPackage(draft: OfertaLocalProductDraftPick): boolean {
+  return Boolean(getOfertaLocalPublishProductCatalogEntry(draft)?.aiIncluded);
+}
+
+/**
+ * Backward-compatible draft normalization — legacy wantsAiSearchableSpecials=false no longer disables AI.
+ * @deprecated Field wantsAiSearchableSpecials on draft is legacy; use isOfertaLocalAiIncludedInPackage().
+ */
+export function normalizeOfertaLocalDraftProductEntitlements(draft: OfertaLocalDraft): OfertaLocalDraft {
+  const aiIncluded = isOfertaLocalAiIncludedInPackage(draft);
+  if (!aiIncluded) {
+    return draft.wantsAiSearchableSpecials ? { ...draft, wantsAiSearchableSpecials: false } : draft;
+  }
+  return draft.wantsAiSearchableSpecials ? draft : { ...draft, wantsAiSearchableSpecials: true };
+}
+
 export function getOfertaLocalProductDisplayLabel(
-  draft: Pick<OfertaLocalDraft, "offerType">,
+  draft: OfertaLocalProductDraftPick,
   lang: "es" | "en" = "es"
 ): string {
+  const catalog = getOfertaLocalPublishProductCatalogEntry(draft);
+  if (catalog) return lang === "en" ? catalog.labelEn : catalog.labelEs;
   const product = normalizeOfertaLocalOfferTypeToProduct(draft.offerType);
   if (product === "weekly_flyer") {
     const p = OFERTAS_LOCALES_STEP1_BASE_PRODUCTS[0];
@@ -95,6 +138,13 @@ export function getOfertaLocalApplicationBasePriceMonthly(draft: Pick<OfertaLoca
   const key = getOfertaLocalProductPriceKey(draft);
   if (!key) return null;
   return OFERTAS_LOCALES_PRICING[key].regularPriceMonthly;
+}
+
+/** Single complete-package display price (no AI add-on arithmetic). */
+export function getOfertaLocalApplicationDisplayPrice(draft: OfertaLocalProductDraftPick): number | null {
+  const catalog = getOfertaLocalPublishProductCatalogEntry(draft);
+  if (catalog) return catalog.displayPriceUsd;
+  return getOfertaLocalApplicationBasePriceMonthly(draft);
 }
 
 export function labelForCouponPromotionSubtype(

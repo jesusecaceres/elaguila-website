@@ -86,28 +86,35 @@ export function mergeChildInventoryWithMediaBridge(
     if (!sanitized) return normalizeChildInventoryDraft(item);
     const bridged = bridgeById.get(sanitized.id);
     if (!bridged) return normalizeChildInventoryDraft(sanitized);
-    const sessionPhotos = normalizeChildInventoryDraft(sanitized).photoUrls.filter((u) => !u.startsWith("data:"));
-    const bridgePhotos = normalizeChildInventoryDraft(bridged).photoUrls.filter((u) => u.startsWith("data:"));
-    const photoUrls = [...sessionPhotos, ...bridgePhotos].filter(isDurablePhotoUrl).slice(0, 40);
-    const primaryPhotoIndex = clampPrimaryIndex(photoUrls, bridged.primaryPhotoIndex);
+    const sessionNorm = normalizeChildInventoryDraft(sanitized);
+    const bridgeNorm = normalizeChildInventoryDraft(bridged);
+    // Prefer a complete durable gallery (IDB/http/data:) — never drop IDB bridge photos.
+    const sessionPhotos = sessionNorm.photoUrls.filter(isDurablePhotoUrl);
+    const bridgePhotos = bridgeNorm.photoUrls.filter(isDurablePhotoUrl);
+    const photoUrls = (sessionPhotos.length > 0 ? sessionPhotos : bridgePhotos).slice(0, 40);
+    const primaryPhotoIndex = clampPrimaryIndex(
+      photoUrls,
+      bridgePhotos.length > 0 ? bridged.primaryPhotoIndex : sessionNorm.primaryPhotoIndex,
+    );
     const cover = photoUrls[primaryPhotoIndex] ?? photoUrls[0] ?? "";
     const sessionForm = sanitized.propertyForm ?? null;
     const bridgeForm = bridged.propertyForm ?? null;
     let propertyForm = sessionForm;
     if (bridgeForm && typeof bridgeForm === "object") {
       const sessionFormPhotos = Array.isArray(sessionForm?.fotosDataUrls)
-        ? sessionForm!.fotosDataUrls!.filter((u) => !String(u).startsWith("data:"))
+        ? sessionForm!.fotosDataUrls!.filter((u) => isDurablePhotoUrl(String(u ?? "")))
         : [];
       const bridgeFormPhotos = Array.isArray(bridgeForm.fotosDataUrls)
-        ? bridgeForm.fotosDataUrls.filter((u) => String(u).startsWith("data:"))
+        ? bridgeForm.fotosDataUrls.filter((u) => isDurablePhotoUrl(String(u ?? "")))
         : [];
+      const formFotos = (sessionFormPhotos.length > 0 ? sessionFormPhotos : bridgeFormPhotos).slice(0, 40);
       propertyForm = {
         ...(sessionForm ?? {}),
         ...bridgeForm,
-        fotosDataUrls: [...sessionFormPhotos, ...bridgeFormPhotos].filter(isDurablePhotoUrl).slice(0, 40),
+        fotosDataUrls: formFotos,
         fotoPortadaIndex: clampPrimaryIndex(
-          [...sessionFormPhotos, ...bridgeFormPhotos].filter(isDurablePhotoUrl).slice(0, 40),
-          bridged.primaryPhotoIndex,
+          formFotos,
+          bridgeFormPhotos.length > 0 ? bridged.primaryPhotoIndex : sessionForm?.fotoPortadaIndex ?? 0,
         ),
         videoUrls:
           Array.isArray(bridgeForm.videoUrls) && bridgeForm.videoUrls.length

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  getOfertaLocalApplicationDisplayPrice,
+  getOfertaLocalProductDisplayLabel,
   hasOfertaLocalAddressAccepted,
   hasOfertaLocalUrlAccepted,
-  getOfertaLocalApplicationBasePriceMonthly,
-  getOfertaLocalProductDisplayLabel,
+  isOfertaLocalAiIncludedInPackage,
   isOfertaLocalCouponPromotionFlow,
   isOfertaLocalEmailFormatValid,
   isOfertaLocalWeeklyFlyerFlow,
@@ -14,13 +15,13 @@ import {
   resolveOfertaLocalContactEmail,
 } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
-  OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY,
   OFERTAS_LOCALES_BUSINESS_CATEGORY_OPTIONS,
   OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS,
   OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS,
   OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS,
   OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS,
   OFERTAS_LOCALES_PRODUCT_NAME,
+  OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG,
 } from "@/app/lib/ofertas-locales/ofertasLocalesConstants";
 import {
   OFERTAS_LOCALES_PRIMARY_AD_FORMAT_OPTIONS,
@@ -305,12 +306,11 @@ export default function OfertasLocalesApplicationClient() {
   const [signedIn, setSignedIn] = useState(true);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
+  const aiIncludedInPackage = isOfertaLocalAiIncludedInPackage(draft);
   const showFullWidthReviewDesk =
-    step === 5 &&
-    draft.wantsAiSearchableSpecials &&
-    Boolean(effectiveOfertaLocalId?.trim());
+    step === 5 && aiIncludedInPackage && Boolean(effectiveOfertaLocalId?.trim());
   const hasExistingAiScan =
-    draft.wantsAiSearchableSpecials &&
+    aiIncludedInPackage &&
     Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
 
   useEffect(() => {
@@ -388,6 +388,13 @@ export default function OfertasLocalesApplicationClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [c.startOverDeviceWarning, lang, resetDraft]);
 
+  useEffect(() => {
+    if (!hasLoadedDraft) return;
+    if (aiIncludedInPackage && !draft.wantsAiSearchableSpecials) {
+      updateDraft({ wantsAiSearchableSpecials: true });
+    }
+  }, [aiIncludedInPackage, draft.wantsAiSearchableSpecials, hasLoadedDraft, updateDraft]);
+
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
   const serverPublishIssues = useMemo(() => validateOfertaLocalDraftForServerPublish(draft), [draft]);
@@ -417,7 +424,7 @@ export default function OfertasLocalesApplicationClient() {
     return false;
   }, [draft, isCouponsLane, isShoppingLane, step5PendingFileCount]);
 
-  const step5ScanRequired = draft.wantsAiSearchableSpecials;
+  const step5ScanRequired = aiIncludedInPackage;
   const step5ScanComplete = !step5ScanRequired || hasExistingAiScan;
   const step5ReviewComplete =
     !step5ScanRequired ||
@@ -487,12 +494,7 @@ export default function OfertasLocalesApplicationClient() {
   }, [step]);
 
   const primaryFormat = inferPrimaryAdFormatFromDraft(draft);
-  const basePriceMonthly = getOfertaLocalApplicationBasePriceMonthly(draft);
-  const estimatedMonthlyTotal =
-    basePriceMonthly != null
-      ? basePriceMonthly +
-        (draft.wantsAiSearchableSpecials ? OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY : 0)
-      : null;
+  const packageDisplayPrice = getOfertaLocalApplicationDisplayPrice(draft);
   const emailMalformed =
     draft.email.trim().length > 0 && !isOfertaLocalEmailFormatValid(draft.email);
   const step7ConfirmationsComplete = useMemo(() => {
@@ -501,11 +503,11 @@ export default function OfertasLocalesApplicationClient() {
       step7Confirmations.businessInfo &&
       step7Confirmations.filesDates &&
       step7Confirmations.leonixRules;
-    if (draft.wantsAiSearchableSpecials) {
+    if (aiIncludedInPackage) {
       return base && step7Confirmations.aiItems;
     }
     return base;
-  }, [draft.wantsAiSearchableSpecials, emailMalformed, step7Confirmations]);
+  }, [aiIncludedInPackage, emailMalformed, step7Confirmations]);
 
   const savedLabel = formatSavedAt(lastSavedAt, lang);
   const addressAccepted = hasOfertaLocalAddressAccepted(draft);
@@ -628,12 +630,12 @@ export default function OfertasLocalesApplicationClient() {
   const goNext = useCallback(() => {
     if (step === 5) {
       if (!step5UploadComplete) return;
-      if (draft.wantsAiSearchableSpecials && (!step5ScanComplete || !step5ReviewComplete)) return;
+      if (aiIncludedInPackage && (!step5ScanComplete || !step5ReviewComplete)) return;
     }
     setStep((s) => clampWizardStep(s + 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [
-    draft.wantsAiSearchableSpecials,
+    aiIncludedInPackage,
     step,
     step5ReviewComplete,
     step5ScanComplete,
@@ -647,10 +649,10 @@ export default function OfertasLocalesApplicationClient() {
 
   const step5HasBlockingWork = useMemo(() => {
     if (!step5UploadComplete) return true;
-    if (!draft.wantsAiSearchableSpecials) return false;
+    if (!aiIncludedInPackage) return false;
     return !step5ScanComplete || !step5ReviewComplete;
   }, [
-    draft.wantsAiSearchableSpecials,
+    aiIncludedInPackage,
     step5ReviewComplete,
     step5ScanComplete,
     step5UploadComplete,
@@ -662,7 +664,7 @@ export default function OfertasLocalesApplicationClient() {
   }, [step, step5HasBlockingWork]);
 
   const step5AiReviewBlocksContinue =
-    step === 5 && draft.wantsAiSearchableSpecials && step5ScanComplete && !step5ReviewComplete;
+    step === 5 && aiIncludedInPackage && step5ScanComplete && !step5ReviewComplete;
 
   const step5AiReviewBlockMessage = c.step5CheckpointLockedNext;
 
@@ -718,6 +720,17 @@ export default function OfertasLocalesApplicationClient() {
             <div className="grid gap-4 sm:grid-cols-2">
               {OFERTAS_LOCALES_PRIMARY_AD_FORMAT_OPTIONS.map((lane) => {
                 const selected = primaryFormat === lane.value;
+                const isFlyerLane = lane.value === "shopping_specials";
+                const catalog = isFlyerLane
+                  ? OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.interactive_flyer
+                  : OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.coupons;
+                const title = isFlyerLane ? c.step1InteractiveFlyerTitle : c.step1CouponsTitle;
+                const description = isFlyerLane
+                  ? c.step1InteractiveFlyerDescription
+                  : c.step1CouponsDescription;
+                const bullets = isFlyerLane
+                  ? c.step1InteractiveFlyerBullets
+                  : c.step1CouponsBullets;
                 return (
                   <button
                     key={lane.value}
@@ -728,61 +741,31 @@ export default function OfertasLocalesApplicationClient() {
                         ? "border-[#7A1E2C] bg-[#7A1E2C]/5 shadow-sm ring-2 ring-[#7A1E2C]/15"
                         : "border-[#D4C4A8]/80 bg-white hover:border-[#7A1E2C]/35"
                     )}
-                    onClick={() => updateDraft(buildPrimaryAdFormatChangePatch(draft, lane.value))}
+                    onClick={() =>
+                      updateDraft({
+                        ...buildPrimaryAdFormatChangePatch(draft, lane.value),
+                        wantsAiSearchableSpecials: true,
+                      })
+                    }
                   >
-                    <p className="text-base font-semibold text-[#1E1814]">
-                      {lang === "en" ? lane.titleEn : lane.titleEs}
-                    </p>
+                    <p className="text-base font-semibold text-[#1E1814]">{title}</p>
                     <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
-                      {formatUsd(lane.priceDisplayMonthly)}
-                      {c.perMonth}
+                      {formatUsd(catalog.displayPriceUsd)}
+                      {c.perDuration}
                     </p>
-                    <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">
-                      {lang === "en" ? lane.descriptionEn : lane.descriptionEs}
-                    </p>
+                    <p className="mt-1 text-xs font-medium text-[#7A1E2C]/90">{c.aiIncludedLabel}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{description}</p>
+                    <ul className="mt-3 space-y-1 text-xs leading-relaxed text-[#1E1814]/70">
+                      {bullets.map((item) => (
+                        <li key={item}>· {item}</li>
+                      ))}
+                    </ul>
                   </button>
                 );
               })}
             </div>
 
-            <p className="text-center text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
-
-            <button
-              type="button"
-              className={cx(
-                "w-full rounded-2xl border p-5 text-left transition-all",
-                draft.wantsAiSearchableSpecials
-                  ? "border-[#7A1E2C] bg-[#7A1E2C]/5 ring-2 ring-[#7A1E2C]/15"
-                  : "border-[#D4C4A8]/80 bg-white hover:border-[#7A1E2C]/35"
-              )}
-              onClick={() =>
-                updateDraft({ wantsAiSearchableSpecials: !draft.wantsAiSearchableSpecials })
-              }
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-base font-semibold text-[#1E1814]">{c.aiProductSearchTitle}</p>
-                  <p className="mt-1 text-lg font-bold text-[#7A1E2C]">{c.aiProductSearchPrice}</p>
-                </div>
-                <span
-                  className={cx(
-                    "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs",
-                    draft.wantsAiSearchableSpecials
-                      ? "border-[#7A1E2C] bg-[#7A1E2C] text-white"
-                      : "border-[#D4C4A8] bg-white"
-                  )}
-                >
-                  {draft.wantsAiSearchableSpecials ? "✓" : ""}
-                </span>
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-[#1E1814]/75">
-                {isShoppingLane
-                  ? c.aiShoppingLaneBody
-                  : isCouponsLane
-                    ? c.aiCouponsLaneBody
-                    : c.aiProductSearchBody}
-              </p>
-            </button>
+            <p className="text-center text-xs text-[#1E1814]/55">{c.step1PackageNote}</p>
 
             <div className={CALLOUT}>
               <p className="font-semibold text-[#7A1E2C]">{c.step1MoreExposureTitle}</p>
@@ -1199,7 +1182,7 @@ export default function OfertasLocalesApplicationClient() {
                     : "Sube tu volante semanal completo. La extracción AI de productos está disponible si seleccionas el complemento AI."
                 }
                 primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
-                showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                showAiScanFormatsHint={aiIncludedInPackage}
                 onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
               />
             ) : null}
@@ -1213,7 +1196,7 @@ export default function OfertasLocalesApplicationClient() {
                   sectionMode="mainCoupons"
                   sectionTitleOverride={c.laneCouponMainAsset}
                   sectionHelper={c.laneCouponMainAssetHelper}
-                  showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                  showAiScanFormatsHint={aiIncludedInPackage}
                   onPendingUploadsChange={(count) => reportStep5SectionPending("main-coupons", count)}
                 />
                 <div className="border-t border-[#D4C4A8]/50 pt-4">
@@ -1224,7 +1207,7 @@ export default function OfertasLocalesApplicationClient() {
                     lang={lang}
                     sectionMode="additionalPromo"
                     sectionTitleOverride={c.laneCouponAdditionalPromo}
-                    showAiScanFormatsHint={draft.wantsAiSearchableSpecials}
+                    showAiScanFormatsHint={aiIncludedInPackage}
                     onPendingUploadsChange={(count) => reportStep5SectionPending("add-promo", count)}
                   />
                 </div>
@@ -1646,47 +1629,28 @@ export default function OfertasLocalesApplicationClient() {
                 {c.pricingSectionTitle}
               </h3>
               <div className="mt-3 space-y-2">
-                {basePriceMonthly != null && draft.offerType ? (
-                  <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-3 text-sm">
+                {packageDisplayPrice != null && draft.offerType ? (
+                  <div className="rounded-xl border border-[#7A1E2C]/30 bg-white px-4 py-3 text-sm">
                     <p className="font-medium text-[#1E1814]">
                       {getOfertaLocalProductDisplayLabel(draft, lang)}
                     </p>
-                    <p className="mt-1 text-xs text-[#1E1814]/75">
-                      {formatUsd(basePriceMonthly)}
-                      {c.perMonth}
+                    <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
+                      {formatUsd(packageDisplayPrice)}
+                      {c.perDuration}
                     </p>
+                    <p className="mt-1 text-xs text-[#1E1814]/75">{c.step7AiIncludedNote}</p>
                   </div>
                 ) : (
                   <p className="text-xs text-[#1E1814]/55">
                     {lang === "en" ? "Select a product in Step 1." : "Elige un producto en el Paso 1."}
                   </p>
                 )}
-                {draft.wantsAiSearchableSpecials ? (
-                  <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3 text-sm">
-                    <p className="font-medium text-[#1E1814]">{c.aiProductSearchTitle}</p>
-                    <p className="mt-1 text-xs text-[#1E1814]/75">
-                      +{formatUsd(OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY)}
-                      {c.perMonth}
-                    </p>
-                  </div>
-                ) : null}
-                {estimatedMonthlyTotal != null ? (
-                  <div className="rounded-xl border border-[#7A1E2C]/30 bg-white px-4 py-3 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/60">
-                      {c.step7EstimatedTotal}
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
-                      {formatUsd(estimatedMonthlyTotal)}
-                      {c.perMonth}
-                    </p>
-                  </div>
-                ) : null}
               </div>
               <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
               <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
             </div>
 
-            {draft.wantsAiSearchableSpecials && hasExistingAiScan ? (
+            {aiIncludedInPackage && hasExistingAiScan ? (
               <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-4">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-[#7A1E2C]">
                   {c.step7ScanSummaryTitle}
@@ -1724,7 +1688,7 @@ export default function OfertasLocalesApplicationClient() {
               </div>
             ) : null}
 
-            {draft.wantsAiSearchableSpecials ? (
+            {aiIncludedInPackage ? (
               hasExistingAiScan ? (
                 <details className="rounded-xl border border-amber-200/80 bg-amber-50/40 px-4 py-3">
                   <summary className="cursor-pointer text-sm font-semibold text-amber-950">
@@ -1802,7 +1766,7 @@ export default function OfertasLocalesApplicationClient() {
                 />
                 <span>{c.step7ConfirmFiles}</span>
               </label>
-              {draft.wantsAiSearchableSpecials ? (
+              {aiIncludedInPackage ? (
                 <label className="flex items-start gap-3 text-sm text-[#1E1814]">
                   <input
                     type="checkbox"
@@ -1829,7 +1793,7 @@ export default function OfertasLocalesApplicationClient() {
               {!step7ConfirmationsComplete ? (
                 <p className="text-xs text-[#1E1814]/60">{c.step7PreviewGatedHelper}</p>
               ) : null}
-              {draft.wantsAiSearchableSpecials && aiReviewGate.needsReviewCount > 0 ? (
+              {aiIncludedInPackage && aiReviewGate.needsReviewCount > 0 ? (
                 <p className="text-xs font-medium text-amber-900">{c.step7AiIncompleteHelper}</p>
               ) : null}
             </div>
@@ -1857,7 +1821,7 @@ export default function OfertasLocalesApplicationClient() {
                 disabled={
                   !publishFieldsReady ||
                   submitting ||
-                  (draft.wantsAiSearchableSpecials && aiReviewGate.needsReviewCount > 0)
+                  (aiIncludedInPackage && aiReviewGate.needsReviewCount > 0)
                 }
                 onClick={() => void handleSubmitForReview()}
               >

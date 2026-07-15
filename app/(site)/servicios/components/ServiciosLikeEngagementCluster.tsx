@@ -4,7 +4,8 @@ import { LeonixLikeButton } from "@/app/components/clasificados/analytics/Leonix
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 
 /**
- * Like button + persisted public count in one connected pill (hero / hub engagement rows).
+ * Compact Servicios Like — visible display is count + heart only (e.g. `1 ♥`).
+ * Real like/unlike + DB-backed count via LeonixLikeButton.
  */
 export function ServiciosLikeEngagementCluster({
   listingId,
@@ -32,27 +33,13 @@ export function ServiciosLikeEngagementCluster({
       ? Math.max(0, Math.floor(publicLikeCount))
       : 0;
 
-  const countLabel =
-    lang === "en"
-      ? likeCueN === 1
-        ? "1 like"
-        : `${likeCueN} likes`
-      : likeCueN === 1
-        ? "1 me gusta"
-        : `${likeCueN} me gusta`;
-
-  const shellClass =
+  const toneClass =
     tone === "hero"
-      ? "inline-flex max-w-full items-stretch overflow-hidden rounded-full shadow-sm ring-1 ring-white/35"
-      : "inline-flex max-w-full items-stretch overflow-hidden rounded-full shadow-sm ring-1 ring-[color:var(--lx-border,#E8D7B8)]";
-
-  const countClass =
-    tone === "hero"
-      ? "flex min-h-[44px] items-center gap-1 border-l border-white/25 bg-white/10 px-2.5 text-[11px] font-semibold tabular-nums text-white/95"
-      : "flex min-h-[44px] items-center gap-1 border-l border-[color:var(--lx-border,#E8D7B8)] bg-[color:var(--lx-surface-2,#FAF7F2)] px-2.5 text-[11px] font-semibold tabular-nums text-[color:var(--lx-text-2)]";
+      ? "!shadow-sm !ring-1 !ring-white/35"
+      : "!shadow-sm !ring-1 !ring-[color:var(--lx-border,#E8D7B8)]";
 
   return (
-    <div className={`${shellClass} ${className}`.trim()} data-servicios-like-cluster="1">
+    <div className={className.trim()} data-servicios-like-cluster="1" data-servicios-like-compact="1">
       <LeonixLikeButton
         listingId={listingId}
         ownerUserId={ownerUserId ?? undefined}
@@ -61,14 +48,12 @@ export function ServiciosLikeEngagementCluster({
         category="servicios"
         persistEngagement={persistEngagement}
         recordLikeEvent={recordLikeEvent}
-        className="!rounded-none !rounded-l-full !shadow-none"
+        likeCount={likeCueN}
+        countDisplay="numeric"
+        numericShowZero
+        previewLabelMode="iconOnly"
+        className={`!inline-flex !w-auto !max-w-none !flex-row-reverse !gap-1 !rounded-full ${toneClass}`}
       />
-      {likeCueN > 0 ? (
-        <span className={countClass} data-servicios-like-cluster-count="1">
-          <span aria-hidden>♥</span>
-          {countLabel}
-        </span>
-      ) : null}
     </div>
   );
 }

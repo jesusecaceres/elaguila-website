@@ -13,6 +13,8 @@ import {
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import {
+  getOfertaLocalPublishProductCatalogEntry,
+  isOfertaLocalAiIncludedInPackage,
   isOfertaLocalEmailFormatValid,
   normalizeOfertaLocalEmailInput,
 } from "./ofertasLocalesApplicationHelpers";
@@ -139,7 +141,16 @@ function buildOfertaLocalInternalNotesForPublish(draft: OfertaLocalDraft): strin
   if (draft.wantsFeaturedPlacement && draft.featuredPlacementScope !== "none") {
     metadata.featuredPlacementScope = draft.featuredPlacementScope;
   }
-  if (draft.wantsAiSearchableSpecials) metadata.wantsAiSearchableSpecials = true;
+  if (isOfertaLocalAiIncludedInPackage(draft)) {
+    metadata.wantsAiSearchableSpecials = true;
+  }
+  const productCatalog = getOfertaLocalPublishProductCatalogEntry(draft);
+  if (productCatalog) {
+    metadata.publishProductKey = productCatalog.key;
+    metadata.publishDisplayPriceUsd = productCatalog.displayPriceUsd;
+    metadata.publishDurationDays = productCatalog.durationDays;
+    metadata.aiIncluded = productCatalog.aiIncluded;
+  }
   const customMarket = sanitizeOptionalText(draft.customMarketType ?? "", 120);
   if (customMarket) metadata.customMarketType = customMarket;
   const primaryAdFormat = inferPrimaryAdFormatFromDraft(draft);

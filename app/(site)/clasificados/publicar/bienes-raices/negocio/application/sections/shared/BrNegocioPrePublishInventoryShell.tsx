@@ -21,6 +21,7 @@ import {
 } from "../../brNegocioInventoryChildContext";
 import {
   childEditorSliceHasUnresolvedIdbMedia,
+  clearChildInventoryEditorSession,
   loadChildInventoryEditorSession,
 } from "../../brNegocioChildInventoryEditorSession";
 import { BrAgenteInventoryPackCheckpoint } from "./BrAgenteInventoryPackCheckpoint";
@@ -46,7 +47,7 @@ type Props = {
   inventoryPackAccepted?: boolean;
   onInventoryPackAcceptedChange?: (accepted: boolean) => void;
   onInventoryPackCancel?: () => void;
-  onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void;
+  onItemsChange: (items: BrNegocioAdditionalInventoryPropertyDraft[]) => void | Promise<void>;
   /** After child save — open parent full preview (step 10 publish review). */
   onGoToParentPreview?: () => void;
   /** Resume child editor after selector → return (inventory-child mode). */
@@ -222,7 +223,10 @@ export function BrNegocioPrePublishInventoryShell({
   }, [hidden, drawerOpen, pendingInventoryChildOpen, hydratedItems]);
 
   const handleSave = useCallback(
-    (draft: BrNegocioAdditionalInventoryPropertyDraft, mode: "close" | "addAnother" | "goToParentPreview") => {
+    async (
+      draft: BrNegocioAdditionalInventoryPropertyDraft,
+      mode: "close" | "addAnother" | "goToParentPreview",
+    ) => {
       const normalized = draft;
       const targetId = editingId ?? reservedNewChildId ?? normalized.id;
       const withId = { ...normalized, id: targetId };
@@ -230,7 +234,10 @@ export function BrNegocioPrePublishInventoryShell({
       const nextItems = exists
         ? items.map((x) => (x.id === targetId ? withId : x))
         : [...items, withId];
-      onItemsChange(normalizeChildInventoryList(nextItems));
+      await Promise.resolve(onItemsChange(normalizeChildInventoryList(nextItems)));
+      // Parent inventory now owns media — clear temporary child session before closing drawer
+      // so the shell restore effect cannot reopen from an empty/stale session handoff.
+      clearChildInventoryEditorSession();
       if (!inventoryPackAccepted && onInventoryPackAcceptedChange) onInventoryPackAcceptedChange(true);
       setReservedNewChildId(null);
       setPreferredChildCategoria(null);

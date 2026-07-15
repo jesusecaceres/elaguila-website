@@ -111,8 +111,42 @@ export const OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS: ReadonlyArray<{
   { value: "featured_deal", labelEs: "Oferta por tiempo limitado", labelEn: "Limited-time deal" },
 ];
 
-/** Application-facing AI add-on monthly display (Stack 9B — no partner label). */
+/**
+ * @deprecated Retired commercial AI add-on (+$199). AI is included in both publish products
+ * (see OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG). Kept for legacy audits only.
+ */
 export const OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY = 199;
+
+/** Non-Stripe publish product contract — application display + internal selection (Stack pricing consolidation). */
+export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
+  interactive_flyer: {
+    key: "interactive_flyer" as const,
+    primaryAdFormat: "shopping_specials" as const,
+    labelEs: "Volante interactivo Leonix",
+    labelEn: "Leonix Interactive Flyer",
+    displayPriceUsd: 399,
+    currency: "USD" as const,
+    durationDays: 30,
+    aiIncluded: true,
+    productSearchIncluded: true,
+    flyerViewerIncluded: true,
+    shoppingListIncluded: true,
+  },
+  coupons: {
+    key: "coupons" as const,
+    primaryAdFormat: "local_coupons" as const,
+    labelEs: "Cupones Leonix",
+    labelEn: "Leonix Coupons",
+    displayPriceUsd: 199,
+    currency: "USD" as const,
+    durationDays: 30,
+    aiIncluded: true,
+    productSearchIncluded: false,
+    productShoppingListIncluded: false,
+  },
+} as const;
+
+export type OfertaLocalPublishProductKey = keyof typeof OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG;
 
 export const OFERTAS_LOCALES_OFFER_TYPE_OPTIONS: ReadonlyArray<{
   value: OfertaLocalOfferType;
