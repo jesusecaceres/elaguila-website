@@ -20,7 +20,7 @@ import {
 
 const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-3 sm:p-4`;
 
-type AutosGalleryTab = "photos" | "video" | "all";
+type AutosGalleryTab = "photos" | "video";
 
 function mediaTabClass(active: boolean): string {
   return `${autosPreviewMediaTabClass}${active ? " border-[#C9A84A] bg-[#FBF7EF] ring-1 ring-[#C9A84A]/35" : ""}`;
@@ -40,16 +40,15 @@ export function AutoGallery({
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
-  const { photoItems, videoItems, allItems } = useMemo(
+  const { photoItems, videoItems } = useMemo(
     () => buildAutosGalleryMediaSets(data, images, { publicPlaybackOnly }),
     [data, images, publicPlaybackOnly],
   );
 
   const defaultTab = useMemo((): AutosGalleryTab => {
-    if (photoItems.length > 0 && videoItems.length > 0) return "all";
-    if (videoItems.length > 0) return "video";
-    return "photos";
-  }, [photoItems.length, videoItems.length]);
+    if (photoItems.length > 0) return "photos";
+    return "video";
+  }, [photoItems.length]);
 
   const [activeTab, setActiveTab] = useState<AutosGalleryTab>(defaultTab);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -60,10 +59,9 @@ export function AutoGallery({
   }, [defaultTab]);
 
   const activeItems = useMemo(() => {
-    if (activeTab === "photos") return photoItems;
     if (activeTab === "video") return videoItems;
-    return allItems;
-  }, [activeTab, photoItems, videoItems, allItems]);
+    return photoItems;
+  }, [activeTab, photoItems, videoItems]);
 
   useEffect(() => {
     if (lightboxIndex == null) return;
@@ -104,8 +102,7 @@ export function AutoGallery({
   const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
   const activeItem = lightboxIndex != null ? activeItems[lightboxIndex] : null;
 
-  const photoRailImages =
-    activeTab === "photos" ? images.slice(1, 4) : activeTab === "all" ? images.slice(1) : [];
+  const photoRailImages = images.slice(1, 4);
 
   return (
     <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={`${CARD} scroll-mt-28`}>
@@ -118,11 +115,6 @@ export function AutoGallery({
         {hasVideos ? (
           <button type="button" className={mediaTabClass(activeTab === "video")} onClick={() => selectTab("video")}>
             {lang === "es" ? "Video" : "Video"} ({videoItems.length})
-          </button>
-        ) : null}
-        {allItems.length > 1 ? (
-          <button type="button" className={mediaTabClass(activeTab === "all")} onClick={() => selectTab("all")}>
-            {lang === "es" ? `Ver todas (${allItems.length})` : `View all (${allItems.length})`}
           </button>
         ) : null}
       </div>
@@ -158,7 +150,7 @@ export function AutoGallery({
                   priority
                 />
               </button>
-              {activeTab === "photos" && extra > 0 ? (
+              {extra > 0 ? (
                 <button
                   type="button"
                   className="absolute right-3 top-3 rounded-full border border-white/30 bg-[color:var(--lx-text)]/85 px-3 py-1 text-xs font-bold tracking-tight text-[#FFFCF7] shadow-md backdrop-blur-sm pointer-events-auto cursor-pointer"
@@ -171,10 +163,10 @@ export function AutoGallery({
             </div>
           ) : null}
 
-          {(photoRailImages.length > 0 || (activeTab === "all" && hasVideos)) ? (
+          {photoRailImages.length > 0 ? (
             <div
               className={`flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 lg:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:hidden ${
-                photoRailImages.length + (activeTab === "all" ? videoItems.length : 0) >= 3
+                photoRailImages.length >= 3
                   ? "lg:w-[min(240px,32%)] lg:shrink-0"
                   : "lg:w-[min(200px,28%)] lg:shrink-0"
               }`}
@@ -188,33 +180,11 @@ export function AutoGallery({
                     alt={`${altBase}${g.viewAlt(i)}`}
                     onOpen={() => openAt(galleryIndex)}
                     stacked
-                    showMoreOverlay={
-                      activeTab === "photos" &&
-                      i === photoRailImages.length - 1 &&
-                      extra > 3
-                    }
-                    moreLabel={
-                      activeTab === "photos" &&
-                      i === photoRailImages.length - 1 &&
-                      extra > 3
-                        ? g.morePhotos(extra - 3)
-                        : undefined
-                    }
+                    showMoreOverlay={i === photoRailImages.length - 1 && extra > 3}
+                    moreLabel={i === photoRailImages.length - 1 && extra > 3 ? g.morePhotos(extra - 3) : undefined}
                   />
                 );
               })}
-              {activeTab === "all"
-                ? videoItems.map((item, videoIdx) => (
-                    <VideoWalkaroundThumb
-                      key={`video-all-${videoIdx}`}
-                      posterSrc={main}
-                      label={item.videoLabel ?? `Video ${videoIdx + 1}`}
-                      g={g}
-                      onOpen={() => openAt(photoItems.length + videoIdx)}
-                      stacked
-                    />
-                  ))
-                : null}
             </div>
           ) : null}
         </div>

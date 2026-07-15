@@ -5,19 +5,12 @@ import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentas
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
 import type { OfficialLocale } from "@/app/lib/language";
 import type { Dispatch, SetStateAction } from "react";
 
 type S = RentasPrivadoFormState | RentasNegocioFormState;
 type Lang = OfficialLocale;
-
-function siNoOptions(lang: Lang): { id: "" | "si" | "no"; label: string }[] {
-  return [
-    { id: "", label: "—" },
-    { id: "si", label: lang === "en" ? "Yes" : "Sí" },
-    { id: "no", label: lang === "en" ? "No" : "No" },
-  ];
-}
 
 type Props<T extends S> = {
   state: T;
@@ -27,16 +20,20 @@ type Props<T extends S> = {
 };
 
 export function RentasTipoFlowDetailFields<T extends S>({ state, setState, fieldClass, lang }: Props<T>) {
+  const tf = getLaunchUiMessages(lang).rentas.tipoFlow;
   const g = rentasFlowGroupActive(state);
-  const siNo = siNoOptions(lang);
-  const inListing = lang === "en" ? "In listing: " : "En el anuncio: ";
+  const siNo = [
+    { id: "" as const, label: "—" },
+    { id: "si" as const, label: tf.yes },
+    { id: "no" as const, label: tf.no },
+  ];
 
   if (g === "unset") return null;
 
   if (g === "room_shared") {
     return (
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-        <AiField label={lang === "en" ? "Bathroom type" : "Tipo de baño"}>
+        <AiField label={tf.bathroomType}>
           <select
             className={fieldClass}
             value={state.rentasEspacioTipoBano}
@@ -48,12 +45,12 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             }
           >
             <option value="">—</option>
-            <option value="privado">{lang === "en" ? "Private" : "Privado"}</option>
-            <option value="compartido">{lang === "en" ? "Shared" : "Compartido"}</option>
-            <option value="no_incluido">{lang === "en" ? "Not included" : "No incluido"}</option>
+            <option value="privado">{tf.bathroomPrivate}</option>
+            <option value="compartido">{tf.bathroomShared}</option>
+            <option value="no_incluido">{tf.bathroomNotIncluded}</option>
           </select>
         </AiField>
-        <AiField label={lang === "en" ? "Kitchen" : "Cocina"}>
+        <AiField label={tf.kitchen}>
           <select
             className={fieldClass}
             value={state.rentasEspacioTipoCocina}
@@ -65,12 +62,12 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             }
           >
             <option value="">—</option>
-            <option value="privada">{lang === "en" ? "Private" : "Privada"}</option>
-            <option value="compartida">{lang === "en" ? "Shared" : "Compartida"}</option>
-            <option value="no_incluida">{lang === "en" ? "Not included" : "No incluida"}</option>
+            <option value="privada">{tf.kitchenPrivate}</option>
+            <option value="compartida">{tf.kitchenShared}</option>
+            <option value="no_incluida">{tf.kitchenNotIncluded}</option>
           </select>
         </AiField>
-        <AiField label={lang === "en" ? "Private entrance" : "Entrada privada"}>
+        <AiField label={tf.privateEntrance}>
           <select
             className={fieldClass}
             value={state.rentasEspacioEntradaPrivada}
@@ -88,7 +85,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             ))}
           </select>
         </AiField>
-        <AiField label={lang === "en" ? "Laundry available" : "Lavandería disponible"}>
+        <AiField label={tf.laundryAvailable}>
           <select
             className={fieldClass}
             value={state.rentasEspacioLavanderia}
@@ -107,7 +104,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </select>
         </AiField>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Maximum occupants" : "Máximo de ocupantes"} hint={lang === "en" ? "Numbers only." : "Solo números."}>
+          <AiField label={tf.maxOccupants} hint={tf.maxOccupantsHint}>
             <input
               className={fieldClass}
               inputMode="numeric"
@@ -123,14 +120,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField
-            label={lang === "en" ? "Shared space preferences" : "Preferencias del espacio compartido"}
-            hint={
-              lang === "en"
-                ? "Optional. Add important details for co-living, house rules or reasonable space preferences."
-                : "Opcional. Agrega detalles importantes para convivencia, reglas del hogar o preferencias razonables para el espacio."
-            }
-          >
+          <AiField label={tf.sharedSpacePreferences} hint={tf.sharedSpacePreferencesHint}>
             <textarea
               className={fieldClass}
               rows={4}
@@ -141,11 +131,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
                   rentasPreferenciasEspacioCompartido: e.target.value,
                 }))
               }
-              placeholder={
-                lang === "en"
-                  ? "E.g. quiet environment, no smoking, quiet hours, preference for one person, etc."
-                  : "Ej. ambiente tranquilo, no fumar, horario de descanso, preferencia para una persona, etc."
-              }
+              placeholder={tf.sharedSpacePreferencesPlaceholder}
               autoComplete="off"
             />
           </AiField>
@@ -158,10 +144,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
     return (
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
         <div className="sm:col-span-2">
-          <AiField
-            label={lang === "en" ? "Approximate size" : "Tamaño aproximado"}
-            hint={lang === "en" ? "Free text or measurements (e.g. 12 × 24 ft)." : "Texto libre o medidas (ej. 12 × 24 ft)."}
-          >
+          <AiField label={tf.approximateSize} hint={tf.approximateSizeHint}>
             <input
               className={fieldClass}
               value={state.rentasAlmacenTamanoAprox}
@@ -170,7 +153,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             />
           </AiField>
         </div>
-        <AiField label={lang === "en" ? "24/7 access" : "Acceso 24/7"}>
+        <AiField label={tf.access24h}>
           <select
             className={fieldClass}
             value={state.rentasAlmacenAcceso24h}
@@ -185,7 +168,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             ))}
           </select>
         </AiField>
-        <AiField label={lang === "en" ? "Electricity available" : "Electricidad disponible"}>
+        <AiField label={tf.electricityAvailable}>
           <select
             className={fieldClass}
             value={state.rentasAlmacenElectricidad}
@@ -203,7 +186,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             ))}
           </select>
         </AiField>
-        <AiField label={lang === "en" ? "Security / controlled access" : "Seguridad / acceso controlado"}>
+        <AiField label={tf.securityControlled}>
           <select
             className={fieldClass}
             value={state.rentasAlmacenSeguridad}
@@ -219,7 +202,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </select>
         </AiField>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Permitted use" : "Uso permitido"}>
+          <AiField label={tf.permittedUse}>
             <input
               className={fieldClass}
               value={state.rentasAlmacenUsoPermitido}
@@ -229,10 +212,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField
-            label={lang === "en" ? "Height / dimensions" : "Altura / dimensiones"}
-            hint={lang === "en" ? "If applicable (door, ceiling, van accessible…)." : "Si aplica (puerta, techo, van accessible…)."}
-          >
+          <AiField label={tf.heightDimensions} hint={tf.heightDimensionsHint}>
             <input
               className={fieldClass}
               value={state.rentasAlmacenDimensiones}
@@ -250,7 +230,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
     return (
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Permitted use" : "Uso permitido"}>
+          <AiField label={tf.permittedUse}>
             <input
               className={fieldClass}
               value={state.rentasComercialUsoPermitido}
@@ -259,10 +239,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             />
           </AiField>
         </div>
-        <AiField
-          label={lang === "en" ? "Size (ft²)" : "Tamaño (ft²)"}
-          hint={lang === "en" ? "Numbers only (approximate square feet)." : "Solo números (pies cuadrados aproximados)."}
-        >
+        <AiField label={tf.sizeSqft} hint={tf.sizeSqftHint}>
           <input
             className={fieldClass}
             inputMode="numeric"
@@ -277,12 +254,12 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           />
           {sizePreview ? (
             <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-              {inListing}
+              {tf.inListingPrefix}
               <span className="text-[#1E1810]">{sizePreview}</span>
             </p>
           ) : null}
         </AiField>
-        <AiField label={lang === "en" ? "Restroom available" : "Baño disponible"}>
+        <AiField label={tf.restroomAvailable}>
           <select
             className={fieldClass}
             value={state.rentasComercialBanoDisponible}
@@ -301,7 +278,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </select>
         </AiField>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Hours / access" : "Horario / acceso"}>
+          <AiField label={tf.hoursAccess}>
             <input
               className={fieldClass}
               value={state.rentasComercialHorarioAcceso}
@@ -311,13 +288,13 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Minimum contract" : "Contrato mínimo"}>
+          <AiField label={tf.minimumContract}>
             <input
               className={fieldClass}
               value={state.rentasComercialContratoMinimo}
               onChange={(e) => setState((s) => ({ ...s, rentasComercialContratoMinimo: e.target.value }))}
               autoComplete="off"
-              placeholder={lang === "en" ? "E.g. 1 year, 6 renewable months…" : "Ej. 1 año, 6 meses renovable…"}
+              placeholder={tf.minimumContractPlaceholder}
             />
           </AiField>
         </div>
@@ -329,7 +306,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
     return (
       <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Permitted use" : "Uso permitido"}>
+          <AiField label={tf.permittedUse}>
             <input
               className={fieldClass}
               value={state.rentasLoteUsoPermitido}
@@ -339,7 +316,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Available utilities" : "Servicios disponibles"}>
+          <AiField label={tf.availableUtilities}>
             <input
               className={fieldClass}
               value={state.rentasLoteServiciosDisponibles}
@@ -349,7 +326,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Access" : "Acceso"}>
+          <AiField label={tf.access}>
             <input
               className={fieldClass}
               value={state.rentasLoteAcceso}
@@ -359,7 +336,7 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
           </AiField>
         </div>
         <div className="sm:col-span-2">
-          <AiField label={lang === "en" ? "Zoning" : "Zonificación"} hint={lang === "en" ? "If applicable." : "Si aplica."}>
+          <AiField label={tf.zoning} hint={tf.zoningHint}>
             <input
               className={fieldClass}
               value={state.rentasLoteZonificacion}

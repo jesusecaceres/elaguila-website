@@ -11,12 +11,22 @@ type Props = {
   dragLabel: string;
   /** Slightly tighter chrome for bucket columns */
   variant?: "gallery" | "bucket";
+  orderLabel?: string;
+  removeAriaLabel?: string;
 };
 
 /**
  * Shared drag handle + remove chrome for Restaurante publish media (general gallery + categorized buckets).
  */
-export function RestauranteSortableMediaTile({ id, children, onRemove, dragLabel, variant = "gallery" }: Props) {
+export function RestauranteSortableMediaTile({
+  id,
+  children,
+  onRemove,
+  dragLabel,
+  variant = "gallery",
+  orderLabel = "Orden",
+  removeAriaLabel = "Quitar",
+}: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
   const style: React.CSSProperties = {
@@ -44,13 +54,13 @@ export function RestauranteSortableMediaTile({ id, children, onRemove, dragLabel
           {...listeners}
         >
           <span aria-hidden>⋮⋮</span>
-          <span className="ml-1 hidden font-bold sm:inline">Orden</span>
+          <span className="ml-1 hidden font-bold sm:inline">{orderLabel}</span>
         </button>
         <button
           type="button"
           onClick={onRemove}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-700 text-sm font-bold leading-none text-white shadow-md"
-          aria-label="Quitar"
+          aria-label={removeAriaLabel}
         >
           ×
         </button>

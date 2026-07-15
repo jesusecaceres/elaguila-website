@@ -15,6 +15,8 @@ import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNew
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
 import { expandServiciosSearchTerms, normalizeServiciosSearchText } from "./serviciosSearchSynonyms";
+import { formatServiciosInternalGroupForDiscovery } from "./serviciosInternalGroupDisplay";
+import { LANGUAGE_OPTION_CHIPS } from "@/app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import {
   isLeonixLbUsCountry,
   leonixLbStateMatchesFilter,
@@ -631,6 +633,9 @@ export function filterServiciosRowsByKeyword(
   return rows.filter((row) => {
     if (includesAnyNormalized(row.business_name, terms)) return true;
     if (includesAnyNormalized(row.city, terms)) return true;
+    const groupLabel = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
+    if (includesAnyNormalized(groupLabel ?? "", terms)) return true;
+    if (includesAnyNormalized(row.internal_group ?? "", terms)) return true;
     const profile = resolvedProfile(row, lang);
     if (includesAnyNormalized(profile.hero.categoryLine, terms)) return true;
     if (includesAnyNormalized(profile.about?.text, terms)) return true;
@@ -645,6 +650,15 @@ export function filterServiciosRowsByKeyword(
     if (includesAnyNormalized(pj.opsMeta?.discovery?.country ?? "", terms)) return true;
     for (const item of pj.serviceAreas?.items ?? []) {
       if (includesAnyNormalized(item.label, terms)) return true;
+    }
+    for (const chip of LANGUAGE_OPTION_CHIPS) {
+      if (rowLangChip(pj, chip.id) && includesAnyNormalized(lang === "en" ? chip.en : chip.es, terms)) return true;
+    }
+    for (const c of pj.customAmenityOptions ?? []) {
+      if (includesAnyNormalized(c, terms)) return true;
+    }
+    for (const h of pj.businessHighlights ?? []) {
+      if (includesAnyNormalized(h.label, terms)) return true;
     }
     for (const s of profile.services ?? []) {
       if (includesAnyNormalized(s.title, terms)) return true;

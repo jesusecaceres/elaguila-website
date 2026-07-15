@@ -3,6 +3,7 @@
 import type { FormEventHandler } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { writeServiciosDiscoveryPrefs } from "./lib/serviciosLocalPreferences";
 import {
@@ -21,7 +22,12 @@ import {
 import {
   LEONIX_LB_DEFAULT_COUNTRY,
   LEONIX_LB_DEFAULT_STATE,
+  isLeonixLbUsCountry,
 } from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
+  buildServiciosResultsBrowseHref,
+  parseServiciosFilterFormData,
+} from "./lib/serviciosBrowseParams";
 
 const RESULTS_PATH = "/clasificados/servicios/results";
 
@@ -125,10 +131,44 @@ function ServiciosResultsFiltersCompact({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [stateTouched, setStateTouched] = useState(false);
+  const [countryTouched, setCountryTouched] = useState(false);
   const resetHref = `${RESULTS_PATH}?lang=${lang}`;
   const hasFilters = serviciosResultsHasActiveFilters(current);
   const hasAdvancedFilters = serviciosResultsHasAdvancedDrawerFilters(current);
+  const urlHadState = Boolean(current.state?.trim());
+  const urlHadCountry = Boolean(current.country?.trim() && !isLeonixLbUsCountry(current.country));
+
+  useEffect(() => {
+    setStateTouched(false);
+    setCountryTouched(false);
+  }, [current.q, current.city, current.state, current.zip, current.country, current.group]);
+
   const onSubmitCapture = createServiciosResultsFormSubmitCapture();
+
+  const onFormSubmit: FormEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault();
+    onSubmitCapture(e);
+    const fd = new FormData(e.currentTarget);
+    const parsed = parseServiciosFilterFormData(fd);
+    const perPageVal = String(fd.get("perPage") ?? perPage).trim();
+    router.push(
+      buildServiciosResultsBrowseHref(
+        lang,
+        {
+          q: parsed.q ?? "",
+          city: parsed.city ?? "",
+          state: parsed.state ?? LEONIX_LB_DEFAULT_STATE,
+          zip: parsed.zip ?? "",
+          country: parsed.country ?? LEONIX_LB_DEFAULT_COUNTRY,
+        },
+        parsed,
+        { urlHadState, urlHadCountry, stateTouched, countryTouched },
+        perPageVal && perPageVal !== "12" ? { perPage: perPageVal } : undefined,
+      ),
+    );
+  };
 
   useEffect(() => {
     const el = sheetRef.current;
@@ -163,6 +203,7 @@ function ServiciosResultsFiltersCompact({
           action={RESULTS_PATH}
           method="get"
           formId={RESULTS_FORM_ID_MOBILE}
+          onSubmit={onFormSubmit}
           onSubmitCapture={onSubmitCapture}
           defaultQ={current.q ?? ""}
           defaultCity={current.city ?? ""}
@@ -173,6 +214,8 @@ function ServiciosResultsFiltersCompact({
           searchButtonLabel={lang === "en" ? "Search" : "Buscar"}
           showFiltersButton={false}
           cityDatalistId="servicios-results-city-presets"
+          onStateChange={() => setStateTouched(true)}
+          onCountryChange={() => setCountryTouched(true)}
           secondRow={
             <button
               type="button"

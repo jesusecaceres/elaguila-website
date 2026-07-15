@@ -171,7 +171,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
             <div className="mt-0 min-w-0 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-2.5 shadow-[0_4px_18px_-14px_rgba(31,36,28,0.1)] sm:p-3">
             <ServiciosResultsFilters lang={lang} current={filterQuery} perPage={perPage} />
 
-            <ServiciosResultsActiveSummary lang={lang} query={filterQuery} />
+            <ServiciosResultsActiveSummary lang={lang} query={filterQuery} perPage={perPage} />
 
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-[#dcd3c7]/80 pb-2.5">
               <p className="text-sm font-semibold text-[#142a42]">

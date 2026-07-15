@@ -40,6 +40,8 @@ type Props = {
   secondRow?: ReactNode;
   cityDatalistId?: string;
   showFiltersButton?: boolean;
+  onStateChange?: () => void;
+  onCountryChange?: () => void;
 };
 
 export function LeonixLocalBusinessCompactSearchCanvas({
@@ -64,6 +66,8 @@ export function LeonixLocalBusinessCompactSearchCanvas({
   secondRow,
   cityDatalistId = "leonix-lb-city-presets",
   showFiltersButton = true,
+  onStateChange,
+  onCountryChange,
 }: Props) {
   const kwPh =
     keywordPlaceholder ??
@@ -129,6 +133,7 @@ export function LeonixLocalBusinessCompactSearchCanvas({
               defaultValue={defaultState || LEONIX_LB_DEFAULT_STATE}
               aria-label={statePh}
               className={`${LX_LB_SEARCH_INPUT} appearance-none`}
+              onChange={() => onStateChange?.()}
             >
               {US_STATE_OPTIONS.map((opt) => (
                 <option key={opt.code} value={opt.code}>
@@ -165,6 +170,7 @@ export function LeonixLocalBusinessCompactSearchCanvas({
               aria-label={countryPh}
               autoComplete="country-name"
               className={LX_LB_SEARCH_INPUT}
+              onChange={() => onCountryChange?.()}
             />
           </label>
           <div className="order-2 flex flex-wrap items-center gap-1.5 sm:order-none sm:col-span-4">

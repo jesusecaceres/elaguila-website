@@ -27,4 +27,17 @@
  * Not used as URL filters (badge/meta only or internal): review counts, gallery order,
  * optional hours/open-now (requires reliable data pipeline first).
  */
-export const SERVICIOS_DISCOVERY_CONTRACT_VERSION = 1 as const;
+export const SERVICIOS_DISCOVERY_CONTRACT_VERSION = 2 as const;
+
+/**
+ * Public browse URL contract — see `serviciosBrowseParams.ts` (`buildServiciosResultsBrowseHref`).
+ * Landing + results share `ServiciosResultsAdvancedFilterFields` and `parseServiciosFilterFormData`.
+ *
+ * Universal search board: q, city, state, zip, country (display defaults CA / United States omitted unless touched).
+ *
+ * Drawer filters (application-backed): group, seller, mobileSvc, same_day, appointment, emergency, wknd,
+ * open_now, verified, licensed, insured, free_estimate, free_consultation, has_photos, has_videos, has_offers,
+ * web, bilingual, email, whatsapp, promo, call, msg, phys, svcMulti, offer, legal, langEs, langEn, langOt, vint.
+ *
+ * Deferred as URL filters: payment methods (not filterable), coupon-specific promo (use has_offers / offer when stored).
+ */

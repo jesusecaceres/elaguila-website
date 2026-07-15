@@ -17,19 +17,34 @@ type Finding = {
 
 const root = process.cwd();
 
+/** Full Rentas private application map (GATE 6 expansion). */
 const approvedScope = [
   "app/(site)/clasificados/publicar/rentas/privado/page.tsx",
+  "app/(site)/publicar/rentas/privado/page.tsx",
   "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoApplication.tsx",
+  "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx",
+  "app/(site)/clasificados/rentas/privado/publish/RentasPrivadoPublishShell.tsx",
   "app/(site)/clasificados/publicar/rentas/shared/RentasAnuncioFormSection.tsx",
   "app/(site)/clasificados/publicar/rentas/shared/rentasAnuncioFormCopy.ts",
+  "app/(site)/clasificados/publicar/rentas/shared/RentasShowingTourSection.tsx",
+  "app/(site)/clasificados/publicar/rentas/shared/RentasTipoFlowDetailFields.tsx",
   "app/(site)/clasificados/rentas/shared/rentasPublishFormHelpers.ts",
   "app/(site)/clasificados/rentas/shared/rentasRentalTypeTaxonomy.ts",
+  "app/(site)/clasificados/rentas/shared/utils/rentasPublishConstants.ts",
+  "app/(site)/clasificados/publicar/shared/Gate12cContactChannelsFields.tsx",
+  "app/(site)/clasificados/en-venta/shared/components/ListingRulesConfirmationSection.tsx",
+  "app/(site)/clasificados/lib/LeonixRealEstateSortablePhotoStrip.tsx",
   "app/lib/i18n/launchUiDictionaries.ts",
+  "app/lib/i18n/rentasLaunchUiExtras.ts",
   "app/lib/language.ts",
 ];
 
-const dictionaryFiles = new Set(["app/lib/i18n/launchUiDictionaries.ts"]);
+const dictionaryFiles = new Set([
+  "app/lib/i18n/launchUiDictionaries.ts",
+  "app/lib/i18n/rentasLaunchUiExtras.ts",
+]);
 
+/** Confirmed rentas privado UI leaks + prior foundation blockers. */
 const confirmedBlockerTexts = [
   "Agua",
   "Mantenimiento",
@@ -46,19 +61,37 @@ const confirmedBlockerTexts = [
   "Código postal",
   "Mostrar direccion exacta cuando aplique",
   "Mostrar dirección exacta cuando aplique",
+  "Hasta 8 fotos",
+  "Fotos del anuncio",
+  "Subir o añadir fotos",
+  "seleccionadas",
+  "Videos por enlace",
+  "Información de contacto",
+  "Foto de contacto",
+  "Subir foto",
+  "Borrador guardado solo en este dispositivo",
+  "Detalle residencial",
+  "Sin detalle adicional",
+  "Alberca / piscina",
+  "Cocina remodelada",
+  "Confirmación antes de publicar",
+  "Final review",
+  "Tipo de aluguel",
+  "Condicoes importantes",
+  "Condições importantes",
+  "Aluguel mensal",
 ];
 
 const visibleAttributes = new Set(["placeholder", "aria-label", "title", "alt", "label"]);
 const findings: Finding[] = [];
-const baselineExceptions = [
-  {
-    file: "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx",
-    ruleId: "legacy-rentas-private-copy",
-    reason: "Existing non-confirmed private form copy remains binary; outside confirmed blocker remediation for this gate.",
-    owner: "Chuy",
-    expiration: "2026-08-15",
-  },
-];
+/** No baseline exceptions for newly discovered approved-scope Rentas leaks. */
+const baselineExceptions: Array<{
+  file: string;
+  ruleId: string;
+  reason: string;
+  owner: string;
+  expiration: string;
+}> = [];
 
 function toAbs(file: string): string {
   return path.join(root, file);
@@ -69,7 +102,14 @@ function pos(sourceFile: ts.SourceFile, node: ts.Node): { line: number; column: 
   return { line: lc.line + 1, column: lc.character + 1 };
 }
 
-function addFinding(sourceFile: ts.SourceFile, node: ts.Node, ruleId: string, text: string, severity: Severity, suggestion: string): void {
+function addFinding(
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+  ruleId: string,
+  text: string,
+  severity: Severity,
+  suggestion: string,
+): void {
   const p = pos(sourceFile, node);
   findings.push({
     file: sourceFile.fileName.split(path.sep).join("/").replace(root.split(path.sep).join("/") + "/", ""),
@@ -108,7 +148,16 @@ function scanNode(sourceFile: ts.SourceFile, node: ts.Node, relative: string): v
       const name = node.name.getText(sourceFile);
       if (visibleAttributes.has(name) && node.initializer && ts.isStringLiteral(node.initializer)) {
         const match = textIncludesConfirmedCopy(node.initializer.text);
-        if (match) addFinding(sourceFile, node, "hardcoded-visible-attribute", match, "blocker", "Use a translated dictionary value for visible attributes.");
+        if (match) {
+          addFinding(
+            sourceFile,
+            node,
+            "hardcoded-visible-attribute",
+            match,
+            "blocker",
+            "Use a translated dictionary value for visible attributes.",
+          );
+        }
       }
     }
 
@@ -116,11 +165,27 @@ function scanNode(sourceFile: ts.SourceFile, node: ts.Node, relative: string): v
       const parent = node.parent;
       const inImport = ts.isImportDeclaration(parent) || ts.isExportDeclaration(parent);
       const match = !inImport ? textIncludesConfirmedCopy(node.text) : null;
-      if (match) addFinding(sourceFile, node, "visible-string-candidate", match, "blocker", "Use a Rentas dictionary key instead of hardcoded confirmed UI copy.");
+      if (match) {
+        addFinding(
+          sourceFile,
+          node,
+          "visible-string-candidate",
+          match,
+          "blocker",
+          "Use a Rentas dictionary key instead of hardcoded confirmed UI copy.",
+        );
+      }
     }
 
     if (ts.isConditionalExpression(node) && isLangEqualsEn(node.condition)) {
-      addFinding(sourceFile, node, "binary-locale-copy", node.getText(sourceFile).slice(0, 120), "blocker", "Use official four-language dictionary access for visible copy.");
+      addFinding(
+        sourceFile,
+        node,
+        "binary-locale-copy",
+        node.getText(sourceFile).slice(0, 120),
+        "blocker",
+        "Use official four-language dictionary access for visible copy.",
+      );
     }
   }
 
@@ -148,7 +213,8 @@ for (const relative of approvedScope) {
     const source = fs.readFileSync(abs, "utf8");
     const kind = relative.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const sourceFile = ts.createSourceFile(abs, source, ts.ScriptTarget.Latest, true, kind);
-    const parseDiagnostics = (sourceFile as ts.SourceFile & { parseDiagnostics?: readonly ts.Diagnostic[] }).parseDiagnostics ?? [];
+    const parseDiagnostics =
+      (sourceFile as ts.SourceFile & { parseDiagnostics?: readonly ts.Diagnostic[] }).parseDiagnostics ?? [];
     if (parseDiagnostics.length > 0) {
       parserFailures += parseDiagnostics.length;
       for (const diagnostic of parseDiagnostics) {

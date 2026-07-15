@@ -8,7 +8,6 @@ import {
   aiLabelClass,
   aiTitleClass,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/formPrimitives";
-import { RENTAS_PLAZO_LABELS } from "@/app/clasificados/rentas/shared/utils/rentasPublishConstants";
 import {
   RENTAS_SERVICIOS_INCLUIDOS_DEFS,
   formatRentasDepositUsdPreview,
@@ -28,6 +27,7 @@ import {
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { RentasTipoFlowDetailFields } from "@/app/clasificados/publicar/rentas/shared/RentasTipoFlowDetailFields";
 import { getRentasAnuncioFormCopy } from "./rentasAnuncioFormCopy";
+import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
 import type { OfficialLocale } from "@/app/lib/language";
 import type { Dispatch, SetStateAction } from "react";
 
@@ -62,6 +62,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
   lang,
 }: Props<T>) {
   const c = getRentasAnuncioFormCopy(lang);
+  const plazoLabels = getLaunchUiMessages(lang).rentas.plazo;
 
   const rentPreview = formatRentasMensualAnuncioPreview(state.rentaMensual);
   const depositPreview = formatRentasDepositUsdPreview(state.deposito);
@@ -73,7 +74,6 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
     state.ubicacionLinea.trim() !== "" && state.ubicacionLinea.trim() !== state.direccionLinea1.trim();
   const flowGroup = rentasFlowGroupActive(state);
   const hideAmuebladoMascotas = flowGroup === "storage_parking";
-  const legacyPlazoLang = { es: "es", en: "en", pt: "es", tl: "es" } as const;
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
@@ -189,9 +189,9 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             }}
           >
             <option value="">—</option>
-            {Object.entries(RENTAS_PLAZO_LABELS).map(([key, lbl]) => (
+            {(Object.keys(plazoLabels) as Array<keyof typeof plazoLabels>).map((key) => (
               <option key={key} value={key}>
-                {lbl[legacyPlazoLang[lang]]}
+                {plazoLabels[key]}
               </option>
             ))}
           </select>

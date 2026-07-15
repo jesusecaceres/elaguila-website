@@ -1,22 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { FiBriefcase, FiCheckCircle, FiClock, FiGlobe, FiHome, FiMapPin, FiMessageCircle, FiShield, FiTool, FiTruck } from "react-icons/fi";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
-  LeonixCategorySearchCanvas,
   LeonixCategoryPartnerSection,
   LeonixCategoryDiscoveryGrid,
   LeonixCategoryShortcutSection,
   LeonixCategoryVisibilityStrip,
-  type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES } from "./serviciosLandingSampleData";
+import { ServiciosLandingSearchPanel } from "./ServiciosLandingSearchPanel";
+import { buildServiciosResultsBrowseHref } from "../lib/serviciosBrowseParams";
 
 type Lang = "es" | "en";
 
@@ -36,12 +35,6 @@ export function ServiciosLandingPage() {
   const resultsHref = buildCategoryResultsUrl("servicios", routeLang as Lang);
   const publishHref = replaceLangInHref("/clasificados/publicar/servicios/checkpoint", routeLang);
   const visibilityHref = replaceLangInHref("/contacto?categoria=servicios&surface=landing", routeLang);
-
-  const [query, setQuery] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("CA");
-  const [zip, setZip] = useState("");
-  const [country, setCountry] = useState("United States");
 
   const copy = {
     es: {
@@ -90,39 +83,16 @@ export function ServiciosLandingPage() {
     },
   }[lang];
 
-  const runSearch = () => {
-    window.location.href = appendResultsParams(resultsHref, {
-      q: query,
-      city,
-      state,
-      zip,
-      country,
-    });
-  };
-
   const serviciosSearchForm = (
-    <LeonixCategorySearchCanvas
-      lang={lang as V2Lang}
-      surface="landing"
-      query={query}
-      city={city}
-      state={state}
-      zip={zip}
-      country={country}
-      onQuery={setQuery}
-      onCity={setCity}
-      onState={setState}
-      onZip={setZip}
-      onCountry={setCountry}
-      onSearch={runSearch}
-      onOpenFilters={runSearch}
-      browseAllHref={resultsHref}
+    <ServiciosLandingSearchPanel
+      lang={lang}
+      routeLang={routeLang as Lang}
+      resultsHref={resultsHref}
+      publishHref={publishHref}
       browseAllLabel={copy.browse}
+      publishLabel={copy.publish}
       queryPlaceholder={copy.placeholder}
       searchButtonLabel={lang === "es" ? "Buscar" : "Search"}
-      filtersButtonLabel={lang === "es" ? "Filtros" : "Filters"}
-      publishHref={publishHref}
-      publishLabel={copy.publish}
     />
   );
 
@@ -132,7 +102,7 @@ export function ServiciosLandingPage() {
       ? appendResultsParams(resultsHref, { group: cat.resultsGroup })
       : qRaw
         ? appendResultsParams(resultsHref, { q: qRaw })
-        : resultsHref;
+        : buildServiciosResultsBrowseHref(routeLang as Lang, {}, {});
     const icons = [FiBriefcase, FiCheckCircle, FiShield, FiHome, FiTool, FiClock, FiMapPin, FiTruck];
     return {
       id: cat.id,
@@ -147,7 +117,7 @@ export function ServiciosLandingPage() {
     <LeonixCategoryPageShell surface="landing">
       <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
       <LeonixCategoryHeroGateway
-        lang={lang as V2Lang}
+        lang={lang}
         surface="landing"
         title={lang === "es" ? "Servicios" : "Services"}
         tagline={copy.tagline}
@@ -159,7 +129,7 @@ export function ServiciosLandingPage() {
       <main className="space-y-6 overflow-x-hidden sm:space-y-8">
         <LeonixCategoryPartnerSection
           enabled
-          lang={lang as V2Lang}
+          lang={lang}
           surface="landing"
           eyebrow={copy.partnerEyebrow}
           title={copy.partnerTitle}
@@ -174,7 +144,7 @@ export function ServiciosLandingPage() {
         />
 
         <LeonixCategoryDiscoveryGrid
-          lang={lang as V2Lang}
+          lang={lang}
           surface="landing"
           heading={copy.giroTitle}
           subtitle={copy.giroSubtitle}
@@ -182,7 +152,7 @@ export function ServiciosLandingPage() {
         />
 
         <LeonixCategoryShortcutSection
-          lang={lang as V2Lang}
+          lang={lang}
           surface="landing"
           title={copy.trustTitle}
           subtitle={copy.trustSubtitle}
@@ -201,7 +171,7 @@ export function ServiciosLandingPage() {
         />
 
         <LeonixCategoryVisibilityStrip
-          lang={lang as V2Lang}
+          lang={lang}
           surface="landing"
           eyebrow={copy.visibilityEyebrow}
           title={copy.visibilityTitle}

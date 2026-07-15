@@ -16,7 +16,10 @@ import {
   parseBrNegocioPropiedadParam,
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
-import { BR_PREVIEW_PRIVADO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import {
+  BR_PREVIEW_PRIVADO,
+  BR_PUBLICAR_HUB,
+} from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
@@ -93,15 +96,15 @@ const ESTADOS: { id: BienesRaicesPrivadoFormState["estadoAnuncio"]; label: strin
 ];
 
 const CONDICION_OPTS: { value: BienesRaicesPrivadoFormState["residencial"]["condicion"]; label: string }[] = [
-  { value: "", label: "â€”" },
+  { value: "", label: "—" },
   { value: "excelente", label: "Excelente" },
   { value: "buena", label: "Buena" },
   { value: "regular", label: "Regular" },
-  { value: "necesita_reparacion", label: "Necesita reparaciÃ³n" },
+  { value: "necesita_reparacion", label: "Necesita reparación" },
 ];
 
 const CONFIRM_PREVIEW_BLOCKED = {
-  es: "Marca las tres confirmaciones al final del formulario para usar Vista previa con validaciÃ³n.",
+  es: "Marca las tres confirmaciones al final del formulario para usar Vista previa con validación.",
   en: "Check all three confirmations at the bottom to use validated preview.",
 } as const;
 
@@ -141,7 +144,7 @@ export function BienesRaicesPrivadoForm() {
     setHydrated(true);
   }, []);
 
-  /** Debounced autosave â€” always persists `stateRef.current` when the timer fires (avoids stale closures). */
+  /** Debounced autosave — always persists `stateRef.current` when the timer fires (avoids stale closures). */
   useEffect(() => {
     if (!hydrated) return;
     const id = window.setTimeout(() => {
@@ -153,7 +156,7 @@ export function BienesRaicesPrivadoForm() {
   useEffect(() => {
     if (!hydrated) return;
     if (state.media.videoLocalDataUrl && !localVideoFileName) {
-      setLocalVideoFileName("Video local (sesiÃ³n)");
+      setLocalVideoFileName("Video local (sesión)");
     }
   }, [hydrated, state.media.videoLocalDataUrl, localVideoFileName]);
 
@@ -205,7 +208,7 @@ export function BienesRaicesPrivadoForm() {
       setState((s) => {
         const out: BienesRaicesPrivadoFormState = {
           ...s,
-          /** One video source: archivo borra enlace guardado para evitar ambigÃ¼edad. */
+          /** One video source: archivo borra enlace guardado para evitar ambigüedad. */
           media: { ...s.media, videoLocalDataUrl: data, videoUrl: "" },
         };
         queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
@@ -214,9 +217,9 @@ export function BienesRaicesPrivadoForm() {
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       if (code === "video_too_large") {
-        setMediaNotice(`El video supera ${Math.round(MAX_VIDEO_BYTES / (1024 * 1024))} MB (lÃ­mite para vista previa en el navegador).`);
+        setMediaNotice(`El video supera ${Math.round(MAX_VIDEO_BYTES / (1024 * 1024))} MB (límite para vista previa en el navegador).`);
       } else if (code === "not_video") {
-        setMediaNotice("Elige un archivo de video vÃ¡lido.");
+        setMediaNotice("Elige un archivo de video válido.");
       } else {
         setMediaNotice("No se pudo leer el video.");
       }
@@ -297,12 +300,13 @@ export function BienesRaicesPrivadoForm() {
             lang === "en" ? "Leonix · Real Estate · Private" : "Leonix · Bienes Raíces · Privado"
           }
           headline={lang === "es" ? "Publicar — Particular" : "Post — Private seller"}
+          hubHref={withClasificadosPublishLang(BR_PUBLICAR_HUB, routeLang)}
         />
         <LeonixApplicationDataLossNotice lang={lang} />
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>CategorÃ­a</h2>
-          <p className={aiSubClass}>Elige una; los demÃ¡s campos se adaptan en el formulario y en la vista previa.</p>
+          <h2 className={aiTitleClass}>Categoría</h2>
+          <p className={aiSubClass}>Elige una; los demás campos se adaptan en el formulario y en la vista previa.</p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
@@ -325,7 +329,7 @@ export function BienesRaicesPrivadoForm() {
           <h2 className={aiTitleClass}>{lang === "en" ? "Listing" : "Anuncio"}</h2>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <AiField required label="TÃ­tulo">
+              <AiField required label="Título">
                 <input
                   className={fieldClass}
                   value={state.titulo}
@@ -337,7 +341,7 @@ export function BienesRaicesPrivadoForm() {
             <AiField
               required
               label="Precio (USD)"
-              hint="Escribe solo nÃºmeros (sin sÃ­mbolos). Abajo ves cÃ³mo quedarÃ¡ en el anuncio."
+              hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
             >
               <input
                 className={fieldClass}
@@ -356,8 +360,8 @@ export function BienesRaicesPrivadoForm() {
               ) : (
                 <p className="mt-2 text-xs text-[#5C5346]/85">
                   {state.precio.trim()
-                    ? "Revisa el nÃºmero (debe ser mayor que cero)."
-                    : "Ejemplo: al escribir 120000 se mostrarÃ¡ como precio en dÃ³lares con formato."}
+                    ? "Revisa el número (debe ser mayor que cero)."
+                    : "Ejemplo: al escribir 120000 se mostrará como precio en dólares con formato."}
                 </p>
               )}
             </AiField>
@@ -378,7 +382,7 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField
               label="Ciudad o zona"
-              hint="Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicaciÃ³n en el anuncio y para filtros futuros."
+              hint="Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicación en el anuncio y para filtros futuros."
             >
               <BrPrivadoCiudadZonaCombobox
                 className={fieldClass}
@@ -388,10 +392,10 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <details className="sm:col-span-2 min-w-0 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/60 px-3 py-2">
               <summary className="cursor-pointer select-none text-sm font-semibold text-[#1E1810]">
-                DirecciÃ³n estructurada (opcional)
+                Dirección estructurada (opcional)
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <AiField label="NÃºmero y calle" hint="Ej.: 123 Oak Street">
+                <AiField label="Número y calle" hint="Ej.: 123 Oak Street">
                   <input
                     className={fieldClass}
                     value={state.gate12d.calleNumero}
@@ -417,7 +421,7 @@ export function BienesRaicesPrivadoForm() {
                     autoComplete="address-level1"
                   />
                 </AiField>
-                <AiField label="CÃ³digo postal">
+                <AiField label="Código postal">
                   <input
                     className={fieldClass}
                     inputMode="numeric"
@@ -445,7 +449,7 @@ export function BienesRaicesPrivadoForm() {
             </details>
             <AiField
               label="Referencia adicional (opcional)"
-              hint="Texto libre si quieres aÃ±adir contexto (cruces, puntos de referencia). No sustituye a la direcciÃ³n estructurada arriba."
+              hint="Texto libre si quieres añadir contexto (cruces, puntos de referencia). No sustituye a la dirección estructurada arriba."
             >
               <input
                 className={fieldClass}
@@ -472,7 +476,7 @@ export function BienesRaicesPrivadoForm() {
               </label>
             </AiField>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
-              Para vista previa: ciudad o lÃ­nea de ubicaciÃ³n (al menos uno)
+              Para vista previa: ciudad o línea de ubicación (al menos uno)
               <span className="text-[#B8954A]" aria-hidden>
                 {" "}
                 *
@@ -505,8 +509,8 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="sm:col-span-2">
               <AiField
-                label="Â¿Se permiten mascotas?"
-                hint="Requerido para publicar: se guarda como dato estructurado y alimenta el filtro â€œMascotasâ€ en resultados. En el anuncio publicado, el detalle de mascotas va en la secciÃ³n HOA y comunidad (no como chip genÃ©rico)."
+                label="¿Se permiten mascotas?"
+                hint="Requerido para publicar: se guarda como dato estructurado y alimenta el filtro “Mascotas” en resultados. En el anuncio publicado, el detalle de mascotas va en la sección HOA y comunidad (no como chip genérico)."
               >
                 <select
                   className={fieldClass}
@@ -518,8 +522,8 @@ export function BienesRaicesPrivadoForm() {
                     }))
                   }
                 >
-                  <option value="">Seleccionaâ€¦</option>
-                  <option value="yes">SÃ­, se permiten</option>
+                  <option value="">Selecciona…</option>
+                  <option value="yes">Sí, se permiten</option>
                   <option value="no">No, no se permiten</option>
                 </select>
               </AiField>
@@ -550,7 +554,7 @@ export function BienesRaicesPrivadoForm() {
                         setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseEnabled: e.target.checked } }))
                       }
                     />
-                    SÃ­, planeo un open house
+                    Sí, planeo un open house
                   </label>
                 </AiField>
                 <AiField label="Fecha (AAAA-MM-DD)">
@@ -596,7 +600,7 @@ export function BienesRaicesPrivadoForm() {
                         }))
                       }
                     />
-                    SÃ­
+                    Sí
                   </label>
                 </AiField>
                 <div className="sm:col-span-2">
@@ -642,7 +646,7 @@ export function BienesRaicesPrivadoForm() {
               *
             </span>
             . Un solo video: por archivo <strong className="font-semibold text-[#1E1810]">o</strong> por enlace (no ambos).
-            Nada se sube a servidores en este paso; el borrador vive en esta sesiÃ³n hasta que exista publicaciÃ³n.
+            Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
@@ -665,14 +669,14 @@ export function BienesRaicesPrivadoForm() {
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                 onClick={() => photosInputRef.current?.click()}
               >
-                Subir o aÃ±adir fotos
+                Subir o añadir fotos
               </button>
               <span className="self-center text-xs text-[#5C5346]">
                 {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
               </span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-              Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">â‹®â‹® Orden</strong>{" "}
+              Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}
               para arrastrar y reordenar. La portada puede ser distinta del primer casillero.
             </p>
             {state.media.photoDataUrls.length > 0 ? (
@@ -734,7 +738,7 @@ export function BienesRaicesPrivadoForm() {
                 <p className="text-xs font-bold uppercase tracking-wide text-[#6E5418]">Video activo: archivo local</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex max-w-full min-w-0 items-center rounded-full border border-[#C9B46A]/60 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810]">
-                    <span className="min-w-0 truncate">{localVideoFileName || "Video local (sesiÃ³n)"}</span>
+                    <span className="min-w-0 truncate">{localVideoFileName || "Video local (sesión)"}</span>
                   </span>
                   <button
                     type="button"
@@ -762,7 +766,7 @@ export function BienesRaicesPrivadoForm() {
                 <div className="mt-4">
                   <AiField
                     label="O video por enlace"
-                    hint="Pega la URL completa (YouTube, Vimeo, mp4â€¦). Si empiezas a escribir aquÃ­, cualquier archivo de video anterior se descarta."
+                    hint="Pega la URL completa (YouTube, Vimeo, mp4…). Si empiezas a escribir aquí, cualquier archivo de video anterior se descarta."
                   >
                     <input
                       className={fieldClass}
@@ -776,7 +780,7 @@ export function BienesRaicesPrivadoForm() {
                   </AiField>
                 </div>
                 {state.media.videoUrl.trim() ? (
-                  <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usarÃ¡ en la vista previa.</p>
+                  <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
                 ) : null}
               </>
             )}
@@ -786,12 +790,12 @@ export function BienesRaicesPrivadoForm() {
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>Propietario (particular)</h2>
           <p className={aiSubClass}>
-            Tu nombre y cÃ³mo te contactan. No se pide sitio web ni redes sociales. Para vista previa: nombre
+            Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales. Para vista previa: nombre
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>{" "}
-            y al menos un medio de contacto (telÃ©fono, WhatsApp o correo)
+            y al menos un medio de contacto (teléfono, WhatsApp o correo)
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
@@ -863,7 +867,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="name"
               />
             </AiField>
-            <AiField label="TelÃ©fono">
+            <AiField label="Teléfono">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -890,7 +894,7 @@ export function BienesRaicesPrivadoForm() {
               />
             </AiField>
             <div className="sm:col-span-2">
-              <AiField label="Correo electrÃ³nico">
+              <AiField label="Correo electrónico">
                 <input
                   className={fieldClass}
                   type="email"
@@ -901,7 +905,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Mensaje para interesados (opcional)" hint="Texto breve que verÃ¡n antes de escribirte o llamarte.">
+              <AiField label="Mensaje para interesados (opcional)" hint="Texto breve que verán antes de escribirte o llamarte.">
                 <textarea
                   className={textareaFieldClass}
                   rows={3}
@@ -957,7 +961,7 @@ export function BienesRaicesPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="RecÃ¡maras">
+              <AiField label="Recámaras">
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -965,7 +969,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, recamaras: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="BaÃ±os completos">
+              <AiField label="Baños completos">
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -973,7 +977,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Medios baÃ±os">
+              <AiField label="Medios baños">
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -1006,7 +1010,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="AÃ±o de construcciÃ³n">
+              <AiField label="Año de construcción">
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1014,7 +1018,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, ano: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="CondiciÃ³n">
+              <AiField label="Condición">
                 <select
                   className={fieldClass}
                   value={state.residencial.condicion}
@@ -1035,7 +1039,7 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
-              <p className={aiHintClass}>Opcional: quÃ© destacar en la vista previa.</p>
+              <p className={aiHintClass}>Opcional: qué destacar en la vista previa.</p>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
                   <label key={d.key} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1104,7 +1108,7 @@ export function BienesRaicesPrivadoForm() {
                   />
                 </AiField>
               </div>
-              <AiField label="Interior (ftÂ²)">
+              <AiField label="Interior (ft²)">
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1120,7 +1124,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, oficinas: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="BaÃ±os">
+              <AiField label="Baños">
                 <input
                   className={fieldClass}
                   value={state.comercial.banos}
@@ -1141,14 +1145,14 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="ZonificaciÃ³n">
+              <AiField label="Zonificación">
                 <input
                   className={fieldClass}
                   value={state.comercial.zonificacion}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="CondiciÃ³n">
+              <AiField label="Condición">
                 <select
                   className={fieldClass}
                   value={state.comercial.condicion}
@@ -1237,7 +1241,7 @@ export function BienesRaicesPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="Lote (ftÂ²)">
+              <AiField label="Lote (ft²)">
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1246,7 +1250,7 @@ export function BienesRaicesPrivadoForm() {
                 />
                 <BrSqftPreview value={state.terreno.loteSqft} />
               </AiField>
-              <AiField label="Uso / zonificaciÃ³n">
+              <AiField label="Uso / zonificación">
                 <input
                   className={fieldClass}
                   value={state.terreno.usoZonificacion}
@@ -1267,7 +1271,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, servicios: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="TopografÃ­a">
+              <AiField label="Topografía">
                 <input
                   className={fieldClass}
                   value={state.terreno.topografia}
@@ -1326,8 +1330,8 @@ export function BienesRaicesPrivadoForm() {
             </p>
             <p className="mt-1 text-xs leading-relaxed text-[#5C5346]/90">
               {lang === "es"
-                ? "Marca las casillas, abre Â«Ver anuncioÂ» para revisar el borrador y, si todo estÃ¡ bien, publica en vivo desde la pantalla de vista previa."
-                : "Check the boxes, open â€œView listingâ€ to review your draft, then publish live from the preview screen when you are ready."}
+                ? "Marca las casillas, abre «Ver anuncio» para revisar el borrador y, si todo está bien, publica en vivo desde la pantalla de vista previa."
+                : "Check the boxes, open “View listing” to review your draft, then publish live from the preview screen when you are ready."}
             </p>
           </div>
           <ListingRulesConfirmationSection

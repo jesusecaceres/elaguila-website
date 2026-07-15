@@ -18,6 +18,16 @@ function photoId(i: number) {
   return `leonix-re-photo-${i}`;
 }
 
+export type LeonixRealEstatePhotoStripLabels = {
+  photoN: (n: number) => string;
+  coverSuffix: string;
+  coverActive: string;
+  useAsCover: string;
+  dragReorder?: string;
+  order?: string;
+  remove?: string;
+};
+
 export type LeonixRealEstateSortablePhotoStripProps = {
   urls: string[];
   primaryImageIndex: number;
@@ -27,6 +37,7 @@ export type LeonixRealEstateSortablePhotoStripProps = {
   /** `grid`: card tiles (negocio-style). `list`: compact row preview (privado legacy density). */
   variant?: "grid" | "list";
   dragLabel?: string;
+  labels?: LeonixRealEstatePhotoStripLabels;
 };
 
 /**
@@ -40,6 +51,7 @@ export function LeonixRealEstateSortablePhotoStrip({
   onSetPrimary,
   variant = "grid",
   dragLabel = "Arrastrar para reordenar foto",
+  labels,
 }: LeonixRealEstateSortablePhotoStripProps) {
   const ids = useMemo(() => urls.map((_, i) => photoId(i)), [urls]);
 
@@ -70,6 +82,8 @@ export function LeonixRealEstateSortablePhotoStrip({
 
   if (urls.length === 0) return null;
 
+  const resolvedDragLabel = labels?.dragReorder ?? dragLabel;
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={ids} strategy={rectSortingStrategy}>
@@ -77,19 +91,23 @@ export function LeonixRealEstateSortablePhotoStrip({
           {urls.map((url, i) => {
             const id = photoId(i);
             const isPrimary = i === primaryImageIndex;
+            const photoLabel = labels?.photoN ? labels.photoN(i + 1) : `Foto ${i + 1}`;
+            const coverSuffix = labels?.coverSuffix ?? " · Portada";
             return (
               <li key={id} className="min-w-0">
                 <RestauranteSortableMediaTile
                   id={id}
-                  dragLabel={dragLabel}
+                  dragLabel={resolvedDragLabel}
                   onRemove={() => onRemove(i)}
                   variant="gallery"
+                  orderLabel={labels?.order}
+                  removeAriaLabel={labels?.remove}
                 >
                   <div className="p-1.5">
                     <div className="mb-1.5 flex items-center justify-between gap-2 pr-1">
                       <span className="text-[10px] font-bold uppercase tracking-wide text-[#8A7B62]">
-                        Foto {i + 1}
-                        {isPrimary ? " · Portada" : ""}
+                        {photoLabel}
+                        {isPrimary ? coverSuffix : ""}
                       </span>
                     </div>
                     { }
@@ -112,7 +130,9 @@ export function LeonixRealEstateSortablePhotoStrip({
                         }`}
                         onClick={() => onSetPrimary(i)}
                       >
-                        {isPrimary ? "Portada activa" : "Usar como portada"}
+                        {isPrimary
+                          ? (labels?.coverActive ?? "Portada activa")
+                          : (labels?.useAsCover ?? "Usar como portada")}
                       </button>
                     </div>
                   </div>

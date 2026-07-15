@@ -83,90 +83,70 @@ import {
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
 
+const CANCEL_EDIT_CONFIRM: Record<OfficialLocale, string> = {
+  es: "¿Cancelar la edición?\n\nLos cambios no guardados se descartarán. Tu anuncio publicado permanecerá sin cambios.",
+  en: "Cancel editing?\n\nUnsaved changes will be discarded. Your published listing will remain unchanged.",
+  pt: "Cancelar a edição?\n\nAs alterações não salvas serão descartadas. Seu anúncio publicado permanecerá inalterado.",
+  tl: "I-cancel ang pag-edit?\n\nMawawala ang hindi naka-save na mga pagbabago. Mananatiling hindi magbabago ang published listing mo.",
+};
+
+const PREVIEW_MUST_FINISH_LOADING: Record<OfficialLocale, string> = {
+  es: "El anuncio publicado debe terminar de cargar antes de la vista previa.",
+  en: "The published listing must finish loading before preview.",
+  pt: "O anúncio publicado deve terminar de carregar antes da prévia.",
+  tl: "Kailangang matapos mag-load ang published listing bago ang preview.",
+};
+
+const RESIDENTIAL_FLOW_HIGHLIGHTS_ONLY: Record<OfficialLocale, string> = {
+  es: "Para este tipo de renta, los detalles de habitación o espacio compartido van arriba en “Anuncio”; aquí solo puedes marcar destacados si aplica.",
+  en: "For this rental type, room or shared-space details are above under “Listing”; here you can only mark highlights if they apply.",
+  pt: "Para este tipo de aluguel, os detalhes de quarto ou espaço compartilhado ficam acima em “Anúncio”; aqui você só pode marcar destaques se aplicável.",
+  tl: "Para sa uri ng rentang ito, ang mga detalye ng kuwarto o shared space ay nasa itaas sa “Anuncio”; dito maaari mo lang i-mark ang highlights kung applicable.",
+};
+
 function RentasSqftPreview({ value, lang }: { value: string; lang: OfficialLocale }) {
   const shown = formatRentasSqftPreview(value);
   if (!shown) return null;
-  const label = lang === "en" ? "Preview:" : "Vista previa:";
+  const label = getLaunchUiMessages(lang).rentas.page.sqftPreviewPrefix;
   return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">{label} {shown}</p>;
 }
 
-const RENTAS_PREVIEW_ACTION_LABELS = {
-  es: {
-    preview: "Validar y ver vista previa",
-    openPreview: "Ver vista previa (sin validar)",
-    openPreviewTitle:
-      "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
-    deleteApplication: "Eliminar borrador",
-  },
-  en: {
-    preview: "Validate and preview",
-    openPreview: "View preview (without validation)",
-    openPreviewTitle:
-      "Opens preview immediately with the draft saved in this tab. Does not require final confirmations or all minimum fields.",
-    deleteApplication: "Delete draft",
-  },
-} as const;
-
-const RENTAS_SECTION = {
-  es: {
-    photosVideo: "Fotos y video",
-    contact: "Información de contacto",
-    residential: "Detalle residencial",
-    commercial: "Detalle comercial",
-    land: "Detalle terreno / lote",
-  },
-  en: {
-    photosVideo: "Photos and video",
-    contact: "Contact information",
-    residential: "Residential details",
-    commercial: "Commercial details",
-    land: "Land / lot details",
-  },
-} as const;
-
-const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: { es: string; en: string } }[] = [
-  { id: "residencial", label: { es: "Residencial", en: "Residential" } },
-  { id: "comercial", label: { es: "Comercial", en: "Commercial" } },
-  { id: "terreno_lote", label: { es: "Terreno / lote", en: "Land / lot" } },
+const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; labelKey: "residential" | "commercial" | "landLot" }[] = [
+  { id: "residencial", labelKey: "residential" },
+  { id: "comercial", labelKey: "commercial" },
+  { id: "terreno_lote", labelKey: "landLot" },
 ];
 
 const POSTER_TYPE_OPTIONS: {
   id: Exclude<RentasPrivadoFormState["posterType"], "">;
-  label: { es: string; en: string };
+  labelKey: "ownerPrivate" | "agent" | "propertyManager" | "business";
 }[] = [
-  { id: "owner_private", label: { es: "Dueño / particular", en: "Owner / private person" } },
-  { id: "agent", label: { es: "Agente", en: "Agent" } },
-  { id: "property_manager", label: { es: "Property manager", en: "Property manager" } },
-  { id: "business", label: { es: "Negocio", en: "Business" } },
+  { id: "owner_private", labelKey: "ownerPrivate" },
+  { id: "agent", labelKey: "agent" },
+  { id: "property_manager", labelKey: "propertyManager" },
+  { id: "business", labelKey: "business" },
 ];
 
-const ESTADOS: { id: RentasPrivadoFormState["estadoAnuncio"]; label: { es: string; en: string } }[] = [
-  { id: "disponible", label: { es: "Disponible", en: "Available" } },
-  { id: "pendiente", label: { es: "Pendiente", en: "Pending" } },
-  { id: "bajo_contrato", label: { es: "Bajo contrato", en: "Under contract" } },
-  { id: "rentado", label: { es: "Rentado", en: "Rented" } },
+const ESTADOS: { id: RentasPrivadoFormState["estadoAnuncio"]; labelKey: "disponible" | "pendiente" | "bajo_contrato" | "rentado" }[] = [
+  { id: "disponible", labelKey: "disponible" },
+  { id: "pendiente", labelKey: "pendiente" },
+  { id: "bajo_contrato", labelKey: "bajo_contrato" },
+  { id: "rentado", labelKey: "rentado" },
 ];
 
-const CONDICION_OPTS: { value: RentasPrivadoFormState["residencial"]["condicion"]; label: { es: string; en: string } }[] = [
-  { value: "", label: { es: "—", en: "—" } },
-  { value: "excelente", label: { es: "Excelente", en: "Excellent" } },
-  { value: "buena", label: { es: "Buena", en: "Good" } },
-  { value: "regular", label: { es: "Regular", en: "Fair" } },
-  { value: "necesita_reparacion", label: { es: "Necesita reparación", en: "Needs repair" } },
+const CONDICION_OPTS: {
+  value: RentasPrivadoFormState["residencial"]["condicion"];
+  labelKey: "emptyDash" | "excelente" | "buena" | "regular" | "necesita_reparacion";
+}[] = [
+  { value: "", labelKey: "emptyDash" },
+  { value: "excelente", labelKey: "excelente" },
+  { value: "buena", labelKey: "buena" },
+  { value: "regular", labelKey: "regular" },
+  { value: "necesita_reparacion", labelKey: "necesita_reparacion" },
 ];
 
-const CONFIRM_PREVIEW_BLOCKED = {
-  es: "Marca las tres confirmaciones al final del formulario para usar Vista previa con validación.",
-  en: "Check all three confirmations at the bottom to use validated preview.",
-} as const;
-
-function rentasFormOptionLabel(label: string | { es: string; en: string }, copyLang: OfficialLocale): string {
-  const legacyCopyLang = copyLang === "en" ? "en" : "es";
-  return typeof label === "string" ? label : label[legacyCopyLang];
-}
-
-function rentasUiLabel(lang: OfficialLocale, es: string, en: string): string {
-  return lang === "en" ? en : es;
+function fillTemplate(template: string, vars: Record<string, string | number>): string {
+  return Object.entries(vars).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, String(v)), template);
 }
 
 export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLocale }) {
@@ -174,8 +154,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
   const searchParams = useSearchParams();
   const routeLang = initialLocale;
   const lang = initialLocale;
-  const legacyCopyLang = lang === "en" ? "en" : "es";
-  const rentasMessages = getLaunchUiMessages(lang);
+  const rm = getLaunchUiMessages(lang).rentas;
   const routeEditContext = useMemo(
     () => parseRentasListingEditContext(new URLSearchParams(searchParams?.toString() ?? ""), "privado"),
     [searchParams],
@@ -382,11 +361,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
   const cancelEdit = useCallback(() => {
     if (!editContext) return;
     if (dirty) {
-      const ok = window.confirm(
-        lang === "en"
-          ? "Cancel editing?\n\nUnsaved changes will be discarded. Your published listing will remain unchanged."
-          : "¿Cancelar la edición?\n\nLos cambios no guardados se descartarán. Tu anuncio publicado permanecerá sin cambios.",
-      );
+      const ok = window.confirm(CANCEL_EDIT_CONFIRM[lang]);
       if (!ok) return;
     }
     clearRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado" });
@@ -406,7 +381,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     const { data } = await sb.auth.getSession();
     const token = data.session?.access_token;
     if (!token) {
-      setSaveMessage(lang === "en" ? "Sign in required." : "Inicia sesión para guardar.");
+      setSaveMessage(rm.actions.signInRequired);
       setSaveBusy(false);
       return;
     }
@@ -424,15 +399,15 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
     setSaveBusy(false);
     if (!res.ok || !json.ok) {
-      setSaveMessage(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
+      setSaveMessage(json.message ?? rm.actions.couldNotSave);
       return;
     }
     cleanEditSnapshotRef.current = JSON.stringify(stateRef.current);
     setDirty(false);
     saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
-    setSaveMessage(lang === "en" ? "Changes saved. Your listing identity and expiration were preserved." : "Cambios guardados. Se conservaron la identidad y vencimiento del anuncio.");
+    setSaveMessage(rm.actions.changesSaved);
     router.push(editContext.returnHref);
-  }, [editContext, hydrationStatus, lang, router]);
+  }, [editContext, hydrationStatus, lang, router, rm.actions]);
 
   const previewActionsProps = {
     onPreviewValidated: () => {
@@ -450,8 +425,19 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     openPreviewHref: previewHref,
     onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll || (Boolean(editContext) && hydrationStatus !== "ready"),
-    validationBlockedMessage: previewGateMessage ?? (editContext && hydrationStatus !== "ready" ? (lang === "en" ? "The published listing must finish loading before preview." : "El anuncio publicado debe terminar de cargar antes de la vista previa.") : !confirmAll ? CONFIRM_PREVIEW_BLOCKED[legacyCopyLang] : null),
-    labels: RENTAS_PREVIEW_ACTION_LABELS[legacyCopyLang],
+    validationBlockedMessage:
+      previewGateMessage ??
+      (editContext && hydrationStatus !== "ready"
+        ? PREVIEW_MUST_FINISH_LOADING[lang]
+        : !confirmAll
+          ? rm.actions.confirmPreviewBlocked
+          : null),
+    labels: {
+      preview: rm.actions.validatePreview,
+      openPreview: rm.actions.viewWithoutValidation,
+      openPreviewTitle: rm.actions.openPreviewTitle,
+      deleteApplication: rm.actions.deleteDraft,
+    },
     onDeleteApplication: async () => {
       if (editContext) {
         cancelEdit();
@@ -468,10 +454,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
       }
       setPreviewGateMessage(null);
     },
-    deleteConfirmMessage:
-      lang === "en"
-        ? "Delete this application draft and start over?"
-        : "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
+    deleteConfirmMessage: rm.actions.deleteConfirmMessage,
   };
 
   if (editContext && hydrationStatus !== "ready") {
@@ -479,29 +462,19 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
       <main className="min-h-screen bg-[#F6F0E2] px-4 py-24 text-[#2C2416]">
         <section className="mx-auto max-w-2xl rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9A7B32]">
-            {lang === "en" ? "Listing edit" : "Edición de anuncio"}
+            {rm.page.listingEdit}
           </p>
           <h1 className="mt-2 text-2xl font-bold">
-            {hydrationStatus === "error"
-              ? lang === "en"
-                ? "We could not load the published listing"
-                : "No pudimos cargar el anuncio publicado"
-              : lang === "en"
-                ? "Loading your published listing..."
-                : "Cargando tu anuncio publicado..."}
+            {hydrationStatus === "error" ? rm.page.loadError : rm.page.loadLoading}
           </h1>
-          <p className="mt-3 text-sm text-[#5C5346]">
-            {lang === "en"
-              ? "Editing stays blocked until the original listing snapshot is loaded. No changes have been saved to your published listing."
-              : "La edición permanece bloqueada hasta cargar el anuncio original. No se ha guardado ningún cambio en tu anuncio publicado."}
-          </p>
+          <p className="mt-3 text-sm text-[#5C5346]">{rm.page.loadBlockedHint}</p>
           {previewGateMessage ? <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-950">{previewGateMessage}</p> : null}
           <div className="mt-5 flex flex-wrap gap-2">
             <button type="button" onClick={() => window.location.reload()} className="min-h-[44px] rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-bold text-white">
-              {lang === "en" ? "Try again" : "Intentar de nuevo"}
+              {rm.actions.tryAgain}
             </button>
             <button type="button" onClick={cancelEdit} className="min-h-[44px] rounded-xl border border-[#C9B46A]/50 bg-white px-4 py-2 text-sm font-bold text-[#2C2416]">
-              {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+              {rm.actions.cancelEdit}
             </button>
           </div>
         </section>
@@ -513,33 +486,23 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <header className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{lang === "en" ? "Leonix · Rentals" : "Leonix · Rentas"}</p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">{editContext ? (lang === "en" ? "Edit rental listing" : "Editar anuncio de renta") : lang === "en" ? "Post a rental" : "Publicar renta"}</h1>
-          <p className={aiSubClass}>
-            {editContext
-              ? lang === "en"
-                ? "You are editing an isolated workspace. Your published listing changes only after Save changes."
-                : "Estás editando un espacio aislado. Tu anuncio publicado solo cambia al usar Guardar cambios."
-              : lang === "en"
-              ? "The preview only shows what you fill in. The draft lives in this browser session (same tab)."
-              : "La vista previa solo muestra lo que llenes. El borrador vive en esta sesión del navegador (misma pestaña)."}
-          </p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{rm.page.brandKicker}</p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">
+            {editContext ? rm.page.editTitle : rm.page.postTitle}
+          </h1>
+          <p className={aiSubClass}>{editContext ? rm.page.introEdit : rm.page.introNew}</p>
         </header>
 
         {editContext ? (
           <section className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
-            <p className="font-bold">{lang === "en" ? "Published listing protected" : "Anuncio publicado protegido"}</p>
-            <p className="mt-1 text-xs text-[#5C5346]">
-              {lang === "en"
-                ? "Cancel discards only this edit workspace. Save changes updates the same listing without Stripe, duplicate rows, or expiration changes."
-                : "Cancelar descarta solo este espacio de edición. Guardar cambios actualiza el mismo anuncio sin Stripe, duplicados ni cambios al vencimiento."}
-            </p>
+            <p className="font-bold">{rm.page.publishedProtected}</p>
+            <p className="mt-1 text-xs text-[#5C5346]">{rm.page.publishedProtectedHint}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={cancelEdit} className="min-h-[44px] rounded-xl border border-[#C9B46A]/60 bg-white px-4 py-2 text-sm font-bold text-[#2C2416]">
-                {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+                {rm.actions.cancelEdit}
               </button>
               <button type="button" disabled={saveBusy || hydrationStatus !== "ready"} onClick={() => void saveListingEdit()} className="min-h-[44px] rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
-                {saveBusy ? (lang === "en" ? "Saving..." : "Guardando...") : lang === "en" ? "Save changes" : "Guardar cambios"}
+                {saveBusy ? rm.actions.saving : rm.actions.saveChanges}
               </button>
             </div>
             {saveMessage ? <p className="mt-2 text-xs font-semibold text-[#6E5418]" role="status">{saveMessage}</p> : null}
@@ -547,40 +510,26 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         ) : null}
 
         <ClasificadosApplicationTopActions {...previewActionsProps} />
-        <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          {lang === "en" ? (
-            <><strong className="text-[#1E1810]">Validate and preview</strong> requires the final confirmations and minimum requirements; if they pass, opens your test listing.{" "}
-            <strong className="text-[#1E1810]">View preview (without validation)</strong> saves the draft and opens instantly (useful while you finish optional fields).</>
-          ) : (
-            <><strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
-            requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
-            <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
-            (útil mientras terminas campos opcionales).</>
-          )}
-        </p>
+        <p className="text-xs leading-relaxed text-[#5C5346]/88">{rm.page.previewExplanation}</p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
             href={withClasificadosPublishLang("/clasificados/rentas", routeLang)}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
-            {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
+            {rm.actions.backToRentals}
           </Link>
         </div>
 
         <LeonixLaunchCouponCard
-          lang={lang === "en" ? "en" : "es"}
+          lang={lang}
           variant="mini"
-          href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=rentas_privado&sourceCta=launch_25`}
+          href={`/newsletter?lang=${lang}&source=rentas_privado&sourceCta=launch_25`}
         />
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>{lang === "en" ? "Who is posting this rental?" : "¿Quién publica esta renta?"}</h2>
-          <p className={aiSubClass}>
-            {lang === "en"
-              ? "We use this only to describe who is offering the rental. The form and price stay the same."
-              : "Usaremos esto solo para mostrar mejor quién ofrece la renta. El formulario y el precio son los mismos."}
-          </p>
+          <h2 className={aiTitleClass}>{rm.publisher.whoPosting}</h2>
+          <p className={aiSubClass}>{rm.publisher.whoHint}</p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {POSTER_TYPE_OPTIONS.map((o) => (
               <button
@@ -593,15 +542,15 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
-                {rentasFormOptionLabel(o.label, lang)}
+                {rm.publisher[o.labelKey]}
               </button>
             ))}
           </div>
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>{lang === "en" ? "Category" : "Categoría"}</h2>
-          <p className={aiSubClass}>{lang === "en" ? "Choose one; the other fields adapt in the form and preview." : "Elige una; los demás campos se adaptan en el formulario y en la vista previa."}</p>
+          <h2 className={aiTitleClass}>{rm.category.title}</h2>
+          <p className={aiSubClass}>{rm.category.hint}</p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
@@ -614,7 +563,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
-                {c.label[legacyCopyLang]}
+                {rm.category[c.labelKey]}
               </button>
             ))}
           </div>
@@ -625,7 +574,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
           setState={setState}
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
-          estadoOptions={ESTADOS.map((o) => ({ id: o.id, label: o.label[legacyCopyLang] }))}
+          estadoOptions={ESTADOS.map((o) => ({ id: o.id, label: rm.listingStatus[o.labelKey] }))}
           lang={lang}
         />
 
@@ -634,28 +583,19 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
           setState={setState}
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
-          lang={legacyCopyLang}
+          lang={lang}
         />
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>{RENTAS_SECTION[legacyCopyLang].photosVideo}</h2>
-          <p className={aiSubClass}>
-            Hasta {MAX_PHOTOS} fotos (se comprimen en el navegador). Para una vista previa completa hace falta al menos una
-            foto
-            <span className="text-[#B8954A]" aria-hidden>
-              {" "}
-              *
-            </span>
-            . Los videos se agregan como enlaces externos (hasta {MAX_VIDEO_URLS}); no se suben archivos de video en esta
-            versión de lanzamiento. Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
-          </p>
+          <h2 className={aiTitleClass}>{rm.media.sectionTitle}</h2>
+          <p className={aiSubClass}>{rm.media.intro}</p>
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
               {mediaNotice}
             </p>
           ) : null}
           <div className="mt-4">
-            <span className={aiLabelClass}>Fotos del anuncio</span>
+            <span className={aiLabelClass}>{rm.media.listingPhotos}</span>
             <input
               ref={photosInputRef}
               type="file"
@@ -670,16 +610,17 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                 onClick={() => photosInputRef.current?.click()}
               >
-                Subir o añadir fotos
+                {rm.media.uploadAdd}
               </button>
               <span className="self-center text-xs text-[#5C5346]">
-                {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
+                {fillTemplate(rm.media.selectedCountTemplate, {
+                  count: state.media.photoDataUrls.length,
+                  max: MAX_PHOTOS,
+                  selectedWord: rm.media.selectedWord,
+                })}
               </span>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-              Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}
-              para arrastrar y reordenar. La portada puede ser distinta del primer casillero.
-            </p>
+            <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">{rm.media.photoCardHint}</p>
             {state.media.photoDataUrls.length > 0 ? (
               <LeonixRealEstateSortablePhotoStrip
                 urls={state.media.photoDataUrls}
@@ -717,15 +658,22 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                     return out;
                   })
                 }
+                labels={{
+                  photoN: (n) => fillTemplate(rm.photoStrip.photoN, { n }),
+                  coverSuffix: rm.photoStrip.coverSuffix,
+                  coverActive: rm.photoStrip.coverActive,
+                  useAsCover: rm.photoStrip.useAsCover,
+                  dragReorder: rm.photoStrip.dragReorder,
+                  order: rm.photoStrip.order,
+                  remove: rm.photoStrip.remove,
+                }}
               />
             ) : null}
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
-            <span className={aiLabelClass}>Videos por enlace (opcional)</span>
+            <span className={aiLabelClass}>{rm.media.videosByLink}</span>
             <p className={aiHintClass}>
-              Puedes agregar hasta {MAX_VIDEO_URLS} enlaces externos. Recomendado: YouTube, TikTok, Instagram, Facebook,
-              Vimeo o un MP4 público. No subas archivos de video aquí; Leonix guardará los enlaces y mostrará el primero en
-              la galería cuando el navegador pueda reproducirlo.
+              {rm.media.videosHint} {rm.media.recommendedPlatforms}
             </p>
             <div className="mt-4 grid gap-3">
               {Array.from({ length: MAX_VIDEO_URLS }, (_, i) => {
@@ -735,8 +683,8 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 return (
                   <AiField
                     key={i}
-                    label={`Video ${i + 1}`}
-                    hint={i === 0 ? "El primer enlace es el principal para la vista previa y la salida publicada." : undefined}
+                    label={fillTemplate(rm.media.videoN, { n: i + 1 })}
+                    hint={i === 0 ? rm.media.primaryVideoHint : undefined}
                   >
                     <input
                       className={fieldClass}
@@ -748,41 +696,24 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                       onChange={(e) => onVideoUrlChange(i, e.target.value)}
                     />
                     {invalid ? (
-                      <p className="mt-2 text-xs font-medium text-amber-800">
-                        Usa una URL completa que empiece con http:// o https://.
-                      </p>
+                      <p className="mt-2 text-xs font-medium text-amber-800">{rm.media.invalidUrl}</p>
                     ) : null}
                   </AiField>
                 );
               })}
             </div>
             {normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]).length ? (
-              <p className="mt-3 text-xs font-medium text-[#2C7A4E]">
-                Enlaces listos: se guardarán en el borrador y en la publicación. Los navegadores pueden mostrar algunos como
-                enlace en lugar de reproductor.
-              </p>
+              <p className="mt-3 text-xs font-medium text-[#2C7A4E]">{rm.media.linksReady}</p>
             ) : null}
           </div>
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>{RENTAS_SECTION[legacyCopyLang].contact}</h2>
-          <p className={aiSubClass}>
-            Tu nombre y cómo quieres que te contacten. Para vista previa: nombre
-            <span className="text-[#B8954A]" aria-hidden>
-              {" "}
-              *
-            </span>{" "}
-            y al menos un medio de contacto (teléfono, WhatsApp, mensajes de texto o correo)
-            <span className="text-[#B8954A]" aria-hidden>
-              {" "}
-              *
-            </span>
-            .
-          </p>
+          <h2 className={aiTitleClass}>{rm.contact.sectionTitle}</h2>
+          <p className={aiSubClass}>{rm.contact.intro}</p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <span className={aiLabelClass}>Foto de contacto (opcional)</span>
+              <span className={aiLabelClass}>{rm.contact.contactPhoto}</span>
               <input
                 ref={ownerPhotoInputRef}
                 type="file"
@@ -810,7 +741,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                   onClick={() => ownerPhotoInputRef.current?.click()}
                 >
-                  Subir foto
+                  {rm.contact.uploadPhoto}
                 </button>
                 {state.seller.fotoDataUrl ? (
                   <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -830,13 +761,13 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                         })
                       }
                     >
-                      Quitar foto
+                      {rm.contact.removePhoto}
                     </button>
                   </div>
                 ) : null}
               </div>
             </div>
-            <AiField required label={rentasUiLabel(lang, "Nombre completo", "Full name")}>
+            <AiField required label={rm.contact.fullName}>
               <input
                 className={fieldClass}
                 value={state.seller.nombre}
@@ -844,7 +775,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 autoComplete="name"
               />
             </AiField>
-            <AiField label={rentasUiLabel(lang, "Teléfono", "Phone")}>
+            <AiField label={rm.contact.phone}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -857,7 +788,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 autoComplete="tel"
               />
             </AiField>
-            <AiField label="WhatsApp">
+            <AiField label={rm.contact.whatsapp}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -870,14 +801,11 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 autoComplete="tel"
               />
             </AiField>
-            <AiField
-              label={rentasUiLabel(lang, "Número para mensajes de texto", "Text message number")}
-              hint={rentasUiLabel(lang, "Puede ser el mismo número de teléfono o uno diferente.", "Can be the same phone number or a different one.")}
-            >
+            <AiField label={rm.contact.textNumber} hint={rm.contact.textNumberHint}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
-                placeholder="Puede ser el mismo número de teléfono o uno diferente."
+                placeholder={rm.contact.textNumberPlaceholder}
                 value={formatUsPhoneDisplay(digitsOnly(state.seller.mensajesTexto))}
                 onChange={(e) => {
                   const prev = digitsOnly(state.seller.mensajesTexto);
@@ -888,7 +816,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               />
             </AiField>
             <div className="sm:col-span-2">
-              <AiField label={rentasUiLabel(lang, "Correo electrónico", "Email")}>
+              <AiField label={rm.contact.email}>
                 <input
                   className={fieldClass}
                   type="email"
@@ -899,10 +827,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField
-                label={rentasUiLabel(lang, "Mensaje para interesados (opcional)", "Message for interested parties (optional)")}
-                hint={rentasUiLabel(lang, "Texto breve que verán antes de escribirte o llamarte.", "Brief text they will see before messaging or calling you.")}
-              >
+              <AiField label={rm.contact.messageOptional} hint={rm.contact.messageHint}>
                 <textarea
                   className={textareaFieldClass}
                   rows={3}
@@ -913,7 +838,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
             </div>
             <div className="sm:col-span-2 mt-2 border-t border-black/10 pt-5">
               <Gate12cContactChannelsFields
-                lang={legacyCopyLang}
+                lang={lang}
                 value={state.contactChannels}
                 onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
                 fieldClass={fieldClass}
@@ -925,10 +850,10 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         {cat === "residencial" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>{RENTAS_SECTION[legacyCopyLang].residential}</h2>
+            <h2 className={aiTitleClass}>{rm.residential.sectionTitle}</h2>
             {residencialRowsMode === "full_legacy" ? (
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label={rentasUiLabel(lang, "Tipo", "Type")}>
+              <AiField label={rm.residential.type}>
                 <select
                   className={fieldClass}
                   value={state.residencial.tipoCodigo}
@@ -941,12 +866,12 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {TIPO_PROPIEDAD_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {rm.residentialTypes[o.value]}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
+              <AiField label={rm.residential.subtype}>
                 <select
                   className={fieldClass}
                   value={state.residencial.subtipo}
@@ -954,12 +879,14 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {SUBTIPO_POR_TIPO[state.residencial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {o.value
+                        ? (rm.residentialSubtypes as Record<string, string>)[o.value] || o.label
+                        : rm.residentialSubtypes.noAdditionalDetail}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Recámaras", "Bedrooms")}>
+              <AiField label={rm.residential.bedrooms}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -967,7 +894,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, recamaras: e.target.value } }))}
                 />
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Baños completos", "Full bathrooms")}>
+              <AiField label={rm.residential.fullBaths}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -975,7 +902,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Medios baños", "Half bathrooms")}>
+              <AiField label={rm.residential.halfBaths}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -983,7 +910,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Interior (ft²)">
+              <AiField label={rm.residential.interior}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -992,7 +919,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 />
                 <RentasSqftPreview value={state.residencial.interiorSqft} lang={lang} />
               </AiField>
-              <AiField label="Lote (ft²)">
+              <AiField label={rm.residential.lot}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1001,14 +928,14 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 />
                 <RentasSqftPreview value={state.residencial.loteSqft} lang={lang} />
               </AiField>
-              <AiField label={rentasMessages.rentas.services.parking}>
+              <AiField label={rm.residential.parking}>
                 <input
                   className={fieldClass}
                   value={state.residencial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Año de construcción", "Year built")}>
+              <AiField label={rm.residential.yearBuilt}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1016,7 +943,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, ano: e.target.value } }))}
                 />
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Condición", "Condition")}>
+              <AiField label={rm.residential.condition}>
                 <select
                   className={fieldClass}
                   value={state.residencial.condicion}
@@ -1029,7 +956,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={o.value || "x"} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {rm.condition[o.labelKey]}
                     </option>
                   ))}
                 </select>
@@ -1037,7 +964,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
             </div>
             ) : residencialRowsMode === "room_partial" ? (
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-                <AiField label={rentasUiLabel(lang, "Baños completos", "Full bathrooms")}>
+                <AiField label={rm.residential.fullBaths}>
                   <input
                     className={fieldClass}
                     inputMode="decimal"
@@ -1045,7 +972,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                   />
                 </AiField>
-                <AiField label={rentasUiLabel(lang, "Medios baños", "Half bathrooms")}>
+                <AiField label={rm.residential.halfBaths}>
                   <input
                     className={fieldClass}
                     inputMode="decimal"
@@ -1053,7 +980,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
                   />
                 </AiField>
-                <AiField label="Interior (ft²)">
+                <AiField label={rm.residential.interior}>
                   <input
                     className={fieldClass}
                     inputMode="numeric"
@@ -1062,7 +989,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   />
                   <RentasSqftPreview value={state.residencial.interiorSqft} lang={lang} />
                 </AiField>
-                <AiField label={rentasMessages.rentas.services.parking}>
+                <AiField label={rm.residential.parking}>
                   <input
                     className={fieldClass}
                     value={state.residencial.estacionamiento}
@@ -1071,14 +998,10 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 </AiField>
               </div>
             ) : (
-              <p className={`${aiSubClass} mt-3`}>
-                Para este tipo de renta, los detalles de habitación o espacio compartido van arriba en “Anuncio”; aquí solo
-                puedes marcar destacados si aplica.
-              </p>
+              <p className={`${aiSubClass} mt-3`}>{RESIDENTIAL_FLOW_HIGHLIGHTS_ONLY[lang]}</p>
             )}
             <div className="mt-6">
-              <span className={aiLabelClass}>{rentasUiLabel(lang, "Destacados", "Highlights")}</span>
-              <p className={aiHintClass}>{rentasUiLabel(lang, "Opcional: qué destacar en la vista previa.", "Optional: what to highlight in the preview.")}</p>
+              <span className={aiLabelClass}>{rm.highlights.highlightsHeading}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
                   <label key={d.key} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1098,7 +1021,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                     <span className="text-base leading-none shrink-0 pt-0.5" aria-hidden>
                       {RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL[d.key as keyof typeof RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL]}
                     </span>
-                    <span className="min-w-0 flex-1">{d.label}</span>
+                    <span className="min-w-0 flex-1">{(rm.highlights as Record<string, string>)[d.key] ?? d.label}</span>
                   </label>
                 ))}
               </div>
@@ -1108,9 +1031,9 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         {cat === "comercial" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>{RENTAS_SECTION[legacyCopyLang].commercial}</h2>
+            <h2 className={aiTitleClass}>{rm.commercialSection.sectionTitle}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo comercial">
+              <AiField label={rm.commercialSection.type}>
                 <select
                   className={fieldClass}
                   value={state.comercial.tipoCodigo}
@@ -1123,12 +1046,12 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {COMERCIAL_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {rm.commercialTypes[o.value]}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
+              <AiField label={rm.commercialSection.subtype}>
                 <select
                   className={fieldClass}
                   value={state.comercial.subtipo}
@@ -1136,13 +1059,15 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {COMERCIAL_SUBTIPO_POR_TIPO[state.comercial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {!o.value
+                        ? rm.commercialSubtypes.noAdditionalDetail
+                        : (rm.commercialSubtypes as Record<string, string>)[o.value] ?? o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
               <div className="sm:col-span-2">
-                <AiField label="Uso">
+                <AiField label={rm.commercialSection.use}>
                   <input
                     className={fieldClass}
                     value={state.comercial.uso}
@@ -1150,7 +1075,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   />
                 </AiField>
               </div>
-              <AiField label="Interior (ft²)">
+              <AiField label={rm.commercialSection.interior}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1159,42 +1084,42 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 />
                 <RentasSqftPreview value={state.comercial.interiorSqft} lang={lang} />
               </AiField>
-              <AiField label="Oficinas">
+              <AiField label={rm.commercialSection.offices}>
                 <input
                   className={fieldClass}
                   value={state.comercial.oficinas}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, oficinas: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Baños">
+              <AiField label={rm.commercialSection.baths}>
                 <input
                   className={fieldClass}
                   value={state.comercial.banos}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Niveles">
+              <AiField label={rm.commercialSection.levels}>
                 <input
                   className={fieldClass}
                   value={state.comercial.niveles}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, niveles: e.target.value } }))}
                 />
               </AiField>
-              <AiField label={rentasMessages.rentas.services.parking}>
+              <AiField label={rm.commercialSection.parking}>
                 <input
                   className={fieldClass}
                   value={state.comercial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Zonificación">
+              <AiField label={rm.commercialSection.zoning}>
                 <input
                   className={fieldClass}
                   value={state.comercial.zonificacion}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Condición", "Condition")}>
+              <AiField label={rm.commercialSection.condition}>
                 <select
                   className={fieldClass}
                   value={state.comercial.condicion}
@@ -1207,7 +1132,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={`c-${o.value || "x"}`} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {rm.condition[o.labelKey]}
                     </option>
                   ))}
                 </select>
@@ -1219,11 +1144,11 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   checked={state.comercial.accesoCarga}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, accesoCarga: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium text-[#2C2416]">Acceso de carga</span>
+                <span className="text-sm font-medium text-[#2C2416]">{rm.commercialSection.loadingAccess}</span>
               </label>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
+              <span className={aiLabelClass}>{rm.commercialSection.highlightsHeading}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {COMERCIAL_DESTACADOS_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1240,7 +1165,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                         })
                       }
                     />
-                    <span className="min-w-0 flex-1">{d.label}</span>
+                    <span className="min-w-0 flex-1">{rm.commercialHighlights[d.id] ?? d.label}</span>
                   </label>
                 ))}
               </div>
@@ -1250,9 +1175,9 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         {cat === "terreno_lote" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>{RENTAS_SECTION[legacyCopyLang].land}</h2>
+            <h2 className={aiTitleClass}>{rm.landSection.sectionTitle}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label={rentasUiLabel(lang, "Tipo", "Type")}>
+              <AiField label={rm.landSection.type}>
                 <select
                   className={fieldClass}
                   value={state.terreno.tipoCodigo}
@@ -1265,12 +1190,12 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {TERRENO_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {rm.landTypes[o.value]}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
+              <AiField label={rm.landSection.subtype}>
                 <select
                   className={fieldClass}
                   value={state.terreno.subtipo}
@@ -1278,12 +1203,14 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 >
                   {TERRENO_SUBTIPO_POR_TIPO[state.terreno.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {rentasFormOptionLabel(o.label, lang)}
+                      {!o.value
+                        ? rm.landSubtypes.noAdditionalDetail
+                        : (rm.landSubtypes as Record<string, string>)[o.value] ?? o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Lote (ft²)">
+              <AiField label={rm.landSection.lot}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1292,28 +1219,28 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 />
                 <RentasSqftPreview value={state.terreno.loteSqft} lang={lang} />
               </AiField>
-              <AiField label="Uso / zonificación">
+              <AiField label={rm.landSection.useZoning}>
                 <input
                   className={fieldClass}
                   value={state.terreno.usoZonificacion}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, usoZonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Acceso">
+              <AiField label={rm.landSection.access}>
                 <input
                   className={fieldClass}
                   value={state.terreno.acceso}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, acceso: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Servicios">
+              <AiField label={rm.landSection.utilities}>
                 <input
                   className={fieldClass}
                   value={state.terreno.servicios}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, servicios: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Topografía">
+              <AiField label={rm.landSection.topography}>
                 <input
                   className={fieldClass}
                   value={state.terreno.topografia}
@@ -1327,7 +1254,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   checked={state.terreno.listoConstruir}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, listoConstruir: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium">Listo para construir</span>
+                <span className="text-sm font-medium">{rm.landSection.readyToBuild}</span>
               </label>
               <label className="flex cursor-pointer items-center gap-2">
                 <input
@@ -1336,11 +1263,11 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   checked={state.terreno.cercado}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, cercado: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium">Cercado</span>
+                <span className="text-sm font-medium">{rm.landSection.fenced}</span>
               </label>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
+              <span className={aiLabelClass}>{rm.landSection.highlightsHeading}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {TERRENO_DESTACADOS_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1357,7 +1284,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                         })
                       }
                     />
-                    <span className="min-w-0 flex-1">{d.label}</span>
+                    <span className="min-w-0 flex-1">{rm.landHighlights[d.id] ?? d.label}</span>
                   </label>
                 ))}
               </div>
@@ -1366,7 +1293,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         ) : null}
 
         <ListingRulesConfirmationSection
-          lang={legacyCopyLang}
+          lang={lang}
           subject="property"
           confirmAccurate={state.confirmListingAccurate}
           confirmPhotos={state.confirmPhotosRepresentItem}
@@ -1378,38 +1305,23 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         <section className={`${aiCardClass} min-w-0`} aria-labelledby="sec-review">
           <h2 id="sec-review" className={aiTitleClass}>
-            {lang === "es" ? "Revisión final" : "Final review"}
+            {rm.review.finalReview}
           </h2>
-          <p className={aiSubClass}>
-            {lang === "en"
-              ? "When your content is ready, use the buttons below to open the preview or start publishing."
-              : "Cuando tu contenido esté listo, usa los botones de abajo para abrir la vista previa o iniciar la publicación."}
-          </p>
+          <p className={aiSubClass}>{rm.review.finalReviewHint}</p>
 
-          {/* Pricing summary */}
           <div className="mt-5 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
-            <p className="text-xs font-semibold text-[#8a7a62]">
-              {lang === "en" ? "Price summary" : "Resumen de precios"}
-            </p>
+            <p className="text-xs font-semibold text-[#8a7a62]">{rm.review.priceSummary}</p>
             <div className="mt-2 space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-[#5D4A25]">
-                  {lang === "en" ? "Rental listing" : "Anuncio de renta"}
-                </span>
-                <span className="font-semibold text-[#3D2C12]">$24.99 / 30 {lang === "en" ? "days" : "días"}</span>
+                <span className="text-[#5D4A25]">{rm.review.rentalListing}</span>
+                <span className="font-semibold text-[#3D2C12]">$24.99 / 30 {rm.review.days30}</span>
               </div>
               <div className="mt-2 flex justify-between border-t border-[#D8C79A]/40 pt-2">
-                <span className="font-semibold text-[#3D2C12]">
-                  {lang === "en" ? "Total" : "Total"}
-                </span>
+                <span className="font-semibold text-[#3D2C12]">{rm.review.total}</span>
                 <span className="font-bold text-[#C9782F]">$24.99</span>
               </div>
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-[#5D4A25]/80">
-              {lang === "en"
-                ? "Paid listing activation happens after secure payment."
-                : "La activación del anuncio pagado ocurre después del pago seguro."}
-            </p>
+            <p className="mt-3 text-xs leading-relaxed text-[#5D4A25]/80">{rm.review.paidActivationHint}</p>
           </div>
 
           <div className="mt-6 flex flex-col gap-3 border-t border-[#D8C79A]/40 pt-5">
@@ -1420,7 +1332,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 disabled={previewActionsProps.disableValidatedPreview}
                 className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-xs"
               >
-                {lang === "en" ? "Preview" : "Vista previa"}
+                {rm.review.preview}
               </button>
               <button
                 type="button"
@@ -1430,7 +1342,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 }}
                 className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
               >
-                {lang === "en" ? "View preview (draft)" : "Ver vista previa (borrador)"}
+                {rm.review.viewPreviewDraft}
               </button>
             </div>
             {previewActionsProps.validationBlockedMessage ? (
@@ -1445,7 +1357,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   onClick={cancelEdit}
                   className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#C9B46A]/60 bg-white px-4 py-3 text-sm font-bold text-[#2C2416]"
                 >
-                  {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+                  {rm.actions.cancelEdit}
                 </button>
                 <button
                   type="button"
@@ -1453,7 +1365,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                   onClick={() => void saveListingEdit()}
                   className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
                 >
-                  {saveBusy ? (lang === "en" ? "Saving..." : "Guardando...") : lang === "en" ? "Save changes" : "Guardar cambios"}
+                  {saveBusy ? rm.actions.saving : rm.actions.saveChanges}
                 </button>
               </div>
             ) : (
@@ -1471,7 +1383,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         </section>
 
         <p className="break-words text-center text-xs leading-relaxed text-[#5C5346]/80">
-          Borrador guardado solo en este dispositivo.
+          {rm.page.draftDeviceOnly}
         </p>
       </div>
     </main>
