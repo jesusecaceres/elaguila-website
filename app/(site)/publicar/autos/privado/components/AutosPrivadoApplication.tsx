@@ -670,71 +670,25 @@ export function AutosPrivadoApplication() {
               </div>
             </div>
             
-            {/* Optional meeting location */}
+            {/* Optional meeting note */}
             <div className="mt-6">
               <label className={LABEL}>
-                {lang === "es" ? "Lugar de encuentro o ubicación opcional" : "Optional meeting location"}
+                {lang === "es" ? "Nota opcional para reunirse" : "Optional meeting note"}
               </label>
               <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">
                 {lang === "es"
-                  ? "Opcional. Solo se mostrará si quieres que el comprador vea dónde revisar o recoger el vehículo."
-                  : "Optional. Only shown if you want buyers to see where to inspect or pick up the vehicle."}
+                  ? "Opcional. Indica cómo prefieres coordinar un lugar seguro para ver o entregar el vehículo."
+                  : "Optional. Tell buyers how you prefer to coordinate a safe meeting place."}
               </p>
-              <div className={`${GRID2} mt-3`}>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
-                    {lang === "es" ? "Dirección o zona de encuentro" : "Address or meeting area"}
-                  </label>
-                  <input
-                    className={`${INPUT} mt-1.5`}
-                    value={autosDraftTextValue(listing.dealerAddress ?? "")}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setListingPatch({ dealerAddress: value === "" ? undefined : value });
-                    }}
-                    placeholder={lang === "es" ? "Ej. 123 Main St" : "E.g. 123 Main St"}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
-                    {lang === "es" ? "Ciudad" : "City"}
-                  </label>
-                  <input
-                    className={`${INPUT} mt-1.5`}
-                    value={autosDraftTextValue(listing.dealerAddressCity ?? "")}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setListingPatch({ dealerAddressCity: value === "" ? undefined : value });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
-                    {lang === "es" ? "Estado" : "State"}
-                  </label>
-                  <input
-                    className={`${INPUT} mt-1.5`}
-                    value={autosDraftTextValue(listing.dealerAddressState ?? "")}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setListingPatch({ dealerAddressState: value === "" ? undefined : value });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]">
-                    {lang === "es" ? "Código postal" : "ZIP code"}
-                  </label>
-                  <input
-                    className={`${INPUT} mt-1.5`}
-                    value={autosDraftTextValue(listing.dealerAddressZip ?? "")}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setListingPatch({ dealerAddressZip: value === "" ? undefined : value });
-                    }}
-                  />
-                </div>
-              </div>
+              <textarea
+                className={`${INPUT} mt-3 min-h-[100px]`}
+                value={autosDraftTextValue(listing.dealerAddress ?? "")}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setListingPatch({ dealerAddress: value === "" ? undefined : value });
+                }}
+                placeholder={lang === "es" ? "Contáctame para acordar un lugar público y seguro." : "Contact me to agree on a safe public meeting place."}
+              />
             </div>
           </section>
 

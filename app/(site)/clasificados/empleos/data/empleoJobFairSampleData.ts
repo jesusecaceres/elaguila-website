@@ -54,8 +54,8 @@ export const EMPLEO_JOB_FAIR_SAMPLE: EmpleoJobFairSample = {
   state: "TX",
   organizer: "ExpoEmpleos",
   organizerUrl: "https://example.com/expoempleos",
-  detailsBullets: ["Feria de Empleo", "Presencial", "Entrada gratuita"],
-  secondaryDetails: ["Feria de Empleo", "Presencial", "Entrada gratuita"],
+  detailsBullets: ["Feria de Empleo", "En persona", "Entrada gratuita"],
+  secondaryDetails: ["Feria de Empleo", "En persona", "Entrada gratuita"],
   ctaIntro:
     "¡No te pierdas nuestra feria de empleo! Haz clic en el botón para ver más detalles y prepararte para este gran evento.",
   contactPhone: "555-987-5643",

@@ -316,6 +316,7 @@ export function EmpleoQuickDetailPage({
                   ctaLabel={t.verUbicacion}
                   onOpen={() => setLocationOpen(true)}
                   contactAnalyticsMeta={contactAnalyticsMeta}
+                  lang={lang}
                 />
               </div>
             ) : null}
@@ -332,6 +333,7 @@ export function EmpleoQuickDetailPage({
                   onOpen={() => setLocationOpen(true)}
                   compact
                   contactAnalyticsMeta={contactAnalyticsMeta}
+                  lang={lang}
                 />
               ) : null}
             </div>

@@ -11,6 +11,7 @@ type Props = {
   onOpen?: () => void;
   compact?: boolean;
   contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
+  lang?: "es" | "en";
 };
 
 /** Build Google Maps embed URL from a real address line (no fake coordinates). */
@@ -20,14 +21,20 @@ function buildEmpleosPreviewMapEmbedUrl(locationLine: string): string {
   return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
 }
 
-export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen, compact, contactAnalyticsMeta }: Props) {
+/** Build Google Maps directions URL from a real address line. */
+function buildEmpleosPreviewMapDirectionsUrl(locationLine: string): string {
+  const q = locationLine.trim();
+  if (!q) return "";
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
+}
+
+export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen, compact, contactAnalyticsMeta, lang = "es" }: Props) {
+  const mapLabel = lang === "es" ? "Vista rápida del mapa" : "Quick map view";
   const locality = [location.city, location.state, location.country].filter((x) => (x ?? "").trim()).join(", ");
   const fullLine = [locality, location.zip].filter((x) => (x ?? "").trim()).join(" · ");
   const query = [location.addressLine1, fullLine].filter((x) => x.trim() && x !== "—" && x !== "Remoto").join(", ");
-  const mapsHref = query.trim()
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
-    : null;
-  const showMap = !location.isRemote && Boolean(location.addressLine1?.trim() && location.addressLine1 !== "—");
+  const mapsHref = query.trim() ? buildEmpleosPreviewMapDirectionsUrl(query) : null;
+  const showMap = !location.isRemote && Boolean(query.trim());
   const embedUrl = showMap ? buildEmpleosPreviewMapEmbedUrl(query) : "";
 
   const handleMapClick = () => {
@@ -63,7 +70,7 @@ export function QuickJobLocationCard({ location, sectionTitle, ctaLabel, onOpen,
       {embedUrl ? (
         <div className="mt-3 overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0]/40">
           <p className="border-b border-[#E8D9C4]/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
-            Mapa
+            {mapLabel}
           </p>
           <iframe
             title="Mapa de ubicación"
