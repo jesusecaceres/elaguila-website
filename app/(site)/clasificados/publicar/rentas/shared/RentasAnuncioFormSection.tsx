@@ -28,6 +28,7 @@ import {
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { RentasTipoFlowDetailFields } from "@/app/clasificados/publicar/rentas/shared/RentasTipoFlowDetailFields";
 import { getRentasAnuncioFormCopy } from "./rentasAnuncioFormCopy";
+import type { OfficialLocale } from "@/app/lib/language";
 import type { Dispatch, SetStateAction } from "react";
 
 function precioDigitsUnbounded(raw: string): string {
@@ -49,7 +50,7 @@ type Props<T extends RentasPrivadoFormState | RentasNegocioFormState> = {
   fieldClass: string;
   textareaFieldClass: string;
   estadoOptions: EstadoOpt<T["estadoAnuncio"]>[];
-  lang: "es" | "en";
+  lang: OfficialLocale;
 };
 
 export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | RentasNegocioFormState>({
@@ -72,6 +73,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
     state.ubicacionLinea.trim() !== "" && state.ubicacionLinea.trim() !== state.direccionLinea1.trim();
   const flowGroup = rentasFlowGroupActive(state);
   const hideAmuebladoMascotas = flowGroup === "storage_parking";
+  const legacyPlazoLang = { es: "es", en: "en", pt: "es", tl: "es" } as const;
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
@@ -189,7 +191,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
             <option value="">—</option>
             {Object.entries(RENTAS_PLAZO_LABELS).map(([key, lbl]) => (
               <option key={key} value={key}>
-                {lbl[lang]}
+                {lbl[legacyPlazoLang[lang]]}
               </option>
             ))}
           </select>

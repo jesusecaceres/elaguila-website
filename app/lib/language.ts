@@ -34,6 +34,11 @@ export const OFFICIAL_LAUNCH_LANGUAGES = ["es", "en", "pt", "tl"] as const satis
 
 export type OfficialLaunchLang = (typeof OFFICIAL_LAUNCH_LANGUAGES)[number];
 
+/** Enforcement aliases for launch-critical dictionary tooling. */
+export const OFFICIAL_LOCALES = OFFICIAL_LAUNCH_LANGUAGES;
+export type OfficialLocale = OfficialLaunchLang;
+export const DEFAULT_LOCALE: OfficialLocale = DEFAULT_LANG;
+
 /**
  * Hidden future languages — preserved in registry/docs, inactive until trusted reviewer activation.
  * Route aliases zh-Hans / zh-Hant normalize to fallback (not official).
@@ -486,6 +491,12 @@ export function isOfficialLaunchLang(input: string | null | undefined): input is
   return OFFICIAL_LAUNCH_LANG_SET.has(raw);
 }
 
+/** Strict official locale check for Leonix-controlled UI dictionaries. */
+export function isOfficialLocale(input: string | null | undefined): input is OfficialLocale {
+  const raw = normalizeLangInput(input);
+  return OFFICIAL_LAUNCH_LANG_SET.has(raw);
+}
+
 export function isHiddenFutureLang(input: string | null | undefined): boolean {
   const raw = normalizeLangInput(input);
   if (!raw) return false;
@@ -506,6 +517,12 @@ export function normalizeLang(input: string | null | undefined): SupportedLang {
   if (OFFICIAL_LAUNCH_LANG_SET.has(raw)) return raw as OfficialLaunchLang;
   if (HIDDEN_FUTURE_LANG_SET.has(raw) || ALL_KNOWN_LANG_SET.has(raw)) return DEFAULT_LANG;
   return DEFAULT_LANG;
+}
+
+/** Resolve raw URL/user input to an official UI dictionary locale. Hidden and invalid values fall back to Spanish. */
+export function resolveLocale(input: string | string[] | null | undefined): OfficialLocale {
+  const raw = Array.isArray(input) ? input[0] : input;
+  return isOfficialLocale(raw) ? (normalizeLang(raw) as OfficialLocale) : DEFAULT_LOCALE;
 }
 
 /** Active routable lang; returns null for held/unknown codes. */
@@ -656,6 +673,20 @@ export function resolvePublicLangFromSearchParams(
         : searchParams.lang;
 
   return normalizePublicLang(raw) ?? fallback;
+}
+
+/** Resolve `?lang=` from server/client search params for strict official dictionaries. */
+export function resolveLocaleFromSearchParams(
+  searchParams: URLSearchParams | Record<string, string | string[] | undefined> | undefined,
+): OfficialLocale {
+  if (!searchParams) return DEFAULT_LOCALE;
+  const raw =
+    searchParams instanceof URLSearchParams
+      ? searchParams.get("lang")
+      : Array.isArray(searchParams.lang)
+        ? searchParams.lang[0]
+        : searchParams.lang;
+  return resolveLocale(raw);
 }
 
 /** Replace or append lang query param on internal hrefs; preserves other query params and hash. */

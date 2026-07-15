@@ -2,6 +2,9 @@
  * Rentas "Tipo de renta" — stable IDs for drafts, machine pairs, and public mapping.
  */
 
+import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
+import type { OfficialLocale } from "@/app/lib/language";
+
 export const RENTAS_TIPO_DE_RENTA_IDS = [
   "casa",
   "apartamento",
@@ -35,53 +38,37 @@ export type RentasRentalFlowGroup =
   | "commercial_space"
   | "land_parcel";
 
-export const RENTAS_TIPO_DE_RENTA_OPTIONS: { id: RentasTipoDeRentaId; label: string }[] = [
-  { id: "casa", label: "Casa" },
-  { id: "apartamento", label: "Apartamento" },
-  { id: "condominio", label: "Condominio" },
-  { id: "townhome", label: "Townhome" },
-  { id: "duplex_multifamiliar", label: "Duplex / Multifamiliar" },
-  { id: "adu_casita", label: "ADU / Casita" },
-  { id: "estudio", label: "Estudio" },
-  { id: "cuarto_recamara", label: "Cuarto / Recámara" },
-  { id: "cuarto_compartido", label: "Cuarto compartido" },
-  { id: "espacio_compartido", label: "Espacio compartido" },
-  { id: "garaje", label: "Garaje" },
-  { id: "estacionamiento", label: "Estacionamiento" },
-  { id: "bodega_almacen", label: "Bodega / Almacén" },
-  { id: "oficina", label: "Oficina" },
-  { id: "local_comercial", label: "Local comercial" },
-  { id: "terreno_lote", label: "Terreno / Lote" },
-  { id: "otro", label: "Otro" },
-];
+export const RENTAS_TIPO_DE_RENTA_OPTIONS: { id: RentasTipoDeRentaId }[] = RENTAS_TIPO_DE_RENTA_IDS.map((id) => ({ id }));
 
-export type RentasTipoCopyLang = "es" | "en";
+export type RentasTipoCopyLang = OfficialLocale;
 
-export const RENTAS_TIPO_DE_RENTA_LABELS: Record<RentasTipoDeRentaId, { es: string; en: string }> = {
-  casa: { es: "Casa", en: "House" },
-  apartamento: { es: "Apartamento", en: "Apartment" },
-  condominio: { es: "Condominio", en: "Condominium" },
-  townhome: { es: "Townhome", en: "Townhome" },
-  duplex_multifamiliar: { es: "Duplex / Multifamiliar", en: "Duplex / Multifamily" },
-  adu_casita: { es: "ADU / Casita", en: "ADU / Casita" },
-  estudio: { es: "Estudio", en: "Studio" },
-  cuarto_recamara: { es: "Cuarto / Recámara", en: "Room / Bedroom" },
-  cuarto_compartido: { es: "Cuarto compartido", en: "Shared room" },
-  espacio_compartido: { es: "Espacio compartido", en: "Shared space" },
-  garaje: { es: "Garaje", en: "Garage" },
-  estacionamiento: { es: "Estacionamiento", en: "Parking" },
-  bodega_almacen: { es: "Bodega / Almacén", en: "Storage unit" },
-  oficina: { es: "Oficina", en: "Office" },
-  local_comercial: { es: "Local comercial", en: "Commercial space" },
-  terreno_lote: { es: "Terreno / Lote", en: "Land / lot" },
-  otro: { es: "Otro", en: "Other" },
+const RENTAS_TIPO_DE_RENTA_COPY_KEYS: Record<RentasTipoDeRentaId, keyof ReturnType<typeof getLaunchUiMessages>["rentas"]["rentalTypes"]> = {
+  casa: "house",
+  apartamento: "apartment",
+  condominio: "condominium",
+  townhome: "townhome",
+  duplex_multifamiliar: "duplexMultifamily",
+  adu_casita: "aduCasita",
+  estudio: "studio",
+  cuarto_recamara: "roomBedroom",
+  cuarto_compartido: "sharedRoom",
+  espacio_compartido: "sharedSpace",
+  garaje: "garage",
+  estacionamiento: "parking",
+  bodega_almacen: "storageUnit",
+  oficina: "office",
+  local_comercial: "commercialSpace",
+  terreno_lote: "landLot",
+  otro: "other",
 };
 
 export function rentasTipoDeRentaOptionLabel(id: RentasTipoDeRentaId, lang: RentasTipoCopyLang): string {
-  return RENTAS_TIPO_DE_RENTA_LABELS[id][lang];
+  return getLaunchUiMessages(lang).rentas.rentalTypes[RENTAS_TIPO_DE_RENTA_COPY_KEYS[id]];
 }
 
-const LABEL_BY_ID = new Map(RENTAS_TIPO_DE_RENTA_OPTIONS.map((o) => [o.id, o.label] as const));
+const LABEL_BY_ID = new Map(
+  RENTAS_TIPO_DE_RENTA_OPTIONS.map((o) => [o.id, rentasTipoDeRentaOptionLabel(o.id, "es")] as const),
+);
 
 export function coerceRentasTipoDeRentaId(raw: unknown): RentasTipoDeRentaId | "" {
   const v = typeof raw === "string" ? raw.trim() : "";

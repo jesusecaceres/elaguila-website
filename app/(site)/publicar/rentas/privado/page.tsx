@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { resolveLocaleFromSearchParams } from "@/app/lib/language";
 import RentasPrivadoApplication from "@/app/clasificados/publicar/rentas/privado/application/RentasPrivadoApplication";
 
 export const metadata: Metadata = {
@@ -7,6 +8,10 @@ export const metadata: Metadata = {
 };
 
 /** Public entry URL — same application as `/clasificados/publicar/rentas/privado`. */
-export default function PublicarRentasPrivadoEntryPage() {
-  return <RentasPrivadoApplication />;
+export default async function PublicarRentasPrivadoEntryPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const searchParams = (await props.searchParams) ?? {};
+  const locale = resolveLocaleFromSearchParams(searchParams);
+  return <RentasPrivadoApplication initialLocale={locale} />;
 }

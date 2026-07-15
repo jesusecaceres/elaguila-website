@@ -5,10 +5,11 @@ import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentas
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
+import type { OfficialLocale } from "@/app/lib/language";
 import type { Dispatch, SetStateAction } from "react";
 
 type S = RentasPrivadoFormState | RentasNegocioFormState;
-type Lang = "es" | "en";
+type Lang = OfficialLocale;
 
 function siNoOptions(lang: Lang): { id: "" | "si" | "no"; label: string }[] {
   return [

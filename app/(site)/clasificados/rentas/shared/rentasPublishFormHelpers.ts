@@ -2,6 +2,9 @@
  * Shared formatting + address helpers for Rentas Privado/Negocio publish flows.
  */
 
+import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
+import type { OfficialLocale } from "@/app/lib/language";
+
 export type RentasServicioIncluidoId =
   | "agua"
   | "luz"
@@ -18,30 +21,44 @@ export type RentasServicioIncluidoId =
 
 export const RENTAS_SERVICIOS_INCLUIDOS_DEFS: readonly {
   id: Exclude<RentasServicioIncluidoId, "otro">;
-  label: { es: string; en: string };
+  label: Record<OfficialLocale, string>;
   emoji: string;
 }[] = [
-  { id: "agua", label: { es: "Agua", en: "Water" }, emoji: "💧" },
-  { id: "luz", label: { es: "Luz", en: "Electric" }, emoji: "💡" },
-  { id: "gas", label: { es: "Gas", en: "Gas" }, emoji: "🔥" },
-  { id: "internet", label: { es: "Internet", en: "Internet" }, emoji: "🌐" },
-  { id: "mantenimiento", label: { es: "Mantenimiento", en: "Maintenance" }, emoji: "🧹" },
-  { id: "basura", label: { es: "Basura", en: "Trash" }, emoji: "🗑️" },
-  { id: "estacionamiento", label: { es: "Estacionamiento", en: "Parking" }, emoji: "🚗" },
-  { id: "lavanderia", label: { es: "Lavandería", en: "Laundry" }, emoji: "🧺" },
-  { id: "aire_acondicionado", label: { es: "Aire acondicionado", en: "Air conditioning" }, emoji: "❄️" },
-  { id: "seguridad", label: { es: "Seguridad", en: "Security" }, emoji: "🛡️" },
-  { id: "piscina", label: { es: "Piscina", en: "Pool" }, emoji: "🏊" },
+  { id: "agua", label: { es: getLaunchUiMessages("es").rentas.services.water, en: getLaunchUiMessages("en").rentas.services.water, pt: getLaunchUiMessages("pt").rentas.services.water, tl: getLaunchUiMessages("tl").rentas.services.water }, emoji: "💧" },
+  { id: "luz", label: { es: getLaunchUiMessages("es").rentas.services.electricity, en: getLaunchUiMessages("en").rentas.services.electricity, pt: getLaunchUiMessages("pt").rentas.services.electricity, tl: getLaunchUiMessages("tl").rentas.services.electricity }, emoji: "💡" },
+  { id: "gas", label: { es: getLaunchUiMessages("es").rentas.services.gas, en: getLaunchUiMessages("en").rentas.services.gas, pt: getLaunchUiMessages("pt").rentas.services.gas, tl: getLaunchUiMessages("tl").rentas.services.gas }, emoji: "🔥" },
+  { id: "internet", label: { es: getLaunchUiMessages("es").rentas.services.internet, en: getLaunchUiMessages("en").rentas.services.internet, pt: getLaunchUiMessages("pt").rentas.services.internet, tl: getLaunchUiMessages("tl").rentas.services.internet }, emoji: "🌐" },
+  { id: "mantenimiento", label: { es: getLaunchUiMessages("es").rentas.services.maintenance, en: getLaunchUiMessages("en").rentas.services.maintenance, pt: getLaunchUiMessages("pt").rentas.services.maintenance, tl: getLaunchUiMessages("tl").rentas.services.maintenance }, emoji: "🧹" },
+  { id: "basura", label: { es: getLaunchUiMessages("es").rentas.services.trash, en: getLaunchUiMessages("en").rentas.services.trash, pt: getLaunchUiMessages("pt").rentas.services.trash, tl: getLaunchUiMessages("tl").rentas.services.trash }, emoji: "🗑️" },
+  { id: "estacionamiento", label: { es: getLaunchUiMessages("es").rentas.services.parking, en: getLaunchUiMessages("en").rentas.services.parking, pt: getLaunchUiMessages("pt").rentas.services.parking, tl: getLaunchUiMessages("tl").rentas.services.parking }, emoji: "🚗" },
+  { id: "lavanderia", label: { es: getLaunchUiMessages("es").rentas.services.laundry, en: getLaunchUiMessages("en").rentas.services.laundry, pt: getLaunchUiMessages("pt").rentas.services.laundry, tl: getLaunchUiMessages("tl").rentas.services.laundry }, emoji: "🧺" },
+  { id: "aire_acondicionado", label: { es: getLaunchUiMessages("es").rentas.services.airConditioning, en: getLaunchUiMessages("en").rentas.services.airConditioning, pt: getLaunchUiMessages("pt").rentas.services.airConditioning, tl: getLaunchUiMessages("tl").rentas.services.airConditioning }, emoji: "❄️" },
+  { id: "seguridad", label: { es: getLaunchUiMessages("es").rentas.services.security, en: getLaunchUiMessages("en").rentas.services.security, pt: getLaunchUiMessages("pt").rentas.services.security, tl: getLaunchUiMessages("tl").rentas.services.security }, emoji: "🛡️" },
+  { id: "piscina", label: { es: getLaunchUiMessages("es").rentas.services.pool, en: getLaunchUiMessages("en").rentas.services.pool, pt: getLaunchUiMessages("pt").rentas.services.pool, tl: getLaunchUiMessages("tl").rentas.services.pool }, emoji: "🏊" },
 ] as const;
 
-export type RentasPublishFormLang = "es" | "en";
+export type RentasPublishFormLang = OfficialLocale;
+
+const RENTAS_SERVICIO_COPY_KEYS: Record<Exclude<RentasServicioIncluidoId, "otro">, keyof ReturnType<typeof getLaunchUiMessages>["rentas"]["services"]> = {
+  agua: "water",
+  luz: "electricity",
+  gas: "gas",
+  internet: "internet",
+  mantenimiento: "maintenance",
+  basura: "trash",
+  estacionamiento: "parking",
+  lavanderia: "laundry",
+  aire_acondicionado: "airConditioning",
+  seguridad: "security",
+  piscina: "pool",
+};
 
 export function rentasServicioIncluidoLabel(
   id: Exclude<RentasServicioIncluidoId, "otro">,
   lang: RentasPublishFormLang,
 ): string {
-  const def = RENTAS_SERVICIOS_INCLUIDOS_DEFS.find((d) => d.id === id);
-  return def?.label[lang] ?? id;
+  const key = RENTAS_SERVICIO_COPY_KEYS[id];
+  return getLaunchUiMessages(lang).rentas.services[key] ?? id;
 }
 
 // === GLOBAL LOCATION HELPERS ===
@@ -227,7 +244,7 @@ export function normalizeRentasCountry(raw: string): string {
 }
 
 const SERVICIO_LABEL = new Map(
-  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, d.label.es] as const),
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((d) => [d.id, rentasServicioIncluidoLabel(d.id, "es")] as const),
 );
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
