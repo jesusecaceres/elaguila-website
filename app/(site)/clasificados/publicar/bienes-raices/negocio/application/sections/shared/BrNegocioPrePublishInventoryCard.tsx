@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
-import { brInventoryCardSpecsLine } from "../../brNegocioInventoryCardModel";
+import { brInventoryCardSpecsLine, isDisplayableInventoryPhotoUrl } from "../../brNegocioInventoryCardModel";
+import { resolveBrAgenteIdbMediaRefToDataUrl } from "../../../agente-individual/application/utils/brAgenteResDraftMedia";
 
 type CardLayout = "default" | "compact" | "showcase";
 
@@ -18,6 +19,30 @@ type Props = {
   onPreview?: (id: string) => void;
 };
 
+function useResolvedInventoryPhotoUrl(url: string): string {
+  const [resolved, setResolved] = useState(() => (isDisplayableInventoryPhotoUrl(url) ? url.trim() : ""));
+  useEffect(() => {
+    const raw = String(url ?? "").trim();
+    if (isDisplayableInventoryPhotoUrl(raw)) {
+      setResolved(raw);
+      return;
+    }
+    if (!raw.startsWith("__LX_BR_AGENTE_IDB__")) {
+      setResolved("");
+      return;
+    }
+    let cancelled = false;
+    setResolved("");
+    void resolveBrAgenteIdbMediaRefToDataUrl(raw).then((dataUrl) => {
+      if (!cancelled) setResolved(dataUrl && isDisplayableInventoryPhotoUrl(dataUrl) ? dataUrl : "");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  return resolved;
+}
+
 function PhotoBlock({
   url,
   lang,
@@ -28,7 +53,11 @@ function PhotoBlock({
   layout: CardLayout;
 }) {
   const [failed, setFailed] = useState(false);
-  const showImg = url && isDisplayablePhotoUrl(url) && !failed;
+  const displayUrl = useResolvedInventoryPhotoUrl(url);
+  useEffect(() => {
+    setFailed(false);
+  }, [displayUrl]);
+  const showImg = Boolean(displayUrl) && !failed;
   const sizeClass =
     layout === "showcase"
       ? "h-36 w-full shrink-0 overflow-hidden rounded-lg bg-[#F3EDE3] sm:h-44 sm:w-52 md:w-60 lg:w-64"
@@ -40,7 +69,7 @@ function PhotoBlock({
     return (
       <div className={`overflow-hidden rounded-lg bg-[#F3EDE3] ${sizeClass}`}>
         <img
-          src={url}
+          src={displayUrl}
           alt=""
           className="h-full w-full object-cover"
           onError={() => setFailed(true)}
@@ -66,11 +95,6 @@ function PhotoBlock({
   );
 }
 
-function isDisplayablePhotoUrl(url: string): boolean {
-  const u = url.trim();
-  return Boolean(u && !u.startsWith("__LX_BR_AGENTE_IDB__"));
-}
-
 function GallerySlot({
   url,
   slotNumber,
@@ -83,7 +107,11 @@ function GallerySlot({
   layout: CardLayout;
 }) {
   const [failed, setFailed] = useState(false);
-  const showImg = isDisplayablePhotoUrl(url) && !failed;
+  const displayUrl = useResolvedInventoryPhotoUrl(url);
+  useEffect(() => {
+    setFailed(false);
+  }, [displayUrl]);
+  const showImg = Boolean(displayUrl) && !failed;
   const label = lang === "es" ? `Galería ${slotNumber + 1}` : `Gallery ${slotNumber + 1}`;
   const sizeClass =
     layout === "compact"
@@ -93,7 +121,7 @@ function GallerySlot({
   if (showImg) {
     return (
       <div className={`aspect-[4/3] overflow-hidden border border-[#E8DFD0] bg-[#F3EDE3] ${sizeClass}`}>
-        <img src={url} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />
+        <img src={displayUrl} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />
       </div>
     );
   }

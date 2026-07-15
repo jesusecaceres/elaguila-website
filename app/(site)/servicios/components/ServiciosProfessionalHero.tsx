@@ -133,8 +133,16 @@ export function ServiciosProfessionalHero({
     }
   };
 
+  const heroShell =
+    template === "standard_service" ? "trade-canonical" : "professional-canonical";
+
   return (
-    <div className={LX_HERO_BG} style={LX_HERO_BG_STYLE}>
+    <div
+      className={LX_HERO_BG}
+      style={LX_HERO_BG_STYLE}
+      data-servicios-hero-shell={heroShell}
+      data-servicios-hero-align="editorial"
+    >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/80 to-transparent"
         aria-hidden
@@ -224,6 +232,7 @@ export function ServiciosProfessionalHero({
           className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:flex lg:flex-wrap ${
             engagementSlot ? "mt-4 border-t border-white/15 pt-5" : "mt-6 border-t border-white/15 pt-6"
           }`}
+          data-servicios-cta-row="1"
         >
           {tel ? (
             <button

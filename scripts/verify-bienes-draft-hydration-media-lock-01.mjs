@@ -119,6 +119,23 @@ assert(
   ).includes("__LX_BR_AGENTE_IDB__"),
   "child inventory draft sync must treat IDB refs as durable",
 );
+assert(
+  draftMedia.includes("resolveBrAgenteIdbMediaRefToDataUrl") &&
+    draftMedia.includes("childPhotoSegmentsCompatible"),
+  "child/parent IDB refs must resolve via self-describing segment (CHILD_* ↔ CHILD_EDITOR_*)",
+);
+assert(
+  childApp.includes("mediaFormState") &&
+    childApp.includes("displayable") &&
+    cardUi.includes("useResolvedInventoryPhotoUrl") &&
+    cardUi.includes("resolveBrAgenteIdbMediaRefToDataUrl"),
+  "child editor + inventory card must resolve durable refs into displayable img src",
+);
+assert(
+  cardModel.includes("isDisplayableInventoryPhotoUrl") &&
+    cardModel.includes("isDisplayableInventoryPhotoUrl(card.photoUrl)"),
+  "live editor card overlay must not treat IDB tokens as ready photoUrl",
+);
 assert(cardUi.includes("grid grid-cols-3") && /gap-1\.5|gap-2/.test(cardUi), "results gallery has small tile gap");
 
 console.log("OK: bienes-draft-hydration-media-lock-01");

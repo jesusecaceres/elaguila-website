@@ -6,6 +6,7 @@ import {
   enVentaDepartmentFilterOptions,
 } from "../../filters/enVentaFilterGroups";
 import type { EnVentaDrawerFilterState } from "../enVentaBrowseParams";
+import { EnVentaItemTypeFilterSelect } from "./EnVentaItemTypeFilterSelect";
 import { CAT_STD_FILTER_CHIP_GRID } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 
 const fieldClass =
@@ -61,7 +62,7 @@ export function EnVentaLandingDrawerFields({ lang, values, onChange }: Props) {
           {lang === "es" ? "Departamento" : "Department"}
           <select
             value={values.evDept}
-            onChange={(e) => onChange({ evDept: e.target.value, evSub: "" })}
+            onChange={(e) => onChange({ evDept: e.target.value, evSub: "", itemType: "" })}
             className={fieldClass}
           >
             <option value="">{allLabel}</option>
@@ -76,7 +77,7 @@ export function EnVentaLandingDrawerFields({ lang, values, onChange }: Props) {
           {lang === "es" ? "Subcategoría" : "Subcategory"}
           <select
             value={values.evSub}
-            onChange={(e) => onChange({ evSub: e.target.value })}
+            onChange={(e) => onChange({ evSub: e.target.value, itemType: "" })}
             className={fieldClass}
           >
             <option value="">{allLabel}</option>
@@ -89,10 +90,12 @@ export function EnVentaLandingDrawerFields({ lang, values, onChange }: Props) {
         </label>
         <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
           {lang === "es" ? "Tipo de artículo" : "Item type"}
-          <input
+          <EnVentaItemTypeFilterSelect
+            lang={lang}
+            evDept={values.evDept}
+            evSub={values.evSub}
             value={values.itemType}
-            onChange={(e) => onChange({ itemType: e.target.value })}
-            placeholder={lang === "es" ? "Ej: phone, laptop…" : "e.g. phone, laptop…"}
+            onChange={(itemType) => onChange({ itemType })}
             className={fieldClass}
           />
         </label>

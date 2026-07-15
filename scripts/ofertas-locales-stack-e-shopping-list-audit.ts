@@ -434,6 +434,26 @@ function run() {
   assert.ok(copy.includes("Comida y mercados"), "ES food mode title");
   assert.ok(copy.includes("Promociones"), "ES promotions mode title");
 
+  const TRUE_PUBLIC_QA_AUDIT = "app/lib/website-audit/TRUE_PUBLIC_OFERTAS_CUPONES_QA_V1.md";
+  assert.ok(exists(TRUE_PUBLIC_QA_AUDIT), "TRUE public Ofertas/Cupones QA audit doc must exist");
+  assert.ok(exists("app/(site)/clasificados/ofertas-locales/[id]/page.tsx"), "public flyer hub route exists");
+  assert.ok(client.includes("resolveOfertasLocalesShopperMode"), "shopper mode resolver still wired");
+  assert.ok(client.includes("filterOfertasLocalesOffersForShopperMode"), "shopper mode offer filter still wired");
+
+  const OFERTAS_CUPONES_PUBLIC_FILES = [
+    "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx",
+    "app/(site)/cupones/page.tsx",
+    "app/(site)/cupones/resultados/page.tsx",
+    "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx",
+  ] as const;
+  const PAYMENT_PROHIBITED = ["checkout", "wallet", "payment", "redeem now", "buy now"] as const;
+  for (const rel of OFERTAS_CUPONES_PUBLIC_FILES) {
+    const src = read(rel);
+    for (const bad of PAYMENT_PROHIBITED) {
+      assert.ok(!src.toLowerCase().includes(bad), `Ofertas/Cupones public file ${rel} must not include: ${bad}`);
+    }
+  }
+
   console.log("Stack E — Ofertas Locales shopping list + results mode audit passed.");
 }
 

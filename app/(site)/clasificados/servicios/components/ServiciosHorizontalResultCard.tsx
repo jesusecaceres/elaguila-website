@@ -6,7 +6,6 @@ import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "../lib/serviciosPublicListingSort";
-import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
@@ -43,8 +42,11 @@ import {
   cleanProfessionalChipLabel,
   isWeakProfessionalChipLabel,
 } from "@/app/(site)/servicios/components/serviciosLeonixBrand";
-import { formatServiciosPublicLocationLine } from "../lib/formatServiciosPublicLocationLine";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
+import {
+  mapServiciosTradePresentationProfile,
+  serviciosTradePresentationLocationLine,
+} from "../lib/mapServiciosTradePresentation";
 import {
   ServiciosResultCardBodyLink,
   SERVICIOS_RESULT_CARD_INTERACTIVE,
@@ -119,20 +121,10 @@ export function ServiciosHorizontalResultCard({
 }: ServiciosHorizontalResultCardProps) {
   const L = getServiciosProfileLabels(lang);
 
-  const profile = useMemo((): ServiciosProfileResolved | null => {
-    if (previewProfile) return previewProfile;
-    if (!row) return null;
-    const wire = { ...row.profile_json };
-    wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
-    if ((row.review_rating_count ?? 0) > 0 && typeof row.review_rating_avg === "number" && Number.isFinite(row.review_rating_avg)) {
-      wire.hero = {
-        ...wire.hero,
-        rating: row.review_rating_avg,
-        reviewCount: row.review_rating_count ?? undefined,
-      };
-    }
-    return resolveServiciosProfile(wire, lang);
-  }, [previewProfile, row, lang]);
+  const profile = useMemo(
+    (): ServiciosProfileResolved | null => mapServiciosTradePresentationProfile({ previewProfile, row, lang }),
+    [previewProfile, row, lang],
+  );
 
   const listingSlug = useMemo(() => {
     if (!profile) return (row?.slug || "").trim();
@@ -236,7 +228,7 @@ export function ServiciosHorizontalResultCard({
 
   if (!profile) return null;
 
-  const isCompact = density === "compact";
+  /** Trade canonical card — preview + results share one stacked layout (no legacy CTA rail). */
 
   if (row && !previewProfile) {
     const template = resolveServiciosListingTemplate({
@@ -249,15 +241,10 @@ export function ServiciosHorizontalResultCard({
     }
   }
 
-  const cityFallback = (row?.city || "").trim();
-  const structuredLocation = row ? formatServiciosPublicLocationLine(row) : "";
+  const locationLine = serviciosTradePresentationLocationLine(profile, row);
   const logoUrl = (profile.hero.logoUrl || "").trim();
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
   const categoryChip = cleanOtherLabel((profile.hero.categoryLine || "").trim());
-  const locationLine =
-    structuredLocation ||
-    (profile.hero.locationSummary || "").trim() ||
-    cityFallback;
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
 
@@ -274,10 +261,7 @@ export function ServiciosHorizontalResultCard({
     }
     return out;
   })();
-  const displayServiceChips =
-    isCompact && serviceChipList.length > 3
-      ? [...serviceChipList.slice(0, 3), `+${serviceChipList.length - 3}`]
-      : serviceChipList;
+  const displayServiceChips = serviceChipList;
 
   const vitrinaHref =
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
@@ -334,9 +318,8 @@ export function ServiciosHorizontalResultCard({
   return (
     <>
       <article
-        className={`${LX_IVORY_CARD} relative w-full min-w-0 ${
-          isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(9.25rem,auto)] sm:items-stretch" : ""
-        } ${className}`.trim()}
+        className={`${LX_IVORY_CARD} relative w-full min-w-0 ${className}`.trim()}
+        data-servicios-card-shell="trade-canonical"
       >
         <ServiciosResultCardBodyLink
           href={vitrinaHref}
@@ -344,16 +327,16 @@ export function ServiciosHorizontalResultCard({
           onNavigate={onCardNavigate}
         />
 
-        <div className={isCompact ? "pointer-events-none relative z-[2] flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5"}>
+        <div className="pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5">
           <ServiciosAdaptiveLogoPlate
             src={logoUrl}
             alt={logoAlt}
             fallbackMonogram={profile.identity.businessName}
             variant="card"
-            className={isCompact ? "!h-12 !w-12 sm:!h-14 sm:!w-14" : ""}
+            className=""
           />
 
-          <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>
+          <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-1">
               {monetizationBadges.map((b) => (
                 <span
@@ -372,7 +355,7 @@ export function ServiciosHorizontalResultCard({
               <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
             </div>
 
-            <h2 className={isCompact ? "font-serif text-[14px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-[15px]" : LX_COMPACT_CARD_TITLE}>
+            <h2 className={LX_COMPACT_CARD_TITLE}>
               {profile.identity.businessName}
             </h2>
 
@@ -383,7 +366,7 @@ export function ServiciosHorizontalResultCard({
             {locationLine ? (
               <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
                 <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className={isCompact ? "line-clamp-1" : "line-clamp-2"}>{locationLine}</span>
+                <span className="line-clamp-2">{locationLine}</span>
               </p>
             ) : null}
 
@@ -399,7 +382,7 @@ export function ServiciosHorizontalResultCard({
         </div>
 
         {displayServiceChips.length > 0 ? (
-          <div className={isCompact ? "pointer-events-none relative z-[2] px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "pointer-events-none relative z-[2] px-4 pb-3 sm:px-5"}>
+          <div className="pointer-events-none relative z-[2] px-4 pb-3 sm:px-5">
             <ServiciosServiceChipsRow
               chips={displayServiceChips}
               lang={lang}
@@ -410,13 +393,14 @@ export function ServiciosHorizontalResultCard({
         ) : null}
 
         <div
-          className={`${SERVICIOS_RESULT_CARD_INTERACTIVE} ${isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}`}
+          className={`${SERVICIOS_RESULT_CARD_INTERACTIVE} border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4`}
+          data-servicios-card-cta-stack="1"
         >
-          <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5" : "flex flex-col gap-2"}>
+          <div className="flex flex-col gap-2">
             {primaryCall ? (
               <button
                 type="button"
-                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+                className={LX_CTA_CARD_PRIMARY}
                 style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
                 onClick={() => openContactKey(primaryCall.key, primaryCall.href)}
               >
@@ -425,11 +409,11 @@ export function ServiciosHorizontalResultCard({
               </button>
             ) : null}
 
-            <div className={isCompact ? "flex flex-wrap gap-2 sm:flex-col sm:gap-1.5" : "flex flex-wrap gap-2"}>
+            <div className="flex flex-wrap gap-2">
               {wa ? (
                 <button
                   type="button"
-                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+                  className={LX_CTA_CARD_WHATSAPP}
                   style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
                   onClick={() => openContactKey("whatsapp", wa)}
                 >
@@ -440,7 +424,7 @@ export function ServiciosHorizontalResultCard({
               {showDirections ? (
                 <button
                   type="button"
-                  className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+                  className={LX_CTA_CARD_MAP}
                   onClick={() => openContactKey("maps", mapsHref)}
                 >
                   <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -478,7 +462,7 @@ export function ServiciosHorizontalResultCard({
               onClick={() => {
                 if (row) trackServiciosResultCardClick(row);
               }}
-              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
+              className={LX_CTA_CARD_OUTLINE}
             >
               {vitrinaLabel}
             </Link>

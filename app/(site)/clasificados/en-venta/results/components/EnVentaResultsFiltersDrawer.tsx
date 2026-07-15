@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { EnVentaSubcategoryDef } from "../../taxonomy/subcategories";
 import { EN_VENTA_SORT_OPTIONS } from "../../filters/enVentaFilterGroups";
 import { US_STATE_OPTIONS } from "../../shared/constants/enVentaLocationContract";
+import { EnVentaItemTypeFilterSelect } from "../../shared/components/EnVentaItemTypeFilterSelect";
 import {
   CAT_STD_FILTER_CHIP,
   CAT_STD_FILTER_CHIP_GRID,
@@ -138,6 +140,17 @@ export function EnVentaResultsFiltersDrawer({
   onClear,
   onUseMyLocation,
 }: Props) {
+  const [draftDept, setDraftDept] = useState(evDept);
+  const [draftSub, setDraftSub] = useState(evSub);
+  const [draftItemType, setDraftItemType] = useState(itemType);
+
+  useEffect(() => {
+    if (!open) return;
+    setDraftDept(evDept);
+    setDraftSub(evSub);
+    setDraftItemType(itemType);
+  }, [open, evDept, evSub, itemType]);
+
   if (!open) return null;
 
   return (
@@ -166,7 +179,17 @@ export function EnVentaResultsFiltersDrawer({
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346] sm:col-span-2">
               {t.dept}
-              <select form="ev-results-form" name="evDept" defaultValue={evDept} className={fieldClass}>
+              <select
+                form="ev-results-form"
+                name="evDept"
+                value={draftDept}
+                onChange={(e) => {
+                  setDraftDept(e.target.value);
+                  setDraftSub("");
+                  setDraftItemType("");
+                }}
+                className={fieldClass}
+              >
                 <option value="">{t.all}</option>
                 {deptOptions.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -175,7 +198,16 @@ export function EnVentaResultsFiltersDrawer({
             </label>
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
               {t.sub}
-              <select form="ev-results-form" name="evSub" defaultValue={evSub} className={fieldClass}>
+              <select
+                form="ev-results-form"
+                name="evSub"
+                value={draftSub}
+                onChange={(e) => {
+                  setDraftSub(e.target.value);
+                  setDraftItemType("");
+                }}
+                className={fieldClass}
+              >
                 <option value="">{t.all}</option>
                 {subOptions.map((o) => (
                   <option key={o.key} value={o.key}>{o.label[lang]}</option>
@@ -184,7 +216,15 @@ export function EnVentaResultsFiltersDrawer({
             </label>
             <label className="block text-left text-[11px] font-semibold uppercase tracking-wide text-[#5C5346]">
               {lang === "es" ? "Tipo de artículo" : "Item type"}
-              <input form="ev-results-form" name="itemType" defaultValue={itemType} placeholder={lang === "es" ? "Ej: phone, laptop…" : "e.g. phone, laptop…"} className={fieldClass} />
+              <EnVentaItemTypeFilterSelect
+                lang={lang}
+                evDept={draftDept}
+                evSub={draftSub}
+                value={draftItemType}
+                onChange={setDraftItemType}
+                form="ev-results-form"
+                className={fieldClass}
+              />
             </label>
           </div>
 

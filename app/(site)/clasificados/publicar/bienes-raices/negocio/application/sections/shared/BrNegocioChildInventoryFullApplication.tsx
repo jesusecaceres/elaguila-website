@@ -265,7 +265,26 @@ export function BrNegocioChildInventoryFullApplication({
     }
     let cancelled = false;
     void resolveChildPropertySliceMediaFromIdb(slice, childMediaId).then((resolved) => {
-      if (!cancelled) setIdbResolvedSlice(resolved);
+      if (cancelled) return;
+      setIdbResolvedSlice(resolved);
+      const displayable = (resolved.fotosDataUrls ?? []).filter(
+        (u) => String(u ?? "").startsWith("data:") || String(u ?? "").startsWith("http"),
+      );
+      if (!displayable.length) return;
+      // Parent rehydrate contract: put displayable URLs into live form state (never leave IDB tokens in <img src>).
+      setStateRaw((prev) => {
+        const prevSlice = pickChildPropertySlice(prev);
+        if (!childEditorSliceHasUnresolvedIdbMedia(prevSlice)) return prev;
+        return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, {
+          ...prevSlice,
+          fotosDataUrls: resolved.fotosDataUrls,
+          fotoPortadaIndex: resolved.fotoPortadaIndex,
+          listadoArchivoDataUrl: resolved.listadoArchivoDataUrl,
+          videoDataUrl: resolved.videoDataUrl,
+          tourDataUrl: resolved.tourDataUrl,
+          brochureDataUrl: resolved.brochureDataUrl,
+        });
+      });
     });
     return () => {
       cancelled = true;
@@ -276,6 +295,9 @@ export function BrNegocioChildInventoryFullApplication({
     if (!idbResolvedSlice) return state;
     return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, idbResolvedSlice);
   }, [state, idbResolvedSlice]);
+
+  /** Editor steps / cover gallery must render displayable URLs, not durable IDB tokens. */
+  const mediaFormState = previewStateForCard;
 
   const canonicalPreviewDraft = useMemo(
     () =>
@@ -442,7 +464,7 @@ export function BrNegocioChildInventoryFullApplication({
           {step === 1 ? <Step02InformacionBasica state={state} setState={setState} /> : null}
           {step === 2 ? (
             <Step03Media
-              state={state}
+              state={mediaFormState}
               setState={setState}
               onMediaDraftCommit={(next) => {
                 void persistChildInventoryEditorSessionResolved(

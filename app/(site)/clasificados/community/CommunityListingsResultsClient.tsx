@@ -143,12 +143,18 @@ export function CommunityListingsResultsClient({
           if (m !== mode.toLowerCase()) return false;
         }
         if (classType.trim()) {
-          const catRaw =
-            pairs["Leonix:classCategory"] === "otro"
-              ? pairs["Leonix:classCategoryCustom"] || pairs["Leonix:classCategory"]
-              : pairs["Leonix:classCategory"];
-          const hay = `${String(catRaw ?? "")} ${classTypeLine}`.toLowerCase();
-          if (!textMatch(hay, classType)) return false;
+          const slug = (pairs["Leonix:classCategory"] ?? "").trim().toLowerCase();
+          const needle = classType.trim().toLowerCase();
+          if (slug && slug === needle) {
+            /* exact taxonomy slug match */
+          } else {
+            const catRaw =
+              pairs["Leonix:classCategory"] === "otro"
+                ? pairs["Leonix:classCategoryCustom"] || pairs["Leonix:classCategory"]
+                : pairs["Leonix:classCategory"];
+            const hay = `${String(catRaw ?? "")} ${classTypeLine}`.toLowerCase();
+            if (!textMatch(hay, classType)) return false;
+          }
         }
         if (audienceF !== "all") {
           const a = (pairs["Leonix:audience"] ?? "").trim().toLowerCase();
@@ -168,17 +174,22 @@ export function CommunityListingsResultsClient({
           if (ec !== eventCost) return false;
         }
         if (eventType.trim()) {
-          const slug = (pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "").trim();
-          const catRaw = slug === "otro" ? pairs["Leonix:eventCategoryCustom"] || slug : slug;
-          const eventTypeLine = isCommunityQuickListing(pairs)
-            ? resolveComunidadEventTypePublicLabel(
-                pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "",
-                pairs["Leonix:eventCategoryCustom"] ?? "",
-                lang,
-              )
-            : "";
-          const hay = `${String(catRaw ?? "")} ${eventTypeLine}`.toLowerCase();
-          if (!textMatch(hay, eventType)) return false;
+          const slug = (pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "").trim().toLowerCase();
+          const needle = eventType.trim().toLowerCase();
+          if (slug && slug === needle) {
+            /* exact taxonomy slug match */
+          } else {
+            const catRaw = slug === "otro" ? pairs["Leonix:eventCategoryCustom"] || slug : slug;
+            const eventTypeLine = isCommunityQuickListing(pairs)
+              ? resolveComunidadEventTypePublicLabel(
+                  pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "",
+                  pairs["Leonix:eventCategoryCustom"] ?? "",
+                  lang,
+                )
+              : "";
+            const hay = `${String(catRaw ?? "")} ${eventTypeLine}`.toLowerCase();
+            if (!textMatch(hay, eventType)) return false;
+          }
         }
         const isoLike = /^\d{4}-\d{2}-\d{2}/;
         const start = (pairs["Leonix:eventDate"] ?? "").trim();

@@ -58,20 +58,49 @@ async function offloadPhotoArray(ns: string, segment: string, photos: string[]):
   return out;
 }
 
+/** True when expected + actual ref segments both address the same child draft photo store. */
+function childPhotoSegmentsCompatible(expected: string, actual: string): boolean {
+  if (expected === actual) return true;
+  const strip = (seg: string) =>
+    seg
+      .replace(/^CHILD_EDITOR_/, "")
+      .replace(/^CHILD_/, "")
+      .replace(/_FORM_PHOTO$/, "")
+      .replace(/_PHOTO$/, "");
+  const a = strip(expected);
+  const b = strip(actual);
+  if (!a || !b || a !== b) return false;
+  const expectedIsChild = expected.startsWith("CHILD_") || expected.startsWith("CHILD_EDITOR_");
+  const actualIsChild = actual.startsWith("CHILD_") || actual.startsWith("CHILD_EDITOR_");
+  return expectedIsChild && actualIsChild;
+}
+
 async function inlinePhotoArray(ns: string, segment: string, photos: string[]): Promise<string[]> {
   const out: string[] = [];
   for (let i = 0; i < photos.length; i++) {
     const u = String(photos[i] ?? "").trim();
     if (!u) continue;
     const parsed = parseRef(u);
-    if (parsed?.segment === segment) {
-      const blob = await idbBrAgenteGetDataUrl(ns, segment, parsed.id);
-      if (blob) out.push(blob);
-    } else if (!u.startsWith(BR_AGENTE_IDB_PREFIX)) {
-      out.push(u);
+    if (parsed) {
+      // Resolve by the segment encoded in the durable token (never pass raw refs as img src).
+      // Allow CHILD_* ↔ CHILD_EDITOR_* synonyms for the same draft id; keep MAIN_PHOTO isolated.
+      if (parsed.segment === segment || childPhotoSegmentsCompatible(segment, parsed.segment)) {
+        const blob = await idbBrAgenteGetDataUrl(ns, parsed.segment, parsed.id);
+        if (blob) out.push(blob);
+      }
+      continue;
     }
+    out.push(u);
   }
   return out;
+}
+
+/** Resolve one durable IDB media token into a displayable data URL (or null). */
+export async function resolveBrAgenteIdbMediaRefToDataUrl(url: string): Promise<string | null> {
+  const u = String(url ?? "").trim();
+  const parsed = parseRef(u);
+  if (!parsed) return null;
+  return idbBrAgenteGetDataUrl(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, parsed.segment, parsed.id);
 }
 
 async function offloadChildDraft(

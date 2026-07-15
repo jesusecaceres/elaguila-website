@@ -4,8 +4,10 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { BUSCO_TYPE_OPTIONS } from "@/app/(site)/publicar/busco/shared/buscoTaxonomy";
 import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
 import {
+  CLASES_CATEGORY_OPTIONS,
   CLASES_SKILL_LEVEL_OPTIONS,
   COMUNIDAD_ACCESSIBILITY_OPTIONS,
+  COMUNIDAD_CATEGORY_OPTIONS,
   COMMUNITY_AUDIENCE_OPTIONS,
   COMMUNITY_REGISTRATION_OPTIONS,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
@@ -39,12 +41,18 @@ export function ComunidadClasesDrawerFields({ lang, category, values, onChange }
           <CategoryStandardFilterGroup label={L ? "Tipo de publicación" : "Post type"}>
             <label className={CAT_STD_FILTER_LABEL}>
               {L ? "Tipo de evento" : "Event type"}
-              <input
-                className={CAT_STD_FILTER_INPUT}
+              <select
+                className={CAT_STD_FILTER_SELECT}
                 value={values.eventType ?? ""}
                 onChange={(e) => onChange("eventType", e.target.value)}
-                placeholder={L ? "ej. voluntariado, aviso" : "e.g. volunteer, notice"}
-              />
+              >
+                <option value="">{L ? "Todos" : "All"}</option>
+                {COMUNIDAD_CATEGORY_OPTIONS.filter((o) => o.value).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {lang === "en" ? o.labelEn : o.labelEs}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className={CAT_STD_FILTER_LABEL}>
               {L ? "Costo del evento" : "Event cost"}
@@ -86,12 +94,18 @@ export function ComunidadClasesDrawerFields({ lang, category, values, onChange }
         <CategoryStandardFilterGroup label={L ? "Clase" : "Class"}>
           <label className={CAT_STD_FILTER_LABEL}>
             {L ? "Tipo / materia" : "Subject / type"}
-            <input
-              className={CAT_STD_FILTER_INPUT}
+            <select
+              className={CAT_STD_FILTER_SELECT}
               value={values.classType ?? ""}
               onChange={(e) => onChange("classType", e.target.value)}
-              placeholder={L ? "ej. música, tutoría" : "e.g. music, tutoring"}
-            />
+            >
+              <option value="">{L ? "Todos" : "All"}</option>
+              {CLASES_CATEGORY_OPTIONS.filter((o) => o.value).map((o) => (
+                <option key={o.value} value={o.value}>
+                  {lang === "en" ? o.labelEn : o.labelEs}
+                </option>
+              ))}
+            </select>
           </label>
           <label className={CAT_STD_FILTER_LABEL}>
             {L ? "Costo" : "Cost"}

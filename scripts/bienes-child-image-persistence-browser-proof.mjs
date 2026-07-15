@@ -131,11 +131,12 @@ async function main() {
     await dialog.locator("[data-br-child-step='2']").click();
     await page.waitForTimeout(400);
 
-    await dialog.locator('input[type="file"][accept*="image"]').first().setInputFiles([
-      { name: "c1.png", mimeType: "image/png", buffer: TINY_PNG },
-      { name: "c2.png", mimeType: "image/png", buffer: TINY_PNG },
-      { name: "c3.png", mimeType: "image/png", buffer: TINY_PNG },
-    ]);
+    const eightFiles = Array.from({ length: 8 }, (_, i) => ({
+      name: `c${i + 1}.png`,
+      mimeType: "image/png",
+      buffer: TINY_PNG,
+    }));
+    await dialog.locator('input[type="file"][accept*="image"]').first().setInputFiles(eightFiles);
 
     await page.waitForFunction(
       () => {
@@ -145,24 +146,31 @@ async function main() {
           const j = JSON.parse(raw);
           const fotos = j?.propertyForm?.fotosDataUrls || [];
           const durable = fotos.filter((u) => String(u).includes("__LX_BR_AGENTE_IDB__"));
-          return j?.editingId && String(j.editingId) !== "new-child" && durable.length >= 3;
+          const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
+          const rendered = imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length;
+          return j?.editingId && String(j.editingId) !== "new-child" && durable.length >= 8 && rendered >= 8;
         } catch {
           return false;
         }
       },
       null,
-      { timeout: 30_000 },
+      { timeout: 45_000 },
     );
 
     const before = await page.evaluate(() => {
       const j = JSON.parse(sessionStorage.getItem("br-negocio-child-inventory-editor-session") || "{}");
+      const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
       return {
         editingId: j.editingId,
         durable: (j.propertyForm?.fotosDataUrls || []).filter((u) => String(u).includes("__LX_BR_AGENTE_IDB__")).length,
-        imgs: document.querySelectorAll("[data-br-child-inventory-app] img").length,
+        imgs: imgs.length,
+        rendered: imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length,
+        brokenSrc: imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length,
       };
     });
-    if (before.durable < 3) fail("child durable refs missing before refresh: " + JSON.stringify(before));
+    if (before.durable < 8) fail("child durable refs missing before refresh: " + JSON.stringify(before));
+    if (before.brokenSrc > 0) fail("child img src still raw IDB tokens before refresh: " + JSON.stringify(before));
+    if (before.rendered < 8) fail("child thumbs not visually rendered before refresh: " + JSON.stringify(before));
     if (!before.editingId || before.editingId === "new-child") fail("unstable child id: " + before.editingId);
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -179,21 +187,34 @@ async function main() {
       await dialogAfter.waitFor({ timeout: 60_000 });
     }
     await dialogAfter.locator("[data-br-child-step='2']").click();
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(
+      () => {
+        const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
+        const rendered = imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length;
+        const brokenSrc = imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length;
+        return rendered >= 8 && brokenSrc === 0;
+      },
+      null,
+      { timeout: 30_000 },
+    );
 
     const after = await page.evaluate(() => {
       const j = JSON.parse(sessionStorage.getItem("br-negocio-child-inventory-editor-session") || "{}");
+      const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
       return {
         editingId: j.editingId,
         durable: (j.propertyForm?.fotosDataUrls || []).filter((u) => String(u).includes("__LX_BR_AGENTE_IDB__")).length,
         fotos: (j.propertyForm?.fotosDataUrls || []).length,
-        imgs: document.querySelectorAll("[data-br-child-inventory-app] img").length,
+        imgs: imgs.length,
+        rendered: imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length,
+        brokenSrc: imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length,
         parentDraft: sessionStorage.getItem("br-negocio-agente-residencial-preview-draft") || "",
       };
     });
     if (after.editingId !== before.editingId) fail(`child id changed ${before.editingId} -> ${after.editingId}`);
-    if (after.durable < 3 && after.fotos < 3) fail("child photos lost after refresh: " + JSON.stringify(after));
-    if (after.imgs < 3) fail("child visible imgs lost: " + after.imgs);
+    if (after.durable < 8 && after.fotos < 8) fail("child photos lost after refresh: " + JSON.stringify(after));
+    if (after.brokenSrc > 0) fail("child img src still raw IDB after refresh: " + JSON.stringify(after));
+    if (after.rendered < 8) fail("child thumbs not visually rendered after refresh: " + JSON.stringify(after));
 
     // Parent draft must not pick up child MAIN_PHOTO collision
     if (after.parentDraft.includes(`CHILD_EDITOR_${before.editingId}`) === false) {
@@ -217,8 +238,14 @@ async function main() {
     await page.waitForTimeout(300);
     await dialogAfter.locator("[data-br-child-step='2']").click();
     await page.waitForTimeout(800);
-    const afterNavImgs = await dialogAfter.locator("img").count();
-    if (afterNavImgs < 3) fail("child images lost after Back/Next: " + afterNavImgs);
+    const afterNav = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
+      return {
+        rendered: imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length,
+        brokenSrc: imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length,
+      };
+    });
+    if (afterNav.brokenSrc > 0 || afterNav.rendered < 8) fail("child images lost after Back/Next: " + JSON.stringify(afterNav));
 
     // Fill required child fields (needed for Preview gate + Save)
     await dialogAfter.locator("[data-br-child-step='1']").click();
@@ -244,8 +271,16 @@ async function main() {
     await dialogAfter.waitFor({ timeout: 20_000 });
     await dialogAfter.locator("[data-br-child-step='2']").click();
     await page.waitForTimeout(900);
-    const afterVolver = await dialogAfter.locator("img").count();
-    if (afterVolver < 3) fail("child preview/volver lost images: " + afterVolver);
+    const afterVolver = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
+      return {
+        rendered: imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length,
+        brokenSrc: imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length,
+      };
+    });
+    if (afterVolver.brokenSrc > 0 || afterVolver.rendered < 8) {
+      fail("child preview/volver lost images: " + JSON.stringify(afterVolver));
+    }
 
     await dialogAfter.locator("[data-br-child-step='9']").click();
     await page.waitForTimeout(500);
@@ -314,36 +349,71 @@ async function main() {
         const j = JSON.parse(sessionStorage.getItem("br-negocio-agente-residencial-preview-draft") || "{}");
         const state = j.state && typeof j.state === "object" ? j.state : j;
         const inv = state.additionalInventoryProperties || [];
+        const photos = inv[0]?.propertyForm?.fotosDataUrls || inv[0]?.photoUrls || inv[0]?.fotosDataUrls || [];
         return {
           count: inv.length,
-          fotos: (inv[0]?.propertyForm?.fotosDataUrls || inv[0]?.fotosDataUrls || []).length,
+          fotos: photos.length,
+          sample: String(photos[0] || "").slice(0, 48),
           id: inv[0]?.id || null,
           parentFotos: (state.fotosDataUrls || []).length,
         };
       } catch {
-        return { count: 0, fotos: 0, id: null, parentFotos: -1 };
+        return { count: 0, fotos: 0, sample: "", id: null, parentFotos: -1 };
       }
     });
     if (savedParent.count < 1) fail("save/return did not persist child inventory card: " + JSON.stringify(savedParent));
-    if (savedParent.fotos < 3) fail("save/return lost child durable photos: " + JSON.stringify(savedParent));
+    if (savedParent.fotos < 8) fail("save/return lost child durable photos: " + JSON.stringify(savedParent));
     if (savedParent.parentFotos > 0) fail("parent photos polluted after child save: " + savedParent.parentFotos);
+
+    // Child inventory card only (parent main may still be "No photo" — isolation)
+    await page.waitForFunction(
+      () => {
+        const cards = Array.from(document.querySelectorAll("article, section, li, div")).filter((el) =>
+          /Additional property|Propiedad adicional/i.test(el.textContent || ""),
+        );
+        for (const card of cards) {
+          const imgs = Array.from(card.querySelectorAll("img")).filter((img) => {
+            const src = String(img.currentSrc || img.src || "");
+            return (src.startsWith("data:") || img.naturalWidth > 0) && !src.includes("__LX_BR_AGENTE_IDB__");
+          });
+          const childNoPhoto = Array.from(card.querySelectorAll("*")).some((el) =>
+            /^(No photo|Sin foto)$/.test((el.textContent || "").trim()),
+          );
+          if (imgs.length >= 7 && !childNoPhoto) return true;
+        }
+        return false;
+      },
+      null,
+      { timeout: 25_000 },
+    );
 
     // Reopen the same saved child
     const editChild = page.getByRole("button", { name: /^Edit$|^Editar$/i }).first();
     await editChild.click();
     await page.locator("[data-br-child-inventory-app]").waitFor({ timeout: 30_000 });
     await page.locator("[data-br-child-inventory-app] [data-br-child-step='2']").click();
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(
+      () => {
+        const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
+        const rendered = imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length;
+        const brokenSrc = imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length;
+        return rendered >= 8 && brokenSrc === 0;
+      },
+      null,
+      { timeout: 30_000 },
+    );
     const reopen = await page.evaluate(() => {
       const j = JSON.parse(sessionStorage.getItem("br-negocio-child-inventory-editor-session") || "{}");
+      const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
       return {
         editingId: j.editingId || null,
         fotos: (j.propertyForm?.fotosDataUrls || []).length,
         durable: (j.propertyForm?.fotosDataUrls || []).filter((u) => String(u).includes("__LX_BR_AGENTE_IDB__")).length,
-        imgs: document.querySelectorAll("[data-br-child-inventory-app] img").length,
+        rendered: imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length,
+        brokenSrc: imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length,
       };
     });
-    if (reopen.imgs < 3 && reopen.fotos < 3 && reopen.durable < 3) {
+    if (reopen.brokenSrc > 0 || reopen.rendered < 8) {
       fail("reopen lost photos: " + JSON.stringify(reopen));
     }
 

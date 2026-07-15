@@ -217,7 +217,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 <ul className="mx-auto grid max-w-[1100px] list-none grid-cols-1 gap-3">
                   {pagedRows.map((r) => (
                     <li key={r.slug} className="min-w-0">
-                      <ServiciosHorizontalResultCard row={r} lang={lang} density="compact" />
+                      <ServiciosHorizontalResultCard row={r} lang={lang} />
                     </li>
                   ))}
                 </ul>

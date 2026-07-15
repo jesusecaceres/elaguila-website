@@ -22,6 +22,7 @@ import {
 import { EN_VENTA_SUBCATEGORY_ROWS } from "../taxonomy/subcategories";
 import { mapDbRowToEnVentaAnuncioDTO } from "../mapping/mapDbRowToEnVentaListingData";
 import { inferEnVentaDeptFromSubKey } from "../mapping/enVentaInferDeptFromSub";
+import { getArticuloLabel } from "../shared/fields/enVentaTaxonomy";
 import {
   EN_VENTA_SORT_OPTIONS,
   enVentaConditionFilterOptions,
@@ -633,7 +634,10 @@ export function EnVentaResultsClient() {
       !/^(united states|estados unidos|us|usa)$/i.test(country.trim())
     )
       out.push({ key: "country", label: country, onRemove: () => rm({ country: undefined }) });
-    if (itemType) out.push({ key: "itemType", label: itemType, onRemove: () => rm({ itemType: undefined }) });
+    if (itemType) {
+      const itemLabel = evDept ? getArticuloLabel(evDept, itemType, lang) : itemType;
+      out.push({ key: "itemType", label: itemLabel, onRemove: () => rm({ itemType: undefined }) });
+    }
     if (evDept) {
       const dn = EN_VENTA_DEPARTMENTS.find((d) => d.key === evDept)?.label[lang] ?? evDept;
       out.push({

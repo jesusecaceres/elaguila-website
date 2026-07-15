@@ -62,13 +62,21 @@ function mainPriceDisplay(price: string, lang: BrNegocioPrePublishInventoryLang)
   return formatted || (lang === "es" ? "Precio pendiente" : "Price pending");
 }
 
+/** Ready for <img src> without further resolve (IDB tokens are durable only). */
+function isDisplayableInventoryPhotoUrl(raw: string | undefined): boolean {
+  const u = trim(raw ?? "");
+  return Boolean(u && (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/")));
+}
+
 function safePhotoUrl(raw: string | undefined): string {
   const u = trim(raw ?? "");
   if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/")) return u;
-  if (u.startsWith("__LX_BR_AGENTE_IDB__")) return u;
+  // Keep IDB tokens for the card layer to resolve; never invent bogus URLs.
+  if (isDisplayableInventoryPhotoUrl(u) || u.startsWith("__LX_BR_AGENTE_IDB__")) return u;
   return "";
 }
+
+export { isDisplayableInventoryPhotoUrl };
 
 function inventoryGallerySlotUrls(photos: string[], primaryIndex: number): string[] {
   const cleaned = photos.map((u) => trim(String(u))).filter(Boolean);
@@ -207,12 +215,13 @@ export function mapAdditionalDraftToInventoryCard(
   };
 }
 
-/** Step 10 safety net — never show "No photo" when live editor state has photos. */
+/** Step 10 safety net — never show "No photo" when live editor state has displayable photos. */
 export function applyLiveEditorPhotosToInventoryCard(
   card: BrNegocioInventoryCardModel,
   liveState: AgenteIndividualResidencialFormState,
 ): BrNegocioInventoryCardModel {
-  if (card.photoUrl) return card;
+  // IDB tokens are not displayable — do not short-circuit over live inlined URLs.
+  if (isDisplayableInventoryPhotoUrl(card.photoUrl)) return card;
   const photos = (Array.isArray(liveState.fotosDataUrls) ? liveState.fotosDataUrls : [])
     .map((u) => trim(String(u)))
     .filter(Boolean);

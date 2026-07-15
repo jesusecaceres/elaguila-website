@@ -1,19 +1,22 @@
 "use client";
 
 import { FiPlay, FiX } from "react-icons/fi";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { getAutosNegociosCopy, type AutosNegociosCopy } from "../lib/autosNegociosCopy";
 import { deriveHeroImageUrls } from "../lib/autoDealerHeroImages";
 import {
-  getListingVideoExternalHref,
-  getListingVideoSrcForElement,
   hasListingVideo,
   hasPublishedAutosListingVideo,
   resolvePublishedAutosVideoPlayback,
   type PublishedAutosVideoMode,
 } from "../lib/autoDealerVideo";
+import {
+  buildAutosGalleryLightboxItems,
+  firstAutosGalleryVideoIndex,
+  type AutosGalleryLightboxItem,
+} from "@/app/lib/clasificados/autos/autosGalleryLightbox";
 import { MediaImage } from "./MediaImage";
 import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 import {
@@ -38,37 +41,44 @@ export function AutoGallery({
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
-  const [lightbox, setLightbox] = useState<number | null>(null);
+  const mediaItems = useMemo(
+    () => buildAutosGalleryLightboxItems(data, images, { publicPlaybackOnly }),
+    [data, images, publicPlaybackOnly],
+  );
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const videoLightboxIndex = useMemo(() => firstAutosGalleryVideoIndex(mediaItems), [mediaItems]);
 
   useEffect(() => {
-    if (lightbox == null) return;
+    if (lightboxIndex == null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightbox(null);
-      if (e.key === "ArrowRight") setLightbox((i) => (i == null ? i : Math.min(images.length - 1, i + 1)));
-      if (e.key === "ArrowLeft") setLightbox((i) => (i == null ? i : Math.max(0, i - 1)));
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((i) => (i == null ? i : Math.min(mediaItems.length - 1, i + 1)));
+      }
+      if (e.key === "ArrowLeft") {
+        setLightboxIndex((i) => (i == null ? i : Math.max(0, i - 1)));
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightbox, images.length]);
+  }, [lightboxIndex, mediaItems.length]);
 
-  const openAt = useCallback((idx: number) => {
-    if (!images[idx]) return;
-    setLightbox(idx);
-  }, [images]);
+  const openAt = useCallback(
+    (idx: number) => {
+      if (!mediaItems[idx]) return;
+      setLightboxIndex(idx);
+    },
+    [mediaItems],
+  );
+
+  const openVideoLightbox = useCallback(() => {
+    if (videoLightboxIndex < 0) return;
+    setLightboxIndex(videoLightboxIndex);
+  }, [videoLightboxIndex]);
 
   const publishedPb = resolvePublishedAutosVideoPlayback(data);
   const hasVideo = publicPlaybackOnly ? hasPublishedAutosListingVideo(data) : hasListingVideo(data);
-  const videoSrc = publicPlaybackOnly ? undefined : getListingVideoSrcForElement(data);
-  const videoHref = publicPlaybackOnly ? undefined : getListingVideoExternalHref(data);
 
-  const scrollToVideo = useCallback(() => {
-    const el = document.querySelector("[data-autos-gallery-video]");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      return;
-    }
-    if (videoHref) window.open(videoHref, "_blank", "noopener,noreferrer");
-  }, [videoHref]);
   const main = images[0];
   const extra = Math.max(0, images.length - 1);
   const subImages = images.slice(1, 4);
@@ -84,6 +94,7 @@ export function AutoGallery({
   if (hasVideo) bottomCells.push({ kind: "video" });
 
   const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
+  const activeItem = lightboxIndex != null ? mediaItems[lightboxIndex] : null;
 
   return (
     <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={`${CARD} scroll-mt-28`}>
@@ -95,7 +106,7 @@ export function AutoGallery({
           </button>
         ) : null}
         {hasVideo ? (
-          <button type="button" className={autosPreviewMediaTabClass} onClick={scrollToVideo}>
+          <button type="button" className={autosPreviewMediaTabClass} onClick={openVideoLightbox}>
             {lang === "es" ? "Video" : "Video"}
           </button>
         ) : null}
@@ -155,75 +166,68 @@ export function AutoGallery({
                 />
               ) : publicPlaybackOnly ? (
                 <div key="video-pub" data-autos-gallery-video>
-                <PublishedVideoTile
-                  mode={publishedPb.mode}
-                  streamUrl={publishedPb.streamUrl}
-                  externalHref={publishedPb.externalHref}
-                  posterSrc={publishedPb.posterUrl ?? main}
-                  g={g}
-                  lang={lang}
-                />
+                  <PublishedVideoTile
+                    mode={publishedPb.mode}
+                    posterSrc={publishedPb.posterUrl ?? main}
+                    g={g}
+                    onOpen={openVideoLightbox}
+                  />
                 </div>
               ) : (
                 <div key="video" data-autos-gallery-video>
-                  <VideoTile videoSrc={videoSrc} videoHref={videoHref} posterSrc={main} g={g} />
+                  <VideoTile posterSrc={main} g={g} onOpen={openVideoLightbox} />
                 </div>
               ),
             )}
           </div>
         ) : null}
       </div>
-      {lightbox != null && images[lightbox] ? (
+
+      {lightboxIndex != null && activeItem ? (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label={lang === "es" ? "Galería de fotos" : "Photo gallery"}
+          aria-label={lang === "es" ? "Galería de medios" : "Media gallery"}
         >
           <button
             type="button"
             className="absolute inset-0 cursor-default"
             aria-label={lang === "es" ? "Cerrar galería" : "Close gallery"}
-            onClick={() => setLightbox(null)}
+            onClick={() => setLightboxIndex(null)}
           />
           <div className="relative z-10 flex w-full max-w-5xl flex-col items-stretch gap-3">
             <div className="flex justify-end">
               <button
                 type="button"
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#FFFCF7]/95 text-[color:var(--lx-text)] shadow-lg"
-                onClick={() => setLightbox(null)}
+                onClick={() => setLightboxIndex(null)}
                 aria-label={lang === "es" ? "Cerrar" : "Close"}
               >
                 <FiX className="h-6 w-6" aria-hidden />
               </button>
             </div>
-            <div className="relative h-[min(70vh,640px)] w-full overflow-hidden rounded-2xl bg-black/40">
-              <MediaImage
-                src={images[lightbox]!}
-                alt={`${altBase} — ${lightbox + 1}`}
-                fill
-                className="object-contain"
-                sizes="100vw"
-              />
-            </div>
-            {images.length > 1 ? (
+            <GalleryLightboxSlide item={activeItem} altBase={altBase} lang={lang} g={g} />
+            {mediaItems.length > 1 ? (
               <p className="text-center text-xs font-semibold text-[#FFFCF7]/90">
-                {lightbox + 1} / {images.length}
+                <GalleryLightboxCounter item={activeItem} index={lightboxIndex} total={mediaItems.length} lang={lang} g={g} />
               </p>
             ) : null}
-            {images.length > 1 ? (
+            {mediaItems.length > 1 ? (
               <div className="flex justify-center gap-3">
                 <button
                   type="button"
-                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7]"
-                  onClick={() => setLightbox((i) => (i == null ? i : Math.max(0, i - 1)))}
+                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
+                  disabled={lightboxIndex <= 0}
+                  onClick={() => setLightboxIndex((i) => (i == null ? i : Math.max(0, i - 1)))}
                 >
                   {lang === "es" ? "Anterior" : "Previous"}
                 </button>
                 <button
                   type="button"
-                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7]"
-                  onClick={() => setLightbox((i) => (i == null ? i : Math.min(images.length - 1, i + 1)))}
+                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
+                  disabled={lightboxIndex >= mediaItems.length - 1}
+                  onClick={() => setLightboxIndex((i) => (i == null ? i : Math.min(mediaItems.length - 1, i + 1)))}
                 >
                   {lang === "es" ? "Siguiente" : "Next"}
                 </button>
@@ -236,8 +240,109 @@ export function AutoGallery({
   );
 }
 
+function GalleryLightboxCounter({
+  item,
+  index,
+  total,
+  lang,
+  g,
+}: {
+  item: AutosGalleryLightboxItem;
+  index: number;
+  total: number;
+  lang: "es" | "en";
+  g: AutosNegociosCopy["preview"]["gallery"];
+}) {
+  if (item.kind === "photo") {
+    return (
+      <>
+        {lang === "es" ? "Foto" : "Photo"} {index + 1} / {total}
+      </>
+    );
+  }
+  return (
+    <>
+      {g.videoBadge} · {index + 1} / {total}
+    </>
+  );
+}
+
+function GalleryLightboxSlide({
+  item,
+  altBase,
+  lang,
+  g,
+}: {
+  item: AutosGalleryLightboxItem;
+  altBase: string;
+  lang: "es" | "en";
+  g: AutosNegociosCopy["preview"]["gallery"];
+}) {
+  if (item.kind === "photo") {
+    return (
+      <div className="relative h-[min(70vh,640px)] w-full overflow-hidden rounded-2xl bg-black/40">
+        <MediaImage src={item.src} alt={altBase} fill className="object-contain" sizes="100vw" />
+      </div>
+    );
+  }
+
+  if (item.kind === "youtube") {
+    return (
+      <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
+        <iframe
+          src={item.embedUrl}
+          title={g.videoBadge}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    );
+  }
+
+  if (item.kind === "stream") {
+    return (
+      <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
+        <StreamableAutosVideo url={item.streamUrl} posterUrl={item.posterUrl} lang={lang} g={g} fillContainer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-[min(50vh,420px)] w-full flex-col items-center justify-center gap-4 rounded-2xl bg-black/40 px-6 py-10 text-center">
+      <p className="max-w-md text-sm leading-relaxed text-[#FFFCF7]/90">
+        {lang === "es"
+          ? "Este video se reproduce en su plataforma original. Puedes abrirlo en una pestaña nueva."
+          : "This video plays on its original platform. You can open it in a new tab."}
+      </p>
+      <a
+        href={item.externalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-white/30 bg-[#FFFCF7]/15 px-5 text-sm font-bold text-[#FFFCF7] underline-offset-2 hover:underline"
+      >
+        {lang === "es" ? "Abrir en sitio externo" : "Open on external site"}
+      </a>
+    </div>
+  );
+}
+
 /** Safari plays HLS natively; Chrome/Firefox use hls.js (same pattern as En Venta preview). */
-function StreamableAutosVideo({ url, posterUrl, lang, g }: { url: string; posterUrl?: string; lang: "es" | "en"; g: AutosNegociosCopy["preview"]["gallery"] }) {
+function StreamableAutosVideo({
+  url,
+  posterUrl,
+  lang,
+  g,
+  fillContainer = false,
+}: {
+  url: string;
+  posterUrl?: string;
+  lang: "es" | "en";
+  g: AutosNegociosCopy["preview"]["gallery"];
+  fillContainer?: boolean;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -295,101 +400,67 @@ function StreamableAutosVideo({ url, posterUrl, lang, g }: { url: string; poster
   }, [url, posterUrl]);
 
   return (
-    <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]">
+    <div className={fillContainer ? "relative h-full w-full" : "relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]"}>
       <video
         ref={ref}
         controls
         playsInline
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         aria-label={lang === "es" ? "Video del vehículo" : "Vehicle video"}
       />
-      <span className="absolute bottom-2 left-2 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
-        {g.videoBadge}
-      </span>
+      {!fillContainer ? (
+        <span className="absolute bottom-2 left-2 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
+          {g.videoBadge}
+        </span>
+      ) : null}
     </div>
   );
 }
 
 function PublishedVideoTile({
   mode,
-  streamUrl,
-  externalHref,
   posterSrc,
   g,
-  lang,
+  onOpen,
 }: {
   mode: PublishedAutosVideoMode;
-  streamUrl?: string;
-  externalHref?: string;
   posterSrc?: string;
   g: AutosNegociosCopy["preview"]["gallery"];
-  lang: "es" | "en";
+  onOpen: () => void;
 }) {
   if (mode === "none") return null;
 
-  if ((mode === "mux-hls" || mode === "progressive") && streamUrl) {
-    return <StreamableAutosVideo url={streamUrl} posterUrl={posterSrc} lang={lang} g={g} />;
-  }
-
-  const href = externalHref || "#";
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left md:aspect-auto md:min-h-[140px]"
-      aria-label={g.videoAria}
-    >
-      {posterSrc ? (
-        <MediaImage
-          src={posterSrc}
-          alt=""
-          fill
-          className="object-cover opacity-90 transition group-hover:opacity-100"
-          sizes="(min-width: 768px) 25vw, 50vw"
-        />
-      ) : (
-        <span className="absolute inset-0 bg-gradient-to-br from-[color:var(--lx-section)] to-[color:var(--lx-nav-hover)]" />
-      )}
-      <span className="absolute inset-0 bg-gradient-to-t from-[color:var(--lx-text)]/55 to-transparent" />
-      <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-[#FFFCF7]/95 text-[color:var(--lx-text)] shadow-lg backdrop-blur-sm transition group-hover:scale-[1.03]">
-        <FiPlay className="ml-0.5 h-7 w-7" aria-hidden />
-      </span>
-      <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
-        {g.videoBadge}
-      </span>
-    </a>
+    <VideoWalkaroundThumb posterSrc={posterSrc} g={g} onOpen={onOpen} />
   );
 }
 
 function VideoTile({
-  videoSrc,
-  videoHref,
   posterSrc,
   g,
+  onOpen,
 }: {
-  videoSrc: string | undefined;
-  videoHref: string | undefined;
   posterSrc: string | undefined;
   g: AutosNegociosCopy["preview"]["gallery"];
+  onOpen: () => void;
 }) {
-  if (videoSrc) {
-    return (
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]">
-        <video src={videoSrc} controls className="h-full w-full object-cover" playsInline />
-        <span className="absolute bottom-2 left-2 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
-          {g.videoBadge}
-        </span>
-      </div>
-    );
-  }
+  return <VideoWalkaroundThumb posterSrc={posterSrc} g={g} onOpen={onOpen} />;
+}
 
+function VideoWalkaroundThumb({
+  posterSrc,
+  g,
+  onOpen,
+}: {
+  posterSrc?: string;
+  g: AutosNegociosCopy["preview"]["gallery"];
+  onOpen: () => void;
+}) {
   return (
-    <a
-      href={videoHref || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left md:aspect-auto md:min-h-[140px]"
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left md:aspect-auto md:min-h-[140px]"
       aria-label={g.videoAria}
     >
       {posterSrc ? (
@@ -410,7 +481,7 @@ function VideoTile({
       <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
         {g.videoBadge}
       </span>
-    </a>
+    </button>
   );
 }
 

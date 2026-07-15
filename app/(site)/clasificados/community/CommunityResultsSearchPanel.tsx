@@ -23,10 +23,14 @@ import {
 import { categoryStandardSearchPlaceholder } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import type { ActiveFilterChip } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import {
+  CLASES_CATEGORY_OPTIONS,
   CLASES_SKILL_LEVEL_OPTIONS,
   COMUNIDAD_ACCESSIBILITY_OPTIONS,
+  COMUNIDAD_CATEGORY_OPTIONS,
   COMMUNITY_AUDIENCE_OPTIONS,
   COMMUNITY_REGISTRATION_OPTIONS,
+  resolveClasesCategoryPublicLabel,
+  resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 
 type Props = {
@@ -62,7 +66,13 @@ function drawerFilterChips(
   };
 
   if (category === "clases") {
-    if (drawer.classType) push("classType", `${L ? "Tipo" : "Type"}: ${drawer.classType}`);
+    if (drawer.classType) {
+      const classLabel = optionLabel(CLASES_CATEGORY_OPTIONS, drawer.classType, lang);
+      push(
+        "classType",
+        `${L ? "Tipo" : "Type"}: ${classLabel || resolveClasesCategoryPublicLabel(drawer.classType, "", lang)}`,
+      );
+    }
     if (drawer.cost && drawer.cost !== "all") {
       const costLabel =
         drawer.cost === "gratis" ? (L ? "Gratis" : "Free") : drawer.cost === "pagada" ? (L ? "Pagada" : "Paid") : drawer.cost;
@@ -89,9 +99,33 @@ function drawerFilterChips(
       push("level", `${L ? "Nivel" : "Level"}: ${optionLabel(CLASES_SKILL_LEVEL_OPTIONS, drawer.level, lang)}`);
     }
   } else {
-    if (drawer.eventType) push("eventType", `${L ? "Tipo" : "Type"}: ${drawer.eventType}`);
+    if (drawer.eventType) {
+      const eventLabel = optionLabel(COMUNIDAD_CATEGORY_OPTIONS, drawer.eventType, lang);
+      push(
+        "eventType",
+        `${L ? "Tipo" : "Type"}: ${eventLabel || resolveComunidadEventTypePublicLabel(drawer.eventType, "", lang)}`,
+      );
+    }
     if (drawer.eventCost && drawer.eventCost !== "all") {
-      push("eventCost", `${L ? "Costo" : "Cost"}: ${drawer.eventCost}`);
+      const costLabel =
+        drawer.eventCost === "gratis"
+          ? L
+            ? "Gratis"
+            : "Free"
+          : drawer.eventCost === "pagado"
+            ? L
+              ? "Pagado"
+              : "Paid"
+            : drawer.eventCost === "donacion"
+              ? L
+                ? "Donación"
+                : "Donation"
+              : drawer.eventCost === "noConfirmado"
+                ? L
+                  ? "Por confirmar"
+                  : "TBD"
+                : drawer.eventCost;
+      push("eventCost", `${L ? "Costo" : "Cost"}: ${costLabel}`);
     }
     if (drawer.dateFrom) push("dateFrom", `${L ? "Desde" : "From"}: ${drawer.dateFrom}`);
     if (drawer.dateTo) push("dateTo", `${L ? "Hasta" : "To"}: ${drawer.dateTo}`);
