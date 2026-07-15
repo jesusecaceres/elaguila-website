@@ -133,6 +133,7 @@ export default function AgenteIndividualResidencialApplication() {
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
   const addModePreviewSyncedRef = useRef(false);
   const skipFirstPersistRef = useRef(true);
+  const onItemsChangeEpochRef = useRef(0);
 
   useEffect(() => {
     if (skipFirstPersistRef.current) {
@@ -703,24 +704,21 @@ export default function AgenteIndividualResidencialApplication() {
                     onItemsChange={async (items) => {
                       if (isExistingDashboardListingMode && !dashboardInventoryPackUnlocked) return;
                       setChildInventoryMediaBridge(items);
-                      let nextState: typeof state | null = null;
-                      setState((s) => {
-                        const next = {
-                          ...s,
-                          additionalInventoryProperties: items,
-                          inventoryPackAccepted: isExistingDashboardListingMode
+                      const epoch = ++onItemsChangeEpochRef.current;
+                      const next = {
+                        ...state,
+                        additionalInventoryProperties: items,
+                        inventoryPackAccepted: isExistingDashboardListingMode
+                          ? true
+                          : items.length > 0
                             ? true
-                            : items.length > 0
-                              ? true
-                              : s.inventoryPackAccepted,
-                          confirmInventoryPackPricing:
-                            items.length === 0 ? false : s.confirmInventoryPackPricing,
-                        };
-                        nextState = next;
-                        return next;
-                      });
-                      if (nextState) {
-                        await persistAgenteResApplicationDraftResolved(nextState);
+                            : state.inventoryPackAccepted,
+                        confirmInventoryPackPricing:
+                          items.length === 0 ? false : state.confirmInventoryPackPricing,
+                      };
+                      setState(next);
+                      if (epoch === onItemsChangeEpochRef.current) {
+                        await persistAgenteResApplicationDraftResolved(next);
                       }
                     }}
                     hidden={inventoryAdd.inventoryModeAdd}
