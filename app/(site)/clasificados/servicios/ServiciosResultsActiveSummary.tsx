@@ -124,7 +124,7 @@ export function ServiciosResultsActiveSummary({
   if (query.whatsapp === "1") {
     items.push({
       key: "wa",
-      label: lang === "en" ? "Contact: WhatsApp listed" : "Contacto: WhatsApp en vitrina",
+      label: "WhatsApp",
       href: rm("wa"),
     });
   }
@@ -138,7 +138,7 @@ export function ServiciosResultsActiveSummary({
   if (query.call === "1") {
     items.push({
       key: "call",
-      label: lang === "en" ? "Contact: Phone listed" : "Contacto: Teléfono en vitrina",
+      label: lang === "en" ? "Phone" : "Teléfono",
       href: rm("call"),
     });
   }
@@ -201,46 +201,58 @@ export function ServiciosResultsActiveSummary({
   if (query.web === "1") {
     items.push({
       key: "web",
-      label: lang === "en" ? "Has website on profile" : "Con sitio web en vitrina",
+      label: lang === "en" ? "Website" : "Sitio web",
       href: rm("web"),
     });
   }
   if (query.bilingual === "1") {
     items.push({
       key: "bilingual",
-      label: lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe",
+      label: lang === "en" ? "Bilingual" : "Bilingüe",
       href: rm("bilingual"),
     });
   }
   if (query.email === "1") {
     items.push({
       key: "email",
-      label: lang === "en" ? "Email on profile" : "Correo en vitrina",
+      label: lang === "en" ? "Email" : "Correo",
       href: rm("email"),
     });
   }
   if (query.emergency === "1") {
     items.push({
       key: "emergency",
-      label: lang === "en" ? "Emergency / urgent signal" : "Señal de urgencia / emergencia",
+      label: lang === "en" ? "Emergency" : "Emergencia",
       href: rm("emergency"),
     });
   }
   if (query.mobileSvc === "1") {
     items.push({
       key: "mobileSvc",
-      label: lang === "en" ? "Mobile / on-site service signal" : "Señal de servicio móvil / a domicilio",
+      label: lang === "en" ? "Travels to customer" : "Servicio a domicilio",
       href: rm("mobileSvc"),
     });
   }
   if (query.msg === "1") {
-    items.push({ key: "msg", label: lang === "en" ? "In-app messaging on" : "Mensajes en app activados", href: rm("msg") });
+    items.push({
+      key: "msg",
+      label: lang === "en" ? "In-app messages" : "Mensajes en app",
+      href: rm("msg"),
+    });
   }
   if (query.phys === "1") {
-    items.push({ key: "phys", label: lang === "en" ? "Physical address on file" : "Dirección física capturada", href: rm("phys") });
+    items.push({
+      key: "phys",
+      label: lang === "en" ? "Physical location" : "Dirección física",
+      href: rm("phys"),
+    });
   }
   if (query.svcMulti === "1") {
-    items.push({ key: "svcMulti", label: lang === "en" ? "Multi-area service coverage" : "Cobertura multi-zona", href: rm("svcMulti") });
+    items.push({
+      key: "svcMulti",
+      label: lang === "en" ? "Serves multiple areas" : "Atiende varias zonas",
+      href: rm("svcMulti"),
+    });
   }
   if (query.offer === "1") {
     items.push({ key: "offer", label: lang === "en" ? "Offer / promo headline" : "Titular de oferta", href: rm("offer") });

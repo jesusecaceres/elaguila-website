@@ -81,6 +81,8 @@ export function AutosEngagementRow({
             persistEngagement
             likeCount={safeCount}
             countDisplay="numeric"
+            numericShowZero
+            previewLabelMode="iconOnly"
             recordLikeEvent={autosGlobalLikeRecorderFromContext(analyticsCtx)}
           />
           <LeonixShareButton
@@ -91,6 +93,7 @@ export function AutosEngagementRow({
             lang={lang}
             category="autos"
             persistEngagement
+            directNativeShare
             recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, shareEventSource)}
           />
         </div>

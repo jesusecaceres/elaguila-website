@@ -12,7 +12,7 @@ import {
   resolveFinanceWhatsappHref,
 } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
-import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
+import { AutosDirectContactLink } from "@/app/clasificados/autos/shared/components/AutosDirectContactLink";
 import {
   autosAnalyticsTrackMeta,
   autosSheetCtaAnalyticsProps,
@@ -94,23 +94,23 @@ export function DealerFinanceContact({
       ) : null}
       <div className="mt-4 flex flex-col gap-2">
         {wa ? (
-          <AutosSheetCtaLink href={wa} className={`${waClass} min-h-[44px]`} {...sheetProps}>
+          <AutosDirectContactLink href={wa} className={`${waClass} min-h-[44px]`} {...sheetProps}>
             <SiWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />
             {f.whatsapp}
-          </AutosSheetCtaLink>
+          </AutosDirectContactLink>
         ) : null}
         <div className="grid grid-cols-2 gap-2">
           {tel ? (
-            <AutosSheetCtaLink href={`tel:${tel}`} className={actionClass} {...sheetProps}>
+            <AutosDirectContactLink href={`tel:${tel}`} className={actionClass} {...sheetProps}>
               <FiPhone className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
               {f.call}
-            </AutosSheetCtaLink>
+            </AutosDirectContactLink>
           ) : null}
           {email ? (
-            <AutosSheetCtaLink href={email} lang={lang} className={actionClass} {...sheetProps}>
+            <AutosDirectContactLink href={email} className={actionClass} {...sheetProps}>
               <FiMail className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
               {f.email}
-            </AutosSheetCtaLink>
+            </AutosDirectContactLink>
           ) : null}
         </div>
         {appHref ? (

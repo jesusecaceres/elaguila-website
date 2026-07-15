@@ -149,7 +149,7 @@ export function VehicleSpecsGrid({
           </div>
         </details>
       ) : null}
-      <div className="mt-4 hidden min-w-0 gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="mt-4 hidden min-w-0 auto-rows-fr gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {visible.map((r) => (
           <SpecIconRow
             key={r.key}

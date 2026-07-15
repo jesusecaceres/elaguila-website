@@ -14,7 +14,7 @@ import {
 import { formatCityStateLabel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
-import { AutosSheetCtaLink } from "@/app/clasificados/autos/shared/components/AutosSheetCtaLink";
+import { AutosDirectContactLink } from "@/app/clasificados/autos/shared/components/AutosDirectContactLink";
 import { DealerFinanceContact } from "./DealerFinanceContact";
 import { hasDealerFinanceContact } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
 import { mapAutosDealerToBusinessHubContact } from "../lib/mapAutosDealerToBusinessHubContact";
@@ -171,20 +171,20 @@ export function DealerBusinessStack({
 
   if (showCall && c.callTelHref) {
     const node = (
-      <AutosSheetCtaLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
+      <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
         <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
         {sb.call}
-      </AutosSheetCtaLink>
+      </AutosDirectContactLink>
     );
     secondaryCtas.push({ key: "call", node });
     pairRowOne.push({ key: "call", node });
   }
   if (showSms && c.smsHref) {
     const node = (
-      <AutosSheetCtaLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
+      <AutosDirectContactLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
         <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
         {sb.textMessageCta}
-      </AutosSheetCtaLink>
+      </AutosDirectContactLink>
     );
     secondaryCtas.push({ key: "sms", node });
     pairRowOne.push({ key: "sms", node });
@@ -225,10 +225,10 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "email",
       node: (
-        <AutosSheetCtaLink href={c.emailMailto} lang={lang} className={BTN_SECONDARY} {...sheetProps}>
+        <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
           <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
           {sb.emailSeller}
-        </AutosSheetCtaLink>
+        </AutosDirectContactLink>
       ),
     });
   }
@@ -298,20 +298,20 @@ export function DealerBusinessStack({
             className={`mt-4 flex flex-col gap-3${showPremiumHubHeader && showReviews ? " pb-2" : ""}`}
           >
             {showWhatsapp && c.whatsappHref ? (
-              <AutosSheetCtaLink href={c.whatsappHref} className={BTN_WHATSAPP} {...sheetProps}>
+              <AutosDirectContactLink href={c.whatsappHref} className={BTN_WHATSAPP} {...sheetProps}>
                 <SiWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />
                 {sb.whatsappCta}
-              </AutosSheetCtaLink>
+              </AutosDirectContactLink>
             ) : null}
             {showPremiumHubHeader ? (
               <>
                 {renderPairRow(pairRowOne)}
                 {renderPairRow(pairRowTwo)}
                 {showEmail && c.emailMailto ? (
-                  <AutosSheetCtaLink href={c.emailMailto} lang={lang} className={BTN_SECONDARY} {...sheetProps}>
+                  <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
                     <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
                     {sb.emailSeller}
-                  </AutosSheetCtaLink>
+                  </AutosDirectContactLink>
                 ) : null}
               </>
             ) : secondaryCtas.length > 0 ? (

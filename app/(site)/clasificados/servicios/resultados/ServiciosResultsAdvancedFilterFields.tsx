@@ -34,11 +34,39 @@ function GroupShell({
   );
 }
 
-const selectClass =
-  "min-h-[48px] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+const fieldClass =
+  "min-h-[2.75rem] w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD]";
+
+const TOGGLE_GRID = "grid grid-cols-1 gap-2 sm:grid-cols-2";
+
+function FilterToggle({
+  name,
+  label,
+  defaultChecked,
+  formAttrs,
+}: {
+  name: string;
+  label: string;
+  defaultChecked?: boolean;
+  formAttrs: { form?: string };
+}) {
+  return (
+    <label className="inline-flex min-h-[2.5rem] cursor-pointer items-center gap-2.5 rounded-lg border border-[#dfe6ef] bg-[#f8fafc] px-3 py-2 text-sm font-medium text-[#142a42] hover:border-[#3B66AD]/35 hover:bg-white">
+      <input
+        type="checkbox"
+        name={name}
+        value="1"
+        defaultChecked={defaultChecked}
+        className="h-4 w-4 shrink-0 rounded border-[#c5d0dc] text-[#3B66AD] focus:ring-[#3B66AD]/30"
+        {...formAttrs}
+      />
+      <span className="min-w-0 leading-snug">{label}</span>
+    </label>
+  );
+}
 
 /**
- * Advanced Servicios results filters (everything after sort) — shared by desktop and mobile drawer.
+ * Servicios browse drawer — shared by landing + results. Boolean filters use checkboxes (unchecked = inactive).
  */
 export function ServiciosResultsAdvancedFilterFields({
   lang,
@@ -51,27 +79,31 @@ export function ServiciosResultsAdvancedFilterFields({
 }) {
   const f = formId ? { form: formId } : {};
   const [country, setCountry] = useState(current.country ?? LEONIX_LB_DEFAULT_COUNTRY);
+  const L = lang === "en";
+
   return (
-    <>
+    <div className="space-y-4">
       <GroupShell titleEs="Ubicación" titleEn="Location" lang={lang}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "City / service area" : "Ciudad / zona de servicio"}</span>
+            <span className="text-xs font-semibold text-neutral-700">
+              {L ? "City / service area" : "Ciudad / zona de servicio"}
+            </span>
             <input
               name="city"
               defaultValue={current.city ?? ""}
-              placeholder={lang === "en" ? "City" : "Ciudad"}
-              className={selectClass}
+              placeholder={L ? "City" : "Ciudad"}
+              className={fieldClass}
               {...f}
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "State / Province / Region" : "Estado / Provincia / Región"}</span>
+            <span className="text-xs font-semibold text-neutral-700">{L ? "State" : "Estado"}</span>
             {isLeonixLbUsCountry(country) ? (
               <select
                 name="state"
                 defaultValue={current.state ?? LEONIX_LB_DEFAULT_STATE}
-                className={selectClass}
+                className={fieldClass}
                 {...f}
               >
                 {US_STATE_OPTIONS.map((opt) => (
@@ -84,304 +116,231 @@ export function ServiciosResultsAdvancedFilterFields({
               <input
                 name="state"
                 defaultValue={current.state ?? ""}
-                placeholder={lang === "en" ? "Select or type" : "Selecciona o escribe"}
-                className={selectClass}
+                placeholder={L ? "State" : "Estado"}
+                className={fieldClass}
                 {...f}
               />
             )}
           </label>
           <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "ZIP / Postal code" : "ZIP / Código postal"}</span>
-            <input name="zip" defaultValue={current.zip ?? ""} className={selectClass} {...f} />
+            <span className="text-xs font-semibold text-neutral-700">ZIP</span>
+            <input name="zip" defaultValue={current.zip ?? ""} className={fieldClass} {...f} />
           </label>
           <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Country" : "País"}</span>
+            <span className="text-xs font-semibold text-neutral-700">{L ? "Country" : "País"}</span>
             <input
               name="country"
               defaultValue={current.country ?? LEONIX_LB_DEFAULT_COUNTRY}
               onChange={(e) => setCountry(e.target.value)}
-              className={selectClass}
+              className={fieldClass}
               {...f}
             />
           </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Travels to customer" : "Servicio a domicilio"}</span>
-            <select name="mobileSvc" defaultValue={current.mobileSvc === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Mobile / on-site" : "Móvil / a domicilio"}</option>
-            </select>
-          </label>
+        </div>
+        <div className={`mt-3 ${TOGGLE_GRID}`}>
+          <FilterToggle
+            name="mobileSvc"
+            label={L ? "Travels to customer" : "Servicio a domicilio"}
+            defaultChecked={current.mobileSvc === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="svcMulti"
+            label={L ? "Serves multiple areas" : "Atiende varias zonas"}
+            defaultChecked={current.svcMulti === "1"}
+            formAttrs={f}
+          />
         </div>
       </GroupShell>
 
       <GroupShell titleEs="Tipo de servicio" titleEn="Service type" lang={lang}>
-        <label className="flex min-w-0 flex-col gap-1">
-          <span className="text-xs font-semibold text-neutral-700">
-            {lang === "en" ? "Seller presentation" : "Tipo de proveedor"}
-          </span>
-          <select name="seller" defaultValue={current.seller ?? "all"} className={selectClass} {...f}>
-            <option value="all">{lang === "en" ? "All" : "Todos"}</option>
-            <option value="business">{lang === "en" ? "Business (web or address)" : "Negocio (web o dirección)"}</option>
-            <option value="independent">{lang === "en" ? "Independent professional" : "Profesional independiente"}</option>
-          </select>
-        </label>
-      </GroupShell>
-
-      <GroupShell titleEs="Categoría" titleEn="Category / trade" lang={lang}>
-        <label className="flex min-w-0 flex-col gap-1">
-          <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Category family" : "Categoría"}</span>
-          <select name="group" defaultValue={current.group ?? ""} className={selectClass} {...f}>
-            <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-            {SERVICIOS_INTERNAL_GROUP_IDS.map((id) => (
-              <option key={id} value={id}>
-                {formatServiciosInternalGroupForDiscovery(id, lang) ?? id}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid grid-cols-1 gap-3">
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-xs font-semibold text-neutral-700">
+              {L ? "Seller presentation" : "Tipo de proveedor"}
+            </span>
+            <select name="seller" defaultValue={current.seller ?? "all"} className={fieldClass} {...f}>
+              <option value="all">{L ? "All" : "Todos"}</option>
+              <option value="business">{L ? "Business" : "Negocio"}</option>
+              <option value="independent">{L ? "Independent professional" : "Profesional independiente"}</option>
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-xs font-semibold text-neutral-700">{L ? "Category" : "Categoría"}</span>
+            <select name="group" defaultValue={current.group ?? ""} className={fieldClass} {...f}>
+              <option value="">{L ? "All categories" : "Todas las categorías"}</option>
+              {SERVICIOS_INTERNAL_GROUP_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {formatServiciosInternalGroupForDiscovery(id, lang) ?? id}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </GroupShell>
 
       <GroupShell titleEs="Disponibilidad" titleEn="Availability" lang={lang}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Same day" : "Mismo día"}</span>
-            <select name="same_day" defaultValue={current.sameDay === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Same-day service" : "Servicio el mismo día"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "By appointment" : "Con cita"}</span>
-            <select name="appointment" defaultValue={current.appointment === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Appointments offered" : "Con citas"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Emergency" : "Emergencia"}</span>
-            <select name="emergency" defaultValue={current.emergency === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Emergency / urgent" : "Emergencia / urgente"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Weekend" : "Fin de semana"}</span>
-            <select name="wknd" defaultValue={current.wknd === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Sat/Sun hours" : "Horario sáb/dom"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Open now" : "Abierto ahora"}</span>
-            <select name="open_now" defaultValue={current.openNow === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Open now (by hours)" : "Abierto ahora (por horario)"}</option>
-            </select>
-          </label>
+        <div className={TOGGLE_GRID}>
+          <FilterToggle
+            name="same_day"
+            label={L ? "Same day" : "Mismo día"}
+            defaultChecked={current.sameDay === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="appointment"
+            label={L ? "By appointment" : "Con cita"}
+            defaultChecked={current.appointment === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="emergency"
+            label={L ? "Emergency" : "Emergencia"}
+            defaultChecked={current.emergency === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="wknd"
+            label={L ? "Weekend" : "Fin de semana"}
+            defaultChecked={current.wknd === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="open_now"
+            label={L ? "Open now" : "Abierto ahora"}
+            defaultChecked={current.openNow === "1"}
+            formAttrs={f}
+          />
         </div>
       </GroupShell>
 
-      <GroupShell titleEs="Confianza y alcance" titleEn="Trust & reach" lang={lang}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Leonix verified" : "Verificado Leonix"}</span>
-            <select name="verified" defaultValue={current.verified === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Verified listings only" : "Solo anuncios verificados"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Licensed" : "Licenciado"}</span>
-            <select name="licensed" defaultValue={current.licensed === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Licensed only" : "Solo licenciados"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Insured" : "Asegurado"}</span>
-            <select name="insured" defaultValue={current.insured === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Insured only" : "Solo asegurados"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Free estimate" : "Cotización gratis"}</span>
-            <select name="free_estimate" defaultValue={current.freeEstimate === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Free estimate offered" : "Con cotización gratis"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Free consultation" : "Consulta gratis"}</span>
-            <select name="free_consultation" defaultValue={current.freeConsultation === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Free consultation offered" : "Con consulta gratis"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Has photos" : "Tiene fotos"}</span>
-            <select name="has_photos" defaultValue={current.hasPhotos === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Public photos on profile" : "Con fotos en vitrina"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Has videos" : "Tiene videos"}</span>
-            <select name="has_videos" defaultValue={current.hasVideos === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Playable gallery video" : "Con video reproducible"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Has offers" : "Tiene ofertas"}</span>
-            <select name="has_offers" defaultValue={current.hasOffers === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Offers / promotions" : "Con ofertas o promociones"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Website on profile" : "Sitio web en vitrina"}</span>
-            <select name="web" defaultValue={current.web === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Has website link" : "Con enlace a web"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Bilingual signal" : "Señal bilingüe"}</span>
-            <select name="bilingual" defaultValue={current.bilingual === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Bilingual quick-fact" : "Dato rápido bilingüe"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Email on profile" : "Correo en vitrina"}</span>
-            <select name="email" defaultValue={current.email === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Shows email" : "Muestra correo"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Emergency / urgent" : "Emergencia / urgente"}</span>
-            <select name="emergency" defaultValue={current.emergency === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Emergency quick-fact" : "Dato rápido emergencia"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Mobile / on-site" : "Móvil / a domicilio"}</span>
-            <select name="mobileSvc" defaultValue={current.mobileSvc === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Mobile-service quick-fact" : "Dato rápido servicio móvil"}</option>
-            </select>
-          </label>
+      <GroupShell titleEs="Confianza" titleEn="Trust" lang={lang}>
+        <div className={TOGGLE_GRID}>
+          <FilterToggle
+            name="verified"
+            label={L ? "Leonix verified" : "Verificado Leonix"}
+            defaultChecked={current.verified === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="licensed"
+            label={L ? "Licensed" : "Licenciado"}
+            defaultChecked={current.licensed === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="insured"
+            label={L ? "Insured" : "Asegurado"}
+            defaultChecked={current.insured === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="free_estimate"
+            label={L ? "Free estimate" : "Cotización gratis"}
+            defaultChecked={current.freeEstimate === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="free_consultation"
+            label={L ? "Free consultation" : "Consulta gratis"}
+            defaultChecked={current.freeConsultation === "1"}
+            formAttrs={f}
+          />
         </div>
       </GroupShell>
 
-      <GroupShell titleEs="Formas de contacto" titleEn="Contact options" lang={lang}>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">WhatsApp</span>
-            <select name="whatsapp" defaultValue={current.whatsapp === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "WhatsApp shown" : "Con WhatsApp visible"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer / promo" : "Oferta"}</span>
-            <select name="promo" defaultValue={current.promo === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Has offer line" : "Con línea de oferta"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Phone" : "Teléfono"}</span>
-            <select name="call" defaultValue={current.call === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Phone shown" : "Con teléfono visible"}</option>
-            </select>
-          </label>
+      <GroupShell titleEs="Contacto" titleEn="Contact" lang={lang}>
+        <div className={TOGGLE_GRID}>
+          <FilterToggle
+            name="call"
+            label={L ? "Phone" : "Teléfono"}
+            defaultChecked={current.call === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="whatsapp"
+            label="WhatsApp"
+            defaultChecked={current.whatsapp === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="email"
+            label={L ? "Email" : "Correo"}
+            defaultChecked={current.email === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="web"
+            label={L ? "Website" : "Sitio web"}
+            defaultChecked={current.web === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="msg"
+            label={L ? "In-app messages" : "Mensajes en app"}
+            defaultChecked={current.msg === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="phys"
+            label={L ? "Physical location" : "Dirección física"}
+            defaultChecked={current.phys === "1"}
+            formAttrs={f}
+          />
         </div>
       </GroupShell>
 
-      <GroupShell titleEs="Datos del formulario de publicación" titleEn="Publish-application signals" lang={lang}>
-        <p className="mb-3 text-[11px] leading-relaxed text-neutral-600">
-          {lang === "en"
-            ? "These align with fields captured in Clasificados Servicios — stored on each listing profile for discovery."
-            : "Coinciden con campos del formulario Servicios en Clasificados, guardados en el perfil de cada anuncio."}
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "In-app messages" : "Mensajes en app"}</span>
-            <select name="msg" defaultValue={current.msg === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Messaging enabled" : "Mensajes activados"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Physical address" : "Dirección física"}</span>
-            <select name="phys" defaultValue={current.phys === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Has storefront / mailing address" : "Con dirección publicada"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Multi-area coverage" : "Cobertura multi-zona"}</span>
-            <select name="svcMulti" defaultValue={current.svcMulti === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Multiple service areas" : "Varias zonas de servicio"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Offer headline" : "Titular de oferta"}</span>
-            <select name="offer" defaultValue={current.offer === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Has offer / promo line" : "Con oferta / promoción"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Legal attestations" : "Confirmaciones legales"}</span>
-            <select name="legal" defaultValue={current.legal === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "All publish confirmations on file" : "Todas las confirmaciones al publicar"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">Español</span>
-            <select name="langEs" defaultValue={current.langEs === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Spanish offered" : "Ofrece español"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">English</span>
-            <select name="langEn" defaultValue={current.langEn === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "English offered" : "Ofrece inglés"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Other language" : "Otro idioma"}</span>
-            <select name="langOt" defaultValue={current.langOt === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Other language flagged" : "Otro idioma marcado"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Verification interest" : "Interés verificación"}</span>
-            <select name="vint" defaultValue={current.vint === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Requested Leonix review" : "Solicitó revisión Leonix"}</option>
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold text-neutral-700">{lang === "en" ? "Weekend hours" : "Fin de semana"}</span>
-            <select name="wknd" defaultValue={current.wknd === "1" ? "1" : ""} className={selectClass} {...f}>
-              <option value="">{lang === "en" ? "Any" : "Cualquiera"}</option>
-              <option value="1">{lang === "en" ? "Sat/Sun not all closed" : "Sáb/Dom con horario"}</option>
-            </select>
-          </label>
+      <GroupShell titleEs="Idiomas" titleEn="Languages" lang={lang}>
+        <div className={TOGGLE_GRID}>
+          <FilterToggle
+            name="langEs"
+            label={L ? "Spanish" : "Español"}
+            defaultChecked={current.langEs === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="langEn"
+            label="English"
+            defaultChecked={current.langEn === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="langOt"
+            label={L ? "Other language" : "Otro idioma"}
+            defaultChecked={current.langOt === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="bilingual"
+            label={L ? "Bilingual" : "Bilingüe"}
+            defaultChecked={current.bilingual === "1"}
+            formAttrs={f}
+          />
         </div>
       </GroupShell>
-    </>
+
+      <GroupShell titleEs="Medios y visibilidad" titleEn="Media & visibility" lang={lang}>
+        <div className={TOGGLE_GRID}>
+          <FilterToggle
+            name="has_photos"
+            label={L ? "Has photos" : "Tiene fotos"}
+            defaultChecked={current.hasPhotos === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="has_videos"
+            label={L ? "Has videos" : "Tiene videos"}
+            defaultChecked={current.hasVideos === "1"}
+            formAttrs={f}
+          />
+          <FilterToggle
+            name="has_offers"
+            label={L ? "Has offers" : "Tiene ofertas"}
+            defaultChecked={current.hasOffers === "1"}
+            formAttrs={f}
+          />
+        </div>
+      </GroupShell>
+    </div>
   );
 }

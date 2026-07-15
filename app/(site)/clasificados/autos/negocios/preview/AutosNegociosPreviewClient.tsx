@@ -16,7 +16,7 @@ import {
 } from "../lib/autosNegociosDraftNamespace";
 import { AutosNegociosPreviewInventorySection } from "../components/AutosNegociosPreviewInventorySection";
 import { AutosNegociosPreviewCaptureBanner } from "../components/AutosNegociosPreviewCaptureBanner";
-import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview";
+import { AutosNegociosResultsCardPreview } from "../components/AutosNegociosResultsCardPreview";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { AutosNegociosPreviewPromiseStrip } from "../components/AutosNegociosPreviewPromiseStrip";

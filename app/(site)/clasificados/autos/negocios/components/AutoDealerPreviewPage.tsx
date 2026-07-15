@@ -28,6 +28,7 @@ import { VehicleHeroSpecsStrip } from "./VehicleHeroSpecsStrip";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/AutosEngagementRow";
+import { AutosNegociosPreviewEngagementStrip } from "./AutosNegociosPreviewEngagementStrip";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import {
@@ -150,14 +151,14 @@ export function AutoDealerPreviewPage({
                 {lang === "es" ? "Vista previa del anuncio" : "Listing preview"}
               </p>
             ) : null}
-            <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8 ${draftPreviewMode ? "mt-2" : ""}`}>
+            <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6 ${draftPreviewMode ? "mt-2" : ""}`}>
                 {showLeft ? (
-                  <div className="min-w-0 max-w-full flex-1">
+                  <div className="min-w-0 max-w-full flex-1 lg:pr-2">
                     {h1 ? (
-                      <h1 className={autosPreviewHeroTitleClass}>{h1}</h1>
+                      <h1 className={`${autosPreviewHeroTitleClass} text-balance`}>{h1}</h1>
                     ) : null}
                     {badges.length > 0 ? (
-                      <ul className="mt-3 flex flex-wrap gap-2">
+                      <ul className="mt-2.5 flex flex-wrap gap-2">
                         {badges.map((b) => (
                           <li key={b} className={autosPreviewRectBadgeClass}>
                             {badgeLabelFor(t, b)}
@@ -166,7 +167,7 @@ export function AutoDealerPreviewPage({
                       </ul>
                     ) : null}
                     {showMeta ? (
-                      <dl className="mt-4 grid gap-2 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
+                      <dl className="mt-3.5 grid gap-2.5 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
                         {showMileage ? (
                           <div className="flex gap-2">
                             <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>
@@ -197,7 +198,7 @@ export function AutoDealerPreviewPage({
                 ) : null}
                 {showPriceCol ? (
                   <div
-                    className={`min-w-0 shrink-0 text-left max-lg:rounded-[14px] max-lg:border max-lg:border-[color:var(--lx-gold-border)]/50 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-4 max-lg:py-3 lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0 max-lg:border-t-0" : ""}`}
+                    className={`min-w-[9.5rem] shrink-0 text-left max-lg:rounded-[14px] max-lg:border max-lg:border-[color:var(--lx-gold-border)]/50 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-4 max-lg:py-3 lg:min-w-[10.5rem] lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0 max-lg:border-t-0" : ""}`}
                   >
                     {priceOk ? (
                       <>
@@ -221,6 +222,9 @@ export function AutoDealerPreviewPage({
 
           {showGallery ? (
             <div className="lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
+              {!publicPlaybackOnly ? (
+                <AutosNegociosPreviewEngagementStrip lang={lang} className="mb-2" />
+              ) : null}
               <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
             </div>
           ) : null}
