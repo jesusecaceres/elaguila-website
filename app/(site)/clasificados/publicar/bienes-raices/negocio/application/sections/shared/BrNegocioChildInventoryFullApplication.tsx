@@ -29,6 +29,10 @@ import {
   pickParentHubSlice,
   validateAgenteChildInventoryForSave,
 } from "../../brNegocioChildInventoryFormMapping";
+import {
+  applyBrChildMediaDisplayFieldsToSlice,
+  hydrateBrChildMediaCanonical,
+} from "../../brNegocioChildMediaCanonical";
 import { BrNegocioChildInventoryInheritedHubPanel, BrNegocioChildInventoryInheritedSummary } from "./BrNegocioChildInventoryInheritedHubPanel";
 import { BrNegocioChildInventoryInheritedContactPanel } from "./BrNegocioChildInventoryInheritedContactPanel";
 import { BrNegocioChildInventoryFullPreviewOverlay } from "./BrNegocioChildInventoryFullPreviewOverlay";
@@ -36,14 +40,12 @@ import { mapAdditionalDraftToInventoryCard, applyLiveEditorPhotosToInventoryCard
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
 import {
   childEditorSessionFromState,
-  childEditorSliceHasUnresolvedIdbMedia,
   childSessionMatchesEditor,
   clearChildInventoryEditorSession,
   loadChildInventoryEditorSessionResolved,
   persistChildInventoryEditorSession,
   persistChildInventoryEditorSessionResolved,
   resolveChildEditorMediaId,
-  resolveChildPropertySliceMediaFromIdb,
 } from "../../brNegocioChildInventoryEditorSession";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 import { channelLabelForInventoryCard } from "../../brNegocioInventoryChildContext";
@@ -129,6 +131,23 @@ export function BrNegocioChildInventoryFullApplication({
   /** Stable inventory draft id for IDB/session — not the nullable `editingId` edit-mode flag. */
   const childMediaId = resolveChildEditorMediaId(editingId, initialDraft?.id ?? null, null);
 
+  async function hydrateChildEditorMediaIntoState(
+    nextState: AgenteIndividualResidencialFormState,
+  ): Promise<AgenteIndividualResidencialFormState> {
+    const slice = pickChildPropertySlice(nextState);
+    const images = await hydrateBrChildMediaCanonical({
+      childId: childMediaId || initialDraft?.id || "child",
+      fotosDataUrls: slice.fotosDataUrls,
+      fotoPortadaIndex: slice.fotoPortadaIndex,
+      photoUrls: initialDraft?.photoUrls,
+      mainPhotoUrl: initialDraft?.mainPhotoUrl,
+      primaryPhotoIndex: initialDraft?.primaryPhotoIndex,
+    });
+    if (!images.length) return nextState;
+    const withDisplay = applyBrChildMediaDisplayFieldsToSlice(slice, images);
+    return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, withDisplay);
+  }
+
   useEffect(() => {
     if (!open) return;
     parentHubRef.current = pickParentHubSlice(parentHubSnapshot);
@@ -163,9 +182,15 @@ export function BrNegocioChildInventoryFullApplication({
       }
       lockedChildCategoriaRef.current = bootState.categoriaPropiedad;
       setStateRaw(bootState);
+      baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(bootState));
+      void hydrateChildEditorMediaIntoState(bootState).then((hydrated) => {
+        if (cancelled) return;
+        setStateRaw(hydrated);
+        setIdbResolvedSlice(pickChildPropertySlice(hydrated));
+        baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(hydrated));
+      });
       setErrors({});
       setFullPreviewOpen(false);
-      baselinePropertyRef.current = JSON.stringify(pickChildPropertySlice(bootState));
     });
     return () => {
       cancelled = true;
@@ -259,31 +284,26 @@ export function BrNegocioChildInventoryFullApplication({
       return;
     }
     const slice = pickChildPropertySlice(state);
-    if (!childEditorSliceHasUnresolvedIdbMedia(slice)) {
-      setIdbResolvedSlice(null);
+    const hasUnresolved = (slice.fotosDataUrls ?? []).some((u) => String(u ?? "").startsWith("__LX_BR_AGENTE_IDB__"));
+    if (!hasUnresolved) {
+      setIdbResolvedSlice(slice);
       return;
     }
     let cancelled = false;
-    void resolveChildPropertySliceMediaFromIdb(slice, childMediaId).then((resolved) => {
-      if (cancelled) return;
-      setIdbResolvedSlice(resolved);
-      const displayable = (resolved.fotosDataUrls ?? []).filter(
-        (u) => String(u ?? "").startsWith("data:") || String(u ?? "").startsWith("http"),
-      );
-      if (!displayable.length) return;
-      // Parent rehydrate contract: put displayable URLs into live form state (never leave IDB tokens in <img src>).
+    void hydrateBrChildMediaCanonical({
+      childId: childMediaId,
+      fotosDataUrls: slice.fotosDataUrls,
+      fotoPortadaIndex: slice.fotoPortadaIndex,
+    }).then((images) => {
+      if (cancelled || !images.length) return;
+      const withDisplay = applyBrChildMediaDisplayFieldsToSlice(slice, images);
+      setIdbResolvedSlice(withDisplay);
       setStateRaw((prev) => {
         const prevSlice = pickChildPropertySlice(prev);
-        if (!childEditorSliceHasUnresolvedIdbMedia(prevSlice)) return prev;
-        return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, {
-          ...prevSlice,
-          fotosDataUrls: resolved.fotosDataUrls,
-          fotoPortadaIndex: resolved.fotoPortadaIndex,
-          listadoArchivoDataUrl: resolved.listadoArchivoDataUrl,
-          videoDataUrl: resolved.videoDataUrl,
-          tourDataUrl: resolved.tourDataUrl,
-          brochureDataUrl: resolved.brochureDataUrl,
-        });
+        if (!(prevSlice.fotosDataUrls ?? []).some((u) => String(u ?? "").startsWith("__LX_BR_AGENTE_IDB__"))) {
+          return prev;
+        }
+        return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, withDisplay);
       });
     });
     return () => {
@@ -296,7 +316,7 @@ export function BrNegocioChildInventoryFullApplication({
     return mergeParentHubWithChildPropertyForEditor(parentHubRef.current, idbResolvedSlice);
   }, [state, idbResolvedSlice]);
 
-  /** Editor steps / cover gallery must render displayable URLs, not durable IDB tokens. */
+  /** Editor steps / cover gallery must render displayable URLs from the canonical collection. */
   const mediaFormState = previewStateForCard;
 
   const canonicalPreviewDraft = useMemo(

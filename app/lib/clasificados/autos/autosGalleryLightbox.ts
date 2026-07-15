@@ -1,62 +1,58 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   getListingVideoUrls,
-  resolvePublishedAutosVideoPlayback,
 } from "@/app/clasificados/autos/negocios/lib/autoDealerVideo";
+import {
+  AUTOS_MAX_EXTERNAL_VIDEO_URLS,
+} from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import { resolveAutosYoutubeEmbedUrl } from "./autosYoutubeEmbed";
 
 export type AutosGalleryLightboxItem =
   | { kind: "photo"; src: string }
-  | { kind: "youtube"; embedUrl: string; externalUrl: string }
-  | { kind: "stream"; streamUrl: string; posterUrl?: string }
-  | { kind: "external"; externalUrl: string };
+  | { kind: "youtube"; embedUrl: string; externalUrl: string; videoLabel?: string }
+  | { kind: "stream"; streamUrl: string; posterUrl?: string; videoLabel?: string }
+  | { kind: "external"; externalUrl: string; videoLabel?: string };
 
-function classifyPreviewVideo(url: string, posterUrl?: string): AutosGalleryLightboxItem | null {
+export type AutosGalleryVideoItem = Exclude<AutosGalleryLightboxItem, { kind: "photo" }>;
+
+export type AutosGalleryMediaSets = {
+  photoItems: Extract<AutosGalleryLightboxItem, { kind: "photo" }>[];
+  videoItems: AutosGalleryVideoItem[];
+  allItems: AutosGalleryLightboxItem[];
+};
+
+function classifyPreviewVideo(
+  url: string,
+  posterUrl: string | undefined,
+  videoLabel: string,
+): AutosGalleryVideoItem | null {
   const trimmed = url.trim();
   if (!trimmed || trimmed.startsWith("blob:") || trimmed.startsWith("data:")) return null;
 
   const youtubeEmbed = resolveAutosYoutubeEmbedUrl(trimmed);
   if (youtubeEmbed) {
     const externalUrl = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
-    return { kind: "youtube", embedUrl: youtubeEmbed, externalUrl };
+    return { kind: "youtube", embedUrl: youtubeEmbed, externalUrl, videoLabel };
   }
 
   if (/youtube\.com|youtu\.be|vimeo\.com|tiktok\.com|instagram\.com|facebook\.com/i.test(trimmed)) {
     const externalUrl = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
-    return { kind: "external", externalUrl };
+    return { kind: "external", externalUrl, videoLabel };
   }
 
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (/\.m3u8(\?|$)/i.test(trimmed)) {
-      return { kind: "stream", streamUrl: trimmed, posterUrl };
-    }
-    return { kind: "stream", streamUrl: trimmed, posterUrl };
+    return { kind: "stream", streamUrl: trimmed, posterUrl, videoLabel };
   }
 
-  return { kind: "external", externalUrl: `https://${trimmed}` };
+  return { kind: "external", externalUrl: `https://${trimmed}`, videoLabel };
 }
 
-export function buildAutosGalleryLightboxItems(
+function buildAutosGalleryVideoItems(
   data: AutoDealerListing,
-  imageUrls: string[],
+  posterUrl: string | undefined,
   opts: { publicPlaybackOnly: boolean },
-): AutosGalleryLightboxItem[] {
-  const items: AutosGalleryLightboxItem[] = imageUrls.map((src) => ({ kind: "photo", src }));
-  const posterUrl = imageUrls[0];
-
-  if (opts.publicPlaybackOnly) {
-    const pb = resolvePublishedAutosVideoPlayback(data);
-    if (pb.mode === "mux-hls" || pb.mode === "progressive") {
-      if (pb.streamUrl) items.push({ kind: "stream", streamUrl: pb.streamUrl, posterUrl: pb.posterUrl ?? posterUrl });
-    } else if (pb.mode === "external" && pb.externalHref) {
-      const classified = classifyPreviewVideo(pb.externalHref, pb.posterUrl ?? posterUrl);
-      if (classified) items.push(classified);
-    }
-    return items;
-  }
-
-  const videoUrl = getListingVideoUrls(data)[0];
-  if (!videoUrl && !data.muxPlaybackId?.trim()) return items;
+): AutosGalleryVideoItem[] {
+  const items: AutosGalleryVideoItem[] = [];
 
   if (data.muxPlaybackId?.trim()) {
     const hls = `https://stream.mux.com/${data.muxPlaybackId.trim()}.m3u8`;
@@ -64,16 +60,43 @@ export function buildAutosGalleryLightboxItems(
       kind: "stream",
       streamUrl: hls,
       posterUrl: data.muxThumbnailUrl?.trim() || posterUrl,
+      videoLabel: "Video 1",
     });
     return items;
   }
 
-  if (videoUrl) {
-    const classified = classifyPreviewVideo(videoUrl, posterUrl);
+  const urls = getListingVideoUrls(data).slice(0, AUTOS_MAX_EXTERNAL_VIDEO_URLS);
+  urls.forEach((url, index) => {
+    if (opts.publicPlaybackOnly && (url.startsWith("blob:") || url.startsWith("data:"))) return;
+    const classified = classifyPreviewVideo(url, posterUrl, `Video ${index + 1}`);
     if (classified) items.push(classified);
-  }
+  });
 
   return items;
+}
+
+export function buildAutosGalleryMediaSets(
+  data: AutoDealerListing,
+  imageUrls: string[],
+  opts: { publicPlaybackOnly: boolean },
+): AutosGalleryMediaSets {
+  const photoItems = imageUrls.map((src) => ({ kind: "photo" as const, src }));
+  const posterUrl = imageUrls[0];
+  const videoItems = buildAutosGalleryVideoItems(data, posterUrl, opts);
+  return {
+    photoItems,
+    videoItems,
+    allItems: [...photoItems, ...videoItems],
+  };
+}
+
+/** @deprecated Prefer `buildAutosGalleryMediaSets` for tab-filtered galleries. */
+export function buildAutosGalleryLightboxItems(
+  data: AutoDealerListing,
+  imageUrls: string[],
+  opts: { publicPlaybackOnly: boolean },
+): AutosGalleryLightboxItem[] {
+  return buildAutosGalleryMediaSets(data, imageUrls, opts).allItems;
 }
 
 export function firstAutosGalleryVideoIndex(items: AutosGalleryLightboxItem[]): number {

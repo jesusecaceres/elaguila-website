@@ -7,14 +7,7 @@ import type { AutoDealerListing } from "../types/autoDealerListing";
 import { getAutosNegociosCopy, type AutosNegociosCopy } from "../lib/autosNegociosCopy";
 import { deriveHeroImageUrls } from "../lib/autoDealerHeroImages";
 import {
-  hasListingVideo,
-  hasPublishedAutosListingVideo,
-  resolvePublishedAutosVideoPlayback,
-  type PublishedAutosVideoMode,
-} from "../lib/autoDealerVideo";
-import {
-  buildAutosGalleryLightboxItems,
-  firstAutosGalleryVideoIndex,
+  buildAutosGalleryMediaSets,
   type AutosGalleryLightboxItem,
 } from "@/app/lib/clasificados/autos/autosGalleryLightbox";
 import { MediaImage } from "./MediaImage";
@@ -26,6 +19,12 @@ import {
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-3 sm:p-4`;
+
+type AutosGalleryTab = "photos" | "video" | "all";
+
+function mediaTabClass(active: boolean): string {
+  return `${autosPreviewMediaTabClass}${active ? " border-[#C9A84A] bg-[#FBF7EF] ring-1 ring-[#C9A84A]/35" : ""}`;
+}
 
 export function AutoGallery({
   data,
@@ -41,19 +40,37 @@ export function AutoGallery({
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
-  const mediaItems = useMemo(
-    () => buildAutosGalleryLightboxItems(data, images, { publicPlaybackOnly }),
+  const { photoItems, videoItems, allItems } = useMemo(
+    () => buildAutosGalleryMediaSets(data, images, { publicPlaybackOnly }),
     [data, images, publicPlaybackOnly],
   );
+
+  const defaultTab = useMemo((): AutosGalleryTab => {
+    if (photoItems.length > 0 && videoItems.length > 0) return "all";
+    if (videoItems.length > 0) return "video";
+    return "photos";
+  }, [photoItems.length, videoItems.length]);
+
+  const [activeTab, setActiveTab] = useState<AutosGalleryTab>(defaultTab);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const videoLightboxIndex = useMemo(() => firstAutosGalleryVideoIndex(mediaItems), [mediaItems]);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+    setLightboxIndex(null);
+  }, [defaultTab]);
+
+  const activeItems = useMemo(() => {
+    if (activeTab === "photos") return photoItems;
+    if (activeTab === "video") return videoItems;
+    return allItems;
+  }, [activeTab, photoItems, videoItems, allItems]);
 
   useEffect(() => {
     if (lightboxIndex == null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setLightboxIndex(null);
       if (e.key === "ArrowRight") {
-        setLightboxIndex((i) => (i == null ? i : Math.min(mediaItems.length - 1, i + 1)));
+        setLightboxIndex((i) => (i == null ? i : Math.min(activeItems.length - 1, i + 1)));
       }
       if (e.key === "ArrowLeft") {
         setLightboxIndex((i) => (i == null ? i : Math.max(0, i - 1)));
@@ -61,127 +78,147 @@ export function AutoGallery({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxIndex, mediaItems.length]);
+  }, [lightboxIndex, activeItems.length]);
+
+  const selectTab = useCallback((tab: AutosGalleryTab) => {
+    setActiveTab(tab);
+    setLightboxIndex(null);
+  }, []);
 
   const openAt = useCallback(
     (idx: number) => {
-      if (!mediaItems[idx]) return;
+      if (!activeItems[idx]) return;
       setLightboxIndex(idx);
     },
-    [mediaItems],
+    [activeItems],
   );
-
-  const openVideoLightbox = useCallback(() => {
-    if (videoLightboxIndex < 0) return;
-    setLightboxIndex(videoLightboxIndex);
-  }, [videoLightboxIndex]);
-
-  const publishedPb = resolvePublishedAutosVideoPlayback(data);
-  const hasVideo = publicPlaybackOnly ? hasPublishedAutosListingVideo(data) : hasListingVideo(data);
 
   const main = images[0];
   const extra = Math.max(0, images.length - 1);
-  const subImages = images.slice(1, 4);
   const altBase = data.vehicleTitle?.trim() || g.vehicleFallback;
+  const hasPhotos = photoItems.length > 0;
+  const hasVideos = videoItems.length > 0;
 
-  if (!main && !hasVideo) return null;
-
-  const bottomCells: Array<{ kind: "img"; src: string; galleryIndex: number } | { kind: "video" }> = [];
-  let galleryIdx = 1;
-  for (const src of subImages) {
-    bottomCells.push({ kind: "img", src, galleryIndex: galleryIdx++ });
-  }
-  if (hasVideo) bottomCells.push({ kind: "video" });
+  if (!hasPhotos && !hasVideos) return null;
 
   const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
-  const activeItem = lightboxIndex != null ? mediaItems[lightboxIndex] : null;
+  const activeItem = lightboxIndex != null ? activeItems[lightboxIndex] : null;
+
+  const photoRailImages =
+    activeTab === "photos" ? images.slice(1, 4) : activeTab === "all" ? images.slice(1) : [];
 
   return (
     <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={`${CARD} scroll-mt-28`}>
       <div className="mb-3 flex flex-wrap gap-2">
-        {main ? (
-          <button type="button" className={autosPreviewMediaTabClass} onClick={() => openAt(0)}>
-            {lang === "es" ? "Fotos" : "Photos"}
-            {images.length > 1 ? ` (${images.length})` : ""}
+        {hasPhotos ? (
+          <button type="button" className={mediaTabClass(activeTab === "photos")} onClick={() => selectTab("photos")}>
+            {lang === "es" ? "Fotos" : "Photos"} ({photoItems.length})
           </button>
         ) : null}
-        {hasVideo ? (
-          <button type="button" className={autosPreviewMediaTabClass} onClick={openVideoLightbox}>
-            {lang === "es" ? "Video" : "Video"}
+        {hasVideos ? (
+          <button type="button" className={mediaTabClass(activeTab === "video")} onClick={() => selectTab("video")}>
+            {lang === "es" ? "Video" : "Video"} ({videoItems.length})
           </button>
         ) : null}
-        {extra > 0 ? (
-          <button type="button" className={autosPreviewMediaTabClass} onClick={() => openAt(1)}>
-            {lang === "es" ? `Ver todas (${images.length})` : `View all (${images.length})`}
+        {allItems.length > 1 ? (
+          <button type="button" className={mediaTabClass(activeTab === "all")} onClick={() => selectTab("all")}>
+            {lang === "es" ? `Ver todas (${allItems.length})` : `View all (${allItems.length})`}
           </button>
         ) : null}
       </div>
-      <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
-        {main ? (
-          <div className="relative min-w-0 flex-1 aspect-[16/9] max-h-[min(520px,48vh)] overflow-hidden rounded-[16px] sm:aspect-[16/10] lg:max-h-[min(580px,52vh)]">
-            <button
-              type="button"
-              className="relative block h-full w-full cursor-zoom-in text-left"
-              onClick={() => openAt(0)}
-              aria-label={lang === "es" ? "Abrir galería de fotos" : "Open photo gallery"}
-            >
-              <MediaImage
-                src={main}
-                alt={altBase}
-                fill
-                className="object-cover"
-                sizes="(min-width: 1280px) 1200px, 100vw"
-                priority
-              />
-            </button>
-            {extra > 0 ? (
+
+      {activeTab === "video" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {videoItems.map((item, videoIdx) => (
+            <VideoWalkaroundThumb
+              key={`video-tab-${videoIdx}`}
+              posterSrc={main}
+              label={item.videoLabel ?? `Video ${videoIdx + 1}`}
+              g={g}
+              onOpen={() => openAt(videoIdx)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
+          {main ? (
+            <div className="relative min-w-0 flex-1 aspect-[16/9] max-h-[min(520px,48vh)] overflow-hidden rounded-[16px] sm:aspect-[16/10] lg:max-h-[min(580px,52vh)]">
               <button
                 type="button"
-                className="absolute right-3 top-3 rounded-full border border-white/30 bg-[color:var(--lx-text)]/85 px-3 py-1 text-xs font-bold tracking-tight text-[#FFFCF7] shadow-md backdrop-blur-sm pointer-events-auto cursor-pointer"
-                aria-label={moreLabel}
-                onClick={() => openAt(1)}
+                className="relative block h-full w-full cursor-zoom-in text-left"
+                onClick={() => openAt(0)}
+                aria-label={lang === "es" ? "Abrir galería de fotos" : "Open photo gallery"}
               >
-                +{moreLabel}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {bottomCells.length > 0 ? (
-          <div
-            className={`flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 lg:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:hidden ${
-              bottomCells.length >= 3 ? "lg:w-[min(240px,32%)] lg:shrink-0" : "lg:w-[min(200px,28%)] lg:shrink-0"
-            }`}
-          >
-            {bottomCells.map((cell, i) =>
-              cell.kind === "img" ? (
-                <Thumb
-                  key={`${cell.src}-${i}`}
-                  src={cell.src}
-                  alt={`${altBase}${g.viewAlt(i)}`}
-                  onOpen={() => openAt(cell.galleryIndex)}
-                  stacked
-                  showMoreOverlay={i === bottomCells.length - 1 && extra > 3}
-                  moreLabel={i === bottomCells.length - 1 && extra > 3 ? g.morePhotos(extra - 3) : undefined}
+                <MediaImage
+                  src={main}
+                  alt={altBase}
+                  fill
+                  className="object-cover"
+                  sizes="(min-width: 1280px) 1200px, 100vw"
+                  priority
                 />
-              ) : publicPlaybackOnly ? (
-                <div key="video-pub" data-autos-gallery-video>
-                  <PublishedVideoTile
-                    mode={publishedPb.mode}
-                    posterSrc={publishedPb.posterUrl ?? main}
-                    g={g}
-                    onOpen={openVideoLightbox}
+              </button>
+              {activeTab === "photos" && extra > 0 ? (
+                <button
+                  type="button"
+                  className="absolute right-3 top-3 rounded-full border border-white/30 bg-[color:var(--lx-text)]/85 px-3 py-1 text-xs font-bold tracking-tight text-[#FFFCF7] shadow-md backdrop-blur-sm pointer-events-auto cursor-pointer"
+                  aria-label={moreLabel}
+                  onClick={() => openAt(1)}
+                >
+                  +{moreLabel}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {(photoRailImages.length > 0 || (activeTab === "all" && hasVideos)) ? (
+            <div
+              className={`flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 lg:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:hidden ${
+                photoRailImages.length + (activeTab === "all" ? videoItems.length : 0) >= 3
+                  ? "lg:w-[min(240px,32%)] lg:shrink-0"
+                  : "lg:w-[min(200px,28%)] lg:shrink-0"
+              }`}
+            >
+              {photoRailImages.map((src, i) => {
+                const galleryIndex = i + 1;
+                return (
+                  <Thumb
+                    key={`${src}-${i}`}
+                    src={src}
+                    alt={`${altBase}${g.viewAlt(i)}`}
+                    onOpen={() => openAt(galleryIndex)}
+                    stacked
+                    showMoreOverlay={
+                      activeTab === "photos" &&
+                      i === photoRailImages.length - 1 &&
+                      extra > 3
+                    }
+                    moreLabel={
+                      activeTab === "photos" &&
+                      i === photoRailImages.length - 1 &&
+                      extra > 3
+                        ? g.morePhotos(extra - 3)
+                        : undefined
+                    }
                   />
-                </div>
-              ) : (
-                <div key="video" data-autos-gallery-video>
-                  <VideoTile posterSrc={main} g={g} onOpen={openVideoLightbox} />
-                </div>
-              ),
-            )}
-          </div>
-        ) : null}
-      </div>
+                );
+              })}
+              {activeTab === "all"
+                ? videoItems.map((item, videoIdx) => (
+                    <VideoWalkaroundThumb
+                      key={`video-all-${videoIdx}`}
+                      posterSrc={main}
+                      label={item.videoLabel ?? `Video ${videoIdx + 1}`}
+                      g={g}
+                      onOpen={() => openAt(photoItems.length + videoIdx)}
+                      stacked
+                    />
+                  ))
+                : null}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {lightboxIndex != null && activeItem ? (
         <div
@@ -208,12 +245,18 @@ export function AutoGallery({
               </button>
             </div>
             <GalleryLightboxSlide item={activeItem} altBase={altBase} lang={lang} g={g} />
-            {mediaItems.length > 1 ? (
+            {activeItems.length > 1 ? (
               <p className="text-center text-xs font-semibold text-[#FFFCF7]/90">
-                <GalleryLightboxCounter item={activeItem} index={lightboxIndex} total={mediaItems.length} lang={lang} g={g} />
+                <GalleryLightboxCounter
+                  item={activeItem}
+                  index={lightboxIndex}
+                  total={activeItems.length}
+                  lang={lang}
+                  g={g}
+                />
               </p>
             ) : null}
-            {mediaItems.length > 1 ? (
+            {activeItems.length > 1 ? (
               <div className="flex justify-center gap-3">
                 <button
                   type="button"
@@ -226,8 +269,10 @@ export function AutoGallery({
                 <button
                   type="button"
                   className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
-                  disabled={lightboxIndex >= mediaItems.length - 1}
-                  onClick={() => setLightboxIndex((i) => (i == null ? i : Math.min(mediaItems.length - 1, i + 1)))}
+                  disabled={lightboxIndex >= activeItems.length - 1}
+                  onClick={() =>
+                    setLightboxIndex((i) => (i == null ? i : Math.min(activeItems.length - 1, i + 1)))
+                  }
                 >
                   {lang === "es" ? "Siguiente" : "Next"}
                 </button>
@@ -262,7 +307,7 @@ function GalleryLightboxCounter({
   }
   return (
     <>
-      {g.videoBadge} · {index + 1} / {total}
+      {item.videoLabel ?? g.videoBadge} · {index + 1} / {total}
     </>
   );
 }
@@ -291,7 +336,7 @@ function GalleryLightboxSlide({
       <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
         <iframe
           src={item.embedUrl}
-          title={g.videoBadge}
+          title={item.videoLabel ?? g.videoBadge}
           className="h-full w-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
@@ -400,7 +445,13 @@ function StreamableAutosVideo({
   }, [url, posterUrl]);
 
   return (
-    <div className={fillContainer ? "relative h-full w-full" : "relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]"}>
+    <div
+      className={
+        fillContainer
+          ? "relative h-full w-full"
+          : "relative aspect-[4/3] overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] md:aspect-auto md:min-h-[140px]"
+      }
+    >
       <video
         ref={ref}
         controls
@@ -417,51 +468,29 @@ function StreamableAutosVideo({
   );
 }
 
-function PublishedVideoTile({
-  mode,
-  posterSrc,
-  g,
-  onOpen,
-}: {
-  mode: PublishedAutosVideoMode;
-  posterSrc?: string;
-  g: AutosNegociosCopy["preview"]["gallery"];
-  onOpen: () => void;
-}) {
-  if (mode === "none") return null;
-
-  return (
-    <VideoWalkaroundThumb posterSrc={posterSrc} g={g} onOpen={onOpen} />
-  );
-}
-
-function VideoTile({
-  posterSrc,
-  g,
-  onOpen,
-}: {
-  posterSrc: string | undefined;
-  g: AutosNegociosCopy["preview"]["gallery"];
-  onOpen: () => void;
-}) {
-  return <VideoWalkaroundThumb posterSrc={posterSrc} g={g} onOpen={onOpen} />;
-}
-
 function VideoWalkaroundThumb({
   posterSrc,
+  label,
   g,
   onOpen,
+  stacked = false,
 }: {
   posterSrc?: string;
+  label: string;
   g: AutosNegociosCopy["preview"]["gallery"];
   onOpen: () => void;
+  stacked?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left md:aspect-auto md:min-h-[140px]"
-      aria-label={g.videoAria}
+      className={`group relative flex items-center justify-center overflow-hidden rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] text-left ${
+        stacked
+          ? "aspect-[4/3] w-[42vw] max-w-[160px] shrink-0 snap-start lg:aspect-auto lg:min-h-[120px] lg:w-full lg:max-w-none"
+          : "aspect-[4/3] w-full md:aspect-auto md:min-h-[140px]"
+      }`}
+      aria-label={`${g.videoAria} — ${label}`}
     >
       {posterSrc ? (
         <MediaImage
@@ -479,7 +508,7 @@ function VideoWalkaroundThumb({
         <FiPlay className="ml-0.5 h-7 w-7" aria-hidden />
       </span>
       <span className="absolute bottom-2 left-2 z-10 rounded-md bg-[#FFFCF7]/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text)]">
-        {g.videoBadge}
+        {label}
       </span>
     </button>
   );

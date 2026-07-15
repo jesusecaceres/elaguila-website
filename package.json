@@ -319,6 +319,7 @@
     "autos:a5-launch-readiness-02-yellow-blockers-to-green-audit": "tsx scripts/autos-a5-launch-readiness-02-yellow-blockers-to-green-audit.ts",
     "autos:a5-media-01-negocios-parent-child-media-step-polish-hydration-audit": "tsx scripts/autos-a5-media-01-negocios-parent-child-media-step-polish-hydration-audit.ts",
     "autos:a5-media-02-negocios-video-lightbox-audit": "tsx scripts/autos-a5-media-02-negocios-video-lightbox-audit.ts",
+    "autos:a5-media-03-negocios-gallery-tabs-all-videos-audit": "tsx scripts/autos-a5-media-03-negocios-gallery-tabs-all-videos-audit.ts",
     "autos:a5-yellow-to-green-dashboard-analytics": "tsx scripts/autos-a5-yellow-to-green-dashboard-analytics.ts",
     "autos:dealer-package-ux-readiness": "tsx scripts/autos-dealer-package-ux-readiness.ts",
     "autos:a5-polish-32-premium-preview-mobile-inventory-shelf-audit": "tsx scripts/autos-a5-polish-32-premium-preview-mobile-inventory-shelf-audit.ts",

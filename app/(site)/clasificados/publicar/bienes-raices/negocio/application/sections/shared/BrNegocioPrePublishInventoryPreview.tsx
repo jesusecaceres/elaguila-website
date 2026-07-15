@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
 import type { BrNegocioInventoryCardModel } from "../../brNegocioInventoryCardModel";
-import { mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
+import {
+  mapAdditionalDraftToInventoryCard,
+  mapAdditionalDraftToInventoryCardResolved,
+} from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
 
 type Props = {
@@ -39,6 +43,23 @@ export function BrNegocioPrePublishInventoryPreview({
       : "mt-4 space-y-3";
   const additionalLayout = variant === "package" ? "showcase" : "showcase";
 
+  const syncCards = useMemo(
+    () => items.map((draft) => mapAdditionalDraftToInventoryCard(draft, lang)),
+    [items, lang],
+  );
+  const [resolvedCards, setResolvedCards] = useState<BrNegocioInventoryCardModel[]>(syncCards);
+
+  useEffect(() => {
+    let cancelled = false;
+    setResolvedCards(syncCards);
+    void Promise.all(items.map((draft) => mapAdditionalDraftToInventoryCardResolved(draft, lang))).then((next) => {
+      if (!cancelled) setResolvedCards(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [items, lang, syncCards]);
+
   return (
     <section className="mt-4 rounded-xl border border-[#C9B46A]/35 bg-[#FFFCF7] px-3 py-4 sm:px-4">
       <h3 className="text-sm font-bold uppercase tracking-wide text-[#6E5418]">{title}</h3>
@@ -55,10 +76,10 @@ export function BrNegocioPrePublishInventoryPreview({
             {copy.previewEmptyAdditional}
           </p>
         ) : (
-          items.map((draft) => (
+          resolvedCards.map((card) => (
             <BrNegocioPrePublishInventoryCard
-              key={draft.id}
-              card={mapAdditionalDraftToInventoryCard(draft, lang)}
+              key={card.id}
+              card={card}
               lang={lang}
               layout={additionalLayout}
               onEdit={onEdit}

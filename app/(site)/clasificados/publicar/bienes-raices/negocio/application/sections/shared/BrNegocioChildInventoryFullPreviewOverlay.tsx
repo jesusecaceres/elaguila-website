@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AgenteIndividualResidencialFormState } from "../../../agente-individual/schema/agenteIndividualResidencialFormState";
 import { AgenteIndividualResidencialPreviewPage } from "../../../agente-individual/preview/AgenteIndividualResidencialPreviewPage";
 import type { BrNegocioPrePublishInventoryLang } from "../../brNegocioPrePublishInventoryShellCopy";
 import { brNegocioPrePublishInventoryShellCopy } from "../../brNegocioPrePublishInventoryShellCopy";
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../brNegocioAdditionalInventoryDraft";
-import { buildChildInventoryEditorState } from "../../brNegocioChildInventoryFormMapping";
+import {
+  buildChildInventoryEditorState,
+  hydrateBrChildInventoryDraftMediaForDisplay,
+} from "../../brNegocioChildInventoryFormMapping";
 import { mergeChildInventoryWithMediaBridge } from "../../brNegocioInventoryDraftPersistence";
 import { mapAgenteFormToMainInventoryCard, mapAdditionalDraftToInventoryCard } from "../../brNegocioInventoryCardModel";
 import { BrNegocioPrePublishInventoryCard } from "./BrNegocioPrePublishInventoryCard";
@@ -48,10 +51,22 @@ export function BrNegocioChildInventoryFullPreviewOverlay({
   const copy = brNegocioPrePublishInventoryShellCopy(lang);
   const fromChildApp = context === "childApplication";
 
-  const hydratedDraft = useMemo(
+  const bridgedDraft = useMemo(
     () => mergeChildInventoryWithMediaBridge([childDraft])[0] ?? childDraft,
     [childDraft],
   );
+  const [hydratedDraft, setHydratedDraft] = useState(bridgedDraft);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHydratedDraft(bridgedDraft);
+    void hydrateBrChildInventoryDraftMediaForDisplay(bridgedDraft).then((next) => {
+      if (!cancelled) setHydratedDraft(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bridgedDraft]);
 
   const previewState = useMemo(
     () => buildChildInventoryEditorState(parentHubSnapshot, hydratedDraft, lang),

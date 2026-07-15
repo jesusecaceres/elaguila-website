@@ -120,21 +120,48 @@ assert(
   "child inventory draft sync must treat IDB refs as durable",
 );
 assert(
-  draftMedia.includes("resolveBrAgenteIdbMediaRefToDataUrl") &&
-    draftMedia.includes("childPhotoSegmentsCompatible"),
-  "child/parent IDB refs must resolve via self-describing segment (CHILD_* ↔ CHILD_EDITOR_*)",
+  fs.existsSync(
+    path.join(
+      root,
+      "app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildMediaCanonical.ts",
+    ),
+  ),
+  "Bienes child canonical media helper must exist",
+);
+const childCanonical = read(
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildMediaCanonical.ts",
 );
 assert(
-  childApp.includes("mediaFormState") &&
-    childApp.includes("displayable") &&
-    cardUi.includes("useResolvedInventoryPhotoUrl") &&
-    cardUi.includes("resolveBrAgenteIdbMediaRefToDataUrl"),
-  "child editor + inventory card must resolve durable refs into displayable img src",
+  childCanonical.includes("export type BrChildMediaImage") &&
+    childCanonical.includes("hydrateBrChildMediaCanonical") &&
+    childCanonical.includes("projectBrChildMediaToBienesFields") &&
+    childCanonical.includes("isPrimary") &&
+    childCanonical.includes("sortOrder"),
+  "canonical BrChildMediaImage collection with hydrate + project",
 );
 assert(
-  cardModel.includes("isDisplayableInventoryPhotoUrl") &&
-    cardModel.includes("isDisplayableInventoryPhotoUrl(card.photoUrl)"),
-  "live editor card overlay must not treat IDB tokens as ready photoUrl",
+  childApp.includes("hydrateBrChildMediaCanonical") &&
+    childApp.includes("applyBrChildMediaDisplayFieldsToSlice") &&
+    childApp.includes("mediaFormState"),
+  "child editor must hydrate canonical media into display state",
+);
+assert(
+  cardModel.includes("mapAdditionalDraftToInventoryCardResolved") &&
+    cardModel.includes("brChildMediaPrimaryDisplayUrl") &&
+    cardModel.includes("brChildMediaGalleryDisplayUrls"),
+  "inventory card must map from canonical primary + gallery",
+);
+assert(
+  read(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioPrePublishInventoryPreview.tsx",
+  ).includes("mapAdditionalDraftToInventoryCardResolved"),
+  "inventory preview must resolve canonical media before card render",
+);
+assert(
+  read(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullPreviewOverlay.tsx",
+  ).includes("hydrateBrChildInventoryDraftMediaForDisplay"),
+  "child full Preview must hydrate canonical display media",
 );
 assert(cardUi.includes("grid grid-cols-3") && /gap-1\.5|gap-2/.test(cardUi), "results gallery has small tile gap");
 

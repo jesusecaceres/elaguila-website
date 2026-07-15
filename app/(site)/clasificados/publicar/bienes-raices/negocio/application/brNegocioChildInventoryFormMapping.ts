@@ -21,6 +21,10 @@ import {
   syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 import { mergeChildInventoryWithMediaBridge } from "./brNegocioInventoryDraftPersistence";
+import {
+  hydrateBrChildMediaCanonical,
+  projectBrChildMediaToBienesFields,
+} from "./brNegocioChildMediaCanonical";
 import type { BienesRaicesNegocioFormState } from "./schema/bienesRaicesNegocioFormState";
 import { applyInventoryDraftToAgenteFormState } from "./brNegocioInventoryQueuePrefill";
 
@@ -518,6 +522,37 @@ export function childInventorySaveHasErrors(
   errors: ReturnType<typeof validateAgenteChildInventoryForSave>,
 ): boolean {
   return Object.keys(errors).length > 0;
+}
+
+/**
+ * Autos hydrateChildInventoryEditorDraft parity — resolve child media into one display collection,
+ * then project onto Bienes `fotosDataUrls` / `photoUrls` / cover fields.
+ */
+export async function hydrateBrChildInventoryDraftMediaForDisplay(
+  draft: BrNegocioAdditionalInventoryPropertyDraft,
+): Promise<BrNegocioAdditionalInventoryPropertyDraft> {
+  const normalized = syncChildInventoryDraftMedia(normalizeChildInventoryDraft(draft));
+  const images = await hydrateBrChildMediaCanonical({
+    childId: normalized.id,
+    fotosDataUrls: normalized.propertyForm?.fotosDataUrls ?? null,
+    fotoPortadaIndex: normalized.propertyForm?.fotoPortadaIndex ?? normalized.primaryPhotoIndex,
+    photoUrls: normalized.photoUrls,
+    mainPhotoUrl: normalized.mainPhotoUrl,
+    primaryPhotoIndex: normalized.primaryPhotoIndex,
+  });
+  const display = projectBrChildMediaToBienesFields(images, "display");
+  const persist = projectBrChildMediaToBienesFields(images, "persist");
+  return syncChildInventoryDraftMedia({
+    ...normalized,
+    photoUrls: display.photoUrls.length ? display.photoUrls : persist.photoUrls,
+    primaryPhotoIndex: display.primaryPhotoIndex,
+    mainPhotoUrl: display.mainPhotoUrl,
+    propertyForm: {
+      ...(normalized.propertyForm ?? {}),
+      fotosDataUrls: display.fotosDataUrls.length ? display.fotosDataUrls : persist.fotosDataUrls,
+      fotoPortadaIndex: display.fotoPortadaIndex,
+    },
+  });
 }
 
 /** Negocio 15-step lane — hub fields for child inventory inheritance. */

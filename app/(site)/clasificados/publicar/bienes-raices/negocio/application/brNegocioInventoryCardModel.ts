@@ -12,13 +12,21 @@ import {
   brInventoryDraftPriceDisplay,
   brInventoryPropertySubtypeLabel,
   brInventoryPropertyTypeLabel,
-  childInventoryCoverPhotoUrl,
   syncChildInventoryDraftMedia,
 } from "./brNegocioAdditionalInventoryDraft";
 import {
   channelLabelForInventoryCard,
   resolveChildDraftCategoria,
 } from "./brNegocioInventoryChildContext";
+import {
+  brChildMediaGalleryDisplayUrls,
+  brChildMediaPrimaryDisplayUrl,
+  expandBrChildMediaSourceFields,
+  hydrateBrChildMediaCanonical,
+  isBrChildMediaDisplayableUrl,
+  normalizeBrChildMediaImages,
+  type BrChildMediaImage,
+} from "./brNegocioChildMediaCanonical";
 import {
   formatDetailCountDisplay,
   formatSqftDisplay,
@@ -63,20 +71,14 @@ function mainPriceDisplay(price: string, lang: BrNegocioPrePublishInventoryLang)
 }
 
 /** Ready for <img src> without further resolve (IDB tokens are durable only). */
-function isDisplayableInventoryPhotoUrl(raw: string | undefined): boolean {
-  const u = trim(raw ?? "");
-  return Boolean(u && (u.startsWith("http://") || u.startsWith("https://") || u.startsWith("data:image/")));
+export function isDisplayableInventoryPhotoUrl(raw: string | undefined): boolean {
+  return isBrChildMediaDisplayableUrl(raw ?? "");
 }
 
 function safePhotoUrl(raw: string | undefined): string {
   const u = trim(raw ?? "");
-  if (!u) return "";
-  // Keep IDB tokens for the card layer to resolve; never invent bogus URLs.
-  if (isDisplayableInventoryPhotoUrl(u) || u.startsWith("__LX_BR_AGENTE_IDB__")) return u;
-  return "";
+  return isBrChildMediaDisplayableUrl(u) ? u : "";
 }
-
-export { isDisplayableInventoryPhotoUrl };
 
 function inventoryGallerySlotUrls(photos: string[], primaryIndex: number): string[] {
   const cleaned = photos.map((u) => trim(String(u))).filter(Boolean);
@@ -89,21 +91,50 @@ function inventoryGallerySlotUrls(photos: string[], primaryIndex: number): strin
   return slots;
 }
 
-function resolveAdditionalDraftCardPhotoUrl(
+function childDraftMediaAliasInput(normalized: BrNegocioAdditionalInventoryPropertyDraft) {
+  return {
+    childId: normalized.id,
+    fotosDataUrls: normalized.propertyForm?.fotosDataUrls ?? null,
+    fotoPortadaIndex: normalized.propertyForm?.fotoPortadaIndex ?? normalized.primaryPhotoIndex,
+    photoUrls: normalized.photoUrls,
+    mainPhotoUrl: normalized.mainPhotoUrl,
+    primaryPhotoIndex: normalized.primaryPhotoIndex,
+  };
+}
+
+function cardFieldsFromCanonicalMedia(
   normalized: BrNegocioAdditionalInventoryPropertyDraft,
-): string {
-  const photos = normalized.photoUrls.map((u) => trim(String(u))).filter(Boolean);
-  const fromCover = safePhotoUrl(childInventoryCoverPhotoUrl(normalized));
-  if (fromCover) return fromCover;
-  const idx = Math.min(
-    Math.max(0, normalized.primaryPhotoIndex),
-    Math.max(0, photos.length - 1),
-  );
-  for (const candidate of [photos[idx], photos[0], ...photos, normalized.mainPhotoUrl]) {
-    const safe = safePhotoUrl(candidate);
-    if (safe) return safe;
-  }
-  return "";
+  images: BrChildMediaImage[],
+  lang: BrNegocioPrePublishInventoryLang,
+): BrNegocioInventoryCardModel {
+  const channel = resolveChildDraftCategoria(normalized);
+  const channelLabel = channelLabelForInventoryCard(channel, lang);
+  const typeLabel = brInventoryPropertyTypeLabel(normalized.propertyType, lang);
+  const subLabel = brInventoryPropertySubtypeLabel(normalized.propertyType, normalized.propertySubtype, lang);
+  const typeLine = subLabel ? `${channelLabel} · ${typeLabel} · ${subLabel}` : `${channelLabel} · ${typeLabel}`;
+  const copy = lang === "es"
+    ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
+    : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };
+  const sourceCount = expandBrChildMediaSourceFields(childDraftMediaAliasInput(normalized)).urls.length;
+
+  return {
+    kind: "additional",
+    id: normalized.id,
+    title: trim(normalized.title) || titleFallback(lang),
+    priceDisplay: brInventoryDraftPriceDisplay(normalized.price, lang),
+    propertyTypeLine: typeLine,
+    cityState: brInventoryDraftLocationLine(normalized),
+    bedrooms: trim(normalized.bedrooms),
+    bathrooms: trim(normalized.bathrooms),
+    interiorSqft: trim(normalized.interiorSqft),
+    lotSqft: trim(normalized.lotSqft),
+    photoUrl: brChildMediaPrimaryDisplayUrl(images),
+    gallerySlotUrls: brChildMediaGalleryDisplayUrls(images, BR_INVENTORY_GALLERY_SLOT_COUNT),
+    photoCount: Math.max(sourceCount, images.length),
+    statusLabel: copy.status,
+    roleLabel: copy.role,
+    leonixDraftNote: copy.leonix,
+  };
 }
 
 function negocioTypeLine(state: BienesRaicesNegocioFormState): string {
@@ -184,35 +215,18 @@ export function mapAdditionalDraftToInventoryCard(
   lang: BrNegocioPrePublishInventoryLang,
 ): BrNegocioInventoryCardModel {
   const normalized = syncChildInventoryDraftMedia(draft);
-  const channel = resolveChildDraftCategoria(normalized);
-  const channelLabel = channelLabelForInventoryCard(channel, lang);
-  const typeLabel = brInventoryPropertyTypeLabel(normalized.propertyType, lang);
-  const subLabel = brInventoryPropertySubtypeLabel(normalized.propertyType, normalized.propertySubtype, lang);
-  const typeLine = subLabel ? `${channelLabel} · ${typeLabel} · ${subLabel}` : `${channelLabel} · ${typeLabel}`;
-  const copy = lang === "es"
-    ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
-    : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };
-  const photos = normalized.photoUrls.filter((u) => trim(String(u)));
-  const primary = Math.min(Math.max(0, normalized.primaryPhotoIndex), Math.max(0, photos.length - 1));
+  const images = normalizeBrChildMediaImages(childDraftMediaAliasInput(normalized));
+  return cardFieldsFromCanonicalMedia(normalized, images, lang);
+}
 
-  return {
-    kind: "additional",
-    id: normalized.id,
-    title: trim(normalized.title) || titleFallback(lang),
-    priceDisplay: brInventoryDraftPriceDisplay(normalized.price, lang),
-    propertyTypeLine: typeLine,
-    cityState: brInventoryDraftLocationLine(normalized),
-    bedrooms: trim(normalized.bedrooms),
-    bathrooms: trim(normalized.bathrooms),
-    interiorSqft: trim(normalized.interiorSqft),
-    lotSqft: trim(normalized.lotSqft),
-    photoUrl: resolveAdditionalDraftCardPhotoUrl(normalized),
-    gallerySlotUrls: inventoryGallerySlotUrls(photos, primary),
-    photoCount: photos.length,
-    statusLabel: copy.status,
-    roleLabel: copy.role,
-    leonixDraftNote: copy.leonix,
-  };
+/** Async card map — resolves IDB tokens before cover/gallery projection (Autos hydrate-before-card). */
+export async function mapAdditionalDraftToInventoryCardResolved(
+  draft: BrNegocioAdditionalInventoryPropertyDraft,
+  lang: BrNegocioPrePublishInventoryLang,
+): Promise<BrNegocioInventoryCardModel> {
+  const normalized = syncChildInventoryDraftMedia(draft);
+  const images = await hydrateBrChildMediaCanonical(childDraftMediaAliasInput(normalized));
+  return cardFieldsFromCanonicalMedia(normalized, images, lang);
 }
 
 /** Step 10 safety net — never show "No photo" when live editor state has displayable photos. */
@@ -220,25 +234,20 @@ export function applyLiveEditorPhotosToInventoryCard(
   card: BrNegocioInventoryCardModel,
   liveState: AgenteIndividualResidencialFormState,
 ): BrNegocioInventoryCardModel {
-  // IDB tokens are not displayable — do not short-circuit over live inlined URLs.
   if (isDisplayableInventoryPhotoUrl(card.photoUrl)) return card;
-  const photos = (Array.isArray(liveState.fotosDataUrls) ? liveState.fotosDataUrls : [])
-    .map((u) => trim(String(u)))
-    .filter(Boolean);
-  if (!photos.length) return card;
-  const idx = Math.min(Math.max(0, liveState.fotoPortadaIndex), Math.max(0, photos.length - 1));
-  for (const candidate of [photos[idx], photos[0], ...photos]) {
-    const photoUrl = safePhotoUrl(candidate);
-    if (photoUrl) {
-      return {
-        ...card,
-        photoUrl,
-        gallerySlotUrls: inventoryGallerySlotUrls(photos, idx),
-        photoCount: Math.max(card.photoCount, photos.length),
-      };
-    }
-  }
-  return { ...card, gallerySlotUrls: inventoryGallerySlotUrls(photos, idx), photoCount: Math.max(card.photoCount, photos.length) };
+  const images = normalizeBrChildMediaImages({
+    childId: card.id ?? "live-child",
+    fotosDataUrls: liveState.fotosDataUrls,
+    fotoPortadaIndex: liveState.fotoPortadaIndex,
+  });
+  const photoUrl = brChildMediaPrimaryDisplayUrl(images);
+  if (!photoUrl && !images.length) return card;
+  return {
+    ...card,
+    photoUrl: photoUrl || card.photoUrl,
+    gallerySlotUrls: brChildMediaGalleryDisplayUrls(images, BR_INVENTORY_GALLERY_SLOT_COUNT),
+    photoCount: Math.max(card.photoCount, images.length),
+  };
 }
 
 /** Beds / baths / sqft line for card facet row. */

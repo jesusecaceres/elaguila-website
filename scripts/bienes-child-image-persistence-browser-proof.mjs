@@ -157,17 +157,32 @@ async function main() {
       { timeout: 45_000 },
     );
 
+    // Set Photo 3 as portada (0-based index 2). Primary button says "Portada activa"; others "Usar como portada".
+    // Usar buttons map to non-primary tiles only → Photo 3 is the 2nd Usar button (nth 1).
+    const setPortadaBtns = dialog.getByRole("button", { name: /^Usar como portada$/i });
+    await setPortadaBtns.nth(1).click();
+    await page.waitForFunction(
+      () => {
+        const j = JSON.parse(sessionStorage.getItem("br-negocio-child-inventory-editor-session") || "{}");
+        return Number(j?.propertyForm?.fotoPortadaIndex) === 2;
+      },
+      null,
+      { timeout: 15_000 },
+    );
+
     const before = await page.evaluate(() => {
       const j = JSON.parse(sessionStorage.getItem("br-negocio-child-inventory-editor-session") || "{}");
       const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
       return {
         editingId: j.editingId,
+        portada: Number(j.propertyForm?.fotoPortadaIndex),
         durable: (j.propertyForm?.fotosDataUrls || []).filter((u) => String(u).includes("__LX_BR_AGENTE_IDB__")).length,
         imgs: imgs.length,
         rendered: imgs.filter((img) => img.naturalWidth > 0 || String(img.currentSrc || img.src || "").startsWith("data:")).length,
         brokenSrc: imgs.filter((img) => String(img.getAttribute("src") || "").includes("__LX_BR_AGENTE_IDB__")).length,
       };
     });
+    if (before.portada !== 2) fail("portada not set to photo 3 before refresh: " + JSON.stringify(before));
     if (before.durable < 8) fail("child durable refs missing before refresh: " + JSON.stringify(before));
     if (before.brokenSrc > 0) fail("child img src still raw IDB tokens before refresh: " + JSON.stringify(before));
     if (before.rendered < 8) fail("child thumbs not visually rendered before refresh: " + JSON.stringify(before));
@@ -203,6 +218,7 @@ async function main() {
       const imgs = Array.from(document.querySelectorAll("[data-br-child-inventory-app] img"));
       return {
         editingId: j.editingId,
+        portada: Number(j.propertyForm?.fotoPortadaIndex),
         durable: (j.propertyForm?.fotosDataUrls || []).filter((u) => String(u).includes("__LX_BR_AGENTE_IDB__")).length,
         fotos: (j.propertyForm?.fotosDataUrls || []).length,
         imgs: imgs.length,
@@ -212,6 +228,7 @@ async function main() {
       };
     });
     if (after.editingId !== before.editingId) fail(`child id changed ${before.editingId} -> ${after.editingId}`);
+    if (after.portada !== 2) fail("portada lost after refresh: " + JSON.stringify(after));
     if (after.durable < 8 && after.fotos < 8) fail("child photos lost after refresh: " + JSON.stringify(after));
     if (after.brokenSrc > 0) fail("child img src still raw IDB after refresh: " + JSON.stringify(after));
     if (after.rendered < 8) fail("child thumbs not visually rendered after refresh: " + JSON.stringify(after));
