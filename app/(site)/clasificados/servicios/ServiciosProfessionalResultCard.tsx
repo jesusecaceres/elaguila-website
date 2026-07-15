@@ -12,6 +12,11 @@ import {
   trackServiciosListingCta,
   trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import {
+  serviciosOpenGoogleMapsDirections,
+  serviciosOpenTelHref,
+  serviciosOpenWhatsAppHref,
+} from "@/app/(site)/servicios/lib/serviciosDirectCta";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./lib/serviciosListingLifecycle";
@@ -24,13 +29,6 @@ import {
   resolveServiciosListingTemplate,
   type ServiciosListingTemplate,
 } from "./lib/serviciosTemplateRouting";
-import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
-import {
-  extractWaMeDigitsFromHref,
-  serviciosContactShareExtras,
-} from "@/app/(site)/servicios/lib/serviciosCtaIntents";
-import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/ServiciosAdaptiveLogoPlate";
 import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
@@ -148,8 +146,6 @@ export function ServiciosProfessionalResultCard({
       ? Math.floor(row.public_like_net_count)
       : 0;
 
-  const [ctaOpen, setCtaOpen] = useState(false);
-  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const [listingShareUrl, setListingShareUrl] = useState("");
   useEffect(() => {
     setListingShareUrl(`${window.location.origin}${href}`);
@@ -163,68 +159,26 @@ export function ServiciosProfessionalResultCard({
 
   const showEngagementControls = Boolean(ctaAnalyticsKey.trim());
 
-  const contactExtras = useMemo(
-    () => serviciosContactShareExtras(profile, row.slug, listingShareUrl || undefined),
-    [profile, row.slug, listingShareUrl],
-  );
-
-  const closeCta = useCallback(() => {
-    setCtaOpen(false);
-    setCtaIntent(null);
-  }, []);
-
-  const openOutbound = useCallback(
-    (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(row.slug, eventType, ctaTrackMeta);
-      setCtaIntent(intent);
-      setCtaOpen(true);
-    },
-    [ctaTrackMeta, row.slug],
-  );
-
   const onCallClick = useCallback(() => {
-    const raw = (tel ?? "").replace(/^tel:/i, "").trim();
-    if (!raw) return;
-    openOutbound({ kind: "call", phone: raw, contactShareExtras: contactExtras }, "cta_call_click");
-  }, [contactExtras, openOutbound, tel]);
+    if (!tel) return;
+    trackServiciosListingCta(row.slug, "cta_call_click", ctaTrackMeta);
+    serviciosOpenTelHref(tel);
+  }, [ctaTrackMeta, row.slug, tel]);
 
   const onWhatsAppClick = useCallback(() => {
     if (!waHrefNormalized) return;
-    const prefilled = appendWhatsAppPrefill(waHrefNormalized, serviciosUniversalQuoteMessage(lang));
-    const d = extractWaMeDigitsFromHref(prefilled);
-    if (d.replace(/\D/g, "").length < 8) return;
-    let message = "";
-    try {
-      const u = new URL(prefilled);
-      const rawText = u.searchParams.get("text");
-      if (rawText) {
-        try {
-          message = decodeURIComponent(rawText.replace(/\+/g, "%20"));
-        } catch {
-          message = rawText.replace(/\+/g, " ");
-        }
-      }
-    } catch {
-      message = "";
-    }
-    openOutbound(
-      { kind: "send_message", message, phone: d, whatsappDigits: d, contactShareExtras: contactExtras },
-      "cta_whatsapp_click",
-    );
-  }, [contactExtras, lang, openOutbound, waHrefNormalized]);
+    trackServiciosListingCta(row.slug, "cta_whatsapp_click", ctaTrackMeta);
+    serviciosOpenWhatsAppHref(waHrefNormalized);
+  }, [ctaTrackMeta, row.slug, waHrefNormalized]);
 
   const onDirectionsClick = useCallback(() => {
     const mapsHref = profile.contact.mapsSearchHref?.trim();
     const addr = profile.contact.physicalAddressDisplay?.trim();
     trackServiciosListingCta(row.slug, "cta_maps_click", ctaTrackMeta);
     if (mapsHref && /^https?:\/\//i.test(mapsHref)) {
-      window.open(mapsHref, "_blank", "noopener,noreferrer");
+      serviciosOpenGoogleMapsDirections(mapsHref, true);
     } else if (addr) {
-      window.open(
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
+      serviciosOpenGoogleMapsDirections(addr, false);
     }
   }, [ctaTrackMeta, profile.contact.mapsSearchHref, profile.contact.physicalAddressDisplay, row.slug]);
 
@@ -380,7 +334,6 @@ export function ServiciosProfessionalResultCard({
           </div>
         </div>
       </article>
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </>
   );
 

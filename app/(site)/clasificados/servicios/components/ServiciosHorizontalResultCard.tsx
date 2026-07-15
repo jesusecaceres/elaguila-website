@@ -9,16 +9,19 @@ import { serviciosEngagementListingKey } from "../lib/serviciosPublicListingSort
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
-import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
-  buildServiciosSendEmailIntentFromMailto,
-  extractWaMeDigitsFromHref,
-  serviciosContactShareExtras,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
   trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import {
+  buildServiciosGoogleMapsDirectionsUrl,
+  serviciosOpenGoogleMapsDirections,
+  serviciosOpenMailtoHref,
+  serviciosOpenTelHref,
+  serviciosOpenWebsiteUrl,
+  serviciosOpenWhatsAppHref,
+} from "@/app/(site)/servicios/lib/serviciosDirectCta";
 import {
   isServiciosProfessionalTemplate,
   readServiciosProfileBusinessTypeId,
@@ -65,8 +68,8 @@ function cleanOtherLabel(raw: string): string {
   return t;
 }
 
-function mapsSearchHref(query: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+function mapsDirectionsHref(query: string): string {
+  return buildServiciosGoogleMapsDirectionsUrl(query);
 }
 
 function StarRow({ rating, lang }: { rating: number; lang: "es" | "en" }) {
@@ -136,14 +139,6 @@ export function ServiciosHorizontalResultCard({
     return listingSlug;
   }, [row, listingSlug]);
 
-  const [ctaOpen, setCtaOpen] = useState(false);
-  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-
-  const closeCta = useCallback(() => {
-    setCtaOpen(false);
-    setCtaIntent(null);
-  }, []);
-
   const ctaTrackMeta = useMemo(
     () =>
       serviciosAnalyticsTrackMeta({
@@ -156,70 +151,36 @@ export function ServiciosHorizontalResultCard({
     [ctaAnalyticsListingKey, listingSlug, row?.id, row?.owner_user_id],
   );
 
-  const openOutbound = useCallback(
-    (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(listingSlug || ctaAnalyticsListingKey, eventType, ctaTrackMeta);
-      setCtaIntent(intent);
-      setCtaOpen(true);
-    },
-    [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug],
-  );
-
-  const contactExtras = useMemo(() => {
-    if (!profile) return { email: undefined, websiteUrl: undefined, publicUrl: undefined };
-    return serviciosContactShareExtras(profile, listingSlug, listingShareUrl);
-  }, [profile, listingSlug, listingShareUrl]);
-
   const openContactKey = useCallback(
     (key: string, href: string) => {
       if (!profile) return;
+      const slugKey = listingSlug || ctaAnalyticsListingKey;
       if (key === "maps") {
-        openOutbound(
-          { kind: "directions", addressOrUrl: href, isMapsUrl: /^https?:\/\//i.test(href), contactShareExtras: contactExtras },
-          "cta_maps_click",
-        );
+        trackServiciosListingCta(slugKey, "cta_maps_click", ctaTrackMeta);
+        serviciosOpenGoogleMapsDirections(href, /^https?:\/\//i.test(href));
         return;
       }
       if (key === "website") {
-        openOutbound({ kind: "website", url: href }, "cta_website_click");
+        trackServiciosListingCta(slugKey, "cta_website_click", ctaTrackMeta);
+        serviciosOpenWebsiteUrl(href);
         return;
       }
       if (key === "whatsapp") {
-        const d = extractWaMeDigitsFromHref(href);
-        if (d.replace(/\D/g, "").length < 8) return;
-        let message = "";
-        try {
-          const abs = /^https?:\/\//i.test(href) ? href : `https://${href.replace(/^\/\//, "")}`;
-          const u = new URL(abs);
-          const rawText = u.searchParams.get("text");
-          if (rawText) {
-            try {
-              message = decodeURIComponent(rawText.replace(/\+/g, "%20"));
-            } catch {
-              message = rawText.replace(/\+/g, " ");
-            }
-          }
-        } catch {
-          message = "";
-        }
-        openOutbound(
-          { kind: "send_message", message, phone: d, whatsappDigits: d, contactShareExtras: contactExtras },
-          "cta_whatsapp_click",
-        );
+        trackServiciosListingCta(slugKey, "cta_whatsapp_click", ctaTrackMeta);
+        serviciosOpenWhatsAppHref(href);
         return;
       }
       if (key === "email") {
-        const intent = buildServiciosSendEmailIntentFromMailto(href, lang, listingSlug, listingShareUrl);
-        if (!intent) return;
-        openOutbound(intent, "cta_email_click");
+        trackServiciosListingCta(slugKey, "cta_email_click", ctaTrackMeta);
+        serviciosOpenMailtoHref(href);
         return;
       }
       if (key === "call" || key === "callOffice") {
-        const raw = href.replace(/^tel:/i, "").trim();
-        openOutbound({ kind: "call", phone: raw, contactShareExtras: contactExtras }, "cta_call_click");
+        trackServiciosListingCta(slugKey, "cta_call_click", ctaTrackMeta);
+        serviciosOpenTelHref(href);
       }
     },
-    [contactExtras, lang, listingShareUrl, listingSlug, openOutbound, profile],
+    [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug, profile],
   );
 
   const onCardNavigate = useCallback(() => {
@@ -246,7 +207,7 @@ export function ServiciosHorizontalResultCard({
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
   const categoryChip = cleanOtherLabel((profile.hero.categoryLine || "").trim());
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
-  const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsSearchHref(addressQuery) : "")).trim();
+  const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsDirectionsHref(addressQuery) : "")).trim();
 
   const serviceChipList = (() => {
     const out: string[] = [];
@@ -493,7 +454,6 @@ export function ServiciosHorizontalResultCard({
           </div>
         </div>
       </article>
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </>
   );
 }

@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
@@ -15,24 +14,21 @@ import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfi
 import { formatServiciosInternalGroupForDiscovery } from "./lib/serviciosInternalGroupDisplay";
 import { inferServiciosSellerPresentation } from "./lib/serviciosSellerKind";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
-import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
-import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
-import { serviciosSavedListingExtras } from "@/app/lib/serviciosSavedListingIdentity";
 import {
-  extractWaMeDigitsFromHref,
   serviciosAnalyticsTrackMeta,
-  serviciosContactShareExtras,
   trackServiciosListingCta,
   trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
 import {
+  serviciosOpenTelHref,
+  serviciosOpenWhatsAppHref,
+} from "@/app/(site)/servicios/lib/serviciosDirectCta";
+import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
+import {
   serviciosGlobalListingFromRow,
   serviciosGlobalLikeRecorder,
-  serviciosGlobalSaveRecorder,
   serviciosGlobalShareRecorder,
 } from "./lib/recordServiciosGlobalAnalytics";
-import { appendWhatsAppPrefill, serviciosUniversalQuoteMessage } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import {
   isServiciosProfessionalTemplate,
@@ -104,71 +100,23 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   });
   const globalListing = serviciosGlobalListingFromRow(row);
   const engagementKey = serviciosEngagementListingKey(row);
-  const saveExtras = serviciosSavedListingExtras({
-    slug: row.slug,
-    id: row.id,
-    leonix_ad_id: row.leonix_ad_id,
-  });
-
-  const [ctaOpen, setCtaOpen] = useState(false);
-  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
 
   const [listingShareUrl, setListingShareUrl] = useState("");
   useEffect(() => {
     setListingShareUrl(`${window.location.origin}${href}`);
   }, [href]);
 
-  const contactExtras = useMemo(
-    () => serviciosContactShareExtras(profile, row.slug, listingShareUrl || undefined),
-    [profile, row.slug, listingShareUrl],
-  );
-
-  const closeCta = useCallback(() => {
-    setCtaOpen(false);
-    setCtaIntent(null);
-  }, []);
-
-  const openOutbound = useCallback(
-    (intent: CtaSheetIntent, eventType: string) => {
-      trackServiciosListingCta(row.slug, eventType, ctaTrackMeta);
-      setCtaIntent(intent);
-      setCtaOpen(true);
-    },
-    [ctaTrackMeta, row.slug],
-  );
-
-  const waHrefNormalized = waHref;
-
   const onCallClick = useCallback(() => {
-    const raw = (tel ?? "").replace(/^tel:/i, "").trim();
-    if (!raw) return;
-    openOutbound({ kind: "call", phone: raw, contactShareExtras: contactExtras }, "cta_call_click");
-  }, [contactExtras, openOutbound, tel]);
+    if (!tel) return;
+    trackServiciosListingCta(row.slug, "cta_call_click", ctaTrackMeta);
+    serviciosOpenTelHref(tel);
+  }, [ctaTrackMeta, row.slug, tel]);
 
   const onWhatsAppClick = useCallback(() => {
     if (!waHref) return;
-    const prefilled = appendWhatsAppPrefill(waHref, serviciosUniversalQuoteMessage(lang));
-    const d = extractWaMeDigitsFromHref(prefilled);
-    if (d.replace(/\D/g, "").length < 8) return;
-    let message = "";
-    try {
-      const u = new URL(prefilled);
-      const rawText = u.searchParams.get("text");
-      if (rawText) {
-        try {
-          message = decodeURIComponent(rawText.replace(/\+/g, "%20"));
-        } catch {
-          message = rawText.replace(/\+/g, " ");
-        }
-      }
-    } catch {
-      message = "";
-    }
-    openOutbound(
-      { kind: "send_message", message, phone: d, whatsappDigits: d, contactShareExtras: contactExtras },
-      "cta_whatsapp_click",
-    );
-  }, [contactExtras, lang, openOutbound, waHref]);
+    trackServiciosListingCta(row.slug, "cta_whatsapp_click", ctaTrackMeta);
+    serviciosOpenWhatsAppHref(waHref);
+  }, [ctaTrackMeta, row.slug, waHref]);
 
   const cardSurface = promoted
     ? "border-[#D4A574]/45 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] ring-2 ring-[#D4A574]/20 transition hover:border-[#D4A574]/55 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]"
@@ -300,18 +248,6 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                     globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined
                   }
                 />
-                <LeonixSaveButton
-                  listingId={engagementKey}
-                  ownerUserId={row.owner_user_id ?? undefined}
-                  variant="small"
-                  lang={lang}
-                  category="servicios"
-                  persistEngagement={Boolean(engagementKey)}
-                  saveExtras={saveExtras}
-                  recordSaveEvent={
-                    globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined
-                  }
-                />
                 <LeonixShareButton
                   listingId={engagementKey}
                   ownerUserId={row.owner_user_id ?? undefined}
@@ -329,7 +265,6 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
             </div>
           </div>
         </div>
-      <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </li>
   );
 }

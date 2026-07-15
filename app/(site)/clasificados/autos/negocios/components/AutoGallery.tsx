@@ -63,20 +63,63 @@ export function AutoGallery({
     return photoItems;
   }, [activeTab, photoItems, videoItems]);
 
+  // Use refs to avoid stale closure issues and ensure stable handler
+  const lightboxIndexRef = useRef<number | null>(null);
+  const activeItemsLengthRef = useRef(0);
+
+  // Keep refs in sync with state
   useEffect(() => {
-    if (lightboxIndex == null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightboxIndex(null);
-      if (e.key === "ArrowRight") {
-        setLightboxIndex((i) => (i == null ? i : Math.min(activeItems.length - 1, i + 1)));
-      }
-      if (e.key === "ArrowLeft") {
-        setLightboxIndex((i) => (i == null ? i : Math.max(0, i - 1)));
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxIndex, activeItems.length]);
+    lightboxIndexRef.current = lightboxIndex;
+  }, [lightboxIndex]);
+
+  useEffect(() => {
+    activeItemsLengthRef.current = activeItems.length;
+  }, [activeItems.length]);
+
+  // Stable keyboard handler that checks refs and filters targets
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Ignore if lightbox is not open
+    if (lightboxIndexRef.current == null) return;
+
+    // Ignore keyboard events from interactive elements
+    const target = e.target as HTMLElement;
+    const tagName = target.tagName.toLowerCase();
+    const isInteractive = 
+      tagName === "input" ||
+      tagName === "textarea" ||
+      tagName === "select" ||
+      tagName === "button" ||
+      target.isContentEditable;
+    
+    if (isInteractive) return;
+
+    if (e.key === "Escape") {
+      setLightboxIndex(null);
+      return;
+    }
+
+    if (e.key === "ArrowRight") {
+      setLightboxIndex((i) => {
+        if (i == null) return i;
+        return Math.min(activeItemsLengthRef.current - 1, i + 1);
+      });
+      return;
+    }
+
+    if (e.key === "ArrowLeft") {
+      setLightboxIndex((i) => {
+        if (i == null) return i;
+        return Math.max(0, i - 1);
+      });
+      return;
+    }
+  }, []); // No dependencies - uses refs instead
+
+  // Register single listener that stays stable
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   const selectTab = useCallback((tab: AutosGalleryTab) => {
     setActiveTab(tab);

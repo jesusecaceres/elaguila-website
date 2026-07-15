@@ -21,11 +21,15 @@ import {
   type ServiciosQuoteDestinationKind,
 } from "../lib/serviciosContactActions";
 import {
-  buildServiciosGetQuoteIntent,
-  buildServiciosSendEmailIntentFromMailto,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
 } from "../lib/serviciosCtaIntents";
+import {
+  serviciosOpenGoogleMapsDirections,
+  serviciosOpenMailtoHref,
+  serviciosOpenTelHref,
+  serviciosOpenWhatsAppHref,
+} from "../lib/serviciosDirectCta";
 import {
   mapServiciosProfileToBusinessHubContact,
   serviciosBusinessHubHasVisibleContent,
@@ -43,8 +47,6 @@ import { ServiciosBusinessHubMapPanel } from "./ServiciosBusinessHubMapPanel";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
-import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { ServiciosHubReviewLinkButton } from "./ServiciosHubReviewLinkButton";
 import {
   SCH_COMPACT_CTA,
@@ -203,9 +205,6 @@ export function ServiciosBusinessHubContactCard({
 }) {
   const L = getServiciosProfileLabels(lang);
   const vm = useMemo(() => mapServiciosProfileToBusinessHubContact(profile, lang), [profile, lang]);
-  const [ctaOpen, setCtaOpen] = useState(false);
-  const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-  const [ctaEventType, setCtaEventType] = useState<string>("cta_primary_click");
 
   const analyticsBase = useMemo(
     () =>
@@ -217,34 +216,6 @@ export function ServiciosBusinessHubContactCard({
         source: "business_hub",
       }),
     [listingSlug, listingSourceId, engagementListingId, engagementOwnerUserId],
-  );
-
-  const openCtaSheet = useCallback(
-    (intent: CtaSheetIntent, trackEvent?: string) => {
-      if (trackEvent) trackServiciosListingCta(listingSlug, trackEvent, { ...analyticsBase, source: "business_hub" });
-      setCtaEventType(trackEvent || "cta_primary_click");
-      setCtaIntent(intent);
-      setCtaOpen(true);
-    },
-    [analyticsBase, listingSlug],
-  );
-
-  const closeCtaSheet = useCallback(() => {
-    setCtaOpen(false);
-    setCtaIntent(null);
-  }, []);
-
-  const trackSheetAction = useCallback<CtaActionCallback>(
-    (info) => {
-      trackServiciosListingCta(listingSlug, ctaEventType, {
-        ...analyticsBase,
-        source: "business_hub_sheet",
-        sheetKind: info.kind,
-        actionId: info.actionId,
-        ...(info.meta ?? {}),
-      });
-    },
-    [analyticsBase, ctaEventType, listingSlug],
   );
 
   const hours = profile.contact.hours;
@@ -283,24 +254,30 @@ export function ServiciosBusinessHubContactCard({
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
-  const openPrimaryQuoteSheet = () => {
-    const intent = buildServiciosGetQuoteIntent(profile, lang, { listingSlug, listingShareUrl });
-    if (!intent || !quote) return;
-    openCtaSheet(intent, analyticsForQuoteKind(quote.kind));
+  const openPrimaryQuote = () => {
+    if (!quote) return;
+    if (quote.kind === "sms" && quote.href) {
+      trackServiciosListingCta(listingSlug, analyticsForQuoteKind("sms"), { ...analyticsBase, source: "business_hub" });
+      window.location.href = quote.href;
+      return;
+    }
+    if (quote.kind === "whatsapp" && quote.href) {
+      trackServiciosListingCta(listingSlug, analyticsForQuoteKind("whatsapp"), { ...analyticsBase, source: "business_hub" });
+      serviciosOpenWhatsAppHref(quote.href);
+    }
   };
 
-  const openPrimaryMailtoSheet = () => {
+  const openPrimaryMailto = () => {
     if (!primaryMailto) return;
-    const intent = buildServiciosSendEmailIntentFromMailto(primaryMailto, lang, listingSlug, listingShareUrl);
-    if (!intent) return;
-    openCtaSheet(intent, analyticsForQuoteKind("mailto"));
+    trackServiciosListingCta(listingSlug, analyticsForQuoteKind("mailto"), { ...analyticsBase, source: "business_hub" });
+    serviciosOpenMailtoHref(primaryMailto);
   };
 
   const openCall = () => {
     const href = profile.contact.phoneTelHref?.trim();
     if (!href) return;
     trackServiciosListingCta(listingSlug, "cta_call_click", { ...analyticsBase, source: "business_hub" });
-    window.location.href = href.startsWith("tel:") ? href : `tel:${href}`;
+    serviciosOpenTelHref(href);
   };
 
   const openMessage = () => {
@@ -314,15 +291,14 @@ export function ServiciosBusinessHubContactCard({
     const href = vm.contact.whatsappHref;
     if (!href) return;
     trackServiciosListingCta(listingSlug, "cta_whatsapp_click", { ...analyticsBase, source: "business_hub" });
-    window.open(href, "_blank", "noopener,noreferrer");
+    serviciosOpenWhatsAppHref(href);
   };
 
   const openEmail = () => {
     const mailto = vm.contact.emailMailto;
     if (!mailto) return;
-    const intent = buildServiciosSendEmailIntentFromMailto(mailto, lang, listingSlug, listingShareUrl);
-    if (!intent) return;
-    openCtaSheet(intent, "cta_email_click");
+    trackServiciosListingCta(listingSlug, "cta_email_click", { ...analyticsBase, source: "business_hub" });
+    serviciosOpenMailtoHref(mailto);
   };
 
   const openSocialOutbound = (url: string, _headline: string) => {
@@ -337,15 +313,7 @@ export function ServiciosBusinessHubContactCard({
 
   const openDirections = (addressOrUrl: string, isMapsUrl: boolean) => {
     trackServiciosListingCta(listingSlug, "cta_maps_click", { ...analyticsBase, source: "business_hub" });
-    if (isMapsUrl) {
-      window.open(addressOrUrl, "_blank", "noopener,noreferrer");
-    } else {
-      window.open(
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressOrUrl)}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
-    }
+    serviciosOpenGoogleMapsDirections(addressOrUrl, isMapsUrl);
   };
 
   const contactActions: ContactAction[] = [];
@@ -483,7 +451,7 @@ export function ServiciosBusinessHubContactCard({
                 type="button"
                 className={`${SCH_CTA_PRIMARY} mb-3 w-full border-0`}
                 style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
-                onClick={openPrimaryMailtoSheet}
+                onClick={openPrimaryMailto}
               >
                 <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
                 {primaryCtaLabel}
@@ -493,7 +461,7 @@ export function ServiciosBusinessHubContactCard({
                 type="button"
                 className={`${SCH_CTA_PRIMARY} mb-3 w-full border-0`}
                 style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
-                onClick={openPrimaryQuoteSheet}
+                onClick={openPrimaryQuote}
               >
                 <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
                 {primaryCtaLabel}
@@ -749,8 +717,6 @@ export function ServiciosBusinessHubContactCard({
           engagementOwnerUserId={engagementOwnerUserId}
         />
       ) : null}
-
-      <CtaActionSheet open={ctaOpen} onClose={closeCtaSheet} intent={ctaIntent} lang={lang} onAction={trackSheetAction} />
     </div>
   );
 }

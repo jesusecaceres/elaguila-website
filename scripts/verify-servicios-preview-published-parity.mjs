@@ -44,7 +44,8 @@ assert(proShell.includes('data-servicios-public-shell="professional"'), "pro she
 assert(proShell.includes("hubEngagementVariant"), "pro shell: hub engagement variant prop");
 assert(!proShell.includes("<LeonixSaveButton"), "pro shell: Save removed from hero");
 
-assert(hubRow.includes('hubEngagementVariant === "save_only"'), "hub row: save_only branch");
+assert(hubRow.includes('hubEngagementVariant === "save_only"'), "hub row: save_only hides hub engagement");
+assert(!hubRow.includes("LeonixSaveButton"), "hub row: Save removed");
 assert(contactCard.includes("hubEngagementVariant"), "contact card: forwards hub variant");
 
 assert(clasPreview.includes("ServiciosProfileView"), "trade preview: ServiciosProfileView");

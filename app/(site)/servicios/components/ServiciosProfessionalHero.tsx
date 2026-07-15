@@ -5,6 +5,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { serviciosOpenGoogleMapsDirections } from "../lib/serviciosDirectCta";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
 import {
   LX,
@@ -123,13 +124,9 @@ export function ServiciosProfessionalHero({
     const addr = profile.contact.physicalAddressDisplay?.trim();
     trackServiciosListingCta(listingSlug, "cta_maps_click", analyticsBase);
     if (href && /^https?:\/\//i.test(href)) {
-      window.open(href, "_blank", "noopener,noreferrer");
+      serviciosOpenGoogleMapsDirections(href, true);
     } else if (addr) {
-      window.open(
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
+      serviciosOpenGoogleMapsDirections(addr, false);
     }
   };
 

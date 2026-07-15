@@ -234,7 +234,7 @@ export function ServiciosMediaLightbox({
               ) : null}
               {currentVideo ? (
                 <div className="w-full max-w-3xl px-2">
-                  <ServiciosGalleryVideoTile v={currentVideo} lang={lang} />
+                  <ServiciosGalleryVideoTile v={currentVideo} lang={lang} variant="embed" />
                 </div>
               ) : null}
               {videos.length > 1 ? (
