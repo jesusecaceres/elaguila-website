@@ -687,8 +687,11 @@ export function AutosPrivadoApplication() {
                   </label>
                   <input
                     className={`${INPUT} mt-1.5`}
-                    value={listing.dealerAddress ?? ""}
-                    onChange={(e) => setListingPatch({ dealerAddress: e.target.value || undefined })}
+                    value={autosDraftTextValue(listing.dealerAddress ?? "")}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setListingPatch({ dealerAddress: value === "" ? undefined : value });
+                    }}
                     placeholder={lang === "es" ? "Ej. 123 Main St" : "E.g. 123 Main St"}
                   />
                 </div>
@@ -698,8 +701,11 @@ export function AutosPrivadoApplication() {
                   </label>
                   <input
                     className={`${INPUT} mt-1.5`}
-                    value={listing.dealerAddressCity ?? ""}
-                    onChange={(e) => setListingPatch({ dealerAddressCity: e.target.value || undefined })}
+                    value={autosDraftTextValue(listing.dealerAddressCity ?? "")}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setListingPatch({ dealerAddressCity: value === "" ? undefined : value });
+                    }}
                   />
                 </div>
                 <div>
@@ -708,8 +714,11 @@ export function AutosPrivadoApplication() {
                   </label>
                   <input
                     className={`${INPUT} mt-1.5`}
-                    value={listing.dealerAddressState ?? ""}
-                    onChange={(e) => setListingPatch({ dealerAddressState: e.target.value || undefined })}
+                    value={autosDraftTextValue(listing.dealerAddressState ?? "")}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setListingPatch({ dealerAddressState: value === "" ? undefined : value });
+                    }}
                   />
                 </div>
                 <div>
@@ -718,8 +727,11 @@ export function AutosPrivadoApplication() {
                   </label>
                   <input
                     className={`${INPUT} mt-1.5`}
-                    value={listing.dealerAddressZip ?? ""}
-                    onChange={(e) => setListingPatch({ dealerAddressZip: e.target.value || undefined })}
+                    value={autosDraftTextValue(listing.dealerAddressZip ?? "")}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setListingPatch({ dealerAddressZip: value === "" ? undefined : value });
+                    }}
                   />
                 </div>
               </div>
