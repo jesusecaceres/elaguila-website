@@ -77,6 +77,27 @@ function basePartialFromRow(row: Record<string, unknown>): Partial<RentasPrivado
   };
 }
 
+export function mapOwnedRentasListingToPrivadoFormState(row: Record<string, unknown>): RentasPrivadoFormState {
+  return mergePartialRentasPrivadoState({
+    ...createEmptyRentasPrivadoFormState(),
+    ...basePartialFromRow(row),
+  });
+}
+
+export function mapOwnedRentasListingToNegocioFormState(row: Record<string, unknown>): RentasNegocioFormState {
+  const base = basePartialFromRow(row);
+  return mergePartialRentasNegocioState({
+    ...base,
+    v: undefined,
+    negocioNombre: trim(row.business_name),
+    negocioTelDirecto: trim(row.contact_phone),
+    negocioEmail: trim(row.contact_email),
+    confirmListingAccurate: true,
+    confirmPhotosRepresentItem: true,
+    confirmCommunityRules: true,
+  });
+}
+
 export async function hydrateRentasDashboardEditDraft(input: {
   listingId: string;
   lane: "privado" | "negocio";
@@ -99,24 +120,11 @@ export async function hydrateRentasDashboardEditDraft(input: {
     .eq("category", "rentas")
     .maybeSingle();
   if (error || !data?.id) return { ok: false, message: error?.message ?? "Rentas listing not found." };
-  const base = basePartialFromRow(data as Record<string, unknown>);
   const leonixAdId = trim((data as Record<string, unknown>).leonix_ad_id) || null;
   if (input.lane === "negocio") {
-    const draft = mergePartialRentasNegocioState({
-      ...base,
-      v: undefined,
-      negocioNombre: trim((data as Record<string, unknown>).business_name),
-      negocioTelDirecto: trim((data as Record<string, unknown>).contact_phone),
-      negocioEmail: trim((data as Record<string, unknown>).contact_email),
-      confirmListingAccurate: true,
-      confirmPhotosRepresentItem: true,
-      confirmCommunityRules: true,
-    });
+    const draft = mapOwnedRentasListingToNegocioFormState(data as Record<string, unknown>);
     return { ok: true, lane: "negocio", draft, leonixAdId };
   }
-  const draft = mergePartialRentasPrivadoState({
-    ...createEmptyRentasPrivadoFormState(),
-    ...base,
-  });
+  const draft = mapOwnedRentasListingToPrivadoFormState(data as Record<string, unknown>);
   return { ok: true, lane: "privado", draft, leonixAdId };
 }

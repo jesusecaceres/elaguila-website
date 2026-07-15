@@ -90,6 +90,7 @@ function rentasDashboardEditHref(input: {
     listingId: input.listingId,
     lane,
     lang: input.lang,
+    returnTo: `/dashboard/mis-anuncios?cat=rentas&lang=${input.lang}`,
   });
   if (input.leonixAdId?.trim()) params.set("leonixAdId", input.leonixAdId.trim());
   return `/clasificados/publicar/rentas/${lane}?${params.toString()}`;

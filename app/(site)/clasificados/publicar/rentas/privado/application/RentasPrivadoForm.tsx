@@ -57,6 +57,7 @@ import {
 import { SUBTIPO_POR_TIPO, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import {
   createEmptyRentasPrivadoFormState,
+  mergePartialRentasPrivadoState,
   type RentasPrivadoFormState,
 } from "../schema/rentasPrivadoFormState";
 import {
@@ -69,7 +70,14 @@ import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
 } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { hydrateRentasDashboardEditDraft } from "../../shared/rentasDashboardEditHydration";
+import { parseRentasListingEditContext, rentasListingEditPreviewParams, type RentasListingEditContext } from "../../shared/rentasListingEditContext";
+import {
+  clearRentasListingEditWorkspace,
+  loadRentasListingEditWorkspace,
+  saveRentasListingEditWorkspace,
+} from "../../shared/rentasListingEditWorkspace";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -166,27 +174,56 @@ export function RentasPrivadoForm() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
   );
+  const routeEditContext = useMemo(
+    () => parseRentasListingEditContext(new URLSearchParams(searchParams?.toString() ?? ""), "privado"),
+    [searchParams],
+  );
   const [state, setState] = useState<RentasPrivadoFormState>(createEmptyRentasPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
+  const [editContext, setEditContext] = useState<RentasListingEditContext | null>(routeEditContext);
+  const [hydrationStatus, setHydrationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [dirty, setDirty] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
+  const cleanEditSnapshotRef = useRef<string>("");
   const photosInputRef = useRef<HTMLInputElement>(null);
   const ownerPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-    const isDashboardEdit = sp.get("source") === "dashboard" && sp.get("mode") === "listing-edit" && sp.get("edit") === "1";
-    const listingId = sp.get("listingId") ?? "";
-    if (isDashboardEdit && listingId.trim()) {
-      void hydrateRentasDashboardEditDraft({ listingId, lane: "privado" }).then((result) => {
+    const ctx = routeEditContext;
+    if (ctx) {
+      setEditContext({ ...ctx, hydrationStatus: "loading" });
+      setHydrationStatus("loading");
+      const cached = loadRentasListingEditWorkspace<RentasPrivadoFormState>({
+        listingId: ctx.listingId,
+        lane: "privado",
+        merge: mergePartialRentasPrivadoState,
+      });
+      if (cached) {
+        setState(cached);
+        cleanEditSnapshotRef.current = JSON.stringify(cached);
+        setHydrationStatus("ready");
+        setEditContext({ ...ctx, originalSnapshotLoaded: true, hydrationStatus: "ready" });
+        setHydrated(true);
+        return;
+      }
+      void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "privado" }).then((result) => {
         if (result.ok && result.lane === "privado") {
           setState(result.draft);
-          saveRentasPrivadoDraft(result.draft);
+          cleanEditSnapshotRef.current = JSON.stringify(result.draft);
+          saveRentasListingEditWorkspace({ listingId: ctx.listingId, lane: "privado", draft: result.draft });
+          setHydrationStatus("ready");
+          setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         } else if (!result.ok) {
           setPreviewGateMessage(result.message);
+          setHydrationStatus("error");
+          setEditContext({ ...ctx, hydrationStatus: "error" });
         }
         setHydrated(true);
       });
@@ -205,18 +242,35 @@ export function RentasPrivadoForm() {
       /* ignore */
     }
     setHydrated(true);
-  }, []);
+  }, [routeEditContext]);
 
   useEffect(() => {
     if (!hydrated) return;
-    const id = window.setTimeout(() => saveRentasPrivadoDraft(stateRef.current), 280);
+    if (editContext && hydrationStatus !== "ready") return;
+    const id = window.setTimeout(() => {
+      if (editContext) {
+        saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
+      } else {
+        saveRentasPrivadoDraft(stateRef.current);
+      }
+    }, 280);
     return () => window.clearTimeout(id);
-  }, [state, hydrated]);
+  }, [state, hydrated, editContext, hydrationStatus]);
+
+  useEffect(() => {
+    if (!editContext || hydrationStatus !== "ready") return;
+    if (!cleanEditSnapshotRef.current) return;
+    setDirty(JSON.stringify(state) !== cleanEditSnapshotRef.current);
+  }, [state, editContext, hydrationStatus]);
 
   useEffect(() => {
     if (!hydrated) return;
     function flush() {
-      saveRentasPrivadoDraft(stateRef.current);
+      if (editContext) {
+        if (hydrationStatus === "ready") saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
+      } else {
+        saveRentasPrivadoDraft(stateRef.current);
+      }
     }
     function onVisibilityChange() {
       if (document.visibilityState === "hidden") flush();
@@ -227,18 +281,31 @@ export function RentasPrivadoForm() {
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [hydrated]);
+  }, [hydrated, editContext, hydrationStatus]);
+
+  useEffect(() => {
+    if (!editContext) return;
+    function onBeforeUnload(event: BeforeUnloadEvent) {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [editContext, dirty]);
 
   const flushSave = useCallback(() => {
-    saveRentasPrivadoDraft(stateRef.current);
-  }, []);
+    if (editContext) saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
+    else saveRentasPrivadoDraft(stateRef.current);
+  }, [editContext]);
 
   const previewHref = useMemo(
     () =>
       withClasificadosPublishLang(RENTAS_PREVIEW_PRIVADO, routeLang, {
         [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
+        ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
       }),
-    [routeLang, state.categoriaPropiedad],
+    [routeLang, state.categoriaPropiedad, editContext],
   );
 
   const onPhotos = async (files: FileList | null) => {
@@ -310,8 +377,64 @@ export function RentasPrivadoForm() {
   const confirmAll =
     state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
 
+  const cancelEdit = useCallback(() => {
+    if (!editContext) return;
+    if (dirty) {
+      const ok = window.confirm(
+        lang === "en"
+          ? "Cancel editing?\n\nUnsaved changes will be discarded. Your published listing will remain unchanged."
+          : "¿Cancelar la edición?\n\nLos cambios no guardados se descartarán. Tu anuncio publicado permanecerá sin cambios.",
+      );
+      if (!ok) return;
+    }
+    clearRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado" });
+    router.push(editContext.returnHref);
+  }, [dirty, editContext, lang, router]);
+
+  const saveListingEdit = useCallback(async () => {
+    if (!editContext || hydrationStatus !== "ready") return;
+    const gate = gateRentasPrivadoPreview(stateRef.current);
+    if (!gate.ok) {
+      setSaveMessage(gate.message);
+      return;
+    }
+    setSaveBusy(true);
+    setSaveMessage(null);
+    const sb = createSupabaseBrowserClient();
+    const { data } = await sb.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setSaveMessage(lang === "en" ? "Sign in required." : "Inicia sesión para guardar.");
+      setSaveBusy(false);
+      return;
+    }
+    const res = await fetch("/api/clasificados/rentas/listing-edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        listingId: editContext.listingId,
+        leonixAdId: editContext.leonixAdId,
+        lane: "privado",
+        lang,
+        draft: stateRef.current,
+      }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+    setSaveBusy(false);
+    if (!res.ok || !json.ok) {
+      setSaveMessage(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
+      return;
+    }
+    cleanEditSnapshotRef.current = JSON.stringify(stateRef.current);
+    setDirty(false);
+    saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
+    setSaveMessage(lang === "en" ? "Changes saved. Your listing identity and expiration were preserved." : "Cambios guardados. Se conservaron la identidad y vencimiento del anuncio.");
+    router.push(editContext.returnHref);
+  }, [editContext, hydrationStatus, lang, router]);
+
   const previewActionsProps = {
     onPreviewValidated: () => {
+      if (editContext && hydrationStatus !== "ready") return;
       if (!confirmAll) return;
       const g = gateRentasPrivadoPreview(stateRef.current);
       if (!g.ok) {
@@ -324,10 +447,14 @@ export function RentasPrivadoForm() {
     },
     openPreviewHref: previewHref,
     onBeforeOpenUnvalidatedPreview: flushSave,
-    disableValidatedPreview: !confirmAll,
-    validationBlockedMessage: previewGateMessage ?? (!confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
+    disableValidatedPreview: !confirmAll || (Boolean(editContext) && hydrationStatus !== "ready"),
+    validationBlockedMessage: previewGateMessage ?? (editContext && hydrationStatus !== "ready" ? (lang === "en" ? "The published listing must finish loading before preview." : "El anuncio publicado debe terminar de cargar antes de la vista previa.") : !confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
     labels: RENTAS_PREVIEW_ACTION_LABELS[lang],
     onDeleteApplication: async () => {
+      if (editContext) {
+        cancelEdit();
+        return;
+      }
       clearRentasPrivadoDraft();
       const empty = createEmptyRentasPrivadoFormState();
       try {
@@ -345,18 +472,77 @@ export function RentasPrivadoForm() {
         : "¿Eliminar el borrador de esta solicitud y empezar de nuevo?",
   };
 
+  if (editContext && hydrationStatus !== "ready") {
+    return (
+      <main className="min-h-screen bg-[#F6F0E2] px-4 py-24 text-[#2C2416]">
+        <section className="mx-auto max-w-2xl rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9A7B32]">
+            {lang === "en" ? "Listing edit" : "Edición de anuncio"}
+          </p>
+          <h1 className="mt-2 text-2xl font-bold">
+            {hydrationStatus === "error"
+              ? lang === "en"
+                ? "We could not load the published listing"
+                : "No pudimos cargar el anuncio publicado"
+              : lang === "en"
+                ? "Loading your published listing..."
+                : "Cargando tu anuncio publicado..."}
+          </h1>
+          <p className="mt-3 text-sm text-[#5C5346]">
+            {lang === "en"
+              ? "Editing stays blocked until the original listing snapshot is loaded. No changes have been saved to your published listing."
+              : "La edición permanece bloqueada hasta cargar el anuncio original. No se ha guardado ningún cambio en tu anuncio publicado."}
+          </p>
+          {previewGateMessage ? <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-950">{previewGateMessage}</p> : null}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button type="button" onClick={() => window.location.reload()} className="min-h-[44px] rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-bold text-white">
+              {lang === "en" ? "Try again" : "Intentar de nuevo"}
+            </button>
+            <button type="button" onClick={cancelEdit} className="min-h-[44px] rounded-xl border border-[#C9B46A]/50 bg-white px-4 py-2 text-sm font-bold text-[#2C2416]">
+              {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
         <header className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{lang === "en" ? "Leonix · Rentals" : "Leonix · Rentas"}</p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">{lang === "en" ? "Post a rental" : "Publicar renta"}</h1>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#1E1810] sm:text-[1.65rem]">{editContext ? (lang === "en" ? "Edit rental listing" : "Editar anuncio de renta") : lang === "en" ? "Post a rental" : "Publicar renta"}</h1>
           <p className={aiSubClass}>
-            {lang === "en"
+            {editContext
+              ? lang === "en"
+                ? "You are editing an isolated workspace. Your published listing changes only after Save changes."
+                : "Estás editando un espacio aislado. Tu anuncio publicado solo cambia al usar Guardar cambios."
+              : lang === "en"
               ? "The preview only shows what you fill in. The draft lives in this browser session (same tab)."
               : "La vista previa solo muestra lo que llenes. El borrador vive en esta sesión del navegador (misma pestaña)."}
           </p>
         </header>
+
+        {editContext ? (
+          <section className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
+            <p className="font-bold">{lang === "en" ? "Published listing protected" : "Anuncio publicado protegido"}</p>
+            <p className="mt-1 text-xs text-[#5C5346]">
+              {lang === "en"
+                ? "Cancel discards only this edit workspace. Save changes updates the same listing without Stripe, duplicate rows, or expiration changes."
+                : "Cancelar descarta solo este espacio de edición. Guardar cambios actualiza el mismo anuncio sin Stripe, duplicados ni cambios al vencimiento."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={cancelEdit} className="min-h-[44px] rounded-xl border border-[#C9B46A]/60 bg-white px-4 py-2 text-sm font-bold text-[#2C2416]">
+                {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+              </button>
+              <button type="button" disabled={saveBusy || hydrationStatus !== "ready"} onClick={() => void saveListingEdit()} className="min-h-[44px] rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+                {saveBusy ? (lang === "en" ? "Saving..." : "Guardando...") : lang === "en" ? "Save changes" : "Guardar cambios"}
+              </button>
+            </div>
+            {saveMessage ? <p className="mt-2 text-xs font-semibold text-[#6E5418]" role="status">{saveMessage}</p> : null}
+          </section>
+        ) : null}
 
         <ClasificadosApplicationTopActions {...previewActionsProps} />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
@@ -1250,6 +1436,25 @@ export function RentasPrivadoForm() {
                 {previewActionsProps.validationBlockedMessage}
               </p>
             ) : null}
+            {editContext ? (
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#C9B46A]/60 bg-white px-4 py-3 text-sm font-bold text-[#2C2416]"
+                >
+                  {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+                </button>
+                <button
+                  type="button"
+                  disabled={saveBusy || hydrationStatus !== "ready"}
+                  onClick={() => void saveListingEdit()}
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {saveBusy ? (lang === "en" ? "Saving..." : "Guardando...") : lang === "en" ? "Save changes" : "Guardar cambios"}
+                </button>
+              </div>
+            ) : (
             <div className="pt-1">
               <button
                 type="button"
@@ -1259,6 +1464,7 @@ export function RentasPrivadoForm() {
                 {previewActionsProps.labels.deleteApplication}
               </button>
             </div>
+            )}
           </div>
         </section>
 

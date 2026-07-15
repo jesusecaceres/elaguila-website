@@ -65,7 +65,7 @@ if (!src.manageCard.includes("ListingLifecycleStatusCard") || !src.manageCard.in
 if (!src.manageCard.includes("Renovar") && !src.manageCard.includes("Renew")) fail("renewal language not present through shared UI");
 ok("owner dashboard lifecycle UI and renewal CTA present");
 
-for (const needle of ["source\") === \"dashboard\"", "mode\") === \"listing-edit\"", "hydrateRentasDashboardEditDraft", "photoDataUrls", "videoUrls", "contact_phone", "contact_email"]) {
+for (const needle of ["parseRentasListingEditContext", "hydrateRentasDashboardEditDraft", "photoDataUrls", "videoUrls", "contact_phone", "contact_email"]) {
   if (!(src.editHydration + src.privadoForm + src.negocioForm).includes(needle)) fail(`edit hydration missing ${needle}`);
 }
 ok("dashboard edit hydration present");

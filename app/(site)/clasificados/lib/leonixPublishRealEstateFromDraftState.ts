@@ -253,6 +253,20 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   mux?: RentasListingPublishMuxFields | null,
   opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const built = buildRentasPrivadoListingParams(state, lang, mux);
+  if (!built.ok) return built;
+  return publishLeonixRealEstateListingCore({
+    ...built.params,
+    activationMode: opts?.activationMode,
+    rentasPaymentLane: "privado",
+  });
+}
+
+export function buildRentasPrivadoListingParams(
+  state: RentasPrivadoFormState,
+  lang: "es" | "en",
+  mux?: RentasListingPublishMuxFields | null,
+): LeonixBrDraftPublishBuildResult {
   const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
   if (!orderedGallery.length) {
     return {
@@ -278,7 +292,9 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   });
   const contact = privadoSellerContact(state.seller);
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
-  return publishLeonixRealEstateListingCore({
+  return {
+    ok: true,
+    params: {
     title: state.titulo,
     description: state.descripcion,
     city: rentasPublishCity(state),
@@ -293,8 +309,6 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
     contactEmail: contact.email,
     imageSources: orderedGallery,
     lang,
-    activationMode: opts?.activationMode,
-    rentasPaymentLane: "privado",
     ...(muxPid
       ? {
           muxAssetId: mux!.muxAssetId.trim(),
@@ -303,7 +317,8 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
           muxStatus: "ready",
         }
       : {}),
-  });
+    },
+  };
 }
 
 export function buildPublishParamsFromBienesRaicesNegocioDraft(
@@ -398,6 +413,20 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   mux?: RentasListingPublishMuxFields | null,
   opts?: BrPublishDraftOptions,
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const built = buildRentasNegocioListingParams(state, lang, mux);
+  if (!built.ok) return built;
+  return publishLeonixRealEstateListingCore({
+    ...built.params,
+    activationMode: opts?.activationMode,
+    rentasPaymentLane: "negocio",
+  });
+}
+
+export function buildRentasNegocioListingParams(
+  state: RentasNegocioFormState,
+  lang: "es" | "en",
+  mux?: RentasListingPublishMuxFields | null,
+): LeonixBrDraftPublishBuildResult {
   const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
   if (!orderedGallery.length) {
     return {
@@ -432,7 +461,9 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   const phone = digitsOnly(state.negocioTelDirecto) || digitsOnly(state.negocioTelOficina) || digitsOnly(state.negocioWhatsapp);
   const biz = trim(state.negocioNombre) || trim(state.negocioMarca);
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
-  return publishLeonixRealEstateListingCore({
+  return {
+    ok: true,
+    params: {
     title: state.titulo,
     description: state.descripcion,
     city: rentasPublishCity(state),
@@ -449,8 +480,6 @@ export async function publishLeonixListingFromRentasNegocioDraft(
     contactEmail: trim(state.negocioEmail) || null,
     imageSources: orderedGallery,
     lang,
-    activationMode: opts?.activationMode,
-    rentasPaymentLane: "negocio",
     ...(muxPid
       ? {
           muxAssetId: mux!.muxAssetId.trim(),
@@ -459,5 +488,6 @@ export async function publishLeonixListingFromRentasNegocioDraft(
           muxStatus: "ready",
         }
       : {}),
-  });
+    },
+  };
 }

@@ -56,6 +56,11 @@ import {
   RENTAS_NEWSLETTER_INTERESTS,
   RENTAS_PREVIEW_RULES_MODAL,
 } from "@/app/clasificados/rentas/preview/shared/rentasPreviewPaidCheckout";
+import { parseRentasListingEditContext, rentasListingEditPreviewParams } from "@/app/clasificados/publicar/rentas/shared/rentasListingEditContext";
+import {
+  clearRentasListingEditWorkspace,
+  loadRentasListingEditWorkspace,
+} from "@/app/clasificados/publicar/rentas/shared/rentasListingEditWorkspace";
 
 type Phase = "loading" | "ready" | "recovery";
 
@@ -80,6 +85,10 @@ export default function RentasNegocioPreviewClient() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).routeLang,
     [searchParams],
   );
+  const editContext = useMemo(
+    () => parseRentasListingEditContext(new URLSearchParams(searchParams?.toString() ?? ""), "negocio"),
+    [searchParams],
+  );
 
   const publishReadiness = useMemo(() => {
     if (!draft) return { ok: false as const, message: null };
@@ -99,6 +108,10 @@ export default function RentasNegocioPreviewClient() {
   const onCheckout = useCallback(
     async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
       rentasPublishStepTraceReset();
+      if (editContext) {
+        setCheckoutErr(lang === "es" ? "La edición normal no usa pago. Vuelve y usa Guardar cambios." : "Normal editing does not use checkout. Go back and use Save changes.");
+        return;
+      }
       rentasPublishStepTracePatch({ publishClicked: true, errorClearedAtStart: true });
       setCheckoutErr(null);
       setCheckoutBusy(true);
@@ -185,11 +198,17 @@ export default function RentasNegocioPreviewClient() {
       clearRentasNegocioDraft();
       redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
     },
-    [lang],
+    [editContext, lang],
   );
 
   useEffect(() => {
-    const raw = loadRentasNegocioDraft();
+    const raw = editContext
+      ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
+          listingId: editContext.listingId,
+          lane: "negocio",
+          merge: mergePartialRentasNegocioState,
+        })
+      : loadRentasNegocioDraft();
     if (!raw) {
       setDraft(null);
       setPhase("recovery");
@@ -197,7 +216,7 @@ export default function RentasNegocioPreviewClient() {
     }
     setDraft(raw);
     setPhase("ready");
-  }, []);
+  }, [editContext]);
 
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
@@ -205,10 +224,11 @@ export default function RentasNegocioPreviewClient() {
       router.replace(
         withClasificadosPublishLang(RENTAS_PREVIEW_NEGOCIO, routeLang, {
           [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+          ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
         }),
       );
     }
-  }, [phase, draft, urlCategoria, router, routeLang]);
+  }, [phase, draft, urlCategoria, router, routeLang, editContext]);
 
   if (phase === "loading") {
     return (
@@ -226,6 +246,7 @@ export default function RentasNegocioPreviewClient() {
     const vm = mapRentasNegocioStateToPreviewVm(shell, lang);
     const editHrefRecovery = withClasificadosPublishLang(RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY, routeLang, {
       [BR_NEGOCIO_Q_PROPIEDAD]: urlCategoria,
+      ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
     });
     const publishEntryHref = withClasificadosPublishLang(RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY, routeLang);
     return (
@@ -268,6 +289,7 @@ export default function RentasNegocioPreviewClient() {
   const vm = mapRentasNegocioStateToPreviewVm(draft, lang);
   const editHref = withClasificadosPublishLang(RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY, routeLang, {
     [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+    ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
   });
 
   return (
@@ -294,6 +316,32 @@ export default function RentasNegocioPreviewClient() {
       />
 
       <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
+        {editContext ? (
+          <div className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
+            <p className="font-bold">{lang === "en" ? "Previewing unsaved edit workspace" : "Vista previa del espacio de edición"}</p>
+            <p className="mt-1 text-xs text-[#5C5346]">
+              {lang === "en"
+                ? "This preview has not updated your published listing. Go back to save changes or cancel the edit."
+                : "Esta vista previa no ha actualizado tu anuncio publicado. Vuelve para guardar cambios o cancelar la edición."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href={editHref} className="min-h-[44px] rounded-xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-white">
+                {lang === "en" ? "Back to edit" : "Volver a editar"}
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  clearRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio" });
+                  router.push(editContext.returnHref);
+                }}
+                className="min-h-[44px] rounded-xl border border-[#C9B46A]/60 bg-white px-4 py-3 text-sm font-bold text-[#2C2416]"
+              >
+                {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="mb-4">
           <h2 className="text-lg font-bold text-[#1E1810]">
             {lang === "en" ? "Final checkout" : "Pago final"}
@@ -324,6 +372,8 @@ export default function RentasNegocioPreviewClient() {
           editHref={editHref}
           rulesModal={RENTAS_PREVIEW_RULES_MODAL}
         />
+        </>
+        )}
       </div>
     </LeonixPreviewPageShell>
   );

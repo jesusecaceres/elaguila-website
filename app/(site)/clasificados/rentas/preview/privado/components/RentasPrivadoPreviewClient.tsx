@@ -43,6 +43,7 @@ import {
   rentasPublishStepTraceReset,
 } from "@/app/clasificados/rentas/lib/rentasPublishStepTrace";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { mergePartialRentasPrivadoState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
   RENTAS_PREVIEW_PRIVADO,
@@ -54,6 +55,11 @@ import {
   RENTAS_NEWSLETTER_INTERESTS,
   RENTAS_PREVIEW_RULES_MODAL,
 } from "@/app/clasificados/rentas/preview/shared/rentasPreviewPaidCheckout";
+import { parseRentasListingEditContext, rentasListingEditPreviewParams } from "@/app/clasificados/publicar/rentas/shared/rentasListingEditContext";
+import {
+  clearRentasListingEditWorkspace,
+  loadRentasListingEditWorkspace,
+} from "@/app/clasificados/publicar/rentas/shared/rentasListingEditWorkspace";
 
 type Phase = "loading" | "ready" | "recovery";
 
@@ -90,6 +96,10 @@ export default function RentasPrivadoPreviewClient() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).routeLang,
     [searchParams],
   );
+  const editContext = useMemo(
+    () => parseRentasListingEditContext(new URLSearchParams(searchParams?.toString() ?? ""), "privado"),
+    [searchParams],
+  );
 
   const publishReadiness = useMemo(() => {
     if (!draft) return { ok: false as const, message: null };
@@ -109,6 +119,10 @@ export default function RentasPrivadoPreviewClient() {
   const onCheckout = useCallback(
     async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
       rentasPublishStepTraceReset();
+      if (editContext) {
+        setCheckoutErr(lang === "es" ? "La edición normal no usa pago. Vuelve y usa Guardar cambios." : "Normal editing does not use checkout. Go back and use Save changes.");
+        return;
+      }
       rentasPublishStepTracePatch({ publishClicked: true, errorClearedAtStart: true });
       setCheckoutErr(null);
       setCheckoutBusy(true);
@@ -195,13 +209,19 @@ export default function RentasPrivadoPreviewClient() {
       clearRentasPrivadoDraft();
       redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
     },
-    [lang],
+    [editContext, lang],
   );
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const raw = loadRentasPrivadoDraft();
+      const raw = editContext
+        ? loadRentasListingEditWorkspace<RentasPrivadoFormState>({
+            listingId: editContext.listingId,
+            lane: "privado",
+            merge: mergePartialRentasPrivadoState,
+          })
+        : loadRentasPrivadoDraft();
       if (!raw) {
         if (!cancelled) {
           setDraft(null);
@@ -217,7 +237,7 @@ export default function RentasPrivadoPreviewClient() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [editContext]);
 
   useEffect(() => {
     if (phase !== "ready" || !draft) return;
@@ -225,10 +245,11 @@ export default function RentasPrivadoPreviewClient() {
       router.replace(
         withClasificadosPublishLang(RENTAS_PREVIEW_PRIVADO, routeLang, {
           [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+          ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
         }),
       );
     }
-  }, [phase, draft, urlCategoria, router, routeLang]);
+  }, [phase, draft, urlCategoria, router, routeLang, editContext]);
 
   if (phase === "loading") {
     return (
@@ -242,6 +263,7 @@ export default function RentasPrivadoPreviewClient() {
     const templateVm = buildRentasPrivadoTemplateVm(urlCategoria);
     const editHrefRecovery = withClasificadosPublishLang(RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY, routeLang, {
       [BR_NEGOCIO_Q_PROPIEDAD]: urlCategoria,
+      ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
     });
     const publishEntryHref = withClasificadosPublishLang(RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY, routeLang);
     return (
@@ -284,6 +306,7 @@ export default function RentasPrivadoPreviewClient() {
   const vm = mapRentasPrivadoStateToPreviewVm(draft, lang);
   const editHref = withClasificadosPublishLang(RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY, routeLang, {
     [BR_NEGOCIO_Q_PROPIEDAD]: draft.categoriaPropiedad,
+    ...(editContext ? rentasListingEditPreviewParams(editContext) : {}),
   });
 
   return (
@@ -300,6 +323,32 @@ export default function RentasPrivadoPreviewClient() {
       <RentasVisualMatchPreviewView vm={vm} lang={lang} videoUrls={draftVideoUrls(draft)} />
 
       <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
+        {editContext ? (
+          <div className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
+            <p className="font-bold">{lang === "en" ? "Previewing unsaved edit workspace" : "Vista previa del espacio de edición"}</p>
+            <p className="mt-1 text-xs text-[#5C5346]">
+              {lang === "en"
+                ? "This preview has not updated your published listing. Go back to save changes or cancel the edit."
+                : "Esta vista previa no ha actualizado tu anuncio publicado. Vuelve para guardar cambios o cancelar la edición."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href={editHref} className="min-h-[44px] rounded-xl bg-[#2A2620] px-4 py-3 text-sm font-bold text-white">
+                {lang === "en" ? "Back to edit" : "Volver a editar"}
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  clearRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado" });
+                  router.push(editContext.returnHref);
+                }}
+                className="min-h-[44px] rounded-xl border border-[#C9B46A]/60 bg-white px-4 py-3 text-sm font-bold text-[#2C2416]"
+              >
+                {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="mb-4">
           <h2 className="text-lg font-bold text-[#1E1810]">
             {lang === "en" ? "Final checkout" : "Pago final"}
@@ -330,6 +379,8 @@ export default function RentasPrivadoPreviewClient() {
           editHref={editHref}
           rulesModal={RENTAS_PREVIEW_RULES_MODAL}
         />
+        </>
+        )}
       </div>
     </LeonixPreviewPageShell>
   );
