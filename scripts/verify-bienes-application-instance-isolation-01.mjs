@@ -20,6 +20,10 @@ const app = read(
 const preview = read(
   "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
 );
+const previewRoutePagePath =
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/page.tsx";
+assert.ok(fs.existsSync(path.join(root, previewRoutePagePath)), "agente preview route page exists");
+const previewRoutePage = read(previewRoutePagePath);
 const childSession = read(
   "app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryEditorSession.ts",
 );
@@ -55,6 +59,8 @@ assert.match(app, /router\.replace\(/, "application replaces URL with scoped ide
 assert.match(app, /persistAgenteResApplicationDraftResolved\(state,\s*\{\s*applicationInstanceId,\s*writeReturn:\s*true\s*}\)/, "preview save is scoped");
 assert.match(app, /flushAgenteResDraftSyncForUnload\(state,\s*\{\s*applicationInstanceId\s*}\)/, "hard refresh flush is scoped");
 assert.match(app, /BR_AGENTE_RES_PREVIEW_ROUTE/, "application opens agente preview route");
+assert.match(previewRoutePage, /AgenteIndividualResidencialPreviewClient/, "route page reuses existing preview client");
+assert.match(previewRoutePage, /BrAgenteResidencialLocaleProvider/, "route page preserves existing lang provider");
 assert.match(preview, /loadAgenteResPreviewDraftResolved\(\{\s*applicationInstanceId\s*}\)/, "preview reads scoped draft");
 assert.match(preview, /withBrAgenteResApplicationInstanceParam/, "Volver a editar keeps scoped identity");
 
