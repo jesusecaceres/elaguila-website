@@ -122,7 +122,7 @@ export const EMPLEO_QUICK_JOB_SAMPLE: QuickJobDetailSample = {
   jobTypeLabel: "Tiempo completo",
   schedule: "Lunes a Viernes · 8:00 AM – 5:00 PM",
   scheduleSummary: "Lunes a Viernes · 8:00 AM – 5:00 PM",
-  workModalityLabel: "Presencial",
+  workModalityLabel: "En persona",
   description:
     "Buscamos cocineros con experiencia en cocina mexicana y parrilla. Ambiente familiar, equipo compacto y horarios estables. Ideal para quien valora la consistencia y el buen ritmo de servicio.",
   benefits: ["Pago semanal en efectivo", "Comida incluida durante el turno"],

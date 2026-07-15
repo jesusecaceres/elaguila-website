@@ -143,7 +143,7 @@ export const sampleJobTypeSelectOptions: readonly { value: string; label: string
   { value: "turno-mixto", label: "Turno mixto" },
   { value: "remoto", label: "Remoto" },
   { value: "hibrido", label: "Híbrido" },
-  { value: "presencial", label: "Presencial" },
+  { value: "presencial", label: "En persona" },
   { value: "voluntario", label: "Voluntario" },
   { value: "por-horas", label: "Por horas" },
   { value: "turno-nocturno", label: "Turno nocturno" },

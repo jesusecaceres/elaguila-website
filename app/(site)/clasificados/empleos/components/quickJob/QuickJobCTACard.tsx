@@ -83,6 +83,26 @@ function looksLikeEmail(val: string): boolean {
   return afterAt.includes(".") && afterAt.length > 2;
 }
 
+/** Normalize external URLs to ensure they open as external links, not internal routes. */
+function normalizeExternalUrl(value?: string | null): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (/^\/\//.test(raw)) return `https:${raw}`;
+  return `https://${raw}`;
+}
+
+/** Check if a normalized URL is valid enough to open externally. */
+function isValidExternalUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function QuickJobCTACard({
   pay,
   payAmount,
@@ -126,16 +146,33 @@ export function QuickJobCTACard({
   const validEmail = email && looksLikeEmail(email) ? email : undefined;
   const hasApplyLink = Boolean(applyLink?.trim().startsWith("http"));
   const hasSms = Boolean(smsPhone?.trim());
+  
+  // Normalize and validate all external URLs
+  const normalizedWebsite = normalizeExternalUrl(websiteUrl);
+  const normalizedLinkedIn = normalizeExternalUrl(companyLinkedIn);
+  const normalizedFacebook = normalizeExternalUrl(companyFacebook);
+  const normalizedInstagram = normalizeExternalUrl(companyInstagram);
+  const normalizedTikTok = normalizeExternalUrl(companyTikTok);
+  const normalizedYouTube = normalizeExternalUrl(companyYouTube);
+  const normalizedX = normalizeExternalUrl(companyX);
+  const normalizedSnapchat = normalizeExternalUrl(companySnapchat);
+  const normalizedOtherLink = normalizeExternalUrl(companyOtherLinkUrl);
+  
   const hasCompanyLinks = Boolean(
-    companyLinkedIn || companyFacebook || companyInstagram ||
-    companyTikTok || companyYouTube || companyX || companySnapchat ||
-    (companyOtherLinkLabel && companyOtherLinkUrl)
+    isValidExternalUrl(normalizedLinkedIn) ||
+    isValidExternalUrl(normalizedFacebook) ||
+    isValidExternalUrl(normalizedInstagram) ||
+    isValidExternalUrl(normalizedTikTok) ||
+    isValidExternalUrl(normalizedYouTube) ||
+    isValidExternalUrl(normalizedX) ||
+    isValidExternalUrl(normalizedSnapchat) ||
+    (companyOtherLinkLabel && isValidExternalUrl(normalizedOtherLink))
   );
   const payParts = normalizePayDisplayParts({ pay, payAmount, payUnit, payUnitCustom, payNote }, lang);
   const displayPay = payParts.headline;
   const payNoteDisplay = payParts.note;
   const typeLine = jobTypeLabel?.trim() || jobType;
-  const contactShareExtras = { email: validEmail, websiteUrl: websiteUrl?.trim() || undefined };
+  const contactShareExtras = { email: validEmail, websiteUrl: normalizedWebsite || undefined };
 
   const openSheet = (intent: CtaSheetIntent | null) => {
     if (intent) setCtaIntent(intent);
@@ -167,8 +204,8 @@ export function QuickJobCTACard({
   };
 
   const openWebsiteSheet = () => {
-    const site = websiteUrl?.trim() ?? "";
-    if (!site.startsWith("http")) return;
+    const site = normalizedWebsite;
+    if (!site || !isValidExternalUrl(site)) return;
     trackEmpleosSidebarContactCta("website", contactAnalyticsMeta);
     openSheet(buildWebsiteIntent({ url: site, headline: websiteLabel, kind: "website" }));
   };
@@ -338,7 +375,7 @@ export function QuickJobCTACard({
               {lang === "es" ? "Enviar SMS" : "Send SMS"}
             </a>
           ) : null}
-          {websiteUrl?.trim().startsWith("http") ? (
+          {isValidExternalUrl(normalizedWebsite) ? (
             <button type="button" onClick={openWebsiteSheet} className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${SOFT_BTN}`}>
               <FaGlobe className="h-4 w-4 shrink-0" aria-hidden />
               {websiteLabel}
@@ -365,50 +402,50 @@ export function QuickJobCTACard({
             {lang === "es" ? "Conoce al empleador" : "Learn about the employer"}
           </p>
           <div className="flex flex-wrap gap-2">
-            {companyLinkedIn ? (
-              <a href={companyLinkedIn} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedLinkedIn) ? (
+              <a href={normalizedLinkedIn} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#0A66C2] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaLinkedin className="h-3.5 w-3.5" aria-hidden /> LinkedIn
               </a>
             ) : null}
-            {companyFacebook ? (
-              <a href={companyFacebook} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedFacebook) ? (
+              <a href={normalizedFacebook} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#1877F2] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaFacebook className="h-3.5 w-3.5" aria-hidden /> Facebook
               </a>
             ) : null}
-            {companyInstagram ? (
-              <a href={companyInstagram} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedInstagram) ? (
+              <a href={normalizedInstagram} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#C13584] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaInstagram className="h-3.5 w-3.5" aria-hidden /> Instagram
               </a>
             ) : null}
-            {companyTikTok ? (
-              <a href={companyTikTok} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedTikTok) ? (
+              <a href={normalizedTikTok} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <SiTiktok className="h-3.5 w-3.5" aria-hidden /> TikTok
               </a>
             ) : null}
-            {companyYouTube ? (
-              <a href={companyYouTube} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedYouTube) ? (
+              <a href={normalizedYouTube} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#CC0000] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaYoutube className="h-3.5 w-3.5" aria-hidden /> YouTube
               </a>
             ) : null}
-            {companyX ? (
-              <a href={companyX} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedX) ? (
+              <a href={normalizedX} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#3D3428] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <SiX className="h-3.5 w-3.5" aria-hidden /> X
               </a>
             ) : null}
-            {companySnapchat ? (
-              <a href={companySnapchat} target="_blank" rel="noopener noreferrer"
+            {isValidExternalUrl(normalizedSnapchat) ? (
+              <a href={normalizedSnapchat} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#8A7300] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaSnapchat className="h-3.5 w-3.5" aria-hidden /> Snapchat
               </a>
             ) : null}
-            {companyOtherLinkLabel && companyOtherLinkUrl ? (
-              <a href={companyOtherLinkUrl} target="_blank" rel="noopener noreferrer"
+            {companyOtherLinkLabel && isValidExternalUrl(normalizedOtherLink) ? (
+              <a href={normalizedOtherLink} target="_blank" rel="noopener noreferrer"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#D6C7AD]/80 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#5C5346] transition hover:border-[#C9A84A]/60 hover:bg-[#FBF7EF]">
                 <FaGlobe className="h-3.5 w-3.5" aria-hidden /> {companyOtherLinkLabel}
               </a>
