@@ -54,7 +54,7 @@ const shell = read(
 );
 
 assert(previewDraft.includes("bootstrapAgenteIndividualResidencialApplicationStateResolved"), "async bootstrap with IDB");
-assert(previewDraft.includes("mirrorDraftToLocalStorage(json)"), "localStorage mirror on save");
+assert(previewDraft.includes("mirrorDraftToLocalStorage(json, scope)"), "namespaced localStorage mirror on save");
 assert(previewDraft.includes("syncDraftMediaBridgesFromState"), "media bridge sync after restore");
 assert(previewDraft.includes("googleBusinessUrl") || agenteState.includes("googleBusinessUrl"), "google business in state");
 assert(previewDraft.includes("additionalInventoryProperties"), "child inventory in draft path");
@@ -107,6 +107,7 @@ assert(
 assert(
   childSession.includes("inlineChildEditorPropertySliceFromIdb") &&
     childSession.includes("resolveChildPropertySliceMediaFromIdb") &&
+    childSession.includes("getActiveBrAgenteDraftMediaNamespace()") &&
     !/inlineBrAgenteResHeavyMediaFromIdb\(BR_AGENTE_DRAFT_MEDIA_NAMESPACE,\s*hub\)/.test(childSession),
   "child hard-refresh inline must use CHILD_EDITOR_* segments (not MAIN_PHOTO)",
 );
@@ -132,7 +133,7 @@ assert(
   "shell must await parent inventory update then clear child session before close",
 );
 assert(
-  app.includes("await persistAgenteResApplicationDraftResolved(nextState)"),
+  app.includes("await persistAgenteResApplicationDraftResolved(next, { applicationInstanceId })"),
   "parent must await draft persist immediately after child inventory save",
 );
 assert(
@@ -140,7 +141,7 @@ assert(
     previewDraft.includes("isBrowserHardReload") &&
     previewDraft.includes("isExplicitReturningToEditIntent") &&
     previewDraft.includes("leonix-publish-flow-returning-to-edit") &&
-    previewDraft.includes("clearAgenteIndividualResidencialPublishTempState()"),
+    previewDraft.includes("clearAgenteResApplicationMemoryOnly()"),
   "new application vs resume intent isolation required",
 );
 assert(
@@ -148,7 +149,7 @@ assert(
   "bootstrap must document brand-new isolation",
 );
 assert(
-  app.includes('persistAgenteResApplicationDraftResolved(state, { writeReturn: true })'),
+  app.includes("persistAgenteResApplicationDraftResolved(state, { applicationInstanceId, writeReturn: true })"),
   "openPreview must write return key for Volver",
 );
 assert(

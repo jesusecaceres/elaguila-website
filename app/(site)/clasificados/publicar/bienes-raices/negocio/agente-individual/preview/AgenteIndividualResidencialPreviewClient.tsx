@@ -50,6 +50,10 @@ import { fetchBrParentListingMetaBrowser } from "@/app/clasificados/bienes-raice
 import { markPublishFlowReturningToEdit } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { loadAgenteResPreviewDraftResolved } from "../application/utils/previewDraft";
+import {
+  ensureBrAgenteResApplicationInstanceId,
+  withBrAgenteResApplicationInstanceParam,
+} from "../application/utils/previewDraft";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AgenteIndividualResidencialPreviewPage } from "./AgenteIndividualResidencialPreviewPage";
@@ -90,6 +94,10 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const leonixAdIdParam = searchParams?.get("leonixAdId")?.trim() ?? "";
   const previewMode = searchParams?.get("mode") ?? "";
   const previewFocus = searchParams?.get("focus") === "inventory-pack" ? "inventory-pack" : null;
+  const applicationInstanceId = useMemo(
+    () => ensureBrAgenteResApplicationInstanceId(searchParams),
+    [searchParams],
+  );
   const listingBoundPreview =
     previewListingParam || (dashboardSource && Boolean(listingIdParam || listingSlugParam || leonixAdIdParam));
   const backToEditMode: "listing-edit" | "inventory-edit" | "inventory-addon" =
@@ -123,16 +131,16 @@ export default function AgenteIndividualResidencialPreviewClient() {
     if (listingBoundPreview && listingIdParam) {
       void hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang }).then((result) => {
         if (!result.ok) return;
-        void loadAgenteResPreviewDraftResolved().then((loaded) => {
+        void loadAgenteResPreviewDraftResolved({ applicationInstanceId }).then((loaded) => {
           if (loaded) setData(loaded);
         });
       });
       return;
     }
-    void loadAgenteResPreviewDraftResolved().then((loaded) => {
+    void loadAgenteResPreviewDraftResolved({ applicationInstanceId }).then((loaded) => {
       if (loaded) setData(loaded);
     });
-  }, [lang, listingBoundPreview, listingIdParam]);
+  }, [applicationInstanceId, lang, listingBoundPreview, listingIdParam]);
 
   useEffect(() => {
     const parentId = inventoryCtx?.parentListingId;
@@ -173,9 +181,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
         qs.set("inventoryGroupId", inventoryAdd.context.brInventoryGroupId.trim());
       }
     }
-    return withBrAgenteResLangParam(`${BR_PUBLICAR_NEGOCIO}?${qs.toString()}`, lang);
+    return withBrAgenteResLangParam(
+      withBrAgenteResApplicationInstanceParam(`${BR_PUBLICAR_NEGOCIO}?${qs.toString()}`, applicationInstanceId),
+      lang,
+    );
   }, [
     backToEditMode,
+    applicationInstanceId,
     data.categoriaPropiedad,
     inventoryAdd.context,
     inventoryAdd.inventoryModeAdd,
@@ -226,7 +238,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       );
       return;
     }
-    const st = (await loadAgenteResPreviewDraftResolved()) ?? data;
+    const st = (await loadAgenteResPreviewDraftResolved({ applicationInstanceId })) ?? data;
     if (!st) return;
     setPublishBusy(true);
     setPublishErr(null);
@@ -383,7 +395,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       setPublishBusy(false);
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
-  }, [data, inventoryCtx, lang, router]);
+  }, [applicationInstanceId, data, inventoryCtx, lang, router]);
 
   const handlePromoApply = useCallback(
     async (code: string) => {

@@ -145,6 +145,7 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
 export async function hydrateBienesAgenteListingForDashboardEdit(input: {
   listingId: string;
   lang: "es" | "en";
+  applicationInstanceId?: string | null;
 }): Promise<BienesDashboardHydrationResult> {
   const listingId = input.listingId.trim();
   if (!listingId) {
@@ -204,7 +205,7 @@ export async function hydrateBienesAgenteListingForDashboardEdit(input: {
       .map((r) => r as unknown as Record<string, unknown>);
 
     const hydrated = bienesPublishedRowToAgenteApplicationDraft({ row: parentRow, childRows });
-    persistAgenteResApplicationDraftQuiet(hydrated);
+    persistAgenteResApplicationDraftQuiet(hydrated, { applicationInstanceId: input.applicationInstanceId ?? null });
     return { ok: true };
   } catch {
     return {

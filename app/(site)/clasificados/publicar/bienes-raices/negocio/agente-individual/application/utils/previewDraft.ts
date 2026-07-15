@@ -15,7 +15,9 @@ import { clearChildInventoryEditorSession } from "../../../application/brNegocio
 import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
   BR_AGENTE_IDB_PREFIX,
+  brAgenteDraftMediaNamespaceForApplicationInstance,
   clearBrAgenteResDraftMediaNamespace,
+  setActiveBrAgenteDraftMediaNamespace,
   inlineBrAgenteResHeavyMediaFromIdb,
   offloadBrAgenteResHeavyMediaToIdb,
 } from "./brAgenteResDraftMedia";
@@ -45,6 +47,24 @@ export const BR_AGENTE_RES_PREVIEW_DRAFT_KEY = "br-negocio-agente-residencial-pr
 export const BR_AGENTE_RES_RETURN_KEY = "br-negocio-agente-residencial-return-draft";
 /** Rentas-style mirror when sessionStorage quota is tight (metadata + IDB refs). */
 export const BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY = "br-negocio-agente-residencial-draft-ls-fallback";
+export const BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM = "applicationInstanceId";
+export const BR_AGENTE_RES_APPLICATION_INSTANCE_SESSION_KEY =
+  "br-negocio-agente-residencial-application-instance-id";
+export const BR_AGENTE_RES_LEGACY_MIGRATION_PREFIX =
+  "br-negocio-agente-residencial-legacy-migration";
+
+export type AgenteResApplicationScope = {
+  applicationInstanceId?: string | null;
+};
+
+export type AgenteResApplicationStorageKeys = {
+  applicationInstanceId: string | null;
+  previewKey: string;
+  returnKey: string;
+  fallbackKey: string;
+  mediaNamespace: string;
+  migrationKey: string | null;
+};
 
 export type AgenteResPreviewReturnPayload = {
   state: AgenteIndividualResidencialFormState;
@@ -59,6 +79,113 @@ let previewReturnTimer: ReturnType<typeof setTimeout> | null = null;
  * sessionStorage often strips `data:` on quota; this bridge survives same-tab navigation until consumed in bootstrap.
  */
 let fullDraftMediaBridge: AgenteIndividualResidencialFormState | null = null;
+
+function trimId(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+export function createBrAgenteResApplicationInstanceId(): string {
+  const suffix =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `br-agent-app-${suffix}`;
+}
+
+function getParam(
+  params: URLSearchParams | { get: (key: string) => string | null } | null | undefined,
+  key: string,
+): string {
+  try {
+    return trimId(params?.get(key));
+  } catch {
+    return "";
+  }
+}
+
+function hasLegacySessionDraftKeys(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return Boolean(
+      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ||
+        sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function setApplicationInstanceSession(applicationInstanceId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(BR_AGENTE_RES_APPLICATION_INSTANCE_SESSION_KEY, applicationInstanceId);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function ensureBrAgenteResApplicationInstanceId(
+  params?: URLSearchParams | { get: (key: string) => string | null } | null,
+): string {
+  const fromQuery = getParam(params, BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM);
+  if (fromQuery) {
+    setApplicationInstanceSession(fromQuery);
+    return fromQuery;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const existing = trimId(sessionStorage.getItem(BR_AGENTE_RES_APPLICATION_INSTANCE_SESSION_KEY));
+      if (existing) return existing;
+    } catch {
+      /* ignore */
+    }
+  }
+  const next = createBrAgenteResApplicationInstanceId();
+  setApplicationInstanceSession(next);
+  return next;
+}
+
+export function withBrAgenteResApplicationInstanceParam(path: string, applicationInstanceId: string): string {
+  const id = trimId(applicationInstanceId);
+  if (!id) return path;
+  const [base, hash = ""] = path.split("#", 2);
+  const [pathname, query = ""] = (base ?? path).split("?", 2);
+  const qs = new URLSearchParams(query);
+  qs.set(BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM, id);
+  const next = `${pathname}?${qs.toString()}`;
+  return hash ? `${next}#${hash}` : next;
+}
+
+export function brAgenteResApplicationStorageKeys(
+  scope?: AgenteResApplicationScope | string | null,
+): AgenteResApplicationStorageKeys {
+  const applicationInstanceId =
+    typeof scope === "string" ? trimId(scope) : trimId(scope?.applicationInstanceId);
+  if (!applicationInstanceId) {
+    return {
+      applicationInstanceId: null,
+      previewKey: BR_AGENTE_RES_PREVIEW_DRAFT_KEY,
+      returnKey: BR_AGENTE_RES_RETURN_KEY,
+      fallbackKey: BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY,
+      mediaNamespace: BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+      migrationKey: null,
+    };
+  }
+  return {
+    applicationInstanceId,
+    previewKey: `${BR_AGENTE_RES_PREVIEW_DRAFT_KEY}:${applicationInstanceId}`,
+    returnKey: `${BR_AGENTE_RES_RETURN_KEY}:${applicationInstanceId}`,
+    fallbackKey: `${BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY}:${applicationInstanceId}`,
+    mediaNamespace: brAgenteDraftMediaNamespaceForApplicationInstance(applicationInstanceId),
+    migrationKey: `${BR_AGENTE_RES_LEGACY_MIGRATION_PREFIX}:${applicationInstanceId}`,
+  };
+}
+
+function activateApplicationMediaNamespace(scope?: AgenteResApplicationScope | string | null): AgenteResApplicationStorageKeys {
+  const keys = brAgenteResApplicationStorageKeys(scope);
+  setActiveBrAgenteDraftMediaNamespace(keys.mediaNamespace);
+  return keys;
+}
 
 function setFullDraftMediaBridge(state: AgenteIndividualResidencialFormState): void {
   try {
@@ -80,7 +207,8 @@ function scheduleClearReturnMemory() {
   }, 2000);
 }
 
-export function clearAgenteIndividualResidencialPublishTempState(): void {
+export function clearAgenteIndividualResidencialPublishTempState(scope?: AgenteResApplicationScope | string | null): void {
+  const keys = brAgenteResApplicationStorageKeys(scope);
   if (previewReturnTimer) clearTimeout(previewReturnTimer);
   previewReturnTimer = null;
   previewReturnMemory = null;
@@ -88,32 +216,42 @@ export function clearAgenteIndividualResidencialPublishTempState(): void {
   clearChildInventoryMediaBridge();
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.removeItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
-    sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
-    localStorage.removeItem(BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY);
+    sessionStorage.removeItem(keys.previewKey);
+    sessionStorage.removeItem(keys.returnKey);
+    localStorage.removeItem(keys.fallbackKey);
   } catch {
     /* ignore */
   }
-  void clearBrAgenteResDraftMediaNamespace(BR_AGENTE_DRAFT_MEDIA_NAMESPACE);
+  void clearBrAgenteResDraftMediaNamespace(keys.mediaNamespace);
 }
 
-function hasPersistedDraftKeys(): boolean {
+function clearAgenteResApplicationMemoryOnly(): void {
+  if (previewReturnTimer) clearTimeout(previewReturnTimer);
+  previewReturnTimer = null;
+  previewReturnMemory = null;
+  fullDraftMediaBridge = null;
+  clearChildInventoryMediaBridge();
+}
+
+function hasPersistedDraftKeys(scope?: AgenteResApplicationScope | string | null): boolean {
   if (typeof window === "undefined") return false;
+  const keys = brAgenteResApplicationStorageKeys(scope);
   try {
     return !!(
-      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ||
-      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ||
-      localStorage.getItem(BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY)
+      sessionStorage.getItem(keys.previewKey) ||
+      sessionStorage.getItem(keys.returnKey) ||
+      localStorage.getItem(keys.fallbackKey)
     );
   } catch {
     return false;
   }
 }
 
-function mirrorDraftToLocalStorage(json: string): void {
+function mirrorDraftToLocalStorage(json: string, scope?: AgenteResApplicationScope | string | null): void {
   if (typeof window === "undefined") return;
+  const keys = brAgenteResApplicationStorageKeys(scope);
   try {
-    localStorage.setItem(BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY, json);
+    localStorage.setItem(keys.fallbackKey, json);
   } catch {
     /* ignore */
   }
@@ -129,10 +267,11 @@ function syncDraftMediaBridgesFromState(state: AgenteIndividualResidencialFormSt
   }
 }
 
-function readDraftFromLocalStorageFallback(): string | null {
+function readDraftFromLocalStorageFallback(scope?: AgenteResApplicationScope | string | null): string | null {
   if (typeof window === "undefined") return null;
+  const keys = brAgenteResApplicationStorageKeys(scope);
   try {
-    return localStorage.getItem(BR_AGENTE_RES_DRAFT_LS_FALLBACK_KEY);
+    return localStorage.getItem(keys.fallbackKey);
   } catch {
     return null;
   }
@@ -170,10 +309,10 @@ function resolveFullDraftMediaBridgeState(): AgenteIndividualResidencialFormStat
   return coercePersistedFormState(fullDraftMediaBridge);
 }
 
-function restoreMediaBridgesFromLocalStorageFallback(): void {
+function restoreMediaBridgesFromLocalStorageFallback(scope?: AgenteResApplicationScope | string | null): void {
   if (fullDraftMediaBridge) return;
   try {
-    const raw = readDraftFromLocalStorageFallback();
+    const raw = readDraftFromLocalStorageFallback(scope);
     if (!raw) return;
     const parsed = parsePersistedStateFromJson(raw);
     if (parsed) {
@@ -235,15 +374,21 @@ function stripAllGalleryPhotos(state: AgenteIndividualResidencialFormState): Age
   return j;
 }
 
-function writePreviewKey(json: string): void {
-  sessionStorage.setItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY, json);
+function writePreviewKey(json: string, scope?: AgenteResApplicationScope | string | null): void {
+  const keys = brAgenteResApplicationStorageKeys(scope);
+  sessionStorage.setItem(keys.previewKey, json);
 }
 
-function writeReturnKey(json: string): void {
-  sessionStorage.setItem(BR_AGENTE_RES_RETURN_KEY, json);
+function writeReturnKey(json: string, scope?: AgenteResApplicationScope | string | null): void {
+  const keys = brAgenteResApplicationStorageKeys(scope);
+  sessionStorage.setItem(keys.returnKey, json);
 }
 
-function savePreviewPayload(state: AgenteIndividualResidencialFormState, tryStrip: boolean): boolean {
+function savePreviewPayload(
+  state: AgenteIndividualResidencialFormState,
+  tryStrip: boolean,
+  scope?: AgenteResApplicationScope | string | null,
+): boolean {
   if (typeof window === "undefined") return false;
   const attempts: AgenteIndividualResidencialFormState[] = [state];
   if (tryStrip) {
@@ -252,8 +397,8 @@ function savePreviewPayload(state: AgenteIndividualResidencialFormState, tryStri
   for (const payload of attempts) {
     try {
       const json = JSON.stringify(payload);
-      writePreviewKey(json);
-      mirrorDraftToLocalStorage(json);
+      writePreviewKey(json, scope);
+      mirrorDraftToLocalStorage(json, scope);
       return true;
     } catch (e) {
       if (!isQuotaError(e)) {
@@ -264,11 +409,15 @@ function savePreviewPayload(state: AgenteIndividualResidencialFormState, tryStri
       }
     }
   }
-  mirrorDraftToLocalStorage(JSON.stringify(tryStrip ? stripHeavyDataUrlsForSession(state) : state));
+  mirrorDraftToLocalStorage(JSON.stringify(tryStrip ? stripHeavyDataUrlsForSession(state) : state), scope);
   return false;
 }
 
-function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boolean): boolean {
+function saveReturnPayload(
+  payload: AgenteResPreviewReturnPayload,
+  tryStrip: boolean,
+  scope?: AgenteResApplicationScope | string | null,
+): boolean {
   if (typeof window === "undefined") return false;
   const attempts: AgenteResPreviewReturnPayload[] = [payload];
   if (tryStrip) {
@@ -278,7 +427,7 @@ function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boo
   for (const p of attempts) {
     try {
       const json = JSON.stringify(p);
-      writeReturnKey(json);
+      writeReturnKey(json, scope);
       return true;
     } catch (e) {
       if (!isQuotaError(e)) {
@@ -292,26 +441,39 @@ function saveReturnPayload(payload: AgenteResPreviewReturnPayload, tryStrip: boo
   return false;
 }
 
-export function saveAgenteResPreviewDraft(state: AgenteIndividualResidencialFormState): void {
-  void persistAgenteResApplicationDraftResolved(state, { writeReturn: true });
+export function saveAgenteResPreviewDraft(
+  state: AgenteIndividualResidencialFormState,
+  scope?: AgenteResApplicationScope | string | null,
+): void {
+  void persistAgenteResApplicationDraftResolved(state, { ...scopeFrom(scope), writeReturn: true });
 }
 
-export function saveAgenteResPreviewReturnDraft(state: AgenteIndividualResidencialFormState): void {
+export function saveAgenteResPreviewReturnDraft(
+  state: AgenteIndividualResidencialFormState,
+  scope?: AgenteResApplicationScope | string | null,
+): void {
   if (typeof window === "undefined") return;
   previewReturnMemory = null;
-  void persistAgenteResApplicationDraftResolved(state, { writeReturn: true });
+  void persistAgenteResApplicationDraftResolved(state, { ...scopeFrom(scope), writeReturn: true });
 }
 
 /** BR-DRAFT-PERSIST-01 — async persist with IndexedDB media offload (Servicios pattern). */
 let draftPersistEpoch = 0;
 
-function readPreviousPersistedFormState(): AgenteIndividualResidencialFormState | null {
+function scopeFrom(scope?: AgenteResApplicationScope | string | null): AgenteResApplicationScope {
+  return typeof scope === "string" ? { applicationInstanceId: scope } : { applicationInstanceId: scope?.applicationInstanceId ?? null };
+}
+
+function readPreviousPersistedFormState(
+  scope?: AgenteResApplicationScope | string | null,
+): AgenteIndividualResidencialFormState | null {
   if (typeof window === "undefined") return null;
+  const keys = brAgenteResApplicationStorageKeys(scope);
   try {
     const raw =
-      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ??
-      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ??
-      readDraftFromLocalStorageFallback();
+      sessionStorage.getItem(keys.previewKey) ??
+      sessionStorage.getItem(keys.returnKey) ??
+      readDraftFromLocalStorageFallback(scope);
     return raw ? parsePersistedStateFromJson(raw) : null;
   } catch {
     return null;
@@ -356,8 +518,9 @@ function liveChildInventoryPhotoCount(state: AgenteIndividualResidencialFormStat
  */
 function mergeCompactAvoidEmptyMediaOverwrite(
   compact: AgenteIndividualResidencialFormState,
+  scope?: AgenteResApplicationScope | string | null,
 ): AgenteIndividualResidencialFormState {
-  const previous = readPreviousPersistedFormState();
+  const previous = readPreviousPersistedFormState(scope);
   if (!previous) return compact;
   return preserveDurableMediaOnSyncFlush(compact, compact, previous);
 }
@@ -365,6 +528,7 @@ function mergeCompactAvoidEmptyMediaOverwrite(
 export type PersistAgenteResDraftOptions = {
   /** When true, always write the Preview→Volver return key (openPreview / explicit return). */
   writeReturn?: boolean;
+  applicationInstanceId?: string | null;
 };
 
 export async function persistAgenteResApplicationDraftResolved(
@@ -372,18 +536,19 @@ export async function persistAgenteResApplicationDraftResolved(
   opts?: PersistAgenteResDraftOptions,
 ): Promise<void> {
   if (typeof window === "undefined") return;
-  if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys()) return;
+  const keys = activateApplicationMediaNamespace(opts);
+  if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys(opts)) return;
   const epoch = ++draftPersistEpoch;
   setFullDraftMediaBridge(state);
   setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
   let compact = state;
   try {
-    compact = await offloadBrAgenteResHeavyMediaToIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, state);
+    compact = await offloadBrAgenteResHeavyMediaToIdb(keys.mediaNamespace, state);
   } catch {
     compact = stripHeavyDataUrlsForSession(state);
   }
   if (epoch !== draftPersistEpoch) return;
-  compact = mergeCompactAvoidEmptyMediaOverwrite(compact);
+  compact = mergeCompactAvoidEmptyMediaOverwrite(compact, opts);
   if (epoch !== draftPersistEpoch) return;
   // Refuse to persist a zero-photo compact when live still has photos and nothing durable is on disk yet.
   const livePhotoCount = (state.fotosDataUrls ?? []).filter((u) => String(u ?? "").trim()).length;
@@ -392,7 +557,7 @@ export async function persistAgenteResApplicationDraftResolved(
     (livePhotoCount > 0 && durablePhotoCount(compact) === 0) ||
     (liveChildPhotos > 0 && durableChildInventoryPhotoCount(compact) === 0)
   ) {
-    const previous = readPreviousPersistedFormState();
+    const previous = readPreviousPersistedFormState(opts);
     if (
       previous &&
       (durablePhotoCount(previous) > 0 || durableChildInventoryPhotoCount(previous) > 0)
@@ -404,18 +569,18 @@ export async function persistAgenteResApplicationDraftResolved(
     }
   }
   if (epoch !== draftPersistEpoch) return;
-  savePreviewPayload(compact, true);
+  savePreviewPayload(compact, true, opts);
   const shouldWriteReturn =
     Boolean(opts?.writeReturn) ||
     (() => {
       try {
-        return Boolean(sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY));
+        return Boolean(sessionStorage.getItem(keys.returnKey));
       } catch {
         return false;
       }
     })();
   if (shouldWriteReturn) {
-    saveReturnPayload({ state: compact, savedAt: Date.now() }, true);
+    saveReturnPayload({ state: compact, savedAt: Date.now() }, true, opts);
   }
 }
 
@@ -425,27 +590,34 @@ export function agenteResStateHasUnpersistedDataUrlPhotos(state: AgenteIndividua
 }
 
 /** BR-INV-FIX-01D — debounced autosave without clearing in-memory return bridge. */
-export function persistAgenteResApplicationDraftQuiet(state: AgenteIndividualResidencialFormState): void {
-  void persistAgenteResApplicationDraftResolved(state);
+export function persistAgenteResApplicationDraftQuiet(
+  state: AgenteIndividualResidencialFormState,
+  scope?: AgenteResApplicationScope | string | null,
+): void {
+  void persistAgenteResApplicationDraftResolved(state, scopeFrom(scope));
 }
 
 /**
  * Sync flush for hard refresh / pagehide — updates text/schedule without wiping durable media.
  * Always kicks urgent async IDB offload when raw data: photos remain (best-effort before unload ends).
  */
-export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidencialFormState): void {
+export function flushAgenteResDraftSyncForUnload(
+  state: AgenteIndividualResidencialFormState,
+  scope?: AgenteResApplicationScope | string | null,
+): void {
   if (typeof window === "undefined") return;
-  if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys()) return;
+  activateApplicationMediaNamespace(scope);
+  if (!draftHasPersistableProgress(state) && hasPersistedDraftKeys(scope)) return;
   if (!draftHasPersistableProgress(state)) return;
   setFullDraftMediaBridge(state);
   setChildInventoryMediaBridge(state.additionalInventoryProperties ?? []);
 
   if (agenteResStateHasUnpersistedDataUrlPhotos(state)) {
     // Fire async offload; also avoid writing a stripped empty gallery if no prior durable refs exist.
-    void persistAgenteResApplicationDraftResolved(state);
+    void persistAgenteResApplicationDraftResolved(state, scopeFrom(scope));
   }
 
-  const previous = readPreviousPersistedFormState();
+  const previous = readPreviousPersistedFormState(scope);
   const stripped = stripHeavyDataUrlsForSession(state);
   const compact = preserveDurableMediaOnSyncFlush(stripped, state, previous);
 
@@ -458,14 +630,14 @@ export function flushAgenteResDraftSyncForUnload(state: AgenteIndividualResidenc
     // Text/open-house only update onto previous shell if any; otherwise skip destructive photo wipe.
     if (previous) {
       const textOverlay = preserveDurableMediaOnSyncFlush(stripped, state, previous);
-      savePreviewPayload(textOverlay, false);
-      saveReturnPayload({ state: textOverlay, savedAt: Date.now() }, false);
+      savePreviewPayload(textOverlay, false, scope);
+      saveReturnPayload({ state: textOverlay, savedAt: Date.now() }, false, scope);
     }
     return;
   }
 
-  savePreviewPayload(compact, false);
-  saveReturnPayload({ state: compact, savedAt: Date.now() }, false);
+  savePreviewPayload(compact, false, scope);
+  saveReturnPayload({ state: compact, savedAt: Date.now() }, false, scope);
 }
 
 function isDurableMediaUrl(url: string): boolean {
@@ -589,9 +761,11 @@ function preserveChildInventoryMediaOnSyncFlush(
 /** Rehydrate IndexedDB-backed media after refresh (same tab/session). */
 export async function rehydrateAgenteResDraftMediaFromIdb(
   state: AgenteIndividualResidencialFormState,
+  scope?: AgenteResApplicationScope | string | null,
 ): Promise<AgenteIndividualResidencialFormState> {
+  const keys = activateApplicationMediaNamespace(scope);
   try {
-    const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, state);
+    const inlined = await inlineBrAgenteResHeavyMediaFromIdb(keys.mediaNamespace, state);
     const merged = mergePartialAgenteIndividualResidencial({
       ...inlined,
       additionalInventoryProperties: mergeChildInventoryWithMediaBridge(
@@ -605,15 +779,20 @@ export async function rehydrateAgenteResDraftMediaFromIdb(
   }
 }
 
-export async function loadAgenteResPreviewDraftResolved(): Promise<AgenteIndividualResidencialFormState | null> {
-  const sync = loadAgenteResPreviewDraft();
+export async function loadAgenteResPreviewDraftResolved(
+  scope?: AgenteResApplicationScope | string | null,
+): Promise<AgenteIndividualResidencialFormState | null> {
+  const sync = loadAgenteResPreviewDraft(scope);
   if (!sync) return null;
-  return rehydrateAgenteResDraftMediaFromIdb(sync);
+  return rehydrateAgenteResDraftMediaFromIdb(sync, scope);
 }
 
-export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormState | null {
+export function loadAgenteResPreviewDraft(
+  scope?: AgenteResApplicationScope | string | null,
+): AgenteIndividualResidencialFormState | null {
   if (typeof window === "undefined") return null;
-  restoreMediaBridgesFromLocalStorageFallback();
+  const keys = activateApplicationMediaNamespace(scope);
+  restoreMediaBridgesFromLocalStorageFallback(scope);
   const bridgedPreview = resolveFullDraftMediaBridgeState();
   if (bridgedPreview) {
     try {
@@ -626,7 +805,7 @@ export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormStat
     }
   }
   try {
-    const raw = sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
+    const raw = sessionStorage.getItem(keys.previewKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AgenteIndividualResidencialFormState> & Record<string, unknown>;
     try {
@@ -651,9 +830,16 @@ export function loadAgenteResPreviewDraft(): AgenteIndividualResidencialFormStat
 }
 
 export function readAgenteResPreviewDraftRaw(): string | null {
+  return readAgenteResPreviewDraftRawForApplication();
+}
+
+export function readAgenteResPreviewDraftRawForApplication(
+  scope?: AgenteResApplicationScope | string | null,
+): string | null {
   if (typeof window === "undefined") return null;
+  const keys = brAgenteResApplicationStorageKeys(scope);
   try {
-    return sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
+    return sessionStorage.getItem(keys.previewKey);
   } catch {
     return null;
   }
@@ -667,9 +853,51 @@ export function readAgenteResPreviewDraftRaw(): string | null {
  *
  * Preview route still reads `BR_AGENTE_RES_PREVIEW_DRAFT_KEY` via `loadAgenteResPreviewDraftResolved`.
  */
-export async function bootstrapAgenteIndividualResidencialApplicationStateResolved(): Promise<AgenteIndividualResidencialFormState> {
-  const boot = bootstrapAgenteIndividualResidencialApplicationState();
-  return rehydrateAgenteResDraftMediaFromIdb(boot);
+async function migrateLegacyAgenteResDraftIntoApplicationNamespace(
+  applicationInstanceId: string,
+): Promise<AgenteIndividualResidencialFormState | null> {
+  if (typeof window === "undefined" || !applicationInstanceId || !hasLegacySessionDraftKeys()) return null;
+  const keys = brAgenteResApplicationStorageKeys(applicationInstanceId);
+  try {
+    if (
+      sessionStorage.getItem(keys.previewKey) ||
+      sessionStorage.getItem(keys.returnKey) ||
+      localStorage.getItem(keys.fallbackKey)
+    ) {
+      return null;
+    }
+    const legacyRaw =
+      sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY) ??
+      sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
+    const legacyState = legacyRaw ? parsePersistedStateFromJson(legacyRaw) : null;
+    if (!legacyState) return null;
+    const inlined = await inlineBrAgenteResHeavyMediaFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, legacyState);
+    const merged = hydrateBootStateFromPersisted(inlined);
+    await persistAgenteResApplicationDraftResolved(merged, {
+      applicationInstanceId,
+      writeReturn: Boolean(sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY)),
+    });
+    if (keys.migrationKey) {
+      localStorage.setItem(
+        keys.migrationKey,
+        JSON.stringify({ migratedAt: Date.now(), from: BR_AGENTE_DRAFT_MEDIA_NAMESPACE }),
+      );
+    }
+    return merged;
+  } catch {
+    return null;
+  }
+}
+
+export async function bootstrapAgenteIndividualResidencialApplicationStateResolved(
+  scope?: AgenteResApplicationScope | string | null,
+): Promise<AgenteIndividualResidencialFormState> {
+  const keys = activateApplicationMediaNamespace(scope);
+  const migrated = keys.applicationInstanceId
+    ? await migrateLegacyAgenteResDraftIntoApplicationNamespace(keys.applicationInstanceId)
+    : null;
+  const boot = migrated ?? bootstrapAgenteIndividualResidencialApplicationState(scope);
+  return rehydrateAgenteResDraftMediaFromIdb(boot, scope);
 }
 
 function isBrowserHardReload(): boolean {
@@ -707,8 +935,11 @@ function hydrateBootStateFromPersisted(
   });
 }
 
-export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIndividualResidencialFormState {
+export function bootstrapAgenteIndividualResidencialApplicationState(
+  scope?: AgenteResApplicationScope | string | null,
+): AgenteIndividualResidencialFormState {
   if (typeof window === "undefined") return createEmptyAgenteIndividualResidencialState();
+  const keys = activateApplicationMediaNamespace(scope);
   if (previewReturnMemory) {
     scheduleClearReturnMemory();
     return previewReturnMemory;
@@ -718,7 +949,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
   const hardReload = isBrowserHardReload();
   let hasReturnKey = false;
   try {
-    hasReturnKey = Boolean(sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY));
+    hasReturnKey = Boolean(sessionStorage.getItem(keys.returnKey));
   } catch {
     hasReturnKey = false;
   }
@@ -726,8 +957,8 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
   try {
     // A — Resume / Volver / preview browser-back (return draft key written only when opening Preview)
     if (returningIntent || hasReturnKey) {
-      restoreMediaBridgesFromLocalStorageFallback();
-      const raw = sessionStorage.getItem(BR_AGENTE_RES_RETURN_KEY);
+      restoreMediaBridgesFromLocalStorageFallback(scope);
+      const raw = sessionStorage.getItem(keys.returnKey);
       const returnState = raw ? parsePersistedStateFromJson(raw) : null;
       if (returnState) {
         try {
@@ -735,7 +966,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
           // Strict Mode: stash before consuming keys so remount can reuse memory.
           previewReturnMemory = merged;
           scheduleClearReturnMemory();
-          sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
+          sessionStorage.removeItem(keys.returnKey);
           clearReturningToEditFlagLocal();
           syncDraftMediaBridgesFromState(merged);
           return merged;
@@ -743,7 +974,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
           if (process.env.NODE_ENV === "development") {
             console.warn("[agente-res preview] merge return draft failed", e);
           }
-          sessionStorage.removeItem(BR_AGENTE_RES_RETURN_KEY);
+          sessionStorage.removeItem(keys.returnKey);
           clearReturningToEditFlagLocal();
         }
       } else {
@@ -753,9 +984,9 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
 
     // B — Hard refresh of an in-progress application (preview draft / LS mirror)
     if (hardReload) {
-      restoreMediaBridgesFromLocalStorageFallback();
+      restoreMediaBridgesFromLocalStorageFallback(scope);
       const previewRaw =
-        sessionStorage.getItem(BR_AGENTE_RES_PREVIEW_DRAFT_KEY) ?? readDraftFromLocalStorageFallback();
+        sessionStorage.getItem(keys.previewKey) ?? readDraftFromLocalStorageFallback(scope);
       const previewState = previewRaw ? parsePersistedStateFromJson(previewRaw) : null;
       if (previewState) {
         try {
@@ -776,7 +1007,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(): AgenteIn
   }
 
   // C — Brand-new application: ignore stale Preview/Return/LS; start clean
-  clearAgenteIndividualResidencialPublishTempState();
+  clearAgenteResApplicationMemoryOnly();
   clearChildInventoryEditorSession();
   return createEmptyAgenteIndividualResidencialState();
 }

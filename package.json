@@ -32,6 +32,8 @@
     "verify:bienes-text-input-spacebar-horarios-01": "node scripts/verify-bienes-text-input-spacebar-horarios-01.mjs",
     "verify:bienes-runtime-spacebar-multiday-open-house-01": "node scripts/verify-bienes-runtime-spacebar-multiday-open-house-01.mjs",
     "verify:bienes-spacebar-multiday-open-house-01": "node scripts/verify-bienes-spacebar-multiday-open-house-01.mjs",
+    "verify:bienes-application-instance-isolation-01": "node scripts/verify-bienes-application-instance-isolation-01.mjs",
+    "smoke:bienes-cross-tab-draft-media-isolation-01": "node scripts/smoke-bienes-cross-tab-draft-media-isolation-01.mjs",
     "bienes:br-july1-inventory-analytics-os-01": "tsx scripts/bienes-br-july1-inventory-analytics-os-01-audit.ts",
     "bienes:final-publish-stripe-rotation-05": "tsx scripts/bienes-final-publish-stripe-rotation-05-audit.ts",
     "bienes:worldwide-location-visible-parent-child-06": "tsx scripts/bienes-worldwide-location-visible-parent-child-06-audit.ts",

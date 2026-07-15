@@ -20,7 +20,6 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   BR_CATEGORY_HOME,
-  BR_PREVIEW_NEGOCIO,
   BR_PUBLICAR_HUB,
   BR_PUBLICAR_NEGOCIO,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
@@ -33,10 +32,13 @@ import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteInd
 import { brShouldIgnoreWizardShortcut } from "../../application/brWizardKeyboard";
 import {
   bootstrapAgenteIndividualResidencialApplicationStateResolved,
+  ensureBrAgenteResApplicationInstanceId,
   flushAgenteResDraftSyncForUnload,
   agenteResStateHasUnpersistedDataUrlPhotos,
   persistAgenteResApplicationDraftQuiet,
   persistAgenteResApplicationDraftResolved,
+  BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM,
+  withBrAgenteResApplicationInstanceParam,
 } from "./utils/previewDraft";
 import { agenteResFormHasProgress } from "./formProgress";
 import {
@@ -81,6 +83,8 @@ import {
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+
+const BR_AGENTE_RES_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
 
 function trim(v: unknown): string {
   return v == null ? "" : typeof v === "string" ? v.trim() : String(v).trim();
@@ -131,6 +135,7 @@ export default function AgenteIndividualResidencialApplication() {
   const [inventoryCheckoutError, setInventoryCheckoutError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
+  const [applicationInstanceId] = useState(() => ensureBrAgenteResApplicationInstanceId(searchParams));
   const addModePreviewSyncedRef = useRef(false);
   const skipFirstPersistRef = useRef(true);
   const onItemsChangeEpochRef = useRef(0);
@@ -143,15 +148,15 @@ export default function AgenteIndividualResidencialApplication() {
     // Raw data: gallery blobs must offload to IndexedDB immediately — not after an 800ms wait.
     const delay = agenteResStateHasUnpersistedDataUrlPhotos(state) ? 0 : 800;
     const timer = setTimeout(() => {
-      persistAgenteResApplicationDraftQuiet(state);
+      persistAgenteResApplicationDraftQuiet(state, { applicationInstanceId });
     }, delay);
     return () => clearTimeout(timer);
-  }, [state]);
+  }, [applicationInstanceId, state]);
 
   /** Hard-refresh safety: flush draft sync before unload (debounced async may still be pending). */
   useEffect(() => {
     const onPageHide = () => {
-      flushAgenteResDraftSyncForUnload(state);
+      flushAgenteResDraftSyncForUnload(state, { applicationInstanceId });
     };
     window.addEventListener("pagehide", onPageHide);
     window.addEventListener("beforeunload", onPageHide);
@@ -159,7 +164,15 @@ export default function AgenteIndividualResidencialApplication() {
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("beforeunload", onPageHide);
     };
-  }, [state]);
+  }, [applicationInstanceId, state]);
+
+  useLayoutEffect(() => {
+    if (searchParams?.get(BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM)?.trim()) return;
+    const qs = new URLSearchParams(searchParams?.toString() ?? "");
+    qs.set(BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM, applicationInstanceId);
+    const next = qs.toString();
+    router.replace(next ? `${BR_PUBLICAR_NEGOCIO}?${next}` : BR_PUBLICAR_NEGOCIO);
+  }, [applicationInstanceId, router, searchParams]);
 
   /** Defensive: any future page-level wizard shortcuts must ignore editable targets (Spacebar contract). */
   useEffect(() => {
@@ -188,7 +201,7 @@ export default function AgenteIndividualResidencialApplication() {
     }
     let cancelled = false;
     void (async () => {
-      let boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved();
+      let boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved({ applicationInstanceId });
       boot = applyBrNegocioBranchQuery(boot, searchParams);
 
       if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
@@ -214,7 +227,7 @@ export default function AgenteIndividualResidencialApplication() {
       cancelled = true;
     };
     // Bootstrap + return-draft consume runs once per mount (Strict Mode safe via previewReturnMemory).
-  }, [isExistingDashboardListingMode]);
+  }, [applicationInstanceId, isExistingDashboardListingMode]);
 
   useEffect(() => {
     if (isExistingDashboardListingMode) setParentDraftReady(true);
@@ -229,12 +242,12 @@ export default function AgenteIndividualResidencialApplication() {
         setEditHydration({ status: "error", message: result.userMessage });
         return;
       }
-      const boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved();
+      const boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved({ applicationInstanceId });
       setState(boot);
       setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
       setEditHydration({ status: "idle" });
     });
-  }, [editListingId, isExistingDashboardListingMode, lang]);
+  }, [applicationInstanceId, editListingId, isExistingDashboardListingMode, lang]);
 
   useEffect(() => {
     if (!isExistingDashboardListingMode || !editListingId) {
@@ -404,7 +417,7 @@ export default function AgenteIndividualResidencialApplication() {
     if (!confirmAll) return;
     markPublishFlowOpeningPreview();
     // Single awaited offload+persist writes preview + return keys with durable IDB media refs.
-    await persistAgenteResApplicationDraftResolved(state, { writeReturn: true });
+    await persistAgenteResApplicationDraftResolved(state, { applicationInstanceId, writeReturn: true });
     const previewQs = new URLSearchParams();
     if (inventoryAdd.inventoryModeAdd && inventoryAdd.context) {
       previewQs.set("inventoryMode", "add");
@@ -431,9 +444,10 @@ export default function AgenteIndividualResidencialApplication() {
           categoriaPropiedad: state.categoriaPropiedad,
         })
       : previewQs.toString()
-        ? `${BR_PREVIEW_NEGOCIO}?${previewQs.toString()}`
-        : BR_PREVIEW_NEGOCIO;
-    router.push(withBrAgenteResLangParam(previewPath, lang));
+        ? `${BR_AGENTE_RES_PREVIEW_ROUTE}?${previewQs.toString()}`
+        : BR_AGENTE_RES_PREVIEW_ROUTE;
+    const scopedPreviewPath = withBrAgenteResApplicationInstanceParam(previewPath, applicationInstanceId);
+    router.push(withBrAgenteResLangParam(scopedPreviewPath, lang));
   }, [
     confirmAll,
     editLeonixAdId,
@@ -446,6 +460,7 @@ export default function AgenteIndividualResidencialApplication() {
     isDashboardInventoryEditMode,
     isExistingDashboardListingMode,
     lang,
+    applicationInstanceId,
     router,
     state,
   ]);
@@ -620,7 +635,7 @@ export default function AgenteIndividualResidencialApplication() {
                 state={state}
                 setState={setState}
                 onMediaDraftCommit={(next) => {
-                  void persistAgenteResApplicationDraftResolved(next);
+                  void persistAgenteResApplicationDraftResolved(next, { applicationInstanceId });
                 }}
               />
             ) : null}
@@ -691,7 +706,7 @@ export default function AgenteIndividualResidencialApplication() {
                                 additionalInventoryProperties: [],
                                 confirmInventoryPackPricing: false,
                               };
-                              persistAgenteResApplicationDraftQuiet(next);
+                              persistAgenteResApplicationDraftQuiet(next, { applicationInstanceId });
                               return next;
                             });
                           }
@@ -718,7 +733,7 @@ export default function AgenteIndividualResidencialApplication() {
                       };
                       setState(next);
                       if (epoch === onItemsChangeEpochRef.current) {
-                        await persistAgenteResApplicationDraftResolved(next);
+                        await persistAgenteResApplicationDraftResolved(next, { applicationInstanceId });
                       }
                     }}
                     hidden={inventoryAdd.inventoryModeAdd}

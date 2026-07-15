@@ -6,13 +6,20 @@ import type { AgenteChildPropertyFormSlice } from "./brNegocioChildInventoryForm
 import { pickChildPropertySlice } from "./brNegocioChildInventoryFormMapping";
 import type { AgenteIndividualResidencialFormState } from "../agente-individual/schema/agenteIndividualResidencialFormState";
 import {
-  BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
   BR_AGENTE_IDB_PREFIX,
+  getActiveBrAgenteDraftMediaNamespace,
   inlineChildEditorPropertySliceFromIdb,
   offloadChildEditorPropertySliceToIdb,
 } from "../agente-individual/application/utils/brAgenteResDraftMedia";
 
 export const BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY = "br-negocio-child-inventory-editor-session";
+
+function childInventoryEditorSessionKey(): string {
+  const ns = getActiveBrAgenteDraftMediaNamespace();
+  return ns && ns !== "br-agente-res-v1"
+    ? `${BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY}:${ns}`
+    : BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY;
+}
 
 export type BrNegocioChildInventoryEditorSession = {
   version: 1;
@@ -54,7 +61,7 @@ function durableChildPhotoCount(slice: AgenteChildPropertyFormSlice | null | und
 function readPreviousChildSession(): BrNegocioChildInventoryEditorSession | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY);
+    const raw = sessionStorage.getItem(childInventoryEditorSessionKey());
     if (!raw) return null;
     const j = JSON.parse(raw) as BrNegocioChildInventoryEditorSession;
     if (j?.version !== 1) return null;
@@ -143,7 +150,7 @@ export async function persistChildInventoryEditorSessionResolved(
   const livePhotoCount = (session.propertyForm.fotosDataUrls ?? []).filter((u) => String(u ?? "").trim()).length;
   try {
     propertyForm = await offloadChildEditorPropertySliceToIdb(
-      BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+      getActiveBrAgenteDraftMediaNamespace(),
       mediaId,
       propertyForm,
     );
@@ -188,7 +195,7 @@ export async function persistChildInventoryEditorSessionResolved(
   };
   childEditorMemoryBridge = nextSession;
   try {
-    sessionStorage.setItem(BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY, JSON.stringify(nextSession));
+    sessionStorage.setItem(childInventoryEditorSessionKey(), JSON.stringify(nextSession));
   } catch {
     /* quota — in-memory bridge still available same-tab */
   }
@@ -202,7 +209,7 @@ export async function loadChildInventoryEditorSessionResolved(): Promise<BrNegoc
     const mediaId = resolveChildEditorMediaId(sync.editingId, null, sync.editingId);
     if (!mediaId) return sync;
     const propertyForm = await inlineChildEditorPropertySliceFromIdb(
-      BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
+      getActiveBrAgenteDraftMediaNamespace(),
       mediaId,
       sync.propertyForm,
     );
@@ -224,7 +231,7 @@ export function loadChildInventoryEditorSession(): BrNegocioChildInventoryEditor
   if (childEditorMemoryBridge) return childEditorMemoryBridge;
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY);
+    const raw = sessionStorage.getItem(childInventoryEditorSessionKey());
     if (!raw) return null;
     const j = JSON.parse(raw) as BrNegocioChildInventoryEditorSession;
     if (j?.version !== 1) return null;
@@ -244,7 +251,7 @@ export function clearChildInventoryEditorSession(): void {
   childEditorMemoryBridge = null;
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.removeItem(BR_NEGOCIO_CHILD_INVENTORY_EDITOR_SESSION_KEY);
+    sessionStorage.removeItem(childInventoryEditorSessionKey());
   } catch {
     /* ignore */
   }
@@ -271,7 +278,7 @@ export async function resolveChildPropertySliceMediaFromIdb(
 ): Promise<AgenteChildPropertyFormSlice> {
   const mediaId = resolveChildEditorMediaId(editingId, null, editingId);
   if (!mediaId) return slice;
-  return inlineChildEditorPropertySliceFromIdb(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, mediaId, slice);
+  return inlineChildEditorPropertySliceFromIdb(getActiveBrAgenteDraftMediaNamespace(), mediaId, slice);
 }
 
 export function childEditorSessionFromState(

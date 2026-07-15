@@ -631,58 +631,79 @@ export function filterServiciosRowsByKeyword(
   if (terms.length === 0) return rows;
 
   return rows.filter((row) => {
-    if (includesAnyNormalized(row.business_name, terms)) return true;
-    if (includesAnyNormalized(row.city, terms)) return true;
-    const groupLabel = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
-    if (includesAnyNormalized(groupLabel ?? "", terms)) return true;
-    if (includesAnyNormalized(row.internal_group ?? "", terms)) return true;
-    const profile = resolvedProfile(row, lang);
-    if (includesAnyNormalized(profile.hero.categoryLine, terms)) return true;
-    if (includesAnyNormalized(profile.about?.text, terms)) return true;
-    if (includesAnyNormalized(profile.about?.specialtiesLine, terms)) return true;
     const pj = row.profile_json;
+    const profile = resolvedProfile(row, lang);
+
+    // HIGH-PRIORITY FIELDS: Check first for early match
+    // Business/service name
+    if (includesAnyNormalized(row.business_name, terms)) return true;
+    
+    // Primary location fields
+    if (includesAnyNormalized(row.city, terms)) return true;
     if (includesAnyNormalized(pj.contact?.physicalPostalCode ?? "", terms)) return true;
     if (includesAnyNormalized(pj.contact?.physicalCity ?? "", terms)) return true;
     if (includesAnyNormalized(pj.hero?.locationSummary ?? "", terms)) return true;
     if (includesAnyNormalized(pj.hero?.state ?? "", terms)) return true;
-    if (includesAnyNormalized(pj.hero?.country ?? "", terms)) return true;
     if (includesAnyNormalized(pj.opsMeta?.discovery?.state ?? "", terms)) return true;
+    
+    // Primary category/group/type
+    const groupLabel = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
+    if (includesAnyNormalized(groupLabel ?? "", terms)) return true;
+    if (includesAnyNormalized(row.internal_group ?? "", terms)) return true;
+    if (includesAnyNormalized(profile.hero.categoryLine, terms)) return true;
+
+    // SECONDARY FIELDS: Only check if high-priority fields don't match
+    // Description and specialties
+    if (includesAnyNormalized(profile.about?.text, terms)) return true;
+    if (includesAnyNormalized(profile.about?.specialtiesLine, terms)) return true;
+
+    // Service areas/zones - use some() for early exit
+    if ((pj.serviceAreas?.items ?? []).some((item) => includesAnyNormalized(item.label, terms))) {
+      return true;
+    }
+
+    // Language labels - use some() for early exit
+    if (LANGUAGE_OPTION_CHIPS.some((chip) => 
+      rowLangChip(pj, chip.id) && includesAnyNormalized(lang === "en" ? chip.en : chip.es, terms)
+    )) {
+      return true;
+    }
+
+    // Services array - use some() for early exit
+    if ((profile.services ?? []).some((s) => 
+      includesAnyNormalized(s.title, terms) || includesAnyNormalized(s.secondaryLine, terms)
+    )) {
+      return true;
+    }
+
+    // Other secondary fields - use some() where possible
+    if ((pj.customAmenityOptions ?? []).some((c) => includesAnyNormalized(c, terms))) return true;
+    if ((pj.businessHighlights ?? []).some((h) => includesAnyNormalized(h.label, terms))) return true;
+    if ((profile.trust ?? []).some((t) => includesAnyNormalized(t.label, terms))) return true;
+    if ((profile.quickFacts ?? []).some((f) => includesAnyNormalized(f.label, terms))) return true;
+    if ((profile.highlights ?? []).some((h) => includesAnyNormalized(h.label, terms))) return true;
+    
+    // Reviews - check both quote and author with early exit
+    if ((profile.reviews ?? []).some((r) => 
+      includesAnyNormalized(r.quote, terms) || includesAnyNormalized(r.authorName, terms)
+    )) {
+      return true;
+    }
+
+    // Promotions - use some() for early exit
+    if ((profile.promotions ?? []).some((p) => 
+      includesAnyNormalized(p.headline, terms) || includesAnyNormalized(p.footnote ?? "", terms)
+    )) {
+      return true;
+    }
+
+    // Promotional text fields - use some() for early exit
+    if (wirePromotionalTextFields(pj).some((raw) => includesAnyNormalized(raw, terms))) return true;
+
+    // Country fields (lower priority)
+    if (includesAnyNormalized(pj.hero?.country ?? "", terms)) return true;
     if (includesAnyNormalized(pj.opsMeta?.discovery?.country ?? "", terms)) return true;
-    for (const item of pj.serviceAreas?.items ?? []) {
-      if (includesAnyNormalized(item.label, terms)) return true;
-    }
-    for (const chip of LANGUAGE_OPTION_CHIPS) {
-      if (rowLangChip(pj, chip.id) && includesAnyNormalized(lang === "en" ? chip.en : chip.es, terms)) return true;
-    }
-    for (const c of pj.customAmenityOptions ?? []) {
-      if (includesAnyNormalized(c, terms)) return true;
-    }
-    for (const h of pj.businessHighlights ?? []) {
-      if (includesAnyNormalized(h.label, terms)) return true;
-    }
-    for (const s of profile.services ?? []) {
-      if (includesAnyNormalized(s.title, terms)) return true;
-      if (includesAnyNormalized(s.secondaryLine, terms)) return true;
-    }
-    for (const t of profile.trust ?? []) {
-      if (includesAnyNormalized(t.label, terms)) return true;
-    }
-    for (const r of profile.reviews ?? []) {
-      if (includesAnyNormalized(r.quote, terms) || includesAnyNormalized(r.authorName, terms)) return true;
-    }
-    for (const f of profile.quickFacts ?? []) {
-      if (includesAnyNormalized(f.label, terms)) return true;
-    }
-    for (const h of profile.highlights ?? []) {
-      if (includesAnyNormalized(h.label, terms)) return true;
-    }
-    for (const p of profile.promotions ?? []) {
-      if (includesAnyNormalized(p.headline, terms)) return true;
-      if (includesAnyNormalized(p.footnote ?? "", terms)) return true;
-    }
-    for (const raw of wirePromotionalTextFields(pj)) {
-      if (includesAnyNormalized(raw, terms)) return true;
-    }
+
     return false;
   });
 }

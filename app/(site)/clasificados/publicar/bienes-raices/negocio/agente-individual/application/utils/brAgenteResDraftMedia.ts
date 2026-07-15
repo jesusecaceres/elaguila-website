@@ -8,6 +8,22 @@ import { idbBrAgenteGetDataUrl, idbBrAgentePutDataUrl, idbBrAgenteClearNamespace
 export const BR_AGENTE_IDB_PREFIX = "__LX_BR_AGENTE_IDB__";
 export const BR_AGENTE_DRAFT_MEDIA_NAMESPACE = "br-agente-res-v1";
 
+let activeBrAgenteDraftMediaNamespace = BR_AGENTE_DRAFT_MEDIA_NAMESPACE;
+
+export function brAgenteDraftMediaNamespaceForApplicationInstance(applicationInstanceId: string): string {
+  const id = String(applicationInstanceId ?? "").trim();
+  return id ? `${BR_AGENTE_DRAFT_MEDIA_NAMESPACE}:${id}` : BR_AGENTE_DRAFT_MEDIA_NAMESPACE;
+}
+
+export function setActiveBrAgenteDraftMediaNamespace(namespace: string): void {
+  const ns = String(namespace ?? "").trim();
+  activeBrAgenteDraftMediaNamespace = ns || BR_AGENTE_DRAFT_MEDIA_NAMESPACE;
+}
+
+export function getActiveBrAgenteDraftMediaNamespace(): string {
+  return activeBrAgenteDraftMediaNamespace;
+}
+
 function isHeavyDataUrl(s: string): boolean {
   return typeof s === "string" && s.startsWith("data:") && s.length > 80;
 }
@@ -97,10 +113,17 @@ async function inlinePhotoArray(ns: string, segment: string, photos: string[]): 
 
 /** Resolve one durable IDB media token into a displayable data URL (or null). */
 export async function resolveBrAgenteIdbMediaRefToDataUrl(url: string): Promise<string | null> {
+  return resolveBrAgenteIdbMediaRefToDataUrlFromNamespace(getActiveBrAgenteDraftMediaNamespace(), url);
+}
+
+export async function resolveBrAgenteIdbMediaRefToDataUrlFromNamespace(
+  namespace: string,
+  url: string,
+): Promise<string | null> {
   const u = String(url ?? "").trim();
   const parsed = parseRef(u);
   if (!parsed) return null;
-  return idbBrAgenteGetDataUrl(BR_AGENTE_DRAFT_MEDIA_NAMESPACE, parsed.segment, parsed.id);
+  return idbBrAgenteGetDataUrl(namespace, parsed.segment, parsed.id);
 }
 
 async function offloadChildDraft(
