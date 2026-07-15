@@ -83,23 +83,23 @@ export function QuickJobHeaderCard({
   } : undefined;
 
   return (
-    <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-5">
-      <div className="flex items-start gap-3 sm:gap-4">
+    <div className="rounded-xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-3.5 shadow-[0_14px_40px_-18px_rgba(31,36,28,0.2)] ring-1 ring-[#C9A84A]/10 sm:p-4">
+      <div className="flex items-start gap-3">
         {logoSrc ? (
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-[#D6C7AD]/80 bg-neutral-100 shadow-sm sm:h-[4rem] sm:w-[4rem]">
-            <Image src={logoSrc} alt={logoAlt ?? businessName} fill className="object-cover" sizes="56px" />
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#D6C7AD]/80 bg-neutral-100 shadow-sm sm:h-14 sm:w-14">
+            <Image src={logoSrc} alt={logoAlt ?? businessName} fill className="object-cover" sizes="48px" />
           </div>
         ) : (
           <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#D6C7AD]/80 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-lg font-bold text-[#7A6B4A] shadow-inner sm:h-[4rem] sm:w-[4rem]"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#D6C7AD]/80 bg-gradient-to-br from-[#FFF8EC] to-[#F3E0C0] text-base font-bold text-[#7A6B4A] shadow-inner sm:h-14 sm:w-14"
             aria-hidden
           >
             {businessName.slice(0, 1).toUpperCase()}
           </div>
         )}
-        <div className="min-w-0 flex-1 pt-0.5">
-          <p className="text-base font-bold text-[#3D3428] sm:text-lg">{businessName}</p>
-          <p className="mt-0.5 text-sm text-[#7A7164]">{locationLine}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-base font-bold text-[#3D3428] leading-tight">{businessName}</p>
+          <p className="mt-0.5 text-sm text-[#7A7164] leading-snug">{locationLine}</p>
           {filterRegionFootnote ? (
             <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[#8A8A7A]">
               {filterRegionFootnote}
@@ -134,11 +134,11 @@ export function QuickJobHeaderCard({
           </div>
         ) : null}
       </div>
-      <h1 className="mt-3 text-xl font-bold tracking-tight text-[#2A2826] sm:text-2xl lg:text-[1.75rem] lg:leading-tight">
+      <h1 className="mt-2 text-xl font-bold tracking-tight text-[#2A2826] leading-tight sm:text-2xl">
         {title}
       </h1>
       {(visibleChips.length > 0 || payHighlight) ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           {visibleChips.map((c) => (
             <Chip key={c} label={c} />
           ))}
