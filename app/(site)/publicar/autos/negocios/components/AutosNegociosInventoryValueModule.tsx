@@ -27,10 +27,16 @@ import {
 import { AutosNegociosInventoryValueDrawerTrigger } from "@/app/clasificados/autos/dashboard/AutosNegociosInventoryValueDrawerTrigger";
 import { AutosNegociosAddInventoryTrigger } from "./AutosNegociosAddInventoryTrigger";
 import { AutosNegociosInventoryBoostPanel } from "./AutosNegociosInventoryBoostPanel";
+import { AutosNegociosPackagePricingSummary } from "./AutosNegociosPackagePricingSummary";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosInventoryBoostEditorContext } from "./AutosNegociosInventoryBoostPanel";
+import {
+  autosDealerPackageAddBoostCta,
+  autosDealerPackageRemoveBoostCta,
+  autosDealerPackageSelectionHelper,
+} from "@/app/lib/clasificados/autos/autosDealerPackageSelectionCopy";
 
 const INVENTORY_BOOST_APPROACHING_SLOTS = 2;
 
@@ -57,6 +63,8 @@ export function AutosNegociosInventoryValueModule({
   inventoryVehicleLimit,
   leonixAdId = null,
   onStartInventoryCheckout,
+  inventoryBoostSelected = false,
+  onInventoryBoostSelectedChange,
 }: {
   lang: AutosNegociosLang;
   parentListingId?: string | null;
@@ -73,6 +81,9 @@ export function AutosNegociosInventoryValueModule({
   inventoryVehicleLimit?: number;
   leonixAdId?: string | null;
   onStartInventoryCheckout?: () => void;
+  /** Pre-publish: local Inventory Boost add-on selection (no Stripe from this control). */
+  inventoryBoostSelected?: boolean;
+  onInventoryBoostSelectedChange?: (selected: boolean) => void;
   dealerInventoryCounts?: AutosDealerInventoryCount | null;
   flushDraft?: () => Promise<void>;
   boostEditorContext?: AutosInventoryBoostEditorContext;
@@ -176,6 +187,12 @@ export function AutosNegociosInventoryValueModule({
         {autosDealerInventoryValueAfterPublishLine(lang)}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{autosDealerInventoryValueBoost(lang)}</p>
+      {prePublishMode ? (
+        <div className="mt-4 space-y-3">
+          <AutosNegociosPackagePricingSummary lang={lang} inventoryBoostSelected={inventoryBoostSelected} />
+          <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">{autosDealerPackageSelectionHelper(lang)}</p>
+        </div>
+      ) : null}
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {bullets.map((line) => (
           <li key={line} className="flex gap-2 text-xs font-medium text-[color:var(--lx-text-2)]">
@@ -231,7 +248,7 @@ export function AutosNegociosInventoryValueModule({
               onSave={onSaveAdditionalVehicle}
               flushDraft={flushDraft}
               onAtLimit={() => {
-                setBoostOpen(true);
+                onInventoryBoostSelectedChange?.(true);
                 onAtLimitOpenBoost?.();
               }}
               {...inventoryDrawerProps}
@@ -239,30 +256,50 @@ export function AutosNegociosInventoryValueModule({
           ) : null
         ) : null}
         {showBoostCta ? (
-          <>
+          prePublishMode && onInventoryBoostSelectedChange ? (
             <button
               type="button"
               className={
-                limitReached
-                  ? "inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#2A2620] px-5 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1E1810]"
-                  : "inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
+                inventoryBoostSelected
+                  ? "inline-flex min-h-[48px] items-center justify-center rounded-2xl border-2 border-[#C9B46A] bg-[#FBF7EF] px-5 text-sm font-bold text-[#6E5418]"
+                  : limitReached
+                    ? "inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#2A2620] px-5 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1E1810]"
+                    : "inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
               }
-              onClick={() => setBoostOpen(true)}
+              onClick={() => onInventoryBoostSelectedChange(!inventoryBoostSelected)}
+              data-autos-inventory-boost-toggle
+              aria-pressed={inventoryBoostSelected}
             >
-              {autosDealerInventoryAddTenSlotsCta(lang)}
+              {inventoryBoostSelected
+                ? autosDealerPackageRemoveBoostCta(lang)
+                : autosDealerPackageAddBoostCta(lang)}
             </button>
-            <AutosNegociosInventoryBoostPanel
-              open={boostOpen}
-              onClose={() => setBoostOpen(false)}
-              lang={lang}
-              flushDraft={flushDraft}
-              editorContext={boostContext}
-              parentListingId={parentListingId}
-              leonixAdId={leonixAdId}
-              prePublishMode={prePublishMode}
-              parentListing={parentListing}
-            />
-          </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={
+                  limitReached
+                    ? "inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#2A2620] px-5 text-sm font-bold text-[#FAF7F2] shadow-md transition hover:bg-[#1E1810]"
+                    : "inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-5 text-sm font-bold text-[color:var(--lx-text)]"
+                }
+                onClick={() => setBoostOpen(true)}
+              >
+                {autosDealerInventoryAddTenSlotsCta(lang)}
+              </button>
+              <AutosNegociosInventoryBoostPanel
+                open={boostOpen}
+                onClose={() => setBoostOpen(false)}
+                lang={lang}
+                flushDraft={flushDraft}
+                editorContext={boostContext}
+                parentListingId={parentListingId}
+                leonixAdId={leonixAdId}
+                prePublishMode={prePublishMode}
+                parentListing={parentListing}
+              />
+            </>
+          )
         ) : null}
       </div>
     </section>

@@ -99,6 +99,8 @@ export function useAutoDealerDraft() {
   const [inventoryDrawerEditingId, setInventoryDrawerEditingId] = useState<string | null>(null);
   const inventoryDrawerOpenRef = useRef(false);
   const [inventoryDrawerOpen, setInventoryDrawerOpenState] = useState(false);
+  const inventoryBoostSelectedRef = useRef(false);
+  const [inventoryBoostSelected, setInventoryBoostSelectedState] = useState(false);
 
   useLayoutEffect(() => {
     listingRef.current = listing;
@@ -140,6 +142,9 @@ export function useAutoDealerDraft() {
       const drawerOpen = d.inventoryDrawerOpen === true;
       inventoryDrawerOpenRef.current = drawerOpen;
       setInventoryDrawerOpenState(drawerOpen);
+      const boostSelected = d.inventoryBoostSelected === true;
+      inventoryBoostSelectedRef.current = boostSelected;
+      setInventoryBoostSelectedState(boostSelected);
       applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
     },
     [applyEditorProgress],
@@ -198,6 +203,8 @@ export function useAutoDealerDraft() {
     setInventoryDrawerEditingId(null);
     inventoryDrawerOpenRef.current = false;
     setInventoryDrawerOpenState(false);
+    inventoryBoostSelectedRef.current = false;
+    setInventoryBoostSelectedState(false);
     applyEditorProgress(0, 0);
     setRestoredFromSession(false);
   }, [applyEditorProgress]);
@@ -405,7 +412,13 @@ export function useAutoDealerDraft() {
       inProgressInventoryVehicleDraft: inProgressInventoryRef.current,
       inventoryDrawerEditingId: inventoryDrawerEditingIdRef.current,
       inventoryDrawerOpen: inventoryDrawerOpenRef.current,
+      inventoryBoostSelected: inventoryBoostSelectedRef.current || undefined,
     });
+  }, []);
+
+  const setInventoryBoostSelected = useCallback((selected: boolean) => {
+    inventoryBoostSelectedRef.current = selected;
+    setInventoryBoostSelectedState(selected);
   }, []);
 
   const setInventoryDrawerOpen = useCallback((open: boolean, editingId: string | null = null) => {
@@ -459,6 +472,7 @@ export function useAutoDealerDraft() {
     inProgressInventoryVehicleDraft,
     inventoryDrawerEditingId,
     inventoryDrawerOpen,
+    inventoryBoostSelected,
   ]);
 
   const inventoryAdd = inventoryAddFromLocation();
@@ -490,5 +504,7 @@ export function useAutoDealerDraft() {
     inventoryDrawerOpen,
     inventoryDrawerEditingId,
     setInventoryDrawerOpen,
+    inventoryBoostSelected,
+    setInventoryBoostSelected,
   };
 }

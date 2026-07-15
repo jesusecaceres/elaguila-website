@@ -19,6 +19,7 @@ import { AutosPublishApplicationHeader } from "@/app/publicar/autos/shared/compo
 import { AutosApplicationReviewStep } from "@/app/publicar/autos/shared/components/AutosApplicationReviewStep";
 import { AutosNegociosInventoryValueModule } from "./AutosNegociosInventoryValueModule";
 import { AutosNegociosInventoryBundlePreview } from "./AutosNegociosInventoryBundlePreview";
+import { AutosNegociosPackageReviewSummary } from "./AutosNegociosPackageReviewSummary";
 import { AutosNegociosResultsCardPreview } from "./AutosNegociosResultsCardPreview";
 import { getAutosApplicationStepLabels } from "@/app/publicar/autos/shared/lib/autosApplicationStepShellCopy";
 import { AutosDealerStructuredAddressFields } from "@/app/publicar/autos/shared/components/AutosDealerStructuredAddressFields";
@@ -103,6 +104,8 @@ export function AutosNegociosApplication() {
     inventoryDrawerOpen,
     inventoryDrawerEditingId,
     setInventoryDrawerOpen,
+    inventoryBoostSelected,
+    setInventoryBoostSelected,
   } = useAutoDealerDraft();
 
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -206,7 +209,9 @@ export function AutosNegociosApplication() {
     isExistingDashboardListingMode,
   ]);
 
-  const inventoryPackActive = inventoryEntitlement === "active";
+  const inventoryPackActive = isExistingDashboardListingMode
+    ? inventoryEntitlement === "active"
+    : inventoryBoostSelected;
   const inventoryVehicleLimit = resolveDealerActiveVehicleLimit(inventoryPackActive);
   const dashboardParentListingId = isExistingDashboardListingMode
     ? editListingId
@@ -756,6 +761,11 @@ export function AutosNegociosApplication() {
                       lang,
                     })
                   }
+                  inventoryBoostSelected={inventoryBoostSelected}
+                  onInventoryBoostSelectedChange={(selected) => {
+                    setInventoryBoostSelected(selected);
+                    void flushDraft();
+                  }}
                   inventoryDrawerProps={inventoryDrawerProps}
                   boostEditorContext={{
                     editorPath: pathname ?? "",
@@ -769,6 +779,9 @@ export function AutosNegociosApplication() {
                   }}
                 />
               </>
+            ) : null}
+            {!isExistingDashboardListingMode && !inventoryAddMode ? (
+              <AutosNegociosPackageReviewSummary lang={lang} inventoryBoostSelected={inventoryBoostSelected} />
             ) : null}
             <AutosApplicationReviewStep lane="negocios" listing={listing} copy={t} lang={lang} />
             <AutosApplicationFinalActions

@@ -272,8 +272,17 @@ function galleryTopCellsSidebarOnly(vm: BienesRaicesPrivadoPreviewVm): [GalleryT
   });
 }
 
-const SERVICIOS_EMOJI_BY_LABEL = new Map(
-  RENTAS_SERVICIOS_INCLUIDOS_DEFS.map((s) => [s.label.toLowerCase(), s.emoji] as const),
+const SERVICIOS_EMOJI_BY_LABEL = new Map<string, string>(
+  RENTAS_SERVICIOS_INCLUIDOS_DEFS.flatMap((s) => {
+    const labels =
+      typeof s.label === "string"
+        ? [s.label]
+        : [s.label.es, s.label.en];
+    return labels
+      .map((raw) => String(raw ?? "").trim().toLowerCase())
+      .filter(Boolean)
+      .map((key) => [key, s.emoji] as const);
+  }),
 );
 
 function servicioChipText(label: string): string {
