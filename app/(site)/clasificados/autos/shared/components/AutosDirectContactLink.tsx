@@ -61,11 +61,24 @@ export function AutosDirectContactLink({
   if (
     /^tel:/i.test(trimmed) ||
     /^sms:/i.test(trimmed) ||
-    /^mailto:/i.test(trimmed) ||
-    /wa\.me|api\.whatsapp\.com/i.test(trimmed)
+    /^mailto:/i.test(trimmed)
   ) {
     return (
       <a href={trimmed} className={className} onClick={() => trackOpen()}>
+        {children}
+      </a>
+    );
+  }
+
+  if (/wa\.me|api\.whatsapp\.com/i.test(trimmed)) {
+    return (
+      <a
+        href={trimmed}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        onClick={() => trackOpen()}
+      >
         {children}
       </a>
     );

@@ -27,7 +27,6 @@ import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
 import { VehicleHeroSpecsStrip } from "./VehicleHeroSpecsStrip";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
-import { AutosEngagementRow } from "@/app/clasificados/autos/shared/components/AutosEngagementRow";
 import { AutosNegociosPreviewEngagementStrip } from "./AutosNegociosPreviewEngagementStrip";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
@@ -40,11 +39,12 @@ import {
   autosPreviewPageCanvasClass,
   autosPreviewPageMaxWidthClass,
   autosPreviewPremiumCardClass,
-  autosPreviewRectBadgeClass,
   autosPreviewSectionEyebrowClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const MAIN_CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
+const COMPACT_BADGE_CLASS =
+  "inline-flex items-center rounded-full border border-[#D6C7AD]/80 bg-[#FBF7EF] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]";
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -117,7 +117,7 @@ export function AutoDealerPreviewPage({
   const showVin = nonEmpty(data.vin);
   const showStock = nonEmpty(data.stockNumber);
   const showMeta = showMileage || showLoc || showVin || showStock;
-  const showLeft = Boolean(h1) || badges.length > 0 || showMeta;
+  const showLeft = Boolean(h1) || showMeta;
   const showPriceCol = priceOk || nonEmpty(data.monthlyEstimate ?? undefined);
 
   let ord = 1;
@@ -157,27 +157,18 @@ export function AutoDealerPreviewPage({
                     {h1 ? (
                       <h1 className={`${autosPreviewHeroTitleClass} text-balance`}>{h1}</h1>
                     ) : null}
-                    {badges.length > 0 ? (
-                      <ul className="mt-2.5 flex flex-wrap gap-2">
-                        {badges.map((b) => (
-                          <li key={b} className={autosPreviewRectBadgeClass}>
-                            {badgeLabelFor(t, b)}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
                     {showMeta ? (
-                      <dl className="mt-3.5 grid gap-2.5 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
+                      <dl className="mt-3 grid gap-2.5 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
+                        {showLoc ? (
+                          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 sm:col-span-2">
+                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
+                            <dd className="min-w-0 max-w-full break-words font-semibold">{loc}</dd>
+                          </div>
+                        ) : null}
                         {showMileage ? (
                           <div className="flex gap-2">
                             <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>
                             <dd className="font-semibold">{formatMiles(data.mileage)}</dd>
-                          </div>
-                        ) : null}
-                        {showLoc ? (
-                          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
-                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
-                            <dd className="min-w-0 max-w-full break-words font-semibold">{loc}</dd>
                           </div>
                         ) : null}
                         {showVin ? (
@@ -222,10 +213,32 @@ export function AutoDealerPreviewPage({
 
           {showGallery ? (
             <div className="lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
-              {!publicPlaybackOnly ? (
-                <AutosNegociosPreviewEngagementStrip lang={lang} className="mb-2" />
-              ) : null}
               <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
+              <div className="mt-3 flex flex-col gap-2.5" data-autos-post-gallery-utility="1">
+                {badges.length > 0 ? (
+                  <div>
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
+                      {lang === "es" ? "Destacados" : "Highlights"}
+                    </p>
+                    <ul className="flex flex-wrap gap-1.5">
+                      {badges.map((b) => (
+                        <li key={b} className={COMPACT_BADGE_CLASS}>
+                          {badgeLabelFor(t, b)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                <AutosNegociosPreviewEngagementStrip
+                  lang={lang}
+                  listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+                  leonixAdId={publicAnalytics?.leonixAdId}
+                  listingTitle={h1}
+                  listingUrl={publicUrl}
+                  likeCount={analyticsMetrics?.likes ?? 0}
+                  publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
+                />
+              </div>
             </div>
           ) : null}
 
@@ -254,17 +267,6 @@ export function AutoDealerPreviewPage({
               order: orderAside,
             }}
           >
-            {publicPlaybackOnly && publicAnalytics?.listingSourceId ? (
-              <AutosEngagementRow
-                listingSourceId={publicAnalytics.listingSourceId}
-                leonixAdId={publicAnalytics.leonixAdId}
-                lang={lang}
-                listingTitle={h1}
-                listingUrl={publicUrl}
-                likeCount={analyticsMetrics?.likes ?? 0}
-                publicAnalytics={publicAnalytics}
-              />
-            ) : null}
             <div className={`${autosPreviewBusinessHubShellClass} lg:sticky lg:top-28`}>
               <DealerBusinessStack
                 data={data}

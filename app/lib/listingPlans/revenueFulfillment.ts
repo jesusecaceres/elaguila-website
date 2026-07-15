@@ -133,6 +133,23 @@ function readRestaurantCouponAddonPaidFromPaymentRecord(row: LeonixPaymentRecord
   return undefined;
 }
 
+function readBienesInventoryPackPaidFromPaymentRecord(row: LeonixPaymentRecordRow): boolean {
+  if (String(row.category ?? "").trim().toLowerCase() !== "bienes-raices") return false;
+  const meta = row.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  const m = meta as Record<string, unknown>;
+  if (m.bienes_inventory_pack_selected === true) return true;
+  if (m.bienes_inventory_pack_package_key === "br_inventory_pack_monthly") return true;
+  const addOns = m.add_ons;
+  if (!Array.isArray(addOns)) return false;
+  return addOns.some(
+    (a) =>
+      a &&
+      typeof a === "object" &&
+      String((a as Record<string, unknown>).key ?? "").trim() === "br_inventory_pack_monthly",
+  );
+}
+
 async function tryActivateRestauranteListingAfterEntitlement(input: {
   paymentRecord: LeonixPaymentRecordRow;
   packageDef: RevenuePackageDefinition;
@@ -760,6 +777,7 @@ async function tryActivateBienesNegocioListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    activateInventoryChildren: readBienesInventoryPackPaidFromPaymentRecord(input.paymentRecord),
   });
 
   if (

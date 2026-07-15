@@ -34,6 +34,7 @@ export async function activatePaidBienesNegocioListingFromRevenueOs(input: {
   listingId: string | null | undefined;
   packageKey: string | null | undefined;
   stripePaymentIntentId?: string | null;
+  activateInventoryChildren?: boolean;
 }): Promise<BienesNegocioRevenueActivationResult> {
   const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
   if (packageKey === BIENES_INVENTORY_PACK_PACKAGE_KEY) {
@@ -89,7 +90,7 @@ export async function activatePaidBienesNegocioListingFromRevenueOs(input: {
 
   const activation = await tryActivateBrListingAfterPayment(listingId, {
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
-    activateInventorySiblings: true,
+    activateInventorySiblings: input.activateInventoryChildren === true,
   });
 
   if (!activation.ok) {

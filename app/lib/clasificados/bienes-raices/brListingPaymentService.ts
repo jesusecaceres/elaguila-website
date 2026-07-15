@@ -4,10 +4,6 @@
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { mainListingInventoryPatchAfterInsert } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
-import {
-  mergeBrListingPaymentMeta,
-  readBrListingPaymentMeta,
-} from "./brListingPaymentMetadata";
 import { BR_INVENTORY_PACK_MAX_CHILDREN } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 export type BrListingRowForPayment = {
@@ -17,9 +13,9 @@ export type BrListingRowForPayment = {
   seller_type?: string | null;
   status?: string | null;
   is_published?: boolean | null;
-  listing_json?: unknown;
   inventory_role?: string | null;
   br_inventory_group_id?: string | null;
+  published_at?: string | null;
 };
 
 export async function getBrListingById(listingId: string): Promise<BrListingRowForPayment | null> {
@@ -27,7 +23,7 @@ export async function getBrListingById(listingId: string): Promise<BrListingRowF
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("listings")
-    .select("id, owner_id, category, seller_type, status, is_published, listing_json, inventory_role, br_inventory_group_id")
+    .select("id, owner_id, category, seller_type, status, is_published, inventory_role, br_inventory_group_id, published_at")
     .eq("id", listingId)
     .maybeSingle();
   if (error || !data) return null;
@@ -42,18 +38,14 @@ export async function setBrListingPendingPayment(
   if (!isSupabaseAdminConfigured()) return false;
   const row = await getBrListingById(listingId);
   if (!row) return false;
-  const listingJson = mergeBrListingPaymentMeta(row.listing_json, {
-    payment_status: "pending",
-    stripe_checkout_session_id: stripeCheckoutSessionId,
-    lane,
-  });
+  void stripeCheckoutSessionId;
+  void lane;
   const supabase = getAdminSupabase();
   const { error } = await supabase
     .from("listings")
     .update({
       status: "pending",
       is_published: false,
-      listing_json: listingJson,
       updated_at: new Date().toISOString(),
     })
     .eq("id", listingId)
@@ -82,12 +74,6 @@ export async function tryActivateBrListingAfterPayment(
   }
 
   const now = new Date().toISOString();
-  const listingJson = mergeBrListingPaymentMeta(existing.listing_json, {
-    payment_status: "paid",
-    stripe_checkout_session_id: null,
-    stripe_payment_intent_id: opts?.stripePaymentIntentId ?? null,
-    paid_at: now,
-  });
 
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -95,9 +81,8 @@ export async function tryActivateBrListingAfterPayment(
     .update({
       status: "active",
       is_published: true,
-      published_at: now,
+      published_at: existing.published_at ?? now,
       updated_at: now,
-      listing_json: listingJson,
     })
     .eq("id", listingId)
     .eq("status", "pending")
@@ -161,6 +146,5 @@ export async function assertBrListingOwner(
 
 export function brListingAwaitingPayment(row: BrListingRowForPayment): boolean {
   if (row.status !== "pending" || row.is_published !== false) return false;
-  const meta = readBrListingPaymentMeta(row.listing_json);
-  return meta.payment_status === "pending" || meta.payment_status == null;
+  return true;
 }
