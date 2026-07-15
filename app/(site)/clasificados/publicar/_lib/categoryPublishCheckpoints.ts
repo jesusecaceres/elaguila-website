@@ -388,7 +388,7 @@ export function getBienesRaicesCheckpointCards(
       id: "br_privado",
       variant: "paid",
       eyebrow: es ? "Particular" : "Individual",
-      title: es ? "Privado (FSBO)" : "Private (FSBO)",
+      title: es ? "Dueño particular" : "Private owner",
       priceLabel: fsboPrice,
       shortDescription: es
         ? "Para dueños y anuncios personales de una propiedad."
