@@ -69,6 +69,7 @@ import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
 } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { hydrateRentasDashboardEditDraft } from "../../shared/rentasDashboardEditHydration";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -154,6 +155,10 @@ function rentasFormOptionLabel(label: string | { es: string; en: string }, copyL
   return typeof label === "string" ? label : label[copyLang];
 }
 
+function rentasUiLabel(lang: "es" | "en", es: string, en: string): string {
+  return lang === "en" ? en : es;
+}
+
 export function RentasPrivadoForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -172,6 +177,21 @@ export function RentasPrivadoForm() {
   const ownerPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    const isDashboardEdit = sp.get("source") === "dashboard" && sp.get("mode") === "listing-edit" && sp.get("edit") === "1";
+    const listingId = sp.get("listingId") ?? "";
+    if (isDashboardEdit && listingId.trim()) {
+      void hydrateRentasDashboardEditDraft({ listingId, lane: "privado" }).then((result) => {
+        if (result.ok && result.lane === "privado") {
+          setState(result.draft);
+          saveRentasPrivadoDraft(result.draft);
+        } else if (!result.ok) {
+          setPreviewGateMessage(result.message);
+        }
+        setHydrated(true);
+      });
+      return;
+    }
     const d = loadRentasPrivadoDraft();
     if (d) {
       setState(d);
@@ -179,7 +199,6 @@ export function RentasPrivadoForm() {
       return;
     }
     try {
-      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
       const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
       if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
     } catch {
@@ -629,7 +648,7 @@ export function RentasPrivadoForm() {
                 ) : null}
               </div>
             </div>
-            <AiField required label="Nombre completo">
+            <AiField required label={rentasUiLabel(lang, "Nombre completo", "Full name")}>
               <input
                 className={fieldClass}
                 value={state.seller.nombre}
@@ -637,7 +656,7 @@ export function RentasPrivadoForm() {
                 autoComplete="name"
               />
             </AiField>
-            <AiField label="Teléfono">
+            <AiField label={rentasUiLabel(lang, "Teléfono", "Phone")}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -664,8 +683,8 @@ export function RentasPrivadoForm() {
               />
             </AiField>
             <AiField
-              label="Número para mensajes de texto"
-              hint="Puede ser el mismo número de teléfono o uno diferente."
+              label={rentasUiLabel(lang, "Número para mensajes de texto", "Text message number")}
+              hint={rentasUiLabel(lang, "Puede ser el mismo número de teléfono o uno diferente.", "Can be the same phone number or a different one.")}
             >
               <input
                 className={fieldClass}
@@ -681,7 +700,7 @@ export function RentasPrivadoForm() {
               />
             </AiField>
             <div className="sm:col-span-2">
-              <AiField label="Correo electrónico">
+              <AiField label={rentasUiLabel(lang, "Correo electrónico", "Email")}>
                 <input
                   className={fieldClass}
                   type="email"
@@ -692,7 +711,10 @@ export function RentasPrivadoForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Mensaje para interesados (opcional)" hint="Texto breve que verán antes de escribirte o llamarte.">
+              <AiField
+                label={rentasUiLabel(lang, "Mensaje para interesados (opcional)", "Message for interested parties (optional)")}
+                hint={rentasUiLabel(lang, "Texto breve que verán antes de escribirte o llamarte.", "Brief text they will see before messaging or calling you.")}
+              >
                 <textarea
                   className={textareaFieldClass}
                   rows={3}
@@ -718,7 +740,7 @@ export function RentasPrivadoForm() {
             <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].residential}</h2>
             {residencialRowsMode === "full_legacy" ? (
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={rentasUiLabel(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.tipoCodigo}
@@ -736,7 +758,7 @@ export function RentasPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.subtipo}
@@ -749,7 +771,7 @@ export function RentasPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="Recámaras">
+              <AiField label={rentasUiLabel(lang, "Recámaras", "Bedrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -757,7 +779,7 @@ export function RentasPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, recamaras: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Baños completos">
+              <AiField label={rentasUiLabel(lang, "Baños completos", "Full bathrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -765,7 +787,7 @@ export function RentasPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Medios baños">
+              <AiField label={rentasUiLabel(lang, "Medios baños", "Half bathrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -791,14 +813,14 @@ export function RentasPrivadoForm() {
                 />
                 <RentasSqftPreview value={state.residencial.loteSqft} lang={lang} />
               </AiField>
-              <AiField label="Estacionamiento">
+              <AiField label={rentasUiLabel(lang, "Estacionamiento", "Parking")}>
                 <input
                   className={fieldClass}
                   value={state.residencial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Año de construcción">
+              <AiField label={rentasUiLabel(lang, "Año de construcción", "Year built")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -806,7 +828,7 @@ export function RentasPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, ano: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={rentasUiLabel(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.condicion}
@@ -827,7 +849,7 @@ export function RentasPrivadoForm() {
             </div>
             ) : residencialRowsMode === "room_partial" ? (
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-                <AiField label="Baños completos">
+                <AiField label={rentasUiLabel(lang, "Baños completos", "Full bathrooms")}>
                   <input
                     className={fieldClass}
                     inputMode="decimal"
@@ -835,7 +857,7 @@ export function RentasPrivadoForm() {
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                   />
                 </AiField>
-                <AiField label="Medios baños">
+                <AiField label={rentasUiLabel(lang, "Medios baños", "Half bathrooms")}>
                   <input
                     className={fieldClass}
                     inputMode="decimal"
@@ -852,7 +874,7 @@ export function RentasPrivadoForm() {
                   />
                   <RentasSqftPreview value={state.residencial.interiorSqft} lang={lang} />
                 </AiField>
-                <AiField label="Estacionamiento">
+                <AiField label={rentasUiLabel(lang, "Estacionamiento", "Parking")}>
                   <input
                     className={fieldClass}
                     value={state.residencial.estacionamiento}
@@ -867,8 +889,8 @@ export function RentasPrivadoForm() {
               </p>
             )}
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
-              <p className={aiHintClass}>Opcional: qué destacar en la vista previa.</p>
+              <span className={aiLabelClass}>{rentasUiLabel(lang, "Destacados", "Highlights")}</span>
+              <p className={aiHintClass}>{rentasUiLabel(lang, "Opcional: qué destacar en la vista previa.", "Optional: what to highlight in the preview.")}</p>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
                   <label key={d.key} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -918,7 +940,7 @@ export function RentasPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.subtipo}
@@ -970,7 +992,7 @@ export function RentasPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, niveles: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Estacionamiento">
+              <AiField label={rentasUiLabel(lang, "Estacionamiento", "Parking")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.estacionamiento}
@@ -984,7 +1006,7 @@ export function RentasPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={rentasUiLabel(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.condicion}
@@ -1042,7 +1064,7 @@ export function RentasPrivadoForm() {
           <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].land}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={rentasUiLabel(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.tipoCodigo}
@@ -1060,7 +1082,7 @@ export function RentasPrivadoForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.subtipo}

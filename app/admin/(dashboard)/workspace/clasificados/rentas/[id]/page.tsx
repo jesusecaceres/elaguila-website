@@ -11,10 +11,10 @@ import { adminCardBase } from "@/app/admin/_components/adminTheme";
 export const dynamic = "force-dynamic";
 
 const INSPECTOR_COLS_WITH_BOOST =
-  "id, title, description, city, zip, category, price, is_free, status, owner_id, created_at, images, detail_pairs, republished_at, is_published, seller_type, business_name, business_meta, contact_phone, contact_email";
+  "id, title, description, city, zip, category, price, is_free, status, owner_id, created_at, published_at, expires_at, images, detail_pairs, republished_at, is_published, seller_type, business_name, business_meta, contact_phone, contact_email";
 
 const INSPECTOR_COLS_NO_BOOST =
-  "id, title, description, city, zip, category, price, is_free, status, owner_id, created_at, images, detail_pairs, is_published, seller_type, business_name, business_meta, contact_phone, contact_email";
+  "id, title, description, city, zip, category, price, is_free, status, owner_id, created_at, published_at, expires_at, images, detail_pairs, is_published, seller_type, business_name, business_meta, contact_phone, contact_email";
 
 type PageProps = { params: Promise<{ id: string }> };
 

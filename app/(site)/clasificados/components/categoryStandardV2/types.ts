@@ -44,6 +44,7 @@ export interface LeonixCategoryHeroGatewayProps {
   searchSlot: React.ReactNode;
   tilesSlot?: React.ReactNode;
   eyebrow?: string;
+  icon?: React.ReactNode;
 }
 
 /**

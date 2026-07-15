@@ -69,6 +69,7 @@ import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
 } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { hydrateRentasDashboardEditDraft } from "../../shared/rentasDashboardEditHydration";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -104,31 +105,39 @@ const RENTAS_SECTION = {
   },
 } as const;
 
-const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
-  { id: "residencial", label: "Residencial" },
-  { id: "comercial", label: "Comercial" },
-  { id: "terreno_lote", label: "Terreno / lote" },
+const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: { es: string; en: string } }[] = [
+  { id: "residencial", label: { es: "Residencial", en: "Residential" } },
+  { id: "comercial", label: { es: "Comercial", en: "Commercial" } },
+  { id: "terreno_lote", label: { es: "Terreno / lote", en: "Land / lot" } },
 ];
 
-const ESTADOS: { id: RentasNegocioFormState["estadoAnuncio"]; label: string }[] = [
-  { id: "disponible", label: "Disponible" },
-  { id: "pendiente", label: "Pendiente" },
-  { id: "bajo_contrato", label: "Bajo contrato" },
-  { id: "rentado", label: "Rentado" },
+const ESTADOS: { id: RentasNegocioFormState["estadoAnuncio"]; label: { es: string; en: string } }[] = [
+  { id: "disponible", label: { es: "Disponible", en: "Available" } },
+  { id: "pendiente", label: { es: "Pendiente", en: "Pending" } },
+  { id: "bajo_contrato", label: { es: "Bajo contrato", en: "Under contract" } },
+  { id: "rentado", label: { es: "Rentado", en: "Rented" } },
 ];
 
-const CONDICION_OPTS: { value: RentasNegocioFormState["residencial"]["condicion"]; label: string }[] = [
-  { value: "", label: "—" },
-  { value: "excelente", label: "Excelente" },
-  { value: "buena", label: "Buena" },
-  { value: "regular", label: "Regular" },
-  { value: "necesita_reparacion", label: "Necesita reparación" },
+const CONDICION_OPTS: { value: RentasNegocioFormState["residencial"]["condicion"]; label: { es: string; en: string } }[] = [
+  { value: "", label: { es: "—", en: "—" } },
+  { value: "excelente", label: { es: "Excelente", en: "Excellent" } },
+  { value: "buena", label: { es: "Buena", en: "Good" } },
+  { value: "regular", label: { es: "Regular", en: "Fair" } },
+  { value: "necesita_reparacion", label: { es: "Necesita reparación", en: "Needs repair" } },
 ];
 
 const CONFIRM_PREVIEW_BLOCKED = {
   es: "Marca las tres confirmaciones al final del formulario para usar Vista previa con validación.",
   en: "Check all three confirmations at the bottom to use validated preview.",
 } as const;
+
+function rentasFormOptionLabel(label: string | { es: string; en: string }, copyLang: "es" | "en"): string {
+  return typeof label === "string" ? label : label[copyLang];
+}
+
+function rentasUiLabel(lang: "es" | "en", es: string, en: string): string {
+  return lang === "en" ? en : es;
+}
 
 export function RentasNegocioForm() {
   const router = useRouter();
@@ -148,6 +157,21 @@ export function RentasNegocioForm() {
   const negocioLogoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    const isDashboardEdit = sp.get("source") === "dashboard" && sp.get("mode") === "listing-edit" && sp.get("edit") === "1";
+    const listingId = sp.get("listingId") ?? "";
+    if (isDashboardEdit && listingId.trim()) {
+      void hydrateRentasDashboardEditDraft({ listingId, lane: "negocio" }).then((result) => {
+        if (result.ok && result.lane === "negocio") {
+          setState(result.draft);
+          saveRentasNegocioDraft(result.draft);
+        } else if (!result.ok) {
+          setPreviewGateMessage(result.message);
+        }
+        setHydrated(true);
+      });
+      return;
+    }
     const d = loadRentasNegocioDraft();
     if (d) setState(d);
     setHydrated(true);
@@ -338,7 +362,7 @@ export function RentasNegocioForm() {
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
-                {c.label}
+                {rentasFormOptionLabel(c.label, lang)}
               </button>
             ))}
           </div>
@@ -349,7 +373,7 @@ export function RentasNegocioForm() {
           setState={setState}
           fieldClass={fieldClass}
           textareaFieldClass={textareaFieldClass}
-          estadoOptions={ESTADOS}
+          estadoOptions={ESTADOS.map((o) => ({ id: o.id, label: o.label[lang] }))}
           lang={lang}
         />
 
@@ -631,7 +655,7 @@ export function RentasNegocioForm() {
               />
             </AiField>
             <div className="sm:col-span-2">
-              <AiField label="Correo electrónico">
+              <AiField label={rentasUiLabel(lang, "Correo electrónico", "Email")}>
                 <input
                   className={fieldClass}
                   type="email"
@@ -692,7 +716,7 @@ export function RentasNegocioForm() {
             <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].residential}</h2>
             {residencialRowsMode === "full_legacy" ? (
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={rentasUiLabel(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.tipoCodigo}
@@ -705,12 +729,12 @@ export function RentasNegocioForm() {
                 >
                   {TIPO_PROPIEDAD_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.subtipo}
@@ -718,12 +742,12 @@ export function RentasNegocioForm() {
                 >
                   {SUBTIPO_POR_TIPO[state.residencial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Recámaras">
+              <AiField label={rentasUiLabel(lang, "Recámaras", "Bedrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -731,7 +755,7 @@ export function RentasNegocioForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, recamaras: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Baños completos">
+              <AiField label={rentasUiLabel(lang, "Baños completos", "Full bathrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -739,7 +763,7 @@ export function RentasNegocioForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Medios baños">
+              <AiField label={rentasUiLabel(lang, "Medios baños", "Half bathrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -765,14 +789,14 @@ export function RentasNegocioForm() {
                 />
                 <RentasSqftPreview value={state.residencial.loteSqft} />
               </AiField>
-              <AiField label="Estacionamiento">
+              <AiField label={rentasUiLabel(lang, "Estacionamiento", "Parking")}>
                 <input
                   className={fieldClass}
                   value={state.residencial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Año de construcción">
+              <AiField label={rentasUiLabel(lang, "Año de construcción", "Year built")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -780,7 +804,7 @@ export function RentasNegocioForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, ano: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={rentasUiLabel(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.condicion}
@@ -793,7 +817,7 @@ export function RentasNegocioForm() {
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={o.value || "x"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -801,7 +825,7 @@ export function RentasNegocioForm() {
             </div>
             ) : residencialRowsMode === "room_partial" ? (
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-                <AiField label="Baños completos">
+                <AiField label={rentasUiLabel(lang, "Baños completos", "Full bathrooms")}>
                   <input
                     className={fieldClass}
                     inputMode="decimal"
@@ -809,7 +833,7 @@ export function RentasNegocioForm() {
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                   />
                 </AiField>
-                <AiField label="Medios baños">
+                <AiField label={rentasUiLabel(lang, "Medios baños", "Half bathrooms")}>
                   <input
                     className={fieldClass}
                     inputMode="decimal"
@@ -826,7 +850,7 @@ export function RentasNegocioForm() {
                   />
                   <RentasSqftPreview value={state.residencial.interiorSqft} />
                 </AiField>
-                <AiField label="Estacionamiento">
+                <AiField label={rentasUiLabel(lang, "Estacionamiento", "Parking")}>
                   <input
                     className={fieldClass}
                     value={state.residencial.estacionamiento}
@@ -887,12 +911,12 @@ export function RentasNegocioForm() {
                 >
                   {COMERCIAL_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.subtipo}
@@ -900,7 +924,7 @@ export function RentasNegocioForm() {
                 >
                   {COMERCIAL_SUBTIPO_POR_TIPO[state.comercial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -944,7 +968,7 @@ export function RentasNegocioForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, niveles: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Estacionamiento">
+              <AiField label={rentasUiLabel(lang, "Estacionamiento", "Parking")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.estacionamiento}
@@ -958,7 +982,7 @@ export function RentasNegocioForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={rentasUiLabel(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.condicion}
@@ -971,7 +995,7 @@ export function RentasNegocioForm() {
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={`c-${o.value || "x"}`} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
@@ -1016,7 +1040,7 @@ export function RentasNegocioForm() {
           <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].land}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={rentasUiLabel(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.tipoCodigo}
@@ -1029,12 +1053,12 @@ export function RentasNegocioForm() {
                 >
                   {TERRENO_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={rentasUiLabel(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.subtipo}
@@ -1042,7 +1066,7 @@ export function RentasNegocioForm() {
                 >
                   {TERRENO_SUBTIPO_POR_TIPO[state.terreno.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {rentasFormOptionLabel(o.label, lang)}
                     </option>
                   ))}
                 </select>

@@ -16,12 +16,16 @@
 export const LEONIX_HEADER_SAFE_TOP =
   "pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-12 lg:pt-14";
 
-/** Landing page content lane */
+/** Landing page content lane (width only) */
 export const LEONIX_LANDING_LANE = "mx-auto w-full min-w-0 max-w-[1280px]";
 
-/** Results page shell lane */
+/** Landing page content lane with horizontal padding */
+export const LEONIX_LANDING_SHELL =
+  "relative mx-auto w-full min-w-0 max-w-[1280px] px-3.5 pb-14 sm:px-5 lg:px-6";
+
+/** Results page shell lane — matches Rentas/Bienes safe centered lane */
 export const LEONIX_RESULTS_SHELL =
-  "relative mx-auto w-full min-w-0 max-w-[1280px] px-3.5 pb-12 sm:px-4 lg:px-5";
+  "relative mx-auto w-full min-w-0 max-w-[1280px] px-3.5 pb-12 sm:px-5 lg:px-6";
 
 /** Results page background */
 export const LEONIX_RESULTS_PAGE_BG =
@@ -288,19 +292,19 @@ export const LEONIX_VIEW_TOGGLE_BUTTON_INACTIVE =
 
 /** Compact empty state */
 export const LEONIX_COMPACT_EMPTY_STATE =
-  "rounded-[20px] border border-dashed border-[color:var(--lx-border)]/50 bg-[color:var(--lx-section)] px-5 py-10 text-center sm:px-8 sm:py-14 md:px-10";
+  "rounded-2xl border border-dashed border-[#D6C7AD]/70 bg-[#FFFDF7]/90 px-5 py-10 text-center sm:px-8 sm:py-12";
 
 /** Empty state title */
 export const LEONIX_EMPTY_TITLE =
-  "font-serif text-lg font-semibold text-[color:var(--lx-text)]";
+  "font-serif text-lg font-semibold text-[#2A4536]";
 
 /** Empty state body */
 export const LEONIX_EMPTY_BODY =
-  "mx-auto mt-3 max-w-md text-sm leading-relaxed text-[color:var(--lx-muted)]";
+  "mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#5C5346]";
 
 /** Empty state CTA */
 export const LEONIX_EMPTY_CTA =
-  "mt-6 inline-flex min-h-[44px] items-center justify-center rounded-[14px] border border-[#D97706]/45 bg-[color:var(--lx-card)] px-6 text-sm font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[#D97706]/65 hover:bg-[color:var(--lx-section)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706]/50";
+  "mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#C9A84A]/60 bg-[#FFFDF7] px-6 text-sm font-semibold text-[#3D3428] shadow-sm transition hover:border-[#C9A84A] hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/35";
 
 // ============================================================================
 // VISIBILITY STRIP

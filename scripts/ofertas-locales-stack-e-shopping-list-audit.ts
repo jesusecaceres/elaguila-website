@@ -153,10 +153,15 @@ function run() {
   assert.ok(copy.includes("ofertasLocalesResultModeCopy") || client.includes("ofertasLocalesResultModeCopy"), "result mode copy helper");
   assert.ok(copy.includes("Volantes semanales"), "ES flyers mode title");
   assert.ok(copy.includes("Weekly flyers"), "EN flyers mode title");
-  assert.ok(copy.includes("Buscar por producto"), "ES products mode title");
-  assert.ok(copy.includes("Search by product"), "EN products mode title");
-  assert.ok(client.includes("ofertas-results-mode-intro"), "mode-aware results intro block");
+  assert.ok(copy.includes("Productos encontrados"), "ES products mode title");
+  assert.ok(copy.includes("Products found"), "EN products mode title");
+  assert.ok(copy.includes("resolveOfertasLocalesShopperMode"), "shopper mode resolver");
+  assert.ok(copy.includes("ofertasLocalesShopperModePresentation"), "shopper mode presentation contract");
+  assert.ok(copy.includes("filterOfertasLocalesOffersForShopperMode"), "shopper mode offer filter");
+  assert.ok(client.includes("ofertas-shopper-mode-intro"), "mode-aware results intro block");
+  assert.ok(client.includes("filterOfertasLocalesOffersForShopperMode"), "client uses offer mode filter");
   assert.ok(client.includes("showItemsFirst"), "product-first ordering logic");
+  assert.ok(client.includes("LeonixCategoryResultsShell"), "results uses dedicated results shell");
   assert.ok(!copy.toLowerCase().includes("magazine holder pipeline"), "no magazine holder pipeline wording");
   assert.ok(!copy.toLowerCase().includes("fake partner"), "no fake partner wording");
 
@@ -419,6 +424,15 @@ function run() {
 
   assert.ok(client.includes("OfertasFloatingShoppingListCart"), "Ofertas floating cart component still wired");
   assert.ok(client.includes("!isCupones"), "floating cart remains gated with !isCupones");
+
+  const pageShell = read("app/(site)/clasificados/components/categoryStandardV2/LeonixCategoryPageShell.tsx");
+  const shellAuditDoc = "app/lib/website-audit/OFERTAS_PUBLIC_SHELL_SHOPPER_MODES_STANDARD_V1.md";
+  assert.ok(exists(shellAuditDoc), "Ofertas shell shopper modes audit doc must exist");
+  assert.ok(pageShell.includes("LEONIX_HEADER_SAFE_TOP"), "page shell applies proven safe-top spacing");
+  assert.ok(pageShell.includes("LEONIX_LANDING_SHELL"), "landing shell uses centered 1280px lane");
+  assert.ok(copy.includes("Tiendas locales"), "ES store mode title");
+  assert.ok(copy.includes("Comida y mercados"), "ES food mode title");
+  assert.ok(copy.includes("Promociones"), "ES promotions mode title");
 
   console.log("Stack E — Ofertas Locales shopping list + results mode audit passed.");
 }

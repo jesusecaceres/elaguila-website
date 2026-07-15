@@ -43,6 +43,8 @@ export type AutosNegociosDraftV1 = {
   /** When drawer is open: null = add new; string = editing saved child id. */
   inventoryDrawerEditingId?: string | null;
   inventoryDrawerOpen?: boolean;
+  /** Pre-publish application: seller selected Inventory Boost add-on (+$129/mo, 20 slots). */
+  inventoryBoostSelected?: boolean;
 };
 
 export function isAutosNegociosDraftV1(x: unknown): x is AutosNegociosDraftV1 {
@@ -73,6 +75,7 @@ function coerceLooseAutosNegociosDraftV1(parsed: unknown): AutosNegociosDraftV1 
         ? o.inventoryDrawerEditingId
         : undefined,
     inventoryDrawerOpen: o.inventoryDrawerOpen === true ? true : undefined,
+    inventoryBoostSelected: o.inventoryBoostSelected === true ? true : undefined,
   };
 }
 

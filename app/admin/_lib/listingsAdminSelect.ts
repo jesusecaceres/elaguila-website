@@ -8,7 +8,7 @@ import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/admi
 
 /** Queue table columns — omit heavy `description` / `images` payloads (still searchable server-side). */
 const LISTINGS_ADMIN_CORE =
-  "id, leonix_ad_id, title, city, category, price, is_free, status, owner_id, created_at, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role";
+  "id, leonix_ad_id, title, city, category, price, is_free, status, owner_id, created_at, published_at, expires_at, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role";
 
 const LISTINGS_REPUBLISH = ", republished_at, republish_count, republish_override";
 

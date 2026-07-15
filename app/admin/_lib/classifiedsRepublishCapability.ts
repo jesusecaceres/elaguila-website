@@ -37,7 +37,7 @@ export function republishCapabilityReasonListings(row: Record<string, unknown>, 
     return null;
   }
 
-  if (cat === "rentas") return null;
+  if (cat === "rentas") return "Rentas uses paid renewal, not free republish";
 
   if (cat === "bienes-raices") {
     return null;

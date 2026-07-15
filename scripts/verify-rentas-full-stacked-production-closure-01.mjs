@@ -103,7 +103,9 @@ if (!src.publishDraft.includes('rentasPaymentLane: "negocio"')) fail("business l
 if (!src.publishDraft.includes("orderedRentasGallerySourcesForPublish")) fail("image ordering must be preserved");
 if (!src.publishCore.includes("leonixAdId?: string | null")) fail("pending save must return Leonix ID");
 if (!src.publishCore.includes("listingStatus?: string | null")) fail("pending save must return listing status");
-if (!src.publishCore.includes("reusableRentasPending")) fail("pending retries must reuse an existing Rentas row");
+if (!src.publishCore.includes("reusableRentasPending") && !src.publishCore.includes("reusableRealEstatePending")) {
+  fail("pending retries must reuse an existing Rentas row");
+}
 if (!src.publishCore.includes('params.activationMode !== "pending_payment"')) fail("pending save must not stamp published_at in gallery patch");
 ok("hidden pending-save returns identity, preserves pending lifecycle, reuses row");
 
@@ -117,7 +119,12 @@ if (!src.publicDetailFetch.includes("statusNorm") || !src.publicDetailFetch.incl
   fail("public detail must explicitly require active status");
 }
 if (!src.publicDetailFetch.includes("row.is_published === false")) fail("public detail must hide unpublished rows");
-if (!src.mapper.includes("browseActive") || !src.mapper.includes('status === "active"')) fail("browse mapping must hide non-active rows");
+if (
+  !src.mapper.includes("browseActive") ||
+  (!src.mapper.includes('status === "active"') && !src.mapper.includes("lifecycle.isPubliclyVisible"))
+) {
+  fail("browse mapping must hide non-active rows");
+}
 if (!src.browseFetch.includes("m && m.browseActive !== false")) fail("browse fetch must filter unpublished/inactive mapped rows");
 ok("public results/detail hide unpaid rows");
 

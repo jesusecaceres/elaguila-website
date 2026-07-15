@@ -13,6 +13,7 @@ import {
 } from "./publishCheckoutCheckpoint";
 
 export type CreatePendingPaymentRecordInput = {
+  operation?: "renew_listing" | null;
   category: string;
   packageKey: string;
   packageDef: RevenuePackageDefinition;
@@ -37,6 +38,9 @@ export type CreatePendingPaymentRecordInput = {
   promoBaseAmountCents?: number;
   /** True when checkout is add-on-only (e.g. dashboard Restaurante coupon upgrade). */
   addonOnly?: boolean;
+  sourceTable?: string | null;
+  currentExpiresAt?: string | null;
+  returnContext?: string | null;
 };
 
 export type PendingPaymentRecordResult =
@@ -90,6 +94,10 @@ export async function createPendingPaymentRecord(
       promo_redemption_id: input.promoRedemptionId ?? null,
       metadata: {
         gate: "STRIPE-REVENUE-OS-CHECKOUT-SESSION-01",
+        ...(input.operation ? { operation: input.operation } : {}),
+        ...(input.sourceTable?.trim() ? { source_table: input.sourceTable.trim() } : {}),
+        ...(input.currentExpiresAt?.trim() ? { current_expires_at: input.currentExpiresAt.trim() } : {}),
+        ...(input.returnContext?.trim() ? { return_context: input.returnContext.trim() } : {}),
         package_label: input.packageDef.label,
         destructive: false,
         subtotal_cents: subtotal,

@@ -104,6 +104,7 @@ export type RevenueCheckoutAddOnPayload = {
 };
 
 export type RevenueCategoryCheckoutPayload = {
+  operation?: "renew_listing" | null;
   category: string;
   packageKey: string;
   /** Live listing id when row exists (e.g. pending_payment). */
@@ -117,6 +118,9 @@ export type RevenueCategoryCheckoutPayload = {
   promoCode?: string | null;
   /** Server-validated add-on keys only — prices resolved server-side. */
   addOns?: RevenueCheckoutAddOnPayload[];
+  sourceTable?: string | null;
+  currentExpiresAt?: string | null;
+  returnContext?: string | null;
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -127,6 +131,7 @@ export function buildRevenueCategoryCheckoutBody(
   return {
     category: input.category,
     packageKey: input.packageKey,
+    ...(input.operation ? { operation: input.operation } : {}),
     ...(listingId ? { listingId } : {}),
     ...(listingDraftId ? { listingDraftId } : {}),
     ...(input.leonixAdId?.trim() ? { leonixAdId: input.leonixAdId.trim() } : {}),
@@ -142,5 +147,8 @@ export function buildRevenueCategoryCheckoutBody(
           })),
         }
       : {}),
+    ...(input.sourceTable?.trim() ? { sourceTable: input.sourceTable.trim() } : {}),
+    ...(input.currentExpiresAt?.trim() ? { currentExpiresAt: input.currentExpiresAt.trim() } : {}),
+    ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
   };
 }

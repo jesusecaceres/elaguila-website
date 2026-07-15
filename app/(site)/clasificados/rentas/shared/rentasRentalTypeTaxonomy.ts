@@ -55,6 +55,32 @@ export const RENTAS_TIPO_DE_RENTA_OPTIONS: { id: RentasTipoDeRentaId; label: str
   { id: "otro", label: "Otro" },
 ];
 
+export type RentasTipoCopyLang = "es" | "en";
+
+export const RENTAS_TIPO_DE_RENTA_LABELS: Record<RentasTipoDeRentaId, { es: string; en: string }> = {
+  casa: { es: "Casa", en: "House" },
+  apartamento: { es: "Apartamento", en: "Apartment" },
+  condominio: { es: "Condominio", en: "Condominium" },
+  townhome: { es: "Townhome", en: "Townhome" },
+  duplex_multifamiliar: { es: "Duplex / Multifamiliar", en: "Duplex / Multifamily" },
+  adu_casita: { es: "ADU / Casita", en: "ADU / Casita" },
+  estudio: { es: "Estudio", en: "Studio" },
+  cuarto_recamara: { es: "Cuarto / Recámara", en: "Room / Bedroom" },
+  cuarto_compartido: { es: "Cuarto compartido", en: "Shared room" },
+  espacio_compartido: { es: "Espacio compartido", en: "Shared space" },
+  garaje: { es: "Garaje", en: "Garage" },
+  estacionamiento: { es: "Estacionamiento", en: "Parking" },
+  bodega_almacen: { es: "Bodega / Almacén", en: "Storage unit" },
+  oficina: { es: "Oficina", en: "Office" },
+  local_comercial: { es: "Local comercial", en: "Commercial space" },
+  terreno_lote: { es: "Terreno / Lote", en: "Land / lot" },
+  otro: { es: "Otro", en: "Other" },
+};
+
+export function rentasTipoDeRentaOptionLabel(id: RentasTipoDeRentaId, lang: RentasTipoCopyLang): string {
+  return RENTAS_TIPO_DE_RENTA_LABELS[id][lang];
+}
+
 const LABEL_BY_ID = new Map(RENTAS_TIPO_DE_RENTA_OPTIONS.map((o) => [o.id, o.label] as const));
 
 export function coerceRentasTipoDeRentaId(raw: unknown): RentasTipoDeRentaId | "" {

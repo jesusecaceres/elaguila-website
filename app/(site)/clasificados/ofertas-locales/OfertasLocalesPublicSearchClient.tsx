@@ -15,7 +15,7 @@ import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItem
 import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
 import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
-import { ofertasLocalesPublicSearchCopy, ofertasLocalesResultModeCopy, ofertasLocalesCuponesResultsIntroCopy, parseOfertasLocalesResultMode } from "./ofertasLocalesPublicSearchCopy";
+import { ofertasLocalesPublicSearchCopy, ofertasLocalesResultModeCopy, ofertasLocalesCuponesResultsIntroCopy, parseOfertasLocalesResultMode, resolveOfertasLocalesShopperMode, ofertasLocalesShopperModePresentation, filterOfertasLocalesOffersForShopperMode, filterOfertasLocalesItemsForShopperMode } from "./ofertasLocalesPublicSearchCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import {
   LeonixCategoryPageShell,
@@ -329,13 +329,34 @@ export function OfertasLocalesPublicSearchClient({
     ? `/publicar/ofertas-locales?lang=${lang}&product=coupon_promotion`
     : `/publicar/ofertas-locales?lang=${lang}`;
   const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
-  const showPipelineEmpty = !loading && offers.length === 0 && items.length === 0 && !hasFilters;
-  const resultCount = offers.length + items.length;
-  const parsedResultMode = parseOfertasLocalesResultMode(searchParams?.get("mode"));
-  const displayResultMode =
-    !isCupones && q.trim() && parsedResultMode === "all" ? "products" : parsedResultMode;
-  const resultModeCopy = !isCupones ? ofertasLocalesResultModeCopy(lang, displayResultMode) : null;
-  const showItemsFirst = !isCupones && (parsedResultMode === "products" || Boolean(q.trim()));
+  const shopperMode = !isCupones
+    ? resolveOfertasLocalesShopperMode({
+        modeParam: searchParams?.get("mode"),
+        offerTypeParam: offerType,
+        marketTypeParam: marketType,
+        categoryParam: category,
+        query: q,
+      })
+    : parseOfertasLocalesResultMode(searchParams?.get("mode"));
+  const modePresentation = !isCupones ? ofertasLocalesShopperModePresentation(lang, shopperMode, c) : null;
+  const filteredOffers = useMemo(
+    () =>
+      isCupones
+        ? offers
+        : (filterOfertasLocalesOffersForShopperMode(offers, shopperMode) as OfertaLocalPublicOfferCard[]),
+    [isCupones, offers, shopperMode]
+  );
+  const filteredItems = useMemo(
+    () =>
+      isCupones
+        ? items
+        : filterOfertasLocalesItemsForShopperMode(items, shopperMode),
+    [isCupones, items, shopperMode]
+  );
+  const showPipelineEmpty = !loading && filteredOffers.length === 0 && filteredItems.length === 0 && !hasFilters;
+  const resultCount = filteredOffers.length + filteredItems.length;
+  const resultModeCopy = !isCupones ? ofertasLocalesResultModeCopy(lang, shopperMode) : null;
+  const showItemsFirst = !isCupones && shopperMode === "products";
   const activeFilterChips = [
     ...(q ? [{ id: "q", label: `“${q}”`, onClear: () => pushSearch({ q: "" }) }] : []),
     ...(city ? [{ id: "city", label: city, onClear: () => pushSearch({ city: "" }) }] : []),
@@ -402,8 +423,50 @@ export function OfertasLocalesPublicSearchClient({
       introSecondary={c.heroHelper}
       searchSlot={searchForm}
       eyebrow={c.heroEyebrow}
+      icon={isCupones ? undefined : <TagIcon className="h-6 w-6" />}
     />
   );
+
+  const renderOfferGrid = (sectionTitle: string) =>
+    !loading && filteredOffers.length > 0 && modePresentation?.showOffers !== false ? (
+      <section>
+        <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{sectionTitle}</h2>
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+          {filteredOffers.map((offer) => (
+            <li key={offer.id}>
+              <OfertasLocalesPublicOfferCard
+                lang={lang}
+                offer={offer}
+                surface={surface}
+                onSelect={isCupones ? setSelectedCouponOffer : undefined}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null;
+
+  const renderItemGrid = (sectionTitle: string) =>
+    !isCupones && !loading && filteredItems.length > 0 && modePresentation?.showItems !== false ? (
+      <section>
+        <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{sectionTitle}</h2>
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+          {filteredItems.map((item) => (
+            <li key={item.id}>
+              <OfertasLocalesPublicItemCard
+                lang={lang}
+                item={item}
+                isAdded={shoppingList.isAdded(item.id)}
+                onSelect={setSelectedItem}
+                onAdd={shoppingList.addFromPublicItem}
+                onRemove={shoppingList.removeItem}
+                onOpenList={() => setListOpen(true)}
+              />
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null;
 
   const openShoppingList = () => setListOpen(true);
 
@@ -444,13 +507,13 @@ export function OfertasLocalesPublicSearchClient({
         </section>
       ) : null}
 
-      {isResults && !isCupones && resultModeCopy ? (
+      {isResults && !isCupones && resultModeCopy && modePresentation ? (
         <section
-          className="rounded-xl border border-[#B8860B]/40 bg-gradient-to-r from-[#FDF8F0] to-[#FFFCF7] px-3.5 py-3 shadow-sm"
-          data-testid="ofertas-results-mode-intro"
+          className="rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7]/92 px-4 py-3.5 shadow-[0_8px_28px_-18px_rgba(42,36,22,0.18)] sm:px-5"
+          data-testid="ofertas-shopper-mode-intro"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex rounded-full border border-[#2A4536]/25 bg-[#2A4536]/8 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#2A4536]">
+            <span className="inline-flex rounded-full border border-[#556B3E]/25 bg-[#556B3E]/8 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[#556B3E]">
               {resultModeCopy.pill}
             </span>
             {q.trim() ? (
@@ -460,7 +523,7 @@ export function OfertasLocalesPublicSearchClient({
             ) : null}
           </div>
           <h2 className="mt-2 font-serif text-base font-bold text-[#2A4536] sm:text-lg">{resultModeCopy.title}</h2>
-          <p className="mt-1 text-sm leading-snug text-[#1E1814]/70">{resultModeCopy.helper}</p>
+          <p className="mt-1 text-sm leading-snug text-[#3D3428]/85">{resultModeCopy.helper}</p>
           {showItemsFirst && resultModeCopy.listNote ? (
             <p className="mt-1.5 text-xs font-medium text-[#7A1E2C]/90">{resultModeCopy.listNote}</p>
           ) : null}
@@ -477,85 +540,13 @@ export function OfertasLocalesPublicSearchClient({
 
       {showItemsFirst ? (
         <>
-          {!isCupones && !loading && items.length > 0 ? (
-            <section>
-              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.itemsSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <OfertasLocalesPublicItemCard
-                      lang={lang}
-                      item={item}
-                      isAdded={shoppingList.isAdded(item.id)}
-                      onSelect={setSelectedItem}
-                      onAdd={shoppingList.addFromPublicItem}
-                      onRemove={shoppingList.removeItem}
-                      onOpenList={() => setListOpen(true)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {!loading && offers.length > 0 ? (
-            <section>
-              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.offersSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-                {offers.map((offer) => (
-                  <li key={offer.id}>
-                    <OfertasLocalesPublicOfferCard
-                      lang={lang}
-                      offer={offer}
-                      surface={surface}
-                      onSelect={isCupones ? setSelectedCouponOffer : undefined}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          {renderItemGrid(modePresentation?.itemsSectionTitle ?? c.itemsSectionTitle)}
+          {renderOfferGrid(modePresentation?.offersSectionTitle ?? c.offersSectionTitle)}
         </>
       ) : (
         <>
-          {!loading && offers.length > 0 ? (
-            <section>
-              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.offersSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-                {offers.map((offer) => (
-                  <li key={offer.id}>
-                    <OfertasLocalesPublicOfferCard
-                      lang={lang}
-                      offer={offer}
-                      surface={surface}
-                      onSelect={isCupones ? setSelectedCouponOffer : undefined}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {!isCupones && !loading && items.length > 0 ? (
-            <section>
-              <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{c.itemsSectionTitle}</h2>
-              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <OfertasLocalesPublicItemCard
-                      lang={lang}
-                      item={item}
-                      isAdded={shoppingList.isAdded(item.id)}
-                      onSelect={setSelectedItem}
-                      onAdd={shoppingList.addFromPublicItem}
-                      onRemove={shoppingList.removeItem}
-                      onOpenList={() => setListOpen(true)}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          {renderOfferGrid(modePresentation?.offersSectionTitle ?? c.offersSectionTitle)}
+          {renderItemGrid(modePresentation?.itemsSectionTitle ?? c.itemsSectionTitle)}
         </>
       )}
     </div>
@@ -635,9 +626,9 @@ export function OfertasLocalesPublicSearchClient({
             {resultsContent}
           </LeonixCategoryResultsShell>
         ) : (
-          <div className="px-3.5 pb-14 sm:px-5 lg:px-6">
+          <>
             {hero}
-            <main className="space-y-6 overflow-x-hidden sm:space-y-8">
+            <main className="mt-6 space-y-6 overflow-x-hidden sm:mt-8 sm:space-y-8">
               <LeonixCategoryDiscoveryGrid
                 lang={lang as V2Lang}
                 surface="landing"
@@ -750,7 +741,7 @@ export function OfertasLocalesPublicSearchClient({
               />
               ) : null}
             </main>
-          </div>
+          </>
         )}
         </div>
       </LeonixCategoryPageShell>

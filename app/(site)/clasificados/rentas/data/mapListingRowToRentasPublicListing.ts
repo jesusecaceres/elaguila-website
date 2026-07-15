@@ -32,6 +32,8 @@ import {
   formatLeonixLbPublicLocationLine,
   readLeonixPropertyLocationFromRow,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
+import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
 
 function trim(s: unknown): string {
   if (s == null) return "";
@@ -273,8 +275,19 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     availabilityRaw === "rentado"
       ? availabilityRaw
       : null;
+  const lifecycle = resolveListingLifecycle(
+    {
+      category: "rentas",
+      packageKey: "rentas_30d",
+      status,
+      isPublished: published,
+      publishedAt: typeof row.published_at === "string" ? row.published_at : null,
+      expiresAt: typeof row.expires_at === "string" ? row.expires_at : null,
+    },
+    RENTAS_LISTING_LIFECYCLE_CONFIG,
+  );
   const browseActive =
-    status === "active" && published && rentasCatalogEligibleFromMachineStatus(rx.listingStatus);
+    lifecycle.isPubliclyVisible && rentasCatalogEligibleFromMachineStatus(rx.listingStatus);
   const branchSeller = branchToSeller(lx.branch);
   const categoria: BrNegocioCategoriaPropiedad =
     lx.categoriaPropiedad === "residencial" || lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote"
