@@ -100,7 +100,7 @@ const QUICK_FACT_ICON: Record<
   niveles: BiLayer,
 };
 
-function openInNewTabAnchorProps(href: string) {
+function openInNewTabAnchorProps(_href: string) {
   return { target: "_blank" as const, rel: "noopener noreferrer" };
 }
 
@@ -149,11 +149,18 @@ export function AgenteIndividualResidencialPreviewPage({
   editHref,
   footerExtra,
   onBeforeNavigateToEdit,
+  publicChrome,
 }: {
   data: AgenteIndividualResidencialFormState;
   editHref?: string;
   footerExtra?: string;
   onBeforeNavigateToEdit?: () => void;
+  publicChrome?: {
+    eyebrow?: ReactNode;
+    meta?: ReactNode;
+    headerRight?: ReactNode;
+    beforeMainGrid?: ReactNode;
+  };
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
   const locale: AgenteResPreviewLocale = lang === "en" ? "en" : "es";
@@ -226,13 +233,17 @@ export function AgenteIndividualResidencialPreviewPage({
         <div className="mx-auto max-w-[1140px] px-4 py-3 sm:px-6 sm:py-3.5 lg:px-7 lg:py-4">
           <div className="relative flex min-h-[2.875rem] items-center sm:min-h-[3.125rem]">
             <div className="relative z-10 min-w-0 max-w-[38%] flex-1 pr-2 sm:max-w-[42%] sm:pr-3">
-              <p
-                className="line-clamp-2 text-left text-[13px] font-bold leading-tight tracking-[-0.01em] text-[#2C2416] sm:text-[14px] sm:leading-snug"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "tabular-nums" }}
-                title={p.badge}
-              >
-                {p.badge}
-              </p>
+              {publicChrome?.eyebrow ? (
+                publicChrome.eyebrow
+              ) : (
+                <p
+                  className="line-clamp-2 text-left text-[13px] font-bold leading-tight tracking-[-0.01em] text-[#2C2416] sm:text-[14px] sm:leading-snug"
+                  style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontVariantNumeric: "tabular-nums" }}
+                  title={p.badge}
+                >
+                  {p.badge}
+                </p>
+              )}
             </div>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-[clamp(6.5rem,30vw,11rem)]">
               <Image
@@ -246,7 +257,9 @@ export function AgenteIndividualResidencialPreviewPage({
               />
             </div>
             <div className="relative z-10 flex min-w-0 max-w-[38%] flex-1 items-center justify-end pl-2 sm:max-w-[42%] sm:pl-3">
-              {editHref ? (
+              {publicChrome?.headerRight ? (
+                publicChrome.headerRight
+              ) : editHref ? (
                 <Link
                   href={editHref}
                   prefetch={false}
@@ -263,9 +276,13 @@ export function AgenteIndividualResidencialPreviewPage({
       </header>
 
       <main className="mx-auto max-w-[1140px] px-4 pb-10 pt-1 sm:px-6 lg:px-7">
-        <p className={`mb-0 text-center ${typo.meta}`} style={{ color: MUTED }}>
-          {p.meta}
-        </p>
+        {publicChrome?.meta === null ? null : (
+          <p className={`mb-0 text-center ${typo.meta}`} style={{ color: MUTED }}>
+            {publicChrome?.meta ?? p.meta}
+          </p>
+        )}
+
+        {publicChrome?.beforeMainGrid}
 
         {/* Shell: mobile order = gallery → title → rail → body; lg = title / gallery / body | rail */}
         <section className={MAIN_GRID}>

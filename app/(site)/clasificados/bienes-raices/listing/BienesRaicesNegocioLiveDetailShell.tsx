@@ -1,13 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FiHeart, FiShare2 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
+import { copyToClipboard } from "@/app/components/cta";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
-import { BienesRaicesNegocioPreviewView } from "@/app/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView";
-import type {
-  BienesRaicesNegocioPreviewVm,
-  BienesRaicesPreviewFact,
-} from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
+import {
+  LEONIX_DP_BR_LISTING_STATUS,
+  LEONIX_DP_BR_SHOW_EXACT_ADDRESS,
+  parseLeonixListingContract,
+  parseLeonixMachineFacetRead,
+  readLeonixDetailPairValue,
+} from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
+import { BrAgenteResidencialLocaleProvider } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/BrAgenteResidencialLocaleContext";
+import { AgenteIndividualResidencialPreviewPage } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage";
+import {
+  createEmptyAgenteIndividualResidencialState,
+  type AgenteIndividualResidencialFormState,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState";
+import type { BienesAdditionalBusinessLink } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState";
 import { RelatedBrAgentProperties } from "@/app/clasificados/bienes-raices/components/RelatedBrAgentProperties";
 import { fetchBrRelatedInventoryListingsForDetail } from "@/app/clasificados/bienes-raices/lib/fetchBrRelatedInventoryListingsBrowser";
 import type { BrNegocioListing } from "@/app/clasificados/bienes-raices/resultados/cards/listingTypes";
@@ -50,175 +64,327 @@ function trim(v: unknown): string {
   return v == null ? "" : typeof v === "string" ? v.trim() : String(v).trim();
 }
 
-function parseBusinessMeta(raw: string | null | undefined): Record<string, unknown> {
+function parseJsonObject(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
+  if (typeof raw === "object" && !Array.isArray(raw)) return raw as Record<string, unknown>;
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(String(raw));
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
   } catch {
     return {};
   }
 }
 
-function href(raw: unknown): string | null {
-  const u = trim(raw);
-  return /^https?:\/\/\S+/i.test(u) ? u : null;
-}
-
-function asRows(detailPairs: unknown): BienesRaicesPreviewFact[] {
-  if (!Array.isArray(detailPairs)) return [];
-  const rows: BienesRaicesPreviewFact[] = [];
-  for (const item of detailPairs) {
-    if (!item || typeof item !== "object") continue;
-    const obj = item as Record<string, unknown>;
-    const label = trim(obj.label);
-    const value = trim(obj.value);
-    if (label && value) rows.push({ label, value });
+function parseJsonArray(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(String(raw));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
-  return rows;
 }
 
-function pickFact(rows: BienesRaicesPreviewFact[], tests: RegExp[]): string {
-  const hit = rows.find((r) => tests.some((test) => test.test(r.label)));
-  return hit?.value ?? "";
+function pairValue(detailPairs: unknown, label: string): string {
+  return readLeonixDetailPairValue(detailPairs, label) ?? "";
 }
 
-function quickFactsFromRows(rows: BienesRaicesPreviewFact[]): BienesRaicesNegocioPreviewVm["quickFacts"] {
-  const beds = pickFact(rows, [/rec[aá]maras/i, /bed/i]);
-  const baths = pickFact(rows, [/baños/i, /bath/i]);
-  const sqft = pickFact(rows, [/sq\s*ft/i, /pies/i, /interior/i, /construcci/i]);
-  const type = pickFact(rows, [/tipo/i, /property/i]);
-  return [
-    beds ? { label: "Recámaras", value: beds, icon: "bed" as const } : null,
-    baths ? { label: "Baños", value: baths, icon: "bath" as const } : null,
-    sqft ? { label: "Tamaño", value: sqft, icon: "ruler" as const } : null,
-    type ? { label: "Tipo", value: type, icon: "home" as const } : null,
-  ].filter(Boolean) as BienesRaicesNegocioPreviewVm["quickFacts"];
+function humanPairValue(detailPairs: unknown, labels: string[]): string {
+  for (const label of labels) {
+    const value = pairValue(detailPairs, label);
+    if (value && value !== "—") return value;
+  }
+  return "";
 }
 
-function buildLiveVm(
-  listing: BienesLiveListingLike,
-  identitySource: BienesLiveListingLike | ParentIdentityRow,
-  lang: Lang,
-): BienesRaicesNegocioPreviewVm {
-  const rows = asRows(listing.detailPairs);
+function numberString(raw: unknown): string {
+  const s = trim(raw);
+  if (!s || s === "—") return "";
+  const match = s.replace(/,/g, "").match(/\d+(\.\d+)?/);
+  return match?.[0] ?? "";
+}
+
+function splitBaths(raw: string): { baths: string; halfBaths: string } {
+  const s = trim(raw);
+  if (!s || s === "—") return { baths: "", halfBaths: "" };
+  const half = s.match(/(\d+)\s*med/i)?.[1] ?? "";
+  const first = s.replace(/,/g, "").match(/\d+(\.\d+)?/)?.[0] ?? "";
+  if (first.includes(".")) {
+    const n = Number(first);
+    if (Number.isFinite(n)) {
+      const whole = Math.floor(n);
+      return { baths: whole > 0 ? String(whole) : "", halfBaths: n - whole >= 0.5 ? "1" : "" };
+    }
+  }
+  return { baths: first, halfBaths: half };
+}
+
+function normalizeUrl(raw: unknown): string {
+  const s = trim(raw);
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s) || s.startsWith("data:")) return s;
+  if (/^www\./i.test(s)) return `https://${s}`;
+  return s;
+}
+
+function socialUrls(raw: unknown): string[] {
+  return trim(raw)
+    .split(/\r?\n/)
+    .map(normalizeUrl)
+    .filter(Boolean);
+}
+
+function parseBusinessExtraLinks(raw: unknown): BienesAdditionalBusinessLink[] {
+  return parseJsonArray(raw)
+    .map((item): BienesAdditionalBusinessLink | null => {
+      if (!item || typeof item !== "object") return null;
+      const obj = item as Record<string, unknown>;
+      const title = trim(obj.title);
+      const url = normalizeUrl(obj.url);
+      return url ? { title, url } : null;
+    })
+    .filter((item): item is BienesAdditionalBusinessLink => Boolean(item))
+    .slice(0, 2);
+}
+
+function firstSocialFor(raw: unknown, token: string): string {
+  return socialUrls(raw).find((url) => url.toLowerCase().includes(token)) ?? "";
+}
+
+function listingStatus(detailPairs: unknown): AgenteIndividualResidencialFormState["estadoAnuncio"] {
+  const raw = pairValue(detailPairs, LEONIX_DP_BR_LISTING_STATUS).toLowerCase();
+  if (raw === "bajo_contrato") return "bajo_contrato";
+  if (raw === "vendido") return "vendido";
+  if (raw === "pendiente") return "pendiente";
+  return "disponible";
+}
+
+function subtypeFromPair(detailPairs: unknown): string {
+  const raw = humanPairValue(detailPairs, ["Subtipo", "Tipo"]);
+  if (!raw || raw === "—") return "";
+  return raw
+    .split("·")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .at(-1) ?? "";
+}
+
+function splitCoAgent(raw: unknown): { name: string; title: string; phone: string; email: string } {
+  const parts = trim(raw)
+    .split("·")
+    .map((part) => part.trim());
+  return {
+    name: parts[0] ?? "",
+    title: parts[1] ?? "",
+    phone: parts.find((part) => /\d{3}/.test(part)) ?? "",
+    email: parts.find((part) => /@/.test(part)) ?? "",
+  };
+}
+
+function buildPublishedState(input: {
+  listing: BienesLiveListingLike;
+  parentIdentity?: ParentIdentityRow | null;
+  lang: Lang;
+}): AgenteIndividualResidencialFormState {
+  const { listing, parentIdentity } = input;
+  const identityMeta = parseJsonObject(parentIdentity?.business_meta ?? listing.business_meta);
+  const detailPairs = listing.detailPairs;
+  const contract = parseLeonixListingContract(detailPairs);
+  const facets = parseLeonixMachineFacetRead(detailPairs);
+  const gate = parseJsonObject(pairValue(detailPairs, "Leonix:br_gate12d_v1"));
+  const contact = parseJsonObject(pairValue(detailPairs, "Leonix:contact_channels_v1"));
+  const base = createEmptyAgenteIndividualResidencialState();
   const photos = (listing.images ?? []).map(trim).filter(Boolean);
-  const meta = parseBusinessMeta(identitySource.business_meta ?? null);
-  const phone = trim(identitySource.contact_phone);
-  const email = trim(identitySource.contact_email);
-  const businessName = trim(identitySource.business_name) || trim((identitySource as BienesLiveListingLike).businessName);
-  const title = listing.title[lang] || listing.title.es || listing.title.en || "";
-  const cityZip = [trim(listing.city), trim(listing.zip)].filter(Boolean).join(" ");
-  const profileHref = href(meta.negocioWebsiteUrl) ?? href(meta.negocioGoogleBusinessUrl);
-  const socialLinks = [
-    ["Instagram", href(meta.negocioInstagramUrl)],
-    ["Facebook", href(meta.negocioFacebookUrl)],
-    ["YouTube", href(meta.negocioYoutubeUrl)],
-    ["TikTok", href(meta.negocioTiktokUrl)],
-  ]
-    .filter((x): x is [string, string] => Boolean(x[1]))
-    .map(([label, link]) => ({ label, href: link }));
+  const baths = splitBaths(humanPairValue(detailPairs, ["Baños", "Bathrooms"]));
+  const metaSocial = identityMeta.negocioRedes;
+  const website = normalizeUrl(identityMeta.negocioSitioWeb ?? contact.website);
+  const email = trim(identityMeta.negocioEmail) || trim(parentIdentity?.contact_email) || trim(listing.contact_email);
+  const phone = trim(identityMeta.negocioTelOficina) || trim(parentIdentity?.contact_phone) || trim(listing.contact_phone);
+  const coAgent = splitCoAgent(identityMeta.negocioCoAgente);
+  const broker = splitCoAgent(identityMeta.negocioSocioFinanciero);
+  const rawPrice = listing.priceLabel[input.lang] || listing.priceLabel.es || listing.priceLabel.en;
+  const category = contract.categoriaPropiedad ?? "residencial";
+  const showExact = pairValue(detailPairs, LEONIX_DP_BR_SHOW_EXACT_ADDRESS).toLowerCase() === "true";
 
   return {
-    publicationType: "",
-    platformLogoUrl: "/logo.png",
-    heroTitle: title,
-    addressLine: cityZip || trim(listing.city),
-    priceDisplay: listing.priceLabel[lang] || listing.priceLabel.es || listing.priceLabel.en || "",
-    listingStatusLabel: lang === "en" ? "Active" : "Activo",
-    operationSummary: listing.leonix_ad_id ? `${listing.leonix_ad_id}` : "",
-    quickFacts: quickFactsFromRows(rows),
-    contactRailTitle: lang === "en" ? "Contact" : "Contacto",
-    identity: {
-      photoUrl: href(meta.negocioAgentPhotoUrl) ?? href(meta.negocioLogoUrl),
-      name: businessName || (lang === "en" ? "Real estate professional" : "Profesional inmobiliario"),
-      role: lang === "en" ? "Real estate agent / business" : "Agente / negocio de bienes raíces",
-      brokerageName: businessName || "",
-      brokerageLogoUrl: href(meta.negocioLogoUrl),
-      showBrokerageBlock: Boolean(businessName || href(meta.negocioLogoUrl)),
-      verifiedLine: "",
-      licenseLine: trim(meta.negocioLicenseNumber) ? `Lic. ${trim(meta.negocioLicenseNumber)}` : "",
-      bioLine: trim(meta.negocioBio),
-      socialLinks,
-      profileCtaLabel: lang === "en" ? "View profile" : "Ver perfil",
-      profileHref,
-      profileCtaEnabled: Boolean(profileHref),
-      contactPhone: phone,
-      contactEmail: email,
-      hasPhoto: Boolean(href(meta.negocioAgentPhotoUrl) ?? href(meta.negocioLogoUrl)),
-      hasSocialLinks: socialLinks.length > 0,
-    },
-    media: {
-      heroUrl: photos[0] ?? null,
-      secondaryPhotoUrls: photos.slice(1, 3),
-      videoThumbUrls: [null, null],
-      videoPlaybackUrls: [null, null],
-      youtubeIds: [null, null],
-      externalVideoLinks: [],
-      virtualTourUrl: href(meta.virtualTourUrl) ?? null,
-      floorPlanUrls: [],
-      sitePlanUrl: null,
-      metaLine: photos.length ? `${photos.length} fotos` : "",
-      hasPhotos: photos.length > 0,
-      hasVideo1: false,
-      hasVideo2: false,
-      hasVirtualTour: Boolean(href(meta.virtualTourUrl)),
-      hasFloorPlans: false,
-      hasSitePlan: false,
-      photoCount: photos.length,
-      heroCaption: null,
-      allPhotoUrls: photos,
-      coverPhotoIndex: 0,
-      photoCaptionsFull: photos.map(() => ""),
-    },
-    propertyDetailsRows: rows,
-    highlightsRows: rows.slice(0, 6),
-    description: listing.blurb[lang] || listing.blurb.es || listing.blurb.en || "",
-    hasDescription: Boolean(trim(listing.blurb[lang] || listing.blurb.es || listing.blurb.en)),
-    hasHighlights: rows.length > 0,
-    contact: {
-      showSolicitarInfo: Boolean(email),
-      showProgramarVisita: Boolean(email),
-      showLlamar: Boolean(phone),
-      showWhatsapp: Boolean(phone),
-      showSms: Boolean(phone),
-      solicitarInfoHref: email ? `mailto:${email}` : null,
-      programarVisitaHref: email ? `mailto:${email}` : null,
-      llamarHref: phone ? `tel:${phone}` : null,
-      whatsappHref: null,
-      smsHref: phone ? `sms:${phone}` : null,
-      instructionsLine: "",
-      horarioPreferidoLine: "",
-      openHouseSummary: null,
-      websiteHref: profileHref,
-      socialIconLinks: [],
-      usefulLinks: profileHref ? [{ label: lang === "en" ? "Website" : "Sitio web", href: profileHref }] : [],
-      preferredContactLine: "",
-      googleBusinessUrl: href(meta.negocioGoogleBusinessUrl),
-      googleReviewsUrl: href(meta.negocioGoogleReviewsUrl),
-      yelpReviewsUrl: href(meta.negocioYelpReviewsUrl),
-      secondAgent: null,
-      lender: null,
-    },
-    deepBlocks: [],
-    detailClusters: [],
-    location: {
-      line1: "",
-      colonia: "",
-      cityStateZip: cityZip,
-      fullAddress: cityZip,
-      mapLocationLine: cityZip,
-      mapsUrl: cityZip ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cityZip)}` : null,
-      hasMeaningfulAddress: Boolean(cityZip),
-    },
-    schools: { rows: [], showModule: false },
-    community: { rows: [], showModule: false },
-    hoaDevelopment: { rows: [], showModule: false, sitePlanCallout: false },
-    mostrarDireccionExacta: false,
-    footerNote: "",
-    hoaCommunityCard: null,
-    openHouseCard: null,
+    ...base,
+    sellerTipo: "agente_individual",
+    categoriaPropiedad: category,
+    titulo: listing.title[input.lang] || listing.title.es || listing.title.en,
+    precio: numberString(rawPrice),
+    ciudad: listing.city,
+    areaCiudad: trim(gate.neighborhood),
+    direccionLinea1: trim(gate.streetAddress),
+    direccionEstado: pairValue(detailPairs, "Leonix:state"),
+    direccionCodigoPostal: pairValue(detailPairs, "Leonix:postal_code") || trim(listing.zip),
+    direccionPais: pairValue(detailPairs, "Leonix:country") || base.direccionPais,
+    direccion: humanPairValue(detailPairs, ["Dirección", "Address"]),
+    mostrarDireccionExacta: showExact,
+    estadoAnuncio: listingStatus(detailPairs),
+    tipoPropiedadCodigo: facets.resultsPropertyKind === "departamento" ? "condominio" : "casa",
+    subtipoPropiedad: category === "residencial" ? subtypeFromPair(detailPairs) : "",
+    comercialTipoCodigo: "oficina",
+    comercialSubtipoPropiedad: category === "comercial" ? subtypeFromPair(detailPairs) : "",
+    comercialUso: humanPairValue(detailPairs, ["Uso", "Commercial use"]),
+    comercialOficinas: humanPairValue(detailPairs, ["Oficinas", "Office spaces"]),
+    comercialNiveles: humanPairValue(detailPairs, ["Niveles", "Levels"]),
+    terrenoTipoCodigo: "rancho",
+    terrenoSubtipoPropiedad: category === "terreno_lote" ? subtypeFromPair(detailPairs) : "",
+    terrenoUsoZonificacion: humanPairValue(detailPairs, ["Zonificación", "Zona", "Uso de suelo"]),
+    terrenoServicios: humanPairValue(detailPairs, ["Servicios"]),
+    terrenoTopografia: humanPairValue(detailPairs, ["Topografía"]),
+    fotosDataUrls: photos,
+    fotoPortadaIndex: 0,
+    videoUrl: "",
+    videoUrls: parseJsonArray(identityMeta.negocioExternalVideoUrls).map(normalizeUrl).filter(Boolean).slice(0, 4),
+    tourUrl: normalizeUrl(gate.virtualTourUrl ?? contact.tourUrl),
+    brochureUrl: normalizeUrl(gate.brochureUrl ?? contact.brochureUrl),
+    recamaras: facets.bedroomsCount != null ? String(facets.bedroomsCount) : humanPairValue(detailPairs, ["Recámaras", "Habitaciones", "Bedrooms"]),
+    banos: facets.bathroomsCount != null ? String(Math.floor(facets.bathroomsCount)) : baths.baths,
+    mediosBanos: facets.bathroomsCount != null && facets.bathroomsCount % 1 >= 0.5 ? "1" : baths.halfBaths,
+    tamanoInteriorSqft: numberString(humanPairValue(detailPairs, ["Pies cuadrados", "Superficie", "Sq ft", "Interior"])),
+    tamanoLoteSqft: numberString(humanPairValue(detailPairs, ["Lote", "Tamaño del lote", "Lot"])),
+    estacionamientos: facets.parkingSpots != null && facets.parkingSpots > 0 ? String(facets.parkingSpots) : "",
+    descripcionPrincipal: stripLeonixPublishedDescriptionBody(listing.blurb[input.lang] || listing.blurb.es || listing.blurb.en),
+    agenteFotoDataUrl: trim(identityMeta.negocioFotoAgenteUrl),
+    agenteNombre: trim(identityMeta.negocioAgente),
+    agenteTitulo: trim(identityMeta.negocioCargo),
+    agenteLicencia: trim(identityMeta.negocioLicencia),
+    agenteTelefonoPersonal: phone,
+    agenteTelefonoOficina: phone,
+    agenteWhatsapp: phone,
+    agenteSitioWeb: website,
+    correoPrincipal: email,
+    marcaNombre: trim(identityMeta.negocioNombreCorreduria) || trim(parentIdentity?.business_name) || trim(listing.business_name),
+    marcaLogoDataUrl: trim(identityMeta.negocioLogoUrl),
+    marcaLicencia: trim(identityMeta.negocioLicencia),
+    marcaSitioWeb: website,
+    mostrarMarcaEnTarjeta: true,
+    socialInstagram: firstSocialFor(metaSocial, "instagram"),
+    socialFacebook: firstSocialFor(metaSocial, "facebook"),
+    socialYoutube: firstSocialFor(metaSocial, "youtube"),
+    socialTiktok: firstSocialFor(metaSocial, "tiktok"),
+    socialX: firstSocialFor(metaSocial, "twitter") || firstSocialFor(metaSocial, "x.com"),
+    googleBusinessUrl: normalizeUrl(identityMeta.negocioGoogleBusinessUrl),
+    googleReviewsUrl: normalizeUrl(identityMeta.negocioGoogleReviewsUrl),
+    yelpReviewsUrl: normalizeUrl(identityMeta.negocioYelpReviewsUrl),
+    businessExtraUrls: parseBusinessExtraLinks(identityMeta.negocioBusinessExtraUrls),
+    agenteAreaServicio: trim(identityMeta.negocioZonasServicio),
+    agenteIdiomas: trim(identityMeta.negocioIdiomas),
+    mostrarSegundoAgente: Boolean(coAgent.name),
+    agente2Nombre: coAgent.name,
+    agente2Titulo: coAgent.title,
+    agente2TelefonoPersonal: coAgent.phone,
+    agente2TelefonoOficina: coAgent.phone,
+    agente2Whatsapp: coAgent.phone,
+    agente2Correo: coAgent.email,
+    mostrarBrokerAsesor: Boolean(broker.name),
+    brokerNombre: broker.name,
+    brokerTitulo: broker.title,
+    brokerTelefonoPersonal: broker.phone,
+    brokerTelefonoOficina: broker.phone,
+    brokerWhatsapp: broker.phone,
+    brokerEmail: broker.email,
+    brokerSitioWeb: website,
+    permitirSolicitarInformacion: true,
+    permitirProgramarVisita: true,
+    permitirLlamar: true,
+    permitirWhatsApp: true,
+    permitirVerSitioWeb: Boolean(website),
+    permitirVerRedes: true,
+    permitirVerListadoCompleto: true,
+    permitirVerTour: Boolean(normalizeUrl(gate.virtualTourUrl ?? contact.tourUrl)),
+    permitirVerFolleto: Boolean(normalizeUrl(gate.brochureUrl ?? contact.brochureUrl)),
+    ctaNumeroLlamadas: phone,
+    ctaNumeroWhatsapp: phone,
+    ctaCorreoSolicitarInfo: email,
+    ctaEnlaceProgramarVisita: email ? `mailto:${email}` : "",
+    ctaEnlaceSitioWeb: website,
+    ctaUrlListadoCompleto: website,
+    ctaUrlTour: normalizeUrl(gate.virtualTourUrl ?? contact.tourUrl),
+    ctaUrlFolleto: normalizeUrl(gate.brochureUrl ?? contact.brochureUrl),
+    extraOpenHouse: Boolean(gate.openHouseEnabled),
+    openHouseSlots: gate.openHouseEnabled
+      ? [
+          {
+            fecha: trim(gate.openHouseDate),
+            fechaFin: trim(gate.openHouseEndDate),
+            inicio: trim(gate.openHouseStartTime),
+            fin: trim(gate.openHouseEndTime),
+            diasHorariosAdicionales: trim(gate.openHouseAdditionalDays),
+            notas: trim(gate.openHouseNotes),
+          },
+        ]
+      : [],
+    confirmListingAccurate: true,
+    confirmPhotosRepresentItem: photos.length > 0,
+    confirmCommunityRules: true,
+    confirmPaymentAfterPreview: true,
   };
+}
+
+function PublicChromeActions({
+  listingId,
+  lang,
+  ownerId,
+}: {
+  listingId: string;
+  lang: Lang;
+  ownerId?: string | null;
+}) {
+  const [saved, setSaved] = useState(false);
+  const [copyHint, setCopyHint] = useState("");
+
+  const save = useCallback(async () => {
+    const sb = createSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await sb.auth.getUser();
+    if (!user) {
+      const here = `${window.location.pathname}${window.location.search || ""}`;
+      window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
+      return;
+    }
+    if (saved) {
+      await sb.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listingId);
+      setSaved(false);
+      void trackListingSave(listingId, false, { ownerUserId: ownerId ?? undefined });
+    } else {
+      await sb.from("saved_listings").insert({ user_id: user.id, listing_id: listingId });
+      setSaved(true);
+      void trackListingSave(listingId, true, { ownerUserId: ownerId ?? undefined });
+    }
+  }, [listingId, ownerId, saved]);
+
+  const share = useCallback(async () => {
+    const ok = await copyToClipboard(window.location.href);
+    setCopyHint(ok ? (lang === "en" ? "Copied" : "Copiado") : "");
+    window.setTimeout(() => setCopyHint(""), 1800);
+  }, [lang]);
+
+  return (
+    <div className="flex min-w-0 items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={save}
+        className="inline-flex min-h-9 items-center gap-1 rounded-full border bg-white/90 px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5C4A28] transition hover:bg-[#FFF6E7]"
+        style={{ borderColor: "rgba(201, 180, 106, 0.42)" }}
+      >
+        <FiHeart className={saved ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"} aria-hidden />
+        <span className="hidden sm:inline">{saved ? (lang === "en" ? "Saved" : "Guardado") : lang === "en" ? "Save" : "Guardar"}</span>
+      </button>
+      <button
+        type="button"
+        onClick={share}
+        className="inline-flex min-h-9 items-center gap-1 rounded-full border bg-white/90 px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5C4A28] transition hover:bg-[#FFF6E7]"
+        style={{ borderColor: "rgba(201, 180, 106, 0.42)" }}
+      >
+        <FiShare2 className="h-3.5 w-3.5" aria-hidden />
+        <span className="hidden sm:inline">{copyHint || (lang === "en" ? "Share" : "Compartir")}</span>
+      </button>
+    </div>
+  );
 }
 
 export function BienesRaicesNegocioLiveDetailShell({
@@ -253,8 +419,7 @@ export function BienesRaicesNegocioLiveDetailShell({
           .maybeSingle();
         return { data: (res.data as Record<string, unknown> | null) ?? null, error: res.error ? { message: res.error.message } : null };
       });
-      if (cancelled) return;
-      setParentIdentity(result.data ? (result.data as ParentIdentityRow) : null);
+      if (!cancelled) setParentIdentity(result.data ? (result.data as ParentIdentityRow) : null);
     })();
     return () => {
       cancelled = true;
@@ -279,16 +444,32 @@ export function BienesRaicesNegocioLiveDetailShell({
     };
   }, [groupId, lang, listing.br_inventory_parent_listing_id, listing.id, listing.inventory_role, listing.owner_id]);
 
-  const vm = useMemo(() => buildLiveVm(listing, parentIdentity ?? listing, lang), [listing, parentIdentity, lang]);
+  const data = useMemo(() => buildPublishedState({ listing, parentIdentity, lang }), [lang, listing, parentIdentity]);
 
   return (
-    <div className="bg-[#FDFBF7]">
-      <BienesRaicesNegocioPreviewView vm={vm} lang={lang} />
-      {!isChild && portfolio.length ? (
-        <div className="mx-auto max-w-[1240px] px-4 pb-16 sm:px-6 lg:px-8">
-          <RelatedBrAgentProperties listings={portfolio} lang={lang} groupId={groupId} />
-        </div>
-      ) : null}
-    </div>
+    <BrAgenteResidencialLocaleProvider>
+      <div className="bg-[#F9F6F1]">
+        <AgenteIndividualResidencialPreviewPage
+          data={data}
+          publicChrome={{
+            eyebrow: (
+              <Link
+                href={`/clasificados/bienes-raices/resultados?lang=${lang}`}
+                className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6E5418] underline-offset-4 hover:underline sm:text-xs"
+              >
+                {lang === "en" ? "Back to Real estate" : "Volver a Bienes Raíces"}
+              </Link>
+            ),
+            meta: listing.leonix_ad_id ? `${listing.leonix_ad_id} · ${lang === "en" ? "Published listing" : "Anuncio publicado"}` : null,
+            headerRight: <PublicChromeActions listingId={listing.id} lang={lang} ownerId={listing.owner_id} />,
+          }}
+        />
+        {!isChild && portfolio.length ? (
+          <div className="mx-auto max-w-[1140px] px-4 pb-16 sm:px-6 lg:px-7">
+            <RelatedBrAgentProperties listings={portfolio} lang={lang} groupId={groupId} />
+          </div>
+        ) : null}
+      </div>
+    </BrAgenteResidencialLocaleProvider>
   );
 }
