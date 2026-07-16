@@ -119,6 +119,8 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const [data, setData] = useState<AgenteIndividualResidencialFormState>(createEmptyAgenteIndividualResidencialState);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  const [saveEditBusy, setSaveEditBusy] = useState(false);
+  const [saveEditMessage, setSaveEditMessage] = useState<string | null>(null);
   const [parentLeonixAdId, setParentLeonixAdId] = useState<string | null>(null);
   const [bridge, setBridge] = useState<BrNegocioInventoryBridgeView | null>(null);
   const [childPreviewId, setChildPreviewId] = useState<string | null>(null);
@@ -397,6 +399,42 @@ export default function AgenteIndividualResidencialPreviewClient() {
     }
   }, [applicationInstanceId, data, inventoryCtx, lang, router]);
 
+  const onSaveListingEdit = useCallback(async () => {
+    if (!listingBoundPreview || !listingIdParam || saveEditBusy) return;
+    setSaveEditBusy(true);
+    setPublishErr(null);
+    setSaveEditMessage(null);
+    try {
+      const sb = createSupabaseBrowserClient();
+      const { data: auth } = await sb.auth.getSession();
+      const token = auth.session?.access_token;
+      if (!token) {
+        setPublishErr(lang === "es" ? "Inicia sesión para guardar." : "Sign in required.");
+        return;
+      }
+      const res = await fetch("/api/clasificados/bienes-raices/listing-edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          listingId: listingIdParam,
+          leonixAdId: leonixAdIdParam || null,
+          lang,
+          draft: data,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      if (!res.ok || !json.ok) {
+        setPublishErr(json.message ?? (lang === "es" ? "No se pudieron guardar los cambios." : "Could not save changes."));
+        return;
+      }
+      setSaveEditMessage(lang === "es" ? "Cambios guardados" : "Changes saved");
+    } catch (e) {
+      setPublishErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaveEditBusy(false);
+    }
+  }, [data, lang, leonixAdIdParam, listingBoundPreview, listingIdParam, saveEditBusy]);
+
   const handlePromoApply = useCallback(
     async (code: string) => {
       const hasInventory = childInventoryCount > 0;
@@ -436,17 +474,33 @@ export default function AgenteIndividualResidencialPreviewClient() {
     [childPreviewId, data.additionalInventoryProperties],
   );
 
-  const showPaymentCheckpoint = Boolean(checkpointConfig);
+  const showPaymentCheckpoint = Boolean(checkpointConfig) && !listingBoundPreview;
 
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
       <div className="sticky top-0 z-40 border-b border-[#E8DFD0]/80 bg-[#FFFCF7]/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[1140px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#B8954A]">
-            {lang === "es" ? "Vista previa · Publicar" : "Preview · Publish"}
+            {listingBoundPreview
+              ? lang === "es"
+                ? "Vista previa · Edición"
+                : "Preview · Edit"
+              : lang === "es"
+                ? "Vista previa · Publicar"
+                : "Preview · Publish"}
           </p>
           <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
-            {showPaymentCheckpoint ? (
+            {listingBoundPreview ? (
+              <button type="button" className={PUBLISH_BTN} disabled={saveEditBusy} onClick={() => void onSaveListingEdit()}>
+                {saveEditBusy
+                  ? lang === "es"
+                    ? "Guardando cambios…"
+                    : "Saving changes…"
+                  : lang === "es"
+                    ? "Guardar cambios"
+                    : "Save changes"}
+              </button>
+            ) : showPaymentCheckpoint ? (
               <button
                 type="button"
                 className={PUBLISH_BTN}
@@ -470,6 +524,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
             {!showPaymentCheckpoint && publishErr ? (
               <p className="max-w-[320px] text-right text-[11px] text-red-700" role="alert">
                 {publishErr}
+              </p>
+            ) : null}
+            {saveEditMessage ? (
+              <p className="max-w-[320px] text-right text-[11px] font-semibold text-emerald-700" role="status">
+                {saveEditMessage}
               </p>
             ) : null}
           </div>

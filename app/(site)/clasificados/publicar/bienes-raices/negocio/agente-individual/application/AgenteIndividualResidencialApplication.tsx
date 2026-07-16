@@ -32,6 +32,7 @@ import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteInd
 import { brShouldIgnoreWizardShortcut } from "../../application/brWizardKeyboard";
 import {
   bootstrapAgenteIndividualResidencialApplicationStateResolved,
+  clearAgenteIndividualResidencialPublishTempState,
   ensureBrAgenteResApplicationInstanceId,
   flushAgenteResDraftSyncForUnload,
   agenteResStateHasUnpersistedDataUrlPhotos,
@@ -83,6 +84,8 @@ import {
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 
 const BR_AGENTE_RES_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
 
@@ -135,6 +138,14 @@ export default function AgenteIndividualResidencialApplication() {
   const [inventoryCheckoutError, setInventoryCheckoutError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [state, setState] = useState(() => createEmptyAgenteIndividualResidencialState());
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const cleanEditSnapshotRef = useRef("");
+  const [editDirty, setEditDirty] = useState(false);
+  const [saveEditBusy, setSaveEditBusy] = useState(false);
+  const [saveEditMessage, setSaveEditMessage] = useState<string | null>(null);
+  const [saveEditError, setSaveEditError] = useState<string | null>(null);
+  const [saveEditSuccess, setSaveEditSuccess] = useState(false);
   const [applicationInstanceId] = useState(() => ensureBrAgenteResApplicationInstanceId(searchParams));
   const addModePreviewSyncedRef = useRef(false);
   const skipFirstPersistRef = useRef(true);
@@ -244,10 +255,22 @@ export default function AgenteIndividualResidencialApplication() {
       }
       const boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved({ applicationInstanceId });
       setState(boot);
+      cleanEditSnapshotRef.current = JSON.stringify(boot);
+      setEditDirty(false);
+      setSaveEditSuccess(false);
+      setSaveEditMessage(null);
+      setSaveEditError(null);
       setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
       setEditHydration({ status: "idle" });
     });
   }, [applicationInstanceId, editListingId, isExistingDashboardListingMode, lang]);
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !cleanEditSnapshotRef.current || editHydration.status !== "idle") return;
+    const dirty = JSON.stringify(state) !== cleanEditSnapshotRef.current;
+    setEditDirty(dirty);
+    if (dirty && saveEditSuccess) setSaveEditSuccess(false);
+  }, [editHydration.status, isExistingDashboardListingMode, saveEditSuccess, state]);
 
   useEffect(() => {
     if (!isExistingDashboardListingMode || !editListingId) {
@@ -308,6 +331,69 @@ export default function AgenteIndividualResidencialApplication() {
       setInventoryCheckoutBusy(false);
     }
   }, [editLeonixAdId, editListingId, editListingSlug, lang]);
+
+  const cancelDashboardListingEdit = useCallback(() => {
+    if (!isExistingDashboardListingMode) return;
+    if (editDirty) {
+      const ok = window.confirm(
+        lang === "en"
+          ? "Unsaved changes will be discarded. Your published listing will remain unchanged."
+          : "Los cambios no guardados se descartarán. Tu anuncio publicado permanecerá sin cambios.",
+      );
+      if (!ok) return;
+    }
+    clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
+    router.push(dashboardReturnHref);
+  }, [applicationInstanceId, dashboardReturnHref, editDirty, isExistingDashboardListingMode, lang, router]);
+
+  const saveDashboardListingEdit = useCallback(async () => {
+    if (!isDashboardListingEditMode || !editListingId || editHydration.status !== "idle" || saveEditBusy) return;
+    setSaveEditBusy(true);
+    setSaveEditError(null);
+    setSaveEditMessage(null);
+    try {
+      await persistAgenteResApplicationDraftResolved(stateRef.current, { applicationInstanceId });
+      const sb = createSupabaseBrowserClient();
+      const { data } = await sb.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setSaveEditError(lang === "en" ? "Sign in required." : "Inicia sesión para guardar.");
+        return;
+      }
+      const res = await fetch("/api/clasificados/bienes-raices/listing-edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          listingId: editListingId,
+          leonixAdId: editLeonixAdId || null,
+          lang,
+          draft: stateRef.current,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      if (!res.ok || !json.ok) {
+        setSaveEditError(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
+        return;
+      }
+      cleanEditSnapshotRef.current = JSON.stringify(stateRef.current);
+      setEditDirty(false);
+      setSaveEditSuccess(true);
+      setSaveEditMessage(lang === "en" ? "Changes saved" : "Cambios guardados");
+      clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
+    } catch (e) {
+      setSaveEditError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaveEditBusy(false);
+    }
+  }, [
+    applicationInstanceId,
+    editHydration.status,
+    editLeonixAdId,
+    editListingId,
+    isDashboardListingEditMode,
+    lang,
+    saveEditBusy,
+  ]);
 
   useEffect(() => {
     // Pre-publish inventory-child return uses `focus=inventory-pack` so the shell (and drawer) mount.
@@ -591,9 +677,9 @@ export default function AgenteIndividualResidencialApplication() {
                 <button
                   type="button"
                   className="min-h-[48px] w-full touch-manipulation rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm font-semibold text-[#2C2416] hover:bg-[#FFFCF7] sm:w-auto sm:min-h-0 sm:px-3 sm:py-2"
-                  onClick={() => leaveAndGo(dashboardReturnHref)}
+                  onClick={cancelDashboardListingEdit}
                 >
-                  {lang === "en" ? "← Back to dashboard" : "← Volver al panel"}
+                  {lang === "en" ? "Cancel edit" : "Cancelar edición"}
                 </button>
               ) : (
                 <>
@@ -738,6 +824,69 @@ export default function AgenteIndividualResidencialApplication() {
                     }}
                     hidden={inventoryAdd.inventoryModeAdd}
                   />
+                ) : null}
+                {isDashboardListingEditMode ? (
+                  <div className="mt-6 rounded-2xl border border-[#C9B46A]/45 bg-white p-4 shadow-sm">
+                    <p className="text-sm font-semibold text-[#2C2416]">
+                      {lang === "en"
+                        ? "Save updates to this published listing without changing payment, status, or Leonix IDs."
+                        : "Guarda cambios en este anuncio publicado sin cambiar pago, estado ni IDs Leonix."}
+                    </p>
+                    {saveEditError ? (
+                      <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">
+                        {saveEditError}
+                      </p>
+                    ) : null}
+                    {saveEditMessage ? (
+                      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950" role="status">
+                        <p className="font-bold">{saveEditMessage}</p>
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                          <a
+                            href={appendLangToPath(leonixLiveAnuncioPath(editListingId), lang)}
+                            className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-950"
+                          >
+                            {lang === "en" ? "View public listing" : "Ver anuncio público"}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => router.push(dashboardReturnHref)}
+                            className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-950"
+                          >
+                            {lang === "en" ? "Back to My listings" : "Volver a Mis anuncios"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <button
+                        type="button"
+                        disabled={saveEditBusy || editHydration.status !== "idle"}
+                        onClick={() => void saveDashboardListingEdit()}
+                        className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-6 py-3 text-sm font-bold text-[#1E1810] shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {saveEditBusy
+                          ? lang === "en"
+                            ? "Saving changes…"
+                            : "Guardando cambios…"
+                          : lang === "en"
+                            ? "Save changes"
+                            : "Guardar cambios"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saveEditBusy}
+                        onClick={cancelDashboardListingEdit}
+                        className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-5 py-3 text-sm font-semibold text-[#2C2416] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {lang === "en" ? "Cancel edit" : "Cancelar edición"}
+                      </button>
+                    </div>
+                    {editDirty ? (
+                      <p className="mt-3 text-xs text-[#6E5418]">
+                        {lang === "en" ? "Unsaved changes in this edit workspace." : "Hay cambios sin guardar en esta edición."}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
                 {!isExistingDashboardListingMode ? (
                   <>

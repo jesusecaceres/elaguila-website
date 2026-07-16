@@ -387,12 +387,11 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
 }
 
 /** BR Negocio agente-individual lane — maps to Negocio publish contract then reuses core insert. */
-export async function publishLeonixListingFromAgenteResidencialDraft(
+export function buildPublishParamsFromAgenteResidencialDraft(
   state: AgenteIndividualResidencialFormState,
   lang: "es" | "en",
   inventory?: BrNegocioPublishInventoryContext | null,
-  opts?: BrPublishDraftOptions,
-): Promise<PublishLeonixRealEstateListingCoreResult> {
+): LeonixBrDraftPublishBuildResult {
   const photos = (Array.isArray(state.fotosDataUrls) ? state.fotosDataUrls : []).filter((u) => String(u ?? "").trim());
   if (!photos.length) {
     return {
@@ -404,7 +403,26 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
     };
   }
   const negocio = mapAgenteResidencialFormStateToNegocioForPublish(state);
-  return publishLeonixListingFromBienesRaicesNegocioDraft(negocio, lang, inventory, opts);
+  return buildPublishParamsFromBienesRaicesNegocioDraft(negocio, lang, inventory);
+}
+
+/** BR Negocio agente-individual lane — maps to Negocio publish contract then reuses core insert. */
+export async function publishLeonixListingFromAgenteResidencialDraft(
+  state: AgenteIndividualResidencialFormState,
+  lang: "es" | "en",
+  inventory?: BrNegocioPublishInventoryContext | null,
+  opts?: BrPublishDraftOptions,
+): Promise<PublishLeonixRealEstateListingCoreResult> {
+  const built = buildPublishParamsFromAgenteResidencialDraft(state, lang, inventory);
+  if (!built.ok) return built;
+  if ("params" in built) {
+    return publishLeonixRealEstateListingCore({
+      ...built.params,
+      activationMode: opts?.activationMode,
+      brPaymentLane: "negocio",
+    });
+  }
+  return built;
 }
 
 export async function publishLeonixListingFromRentasNegocioDraft(
