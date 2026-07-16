@@ -24,3 +24,16 @@ These defaults are optimized for AI coding agents (and humans) working on apps t
   needed. Always curl https://ai-gateway.vercel.sh/v1/models first; never trust model IDs from memory
 - For durable agent loops or untrusted code: use Workflow (pause/resume/state) + Sandbox; use Vercel MCP for secure infra access
 <!-- VERCEL BEST PRACTICES END -->
+
+## Cursor Cloud specific instructions
+
+Single Next.js 15 (App Router) monolith, package manager **npm** (`package-lock.json`). There is no separate backend — all APIs live under `app/api/`. No Docker/devcontainer; no local Supabase. The `npm install` update script runs automatically on startup; the notes below are the non-obvious gotchas.
+
+- **`.env.local` is required to boot.** `app/lib/supabaseClient.ts` constructs the Supabase browser client at module load, so any page importing it throws if `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are unset. For local/dev work, placeholder values are enough for pages to compile and render (live reads/writes still won't work). `.env*` is gitignored.
+- **Unlock the site locally with `PUBLIC_LAUNCH_LOCK=false`.** Otherwise `middleware.ts` redirects every non-allowlisted route to `/coming-soon-v2` (see `app/lib/launchLock/publicLaunchLock.ts`; the lock also auto-enables when `VERCEL_ENV === "production"`).
+- **Real data flows need a real Supabase project** (URL + `SUPABASE_SERVICE_ROLE_KEY`) with `supabase/migrations/` applied; without it, classifieds browse/publish, auth, admin, and tienda persistence fail. Do NOT point local dev at the production database.
+- **Servicios has a Supabase-free dev fallback:** in `next dev` (or `SERVICIOS_DEV_PUBLISH=1`), `POST /api/clasificados/servicios/publish` persists to a gitignored `.servicios-dev-publishes.json` and renders on the public results/detail pages — useful for exercising the publish→render loop without a database.
+- **Run:** `npm run dev` → http://localhost:3000 (dev). `npm run build` then `npm run start` for a prod-like server.
+- **Type-check:** `npm run typecheck` (`tsc --noEmit`) covers the whole repo including `e2e/**`. It currently reports **pre-existing** failures in `e2e/community/*.spec.ts` (Playwright arg typing) unrelated to app code; `next build` type-checks app code only and gates on it (`ignoreBuildErrors: false`).
+- **Lint:** `npm run lint` is scoped to the `autos` vertical and currently reports **pre-existing** errors; builds ignore ESLint (`eslint.ignoreDuringBuilds: true` in `next.config.ts`). Other verticals have their own `lint:*` scripts.
+- **Tests:** Playwright-based. Many category-scoped `verify:*` / `smoke:*` scripts (see `package.json`) require a prior `npm run build` and/or Supabase; running E2E needs browsers via `npx playwright install` first (not part of the update script).
