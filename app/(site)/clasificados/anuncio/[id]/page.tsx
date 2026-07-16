@@ -40,6 +40,7 @@ import { LeonixShareButton } from "@/app/components/clasificados/analytics/Leoni
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
+import { BienesRaicesNegocioLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -1305,17 +1306,50 @@ export default function AnuncioDetallePage() {
     );
   }
 
-  if (useEnVentaPublishedDetail || listing.category === "bienes-raices") {
+  if (listing.category === "bienes-raices") {
+    return (
+      <>
+        {brPublishBanner ? (
+          <div className="bg-amber-100 px-4 py-3 text-center text-sm text-amber-950" role="status">
+            {brPublishBanner}
+          </div>
+        ) : null}
+        {translateControl}
+        <BienesRaicesNegocioLiveDetailShell
+          listing={{
+            id: listing.id,
+            title: proseListing!.title,
+            priceLabel: listing.priceLabel,
+            city: listing.city,
+            blurb: proseListing!.blurb,
+            images: listing.images ?? null,
+            businessName: listing.businessName ?? null,
+            business_name: listing.business_name ?? null,
+            detailPairs: proseListing!.detailPairs,
+            owner_id: listing.owner_id ?? null,
+            leonix_ad_id: listing.leonix_ad_id ?? null,
+            business_meta: listing.business_meta ?? null,
+            contact_phone: listing.contact_phone ?? null,
+            contact_email: listing.contact_email ?? null,
+            zip: listing.zip ?? null,
+            br_inventory_group_id: listing.br_inventory_group_id ?? null,
+            br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
+            inventory_role: listing.inventory_role ?? null,
+          }}
+          lang={lang}
+        />
+      </>
+    );
+  }
+
+  if (useEnVentaPublishedDetail) {
     const ev = listing as Listing & {
       detailPairs?: unknown;
       contact_phone?: string | null;
       contact_email?: string | null;
       business_meta?: string | null;
     };
-    const premiumBr = !useEnVentaPublishedDetail && listing.category === "bienes-raices";
-    const backHref = premiumBr
-      ? `/clasificados/bienes-raices/resultados?lang=${lang}`
-      : enVentaBackHref;
+    const backHref = enVentaBackHref;
     return (
       <>
         {brPublishBanner ? (
@@ -1360,20 +1394,12 @@ export default function AnuncioDetallePage() {
           }}
           lang={lang}
           backHref={backHref}
-          surface={premiumBr ? "bienes-raices" : "en-venta"}
-          moreInCategoryHref={
-            premiumBr
-              ? `/clasificados/bienes-raices/resultados?lang=${lang}`
-              : `/clasificados/en-venta/results?lang=${lang}`
-          }
+          surface="en-venta"
+          moreInCategoryHref={`/clasificados/en-venta/results?lang=${lang}`}
           moreInCategoryLabel={
-            premiumBr
-              ? lang === "es"
-                ? "Más en Bienes Raíces"
-                : "More in Real estate"
-              : lang === "es"
-                ? "Más en Varios"
-                : "More in For Sale"
+            lang === "es"
+              ? "Más en Varios"
+              : "More in For Sale"
           }
           showListingReport
           publishedSourceRow={useEnVentaPublishedDetail ? publishedSourceRow : null}
