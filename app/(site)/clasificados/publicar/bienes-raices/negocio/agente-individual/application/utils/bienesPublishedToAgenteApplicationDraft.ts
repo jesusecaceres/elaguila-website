@@ -23,12 +23,13 @@ import {
   createEmptyAgenteIndividualResidencialState,
   type AgenteIndividualResidencialFormState,
 } from "../../schema/agenteIndividualResidencialFormState";
-import { persistAgenteResApplicationDraftQuiet } from "./previewDraft";
 
 const OWNER_LISTING_SELECT =
   "id, owner_id, title, description, city, price, images, detail_pairs, listing_json, contact_json, seller_type, business_name, business_meta, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, leonix_ad_id, status, is_published";
 
-export type BienesDashboardHydrationResult = { ok: true } | { ok: false; userMessage: string };
+export type BienesDashboardHydrationResult =
+  | { ok: true; state: AgenteIndividualResidencialFormState }
+  | { ok: false; userMessage: string };
 
 function trim(v: unknown): string {
   return v == null ? "" : typeof v === "string" ? v.trim() : String(v).trim();
@@ -94,12 +95,6 @@ function mapChildListingRowToDraft(row: {
     interiorSqft: pairValue(row.detail_pairs, "Sq ft") || pairValue(row.detail_pairs, "Interior"),
     lotSqft: pairValue(row.detail_pairs, "Lote") || pairValue(row.detail_pairs, "Lot"),
   });
-}
-
-function listingJsonBrInventoryPackEnabled(listingJson: unknown): boolean {
-  if (!listingJson || typeof listingJson !== "object") return false;
-  const o = listingJson as Record<string, unknown>;
-  return o.inventoryPackEnabled === true || o.inventoryUpgradeEnabled === true;
 }
 
 export function bienesPublishedRowToAgenteApplicationDraft(input: {
@@ -205,8 +200,7 @@ export async function hydrateBienesAgenteListingForDashboardEdit(input: {
       .map((r) => r as unknown as Record<string, unknown>);
 
     const hydrated = bienesPublishedRowToAgenteApplicationDraft({ row: parentRow, childRows });
-    persistAgenteResApplicationDraftQuiet(hydrated, { applicationInstanceId: input.applicationInstanceId ?? null });
-    return { ok: true };
+    return { ok: true, state: hydrated };
   } catch {
     return {
       ok: false,

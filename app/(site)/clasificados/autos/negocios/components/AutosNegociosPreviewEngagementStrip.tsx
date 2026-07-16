@@ -15,6 +15,7 @@ import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsI
 export function AutosNegociosPreviewEngagementStrip({
   lang,
   className = "",
+  alignStart = false,
   listingSourceId,
   leonixAdId,
   listingTitle,
@@ -24,6 +25,8 @@ export function AutosNegociosPreviewEngagementStrip({
 }: {
   lang: "es" | "en";
   className?: string;
+  /** Left-align Like/Share inside unified canvas utility row. */
+  alignStart?: boolean;
   listingSourceId?: string | null;
   leonixAdId?: string | null;
   listingTitle?: string | null;
@@ -47,7 +50,7 @@ export function AutosNegociosPreviewEngagementStrip({
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-end gap-2 ${className}`}
+      className={`flex flex-wrap items-center gap-2 ${alignStart ? "justify-start" : "justify-end"} ${className}`}
       data-autos-gallery-utility-row="1"
       data-autos-preview-engagement={isPublic ? "0" : "1"}
       aria-label={lang === "es" ? "Acciones del anuncio" : "Listing actions"}

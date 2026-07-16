@@ -15,7 +15,6 @@ import {
   formatMiles,
   formatStockDisplay,
   formatUsd,
-  formatVinDisplay,
   polishMonthlyEstimateDisplay,
 } from "./autoDealerFormatters";
 import { AutoGallery } from "./AutoGallery";
@@ -24,12 +23,12 @@ import { RelatedDealerCars } from "./RelatedDealerCars";
 import { VehicleDescription } from "./VehicleDescription";
 import { VehicleHighlights } from "./VehicleHighlights";
 import { VehicleSpecsGrid } from "./VehicleSpecsGrid";
-import { VehicleHeroSpecsStrip } from "./VehicleHeroSpecsStrip";
 import { AutoDealerPreviewChrome } from "./AutoDealerPreviewChrome";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosNegociosPreviewEngagementStrip } from "./AutosNegociosPreviewEngagementStrip";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
+import { FiMapPin } from "react-icons/fi";
 import {
   AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewBusinessHubShellClass,
@@ -63,7 +62,7 @@ export function AutoDealerPreviewPage({
   relatedPreviewOnly = false,
   embeddedInShell = false,
   draftPreviewMode = false,
-  heroSpecItems,
+  heroSpecItems: _heroSpecItems,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
@@ -101,9 +100,10 @@ export function AutoDealerPreviewPage({
       analyticsMetrics.contacts > 0);
   const pa = t.preview.analytics;
 
+  const showUnifiedCanvas = showTitle || showGallery;
+
   let r = 1;
-  const titleRow = showTitle ? r++ : undefined;
-  const galleryRow = showGallery ? r++ : undefined;
+  const unifiedCanvasRow = showUnifiedCanvas ? r++ : undefined;
   const analyticsRow = showAnalyticsStrip ? r++ : undefined;
   const specsRow = showSpecs ? r++ : undefined;
   const highlightsRow = showHighlights ? r++ : undefined;
@@ -114,15 +114,13 @@ export function AutoDealerPreviewPage({
   const h1 = data.vehicleTitle?.trim();
   const showMileage = data.mileage !== undefined && Number.isFinite(data.mileage);
   const showLoc = nonEmpty(loc);
-  const showVin = nonEmpty(data.vin);
   const showStock = nonEmpty(data.stockNumber);
-  const showMeta = showMileage || showLoc || showVin || showStock;
-  const showLeft = Boolean(h1) || showMeta;
   const showPriceCol = priceOk || nonEmpty(data.monthlyEstimate ?? undefined);
 
+  const showHeaderMeta = showMileage || showStock;
+
   let ord = 1;
-  const orderTitle = showTitle ? ord++ : undefined;
-  const orderGallery = showGallery ? ord++ : undefined;
+  const orderUnifiedCanvas = showUnifiedCanvas ? ord++ : undefined;
   const orderAnalytics = showAnalyticsStrip ? ord++ : undefined;
   const orderAside = ord++;
   const orderSpecs = showSpecs ? ord++ : undefined;
@@ -138,65 +136,62 @@ export function AutoDealerPreviewPage({
       data-autos-premium-preview-page="1"
     >
       <div className={autosPreviewMainGridClass}>
-        {showTitle ? (
+        {showUnifiedCanvas ? (
           <section
             id={AUTOS_PREVIEW_SECTION_IDS.hero}
+            data-autos-unified-vehicle-canvas="1"
             className={`${MAIN_CARD} scroll-mt-28 border-l-[4px] border-l-[#C9A84A] lg:col-start-1 ${
               draftPreviewMode ? "shadow-[0_16px_48px_-16px_rgba(42,36,22,0.16)]" : ""
             }`}
-            style={{ gridRowStart: titleRow, order: orderTitle }}
+            style={{ gridRowStart: unifiedCanvasRow, order: orderUnifiedCanvas }}
           >
             {draftPreviewMode ? (
               <p className={autosPreviewSectionEyebrowClass}>
                 {lang === "es" ? "Vista previa del anuncio" : "Listing preview"}
               </p>
             ) : null}
-            <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6 ${draftPreviewMode ? "mt-2" : ""}`}>
-                {showLeft ? (
-                  <div className="min-w-0 max-w-full flex-1 lg:pr-2">
-                    {h1 ? (
-                      <h1 className={`${autosPreviewHeroTitleClass} text-balance`}>{h1}</h1>
-                    ) : null}
-                    {showMeta ? (
-                      <dl className="mt-3 grid gap-2.5 text-sm text-[color:var(--lx-text-2)] sm:grid-cols-2">
-                        {showLoc ? (
-                          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5 sm:col-span-2">
-                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.location}</dt>
-                            <dd className="min-w-0 max-w-full break-words font-semibold">{loc}</dd>
-                          </div>
-                        ) : null}
-                        {showMileage ? (
-                          <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">{pt.mileage}</dt>
-                            <dd className="font-semibold">{formatMiles(data.mileage)}</dd>
-                          </div>
-                        ) : null}
-                        {showVin ? (
-                          <div className="flex min-w-0 flex-wrap gap-2 sm:col-span-2">
-                            <dt className="shrink-0 text-[color:var(--lx-muted)]">{pt.vin}</dt>
-                            <dd className="min-w-0 break-all font-mono text-[13px] font-semibold tracking-wide">{formatVinDisplay(data.vin)}</dd>
-                          </div>
-                        ) : null}
-                        {showStock ? (
-                          <div className="flex gap-2">
-                            <dt className="text-[color:var(--lx-muted)]">{pt.stock}</dt>
-                            <dd className="font-semibold">{formatStockDisplay(data.stockNumber)}</dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                    ) : null}
-                  </div>
-                ) : null}
+
+            {showTitle && (h1 || showPriceCol || showLoc || showHeaderMeta) ? (
+              <div
+                className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6 ${draftPreviewMode ? "mt-2" : ""}`}
+                data-autos-unified-canvas-header="1"
+              >
+                <div className="min-w-0 max-w-full flex-1 lg:pr-2">
+                  {h1 ? <h1 className={`${autosPreviewHeroTitleClass} text-balance`}>{h1}</h1> : null}
+                  {showLoc ? (
+                    <p className="mt-2 flex min-w-0 items-start gap-1.5 text-sm font-semibold text-[color:var(--lx-text-2)]">
+                      <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
+                      <span className="min-w-0 break-words">{loc}</span>
+                    </p>
+                  ) : null}
+                  {showHeaderMeta ? (
+                    <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
+                      {showMileage ? (
+                        <span>
+                          {pt.mileage} {formatMiles(data.mileage)}
+                        </span>
+                      ) : null}
+                      {showMileage && showStock ? (
+                        <span className="mx-2 text-[color:var(--lx-muted)]" aria-hidden>
+                          ·
+                        </span>
+                      ) : null}
+                      {showStock ? (
+                        <span>
+                          {pt.stock} {formatStockDisplay(data.stockNumber)}
+                        </span>
+                      ) : null}
+                    </p>
+                  ) : null}
+                </div>
                 {showPriceCol ? (
-                  <div
-                    className={`min-w-[9.5rem] shrink-0 text-left max-lg:rounded-[14px] max-lg:border max-lg:border-[color:var(--lx-gold-border)]/50 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-4 max-lg:py-3 lg:min-w-[10.5rem] lg:text-right ${showLeft ? "border-t border-[color:var(--lx-nav-border)] pt-4 lg:border-t-0 lg:pt-0 max-lg:border-t-0" : ""}`}
-                  >
+                  <div className="min-w-[9.5rem] shrink-0 text-left max-lg:rounded-[14px] max-lg:border max-lg:border-[color:var(--lx-gold-border)]/50 max-lg:bg-[color:var(--lx-nav-hover)] max-lg:px-4 max-lg:py-3 lg:min-w-[10.5rem] lg:text-right">
                     {priceOk ? (
                       <>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">{pt.priceLabel}</p>
-                        <p className={`mt-1 ${autosPreviewHeroPriceClass}`}>
-                          {formatUsd(data.price)}
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
+                          {pt.priceLabel}
                         </p>
+                        <p className={`mt-1 ${autosPreviewHeroPriceClass}`}>{formatUsd(data.price)}</p>
                       </>
                     ) : null}
                     {nonEmpty(data.monthlyEstimate ?? undefined) ? (
@@ -207,40 +202,65 @@ export function AutoDealerPreviewPage({
                   </div>
                 ) : null}
               </div>
-              {heroSpecItems && heroSpecItems.length > 0 ? <VehicleHeroSpecsStrip items={heroSpecItems} /> : null}
-            </section>
-          ) : null}
+            ) : null}
 
-          {showGallery ? (
-            <div className="lg:col-start-1" style={{ gridRowStart: galleryRow, order: orderGallery }}>
-              <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} />
-              <div className="mt-3 flex flex-col gap-2.5" data-autos-post-gallery-utility="1">
-                {badges.length > 0 ? (
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
-                      {lang === "es" ? "Destacados" : "Highlights"}
-                    </p>
-                    <ul className="flex flex-wrap gap-1.5">
-                      {badges.map((b) => (
-                        <li key={b} className={COMPACT_BADGE_CLASS}>
-                          {badgeLabelFor(t, b)}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                <AutosNegociosPreviewEngagementStrip
-                  lang={lang}
-                  listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
-                  leonixAdId={publicAnalytics?.leonixAdId}
-                  listingTitle={h1}
-                  listingUrl={publicUrl}
-                  likeCount={analyticsMetrics?.likes ?? 0}
-                  publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
-                />
+            {showSpecs ? (
+              <div className={`min-w-0 ${showTitle ? "mt-4 border-t border-[#D6C7AD]/55 pt-4" : ""}`}>
+                <VehicleSpecsGrid data={data} variant="canvasStrip" />
               </div>
-            </div>
-          ) : null}
+            ) : null}
+
+            {showGallery ? (
+              <div
+                className={`min-w-0 ${showTitle || showSpecs ? "mt-4 border-t border-[#D6C7AD]/55 pt-4" : ""}`}
+                data-autos-unified-canvas-gallery="1"
+              >
+                <p className={`${autosPreviewSectionEyebrowClass} mb-3`}>
+                  {lang === "es" ? "Galería" : "Gallery"}
+                </p>
+                <AutoGallery data={data} publicPlaybackOnly={publicPlaybackOnly} embeddedInCanvas />
+              </div>
+            ) : null}
+
+            {showGallery || badges.length > 0 ? (
+              <div
+                className="mt-4 border-t border-[#D6C7AD]/55 pt-4"
+                data-autos-unified-canvas-utility="1"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  {showGallery ? (
+                    <AutosNegociosPreviewEngagementStrip
+                      lang={lang}
+                      alignStart
+                      listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+                      leonixAdId={publicAnalytics?.leonixAdId}
+                      listingTitle={h1}
+                      listingUrl={publicUrl}
+                      likeCount={analyticsMetrics?.likes ?? 0}
+                      publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
+                    />
+                  ) : (
+                    <span />
+                  )}
+                  {badges.length > 0 ? (
+                    <div className="min-w-0 sm:max-w-[55%] sm:text-right">
+                      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">
+                        {lang === "es" ? "Destacados" : "Highlights"}
+                      </p>
+                      <ul className="flex flex-wrap gap-1.5 sm:justify-end">
+                        {badges.map((b) => (
+                          <li key={b} className={COMPACT_BADGE_CLASS}>
+                            {badgeLabelFor(t, b)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
 
           {showAnalyticsStrip && analyticsMetrics ? (
             <div className="lg:col-start-1" style={{ gridRowStart: analyticsRow, order: orderAnalytics }}>

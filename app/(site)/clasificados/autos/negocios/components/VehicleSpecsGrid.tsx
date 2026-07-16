@@ -36,10 +36,13 @@ const CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
 export function VehicleSpecsGrid({
   data,
   hiddenRowKeys,
+  variant = "full",
 }: {
   data: AutoDealerListing;
   /** Optional row keys to omit (e.g. Privado shell hides inventory-only rows). */
   hiddenRowKeys?: readonly string[];
+  /** `canvasStrip` renders a compact horizontal strip for the unified vehicle canvas. */
+  variant?: "full" | "canvasStrip";
 }) {
   const { t, lang } = useAutosNegociosPreviewCopy();
   const hidden = new Set(hiddenRowKeys ?? []);
@@ -106,6 +109,38 @@ export function VehicleSpecsGrid({
     (r) => !hidden.has(r.key) && r.value !== undefined && String(r.value).trim() !== "",
   );
   if (visible.length === 0) return null;
+
+  const CANVAS_STRIP_KEYS = ["year", "make", "model", "trim", "trans", "fuel", "drive", "mi", "body"] as const;
+  const stripVisible =
+    variant === "canvasStrip"
+      ? CANVAS_STRIP_KEYS.map((k) => visible.find((r) => r.key === k)).filter(
+          (r): r is (typeof visible)[number] => r != null,
+        )
+      : visible;
+
+  if (variant === "canvasStrip") {
+    if (stripVisible.length === 0) return null;
+    return (
+      <div
+        className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-[#D6C7AD]/70 bg-[#D6C7AD]/45 sm:grid-cols-4 lg:grid-cols-8"
+        data-autos-canvas-specs-strip="1"
+      >
+        {stripVisible.map((r) => (
+          <div
+            key={r.key}
+            className="flex min-h-[3.25rem] min-w-0 flex-col justify-center bg-[#FFFCF7] px-2.5 py-2"
+          >
+            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#8A6B1F]">{r.label}</p>
+            <p
+              className={`mt-0.5 truncate text-sm font-bold leading-tight text-[#1F241C] ${r.key === "vin" ? "font-mono text-[13px] tracking-wide" : ""}`}
+            >
+              {r.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const { title, subtitle } = t.preview.specs;
   const mobilePrimary = visible.slice(0, 6);

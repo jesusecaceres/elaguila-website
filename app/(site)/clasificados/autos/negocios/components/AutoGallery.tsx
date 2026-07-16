@@ -29,10 +29,13 @@ function mediaTabClass(active: boolean): string {
 export function AutoGallery({
   data,
   publicPlaybackOnly = false,
+  embeddedInCanvas = false,
 }: {
   data: AutoDealerListing;
   /** Live/public detail: only durable URLs — no blob, data:, or videoFileDataUrl. */
   publicPlaybackOnly?: boolean;
+  /** When true, gallery sits inside unified vehicle canvas without its own outer card. */
+  embeddedInCanvas?: boolean;
 }) {
   const sp = useSearchParams();
   const lang = normalizeAutosNegociosLang(sp?.get("lang"));
@@ -147,8 +150,12 @@ export function AutoGallery({
 
   const photoRailImages = images.slice(1, 4);
 
+  const wrapperClass = embeddedInCanvas
+    ? "min-w-0"
+    : `${CARD} scroll-mt-28`;
+
   return (
-    <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={`${CARD} scroll-mt-28`}>
+    <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={wrapperClass}>
       <div className="mb-3 flex flex-wrap gap-2">
         {hasPhotos ? (
           <button type="button" className={mediaTabClass(activeTab === "photos")} onClick={() => selectTab("photos")}>

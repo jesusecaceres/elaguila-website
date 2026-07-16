@@ -75,6 +75,11 @@ import {
   bienesBackToEditHrefFromPreview,
   hydrateBienesListingForDashboardEdit,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import {
+  clearBienesListingEditWorkspace,
+  loadBienesListingEditWorkspace,
+  saveBienesListingEditWorkspace,
+} from "../application/utils/bienesDashboardListingEditWorkspace";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
@@ -134,7 +139,12 @@ export default function AgenteIndividualResidencialPreviewClient() {
       void hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang }).then((result) => {
         if (!result.ok) return;
         void loadAgenteResPreviewDraftResolved({ applicationInstanceId }).then((loaded) => {
-          if (loaded) setData(loaded);
+          const workspace =
+            loadBienesListingEditWorkspace({
+              parentListingId: listingIdParam,
+              hydratedFromDatabase: result.state,
+            }) ?? result.state;
+          setData(loaded ?? workspace);
         });
       });
       return;
@@ -405,6 +415,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
     setPublishErr(null);
     setSaveEditMessage(null);
     try {
+      saveBienesListingEditWorkspace({ parentListingId: listingIdParam, state: data });
       const sb = createSupabaseBrowserClient();
       const { data: auth } = await sb.auth.getSession();
       const token = auth.session?.access_token;
@@ -427,6 +438,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
         setPublishErr(json.message ?? (lang === "es" ? "No se pudieron guardar los cambios." : "Could not save changes."));
         return;
       }
+      const verified = await hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang });
+      if (!verified.ok) {
+        setPublishErr(verified.userMessage);
+        return;
+      }
+      setData(verified.state);
+      clearBienesListingEditWorkspace({ parentListingId: listingIdParam, state: data });
       setSaveEditMessage(lang === "es" ? "Cambios guardados" : "Changes saved");
     } catch (e) {
       setPublishErr(e instanceof Error ? e.message : String(e));

@@ -86,6 +86,11 @@ import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/reve
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  clearBienesListingEditWorkspace,
+  loadBienesListingEditWorkspace,
+  saveBienesListingEditWorkspace,
+} from "./utils/bienesDashboardListingEditWorkspace";
 
 const BR_AGENTE_RES_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
 
@@ -150,6 +155,7 @@ export default function AgenteIndividualResidencialApplication() {
   const addModePreviewSyncedRef = useRef(false);
   const skipFirstPersistRef = useRef(true);
   const onItemsChangeEpochRef = useRef(0);
+  const suppressNextEditWorkspacePersistRef = useRef(false);
 
   useEffect(() => {
     if (skipFirstPersistRef.current) {
@@ -159,14 +165,26 @@ export default function AgenteIndividualResidencialApplication() {
     // Raw data: gallery blobs must offload to IndexedDB immediately — not after an 800ms wait.
     const delay = agenteResStateHasUnpersistedDataUrlPhotos(state) ? 0 : 800;
     const timer = setTimeout(() => {
+      if (isExistingDashboardListingMode && editListingId) {
+        if (suppressNextEditWorkspacePersistRef.current) {
+          suppressNextEditWorkspacePersistRef.current = false;
+          return;
+        }
+        saveBienesListingEditWorkspace({ parentListingId: editListingId, state });
+        return;
+      }
       persistAgenteResApplicationDraftQuiet(state, { applicationInstanceId });
     }, delay);
     return () => clearTimeout(timer);
-  }, [applicationInstanceId, state]);
+  }, [applicationInstanceId, editListingId, isExistingDashboardListingMode, state]);
 
   /** Hard-refresh safety: flush draft sync before unload (debounced async may still be pending). */
   useEffect(() => {
     const onPageHide = () => {
+      if (isExistingDashboardListingMode && editListingId) {
+        saveBienesListingEditWorkspace({ parentListingId: editListingId, state });
+        return;
+      }
       flushAgenteResDraftSyncForUnload(state, { applicationInstanceId });
     };
     window.addEventListener("pagehide", onPageHide);
@@ -175,7 +193,7 @@ export default function AgenteIndividualResidencialApplication() {
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("beforeunload", onPageHide);
     };
-  }, [applicationInstanceId, state]);
+  }, [applicationInstanceId, editListingId, isExistingDashboardListingMode, state]);
 
   useLayoutEffect(() => {
     if (searchParams?.get(BR_AGENTE_RES_APPLICATION_INSTANCE_QUERY_PARAM)?.trim()) return;
@@ -248,22 +266,28 @@ export default function AgenteIndividualResidencialApplication() {
     if (!isExistingDashboardListingMode || !editListingId || dashboardHydratedRef.current) return;
     dashboardHydratedRef.current = true;
     setEditHydration({ status: "loading" });
-    void hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang }).then(async (result) => {
+    void hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang }).then((result) => {
       if (!result.ok) {
         setEditHydration({ status: "error", message: result.userMessage });
         return;
       }
-      const boot = await bootstrapAgenteIndividualResidencialApplicationStateResolved({ applicationInstanceId });
+      const restored =
+        loadBienesListingEditWorkspace({
+          parentListingId: editListingId,
+          hydratedFromDatabase: result.state,
+        }) ?? result.state;
+      const boot = restored;
       setState(boot);
-      cleanEditSnapshotRef.current = JSON.stringify(boot);
-      setEditDirty(false);
+      cleanEditSnapshotRef.current = JSON.stringify(result.state);
+      setEditDirty(JSON.stringify(boot) !== cleanEditSnapshotRef.current);
       setSaveEditSuccess(false);
       setSaveEditMessage(null);
       setSaveEditError(null);
       setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
+      saveBienesListingEditWorkspace({ parentListingId: editListingId, state: boot });
       setEditHydration({ status: "idle" });
     });
-  }, [applicationInstanceId, editListingId, isExistingDashboardListingMode, lang]);
+  }, [editListingId, isExistingDashboardListingMode, lang]);
 
   useEffect(() => {
     if (!isExistingDashboardListingMode || !cleanEditSnapshotRef.current || editHydration.status !== "idle") return;
@@ -342,9 +366,12 @@ export default function AgenteIndividualResidencialApplication() {
       );
       if (!ok) return;
     }
+    if (editListingId) {
+      clearBienesListingEditWorkspace({ parentListingId: editListingId, state: stateRef.current });
+    }
     clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
     router.push(dashboardReturnHref);
-  }, [applicationInstanceId, dashboardReturnHref, editDirty, isExistingDashboardListingMode, lang, router]);
+  }, [applicationInstanceId, dashboardReturnHref, editDirty, editListingId, isExistingDashboardListingMode, lang, router]);
 
   const saveDashboardListingEdit = useCallback(async () => {
     if (!isDashboardListingEditMode || !editListingId || editHydration.status !== "idle" || saveEditBusy) return;
@@ -375,10 +402,19 @@ export default function AgenteIndividualResidencialApplication() {
         setSaveEditError(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
         return;
       }
-      cleanEditSnapshotRef.current = JSON.stringify(stateRef.current);
+      const verified = await hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang });
+      if (!verified.ok) {
+        setSaveEditError(verified.userMessage);
+        return;
+      }
+      suppressNextEditWorkspacePersistRef.current = true;
+      setState(verified.state);
+      setChildInventoryMediaBridge(verified.state.additionalInventoryProperties ?? []);
+      cleanEditSnapshotRef.current = JSON.stringify(verified.state);
       setEditDirty(false);
       setSaveEditSuccess(true);
       setSaveEditMessage(lang === "en" ? "Changes saved" : "Cambios guardados");
+      clearBienesListingEditWorkspace({ parentListingId: editListingId, state: stateRef.current });
       clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
     } catch (e) {
       setSaveEditError(e instanceof Error ? e.message : String(e));
@@ -502,6 +538,9 @@ export default function AgenteIndividualResidencialApplication() {
   const openPreview = useCallback(async () => {
     if (!confirmAll) return;
     markPublishFlowOpeningPreview();
+    if (isExistingDashboardListingMode && editListingId) {
+      saveBienesListingEditWorkspace({ parentListingId: editListingId, state });
+    }
     // Single awaited offload+persist writes preview + return keys with durable IDB media refs.
     await persistAgenteResApplicationDraftResolved(state, { applicationInstanceId, writeReturn: true });
     const previewQs = new URLSearchParams();

@@ -11,11 +11,14 @@ const previewPath =
   "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx";
 const apiPath = "app/api/clasificados/bienes-raices/listing-edit/route.ts";
 const buildPath = "app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts";
+const workspacePath =
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/bienesDashboardListingEditWorkspace.ts";
 
 const app = read(appPath);
 const preview = read(previewPath);
 const api = read(apiPath);
 const build = read(buildPath);
+const workspace = read(workspacePath);
 
 function must(source, needle, label) {
   assert.ok(source.includes(needle), label);
@@ -25,6 +28,10 @@ must(app, 'dashboardMode === "listing-edit"', "edit mode requires mode=listing-e
 must(app, 'searchParams?.get("source") === "dashboard"', "edit mode requires dashboard source");
 must(app, 'searchParams?.get("listingId")?.trim()', "edit mode reads listingId");
 must(app, "hydrateBienesListingForDashboardEdit", "parent/child dashboard hydration is used");
+must(app, "loadBienesListingEditWorkspace", "dashboard edit restores listing-bound workspace after DB hydration");
+must(app, "saveBienesListingEditWorkspace", "dashboard edit saves listing-bound workspace");
+must(app, "clearBienesListingEditWorkspace", "dashboard edit clears listing-bound workspace after success/cancel");
+must(app, "cleanEditSnapshotRef.current = JSON.stringify(result.state)", "clean snapshot is database hydration, not blank/default state");
 must(app, '"/api/clasificados/bienes-raices/listing-edit"', "application posts to Bienes listing-edit API");
 must(app, "Save changes", "EN Save changes CTA exists");
 must(app, "Guardar cambios", "ES Save changes CTA exists");
@@ -42,6 +49,9 @@ must(app, "leonixLiveAnuncioPath(editListingId)", "public listing success link e
 must(app, "dashboardReturnHref", "dashboard return link exists");
 
 must(preview, "listingBoundPreview", "preview detects listing-bound edit mode");
+must(preview, "loadBienesListingEditWorkspace", "preview restores listing-bound workspace on hard refresh");
+must(preview, "loaded ?? workspace", "preview prefers unsaved preview draft, then listing workspace, then DB");
+must(preview, "clearBienesListingEditWorkspace", "preview save clears listing workspace after DB confirmation");
 must(preview, "onSaveListingEdit", "preview save handler exists");
 must(preview, "Guardar cambios", "preview ES save CTA exists");
 must(preview, "Save changes", "preview EN save CTA exists");
@@ -53,6 +63,7 @@ must(api, ".eq(\"owner_id\", bearerUserId)", "update is owner-scoped");
 must(api, ".eq(\"category\", \"bienes-raices\")", "update is category-scoped");
 must(api, "leonix_id_mismatch", "Leonix ID mismatch is blocked");
 must(api, "buildPublishParamsFromAgenteResidencialDraft", "API builds editable field payload from agente form");
+assert.ok(!api.includes("publishLeonixListingFromAgenteResidencialDraft"), "Bienes edit API must not call initial publish helper");
 must(api, "updateOneListing", "same-row update helper exists");
 must(api, ".update(builtPatch.patch)", "API updates existing rows");
 must(api, "existingChildListingIdFromDraft", "child UUID is parsed from existing child draft id");
@@ -84,6 +95,16 @@ assert.ok(!patchBlock.includes("br_inventory_parent_listing_id:"), "same-row pat
 
 must(build, "buildPublishParamsFromAgenteResidencialDraft", "agente build helper is exported");
 must(build, "publishLeonixRealEstateListingCore", "publish path still uses original core after build helper");
+
+must(workspace, "bienes:listing-edit:${parentListingId}:parent", "parent listing-edit workspace key exists");
+must(workspace, "bienes:listing-edit:${parentListingId}:child:${childListingId}", "child listing-edit workspace key exists");
+must(workspace, "saveBienesListingEditWorkspace", "workspace save helper exists");
+must(workspace, "loadBienesListingEditWorkspace", "workspace load helper exists");
+must(workspace, "clearBienesListingEditWorkspace", "workspace clear helper exists");
+must(workspace, "databaseChildrenToPreserve", "database children are preserved when missing from workspace");
+must(workspace, "br-db-child-", "child rows are keyed by exact existing child UUID");
+assert.ok(!workspace.includes("applicationInstanceId"), "listing-edit workspace is isolated from applicationInstanceId drafts");
+assert.ok(!workspace.includes("sessionStorage"), "listing-edit workspace survives hard refresh via localStorage");
 
 function mergeDetailPairs(existing, next) {
   const out = [];

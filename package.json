@@ -336,6 +336,7 @@
     "autos:a5-media-04-negocios-remove-view-all-gallery-tab-audit": "tsx scripts/autos-a5-media-04-negocios-remove-view-all-gallery-tab-audit.ts",
     "autos:a5-interactions-01-negocios-direct-contact-like-share-preview-alignment-audit": "tsx scripts/autos-a5-interactions-01-negocios-direct-contact-like-share-preview-alignment-audit.ts",
     "autos:a5-polish-01-negocios-final-layout-rearrangement-whatsapp-new-tab-audit": "tsx scripts/autos-a5-polish-01-negocios-final-layout-rearrangement-whatsapp-new-tab-audit.ts",
+    "autos:a5-polish-02-negocios-unified-vehicle-preview-canvas-audit": "tsx scripts/autos-a5-polish-02-negocios-unified-vehicle-preview-canvas-audit.ts",
     "autos:a5-yellow-to-green-dashboard-analytics": "tsx scripts/autos-a5-yellow-to-green-dashboard-analytics.ts",
     "autos:dealer-package-ux-readiness": "tsx scripts/autos-dealer-package-ux-readiness.ts",
     "autos:a5-polish-32-premium-preview-mobile-inventory-shelf-audit": "tsx scripts/autos-a5-polish-32-premium-preview-mobile-inventory-shelf-audit.ts",
