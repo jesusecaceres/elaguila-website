@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
@@ -22,6 +23,52 @@ import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/reve
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
+}
+
+/**
+ * Production-style Restaurantes publish: real DB + authenticated provider only.
+ * Preview / local dev stays lenient unless `RESTAURANTES_STRICT_PUBLISH=1`.
+ * Mirrors the Servicios publish authentication doctrine
+ * (app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts).
+ */
+function isRestaurantesStrictPublishEnvironment(): boolean {
+  if (process.env.RESTAURANTES_STRICT_PUBLISH === "1") return true;
+  return process.env.VERCEL_ENV === "production";
+}
+
+async function restauranteOwnerIdFromBearer(req: Request): Promise<string | null> {
+  const auth = req.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  if (!token) return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return null;
+  const sb = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await sb.auth.getUser(token);
+  if (error || !data.user) return null;
+  return data.user.id;
+}
+
+/**
+ * Coupon entitlement (`couponUpgradeEnabled` + coupon content) is server/payment truth only.
+ * A client can never submit this listing_json flag or its content into an active state —
+ * only an already-entitled row (set exclusively by the Revenue OS webhook) may keep it active.
+ */
+function enforceRestauranteCouponEntitlementServerTruth(
+  draft: RestauranteListingDraft,
+  entitled: boolean,
+): RestauranteListingDraft {
+  if (entitled) {
+    return { ...draft, couponUpgradeEnabled: true };
+  }
+  return {
+    ...draft,
+    couponUpgradeEnabled: false,
+    coupons: [],
+    couponFlyer: undefined,
+    couponMoreOffers: undefined,
+    couponMonthlyPrice: undefined,
+  };
 }
 
 /**
@@ -146,6 +193,13 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
+  const strict = isRestaurantesStrictPublishEnvironment();
+  const verifiedOwnerId = await restauranteOwnerIdFromBearer(req);
+
+  if (strict && !verifiedOwnerId) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
+
   // For new payload format, the draft data is now at the root level
   // But maintain backward compatibility with old format
   const draftData = b.draft || b;
@@ -191,7 +245,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const ownerUserId = typeof b.owner_user_id === "string" ? b.owner_user_id : null;
+  // Owner identity is server-verified only — the client-supplied owner_user_id is never trusted.
+  const ownerUserId = verifiedOwnerId;
   const pendingPayment =
     b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
@@ -206,7 +261,7 @@ export async function POST(req: Request) {
 
   const { data: existingByDraft, error: exErr } = await supabase
     .from("restaurantes_public_listings")
-    .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id")
+    .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id, listing_json")
     .eq("draft_listing_id", draft.draftListingId)
     .maybeSingle();
 
@@ -214,12 +269,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
   }
 
+  // Ownership: an authenticated request may never edit or republish another user's listing.
+  const existingOwnerUserId =
+    existingByDraft && typeof (existingByDraft as { owner_user_id?: unknown }).owner_user_id === "string"
+      ? ((existingByDraft as { owner_user_id?: string | null }).owner_user_id ?? null)
+      : null;
+
+  if (existingOwnerUserId && verifiedOwnerId && existingOwnerUserId !== verifiedOwnerId) {
+    return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+  }
+
+  // Paid coupon entitlement is server/payment truth only (set by the Revenue OS webhook),
+  // never by this route or by anything the client submits.
+  const existingListingJson =
+    existingByDraft && typeof (existingByDraft as { listing_json?: unknown }).listing_json === "object"
+      ? ((existingByDraft as { listing_json?: Record<string, unknown> | null }).listing_json ?? null)
+      : null;
+  const serverVerifiedCouponEntitlement = existingListingJson?.couponUpgradeEnabled === true;
+
+  if (!serverVerifiedCouponEntitlement && draft.couponUpgradeEnabled === true) {
+    console.warn("[restaurantes publish api] coupon activation attempted without server entitlement", {
+      draftListingId: draft.draftListingId,
+      existingListingId: (existingByDraft as { id?: string } | null)?.id ?? null,
+    });
+  }
+
+  const sanitizedDraft = enforceRestauranteCouponEntitlementServerTruth(draft, serverVerifiedCouponEntitlement);
+
   let slugOut = slugifyRestauranteBusinessName(draft.businessName);
 
   try {
     if (existingByDraft?.slug) {
       slugOut = existingByDraft.slug;
-      const baseRow = draftToRestaurantePublicListingInsert(draft, slugOut, {
+      const baseRow = draftToRestaurantePublicListingInsert(sanitizedDraft, slugOut, {
         ownerUserId,
         promoted: false,
         packageTier: requestedLane,
@@ -282,7 +364,7 @@ export async function POST(req: Request) {
       const base = requested || slugifyRestauranteBusinessName(draft.businessName);
       slugOut = await allocateSlug(base);
       const row = {
-        ...draftToRestaurantePublicListingInsert(draft, slugOut, {
+        ...draftToRestaurantePublicListingInsert(sanitizedDraft, slugOut, {
           ownerUserId,
           promoted: false,
           packageTier: requestedLane,

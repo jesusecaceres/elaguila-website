@@ -274,8 +274,9 @@ export default function RestauranteApplicationClient() {
     setDashboardContextErr(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const ownerUserId = auth.user?.id?.trim();
+      const { data: sess } = await supabase.auth.getSession();
+      const ownerUserId = sess.session?.user?.id?.trim();
+      const accessToken = sess.session?.access_token ?? null;
       if (!ownerUserId) {
         setDashboardContextErr(fc.dashboard.signInToSave);
         setDashboardSaveBusy(false);
@@ -293,11 +294,20 @@ export default function RestauranteApplicationClient() {
 
       await saveRestauranteDraftToStorageResolved(draftForSave);
       const payload = buildRestaurantePublishPayload(draftForSave, ownerUserId, undefined, lang);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        setDashboardContextErr(fc.dashboard.signInToSave);
+        setDashboardSaveBusy(false);
+        return;
+      }
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean };
       if (res.ok && j.ok) {
         router.push(dashboardReturnHref);

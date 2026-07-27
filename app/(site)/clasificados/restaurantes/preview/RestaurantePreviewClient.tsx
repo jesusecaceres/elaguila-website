@@ -167,9 +167,15 @@ export default function RestaurantePreviewClient() {
         }
 
         const sb = createSupabaseBrowserClient();
-        const { data: auth } = await sb.auth.getUser();
-        const ownerUserId = auth.user?.id ?? null;
-        const customerEmail = auth.user?.email ?? null;
+        const { data: sess } = await sb.auth.getSession();
+        const ownerUserId = sess.session?.user?.id ?? null;
+        const customerEmail = sess.session?.user?.email ?? null;
+        const accessToken = sess.session?.access_token ?? null;
+        if (!accessToken) {
+          setCheckoutErr(pageCopy.checkoutStartError);
+          setCheckoutBusy(false);
+          return;
+        }
 
         // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
         void captureCheckoutNewsletterSubscriber({
@@ -184,6 +190,7 @@ export default function RestaurantePreviewClient() {
         const pending = await saveRestaurantePendingBeforeCheckout(draftForSave, {
           ownerUserId,
           lang,
+          accessToken,
         });
         if (!pending.ok) {
           setCheckoutErr(pending.userMessage);
