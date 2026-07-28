@@ -88,3 +88,34 @@ export type {
   DashboardEntitlementState,
   DashboardLifecycleState,
 } from "./dashboardActionTypes";
+
+/**
+ * Gate G.1 — global owner status/attention/lifecycle-action contract. Additive only: not
+ * consumed by any live dashboard yet (see ownerLifecycleResolver.ts's own scope-boundary
+ * comment). Exported here for discoverability alongside the rest of the Gate B/D contract.
+ */
+export {
+  resolveAttentionState,
+  resolveEligibleGlobalActions,
+  resolveLifecycleMutationDescriptors,
+  resolveOwnerFacingStatus,
+} from "./ownerLifecycleResolver";
+export type {
+  AttentionReason,
+  AttentionSeverity,
+  AttentionState,
+  GlobalActionDescriptor,
+  GlobalActionKey,
+  GlobalActionKind,
+  GlobalActionPlacement,
+  GlobalNavigationActionKey,
+  GlobalProductActionKey,
+  LifecycleMutationDescriptor,
+  LifecycleMutationKey,
+  OwnerFacingStatusClassification,
+  OwnerFacingStatusDescriptor,
+  OwnerFacingStatusKey,
+  OwnerLifecycleCapabilityFlags,
+  OwnerLifecycleEligibilityInput,
+  PaidModuleLifecycleState,
+} from "./ownerLifecycleTypes";
