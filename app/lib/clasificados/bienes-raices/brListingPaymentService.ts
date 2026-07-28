@@ -96,14 +96,19 @@ async function countActiveBrPropertiesForParent(
   return count;
 }
 
-type BrChildActivationCapacityResult =
+export type BrChildActivationCapacityResult =
   | { ok: true }
   | { ok: false; error: typeof BR_ACTIVE_PROPERTY_LIMIT_ERROR | typeof BR_INVENTORY_PARENT_INVALID_ERROR };
 
-/** Resolves the canonical main parent, its entitlement-derived effective limit, and current
+/**
+ * Resolves the canonical main parent, its entitlement-derived effective limit, and current
  * active-property count, then decides whether one more active child is allowed. Fails closed
- * (rejects) on a missing/invalid parent — never silently grants base capacity. */
-async function checkBrChildActivationCapacity(
+ * (rejects) on a missing/invalid parent — never silently grants base capacity.
+ *
+ * Exported as of Gate G.2.3.1 for reuse by `brListingLifecycleService.ts`'s Resume mutation —
+ * behavior unchanged, this is purely a visibility change (`function` -> `export function`).
+ */
+export async function checkBrChildActivationCapacity(
   child: BrListingRowForPayment,
   childListingId: string,
 ): Promise<BrChildActivationCapacityResult> {

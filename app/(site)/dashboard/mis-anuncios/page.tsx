@@ -19,6 +19,7 @@ import {
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { callBrLifecycleMutation } from "../lib/brDashboardLifecycleClient";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -252,6 +253,38 @@ function accountRefFromId(id: string): string {
 
 function normalizeStatus(s: string | null | undefined): string {
   return String(s ?? "active").toLowerCase() || "active";
+}
+
+/**
+ * Gate G.2.3.1 — sanitized owner-facing text for the new BR lifecycle mutation route's error
+ * codes. Never surfaces a raw database error message (unlike the legacy client-direct handlers
+ * this replaces for BR rows only).
+ */
+function brLifecycleErrorMessage(code: string, lang: Lang): string {
+  const es: Record<string, string> = {
+    br_lifecycle_auth_required: "Debes iniciar sesión de nuevo.",
+    br_lifecycle_listing_not_found: "No se encontró el anuncio.",
+    br_lifecycle_owner_mismatch: "Este anuncio no pertenece a tu cuenta.",
+    br_lifecycle_listing_not_eligible: "Esta acción no aplica a este anuncio.",
+    br_lifecycle_transition_not_allowed: "Esta acción no está disponible en el estado actual del anuncio.",
+    br_lifecycle_parent_invalid: "No se pudo verificar el anuncio principal.",
+    br_lifecycle_parent_inactive: "El anuncio principal debe estar activo para reanudar esta propiedad.",
+    br_active_property_limit_reached: "Alcanzaste el límite de propiedades activas para este plan.",
+    supabase_not_configured: "Servicio no disponible en este momento.",
+  };
+  const en: Record<string, string> = {
+    br_lifecycle_auth_required: "Please sign in again.",
+    br_lifecycle_listing_not_found: "Listing not found.",
+    br_lifecycle_owner_mismatch: "This listing does not belong to your account.",
+    br_lifecycle_listing_not_eligible: "This action does not apply to this listing.",
+    br_lifecycle_transition_not_allowed: "This action is not available in the listing's current state.",
+    br_lifecycle_parent_invalid: "The main listing could not be verified.",
+    br_lifecycle_parent_inactive: "The main listing must be active to resume this property.",
+    br_active_property_limit_reached: "You reached the active property limit for this plan.",
+    supabase_not_configured: "Service unavailable right now.",
+  };
+  const table = lang === "es" ? es : en;
+  return table[code] ?? (lang === "es" ? "No se pudo completar la acción." : "Could not complete the action.");
 }
 
 function passesTab(row: ListingRow, tab: Tab): boolean {
@@ -544,6 +577,27 @@ export default function MyListingsPage() {
   }, [router, pathname, lang]);
 
   async function markPauseListing(id: string) {
+    // Gate G.2.3.1 — Bienes Raíces Negocio rows go through the new server-authorized mutation
+    // route; every other listings-table category (Rentas, En Venta, Bienes Raíces Privado) keeps
+    // its existing client-direct behavior exactly as-is, unchanged by this gate.
+    const row = listings.find((x) => x.id === id);
+    if (row && isBrNegocioListing(row)) {
+      setBusyId(id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: id, mutation: "pause" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+      );
+      setBusyId(null);
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
@@ -564,6 +618,28 @@ export default function MyListingsPage() {
   }
 
   async function markResumeListing(id: string) {
+    // Gate G.2.3.1 — same BR/other-category split as markPauseListing. Resume additionally
+    // rechecks the canonical main parent, entitlement, and capacity server-side for an inventory
+    // child (Gate G.2.3A's confirmed most severe gap) — this client function never knows or
+    // needs to know that; it only surfaces whatever error the server route returns.
+    const row = listings.find((x) => x.id === id);
+    if (row && isBrNegocioListing(row)) {
+      setBusyId(id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: id, mutation: "resume" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+      );
+      setBusyId(null);
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
@@ -635,6 +711,29 @@ export default function MyListingsPage() {
   }
 
   async function markStatus(id: string, status: "active" | "sold") {
+    // Gate G.2.3.1 — only the BR "mark sold" case (maps to Discontinue) moves to the server
+    // route; En Venta's "active" (relist) and "sold" calls through this same shared function
+    // keep their existing client-direct behavior unchanged.
+    if (status === "sold") {
+      const row = listings.find((x) => x.id === id);
+      if (row && isBrNegocioListing(row)) {
+        setBusyId(id);
+        setError(null);
+        const result = await callBrLifecycleMutation({ listingId: id, mutation: "discontinue" });
+        if (!result.ok) {
+          setError(brLifecycleErrorMessage(result.code, lang));
+          setBusyId(null);
+          return;
+        }
+        const now = new Date().toISOString();
+        setListings((prev) =>
+          prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+        );
+        setBusyId(null);
+        return;
+      }
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
@@ -675,6 +774,39 @@ export default function MyListingsPage() {
     const rec = row as unknown as Record<string, unknown>;
     if (!republishColsAvailable) return;
     if (!dashboardCanRepublishListingsRow(rec, cat)) return;
+
+    // Gate G.2.3.1 — the confirmed critical fix: Republish for Bienes Raíces Negocio now goes
+    // through the server route, which only ever allows it for an already-active, already-
+    // published row (never a pending/flagged/sold/paused/removed reactivation — see
+    // `applyBrRepublish` in brListingLifecycleService.ts). Rentas keeps its unrelated,
+    // unchanged republish path below.
+    if (cat === "bienes-raices" && isBrNegocioListing(row)) {
+      setBusyId(row.id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "republish" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const renewedAtIso = new Date().toISOString();
+      const nextCount = Number(row.republish_count ?? 0) + 1;
+      setListings((prev) =>
+        prev.map((x) =>
+          x.id === row.id
+            ? {
+                ...x,
+                republished_at: renewedAtIso,
+                republish_count: nextCount,
+                status: result.status,
+                is_published: result.isPublished,
+              }
+            : x,
+        ),
+      );
+      setBusyId(null);
+      return;
+    }
 
     const live = listingsRowIsPublicLive(rec);
     const supabase = createSupabaseBrowserClient();
@@ -801,6 +933,27 @@ export default function MyListingsPage() {
   /** Soft archive (Admin-aligned): row stays in DB; Leonix Ad ID and history preserved. */
   async function softArchiveListing(id: string) {
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
+
+    // Gate G.2.3.1 — same BR/other-category split as the other lifecycle handlers. Active-child
+    // disposition for a BR main parent (Gate G.2.3A Scenario C) is not yet implemented — this
+    // gate only adds server-side ownership/state validation, not the child-cascade policy.
+    const row = listings.find((x) => x.id === id);
+    if (row && isBrNegocioListing(row)) {
+      setBusyId(id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: id, mutation: "archive" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+      );
+      setBusyId(null);
+      return;
+    }
 
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
@@ -1476,8 +1629,21 @@ export default function MyListingsPage() {
                           RENTAS_LISTING_LIFECYCLE_CONFIG,
                         )
                       : null;
+                  // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
+                  // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
+                  // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
+                  // only for a row that is already active and published. Rentas and En Venta are
+                  // unaffected (`catKey !== "rentas"` already excludes Rentas from this branch;
+                  // `isBrNegocioRepublishEligible` is trivially true for every non-BR-Negocio row).
+                  const isBrNegocioRepublishRow = catKey === "bienes-raices" && isBrNegocioListing(x);
+                  const isBrNegocioRepublishEligible =
+                    !isBrNegocioRepublishRow ||
+                    (String(x.status ?? "").toLowerCase() === "active" && x.is_published !== false);
                   const repKind =
-                    catKey !== "rentas" && republishColsAvailable && dashboardCanRepublishListingsRow(rowRec, catKey)
+                    catKey !== "rentas" &&
+                    republishColsAvailable &&
+                    dashboardCanRepublishListingsRow(rowRec, catKey) &&
+                    isBrNegocioRepublishEligible
                       ? dashboardRepublishPrimaryKind(rowRec, catKey)
                       : null;
                   const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
