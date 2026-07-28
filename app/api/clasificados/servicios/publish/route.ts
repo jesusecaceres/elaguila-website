@@ -25,6 +25,8 @@ import { mergeOpsControlledServiciosProfileFields } from "@/app/(site)/clasifica
 import { buildServiciosDiscoveryFacet } from "@/app/clasificados/servicios/lib/serviciosPublishDiscovery";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
+import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 
 export const runtime = "nodejs";
 
@@ -127,6 +129,54 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   };
   delete next.identity.leonixVerified;
   return next;
+}
+
+/** Gate E.3.1 — offer content already durably stored on the existing row, trusted as-is. */
+type TrustedServiciosOfferContent = Pick<ServiciosBusinessProfile, "coupons" | "couponFlyer" | "couponMoreOffers">;
+
+function trustedServiciosOfferContentFromExisting(
+  previousWire: ServiciosBusinessProfile | null,
+): TrustedServiciosOfferContent {
+  return {
+    coupons: Array.isArray(previousWire?.coupons) ? previousWire.coupons : [],
+    couponFlyer:
+      previousWire?.couponFlyer && typeof previousWire.couponFlyer === "object"
+        ? previousWire.couponFlyer
+        : undefined,
+    couponMoreOffers:
+      previousWire?.couponMoreOffers && typeof previousWire.couponMoreOffers === "object"
+        ? previousWire.couponMoreOffers
+        : undefined,
+  };
+}
+
+/**
+ * Gate E.3.1 — Servicios offer/coupon content (`coupons`/`couponFlyer`/`couponMoreOffers`) is
+ * server/payment truth only. Unlike Restaurantes there is no stored `couponUpgradeEnabled`
+ * flag on the Servicios wire profile — visibility has only ever been content-presence — so this
+ * function's job is narrower: it never lets an unentitled request create or modify offer
+ * content, while never erasing content a customer's active purchase already produced. A client
+ * can never submit new/edited coupons, a flyer, or a more-offers link into a persisted state
+ * without a currently active `servicios_offers_addon` entitlement; only an already-entitled row
+ * (real, live `listing_package_entitlements` truth) may accept incoming offer edits. While
+ * unentitled, the content already durably stored on this row (never the incoming client draft)
+ * is what persists instead, so a customer's coupon content survives an unrelated base-listing
+ * save (business hours, description, etc.) made after their entitlement lapsed or was revoked.
+ */
+function enforceServiciosOffersEntitlementServerTruth(
+  wire: ServiciosBusinessProfile,
+  entitled: boolean,
+  trustedExisting: TrustedServiciosOfferContent,
+): ServiciosBusinessProfile {
+  if (entitled) {
+    return wire;
+  }
+  return {
+    ...wire,
+    coupons: trustedExisting.coupons,
+    couponFlyer: trustedExisting.couponFlyer,
+    couponMoreOffers: trustedExisting.couponMoreOffers,
+  };
 }
 
 function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typeof SERVICIOS_LISTING_STATUS_PENDING_REVIEW {
@@ -254,14 +304,37 @@ export async function POST(req: NextRequest) {
   wire = { ...wire, opsMeta };
 
   let previousWire: ServiciosBusinessProfile | null = null;
+  let previousListingId: string | null = null;
   if (isSupabaseAdminConfigured()) {
     const prevRow = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
     previousWire = prevRow?.profile_json ?? null;
+    previousListingId = prevRow?.id?.trim() || null;
   }
   if (!previousWire?.contact?.isFeatured && isServiciosDevPublishPersistenceEnabled()) {
     previousWire = getServiciosDevPublishRowBySlug(slug)?.profile_json ?? previousWire;
   }
   wire = mergeOpsControlledServiciosProfileFields(wire, previousWire);
+
+  // Gate E.3.1 — paid offers/coupons entitlement is server/payment truth only (live
+  // `listing_package_entitlements` state), never client-submitted content, the client's
+  // `couponsAddOn` boolean, or any content-presence inference. A brand-new listing (no canonical
+  // row UUID yet) can never have an entitlement — never invent one; only an already-existing row
+  // can be looked up.
+  let serviciosOffersAddonEntitled = false;
+  if (previousListingId) {
+    const entitlements = await fetchAddonEntitlementsForListings({
+      category: "servicios",
+      packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+      listingIds: [previousListingId],
+    });
+    serviciosOffersAddonEntitled = entitlements.get(previousListingId)?.status === "active";
+  }
+  const trustedExistingServiciosOfferContent = trustedServiciosOfferContentFromExisting(previousWire);
+  wire = enforceServiciosOffersEntitlementServerTruth(
+    wire,
+    serviciosOffersAddonEntitled,
+    trustedExistingServiciosOfferContent,
+  );
 
   const preset = getBusinessTypePreset(state.businessTypeId);
   const internalGroup = preset?.internalGroup ?? null;

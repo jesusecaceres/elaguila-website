@@ -26,6 +26,8 @@ import {
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
 import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/publicar/servicios/components/ServiciosJustPublishedSuccessBanner";
+import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 
 export const dynamic = "force-dynamic";
 
@@ -122,7 +124,25 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         discoveryResultsHref={`/clasificados/servicios/resultados?lang=${lang}`}
       />
     ) : null;
-  const listingShareUrl = await buildServiciosClasificadosListingShareUrl(slug, lang);
+  const canonicalServiciosListingId = row.id?.trim() || "";
+  const [listingShareUrl, serviciosOffersAddonEntitlements] = await Promise.all([
+    buildServiciosClasificadosListingShareUrl(slug, lang),
+    fetchAddonEntitlementsForListings({
+      category: "servicios",
+      packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+      listingIds: [canonicalServiciosListingId],
+    }),
+  ]);
+  // Gate E.3.2 — public paid-offer visibility is live entitlement truth only, never content
+  // presence baked into `profile` by the (unmodified, pure) resolver. On any lookup failure,
+  // `fetchAddonEntitlementsForListings` already fails closed to `not_purchased` (see
+  // addonEntitlementReader.ts), so offers stay hidden rather than throwing or exposing the base
+  // profile to risk. Stored offer content itself is never touched here — only what renders.
+  const serviciosOffersAddonActive =
+    serviciosOffersAddonEntitlements.get(canonicalServiciosListingId)?.status === "active";
+  const publicProfile = serviciosOffersAddonActive
+    ? profile
+    : { ...profile, coupons: [], couponFlyer: undefined, couponMoreOffers: undefined };
   const engagementKey = serviciosEngagementListingKey(row);
   const persistListingEngagement =
     isPublishedLive && Boolean(engagementKey.trim()) && Boolean((listingShareUrl ?? "").trim());
@@ -141,7 +161,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   });
 
   const profileShellProps = {
-    profile,
+    profile: publicProfile,
     lang,
     editBackHref: justPublished ? `/publicar/servicios?lang=${lang}` : undefined,
     justPublishedPanel,
