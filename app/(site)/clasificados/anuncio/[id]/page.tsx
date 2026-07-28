@@ -82,6 +82,10 @@ import {
   businessLinkPublicLabel,
   parsePublishedBusinessExtraLinks,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/bienesAdditionalBusinessLinks";
+import {
+  isBrChildParentGateSatisfied,
+  type BrPublicParentCandidate,
+} from "@/app/(site)/clasificados/lib/brPublicChildParentVisibility";
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
@@ -558,6 +562,39 @@ export default function AnuncioDetallePage() {
           setFetchedListing(undefined);
           setRemoteState("ready");
           return;
+        }
+
+        // Gate G.2.3.4 — an inventory child (Bienes Raíces Negocio) additionally requires an
+        // active, published, same-owner canonical main parent to render publicly. Defense in
+        // depth on top of the existing status/publication checks above, not a replacement for
+        // them; a missing/invalid/inactive parent fails closed to the exact same "not found"
+        // outcome the existing checks already use — no parent status or internal detail leaks.
+        if (
+          String(row.category ?? "").toLowerCase() === "bienes-raices" &&
+          row.inventory_role === "inventory_property"
+        ) {
+          const parentId = String(row.br_inventory_parent_listing_id ?? "").trim();
+          let parentRow: BrPublicParentCandidate | null = null;
+          if (parentId) {
+            const { data: parentData } = await supabase
+              .from("listings")
+              .select("id, category, seller_type, inventory_role, owner_id, status, is_published")
+              .eq("id", parentId)
+              .maybeSingle();
+            parentRow = (parentData as BrPublicParentCandidate | null) ?? null;
+          }
+          const parentsById = new Map<string, BrPublicParentCandidate>(parentRow ? [[parentRow.id, parentRow]] : []);
+          const childCandidate = {
+            id: String(row.id ?? ""),
+            inventory_role: (row.inventory_role as string | null) ?? null,
+            br_inventory_parent_listing_id: parentId || null,
+            owner_id: (row.owner_id as string | null) ?? null,
+          };
+          if (!isBrChildParentGateSatisfied(childCandidate, parentsById)) {
+            setFetchedListing(undefined);
+            setRemoteState("ready");
+            return;
+          }
         }
         setPublishedSourceRow(row);
         setFetchedListing(mapDbListingRowToListing(row));
