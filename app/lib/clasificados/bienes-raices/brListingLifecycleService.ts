@@ -26,15 +26,18 @@ import {
 } from "./brListingPaymentService";
 import {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
+  BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
   BR_LIFECYCLE_LISTING_NOT_ELIGIBLE_ERROR,
   BR_LIFECYCLE_LISTING_NOT_FOUND_ERROR,
   BR_LIFECYCLE_MUTATION_KEYS,
   BR_LIFECYCLE_OWNER_MISMATCH_ERROR,
   BR_LIFECYCLE_PARENT_INACTIVE_ERROR,
   BR_LIFECYCLE_PARENT_INVALID_ERROR,
+  BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR,
   BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR,
   BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
   brArchiveEligible,
+  brChildCascadePauseEligible,
   brDiscontinueEligible,
   brPauseEligible,
   brRepublishEligible,
@@ -48,15 +51,18 @@ import {
 export {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
   BR_LIFECYCLE_CAPACITY_LIMIT_ERROR,
+  BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
   BR_LIFECYCLE_LISTING_NOT_ELIGIBLE_ERROR,
   BR_LIFECYCLE_LISTING_NOT_FOUND_ERROR,
   BR_LIFECYCLE_MUTATION_KEYS,
   BR_LIFECYCLE_OWNER_MISMATCH_ERROR,
   BR_LIFECYCLE_PARENT_INACTIVE_ERROR,
   BR_LIFECYCLE_PARENT_INVALID_ERROR,
+  BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR,
   BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR,
   BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
   brArchiveEligible,
+  brChildCascadePauseEligible,
   brDiscontinueEligible,
   brPauseEligible,
   brRepublishEligible,
@@ -65,7 +71,7 @@ export {
 export type { BrLifecycleErrorCode, BrLifecycleMutationKey } from "./brListingLifecycleEligibility";
 
 export type BrLifecycleMutationResult =
-  | { ok: true; id: string; status: string; isPublished: boolean }
+  | { ok: true; id: string; status: string; isPublished: boolean; childrenPausedCount?: number }
   | { ok: false; error: BrLifecycleErrorCode };
 
 /** Local, non-exported — used only for the parent-active check below. The five mutation
@@ -131,27 +137,115 @@ async function requireActiveBrParentForChildResume(
   return { ok: true };
 }
 
+async function pauseOneBrRow(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  listingId: string,
+  now: string,
+): Promise<{ id: string; status: string; isPublished: boolean } | null> {
+  const { data, error } = await supabase
+    .from("listings")
+    .update({ status: "paused", is_published: false, updated_at: now })
+    .eq("id", listingId)
+    .eq("status", "active")
+    .select("id, status, is_published")
+    .maybeSingle();
+  if (error || !data) return null;
+  return { id: data.id, status: data.status, isPublished: data.is_published === true };
+}
+
+/**
+ * Gate G.2.3.2 — pauses every canonical, currently-active inventory child of `parent` before the
+ * parent itself is ever touched (see the file-level ordering note on `applyBrPause`). Selection
+ * uses only the real canonical identity fields (`brChildCascadePauseEligible`) — never
+ * `br_inventory_group_id`, owner-alone, title, or slug.
+ * Stops and reports failure on the first child that cannot be paused; already-paused children
+ * from a prior successful call are naturally excluded (their `status` is no longer `"active"`),
+ * making a duplicate parent Pause request idempotent by construction, not by special-casing.
+ */
+async function cascadePauseBrChildren(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  parent: BrListingRowForPayment,
+  now: string,
+): Promise<{ ok: true; count: number } | { ok: false; error: BrLifecycleErrorCode }> {
+  const parentOwnerId = String(parent.owner_id ?? "").trim();
+  if (!parentOwnerId) return { ok: false, error: BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR };
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select("id, category, seller_type, inventory_role, br_inventory_parent_listing_id, owner_id, status, is_published")
+    .eq("category", "bienes-raices")
+    .eq("seller_type", "business")
+    .eq("inventory_role", "inventory_property")
+    .eq("br_inventory_parent_listing_id", parent.id)
+    .eq("owner_id", parentOwnerId)
+    .eq("status", "active");
+  if (error) return { ok: false, error: BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR };
+
+  const eligibleChildren = (data ?? []).filter((child) => brChildCascadePauseEligible(child, parent));
+
+  let pausedCount = 0;
+  for (const child of eligibleChildren) {
+    const childId = String((child as { id?: string }).id ?? "").trim();
+    if (!childId) continue;
+    const result = await pauseOneBrRow(supabase, childId, now);
+    if (!result) {
+      // Children successfully paused before this failure stay paused — no fabricated rollback
+      // without a real transaction (see the file-level atomicity note). The parent is never
+      // touched when this branch is reached.
+      return { ok: false, error: BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR };
+    }
+    pausedCount += 1;
+  }
+  return { ok: true, count: pausedCount };
+}
+
+/**
+ * Gate G.2.3.2 ordering rule: children are paused BEFORE the parent, never after. This repository
+ * has no real multi-statement transaction available to this service (no Supabase RPC/transaction
+ * wrapper exists for this table today, and this gate does not add one — see the objective's own
+ * instruction not to create a migration or database RPC). Children-first ordering is the safest
+ * achievable ordering without one: if the cascade fails partway, the worst reachable state is
+ * "some children paused, parent still active" (safe — nothing that should be hidden is exposed).
+ * The dangerous inverse ("parent paused/hidden, active children still public") is structurally
+ * impossible here because the parent's own compare-and-set never runs until cascade succeeds.
+ */
 async function applyBrPause(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
   if (!brPauseEligible(row)) {
     return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
   }
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("listings")
-    .update({ status: "paused", is_published: false, updated_at: now })
-    .eq("id", row.id)
-    .eq("status", "active")
-    .select("id, status, is_published")
-    .maybeSingle();
-  if (error || !data) return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
-  return { ok: true, id: data.id, status: data.status, isPublished: data.is_published === true };
+
+  if (row.inventory_role === "main") {
+    const cascade = await cascadePauseBrChildren(supabase, row, now);
+    if (!cascade.ok) return { ok: false, error: cascade.error };
+
+    const parentResult = await pauseOneBrRow(supabase, row.id, now);
+    if (!parentResult) {
+      // Every eligible child paused successfully, but the parent's own transition then failed
+      // (e.g. a concurrent status change on the parent row itself) — a distinct, honestly
+      // reported partial state, never silently reported as full success.
+      return { ok: false, error: BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR };
+    }
+    return { ok: true, ...parentResult, childrenPausedCount: cascade.count };
+  }
+
+  // Individual child (or any non-"main" role) — pauses only the requested row, exactly as
+  // G.2.3.1 established. Never touches the parent or siblings.
+  const result = await pauseOneBrRow(supabase, row.id, now);
+  if (!result) return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  return { ok: true, ...result };
 }
 
 /**
- * G.2.3.1 scope: mutates only the requested row. Parent pause cascade (Scenario A from the
- * Gate G.2.3A audit) is explicitly deferred to G.2.3.2 — this gate does not yet decide what
- * happens to a main parent's active children when the parent itself is paused.
+ * Certified Gate G.2.3.2 policy (Scenario B): main-parent Resume mutates ONLY the requested
+ * parent row — it never touches children, by design, not by omission. A child cascade-paused (or
+ * independently paused) alongside a parent pause stays paused after the parent resumes; the
+ * owner resumes each child individually via the "inventory_property" branch below, which
+ * continues to revalidate the parent/entitlement/capacity every time, unchanged from G.2.3.1.
+ * There is deliberately no new column tracking "cascade-paused vs. manually-paused" — this gate
+ * does not add a migration, so that distinction is not recorded, and none is needed: every paused
+ * child, regardless of how it got paused, requires the exact same explicit, individual Resume.
  */
 async function applyBrResume(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
   if (!brResumeEligible(row)) {
