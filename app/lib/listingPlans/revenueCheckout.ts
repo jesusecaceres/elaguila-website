@@ -775,6 +775,22 @@ export async function validateBienesInventoryAddonOwnership(input: {
     };
   }
 
+  // Gate F.2.4.2 — canonical main-parent authority is the explicit `inventory_role` column, never
+  // inferred from `br_inventory_parent_listing_id`/`br_inventory_group_id`/`seller_type`/owner
+  // identity alone. The `inventory_property` check above already rejects children explicitly;
+  // this closes the remaining gap for an active, published, business-seller row that simply
+  // hasn't been promoted to `"main"` (a legacy or null-role row) — the inventory pack can only
+  // ever be purchased against the real main parent row.
+  const inventoryRole = String(data.inventory_role ?? "").trim().toLowerCase();
+  if (inventoryRole !== "main") {
+    return {
+      ok: false,
+      status: 422,
+      code: "br_main_parent_listing_required",
+      message: "Inventory add-on can only be purchased for the Bienes Raíces main parent listing.",
+    };
+  }
+
   return { ok: true };
 }
 
