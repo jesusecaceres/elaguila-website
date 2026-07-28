@@ -38,7 +38,15 @@ import {
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
-import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
+import {
+  buildListingIdentity,
+  resolveAttentionState,
+  resolveDashboardActions,
+  resolveOwnerFacingStatus,
+  type AttentionSeverity,
+  type DashboardAction,
+} from "@/app/lib/listingIdentity";
+import { buildBienesRaicesEligibilityInput } from "@/app/lib/listingIdentity/bienesRaicesLifecycleAdapter";
 import type { DashboardEntitlementBadgePayload } from "../lib/dashboardPackageEntitlementBadges";
 import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
 import type { ListingLifecycleResolved } from "@/app/lib/listingLifecycle/listingLifecycleTypes";
@@ -150,6 +158,18 @@ function bienesNegocioCanonicalActions(input: {
   });
 
   return new Map(actions.map((action) => [action.key, action]));
+}
+
+/**
+ * Gate G.2.2 — small, generic severity-level message (not reason-specific — the global contract's
+ * reason list is intentionally not exposed as free text yet, to avoid a premature copy commitment
+ * ahead of a real designed attention UI in a later gate).
+ */
+function brLifecycleAttentionMessage(severity: AttentionSeverity, lang: Lang): string | null {
+  if (severity === "urgent") return lang === "es" ? "Requiere atención urgente" : "Requires urgent attention";
+  if (severity === "action_required") return lang === "es" ? "Requiere tu atención" : "Needs your attention";
+  if (severity === "informational") return lang === "es" ? "Nota informativa" : "Informational note";
+  return null;
 }
 
 function branchLabel(branch: LeonixClasificadosBranch, lang: Lang): string {
@@ -270,6 +290,27 @@ export function LeonixRealEstateListingManageCard({
         fallbackPublicUrl: legacyPublicViewHref,
       })
     : new Map<string, DashboardAction>();
+
+  // Gate G.2.2 — read-only global status/attention pilot. Bienes Raíces Negocio only (parent and
+  // child both), never Rentas or Bienes Raíces Privado. No lifecycle action, capability, or
+  // navigation href is ever supplied here — this reuses the same `ownerUserId` presence check
+  // Gate D.2's `bienesNegocioCanonicalActions` already established for this exact file.
+  const brLifecycleSummary = isBrNegocioRow
+    ? (() => {
+        const eligibilityInput = buildBienesRaicesEligibilityInput({
+          canonicalListingId: row.id,
+          ownerVerified: Boolean(ownerUserId?.trim()),
+          internalStatus: row.status,
+          isPublished: row.is_published,
+          inventoryRole: row.inventory_role,
+          now: new Date(),
+        });
+        return {
+          status: resolveOwnerFacingStatus(eligibilityInput),
+          attention: resolveAttentionState(eligibilityInput),
+        };
+      })()
+    : null;
 
   const fsboDashboardEditHref = `/dashboard/mis-anuncios/${encodeURIComponent(row.id)}/editar?lang=${lang}`;
   const brDashboardEditHref =
@@ -439,6 +480,24 @@ export function LeonixRealEstateListingManageCard({
               ? "Ciclo: borrador local / listing_drafts → publicación → listado vivo en ruta canónica (no preview)."
               : "Lifecycle: local draft / listing_drafts → publish → live canonical route (not preview)."}
           </p>
+          {brLifecycleSummary ? (
+            <p
+              className={
+                "mt-1 text-[11px] font-medium " +
+                (brLifecycleSummary.attention.severity === "urgent"
+                  ? "text-red-700"
+                  : brLifecycleSummary.attention.severity === "action_required"
+                  ? "text-amber-800"
+                  : "text-[#7A7164]")
+              }
+            >
+              {lang === "es" ? "Estado global" : "Global status"}:{" "}
+              {lang === "es" ? brLifecycleSummary.status.labelEs : brLifecycleSummary.status.labelEn}
+              {brLifecycleAttentionMessage(brLifecycleSummary.attention.severity, lang)
+                ? ` · ${brLifecycleAttentionMessage(brLifecycleSummary.attention.severity, lang)}`
+                : ""}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {lifecycle ? (
