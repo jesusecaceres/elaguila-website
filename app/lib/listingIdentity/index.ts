@@ -119,3 +119,17 @@ export type {
   OwnerLifecycleEligibilityInput,
   PaidModuleLifecycleState,
 } from "./ownerLifecycleTypes";
+
+/**
+ * Gate G.2.1 — pure Business Profile Family lifecycle adapter. Additive only, completely
+ * unwired (see businessProfileLifecycleAdapter.ts's own scope-boundary comment); no category
+ * dashboard consumes this yet. Exported here for discoverability alongside the rest of the
+ * Gate B/D/G.1 contract.
+ */
+export {
+  buildBusinessProfileEligibilityInput,
+  buildBusinessProfilePaidModuleStates,
+  DEFAULT_BUSINESS_PROFILE_CAPABILITIES,
+  mapAddonLifecycleStatusToPaidModuleState,
+} from "./businessProfileLifecycleAdapter";
+export type { BusinessProfileFamilyInput } from "./businessProfileLifecycleAdapter";
