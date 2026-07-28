@@ -1,12 +1,18 @@
 /**
- * Gate G.2.2 — pure Bienes Raíces Negocio category adapter onto the global owner lifecycle
- * contract, built through the Gate G.2.1 Business Profile Family adapter. No I/O, no Supabase,
- * no React, no browser globals — same purity guarantee as the family/global layers it consumes.
+ * Gate G.2.2/G.2.3.5 — pure Bienes Raíces Negocio category adapter onto the global owner
+ * lifecycle contract, built through the Gate G.2.1 Business Profile Family adapter. No I/O, no
+ * Supabase, no React, no browser globals — same purity guarantee as the family/global layers it
+ * consumes.
  *
- * COMPLETELY READ-ONLY THIS GATE: every lifecycle capability produced here stays at the family
- * adapter's safe all-false default (see `businessProfileLifecycleAdapter.ts`), and no navigation
- * href is ever supplied — Gate D's `resolveDashboardActions` remains the only navigation-action
- * source for BR. This file exists to resolve normalized status + attention only.
+ * Gate G.2.3.5 status: `canPause`/`canResume`/`canArchive`/`canDiscontinue` are now derived from
+ * the row's own raw status/publication by reusing the exact pure eligibility predicates the real
+ * server mutation service (`brListingLifecycleService.ts`) enforces — imported read-only from
+ * `brListingLifecycleEligibility.ts` (zero imports itself, no I/O, no `"server-only"` transitive
+ * dependency), never re-derived, so the descriptor-eligibility rule and the server's own
+ * accept/reject rule can never silently diverge. `canRepublish` and `canRestore` stay at the
+ * family adapter's safe `false` default — see the two dedicated comments below for why each is
+ * deliberately excluded from this gate. No navigation href is ever supplied here — Gate D's
+ * `resolveDashboardActions` remains the only navigation-action source for BR.
  *
  * STATUS MAPPING (evidence-bounded — see the Gate G.2A audit Table A): only the six BR
  * `listings.status` values this repository is confirmed to actually reach are mapped explicitly.
@@ -19,8 +25,14 @@
 
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import {
+  brArchiveEligible,
+  brDiscontinueEligible,
+  brPauseEligible,
+  brResumeEligible,
+} from "@/app/lib/clasificados/bienes-raices/brListingLifecycleEligibility";
 import { buildBusinessProfileEligibilityInput, type BusinessProfileFamilyInput } from "./businessProfileLifecycleAdapter";
-import type { OwnerFacingStatusKey, OwnerLifecycleEligibilityInput } from "./ownerLifecycleTypes";
+import type { OwnerFacingStatusKey, OwnerLifecycleCapabilityFlags, OwnerLifecycleEligibilityInput } from "./ownerLifecycleTypes";
 import type { InventoryRole } from "./types";
 
 /**
@@ -95,9 +107,55 @@ function buildBrPaidModules(
 }
 
 /**
+ * Certified Gate G.2.3.5 capability set. Each flag is derived purely from the row's own raw
+ * `status`/`is_published` — the exact same fields, run through the exact same pure predicate,
+ * that `brListingLifecycleService.ts` uses to decide whether the real server mutation will
+ * accept the transition. Applies identically to a main parent and an inventory child — role-
+ * specific behavior (parent Pause cascading to children, child Resume rechecking its parent/
+ * entitlement/capacity, parent Archive/Discontinue blocking on active children) is entirely the
+ * server's responsibility (G.2.3.2/G.2.3.3), never re-implemented or second-guessed here.
+ *
+ * `canRepublish` is deliberately omitted (stays `false`): the global contract's own `"republish"`
+ * lifecycle action means "reactivate an archived/expired/removed listing" (its status allowlist
+ * is `archived | expired | removed`), the exact opposite of BR's real, secured Republish
+ * semantics (a freshness bump available ONLY to an already-live row, which must never reactivate
+ * anything — see Gate G.2.3.1's critical fix). Exposing `canRepublish` here would either render
+ * nothing (status mismatch) or, worse, misrepresent what BR's Republish actually does. The
+ * existing secured BR Republish control is left completely in place, outside this contract.
+ *
+ * `canRestore` is deliberately omitted (stays `false`): no owner Restore path exists for BR at
+ * all (confirmed MISSING by the Gate G.2.3A audit) — this is a locked product decision for
+ * launch, not an oversight.
+ *
+ * Capabilities are only ever computed for `normalizedStatus` `"live"` or `"paused"` — the two
+ * statuses this gate actually certifies for owner-facing lifecycle actions. Every other reachable
+ * BR status (`awaiting_payment`, `suspended`, `discontinued`, `archived`, and the fail-closed
+ * `draft`) gets zero capabilities here, even where a raw per-action predicate would technically
+ * allow it: `brArchiveEligible` is deliberately permissive of a flagged/pending row (matching the
+ * real, already-shipped server rule that only blocks an already-`"removed"` row), and the global
+ * resolver's own status table separately lists `"suspended"` as archive-eligible — but no owner
+ * lifecycle action may render for a flagged (moderated) or still-unpaid row regardless of what
+ * either of those two independently-correct rules would otherwise permit.
+ */
+function resolveBrCapabilities(
+  input: BienesRaicesLifecycleInput,
+  normalizedStatus: OwnerFacingStatusKey,
+): OwnerLifecycleCapabilityFlags {
+  if (!input.ownerVerified || !input.canonicalListingId) return {};
+  if (normalizedStatus !== "live" && normalizedStatus !== "paused") return {};
+  const rawRow = { status: input.internalStatus ?? null, is_published: input.isPublished ?? null };
+  return {
+    canPause: brPauseEligible(rawRow),
+    canResume: brResumeEligible(rawRow),
+    canArchive: brArchiveEligible(rawRow),
+    canDiscontinue: brDiscontinueEligible(rawRow),
+  };
+}
+
+/**
  * Builds a valid `OwnerLifecycleEligibilityInput` for a Bienes Raíces Negocio row, through the
- * Business Profile Family adapter (never bypassing it). Capabilities and navigation hrefs are
- * never supplied here — this pilot is read-only by construction, not by omission convention.
+ * Business Profile Family adapter (never bypassing it). No navigation href is ever supplied —
+ * Gate D remains the sole navigation-action source for BR.
  */
 export function buildBienesRaicesEligibilityInput(input: BienesRaicesLifecycleInput): OwnerLifecycleEligibilityInput {
   const normalizedStatus = resolveBrOwnerFacingStatus(input.internalStatus, input.isPublished);
@@ -118,8 +176,9 @@ export function buildBienesRaicesEligibilityInput(input: BienesRaicesLifecycleIn
     moderationIssue: false,
     role: resolveBrInventoryRole(input.inventoryRole),
     paidModules: buildBrPaidModules(input.inventoryEntitlementStatus),
-    // No capabilities, no navigationHrefs — family adapter's safe all-false default applies
-    // untouched; Gate D remains the only navigation-action source for BR.
+    capabilities: resolveBrCapabilities(input, normalizedStatus),
+    // No navigationHrefs — family adapter's safe all-false default applies untouched; Gate D
+    // remains the only navigation-action source for BR.
     now: input.now,
   };
 

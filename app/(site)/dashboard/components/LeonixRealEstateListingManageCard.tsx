@@ -42,9 +42,11 @@ import {
   buildListingIdentity,
   resolveAttentionState,
   resolveDashboardActions,
+  resolveEligibleGlobalActions,
   resolveOwnerFacingStatus,
   type AttentionSeverity,
   type DashboardAction,
+  type GlobalActionDescriptor,
 } from "@/app/lib/listingIdentity";
 import { buildBienesRaicesEligibilityInput } from "@/app/lib/listingIdentity/bienesRaicesLifecycleAdapter";
 import type { DashboardEntitlementBadgePayload } from "../lib/dashboardPackageEntitlementBadges";
@@ -291,11 +293,13 @@ export function LeonixRealEstateListingManageCard({
       })
     : new Map<string, DashboardAction>();
 
-  // Gate G.2.2 — read-only global status/attention pilot. Bienes Raíces Negocio only (parent and
-  // child both), never Rentas or Bienes Raíces Privado. No lifecycle action, capability, or
-  // navigation href is ever supplied here — this reuses the same `ownerUserId` presence check
-  // Gate D.2's `bienesNegocioCanonicalActions` already established for this exact file.
-  const brLifecycleSummary = isBrNegocioRow
+  // Gate G.2.2/G.2.3.5 — global status/attention/lifecycle-action pilot. Bienes Raíces Negocio
+  // only (parent and child both), never Rentas or Bienes Raíces Privado. Navigation hrefs are
+  // still never supplied to this input (Gate D remains the sole navigation-action source for
+  // BR) — only `kind: "lifecycle"` descriptors are ever consumed from `actions` below. This
+  // reuses the same `ownerUserId` presence check Gate D.2's `bienesNegocioCanonicalActions`
+  // already established for this exact file.
+  const brLifecycleContract = isBrNegocioRow
     ? (() => {
         const eligibilityInput = buildBienesRaicesEligibilityInput({
           canonicalListingId: row.id,
@@ -308,9 +312,22 @@ export function LeonixRealEstateListingManageCard({
         return {
           status: resolveOwnerFacingStatus(eligibilityInput),
           attention: resolveAttentionState(eligibilityInput),
+          actions: resolveEligibleGlobalActions(eligibilityInput).filter(
+            (a): a is GlobalActionDescriptor => a.kind === "lifecycle",
+          ),
         };
       })()
     : null;
+
+  // Gate G.2.3.5 — only these four certified lifecycle action keys are ever bound to an existing
+  // callback; any other descriptor key (there are none certified yet for BR) is simply never
+  // looked up and therefore never rendered. `restore`/`republish` are never certified through
+  // this contract for BR (see `bienesRaicesLifecycleAdapter.ts`), so they can never appear here
+  // regardless of what `brLifecycleContract.actions` might otherwise contain.
+  const brPauseAction = brLifecycleContract?.actions.find((a) => a.key === "pause") ?? null;
+  const brResumeAction = brLifecycleContract?.actions.find((a) => a.key === "resume") ?? null;
+  const brArchiveAction = brLifecycleContract?.actions.find((a) => a.key === "archive") ?? null;
+  const brDiscontinueAction = brLifecycleContract?.actions.find((a) => a.key === "discontinue") ?? null;
 
   const fsboDashboardEditHref = `/dashboard/mis-anuncios/${encodeURIComponent(row.id)}/editar?lang=${lang}`;
   const brDashboardEditHref =
@@ -480,21 +497,21 @@ export function LeonixRealEstateListingManageCard({
               ? "Ciclo: borrador local / listing_drafts → publicación → listado vivo en ruta canónica (no preview)."
               : "Lifecycle: local draft / listing_drafts → publish → live canonical route (not preview)."}
           </p>
-          {brLifecycleSummary ? (
+          {brLifecycleContract ? (
             <p
               className={
                 "mt-1 text-[11px] font-medium " +
-                (brLifecycleSummary.attention.severity === "urgent"
+                (brLifecycleContract.attention.severity === "urgent"
                   ? "text-red-700"
-                  : brLifecycleSummary.attention.severity === "action_required"
+                  : brLifecycleContract.attention.severity === "action_required"
                   ? "text-amber-800"
                   : "text-[#7A7164]")
               }
             >
               {lang === "es" ? "Estado global" : "Global status"}:{" "}
-              {lang === "es" ? brLifecycleSummary.status.labelEs : brLifecycleSummary.status.labelEn}
-              {brLifecycleAttentionMessage(brLifecycleSummary.attention.severity, lang)
-                ? ` · ${brLifecycleAttentionMessage(brLifecycleSummary.attention.severity, lang)}`
+              {lang === "es" ? brLifecycleContract.status.labelEs : brLifecycleContract.status.labelEn}
+              {brLifecycleAttentionMessage(brLifecycleContract.attention.severity, lang)
+                ? ` · ${brLifecycleAttentionMessage(brLifecycleContract.attention.severity, lang)}`
                 : ""}
             </p>
           ) : null}
@@ -536,60 +553,133 @@ export function LeonixRealEstateListingManageCard({
               {lang === "es" ? "Vista previa" : "Preview"}
             </Link>
           ) : null}
-          <button
-            type="button"
-            disabled={busy || !canPause}
-            onClick={onPause}
-            title={
-              lang === "es"
-                ? "Pausar: oculta el anuncio del público. No es archivar ni republicar."
-                : "Pause: hides the listing from the public. Not archive or republish."
-            }
-            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
-          >
-            {pauseListingLabel(lang)}
-          </button>
-          <button
-            type="button"
-            disabled={busy || !canResume}
-            onClick={onResume}
-            title={
-              lang === "es"
-                ? "Restaurar: publicar de nuevo tras una pausa. No es lo mismo que Republicar."
-                : "Restore: publish again after a pause. Not the same as Republish or Move to top."
-            }
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
-          >
-            {resumeListingLabel(lang)}
-          </button>
-          {onMarkSold && canPause ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onMarkSold}
-              title={
-                lang === "es"
-                  ? "Marcar vendido: quita el anuncio del público. Requiere confirmación."
-                  : "Mark sold: removes the listing from public results. Requires confirmation."
-              }
-              className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF8E8] px-4 py-2 text-sm font-semibold text-[#5C4A28] disabled:opacity-50"
-            >
-              {lang === "es" ? "Marcar vendido" : "Mark sold"}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            disabled={busy || st === "removed"}
-            onClick={onArchive}
-            title={
-              lang === "es"
-                ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix)."
-                : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
-            }
-            className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
-          >
-            {archiveListingLabel(lang)}
-          </button>
+          {isBrNegocioRow ? (
+            <>
+              {/* Gate G.2.3.5 — certified global lifecycle descriptors replace the legacy
+                  Pause/Resume/Mark Sold/Archive buttons for Bienes Raíces Negocio only. Each
+                  button renders only when the global resolver actually produced that descriptor
+                  (status + certified capability both agree); the existing secured callback,
+                  loading state, and confirmation behavior (e.g. `onArchive`'s own confirm()
+                  dialog) are reused unchanged — this file never adds a second confirmation. */}
+              {brPauseAction ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onPause}
+                  title={
+                    lang === "es"
+                      ? "Pausar: oculta el anuncio del público. No es archivar ni republicar."
+                      : "Pause: hides the listing from the public. Not archive or republish."
+                  }
+                  className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
+                >
+                  {lang === "es" ? brPauseAction.labelEs : brPauseAction.labelEn}
+                </button>
+              ) : null}
+              {brResumeAction ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onResume}
+                  title={
+                    lang === "es"
+                      ? "Reanudar: publicar de nuevo tras una pausa. No es lo mismo que Republicar."
+                      : "Resume: publish again after a pause. Not the same as Republish or Move to top."
+                  }
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
+                >
+                  {lang === "es" ? brResumeAction.labelEs : brResumeAction.labelEn}
+                </button>
+              ) : null}
+              {brDiscontinueAction && onMarkSold ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onMarkSold}
+                  title={
+                    lang === "es"
+                      ? "Marcar vendido: quita el anuncio del público. Requiere confirmación."
+                      : "Mark sold: removes the listing from public results. Requires confirmation."
+                  }
+                  className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF8E8] px-4 py-2 text-sm font-semibold text-[#5C4A28] disabled:opacity-50"
+                >
+                  {lang === "es" ? brDiscontinueAction.labelEs : brDiscontinueAction.labelEn}
+                </button>
+              ) : null}
+              {brArchiveAction ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onArchive}
+                  title={
+                    lang === "es"
+                      ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix). Puede rechazarse si hay propiedades activas."
+                      : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID). May be rejected if active properties exist."
+                  }
+                  className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+                >
+                  {lang === "es" ? brArchiveAction.labelEs : brArchiveAction.labelEn}
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={busy || !canPause}
+                onClick={onPause}
+                title={
+                  lang === "es"
+                    ? "Pausar: oculta el anuncio del público. No es archivar ni republicar."
+                    : "Pause: hides the listing from the public. Not archive or republish."
+                }
+                className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
+              >
+                {pauseListingLabel(lang)}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !canResume}
+                onClick={onResume}
+                title={
+                  lang === "es"
+                    ? "Restaurar: publicar de nuevo tras una pausa. No es lo mismo que Republicar."
+                    : "Restore: publish again after a pause. Not the same as Republish or Move to top."
+                }
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50"
+              >
+                {resumeListingLabel(lang)}
+              </button>
+              {onMarkSold && canPause ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onMarkSold}
+                  title={
+                    lang === "es"
+                      ? "Marcar vendido: quita el anuncio del público. Requiere confirmación."
+                      : "Mark sold: removes the listing from public results. Requires confirmation."
+                  }
+                  className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF8E8] px-4 py-2 text-sm font-semibold text-[#5C4A28] disabled:opacity-50"
+                >
+                  {lang === "es" ? "Marcar vendido" : "Mark sold"}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={busy || st === "removed"}
+                onClick={onArchive}
+                title={
+                  lang === "es"
+                    ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix)."
+                    : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
+                }
+                className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+              >
+                {archiveListingLabel(lang)}
+              </button>
+            </>
+          )}
         </div>
       </div>
       {effectiveBranch === "bienes_raices_negocio" && isBrNegocioListing(row as BrPropertyInventoryRowLike) ? (
