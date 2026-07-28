@@ -22,6 +22,7 @@ import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurant
 import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
@@ -376,14 +377,17 @@ export async function POST(req: Request) {
         leonix_ad_id?: string | null;
       };
       baseRow.leonix_verified = ex.leonix_verified ?? false;
-      if (pendingPayment) {
-        baseRow.status = ex.status === "published" ? "published" : RESTAURANTE_PENDING_CHECKOUT_STATUS;
-      } else {
-        baseRow.status =
-          ex.status === "archived" || ex.status === RESTAURANTE_PENDING_CHECKOUT_STATUS
-            ? "published"
-            : (ex.status ?? "published");
+      // Gate G.3.1A — the confirmed critical fix: an ordinary owner edit of an EXISTING row must
+      // never escalate a protected status (`pending_payment`, `archived`, `suspended`) to
+      // `published`. The `activation_mode`/`pendingPayment` request flag is deliberately never
+      // consulted for this decision — only the certified Revenue OS webhook
+      // (`activatePaidRestauranteListingFromRevenueOs`) or an authorized staff admin action may
+      // publish a protected row. See `restauranteOwnerEditStatusAuthority.ts` for the full rule.
+      const statusDecision = resolveRestauranteOwnerEditTargetStatus(ex.status);
+      if (!statusDecision.ok) {
+        return NextResponse.json({ ok: false, error: statusDecision.error }, { status: 409 });
       }
+      baseRow.status = statusDecision.targetStatus;
       /** Paid placement is admin-controlled only; republish/renew must not flip it from the client. */
       baseRow.promoted = ex.promoted ?? false;
       baseRow.package_tier = mergePackageTierForUpdate(ex.package_tier, requestedLane);
@@ -406,16 +410,39 @@ export async function POST(req: Request) {
       listingIdOut = ex.id ?? null;
       leonixAdIdOut = typeof baseRow.leonix_ad_id === "string" ? baseRow.leonix_ad_id : null;
 
-      const { error } = await supabase
+      // Gate G.3.1A — compare-and-set on the status we just decided to preserve: if another
+      // process (staff moderation, a Stripe webhook landing concurrently) changed the row's
+      // status between our read above and this write, the update matches zero rows instead of
+      // silently overwriting whatever that other process just set. Raw Postgres error detail is
+      // logged server-side only, never returned in the response body.
+      const { data: updatedRow, error } = await supabase
         .from("restaurantes_public_listings")
         .update({
           ...baseRow,
           updated_at: now,
         })
-        .eq("draft_listing_id", draft.draftListingId);
+        .eq("draft_listing_id", draft.draftListingId)
+        .eq("status", statusDecision.targetStatus)
+        .select("id")
+        .maybeSingle();
 
       if (error) {
-        return NextResponse.json({ ok: false, error: "update_failed", detail: error.message }, { status: 500 });
+        console.error("[restaurantes publish api] update failed", {
+          draftListingId: draft.draftListingId,
+          code: error.code,
+          message: error.message,
+        });
+        return NextResponse.json({ ok: false, error: "restaurante_update_failed" }, { status: 500 });
+      }
+      if (!updatedRow?.id) {
+        console.error("[restaurantes publish api] update matched no row (concurrent status change)", {
+          draftListingId: draft.draftListingId,
+          expectedStatus: statusDecision.targetStatus,
+        });
+        return NextResponse.json(
+          { ok: false, error: "restaurante_status_transition_not_allowed" },
+          { status: 409 },
+        );
       }
     } else {
       const requested = typeof b.slug === "string" ? b.slug.trim() : "";
