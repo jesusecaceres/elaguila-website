@@ -14,6 +14,11 @@ type DashboardCategoryListingCardProps = {
   metaItems?: Array<{ label: string; value: string }>;
   /** Tiny disclaimer under the meta grid (e.g. listing plan vs account plan). */
   footerHint?: string | null;
+  /**
+   * Gate G.3.2 — optional, read-only global owner status/attention line (no mutation controls).
+   * Additive: categories that don't pass this render exactly as before.
+   */
+  lifecycleNote?: { text: string; tone: "urgent" | "warning" | "neutral" } | null;
   /** Compact seller-management layout for Mis anuncios. */
   compact?: boolean;
   actions: Array<{ href?: string; label: string; tone?: "primary" | "secondary" | "subtle"; onClick?: () => void; disabled?: boolean }>;
@@ -28,6 +33,7 @@ export function DashboardCategoryListingCard({
   badges = [],
   metaItems = [],
   footerHint,
+  lifecycleNote,
   compact = false,
   actions,
 }: DashboardCategoryListingCardProps) {
@@ -66,6 +72,20 @@ export function DashboardCategoryListingCard({
             ),
           )}
         </dl>
+      ) : null}
+      {lifecycleNote ? (
+        <p
+          className={
+            "mt-2 text-[11px] font-medium " +
+            (lifecycleNote.tone === "urgent"
+              ? "text-red-700"
+              : lifecycleNote.tone === "warning"
+                ? "text-amber-800"
+                : "text-[color:var(--lx-muted)]")
+          }
+        >
+          {lifecycleNote.text}
+        </p>
       ) : null}
       {footerHint ? <p className="mt-2 text-[10px] leading-snug text-[color:var(--lx-muted)]/95">{footerHint}</p> : null}
     </>

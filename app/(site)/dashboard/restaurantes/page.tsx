@@ -38,6 +38,8 @@ import {
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { buildRestaurantesEligibilityInput } from "@/app/lib/listingIdentity/restaurantesLifecycleAdapter";
+import { resolveAttentionState, resolveOwnerFacingStatus } from "@/app/lib/listingIdentity";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -62,6 +64,17 @@ function fmt(ts: string, lang: Lang) {
   } catch {
     return ts;
   }
+}
+
+/**
+ * Gate G.3.2 — small, generic severity-level message (not reason-specific, mirroring the same
+ * choice already made for Bienes Raíces in `LeonixRealEstateListingManageCard.tsx`).
+ */
+function restauranteLifecycleAttentionMessage(severity: "none" | "informational" | "action_required" | "urgent", lang: Lang): string | null {
+  if (severity === "urgent") return lang === "es" ? "Requiere atención urgente" : "Requires urgent attention";
+  if (severity === "action_required") return lang === "es" ? "Requiere tu atención" : "Needs your attention";
+  if (severity === "informational") return lang === "es" ? "Nota informativa" : "Informational note";
+  return null;
 }
 
 function ownerTotalsToListingMetrics(totals: OwnerAnalyticsTotals): ListingMetrics {
@@ -410,8 +423,6 @@ export default function DashboardRestaurantesPage() {
               {rows.map((r) => {
                 const publicHref = appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(r.slug)}`, lang);
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=${lang}&q=${encodeURIComponent(r.business_name)}`;
-                const statusLabel =
-                  r.status === "published" ? (lang === "es" ? "Publicado" : "Published") : r.status;
                 const restaurantListingPlan = categoryAdPlanDisplayLabel(
                   resolveCategoryAdPlan({
                     category: "restaurantes",
@@ -425,6 +436,38 @@ export default function DashboardRestaurantesPage() {
                   r.slug ?? "",
                   r.leonix_ad_id ?? "",
                 ]);
+                // Gate G.3.2 — real global status/attention pilot, read-only. Every row here is
+                // already scoped to this authenticated owner by the fetch's own
+                // `.eq("owner_user_id", user.id)` filter, so `ownerVerified` is always true.
+                const restauranteLifecycleContract = (() => {
+                  const eligibilityInput = buildRestaurantesEligibilityInput({
+                    canonicalListingId: r.id,
+                    ownerVerified: true,
+                    rawStatus: r.status,
+                    couponEntitlementStatus: addonStatus,
+                    now: new Date(),
+                  });
+                  return {
+                    status: resolveOwnerFacingStatus(eligibilityInput),
+                    attention: resolveAttentionState(eligibilityInput),
+                  };
+                })();
+                const statusLabel =
+                  lang === "es" ? restauranteLifecycleContract.status.labelEs : restauranteLifecycleContract.status.labelEn;
+                const lifecycleAttentionMessage = restauranteLifecycleAttentionMessage(
+                  restauranteLifecycleContract.attention.severity,
+                  lang,
+                );
+                const lifecycleNote = lifecycleAttentionMessage
+                  ? {
+                      text: lifecycleAttentionMessage,
+                      tone: (restauranteLifecycleContract.attention.severity === "urgent"
+                        ? "urgent"
+                        : restauranteLifecycleContract.attention.severity === "action_required"
+                          ? "warning"
+                          : "neutral") as "urgent" | "warning" | "neutral",
+                    }
+                  : null;
                 const couponUpgradeEligible = restaurantCouponAddonUpgradeEligibleFromLifecycle({
                   status: r.status,
                   addonStatus,
@@ -489,6 +532,7 @@ export default function DashboardRestaurantesPage() {
                       r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
                     footerHint={cardFooterHint}
+                    lifecycleNote={lifecycleNote}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: restaurantListingPlan },
                       { label: t.cardSlug, value: r.slug },
