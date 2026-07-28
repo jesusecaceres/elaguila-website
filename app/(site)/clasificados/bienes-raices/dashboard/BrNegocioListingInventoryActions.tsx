@@ -13,7 +13,6 @@ import {
   isBrInventoryProperty,
   isBrInventoryUpgradeActive,
   isBrNegocioListing,
-  resolveBrInventoryGroupingKey,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
@@ -179,14 +178,22 @@ export function BrNegocioListingInventoryActions({
 
   const upgradeActive =
     entitlementActive === true || isBrInventoryUpgradeActive({ entitlementActive: entitlementActive ?? undefined });
-  const groupingKey = resolveBrInventoryGroupingKey(row);
+  // Gate F.2.3 — scope the active-count rows to this row's real effective parent (canonical
+  // parent uuid or parent reference), never `resolveBrInventoryGroupingKey`'s owner-wide
+  // fallback; two distinct ungrouped parent businesses for the same owner must never share one
+  // active-property count.
+  const effectiveParentId = (r: BrPropertyInventoryRowLike): string =>
+    isBrInventoryMainListing(r) ? r.id : r.br_inventory_parent_listing_id?.trim() || r.id;
+  const scopedInventoryRows = (inventoryRows ?? [row]).filter(
+    (r) => effectiveParentId(r) === mainListingId,
+  );
   const addCtx: BrInventoryAddContext = {
     parentListingId: mainListingId,
     returnToListingId: mainListingId,
     brInventoryGroupId: row.br_inventory_group_id?.trim() || mainListingId,
   };
-  const counts = computeBrPropertyInventoryCounts(inventoryRows ?? [row], {
-    groupingKey,
+  const counts = computeBrPropertyInventoryCounts(scopedInventoryRows, {
+    groupingKey: null,
     upgradeActive,
   });
 

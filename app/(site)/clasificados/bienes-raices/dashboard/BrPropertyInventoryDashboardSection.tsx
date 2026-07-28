@@ -5,10 +5,12 @@ import { useMemo } from "react";
 import {
   BASE_BR_NEGOCIO_MONTHLY_PRICE,
   computeBrPropertyInventoryCounts,
+  getBrInventoryGroupId,
+  getBrInventoryParentListingId,
   isBrInventoryMainListing,
+  isBrInventoryProperty,
   isBrInventoryUpgradeActive,
   isBrNegocioListing,
-  resolveBrInventoryGroupingKey,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
@@ -33,6 +35,32 @@ type Props = {
   rows: BrPropertyInventoryRowLike[];
 };
 
+/**
+ * Gate F.2.3 — deterministic, dashboard-only grouping key. `br_inventory_group_id` is grouping
+ * metadata, not canonical identity (F.2A certification): the durable authority is always a row's
+ * own `id` (parent) or its `br_inventory_parent_listing_id` (child). Never falls back to an
+ * owner-wide literal — two distinct, still-ungrouped parent rows for the same owner must never
+ * collapse into one dashboard bucket (each gets its own `parent:` key derived from its own
+ * canonical uuid), and a malformed child row with neither a group id nor a parent reference stays
+ * isolated under its own row id rather than guessing an owner-wide or arbitrary attachment.
+ * `"parent:"`/`"orphan:"`-prefixed keys are synthetic (dashboard-local only) and are never a real
+ * stored `br_inventory_group_id` value — see the check below where `group.groupKey` is turned
+ * into a real group id for the Add Property context. This intentionally does not reuse
+ * `resolveBrInventoryGroupingKey` from the shared policy module: that function's owner-wide
+ * fallback is still relied on verbatim by the public related-listings fetcher
+ * (`fetchBrRelatedInventoryListingsBrowser.ts`) and is left untouched here.
+ */
+function resolveBrPropertyInventoryDashboardGroupKey(row: BrPropertyInventoryRowLike): string {
+  const groupId = getBrInventoryGroupId(row);
+  if (groupId) return groupId;
+  if (isBrInventoryProperty(row)) {
+    const parentId = getBrInventoryParentListingId(row);
+    if (parentId) return `parent:${parentId}`;
+    return `orphan:${row.id}`;
+  }
+  return `parent:${row.id}`;
+}
+
 export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
   const upgradeActive = isBrInventoryUpgradeActive();
   const negocioRows = useMemo(() => rows.filter((r) => isBrNegocioListing(r)), [rows]);
@@ -43,7 +71,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
       { groupKey: string; mainId: string | null; rows: BrPropertyInventoryRowLike[] }
     >();
     for (const row of negocioRows) {
-      const groupKey = resolveBrInventoryGroupingKey(row) ?? `listing:${row.id}`;
+      const groupKey = resolveBrPropertyInventoryDashboardGroupKey(row);
       const existing = map.get(groupKey);
       if (!existing) {
         map.set(groupKey, {
@@ -87,16 +115,23 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
       </div>
 
       {groups.map((group) => {
-        const counts = computeBrPropertyInventoryCounts(negocioRows, {
-          groupingKey: group.groupKey,
+        // Gate F.2.3 — count only this group's own already-correctly-scoped rows directly,
+        // rather than re-deriving membership via the shared (owner-wide-fallback) grouping key;
+        // this keeps the displayed count consistent with the visual grouping above.
+        const counts = computeBrPropertyInventoryCounts(group.rows, {
+          groupingKey: null,
           upgradeActive,
         });
         const mainId = group.mainId ?? group.rows[0]?.id;
+        // Synthetic dashboard-local keys (never a real stored br_inventory_group_id) must never
+        // leak into the Add Property context's explicit group id.
+        const isSyntheticGroupKey =
+          group.groupKey.startsWith("parent:") || group.groupKey.startsWith("orphan:");
         const addCtx: BrInventoryAddContext | null = mainId
           ? {
               parentListingId: mainId,
               returnToListingId: mainId,
-              brInventoryGroupId: group.groupKey.startsWith("owner:") ? null : group.groupKey,
+              brInventoryGroupId: isSyntheticGroupKey ? null : group.groupKey,
             }
           : null;
 
