@@ -64,6 +64,29 @@ type InventoryGroup = {
 };
 
 /**
+ * Gate F.2.1 — deterministic, dashboard-only grouping key. `dealer_inventory_group_id` is
+ * grouping metadata, not canonical identity (F.2A certification): the durable authority is
+ * always a row's own `id` (parent) or its `dealer_inventory_parent_listing_id` (child). Never
+ * falls back to an owner-wide or global literal — two distinct, still-ungrouped parent rows for
+ * the same owner must never collapse into one dashboard bucket (each gets its own `parent:` key
+ * derived from its own canonical uuid), and a malformed child row with neither a group id nor a
+ * parent reference stays isolated under its own row id rather than guessing an owner-wide or
+ * arbitrary attachment. `"parent:"`/`"orphan:"`-prefixed keys are synthetic (dashboard-local only)
+ * and are never a real stored `dealer_inventory_group_id` value — see the `startsWith` check where
+ * `group.groupKey` is turned into a real group id for the public group page / Add Vehicle context.
+ */
+function resolveAutosDealerInventoryGroupKey(row: AutosClassifiedsDashboardRow): string {
+  const groupId = row.dealer_inventory_group_id?.trim();
+  if (groupId) return groupId;
+  if (row.inventory_role === "inventory_vehicle") {
+    const parentId = row.dealer_inventory_parent_listing_id?.trim();
+    if (parentId) return `parent:${parentId}`;
+    return `orphan:${row.id}`;
+  }
+  return `parent:${row.id}`;
+}
+
+/**
  * Gate D.3 — canonical dashboard actions for one Autos Negocio dealer row (parent or vehicle
  * child), sourced from `resolveDashboardActions`. `sourceId` is always this row's OWN uuid
  * (never substituted with the parent's). Verified against the live builders before wiring:
@@ -155,7 +178,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const groups = useMemo((): InventoryGroup[] => {
     const byKey = new Map<string, InventoryGroup>();
     for (const row of rows.filter((x) => x.lane === "negocios")) {
-      const groupKey = row.dealer_inventory_group_id?.trim() || "owner:default";
+      const groupKey = resolveAutosDealerInventoryGroupKey(row);
       const existing = byKey.get(groupKey);
       const dealerName = row.sellerName.trim() || (lang === "es" ? "Dealer" : "Dealer");
       if (!existing) {
@@ -373,7 +396,12 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             group.rows.find((r) => r.inventory_role === "main")?.id ??
             group.rows[0]?.id;
           if (!parentId) return null;
-          const groupId = group.groupKey.startsWith("owner:") ? null : group.groupKey;
+          // Synthetic dashboard-local keys (never a real stored dealer_inventory_group_id) must
+          // never leak into the public group page or the Add Vehicle context's explicit group id.
+          const groupId =
+            group.groupKey.startsWith("parent:") || group.groupKey.startsWith("orphan:")
+              ? null
+              : group.groupKey;
           const addCtx = {
             parentListingId: parentId,
             returnToListingId: parentId,
