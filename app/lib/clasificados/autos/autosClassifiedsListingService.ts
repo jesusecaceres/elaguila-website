@@ -198,17 +198,41 @@ export async function assertAutosListingOwner(listingId: string, ownerUserId: st
   return row;
 }
 
-/** Payload + lang may be updated while status is draft or payment_failed (recoverable). */
+/**
+ * Payload + lang may be updated:
+ *  - while status is draft / payment_failed / pending_payment (recoverable pre-publish states,
+ *    all lanes, unchanged from prior behavior), OR
+ *  - while status is active AND lane is "negocios" — an authenticated owner editing an
+ *    already-published dealer parent or vehicle child row in place. This is the only status/
+ *    lane combination this gate adds; Autos Privado's editable-status set is unchanged (an
+ *    active `privado` row is still rejected here, exactly as before).
+ *
+ * Never touches `status`, Stripe fields, entitlement state, `dealer_inventory_group_id`,
+ * `dealer_inventory_parent_listing_id`, `inventory_role`, or `lane` — only `listing_payload`
+ * and `lang` are ever written, so identity/lifecycle columns are preserved by construction.
+ * Always updates the existing row by its real primary UUID; never inserts a replacement row.
+ */
 export async function updateAutosClassifiedsListingDraft(
   listingId: string,
   ownerUserId: string,
   input: { listing: AutoDealerListing; lang?: AutosClassifiedsLang },
 ): Promise<AutosListingPersistResult> {
   const row = await assertAutosListingOwner(listingId, ownerUserId);
-  if (!row) return { row: null, persistWarnings: [] };
-  if (row.status !== "draft" && row.status !== "payment_failed" && row.status !== "pending_payment")
-    return { row: null, persistWarnings: [] };
-  if (!isSupabaseAdminConfigured()) return { row: null, persistWarnings: [] };
+  if (!row) {
+    // Deliberately the same outcome for "no such row" and "row belongs to another owner" —
+    // matches the pre-existing anti-enumeration posture of assertAutosListingOwner, not weakened.
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  const recoverableStatus = row.status === "draft" || row.status === "payment_failed" || row.status === "pending_payment";
+  const negociosActiveEditable = row.lane === "negocios" && row.status === "active";
+  if (!recoverableStatus && !negociosActiveEditable) {
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_STATUS_NOT_EDITABLE" };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_DB_NOT_CONFIGURED" };
+  }
   const supabase = getAdminSupabase();
   const normalized = normalizeLoadedListing({
     ...input.listing,
@@ -224,6 +248,8 @@ export async function updateAutosClassifiedsListingDraft(
       updated_at: new Date().toISOString(),
     })
     .eq("id", listingId)
+    // Defense in depth: the write itself is owner-scoped, not just the preceding read.
+    .eq("owner_user_id", ownerUserId)
     .select()
     .single();
   if (error || !data) {

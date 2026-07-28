@@ -287,15 +287,23 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
 
   knownLimitations: [
     "PATCH /api/clasificados/autos/listings/[id] (updateAutosClassifiedsListingDraft, " +
-      "app/lib/clasificados/autos/autosClassifiedsListingService.ts:209-210) is a no-op/failure " +
-      "for any row whose status is not draft/pending_payment/payment_failed — i.e. it silently " +
-      "fails for every already-published dealer parent or child row. This editRoute() therefore " +
-      "resolves to a real, linked page, but there is currently no confirmed working save path " +
-      "for an already-active listing reached through it.",
-    "The Preview route above is not genuinely listing-bound: AutosNegociosPreviewClient.tsx " +
-      "never reads the listingId/edit/mode/source query params it receives — it only reflects " +
-      "shared per-user localStorage draft state, which happens to be correct only as a side " +
-      "effect of the edit-hydration flow writing into that same namespace first.",
+      "app/lib/clasificados/autos/autosClassifiedsListingService.ts) now accepts an authenticated " +
+      "owner's update to an already-active negocios row (parent or child), not only " +
+      "draft/pending_payment/payment_failed — repaired in Gate C (Auto Dealer Same-Record Save " +
+      "and Listing-Bound Preview). The write is owner-scoped on both the preceding read and the " +
+      "update itself, and only ever sets listing_payload/lang/updated_at, so id/leonix_ad_id/" +
+      "dealer_inventory_group_id/dealer_inventory_parent_listing_id/inventory_role/lane are " +
+      "preserved by column scope. Autos Privado's editable-status set is unchanged (still " +
+      "draft/pending_payment/payment_failed only — the active-row allowance is negocios-only).",
+    "The Preview route above is now genuinely listing-bound when a canonical listingId is " +
+      "present — repaired in Gate C. AutosNegociosPreviewClient.tsx reads listingId from the " +
+      "route/query, fetches the owner-authorized row via GET /api/clasificados/autos/listings/" +
+      "[id], and resolves from the real database UUID rather than shared per-user localStorage " +
+      "draft state; that generic draft is never consulted or merged in once a canonical " +
+      "listingId is present. Invalid, unauthorized, wrong-lane, unsupported-role, or missing " +
+      "rows render an explicit error state rather than falling back to the blank/new-listing " +
+      "empty state. The original no-listingId draft Preview path (for a genuinely new, " +
+      "not-yet-saved listing) is unchanged.",
     "No per-child edit link/route exists in the dashboard inventory section " +
       "(AutosDealerInventoryDashboardSection.tsx) — only the parent-level 'Editar inventario' " +
       "link above, which opens the drawer-based inventory step rather than a dedicated child URL.",

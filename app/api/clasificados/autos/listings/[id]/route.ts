@@ -111,6 +111,26 @@ export async function PATCH(request: Request, { params }: Props) {
   const lang: AutosClassifiedsLang | undefined = body.lang === "en" || body.lang === "es" ? body.lang : undefined;
   const result = await updateAutosClassifiedsListingDraft(id, userId, { listing: body.listing, lang });
   if (!result.row) {
+    if (result.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN") {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "NOT_FOUND",
+          message: "Listing not found or you do not have access to it.",
+          legacyError: "not_found",
+        }),
+        { status: 404 },
+      );
+    }
+    if (result.errorCode === "AUTOS_LISTING_STATUS_NOT_EDITABLE") {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "UPDATE_FAILED",
+          message: "This listing's current status does not allow edits right now.",
+          legacyError: "status_not_editable",
+        }),
+        { status: 409 },
+      );
+    }
     const errorCode =
       result.errorCode === "AUTOS_SUPABASE_UPDATE_FAILED"
         ? "AUTOS_SUPABASE_UPDATE_FAILED"
@@ -158,5 +178,10 @@ export async function GET(request: Request, { params }: Props) {
     lang: row.lang,
     listing: row.listing_payload,
     stripe_checkout_session_id: row.stripe_checkout_session_id,
+    // Parent/child identity — needed by listing-bound Preview to distinguish a dealer parent
+    // from an inventory vehicle child and to preserve group/parent relationships (Gate C).
+    inventory_role: row.inventory_role ?? null,
+    dealer_inventory_group_id: row.dealer_inventory_group_id ?? null,
+    dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id ?? null,
   });
 }
