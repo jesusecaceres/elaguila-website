@@ -32,6 +32,8 @@ import {
   fetchBienesInventoryPackEntitlementActive,
   redirectBienesDashboardInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { buildListingIdentity, resolveDashboardActions } from "@/app/lib/listingIdentity";
 
 type Lang = "es" | "en";
 
@@ -41,9 +43,58 @@ type Props = {
   parentLeonixAdIdByListingId: ReadonlyMap<string, string>;
   /** All negocio rows in owner inventory — used for active-count limits. */
   inventoryRows?: readonly BrPropertyInventoryRowLike[];
+  /** Gate D.2 — page-level authenticated owner id; required to source canonical resolver hrefs. */
+  ownerUserId?: string | null;
 };
 
-export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdByListingId, inventoryRows }: Props) {
+/**
+ * Gate D.2 — the parent's "Manage inventory" href, sourced from `resolveDashboardActions` when
+ * ownership/identity resolve, falling back to the existing `bienesInventoryEditHref` builder
+ * otherwise. Verified byte-identical to the live builder at this exact call site (neither passes
+ * `listingSlug` nor `categoriaPropiedad` here), so the swap is a pure canonical-identity
+ * pass-through with no behavior change.
+ */
+function canonicalManageInventoryHref(input: {
+  mainListingId: string;
+  leonixAdId: string | null | undefined;
+  ownerUserId: string | null | undefined;
+  upgradeActive: boolean;
+  status: string | null | undefined;
+  lang: Lang;
+}): string | null {
+  const owner = input.ownerUserId?.trim();
+  if (!owner) return null;
+
+  const identityResult = buildListingIdentity({
+    sourceTable: "listings",
+    sourceId: input.mainListingId,
+    category: "bienes-raices",
+    pipeline: "bienes_raices_negocio",
+    leonixAdId: input.leonixAdId ?? "",
+    ownerUserId: owner,
+    publicUrl: leonixLiveAnuncioPath(input.mainListingId),
+  });
+  if (!identityResult.ok) return null;
+
+  const actions = resolveDashboardActions({
+    identity: identityResult.identity,
+    lifecycle: { status: input.status ?? "active" },
+    entitlement: { inventoryPackActive: input.upgradeActive },
+    role: "main",
+    ownerVerified: true,
+    lang: input.lang,
+  });
+
+  return actions.find((action) => action.key === "manageInventory")?.href ?? null;
+}
+
+export function BrNegocioListingInventoryActions({
+  lang,
+  row,
+  parentLeonixAdIdByListingId,
+  inventoryRows,
+  ownerUserId,
+}: Props) {
   const isNegocio = isBrNegocioListing(row);
   const isChild = isNegocio && isBrInventoryProperty(row);
   const isMain = isNegocio && (isBrInventoryMainListing(row) || (!isChild && !row.inventory_role));
@@ -139,11 +190,20 @@ export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdBy
     upgradeActive,
   });
 
-  const inventoryEditHref = bienesInventoryEditHref({
-    lang,
-    listingId: mainListingId,
-    leonixAdId: row.leonix_ad_id,
-  });
+  const inventoryEditHref =
+    canonicalManageInventoryHref({
+      mainListingId,
+      leonixAdId: row.leonix_ad_id,
+      ownerUserId,
+      upgradeActive,
+      status: row.status,
+      lang,
+    }) ??
+    bienesInventoryEditHref({
+      lang,
+      listingId: mainListingId,
+      leonixAdId: row.leonix_ad_id,
+    });
 
   return (
     <div className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3 sm:p-4">

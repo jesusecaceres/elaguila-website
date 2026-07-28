@@ -1,4 +1,5 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import type { DashboardInventoryItem } from "./dashboardInventory";
 import {
   type MisAnunciosCategoryDef,
@@ -259,6 +260,57 @@ export function buildCategoryPanelActions(
 
 type InventoryCategory = "restaurantes" | "servicios" | "empleos" | "viajes";
 
+type CanonicalInventoryCategory = "restaurantes" | "servicios";
+
+const CANONICAL_SOURCE_TABLE: Record<
+  CanonicalInventoryCategory,
+  "restaurantes_public_listings" | "servicios_public_listings"
+> = {
+  restaurantes: "restaurantes_public_listings",
+  servicios: "servicios_public_listings",
+};
+
+/**
+ * Gate D.1 — resolves the truthful, canonical-identity href actions for one inventory item
+ * (Restaurantes/Servicios only). Returns an empty map (never a guessed/fallback href) when
+ * ownership isn't available or the item's id doesn't validate as the real DB uuid — callers
+ * must keep their existing legacy href as the fallback in that case, never render nothing.
+ */
+function canonicalInventoryHrefActions(
+  category: CanonicalInventoryCategory,
+  item: DashboardInventoryItem,
+  ownerUserId: string | null | undefined,
+  lang: Lang,
+): Map<string, DashboardAction> {
+  const owner = ownerUserId?.trim();
+  if (!owner) return new Map();
+
+  const identityResult = buildListingIdentity({
+    sourceTable: CANONICAL_SOURCE_TABLE[category],
+    sourceId: item.id,
+    category,
+    pipeline: category,
+    leonixAdId: item.leonixAdId ?? "",
+    ownerUserId: owner,
+    publicUrl: item.publicHref,
+  });
+  if (!identityResult.ok) return new Map();
+
+  const actions = resolveDashboardActions({
+    identity: identityResult.identity,
+    lifecycle: { status: item.status },
+    entitlement: {
+      couponsActive: item.restaurantCouponEditEligible,
+      offersActive: item.serviciosOffersAddonActive,
+    },
+    role: null,
+    ownerVerified: true,
+    lang: lang === "en" ? "en" : "es",
+  });
+
+  return new Map(actions.map((action) => [action.key, action]));
+}
+
 /** Listing-level CTAs for inventory cards (restaurant, service, jobs, travel). */
 export function buildInventoryListingActions(
   category: InventoryCategory,
@@ -280,14 +332,24 @@ export function buildInventoryListingActions(
     editLabelOverride?: string;
     /** Servicios offers-edit CTA label override (e.g. "Editar ofertas"). */
     offersEditLabelOverride?: string;
+    /** Gate D.1 — page-level authenticated owner id; required to source resolver hrefs. */
+    ownerUserId?: string | null;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
 
+  const canonical: Map<string, DashboardAction> =
+    category === "restaurantes" || category === "servicios"
+      ? canonicalInventoryHrefActions(category, item, opts?.ownerUserId, lang)
+      : new Map();
+
   if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
     // Servicios existing-listing edit must carry P0C identity (mode=listing-edit, returnPanel=servicios).
+    // Gate D.4 — canonical resolver output preferred (verified parity in Gate D.4's read-only
+    // pass: `listingSlug` is a hydration fallback only, never required when a real listingId is
+    // present), falling back to the existing opts/href chain when identity isn't available.
     actions.push({
-      href: opts?.serviciosEditHref ?? item.editHref,
+      href: canonical.get("edit")?.href ?? opts?.serviciosEditHref ?? item.editHref,
       label: opts?.editLabelOverride ?? editListingLabel(lang),
       tone: "primary",
     });
@@ -307,7 +369,7 @@ export function buildInventoryListingActions(
 
   if (listingToolIsReady(category, "publicView")) {
     actions.push({
-      href: item.publicHref,
+      href: canonical.get("viewPublic")?.href ?? item.publicHref,
       label: publicViewLabel(lang),
       tone: category === "servicios" ? "secondary" : "primary",
     });
@@ -382,8 +444,11 @@ export function buildInventoryListingActions(
   }
 
   if (item.previewHref && listingToolIsReady(category, "preview")) {
+    // Gate D.4 — canonical resolver output preferred for Servicios only (verified safe; `mode`
+    // forced to "listing-edit" is inert since the Preview client defaults to the same value when
+    // absent). Restaurantes/Empleos/Viajes keep their existing item.previewHref untouched.
     actions.push({
-      href: item.previewHref,
+      href: (category === "servicios" ? canonical.get("preview")?.href : undefined) ?? item.previewHref,
       label: previewLabel(lang),
       tone: "subtle",
     });
@@ -397,7 +462,9 @@ export function buildInventoryListingActions(
     });
   }
 
-  const analyticsHref = provenInventoryAnalyticsHref(item);
+  const analyticsHref =
+    (category === "servicios" ? canonical.get("analytics")?.href : undefined) ??
+    provenInventoryAnalyticsHref(item);
   if (analyticsHref && listingToolIsReady(category, "analytics")) {
     actions.push({
       href: analyticsHref,

@@ -1221,6 +1221,7 @@ export default function MyListingsPage() {
                       couponUpgradeBusy: couponCheckoutBusyId === item.id,
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
+                      ownerUserId: userId,
                     })}
                   />
                 ))
@@ -1339,6 +1340,7 @@ export default function MyListingsPage() {
                         leonixAdId: item.leonixAdId,
                       }),
                       offersEditLabelOverride: serviciosOffersEditLabel(lang),
+                      ownerUserId: userId,
                     })}
                   />
                 ))
@@ -1492,6 +1494,7 @@ export default function MyListingsPage() {
                         x.id,
                         x.leonix_ad_id ?? "",
                       ])}
+                      ownerUserId={userId}
                     />
                   );
                 }

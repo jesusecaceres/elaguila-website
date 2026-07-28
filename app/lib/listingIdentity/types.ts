@@ -108,6 +108,14 @@ export type CategoryRouteAdapter = {
   editRoute: (identity: ListingIdentity, opts?: RouteResolveOpts) => string | null;
   /** Listing-bound Preview route, or null when no confirmed listing-bound preview exists. */
   previewRoute: (identity: ListingIdentity, opts?: RouteResolveOpts) => string | null;
+  /**
+   * The category's one paid/entitled "manage" sub-flow, when one exists: coupon editing for
+   * Restaurantes, offers editing for Servicios, inventory-pack editing for Bienes/Autos
+   * Negocios. Optional and pipeline-specific — omitted entirely for pipelines with no such
+   * sub-flow (Autos Privado). Gate D's resolver decides the action's label/entitlement gating
+   * per pipeline; this field only supplies the route.
+   */
+  secondaryManageRoute?: (identity: ListingIdentity, opts?: RouteResolveOpts) => string | null;
   /** Where this listing is managed from in the dashboard. */
   dashboardRoute: (identity: ListingIdentity, opts?: RouteResolveOpts) => string | null;
 

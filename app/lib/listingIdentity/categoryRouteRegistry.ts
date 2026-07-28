@@ -88,6 +88,20 @@ const RESTAURANTES_ADAPTER: CategoryRouteAdapter = {
 
   dashboardRoute: (_identity, opts) => withLang("/dashboard/restaurantes", lang(opts)),
 
+  // Coupon editing — the one genuinely confirmed, entitlement-gated "manage" sub-flow for this
+  // pipeline (restauranteCouponEditHref, restaurantesDashboardCouponAddonCheckout.ts:261-278).
+  secondaryManageRoute: (identity, opts) => {
+    const params = new URLSearchParams({
+      focus: "coupon-upgrade",
+      source: "dashboard",
+      mode: "coupon-edit",
+      listingId: identity.sourceId,
+    });
+    if (identity.leonixAdId) params.set("leonixAdId", identity.leonixAdId);
+    params.set("returnPanel", "restaurantes");
+    return withLang(`${"/publicar/restaurantes"}?${params.toString()}`, lang(opts));
+  },
+
   supportsParentChildInventory: false,
   supportsCoupons: true,
   supportsBusinessHub: true,
@@ -144,6 +158,19 @@ const SERVICIOS_ADAPTER: CategoryRouteAdapter = {
   },
 
   dashboardRoute: (_identity, opts) => withLang("/dashboard/servicios", lang(opts)),
+
+  // Offers editing — the confirmed, entitlement-gated "manage" sub-flow for this pipeline
+  // (serviciosOffersEditHref, app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout.ts:111-116).
+  secondaryManageRoute: (identity, opts) => {
+    const params = dashboardEditParams({
+      mode: "offers-edit",
+      focus: "coupon-upgrade",
+      listingId: identity.sourceId,
+      leonixAdId: identity.leonixAdId,
+      returnPanel: "servicios",
+    });
+    return withLang(`${SERVICIOS_APPLICATION_BASE}?${params.toString()}`, lang(opts));
+  },
 
   supportsParentChildInventory: false,
   supportsCoupons: true,
@@ -206,6 +233,20 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
 
   dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
 
+  // Inventory-pack editing — always resolved against the PARENT's id (bienesInventoryEditHref,
+  // app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout.ts:96-99): there is no
+  // dedicated per-child inventory-manage URL, only the parent-scoped inventory-edit step.
+  secondaryManageRoute: (identity, opts) => {
+    const params = dashboardEditParams({
+      mode: "inventory-edit",
+      focus: "inventory-pack",
+      listingId: identityListingIdForEdit(identity),
+      leonixAdId: identity.leonixAdId,
+      returnPanel: "bienes-raices",
+    });
+    return withLang(`${BIENES_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, lang(opts));
+  },
+
   supportsParentChildInventory: true,
   supportsCoupons: false,
   supportsBusinessHub: true,
@@ -221,6 +262,12 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
       "to the UI by either known caller.",
     "The public child page's sibling-inventory carousel is fetched but never rendered on the " +
       "child's own view (`!isChild` guard, BienesRaicesNegocioLiveDetailShell.tsx:401,467).",
+    "Confirmed (Gate D inspection) that the live dashboard renders NO edit/preview/manage action " +
+      "for a BR inventory-property child row at all — BrNegocioListingInventoryActions.tsx:114-127 " +
+      "renders only a static 'Inventory property' card with no Link/button for children. " +
+      "editRoute()/previewRoute()/secondaryManageRoute() above only resolve real URLs for the " +
+      "parent identity; the dashboard action resolver (Gate D) must not expose edit/preview/" +
+      "manage for a child role on this pipeline, since no genuine per-child entry point exists.",
   ],
 };
 
@@ -265,10 +312,14 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
     return withLang(`${AUTOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, lang(opts));
   },
 
+  // Uses the identity's OWN sourceId (never the parent-fallback used by editRoute above) —
+  // Gate C's AutosNegociosPreviewClient fetches GET /api/clasificados/autos/listings/[id] by
+  // whatever id it's given and hydrates from that exact row, so a child's own preview
+  // genuinely works bound to its own id, unlike edit (no per-child edit UI exists).
   previewRoute: (identity, opts) => {
     const params = dashboardEditParams({
       mode: "listing-edit",
-      listingId: identityListingIdForEdit(identity),
+      listingId: identity.sourceId,
       leonixAdId: identity.leonixAdId,
       returnPanel: "autos",
     });
@@ -280,6 +331,20 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
 
   dealerGroupPublicRoute: (inventoryGroupId, opts) =>
     withLang(`/clasificados/autos/dealer/${encodeURIComponent(inventoryGroupId)}`, lang(opts)),
+
+  // Inventory-pack editing — always resolved against the PARENT's id
+  // (autosDealerInventoryEditHref, autosDashboardInventoryAddonCheckout.ts:95-98): no dedicated
+  // per-child inventory-manage URL exists, only the parent-scoped inventory-edit drawer step.
+  secondaryManageRoute: (identity, opts) => {
+    const params = dashboardEditParams({
+      mode: "inventory-edit",
+      focus: "inventory-pack",
+      listingId: identityListingIdForEdit(identity),
+      leonixAdId: identity.leonixAdId,
+      returnPanel: "autos",
+    });
+    return withLang(`${AUTOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, lang(opts));
+  },
 
   supportsParentChildInventory: true,
   supportsCoupons: false,
@@ -309,6 +374,11 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
       "link above, which opens the drawer-based inventory step rather than a dedicated child URL.",
     "No confirmed enforced product limit exists for additional dealer inventory vehicles (unlike " +
       "Bienes' documented cap of 4) — productLimit for this pipeline is intentionally null, not 4.",
+    "Gate D correction: previewRoute() now resolves from the identity's OWN sourceId (not the " +
+      "parent-fallback used by editRoute/secondaryManageRoute), since Gate C's Preview client " +
+      "genuinely supports being bound to a child vehicle's own id. The dashboard action resolver " +
+      "(Gate D) still must not expose an 'edit' action for a child role on this pipeline — only " +
+      "viewPublic/preview/analytics — since no per-child edit UI exists (see the entry above).",
   ],
 };
 

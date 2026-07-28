@@ -33,10 +33,12 @@ import {
   resolveBienesCategoriaFromDetailPairs,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import {
+  isBrInventoryMainListing,
   isBrInventoryProperty,
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import type { DashboardEntitlementBadgePayload } from "../lib/dashboardPackageEntitlementBadges";
 import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
 import type { ListingLifecycleResolved } from "@/app/lib/listingLifecycle/listingLifecycleTypes";
@@ -96,6 +98,60 @@ function rentasDashboardEditHref(input: {
   return `/clasificados/publicar/rentas/${lane}?${params.toString()}`;
 }
 
+/**
+ * Gate D.2/D.2.2 — canonical dashboard actions for a Bienes Raíces Negocio row (parent or
+ * child), sourced from `resolveDashboardActions`. `sourceId` is always this row's OWN uuid
+ * (never substituted with the parent's).
+ *
+ * `viewPublic` is safe to consume for both parent and child rows (the registry's `publicRoute`
+ * is `identity.sourceId`-only, no role gating, verified byte-identical to the existing
+ * `leonixLiveAnuncioPath` fallback — Gate D.2).
+ *
+ * `edit`/`preview` are only ever populated by the resolver for the parent role — the resolver's
+ * own `editSupported`/`previewSupported` checks exclude `bienes_raices_negocio` children — but
+ * callers must still gate consumption of those two keys on `!isChild` explicitly rather than
+ * relying solely on that internal suppression (Gate D.2.2), since a child's Edit/Preview via the
+ * generic dashboard-linked route is confirmed broken (Gate D.2.1: the hydration path re-includes
+ * the child as one of its own inventory properties, and the save API's self-referential
+ * `br_inventory_parent_listing_id` filter then fails) — this gate must not touch, mask, or
+ * appear to repair that pre-existing bug.
+ */
+function bienesNegocioCanonicalActions(input: {
+  row: Row;
+  isChild: boolean;
+  ownerUserId: string | null | undefined;
+  lang: Lang;
+  fallbackPublicUrl: string;
+}): Map<string, DashboardAction> {
+  const owner = input.ownerUserId?.trim();
+  if (!owner) return new Map();
+
+  const identityResult = buildListingIdentity({
+    sourceTable: "listings",
+    sourceId: input.row.id,
+    category: "bienes-raices",
+    pipeline: "bienes_raices_negocio",
+    leonixAdId: input.row.leonix_ad_id ?? "",
+    ownerUserId: owner,
+    publicUrl: input.fallbackPublicUrl,
+    parentSourceId: input.row.br_inventory_parent_listing_id ?? null,
+    inventoryGroupId: input.row.br_inventory_group_id ?? null,
+    inventoryRole: input.isChild ? "inventory_property" : "main",
+  });
+  if (!identityResult.ok) return new Map();
+
+  const actions = resolveDashboardActions({
+    identity: identityResult.identity,
+    lifecycle: { status: input.row.status ?? "active" },
+    entitlement: {},
+    role: input.isChild ? "inventory_property" : "main",
+    ownerVerified: true,
+    lang: input.lang,
+  });
+
+  return new Map(actions.map((action) => [action.key, action]));
+}
+
 function branchLabel(branch: LeonixClasificadosBranch, lang: Lang): string {
   const es: Record<LeonixClasificadosBranch, string> = {
     bienes_raices_privado: "BR · Privado",
@@ -133,6 +189,7 @@ export function LeonixRealEstateListingManageCard({
   lifecycle = null,
   renewalBusy = false,
   onRenew,
+  ownerUserId = null,
 }: {
   row: Row;
   lang: Lang;
@@ -157,6 +214,8 @@ export function LeonixRealEstateListingManageCard({
   lifecycle?: ListingLifecycleResolved | null;
   renewalBusy?: boolean;
   onRenew?: () => void;
+  /** Gate D.2 — page-level authenticated owner id; required to source canonical resolver hrefs. */
+  ownerUserId?: string | null;
 }) {
   const lx = parseLeonixListingContract(row.detail_pairs);
   const inferredRentasBranch: LeonixClasificadosBranch | null =
@@ -187,12 +246,38 @@ export function LeonixRealEstateListingManageCard({
   const canPause = st === "active" && row.is_published !== false;
   const canResume = st === "paused" || st === "unpublished";
 
+  // Gate D.2.2 — explicit parent/child detection for this Bienes Negocio row, mirroring the
+  // established pattern in BrNegocioListingInventoryActions.tsx. Only ever used to gate whether
+  // canonical resolver Edit/Preview may be consumed below; child rows always keep their existing
+  // (pre-Gate-D, unrelated) legacy hrefs untouched.
+  const isBrNegocioRow = effectiveBranch === "bienes_raices_negocio" && isBr && isBrNegocioListing(row as BrPropertyInventoryRowLike);
+  const isBrNegocioChildRow = isBrNegocioRow && isBrInventoryProperty(row as BrPropertyInventoryRowLike);
+  const isBrNegocioMainRow =
+    isBrNegocioRow &&
+    (isBrInventoryMainListing(row as BrPropertyInventoryRowLike) || (!isBrNegocioChildRow && !row.inventory_role));
+
+  const legacyPublicViewHref =
+    (row.category ?? "").toLowerCase() === "rentas"
+      ? withRentasLandingLang(rentasListingPublicPath(row.id), lang)
+      : leonixLiveAnuncioPath(row.id);
+
+  const canonicalBrActions = isBrNegocioRow
+    ? bienesNegocioCanonicalActions({
+        row,
+        isChild: isBrNegocioChildRow,
+        ownerUserId,
+        lang,
+        fallbackPublicUrl: legacyPublicViewHref,
+      })
+    : new Map<string, DashboardAction>();
+
   const fsboDashboardEditHref = `/dashboard/mis-anuncios/${encodeURIComponent(row.id)}/editar?lang=${lang}`;
   const brDashboardEditHref =
     effectiveBranch === "bienes_raices_privado" && isBr
       ? fsboDashboardEditHref
       : effectiveBranch === "bienes_raices_negocio" && isBr
-      ? bienesListingEditHref({
+      ? (isBrNegocioMainRow ? canonicalBrActions.get("edit")?.href : undefined) ??
+        bienesListingEditHref({
           lang,
           listingId: row.id,
           leonixAdId: row.leonix_ad_id,
@@ -210,7 +295,8 @@ export function LeonixRealEstateListingManageCard({
     effectiveBranch === "bienes_raices_privado" && isBr
       ? leonixLiveAnuncioPath(row.id)
       : effectiveBranch === "bienes_raices_negocio" && isBr
-      ? bienesListingPreviewHref({
+      ? (isBrNegocioMainRow ? canonicalBrActions.get("preview")?.href : undefined) ??
+        bienesListingPreviewHref({
           lang,
           listingId: row.id,
           leonixAdId: row.leonix_ad_id,
@@ -218,10 +304,7 @@ export function LeonixRealEstateListingManageCard({
         })
       : null;
 
-  const publicViewHref =
-    (row.category ?? "").toLowerCase() === "rentas"
-      ? withRentasLandingLang(rentasListingPublicPath(row.id), lang)
-      : leonixLiveAnuncioPath(row.id);
+  const publicViewHref = isBrNegocioRow ? (canonicalBrActions.get("viewPublic")?.href ?? legacyPublicViewHref) : legacyPublicViewHref;
 
   return (
     <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
@@ -456,6 +539,7 @@ export function LeonixRealEstateListingManageCard({
           row={row as BrPropertyInventoryRowLike}
           parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
           inventoryRows={brNegocioInventoryRows}
+          ownerUserId={ownerUserId}
         />
       ) : null}
     </div>
