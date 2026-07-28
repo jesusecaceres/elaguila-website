@@ -618,7 +618,7 @@ export async function validateAutosDealerInventoryAddonOwnership(input: {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
-    .select("id, status, lane, owner_user_id")
+    .select("id, status, lane, owner_user_id, inventory_role")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -657,6 +657,21 @@ export async function validateAutosDealerInventoryAddonOwnership(input: {
       status: 422,
       code: "listing_not_eligible",
       message: "Inventory add-on can only be purchased for an active dealer listing.",
+    };
+  }
+
+  // Gate F.2.2.1 — canonical parent-role authority is the explicit `inventory_role` column, never
+  // inferred from `dealer_inventory_parent_listing_id`/`dealer_inventory_group_id`/owner identity
+  // alone. Rejects an active, owned child vehicle (`inventory_role: "inventory_vehicle"`) or a
+  // not-yet-promoted null-role row just as strictly as a mismatched owner/lane/status — the
+  // inventory pack can only ever be purchased against the dealer's real main parent row.
+  const inventoryRole = String(data.inventory_role ?? "").trim().toLowerCase();
+  if (inventoryRole !== "main") {
+    return {
+      ok: false,
+      status: 422,
+      code: "autos_dealer_parent_listing_required",
+      message: "Vehicle inventory add-on can only be purchased for the dealer's main parent listing.",
     };
   }
 
