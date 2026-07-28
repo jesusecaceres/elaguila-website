@@ -17,7 +17,9 @@ import {
 import {
   activatePaidServiciosListingFromRevenueOs,
   grantServiciosOffersAddonEntitlementFromBasePayment,
+  normalizeServiciosOffersAddonEntitlementSource,
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import {
   activatePaidRentasListingFromRevenueOs,
@@ -398,6 +400,51 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  return { ok: true };
+}
+
+/**
+ * Gate E.1 — fires only for the standalone (dashboard-direct) Servicios offers add-on purchase
+ * (packageKey === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY), never for the bundled base+addOn purchase
+ * (that path already writes the correct listing_source via
+ * grantServiciosOffersAddonEntitlementFromBasePayment above). See
+ * normalizeServiciosOffersAddonEntitlementSource for the underlying defect and fix.
+ */
+async function tryNormalizeServiciosOffersAddonEntitlementSource(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  packageEntitlementId: string | null | undefined;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== SERVICIOS_OFFERS_ADDON_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const result = await normalizeServiciosOffersAddonEntitlementSource({
+    packageEntitlementId: input.packageEntitlementId,
+  });
+
+  if (!result.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "listing_package_entitlements",
+      targetId: input.packageEntitlementId ?? null,
+      meta: {
+        code: "servicios_offers_addon_listing_source_normalize_failed",
+        message: result.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: "servicios_offers_addon_listing_source_normalize_failed",
+      message: result.message ?? "Servicios offers add-on entitlement source normalization failed.",
+    };
+  }
 
   return { ok: true };
 }
@@ -1028,6 +1075,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const serviciosOffersAddonSourceFix = await tryNormalizeServiciosOffersAddonEntitlementSource({
+      paymentRecord,
+      packageDef,
+      packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+    });
+    if (!serviciosOffersAddonSourceFix.ok) {
+      return {
+        ok: false,
+        code: serviciosOffersAddonSourceFix.code,
+        message: serviciosOffersAddonSourceFix.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     const rentasActivation = await tryActivateRentasListingAfterEntitlement({
       paymentRecord,
       packageDef,
@@ -1292,6 +1359,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: serviciosActivation.code,
       message: serviciosActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const serviciosOffersAddonSourceFix = await tryNormalizeServiciosOffersAddonEntitlementSource({
+    paymentRecord: refreshed,
+    packageDef,
+    packageEntitlementId: entitlementResult.packageEntitlementId,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+  });
+  if (!serviciosOffersAddonSourceFix.ok) {
+    return {
+      ok: false,
+      code: serviciosOffersAddonSourceFix.code,
+      message: serviciosOffersAddonSourceFix.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,

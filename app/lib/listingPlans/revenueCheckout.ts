@@ -470,6 +470,110 @@ export async function validateRestauranteAddonOnlyListingOwnership(input: {
   return { ok: true };
 }
 
+export type ServiciosOffersAddonOwnerValidationResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string };
+
+/**
+ * Server gate: Servicios dashboard offers add-on-only checkout — listing must belong to bearer
+ * user. Gate E.1 — mirrors validateRestauranteAddonOnlyListingOwnership; Servicios previously had
+ * no equivalent check in this route, unlike Restaurantes/Bienes/Autos.
+ *
+ * The duplicate-active-entitlement check intentionally does not filter on `listing_source`: a
+ * pre-Gate-E.1 purchase may have been written with the (incorrect) `listing_source = "servicios"`
+ * tag rather than `"servicios_public_listings"` — see normalizeServiciosOffersAddonEntitlementSource
+ * in revenueServiciosFulfillment.ts. Matching by category + package_key + listing_id alone
+ * correctly finds an existing active entitlement regardless of which tag it carries.
+ */
+export async function validateServiciosOffersAddonOwnership(input: {
+  listingId: string;
+  bearerUserId: string | null;
+}): Promise<ServiciosOffersAddonOwnerValidationResult> {
+  if (!input.bearerUserId?.trim()) {
+    return {
+      ok: false,
+      status: 401,
+      code: "auth_required",
+      message: "Authentication required for Servicios offers add-on checkout.",
+    };
+  }
+
+  const listingId = String(input.listingId ?? "").trim();
+  if (!listingId) {
+    return {
+      ok: false,
+      status: 400,
+      code: "listing_id_required",
+      message: "listingId is required for Servicios add-on-only checkout.",
+    };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return {
+      ok: false,
+      status: 503,
+      code: "supabase_not_configured",
+      message: "Supabase admin is not configured.",
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("servicios_public_listings")
+    .select("id, listing_status, owner_user_id")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "listing_not_found",
+      message: "Servicios listing not found.",
+    };
+  }
+
+  if (String(data.owner_user_id ?? "").trim() !== input.bearerUserId.trim()) {
+    return {
+      ok: false,
+      status: 403,
+      code: "listing_owner_mismatch",
+      message: "Listing does not belong to the authenticated user.",
+    };
+  }
+
+  const status = String(data.listing_status ?? "").trim().toLowerCase();
+  if (status !== "published") {
+    return {
+      ok: false,
+      status: 422,
+      code: "listing_not_eligible",
+      message: "Offers add-on can only be purchased for published Servicios listings.",
+    };
+  }
+
+  const { data: activeEntitlements } = await supabase
+    .from("listing_package_entitlements")
+    .select("id")
+    .eq("category", "servicios")
+    .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)
+    .eq("listing_id", listingId)
+    .eq("status", "active")
+    .is("revoked_at", null)
+    .limit(1);
+
+  if (activeEntitlements && activeEntitlements.length > 0) {
+    return {
+      ok: false,
+      status: 409,
+      code: "addon_already_active",
+      message: "Offers module is already active on this listing.",
+    };
+  }
+
+  return { ok: true };
+}
+
 export type AutosDealerInventoryAddonOwnerValidationResult =
   | { ok: true }
   | { ok: false; status: number; code: string; message: string };

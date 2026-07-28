@@ -10,6 +10,7 @@ import type { ValidatedRevenueCheckoutAddOn } from "./revenueCheckout";
 import {
   BR_INVENTORY_PACK_PACKAGE_KEY,
   RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 
 export type CreatePendingPaymentRecordInput = {
@@ -140,6 +141,13 @@ export async function createPendingPaymentRecord(
                         : addOns.find((a) => a.key === BR_INVENTORY_PACK_PACKAGE_KEY)?.unitPriceCents,
                   }
                 : {}),
+            }
+          : {}),
+        ...(input.category === "servicios" && input.addonOnly === true
+          ? {
+              checkout_mode: "addon_only",
+              servicios_offers_addon_package_key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+              servicios_offers_addon_price_cents: input.packageDef.priceCents,
             }
           : {}),
         ...(input.promoCode?.trim() ? { promo_code: input.promoCode.trim() } : {}),

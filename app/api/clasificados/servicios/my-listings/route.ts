@@ -22,7 +22,14 @@ async function fetchActiveServiciosOffersEntitlementKeys(
     .from("listing_package_entitlements")
     .select("listing_id, status, starts_at, ends_at, revoked_at")
     .eq("category", "servicios")
-    .eq("listing_source", "servicios_public_listings")
+    // Gate E.1.1 — transitional compatibility read. "servicios_public_listings" is the canonical
+    // value written by both fulfillment paths as of Gate E.1 (see
+    // grantServiciosOffersAddonEntitlementFromBasePayment and
+    // normalizeServiciosOffersAddonEntitlementSource in revenueServiciosFulfillment.ts).
+    // "servicios" is the pre-Gate-E.1 mis-tagged value (the shared generic writer stamped
+    // listing_source = packageDef.category for every category) — kept here only so historical
+    // Servicios offers-addon purchases still resolve as active. Do not add other values here.
+    .in("listing_source", ["servicios_public_listings", "servicios"])
     .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)
     .eq("status", "active")
     .is("revoked_at", null)

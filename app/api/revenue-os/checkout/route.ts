@@ -12,6 +12,7 @@ import {
   validateRestauranteAddonOnlyListingOwnership,
   validateAutosDealerInventoryAddonOwnership,
   validateBienesInventoryAddonOwnership,
+  validateServiciosOffersAddonOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
 import {
@@ -19,6 +20,7 @@ import {
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
@@ -80,6 +82,8 @@ export async function POST(request: NextRequest) {
     categoryEarly === "autos" && packageKeyEarly === AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY;
   const isBienesInventoryAddonOnlyEarly =
     categoryEarly === "bienes-raices" && packageKeyEarly === BR_INVENTORY_PACK_PACKAGE_KEY;
+  const isServiciosOffersAddonOnlyEarly =
+    categoryEarly === "servicios" && packageKeyEarly === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
 
   if (isRestauranteAddonOnlyEarly) {
     const ownerGate = await validateRestauranteAddonOnlyListingOwnership({
@@ -120,6 +124,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (isServiciosOffersAddonOnlyEarly) {
+    const ownerGate = await validateServiciosOffersAddonOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+  }
+
   let serverVerifiedCurrentExpiresAt: string | null = null;
   let serverVerifiedLeonixAdId: string | null = null;
   let serverVerifiedOwnerUserId: string | null = null;
@@ -139,7 +156,7 @@ export async function POST(request: NextRequest) {
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isRentasRenewalEarly
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
@@ -236,6 +253,9 @@ export async function POST(request: NextRequest) {
   const isBienesInventoryAddonOnly =
     packageDef.packageKey === BR_INVENTORY_PACK_PACKAGE_KEY &&
     packageDef.category === "bienes-raices";
+  const isServiciosOffersAddonOnly =
+    packageDef.packageKey === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY &&
+    packageDef.category === "servicios";
   const isRentasRenewal =
     body.operation === "renew_listing" &&
     packageDef.packageKey === "rentas_30d" &&
@@ -268,7 +288,7 @@ export async function POST(request: NextRequest) {
     promoFamily: promoFamilyForRecord ?? null,
     promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
     promoBaseAmountCents: promoBaseAmountForRecord,
-    addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly,
+    addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly || isServiciosOffersAddonOnly,
     operation: isRentasRenewal ? "renew_listing" : null,
     sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
     currentExpiresAt: isRentasRenewal ? serverVerifiedCurrentExpiresAt : body.currentExpiresAt,
