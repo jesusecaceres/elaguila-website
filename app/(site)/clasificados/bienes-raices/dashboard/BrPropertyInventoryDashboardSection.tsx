@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BASE_BR_NEGOCIO_MONTHLY_PRICE,
   computeBrPropertyInventoryCounts,
@@ -9,7 +9,6 @@ import {
   getBrInventoryParentListingId,
   isBrInventoryMainListing,
   isBrInventoryProperty,
-  isBrInventoryUpgradeActive,
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
@@ -27,6 +26,13 @@ import {
 import type { BrInventoryAddContext } from "@/app/clasificados/lib/leonixBrPropertyInventoryAddFlow";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { BrPropertyInventoryValueDrawerTrigger } from "./BrPropertyInventoryValueDrawerTrigger";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
+  dashboardAddonStatusForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+} from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
+import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 
 type Lang = "es" | "en";
 
@@ -62,7 +68,6 @@ function resolveBrPropertyInventoryDashboardGroupKey(row: BrPropertyInventoryRow
 }
 
 export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
-  const upgradeActive = isBrInventoryUpgradeActive();
   const negocioRows = useMemo(() => rows.filter((r) => isBrNegocioListing(r)), [rows]);
 
   const groups = useMemo(() => {
@@ -86,6 +91,55 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
     }
     return [...map.values()].filter((g) => g.rows.some((r) => r.status === "active" && r.is_published !== false));
   }, [negocioRows]);
+
+  // Gate F.2.4.3 — one batched entitlement read for every distinct canonical main parent uuid
+  // found across all groups, never a child/synthetic/owner-derived key. Fails closed to an empty
+  // map (every parent resolves to inactive) on missing auth, no groups, or any fetch failure.
+  const [entitlementStatusByParentId, setEntitlementStatusByParentId] = useState<
+    Map<string, AddonLifecycleStatus>
+  >(new Map());
+  const parentIdsKey = useMemo(
+    () =>
+      [...new Set(groups.map((g) => g.mainId ?? g.rows[0]?.id).filter((id): id is string => Boolean(id)))].join(","),
+    [groups],
+  );
+
+  useEffect(() => {
+    const parentIds = parentIdsKey ? parentIdsKey.split(",") : [];
+    if (parentIds.length === 0) {
+      setEntitlementStatusByParentId(new Map());
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        if (!cancelled) setEntitlementStatusByParentId(new Map());
+        return;
+      }
+      const badges = await fetchDashboardListingPackageEntitlementBadges(
+        parentIds.map((id) => ({
+          key: id,
+          category: "bienes-raices",
+          listingSource: "listings",
+          listingId: id,
+          packageKey: BR_INVENTORY_PACK_PACKAGE_KEY,
+        })),
+        token,
+      );
+      if (cancelled) return;
+      const map = new Map<string, AddonLifecycleStatus>();
+      for (const id of parentIds) {
+        map.set(id, dashboardAddonStatusForKey(badges, [id]));
+      }
+      setEntitlementStatusByParentId(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [parentIdsKey]);
 
   if (!negocioRows.length) return null;
 
@@ -115,6 +169,11 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
       </div>
 
       {groups.map((group) => {
+        const mainId = group.mainId ?? group.rows[0]?.id;
+        // Gate F.2.4.3 — entitlement truth is per canonical main parent, sourced from the
+        // shared lifecycle-backed dashboard entitlement API; fails closed to inactive when the
+        // parent has no resolved status (not yet fetched, no purchase, or a fetch failure).
+        const upgradeActive = mainId ? entitlementStatusByParentId.get(mainId) === "active" : false;
         // Gate F.2.3 — count only this group's own already-correctly-scoped rows directly,
         // rather than re-deriving membership via the shared (owner-wide-fallback) grouping key;
         // this keeps the displayed count consistent with the visual grouping above.
@@ -122,7 +181,6 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
           groupingKey: null,
           upgradeActive,
         });
-        const mainId = group.mainId ?? group.rows[0]?.id;
         // Synthetic dashboard-local keys (never a real stored br_inventory_group_id) must never
         // leak into the Add Property context's explicit group id.
         const isSyntheticGroupKey =

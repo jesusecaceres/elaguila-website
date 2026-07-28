@@ -11,7 +11,6 @@ import {
   computeBrPropertyInventoryCounts,
   isBrInventoryMainListing,
   isBrInventoryProperty,
-  isBrInventoryUpgradeActive,
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
@@ -28,11 +27,16 @@ import {
   bienesInventoryPackAddonUpgradeLabel,
   bienesInventoryPackEditLabel,
   bienesInventoryPackInactiveDashboardHint,
-  fetchBienesInventoryPackEntitlementActive,
   redirectBienesDashboardInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { buildListingIdentity, resolveDashboardActions } from "@/app/lib/listingIdentity";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
+  dashboardAddonStatusForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+} from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
+import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 type Lang = "es" | "en";
 
@@ -111,16 +115,36 @@ export function BrNegocioListingInventoryActions({
   useEffect(() => {
     if (!isMain) return;
     let cancelled = false;
-    void fetchBienesInventoryPackEntitlementActive({
-      listingId: mainListingId,
-      leonixAdId: row.leonix_ad_id,
-    }).then((result) => {
-      if (!cancelled) setEntitlementActive(result.active);
-    });
+    void (async () => {
+      // Gate F.2.4.3 — canonical main-parent uuid + shared lifecycle-backed entitlement API;
+      // never the placement-tier/ad-plan-proof mechanism, never slug/Leonix Ad ID matching.
+      // Fails closed to inactive on missing auth or any fetch failure.
+      const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getSession();
+      const token = auth.session?.access_token;
+      if (!token) {
+        if (!cancelled) setEntitlementActive(false);
+        return;
+      }
+      const badges = await fetchDashboardListingPackageEntitlementBadges(
+        [
+          {
+            key: mainListingId,
+            category: "bienes-raices",
+            listingSource: "listings",
+            listingId: mainListingId,
+            packageKey: BR_INVENTORY_PACK_PACKAGE_KEY,
+          },
+        ],
+        token,
+      );
+      if (cancelled) return;
+      setEntitlementActive(dashboardAddonStatusForKey(badges, [mainListingId]) === "active");
+    })();
     return () => {
       cancelled = true;
     };
-  }, [isMain, mainListingId, row.leonix_ad_id]);
+  }, [isMain, mainListingId]);
 
   const startInventoryPackCheckout = useCallback(async () => {
     setCheckoutError(null);
@@ -176,8 +200,9 @@ export function BrNegocioListingInventoryActions({
     );
   }
 
-  const upgradeActive =
-    entitlementActive === true || isBrInventoryUpgradeActive({ entitlementActive: entitlementActive ?? undefined });
+  // Gate F.2.4.3 — the shared entitlement fetch above is now the sole source of truth (already
+  // fails closed to `false`); no bare/no-argument fallback authority remains.
+  const upgradeActive = entitlementActive === true;
   // Gate F.2.3 — scope the active-count rows to this row's real effective parent (canonical
   // parent uuid or parent reference), never `resolveBrInventoryGroupingKey`'s owner-wide
   // fallback; two distinct ungrouped parent businesses for the same owner must never share one
