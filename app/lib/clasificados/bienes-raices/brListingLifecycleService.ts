@@ -27,6 +27,7 @@ import {
 import {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
   BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
+  BR_LIFECYCLE_CHILD_DISPOSITION_REQUIRED_ERROR,
   BR_LIFECYCLE_LISTING_NOT_ELIGIBLE_ERROR,
   BR_LIFECYCLE_LISTING_NOT_FOUND_ERROR,
   BR_LIFECYCLE_MUTATION_KEYS,
@@ -37,11 +38,13 @@ import {
   BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR,
   BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
   brArchiveEligible,
+  brChildBlocksParentDisposition,
   brChildCascadePauseEligible,
   brDiscontinueEligible,
   brPauseEligible,
   brRepublishEligible,
   brResumeEligible,
+  type BrLifecycleCascadeChildCandidate,
   type BrLifecycleErrorCode,
   type BrLifecycleMutationKey,
 } from "./brListingLifecycleEligibility";
@@ -52,6 +55,7 @@ export {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
   BR_LIFECYCLE_CAPACITY_LIMIT_ERROR,
   BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
+  BR_LIFECYCLE_CHILD_DISPOSITION_REQUIRED_ERROR,
   BR_LIFECYCLE_LISTING_NOT_ELIGIBLE_ERROR,
   BR_LIFECYCLE_LISTING_NOT_FOUND_ERROR,
   BR_LIFECYCLE_MUTATION_KEYS,
@@ -62,6 +66,7 @@ export {
   BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR,
   BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
   brArchiveEligible,
+  brChildBlocksParentDisposition,
   brChildCascadePauseEligible,
   brDiscontinueEligible,
   brPauseEligible,
@@ -154,21 +159,20 @@ async function pauseOneBrRow(
 }
 
 /**
- * Gate G.2.3.2 — pauses every canonical, currently-active inventory child of `parent` before the
- * parent itself is ever touched (see the file-level ordering note on `applyBrPause`). Selection
- * uses only the real canonical identity fields (`brChildCascadePauseEligible`) — never
- * `br_inventory_group_id`, owner-alone, title, or slug.
- * Stops and reports failure on the first child that cannot be paused; already-paused children
- * from a prior successful call are naturally excluded (their `status` is no longer `"active"`),
- * making a duplicate parent Pause request idempotent by construction, not by special-casing.
+ * Shared low-level query, reused by both the Gate G.2.3.2 Pause cascade and the Gate G.2.3.3
+ * Archive/Discontinue child-disposition guard: every currently-`"active"` `inventory_property`
+ * row canonically linked to `parent` (category/seller_type/role/parent-id/owner-id all required —
+ * never group id, owner-alone, title, or slug). Returns `{ok:false}` on any read failure or a
+ * parent with no resolvable `owner_id`; deliberately does NOT decide what that means — each
+ * caller below has its own, opposite, fail-closed direction for that case (see each caller's own
+ * comment) and must not share one.
  */
-async function cascadePauseBrChildren(
+async function queryBrActiveCanonicalChildren(
   supabase: ReturnType<typeof getAdminSupabase>,
   parent: BrListingRowForPayment,
-  now: string,
-): Promise<{ ok: true; count: number } | { ok: false; error: BrLifecycleErrorCode }> {
+): Promise<{ ok: true; rows: BrLifecycleCascadeChildCandidate[] } | { ok: false }> {
   const parentOwnerId = String(parent.owner_id ?? "").trim();
-  if (!parentOwnerId) return { ok: false, error: BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR };
+  if (!parentOwnerId) return { ok: false };
 
   const { data, error } = await supabase
     .from("listings")
@@ -179,13 +183,34 @@ async function cascadePauseBrChildren(
     .eq("br_inventory_parent_listing_id", parent.id)
     .eq("owner_id", parentOwnerId)
     .eq("status", "active");
-  if (error) return { ok: false, error: BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR };
+  if (error) return { ok: false };
+  return { ok: true, rows: (data ?? []) as BrLifecycleCascadeChildCandidate[] };
+}
 
-  const eligibleChildren = (data ?? []).filter((child) => brChildCascadePauseEligible(child, parent));
+/**
+ * Gate G.2.3.2 — pauses every canonical, currently-active inventory child of `parent` before the
+ * parent itself is ever touched (see the file-level ordering note on `applyBrPause`). Stops and
+ * reports failure on the first child that cannot be paused; already-paused children from a prior
+ * successful call are naturally excluded (their `status` is no longer `"active"`), making a
+ * duplicate parent Pause request idempotent by construction, not by special-casing.
+ *
+ * Fail-closed direction for a failed/empty query: cascade nothing (`count: 0`, via the caught
+ * `!query.ok` branch below returning a failure that blocks the parent write) — a pause cascade
+ * that cannot find its children must never proceed to hide the parent while leaving them public.
+ */
+async function cascadePauseBrChildren(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  parent: BrListingRowForPayment,
+  now: string,
+): Promise<{ ok: true; count: number } | { ok: false; error: BrLifecycleErrorCode }> {
+  const query = await queryBrActiveCanonicalChildren(supabase, parent);
+  if (!query.ok) return { ok: false, error: BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR };
+
+  const eligibleChildren = query.rows.filter((child) => brChildCascadePauseEligible(child, parent));
 
   let pausedCount = 0;
   for (const child of eligibleChildren) {
-    const childId = String((child as { id?: string }).id ?? "").trim();
+    const childId = String(child.id ?? "").trim();
     if (!childId) continue;
     const result = await pauseOneBrRow(supabase, childId, now);
     if (!result) {
@@ -197,6 +222,25 @@ async function cascadePauseBrChildren(
     pausedCount += 1;
   }
   return { ok: true, count: pausedCount };
+}
+
+/**
+ * Gate G.2.3.3 — blocks main-parent Archive/Discontinue while any canonical child is currently
+ * active/public. Fail-closed direction is the OPPOSITE of the pause cascade above: if the query
+ * itself fails (or the parent has no resolvable `owner_id`), this function cannot confirm there
+ * are no active children, so it must assume there might be and block the transition — never the
+ * inverse assumption that would let a parent with unconfirmed children go hidden.
+ */
+async function assertNoActiveBrCanonicalChildren(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  parent: BrListingRowForPayment,
+): Promise<{ ok: true } | { ok: false; error: BrLifecycleErrorCode }> {
+  const query = await queryBrActiveCanonicalChildren(supabase, parent);
+  if (!query.ok) return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+
+  const hasActiveChild = query.rows.some((child) => brChildBlocksParentDisposition(child, parent));
+  if (hasActiveChild) return { ok: false, error: BR_LIFECYCLE_CHILD_DISPOSITION_REQUIRED_ERROR };
+  return { ok: true };
 }
 
 /**
@@ -282,17 +326,24 @@ async function applyBrResume(row: BrListingRowForPayment): Promise<BrLifecycleMu
 }
 
 /**
- * G.2.3.1 scope: blocks only the already-removed source state, matching the current live UI's
- * own `disabled={... st === "removed"}` behavior exactly. Active-child disposition (Scenario C —
- * whether archiving a parent with active children should be blocked, cascaded, or require
- * explicit disposition) is deferred to G.2.3.3; this gate does not yet certify archive as safe
- * for a parent with active children, only as no less permissive than today.
+ * Blocks only the already-removed source state, matching the current live UI's own
+ * `disabled={... st === "removed"}` behavior exactly. Certified Gate G.2.3.3 policy (Scenario C):
+ * a main parent additionally requires zero active/public canonical children before the archive
+ * write ever runs — checked after the row's own eligibility, before the compare-and-set, so a
+ * blocked request leaves both parent and every child completely untouched. An individual child
+ * (any non-"main" role) is never subject to this additional guard — it archives independently.
  */
 async function applyBrArchive(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
   if (!brArchiveEligible(row)) {
     return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
   }
   const supabase = getAdminSupabase();
+
+  if (row.inventory_role === "main") {
+    const guard = await assertNoActiveBrCanonicalChildren(supabase, row);
+    if (!guard.ok) return guard;
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("listings")
@@ -305,12 +356,20 @@ async function applyBrArchive(row: BrListingRowForPayment): Promise<BrLifecycleM
   return { ok: true, id: data.id, status: data.status, isPublished: data.is_published === true };
 }
 
-/** G.2.3.1 scope: same child-disposition deferral as Archive (Scenario D — G.2.3.3). */
+/** Same certified Scenario D policy as Archive: a main parent requires zero active/public
+ * canonical children before Discontinue writes anything; an individual child discontinues
+ * independently, exactly as G.2.3.1 established. */
 async function applyBrDiscontinue(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
   if (!brDiscontinueEligible(row)) {
     return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
   }
   const supabase = getAdminSupabase();
+
+  if (row.inventory_role === "main") {
+    const guard = await assertNoActiveBrCanonicalChildren(supabase, row);
+    if (!guard.ok) return guard;
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("listings")

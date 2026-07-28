@@ -270,6 +270,8 @@ function brLifecycleErrorMessage(code: string, lang: Lang): string {
     br_lifecycle_parent_invalid: "No se pudo verificar el anuncio principal.",
     br_lifecycle_parent_inactive: "El anuncio principal debe estar activo para reanudar esta propiedad.",
     br_active_property_limit_reached: "Alcanzaste el límite de propiedades activas para este plan.",
+    br_lifecycle_child_disposition_required:
+      "Antes de archivar o descontinuar este perfil, pausa, archiva o finaliza sus propiedades activas.",
     supabase_not_configured: "Servicio no disponible en este momento.",
   };
   const en: Record<string, string> = {
@@ -281,6 +283,8 @@ function brLifecycleErrorMessage(code: string, lang: Lang): string {
     br_lifecycle_parent_invalid: "The main listing could not be verified.",
     br_lifecycle_parent_inactive: "The main listing must be active to resume this property.",
     br_active_property_limit_reached: "You reached the active property limit for this plan.",
+    br_lifecycle_child_disposition_required:
+      "Before archiving or discontinuing this profile, pause, archive, or finish its active properties.",
     supabase_not_configured: "Service unavailable right now.",
   };
   const table = lang === "es" ? es : en;

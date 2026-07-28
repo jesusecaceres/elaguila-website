@@ -44,6 +44,14 @@ export const BR_LIFECYCLE_CAPACITY_LIMIT_ERROR = "br_active_property_limit_reach
 export const BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR = "br_lifecycle_child_cascade_failed" as const;
 export const BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR = "br_lifecycle_parent_pause_incomplete" as const;
 
+/**
+ * Gate G.2.3.3 — one shared code for both main-parent Archive and Discontinue being blocked by an
+ * active/public canonical child. A single code is deliberate: the owner-facing remedy is
+ * identical either way ("resolve the active properties first"), so a second, narrower code would
+ * add no actionable distinction for the client to react to differently.
+ */
+export const BR_LIFECYCLE_CHILD_DISPOSITION_REQUIRED_ERROR = "br_lifecycle_child_disposition_required" as const;
+
 export type BrLifecycleErrorCode =
   | typeof BR_LIFECYCLE_AUTH_REQUIRED_ERROR
   | typeof BR_LIFECYCLE_LISTING_NOT_FOUND_ERROR
@@ -55,7 +63,8 @@ export type BrLifecycleErrorCode =
   | typeof BR_LIFECYCLE_CAPACITY_LIMIT_ERROR
   | typeof BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR
   | typeof BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR
-  | typeof BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR;
+  | typeof BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR
+  | typeof BR_LIFECYCLE_CHILD_DISPOSITION_REQUIRED_ERROR;
 
 export type BrLifecycleRowForEligibility = {
   status?: string | null;
@@ -130,3 +139,11 @@ export function brChildCascadePauseEligible(
     isBrRowActiveAndPublished(child)
   );
 }
+
+/**
+ * Gate G.2.3.3 — the "active canonical child" definition that blocks main-parent Archive/
+ * Discontinue is identical to the Gate G.2.3.2 cascade-pause selection rule (same seven
+ * conditions). Reused verbatim under a name matching this gate's own vocabulary at call sites,
+ * rather than duplicating the rule and risking the two silently diverging over time.
+ */
+export const brChildBlocksParentDisposition = brChildCascadePauseEligible;
