@@ -15,6 +15,7 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 
 export type RestauranteDashboardCouponAddonCheckoutResult =
   | { ok: true; checkoutUrl: string }
@@ -149,6 +150,35 @@ export function restaurantCouponEditEligible(input: {
   const status = String(input.status ?? "").trim().toLowerCase();
   if (status !== "published") return false;
   return restaurantListingJsonCouponEnabled(input.listingJson);
+}
+
+/**
+ * Gate E.2.3 — lifecycle-truth versions of the eligibility checks above, used by the unified
+ * Mis anuncios dashboard. `listing_json.couponUpgradeEnabled` is no longer the entitlement
+ * authority for that path; only `AddonLifecycleStatus === "active"` counts as active.
+ */
+export function restaurantCouponAddonLifecycleIsActive(
+  addonStatus: AddonLifecycleStatus | null | undefined,
+): boolean {
+  return addonStatus === "active";
+}
+
+export function restaurantCouponAddonUpgradeEligibleFromLifecycle(input: {
+  status: string;
+  addonStatus: AddonLifecycleStatus | null | undefined;
+}): boolean {
+  const status = String(input.status ?? "").trim().toLowerCase();
+  if (status !== "published") return false;
+  return !restaurantCouponAddonLifecycleIsActive(input.addonStatus);
+}
+
+export function restaurantCouponEditEligibleFromLifecycle(input: {
+  status: string;
+  addonStatus: AddonLifecycleStatus | null | undefined;
+}): boolean {
+  const status = String(input.status ?? "").trim().toLowerCase();
+  if (status !== "published") return false;
+  return restaurantCouponAddonLifecycleIsActive(input.addonStatus);
 }
 
 export async function hydrateRestauranteListingForCouponEdit(input: {

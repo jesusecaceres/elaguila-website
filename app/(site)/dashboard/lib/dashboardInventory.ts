@@ -18,10 +18,11 @@ import {
   serviciosListingPreviewHref,
 } from "./serviciosDashboardOffersAddonCheckout";
 import {
-  restaurantCouponAddonUpgradeEligible,
-  restaurantCouponEditEligible,
+  restaurantCouponAddonUpgradeEligibleFromLifecycle,
+  restaurantCouponEditEligibleFromLifecycle,
   restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -51,6 +52,8 @@ export type DashboardInventoryItem = {
   restaurantCouponUpgradeEligible?: boolean;
   /** True when published Restaurante has paid coupon module and can edit coupons. */
   restaurantCouponEditEligible?: boolean;
+  /** Gate E.2.3 — lifecycle truth backing the two flags above (`not_purchased` when not yet resolved). */
+  restaurantCouponAddonStatus?: AddonLifecycleStatus;
   /** True when a Servicios listing already shows offers/coupons content (P0C honest display state). */
   serviciosOffersAddonActive?: boolean;
   /** Optional fields for `resolveCategoryAdPlanFromDashboardInventoryItem`. */
@@ -406,9 +409,13 @@ export function restauranteDashboardListingPreviewHref(input: {
 export function buildRestaurantInventoryItems(
   rows: DashboardRestaurantRow[],
   lang: "es" | "en",
+  /** Gate E.2.3 — canonical-UUID-keyed lifecycle status map; missing entries fail closed to `not_purchased`. */
+  addonStatusByListingId?: Map<string, AddonLifecycleStatus>,
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
-  return rows.map((row) => ({
+  return rows.map((row) => {
+  const addonStatus: AddonLifecycleStatus = addonStatusByListingId?.get(row.id) ?? "not_purchased";
+  return {
     id: row.id,
     category: "restaurantes",
     title: row.business_name,
@@ -437,16 +444,18 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
-    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligible({
+    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligibleFromLifecycle({
       status: row.status,
-      listingJson: row.listing_json,
+      addonStatus,
     }),
-    restaurantCouponEditEligible: restaurantCouponEditEligible({
+    restaurantCouponEditEligible: restaurantCouponEditEligibleFromLifecycle({
       status: row.status,
-      listingJson: row.listing_json,
+      addonStatus,
     }),
+    restaurantCouponAddonStatus: addonStatus,
     source: "restaurantes_public_listings",
-  }));
+  };
+  });
 }
 
 export function buildEmpleosInventoryItems(

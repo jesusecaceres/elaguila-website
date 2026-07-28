@@ -1,3 +1,5 @@
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
+
 export type DashboardEntitlementBadgePayload = {
   grantsDestacado: boolean;
   grantsResultsPriority: boolean;
@@ -8,6 +10,8 @@ export type DashboardEntitlementBadgePayload = {
   /** Revenue OS listing/ad plan badge when webhook-backed entitlement exists. */
   revenueAdPlanBadge?: string | null;
   revenuePackageKey?: string | null;
+  /** Additive — present only when the lookup item included a `packageKey`. */
+  addonStatus?: AddonLifecycleStatus;
 };
 
 export type DashboardEntitlementLookupItem = {
@@ -17,6 +21,8 @@ export type DashboardEntitlementLookupItem = {
   listingId?: string | null;
   slug?: string | null;
   leonixAdId?: string | null;
+  /** Optional add-on package key (e.g. "restaurantes_offers_addon") to also resolve lifecycle status. */
+  packageKey?: string | null;
 };
 
 export async function fetchDashboardListingPackageEntitlementBadges(
@@ -37,6 +43,7 @@ export async function fetchDashboardListingPackageEntitlementBadges(
         listingId: i.listingId ?? i.key,
         slug: i.slug ?? undefined,
         leonixAdId: i.leonixAdId ?? undefined,
+        packageKey: i.packageKey ?? undefined,
       })),
     }),
   });
@@ -54,6 +61,19 @@ export function dashboardEntitlementBadgeForKey(
     if (t && badges[t]) return badges[t];
   }
   return null;
+}
+
+/** Fails closed to "not_purchased" when no matching key has a resolved add-on status. */
+export function dashboardAddonStatusForKey(
+  badges: Record<string, DashboardEntitlementBadgePayload>,
+  keys: string[],
+): AddonLifecycleStatus {
+  for (const k of keys) {
+    const t = k.trim();
+    const badge = t ? badges[t] : null;
+    if (badge?.addonStatus) return badge.addonStatus;
+  }
+  return "not_purchased";
 }
 
 export function dashboardRevenueAdPlanBadgeForKey(

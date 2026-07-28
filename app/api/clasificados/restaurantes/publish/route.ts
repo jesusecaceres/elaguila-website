@@ -20,6 +20,8 @@ import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/
 import { buildRestaurantePublish422MediaAudit } from "@/app/clasificados/restaurantes/application/restaurantePublishMediaAudit";
 import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurantes/lib/restaurantesLeonixAdId";
 import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
@@ -49,14 +51,32 @@ async function restauranteOwnerIdFromBearer(req: Request): Promise<string | null
   return data.user.id;
 }
 
+/** Gate E.2.1 — coupon content already durably stored on the existing row, trusted as-is. */
+type TrustedRestauranteCouponContent = Pick<
+  RestauranteListingDraft,
+  "coupons" | "couponFlyer" | "couponMoreOffers" | "couponMonthlyPrice"
+>;
+
 /**
  * Coupon entitlement (`couponUpgradeEnabled` + coupon content) is server/payment truth only.
  * A client can never submit this listing_json flag or its content into an active state —
- * only an already-entitled row (set exclusively by the Revenue OS webhook) may keep it active.
+ * only an already-entitled row (real, live `listing_package_entitlements` truth as of Gate
+ * E.2.1) may keep it active.
+ *
+ * Gate E.2.1 — when not entitled, this used to erase `coupons`/`couponFlyer`/`couponMoreOffers`/
+ * `couponMonthlyPrice` outright on every save, which would permanently destroy a customer's
+ * coupon content the next time they saved an unrelated base-listing field (name, hours, etc.)
+ * after their entitlement lapsed or was revoked. It now falls back to `trustedExisting` — the
+ * content already durably stored on this row — instead of either the incoming client draft
+ * (never trusted while unentitled, whether or not `mergeRestauranteDraft` already zeroed it) or
+ * a hard-coded erasure. The coupon module still stays off (`couponUpgradeEnabled: false`) and
+ * therefore hidden/unpublishable while unentitled; only the underlying data survives for
+ * reactivation.
  */
 function enforceRestauranteCouponEntitlementServerTruth(
   draft: RestauranteListingDraft,
   entitled: boolean,
+  trustedExisting: TrustedRestauranteCouponContent,
 ): RestauranteListingDraft {
   if (entitled) {
     return { ...draft, couponUpgradeEnabled: true };
@@ -64,10 +84,10 @@ function enforceRestauranteCouponEntitlementServerTruth(
   return {
     ...draft,
     couponUpgradeEnabled: false,
-    coupons: [],
-    couponFlyer: undefined,
-    couponMoreOffers: undefined,
-    couponMonthlyPrice: undefined,
+    coupons: trustedExisting.coupons,
+    couponFlyer: trustedExisting.couponFlyer,
+    couponMoreOffers: trustedExisting.couponMoreOffers,
+    couponMonthlyPrice: trustedExisting.couponMonthlyPrice,
   };
 }
 
@@ -279,22 +299,60 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
   }
 
-  // Paid coupon entitlement is server/payment truth only (set by the Revenue OS webhook),
-  // never by this route or by anything the client submits.
+  // Gate E.2.1 — paid coupon entitlement is server/payment truth only (live
+  // `listing_package_entitlements` state), never a client-submitted flag, the old sticky
+  // `listing_json.couponUpgradeEnabled` boolean, slug, or Leonix Ad ID.
   const existingListingJson =
     existingByDraft && typeof (existingByDraft as { listing_json?: unknown }).listing_json === "object"
       ? ((existingByDraft as { listing_json?: Record<string, unknown> | null }).listing_json ?? null)
       : null;
-  const serverVerifiedCouponEntitlement = existingListingJson?.couponUpgradeEnabled === true;
+  const existingListingId = (existingByDraft as { id?: string } | null)?.id ?? null;
+
+  // A brand-new listing (no canonical row UUID yet) can never have an entitlement — never
+  // invent one; only an already-existing row can be looked up.
+  let serverVerifiedCouponEntitlement = false;
+  if (existingListingId) {
+    const entitlements = await fetchAddonEntitlementsForListings({
+      category: "restaurantes",
+      packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+      listingIds: [existingListingId],
+    });
+    serverVerifiedCouponEntitlement = entitlements.get(existingListingId)?.status === "active";
+  }
 
   if (!serverVerifiedCouponEntitlement && draft.couponUpgradeEnabled === true) {
     console.warn("[restaurantes publish api] coupon activation attempted without server entitlement", {
       draftListingId: draft.draftListingId,
-      existingListingId: (existingByDraft as { id?: string } | null)?.id ?? null,
+      existingListingId,
     });
   }
 
-  const sanitizedDraft = enforceRestauranteCouponEntitlementServerTruth(draft, serverVerifiedCouponEntitlement);
+  // Gate E.2.1 — content already durably stored on the existing row (never the incoming client
+  // draft) is the only trusted source to fall back to while unentitled; see
+  // enforceRestauranteCouponEntitlementServerTruth for why.
+  const trustedExistingCouponContent: TrustedRestauranteCouponContent = {
+    coupons: Array.isArray(existingListingJson?.coupons)
+      ? (existingListingJson.coupons as RestauranteListingDraft["coupons"])
+      : [],
+    couponFlyer:
+      existingListingJson?.couponFlyer && typeof existingListingJson.couponFlyer === "object"
+        ? (existingListingJson.couponFlyer as RestauranteListingDraft["couponFlyer"])
+        : undefined,
+    couponMoreOffers:
+      existingListingJson?.couponMoreOffers && typeof existingListingJson.couponMoreOffers === "object"
+        ? (existingListingJson.couponMoreOffers as RestauranteListingDraft["couponMoreOffers"])
+        : undefined,
+    couponMonthlyPrice:
+      typeof existingListingJson?.couponMonthlyPrice === "number"
+        ? existingListingJson.couponMonthlyPrice
+        : undefined,
+  };
+
+  const sanitizedDraft = enforceRestauranteCouponEntitlementServerTruth(
+    draft,
+    serverVerifiedCouponEntitlement,
+    trustedExistingCouponContent,
+  );
 
   let slugOut = slugifyRestauranteBusinessName(draft.businessName);
 

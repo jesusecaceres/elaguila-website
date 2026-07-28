@@ -68,6 +68,7 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
+  dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
   dashboardRevenueAdPlanBadgeForKey,
   fetchDashboardListingPackageEntitlementBadges,
@@ -110,6 +111,7 @@ import {
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
 import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   serviciosListingEditHref,
@@ -453,6 +455,7 @@ export default function MyListingsPage() {
           listingId: item.id,
           slug: item.slug ?? null,
           leonixAdId: item.leonixAdId ?? null,
+          packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
         })),
         ...serviciosItems.map((item) => ({
           key: item.id,
@@ -488,7 +491,25 @@ export default function MyListingsPage() {
         entitlementLookup,
         accessToken,
       );
-      if (mounted) setEntitlementBadges(badges);
+      if (mounted) {
+        setEntitlementBadges(badges);
+        // Gate E.2.3 — patch in resolved add-on lifecycle truth now that badges have loaded;
+        // until this lands, restaurantItems above already fail closed to "not_purchased".
+        const addonStatusByListingId = new Map(
+          restaurantItems.map((item) => [
+            item.id,
+            dashboardAddonStatusForKey(badges, [item.id, item.slug ?? "", item.leonixAdId ?? ""]),
+          ]),
+        );
+        const restaurantItemsWithAddonStatus = buildRestaurantInventoryItems(
+          restaurantRows,
+          lang,
+          addonStatusByListingId,
+        );
+        setRestaurantInventory(
+          dedupeRestaurantInventoryWithListings(restaurantItemsWithAddonStatus, list),
+        );
+      }
 
       setListingsLoading(false);
 

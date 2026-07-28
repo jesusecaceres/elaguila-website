@@ -9,6 +9,8 @@ import {
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import { fetchRevenueOsAdPlanProofsForListings } from "@/app/lib/listingPlans/revenuePaymentLookup";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 
 type RequestItem = {
   category: string;
@@ -16,6 +18,8 @@ type RequestItem = {
   listingId?: string | null;
   slug?: string | null;
   leonixAdId?: string | null;
+  /** Optional add-on package key (e.g. "restaurantes_offers_addon") — additive, opt-in per item. */
+  packageKey?: string | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -59,6 +63,8 @@ export async function POST(req: NextRequest) {
       endsAt?: string | null;
       revenueAdPlanBadge?: string | null;
       revenuePackageKey?: string | null;
+      /** Additive — set only when the request item included a `packageKey`. */
+      addonStatus?: AddonLifecycleStatus;
     }
   > = {};
 
@@ -112,6 +118,42 @@ export async function POST(req: NextRequest) {
         listingId: String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim(),
         listingKey: id,
       });
+    }
+  }
+
+  // Additive add-on lifecycle lookup — only for items that opted in with a `packageKey`.
+  // Deliberately independent from the placement-tier loop above: does not alter or replace it.
+  const addonRequestItems = items.filter((item) => String(item.packageKey ?? "").trim());
+  if (addonRequestItems.length > 0) {
+    const byAddonGroup = new Map<string, RequestItem[]>();
+    for (const item of addonRequestItems) {
+      const category = String(item.category ?? "").trim().toLowerCase();
+      const packageKey = String(item.packageKey ?? "").trim();
+      const listingId = String(item.listingId ?? item.slug ?? item.leonixAdId ?? "").trim();
+      if (!category || !packageKey || !listingId) continue;
+      const key = `${category}\0${packageKey}`;
+      const list = byAddonGroup.get(key) ?? [];
+      list.push(item);
+      byAddonGroup.set(key, list);
+    }
+
+    for (const [key, group] of byAddonGroup) {
+      const [category, packageKey] = key.split("\0");
+      const listingIds = group.map((g) => String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim());
+      const statuses = await fetchAddonEntitlementsForListings({ category, packageKey, listingIds });
+      for (const g of group) {
+        const id = String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim();
+        const addonStatus = statuses.get(id)?.status ?? "not_purchased";
+        badges[id] = {
+          ...(badges[id] ?? {
+            tier: "digital_only",
+            grantsDestacado: false,
+            grantsResultsPriority: false,
+            includesNuestrosNegocios: false,
+          }),
+          addonStatus,
+        };
+      }
     }
   }
 

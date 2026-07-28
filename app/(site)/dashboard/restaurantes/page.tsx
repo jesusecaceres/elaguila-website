@@ -23,8 +23,8 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import {
   hydrateRestauranteListingForCouponEdit,
-  restaurantCouponAddonUpgradeEligible,
-  restaurantCouponEditEligible,
+  restaurantCouponAddonUpgradeEligibleFromLifecycle,
+  restaurantCouponEditEligibleFromLifecycle,
   restauranteCouponInactiveDashboardHint,
   restauranteCouponEditFooterHint,
   restauranteCouponEditLabel,
@@ -32,10 +32,12 @@ import {
   restauranteListingEditHref,
 } from "../lib/restaurantesDashboardCouponAddonCheckout";
 import {
+  dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -222,6 +224,7 @@ export default function DashboardRestaurantesPage() {
           listingId: r.id,
           slug: r.slug ?? null,
           leonixAdId: r.leonix_ad_id ?? null,
+          packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
         })),
         accessToken,
       );
@@ -417,13 +420,18 @@ export default function DashboardRestaurantesPage() {
                   }),
                   lang,
                 );
-                const couponUpgradeEligible = restaurantCouponAddonUpgradeEligible({
+                const addonStatus = dashboardAddonStatusForKey(entitlementBadges, [
+                  r.id,
+                  r.slug ?? "",
+                  r.leonix_ad_id ?? "",
+                ]);
+                const couponUpgradeEligible = restaurantCouponAddonUpgradeEligibleFromLifecycle({
                   status: r.status,
-                  listingJson: r.listing_json,
+                  addonStatus,
                 });
-                const couponEditEligible = restaurantCouponEditEligible({
+                const couponEditEligible = restaurantCouponEditEligibleFromLifecycle({
                   status: r.status,
-                  listingJson: r.listing_json,
+                  addonStatus,
                 });
                 const cardActions: Array<{
                   href?: string;

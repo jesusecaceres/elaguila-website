@@ -10,6 +10,8 @@ import { RestauranteProfileViewAnalytics } from "@/app/clasificados/restaurantes
 import { fetchRestauranteLinkedOffersForPublicPage } from "@/app/lib/clasificados/restaurantes/restaurantesLinkedOffersQuery";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 
 type Lang = "es" | "en";
 
@@ -51,12 +53,32 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
 
   const draft = listingJsonToDraft(row.listing_json);
   const shellData = mapRestauranteDraftToShellData(draft, { lang });
-  const shellForPublic = { ...shellData, id: row.id };
 
-  const linkedOffers =
+  const [linkedOffers, couponEntitlements] = await Promise.all([
     isSupabaseAdminConfigured()
-      ? await fetchRestauranteLinkedOffersForPublicPage(getAdminSupabase(), row.id, lang)
-      : [];
+      ? fetchRestauranteLinkedOffersForPublicPage(getAdminSupabase(), row.id, lang)
+      : Promise.resolve([]),
+    fetchAddonEntitlementsForListings({
+      category: "restaurantes",
+      packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+      listingIds: [row.id],
+    }),
+  ]);
+
+  // Gate E.2.2 — public coupon module visibility is live entitlement truth only, never the
+  // legacy `listing_json.couponUpgradeEnabled` flag baked into `shellData` by the (unmodified,
+  // pure) mapper. On any lookup failure, `fetchAddonEntitlementsForListings` already fails
+  // closed to `not_purchased` (see addonEntitlementReader.ts), so this stays hidden rather than
+  // throwing or exposing the base listing to risk. Stored coupon content itself is never
+  // touched here — only what gets rendered.
+  const couponAddonActive = couponEntitlements.get(row.id)?.status === "active";
+  const shellForPublic = {
+    ...shellData,
+    id: row.id,
+    coupons: couponAddonActive ? shellData.coupons : undefined,
+    couponFlyer: couponAddonActive ? shellData.couponFlyer : undefined,
+    couponMoreOffers: couponAddonActive ? shellData.couponMoreOffers : undefined,
+  };
 
   return (
     <RestaurantesShellChrome lang={lang}>
