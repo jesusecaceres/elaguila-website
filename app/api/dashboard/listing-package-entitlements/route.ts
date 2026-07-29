@@ -11,6 +11,8 @@ import {
 import { fetchRevenueOsAdPlanProofsForListings } from "@/app/lib/listingPlans/revenuePaymentLookup";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
+import { resolveOwnedListingIdentityKeys } from "@/app/lib/listingPlans/listingEntitlementOwnership";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 type RequestItem = {
   category: string;
@@ -40,8 +42,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ badges: {} });
   }
 
-  const byCategorySource = new Map<string, RequestItem[]>();
+  // Gate I.4.3A — server-side owner authorization. This route uses a service-role/admin
+  // Supabase client for every downstream lookup, so RLS is never a safety net here: without this
+  // check, any authenticated user could request another owner's package tier, placement flags,
+  // add-on status, or Revenue OS payment proof simply by naming a foreign listing's identity.
+  // Grouped and batched per `listingSource` (never one query per listing); an unconfigured
+  // Supabase environment, an unknown source, or a failed lookup chunk all fail closed to "not
+  // owned" rather than granting access.
+  if (!isSupabaseAdminConfigured()) {
+    return NextResponse.json({ badges: {} });
+  }
+  const ownershipSupabase = getAdminSupabase();
+  const itemsBySourceForOwnership = new Map<string, RequestItem[]>();
   for (const item of items) {
+    const listingSource = String(item.listingSource ?? "").trim();
+    if (!listingSource) continue;
+    const list = itemsBySourceForOwnership.get(listingSource) ?? [];
+    list.push(item);
+    itemsBySourceForOwnership.set(listingSource, list);
+  }
+  const ownedGroups = await Promise.all(
+    [...itemsBySourceForOwnership.entries()].map(async ([listingSource, group]) => {
+      const identityKeys = group
+        .map((g) => String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim())
+        .filter(Boolean);
+      const owned = await resolveOwnedListingIdentityKeys(ownershipSupabase, listingSource, identityKeys, userId);
+      return group.filter((g) => {
+        const key = String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim();
+        return Boolean(key) && owned.has(key);
+      });
+    }),
+  );
+  const authorizedItems = ownedGroups.flat();
+
+  if (authorizedItems.length === 0) {
+    return NextResponse.json({ badges: {} });
+  }
+
+  const byCategorySource = new Map<string, RequestItem[]>();
+  for (const item of authorizedItems) {
     const category = String(item.category ?? "").trim().toLowerCase();
     const listingSource = String(item.listingSource ?? "").trim();
     const listingId = String(item.listingId ?? item.slug ?? item.leonixAdId ?? "").trim();
@@ -145,7 +184,7 @@ export async function POST(req: NextRequest) {
   // Additive add-on lifecycle lookup — only for items that opted in with a `packageKey`.
   // Deliberately independent from the placement-tier loop above: does not alter or replace it.
   // Runs strictly after the placement stage resolves (it merges onto `badges[id]` set there).
-  const addonRequestItems = items.filter((item) => String(item.packageKey ?? "").trim());
+  const addonRequestItems = authorizedItems.filter((item) => String(item.packageKey ?? "").trim());
   if (addonRequestItems.length > 0) {
     const byAddonGroup = new Map<string, RequestItem[]>();
     for (const item of addonRequestItems) {
