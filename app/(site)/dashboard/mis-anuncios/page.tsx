@@ -43,6 +43,13 @@ import {
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
+  DEFERRED_DEDICATED_CATEGORIES,
+  EMPTY_DEDICATED_CATEGORY_COUNTS,
+  fetchDedicatedCategoryCounts,
+  resolveMisAnunciosLoadPlan,
+  type DedicatedCategoryCounts,
+} from "../lib/dashboardMisAnunciosCategoryLoadPlan";
+import {
   buildAutosClassifiedsInventoryItems,
   buildRestaurantInventoryItems,
   buildEmpleosInventoryItems,
@@ -105,10 +112,7 @@ import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/list
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
-import {
-  mapComidaLocalRowToDashboardVm,
-  type ComidaLocalDashboardListingVm,
-} from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
+import { mapComidaLocalRowToDashboardVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
 import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
@@ -352,17 +356,69 @@ export default function MyListingsPage() {
 
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
-  const [restaurantInventory, setRestaurantInventory] = useState<DashboardInventoryItem[]>([]);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
-  const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
-  const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
-  const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
-  const [autosPaidInventory, setAutosPaidInventory] = useState<DashboardInventoryItem[]>([]);
-  const [comidaLocalDashboardItems, setComidaLocalDashboardItems] = useState<
-    ComidaLocalDashboardListingVm[]
+
+  // Gate I.4.2 — raw rows only, per category; the lang-formatted display VM each category
+  // renders is derived below via `useMemo`, so switching ES/EN never re-fetches this data. Every
+  // other place in this file keeps reading the same `restaurantInventory` / `empleosInventory` /
+  // etc. names it always has — only the source (state -> derived memo) changed.
+  const [restaurantRawRows, setRestaurantRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerRestaurantListings>>
   >([]);
+  const [empleosRawRows, setEmpleosRawRows] = useState<Awaited<ReturnType<typeof fetchOwnerEmpleosListings>>>([]);
+  const [viajesRawRows, setViajesRawRows] = useState<Awaited<ReturnType<typeof fetchOwnerViajesListings>>>([]);
+  const [serviciosRawRows, setServiciosRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerServiciosListings>>
+  >([]);
+  const [autosPaidRawRows, setAutosPaidRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerAutosClassifiedsListings>>
+  >([]);
+  const [comidaLocalRawRows, setComidaLocalRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerComidaLocalListings>>
+  >([]);
+
+  const restaurantAddonStatusByListingId = useMemo(() => {
+    if (restaurantRawRows.length === 0) return undefined;
+    return new Map(
+      restaurantRawRows.map((row) => [
+        row.id,
+        dashboardAddonStatusForKey(entitlementBadges, [row.id, row.slug ?? "", row.leonix_ad_id ?? ""]),
+      ]),
+    );
+  }, [restaurantRawRows, entitlementBadges]);
+
+  const restaurantInventory = useMemo(
+    () =>
+      dedupeRestaurantInventoryWithListings(
+        buildRestaurantInventoryItems(restaurantRawRows, lang, restaurantAddonStatusByListingId),
+        listings,
+      ),
+    [restaurantRawRows, lang, restaurantAddonStatusByListingId, listings],
+  );
+  const empleosInventory = useMemo(() => buildEmpleosInventoryItems(empleosRawRows, lang), [empleosRawRows, lang]);
+  const viajesInventory = useMemo(() => buildViajesInventoryItems(viajesRawRows, lang), [viajesRawRows, lang]);
+  const serviciosInventory = useMemo(
+    () => buildServiciosInventoryItems(serviciosRawRows, lang),
+    [serviciosRawRows, lang],
+  );
+  const autosPaidInventory = useMemo(
+    () => buildAutosClassifiedsInventoryItems(autosPaidRawRows, lang),
+    [autosPaidRawRows, lang],
+  );
+  const comidaLocalDashboardItems = useMemo(
+    () => comidaLocalRawRows.map((row) => mapComidaLocalRowToDashboardVm(row, lang)),
+    [comidaLocalRawRows, lang],
+  );
+
+  const [dedicatedCounts, setDedicatedCounts] = useState<DedicatedCategoryCounts>(EMPTY_DEDICATED_CATEGORY_COUNTS);
+  const [loadedDedicatedCategories, setLoadedDedicatedCategories] = useState<Set<MisAnunciosCategoryKey>>(
+    () => new Set(),
+  );
+  const [categoryInventoryLoading, setCategoryInventoryLoading] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
   const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
   const [totalManagedCount, setTotalManagedCount] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryKey>("en-venta");
@@ -450,103 +506,28 @@ export default function MyListingsPage() {
       setRepublishColsAvailable(meta?.republishColsAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
-      const restaurantRows = await fetchOwnerRestaurantListings(supabase, u.id);
-      const restaurantItems = buildRestaurantInventoryItems(restaurantRows, lang);
-      
-      const empleosRows = await fetchOwnerEmpleosListings(supabase, u.id);
-      const empleosItems = buildEmpleosInventoryItems(empleosRows, lang);
-      
-      const viajesRows = await fetchOwnerViajesListings(supabase, u.id);
-      const viajesItems = buildViajesInventoryItems(viajesRows, lang);
 
       const { data: sessData } = await supabase.auth.getSession();
-      const accessToken = sessData.session?.access_token ?? null;
-      const [activeAcross, autosPaidRows, serviciosRows, comidaLocalRows, managedTotal] = await Promise.all([
+      const token = sessData.session?.access_token ?? null;
+      if (mounted) setAccessToken(token);
+
+      // Gate I.4.2 — only lightweight, always-needed data loads unconditionally on initial
+      // render: real per-category counts (tab badges + smart default-category selection) and
+      // Servicios' already-necessary full fetch (no lightweight count endpoint exists for it —
+      // see the Gate I.4.2 report §3/§6). Every other dedicated category's full content loads on
+      // demand only once actually selected, via the separate effect below.
+      const [dedCounts, activeAcross, serviciosRows, managedTotal] = await Promise.all([
+        fetchDedicatedCategoryCounts(supabase, u.id),
         countOwnerActiveListingsAcrossSources(supabase, u.id),
-        fetchOwnerAutosClassifiedsListings(supabase, u.id),
-        fetchOwnerServiciosListings(accessToken),
-        fetchOwnerComidaLocalListings(supabase, u.id),
+        fetchOwnerServiciosListings(token),
         countOwnerInventoryListings(supabase, u.id),
       ]);
-      const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
-      const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
-      const comidaLocalItems = comidaLocalRows.map((row) =>
-        mapComidaLocalRowToDashboardVm(row, lang)
-      );
 
       if (!mounted) return;
+      setDedicatedCounts(dedCounts);
       setUnifiedActiveCount(activeAcross);
       setTotalManagedCount(managedTotal);
-      setRestaurantInventory(dedupeRestaurantInventoryWithListings(restaurantItems, list));
-      setEmpleosInventory(empleosItems);
-      setViajesInventory(viajesItems);
-      setAutosPaidInventory(autosPaidItems);
-      setServiciosInventory(serviciosItems);
-      setComidaLocalDashboardItems(comidaLocalItems);
-
-      const entitlementLookup = [
-        ...restaurantItems.map((item) => ({
-          key: item.id,
-          category: "restaurantes",
-          listingSource: "restaurantes_public_listings",
-          listingId: item.id,
-          slug: item.slug ?? null,
-          leonixAdId: item.leonixAdId ?? null,
-          packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-        })),
-        ...serviciosItems.map((item) => ({
-          key: item.id,
-          category: "servicios",
-          listingSource: "servicios_public_listings",
-          listingId: item.id,
-          slug: item.slug ?? null,
-          leonixAdId: item.leonixAdId ?? null,
-        })),
-        ...autosPaidItems.map((item) => ({
-          key: item.id,
-          category: "autos",
-          listingSource: "autos_classifieds_listings",
-          listingId: item.id,
-          slug: null,
-          leonixAdId: item.leonixAdId ?? null,
-        })),
-        ...list
-          .filter((row) => {
-            const c = String(row.category ?? "").toLowerCase();
-            return c === "bienes-raices" || c === "rentas" || c === "en-venta";
-          })
-          .map((row) => ({
-            key: row.id,
-            category: String(row.category ?? "").toLowerCase(),
-            listingSource: "listings",
-            listingId: row.id,
-            slug: null,
-            leonixAdId: row.leonix_ad_id ?? null,
-          })),
-      ];
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
-        entitlementLookup,
-        accessToken,
-      );
-      if (mounted) {
-        setEntitlementBadges(badges);
-        // Gate E.2.3 — patch in resolved add-on lifecycle truth now that badges have loaded;
-        // until this lands, restaurantItems above already fail closed to "not_purchased".
-        const addonStatusByListingId = new Map(
-          restaurantItems.map((item) => [
-            item.id,
-            dashboardAddonStatusForKey(badges, [item.id, item.slug ?? "", item.leonixAdId ?? ""]),
-          ]),
-        );
-        const restaurantItemsWithAddonStatus = buildRestaurantInventoryItems(
-          restaurantRows,
-          lang,
-          addonStatusByListingId,
-        );
-        setRestaurantInventory(
-          dedupeRestaurantInventoryWithListings(restaurantItemsWithAddonStatus, list),
-        );
-      }
+      setServiciosRawRows(serviciosRows);
 
       setListingsLoading(false);
 
@@ -578,7 +559,144 @@ export default function MyListingsPage() {
     return () => {
       mounted = false;
     };
-  }, [router, pathname, lang]);
+    // Gate I.4.2 — `lang` deliberately excluded: nothing fetched here is language-dependent
+    // (raw rows only); every lang-formatted display value is derived separately via `useMemo`
+    // below, so switching ES/EN no longer re-runs this entire load.
+  }, [router, pathname]);
+
+  // Gate I.4.2 — on-demand dedicated-category loader. Fires only when the selected category is
+  // one of `DEFERRED_DEDICATED_CATEGORIES` and hasn't been loaded yet this session; cached in
+  // `loadedDedicatedCategories` so switching back to an already-visited category never refetches.
+  // Waits on `inventoryReady` (not just `userId`) so the shared `listings` array — needed by
+  // Restaurant's own de-dupe-against-listings step — is already populated before this runs.
+  useEffect(() => {
+    if (!inventoryReady || !userId) return;
+    if (!resolveMisAnunciosLoadPlan(categoryFilter).requiresDedicatedFetch) return;
+    if (loadedDedicatedCategories.has(categoryFilter)) return;
+
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    (async () => {
+      setCategoryInventoryLoading(true);
+      try {
+        if (categoryFilter === "restaurantes") {
+          const fetched = await fetchOwnerRestaurantListings(supabase, userId);
+          if (cancelled) return;
+          setRestaurantRawRows(fetched);
+        } else if (categoryFilter === "empleos") {
+          const fetched = await fetchOwnerEmpleosListings(supabase, userId);
+          if (cancelled) return;
+          setEmpleosRawRows(fetched);
+        } else if (categoryFilter === "viajes") {
+          const fetched = await fetchOwnerViajesListings(supabase, userId);
+          if (cancelled) return;
+          setViajesRawRows(fetched);
+        } else if (categoryFilter === "autos") {
+          const fetched = await fetchOwnerAutosClassifiedsListings(supabase, userId);
+          if (cancelled) return;
+          setAutosPaidRawRows(fetched);
+        } else if (categoryFilter === "comida-local") {
+          const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+          if (cancelled) return;
+          setComidaLocalRawRows(fetched);
+        }
+        if (!cancelled) {
+          setLoadedDedicatedCategories((prev) => {
+            const next = new Set(prev);
+            next.add(categoryFilter);
+            return next;
+          });
+        }
+      } finally {
+        if (!cancelled) setCategoryInventoryLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryReady, userId, categoryFilter, loadedDedicatedCategories]);
+
+  // Gate I.4.2 — entitlement lookup scoped to only the currently selected category's currently
+  // loaded rows, never the owner's entire cross-category catalog. Depends only on raw, lang-
+  // independent data, so switching ES/EN never re-fetches entitlements either.
+  useEffect(() => {
+    if (!inventoryReady) return;
+    if (!resolveMisAnunciosLoadPlan(categoryFilter).requiresEntitlementLookup) {
+      setEntitlementBadges({});
+      return;
+    }
+
+    let items: Array<{
+      key: string;
+      category: string;
+      listingSource: string;
+      listingId: string;
+      slug: string | null;
+      leonixAdId: string | null;
+      packageKey?: string;
+    }> = [];
+
+    if (categoryFilter === "restaurantes") {
+      items = restaurantRawRows.map((row) => ({
+        key: row.id,
+        category: "restaurantes",
+        listingSource: "restaurantes_public_listings",
+        listingId: row.id,
+        slug: row.slug ?? null,
+        leonixAdId: row.leonix_ad_id ?? null,
+        packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+      }));
+    } else if (categoryFilter === "servicios") {
+      items = serviciosRawRows.map((row) => {
+        const id = (row.id ?? row.slug) as string;
+        return {
+          key: id,
+          category: "servicios",
+          listingSource: "servicios_public_listings",
+          listingId: id,
+          slug: row.slug ?? null,
+          leonixAdId: row.leonix_ad_id ?? null,
+        };
+      });
+    } else if (categoryFilter === "autos") {
+      items = autosPaidRawRows.map((row) => ({
+        key: row.id,
+        category: "autos",
+        listingSource: "autos_classifieds_listings",
+        listingId: row.id,
+        slug: null,
+        leonixAdId: row.leonix_ad_id ?? null,
+      }));
+    } else if (categoryFilter === "bienes-raices" || categoryFilter === "rentas" || categoryFilter === "en-venta") {
+      items = listings
+        .filter((row) => listingRowCategoryKey(row) === categoryFilter)
+        .map((row) => ({
+          key: row.id,
+          category: categoryFilter,
+          listingSource: "listings",
+          listingId: row.id,
+          slug: null,
+          leonixAdId: row.leonix_ad_id ?? null,
+        }));
+    }
+
+    if (items.length === 0) {
+      setEntitlementBadges({});
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const badges = await fetchDashboardListingPackageEntitlementBadges(items, accessToken);
+      if (!cancelled) setEntitlementBadges(badges);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryReady, categoryFilter, restaurantRawRows, serviciosRawRows, autosPaidRawRows, listings, accessToken]);
 
   async function markPauseListing(id: string) {
     // Gate G.2.3.1 — Bienes Raíces Negocio rows go through the new server-authorized mutation
@@ -1009,6 +1127,9 @@ export default function MyListingsPage() {
   }, [listings, analyticsByListing]);
 
   const showLoading = authLoading || listingsLoading;
+  // Gate I.4.2 — `dedicatedCounts` (real, DB-backed head-count queries, always loaded) covers any
+  // dedicated category not yet visited this session; once a category is actually loaded, its own
+  // live array length takes over (reflects any mutation made since, e.g. an archive action).
   const hasAnyInventory =
     listings.length > 0 ||
     restaurantInventory.length > 0 ||
@@ -1016,7 +1137,12 @@ export default function MyListingsPage() {
     viajesInventory.length > 0 ||
     serviciosInventory.length > 0 ||
     comidaLocalDashboardItems.length > 0 ||
-    autosPaidInventory.length > 0;
+    autosPaidInventory.length > 0 ||
+    dedicatedCounts.restaurantes > 0 ||
+    dedicatedCounts.empleos > 0 ||
+    dedicatedCounts.viajes > 0 ||
+    dedicatedCounts.comidaLocal > 0 ||
+    dedicatedCounts.autosPaid > 0;
 
   const categoryCounts = useMemo(() => {
     let enVenta = 0;
@@ -1036,19 +1162,22 @@ export default function MyListingsPage() {
       if (k === "comunidad") comunidad += 1;
       if (k === "busco") busco += 1;
     }
+    const autosPaidCount = loadedDedicatedCategories.has("autos") ? autosPaidInventory.length : dedicatedCounts.autosPaid;
     return {
       "en-venta": enVenta,
-      autos: autosTbl + autosPaidInventory.length,
+      autos: autosTbl + autosPaidCount,
       "bienes-raices": br,
       rentas,
       clases,
       comunidad,
       busco,
-      restaurantes: restaurantInventory.length,
-      empleos: empleosInventory.length,
-      viajes: viajesInventory.length,
+      restaurantes: loadedDedicatedCategories.has("restaurantes") ? restaurantInventory.length : dedicatedCounts.restaurantes,
+      empleos: loadedDedicatedCategories.has("empleos") ? empleosInventory.length : dedicatedCounts.empleos,
+      viajes: loadedDedicatedCategories.has("viajes") ? viajesInventory.length : dedicatedCounts.viajes,
       servicios: serviciosInventory.length,
-      "comida-local": comidaLocalDashboardItems.length,
+      "comida-local": loadedDedicatedCategories.has("comida-local")
+        ? comidaLocalDashboardItems.length
+        : dedicatedCounts.comidaLocal,
     } as Record<MisAnunciosCategoryKey, number>;
   }, [
     listings,
@@ -1058,6 +1187,8 @@ export default function MyListingsPage() {
     viajesInventory,
     serviciosInventory,
     comidaLocalDashboardItems,
+    dedicatedCounts,
+    loadedDedicatedCategories,
   ]);
 
   useEffect(() => {
@@ -1185,6 +1316,14 @@ export default function MyListingsPage() {
     showBrInventorySection ||
     (showComidaLocalBlock && comidaLocalDashboardItems.length > 0) ||
     (showListingsTableSection && visible.length > 0);
+
+  // Gate I.4.2 — the selected category's own dedicated fetch may still be in flight (deferred
+  // load). Distinguish that from a confirmed-empty category so the page never flashes "you don't
+  // have listings here" before the real data has had a chance to arrive.
+  const isLoadingSelectedDedicatedCategory =
+    categoryInventoryLoading &&
+    DEFERRED_DEDICATED_CATEGORIES.has(categoryFilter) &&
+    !loadedDedicatedCategories.has(categoryFilter);
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
@@ -1325,6 +1464,10 @@ export default function MyListingsPage() {
                 <Link href={`/clasificados/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
                   {t.cta}
                 </Link>
+              </div>
+            ) : isLoadingSelectedDedicatedCategory ? (
+              <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center text-sm text-[#5C5346] sm:p-5">
+                {t.loading}
               </div>
             ) : !hasSelectedCategoryListings ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
