@@ -2031,12 +2031,14 @@ export default function MyListingsPage() {
                               ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
                               : `/clasificados/anuncio/${x.id}?${q}`
                           }
+                          prefetch={false}
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
                           {t.viewPublic}
                         </Link>
                         <Link
                           href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                          prefetch={false}
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
                           {t.manageListing}
@@ -2044,6 +2046,7 @@ export default function MyListingsPage() {
                         {listingAnalyticsIsProven(catLower) ? (
                           <Link
                             href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {analyticsActionLabel(lang)}
@@ -2052,6 +2055,7 @@ export default function MyListingsPage() {
                         {catLower === "clases" ? (
                           <Link
                             href={appendLangToPath("/clasificados/clases/resultados", lang)}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {publicResultsActionLabel(lang)}
@@ -2060,6 +2064,7 @@ export default function MyListingsPage() {
                         {catLower === "comunidad" ? (
                           <Link
                             href={appendLangToPath("/clasificados/comunidad/resultados", lang)}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {publicResultsActionLabel(lang)}
@@ -2068,6 +2073,7 @@ export default function MyListingsPage() {
                         {catLower === "busco" ? (
                           <Link
                             href={appendLangToPath("/clasificados/busco/resultados", lang)}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {t.viewRequests}

@@ -181,6 +181,7 @@ export function AutosClassifiedListingManageCard({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
+              prefetch={false}
               className="inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#F3EBDD]"
             >
               {L.view} →

@@ -535,12 +535,14 @@ export function LeonixRealEstateListingManageCard({
           ) : null}
           <Link
             href={publicViewHref}
+            prefetch={false}
             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
           >
             {publicViewLabel(lang)}
           </Link>
           <Link
             href={brDashboardEditHref}
+            prefetch={false}
             className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
           >
             {editListingLabel(lang)}
@@ -548,6 +550,7 @@ export function LeonixRealEstateListingManageCard({
           {brDashboardPreviewHref ? (
             <Link
               href={brDashboardPreviewHref}
+              prefetch={false}
               className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
             >
               {lang === "es" ? "Vista previa" : "Preview"}

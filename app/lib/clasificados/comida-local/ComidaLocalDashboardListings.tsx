@@ -131,12 +131,14 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false }:
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={`${item.publicPath}?${q}`}
+                  prefetch={false}
                   className="inline-flex rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
                 >
                   {lang === "es" ? "Ver ficha" : "View listing"}
                 </Link>
                 <Link
                   href={`/publicar/comida-local?${q}`}
+                  prefetch={false}
                   className="inline-flex rounded-xl border border-[#D4C4A8] bg-white px-4 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/35"
                 >
                   {lang === "es" ? "Formulario" : "Form"}

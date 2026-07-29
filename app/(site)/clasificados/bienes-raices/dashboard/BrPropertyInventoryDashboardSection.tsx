@@ -220,6 +220,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
               {mainId ? (
                 <Link
                   href={`${leonixLiveAnuncioPath(mainId)}?lang=${lang}`}
+                  prefetch={false}
                   className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] sm:flex-none"
                 >
                   {t.manage}
