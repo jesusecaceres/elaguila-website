@@ -47,11 +47,17 @@
  *                      used — this gate confirms it as decided-canonical, no value changed).
  *   - Empleos:         "/publicar/empleos" (new adapter this gate; quick/premium/feria lanes
  *                      preserved as sub-routes, documented in knownLimitations).
- *   - Bienes Raíces:   hub = "/publicar/bienes-raices"; the pre-existing NEGOCIO adapter's
- *                      `applicationRoute` (the real deep multi-step form) is UNCHANGED — the hub
- *                      funnels into it, it does not replace it. New PRIVADO adapter's
- *                      `applicationRoute` = "/publicar/bienes-raices/privado" (confirmed to
- *                      mount the same BienesRaicesPrivadoApplication as its nested counterpart).
+ *   - Bienes Raíces:   hub = "/clasificados/publicar/bienes-raices" (CORRECTED in Gate I.5.3A —
+ *                      originally set to "/publicar/bienes-raices" here in Gate I.5.2, which was
+ *                      proven wrong: that route is a Negocio-only property-type selector with no
+ *                      Privado path, per brPublishRoutes.ts:12,17,21. The old nested-tree hub is
+ *                      the only page offering the real Privado-vs-Negocio choice — retained as
+ *                      a documented temporary exception, same reasoning as Rentas/En Venta). The
+ *                      pre-existing NEGOCIO adapter's `applicationRoute` (the real deep
+ *                      multi-step form) remains UNCHANGED — the hub funnels into it, it does not
+ *                      replace it. PRIVADO adapter's `applicationRoute` =
+ *                      "/publicar/bienes-raices/privado" (confirmed to mount the same
+ *                      BienesRaicesPrivadoApplication as its nested counterpart) — unchanged.
  *   - Rentas:          no modern flat `/publicar/rentas` hub exists (confirmed absent) — the
  *                      nested `/clasificados/publicar/rentas/{negocio,privado}` hub is retained
  *                      as a documented temporary exception, same reasoning as En Venta below.
@@ -263,9 +269,14 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/bienes-raices",
   applicationRoute: "/clasificados/publicar/bienes-raices/negocio/agente-individual",
-  // Gate I.5.2 addition (new field only, applicationRoute above is untouched) — canonical hub
-  // per the Gate I.5.1 decision: app/(site)/publicar/bienes-raices/page.tsx.
-  hubRoute: "/publicar/bienes-raices",
+  // Gate I.5.3A CORRECTION (was "/publicar/bienes-raices" in Gate I.5.2 — proven wrong): that
+  // route renders PublicarBienesRaicesNegocioSelectorClient, confirmed by reading its source to
+  // be a NEGOCIO-ONLY property-type + inventory-child selector with no Privado path at all (see
+  // brPublishRoutes.ts:17's own comment: "Negocio: seller + property category selector"). The
+  // ONLY page offering the real Privado-vs-Negocio choice is this one — brPublishRoutes.ts:12,21
+  // ("Hub: elegir Negocio vs Privado"). Temporary canonical exception, same reasoning as Rentas
+  // and En Venta: no modern replacement hub exists yet.
+  hubRoute: "/clasificados/publicar/bienes-raices",
   resultsRoute: "/clasificados/bienes-raices/resultados",
 
   // UUID-keyed public identity — self-sufficient from sourceId, no lookup required.
@@ -526,7 +537,9 @@ const BIENES_RAICES_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/bienes-raices",
   applicationRoute: "/publicar/bienes-raices/privado",
-  hubRoute: "/publicar/bienes-raices",
+  // Gate I.5.3A CORRECTION — see the Negocio adapter's hubRoute comment above for the evidence;
+  // both lanes of the same family always share one hub value.
+  hubRoute: "/clasificados/publicar/bienes-raices",
   resultsRoute: "/clasificados/bienes-raices/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,

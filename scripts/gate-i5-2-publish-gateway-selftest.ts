@@ -80,7 +80,10 @@ async function main() {
       CATEGORY_ROUTE_REGISTRY.rentas_privado.hubRoute,
     );
     assert.equal(resolvePublicarGatewayDestination("autos", "es"), "/publicar/autos?lang=es");
-    assert.equal(resolvePublicarGatewayDestination("bienes-raices", "es"), "/publicar/bienes-raices?lang=es");
+    // Gate I.5.3A correction — was asserted as "/publicar/bienes-raices" here, which was itself
+    // the bug this fix corrects (see categoryRouteRegistry.ts's Gate I.5.3A comment and the
+    // Gate I.5.3A report). The nested hub is the real Privado/Negocio chooser.
+    assert.equal(resolvePublicarGatewayDestination("bienes-raices", "es"), "/clasificados/publicar/bienes-raices?lang=es");
     assert.equal(resolvePublicarGatewayDestination("rentas", "es"), "/clasificados/publicar/rentas?lang=es");
   }
 

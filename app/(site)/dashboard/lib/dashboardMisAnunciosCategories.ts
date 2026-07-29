@@ -1,4 +1,4 @@
-import { BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
@@ -125,9 +125,9 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Propiedades en venta (privado o negocio)." : "Properties for sale (private or business).",
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
-    // Gate I.5.2 — bypasses BR_PUBLICAR_HUB (legacy value, still correctly used by locked BR
-    // application-form internals) in favor of the registry's decided modern hub.
-    publishHref: (q) => `/publicar/bienes-raices?${q}`,
+    // Gate I.5.3A — reverted to BR_PUBLICAR_HUB (see categoryRouteRegistry.ts's Gate I.5.3A
+    // correction — the Gate I.5.2 bypass literal was proven wrong).
+    publishHref: (q) => `${BR_PUBLICAR_HUB}?${q}`,
     resultsHref: (q) => `${BR_RESULTS}?${q}`,
   },
   {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
-import { BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { DashboardMetricLinkCard } from "./components/DashboardMetricLinkCard";
@@ -452,10 +452,10 @@ export default function DashboardPage() {
         description: lang === "es" ? "Propiedades privadas y de negocio." : "Private and business properties.",
         ready: true,
         manageHref: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
-        // Gate I.5.2 — bypasses BR_PUBLICAR_HUB (legacy value, still correctly used by locked BR
-        // application-form internals) in favor of the registry's decided modern hub, since this
-        // is only a dashboard link destination, not application-internal navigation.
-        publishHref: `/publicar/bienes-raices?${q}`,
+        // Gate I.5.3A — reverted to BR_PUBLICAR_HUB (the Gate I.5.2 bypass to a hardcoded
+        // "/publicar/bienes-raices" literal was proven wrong; BR_PUBLICAR_HUB was correct all
+        // along — see categoryRouteRegistry.ts's Gate I.5.3A correction).
+        publishHref: `${BR_PUBLICAR_HUB}?${q}`,
         resultsHref: `${BR_RESULTS}?${q}`,
       },
       {
