@@ -222,6 +222,10 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
       // results card — which both assume "first image = cover" — actually show the cover the
       // seller picked in preview, instead of always reverting to raw upload order.
       imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
+      // Gate I.5.4A.1 — durable seller photo: a `data:` value is uploaded to hosted storage and
+      // patched into `detailPairs` by the core publish function; an already-hosted URL was
+      // already embedded above by `buildDetailPairsFromBienesRaicesPrivadoPreviewVm`.
+      sellerPhotoSource: trim(state.seller.fotoDataUrl) || null,
       lang,
     },
   };
@@ -312,6 +316,11 @@ export function buildRentasPrivadoListingParams(
     contactPhoneDigits: contact.phone,
     contactEmail: contact.email,
     imageSources: orderedGallery,
+    // Gate I.5.4A.1 — same durable seller-photo upload as BR Privado above; this builder shares
+    // `buildDetailPairsFromBienesRaicesPrivadoPreviewVm`, so Rentas Privado must get the same
+    // hosted-upload treatment or its seller photo would regress from "capped inline" to "never
+    // persisted."
+    sellerPhotoSource: trim(state.seller.fotoDataUrl) || null,
     lang,
     ...(muxPid
       ? {

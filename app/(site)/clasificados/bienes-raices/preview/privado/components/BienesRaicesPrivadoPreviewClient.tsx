@@ -166,6 +166,16 @@ export default function BienesRaicesPrivadoPreviewClient() {
         activationMode: "pending_payment",
       });
       if (!r.ok) return { ok: false, error: r.error };
+      // Gate I.5.4A.1 — same warnings-banner pattern already proven for BR Negocio: surfaces a
+      // seller-photo upload failure (or any other publish warning) on the published page instead
+      // of silently dropping it.
+      if (r.warnings.length) {
+        try {
+          sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
+        } catch {
+          /* ignore */
+        }
+      }
       writeCachedPendingListingId(r.listingId);
 
       let leonixAdId: string | null = null;

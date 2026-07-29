@@ -133,16 +133,22 @@ async function main() {
   }
 
   /* ---------------------------------------------------------------------------------------- *
-   * 5 — seller name + photo survive end-to-end: VM → detail_pairs (publish-side) →
-   * published-row mapper → VM again (public-detail-side), without ever touching the Negocio
-   * agent-schema fields.
+   * 5 — seller name + an already-hosted photo survive end-to-end: VM → detail_pairs
+   * (publish-side) → published-row mapper → VM again (public-detail-side), without ever
+   * touching the Negocio agent-schema fields.
+   *
+   * Superseded by Gate I.5.4A.1: a raw `data:` photo is no longer embedded directly by
+   * `buildDetailPairsFromBienesRaicesPrivadoPreviewVm` at all (see test below) — it is uploaded
+   * to hosted storage by `publishLeonixRealEstateListingCore` and patched into `detail_pairs`
+   * afterward, so this function only ever sees (and persists) an already-hosted `http(s)://`
+   * value at this layer.
    * ---------------------------------------------------------------------------------------- */
   {
     const previewVm = fakeVm({
       heroTitle: "Casa con jardín",
       priceDisplay: "$399,000",
       seller: {
-        photoUrl: "data:image/jpeg;base64,AAAA",
+        photoUrl: "https://cdn.example.com/listing-images/owner-1/listing-1/seller-photo.jpg",
         hasPhoto: true,
         name: "María López",
         byOwnerLabel: "Propietaria",
@@ -157,8 +163,10 @@ async function main() {
     const pairs = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(previewVm);
     assert.ok(pairs.some((p) => p.label === "Vendedor" && p.value === "María López"), "seller name must be persisted");
     assert.ok(
-      pairs.some((p) => p.label === "Foto del vendedor" && p.value === "data:image/jpeg;base64,AAAA"),
-      "seller photo must be persisted when under the size cap",
+      pairs.some(
+        (p) => p.label === "Foto del vendedor" && p.value === "https://cdn.example.com/listing-images/owner-1/listing-1/seller-photo.jpg",
+      ),
+      "an already-hosted seller photo URL must be persisted directly",
     );
 
     const fakeRow: BienesLiveListingLike = {
@@ -177,20 +185,33 @@ async function main() {
 
     const publishedVm = mapBrListingRowToPrivadoPreviewVm(fakeRow, "es");
     assert.equal(publishedVm.seller.name, "María López", "seller name must survive the full round trip");
-    assert.equal(publishedVm.seller.photoUrl, "data:image/jpeg;base64,AAAA", "seller photo must survive the full round trip");
+    assert.equal(
+      publishedVm.seller.photoUrl,
+      "https://cdn.example.com/listing-images/owner-1/listing-1/seller-photo.jpg",
+      "seller photo must survive the full round trip",
+    );
     assert.equal(publishedVm.seller.phoneDisplay, "(916) 555-0100", "phone must survive from contact_phone column");
     assert.equal(publishedVm.seller.emailDisplay, "maria@example.com", "email must survive from contact_email column");
   }
 
   /* ---------------------------------------------------------------------------------------- *
-   * 6 — oversized seller photo is dropped, not silently truncated or crashed on.
+   * 6 — Gate I.5.4A.1: a raw `data:` seller photo (any size) is never embedded directly by this
+   * function — small or huge, it is excluded here and left for `publishLeonixRealEstateListingCore`
+   * to upload and patch in as a hosted URL. This replaces the old size-cap behavior (Gate I.5.4A),
+   * which silently dropped oversized photos instead of uploading them.
    * ---------------------------------------------------------------------------------------- */
   {
+    const smallPhoto = "data:image/jpeg;base64,AAAA";
     const hugePhoto = `data:image/jpeg;base64,${"A".repeat(70_000)}`;
-    const vm = fakeVm({ seller: { ...fakeVm().seller, name: "Juan", photoUrl: hugePhoto, hasPhoto: true } });
-    const pairs = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
-    assert.ok(pairs.some((p) => p.label === "Vendedor"), "name must still persist even when photo is dropped");
-    assert.ok(!pairs.some((p) => p.label === "Foto del vendedor"), "oversized photo must be dropped, not stored");
+    for (const photoUrl of [smallPhoto, hugePhoto]) {
+      const vm = fakeVm({ seller: { ...fakeVm().seller, name: "Juan", photoUrl, hasPhoto: true } });
+      const pairs = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
+      assert.ok(pairs.some((p) => p.label === "Vendedor"), "name must still persist regardless of photo handling");
+      assert.ok(
+        !pairs.some((p) => p.label === "Foto del vendedor"),
+        "a data: URL photo must never be embedded directly, regardless of size — it is deferred to hosted upload",
+      );
+    }
   }
 
   /* ---------------------------------------------------------------------------------------- *

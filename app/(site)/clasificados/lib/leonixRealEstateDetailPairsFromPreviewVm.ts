@@ -20,17 +20,14 @@ function pushFact(out: Array<{ label: string; value: string }>, label: string, v
  * silently dropping the seller's identity. `detail_pairs` is the same existing, flexible JSON
  * structure every other BR/Rentas fact already flows through — no new column, no migration.
  *
- * The seller photo is a browser-local `data:` URL at this point (Privado's own form state names
- * the field `fotoDataUrl`, unlike Negocio's `identityAgente.fotoUrl`, which is already a real
- * hosted URL by publish time via its own upload-at-application-time UI — confirmed by reading
- * `leonixNegocioBusinessMetaFromFormState.ts`, which stores `id.fotoUrl` verbatim with no upload
- * step of its own). Giving Privado's seller photo that same immediate-upload behavior is an
- * application-form UX change, out of this gate's narrow-repair scope. As a size-bounded interim
- * measure, a data URL under the cap is persisted as-is (still just text in the same JSON
- * structure); an oversized one is dropped rather than bloating the row, and is documented as a
- * known limitation, not silently "fixed."
+ * Gate I.5.4A.1 — the seller photo is a browser-local `data:` URL at this point. Rather than
+ * embedding that base64 blob into `detail_pairs` (the old size-capped interim behavior), an
+ * un-hosted `data:` photo is left out of this insert-time fact list entirely:
+ * `publishLeonixRealEstateListingCore` uploads it to the `listing-images` bucket right after the
+ * row exists (same bucket/path convention as the gallery) and patches the hosted URL into
+ * `detail_pairs` afterward. An already-hosted `http(s)://` value (e.g. carried over from a prior
+ * successful upload) is embedded directly here — no re-upload needed.
  */
-const BR_PRIVADO_SELLER_PHOTO_MAX_CHARS = 60_000;
 
 /** BR / Rentas privado preview VM → detail pair rows (human labels, Spanish). */
 export function buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm: BienesRaicesPrivadoPreviewVm): Array<{ label: string; value: string }> {
@@ -39,7 +36,7 @@ export function buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm: BienesRaice
   pushFact(out, "Estado del anuncio", vm.listingStatusLabel);
   pushFact(out, "Vendedor", vm.seller?.name ?? "");
   const sellerPhoto = String(vm.seller?.photoUrl ?? "").trim();
-  if (sellerPhoto && sellerPhoto.length <= BR_PRIVADO_SELLER_PHOTO_MAX_CHARS) {
+  if (/^https?:\/\//i.test(sellerPhoto)) {
     pushFact(out, "Foto del vendedor", sellerPhoto);
   }
   const exact = Boolean(vm.mostrarDireccionExacta);

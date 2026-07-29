@@ -7,6 +7,7 @@ import Navbar from "../../../../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
 } from "../../../lib/ownerListingsLifecycleClient";
@@ -14,6 +15,9 @@ import {
 type Lang = "es" | "en";
 
 const EDIT_WINDOW_MINUTES = 30;
+/** Gate I.5.4A.1 — same label the publish pipeline writes to `detail_pairs` for BR/Rentas Privado. */
+const SELLER_PHOTO_DETAIL_LABEL = "Foto del vendedor";
+const MAX_SELLER_PHOTO_BYTES = 12 * 1024 * 1024;
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -140,6 +144,10 @@ const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 const [uploading, setUploading] = useState(false);
 const [uploadNote, setUploadNote] = useState<string | null>(null);
 
+const [sellerPhotoUrl, setSellerPhotoUrl] = useState<string>("");
+const [sellerPhotoUploading, setSellerPhotoUploading] = useState(false);
+const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const resolvedId = typeof id === "string" ? id.trim() : "";
@@ -193,6 +201,7 @@ const [uploadNote, setUploadNote] = useState<string | null>(null);
       setTitle(String(row.title ?? ""));
       setPrice(row.price === null || row.price === undefined ? "" : String(row.price));
       setDescription(String((row as any).description ?? ""));
+      setSellerPhotoUrl(readLeonixDetailPairValue((row as any).detail_pairs, SELLER_PHOTO_DETAIL_LABEL) ?? "");
 
       setLoading(false);
     }
@@ -206,6 +215,10 @@ const [uploadNote, setUploadNote] = useState<string | null>(null);
   const createdIso: string | null = listing?.created_at || listing?.created || null;
   const mins = minutesSince(createdIso);
   const isEditable = mins !== null && mins <= EDIT_WINDOW_MINUTES;
+  /** Gate I.5.4A.1 — seller photo is a Bienes Raíces Privado ("personal" seller) concept only; never shown for Negocio or other categories. */
+  const isBrPrivadoListing =
+    String(listing?.category ?? "").toLowerCase() === "bienes-raices" &&
+    String(listing?.seller_type ?? "").toLowerCase() === "personal";
 
 
 async function uploadImages() {
@@ -289,6 +302,94 @@ async function uploadImages() {
   } finally {
     setUploading(false);
   }
+}
+
+/**
+ * Gate I.5.4A.1 — replaces the BR Privado seller photo, reusing the same `listing-images` bucket
+ * and owner/listing-scoped path convention as `uploadImages` above, but patching `detail_pairs`
+ * (the "Foto del vendedor" pair) instead of the gallery `images` column.
+ */
+async function uploadSellerPhoto(file: File) {
+  if (!id || !isValidUuid(id) || !userId) return;
+  setSellerPhotoError(null);
+
+  if (!file.type.startsWith("image/")) {
+    setSellerPhotoError(lang === "es" ? "Elige un archivo de imagen válido." : "Choose a valid image file.");
+    return;
+  }
+  if (file.size > MAX_SELLER_PHOTO_BYTES) {
+    setSellerPhotoError(
+      lang === "es"
+        ? `La foto supera ${Math.round(MAX_SELLER_PHOTO_BYTES / (1024 * 1024))} MB. Elige una imagen más ligera.`
+        : `The photo is over ${Math.round(MAX_SELLER_PHOTO_BYTES / (1024 * 1024))} MB. Choose a lighter image.`,
+    );
+    return;
+  }
+
+  const supabase = createSupabaseBrowserClient();
+  setSellerPhotoUploading(true);
+  setError(null);
+  setSuccess(null);
+
+  const ext = file.type.includes("png") ? "png" : file.type.includes("webp") ? "webp" : "jpg";
+  const path = `${userId}/${id}/seller-photo.${ext}`;
+
+  const { error: upErr } = await supabase.storage
+    .from("listing-images")
+    .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+
+  if (upErr) {
+    setSellerPhotoError(upErr.message || (lang === "es" ? "No se pudo subir la foto." : "Upload failed."));
+    setSellerPhotoUploading(false);
+    return;
+  }
+
+  const { data: urlData } = supabase.storage.from("listing-images").getPublicUrl(path);
+  const publicUrl = urlData?.publicUrl ?? null;
+  if (!publicUrl) {
+    setSellerPhotoError(lang === "es" ? "No se pudo obtener la URL de la foto." : "Could not resolve the photo URL.");
+    setSellerPhotoUploading(false);
+    return;
+  }
+  // Cache-bust: the fixed path can be re-uploaded on a later edit, and the CDN/browser may still hold the old bytes.
+  const hostedUrl = `${publicUrl}?v=${Date.now()}`;
+
+  const existingPairs = Array.isArray(listing?.detail_pairs) ? (listing.detail_pairs as Array<{ label?: string; value?: string }>) : [];
+  const nextPairs = [...existingPairs.filter((p) => p?.label !== SELLER_PHOTO_DETAIL_LABEL), { label: SELLER_PHOTO_DETAIL_LABEL, value: hostedUrl }];
+
+  const { error: uErr } = await supabase.from("listings").update({ detail_pairs: nextPairs }).eq("id", id);
+  if (uErr) {
+    setSellerPhotoError(uErr.message || (lang === "es" ? "La foto se subió pero no se pudo guardar." : "Photo uploaded but could not be saved."));
+    setSellerPhotoUploading(false);
+    return;
+  }
+
+  setListing((prev: any) => ({ ...(prev || {}), detail_pairs: nextPairs }));
+  setSellerPhotoUrl(hostedUrl);
+  setSellerPhotoUploading(false);
+  setSuccess(lang === "es" ? "Foto del vendedor actualizada" : "Seller photo updated");
+}
+
+async function removeSellerPhoto() {
+  if (!id || !isValidUuid(id)) return;
+  setSellerPhotoError(null);
+  setSellerPhotoUploading(true);
+
+  const supabase = createSupabaseBrowserClient();
+  const existingPairs = Array.isArray(listing?.detail_pairs) ? (listing.detail_pairs as Array<{ label?: string; value?: string }>) : [];
+  const nextPairs = existingPairs.filter((p) => p?.label !== SELLER_PHOTO_DETAIL_LABEL);
+
+  const { error: uErr } = await supabase.from("listings").update({ detail_pairs: nextPairs }).eq("id", id);
+  if (uErr) {
+    setSellerPhotoError(uErr.message || (lang === "es" ? "No se pudo quitar la foto." : "Could not remove the photo."));
+    setSellerPhotoUploading(false);
+    return;
+  }
+
+  setListing((prev: any) => ({ ...(prev || {}), detail_pairs: nextPairs }));
+  setSellerPhotoUrl("");
+  setSellerPhotoUploading(false);
+  setSuccess(lang === "es" ? "Foto del vendedor eliminada" : "Seller photo removed");
 }
 
   async function save() {
@@ -523,6 +624,63 @@ async function uploadImages() {
     </div>
   ) : null}
 </div>
+
+{isBrPrivadoListing ? (
+  <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+    <div className="text-sm font-semibold text-white/90">
+      {lang === "es" ? "Foto del vendedor" : "Seller photo"}
+    </div>
+    <div className="text-xs text-white/60 mt-1">
+      {lang === "es"
+        ? "Se muestra junto a tu nombre en el anuncio publicado. Opcional."
+        : "Shown next to your name on the published listing. Optional."}
+    </div>
+
+    <div className="mt-3 flex flex-wrap items-center gap-3">
+      {sellerPhotoUrl ? (
+        <img
+          src={sellerPhotoUrl}
+          alt=""
+          className="h-16 w-16 shrink-0 rounded-full border border-white/10 object-cover"
+        />
+      ) : null}
+      <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm text-white/90 hover:bg-black/50 transition">
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={sellerPhotoUploading}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) void uploadSellerPhoto(f);
+          }}
+        />
+        {sellerPhotoUrl
+          ? lang === "es"
+            ? "Reemplazar foto"
+            : "Replace photo"
+          : lang === "es"
+            ? "Subir foto"
+            : "Upload photo"}
+      </label>
+      {sellerPhotoUrl ? (
+        <button
+          type="button"
+          onClick={removeSellerPhoto}
+          disabled={sellerPhotoUploading}
+          className="text-xs font-semibold text-white/70 underline hover:text-white/90 disabled:opacity-50"
+        >
+          {lang === "es" ? "Quitar foto" : "Remove photo"}
+        </button>
+      ) : null}
+      {sellerPhotoUploading ? (
+        <span className="text-xs text-yellow-200/90">{lang === "es" ? "Guardando…" : "Saving…"}</span>
+      ) : null}
+    </div>
+    {sellerPhotoError ? <p className="mt-2 text-xs font-semibold text-red-300">{sellerPhotoError}</p> : null}
+  </div>
+) : null}
 
 
                 <div className="flex items-center gap-2 flex-wrap">
