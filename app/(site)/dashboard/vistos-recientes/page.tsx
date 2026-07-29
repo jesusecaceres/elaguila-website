@@ -85,6 +85,7 @@ export default function VistosRecientesPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const [membershipTier, setMembershipTier] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
 
@@ -98,6 +99,7 @@ export default function VistosRecientesPage() {
       } = await supabase.auth.getUser();
       if (!mounted) return;
       if (user) {
+        setOwnerId(user.id);
         setAccountRef(accountRefFromId(user.id));
         setEmail(user.email ?? null);
         const meta = user.user_metadata as Record<string, unknown> | undefined;
@@ -177,6 +179,7 @@ export default function VistosRecientesPage() {
       accountRef={accountRef}
       membershipTier={membershipTier}
       accountType={accountType}
+      ownerId={ownerId}
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>

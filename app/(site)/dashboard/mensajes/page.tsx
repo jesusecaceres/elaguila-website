@@ -56,6 +56,7 @@ export default function MensajesPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -69,6 +70,7 @@ export default function MensajesPage() {
         router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/mensajes?${q}`)}`);
         return;
       }
+      setOwnerId(user.id);
       setAccountRef(accountRefFromId(user.id));
       setEmail(user.email ?? null);
       const meta = user.user_metadata as Record<string, unknown> | undefined;
@@ -103,7 +105,7 @@ export default function MensajesPage() {
   }, [router, q]);
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="messages" plan={plan} userName={name} email={email} accountRef={accountRef}>
+    <LeonixDashboardShell lang={lang} activeNav="messages" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={ownerId}>
       {loading ? (
         <div className={`${LX_DASH.panel} p-10 text-center text-sm text-[#5C5346]`}>{t.loading}</div>
       ) : (

@@ -140,6 +140,7 @@ export default function DashboardSecurityPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [shellName, setShellName] = useState<string | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -168,6 +169,7 @@ export default function DashboardSecurityPage() {
       }
 
       const u = data.user;
+      setOwnerId(u.id);
       setEmail(u.email ?? null);
       setOauthProviderIds(getOAuthProviderIds(u));
       setPasswordMode(resolveDashboardPasswordMode(u, recoveryMode));
@@ -320,6 +322,7 @@ export default function DashboardSecurityPage() {
       userName={shellName}
       email={email}
       accountRef={null}
+      ownerId={ownerId}
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">

@@ -56,6 +56,7 @@ export default function GuardadosPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -66,6 +67,7 @@ export default function GuardadosPage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/guardados?${q}`)}`);
       return;
     }
+    setOwnerId(user.id);
     setAccountRef(accountRefFromId(user.id));
     setEmail(user.email ?? null);
     const meta = user.user_metadata as Record<string, unknown> | undefined;
@@ -104,6 +106,7 @@ export default function GuardadosPage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      ownerId={ownerId}
     >
       {loading ? (
         <div className={`${LX_DASH.panel} p-10 text-center text-sm text-[#5C5346]`}>{t.loading}</div>

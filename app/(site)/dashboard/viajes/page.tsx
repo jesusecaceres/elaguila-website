@@ -251,6 +251,7 @@ export default function DashboardViajesStagedPage() {
       userName={name}
       email={email}
       accountRef={userId ? accountRefFromId(userId) : null}
+      ownerId={userId}
     >
       <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-8">
         <h1 className="text-2xl font-bold text-[#1E1810]">{t.title}</h1>

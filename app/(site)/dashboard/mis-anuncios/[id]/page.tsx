@@ -543,6 +543,7 @@ export default function ListingWorkspacePage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      ownerId={userId}
       sidebarTone={isEnVentaListing ? "varios" : "default"}
       rightPanel={
         <DashboardMobilePreview

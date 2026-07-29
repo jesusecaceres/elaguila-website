@@ -85,6 +85,7 @@ export default function EmpleosEmployerDashboardPage() {
 
   const [authLoading, setAuthLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +97,7 @@ export default function EmpleosEmployerDashboardPage() {
         router.replace(`/login?redirect=${redirect}`);
         return;
       }
+      if (!cancelled) setOwnerId(userData.user.id);
       const { data, error } = await supabase
         .from("empleos_public_listings")
         .select("id, slug, title, company_name, lifecycle_status, lane, city, state, postal_code, listing_snapshot, updated_at")
@@ -113,7 +115,7 @@ export default function EmpleosEmployerDashboardPage() {
 
   if (authLoading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
       </LeonixDashboardShell>
     );
@@ -133,7 +135,7 @@ export default function EmpleosEmployerDashboardPage() {
     );
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#1E1810] sm:text-3xl">{t.title}</h1>

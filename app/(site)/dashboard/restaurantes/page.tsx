@@ -171,6 +171,7 @@ export default function DashboardRestaurantesPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const [hydrateId, setHydrateId] = useState<string | null>(null);
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
@@ -190,6 +191,7 @@ export default function DashboardRestaurantesPage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/restaurantes?${q}`)}`);
       return;
     }
+    setOwnerId(user.id);
     setAccountRef(accountRefFromId(user.id));
     setEmail(user.email ?? null);
     const meta = user.user_metadata as Record<string, unknown> | undefined;
@@ -363,6 +365,7 @@ export default function DashboardRestaurantesPage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      ownerId={ownerId}
     >
       <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-7">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

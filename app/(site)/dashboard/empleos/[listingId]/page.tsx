@@ -88,6 +88,7 @@ export default function EmpleosEmployerManagePage() {
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
   const [apps, setApps] = useState<AppRow[]>([]);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -96,6 +97,7 @@ export default function EmpleosEmployerManagePage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/empleos/${listingId}`)}`);
       return;
     }
+    setOwnerId(userData.user.id);
     const { data: listing, error } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
     if (error || !listing) {
       setRow(null);
@@ -149,7 +151,7 @@ export default function EmpleosEmployerManagePage() {
 
   if (loading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
       </LeonixDashboardShell>
     );
@@ -157,7 +159,7 @@ export default function EmpleosEmployerManagePage() {
 
   if (!row) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-[#5C5346]">{t.notFound}</p>
         <Link href={`/dashboard/empleos?${q}`} className="mt-4 inline-block font-semibold underline">
           {t.back}
@@ -167,7 +169,7 @@ export default function EmpleosEmployerManagePage() {
   }
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-[#1E1810]">{t.title}</h1>
         <p className="mt-2 text-sm text-[#5C5346]">{row.title}</p>

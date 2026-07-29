@@ -82,6 +82,7 @@ export default function OfertasLocalesOwnerManagePage() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [form, setForm] = useState<OfertaLocalOwnerUpdateInput>({});
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   const loadOffer = useCallback(async () => {
     const sb = createSupabaseBrowserClient();
@@ -90,6 +91,7 @@ export default function OfertasLocalesOwnerManagePage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/ofertas-locales/${offerId}?${q}`)}`);
       return null;
     }
+    setOwnerId(userData.user.id);
     const { data: sess } = await sb.auth.getSession();
     const token = sess.session?.access_token ?? "";
     if (!token) return null;
@@ -182,7 +184,7 @@ export default function OfertasLocalesOwnerManagePage() {
 
   if (loading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
       </LeonixDashboardShell>
     );
@@ -190,7 +192,7 @@ export default function OfertasLocalesOwnerManagePage() {
 
   if (!offer) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.notFound}</p>
         <Link href={`/dashboard/ofertas-locales?${q}`} className="mt-4 inline-block text-[#6B5B2E] underline">
           {t.back}
@@ -202,7 +204,7 @@ export default function OfertasLocalesOwnerManagePage() {
   const social = offer.metadata.socialLinks ?? {};
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
       <div className="mb-4">
         <Link href={`/dashboard/ofertas-locales?${q}`} className="text-sm text-[#6B5B2E] underline">
           ← {t.back}
