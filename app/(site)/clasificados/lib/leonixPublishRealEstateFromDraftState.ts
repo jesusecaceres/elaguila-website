@@ -217,7 +217,11 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
       detailPairs: pairs,
       contactPhoneDigits: contact.phone,
       contactEmail: contact.email,
-      imageSources: [...state.media.photoDataUrls],
+      // Gate I.5.4 — reorder by the seller's chosen cover photo before publish (same proven
+      // pattern already used for Rentas Privado below), so the published detail page and
+      // results card — which both assume "first image = cover" — actually show the cover the
+      // seller picked in preview, instead of always reverting to raw upload order.
+      imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
       lang,
     },
   };
@@ -357,7 +361,11 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
       detailPairs: pairs,
       contactPhoneDigits: c.phone,
       contactEmail: c.email,
-      imageSources: [...state.media.photoUrls],
+      // Gate I.5.4 — same cover-photo-order fix as BR Privado above; this builder is also the
+      // live agente-individual path's downstream target (via mapAgenteResidencialFormStateToNegocioForPublish),
+      // so this fixes the Negocio parent and inventory-child lanes too, not just the standalone
+      // (currently-unreachable) BienesRaicesNegocioApplication.tsx form.
+      imageSources: orderedRentasGallerySourcesForPublish(state.media.photoUrls, state.media.primaryImageIndex),
       lang,
       ...inventoryMetadataForBrNegocioPublish(inventory),
     },
