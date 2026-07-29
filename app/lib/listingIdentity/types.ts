@@ -10,33 +10,70 @@
  */
 
 /**
- * Categories with a registered adapter in this gate. This is intentionally a NARROWER union
- * than the open `MisAnunciosCategoryKey` string type used elsewhere in the dashboard — it only
- * covers the four Negocios Locales pipelines plus Autos Privado (registered separately to make
- * its exclusion from dealer parent/child behavior explicit, not implicit).
+ * Categories with a registered adapter. Gate B originally covered only the four Negocios
+ * Locales pipelines plus Autos Privado. Gate I.5.1 (route-contract reconciliation) extended
+ * this to represent every dashboard-wired category identified by the Gate I.5A route-forensics
+ * audit, so `CATEGORY_ROUTE_REGISTRY` can be a genuinely complete route contract. `"cupones"`
+ * is deliberately NOT a member — Gate I.5A confirmed Cupones has no standalone publish
+ * pipeline; it is a filtered public view over the Ofertas Locales pipeline and is managed
+ * through parent-category (Restaurantes/Servicios) coupon add-on entitlements instead.
  */
 export type CanonicalCategoryKey =
   | "restaurantes"
   | "servicios"
   | "bienes_raices_negocio"
+  | "bienes_raices_privado"
   | "autos_negocios"
-  | "autos_privado";
+  | "autos_privado"
+  | "rentas_negocio"
+  | "rentas_privado"
+  | "empleos"
+  | "en_venta"
+  | "comida_local"
+  | "ofertas_locales"
+  | "busco"
+  | "clases"
+  | "comunidad"
+  | "mascotas_y_perdidos"
+  | "viajes";
 
 /**
  * The real, stored `category` (or `lane`) value as it appears in the backing table — e.g.
  * `listings.category = "bienes-raices"`, or the fixed single category of a dedicated table
  * like `restaurantes_public_listings`. Distinct from `pipeline`: one DB `category` can back
  * more than one `pipeline` (bienes-raices backs both bienes_raices_negocio and BR-privado;
- * autos_classifieds_listings.lane backs both autos_negocios and autos_privado).
+ * autos_classifieds_listings.lane backs both autos_negocios and autos_privado; rentas and
+ * en-venta each back two `pipeline`s the same way `listings.category`/`lane` already does for
+ * bienes-raices/autos above).
  */
-export type CanonicalDbCategory = "restaurantes" | "servicios" | "bienes-raices" | "autos";
+export type CanonicalDbCategory =
+  | "restaurantes"
+  | "servicios"
+  | "bienes-raices"
+  | "autos"
+  | "rentas"
+  | "empleos"
+  | "en-venta"
+  | "comida-local"
+  | "ofertas-locales"
+  | "busco"
+  | "clases"
+  | "comunidad"
+  | "mascotas-y-perdidos"
+  | "viajes";
 
-/** Real backing tables for the categories registered in this gate. */
+/** Real backing tables for the categories registered in this gate. Confirmed per-category via
+ * `.from("...")` call sites under app/api/clasificados/** (Gate I.5.1 route-forensics pass) —
+ * never guessed by naming-convention analogy. */
 export type CanonicalSourceTable =
   | "restaurantes_public_listings"
   | "servicios_public_listings"
   | "listings"
-  | "autos_classifieds_listings";
+  | "autos_classifieds_listings"
+  | "empleos_public_listings"
+  | "comida_local_public_listings"
+  | "ofertas_locales"
+  | "viajes_staged_listings";
 
 /**
  * Parent/child row role, mirroring the `inventory_role` columns added by

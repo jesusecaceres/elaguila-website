@@ -3,7 +3,11 @@
  *
  * Registers one `CategoryRouteAdapter` per pipeline, describing CURRENT repository routing
  * truth only. Nothing here is wired into any live page/dashboard/publish/webhook yet
- * (additive only, per Gate B scope).
+ * (additive only, per Gate B scope) — EXCEPT the five adapters present before Gate I.5.1
+ * (restaurantes, servicios, bienes_raices_negocio, autos_negocios, autos_privado), which Gates
+ * D.1–D.3 have since partially live-wired into dashboard action buttons (see index.ts's header
+ * comment for the exact wired subset per pipeline). Gate I.5.1 did not modify a single field on
+ * those five adapters — only added twelve new ones alongside them.
  *
  * Route literals are deliberately hardcoded rather than imported from the real dashboard/
  * public-URL builder modules (e.g. app/(site)/dashboard/lib/*AddonCheckout.ts,
@@ -17,9 +21,63 @@
  *      coupling, the route literal should be documented with a comment instead, deferring
  *      runtime unification (i.e. actually calling into those builders) to Gate C/D.
  * Every literal below cites the exact source file/line it was copied from.
+ *
+ * GATE I.5.1 — canonical route-contract reconciliation (Gate I.5A follow-up).
+ *
+ * This gate reconciles the systemic route drift Gate I.5A found (dual-mount `/publicar/{cat}`
+ * vs `/clasificados/publicar/{cat}` trees, `results`/`resultados` duplicates, two overlapping
+ * canonicalization files) by making THIS registry the single declared source of canonical-route
+ * truth, and extending it from 5 to 17 pipelines (every dashboard-relevant category; `cupones`
+ * excluded on purpose, see CanonicalCategoryKey's doc comment in ./types).
+ *
+ * IMPORTANT — this registry is declared/target truth, not yet universally live truth. A
+ * second file, app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes.ts,
+ * independently declares a `categoryPublishPath()` map that IS live-wired into real CTAs today
+ * (CategoryStandardLandingPage.tsx's default publishHref, and EmpleosLandingPageClient.tsx's
+ * CTA). Gate I.5A found that map disagrees with the decisions below for Servicios, Empleos,
+ * and Bienes Raíces. Per Gate I.5.1's explicit restriction ("do not rewire global CTAs yet"),
+ * `categoryPublishPath()`'s return values were NOT changed in this gate — doing so would change
+ * live navigation. That reconciliation (making the live map either consume this registry or
+ * match its decisions) is Gate I.5.2's job. `categoryStandardRoutes.ts` itself was only given a
+ * documentation comment pointing here, no value changed.
+ *
+ * Per-category canonical decisions made in this gate (see each adapter's own header comment for
+ * evidence, and the Gate I.5.1 report for full reasoning):
+ *   - Servicios:      "/publicar/servicios" (already the value the pre-existing SERVICIOS_ADAPTER
+ *                      used — this gate confirms it as decided-canonical, no value changed).
+ *   - Empleos:         "/publicar/empleos" (new adapter this gate; quick/premium/feria lanes
+ *                      preserved as sub-routes, documented in knownLimitations).
+ *   - Bienes Raíces:   hub = "/publicar/bienes-raices"; the pre-existing NEGOCIO adapter's
+ *                      `applicationRoute` (the real deep multi-step form) is UNCHANGED — the hub
+ *                      funnels into it, it does not replace it. New PRIVADO adapter's
+ *                      `applicationRoute` = "/publicar/bienes-raices/privado" (confirmed to
+ *                      mount the same BienesRaicesPrivadoApplication as its nested counterpart).
+ *   - Rentas:          no modern flat `/publicar/rentas` hub exists (confirmed absent) — the
+ *                      nested `/clasificados/publicar/rentas/{negocio,privado}` hub is retained
+ *                      as a documented temporary exception, same reasoning as En Venta below.
+ *                      Each lane's own `applicationRoute` DOES have a confirmed modern flat
+ *                      counterpart though (`/publicar/rentas/{negocio,privado}`), used here.
+ *   - Restaurantes:    unchanged — already fully resolved to "/publicar/restaurantes" pre-gate.
+ *                      The separate `/clasificados/publicar/restaurantes/page.tsx` selector's
+ *                      unique-behavior status is UNCONFIRMED (not investigated deeply enough in
+ *                      Gate I.5A to prove it's a safe zero-behavior-change duplicate) — left
+ *                      untouched, flagged for Gate I.5.2/I.5.7 investigation before any action.
+ *   - En Venta/Varios: NO modern `/publicar/en-venta` route exists, and Gate I.5.1 was
+ *                      explicitly barred from building one without proof of zero behavior
+ *                      change (not attempted this gate — the Pro application component's
+ *                      dependencies were not audited deeply enough to prove that). DECISION:
+ *                      Option B — the nested `/clasificados/publicar/en-venta` (Pro lane) is
+ *                      formally retained as canonical, documented as a temporary exception, not
+ *                      left ambiguous.
  */
 
-import type { CategoryRouteAdapter, InventoryRole, ListingIdentity, RouteResolveOpts } from "./types";
+import type {
+  CanonicalCategoryKey,
+  CategoryRouteAdapter,
+  InventoryRole,
+  ListingIdentity,
+  RouteResolveOpts,
+} from "./types";
 
 function lang(opts?: RouteResolveOpts): "es" | "en" {
   return opts?.lang === "en" ? "en" : "es";
@@ -443,17 +501,496 @@ const AUTOS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   ],
 };
 
+// ---------------------------------------------------------------------------------------
+// Bienes Raíces Privado
+// Shares entry/results with Negocio (app/(site)/clasificados/bienes-raices/shared/constants/
+//   brPublishRoutes.ts:26,28 — BR_CATEGORY_HOME, BR_RESULTS). Canonical hub decision above.
+// Application (public entry, confirmed to mount the same BienesRaicesPrivadoApplication as its
+//   nested BR_PUBLICAR_PRIVADO counterpart): brPublishRoutes.ts:15
+//   (BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY = "/publicar/bienes-raices/privado").
+// Preview: brPublishRoutes.ts:25 (BR_PREVIEW_PRIVADO = "/clasificados/bienes-raices/preview/privado").
+// Public detail: same shared anuncio shell as Negocio.
+// ---------------------------------------------------------------------------------------
+const BIENES_RAICES_PRIVADO_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "bienes_raices_privado",
+  category: "bienes-raices",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/bienes-raices",
+  applicationRoute: "/publicar/bienes-raices/privado",
+  resultsRoute: "/clasificados/bienes-raices/resultados",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+
+  // No confirmed dashboard edit-route builder distinct from Negocio's was found in the Gate
+  // I.5A pass — the Gate B registry only ever covered the Negocio pipeline's editRoute. Rather
+  // than assume the same query-param shape applies, this returns null honestly.
+  editRoute: () => null,
+
+  previewRoute: (identity, opts) => {
+    const params = dashboardEditParams({
+      mode: "listing-edit",
+      listingId: identityListingIdForEdit(identity),
+      leonixAdId: identity.leonixAdId,
+      returnPanel: "bienes-raices",
+    });
+    params.set("preview", "listing");
+    return withLang(`/clasificados/bienes-raices/preview/privado?${params.toString()}`, lang(opts));
+  },
+
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "editRoute() returns null — no confirmed dashboard full-listing edit route was found " +
+      "specific to the Privado lane (only Negocio's edit route was confirmed in Gate B/I.5A).",
+    "results/resultados duplicate: Gate I.5A found both `/clasificados/bienes-raices/results` " +
+      "(brPublishRoutes.ts:28) and `/clasificados/bienes-raices/resultados` (also live) exist. " +
+      "`resultados` was chosen here for consistency with the pre-existing Negocio adapter; the " +
+      "`results` duplicate is a future-redirect candidate, not deleted or redirected here.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Rentas Negocio / Privado
+// Landing: app/(site)/clasificados/rentas/shared/utils/rentasPublishRoutes.ts:21 (RENTAS_LANDING).
+// Hub decision: no modern flat `/publicar/rentas` index exists (confirmed absent) — nested hub
+//   retained as documented temporary exception (see file header).
+// Application (public entry, confirmed same components as nested counterparts):
+//   rentasPublishRoutes.ts:9 (RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY="/publicar/rentas/negocio"),
+//   :13 (RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY="/publicar/rentas/privado").
+// Preview: rentasPublishRoutes.ts:15 (RENTAS_PREVIEW_NEGOCIO), :10 (RENTAS_PREVIEW_PRIVADO).
+// Results: rentasPublishRoutes.ts:18 (RENTAS_RESULTS = "/clasificados/rentas/results").
+// Renewal: confirmed real (`operation:"renew_listing"` via /api/revenue-os/checkout,
+//   `rentas_30d`), but triggered by an async checkout call, not a navigable URL — not
+//   represented as a route field here to avoid fabricating a page that doesn't exist.
+// ---------------------------------------------------------------------------------------
+const RENTAS_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "rentas_negocio",
+  category: "rentas",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/rentas",
+  applicationRoute: "/publicar/rentas/negocio",
+  resultsRoute: "/clasificados/rentas/results",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+
+  // Gate I.5A confirmed a real edit API (app/api/clasificados/rentas/listing-edit/route.ts) but
+  // no confirmed dashboard href-builder constant for it — returning null rather than guessing.
+  editRoute: () => null,
+
+  previewRoute: (identity, opts) => withLang(`/clasificados/rentas/preview/negocio?listingId=${encodeURIComponent(identity.sourceId)}`, lang(opts)),
+
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: true,
+
+  knownLimitations: [
+    "editRoute() returns null — a real edit API exists but no confirmed dashboard href-builder " +
+      "was found for it in Gate I.5A's pass.",
+    "A confirmed renewal capability exists (operation:\"renew_listing\" via the shared " +
+      "/api/revenue-os/checkout endpoint) but is not representable as a `route` here — it's an " +
+      "async checkout call, not a navigable page.",
+    "Gate I.5A also found a second, apparently sample/future public detail base " +
+      "(RENTAS_LISTING_PUBLIC_BASE=\"/clasificados/rentas/listing\") distinct from the shared " +
+      "anuncio shell used above — not resolved here, flagged for a later gate.",
+  ],
+};
+
+const RENTAS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "rentas_privado",
+  category: "rentas",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/rentas",
+  applicationRoute: "/publicar/rentas/privado",
+  resultsRoute: "/clasificados/rentas/results",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+  editRoute: () => null,
+  previewRoute: (identity, opts) => withLang(`/clasificados/rentas/preview/privado?listingId=${encodeURIComponent(identity.sourceId)}`, lang(opts)),
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "editRoute() returns null — same reasoning as Rentas Negocio.",
+    "Same confirmed-but-unrepresentable renewal capability as Rentas Negocio.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Empleos
+// Entry: app/(site)/clasificados/empleos/page.tsx. Backing table confirmed:
+//   app/api/clasificados/empleos/listings/route.ts (.from("empleos_public_listings")).
+// Publish-start DECISION: "/publicar/empleos" (canonical hub) — the legacy
+//   EMPLEOS_PUBLISH_HUB_PATH="/clasificados/publicar/empleos" (empleosLandingRoutes.ts:9) still
+//   self-declares canonical and disagrees; that conflict is Gate I.5.2's to resolve in the live
+//   CTA layer. Lanes preserved: /publicar/empleos/{quick,premium,feria}.
+// Edit: dedicated dashboard, /dashboard/empleos/[listingId] (confirmed, live).
+// Results DECISION: "/clasificados/empleos/resultados" (matches the live dashboardMisAnunciosCategories
+//   wiring) over the unused EMPLEOS_RESULTS_PATH constant's "/results" — see knownLimitations.
+// ---------------------------------------------------------------------------------------
+const EMPLEOS_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "empleos",
+  category: "empleos",
+  sourceTable: "empleos_public_listings",
+  entryRoute: "/clasificados/empleos",
+  applicationRoute: "/publicar/empleos",
+  resultsRoute: "/clasificados/empleos/resultados",
+
+  publicRoute: (identity) => identity.publicUrl || null,
+
+  editRoute: (identity, opts) => withLang(`/dashboard/empleos/${encodeURIComponent(identity.sourceId)}`, lang(opts)),
+
+  // Preview is lane-specific (quick-preview/premium-preview/feria-preview) and cannot be
+  // resolved generically from identity alone without knowing which lane the listing used —
+  // returning null rather than guessing a lane.
+  previewRoute: () => null,
+
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/empleos", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "previewRoute() returns null — three lane-specific preview routes exist " +
+      "(/clasificados/empleos/{quick,premium,feria}-preview) but this adapter cannot determine " +
+      "which lane a given identity used without additional (unconfirmed) lookup.",
+    "applicationRoute points at the modern \"/publicar/empleos\" hub per this gate's decision; " +
+      "the old EMPLEOS_PUBLISH_HUB_PATH constant and several live CTAs still point at the legacy " +
+      "\"/clasificados/publicar/empleos\" — unresolved in the live layer until Gate I.5.2.",
+    "resultsRoute chosen as \"/resultados\" (matches live dashboard config) over the " +
+      "EMPLEOS_RESULTS_PATH constant's \"/results\" value — both exist; future-redirect decision, " +
+      "not enforced here.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// En Venta / Varios — DECISION: Option B, nested route formally retained as canonical (see
+// file header). No modern `/publicar/en-venta` exists and none was built this gate.
+// Entry: app/(site)/clasificados/en-venta/page.tsx.
+// Application: app/(site)/clasificados/en-venta/shared/constants/enVentaPublishRoutes.ts:5
+//   (EN_VENTA_PUBLICAR_PRO = "/clasificados/publicar/en-venta/pro" — the active lane; Free lane
+//   is parked, Storefront lane exists separately).
+// Preview: app/(site)/clasificados/en-venta/preview/page.tsx.
+// Public detail: shared anuncio shell (app/(site)/clasificados/anuncio/[id]/page.tsx:56-60).
+// ---------------------------------------------------------------------------------------
+const EN_VENTA_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "en_venta",
+  category: "en-venta",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/en-venta",
+  applicationRoute: "/clasificados/publicar/en-venta/pro",
+  resultsRoute: "/clasificados/en-venta/results",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+
+  // Gate I.5A found no separate edit route — editing happens inline via EnVentaListingManageCard
+  // in Mis Anuncios, not a distinct navigable "edit" URL.
+  editRoute: () => null,
+
+  previewRoute: (_identity, opts) => withLang("/clasificados/en-venta/preview", lang(opts)),
+
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "DOCUMENTED TEMPORARY EXCEPTION (Gate I.5.1 decision): no modern \"/publicar/en-venta\" " +
+      "route exists anywhere in the repository, unlike every other monetized category. Building " +
+      "one was explicitly out of scope for this gate (would have required proving a zero-" +
+      "behavior-change wrapper around the Pro application component, not attempted). The nested " +
+      "\"/clasificados/publicar/en-venta/pro\" route is retained as canonical until a future gate " +
+      "either builds the modern equivalent or formally re-confirms this exception.",
+    "editRoute() returns null — no distinct edit URL exists, editing is inline-only via the " +
+      "Mis Anuncios manage card.",
+    "A separate Storefront lane (EN_VENTA_PUBLICAR_STOREFRONT) exists but is not represented " +
+      "here — this adapter only covers the active Pro lane.",
+    "No Stripe/checkout wiring was found for base En Venta listings in Gate I.5A's pass (Pro " +
+      "appears to be included at no charge per an in-code comment) — supportsBusinessHub/" +
+      "Coupons left false, not because the Storefront concept doesn't imply business-like use, " +
+      "but because no confirmed monetization contract was found to justify true.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Comida Local
+// Entry: app/(site)/clasificados/comida-local/page.tsx. Backing table confirmed:
+//   app/api/clasificados/comida-local/publish/route.ts (.from("comida_local_public_listings")).
+// Application: app/(site)/publicar/comida-local/page.tsx — the only publish route found, no
+//   legacy duplicate (already fully modern per Gate I.5A).
+// Preview: app/(site)/clasificados/comida-local/preview/page.tsx.
+// ---------------------------------------------------------------------------------------
+const COMIDA_LOCAL_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "comida_local",
+  category: "comida-local",
+  sourceTable: "comida_local_public_listings",
+  entryRoute: "/clasificados/comida-local",
+  applicationRoute: "/publicar/comida-local",
+  // No dedicated results/browse route was confirmed distinct from the landing page in Gate
+  // I.5A's pass — the landing page itself appears to embed browse. Using entryRoute's value
+  // honestly rather than inventing a results path that may not exist.
+  resultsRoute: "/clasificados/comida-local",
+
+  publicRoute: (identity) => identity.publicUrl || null,
+  editRoute: () => null,
+  previewRoute: (_identity, opts) => withLang("/clasificados/comida-local/preview", lang(opts)),
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "resultsRoute duplicates entryRoute — no separate results/browse page was confirmed to " +
+      "exist for this category; treat as unconfirmed rather than a genuine distinct route.",
+    "editRoute() returns null — not confirmed in Gate I.5A's pass.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Ofertas Locales
+// Entry: app/(site)/clasificados/ofertas-locales/page.tsx. Backing table confirmed via grep of
+//   app/api for ofertas/cupon-related .from() calls: "ofertas_locales".
+// Application: app/(site)/publicar/ofertas-locales/page.tsx (only route, already modern).
+// Dashboard: /dashboard/ofertas-locales — confirmed DEDICATED, NOT part of Mis Anuncios
+//   (absent from dashboardMisAnunciosCategories.ts's MIS_ANUNCIOS_CATEGORY_KEYS).
+// Cupones: confirmed non-standalone — /cupones renders the same OfertasLocalesPublicSearchClient
+//   with surface="cupones"; not a separate pipeline/adapter (see CanonicalCategoryKey doc).
+// ---------------------------------------------------------------------------------------
+const OFERTAS_LOCALES_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "ofertas_locales",
+  category: "ofertas-locales",
+  sourceTable: "ofertas_locales",
+  entryRoute: "/clasificados/ofertas-locales",
+  applicationRoute: "/publicar/ofertas-locales",
+  resultsRoute: "/clasificados/ofertas-locales/results",
+
+  publicRoute: (identity) => identity.publicUrl || null,
+
+  editRoute: (identity, opts) => withLang(`/dashboard/ofertas-locales/${encodeURIComponent(identity.sourceId)}`, lang(opts)),
+  previewRoute: (_identity, opts) => withLang("/publicar/ofertas-locales/preview", lang(opts)),
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/ofertas-locales", lang(opts)),
+
+  supportsParentChildInventory: false,
+  // "supportsCoupons" here means a coupon *add-on sub-flow on top of* the category, mirroring
+  // Restaurantes/Servicios — Ofertas Locales IS itself the coupon/offer surface, not a category
+  // with an add-on, so this is correctly false, not an oversight.
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "No payment/checkout route was confirmed for Ofertas Locales base publishing in Gate I.5A's " +
+      "pass — may ride on a business-profile entitlement elsewhere; not resolved here.",
+    "Cupones (/cupones, /cupones/resultados) is intentionally NOT a separate adapter — confirmed " +
+      "to be a filtered view (surface=\"cupones\") over this same pipeline's public data.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Busco / Se busca — quick free-ad category.
+// Entry: app/(site)/clasificados/busco/page.tsx.
+// Application (confirmed canonical, matches majority of live callers):
+//   app/(site)/publicar/busco/shared/buscoPublishRoutes.ts:4 (BUSCO_QUICK_ROUTE).
+// Preview: buscoPublishRoutes.ts:5 (BUSCO_PREVIEW_ROUTE).
+// Public detail: shared anuncio shell (BuscoPublishedDetailPage, confirmed).
+// Legacy: app/(site)/clasificados/publicar/busco/page.tsx is a confirmed WORKING redirect() to
+//   the application route above — a correct compatibility shim, not a conflict.
+// ---------------------------------------------------------------------------------------
+const BUSCO_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "busco",
+  category: "busco",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/busco",
+  applicationRoute: "/publicar/busco/quick",
+  resultsRoute: "/clasificados/busco/resultados",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+
+  // Gate I.5A found edit reuses the application route (buscoQuickEditUrl()) but did not confirm
+  // the exact query-param shape used to target an existing draft — returning null rather than
+  // fabricating params.
+  editRoute: () => null,
+
+  previewRoute: (_identity, opts) => withLang("/publicar/busco/quick/preview", lang(opts)),
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "editRoute() returns null — edit is confirmed to reuse the application route, but the exact " +
+      "query-param shape to target an existing draft was not confirmed in Gate I.5A's pass.",
+    "The old /clasificados/page.tsx landing hub's own hardcoded CATEGORY_PUBLISH_PATH map still " +
+      "disagrees with this decision (uses the legacy /clasificados/publicar/busco path directly, " +
+      "bypassing even its own working redirect shim) — a live-CTA conflict for Gate I.5.2, not " +
+      "fixed here.",
+    "results/resultados duplicate exists (both directories present) — resultados chosen for " +
+      "consistency with live dashboard wiring.",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Clases / Comunidad / Mascotas y Perdidos — free quick-ad categories with NO dashboard
+// management surface. Confirmed `ready:false` (Clases/Comunidad) or entirely absent
+// (Mascotas y Perdidos) from dashboardMisAnunciosCategories.ts — dashboardRoute() honestly
+// returns null for all three rather than inventing a management surface that doesn't exist.
+// ---------------------------------------------------------------------------------------
+const CLASES_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "clases",
+  category: "clases",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/clases",
+  applicationRoute: "/publicar/clases/quick",
+  resultsRoute: "/clasificados/clases/resultados",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+  editRoute: () => null,
+  previewRoute: (_identity, opts) => withLang("/publicar/clases/quick/preview", lang(opts)),
+  // Confirmed `ready:false`, `manageHref: () => null` in dashboardMisAnunciosCategories.ts —
+  // no dashboard management surface exists; this must not be resolved as /dashboard/mis-anuncios.
+  dashboardRoute: () => null,
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "dashboardRoute() returns null on purpose — confirmed absent, not a gap to guess at.",
+    "editRoute() returns null — no management surface exists to edit from.",
+  ],
+};
+
+const COMUNIDAD_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "comunidad",
+  category: "comunidad",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/comunidad",
+  applicationRoute: "/publicar/comunidad/quick",
+  resultsRoute: "/clasificados/comunidad/resultados",
+
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+  editRoute: () => null,
+  previewRoute: (_identity, opts) => withLang("/publicar/comunidad/quick/preview", lang(opts)),
+  dashboardRoute: () => null,
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "dashboardRoute() returns null on purpose — confirmed absent, not a gap to guess at.",
+    "A separate `/publicar/community/` tree also exists (\"Community\", English-first) — Gate " +
+      "I.5A did not confirm whether it's the same product concept as Comunidad; not merged or " +
+      "assumed identical here, flagged for a follow-up gate.",
+  ],
+};
+
+const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "mascotas_y_perdidos",
+  category: "mascotas-y-perdidos",
+  sourceTable: "listings",
+  entryRoute: "/clasificados/mascotas-y-perdidos",
+  applicationRoute: "/publicar/mascotas-y-perdidos/quick",
+  // mascotasPerdidosResultsUrl() is the actual live-called function for this route.
+  resultsRoute: "/clasificados/mascotas-y-perdidos/results",
+
+  // Gate I.5A explicitly found NO public detail route for this category in the shared
+  // anuncio/[id] shell (unlike busco/clases/comunidad) — this is a genuine confirmed gap, not
+  // merely unconfirmed, so null here is a finding, not a placeholder.
+  publicRoute: () => null,
+  editRoute: () => null,
+  previewRoute: (_identity, opts) => withLang("/publicar/mascotas-y-perdidos/quick/preview", lang(opts)),
+  dashboardRoute: () => null,
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: false,
+
+  knownLimitations: [
+    "publicRoute() returns null — CONFIRMED GAP, not merely unresolved: Gate I.5A found no " +
+      "public listing-detail route for this category anywhere in the shared anuncio/[id] shell, " +
+      "unlike every other quick-ad category (busco/clases/comunidad all render there). Once a " +
+      "published Mascotas y Perdidos listing exists, it is unclear where it becomes publicly " +
+      "viewable — recommend investigating before any further work on this pipeline.",
+    "dashboardRoute() returns null — confirmed absent from Mis Anuncios entirely (no key in " +
+      "dashboardMisAnunciosCategories.ts).",
+  ],
+};
+
+// ---------------------------------------------------------------------------------------
+// Viajes
+// Entry: app/(site)/clasificados/viajes/page.tsx. Backing table confirmed:
+//   app/api/clasificados/viajes/** (.from("viajes_staged_listings")).
+// Application: app/(site)/publicar/viajes/page.tsx is the branch chooser
+//   (PublicarViajesBranchClient); real lane forms at /publicar/viajes/{negocios,privado}.
+// Dashboard: /dashboard/viajes — dedicated, confirmed.
+// No payment/checkout wiring found (lead/inquiry-based model, not Stripe).
+// ---------------------------------------------------------------------------------------
+const VIAJES_ADAPTER: CategoryRouteAdapter = {
+  pipeline: "viajes",
+  category: "viajes",
+  sourceTable: "viajes_staged_listings",
+  entryRoute: "/clasificados/viajes",
+  applicationRoute: "/publicar/viajes",
+  resultsRoute: "/clasificados/viajes/resultados",
+
+  // Gate I.5A found TWO separate public detail trees for this category
+  // (/clasificados/viajes/negocio/[slug] and /clasificados/viajes/oferta/[slug]) and could not
+  // confirm which applies to a given identity without a product-level clarification of whether
+  // they represent the same or different listing concepts. Returning null rather than guessing.
+  publicRoute: () => null,
+  editRoute: () => null,
+  previewRoute: () => null,
+  dashboardRoute: (_identity, opts) => withLang("/dashboard/viajes", lang(opts)),
+
+  supportsParentChildInventory: false,
+  supportsCoupons: false,
+  supportsBusinessHub: true,
+
+  knownLimitations: [
+    "publicRoute()/previewRoute() return null — CONFIRMED AMBIGUITY, not merely unresolved: two " +
+      "separate detail-page trees exist (negocio/[slug] vs oferta/[slug]) and preview has " +
+      "matching negocios/privado sub-branches; resolving this needs product clarification on " +
+      "whether these represent the same listing concept, not a routing guess.",
+    "The pre-existing categoryStandardRoutes.ts's categoryPublishPath(\"viajes\") maps to " +
+      "\"/clasificados/publicar/viajes\" — Gate I.5A confirmed this folder does NOT exist. That " +
+      "constant is stale/broken; not fixed here since it's a live-wired file (see file header).",
+    "No Stripe/checkout wiring found — appears to be a lead/inquiry model, not paid publishing; " +
+      "supportsBusinessHub left true only because a negocio (business) lane genuinely exists.",
+  ],
+};
+
 /** Category registry — the source of truth this module actually exposes. */
 export const CATEGORY_ROUTE_REGISTRY = {
   restaurantes: RESTAURANTES_ADAPTER,
   servicios: SERVICIOS_ADAPTER,
   bienes_raices_negocio: BIENES_RAICES_NEGOCIO_ADAPTER,
+  bienes_raices_privado: BIENES_RAICES_PRIVADO_ADAPTER,
   autos_negocios: AUTOS_NEGOCIOS_ADAPTER,
   autos_privado: AUTOS_PRIVADO_ADAPTER,
-} as const satisfies Record<
-  "restaurantes" | "servicios" | "bienes_raices_negocio" | "autos_negocios" | "autos_privado",
-  CategoryRouteAdapter
->;
+  rentas_negocio: RENTAS_NEGOCIO_ADAPTER,
+  rentas_privado: RENTAS_PRIVADO_ADAPTER,
+  empleos: EMPLEOS_ADAPTER,
+  en_venta: EN_VENTA_ADAPTER,
+  comida_local: COMIDA_LOCAL_ADAPTER,
+  ofertas_locales: OFERTAS_LOCALES_ADAPTER,
+  busco: BUSCO_ADAPTER,
+  clases: CLASES_ADAPTER,
+  comunidad: COMUNIDAD_ADAPTER,
+  mascotas_y_perdidos: MASCOTAS_Y_PERDIDOS_ADAPTER,
+  viajes: VIAJES_ADAPTER,
+} as const satisfies Record<CanonicalCategoryKey, CategoryRouteAdapter>;
 
 export type CategoryRouteRegistry = typeof CATEGORY_ROUTE_REGISTRY;
 

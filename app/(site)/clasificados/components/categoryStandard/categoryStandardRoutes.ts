@@ -1,6 +1,19 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import type { CategoryStandardKey } from "./categoryStandardTheme";
 
+/**
+ * GATE I.5.1 NOTE — do not read this file's `categoryPublishPath()` as the platform's canonical
+ * route contract. `app/lib/listingIdentity/categoryRouteRegistry.ts` is that contract as of
+ * Gate I.5.1. This file's map is kept separately because it is LIVE-WIRED into real navigation
+ * today (`CategoryStandardLandingPage.tsx`'s default `publishHref`, and
+ * `EmpleosLandingPageClient.tsx`'s CTA) — Gate I.5.1 was explicitly barred from rewiring global
+ * CTAs, so this map's values were NOT changed even where they disagree with the registry's
+ * decisions (confirmed disagreements: servicios, empleos, bienes-raices — see the registry
+ * file's header comment for the exact decisions and evidence). Reconciling this file with the
+ * registry (either by having it consume the registry directly, or updating its values to match)
+ * is Gate I.5.2's job, not this file's.
+ */
+
 /** Marketplace categories in CAT-STD-ALL scope (excludes iglesias hub stub). */
 export const CAT_STD_ALL_SLUGS = [
   "en-venta",
