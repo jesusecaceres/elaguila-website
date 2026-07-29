@@ -70,59 +70,81 @@ export async function POST(req: NextRequest) {
 
   const revenueLookupItems: Array<{ category: string; listingId: string; listingKey: string }> = [];
 
-  for (const [key, group] of byCategorySource) {
-    const [category, listingSource] = key.split("\0");
-    const rows = group.map((g) => ({
-      id: g.listingId ?? null,
-      slug: g.slug ?? g.listingId ?? null,
-      leonix_ad_id: g.leonixAdId ?? null,
-    }));
-    const lookup = await fetchActiveListingPackageEntitlementsForRows(rows, {
-      category,
-      listingSource,
-    });
-    for (const g of group) {
-      const row = {
-        id: g.listingId ?? null,
-        slug: g.slug ?? null,
-        leonix_ad_id: g.leonixAdId ?? null,
-        package_entitlement_tier: null as string | null,
-        starts_at: null as string | null,
-        ends_at: null as string | null,
-      };
-      const id = String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim();
-      const ent =
-        (g.listingId && lookup.byListingId.get(g.listingId)) ||
-        (g.slug && lookup.byListingId.get(g.slug)) ||
-        (g.leonixAdId && lookup.byListingId.get(g.leonixAdId)) ||
-        null;
-      if (ent) {
-        row.package_entitlement_tier = ent.tier;
-        row.starts_at = ent.startsAt;
-        row.ends_at = ent.endsAt;
+  // Gate I.4.3 — placement/category/source groups are independent of each other (each is its own
+  // category+listingSource combination), so they run concurrently instead of one-at-a-time. Group
+  // count is small and bounded by the request's own distinct category/source combinations (never
+  // proportional to catalog size — Gate I.4.2 already scopes each dashboard request to one
+  // selected category), so plain `Promise.all` is appropriate. Each group is caught independently
+  // so one failed/malformed group can never affect another group's result.
+  const placementGroupResults = await Promise.all(
+    [...byCategorySource.entries()].map(async ([key, group]) => {
+      const [category, listingSource] = key.split("\0");
+      const groupBadges: typeof badges = {};
+      const groupRevenueItems: typeof revenueLookupItems = [];
+      try {
+        const rows = group.map((g) => ({
+          id: g.listingId ?? null,
+          slug: g.slug ?? g.listingId ?? null,
+          leonix_ad_id: g.leonixAdId ?? null,
+        }));
+        const lookup = await fetchActiveListingPackageEntitlementsForRows(rows, {
+          category,
+          listingSource,
+        });
+        for (const g of group) {
+          const row = {
+            id: g.listingId ?? null,
+            slug: g.slug ?? null,
+            leonix_ad_id: g.leonixAdId ?? null,
+            package_entitlement_tier: null as string | null,
+            starts_at: null as string | null,
+            ends_at: null as string | null,
+          };
+          const id = String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim();
+          const ent =
+            (g.listingId && lookup.byListingId.get(g.listingId)) ||
+            (g.slug && lookup.byListingId.get(g.slug)) ||
+            (g.leonixAdId && lookup.byListingId.get(g.leonixAdId)) ||
+            null;
+          if (ent) {
+            row.package_entitlement_tier = ent.tier;
+            row.starts_at = ent.startsAt;
+            row.ends_at = ent.endsAt;
+          }
+          const summary = resolveListingPlacementEntitlement({
+            category,
+            listing: row as Record<string, unknown>,
+          });
+          groupBadges[id] = {
+            tier: summary.tier,
+            grantsDestacado: packageEntitlementGrantsDestacado(summary),
+            grantsResultsPriority: packageEntitlementGrantsResultsPriority(summary),
+            includesNuestrosNegocios: packageEntitlementIncludesNuestrosNegocios(summary),
+            startsAt: ent?.startsAt ?? null,
+            endsAt: ent?.endsAt ?? null,
+          };
+          groupRevenueItems.push({ category, listingId: id, listingKey: id });
+        }
+      } catch (err) {
+        console.error("[listing-package-entitlements] placement group failed", {
+          category,
+          listingSource,
+          message: err instanceof Error ? err.message : String(err),
+        });
+        // Fail closed: this group contributes nothing rather than fabricating eligibility.
+        return { badges: {} as typeof badges, revenueItems: [] as typeof revenueLookupItems };
       }
-      const summary = resolveListingPlacementEntitlement({
-        category,
-        listing: row as Record<string, unknown>,
-      });
-      badges[id] = {
-        tier: summary.tier,
-        grantsDestacado: packageEntitlementGrantsDestacado(summary),
-        grantsResultsPriority: packageEntitlementGrantsResultsPriority(summary),
-        includesNuestrosNegocios: packageEntitlementIncludesNuestrosNegocios(summary),
-        startsAt: ent?.startsAt ?? null,
-        endsAt: ent?.endsAt ?? null,
-      };
-      revenueLookupItems.push({
-        category,
-        listingId: String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim(),
-        listingKey: id,
-      });
-    }
+      return { badges: groupBadges, revenueItems: groupRevenueItems };
+    }),
+  );
+  for (const result of placementGroupResults) {
+    Object.assign(badges, result.badges);
+    revenueLookupItems.push(...result.revenueItems);
   }
 
   // Additive add-on lifecycle lookup — only for items that opted in with a `packageKey`.
   // Deliberately independent from the placement-tier loop above: does not alter or replace it.
+  // Runs strictly after the placement stage resolves (it merges onto `badges[id]` set there).
   const addonRequestItems = items.filter((item) => String(item.packageKey ?? "").trim());
   if (addonRequestItems.length > 0) {
     const byAddonGroup = new Map<string, RequestItem[]>();
@@ -137,23 +159,40 @@ export async function POST(req: NextRequest) {
       byAddonGroup.set(key, list);
     }
 
-    for (const [key, group] of byAddonGroup) {
-      const [category, packageKey] = key.split("\0");
-      const listingIds = group.map((g) => String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim());
-      const statuses = await fetchAddonEntitlementsForListings({ category, packageKey, listingIds });
-      for (const g of group) {
-        const id = String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim();
-        const addonStatus = statuses.get(id)?.status ?? "not_purchased";
-        badges[id] = {
-          ...(badges[id] ?? {
-            tier: "digital_only",
-            grantsDestacado: false,
-            grantsResultsPriority: false,
-            includesNuestrosNegocios: false,
-          }),
-          addonStatus,
-        };
-      }
+    // Gate I.4.3 — same independent-group parallelization as the placement stage above.
+    const addonGroupResults = await Promise.all(
+      [...byAddonGroup.entries()].map(async ([key, group]) => {
+        const [category, packageKey] = key.split("\0");
+        const groupBadges: typeof badges = {};
+        try {
+          const listingIds = group.map((g) => String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim());
+          const statuses = await fetchAddonEntitlementsForListings({ category, packageKey, listingIds });
+          for (const g of group) {
+            const id = String(g.listingId ?? g.slug ?? g.leonixAdId ?? "").trim();
+            const addonStatus = statuses.get(id)?.status ?? "not_purchased";
+            groupBadges[id] = {
+              ...(badges[id] ?? {
+                tier: "digital_only",
+                grantsDestacado: false,
+                grantsResultsPriority: false,
+                includesNuestrosNegocios: false,
+              }),
+              addonStatus,
+            };
+          }
+        } catch (err) {
+          console.error("[listing-package-entitlements] addon group failed", {
+            category,
+            packageKey,
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return {} as typeof badges;
+        }
+        return groupBadges;
+      }),
+    );
+    for (const groupBadges of addonGroupResults) {
+      Object.assign(badges, groupBadges);
     }
   }
 

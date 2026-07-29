@@ -21,6 +21,11 @@ import {
   type RevenuePaymentDisplayState,
 } from "./revenueDisplay";
 import { isPaymentCleared } from "./paymentTracking";
+import {
+  chunkListingIds,
+  pickBestRevenueOsEntitlementByListingId,
+  type RevenueOsEntitlementRow,
+} from "./revenueOsEntitlementPrecedence";
 
 export type RevenuePaymentProof = {
   found: boolean;
@@ -220,6 +225,72 @@ export type RevenueListingAdPlanProof = {
   endsAt: string | null;
 };
 
+/**
+ * Gate I.4.3 — batched per-category fetch replacing the original per-listing awaited loop (up to
+ * 80 sequential round trips, confirmed the dominant cost of the dashboard's measured ~5.37s
+ * entitlement wait — see the Gate I.4A audit). Grouped by `category` — the same batching shape
+ * already established by `fetchActiveListingPackageEntitlementsForRows` — because the original
+ * per-item query filtered on `category` AND `listing_id` together; dropping the category filter
+ * entirely could theoretically cross-match a `listing_id` that collides across two categories'
+ * separate source tables. Chunking and precedence logic live in `revenueOsEntitlementPrecedence.ts`
+ * (pure, self-test-safe).
+ */
+async function fetchRevenueOsAdPlanProofsForCategory(
+  category: string,
+  entries: Array<{ listingId: string; listingKey: string }>,
+  lang: "en" | "es",
+  nowIso: string,
+): Promise<Record<string, RevenueListingAdPlanProof>> {
+  const supabase = getAdminSupabase();
+  const listingKeyByListingId = new Map<string, string>();
+  const idSet = new Set<string>();
+  for (const entry of entries) {
+    idSet.add(entry.listingId);
+    listingKeyByListingId.set(entry.listingId, entry.listingKey);
+  }
+  const ids = [...idSet];
+
+  const rawRows: RevenueOsEntitlementRow[] = [];
+  for (const chunk of chunkListingIds(ids)) {
+    const { data, error } = await supabase
+      .from("listing_package_entitlements")
+      .select("listing_id, status, package_key, billing_mode, ends_at")
+      .eq("category", category)
+      .in("listing_id", chunk)
+      .eq("status", "active")
+      .gt("ends_at", nowIso);
+    // Fail closed per chunk — a failed/errored chunk simply contributes no proofs, matching the
+    // original code's own behavior (it never checked `error` either; a failed query left `data`
+    // empty, which already skipped every listing in that response).
+    if (error || !Array.isArray(data)) continue;
+    rawRows.push(...(data as RevenueOsEntitlementRow[]));
+  }
+
+  const bestByListingId = pickBestRevenueOsEntitlementByListingId(rawRows);
+
+  const categoryOut: Record<string, RevenueListingAdPlanProof> = {};
+  for (const [listingId, row] of bestByListingId) {
+    const listingKey = listingKeyByListingId.get(listingId);
+    if (!listingKey) continue;
+    const packageKey = String(row.package_key);
+    const endsAt = row.ends_at != null ? String(row.ends_at) : null;
+    categoryOut[listingKey] = {
+      listingKey,
+      packageKey,
+      entitlementStatus: String(row.status ?? "active"),
+      endsAt,
+      adPlanBadge: revenueAdPlanBadgeLabel({
+        category,
+        packageKey,
+        billingMode: row.billing_mode != null ? String(row.billing_mode) : null,
+        lang,
+        activeUntil: endsAt,
+      }),
+    };
+  }
+  return categoryOut;
+}
+
 /** Batch read-only lookup for dashboard ad-plan badges (Revenue OS entitlements). */
 export async function fetchRevenueOsAdPlanProofsForListings(
   items: Array<{ category: string; listingId: string; listingKey: string }>,
@@ -228,42 +299,41 @@ export async function fetchRevenueOsAdPlanProofsForListings(
   const out: Record<string, RevenueListingAdPlanProof> = {};
   if (!isSupabaseAdminConfigured() || items.length === 0) return out;
 
-  const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
+  const byCategory = new Map<string, Array<{ listingId: string; listingKey: string }>>();
   for (const item of items.slice(0, 80)) {
     const category = String(item.category ?? "").trim().toLowerCase();
     const listingId = String(item.listingId ?? "").trim();
     if (!category || !listingId) continue;
+    const list = byCategory.get(category) ?? [];
+    list.push({ listingId, listingKey: item.listingKey });
+    byCategory.set(category, list);
+  }
+  if (byCategory.size === 0) return out;
 
-    const { data } = await supabase
-      .from("listing_package_entitlements")
-      .select("status, package_key, billing_mode, ends_at, payment_record_id")
-      .eq("category", category)
-      .eq("listing_id", listingId)
-      .eq("status", "active")
-      .gt("ends_at", now)
-      .order("ends_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!data?.package_key) continue;
-
-    const packageKey = String(data.package_key);
-    const endsAt = data.ends_at != null ? String(data.ends_at) : null;
-    out[item.listingKey] = {
-      listingKey: item.listingKey,
-      packageKey,
-      entitlementStatus: String(data.status ?? "active"),
-      endsAt,
-      adPlanBadge: revenueAdPlanBadgeLabel({
-        category,
-        packageKey,
-        billingMode: data.billing_mode != null ? String(data.billing_mode) : null,
-        lang,
-        activeUntil: endsAt,
-      }),
-    };
+  // Gate I.4.3 — one batched (chunked) query per distinct category, run concurrently. Category
+  // count here is inherently small and bounded (the dashboard now sends one selected category
+  // per request — Gate I.4.2 — so this is virtually always exactly 1, and even a hypothetical
+  // mixed-category call is bounded by the fixed, small set of dashboard categories, never by
+  // catalog size), so plain `Promise.all` is appropriate — no concurrency limiter needed. Each
+  // category is caught independently so one malformed/failed group can never affect another's
+  // result or fabricate eligibility.
+  const perCategoryResults = await Promise.all(
+    [...byCategory.entries()].map(async ([category, entries]) => {
+      try {
+        return await fetchRevenueOsAdPlanProofsForCategory(category, entries, lang, now);
+      } catch (err) {
+        console.error("[fetchRevenueOsAdPlanProofsForListings] category lookup failed", {
+          category,
+          message: err instanceof Error ? err.message : String(err),
+        });
+        return {} as Record<string, RevenueListingAdPlanProof>;
+      }
+    }),
+  );
+  for (const categoryOut of perCategoryResults) {
+    Object.assign(out, categoryOut);
   }
 
   return out;
