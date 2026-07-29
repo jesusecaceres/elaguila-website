@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { BR_PUBLICAR_HUB } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
-import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
+import { resolvePublicarGatewayDestination } from "@/app/(site)/publicar/publicarGatewayResolver";
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { ClasificadosFeaturedOfertasModule } from "./_components/ClasificadosFeaturedOfertasModule";
 import { ClasificadosHubCategoryCard } from "./_components/ClasificadosHubCategoryCard";
@@ -39,24 +38,15 @@ const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "mascotas-y-perdidos",
 ];
 
-/** Canonical category publish entry paths (dispatcher / redirect pages). */
-const CATEGORY_PUBLISH_PATH: Record<HubCategoryKey, string> = {
-  "en-venta": "/clasificados/publicar/en-venta",
-  rentas: RENTAS_PUBLICAR_HUB,
-  empleos: "/clasificados/publicar/empleos",
-  "bienes-raices": BR_PUBLICAR_HUB,
-  servicios: "/clasificados/publicar/servicios",
-  autos: "/clasificados/publicar/autos",
-  restaurantes: "/clasificados/publicar/restaurantes",
-  travel: "/publicar/viajes",
-  comunidad: "/clasificados/publicar/comunidad",
-  clases: "/clasificados/publicar/clases",
-  busco: "/clasificados/publicar/busco",
-  "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
-};
-
+/**
+ * Gate I.5.2 — category-specific publish destinations now resolve directly through the
+ * canonical route registry (`app/lib/listingIdentity/categoryRouteRegistry.ts`), via the same
+ * resolver the new `/publicar` gateway uses, instead of an independent hardcoded map. Every
+ * `HubCategoryKey` is a member of `PublicarGatewayCategoryKey`, so no per-category fallback
+ * logic is needed here.
+ */
 function buildCategoryPublishHref(category: HubCategoryKey, lang: SupportedLang): string {
-  return appendLangToPath(CATEGORY_PUBLISH_PATH[category], lang);
+  return resolvePublicarGatewayDestination(category, lang);
 }
 
 const PRIORITY_KEYS = new Set<HubCategoryKey>(["en-venta", "rentas", "empleos"]);
@@ -90,7 +80,7 @@ function ClasificadosPageInner() {
 
   const postEntryHref = buildHubPostEntryHref(routeLang);
   const dealerBrowseHref = appendLangToPath("/clasificados/dealers-de-autos", routeLang);
-  const dealerPublishHref = appendLangToPath("/clasificados/publicar/autos", routeLang);
+  const dealerPublishHref = resolvePublicarGatewayDestination("autos", routeLang);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">

@@ -359,7 +359,7 @@ export default function ProfilePage() {
         }
 
         if (redirectTo) router.replace(redirectTo);
-        else router.replace(`/clasificados/publicar?${q}`);
+        else router.replace(`/publicar?${q}`);
         return;
       }
 

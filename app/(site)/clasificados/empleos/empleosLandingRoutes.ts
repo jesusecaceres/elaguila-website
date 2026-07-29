@@ -6,7 +6,8 @@
 export const EMPLEOS_RESULTS_PATH = "/clasificados/empleos/results";
 
 /** Category-owned publish entry for the July 1 single job-ad launch path. */
-export const EMPLEOS_PUBLISH_HUB_PATH = "/clasificados/publicar/empleos";
+// Gate I.5.2 — canonical publish entry, matches categoryRouteRegistry.ts's empleos adapter.
+export const EMPLEOS_PUBLISH_HUB_PATH = "/publicar/empleos";
 
 /** Preserved legacy category chooser path; not promoted from the July 1 Empleos launch surface. */
 export const EMPLEOS_BUSINESS_PLANS_PATH = "/clasificados/publicar";

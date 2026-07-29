@@ -68,7 +68,7 @@ function PublicApplyFooter({
       })
     : null;
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
-  const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
+  const publishHref = appendLangToPath("/publicar/empleos", lang);
   return (
     <div className="rounded-xl border border-[#D6C7AD]/80 bg-[#FFFDF7] p-6 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)]">
       {!suppressEngagement && engagement?.listingId ? (

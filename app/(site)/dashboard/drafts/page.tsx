@@ -194,7 +194,7 @@ export default function DraftsPage() {
               <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
               <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
             </div>
-            <Link href={`/clasificados/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
+            <Link href={`/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
               {t.ctaPublish}
             </Link>
           </header>
@@ -222,7 +222,7 @@ export default function DraftsPage() {
             <div className={`mt-10 ${LX_DASH.disabledPanel}`}>
               <p className="text-lg font-serif font-semibold text-[#1F241C]">{t.emptyTitle}</p>
               <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5C5346]">{t.emptyBody}</p>
-              <Link href={`/clasificados/publicar?${q}`} className={`mt-6 inline-flex ${LX_DASH.btnPrimary} px-6 py-2.5 text-sm`}>
+              <Link href={`/publicar?${q}`} className={`mt-6 inline-flex ${LX_DASH.btnPrimary} px-6 py-2.5 text-sm`}>
                 {t.ctaPublish}
               </Link>
             </div>

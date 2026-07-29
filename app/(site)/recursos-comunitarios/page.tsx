@@ -33,12 +33,12 @@ const LANE_EXPLORE_PATH: Record<ResourceLaneKey, string> = {
 };
 
 const LANE_PUBLISH_PATH: Record<ResourceLaneKey, string> = {
-  comunidad: "/clasificados/publicar/comunidad",
-  clases: "/clasificados/publicar/clases",
-  iglesias: "/clasificados/publicar",
-  busco: "/clasificados/publicar/busco",
-  "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
-  "ayuda-comunitaria": "/clasificados/publicar",
+  comunidad: "/publicar/comunidad/quick",
+  clases: "/publicar/clases/quick",
+  iglesias: "/publicar",
+  busco: "/publicar/busco/quick",
+  "mascotas-y-perdidos": "/publicar/mascotas-y-perdidos/quick",
+  "ayuda-comunitaria": "/publicar",
 };
 
 type LaneCopy = {
@@ -180,7 +180,7 @@ function buildPublishHref(lane: ResourceLaneKey, lang: Lang): string {
 }
 
 function buildPostResourceEntryHref(lang: Lang): string {
-  const redirect = encodeURIComponent(`/clasificados/publicar?lang=${lang}`);
+  const redirect = encodeURIComponent(`/publicar?lang=${lang}`);
   return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
 }
 

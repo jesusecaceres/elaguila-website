@@ -429,7 +429,7 @@ export default function DashboardServiciosPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/clasificados/publicar/servicios?${q}`}
+                href={`/publicar/servicios?${q}`}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
               >
                 {t.publish}

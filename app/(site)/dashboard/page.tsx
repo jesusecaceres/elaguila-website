@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
-import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { DashboardMetricLinkCard } from "./components/DashboardMetricLinkCard";
@@ -410,7 +410,7 @@ export default function DashboardPage() {
           lang === "es" ? "Perfiles de servicios en Mis anuncios o hub dedicado." : "Service profiles in My listings or dedicated hub.",
         ready: true,
         manageHref: `/dashboard/servicios?${q}`,
-        publishHref: `/clasificados/publicar/servicios?${q}`,
+        publishHref: `/publicar/servicios?${q}`,
       },
       {
         title: lang === "es" ? "Comida Local" : "Local Food",
@@ -438,7 +438,7 @@ export default function DashboardPage() {
         description: lang === "es" ? "Vacantes con gestión dedicada." : "Job listings with dedicated management.",
         ready: true,
         manageHref: `/dashboard/empleos?${q}`,
-        publishHref: `/clasificados/publicar/empleos?${q}`,
+        publishHref: `/publicar/empleos?${q}`,
       },
       {
         title: lang === "es" ? "Rentas" : "Rentals",
@@ -452,7 +452,10 @@ export default function DashboardPage() {
         description: lang === "es" ? "Propiedades privadas y de negocio." : "Private and business properties.",
         ready: true,
         manageHref: `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
-        publishHref: `${BR_PUBLICAR_HUB}?${q}`,
+        // Gate I.5.2 — bypasses BR_PUBLICAR_HUB (legacy value, still correctly used by locked BR
+        // application-form internals) in favor of the registry's decided modern hub, since this
+        // is only a dashboard link destination, not application-internal navigation.
+        publishHref: `/publicar/bienes-raices?${q}`,
         resultsHref: `${BR_RESULTS}?${q}`,
       },
       {
@@ -599,7 +602,7 @@ export default function DashboardPage() {
                 description={t.quickDraftsHint}
               />
               <DashboardQuickActionCard
-                href={`/clasificados/publicar?${q}`}
+                href={`/publicar?${q}`}
                 icon="➕"
                 title={lang === "es" ? "Publicar nuevo anuncio" : "Publish new listing"}
                 description={t.publishNewHint}

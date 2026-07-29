@@ -1281,7 +1281,7 @@ export default function AnuncioDetallePage() {
                 {t.viewAll}
               </a>
               <a
-                href={`/clasificados/publicar?lang=${lang}`}
+                href={`/publicar?lang=${lang}`}
                 className="px-7 py-3 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
               >
                 {t.post}

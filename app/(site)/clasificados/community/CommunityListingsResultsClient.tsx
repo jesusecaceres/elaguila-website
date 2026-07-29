@@ -243,7 +243,7 @@ export function CommunityListingsResultsClient({
     : categoryResultsPath(category, "resultados");
   const clearHref = appendLangToPath(resultsAction, lang);
   const publishHref = appendLangToPath(
-    category === "clases" ? "/clasificados/publicar/clases" : "/clasificados/publicar/comunidad",
+    category === "clases" ? "/publicar/clases/quick" : "/publicar/comunidad/quick",
     lang,
   );
   const publishLabel = L

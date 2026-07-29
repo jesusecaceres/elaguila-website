@@ -75,7 +75,7 @@ export function EmpleoJobFairDetailPage({
 
   const hubHref = appendLangToPath("/clasificados", lang);
   const empleosLandingHref = appendLangToPath("/clasificados/empleos", lang);
-  const publicarHref = appendLangToPath("/clasificados/publicar", lang);
+  const publicarHref = appendLangToPath("/publicar", lang);
 
   const cityStateLine = data.displayCityState?.trim() || `${data.city}, ${data.state}`;
   const showDetailsCard = hasJobFairDetails(data.detailsBullets);

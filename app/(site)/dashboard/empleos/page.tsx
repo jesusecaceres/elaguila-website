@@ -142,7 +142,7 @@ export default function EmpleosEmployerDashboardPage() {
           <p className="mt-2 text-sm text-[#5C5346]">{t.subtitle}</p>
         </div>
         <Link
-          href={appendLangToPath("/clasificados/publicar/empleos", lang)}
+          href={appendLangToPath("/publicar/empleos", lang)}
           className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810]"
         >
           {t.publish}

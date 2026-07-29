@@ -1359,7 +1359,7 @@ export default function MyListingsPage() {
               <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
               <p className={`mt-2 max-w-2xl ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
             </div>
-            <Link href={`/clasificados/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
+            <Link href={`/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
               {t.cta}
             </Link>
           </header>
@@ -1462,7 +1462,7 @@ export default function MyListingsPage() {
             {!hasAnyInventory ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
-                <Link href={`/clasificados/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
+                <Link href={`/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
                   {t.cta}
                 </Link>
               </div>

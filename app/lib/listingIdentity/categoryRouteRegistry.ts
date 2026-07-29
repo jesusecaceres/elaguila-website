@@ -263,6 +263,9 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/bienes-raices",
   applicationRoute: "/clasificados/publicar/bienes-raices/negocio/agente-individual",
+  // Gate I.5.2 addition (new field only, applicationRoute above is untouched) — canonical hub
+  // per the Gate I.5.1 decision: app/(site)/publicar/bienes-raices/page.tsx.
+  hubRoute: "/publicar/bienes-raices",
   resultsRoute: "/clasificados/bienes-raices/resultados",
 
   // UUID-keyed public identity — self-sufficient from sourceId, no lookup required.
@@ -356,6 +359,10 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
   sourceTable: "autos_classifieds_listings",
   entryRoute: "/clasificados/dealers-de-autos",
   applicationRoute: AUTOS_DASHBOARD_APPLICATION_BASE,
+  // Gate I.5.2 addition (new field only) — canonical branch chooser:
+  // app/(site)/publicar/autos/page.tsx (PublicarAutosBranchClient), already the value used by
+  // dashboard/page.tsx's Autos publishHref pre-Gate-I.5.2.
+  hubRoute: "/publicar/autos",
   resultsRoute: "/clasificados/dealers-de-autos/results",
 
   publicRoute: (identity) => `/clasificados/autos/vehiculo/${encodeURIComponent(identity.sourceId)}`,
@@ -462,6 +469,8 @@ const AUTOS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "autos_classifieds_listings",
   entryRoute: "/clasificados/autos",
   applicationRoute: AUTOS_PRIVADO_APPLICATION_BASE,
+  // Gate I.5.2 addition (new field only) — same branch chooser as Autos Negocios.
+  hubRoute: "/publicar/autos",
   resultsRoute: "/clasificados/autos/resultados",
 
   publicRoute: (identity) => `/clasificados/autos/vehiculo/${encodeURIComponent(identity.sourceId)}`,
@@ -517,6 +526,7 @@ const BIENES_RAICES_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/bienes-raices",
   applicationRoute: "/publicar/bienes-raices/privado",
+  hubRoute: "/publicar/bienes-raices",
   resultsRoute: "/clasificados/bienes-raices/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
@@ -573,6 +583,9 @@ const RENTAS_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/rentas",
   applicationRoute: "/publicar/rentas/negocio",
+  // Gate I.5.2 — nested hub per the Gate I.5.1 documented temporary exception (no modern flat
+  // /publicar/rentas index exists): rentasPublishRoutes.ts:4 (RENTAS_PUBLICAR_HUB).
+  hubRoute: "/clasificados/publicar/rentas",
   resultsRoute: "/clasificados/rentas/results",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
@@ -607,6 +620,7 @@ const RENTAS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/rentas",
   applicationRoute: "/publicar/rentas/privado",
+  hubRoute: "/clasificados/publicar/rentas",
   resultsRoute: "/clasificados/rentas/results",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,

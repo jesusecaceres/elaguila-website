@@ -1,4 +1,4 @@
-import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
+import { BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
@@ -76,7 +76,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Perfiles de servicios profesionales." : "Professional service profiles.",
     ready: true,
     manageHref: (q) => `/dashboard/servicios?${q}`,
-    publishHref: (q) => `/clasificados/publicar/servicios?${q}`,
+    publishHref: (q) => `/publicar/servicios?${q}`,
     resultsHref: (q) => `/clasificados/servicios/resultados?${q}`,
   },
   {
@@ -105,7 +105,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Vacantes y ferias de empleo." : "Job listings and job fairs.",
     ready: true,
     manageHref: (q) => `/dashboard/empleos?${q}`,
-    publishHref: (q) => `/clasificados/publicar/empleos?${q}`,
+    publishHref: (q) => `/publicar/empleos?${q}`,
     resultsHref: (q) => `/clasificados/empleos/resultados?${q}`,
   },
   {
@@ -125,7 +125,9 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Propiedades en venta (privado o negocio)." : "Properties for sale (private or business).",
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
-    publishHref: (q) => `${BR_PUBLICAR_HUB}?${q}`,
+    // Gate I.5.2 — bypasses BR_PUBLICAR_HUB (legacy value, still correctly used by locked BR
+    // application-form internals) in favor of the registry's decided modern hub.
+    publishHref: (q) => `/publicar/bienes-raices?${q}`,
     resultsHref: (q) => `${BR_RESULTS}?${q}`,
   },
   {
@@ -145,7 +147,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
     ready: false,
     manageHref: () => null,
-    publishHref: (q) => `/clasificados/publicar/clases?${q}`,
+    publishHref: (q) => `/publicar/clases/quick?${q}`,
   },
   {
     key: "comunidad",
@@ -154,7 +156,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
     ready: false,
     manageHref: () => null,
-    publishHref: (q) => `/clasificados/publicar/comunidad?${q}`,
+    publishHref: (q) => `/publicar/comunidad/quick?${q}`,
   },
   {
     key: "busco",
@@ -163,7 +165,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Anuncios de búsqueda publicados." : "Published wanted/looking-for listings.",
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=busco`,
-    publishHref: (q) => `/clasificados/publicar/busco?${q}`,
+    publishHref: (q) => `/publicar/busco/quick?${q}`,
     resultsHref: (q) => `/clasificados/busco/resultados?${q}`,
   },
 ];

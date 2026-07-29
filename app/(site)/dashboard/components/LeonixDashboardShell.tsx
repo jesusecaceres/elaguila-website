@@ -280,7 +280,7 @@ export function LeonixDashboardShell({
             </nav>
 
             <Link
-              href={`/clasificados/publicar?${q}`}
+              href={`/publicar?${q}`}
               className="mt-6 flex w-full items-center justify-center rounded-2xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] transition hover:bg-[#5e1721] active:scale-[0.99]"
             >
               {L.publish}

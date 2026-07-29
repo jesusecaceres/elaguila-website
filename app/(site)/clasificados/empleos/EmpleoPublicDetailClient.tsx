@@ -89,7 +89,7 @@ export function EmpleoPublicDetailClient({
   );
 
   const resultsHref = appendLangToPath("/clasificados/empleos/resultados", lang);
-  const publishHref = appendLangToPath("/clasificados/publicar/empleos", lang);
+  const publishHref = appendLangToPath("/publicar/empleos", lang);
 
   if (!job) {
     return (

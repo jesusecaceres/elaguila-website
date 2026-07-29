@@ -134,6 +134,17 @@ export type CategoryRouteAdapter = {
   entryRoute: string;
   /** Where a brand-new application/draft starts (not an edit of an existing listing). */
   applicationRoute: string;
+  /**
+   * Gate I.5.2 — optional multi-lane hub/branch-chooser route. Set ONLY on pipelines that share
+   * a lane-selection step with a sibling pipeline of the same `category` (Bienes Raíces
+   * Negocio/Privado, Rentas Negocio/Privado, Autos Negocios/Privado) — a generic entry point
+   * (e.g. the global publish gateway) must resolve to this hub, not straight into one lane's
+   * `applicationRoute`, so the user still makes the Negocio/Privado choice. Absent on every
+   * other pipeline: for those, `applicationRoute` already IS the correct single generic entry
+   * point (no lane choice exists to preserve). Never used for edit/preview/dashboard
+   * resolution — only for "where does a brand-new, category-only-known publish action start."
+   */
+  hubRoute?: string;
   /** Public category results/search page. */
   resultsRoute: string;
 
