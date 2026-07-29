@@ -601,7 +601,14 @@ const RENTAS_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   hubRoute: "/clasificados/publicar/rentas",
   resultsRoute: "/clasificados/rentas/results",
 
-  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+  // CORRECTED in Gate I.5.4D — was `/clasificados/anuncio/${identity.sourceId}` (the shared
+  // generic multi-category shell). Every live Rentas caller audited in that gate (dashboard,
+  // Mis Anuncios, admin, results/landing cards, the canonical page's own share link) already uses
+  // `rentasListingPublicPath()` (rentasPublishRoutes.ts:24,26-28,
+  // RENTAS_LISTING_PUBLIC_BASE="/clasificados/rentas/listing"), which reuses the approved
+  // `RentasVisualMatchPreviewView` renderer with proven Preview → Published parity. This registry
+  // was the one place still resolving to the old, less-proven shell.
+  publicRoute: (identity) => `/clasificados/rentas/listing/${identity.sourceId}`,
 
   // Gate I.5A confirmed a real edit API (app/api/clasificados/rentas/listing-edit/route.ts) but
   // no confirmed dashboard href-builder constant for it — returning null rather than guessing.
@@ -621,9 +628,9 @@ const RENTAS_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
     "A confirmed renewal capability exists (operation:\"renew_listing\" via the shared " +
       "/api/revenue-os/checkout endpoint) but is not representable as a `route` here — it's an " +
       "async checkout call, not a navigable page.",
-    "Gate I.5A also found a second, apparently sample/future public detail base " +
-      "(RENTAS_LISTING_PUBLIC_BASE=\"/clasificados/rentas/listing\") distinct from the shared " +
-      "anuncio shell used above — not resolved here, flagged for a later gate.",
+    "The old shared `/clasificados/anuncio/[id]` route is kept as a compatibility fallback for " +
+      "any not-yet-rewired inbound link (Gate I.5.4D deliberately did not touch or redirect that " +
+      "shared multi-category file — it also serves En Venta and Bienes Raíces).",
   ],
 };
 
@@ -636,7 +643,8 @@ const RENTAS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   hubRoute: "/clasificados/publicar/rentas",
   resultsRoute: "/clasificados/rentas/results",
 
-  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+  // CORRECTED in Gate I.5.4D — same reasoning as Rentas Negocio above.
+  publicRoute: (identity) => `/clasificados/rentas/listing/${identity.sourceId}`,
   editRoute: () => null,
   previewRoute: (identity, opts) => withLang(`/clasificados/rentas/preview/privado?listingId=${encodeURIComponent(identity.sourceId)}`, lang(opts)),
   dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
