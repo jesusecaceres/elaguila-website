@@ -41,6 +41,8 @@ import { TranslateAdControl } from "@/app/components/translation/TranslateAdCont
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
 import { BienesRaicesNegocioLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell";
+import { BienesRaicesPrivadoLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell";
+import { resolveBrListingLane } from "@/app/clasificados/bienes-raices/listing/brListingLane";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -1344,6 +1346,36 @@ export default function AnuncioDetallePage() {
   }
 
   if (listing.category === "bienes-raices") {
+    // Gate I.5.4A — lane-aware BR published rendering. Before this gate, every bienes-raices
+    // listing rendered through BienesRaicesNegocioLiveDetailShell regardless of lane, which
+    // silently dropped Privado sellers' name/photo (that shell's buildPublishedState() only
+    // reads agent-schema business_meta fields Privado never populated). Negocio parent/child
+    // rendering is completely untouched below — same component, same props, same behavior.
+    const brLane = resolveBrListingLane({
+      sellerType: listing.sellerType,
+      inventory_role: listing.inventory_role,
+      br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id,
+    });
+    const brListingProps = {
+      id: listing.id,
+      title: proseListing!.title,
+      priceLabel: listing.priceLabel,
+      city: listing.city,
+      blurb: proseListing!.blurb,
+      images: listing.images ?? null,
+      businessName: listing.businessName ?? null,
+      business_name: listing.business_name ?? null,
+      detailPairs: proseListing!.detailPairs,
+      owner_id: listing.owner_id ?? null,
+      leonix_ad_id: listing.leonix_ad_id ?? null,
+      business_meta: listing.business_meta ?? null,
+      contact_phone: listing.contact_phone ?? null,
+      contact_email: listing.contact_email ?? null,
+      zip: listing.zip ?? null,
+      br_inventory_group_id: listing.br_inventory_group_id ?? null,
+      br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
+      inventory_role: listing.inventory_role ?? null,
+    };
     return (
       <>
         {brPublishBanner ? (
@@ -1352,29 +1384,11 @@ export default function AnuncioDetallePage() {
           </div>
         ) : null}
         {translateControl}
-        <BienesRaicesNegocioLiveDetailShell
-          listing={{
-            id: listing.id,
-            title: proseListing!.title,
-            priceLabel: listing.priceLabel,
-            city: listing.city,
-            blurb: proseListing!.blurb,
-            images: listing.images ?? null,
-            businessName: listing.businessName ?? null,
-            business_name: listing.business_name ?? null,
-            detailPairs: proseListing!.detailPairs,
-            owner_id: listing.owner_id ?? null,
-            leonix_ad_id: listing.leonix_ad_id ?? null,
-            business_meta: listing.business_meta ?? null,
-            contact_phone: listing.contact_phone ?? null,
-            contact_email: listing.contact_email ?? null,
-            zip: listing.zip ?? null,
-            br_inventory_group_id: listing.br_inventory_group_id ?? null,
-            br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
-            inventory_role: listing.inventory_role ?? null,
-          }}
-          lang={lang}
-        />
+        {brLane === "privado" ? (
+          <BienesRaicesPrivadoLiveDetailShell listing={brListingProps} lang={lang} />
+        ) : (
+          <BienesRaicesNegocioLiveDetailShell listing={brListingProps} lang={lang} />
+        )}
       </>
     );
   }
