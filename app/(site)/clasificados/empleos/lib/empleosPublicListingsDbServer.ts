@@ -8,6 +8,7 @@ import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import { empleosEnvelopeToCanonical } from "./staged/empleosEnvelopeToJobRecord";
 import type { EmpleosCanonicalListing } from "./staged/empleosCanonicalListing";
 import { buildEmpleosLiveSlugBase } from "./empleosLiveSlug";
+import { resolveEmpleosPublicationLane } from "./empleosLaneResolve";
 
 export type EmpleosListingLifecycleDb =
   | "draft"
@@ -262,9 +263,22 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
   if (snap?.jobRecord) {
     const jr = snap.jobRecord;
     const verified = Boolean(jr.verifiedEmployer) || Boolean(row.verified_employer) || Boolean(row.leonix_verified);
+    // Gate I.5.4C — backfill from the canonical `lane` DB column when this row's own snapshot
+    // (old envelope shape, or a jobRecord written before `publicationLane` existed) doesn't
+    // already carry it, so the public route's lane-shell resolution never depends solely on the
+    // JSON snapshot being complete.
+    const resolvedLane = resolveEmpleosPublicationLane({
+      jobPublicationLane: jr.publicationLane,
+      envelopeLane: snap.envelope?.lane,
+      rowLane: row.lane,
+      feriaDateLine: jr.feriaDateLine,
+      feriaTimeLine: jr.feriaTimeLine,
+      feriaVenue: jr.feriaVenue,
+    });
+    const laneBackfill = resolvedLane !== "unknown" ? { publicationLane: resolvedLane } : {};
     return applyCount != null
-      ? { ...jr, verifiedEmployer: verified, applicationCount: applyCount }
-      : { ...jr, verifiedEmployer: verified };
+      ? { ...jr, ...laneBackfill, verifiedEmployer: verified, applicationCount: applyCount }
+      : { ...jr, ...laneBackfill, verifiedEmployer: verified };
   }
   const salaryLabel =
     row.salary_label?.trim() ||
@@ -278,6 +292,9 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
     row.city && row.state ? `${row.city}, ${row.state}` : row.city || row.state || "",
   ].filter(Boolean);
   const summary = summaryParts.join(" · ") || row.title;
+  // Gate I.5.4C — this branch runs when `listing_snapshot.jobRecord` itself is absent; the
+  // canonical `lane` DB column is still the resolver's authoritative source here.
+  const resolvedLane = resolveEmpleosPublicationLane({ rowLane: row.lane });
   return {
     id: row.id,
     slug: row.slug,
@@ -310,6 +327,7 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
     benefitChips: [],
     showOnLandingFeatured: false,
     showOnLandingRecent: false,
+    ...(resolvedLane !== "unknown" ? { publicationLane: resolvedLane } : {}),
     ...(applyCount != null ? { applicationCount: applyCount } : {}),
   };
 }

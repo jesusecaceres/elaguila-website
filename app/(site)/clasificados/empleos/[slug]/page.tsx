@@ -14,6 +14,7 @@ import {
 } from "../lib/empleosPublicListingsDbServer";
 import { empleosOmitMarketingSeedCatalog } from "../lib/empleosPublicCatalogPolicy";
 import { empleosJobPublicAbsoluteUrl } from "../lib/empleosSiteUrl";
+import { resolveEmpleosPublicationLane } from "../lib/empleosLaneResolve";
 import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,28 @@ export default async function EmpleoPublicDetailPage({ params, searchParams }: P
   const relatedExtra = await fetchEmpleosPublishedJobRecords();
   const snap = row?.listing_snapshot as EmpleosListingSnapshotJson | undefined;
   const envelope = snap?.envelope ?? null;
-  const useLaneShell = Boolean(row && job && (job.publicationLane || envelope?.lane));
+  // Gate I.5.4C — resolve through the shared deterministic resolver instead of a bare
+  // publicationLane/envelope-lane check, so a row whose JSON snapshot omits lane data still
+  // routes correctly via the canonical `lane` DB column (see empleosLaneResolve.ts).
+  const resolvedLane =
+    row && job
+      ? resolveEmpleosPublicationLane({
+          jobPublicationLane: job.publicationLane,
+          envelopeLane: envelope?.lane,
+          rowLane: row.lane,
+          feriaDateLine: job.feriaDateLine,
+          feriaTimeLine: job.feriaTimeLine,
+          feriaVenue: job.feriaVenue,
+        })
+      : "unknown";
+  const useLaneShell = Boolean(row && job && resolvedLane !== "unknown");
+  if (row && job && resolvedLane === "unknown") {
+    // Internal diagnostic only (server logs) — never shown to the visitor, no PII.
+    console.warn("[empleos] lane unresolved for published listing; using legacy fallback shell", {
+      listingId: row.id,
+      slug,
+    });
+  }
   const engagementListingKey = row ? ((row.leonix_ad_id ?? "").trim() || row.id) : null;
   const persistListingEngagement = Boolean(row);
   const listingSourceId = row?.id ?? null;
