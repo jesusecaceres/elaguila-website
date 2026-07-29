@@ -255,6 +255,7 @@ export function BrNegocioListingInventoryActions({
         {upgradeActive ? (
           <Link
             href={inventoryEditHref}
+            prefetch={false}
             className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-2 text-sm font-semibold text-[#6E5418]"
           >
             {bienesInventoryPackEditLabel(lang)}
