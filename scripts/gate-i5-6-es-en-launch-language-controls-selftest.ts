@@ -70,10 +70,17 @@ async function main() {
   /* ---------------------------------------------------------------------------------------- *
    * 4 — no generic "Languages" dropdown can expose an unsupported option, because both pickers
    * found in the investigation render strictly from ADDITIONAL_LANGUAGES.
+   *
+   * Gate I.5.6A — the header selector's dropdown TRIGGER itself must also be hidden when there
+   * are no additional languages, not merely emptied of options. Owner runtime QA on I.5.6 found
+   * the trigger (and its Google Translate help panel) still rendered unconditionally, appearing
+   * as an unexplained third "Languages" control alongside Español/English on desktop and mobile
+   * (same shared component, so both surfaces showed the defect identically).
    * ---------------------------------------------------------------------------------------- */
   {
     const headerSrc = readSource(HEADER_SELECTOR_FILE);
     assert.ok(headerSrc.includes("ADDITIONAL_LANGUAGES.map("), "header selector must still render options from the shared constant, not a hardcoded list");
+    assert.ok(headerSrc.includes("ADDITIONAL_LANGUAGES.length > 0"), "header selector must hide its dropdown trigger (not just its options) when there is nothing to select");
     const rootIntroSrc = readSource(ROOT_INTRO_FILE);
     assert.ok(rootIntroSrc.includes("ADDITIONAL_LANGUAGES.map("), "root intro panel must still render options from the shared constant, not a hardcoded list");
     assert.ok(rootIntroSrc.includes("ADDITIONAL_LANGUAGES.length > 0"), "root intro panel must hide its dropdown trigger when there is nothing to select");
