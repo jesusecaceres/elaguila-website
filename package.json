@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit --incremental false",
     "lint:br": "eslint \"app/(site)/clasificados/bienes-raices/**/*.{ts,tsx}\" \"app/(site)/clasificados/lib/leonix*.ts\" \"app/(site)/clasificados/lib/publish/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/bienes-raices/**/*.{ts,tsx}\" --max-warnings 0",
     "lint:servicios": "eslint \"app/(site)/clasificados/servicios/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/servicios/**/*.{ts,tsx}\" \"app/(site)/servicios/**/*.{ts,tsx}\" \"app/api/clasificados/servicios/**/*.{ts,tsx}\" \"e2e/**/*.ts\" --max-warnings 0",
+    "verify:business-identity-core": "npx tsx scripts/verify-business-identity-core-01.ts",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "verify:br:catalog-smoke": "npx tsx scripts/br-supabase-anon-smoke.ts",
     "verify:br:manual-qa-seed": "npx tsx scripts/br-manual-qa-catalog-seed.ts",
