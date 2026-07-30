@@ -71,11 +71,23 @@ export function categoryPublishPath(slug: CatStdAllSlug): string {
     "en-venta": "/clasificados/publicar/en-venta",
     rentas: "/clasificados/publicar/rentas",
     empleos: "/clasificados/publicar/empleos",
+    // "autos": confirmed LIVE, not stale — app/(site)/clasificados/publicar/autos/page.tsx is a
+    // real route (renders the same PublicarAutosBranchClient chooser as /publicar/autos), present
+    // in the compiled route manifest, and has a confirmed live caller
+    // (app/(site)/negocios-locales/_lib/negociosLocalesLanes.ts). Gate I.5.8 verified this before
+    // acting and left it untouched — do not "fix" this entry without re-confirming both facts.
     autos: "/clasificados/publicar/autos",
     "bienes-raices": "/clasificados/publicar/bienes-raices",
     servicios: "/clasificados/publicar/servicios/checkpoint",
     restaurantes: "/clasificados/restaurantes/publicar",
-    viajes: "/clasificados/publicar/viajes",
+    // Gate I.5.8 — corrected. The prior value ("/clasificados/publicar/viajes") mapped to a route
+    // folder confirmed NOT to exist (absent from the compiled Next.js route manifest) with zero
+    // confirmed live callers (categoryPublishPath("viajes") itself, and this file's only generic
+    // consumer, CategoryStandardLandingPage.tsx, are not rendered for any live Viajes page today —
+    // Viajes has its own dedicated landing). Corrected to the real, registry-confirmed application
+    // route (categoryRouteRegistry.ts's VIAJES_ADAPTER.applicationRoute), which does exist in the
+    // route manifest. Zero live behavior change, since nothing called the old value.
+    viajes: "/publicar/viajes",
     clases: "/clasificados/publicar/clases",
     comunidad: "/clasificados/publicar/comunidad",
     busco: "/publicar/busco/quick",

@@ -206,7 +206,7 @@ async function main() {
       edit: "supported",
       preview: "intentionally_unsupported", // lane-ambiguous, cannot resolve generically
       publicRoute: "category_specific",
-      results: "stale", // /resultados here vs. legacy-builder default "/results" segment — dual-active, unresolved
+      results: "supported", // Gate I.5.8 — buildEmpleosResultadosUrl and EMPLEOS_RESULTS_PATH corrected to /resultados
       dashboard: "supported",
       secondaryManage: "not_applicable",
       parentChild: false,
@@ -500,40 +500,42 @@ async function main() {
   }
 
   /* ============================================================================================
-   * 14 — Empleos results-slug duplication: the registry declares /resultados, while the legacy
-   * standard-route builder's default results segment is the English "results" — both are
-   * live-declared, simultaneously reachable values. Classified stale/dual-active, not repaired.
+   * 14 — Gate I.5.8 (Objective A) — Empleos results-slug duplication is resolved: the registry's
+   * /resultados and the Empleos-specific shared builder now agree. The GENERIC legacy builder's
+   * default segment ("results") is intentionally untouched — it's shared by other categories
+   * (busco/clases/comunidad/etc.) and was out of this package's scope; Empleos simply no longer
+   * calls it for results generation. Full detail in gate-i5-8-empleos-autos-viajes-route-drift-
+   * selftest.ts.
    * ========================================================================================== */
   {
     const empleos = getCategoryRouteAdapter("empleos");
     assert.equal(empleos.resultsRoute, "/clasificados/empleos/resultados");
-    assert.equal(CAT_STD_RESULTS_SEGMENT, "results", "legacy builder's default segment remains the English slug");
+    assert.equal(CAT_STD_RESULTS_SEGMENT, "results", "the shared generic builder's default segment is untouched — Empleos simply no longer uses it for results");
     assert.ok(
-      empleos.knownLimitations.some((l) => l.includes("resultsRoute chosen") && l.includes("both exist")),
-      "the registry must keep documenting this as an unresolved, both-exist duplication, not a silently-fixed value",
+      empleos.knownLimitations.some((l) => l.includes("Gate I.5.8") && l.includes("sole actively-generated")),
+      "the registry must document the Gate I.5.8 resolution, not the old unresolved-duplication text",
     );
   }
 
   /* ============================================================================================
-   * 15 — confirmed dead/stale Autos and Viajes entries in the legacy publish-map, detected but
-   * not deleted.
+   * 15 — Gate I.5.8 (Objective B): Autos confirmed LIVE (not stale) and left untouched — the
+   * folder exists, is in the compiled route manifest, and has a confirmed live caller
+   * (negociosLocalesLanes.ts). Viajes confirmed genuinely stale/dead and corrected to the real,
+   * registry-declared application route. Full detail in
+   * gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts.
    * ========================================================================================== */
   {
     const autosLegacy = categoryPublishPath("autos" as CatStdAllSlug);
-    const autosNegociosLive = getCategoryRouteAdapter("autos_negocios").applicationRoute;
-    const autosPrivadoLive = getCategoryRouteAdapter("autos_privado").applicationRoute;
-    assert.equal(autosLegacy, "/clasificados/publicar/autos", "confirmed-stale legacy value must still be present (not silently repaired by an unrelated gate)");
-    assert.notEqual(autosLegacy, autosNegociosLive);
-    assert.notEqual(autosLegacy, autosPrivadoLive);
+    assert.equal(autosLegacy, "/clasificados/publicar/autos", "Autos legacy value must remain untouched — confirmed live, not stale");
 
     const viajesLegacy = categoryPublishPath("viajes" as CatStdAllSlug);
     const viajesLive = getCategoryRouteAdapter("viajes").applicationRoute;
-    assert.equal(viajesLegacy, "/clasificados/publicar/viajes");
-    assert.notEqual(viajesLegacy, viajesLive, "Viajes legacy publish-map value remains confirmed-broken (registry's own comment: folder does not exist)");
+    assert.equal(viajesLegacy, viajesLive, "Viajes legacy publish-map value must now match the real application route (Gate I.5.8 fix)");
+    assert.notEqual(viajesLegacy, "/clasificados/publicar/viajes", "the confirmed-nonexistent-folder value must no longer be generated");
     const viajesAdapter = getCategoryRouteAdapter("viajes");
     assert.ok(
-      viajesAdapter.knownLimitations.some((l) => l.includes("categoryPublishPath") && l.includes("stale/broken")),
-      "the registry must keep documenting the Viajes legacy value as stale/broken",
+      viajesAdapter.knownLimitations.some((l) => l.includes("Gate I.5.8") && l.includes("corrected")),
+      "the registry must document the Gate I.5.8 Viajes correction",
     );
   }
 

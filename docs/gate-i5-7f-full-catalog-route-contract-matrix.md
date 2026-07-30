@@ -1,12 +1,36 @@
 # Gate I.5.7F — Full-Catalog Route Contract Matrix
 
-Status as of commit following Gate I.5.7E (`15a5ecec`), branch `integration/lifecycle-foundation-2026-07`.
+Status as of Work Package I.5.8, branch `integration/lifecycle-foundation-2026-07`. This is the
+single ledger for full-catalog route truth — Work Package I.5.8 updated it in place rather than
+creating a competing document.
 
 This document is **evidence-backed documentation, not an implementation plan**. It records the
 current truth of every registered category/pipeline's route surfaces, enforced by
-[`scripts/gate-i5-7f-full-catalog-route-contract-selftest.ts`](../scripts/gate-i5-7f-full-catalog-route-contract-selftest.ts).
-It does not claim the two route systems are unified, and it does not repair any of the stale
-values it documents — see [Unresolved Route Debt](#unresolved-route-debt).
+[`scripts/gate-i5-7f-full-catalog-route-contract-selftest.ts`](../scripts/gate-i5-7f-full-catalog-route-contract-selftest.ts)
+and, for the specific fixes below, by
+[`scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts`](../scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts)
+and
+[`scripts/gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts`](../scripts/gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts).
+It does not claim the two route systems are unified, and it does not repair every stale value it
+documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.5.8 update log
+
+- **Empleos results duplication — resolved.** `buildEmpleosResultadosUrl` (the shared builder
+  behind ~30 live public call sites) and `EMPLEOS_RESULTS_PATH` now both generate
+  `/clasificados/empleos/resultados`, matching the registry. The legacy `/results` URL remains
+  live as an unchanged compatibility wrapper page.
+- **Autos legacy publish-map entry — correction to the prior finding, not a fix.** Direct
+  re-verification proved `categoryPublishPath("autos")`'s value (`/clasificados/publicar/autos`)
+  is a real, compiled route with a confirmed live caller
+  (`app/(site)/negocios-locales/_lib/negociosLocalesLanes.ts`) — it was **not** stale. Left
+  completely untouched.
+- **Viajes legacy publish-map entry — resolved.** Confirmed the mapped folder does not exist in
+  the compiled route manifest and has zero live callers, then corrected the value to match the
+  real, registry-declared `applicationRoute` (`/publicar/viajes`). Zero live behavior change,
+  since nothing called the old value.
+- **Bienes/Autos parent-child action protection — regression coverage added**, exercised through
+  the actual `resolveDashboardActions` resolver (not just adapter internals or comments).
 
 ## Runtime authority
 
@@ -87,13 +111,14 @@ for any parent) — an existing live behavior difference, not something introduc
 
 | Item | Current evidence |
 |---|---|
-| **Empleos results duplication** | Registry declares `/clasificados/empleos/resultados`; the legacy builder's default results segment (`CAT_STD_RESULTS_SEGMENT`) is the English `"results"`. Both are live-declared, simultaneously-reachable values — registry's own `knownLimitations` still documents this as unresolved, not fixed. |
-| **Autos/Viajes stale publish-map entries** | `categoryPublishPath("autos")` → `/clasificados/publicar/autos`, a folder confirmed **not to exist**; the real live routes are `/publicar/autos/{negocios,privado}`. `categoryPublishPath("viajes")` → `/clasificados/publicar/viajes`, also confirmed non-existent (real: `/publicar/viajes`). Both values remain present and undeleted — flagged as safe cleanup candidates for a future gate, not touched here. |
-| **Bienes/Autos parent-child protection lives outside the registry** | See [External Safety Protections](#external-safety-protections) above — a structural risk if any future caller invokes `adapter.editRoute()` directly without the external gate. |
-| **Autos child-action regression coverage gap** | Prior to this gate, no automated test asserted the Autos Negocios child-edit exclusion the way `gate-i5-7a1` does for Bienes. This gate's self-test adds the first such coverage (see assertions 12/13), but a dedicated Autos-specific gate (mirroring `gate-i5-7a1`'s depth) is still recommended. |
-| **Rentas default-lane decision** | Both lanes share one `hubRoute` (`/clasificados/publicar/rentas`) distinct from either lane's own `applicationRoute`. A separate, previously-noted nuance (not re-verified in this gate): the dashboard's default Rentas publish CTA goes straight to Privado, skipping the hub chooser — a product decision, not a bug, but undocumented in the registry itself. |
-| **Missing quick-category test coverage** | Before this gate, Ofertas Locales, Cupones, Comida Local, and each quick-listing category (Busco/Clases/Comunidad/Mascotas/Viajes) had no dedicated route-contract test, only generic pass-through coverage via `gate-i5-1`. This gate's matrix now covers all 17 pipelines uniformly. |
-| **Future shared facade / legacy-builder retirement** | Explicitly deferred — Gate I.5.7D-R's Table G places this as the last wave (Wave 8/9), after the smaller corrections land and prove the pattern repeatedly. Not attempted here. |
+| ~~Empleos results duplication~~ | **Resolved in Work Package I.5.8.** `buildEmpleosResultadosUrl` and `EMPLEOS_RESULTS_PATH` now both generate `/clasificados/empleos/resultados`. Legacy `/results` remains a live compatibility wrapper. |
+| ~~Autos stale publish-map entry~~ | **Not actually stale — corrected finding, not a fix.** Gate I.5.7D-R's original claim was wrong: `categoryPublishPath("autos")` → `/clasificados/publicar/autos` is a real, compiled route with a confirmed live caller (`negociosLocalesLanes.ts`). Left untouched in Work Package I.5.8 after re-verification. |
+| ~~Viajes stale publish-map entry~~ | **Resolved in Work Package I.5.8.** `categoryPublishPath("viajes")` confirmed to map to a nonexistent folder with zero live callers, then corrected to the real `applicationRoute` (`/publicar/viajes`). Zero live behavior change. |
+| **Bienes/Autos parent-child protection lives outside the registry** | Still true — see [External Safety Protections](#external-safety-protections). Work Package I.5.8 added executable regression coverage for this (`gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts`) but did not change the architecture itself — a structural risk remains if any future caller invokes `adapter.editRoute()` directly without the external gate. |
+| ~~Autos child-action regression coverage gap~~ | **Addressed in Work Package I.5.8.** `gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts` now exercises the real `resolveDashboardActions()` resolver for both Bienes and Autos Negocio parent/child identities. |
+| **Rentas default-lane decision** | Unchanged, not part of Work Package I.5.8. Both lanes share one `hubRoute` (`/clasificados/publicar/rentas`) distinct from either lane's own `applicationRoute`. The dashboard's default Rentas publish CTA goes straight to Privado, skipping the hub chooser — a product decision, not a bug, but undocumented in the registry itself. |
+| **Missing quick-category test coverage** | Before Gate I.5.7F, Ofertas Locales, Cupones, Comida Local, and each quick-listing category (Busco/Clases/Comunidad/Mascotas/Viajes) had no dedicated route-contract test, only generic pass-through coverage via `gate-i5-1`. The matrix now covers all 17 pipelines uniformly. |
+| **Future shared facade / legacy-builder retirement** | Still explicitly deferred — Gate I.5.7D-R's Table G places this as the last wave (Wave 8/9), after the smaller corrections land and prove the pattern repeatedly. Not attempted here. |
 
 ## Full pipeline matrix
 
@@ -112,7 +137,7 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | `autos_privado` | Clasificados | supported | supported | supported | supported | supported | supported | not_applicable | no |
 | `rentas_negocio` | Negocios | supported | missing | supported | supported | stale (`/results`) | supported | not_applicable | no |
 | `rentas_privado` | Clasificados | supported | missing | supported | supported | stale (`/results`) | supported | not_applicable | no |
-| `empleos` | Clasificados | supported (legacy CTA disagrees) | supported | intentionally_unsupported (lane-ambiguous) | category_specific | stale (dual-active) | supported | not_applicable | no |
+| `empleos` | Clasificados | supported (legacy CTA disagrees) | supported | intentionally_unsupported (lane-ambiguous) | category_specific | **supported `/resultados`** (I.5.8) | supported | not_applicable | no |
 | `en_venta` | Clasificados | category_specific (temp exception) | intentionally_unsupported (inline-only) | supported | supported | supported | supported | not_applicable | no |
 | `comida_local` | Negocios | supported | missing | supported | category_specific | stale (dupes entry) | supported | not_applicable | no |
 | `ofertas_locales` | Negocios | supported | supported | supported | category_specific | supported | supported (dedicated) | not_applicable | no |
@@ -136,14 +161,14 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | autos_negocios | `sourceId` (preview child-bound; edit parent-substituted) | full | No per-child edit UI; inventory limit unenforced | Dedicated child-action regression gate |
 | autos_privado | `sourceId` | full | No exported href-builder constant (shape reproduced) | Export a real constant |
 | rentas_negocio/privado | `sourceId` | full | No confirmed edit href-builder | Confirm/build edit route |
-| empleos | `sourceId` | full | Lane-ambiguous preview; dual results segment; legacy CTA disagreement | Empleos results/CTA reconciliation |
+| empleos | `sourceId` | full | Lane-ambiguous preview; results duplication resolved (I.5.8); legacy landing-CTA slug disagreement (`/clasificados/publicar/empleos` vs `/publicar/empleos`) still unresolved | Empleos publish-CTA reconciliation |
 | en_venta | `sourceId` | full | No modern publish hub; Storefront lane unrepresented | Build modern hub (proven zero-behavior-change) |
 | comida_local | `sourceId` | full | Results route unconfirmed distinct from landing | Confirm/build results route |
 | ofertas_locales | `sourceId` | full | No confirmed payment/checkout route | Confirm monetization contract |
 | busco | `sourceId` | full | Edit param shape unconfirmed; legacy hub CTA disagreement | Confirm edit params |
 | clases/comunidad | `sourceId` | full | No dashboard surface (confirmed) | None — working as designed |
 | mascotas_y_perdidos | `sourceId` | full | **No public detail route anywhere** | Investigate before further work |
-| viajes | `sourceId` | full | Two ambiguous detail/preview trees; stale legacy publish value | Needs product clarification, not a routing guess |
+| viajes | `sourceId` | full | Two ambiguous detail/preview trees (unresolved); legacy publish-map value corrected (I.5.8) | Needs product clarification on detail/preview trees, not a routing guess |
 
 ---
 

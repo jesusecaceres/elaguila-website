@@ -29,7 +29,6 @@ import {
   LEONIX_LANDING_SECTION_PAD,
 } from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import {
-  buildCategoryResultsUrl,
   categoryPublishPath,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import {
@@ -55,7 +54,11 @@ export function EmpleosLandingPage() {
   const routeLang = useMemo(() => resolveRouteLang(sp?.get("lang")), [sp]);
   const lang = useMemo<Lang>(() => resolveHubCopyLang(sp?.get("lang")), [sp]);
   const resultsHref = useMemo(
-    () => buildCategoryResultsUrl("empleos", routeLang as Lang),
+    // I.5.8 — use the Empleos-specific canonical builder (already imported/used below for the
+    // discovery tiles) instead of the generic categoryStandardRoutes builder, whose default
+    // results segment is the English "results" slug and disagreed with the registry's canonical
+    // "/resultados". Same lang input/cast as before — only the target builder changed.
+    () => buildEmpleosResultadosUrl(routeLang as Lang, {}),
     [routeLang],
   );
   const publishHref = useMemo(
