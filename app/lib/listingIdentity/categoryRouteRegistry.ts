@@ -126,7 +126,12 @@ function identityListingIdForEdit(identity: ListingIdentity): string {
 // Public URL: app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingMapper.ts /
 //   app/api/clasificados/restaurantes/publish/route.ts:423 (`/clasificados/restaurantes/${slug}`).
 // Entry: app/(site)/clasificados/lib/hubUrl.ts:33 (HUB_CATEGORY_PATH.restaurantes).
-// Coupon-edit-only route: app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts:277
+// Existing-listing edit route (Gate I.5.7E — corrected; was wrongly declared unsupported):
+//   restauranteListingEditHref, app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts:273-289
+//   (`/publicar/restaurantes?...&mode=listing-edit&listingId=...`), the real helper already
+//   called via router.push at app/(site)/dashboard/restaurantes/page.tsx:307-313.
+// Coupon-edit-only route (distinct mode, unaffected by this correction):
+//   restauranteCouponEditHref, app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts:291-307
 //   (`/publicar/restaurantes?...&mode=coupon-edit&listingId=...`).
 // ---------------------------------------------------------------------------------------
 const RESTAURANTES_ADAPTER: CategoryRouteAdapter = {
@@ -141,10 +146,22 @@ const RESTAURANTES_ADAPTER: CategoryRouteAdapter = {
   // the precomputed `identity.publicUrl` (built by the caller from a real slug lookup).
   publicRoute: (identity) => identity.publicUrl || null,
 
-  // No full-listing dashboard edit route was found in the repository as of this gate — only
-  // a coupon-scoped edit route exists (see knownLimitations). Per Gate B instructions, an
-  // unsupported/unconfirmed route must return null rather than be guessed.
-  editRoute: () => null,
+  // Gate I.5.7E — corrected. A confirmed full-listing dashboard edit route exists and is
+  // already actively used: restauranteListingEditHref (restaurantesDashboardCouponAddonCheckout.ts:273-289),
+  // called via router.push at dashboard/restaurantes/page.tsx:307-313. Mirrors that helper's
+  // exact param set (`source`, `mode: "listing-edit"`, `listingId`, optional `leonixAdId`,
+  // `returnPanel: "restaurantes"`) — distinct from the coupon-only secondaryManageRoute below
+  // (`mode: "coupon-edit"`).
+  editRoute: (identity, opts) => {
+    const params = new URLSearchParams({
+      source: "dashboard",
+      mode: "listing-edit",
+      listingId: identity.sourceId,
+    });
+    if (identity.leonixAdId) params.set("leonixAdId", identity.leonixAdId);
+    params.set("returnPanel", "restaurantes");
+    return withLang(`/publicar/restaurantes?${params.toString()}`, lang(opts));
+  },
 
   // No confirmed dashboard-listing-bound Preview route was found for Restaurantes (unlike
   // Bienes/Servicios/Autos, which each export a dedicated `*_DASHBOARD_PREVIEW_BASE`).
@@ -171,10 +188,6 @@ const RESTAURANTES_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: true,
 
   knownLimitations: [
-    "No confirmed full-listing dashboard edit route exists — only a coupon-scoped edit route " +
-      "(`restauranteCouponEditHref`, app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts:261-278, " +
-      "base `/publicar/restaurantes?mode=coupon-edit&listingId=...`). editRoute() returns null " +
-      "honestly rather than pointing at that partial route under a generic \"edit\" label.",
     "No confirmed dashboard-listing-bound Preview route exists for an already-published listing.",
   ],
 };
