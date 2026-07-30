@@ -32,6 +32,39 @@ documents — see [Unresolved Route Debt](#unresolved-route-debt).
 - **Bienes/Autos parent-child action protection — regression coverage added**, exercised through
   the actual `resolveDashboardActions` resolver (not just adapter internals or comments).
 
+## Work Package I.6A update log
+
+- **En Venta, Busco, Clases, Comunidad — Edit corrected.** Same bug class as the Restaurantes
+  fix (Gate I.5.7E): the registry declared `editRoute: () => null` for all four, but a real,
+  generic, owner-verified, UPDATE-by-UUID edit page
+  (`app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx`) already existed and was already
+  live-wired in the UI for every `listings`-table category. All four now resolve to
+  `/dashboard/mis-anuncios/{id}/editar?lang=`, matching the exact, confirmed real query shape
+  (no invented params). The generic editor covers title/price/description/photos/status only —
+  not each category's full field set.
+- **Duplicate-row risk documented, not repaired.** For all four categories, re-running the
+  category's own publish/quick-form flow always INSERTs a fresh row (no update-if-exists check
+  against a canonical listing ID) — there is no way to target the category's own creation UI at
+  an already-published listing, only the generic editor above. This is a real, structural risk on
+  double-submit or "go back and republish," documented in each adapter's `knownLimitations`, not
+  fixed in this package (would require new product UI, out of a route-closure package's scope).
+- **Mascotas y Perdidos public-route root cause identified, deliberately left unsafe-to-flip.**
+  Deepened the prior "confirmed gap" finding: result cards do navigate to the shared
+  `/clasificados/anuncio/{id}` shell, and the shell does fetch the row — but its category
+  allowlist (`CATEGORY_KEYS` in `app/(site)/clasificados/anuncio/[id]/page.tsx`) does not include
+  `"mascotas-y-perdidos"`, so `coerceCategoryKey()` silently rewrites the row to `"en-venta"` and
+  renders the wrong layout (wrong cross-links, no lost/found/adoption badge, price shown
+  incorrectly, notice-type/location shown only as raw generic rows). `publicRoute()` remains
+  `null` on purpose — pointing it at a URL that mis-renders would be worse than the honest gap.
+  Fixing the shell is out of scope for a Quick-Clasificados-only package, since that same shared
+  file also serves Rentas/Bienes Raíces/Autos/Empleos/Servicios (all locked for this package).
+  `gate-i6a-quick-clasificados-lifecycle-selftest.ts` now source-level-asserts the allowlist gap
+  is still present, closing the "invisible to the test suite" coverage gap Gate I.5.7F left open.
+- **`/publicar/community/` "separate tree" concern retracted.** Direct inspection confirms it is
+  not a standalone routable page at all — it is purely the shared implementation
+  (`CommunityQuickApplicationClient({kind})`) both `/publicar/clases/quick` and
+  `/publicar/comunidad/quick` import from. Not a duplicate product, not a fork.
+
 ## Runtime authority
 
 Two route systems are simultaneously live today, on **non-overlapping runtime surfaces**
@@ -80,12 +113,16 @@ Differences that are genuine, evidence-backed product behavior — not accidenta
   `supportsParentChildInventory: true` and an inventory-pack `secondaryManageRoute`, Privado does
   not.
 - **En Venta** — application route is a documented temporary exception (no modern `/publicar/`
-  hub exists); editing is inline-only in Mis Anuncios, never a distinct URL.
+  hub exists). Edit is now the generic Mis Anuncios editor (I.6A) — the category's own Pro/Free
+  form has no "edit existing" mode.
 - **Ofertas Locales** — has its own dedicated `/dashboard/ofertas-locales` surface, deliberately
   excluded from Mis Anuncios. Cupones is confirmed **not** a separate pipeline — `/cupones` renders
   the identical component with `surface="cupones"`.
-- **Clases / Comunidad** — `dashboardRoute()` intentionally returns `null` (confirmed
-  `ready:false` in the live Mis Anuncios config, no management surface exists).
+- **Clases / Comunidad** — share one implementation (`CommunityQuickApplicationClient({kind})`,
+  confirmed by direct inspection, not a fork). `dashboardRoute()` intentionally returns `null` —
+  confirmed `ready:false` in the live Mis Anuncios config, meaning no *dedicated category tab*
+  exists — but a generic, non-category-gated per-listing workspace/editor is reachable once the
+  owner has the listing's UUID (I.6A).
 - **Autos Negocios Preview** is genuinely bound to a child vehicle's own `sourceId` (unlike Edit)
   — `AutosNegociosPreviewClient` fetches and hydrates by whatever ID it's given.
 
@@ -118,6 +155,9 @@ for any parent) — an existing live behavior difference, not something introduc
 | ~~Autos child-action regression coverage gap~~ | **Addressed in Work Package I.5.8.** `gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts` now exercises the real `resolveDashboardActions()` resolver for both Bienes and Autos Negocio parent/child identities. |
 | **Rentas default-lane decision** | Unchanged, not part of Work Package I.5.8. Both lanes share one `hubRoute` (`/clasificados/publicar/rentas`) distinct from either lane's own `applicationRoute`. The dashboard's default Rentas publish CTA goes straight to Privado, skipping the hub chooser — a product decision, not a bug, but undocumented in the registry itself. |
 | **Missing quick-category test coverage** | Before Gate I.5.7F, Ofertas Locales, Cupones, Comida Local, and each quick-listing category (Busco/Clases/Comunidad/Mascotas/Viajes) had no dedicated route-contract test, only generic pass-through coverage via `gate-i5-1`. The matrix now covers all 17 pipelines uniformly. |
+| ~~En Venta / Busco / Clases / Comunidad missing Edit~~ | **Resolved in Work Package I.6A.** All four now resolve to the real, generic, owner-verified `/dashboard/mis-anuncios/{id}/editar` page — same bug class and fix pattern as the Restaurantes correction (I.5.7E). |
+| **En Venta / Busco / Clases / Comunidad duplicate-row risk on republish** | New finding, documented in Work Package I.6A, not repaired. Each category's own publish/quick-form flow always INSERTs a fresh row — there is no update-if-exists path, so returning to the category's creation UI to "edit" an existing listing creates a second row instead. Only the generic editor above updates the same row. Requires new product UI to fix (prefill-from-existing), out of scope for a route-closure package. |
+| **Mascotas public-route root cause** | Deepened in Work Package I.6A: not just "no route," but an active mis-render — the shared `anuncio/[id]` shell's `CATEGORY_KEYS` allowlist omits `mascotas-y-perdidos`, so real listings are silently coerced to render as En Venta. `publicRoute()` deliberately remains `null` rather than pointing at a page that renders wrong content. Fixing requires editing the shared shell that also serves several locked categories — deferred to a dedicated gate. Now covered by a source-level regression test (`gate-i6a-*`) so the gap is no longer invisible to the suite. |
 | **Future shared facade / legacy-builder retirement** | Still explicitly deferred — Gate I.5.7D-R's Table G places this as the last wave (Wave 8/9), after the smaller corrections land and prove the pattern repeatedly. Not attempted here. |
 
 ## Full pipeline matrix
@@ -138,13 +178,13 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | `rentas_negocio` | Negocios | supported | missing | supported | supported | stale (`/results`) | supported | not_applicable | no |
 | `rentas_privado` | Clasificados | supported | missing | supported | supported | stale (`/results`) | supported | not_applicable | no |
 | `empleos` | Clasificados | supported (legacy CTA disagrees) | supported | intentionally_unsupported (lane-ambiguous) | category_specific | **supported `/resultados`** (I.5.8) | supported | not_applicable | no |
-| `en_venta` | Clasificados | category_specific (temp exception) | intentionally_unsupported (inline-only) | supported | supported | supported | supported | not_applicable | no |
+| `en_venta` | Clasificados | category_specific (temp exception) | **supported** (I.6A, generic editor) | supported | supported | supported | supported | not_applicable | no |
 | `comida_local` | Negocios | supported | missing | supported | category_specific | stale (dupes entry) | supported | not_applicable | no |
 | `ofertas_locales` | Negocios | supported | supported | supported | category_specific | supported | supported (dedicated) | not_applicable | no |
-| `busco` | Clasificados | supported | missing | supported | supported | supported | supported | not_applicable | no |
-| `clases` | Clasificados | supported | missing | supported | supported | supported | intentionally_unsupported | not_applicable | no |
-| `comunidad` | Clasificados | supported | missing | supported | supported | supported | intentionally_unsupported | not_applicable | no |
-| `mascotas_y_perdidos` | Clasificados | supported | missing | supported | **missing** (confirmed gap) | supported | intentionally_unsupported | not_applicable | no |
+| `busco` | Clasificados | supported | **supported** (I.6A, generic editor) | supported | supported | supported | supported | not_applicable | no |
+| `clases` | Clasificados | supported | **supported** (I.6A, generic editor) | supported | supported | supported | intentionally_unsupported (no dedicated tab) | not_applicable | no |
+| `comunidad` | Clasificados | supported | **supported** (I.6A, generic editor) | supported | supported | supported | intentionally_unsupported (no dedicated tab) | not_applicable | no |
+| `mascotas_y_perdidos` | Clasificados | supported | missing | supported | **missing** (root cause identified, I.6A — shell mis-render, not just a gap) | supported | intentionally_unsupported | not_applicable | no |
 | `viajes` | Negocios | supported | missing | **missing** (ambiguous lanes) | **missing** (ambiguous trees) | supported | supported | not_applicable | no |
 
 `cupones` is intentionally absent — confirmed to be a filtered view (`surface="cupones"`) over
@@ -162,12 +202,12 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | autos_privado | `sourceId` | full | No exported href-builder constant (shape reproduced) | Export a real constant |
 | rentas_negocio/privado | `sourceId` | full | No confirmed edit href-builder | Confirm/build edit route |
 | empleos | `sourceId` | full | Lane-ambiguous preview; results duplication resolved (I.5.8); legacy landing-CTA slug disagreement (`/clasificados/publicar/empleos` vs `/publicar/empleos`) still unresolved | Empleos publish-CTA reconciliation |
-| en_venta | `sourceId` | full | No modern publish hub; Storefront lane unrepresented | Build modern hub (proven zero-behavior-change) |
+| en_venta | `sourceId` | full | No modern publish hub; Storefront lane unrepresented; Edit resolved (I.6A) but generic-only, and republish-flow duplicate-row risk documented | Build modern hub; build prefill-from-existing edit |
 | comida_local | `sourceId` | full | Results route unconfirmed distinct from landing | Confirm/build results route |
 | ofertas_locales | `sourceId` | full | No confirmed payment/checkout route | Confirm monetization contract |
-| busco | `sourceId` | full | Edit param shape unconfirmed; legacy hub CTA disagreement | Confirm edit params |
-| clases/comunidad | `sourceId` | full | No dashboard surface (confirmed) | None — working as designed |
-| mascotas_y_perdidos | `sourceId` | full | **No public detail route anywhere** | Investigate before further work |
+| busco | `sourceId` | full | Edit resolved (I.6A, generic editor); legacy hub CTA disagreement; republish-flow duplicate-row risk documented | Fix legacy CTA; build prefill-from-existing edit |
+| clases/comunidad | `sourceId` | full | No *dedicated* dashboard tab (confirmed, by design); Edit resolved (I.6A, generic editor); republish-flow duplicate-row risk documented; shared implementation confirmed intentional (not an unconfirmed fork) | Build prefill-from-existing edit if ever prioritized |
+| mascotas_y_perdidos | `sourceId` | full | **Public detail root cause identified (I.6A): shared shell's category allowlist omits this category, causing mis-render as En Venta** | Extend the shared `anuncio/[id]` shell's allowlist + add a rendering branch (dedicated gate, touches locked-adjacent shared file) |
 | viajes | `sourceId` | full | Two ambiguous detail/preview trees (unresolved); legacy publish-map value corrected (I.5.8) | Needs product clarification on detail/preview trees, not a routing guess |
 
 ---

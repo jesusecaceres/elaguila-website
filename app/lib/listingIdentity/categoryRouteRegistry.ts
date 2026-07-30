@@ -744,9 +744,14 @@ const EN_VENTA_ADAPTER: CategoryRouteAdapter = {
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
 
-  // Gate I.5A found no separate edit route — editing happens inline via EnVentaListingManageCard
-  // in Mis Anuncios, not a distinct navigable "edit" URL.
-  editRoute: () => null,
+  // Gate I.6A — corrected. A real, generic, owner-verified edit page exists and is already
+  // live-wired for En Venta rows: app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx, reached
+  // via EnVentaListingManageCard's editHref and the per-listing workspace (both build
+  // `/dashboard/mis-anuncios/${id}/editar?lang=${lang}` — confirmed exact query shape, no other
+  // params). It UPDATEs the same row by UUID (never inserts), scoped to owner_id both client-side
+  // and via Postgres RLS. Limited to title/price/description/photos/status — not the full
+  // category-specific Pro/Free application fields (see knownLimitations).
+  editRoute: (identity, opts) => withLang(`/dashboard/mis-anuncios/${identity.sourceId}/editar`, lang(opts)),
 
   previewRoute: (_identity, opts) => withLang("/clasificados/en-venta/preview", lang(opts)),
 
@@ -763,8 +768,10 @@ const EN_VENTA_ADAPTER: CategoryRouteAdapter = {
       "behavior-change wrapper around the Pro application component, not attempted). The nested " +
       "\"/clasificados/publicar/en-venta/pro\" route is retained as canonical until a future gate " +
       "either builds the modern equivalent or formally re-confirms this exception.",
-    "editRoute() returns null — no distinct edit URL exists, editing is inline-only via the " +
-      "Mis Anuncios manage card.",
+    "Gate I.6A — editRoute() now resolves to the generic /dashboard/mis-anuncios/{id}/editar " +
+      "page (title/price/description/photos/status only). The category-specific Pro/Free " +
+      "application fields have no edit surface; re-running the publish flow always inserts a " +
+      "new row rather than updating the existing one (no prefill-from-existing exists).",
     "A separate Storefront lane (EN_VENTA_PUBLICAR_STOREFRONT) exists but is not represented " +
       "here — this adapter only covers the active Pro lane.",
     "No Stripe/checkout wiring was found for base En Venta listings in Gate I.5A's pass (Pro " +
@@ -868,10 +875,13 @@ const BUSCO_ADAPTER: CategoryRouteAdapter = {
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
 
-  // Gate I.5A found edit reuses the application route (buscoQuickEditUrl()) but did not confirm
-  // the exact query-param shape used to target an existing draft — returning null rather than
-  // fabricating params.
-  editRoute: () => null,
+  // Gate I.6A — corrected. buscoQuickEditUrl() (buscoPublishRoutes.ts) is confirmed to be a
+  // return-to-in-progress-draft link only (no id/query param at all, used solely by the preview
+  // page's "volver a editar" — it targets the SAME session draft, not a published listing). The
+  // real edit-an-existing-published-listing surface is the same generic, owner-verified,
+  // UPDATE-by-UUID page used by every other listings-table category:
+  // app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx (`/dashboard/mis-anuncios/${id}/editar?lang=`).
+  editRoute: (identity, opts) => withLang(`/dashboard/mis-anuncios/${identity.sourceId}/editar`, lang(opts)),
 
   previewRoute: (_identity, opts) => withLang("/publicar/busco/quick/preview", lang(opts)),
   dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
@@ -881,8 +891,11 @@ const BUSCO_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "editRoute() returns null — edit is confirmed to reuse the application route, but the exact " +
-      "query-param shape to target an existing draft was not confirmed in Gate I.5A's pass.",
+    "Gate I.6A — editRoute() now resolves to the generic /dashboard/mis-anuncios/{id}/editar " +
+      "page. Re-running /publicar/busco/quick with intent to edit an existing published listing " +
+      "still always INSERTs a brand-new row (publishBuscoQuickToListings has no update-if-exists " +
+      "branch) — there is no way to target the category's own quick-form UI at an existing row, " +
+      "only the generic editor above.",
     "The old /clasificados/page.tsx landing hub's own hardcoded CATEGORY_PUBLISH_PATH map still " +
       "disagrees with this decision (uses the legacy /clasificados/publicar/busco path directly, " +
       "bypassing even its own working redirect shim) — a live-CTA conflict for Gate I.5.2, not " +
@@ -893,10 +906,16 @@ const BUSCO_ADAPTER: CategoryRouteAdapter = {
 };
 
 // ---------------------------------------------------------------------------------------
-// Clases / Comunidad / Mascotas y Perdidos — free quick-ad categories with NO dashboard
-// management surface. Confirmed `ready:false` (Clases/Comunidad) or entirely absent
-// (Mascotas y Perdidos) from dashboardMisAnunciosCategories.ts — dashboardRoute() honestly
-// returns null for all three rather than inventing a management surface that doesn't exist.
+// Clases / Comunidad — free quick-ad categories with NO dedicated Mis Anuncios category tab
+// (confirmed `ready:false`, `manageHref: () => null` in dashboardMisAnunciosCategories.ts, still
+// true as of Gate I.6A). dashboardRoute() honestly returns null rather than resolving to
+// `/dashboard/mis-anuncios` as if a dedicated tab existed. Gate I.6A found this needs a caveat,
+// not a value change: a real, generic, non-category-gated per-listing workspace + editor
+// (app/(site)/dashboard/mis-anuncios/[id]/page.tsx and its /editar sibling) IS reachable for
+// these rows once you already have the listing's UUID — see each adapter's editRoute/
+// knownLimitations below. Both categories share one implementation
+// (CommunityQuickApplicationClient({kind: "clases"|"comunidad"})) — this is intentional code
+// sharing, not two divergent products, confirmed by direct inspection.
 // ---------------------------------------------------------------------------------------
 const CLASES_ADAPTER: CategoryRouteAdapter = {
   pipeline: "clases",
@@ -907,10 +926,14 @@ const CLASES_ADAPTER: CategoryRouteAdapter = {
   resultsRoute: "/clasificados/clases/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
-  editRoute: () => null,
+  // Gate I.6A — corrected. Same generic, owner-verified, UPDATE-by-UUID edit page as every other
+  // listings-table quick category (app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx).
+  // Limited to title/price/description/photos/status — the category-specific fields (schedule,
+  // audience, links, etc., stored in detail_pairs) have no edit surface.
+  editRoute: (identity, opts) => withLang(`/dashboard/mis-anuncios/${identity.sourceId}/editar`, lang(opts)),
   previewRoute: (_identity, opts) => withLang("/publicar/clases/quick/preview", lang(opts)),
   // Confirmed `ready:false`, `manageHref: () => null` in dashboardMisAnunciosCategories.ts —
-  // no dashboard management surface exists; this must not be resolved as /dashboard/mis-anuncios.
+  // no DEDICATED category tab exists; this must not be resolved as /dashboard/mis-anuncios.
   dashboardRoute: () => null,
 
   supportsParentChildInventory: false,
@@ -918,8 +941,13 @@ const CLASES_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "dashboardRoute() returns null on purpose — confirmed absent, not a gap to guess at.",
-    "editRoute() returns null — no management surface exists to edit from.",
+    "dashboardRoute() returns null on purpose — no dedicated Mis Anuncios category tab exists " +
+      "(confirmed still true). A generic, non-category-gated per-listing workspace is reachable " +
+      "once the owner has the listing's UUID (see editRoute).",
+    "Gate I.6A — editRoute() now resolves to the generic /dashboard/mis-anuncios/{id}/editar " +
+      "page. publishCommunityQuickToListings always INSERTs a fresh row on every publish click " +
+      "(no update-if-exists check, no dedup against a prior successful publish of the same " +
+      "session draft) — a real, structural duplicate-row risk on double-submit, not repaired here.",
   ],
 };
 
@@ -932,7 +960,8 @@ const COMUNIDAD_ADAPTER: CategoryRouteAdapter = {
   resultsRoute: "/clasificados/comunidad/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
-  editRoute: () => null,
+  // Gate I.6A — corrected, same reasoning as Clases above (shared implementation).
+  editRoute: (identity, opts) => withLang(`/dashboard/mis-anuncios/${identity.sourceId}/editar`, lang(opts)),
   previewRoute: (_identity, opts) => withLang("/publicar/comunidad/quick/preview", lang(opts)),
   dashboardRoute: () => null,
 
@@ -941,10 +970,17 @@ const COMUNIDAD_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "dashboardRoute() returns null on purpose — confirmed absent, not a gap to guess at.",
-    "A separate `/publicar/community/` tree also exists (\"Community\", English-first) — Gate " +
-      "I.5A did not confirm whether it's the same product concept as Comunidad; not merged or " +
-      "assumed identical here, flagged for a follow-up gate.",
+    "dashboardRoute() returns null on purpose — no dedicated Mis Anuncios category tab exists " +
+      "(confirmed still true). A generic, non-category-gated per-listing workspace is reachable " +
+      "once the owner has the listing's UUID (see editRoute).",
+    "Gate I.6A — editRoute() now resolves to the generic /dashboard/mis-anuncios/{id}/editar " +
+      "page. Same fresh-INSERT-on-every-publish duplicate-row risk as Clases (shared publish " +
+      "implementation), not repaired here.",
+    "Gate I.6A — corrected: the previously-flagged \"separate /publicar/community/ tree, not " +
+      "confirmed whether same product\" concern was unfounded. Direct inspection confirms there " +
+      "is no standalone routable page under app/(site)/publicar/community/ at all — it is purely " +
+      "the shared component/logic library both /publicar/clases/quick and /publicar/comunidad/" +
+      "quick import from. Not a duplicate product, not a fork.",
   ],
 };
 
@@ -957,9 +993,9 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
   // mascotasPerdidosResultsUrl() is the actual live-called function for this route.
   resultsRoute: "/clasificados/mascotas-y-perdidos/results",
 
-  // Gate I.5A explicitly found NO public detail route for this category in the shared
-  // anuncio/[id] shell (unlike busco/clases/comunidad) — this is a genuine confirmed gap, not
-  // merely unconfirmed, so null here is a finding, not a placeholder.
+  // Gate I.6A deepened this finding — deliberately still null, do NOT "fix" this to a real URL
+  // without first fixing the root cause documented below; doing so would send users to a page
+  // that mis-renders.
   publicRoute: () => null,
   editRoute: () => null,
   previewRoute: (_identity, opts) => withLang("/publicar/mascotas-y-perdidos/quick/preview", lang(opts)),
@@ -970,13 +1006,23 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "publicRoute() returns null — CONFIRMED GAP, not merely unresolved: Gate I.5A found no " +
-      "public listing-detail route for this category anywhere in the shared anuncio/[id] shell, " +
-      "unlike every other quick-ad category (busco/clases/comunidad all render there). Once a " +
-      "published Mascotas y Perdidos listing exists, it is unclear where it becomes publicly " +
-      "viewable — recommend investigating before any further work on this pipeline.",
+    "Gate I.6A — root cause identified (deepens the prior \"confirmed gap\" finding, not yet " +
+      "repaired). Result cards DO navigate to /clasificados/anuncio/{id} (same shared shell as " +
+      "every other category) and the shell DOES fetch the row successfully. The bug is in that " +
+      "shell's category allowlist: `coerceCategoryKey()` (app/(site)/clasificados/anuncio/[id]/" +
+      "page.tsx) does not include \"mascotas-y-perdidos\" in its CATEGORY_KEYS list, so the row's " +
+      "category is silently coerced to \"en-venta\" and rendered through the wrong layout (wrong " +
+      "cross-links, no lost/found/adoption badge, price shown as free/$0, notice-type and " +
+      "last-known-location shown only as raw generic detail rows). Fixing this requires editing " +
+      "the shared multi-category shell that also serves Rentas/Bienes Raíces/Autos/Empleos/" +
+      "Servicios — explicitly out of scope for a Quick Clasificados-only package. Deferred to a " +
+      "dedicated gate (see the shell's CATEGORY_KEYS allowlist and the branch dispatch near the " +
+      "busco/clases/comunidad `useXQuickDetail` checks for the exact pattern to extend).",
+    "publicRoute() remains null on purpose — flipping it to a real URL before the shell fix above " +
+      "lands would actively mislead consumers (dashboard/results links) into sending users to a " +
+      "page that renders the wrong content, which is worse than the current honest null.",
     "dashboardRoute() returns null — confirmed absent from Mis Anuncios entirely (no key in " +
-      "dashboardMisAnunciosCategories.ts).",
+      "dashboardMisAnunciosCategories.ts), still true as of Gate I.6A.",
   ],
 };
 

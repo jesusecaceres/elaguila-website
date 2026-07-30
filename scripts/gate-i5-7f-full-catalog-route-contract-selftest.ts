@@ -213,7 +213,7 @@ async function main() {
     },
     en_venta: {
       application: "category_specific", // documented temporary exception, no modern hub exists
-      edit: "intentionally_unsupported", // editing is inline-only, no distinct URL
+      edit: "supported", // Gate I.6A — generic /dashboard/mis-anuncios/{id}/editar page, was wrongly null
       preview: "supported",
       publicRoute: "supported",
       results: "supported",
@@ -243,7 +243,7 @@ async function main() {
     },
     busco: {
       application: "supported",
-      edit: "missing",
+      edit: "supported", // Gate I.6A — generic /dashboard/mis-anuncios/{id}/editar page, was wrongly null
       preview: "supported",
       publicRoute: "supported",
       results: "supported",
@@ -253,17 +253,17 @@ async function main() {
     },
     clases: {
       application: "supported",
-      edit: "missing",
+      edit: "supported", // Gate I.6A — generic /dashboard/mis-anuncios/{id}/editar page, was wrongly null
       preview: "supported",
       publicRoute: "supported",
       results: "supported",
-      dashboard: "intentionally_unsupported", // confirmed ready:false, no management surface
+      dashboard: "intentionally_unsupported", // confirmed ready:false, no DEDICATED management tab (generic per-listing workspace is reachable — see edit)
       secondaryManage: "not_applicable",
       parentChild: false,
     },
     comunidad: {
       application: "supported",
-      edit: "missing",
+      edit: "supported", // Gate I.6A — generic /dashboard/mis-anuncios/{id}/editar page, was wrongly null
       preview: "supported",
       publicRoute: "supported",
       results: "supported",
@@ -273,9 +273,9 @@ async function main() {
     },
     mascotas_y_perdidos: {
       application: "supported",
-      edit: "missing",
+      edit: "missing", // no category-specific editor exists; generic edit page also correctly withheld pending the public-route fix
       preview: "supported",
-      publicRoute: "missing", // CONFIRMED GAP — no public detail route exists anywhere
+      publicRoute: "missing", // Gate I.6A — root cause identified (shared shell's category allowlist), deliberately still null/unsafe to "fix" without the shell change
       results: "supported",
       dashboard: "intentionally_unsupported", // confirmed absent from Mis Anuncios entirely
       secondaryManage: "not_applicable",
