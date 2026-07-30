@@ -268,10 +268,13 @@ export function LeonixRealEstateListingManageCard({
   const canPause = st === "active" && row.is_published !== false;
   const canResume = st === "paused" || st === "unpublished";
 
-  // Gate D.2.2 — explicit parent/child detection for this Bienes Negocio row, mirroring the
-  // established pattern in BrNegocioListingInventoryActions.tsx. Only ever used to gate whether
-  // canonical resolver Edit/Preview may be consumed below; child rows always keep their existing
-  // (pre-Gate-D, unrelated) legacy hrefs untouched.
+  // Gate D.2.2 / I.5.7A.1 — explicit parent/child detection for this Bienes Negocio row, mirroring
+  // the established pattern in BrNegocioListingInventoryActions.tsx. Gates whether canonical
+  // resolver Edit/Preview may be consumed below AND, as of Gate I.5.7A.1, whether the legacy
+  // Edit/Preview href builders may be consumed at all: child rows (and any ambiguous non-main BR
+  // Negocio role) no longer receive an Edit/Preview href of any kind — see Gate D.2.1/D.2.2's own
+  // documented finding that the legacy hydration path re-includes the child as its own inventory
+  // property. Only `isBrNegocioMainRow` rows may resolve an Edit/Preview href now.
   const isBrNegocioRow = effectiveBranch === "bienes_raices_negocio" && isBr && isBrNegocioListing(row as BrPropertyInventoryRowLike);
   const isBrNegocioChildRow = isBrNegocioRow && isBrInventoryProperty(row as BrPropertyInventoryRowLike);
   const isBrNegocioMainRow =
@@ -330,17 +333,25 @@ export function LeonixRealEstateListingManageCard({
   const brDiscontinueAction = brLifecycleContract?.actions.find((a) => a.key === "discontinue") ?? null;
 
   const fsboDashboardEditHref = `/dashboard/mis-anuncios/${encodeURIComponent(row.id)}/editar?lang=${lang}`;
+  // Gate I.5.7A.1 — BR Negocio Edit/Preview are only ever resolved for `isBrNegocioMainRow`. A
+  // child (or ambiguous non-main) row resolves to `undefined`/`null` instead of falling through to
+  // the legacy `bienesListingEditHref`/`bienesListingPreviewHref` builders, which is what
+  // previously let a child's own UUID reach the parent-level application hydration path. This does
+  // not repair that legacy hydration path (still locked/out of scope) — it simply stops routing
+  // BR Negocio child rows into it.
   const brDashboardEditHref =
     effectiveBranch === "bienes_raices_privado" && isBr
       ? fsboDashboardEditHref
       : effectiveBranch === "bienes_raices_negocio" && isBr
-      ? (isBrNegocioMainRow ? canonicalBrActions.get("edit")?.href : undefined) ??
-        bienesListingEditHref({
-          lang,
-          listingId: row.id,
-          leonixAdId: row.leonix_ad_id,
-          categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
-        })
+      ? isBrNegocioMainRow
+        ? canonicalBrActions.get("edit")?.href ??
+          bienesListingEditHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+            categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
+          })
+        : undefined
       : effectiveBranch === "rentas_privado" || effectiveBranch === "rentas_negocio"
       ? rentasDashboardEditHref({
           branch: effectiveBranch,
@@ -353,13 +364,15 @@ export function LeonixRealEstateListingManageCard({
     effectiveBranch === "bienes_raices_privado" && isBr
       ? leonixLiveAnuncioPath(row.id)
       : effectiveBranch === "bienes_raices_negocio" && isBr
-      ? (isBrNegocioMainRow ? canonicalBrActions.get("preview")?.href : undefined) ??
-        bienesListingPreviewHref({
-          lang,
-          listingId: row.id,
-          leonixAdId: row.leonix_ad_id,
-          categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
-        })
+      ? isBrNegocioMainRow
+        ? canonicalBrActions.get("preview")?.href ??
+          bienesListingPreviewHref({
+            lang,
+            listingId: row.id,
+            leonixAdId: row.leonix_ad_id,
+            categoriaPropiedad: resolveBienesCategoriaFromDetailPairs(row.detail_pairs),
+          })
+        : undefined
       : null;
 
   const publicViewHref = isBrNegocioRow ? (canonicalBrActions.get("viewPublic")?.href ?? legacyPublicViewHref) : legacyPublicViewHref;
@@ -540,13 +553,15 @@ export function LeonixRealEstateListingManageCard({
           >
             {publicViewLabel(lang)}
           </Link>
-          <Link
-            href={brDashboardEditHref}
-            prefetch={false}
-            className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
-          >
-            {editListingLabel(lang)}
-          </Link>
+          {brDashboardEditHref ? (
+            <Link
+              href={brDashboardEditHref}
+              prefetch={false}
+              className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
+            >
+              {editListingLabel(lang)}
+            </Link>
+          ) : null}
           {brDashboardPreviewHref ? (
             <Link
               href={brDashboardPreviewHref}
