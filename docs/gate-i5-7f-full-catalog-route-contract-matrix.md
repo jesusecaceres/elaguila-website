@@ -15,10 +15,128 @@ and, for the specific fixes below, by
 [`scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts`](../scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts),
 [`scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts`](../scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts),
 [`scripts/gate-i8a-global-dashboard-truth-selftest.ts`](../scripts/gate-i8a-global-dashboard-truth-selftest.ts),
+[`scripts/gate-i8b-live-dashboard-coverage-selftest.ts`](../scripts/gate-i8b-live-dashboard-coverage-selftest.ts),
 and
-[`scripts/gate-i8b-live-dashboard-coverage-selftest.ts`](../scripts/gate-i8b-live-dashboard-coverage-selftest.ts).
+[`scripts/gate-i9a-admin-operations-truth-selftest.ts`](../scripts/gate-i9a-admin-operations-truth-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.9A update log
+
+First package to audit the **staff-facing Admin surface** (`app/admin/`), architecturally
+separate from every prior package in this ledger (all of which covered the owner-facing dashboard
+or the public route/registry system). Confirmed by direct inspection: Admin has **zero** usage of
+the canonical `ListingIdentity`/`categoryRouteRegistry.ts`/`resolveDashboardActions()` system
+anywhere — it is an entirely separate, ad-hoc identity/route system
+(`app/admin/_lib/listingsAdminSelect.ts`, `classifiedsOpsContract.ts`, per-route inline path
+building). This package does not unify the two systems (out of scope, too large) — it audits,
+classifies, and organizes Admin truthfully, and fixes two small, safe, evidence-backed real bugs.
+
+- **`adminListingClassification.ts` — new.** Mirrors the owner-dashboard's
+  `classifyOwnerDashboardRow()` (I.8A), but for Admin, and — for the first time — has Admin
+  express its classification in terms of the canonical `CanonicalCategoryKey` pipeline vocabulary
+  instead of inventing a third parallel one. Purely a classification helper (group + pipeline);
+  never sees an owner id.
+- **`adminActionTruth.ts` — new.** Classifies, per pipeline and per action, whether a real
+  handler exists, using only confirmed evidence from direct source inspection of all 20
+  `app/api/admin/**` route files plus every Admin category queue page:
+  - **Dedicated-route pipelines** (real `app/api/admin/{category}/listings/[id]/route.ts` PATCH
+    handler, confirmed `requireAdminCookie` + real `.update()`): Restaurantes, Servicios, Empleos
+    (+ moderate route), Autos Negocios, Viajes (+ staged-listings moderate route).
+  - **Generic-route pipelines** (shared `app/api/admin/clasificados/listings/[id]/route.ts`,
+    category-branching PATCH against the shared `listings` table): Rentas (both lanes), En Venta,
+    Bienes Raíces (both lanes), Comunidad, Clases, Busco, Mascotas y Perdidos, Autos Privado.
+    Classified `working_with_adapter`, deliberately not collapsed into bare `working` — the route
+    branches per category and that distinction is preserved, not flattened.
+  - **Comida Local — confirmed real Admin queue page, but literally no write handler at all.**
+    Direct inspection of `app/admin/(dashboard)/workspace/clasificados/comida-local/page.tsx`
+    found no suspend/archive `onClick`, no `fetch` to `/api/admin`, only a GET search form and a
+    queue/live toggle link. Classified `ui_only_no_handler` — there was no misleading button to
+    fix (there is no button at all), so nothing was hidden/disabled; this is a genuine, honest
+    capability gap, recorded here per Objective G rather than silently assumed working.
+  - **`remove` (hard delete) is deliberately never classified as a routine `working` action for
+    any pipeline.** The real handler (`deleteListingAction`) exists, is authorization-gated, and
+    genuinely deletes Mux assets + soft-removes the row — but this package keeps it classified
+    `blocked`/`intentionally_unsupported` in the generic per-row action truth table rather than
+    certifying it as a routine, safe-to-wire action; it remains its own separately-invoked,
+    more-cautiously-gated tool.
+  - **Real, confirmed gap: no parent/child protection at the Admin API layer.** The owner-facing
+    `resolveDashboardActions()` has an explicit, tested guard preventing a child inventory row's
+    action from acting on/appearing as its parent (I.5.8). Admin has no equivalent — its
+    write routes (`restaurantes/[id]`, `servicios/[id]`, `clasificados/listings/[id]`, etc.) act
+    directly on whatever UUID is in the URL, with zero `inventory_role`/parent-check before
+    mutating. `inspectParentChild` is classified `stale_or_unsafe` for `bienes_raices_negocio`
+    and `autos_negocios` to record this honestly. **Not fixed in this package** — retrofitting a
+    guard into 6+ live write routes is a real behavior change to production write paths, outside
+    this package's "narrow additive changes" scope; recorded as a remaining gap.
+- **`adminStatusAttention.ts` — new.** Per Objective H's "reuse or adapt existing display-only
+  status normalization," this does **not** duplicate the owner-dashboard's status mapping tables
+  — it calls `resolveOwnerDashboardStatusDisplay()` (I.8A/I.8B) directly, since Restaurantes/
+  Servicios/Empleos/Viajes use identical DB status vocabularies in Admin as in the owner
+  dashboard (same tables, same columns). Adds only genuinely Admin-specific attention reasons on
+  top (unsupported pipeline, unknown status, suspended, pending moderation, payment required,
+  expired entitlement, missing owner, parent/child inconsistency, incomplete Admin action) — all
+  strictly gated on caller-supplied, already-verified facts; nothing is inferred or fabricated.
+- **Real security fix: `updateListingReportStatusAction` was missing its documented
+  authorization gate.** `app/admin/_lib/leonixAdminGate.ts`'s own header comment already
+  documented `can_manage_reports -> updateListingReportStatusAction` as the intended permission
+  gate, but the function itself had no `requireLeonixAdminPermission()` call at all — unlike its
+  siblings in the same file (`setListingPublishedAction`, `deleteListingAction`, both correctly
+  gated on `can_manage_ads`). Fixed by adding the one missing, already-intended call. Confirmed
+  `submitListingReportAction` (the public "report this listing" action, called from public
+  listing pages, not staff) correctly remains ungated — it is not a staff action and was never
+  supposed to be.
+- **Real, evidence-backed contract fix: `busco` was missing from
+  `CLASSIFIEDS_OPS_CONTRACTS`.** A real, working Admin queue page already existed
+  (`app/admin/(dashboard)/workspace/clasificados/busco/page.tsx`, backed by the shared `listings`
+  table, covered by the same generic write route as Rentas/En Venta/Comunidad/Clases) — same bug
+  class already fixed for Clases/Comunidad on the owner-dashboard side (Gate I.6B). Added with the
+  confirmed-real `"BUSCO"` Leonix prefix (`listingsLeonixPrefixForCategory("busco")`,
+  `app/(site)/clasificados/lib/leonixAdIdAllocator.ts`). **Ofertas Locales was deliberately NOT
+  added** — it is a locked system for this package (Ofertas/Cupones); its real, separate
+  `ofertas_locales` table and Admin surface were not inspected or touched.
+- **Auth-check consistency — audited, not refactored.** All 21 `app/api/admin/**` routes do
+  perform a real cookie check before any write, but via three different code paths (direct
+  `requireAdminCookie` import in 8 files, a wrapper `assertAdminLeadExportAccess()` in 7 files,
+  and a hand-inlined literal duplicate of the same check in 5 files that never calls the shared
+  helper). No route is unprotected, but this is a real consistency/maintainability risk — a
+  future change to admin-cookie logic could silently miss the 5 inlined files. **Not refactored
+  in this package** (would touch 13+ live write route files, outside this package's narrow-change
+  scope) — recorded as a remaining gap, not silently normalized away.
+- **Owner PII exposure — audited, not changed.** Admin can resolve any listing's `owner_id` to
+  the owner's full profile including email (`app/admin/_lib/adminProfilesQuery.ts`), gated only
+  by the base admin cookie — no per-role redaction, no read-audit-logging (only writes are
+  audited via `auditAdminWrite`/`appendAdminAuditLog`). Recorded as a remaining gap; not a write
+  behavior change, so out of this package's fix scope.
+- **Entitlement/promo-code Admin writers confirmed real and pre-existing — not touched.**
+  `listing_package_entitlements` create/revoke/extend/attach and `leonix_promo_codes`
+  create/revoke already exist, are authorization-gated (`assertCanManageEntitlement`/
+  `assertCanManagePromoCode`), and are unmodified by this package (verified in the new test).
+  `leonix_payment_records` (the Stripe/payment table itself) has no Admin write path anywhere —
+  confirmed webhook-only by design, correctly left that way.
+- **No dedicated Admin view of Restaurante coupon add-on / Servicios offers-addon status exists
+  per listing** — confirmed absent (only a generic `addOnKeys` list inside promo-code redemption
+  usage rows). Documented as a real gap, not built here.
+
+## Per-pipeline Admin operations truth
+
+| Pipeline | Admin discovery | Canonical identity | Owner visibility | Normalized status | View/Preview/Edit context | Moderation | Lifecycle controls | Payment visibility | Entitlement visibility | Report handling | Parent/child inspection | Incomplete actions | Remaining Admin gap |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `restaurantes` | dedicated table + page | sourceId UUID | real (`owner_user_id` → profiles) | reused from I.8A/I.8B, truthful | real | via `listing_reports` (auth now fixed) | working (dedicated route) | real (`listing_package_entitlements`/payment tracker) | real | connected, auth gap now closed | not applicable | `remove` intentionally not routine | consistency of the 3-pattern cookie-check duplication |
+| `servicios` | dedicated table + page | sourceId UUID | real | reused, truthful | real | same as above | working (dedicated route) | real | real | connected | not applicable | `remove` not routine | same as above |
+| `empleos` | dedicated table + page + moderate route | sourceId UUID | real | reused, truthful | real | dedicated moderate route, real | working (dedicated route) | real | real | connected | not applicable | `remove` not routine | same as above |
+| `autos_negocios` | dedicated table + page | sourceId UUID | real | own logic, not re-audited this pass | real | via `listing_reports` | working (dedicated route) | real | real | connected | **confirmed unsafe** — no parent/child guard at Admin API layer | `remove` not routine | parent/child guard gap (documented, not fixed) |
+| `autos_privado` | shared `listings` table | sourceId UUID | real | shared centralized helper | real | via `listing_reports` | working_with_adapter (generic route) | real | real | connected | not applicable | `remove` not routine | consistency gap |
+| `bienes_raices_negocio` | shared `listings` table + inventory badges | sourceId UUID, `br_inventory_group_id` | real | own logic | real | via `listing_reports` | working_with_adapter (generic route) | real | real | connected | **confirmed unsafe** — same gap as Autos Negocios | `remove` not routine | parent/child guard gap |
+| `bienes_raices_privado` | shared `listings` table | sourceId UUID | real | shared centralized helper | real | via `listing_reports` | working_with_adapter | real | real | connected | not applicable | `remove` not routine | consistency gap |
+| `rentas_negocio`/`rentas_privado` | shared `listings` table + dedicated inspector route | sourceId UUID | real | shared centralized helper | real | via `listing_reports` | working_with_adapter | real | real | connected | not applicable | `remove` not routine | consistency gap |
+| `en_venta` | shared `listings` table | sourceId UUID | real | shared centralized helper | real | via `listing_reports` | working_with_adapter | real | real | connected | not applicable | `remove` not routine | consistency gap |
+| `comida_local` | dedicated table + page | sourceId UUID | real | own dedicated translator, truthful | real (view only) | via `listing_reports` | **`ui_only_no_handler` — confirmed no write handler at all** | not applicable | not applicable | connected | not applicable | suspend/archive/etc genuinely absent | build real lifecycle actions if ever prioritized |
+| `ofertas_locales` | **out of scope — locked system (Ofertas/Cupones)** | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | not inspected or touched by this package |
+| `busco` | **fixed in I.9A** — real page, was missing from `CLASSIFIEDS_OPS_CONTRACTS` | sourceId UUID | real | shared centralized helper | real | via `listing_reports` | working_with_adapter (generic route) | real | real | connected | not applicable | `remove` not routine | consistency gap |
+| `clases`/`comunidad` | shared `listings` table | sourceId UUID | real | shared centralized helper | real | via `listing_reports` | working_with_adapter | real | real | connected | not applicable | `remove` not routine | consistency gap |
+| `mascotas_y_perdidos` | shared `listings` table | sourceId UUID | real | shared centralized helper | real; **Edit/owner-context honestly `blocked`** — no safe editor exists (same fact as I.6B/I.8B) | via `listing_reports` | working_with_adapter | real | real | connected | not applicable | `remove` not routine; Edit blocked | build a safe editor if ever prioritized |
+| `viajes` | dedicated table + page + moderate route | sourceId UUID (table is slug-keyed for public) | real | reused, truthful | `working_with_adapter` — lane-ambiguous (same finding as I.7A) | dedicated moderate route, real | working (dedicated route) | real | real | connected | not applicable | `remove` not routine | lane-ambiguity, consistency gap |
 
 ## Work Package I.8B update log
 
