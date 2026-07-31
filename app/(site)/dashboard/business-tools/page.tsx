@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { computeBusinessCompleteness } from "../lib/businessProfileCompleteness";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { BusinessIdentityAccessPanel } from "./_components/BusinessIdentityAccessPanel";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -128,6 +129,10 @@ export default function BusinessToolsPage() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
             <p className="mt-4 text-sm text-[#3D3428]/90">{t.lead}</p>
           </header>
+
+          <div className="mt-8">
+            <BusinessIdentityAccessPanel lang={lang} userId={userId} />
+          </div>
 
           {completeness ? (
             <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#F3EBDD]/90 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">

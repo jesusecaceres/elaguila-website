@@ -2,7 +2,7 @@ import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { BUSINESS_IDENTITY_FLAG_KEY } from "./constants";
-import { computeFlagTier, type ResolvedFlagTier } from "./featureFlagLogic";
+import { computeFlagTier, shouldApplyTestOverride, type ResolvedFlagTier } from "./featureFlagLogic";
 import type { BusinessIdentityFlagRow } from "./types";
 
 export type { ResolvedFlagTier };
@@ -83,6 +83,18 @@ async function getFlagRowCached(): Promise<BusinessIdentityFlagRow | null> {
  * state fresh (bypassing cache) — everything else may use the short-lived cache.
  */
 export async function resolveBusinessIdentityFlagTier(userId: string | null): Promise<ResolvedFlagTier> {
+  // Non-production-only test override (Package BCO-3) — see shouldApplyTestOverride's doc
+  // comment. Never applies when VERCEL_ENV=production; never touches the real flag row.
+  if (
+    shouldApplyTestOverride({
+      userId,
+      vercelEnv: process.env.VERCEL_ENV,
+      overrideUserId: process.env.BUSINESS_IDENTITY_TEST_OVERRIDE_USER_ID,
+    })
+  ) {
+    return "global";
+  }
+
   const freshRow = await fetchFlagRow();
   return computeFlagTier(freshRow, userId);
 }
