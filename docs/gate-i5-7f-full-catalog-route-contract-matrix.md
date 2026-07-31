@@ -23,10 +23,37 @@ and, for the analytics/engagement truth recorded below,
 [`scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts`](../scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts),
 and, for the media/draft-persistence truth recorded below,
 [`scripts/gate-i11a-media-draft-persistence-truth-selftest.ts`](../scripts/gate-i11a-media-draft-persistence-truth-selftest.ts)
+[`scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts`](../scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts),
 and
-[`scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts`](../scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts).
+[`scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts`](../scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.11B Update Log
+
+**Closes the one gap I.11A's own final report named explicitly:** `app/api/clasificados/autos/media/draft-photo-upload/route.ts`
+had the same unauthenticated-upload weakness fixed elsewhere in I.11A, and its anonymous fallback
+was actually **weaker** than the four routes I.11A fixed — every unauthenticated caller shared one
+literal `"anon"` path segment (not even scoped per-draft), relying entirely on the client-supplied
+`draftId` for any separation.
+
+- **Reused, not duplicated:** the route now imports the same `app/api/clasificados/_lib/anonUploadSession.ts`
+  helper I.11A introduced — real authenticated identity via the route's existing, unchanged
+  `getAutosPublishUserIdFromRequest()` when a bearer token is present; otherwise the shared
+  server-issued, `crypto.randomUUID()`-based, httpOnly anonymous session cookie. No second
+  anonymous-session implementation was created.
+- **Existing-listing ownership:** this route only ever receives a client-chosen `draftId`, never a
+  canonical `listingId` — there is not enough context here to verify ownership of an existing
+  listing. Documented, not invented: that verification happens where this route's uploaded URLs
+  are actually attached to a listing, at publish/update time, consistent with the other four
+  draft-media routes. The I.11A client-side `autosListingEditNamespace` session-scoping fix is
+  unrelated to this upload route and was not touched (locked for this package).
+- **Path safety:** existing MIME-type, file-size, and slot-allowlist validation are unchanged;
+  `draftId` sanitization (strips to `[a-zA-Z0-9_-]`, safe non-empty fallback) is unchanged; no
+  storage-object deletion was added or existed before.
+
+**Files:** the Autos draft-photo-upload route (edited), `scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts`
+(new), this ledger entry. 3 files, within the 5-file budget.
 
 ## Work Package I.11A Update Log
 
@@ -120,9 +147,9 @@ just used, so it automatically follows the now-correct effective namespace. `flu
 already read `namespaceRef.current` at call time. Parent/child and sibling isolation (saved
 children as distinct array elements with per-image-id IDB keys; the in-flight child drawer as a
 single slot disambiguated by `inventoryDrawerEditingId`) is orthogonal to this fix and was not
-touched. Autos' own `draft-photo-upload/route.ts` has the same weak-anon-fallback pattern
-documented above for the other four upload routes — **not fixed in this package** (bundled with
-the Autos draft/media work conceptually but out of the approved file list), named here explicitly.
+touched. Autos' own `draft-photo-upload/route.ts` had the same weak-anon-fallback pattern
+documented above for the other four upload routes — **fixed in Work Package I.11B**, see that
+section below.
 
 ### Stale documentation corrected
 

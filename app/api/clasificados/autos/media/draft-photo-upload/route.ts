@@ -1,17 +1,33 @@
 import { put } from "@vercel/blob";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
+import { anonUploadPathSegment, applyAnonUploadSessionCookie, resolveAnonUploadSessionId } from "@/app/api/clasificados/_lib/anonUploadSession";
 
 export const runtime = "nodejs";
 
 const SLOTS = new Set(["gallery", "logo", "finance_image"]);
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
+function ownerPathSegment(userId: string | null, anonSessionId: string): string {
+  if (userId) return userId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 48);
+  return anonUploadPathSegment(anonSessionId);
+}
+
 /**
  * Upload one browser-held Autos draft image to public Blob storage.
  * Returns HTTPS `publicUrl` for publish (Privado + Negocios gallery/logo/finance image).
+ * Path is scoped by the real authenticated owner when present, else by the shared server-issued
+ * anonymous session id (never a bare "anon" constant, never the client-supplied draftId alone —
+ * that was the proven gap: every unauthenticated caller previously shared one literal "anon"
+ * path segment).
+ *
+ * This route does not receive a canonical listingId (only a client-chosen draftId), so it cannot
+ * verify existing-listing ownership here — that check happens where this route's uploaded URLs
+ * are actually attached to a listing (publish/update time), consistent with the other draft-media
+ * routes fixed in I.11A. The I.11A client-side listing-scoped draft session namespace
+ * (`autosListingEditNamespace`) is unrelated to this upload route and is untouched.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {
     return NextResponse.json(
@@ -53,8 +69,9 @@ export async function POST(req: Request) {
   }
 
   const userId = await getAutosPublishUserIdFromRequest(req);
+  const anonSession = userId ? null : resolveAnonUploadSessionId(req);
   const safeDraft = draftId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "draft";
-  const safeUser = userId?.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 48) || "anon";
+  const safeUser = ownerPathSegment(userId, anonSession?.id ?? "");
   const ix = Number.isFinite(index) ? Math.max(0, Math.floor(index)) : 0;
   const pathname = `clasificados/autos/drafts/${safeUser}/${safeDraft}/${slot}-${ix}-${Date.now()}`;
 
@@ -65,5 +82,7 @@ export async function POST(req: Request) {
     contentType: file.type || "image/jpeg",
   });
 
-  return NextResponse.json({ ok: true, publicUrl: uploaded.url });
+  const res = NextResponse.json({ ok: true, publicUrl: uploaded.url });
+  if (anonSession?.isNew) applyAnonUploadSessionCookie(res, anonSession.id);
+  return res;
 }

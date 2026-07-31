@@ -269,11 +269,24 @@ async function main() {
       "app/api/clasificados/restaurantes/draft-media-upload/route.ts",
       "app/api/clasificados/servicios/draft-media-upload/route.ts",
     ]);
+    /**
+     * Work Package I.11B (Autos Draft Upload Session Security) approved, narrow exception.
+     * I.11B applied the exact same anon-session-scoping fix I.11A already shipped for the other
+     * four draft-media-upload routes to the one Autos held out — verified to touch only the
+     * upload-path identity resolution in this single route, never Autos application/draft/
+     * IndexedDB-namespace logic (locked for this package; see `gate-i11b-autos-draft-upload-
+     * session-security-selftest.ts`'s own scope check). Exact-file, exact-fragment allowlist
+     * only — every other "/autos/" file remains fully protected below.
+     */
+    const I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS = new Set<string>([
+      "app/api/clasificados/autos/media/draft-photo-upload/route.ts",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         if (frag === "bienes-raices" && I10A_BR_ANALYTICS_WIRING_EXCEPTIONS.has(f)) continue;
         if ((frag === "/autos/" || frag === "restaurantes" || frag === "servicios") && I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS.has(f)) continue;
+        if (frag === "/autos/" && I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }
