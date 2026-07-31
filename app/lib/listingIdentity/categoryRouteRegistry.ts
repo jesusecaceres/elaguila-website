@@ -993,10 +993,15 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
   // mascotasPerdidosResultsUrl() is the actual live-called function for this route.
   resultsRoute: "/clasificados/mascotas-y-perdidos/results",
 
-  // Gate I.6A deepened this finding — deliberately still null, do NOT "fix" this to a real URL
-  // without first fixing the root cause documented below; doing so would send users to a page
-  // that mis-renders.
-  publicRoute: () => null,
+  // Gate I.6B — corrected. The shared shell's root cause (CATEGORY_KEYS allowlist omission,
+  // see knownLimitations) is now fixed: app/(site)/clasificados/anuncio/[id]/page.tsx accepts
+  // "mascotas-y-perdidos" and renders it through a real, dedicated
+  // MascotasPerdidosPublishedDetailPage component. Verified route shape matches every other
+  // UUID-keyed quick category exactly.
+  publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
+  // Deliberately still null — no category-specific editor exists for Mascotas, and the public
+  // rendering fix does not by itself create a safe edit surface. Do not expose the generic Edit
+  // page here without separately proving it's safe for this category's data shape.
   editRoute: () => null,
   previewRoute: (_identity, opts) => withLang("/publicar/mascotas-y-perdidos/quick/preview", lang(opts)),
   dashboardRoute: () => null,
@@ -1006,23 +1011,19 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "Gate I.6A — root cause identified (deepens the prior \"confirmed gap\" finding, not yet " +
-      "repaired). Result cards DO navigate to /clasificados/anuncio/{id} (same shared shell as " +
-      "every other category) and the shell DOES fetch the row successfully. The bug is in that " +
-      "shell's category allowlist: `coerceCategoryKey()` (app/(site)/clasificados/anuncio/[id]/" +
-      "page.tsx) does not include \"mascotas-y-perdidos\" in its CATEGORY_KEYS list, so the row's " +
-      "category is silently coerced to \"en-venta\" and rendered through the wrong layout (wrong " +
-      "cross-links, no lost/found/adoption badge, price shown as free/$0, notice-type and " +
-      "last-known-location shown only as raw generic detail rows). Fixing this requires editing " +
-      "the shared multi-category shell that also serves Rentas/Bienes Raíces/Autos/Empleos/" +
-      "Servicios — explicitly out of scope for a Quick Clasificados-only package. Deferred to a " +
-      "dedicated gate (see the shell's CATEGORY_KEYS allowlist and the branch dispatch near the " +
-      "busco/clases/comunidad `useXQuickDetail` checks for the exact pattern to extend).",
-    "publicRoute() remains null on purpose — flipping it to a real URL before the shell fix above " +
-      "lands would actively mislead consumers (dashboard/results links) into sending users to a " +
-      "page that renders the wrong content, which is worse than the current honest null.",
+    "Gate I.6B — repaired. Root cause was the shared shell's CATEGORY_KEYS allowlist " +
+      "(app/(site)/clasificados/anuncio/[id]/page.tsx) omitting \"mascotas-y-perdidos\", which " +
+      "silently coerced every real Mascotas listing to render as En Venta. Fixed by adding the " +
+      "category to the allowlist and adding a dedicated dispatch branch rendering " +
+      "MascotasPerdidosPublishedDetailPage (a new, category-specific component built from this " +
+      "category's own detail_pairs contract — lost/found/adoption notice type, last-known " +
+      "location, contact — not a copy of the En Venta renderer). Regression-tested to confirm " +
+      "every other shell-served category's classification is unaffected.",
+    "editRoute() remains null on purpose — public rendering being fixed does not by itself " +
+      "create a safe category-specific edit surface; the generic /dashboard/mis-anuncios/{id}/" +
+      "editar page is intentionally NOT exposed for this pipeline pending separate confirmation.",
     "dashboardRoute() returns null — confirmed absent from Mis Anuncios entirely (no key in " +
-      "dashboardMisAnunciosCategories.ts), still true as of Gate I.6A.",
+      "dashboardMisAnunciosCategories.ts), still true as of Gate I.6B.",
   ],
 };
 

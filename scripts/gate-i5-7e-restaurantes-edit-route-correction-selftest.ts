@@ -169,12 +169,15 @@ async function main() {
       getCategoryRouteAdapter("comunidad").dashboardRoute(fakeIdentity({ pipeline: "comunidad", category: "comunidad" }), { lang: "es" }),
       null,
     );
+    // Gate I.6B intentionally repaired this — Mascotas publicRoute is no longer null. Updated
+    // here rather than left stale, since the underlying shared-shell mis-render root cause this
+    // gate's original assertion was guarding against has since been fixed (not masked).
     assert.equal(
       getCategoryRouteAdapter("mascotas_y_perdidos").publicRoute(
-        fakeIdentity({ pipeline: "mascotas_y_perdidos", category: "mascotas-y-perdidos" }),
+        fakeIdentity({ pipeline: "mascotas_y_perdidos", category: "mascotas-y-perdidos", sourceId: "mp-1" }),
         { lang: "es" },
       ),
-      null,
+      "/clasificados/anuncio/mp-1",
     );
   }
 

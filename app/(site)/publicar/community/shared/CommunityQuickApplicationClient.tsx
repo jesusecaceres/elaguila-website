@@ -53,6 +53,7 @@ import {
   clearCommunityStagedPublish,
   writeCommunityStagedPublish,
 } from "./publish/communityPublishStaging";
+import { COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS } from "./constants/communitySessionKeys";
 import {
   gateClasesQuickPreview,
   gateComunidadQuickPreview,
@@ -212,10 +213,33 @@ function ClasesQuickApplication({ lang, routeLang, sharedCopy, router }: SubProp
     setSessionSaveNotice(false);
     setPublishing(true);
     try {
-      const r = await publishCommunityQuickToListings({ kind: "clases", draft: state, lang });
+      let inFlightId: string | null = null;
+      try {
+        inFlightId = window.sessionStorage.getItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS.clases);
+      } catch {
+        /* sessionStorage optional */
+      }
+      const r = await publishCommunityQuickToListings({
+        kind: "clases",
+        draft: state,
+        lang,
+        existingListingId: inFlightId,
+        onListingIdKnown: (listingId) => {
+          try {
+            window.sessionStorage.setItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS.clases, listingId);
+          } catch {
+            /* sessionStorage optional */
+          }
+        },
+      });
       if (!r.ok) {
         setPublishError(r.error);
         return;
+      }
+      try {
+        window.sessionStorage.removeItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS.clases);
+      } catch {
+        /* sessionStorage optional */
       }
       clearCommunityStagedPublish("clases");
       router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
@@ -686,10 +710,33 @@ function ComunidadQuickApplication({ lang, routeLang, sharedCopy, router }: SubP
     setSessionSaveNotice(false);
     setPublishing(true);
     try {
-      const r = await publishCommunityQuickToListings({ kind: "comunidad", draft: state, lang });
+      let inFlightId: string | null = null;
+      try {
+        inFlightId = window.sessionStorage.getItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS.comunidad);
+      } catch {
+        /* sessionStorage optional */
+      }
+      const r = await publishCommunityQuickToListings({
+        kind: "comunidad",
+        draft: state,
+        lang,
+        existingListingId: inFlightId,
+        onListingIdKnown: (listingId) => {
+          try {
+            window.sessionStorage.setItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS.comunidad, listingId);
+          } catch {
+            /* sessionStorage optional */
+          }
+        },
+      });
       if (!r.ok) {
         setPublishError(r.error);
         return;
+      }
+      try {
+        window.sessionStorage.removeItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS.comunidad);
+      } catch {
+        /* sessionStorage optional */
       }
       clearCommunityStagedPublish("comunidad");
       router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));

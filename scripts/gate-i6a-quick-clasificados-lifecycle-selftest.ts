@@ -95,10 +95,13 @@ async function main() {
       assert.equal(publicHref, `/clasificados/anuncio/${CANONICAL_ID}`, `${pipeline}.publicRoute must use the canonical UUID`);
     }
 
-    // Mascotas: publicRoute/editRoute both remain honestly null — proven, not silently "fixed".
+    // Mascotas: editRoute remains honestly null (no safe category-specific editor exists).
+    // publicRoute was null when this gate (I.6A) was written, documenting the then-unrepaired
+    // shared-shell mis-render bug; Gate I.6B fixed the root cause and this assertion was updated
+    // to match, rather than left stale.
     const mascotas = getCategoryRouteAdapter("mascotas_y_perdidos");
     const mascotasIdentity = fakeIdentity({ pipeline: "mascotas_y_perdidos", category: "mascotas-y-perdidos", sourceId: CANONICAL_ID });
-    assert.equal(mascotas.publicRoute(mascotasIdentity, { lang: "es" }), null, "Mascotas publicRoute must remain null — not unsafely pointed at a mis-rendering URL");
+    assert.equal(mascotas.publicRoute(mascotasIdentity, { lang: "es" }), `/clasificados/anuncio/${CANONICAL_ID}`, "Mascotas publicRoute must now resolve by canonical UUID (Gate I.6B fix)");
     assert.equal(mascotas.editRoute(mascotasIdentity, { lang: "es" }), null, "Mascotas editRoute remains unsupported (no category-specific editor exists)");
   }
 
@@ -121,9 +124,10 @@ async function main() {
   }
 
   /* ============================================================================================
-   * PUBLIC LIFECYCLE — results/public routes agree on the canonical UUID relationship for the
-   * four working pipelines; Mascotas gap is now precisely documented (source-level proof the
-   * root cause — the shared shell's category allowlist — is still exactly as found).
+   * PUBLIC LIFECYCLE — results/public routes agree on the canonical UUID relationship for all
+   * five pipelines. Gate I.6B fixed the shared shell's category-allowlist root cause this
+   * assertion originally locked in as broken (I.6A); updated here to confirm the fix rather than
+   * leave a stale "still broken" assertion in place.
    * ========================================================================================== */
   {
     const shellSrc = readFileSync(
@@ -134,7 +138,7 @@ async function main() {
     const allowlistMatch = shellSrc.match(/const CATEGORY_KEYS[\s\S]*?\[([\s\S]*?)\];/);
     assert.ok(allowlistMatch, "must be able to locate the CATEGORY_KEYS array literal");
     const allowlistBody = allowlistMatch![1];
-    assert.ok(!allowlistBody.includes("mascotas"), "CONFIRMED (Gate I.6A): mascotas-y-perdidos is still absent from the shared shell's category allowlist — this is the exact root cause of the mis-render bug documented in the registry's knownLimitations. This assertion locks in current (broken) behavior so a future fix visibly updates this test.");
+    assert.ok(allowlistBody.includes("mascotas-y-perdidos"), "CONFIRMED (Gate I.6B): mascotas-y-perdidos is now present in the shared shell's category allowlist — the mis-render root cause is fixed.");
     for (const present of ["en-venta", "clases", "comunidad", "busco"]) {
       assert.ok(allowlistBody.includes(present), `"${present}" must remain in the shell's allowlist`);
     }
@@ -193,10 +197,13 @@ async function main() {
       assert.ok(!keys.includes("manageOffers"), `${pipeline} must never receive manageOffers (Business Hub action)`);
       assert.ok(!keys.includes("manageInventory"), `${pipeline} must never receive manageInventory (Business Hub action)`);
 
+      // Gate I.6B fixed Mascotas' public route (was unsafely null when this gate — I.6A — was
+      // written); viewPublic now correctly appears for it too. Edit remains intentionally absent
+      // for Mascotas only — no safe category-specific editor exists.
+      assert.ok(keys.includes("viewPublic"), `${pipeline} must expose viewPublic`);
       if (pipeline === "mascotas_y_perdidos") {
-        assert.ok(!keys.includes("viewPublic"), "Mascotas must not expose viewPublic while the public route remains unsafely null");
+        assert.ok(!keys.includes("edit"), "Mascotas must not expose edit — no safe category-specific editor exists");
       } else {
-        assert.ok(keys.includes("viewPublic"), `${pipeline} must expose viewPublic`);
         assert.ok(keys.includes("edit"), `${pipeline} must now expose edit (Gate I.6A regression guard)`);
         const editAction = actions.find((a) => a.key === "edit")!;
         assert.ok(editAction.href.includes(identity.sourceId), `${pipeline} edit action href must target the canonical sourceId`);

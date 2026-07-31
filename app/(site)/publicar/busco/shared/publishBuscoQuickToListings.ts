@@ -1,10 +1,11 @@
 "use client";
 
-import { insertListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
+import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { verifyQuickListingReusable } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { gateBuscoQuickPreview } from "./buscoRequiredForPreview";
 import type { BuscoQuickDraft } from "./buscoQuickTypes";
@@ -89,8 +90,12 @@ export type BuscoQuickPublishToListingsResult =
 export async function publishBuscoQuickToListings(input: {
   draft: BuscoQuickDraft;
   lang: Lang;
+  /** I.6B — verified-reusable canonical UUID from a prior in-flight attempt of this same submission. */
+  existingListingId?: string | null;
+  /** I.6B — invoked as soon as the row id is known (reused or freshly inserted), before photo upload. */
+  onListingIdKnown?: (listingId: string) => void;
 }): Promise<BuscoQuickPublishToListingsResult> {
-  const { draft: d, lang } = input;
+  const { draft: d, lang, existingListingId, onListingIdKnown } = input;
   const err = (es: string, en: string) => (lang === "es" ? es : en);
 
   const gate = gateBuscoQuickPreview(d, lang);
@@ -142,14 +147,35 @@ export async function publishBuscoQuickToListings(input: {
     detail_pairs: pairs.length ? pairs : null,
   };
 
-  const ins = await insertListingsRowResilient(supabase, insertPayload);
-  if (ins.error) {
-    return { ok: false, error: ins.error.message };
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: "busco",
+      })
+    : null;
+
+  let listingId: string | undefined;
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const upd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (upd.error) {
+      return { ok: false, error: upd.error.message };
+    }
+  } else {
+    const ins = await insertListingsRowResilient(supabase, insertPayload);
+    if (ins.error) {
+      return { ok: false, error: ins.error.message };
+    }
+    listingId = ins.data?.id;
   }
-  const listingId = ins.data?.id;
   if (!listingId) {
     return { ok: false, error: err("No se recibió el ID del anuncio.", "No listing id returned.") };
   }
+  onListingIdKnown?.(listingId);
 
   const markPublishFailedNonPublic = async () => {
     await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);

@@ -17,6 +17,11 @@ import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnunc
 import { CommunityQuickPublishedDetailPage } from "../../community/CommunityQuickPublishedDetailPage";
 import { BuscoPublishedDetailPage } from "../../busco/BuscoPublishedDetailPage";
 import { detailPairsToMap as buscoDetailPairsToMap, isBuscoQuickListing } from "../../busco/shared/buscoListingDetailPairs";
+import { MascotasPerdidosPublishedDetailPage } from "../../mascotas-y-perdidos/MascotasPerdidosPublishedDetailPage";
+import {
+  detailPairsToMap as mascotasDetailPairsToMap,
+  isMascotasPerdidosSimpleListing,
+} from "../../mascotas-y-perdidos/shared/mascotasPerdidosListingDetailPairs";
 import { ClasesPublishedQuickAd } from "@/app/(site)/publicar/clases/components/ClasesPublishedQuickAd";
 import { ComunidadPublishedQuickAd } from "@/app/(site)/publicar/comunidad/components/ComunidadPublishedQuickAd";
 import { COMMUNITY_ANUNCIO_HERO_FRAME } from "@/app/(site)/clasificados/community/shared/communityAnuncioHeroClasses";
@@ -108,6 +113,7 @@ type CategoryKey =
   | "clases"
   | "comunidad"
   | "busco"
+  | "mascotas-y-perdidos"
   | "travel";
 
 type SellerType = "personal" | "business";
@@ -193,9 +199,19 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas-y-perdidos",
   "travel",
 ];
 
+/**
+ * I.6B — corrected. Previously, any category NOT in this allowlist (including the real,
+ * confirmed "mascotas-y-perdidos" value) silently fell through to "en-venta", causing real
+ * Mascotas y Perdidos listings to render through the wrong layout with wrong content (Gate
+ * I.6A root-cause finding). "mascotas-y-perdidos" is now accepted. Any other genuinely unknown
+ * category value still fails closed to "en-venta" only as the last-resort branch below — this
+ * is a pre-existing, intentionally permissive fallback for values not yet modeled here, not a
+ * silent masquerade for a category this file already knows about.
+ */
 function coerceCategoryKey(raw: unknown): CategoryKey {
   const s = String(raw ?? "").trim();
   if (s === "bienes-raices") return "bienes-raices";
@@ -479,6 +495,7 @@ export default function AnuncioDetallePage() {
       clases: { es: "Clases", en: "Classes" },
       comunidad: { es: "Comunidad y Eventos", en: "Community & Events" },
       busco: { es: "Busco / Se busca", en: "Wanted / Looking for" },
+      "mascotas-y-perdidos": { es: "Mascotas y Perdidos", en: "Lost & Found Pets" },
       travel: { es: "Viajes", en: "Travel" },
     };
     return map;
@@ -755,6 +772,16 @@ export default function AnuncioDetallePage() {
   }, [listing]);
 
   const useBuscoQuickDetail = Boolean(listing && listing.category === "busco" && buscoQuickPairMap);
+
+  const mascotasPerdidosQuickPairMap = useMemo(() => {
+    if (!listing || listing.category !== "mascotas-y-perdidos") return null;
+    const m = mascotasDetailPairsToMap(listing.detailPairs);
+    return isMascotasPerdidosSimpleListing(m) ? m : null;
+  }, [listing]);
+
+  const useMascotasPerdidosQuickDetail = Boolean(
+    listing && listing.category === "mascotas-y-perdidos" && mascotasPerdidosQuickPairMap,
+  );
 
   const communityQuickContactExtras = useMemo(() => {
     if (!listing || !communityQuickPairMap) return null;
@@ -1316,6 +1343,28 @@ export default function AnuncioDetallePage() {
         lang={lang}
         skipAnalytics={Boolean(sampleListing)}
       />
+      </>
+    );
+  }
+
+  if (useMascotasPerdidosQuickDetail && listing.category === "mascotas-y-perdidos") {
+    return (
+      <>
+        {translateControl}
+        <MascotasPerdidosPublishedDetailPage
+          listing={{
+            id: listing.id,
+            title: proseListing!.title[lang],
+            city: listing.city,
+            description: proseListing!.blurb[lang],
+            images: listing.images ?? null,
+            contact_phone: listing.contact_phone ?? null,
+            contact_email: listing.contact_email ?? null,
+            detailPairs: proseListing!.detailPairs,
+          }}
+          lang={lang}
+          skipAnalytics={Boolean(sampleListing)}
+        />
       </>
     );
   }

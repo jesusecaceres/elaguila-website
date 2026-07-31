@@ -273,11 +273,11 @@ async function main() {
     },
     mascotas_y_perdidos: {
       application: "supported",
-      edit: "missing", // no category-specific editor exists; generic edit page also correctly withheld pending the public-route fix
+      edit: "missing", // no category-specific editor exists; generic edit page intentionally still withheld
       preview: "supported",
-      publicRoute: "missing", // Gate I.6A — root cause identified (shared shell's category allowlist), deliberately still null/unsafe to "fix" without the shell change
+      publicRoute: "supported", // Gate I.6B — shared shell's category allowlist fixed; real dedicated renderer wired
       results: "supported",
-      dashboard: "intentionally_unsupported", // confirmed absent from Mis Anuncios entirely
+      dashboard: "intentionally_unsupported", // registry dashboardRoute still null (no DEDICATED tab); see Mis Anuncios generic-discovery note in the doc
       secondaryManage: "not_applicable",
       parentChild: false,
     },

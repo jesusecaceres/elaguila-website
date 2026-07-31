@@ -1,7 +1,8 @@
 "use client";
 
-import { insertListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
+import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { verifyQuickListingReusable } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
@@ -381,8 +382,12 @@ export async function publishCommunityQuickToListings(input: {
   kind: CommunityKind;
   draft: ClasesQuickDraft | ComunidadQuickDraft;
   lang: Lang;
+  /** I.6B — verified-reusable canonical UUID from a prior in-flight attempt of this same submission. */
+  existingListingId?: string | null;
+  /** I.6B — invoked as soon as the row id is known (reused or freshly inserted), before photo upload. */
+  onListingIdKnown?: (listingId: string) => void;
 }): Promise<CommunityQuickPublishToListingsResult> {
-  const { kind, draft: d, lang } = input;
+  const { kind, draft: d, lang, existingListingId, onListingIdKnown } = input;
   const err = (es: string, en: string) => (lang === "es" ? es : en);
 
   if (kind === "clases" && shouldBlockClasesPaidPublish(d as ClasesQuickDraft)) {
@@ -459,14 +464,35 @@ export async function publishCommunityQuickToListings(input: {
   const zipTrim = d.zip.trim().replace(/\D/g, "").slice(0, 12);
   if (zipTrim) insertPayload.zip = zipTrim;
 
-  const ins = await insertListingsRowResilient(supabase, insertPayload);
-  if (ins.error) {
-    return { ok: false, error: ins.error.message };
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: kind,
+      })
+    : null;
+
+  let listingId: string | undefined;
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const upd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (upd.error) {
+      return { ok: false, error: upd.error.message };
+    }
+  } else {
+    const ins = await insertListingsRowResilient(supabase, insertPayload);
+    if (ins.error) {
+      return { ok: false, error: ins.error.message };
+    }
+    listingId = ins.data?.id;
   }
-  const listingId = ins.data?.id;
   if (!listingId) {
     return { ok: false, error: err("No se recibió el ID del anuncio.", "No listing id returned.") };
   }
+  onListingIdKnown?.(listingId);
 
   const basePath = `${userId}/${listingId}/photos`;
   const photoUrls: string[] = [];

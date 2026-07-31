@@ -144,19 +144,27 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
     key: "clases",
     title: (lang) => (lang === "es" ? "Clases" : "Classes"),
     description: (lang) =>
-      lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
-    ready: false,
-    manageHref: () => null,
+      lang === "es" ? "Anuncios de clases publicados." : "Published class listings.",
+    // I.6B — corrected. fetchOwnerListingsForDashboard has no category filter (queries by
+    // owner_id only), and the generic Mis Anuncios card already renders working View
+    // public/Edit/Results/Archive actions for clases rows (confirmed by direct inspection) —
+    // "no manageable inventory" was stale. No dedicated tab/architecture was built; this only
+    // exposes the existing generic organization, mirroring the working "busco" entry below.
+    ready: true,
+    manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=clases`,
     publishHref: (q) => `/publicar/clases/quick?${q}`,
+    resultsHref: (q) => `/clasificados/clases/resultados?${q}`,
   },
   {
     key: "comunidad",
     title: (lang) => (lang === "es" ? "Comunidad" : "Community"),
     description: (lang) =>
-      lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
-    ready: false,
-    manageHref: () => null,
+      lang === "es" ? "Anuncios de comunidad publicados." : "Published community listings.",
+    // I.6B — corrected, same reasoning as Clases above.
+    ready: true,
+    manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=comunidad`,
     publishHref: (q) => `/publicar/comunidad/quick?${q}`,
+    resultsHref: (q) => `/clasificados/comunidad/resultados?${q}`,
   },
   {
     key: "busco",

@@ -9,7 +9,7 @@ import type { SupportedLang } from "@/app/lib/language";
 
 import { gateBuscoQuickPreview } from "../shared/buscoRequiredForPreview";
 import { publishBuscoQuickToListings } from "../shared/publishBuscoQuickToListings";
-import { BUSCO_QUICK_DRAFT_KEY } from "../shared/buscoSessionKeys";
+import { BUSCO_QUICK_DRAFT_KEY, BUSCO_QUICK_IN_FLIGHT_LISTING_ID_KEY } from "../shared/buscoSessionKeys";
 import type { BuscoQuickDraft } from "../shared/buscoQuickTypes";
 
 const BTN_PUBLISH =
@@ -41,7 +41,26 @@ export function BuscoQuickPreviewPublishBar({
     setPublishError(null);
     setPublishing(true);
     try {
-      const r = await publishBuscoQuickToListings({ draft, lang });
+      // I.6B — reuse this same in-progress submission's row (if a prior attempt already created
+      // one and hasn't fully completed yet) instead of always inserting a fresh row.
+      let inFlightId: string | null = null;
+      try {
+        inFlightId = window.sessionStorage.getItem(BUSCO_QUICK_IN_FLIGHT_LISTING_ID_KEY);
+      } catch {
+        /* sessionStorage optional */
+      }
+      const r = await publishBuscoQuickToListings({
+        draft,
+        lang,
+        existingListingId: inFlightId,
+        onListingIdKnown: (listingId) => {
+          try {
+            window.sessionStorage.setItem(BUSCO_QUICK_IN_FLIGHT_LISTING_ID_KEY, listingId);
+          } catch {
+            /* sessionStorage optional */
+          }
+        },
+      });
       if (!r.ok) {
         setPublishError(r.error);
         return;
@@ -49,6 +68,7 @@ export function BuscoQuickPreviewPublishBar({
       try {
         window.sessionStorage.setItem(`leonix-busco-publish-success:${r.listingId}`, "1");
         window.sessionStorage.removeItem(BUSCO_QUICK_DRAFT_KEY);
+        window.sessionStorage.removeItem(BUSCO_QUICK_IN_FLIGHT_LISTING_ID_KEY);
       } catch {
         /* sessionStorage optional */
       }

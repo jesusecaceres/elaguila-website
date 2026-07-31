@@ -35,6 +35,7 @@ import {
   resolveEnVentaPublishDescriptionForDb,
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
+import { verifyQuickListingReusable } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -307,7 +308,21 @@ export type EnVentaPublishFromDraftResult =
 export async function publishEnVentaFromDraft(
   state: EnVentaFreeApplicationState,
   lang: PublishLang,
-  plan: "free" | "pro"
+  plan: "free" | "pro",
+  /**
+   * I.6B — canonical UUID of a listing this exact logical submission already created (persisted
+   * by the caller after a prior successful publish of the same draft). When present and verified
+   * (owner + category match, via verifyQuickListingReusable), that row is reused/updated instead
+   * of inserting a new one. Any verification failure falls back to the original insert-only
+   * behavior — it never performs an unscoped update.
+   */
+  existingListingId?: string | null,
+  /**
+   * I.6B — invoked as soon as the canonical row id is known (reused or freshly inserted), BEFORE
+   * the slower photo-upload/finalize steps run. Lets the caller persist the id immediately so a
+   * refresh or retry mid-upload resumes this same row instead of inserting a second one.
+   */
+  onListingIdKnown?: (listingId: string) => void
 ): Promise<EnVentaPublishFromDraftResult> {
   state = prepareEnVentaStateForPublish(state);
   const familySafety = evaluateEnVentaFamilySafetyFromState(state, lang);
@@ -381,30 +396,56 @@ export async function publishEnVentaFromDraft(
     insertPayload.business_name = state.displayName.trim();
   }
 
-  // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
-  const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
-  let row = firstIns.data as { id?: string } | null;
-  let insErr = firstIns.error;
-  if (insErr && insertPayload.zip != null) {
-    const m = (insErr.message ?? "").toLowerCase();
-    if (m.includes("zip")) {
-      const retryPayload = { ...insertPayload };
-      delete retryPayload.zip;
-      const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
-      row = second.data as { id?: string } | null;
-      insErr = second.error;
+  // I.6B — reuse this exact submission's already-created row when a verified canonical UUID is
+  // present, instead of always inserting a fresh one (duplicate-row-on-republish protection).
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: "en-venta",
+      })
+    : null;
+
+  let listingId: string | undefined;
+
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const reuseUpd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (reuseUpd.error) {
+      const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(reuseUpd.error, lang);
+      return { ok: false, error: friendly ?? reuseUpd.error.message };
     }
+  } else {
+    // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
+    const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
+    let row = firstIns.data as { id?: string } | null;
+    let insErr = firstIns.error;
+    if (insErr && insertPayload.zip != null) {
+      const m = (insErr.message ?? "").toLowerCase();
+      if (m.includes("zip")) {
+        const retryPayload = { ...insertPayload };
+        delete retryPayload.zip;
+        const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
+        row = second.data as { id?: string } | null;
+        insErr = second.error;
+      }
+    }
+
+    if (insErr) {
+      const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(insErr, lang);
+      return { ok: false, error: friendly ?? insErr.message };
+    }
+
+    listingId = (row as { id?: string } | null)?.id;
   }
 
-  if (insErr) {
-    const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(insErr, lang);
-    return { ok: false, error: friendly ?? insErr.message };
-  }
-
-  const listingId = (row as { id?: string } | null)?.id;
   if (!listingId) {
     return { ok: false, error: lang === "es" ? "No se recibió el ID del anuncio." : "No listing id returned." };
   }
+  onListingIdKnown?.(listingId);
 
   const ordered = getOrderedEnVentaImageUrls(state);
   const photoUrls: string[] = [];
