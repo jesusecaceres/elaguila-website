@@ -15,6 +15,7 @@ import type {
 export const OFERTAS_LOCALES_CATEGORY_KEY = "ofertas-locales" as const;
 export const OFERTAS_LOCALES_PRODUCT_NAME = "Ofertas Locales";
 export const OFERTAS_LOCALES_NAV_LABEL = "Ofertas";
+export const OFERTAS_LOCALES_PUBLIC_TERM_DAYS = 30;
 
 /** Digital-first supermarket value proposition — print is not the core sell. */
 export const OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS = [
@@ -110,6 +111,9 @@ export const OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS: ReadonlyArray<{
   { value: "bundle", labelEs: "Paquete / combo", labelEn: "Bundle / combo" },
   { value: "featured_deal", labelEs: "Oferta por tiempo limitado", labelEn: "Limited-time deal" },
 ];
+
+export const OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES: ReadonlySet<OfertaLocalOfferType> =
+  new Set(OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS.map((option) => option.value));
 
 /**
  * @deprecated Retired commercial AI add-on (+$199). AI is included in both publish products

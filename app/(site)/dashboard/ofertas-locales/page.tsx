@@ -52,6 +52,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colCategory: "Categoría",
             colLocation: "Ciudad / ZIP",
             colDates: "Vigencia",
+            colPublicTerm: "Término público",
             colStatus: "Estado",
             colAssets: "Archivos",
             colAi: "AI",
@@ -60,6 +61,11 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colActions: "Acciones",
             publicLink: "Ver en resultados",
             rejection: "Motivo",
+            notStarted: "No iniciado",
+            activeTerm: "Activo",
+            expiredTerm: "Expirado",
+            incompleteTerm: "Incompleto",
+            daysRemaining: "días restantes",
           }
         : {
             title: "My Local Deals",
@@ -74,6 +80,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colCategory: "Category",
             colLocation: "City / ZIP",
             colDates: "Valid dates",
+            colPublicTerm: "Public term",
             colStatus: "Status",
             colAssets: "Assets",
             colAi: "AI",
@@ -82,6 +89,11 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colActions: "Actions",
             publicLink: "View in results",
             rejection: "Reason",
+            notStarted: "Not started",
+            activeTerm: "Active",
+            expiredTerm: "Expired",
+            incompleteTerm: "Incomplete",
+            daysRemaining: "days remaining",
           },
     [lang]
   );
@@ -160,6 +172,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colCategory}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colLocation}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colDates}</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPublicTerm}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAssets}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAi}</th>
@@ -182,6 +195,24 @@ export default function OfertasLocalesOwnerDashboardPage() {
                   <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px]">
                     {item.validFrom}
                     <br />→ {item.validUntil}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-[10px]">
+                    <span className="font-semibold">
+                      {item.publicTermStatus === "active"
+                        ? t.activeTerm
+                        : item.publicTermStatus === "expired"
+                          ? t.expiredTerm
+                          : item.publicTermStatus === "incomplete"
+                            ? t.incompleteTerm
+                            : t.notStarted}
+                    </span>
+                    {item.publishedAt ? <div className="font-mono">{item.publishedAt.slice(0, 10)}</div> : null}
+                    {item.expiresAt ? <div className="font-mono">→ {item.expiresAt.slice(0, 10)}</div> : null}
+                    {item.publicTermStatus === "active" && item.publicTermDaysRemaining != null ? (
+                      <div className="text-[#5C5346]">
+                        {item.publicTermDaysRemaining} {t.daysRemaining}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-3 py-2">
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusChipClass(item.status)}`}>

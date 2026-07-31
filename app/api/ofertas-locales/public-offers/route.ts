@@ -60,11 +60,16 @@ export async function GET(req: NextRequest) {
       draft_snapshot,
       flyer_assets,
       coupon_assets,
+      published_at,
+      expires_at,
       submitted_at,
       updated_at
     `
     )
     .eq("status", "approved")
+    .not("published_at", "is", null)
+    .not("expires_at", "is", null)
+    .gt("expires_at", new Date().toISOString())
     .order("updated_at", { ascending: false })
     .limit(MAX_OFFERS);
 

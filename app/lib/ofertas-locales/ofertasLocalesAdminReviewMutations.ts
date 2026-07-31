@@ -11,6 +11,7 @@ import {
   type OfertaLocalAdminRow,
 } from "./ofertasLocalesAdminHelpers";
 import { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
+import { calculateOfertaLocalPublicTermExpiresAt } from "./ofertasLocalesFormatting";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
 export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive";
@@ -162,14 +163,19 @@ export async function mutateOfertaLocalAdminReview(
 
   if (action === "approve") {
     parentUpdate.published_at = now;
+    parentUpdate.expires_at = calculateOfertaLocalPublicTermExpiresAt(now);
   }
 
-  const { error: updateError } = await sb
+  const { data: updatedRow, error: updateError } = await sb
     .from("ofertas_locales")
     .update(parentUpdate)
-    .eq("id", offerId);
+    .eq("id", offerId)
+    .eq("status", current)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) return { ok: false, error: "update_failed" };
+  if (!updatedRow) return { ok: false, error: "invalid_transition" };
 
   const itemSync = await syncOfertaLocalItemsActivationAfterAdminReview(sb, offerId, action, now);
   if (!itemSync.ok) {
@@ -177,6 +183,8 @@ export async function mutateOfertaLocalAdminReview(
       .from("ofertas_locales")
       .update({
         status: current,
+        published_at: (row as OfertaLocalAdminRow).published_at ?? null,
+        expires_at: (row as OfertaLocalAdminRow).expires_at ?? null,
         updated_at: now,
       })
       .eq("id", offerId);

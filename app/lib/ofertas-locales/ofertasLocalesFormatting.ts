@@ -1,6 +1,7 @@
 /**
  * Ofertas Locales formatting helpers — pure, dependency-light.
  */
+import { OFERTAS_LOCALES_PUBLIC_TERM_DAYS } from "./ofertasLocalesConstants";
 
 /** Strip to digits for US phone / WhatsApp input normalization. */
 export function normalizeOfertaLocalPhoneInput(raw: string): string {
@@ -136,4 +137,51 @@ export function isOfertaLocalActiveByDates(
   if (!start || !end) return false;
   const today = todayUtcDateOnly();
   return start.getTime() <= today.getTime() && today.getTime() <= end.getTime();
+}
+
+function parseIsoTimestamp(value: string | null | undefined): Date | null {
+  const t = String(value ?? "").trim();
+  if (!t) return null;
+  const d = new Date(t);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export function calculateOfertaLocalPublicTermExpiresAt(
+  activationTimestamp: string,
+  durationDays = OFERTAS_LOCALES_PUBLIC_TERM_DAYS
+): string {
+  const activation = parseIsoTimestamp(activationTimestamp);
+  if (!activation) return "";
+  return new Date(activation.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export function isOfertaLocalPublicTermActive(
+  publishedAt: string | null | undefined,
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const published = parseIsoTimestamp(publishedAt);
+  const expires = parseIsoTimestamp(expiresAt);
+  if (!published || !expires) return false;
+  return published.getTime() <= now.getTime() && now.getTime() < expires.getTime();
+}
+
+export function isOfertaLocalPublicTermExpired(
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const expires = parseIsoTimestamp(expiresAt);
+  if (!expires) return false;
+  return now.getTime() >= expires.getTime();
+}
+
+export function getOfertaLocalPublicTermDaysRemaining(
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): number | null {
+  const expires = parseIsoTimestamp(expiresAt);
+  if (!expires) return null;
+  const remainingMs = expires.getTime() - now.getTime();
+  if (remainingMs <= 0) return 0;
+  return Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
 }

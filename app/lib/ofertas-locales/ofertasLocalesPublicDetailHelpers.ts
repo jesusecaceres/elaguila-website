@@ -13,7 +13,7 @@ import {
   readDraftSnapshotMembershipFields,
   type OfertaLocalDraftSnapshot,
 } from "./ofertasLocalesDbSchema";
-import { isOfertaLocalExpired } from "./ofertasLocalesFormatting";
+import { isOfertaLocalPublicTermExpired } from "./ofertasLocalesFormatting";
 import { buildOfertaLocalWhatsAppHref } from "./ofertasLocalesPreviewHelpers";
 import {
   isOfertaLocalPublicOfferRowEligible,
@@ -116,7 +116,7 @@ export function mapOfertaLocalPublicDetailRowToDetail(
     digitalCouponNote: sanitizeText(row.digital_coupon_note, 500) || null,
     socialLinks,
     wantsAiSearchableSpecials: meta.wantsAiSearchableSpecials,
-    isExpired: isOfertaLocalExpired(row.valid_until, now),
+    isExpired: isOfertaLocalPublicTermExpired(row.expires_at, now),
     businessLogoHref,
     phoneDisplay: phone,
   };
@@ -128,11 +128,16 @@ export async function fetchPublicOfertaLocalDetailById(
 ): Promise<OfertaLocalPublicOfferDetail | null> {
   const offerId = id.trim();
   if (!offerId) return null;
+  const now = new Date().toISOString();
 
   const { data, error } = await sb
     .from("ofertas_locales")
     .select(OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT)
     .eq("id", offerId)
+    .eq("status", "approved")
+    .not("published_at", "is", null)
+    .not("expires_at", "is", null)
+    .gt("expires_at", now)
     .maybeSingle();
 
   if (error || !data) return null;
@@ -146,6 +151,7 @@ export async function fetchPublicOfertaLocalItemsForOfferId(
 ): Promise<OfertaLocalPublicDetailHubItem[]> {
   const id = offerId.trim();
   if (!id) return [];
+  const now = new Date().toISOString();
 
   const { data, error } = await sb
     .from("oferta_local_items")
@@ -154,6 +160,9 @@ export async function fetchPublicOfertaLocalItemsForOfferId(
     .eq("review_status", "approved")
     .eq("is_active", true)
     .eq("ofertas_locales.status", "approved")
+    .not("ofertas_locales.published_at", "is", null)
+    .not("ofertas_locales.expires_at", "is", null)
+    .gt("ofertas_locales.expires_at", now)
     .order("updated_at", { ascending: false });
 
   if (error || !data) return [];

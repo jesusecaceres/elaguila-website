@@ -876,6 +876,8 @@ export type OfertaLocalPublicOfferCard = {
   address: string;
   validFrom: string;
   validUntil: string;
+  publishedAt: string;
+  expiresAt: string;
   phoneHref: string | null;
   websiteHref: string | null;
   directionsHref: string | null;

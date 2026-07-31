@@ -10,6 +10,7 @@ import {
 } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
   isOfertaLocalExpired,
+  isOfertaLocalPublicTermActive,
   normalizeOfertaLocalSearchText,
   normalizeOfertaLocalUrlInput,
 } from "./ofertasLocalesFormatting";
@@ -83,6 +84,8 @@ export type OfertaLocalPublicSearchParentRow = {
   coupon_assets: unknown;
   draft_snapshot: unknown;
   internal_notes: string | null;
+  published_at: string | null;
+  expires_at: string | null;
 };
 
 export type OfertaLocalPublicSearchJoinedRow = OfertaLocalItemDbRow & {
@@ -193,7 +196,7 @@ export function isOfertaLocalPublicSearchRowEligible(
 ): boolean {
   const parent = row.ofertas_locales;
   if (!PUBLIC_PARENT_STATUSES.has(parent.status)) return false;
-  if (isOfertaLocalExpired(parent.valid_until, now)) return false;
+  if (!isOfertaLocalPublicTermActive(parent.published_at, parent.expires_at, now)) return false;
   if (row.review_status !== "approved") return false;
   if (!row.is_active) return false;
   if (!sanitizePublicText(row.item_name, 200)) return false;

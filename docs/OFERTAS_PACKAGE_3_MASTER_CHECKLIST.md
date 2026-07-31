@@ -17,10 +17,10 @@ Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
 - G1: DONE - Ofertas public parent is approved-only and non-expired.
 - G2: DONE - Ofertas public items are approved, active, same approved parent, and non-expired.
 - G3: BLOCKED - Leonix Ad ID persistence requires shared listing identity/schema work; Package 3 does not fabricate IDs.
-- H1: PARTIAL - expiration exclusion exists using validity dates.
-- H2: BLOCKED - canonical 30-day public term start requires shared lifecycle/payment decision.
+- H1: DONE - public expiration exclusion uses the canonical `expires_at` public term, with coupon/item validity remaining a separate earlier-ending gate.
+- H2: DONE - Package 4B starts the 30-day public term on first approval/public activation and keeps submission/rejection private.
 - H3: BLOCKED - renewal/republish requires shared checkout/lifecycle implementation.
-- H4: PARTIAL - dashboard keeps expired owner visibility, but canonical expires_at is shared-blocked.
+- H4: DONE - owner/admin dashboards show activation, expiration, active/expired/incomplete term state, and no fake renewal action.
 - I1: BLOCKED - Gemini provider schema migration handoff is ready but not applied.
 - I2: DONE - runtime provider/schema compatibility risk is documented exactly.
 - I3: BLOCKED - real Gemini QA requires migrated QA database.

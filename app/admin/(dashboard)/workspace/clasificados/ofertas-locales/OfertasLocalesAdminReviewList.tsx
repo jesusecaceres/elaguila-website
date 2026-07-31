@@ -33,6 +33,17 @@ function statusBadgeClass(status: string): string {
   }
 }
 
+function publicTermLabel(item: Pick<OfertaLocalAdminListVm, "publicTermStatus" | "publicTermDaysRemaining">): string {
+  if (item.publicTermStatus === "active") {
+    return item.publicTermDaysRemaining == null
+      ? "Activo"
+      : `Activo · ${item.publicTermDaysRemaining} días`;
+  }
+  if (item.publicTermStatus === "expired") return "Expirado";
+  if (item.publicTermStatus === "incomplete") return "Activación incompleta";
+  return "No iniciado";
+}
+
 function AssetList({ label, assets }: { label: string; assets: OfertaLocalPublishedAssetMetadata[] }) {
   if (assets.length === 0) return null;
   return (
@@ -125,6 +136,14 @@ function InspectDetail({
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Vigencia</dt>
           <dd>
             {item.validFrom} → {item.validUntil}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Término público</dt>
+          <dd>
+            <span className="font-semibold">{publicTermLabel(item)}</span>
+            {item.publishedAt ? <span className="block font-mono text-xs">{item.publishedAt}</span> : null}
+            {item.expiresAt ? <span className="block font-mono text-xs">→ {item.expiresAt}</span> : null}
           </dd>
         </div>
         <div className="sm:col-span-2">
@@ -412,6 +431,7 @@ export function OfertasLocalesAdminReviewList({
               <th className="border-b border-[#E8DFD0] px-3 py-2">Categoría</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Ciudad / ZIP</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Vigencia</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">Término público</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Assets</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">IA incluida</th>
@@ -435,6 +455,11 @@ export function OfertasLocalesAdminReviewList({
                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px]">
                   {item.validFrom}
                   <br />→ {item.validUntil}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-[10px]">
+                  <span className="font-semibold">{publicTermLabel(item)}</span>
+                  {item.publishedAt ? <div className="font-mono">{item.publishedAt.slice(0, 10)}</div> : null}
+                  {item.expiresAt ? <div className="font-mono">→ {item.expiresAt.slice(0, 10)}</div> : null}
                 </td>
                 <td className="px-3 py-2">
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusBadgeClass(item.status)}`}>

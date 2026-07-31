@@ -50,6 +50,12 @@ export default function OfertasLocalesOwnerManagePage() {
             assetsReadOnly: "Los archivos no se pueden cambiar aquí. Envía una nueva oferta si necesitas reemplazarlos.",
             viewFile: "Ver archivo",
             publicLink: "Ver en resultados públicos",
+            publicTermTitle: "Término público",
+            notStarted: "No iniciado",
+            activeTerm: "Activo",
+            expiredTerm: "Expirado",
+            incompleteTerm: "Incompleto",
+            daysRemaining: "días restantes",
           }
         : {
             title: "Manage local deal",
@@ -72,6 +78,12 @@ export default function OfertasLocalesOwnerManagePage() {
             assetsReadOnly: "Files cannot be changed here. Submit a new offer if you need to replace them.",
             viewFile: "View file",
             publicLink: "View in public results",
+            publicTermTitle: "Public term",
+            notStarted: "Not started",
+            activeTerm: "Active",
+            expiredTerm: "Expired",
+            incompleteTerm: "Incomplete",
+            daysRemaining: "days remaining",
           },
     [lang]
   );
@@ -233,6 +245,25 @@ export default function OfertasLocalesOwnerManagePage() {
         <p className="mt-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-3 text-sm text-[#5C5346]">
           {offer.statusMessage}
         </p>
+        <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.publicTermTitle}</p>
+          <p className="mt-1 font-semibold text-[#1E1810]">
+            {offer.publicTermStatus === "active"
+              ? t.activeTerm
+              : offer.publicTermStatus === "expired"
+                ? t.expiredTerm
+                : offer.publicTermStatus === "incomplete"
+                  ? t.incompleteTerm
+                  : t.notStarted}
+          </p>
+          {offer.publishedAt ? <p className="mt-1 font-mono text-xs">{offer.publishedAt}</p> : null}
+          {offer.expiresAt ? <p className="font-mono text-xs">→ {offer.expiresAt}</p> : null}
+          {offer.publicTermStatus === "active" && offer.publicTermDaysRemaining != null ? (
+            <p className="mt-1 text-xs">
+              {offer.publicTermDaysRemaining} {t.daysRemaining}
+            </p>
+          ) : null}
+        </div>
       </header>
 
       {!offer.canEdit && offer.status === "approved" ? (

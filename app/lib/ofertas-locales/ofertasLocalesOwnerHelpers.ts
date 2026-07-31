@@ -10,8 +10,13 @@ import {
   OFERTAS_LOCALES_ADMIN_SELECT,
   parseOfertaLocalAdminMetadataFromInternalNotes,
   type OfertaLocalAdminRow,
+  type OfertaLocalPublicTermStatus,
 } from "./ofertasLocalesAdminHelpers";
-import { isOfertaLocalExpired } from "./ofertasLocalesFormatting";
+import {
+  isOfertaLocalExpired,
+  isOfertaLocalPublicTermActive,
+  isOfertaLocalPublicTermExpired,
+} from "./ofertasLocalesFormatting";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
 const ADMIN_REVIEW_PREFIX = "[admin_review]";
@@ -35,6 +40,10 @@ export type OfertaLocalOwnerListItem = {
   displayStatus: string;
   validFrom: string;
   validUntil: string;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  publicTermStatus: OfertaLocalPublicTermStatus;
+  publicTermDaysRemaining: number | null;
   submittedAt: string;
   assetCount: number;
   wantsAiSearchableSpecials: boolean;
@@ -89,12 +98,18 @@ export function ofertaLocalOwnerStatusLabel(
 export function ofertaLocalOwnerStatusMessage(
   status: OfertaLocalPublishStatus,
   lang: "es" | "en",
-  rejectionNote: string | null
+  rejectionNote: string | null,
+  isExpired = false
 ): string {
   if (status === "pending_review" || status === "submitted" || status === "draft") {
     return lang === "es" ? "Tu oferta está en revisión." : "Your offer is under review.";
   }
   if (status === "approved") {
+    if (isExpired) {
+      return lang === "es"
+        ? "Tu oferta ya no está visible públicamente porque terminó el término público."
+        : "Your deal is no longer publicly visible because the public term ended.";
+    }
     return lang === "es" ? "Tu oferta fue aprobada." : "Your offer was approved.";
   }
   if (status === "rejected") {
@@ -142,7 +157,9 @@ function resolveDisplayStatus(
   row: OfertaLocalAdminRow,
   lang: "es" | "en"
 ): { displayStatus: string; isExpired: boolean } {
-  const expired = isOfertaLocalExpired(row.valid_until);
+  const expired = row.status === "approved"
+    ? isOfertaLocalPublicTermExpired(row.expires_at)
+    : isOfertaLocalExpired(row.valid_until);
   if (expired && row.status === "approved") {
     return { displayStatus: ofertaLocalOwnerStatusLabel("expired", lang, true), isExpired: true };
   }
@@ -165,6 +182,7 @@ export function mapOfertaLocalRowToOwnerListItem(
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const rejectionNote = parseOfertaLocalOwnerSafeRejectionNote(row.internal_notes);
   const { displayStatus, isExpired } = resolveDisplayStatus(row, lang);
+  const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
 
   return {
     id: row.id,
@@ -178,6 +196,10 @@ export function mapOfertaLocalRowToOwnerListItem(
     displayStatus,
     validFrom: detail.validFrom,
     validUntil: detail.validUntil,
+    publishedAt: detail.publishedAt,
+    expiresAt: detail.expiresAt,
+    publicTermStatus: detail.publicTermStatus,
+    publicTermDaysRemaining: detail.publicTermDaysRemaining,
     submittedAt: detail.submittedAt,
     assetCount: detail.flyerAssets.length + detail.couponAssets.length,
     wantsAiSearchableSpecials: metadata.wantsAiSearchableSpecials,
@@ -185,7 +207,7 @@ export function mapOfertaLocalRowToOwnerListItem(
     featuredPlacementScope: detail.featuredPlacementScope,
     rejectionNote,
     canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
-    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired),
+    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired || !termActive),
   };
 }
 
@@ -196,16 +218,17 @@ export function mapOfertaLocalRowToOwnerDetail(
   const vm = mapOfertaLocalAdminRowToDetailVm(row);
   const rejectionNote = parseOfertaLocalOwnerSafeRejectionNote(row.internal_notes);
   const { displayStatus, isExpired } = resolveDisplayStatus(row, lang);
+  const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
   const { internalNotes: _i, ownerId: _o, ...safe } = vm;
 
   return {
     ...safe,
     displayStatus,
-    statusMessage: ofertaLocalOwnerStatusMessage(row.status, lang, rejectionNote),
+    statusMessage: ofertaLocalOwnerStatusMessage(row.status, lang, rejectionNote, isExpired),
     rejectionNote,
     canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
     isExpired,
-    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired),
+    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired || !termActive),
   };
 }
 

@@ -50,6 +50,7 @@ export const OFERTAS_LOCALES_PRODUCTION_COLUMNS = [
   "reviewed_at",
   "reviewed_by",
   "published_at",
+  "expires_at",
   "archived_at",
   "created_at",
   "updated_at",
@@ -220,6 +221,8 @@ export const OFERTAS_LOCALES_ADMIN_SELECT = `
   is_featured_requested,
   language_tags,
   internal_notes,
+  published_at,
+  expires_at,
   submitted_at,
   created_at,
   updated_at
@@ -254,6 +257,8 @@ export const OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT = `
   coupon_assets,
   draft_snapshot,
   internal_notes,
+  published_at,
+  expires_at,
   submitted_at,
   updated_at
 `;
@@ -282,7 +287,9 @@ export const OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT = `
   flyer_assets,
   coupon_assets,
   draft_snapshot,
-  internal_notes
+  internal_notes,
+  published_at,
+  expires_at
 `;
 
 export const OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT = `
@@ -311,9 +318,11 @@ export const OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT = `
     flyer_assets,
     coupon_assets,
     draft_snapshot,
-    internal_notes
+    internal_notes,
+    published_at,
+    expires_at
   )
 `;
 
 export const OFERTAS_LOCALES_WRITE_RETURN_COLUMNS =
-  "id, status, submitted_at, created_at, updated_at, published_at";
+  "id, status, submitted_at, created_at, updated_at, published_at, expires_at";

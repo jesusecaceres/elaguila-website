@@ -6,6 +6,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
+  getOfertaLocalPublicTermDaysRemaining,
+  isOfertaLocalPublicTermActive,
+  isOfertaLocalPublicTermExpired,
+} from "./ofertasLocalesFormatting";
+import {
   OFERTAS_LOCALES_ADMIN_SELECT,
   parseOfertaLocalDraftSnapshot,
   readDraftSnapshotMembershipFields,
@@ -71,10 +76,14 @@ export type OfertaLocalAdminRow = {
   is_featured_requested: boolean;
   language_tags: string[];
   internal_notes: string | null;
+  published_at: string | null;
+  expires_at: string | null;
   submitted_at: string;
   created_at: string;
   updated_at: string;
 };
+
+export type OfertaLocalPublicTermStatus = "not_started" | "active" | "expired" | "incomplete";
 
 export type OfertaLocalAdminMetadata = {
   socialLinks: ReturnType<typeof parseOfertaLocalPublishedSocialLinksFromInternalNotes>;
@@ -95,6 +104,10 @@ export type OfertaLocalAdminListVm = {
   status: OfertaLocalPublishStatus;
   validFrom: string;
   validUntil: string;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  publicTermStatus: OfertaLocalPublicTermStatus;
+  publicTermDaysRemaining: number | null;
   submittedAt: string;
   assetCount: number;
   wantsAiSearchableSpecials: boolean;
@@ -270,6 +283,16 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
   const flyerAssets = parseAssetArray(row.flyer_assets);
   const couponAssets = parseAssetArray(row.coupon_assets);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
+  const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
+  const termExpired = isOfertaLocalPublicTermExpired(row.expires_at);
+  const publicTermStatus: OfertaLocalPublicTermStatus =
+    row.status !== "approved"
+      ? "not_started"
+      : termActive
+        ? "active"
+        : termExpired
+          ? "expired"
+          : "incomplete";
 
   return {
     id: row.id,
@@ -282,6 +305,13 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
     status: row.status,
     validFrom: row.valid_from,
     validUntil: row.valid_until,
+    publishedAt: row.published_at,
+    expiresAt: row.expires_at,
+    publicTermStatus,
+    publicTermDaysRemaining:
+      row.status === "approved" && row.expires_at
+        ? getOfertaLocalPublicTermDaysRemaining(row.expires_at)
+        : null,
     submittedAt: row.submitted_at,
     assetCount: flyerAssets.length + couponAssets.length,
     wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials ?? metadata.wantsAiSearchableSpecials),

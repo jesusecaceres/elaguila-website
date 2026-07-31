@@ -95,6 +95,7 @@ const allowed = [
   "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/actions.ts",
   "app/api/ofertas-locales/admin/[id]/review/route.ts",
   "app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts",
+  "scripts/ofertas-locales-package-3-public-owner-admin-audit.mjs",
   "scripts/verify-ofertas-durable-draft-review-control.mjs",
   "package.json",
 ];
@@ -117,6 +118,7 @@ const forbidden = changed.filter(
     file.startsWith("app/lib/listingIdentity/") ||
     file.startsWith("app/lib/listingPlans/") ||
     (file.includes("admin") &&
+      !allowed.includes(file) &&
       !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/") &&
       !file.startsWith("app/api/ofertas-locales/admin/"))
 );

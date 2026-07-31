@@ -133,13 +133,13 @@ requireText("product detail drawer still exists", productDrawer, "export functio
 
 const publicOfferHelpers = readFileSync(publicOfferHelpersPath, "utf8");
 requireText("public offers approved-only", publicOfferHelpers, 'new Set(["approved"])');
-requireText("public offers non-expired", publicOfferHelpers, "isOfertaLocalExpired(row.valid_until, now)");
+requireText("public offers non-expired", publicOfferHelpers, "isOfertaLocalPublicTermActive(row.published_at, row.expires_at, now)");
 
 const publicSearchHelpers = readFileSync(publicSearchHelpersPath, "utf8");
 requireText("public item approved parent gate", publicSearchHelpers, 'new Set(["approved"])');
 requireText("public item approved review gate", publicSearchHelpers, 'row.review_status !== "approved"');
 requireText("public item active gate", publicSearchHelpers, "!row.is_active");
-requireText("public item non-expired parent gate", publicSearchHelpers, "isOfertaLocalExpired(parent.valid_until, now)");
+requireText("public item non-expired parent gate", publicSearchHelpers, "isOfertaLocalPublicTermActive(parent.published_at, parent.expires_at, now)");
 requireText("public item source crop", publicSearchHelpers, "sourceCropHref: getSafeOfertaLocalSourceAssetHref(row.source_crop_url)");
 requireText("public item source bbox", publicSearchHelpers, "sourceBbox: parseOfertaLocalPublicSourceBbox(row.source_bbox)");
 requireText("public item source page", publicSearchHelpers, "sourcePage: row.source_page");

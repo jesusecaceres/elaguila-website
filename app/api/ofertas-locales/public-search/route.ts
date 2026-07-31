@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
   const lang = langParam === "en" ? "en" : "es";
 
   const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("oferta_local_items")
@@ -40,6 +41,9 @@ export async function GET(req: NextRequest) {
     .eq("review_status", "approved")
     .eq("is_active", true)
     .eq("ofertas_locales.status", "approved")
+    .not("ofertas_locales.published_at", "is", null)
+    .not("ofertas_locales.expires_at", "is", null)
+    .gt("ofertas_locales.expires_at", now)
     .order("updated_at", { ascending: false })
     .limit(MAX_CANDIDATES);
 

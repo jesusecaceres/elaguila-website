@@ -2,7 +2,12 @@
  * Ofertas Locales public approved offers — pure helpers (FINAL-1).
  */
 
-import { isOfertaLocalExpired, normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import { OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES } from "./ofertasLocalesConstants";
+import {
+  isOfertaLocalActiveByDates,
+  isOfertaLocalPublicTermActive,
+  normalizeOfertaLocalSearchText,
+} from "./ofertasLocalesFormatting";
 import {
   effectiveOfertaLocalCountryForMatching,
   locationTokensMatch,
@@ -14,7 +19,11 @@ import {
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import { buildOfertaLocalTelHref } from "./ofertasLocalesPreviewHelpers";
 import { parseOfertaLocalDraftSnapshot, readDraftSnapshotLocationFields } from "./ofertasLocalesDbSchema";
-import type { OfertaLocalPublicOfferCard, OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
+import type {
+  OfertaLocalOfferType,
+  OfertaLocalPublicOfferCard,
+  OfertaLocalPublishStatus,
+} from "./ofertasLocalesTypes";
 
 export type OfertaLocalPublicOfferRow = {
   id: string;
@@ -39,6 +48,8 @@ export type OfertaLocalPublicOfferRow = {
   draft_snapshot: unknown;
   flyer_assets: unknown;
   coupon_assets: unknown;
+  published_at: string | null;
+  expires_at: string | null;
   submitted_at: string;
   updated_at: string;
 };
@@ -82,7 +93,13 @@ export function isOfertaLocalPublicOfferRowEligible(
   now: Date = new Date()
 ): boolean {
   if (!PUBLIC_OFFER_STATUSES.has(row.status)) return false;
-  if (isOfertaLocalExpired(row.valid_until, now)) return false;
+  if (!isOfertaLocalPublicTermActive(row.published_at, row.expires_at, now)) return false;
+  if (
+    OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES.has(row.offer_type as OfertaLocalOfferType) &&
+    !isOfertaLocalActiveByDates(row.valid_from, row.valid_until, now)
+  ) {
+    return false;
+  }
   if (!sanitizeText(row.business_name, 200) || !sanitizeText(row.title, 200)) return false;
   return true;
 }
@@ -124,6 +141,8 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
     address,
     validFrom: sanitizeText(row.valid_from, 32),
     validUntil: sanitizeText(row.valid_until, 32),
+    publishedAt: sanitizeText(row.published_at, 40),
+    expiresAt: sanitizeText(row.expires_at, 40),
     phoneHref: buildOfertaLocalTelHref(phone) || null,
     websiteHref: getSafeOfertaLocalSourceAssetHref(row.website_url),
     directionsHref,

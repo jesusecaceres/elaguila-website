@@ -53,14 +53,14 @@ const src = Object.fromEntries(Object.entries(files).map(([key, file]) => [key, 
 
 // Lifecycle: parent privacy and child eligibility.
 assert.match(src.publicOfferHelpers, /PUBLIC_OFFER_STATUSES[\s\S]*new Set\(\["approved"\]\)/, "public offers are approved-only");
-assert.match(src.publicOfferHelpers, /isOfertaLocalExpired\(row\.valid_until, now\)/, "expired public offers are excluded");
+assert.match(src.publicOfferHelpers, /isOfertaLocalPublicTermActive\(row\.published_at, row\.expires_at, now\)/, "expired public offers are excluded by public term");
 assert.match(src.publicSearchRoute, /\.eq\("review_status", "approved"\)/, "public child search requires approved item review");
 assert.match(src.publicSearchRoute, /\.eq\("is_active", true\)/, "public child search requires active item");
 assert.match(src.publicSearchRoute, /\.eq\("ofertas_locales\.status", "approved"\)/, "public child search requires approved parent");
 assert.match(src.publicSearchHelpers, /PUBLIC_PARENT_STATUSES[\s\S]*new Set\(\["approved"\]\)/, "public child helper is approved-parent only");
 assert.match(src.publicSearchHelpers, /row\.review_status !== "approved"/, "public child helper rejects unapproved review state");
 assert.match(src.publicSearchHelpers, /!row\.is_active/, "public child helper rejects inactive items");
-assert.match(src.publicSearchHelpers, /isOfertaLocalExpired\(parent\.valid_until, now\)/, "public child helper excludes expired parent");
+assert.match(src.publicSearchHelpers, /isOfertaLocalPublicTermActive\(parent\.published_at, parent\.expires_at, now\)/, "public child helper excludes expired parent");
 
 // Publish/resubmission: same parent, no duplicate for AI review context.
 assert.match(src.publishRoute, /if \(aiReview\.ofertaLocalId\) \{[\s\S]*\.update\(updateRow\)[\s\S]*\.eq\("id", aiReview\.ofertaLocalId\)/, "AI publish updates same parent");
@@ -74,6 +74,7 @@ assert.match(src.ownerRoute, /"status" in raw \|\| "owner_id" in raw \|\| "inter
 assert.match(src.ownerHelpers, /"rejected"/, "rejected status is owner-editable for correction");
 assert.match(src.ownerHelpers, /parseOfertaLocalOwnerSafeRejectionNote/, "owner gets safe rejection reason parser");
 assert.match(src.ownerHelpers, /publicResultsHrefForStatus[\s\S]*status === "approved" && !isExpired/, "owner public link is approved and not expired only");
+assert.match(src.ownerHelpers, /publicResultsHrefForStatus\(row\.status, isExpired \|\| !termActive\)/, "owner public link requires active public term");
 assert.match(src.ownerDetail, /assetsReadOnly/, "owner source assets are truthfully read-only");
 assert.doesNotMatch(src.ownerDetail, /fake analytics|fake leads|fake payments|fake entitlement|fake renew/i, "owner dashboard avoids fake metrics/actions");
 assert.doesNotMatch(src.ownerDetail, /replace.*onClick|renew.*onClick|republish.*onClick/i, "owner dashboard has no fake replace/renew action");

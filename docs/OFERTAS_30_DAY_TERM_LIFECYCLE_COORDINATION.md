@@ -2,9 +2,9 @@
 
 ## Existing Behavior
 
-Category-local Ofertas code stores and reads `valid_from`, `valid_until`, `submitted_at`, `updated_at`, and `published_at` where available. Public offer and product queries use the category helpers `isOfertaLocalPublicOfferRowEligible` and `isOfertaLocalPublicSearchRowEligible`, which require parent `status = 'approved'` and exclude rows whose effective `valid_until` is expired.
+Package 4B changes category-local Ofertas/Cupones code to store and read `published_at` and `expires_at` as the canonical public advertising term. Public offer and product queries use the category helpers `isOfertaLocalPublicOfferRowEligible` and `isOfertaLocalPublicSearchRowEligible`, which require parent `status = 'approved'`, a present activation timestamp, a present expiration timestamp, and current server time before `expires_at`.
 
-Admin approval in `app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts` sets `status = 'approved'` and `published_at = now`, but it does not calculate or write a canonical 30-day `expires_at`. Owner and public displays still present the stored validity dates.
+Admin approval in `app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts` sets `status = 'approved'`, `published_at = now`, and `expires_at = published_at + 30 days` on the first valid approval transition. Owner and admin displays show activation, expiration, and derived active/expired/incomplete term status. Public cards may still display coupon/flyer validity dates, but those dates no longer consume the paid public advertising term before approval.
 
 Current category files involved:
 
@@ -15,6 +15,9 @@ Current category files involved:
 - `app/lib/ofertas-locales/ofertasLocalesPublicOfferHelpers.ts`
 - `app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers.ts`
 - `app/lib/ofertas-locales/ofertasLocalesFormatting.ts`
+- `app/lib/ofertas-locales/ofertasLocalesDbSchema.ts`
+- `supabase/migrations/20260731222500_ofertas_locales_30_day_public_term.sql`
+- `scripts/ofertas-30-day-public-term-audit.mjs`
 
 ## Risk
 
@@ -33,6 +36,20 @@ Recommended state contract:
 - Rejection does not consume the public term.
 - Correction/resubmission keeps the same parent identity and remains private until approval.
 - Replacement after approval must enter a truthful update-review workflow and must not silently destroy paid public time.
+
+## Package 4B Implementation
+
+- Start event: first successful admin approval/public activation of the parent listing.
+- Activation timestamp: `published_at`, written from server time inside the approval mutation.
+- Expiration: `expires_at = published_at + 30 days`, calculated server-side with `OFERTAS_LOCALES_PUBLIC_TERM_DAYS = 30`.
+- Idempotency: approval update is guarded by the previously fetched status, and approved listings are not valid approval sources.
+- Rejection/correction: rejection and owner resubmission do not write `published_at` or `expires_at`.
+- Public parent: active public results require approved status, `published_at`, `expires_at`, and current server time before `expires_at`.
+- Public child: item search/detail requires approved active child state plus a non-expired parent public term.
+- Coupon validity: coupon/promotion validity can end earlier than the parent term, but it cannot extend public visibility after the parent expires.
+- Owner/admin: expired records remain visible as history and show truthful public-term state; no renewal/extension control is presented.
+- Migration status: committed as a forward-only migration file and not applied by this package.
+- Database status: no Supabase connection, database write, or migration application was performed.
 
 ## Shared Files Likely Involved
 
