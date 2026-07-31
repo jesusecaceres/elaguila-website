@@ -15,7 +15,8 @@ export type MisAnunciosCategoryKey =
   | "comida-local"
   | "clases"
   | "comunidad"
-  | "busco";
+  | "busco"
+  | "mascotas";
 
 export const MIS_ANUNCIOS_CATEGORY_KEYS: MisAnunciosCategoryKey[] = [
   "en-venta",
@@ -30,6 +31,7 @@ export const MIS_ANUNCIOS_CATEGORY_KEYS: MisAnunciosCategoryKey[] = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas",
 ];
 
 export function isMisAnunciosCategoryKey(raw: string | null | undefined): raw is MisAnunciosCategoryKey {
@@ -175,6 +177,21 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=busco`,
     publishHref: (q) => `/publicar/busco/quick?${q}`,
     resultsHref: (q) => `/clasificados/busco/resultados?${q}`,
+  },
+  {
+    key: "mascotas",
+    title: (lang) => (lang === "es" ? "Mascotas y Perdidos" : "Pets and Lost & Found"),
+    description: (lang) =>
+      lang === "es" ? "Anuncios de mascotas y perdidos publicados." : "Published pets and lost & found listings.",
+    // Work Package I.8B — corrected. `fetchOwnerListingsForDashboard` has no category filter
+    // (queries by owner_id only, same as Clases/Comunidad/Busco, confirmed I.6B/I.7A/I.8A), and a
+    // real, safe public route now exists (Gate I.6B). Only the generic catch-all card's actions
+    // apply (View public/Manage/Archive) — it never renders an Edit or Preview button at all, so
+    // no unsafe action is exposed. No dedicated architecture was built.
+    ready: true,
+    manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=mascotas`,
+    publishHref: (q) => `/publicar/mascotas-y-perdidos/quick?${q}`,
+    resultsHref: (q) => `/clasificados/mascotas-y-perdidos/results?${q}`,
   },
 ];
 

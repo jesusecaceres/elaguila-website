@@ -10,7 +10,12 @@
  * "unknown" display state instead of guessing.
  */
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { getStatusLabel, mapEmpleosStatusToCanonical, type ListingLifecycleStatus } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  getStatusLabel,
+  isValidLifecycleStatus,
+  mapEmpleosStatusToCanonical,
+  type ListingLifecycleStatus,
+} from "@/app/lib/clasificados/listingLifecycleDomain";
 
 export type OwnerDashboardStatusTone = "neutral" | "positive" | "warn" | "danger";
 
@@ -61,6 +66,17 @@ const VIAJES_STATUS_MAP: Record<string, ListingLifecycleStatus> = {
   unpublished: "unpublished",
 };
 
+/** Work Package I.8B — confirmed real `restaurantes_public_listings.status` CHECK constraint
+ * (migration `20260508150000_restaurantes_status_archived.sql`): exactly
+ * `'published' | 'suspended' | 'archived'`. Previously shown as the raw, untranslated string in
+ * a hardcoded-emerald pill on the generic `DashboardCategoryListingCard` — a suspended or
+ * archived restaurant listing was displayed in the same "success" green as a live one. */
+const RESTAURANTES_STATUS_MAP: Record<string, ListingLifecycleStatus> = {
+  published: "published",
+  suspended: "suspended",
+  archived: "archived",
+};
+
 function mapCategoryStatusToCanonical(category: string, raw: string): ListingLifecycleStatus | null {
   const cat = category.trim().toLowerCase();
   const status = raw.trim();
@@ -80,12 +96,24 @@ function mapCategoryStatusToCanonical(category: string, raw: string): ListingLif
     return VIAJES_STATUS_MAP[status] ?? null;
   }
 
-  // Rentas/BR/En Venta/Clases/Comunidad/Busco (shared `listings` table) already have their own
-  // established display pipeline (`resolveListingUiStatus` + `listingUiStatusLabel`) — this
-  // helper intentionally does not re-implement that path; callers for those categories should
-  // keep using the existing helpers. Servicios/Autos already have real canonical mappers
-  // (`mapServiciosStatusToCanonical`/`mapAutosStatusToCanonical`) wired elsewhere; this function
-  // only fills the two gaps (Empleos, Viajes) that had none.
+  if (cat === "restaurantes") {
+    return RESTAURANTES_STATUS_MAP[status] ?? null;
+  }
+
+  if (cat === "servicios") {
+    // Work Package I.8B — confirmed real `servicios_public_listings.listing_status` CHECK
+    // constraint (migration `20260713153000_servicios_pending_payment_status_and_published_at.sql`)
+    // already uses the exact same vocabulary as `ListingLifecycleStatus` — no separate mapping
+    // table needed, only validation that the raw value is one of the real, confirmed members.
+    return isValidLifecycleStatus(status) ? status : null;
+  }
+
+  // Rentas/BR/En Venta/Clases/Comunidad/Busco/Mascotas (shared `listings` table) already have
+  // their own established display pipeline (`resolveListingUiStatus` + `listingUiStatusLabel`) —
+  // this helper intentionally does not re-implement that path; callers for those categories
+  // should keep using the existing helpers. Autos already has a real canonical mapper
+  // (`mapAutosStatusToCanonical`) wired elsewhere. This function only fills the gaps that had
+  // none: Empleos, Viajes, Restaurantes, Servicios.
   return null;
 }
 

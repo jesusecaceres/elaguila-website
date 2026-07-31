@@ -58,6 +58,9 @@ export const CATEGORY_PANEL_TOOL_TRUTH: Record<
   clases: { publish: "future" },
   comunidad: { publish: "future" },
   busco: { openPanel: "hidden", publish: "ready" },
+  // Work Package I.8B — Mascotas now discoverable in Mis Anuncios (real rows, canonical UUID,
+  // safe public route). No dedicated category panel, same as Busco.
+  mascotas: { openPanel: "hidden", publish: "ready", publicResults: "ready" },
 };
 
 /** Listing-level tools on Mis anuncios cards. */
@@ -126,6 +129,11 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
   clases: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   comunidad: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   busco: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
+  // Work Package I.8B — View public and Archive use the same generic, already-safe mechanisms as
+  // Busco/Clases/Comunidad. Edit is deliberately absent (no key = hidden) — no safe Edit route
+  // exists yet (categoryRouteRegistry.ts MASCOTAS_Y_PERDIDOS_ADAPTER.editRoute() still returns
+  // null). Analytics stays "unproven" — no per-listing analytics route confirmed for Mascotas.
+  mascotas: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
 };
 
 export function categoryPanelToolStatus(

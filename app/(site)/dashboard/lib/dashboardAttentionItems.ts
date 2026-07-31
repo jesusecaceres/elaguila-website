@@ -22,7 +22,8 @@ export type OwnerAttentionReasonKey =
   | "child_needs_parent"
   | "addon_inactive"
   | "renewal_available"
-  | "status_unknown";
+  | "status_unknown"
+  | "unsupported_pipeline";
 
 export type OwnerAttentionItem = {
   id: string;
@@ -59,6 +60,10 @@ export type OwnerAttentionRowInput = {
   /** Only pass this when the caller has a real, server-verified addon/entitlement read (e.g.
    * `restaurantCouponAddonStatus`/`serviciosOffersAddonActive`). */
   addon?: { active: boolean; labelEs: string; labelEn: string } | null;
+  /** True when `classifyOwnerDashboardRow()` (or equivalent evidence) confirmed this row's
+   * category/pipeline is genuinely unmodeled — used so a row that has no tab/card family of its
+   * own still surfaces here instead of silently disappearing. */
+  isUnsupportedPipeline?: boolean;
 };
 
 function item(
@@ -90,6 +95,20 @@ export function resolveOwnerDashboardAttentionItems(row: OwnerAttentionRowInput)
   // inferred from client JSON or guessed from an unrelated field.
   if (row.statusDisplayKey === "pending_payment") {
     out.push(item(id, category, "urgent", "payment_required", "Pago pendiente para publicar este anuncio.", "Payment pending to publish this listing.", row.editHref));
+  }
+
+  if (row.isUnsupportedPipeline) {
+    out.push(
+      item(
+        id,
+        category,
+        "warn",
+        "unsupported_pipeline",
+        "Este anuncio es de una categoría que el panel aún no organiza — revísalo manualmente.",
+        "This listing is from a category the dashboard doesn't organize yet — review it manually.",
+        row.publicHref ?? null,
+      ),
+    );
   }
 
   if (row.statusDisplayKey === "unknown") {

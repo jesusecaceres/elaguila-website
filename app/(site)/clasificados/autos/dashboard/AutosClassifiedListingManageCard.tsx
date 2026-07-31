@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { listingPlanFieldLabel } from "@/app/lib/listingPlans/categoryAdPlans";
+import { listingUiStatusChipClass, listingUiStatusLabel, type ListingUiStatus } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 
 type Lang = "es" | "en";
 
@@ -47,6 +48,11 @@ export function AutosClassifiedListingManageCard({
   thumbUrl,
   listingAdPlanLabel,
   leonixAdId = null,
+  /** Work Package I.8B — pre-computed by the caller via `resolveListingUiStatus`/
+   * `normalizeUiStatus` (same pipeline En Venta and the generic classified card already use).
+   * Optional so this stays backward compatible; when omitted, falls back to the previous
+   * sold-vs-active-only display so no other caller of this shared component breaks. */
+  uiStatus,
 }: {
   row: {
     id: string;
@@ -57,6 +63,7 @@ export function AutosClassifiedListingManageCard({
     created_at?: string | null;
   };
   lang: Lang;
+  uiStatus?: ListingUiStatus;
   priceText: string;
   dateText: string;
   busy: boolean;
@@ -115,6 +122,12 @@ export function AutosClassifiedListingManageCard({
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
   const v = analytics.views;
+  // Work Package I.8B — previously ANY non-"sold" status (paused, removed, expired, flagged,
+  // pending, ...) rendered as green "Active", regardless of the real status. When the caller
+  // supplies a real resolved `uiStatus`, use its truthful label/tone; otherwise keep the
+  // previous sold-vs-active-only behavior for backward compatibility.
+  const statusLabel = uiStatus ? listingUiStatusLabel(uiStatus, lang) : isSold ? L.sold : L.active;
+  const statusChipClass = uiStatus ? listingUiStatusChipClass(uiStatus) : isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900";
 
   return (
     <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)] sm:p-5">
@@ -135,12 +148,8 @@ export function AutosClassifiedListingManageCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start gap-2">
               <h3 className="line-clamp-2 text-base font-bold text-[#1E1810] sm:text-lg">{row.title || "—"}</h3>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                  isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900"
-                }`}
-              >
-                {isSold ? L.sold : L.active}
+              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusChipClass}`}>
+                {statusLabel}
               </span>
             </div>
             <p className="mt-1 text-lg font-bold text-[#1E1810]">{priceText}</p>

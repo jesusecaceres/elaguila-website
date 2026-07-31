@@ -310,6 +310,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       category: "servicios",
       title: row.business_name?.trim() || row.slug,
       status: row.listing_status,
+      statusDisplay: resolveOwnerDashboardStatusDisplay("servicios", row.listing_status),
       publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
       editHref:
         serviciosListingEditHref({
@@ -425,6 +426,7 @@ export function buildRestaurantInventoryItems(
     category: "restaurantes",
     title: row.business_name,
     status: row.status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("restaurantes", row.status),
     publicHref: `/clasificados/restaurantes/${encodeURIComponent(row.slug)}?${q}`,
     editHref: restauranteListingEditHref({
       lang,

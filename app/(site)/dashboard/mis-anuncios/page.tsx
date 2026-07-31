@@ -43,6 +43,7 @@ import {
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
 import { resolveOwnerDashboardAttentionItems, countByAttentionSeverity, type OwnerAttentionItem } from "../lib/dashboardAttentionItems";
+import { classifyOwnerDashboardRow, type OwnerDashboardGroup } from "../lib/dashboardOwnerClassification";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   DEFERRED_DEDICATED_CATEGORIES,
@@ -317,11 +318,21 @@ function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryKey | "other
   if (cat === "clases") return "clases";
   if (cat === "comunidad") return "comunidad";
   if (cat === "busco") return "busco";
+  if (cat === "mascotas-y-perdidos") return "mascotas";
   const lx = parseLeonixListingContract(row.detail_pairs);
   const br = lx.branch;
   if (br === "bienes_raices_privado" || br === "bienes_raices_negocio") return "bienes-raices";
   if (br === "rentas_privado" || br === "rentas_negocio") return "rentas";
   return "other";
+}
+
+/** Work Package I.8B — live label for `classifyOwnerDashboardRow()`'s group output, so the
+ * classification helper actually controls what the owner visibly sees, not just test coverage. */
+function ownerDashboardGroupLabel(group: OwnerDashboardGroup, lang: Lang): string {
+  if (group === "business") return lang === "es" ? "Negocio" : "Business";
+  if (group === "inventory_child") return lang === "es" ? "Inventario" : "Inventory";
+  if (group === "unsupported") return lang === "es" ? "Requiere atención" : "Needs attention";
+  return lang === "es" ? "Privado / Clasificado" : "Private / Classified";
 }
 
 function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
@@ -483,8 +494,25 @@ export default function MyListingsPage() {
       );
     }
 
+    // Work Package I.8B — a row whose category matches no known tab (`listingRowCategoryKey`
+    // returns "other") would otherwise never appear under any tab filter and would silently
+    // disappear from the owner's view entirely. Surface it here instead — real data, a real
+    // (generic) manage link, never a fabricated category-specific action.
+    for (const row of listings) {
+      if (listingRowCategoryKey(row) !== "other") continue;
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: row.id,
+          category: String(row.category ?? "unknown"),
+          statusDisplayKey: "unknown",
+          isUnsupportedPipeline: true,
+          publicHref: `/dashboard/mis-anuncios/${row.id}?${q}`,
+        }),
+      );
+    }
+
     return out;
-  }, [empleosInventory, viajesInventory, listings]);
+  }, [empleosInventory, viajesInventory, listings, q]);
 
   const attentionSeverityCounts = useMemo(() => countByAttentionSeverity(attentionItems), [attentionItems]);
 
@@ -1228,6 +1256,7 @@ export default function MyListingsPage() {
     let clases = 0;
     let comunidad = 0;
     let busco = 0;
+    let mascotas = 0;
     for (const row of listings) {
       const k = listingRowCategoryKey(row);
       if (k === "en-venta") enVenta += 1;
@@ -1237,6 +1266,7 @@ export default function MyListingsPage() {
       if (k === "clases") clases += 1;
       if (k === "comunidad") comunidad += 1;
       if (k === "busco") busco += 1;
+      if (k === "mascotas") mascotas += 1;
     }
     const autosPaidCount = loadedDedicatedCategories.has("autos") ? autosPaidInventory.length : dedicatedCounts.autosPaid;
     return {
@@ -1247,6 +1277,7 @@ export default function MyListingsPage() {
       clases,
       comunidad,
       busco,
+      mascotas,
       restaurantes: loadedDedicatedCategories.has("restaurantes") ? restaurantInventory.length : dedicatedCounts.restaurantes,
       empleos: loadedDedicatedCategories.has("empleos") ? empleosInventory.length : dedicatedCounts.empleos,
       viajes: loadedDedicatedCategories.has("viajes") ? viajesInventory.length : dedicatedCounts.viajes,
@@ -1363,7 +1394,8 @@ export default function MyListingsPage() {
       categoryFilter === "rentas" ||
       categoryFilter === "clases" ||
       categoryFilter === "comunidad" ||
-      categoryFilter === "busco");
+      categoryFilter === "busco" ||
+      categoryFilter === "mascotas");
 
   /** selectedCategoryKey — URL `cat` param, drives all listing filters. */
   const selectedCategoryKey = categoryFilter;
@@ -1638,9 +1670,11 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug ?? undefined}
                     badges={[
+                      ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "restaurantes" }).group, lang),
                       (() => {
                         const b = dashboardEntitlementBadgeForKey(entitlementBadges, [
                           item.id,
@@ -1685,6 +1719,7 @@ export default function MyListingsPage() {
                     status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
                     statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug}
+                    badges={[ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "empleos" }).group, lang)]}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
@@ -1710,6 +1745,7 @@ export default function MyListingsPage() {
                     status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
                     statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug}
+                    badges={[ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "viajes", viajesLane: item.viajesLane }).group, lang)]}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
@@ -1745,9 +1781,11 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Servicio" : "Service"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug ?? undefined}
                     badges={[
+                      ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "servicios" }).group, lang),
                       (() => {
                         const b = dashboardEntitlementBadgeForKey(entitlementBadges, [
                           item.id,
@@ -1838,6 +1876,7 @@ export default function MyListingsPage() {
                     : null;
 
                 if ((x.category ?? "").toLowerCase() === "autos") {
+                  const autosUiStatus = normalizeUiStatus(resolveListingUiStatus(x), x);
                   const autosPlanLabel = adPlanLabelWithRevenueProof(
                     [x.id, x.leonix_ad_id ?? ""],
                     categoryAdPlanDisplayLabel(
@@ -1851,9 +1890,13 @@ export default function MyListingsPage() {
                     lang,
                   ),
                   );
+                  const autosClassification = classifyOwnerDashboardRow({ category: "autos", autosLane: "privado" });
                   return (
+                    <div key={x.id} className="relative" data-owner-dashboard-group={autosClassification.group}>
+                      <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                        {ownerDashboardGroupLabel(autosClassification.group, lang)}
+                      </span>
                     <AutosClassifiedListingManageCard
-                      key={x.id}
                       row={{
                         id: x.id,
                         title: x.title,
@@ -1862,6 +1905,7 @@ export default function MyListingsPage() {
                         status: x.status,
                         created_at: x.created_at,
                       }}
+                      uiStatus={autosUiStatus}
                       lang={lang}
                       priceText={priceText}
                       dateText={dateText}
@@ -1883,6 +1927,7 @@ export default function MyListingsPage() {
                       listingAdPlanLabel={autosPlanLabel}
                       leonixAdId={x.leonix_ad_id ?? null}
                     />
+                    </div>
                   );
                 }
 
@@ -1922,9 +1967,17 @@ export default function MyListingsPage() {
                       ? dashboardRepublishPrimaryKind(rowRec, catKey)
                       : null;
                   const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
+                  const brRentasClassification = classifyOwnerDashboardRow({
+                    category: catKey,
+                    brRentasBranch: lx.branch,
+                    inventoryRole: (x as unknown as { inventory_role?: string | null }).inventory_role,
+                  });
                   return (
+                    <div key={x.id} className="relative" data-owner-dashboard-group={brRentasClassification.group}>
+                      <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                        {ownerDashboardGroupLabel(brRentasClassification.group, lang)}
+                      </span>
                     <LeonixRealEstateListingManageCard
-                      key={x.id}
                       row={x}
                       lang={lang}
                       busy={busy}
@@ -1958,6 +2011,7 @@ export default function MyListingsPage() {
                       ])}
                       ownerUserId={userId}
                     />
+                    </div>
                   );
                 }
 
@@ -1981,9 +2035,13 @@ export default function MyListingsPage() {
                         ? "Refrescar anuncio"
                         : "Refresh listing"
                       : null;
+                  const enVentaClassification = classifyOwnerDashboardRow({ category: "en-venta" });
                   return (
+                    <div key={x.id} className="relative" data-owner-dashboard-group={enVentaClassification.group}>
+                      <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                        {ownerDashboardGroupLabel(enVentaClassification.group, lang)}
+                      </span>
                     <EnVentaListingManageCard
-                      key={x.id}
                       row={{
                         id: x.id,
                         title: x.title,
@@ -2055,6 +2113,7 @@ export default function MyListingsPage() {
                       hidePlanUpsell
                       compactDashboard
                     />
+                    </div>
                   );
                 }
 
@@ -2089,7 +2148,11 @@ export default function MyListingsPage() {
                         ? lang === "es"
                           ? "Busco / Se busca"
                           : "Looking for / Wanted"
-                        : null;
+                        : catLower === "mascotas-y-perdidos"
+                          ? lang === "es"
+                            ? "Mascotas y Perdidos"
+                            : "Pets & Lost/Found"
+                          : null;
                 const buscoTypeChip =
                   catLower === "busco" ? buscoOwnerDashboardTypeLabel(x.detail_pairs, lang) : null;
                 const locationLine =
@@ -2097,11 +2160,19 @@ export default function MyListingsPage() {
                     ? buscoOwnerDashboardLocationLine(x.city, x.detail_pairs)
                     : (x.city || "").trim();
                 const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
+                const genericClassification = classifyOwnerDashboardRow({
+                  category: x.category ?? "",
+                  brRentasBranch: lx.branch,
+                });
                 return (
                   <div
                     key={x.id}
-                    className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
+                    className="relative rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
+                    data-owner-dashboard-group={genericClassification.group}
                   >
+                    <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                      {ownerDashboardGroupLabel(genericClassification.group, lang)}
+                    </span>
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">

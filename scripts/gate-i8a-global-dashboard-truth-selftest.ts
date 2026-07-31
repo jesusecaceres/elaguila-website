@@ -70,7 +70,10 @@ async function main() {
       { input: { category: "clases" }, expectGroup: "private", expectPipeline: "clases" },
       { input: { category: "comunidad" }, expectGroup: "private", expectPipeline: "comunidad" },
       { input: { category: "busco" }, expectGroup: "private", expectPipeline: "busco" },
-      { input: { category: "mascotas-y-perdidos" }, expectGroup: "unsupported", expectPipeline: "mascotas_y_perdidos" },
+      // Work Package I.8B — corrected: Mascotas is now discoverable in Mis Anuncios (real rows,
+      // canonical UUID, safe public route) and classifies as private/classified, same as
+      // Busco/Clases/Comunidad. See gate-i8b for the full discovery-wiring proof.
+      { input: { category: "mascotas-y-perdidos" }, expectGroup: "private", expectPipeline: "mascotas_y_perdidos" },
       { input: { category: "some_future_unmodeled_category" }, expectGroup: "unsupported", expectPipeline: null },
     ];
     for (const c of cases) {

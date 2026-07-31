@@ -133,11 +133,15 @@ export function classifyOwnerDashboardRow(input: DashboardClassificationInput): 
     pipeline = "busco";
     group = "private";
   } else if (category === "mascotas-y-perdidos" || category === "mascotas_y_perdidos") {
-    // Confirmed by repository evidence: not in MIS_ANUNCIOS_CATEGORY_KEYS, no dashboardRoute,
-    // no safe editRoute (categoryRouteRegistry.ts MASCOTAS_Y_PERDIDOS_ADAPTER). A category may be
-    // marked unsupported only with repository evidence — this is that evidence.
+    // Work Package I.8B — corrected. Mascotas now has real rows in the shared `listings` table,
+    // canonical UUID identity, and a safe public route (Gate I.6B) — it is discoverable in Mis
+    // Anuncios as of this package (see `listingRowCategoryKey()` in mis-anuncios/page.tsx and the
+    // "mascotas" entry in `dashboardMisAnunciosCategories.ts`). It classifies as a private/
+    // classified listing, same as Busco/Clases/Comunidad. No safe Edit route exists yet — that is
+    // an action-availability fact (handled by the action layer / attention center), not a reason
+    // to exclude it from organizational grouping.
     pipeline = "mascotas_y_perdidos";
-    group = "unsupported";
+    group = "private";
   } else {
     // Genuinely unmodeled category — fail closed to unsupported/attention, never silently
     // treated as a private listing.
