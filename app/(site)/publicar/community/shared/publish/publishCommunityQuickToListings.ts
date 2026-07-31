@@ -2,7 +2,11 @@
 
 import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { verifyQuickListingReusable } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
+import {
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
@@ -482,6 +486,13 @@ export async function publishCommunityQuickToListings(input: {
     if (upd.error) {
       return { ok: false, error: upd.error.message };
     }
+  } else if (existingListingId) {
+    // I.6C — an existing-listing intention was supplied but failed verification. Fail closed:
+    // never fall back to an INSERT here, or a failed identity check would silently become a
+    // second, duplicate row. The local draft is left untouched by returning early. Covers both
+    // Clases and Comunidad — this publisher is shared by `kind`.
+    logQuickListingReuseFailure(`community:${kind}`, reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
   } else {
     const ins = await insertListingsRowResilient(supabase, insertPayload);
     if (ins.error) {

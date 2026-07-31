@@ -52,3 +52,26 @@ export async function verifyQuickListingReusable(
 
   return { safe: true, listingId: candidate };
 }
+
+/**
+ * Work Package I.6C — deterministic, sanitized error surfaced to the client whenever a caller
+ * supplied a candidate listing id (an existing-listing intention) but `verifyQuickListingReusable`
+ * could not confirm it is safe to reuse. Callers must return this instead of falling back to an
+ * INSERT — a failed existing-identity check must never silently become a new listing. Never
+ * exposes the raw Supabase/Postgres error; the specific `QuickListingReuseCheck["reason"]` is for
+ * internal logging only (see `logQuickListingReuseFailure`).
+ */
+export const QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE = "quick_listing_existing_identity_invalid";
+
+export function quickListingExistingIdentityInvalidMessage(lang: "es" | "en"): string {
+  return lang === "es"
+    ? "No pudimos verificar tu anuncio existente. Tu borrador sigue guardado — puedes intentar de nuevo o empezar uno nuevo."
+    : "We couldn't verify your existing listing. Your draft is still saved — you can retry or start a new one.";
+}
+
+export type QuickListingReuseFailureReason = Extract<QuickListingReuseCheck, { safe: false }>["reason"];
+
+/** Internal-only logging (never surfaced to the client) of why an existing-identity check failed. */
+export function logQuickListingReuseFailure(context: string, reason: QuickListingReuseFailureReason): void {
+  console.warn(`[${QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE}] ${context}: reuse verification failed (${reason})`);
+}

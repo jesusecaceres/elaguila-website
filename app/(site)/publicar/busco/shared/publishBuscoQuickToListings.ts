@@ -5,7 +5,11 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
-import { verifyQuickListingReusable } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
+import {
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { gateBuscoQuickPreview } from "./buscoRequiredForPreview";
 import type { BuscoQuickDraft } from "./buscoQuickTypes";
@@ -165,6 +169,12 @@ export async function publishBuscoQuickToListings(input: {
     if (upd.error) {
       return { ok: false, error: upd.error.message };
     }
+  } else if (existingListingId) {
+    // I.6C — an existing-listing intention was supplied but failed verification. Fail closed:
+    // never fall back to an INSERT here, or a failed identity check would silently become a
+    // second, duplicate row. The local draft is left untouched by returning early.
+    logQuickListingReuseFailure("busco", reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
   } else {
     const ins = await insertListingsRowResilient(supabase, insertPayload);
     if (ins.error) {

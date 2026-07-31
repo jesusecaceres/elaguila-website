@@ -11,10 +11,51 @@ and, for the specific fixes below, by
 [`scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts`](../scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts),
 [`scripts/gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts`](../scripts/gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts),
 [`scripts/gate-i6a-quick-clasificados-lifecycle-selftest.ts`](../scripts/gate-i6a-quick-clasificados-lifecycle-selftest.ts),
+[`scripts/gate-i6b-quick-clasificados-integrity-selftest.ts`](../scripts/gate-i6b-quick-clasificados-integrity-selftest.ts),
 and
-[`scripts/gate-i6b-quick-clasificados-integrity-selftest.ts`](../scripts/gate-i6b-quick-clasificados-integrity-selftest.ts).
+[`scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts`](../scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.6C update log
+
+- **Unknown listing category now fails closed — corrected.** I.6B's `coerceCategoryKey()` last-
+  resort fallback (any category value not in `CATEGORY_KEYS`, not `"bienes-raices"`, and not an En
+  Venta slug) still silently mapped to `"en-venta"` — the exact same bug class as the Mascotas
+  root cause, just for any *future or malformed* unmodeled category instead of a specific known
+  one. **"Unknown categories fail closed" was not actually true after I.6B; it is TRUE only as of
+  this package.** Fixed by adding `isRecognizedListingCategory()` in
+  `app/(site)/clasificados/anuncio/[id]/page.tsx`, run before `mapDbListingRowToListing()` on
+  every live-fetched row; a genuinely unrecognized category now takes the exact same fail-closed
+  path already used for unpublished/removed/inactive rows (`setFetchedListing(undefined)`,
+  rendering the existing truthful not-found state) instead of reaching `coerceCategoryKey`'s
+  fallback at all. Every previously-supported category, including Mascotas y Perdidos, is
+  unchanged — `isRecognizedListingCategory` mirrors the exact same set of values
+  `coerceCategoryKey` maps to a real category.
+- **Existing-listing identity verification failure no longer falls back to INSERT.** I.6B's
+  `verifyQuickListingReusable` already fails closed and *reports* why (missing, invalid UUID,
+  not-found, owner-mismatch, category-mismatch, query-error), but all four publishers (En Venta,
+  Busco, Clases, Comunidad) still unconditionally fell back to a fresh INSERT on any verification
+  failure — including invalid/unauthorized/wrong-category candidates, not just a genuinely absent
+  one. That meant a failed *existing*-listing identity could silently become a *new* listing
+  instead of a hard stop. Each publisher now branches three ways: no candidate id at all → INSERT
+  (unchanged, truly-new behavior); a candidate id that verifies → UPDATE that exact row
+  (unchanged); a candidate id that fails verification for any reason → fail closed, return the new
+  deterministic `quick_listing_existing_identity_invalid` error
+  (`quickListingExistingIdentityInvalidMessage()` in `quickListingIdempotency.ts`), never INSERT,
+  never expose the raw Supabase/Postgres error (logged internally via
+  `logQuickListingReuseFailure()` only). The local draft and the session-persisted candidate id are
+  both left untouched on this path — the caller components already only clear/persist them on a
+  successful publish, so no caller changes were needed. The user can still explicitly start a new
+  listing through the existing start-over action; a failed identity check no longer does that for
+  them silently.
+- **Duplicate prevention claim corrected.** Still not perfect idempotency — see
+  [Duplicate-Row Prevention Scope](#duplicate-row-prevention-scope), unchanged by this package.
+  What changed here is narrower and orthogonal: ordinary retries of the same in-progress
+  submission remain mitigated (I.6B), and now a *broken* existing-identity check is guaranteed to
+  never silently create a second row either. The one remaining, explicitly-documented gap is still
+  the true concurrent first-submit race, which requires server-side idempotency support/schema
+  work out of scope here.
 
 ## Work Package I.6B update log
 
@@ -39,9 +80,12 @@ documents — see [Unresolved Route Debt](#unresolved-route-debt).
   shared helper (`app/(site)/clasificados/lib/quickListingIdempotency.ts`) verifies — server-side,
   via the same RLS-enforced `listings` table every publisher already uses — that a session-
   persisted candidate listing UUID genuinely belongs to the current owner and expected category
-  before a publisher UPDATEs it instead of inserting a new row. Any verification failure (missing,
-  invalid, not-found, owner-mismatch, category-mismatch, query-error) falls back to the original
-  insert-only behavior — never an unscoped update. See
+  before a publisher UPDATEs it instead of inserting a new row. At the time of this package, any
+  verification failure (missing, invalid, not-found, owner-mismatch, category-mismatch,
+  query-error) fell back to the original insert-only behavior — **corrected in Work Package I.6C**:
+  only a genuinely absent candidate (no existing-listing intention at all) still falls back to
+  INSERT; a present-but-failed-verification candidate now fails closed instead, see the
+  [I.6C update log](#work-package-i6c-update-log). See
   [Duplicate-Row Prevention Scope](#duplicate-row-prevention-scope) for exactly what window this
   protects and the remaining, explicitly-documented race.
 - **Clases/Comunidad dashboard discovery corrected.** `fetchOwnerListingsForDashboard` was

@@ -207,16 +207,34 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
  * I.6B — corrected. Previously, any category NOT in this allowlist (including the real,
  * confirmed "mascotas-y-perdidos" value) silently fell through to "en-venta", causing real
  * Mascotas y Perdidos listings to render through the wrong layout with wrong content (Gate
- * I.6A root-cause finding). "mascotas-y-perdidos" is now accepted. Any other genuinely unknown
- * category value still fails closed to "en-venta" only as the last-resort branch below — this
- * is a pre-existing, intentionally permissive fallback for values not yet modeled here, not a
- * silent masquerade for a category this file already knows about.
+ * I.6A root-cause finding). "mascotas-y-perdidos" is now accepted.
+ *
+ * I.6C — the last-resort "en-venta" branch below is retained only so this function stays total
+ * (every call must return a `CategoryKey`), but it is no longer reachable from the live fetch
+ * path: `isRecognizedListingCategory()` gates the row before `mapDbListingRowToListing()` is
+ * ever called, so a genuinely unknown category now fails closed to the existing not-found state
+ * instead of silently masquerading as En Venta. See `isRecognizedListingCategory`.
  */
 function coerceCategoryKey(raw: unknown): CategoryKey {
   const s = String(raw ?? "").trim();
   if (s === "bienes-raices") return "bienes-raices";
   if (isEnVentaCategorySlug(s)) return "en-venta";
   return (CATEGORY_KEYS as readonly string[]).includes(s) ? (s as CategoryKey) : "en-venta";
+}
+
+/**
+ * I.6C — fail-closed gate run BEFORE `mapDbListingRowToListing()` on every live-fetched row.
+ * Mirrors exactly the set of values `coerceCategoryKey` can map to a real category (never its
+ * last-resort fallback): "bienes-raices", any En Venta slug, or a value already in
+ * `CATEGORY_KEYS`. A `false` result means the category is genuinely unmodeled by this shell —
+ * the caller must treat the row as not-found, the same truthful outcome already used for
+ * unpublished/removed/inactive rows, never render it through the En Venta layout.
+ */
+function isRecognizedListingCategory(raw: unknown): boolean {
+  const s = String(raw ?? "").trim();
+  if (s === "bienes-raices") return true;
+  if (isEnVentaCategorySlug(s)) return true;
+  return (CATEGORY_KEYS as readonly string[]).includes(s);
 }
 
 function imageUrlsFromJsonb(images: unknown): string[] {
@@ -615,6 +633,15 @@ export default function AnuncioDetallePage() {
             return;
           }
         }
+        // I.6C — an unsupported/unmodeled category fails closed to the same not-found outcome
+        // used above, instead of falling through coerceCategoryKey's last-resort "en-venta"
+        // default and mis-rendering a genuinely unknown category as En Venta.
+        if (!isRecognizedListingCategory(row.category)) {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+
         setPublishedSourceRow(row);
         setFetchedListing(mapDbListingRowToListing(row));
         setRemoteState("ready");

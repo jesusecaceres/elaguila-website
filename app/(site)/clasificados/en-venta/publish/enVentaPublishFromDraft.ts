@@ -35,7 +35,11 @@ import {
   resolveEnVentaPublishDescriptionForDb,
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
-import { verifyQuickListingReusable } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
+import {
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -418,6 +422,12 @@ export async function publishEnVentaFromDraft(
       const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(reuseUpd.error, lang);
       return { ok: false, error: friendly ?? reuseUpd.error.message };
     }
+  } else if (existingListingId) {
+    // I.6C — an existing-listing intention was supplied but failed verification. Fail closed:
+    // never fall back to an INSERT here, or a failed identity check would silently become a
+    // second, duplicate row. The local draft is left untouched by returning early.
+    logQuickListingReuseFailure("en-venta", reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
   } else {
     // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
     const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
