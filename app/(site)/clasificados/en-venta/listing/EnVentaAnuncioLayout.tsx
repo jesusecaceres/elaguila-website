@@ -82,6 +82,7 @@ import {
   trackListingShare,
   trackListingSaveToggleAuthed,
 } from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import {
   enVentaCategoryLine,
   enVentaConditionDisplay,
@@ -525,6 +526,7 @@ export function EnVentaAnuncioLayout({
       window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
       return;
     }
+    if (isSelfEngagement(user.id, ownerId)) return;
     const engagementCategory = surface === "en-venta" ? "en-venta" : "bienes-raices";
     if (saved) {
       await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);

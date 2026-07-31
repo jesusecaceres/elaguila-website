@@ -19,7 +19,9 @@ and, for the specific fixes below, by
 [`scripts/gate-i9a-admin-operations-truth-selftest.ts`](../scripts/gate-i9a-admin-operations-truth-selftest.ts),
 [`scripts/gate-i9b-admin-write-safety-selftest.ts`](../scripts/gate-i9b-admin-write-safety-selftest.ts),
 and, for the analytics/engagement truth recorded below,
-[`scripts/gate-i10a-analytics-engagement-truth-selftest.ts`](../scripts/gate-i10a-analytics-engagement-truth-selftest.ts).
+[`scripts/gate-i10a-analytics-engagement-truth-selftest.ts`](../scripts/gate-i10a-analytics-engagement-truth-selftest.ts)
+and
+[`scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts`](../scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
@@ -73,11 +75,21 @@ when supplied, silently falling back to a legacy client-direct-Supabase-insert d
 - The `message_sent` calls in `anuncio/[id]/page.tsx` (via the older `app/lib/listingAnalytics.ts` `trackEvent`) are **not** migrated — only that file's `listing_view`/`listing_open` calls are.
 - Rentas CTA clicks (phone/whatsapp/email/website/sms/directions, `app/(site)/clasificados/rentas/analytics/rentasAnalytics.ts`) still route through the oldest legacy module (`app/lib/listingAnalytics.ts`'s `trackEvent`), discovered during this package's tracing but out of this package's approved file list.
 - `app/(site)/clasificados/lib/leonixClasificadosAnalytics.ts` and the five `*AnalyticsExtended.ts` / `serviciosAnalytics.ts` / `restaurantesAnalytics.ts` wrapper modules, plus `AutosPreviewCard.tsx`, `RentasPreviewCard.tsx`, `CommunityResultCardEngagement.tsx` — confirmed zero live importers/callers anywhere in `app/`. Dead code, left untouched; a future cleanup package can remove them.
-- `EnVentaAnuncioLayout.tsx`'s inline Save does **not** get the owner self-engagement check the two BR shells received — same category of gap, not fixed in this package (only the two files explicitly scoped for the self-check were touched), flagged here for follow-up.
-
 **Dashboard honesty:** `AdminViajesAnalyticsPlaceholders.tsx` was audited and found already compliant — it's explicitly labeled ("Mock sample" badge, "not live data" heading, disabled "Open full report" button), not silently presented as real. Not a bug; left as-is, with a regression test guarding the label.
 
 **Duplicate/abuse protection reused, not reinvented:** server-side time-window dedupe (`analyticsEventDedupe.ts`, unchanged) applies automatically to the newly-migrated view/open calls since they go through the same `/api/analytics/events` route. Rapid duplicate Like/Save clicks were already prevented by the existing `isLiking`/`isSaving` in-flight guards. No schema or migration changes anywhere in this package.
+
+## Work Package I.10B Update Log
+
+**Closes the one gap I.10A's own final report named explicitly:** `EnVentaAnuncioLayout.tsx`'s inline Save (the shared en-venta + bienes-raices detail shell's hand-rolled Save, not via `LeonixSaveButton`) did not get the owner self-engagement check the shared components and the two BR live-detail shells received in I.10A.
+
+- **`onToggleSave` now calls `isSelfEngagement(user.id, ownerId)`** (the same pure predicate from `app/lib/analytics/selfEngagementGuard.ts`, reused unchanged — no new auth system) immediately after the existing anonymous-user redirect check, before either branch's `saved_listings` mutation or `trackListingSaveToggleAuthed` analytics call. An owner viewing their own listing now gets a silent early return: no DB write, no analytics event.
+- **Non-owner behavior is unchanged** — the guard is a single early `return`, not a rewrite of either branch; a non-owner still reaches the real mutation and the real canonical analytics call exactly as before.
+- **Persistence-before-analytics ordering is preserved** in both branches, unchanged from I.10A.
+- **Share is not gated** — unaffected, as intended; an owner can still share their own listing.
+- No analytics API, server validation, schema, or other category file touched.
+
+**Files:** `EnVentaAnuncioLayout.tsx` (edited), `scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts` (new), this ledger entry. 3 files, within the 4-file budget.
 
 ## Work Package I.9B update log
 
