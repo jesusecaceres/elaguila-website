@@ -17,6 +17,12 @@ type Props = {
   offerStatus: string;
 };
 
+const SCANNABLE_OWNER_STATUSES: ReadonlySet<string> = new Set([
+  "draft",
+  "submitted",
+  "pending_review",
+]);
+
 function firstScannableAsset(
   flyerAssets: OfertaLocalPublishedAssetMetadata[],
   couponAssets: OfertaLocalPublishedAssetMetadata[]
@@ -63,8 +69,7 @@ export function OfertasLocalesOwnerAiManageSection({
 
   const canScan =
     Boolean(scannable) &&
-    offerStatus !== "rejected" &&
-    offerStatus !== "archived";
+    SCANNABLE_OWNER_STATUSES.has(offerStatus);
 
   const handleScan = useCallback(async () => {
     if (!canScan || !scannable) return;
@@ -96,12 +101,14 @@ export function OfertasLocalesOwnerAiManageSection({
           scan: "Analizar volante/cupón",
           scanning: "Analizando…",
           scanHint: "El análisis con IA está incluido. Los artículos sugeridos requieren aprobación antes de ser públicos.",
+          unavailable: "El análisis nuevo solo está disponible antes de la aprobación final.",
         }
       : {
           title: "AI analysis review",
           scan: "Analyze flyer/coupon",
           scanning: "Analyzing…",
           scanHint: "AI analysis is included. Suggested items require approval before they become public.",
+          unavailable: "New analysis is only available before final approval.",
         };
 
   return (
@@ -122,7 +129,9 @@ export function OfertasLocalesOwnerAiManageSection({
           </button>
           {scanMessage ? <p className="text-xs text-[#5C5346]">{scanMessage}</p> : null}
         </div>
-      ) : null}
+      ) : (
+        <p className="text-xs text-[#7A7164]">{t.unavailable}</p>
+      )}
       <OfertasLocalesAiItemReviewPanel lang={lang} ofertaLocalId={offerId} scanJobId={scanJobId} />
     </section>
   );

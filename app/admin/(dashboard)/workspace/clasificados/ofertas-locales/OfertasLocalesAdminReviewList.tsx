@@ -83,13 +83,18 @@ function SocialLink({ label, href }: { label: string; href?: string | null }) {
 
 function InspectDetail({
   item,
+  basePath,
+  scope,
   reviewEnabled,
 }: {
   item: OfertaLocalAdminDetailVm;
+  basePath: string;
+  scope: "queue" | "live";
   reviewEnabled: boolean;
 }) {
   const { socialLinks, wantsAiSearchableSpecials, featuredPlacementScope, userNote, adminReviewNotes } =
     item.metadata;
+  const returnTo = `${basePath}?id=${encodeURIComponent(item.id)}${scope === "live" ? "&scope=live" : ""}`;
 
   return (
     <div className="space-y-4 rounded-2xl border border-[#C9B46A]/50 bg-[#FFFCF7] p-5">
@@ -305,8 +310,10 @@ function InspectDetail({
           <h4 className="text-sm font-bold text-[#1E1810]">Moderación</h4>
           <form action={reviewOfertaLocalAdminAction} className="space-y-2">
             <input type="hidden" name="offer_id" value={item.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="target_label" value={item.businessName} />
             <label className="block text-xs font-semibold text-[#5C5346]">
-              Nota interna (opcional)
+              Nota interna (requerida para rechazo)
               <textarea
                 name="admin_note"
                 rows={2}
@@ -386,7 +393,14 @@ export function OfertasLocalesAdminReviewList({
         </p>
       </div>
 
-      {inspectItem ? <InspectDetail item={inspectItem} reviewEnabled={reviewEnabled} /> : null}
+      {inspectItem ? (
+        <InspectDetail
+          item={inspectItem}
+          basePath={basePath}
+          scope={scope}
+          reviewEnabled={reviewEnabled}
+        />
+      ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-white">
         <table className="w-full min-w-[1100px] border-collapse text-left text-xs text-[#1E1810]">

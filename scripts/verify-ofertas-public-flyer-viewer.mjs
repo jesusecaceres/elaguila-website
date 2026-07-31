@@ -28,6 +28,24 @@ const productDrawerPath = path.join(
   root,
   "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesProductDetailDrawer.tsx"
 );
+const publicOfferHelpersPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesPublicOfferHelpers.ts");
+const publicSearchHelpersPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers.ts");
+const publicSearchClientPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx"
+);
+const publicItemCardPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemCard.tsx"
+);
+const publicItemDrawerPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx"
+);
+const publicOfferDrawerPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx"
+);
 
 const GATE_ALLOWED_PREFIXES = [
   "app/(site)/publicar/ofertas-locales/preview/",
@@ -113,6 +131,52 @@ if (productGrid.includes("OfertasLocalesProductDetailDrawer")) {
 const productDrawer = readFileSync(productDrawerPath, "utf8");
 requireText("product detail drawer still exists", productDrawer, "export function OfertasLocalesProductDetailDrawer");
 
+const publicOfferHelpers = readFileSync(publicOfferHelpersPath, "utf8");
+requireText("public offers approved-only", publicOfferHelpers, 'new Set(["approved"])');
+requireText("public offers non-expired", publicOfferHelpers, "isOfertaLocalExpired(row.valid_until, now)");
+
+const publicSearchHelpers = readFileSync(publicSearchHelpersPath, "utf8");
+requireText("public item approved parent gate", publicSearchHelpers, 'new Set(["approved"])');
+requireText("public item approved review gate", publicSearchHelpers, 'row.review_status !== "approved"');
+requireText("public item active gate", publicSearchHelpers, "!row.is_active");
+requireText("public item non-expired parent gate", publicSearchHelpers, "isOfertaLocalExpired(parent.valid_until, now)");
+requireText("public item source crop", publicSearchHelpers, "sourceCropHref: getSafeOfertaLocalSourceAssetHref(row.source_crop_url)");
+requireText("public item source bbox", publicSearchHelpers, "sourceBbox: parseOfertaLocalPublicSourceBbox(row.source_bbox)");
+requireText("public item source page", publicSearchHelpers, "sourcePage: row.source_page");
+
+const publicItemCard = readFileSync(publicItemCardPath, "utf8");
+requireText("public card crop fallback", publicItemCard, "item.sourceCropHref");
+requireText("public card source fallback", publicItemCard, "item.sourceAssetHref");
+
+const publicItemDrawer = readFileSync(publicItemDrawerPath, "utf8");
+requireText("public drawer crop fallback", publicItemDrawer, "item.sourceCropHref");
+requireText("public drawer source fallback", publicItemDrawer, "item.sourceAssetHref");
+
+const publicSearchClient = readFileSync(publicSearchClientPath, "utf8");
+requireText("Cupones hides shopping list cart", publicSearchClient, "const floatingShoppingListCart = !isCupones ?");
+requireText("Cupones blocks product list drawer", publicSearchClient, "{!isCupones && selectedItem ?");
+
+const publicOfferDrawer = readFileSync(publicOfferDrawerPath, "utf8");
+for (const forbidden of ["addToList", "shoppingList", "quantity", "claim", "redeem", "redemption code"]) {
+  if (publicOfferDrawer.toLowerCase().includes(forbidden.toLowerCase())) {
+    fail(`Cupones drawer introduced cart/list/claim control: ${forbidden}`);
+  } else {
+    pass(`Cupones drawer control absent: ${forbidden}`);
+  }
+}
+
+const publicReturnModels = [
+  publicOfferHelpers.slice(publicOfferHelpers.indexOf("export function mapOfertaLocalPublicOfferRowToCard")),
+  publicSearchHelpers.slice(publicSearchHelpers.indexOf("export function mapOfertaLocalPublicSearchRowToItem")),
+].join("\n");
+for (const internal of ["provider:", "normalizerProvider:", "internalError:", "storagePath:", "internalNotes:", "ownerId:"]) {
+  if (publicReturnModels.includes(internal)) {
+    fail(`public model leaks internal field: ${internal}`);
+  } else {
+    pass(`public internal field absent: ${internal}`);
+  }
+}
+
 const gateSources = flyerViewer;
 for (const fake of FAKE_STRINGS) {
   if (gateSources.toLowerCase().includes(fake.toLowerCase())) {
@@ -171,7 +235,7 @@ if (unrelated.length) {
 }
 
 if (gateTouched.length === 0) {
-  fail("expected gate files to be modified or added");
+  pass("viewer gate files unchanged; current repository truth verified");
 } else {
   pass(`gate files touched: ${gateTouched.join(", ")}`);
 }

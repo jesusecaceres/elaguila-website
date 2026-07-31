@@ -10,6 +10,9 @@ const copyPath = path.join(root, "app/(site)/publicar/ofertas-locales/ofertasLoc
 const appPath = path.join(root, "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx");
 const panelPath = path.join(root, "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx");
 const locationPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesLocationHelpers.ts");
+const adminMutationPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts");
+const adminRoutePath = path.join(root, "app/api/ofertas-locales/admin/[id]/review/route.ts");
+const adminListPath = path.join(root, "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx");
 
 function fail(message) {
   console.error(`FAIL: ${message}`);
@@ -62,6 +65,20 @@ requireText("editor page complete card", panel, "aiReviewContinueToPage");
 const location = readFileSync(locationPath, "utf8");
 requireText("norcal suggestions list", location, "OFERTA_LOCAL_NORCAL_CITY_SUGGESTIONS");
 
+const adminMutation = readFileSync(adminMutationPath, "utf8");
+requireText("admin approval checks unresolved items", adminMutation, "assertNoUnresolvedItemsBeforeApproval");
+requireText("admin approval blocks pending items", adminMutation, '.in("review_status", ["pending", "needs_review"])');
+requireText("admin rejection requires reason", adminMutation, "rejection_reason_required");
+requireText("admin rejection keeps children private", adminMutation, 'action === "reject" || action === "archive"');
+requireText("admin approval activates approved children only", adminMutation, '.eq("review_status", "approved")');
+
+const adminRoute = readFileSync(adminRoutePath, "utf8");
+requireText("admin validation failures return 422", adminRoute, "rejection_reason_required");
+requireText("admin unresolved validation returns 422", adminRoute, "unresolved_review_items");
+
+const adminList = readFileSync(adminListPath, "utf8");
+requireText("admin rejection reason copy", adminList, "Nota interna (requerida para rechazo)");
+
 const allowed = [
   "app/lib/ofertas-locales/ofertasLocalesDraftPersistence.ts",
   "app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence.ts",
@@ -75,6 +92,9 @@ const allowed = [
   "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewProductGrid.tsx",
   "app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts",
   "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/actions.ts",
+  "app/api/ofertas-locales/admin/[id]/review/route.ts",
+  "app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts",
   "scripts/verify-ofertas-durable-draft-review-control.mjs",
   "package.json",
 ];
@@ -91,9 +111,14 @@ else pass(`gate files in diff: ${gateChanges.length}`);
 const forbidden = changed.filter(
   (file) =>
     file.includes("stripe") ||
-    file.includes("analytics") ||
+    (file.includes("analytics") && !file.startsWith("docs/OFERTAS_ANALYTICS_COORDINATION.md")) ||
+    file.startsWith("supabase/migrations/") ||
+    file.startsWith("app/lib/listingLifecycle/") ||
+    file.startsWith("app/lib/listingIdentity/") ||
+    file.startsWith("app/lib/listingPlans/") ||
     (file.includes("admin") &&
-      !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/"))
+      !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/") &&
+      !file.startsWith("app/api/ofertas-locales/admin/"))
 );
 
 if (forbidden.length) fail(`forbidden files changed: ${forbidden.join(", ")}`);

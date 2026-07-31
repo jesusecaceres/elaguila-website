@@ -59,11 +59,44 @@ Globalization/Lifecycle should create a new forward-only migration that:
 - Leaves RLS unchanged.
 - Verifies the deployed constraint name before applying the replacement.
 
-No migration was applied in the Ofertas worktree for Package 1A.
+No migration was applied in the Ofertas worktree for Package 1A or Package 3.
+
+Recommended migration name:
+
+```text
+allow_gemini_multimodal_oferta_local_scan_jobs_provider
+```
+
+Integration order:
+
+1. Merge the Ofertas runtime provider work that writes `gemini_multimodal`.
+2. Apply the forward-only schema migration in the shared lifecycle/schema workstream.
+3. Run the rollback-transaction verification in real QA.
+4. Run Ofertas scan QA only after the provider insert succeeds.
+
+Merge dependency:
+
+```text
+The schema migration must merge before any production traffic can create real Gemini scan jobs.
+```
+
+Deployment dependency:
+
+```text
+Deploy schema first, then deploy or enable the runtime path that persists gemini_multimodal.
+```
+
+Real QA dependency:
+
+```text
+QA must run against an environment with the updated provider constraint, Supabase service role configured, and Gemini runtime env vars configured.
+```
 
 ## Proposed SQL
 
 ```sql
+begin;
+
 alter table public.oferta_local_scan_jobs
   drop constraint if exists oferta_local_scan_jobs_provider_check;
 
@@ -75,6 +108,29 @@ alter table public.oferta_local_scan_jobs
     'future_provider',
     'gemini_multimodal'
   ));
+
+commit;
+```
+
+## Rollback SQL
+
+Only use rollback before any real `gemini_multimodal` rows exist, or after coordinating a data migration away from that provider value.
+
+```sql
+begin;
+
+alter table public.oferta_local_scan_jobs
+  drop constraint if exists oferta_local_scan_jobs_provider_check;
+
+alter table public.oferta_local_scan_jobs
+  add constraint oferta_local_scan_jobs_provider_check
+  check (provider in (
+    'google_document_ai',
+    'leonix_manual',
+    'future_provider'
+  ));
+
+commit;
 ```
 
 ## Verification SQL
@@ -100,6 +156,20 @@ select provider, count(*)
 from public.oferta_local_scan_jobs
 group by provider
 order by provider;
+```
+
+Confirm there are no unexpected provider values:
+
+```sql
+select provider
+from public.oferta_local_scan_jobs
+where provider not in (
+  'google_document_ai',
+  'leonix_manual',
+  'future_provider',
+  'gemini_multimodal'
+)
+group by provider;
 ```
 
 Safely test `gemini_multimodal` in a non-production environment or inside a rollback transaction:
@@ -128,6 +198,43 @@ rollback;
 ```
 
 If the environment has no `ofertas_locales` parent row, seed a disposable non-production parent first or use an existing non-production parent. Do not run this insert in production outside a rollback-controlled verification.
+
+Transaction-safe negative test:
+
+```sql
+begin;
+
+insert into public.oferta_local_scan_jobs (
+  oferta_local_id,
+  owner_id,
+  provider,
+  normalizer_provider,
+  status
+)
+select
+  id,
+  owner_id,
+  'not_allowed_provider',
+  'test',
+  'pending'
+from public.ofertas_locales
+limit 1;
+
+rollback;
+```
+
+Expected result: the insert fails on `oferta_local_scan_jobs_provider_check`.
+
+## Expected Application Behavior
+
+After the migration, `app/lib/ofertas-locales/ofertasLocalesScanApiHandler.ts` can create scan jobs with `provider = 'gemini_multimodal'` without a constraint violation. Historical rows keep their existing provider values. No provider renaming is required.
+
+Required tests:
+
+- Static audit: `scripts/ofertas-locales-package-1a-identity-audit.ts`
+- Static audit: `scripts/verify-ofertas-cupones-single-ai-pipeline.mjs`
+- Runtime QA: create an Ofertas scan job with a real source asset and verify the scan job row stores `gemini_multimodal`.
+- Runtime QA: verify RLS behavior is unchanged by running existing owner/admin scan-job access checks.
 
 ## Ownership and Dependency
 

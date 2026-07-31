@@ -68,6 +68,21 @@ function isTransitionAllowed(
   }
 }
 
+async function assertNoUnresolvedItemsBeforeApproval(
+  sb: SupabaseClient,
+  offerId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { count, error } = await sb
+    .from("oferta_local_items")
+    .select("id", { count: "exact", head: true })
+    .eq("oferta_local_id", offerId)
+    .in("review_status", ["pending", "needs_review"]);
+
+  if (error) return { ok: false, error: "item_review_lookup_failed" };
+  if ((count ?? 0) > 0) return { ok: false, error: "unresolved_review_items" };
+  return { ok: true };
+}
+
 /** Activate approved child items when parent offer is approved; deactivate on reject/archive. */
 export async function syncOfertaLocalItemsActivationAfterAdminReview(
   sb: SupabaseClient,
@@ -108,6 +123,10 @@ export async function mutateOfertaLocalAdminReview(
   const offerId = id.trim();
   if (!offerId) return { ok: false, error: "missing_id" };
 
+  if (action === "reject" && !String(adminNote ?? "").trim()) {
+    return { ok: false, error: "rejection_reason_required" };
+  }
+
   const { data: row, error: fetchError } = await sb
     .from("ofertas_locales")
     .select(OFERTAS_LOCALES_ADMIN_SELECT)
@@ -123,6 +142,11 @@ export async function mutateOfertaLocalAdminReview(
   }
 
   const newStatus = targetStatusForAction(action);
+  if (action === "approve") {
+    const unresolved = await assertNoUnresolvedItemsBeforeApproval(sb, offerId);
+    if (!unresolved.ok) return unresolved;
+  }
+
   const internal_notes = appendOfertaLocalAdminReviewNote(
     (row as OfertaLocalAdminRow).internal_notes,
     action,
