@@ -7,7 +7,11 @@ import {
   pickScanPrepSubmittedAt,
 } from "@/app/lib/ofertas-locales/ofertasLocalesProductionRowAdapter";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
-import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type {
+  OfertaLocalDraft,
+  OfertaLocalOfferType,
+  OfertaLocalPublishStatus,
+} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -33,13 +37,33 @@ function detectHeavyMedia(value: unknown, path = ""): boolean {
   return false;
 }
 
-function parseAiReviewContext(body: Record<string, unknown>): {
+type AiReviewContext = {
   ofertaLocalId: string | null;
   scanJobId: string | null;
-} {
+  malformed: boolean;
+};
+
+const FINAL_PUBLISH_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set([
+  "draft",
+  "submitted",
+  "pending_review",
+]);
+
+const COUPON_PROMOTION_OFFER_TYPES: ReadonlySet<string> = new Set([
+  "coupon",
+  "promotion",
+  "seasonal_special",
+  "bundle",
+  "featured_deal",
+]);
+
+function parseAiReviewContext(body: Record<string, unknown>): AiReviewContext {
   const raw = body.aiReview;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { ofertaLocalId: null, scanJobId: null };
+  if (raw === undefined || raw === null) {
+    return { ofertaLocalId: null, scanJobId: null, malformed: false };
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { ofertaLocalId: null, scanJobId: null, malformed: true };
   }
   const ctx = raw as Record<string, unknown>;
   return {
@@ -51,18 +75,38 @@ function parseAiReviewContext(body: Record<string, unknown>): {
       typeof ctx.scanJobId === "string" && ctx.scanJobId.trim()
         ? ctx.scanJobId.trim()
         : null,
+    malformed: false,
   };
 }
 
-async function getIncompleteAiReviewCount(params: {
+function normalizeOfferTypeProduct(offerType: string | null | undefined): "weekly_flyer" | "coupon_promotion" | "" {
+  if (offerType === "weekly_flyer") return "weekly_flyer";
+  if (offerType && COUPON_PROMOTION_OFFER_TYPES.has(offerType)) return "coupon_promotion";
+  return "";
+}
+
+function parentMatchesDraftLane(params: {
+  parentOfferType: string | null | undefined;
+  draftOfferType: OfertaLocalOfferType;
+}): boolean {
+  const parentProduct = normalizeOfferTypeProduct(params.parentOfferType);
+  const draftProduct = normalizeOfferTypeProduct(params.draftOfferType);
+  return Boolean(parentProduct && draftProduct && parentProduct === draftProduct);
+}
+
+async function getAiReviewCounts(params: {
   supabase: ReturnType<typeof getAdminSupabase>;
   ownerId: string;
-  ofertaLocalId: string | null;
+  ofertaLocalId: string;
   scanJobId: string | null;
-}): Promise<number> {
-  if (!params.ofertaLocalId) return 0;
+}): Promise<{ ok: true; totalCount: number; incompleteCount: number } | { ok: false; error: string; detail?: string }> {
+  let totalQuery = params.supabase
+    .from("oferta_local_items")
+    .select("id", { count: "exact", head: true })
+    .eq("oferta_local_id", params.ofertaLocalId)
+    .eq("owner_id", params.ownerId);
 
-  let query = params.supabase
+  let incompleteQuery = params.supabase
     .from("oferta_local_items")
     .select("id", { count: "exact", head: true })
     .eq("oferta_local_id", params.ofertaLocalId)
@@ -70,15 +114,59 @@ async function getIncompleteAiReviewCount(params: {
     .in("review_status", ["pending", "needs_review"]);
 
   if (params.scanJobId) {
-    query = query.eq("scan_job_id", params.scanJobId);
+    totalQuery = totalQuery.eq("scan_job_id", params.scanJobId);
+    incompleteQuery = incompleteQuery.eq("scan_job_id", params.scanJobId);
   }
 
-  const { count, error } = await query;
-  if (error) {
-    // If AI tables are unavailable, do not block non-AI publish; Step 5 and review UI surface table issues.
-    return 0;
+  const [{ count: totalCount, error: totalError }, { count: incompleteCount, error: incompleteError }] =
+    await Promise.all([totalQuery, incompleteQuery]);
+
+  if (totalError || incompleteError) {
+    return {
+      ok: false,
+      error: "ai_review_lookup_failed",
+      detail: totalError?.message ?? incompleteError?.message ?? "unknown",
+    };
   }
-  return count ?? 0;
+
+  return { ok: true, totalCount: totalCount ?? 0, incompleteCount: incompleteCount ?? 0 };
+}
+
+async function validateAiReviewScanJob(params: {
+  supabase: ReturnType<typeof getAdminSupabase>;
+  ownerId: string;
+  ofertaLocalId: string;
+  scanJobId: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string; detail?: string; status: number }> {
+  if (!params.scanJobId) return { ok: true };
+
+  const { data, error } = await params.supabase
+    .from("oferta_local_scan_jobs")
+    .select("id")
+    .eq("id", params.scanJobId)
+    .eq("oferta_local_id", params.ofertaLocalId)
+    .eq("owner_id", params.ownerId)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      error: "ai_scan_job_lookup_failed",
+      detail: error.message,
+      status: 500,
+    };
+  }
+
+  if (!data) {
+    return {
+      ok: false,
+      error: "ai_scan_job_not_found",
+      detail: "The AI scan job is not linked to this offer.",
+      status: 422,
+    };
+  }
+
+  return { ok: true };
 }
 
 /**
@@ -139,23 +227,18 @@ export async function POST(req: NextRequest) {
 
   const supabase = getAdminSupabase();
   const aiReview = parseAiReviewContext(rawBody);
-  const incompleteAiReviewCount = await getIncompleteAiReviewCount({
-    supabase,
-    ownerId,
-    ofertaLocalId: aiReview.ofertaLocalId,
-    scanJobId: aiReview.scanJobId,
-  });
+  const now = new Date().toISOString();
 
-  if (incompleteAiReviewCount > 0) {
+  if (aiReview.malformed || (aiReview.scanJobId && !aiReview.ofertaLocalId)) {
     return NextResponse.json(
       {
         ok: false,
-        error: "ai_review_incomplete",
-        detail: `Finish reviewing ${incompleteAiReviewCount} AI suggestion(s) before submitting.`,
+        error: "invalid_ai_review_context",
+        detail: "The AI review parent could not be verified for this submission.",
         issues: [
           {
             field: "aiReview",
-            message: `Finish reviewing ${incompleteAiReviewCount} AI suggestion(s) before submitting.`,
+            message: "The AI review parent could not be verified for this submission.",
             severity: "error",
           },
         ],
@@ -164,8 +247,136 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (aiReview.ofertaLocalId) {
+    const { data: parent, error: parentError } = await supabase
+      .from("ofertas_locales")
+      .select("id, owner_id, status, offer_type, draft_snapshot")
+      .eq("id", aiReview.ofertaLocalId)
+      .maybeSingle();
+
+    if (parentError) {
+      return NextResponse.json(
+        { ok: false, error: "ai_review_parent_lookup_failed", detail: parentError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!parent) {
+      return NextResponse.json(
+        { ok: false, error: "ai_review_parent_not_found", detail: "The AI review parent was not found." },
+        { status: 404 }
+      );
+    }
+
+    if (parent.owner_id !== ownerId) {
+      return NextResponse.json(
+        { ok: false, error: "ai_review_parent_forbidden", detail: "The AI review parent is not owned by this account." },
+        { status: 403 }
+      );
+    }
+
+    const parentStatus = parent.status as OfertaLocalPublishStatus;
+    if (!FINAL_PUBLISH_PARENT_STATUSES.has(parentStatus)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ai_review_parent_not_editable",
+          detail: `Cannot submit an AI-reviewed offer with status ${parentStatus}.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    if (!parentMatchesDraftLane({ parentOfferType: parent.offer_type, draftOfferType: draft.offerType })) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ai_review_parent_mismatch",
+          detail: "The AI review parent does not match this offer type.",
+        },
+        { status: 422 }
+      );
+    }
+
+    const scanJobValidation = await validateAiReviewScanJob({
+      supabase,
+      ownerId,
+      ofertaLocalId: aiReview.ofertaLocalId,
+      scanJobId: aiReview.scanJobId,
+    });
+
+    if (!scanJobValidation.ok) {
+      return NextResponse.json(
+        { ok: false, error: scanJobValidation.error, detail: scanJobValidation.detail },
+        { status: scanJobValidation.status }
+      );
+    }
+
+    const aiReviewCounts = await getAiReviewCounts({
+      supabase,
+      ownerId,
+      ofertaLocalId: aiReview.ofertaLocalId,
+      scanJobId: aiReview.scanJobId,
+    });
+
+    if (!aiReviewCounts.ok) {
+      return NextResponse.json(
+        { ok: false, error: aiReviewCounts.error, detail: aiReviewCounts.detail },
+        { status: 500 }
+      );
+    }
+
+    if (aiReviewCounts.incompleteCount > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ai_review_incomplete",
+          detail: `Finish reviewing ${aiReviewCounts.incompleteCount} AI suggestion(s) before submitting.`,
+          issues: [
+            {
+              field: "aiReview",
+              message: `Finish reviewing ${aiReviewCounts.incompleteCount} AI suggestion(s) before submitting.`,
+              severity: "error",
+            },
+          ],
+        },
+        { status: 422 }
+      );
+    }
+
+    const updateRow = buildOfertasLocalesProductionInsertRow(draft, ownerId, parent.draft_snapshot);
+    delete updateRow.owner_id;
+    delete updateRow.created_at;
+
+    const { data, error } = await supabase
+      .from("ofertas_locales")
+      .update(updateRow)
+      .eq("id", aiReview.ofertaLocalId)
+      .eq("owner_id", ownerId)
+      .select(OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json(
+        { ok: false, error: "update_failed", detail: error?.message ?? "unknown" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      id: data.id,
+      status: data.status,
+      submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
+      aiReview: {
+        ofertaLocalId: data.id,
+        scanJobId: aiReview.scanJobId,
+        reviewedItems: aiReviewCounts.totalCount,
+      },
+    });
+  }
+
   const row = buildOfertasLocalesProductionInsertRow(draft, ownerId);
-  const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("ofertas_locales")
