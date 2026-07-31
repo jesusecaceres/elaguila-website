@@ -8,11 +8,14 @@ import {
   ALLOWED_PREFERRED_CHANNEL_KINDS_BY_CONTACT_TYPE,
   AREA_KINDS,
   CONTACT_TYPES,
+  DIGITAL_PROFILE_PLATFORM_VALUES,
   MAX_CONTACT_VALUE_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
   MAX_SERVICE_AREA_TEXT_LENGTH,
+  OPERATING_MODELS,
   PRIMARY_LANGUAGES,
 } from "./constants";
+import { isValidCountryCode } from "./countries";
 import { normalizeContactValue, normalizeDisplayText, normalizeServiceAreaText } from "./normalization";
 import type {
   AreaKind,
@@ -83,6 +86,9 @@ export type ContactInput = {
   preferredChannel: boolean;
   channelKind: string | null;
   isPrimary: boolean;
+  /** Gate BCO-3R additions — optional so v1 callers (finalizeBusiness.ts) are unaffected. */
+  label?: string;
+  visibility?: string;
 };
 
 export function validateContact(input: ContactInput): ValidationResult<{
@@ -92,6 +98,8 @@ export function validateContact(input: ContactInput): ValidationResult<{
   preferredChannel: boolean;
   channelKind: ChannelKind | null;
   isPrimary: boolean;
+  label: string;
+  visibility: string;
 }> {
   const errors: FieldError[] = [];
   const contactType = input.contactType as ContactType;
@@ -130,6 +138,8 @@ export function validateContact(input: ContactInput): ValidationResult<{
       preferredChannel: input.preferredChannel,
       channelKind,
       isPrimary: input.isPrimary,
+      label: input.label ?? "main",
+      visibility: input.visibility ?? "public",
     },
   };
 }
@@ -244,4 +254,57 @@ export function validateFinalCreationRequest(input: FinalCreationRequestInput): 
 
 export function validateOnboardingStep(step: unknown): step is number {
   return typeof step === "number" && Number.isInteger(step) && step >= 1;
+}
+
+// ---------------------------------------------------------------------------
+// Gate BCO-3R additions — global location, operating model, authorization, digital profiles.
+// ---------------------------------------------------------------------------
+
+export function validateCountryField(code: string): ValidationResult<string> {
+  if (!isValidCountryCode(code)) {
+    return { ok: false, errors: [err("country", "invalid_country", "Selecciona un país válido.", "Select a valid country.")] };
+  }
+  return { ok: true, value: code };
+}
+
+export function validateOperatingModels(models: readonly string[]): ValidationResult<string[]> {
+  const valid = models.filter((m) => (OPERATING_MODELS as readonly { value: string }[]).some((o) => o.value === m));
+  if (valid.length === 0) {
+    return { ok: false, errors: [err("operatingModels", "invalid_operating_model", "Selecciona al menos un modelo de operación.", "Select at least one operating model.")] };
+  }
+  return { ok: true, value: valid };
+}
+
+export type AuthorizationInput = {
+  confirmed: boolean;
+  role: string;
+  representativeRelationship: string;
+  representativeContactEmail: string;
+};
+
+export function validateAuthorization(input: AuthorizationInput): ValidationResult<true> {
+  const errors: FieldError[] = [];
+  if (!input.confirmed) {
+    errors.push(err("ownershipConfirmed", "ownership_not_confirmed", "Confirma la autorización.", "Confirm authorization."));
+  }
+  if (input.role !== "owner" && input.role !== "authorized_representative") {
+    errors.push(err("authorizationRole", "invalid_authorization_role", "Selecciona tu relación con el negocio.", "Select your relationship to the business."));
+  }
+  if (input.role === "authorized_representative" && !input.representativeRelationship.trim()) {
+    errors.push(err("representativeRelationship", "invalid_authorization_role", "Describe tu relación con el negocio.", "Describe your relationship to the business."));
+  }
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, value: true };
+}
+
+export type DigitalProfileInput = { platform: string; handleOrUrl: string };
+
+export function validateDigitalProfile(input: DigitalProfileInput): ValidationResult<DigitalProfileInput> {
+  if (!DIGITAL_PROFILE_PLATFORM_VALUES.includes(input.platform as (typeof DIGITAL_PROFILE_PLATFORM_VALUES)[number])) {
+    return { ok: false, errors: [err("platform", "invalid_digital_profile", "Selecciona una plataforma válida.", "Select a valid platform.")] };
+  }
+  if (!input.handleOrUrl.trim()) {
+    return { ok: false, errors: [err("handleOrUrl", "invalid_digital_profile", "Agrega el enlace o usuario.", "Add the link or handle.")] };
+  }
+  return { ok: true, value: input };
 }

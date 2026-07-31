@@ -11,8 +11,16 @@ type BusinessRow = {
   normalized_name: string;
   slug: string;
   broad_business_type: string;
+  specific_business_type: string | null;
+  custom_specific_type: string | null;
   business_stage: string;
   primary_language: string;
+  business_primary_language: string | null;
+  business_additional_languages: string[] | null;
+  year_started: number | null;
+  operating_models: string[] | null;
+  sales_relationships: string[] | null;
+  sales_channels: string[] | null;
   status: string;
   onboarding_status: string;
   creation_source: string;
@@ -23,7 +31,7 @@ type BusinessRow = {
 };
 
 const BUSINESS_COLUMNS =
-  "id, display_name, legal_name, public_name, normalized_name, slug, broad_business_type, business_stage, primary_language, status, onboarding_status, creation_source, created_by_user_id, created_at, updated_at, archived_at";
+  "id, display_name, legal_name, public_name, normalized_name, slug, broad_business_type, specific_business_type, custom_specific_type, business_stage, primary_language, business_primary_language, business_additional_languages, year_started, operating_models, sales_relationships, sales_channels, status, onboarding_status, creation_source, created_by_user_id, created_at, updated_at, archived_at";
 
 export function mapBusinessRow(row: BusinessRow): Business {
   return {
@@ -33,9 +41,17 @@ export function mapBusinessRow(row: BusinessRow): Business {
     publicName: row.public_name,
     normalizedName: row.normalized_name,
     slug: row.slug,
-    broadBusinessType: row.broad_business_type,
-    businessStage: row.business_stage,
+    broadBusinessType: row.broad_business_type as Business["broadBusinessType"],
+    specificBusinessType: row.specific_business_type,
+    customSpecificType: row.custom_specific_type,
+    businessStage: row.business_stage as Business["businessStage"],
     primaryLanguage: row.primary_language as Business["primaryLanguage"],
+    businessPrimaryLanguage: row.business_primary_language,
+    businessAdditionalLanguages: row.business_additional_languages ?? [],
+    yearStarted: row.year_started,
+    operatingModels: (row.operating_models ?? []) as Business["operatingModels"],
+    salesRelationships: (row.sales_relationships ?? []) as Business["salesRelationships"],
+    salesChannels: (row.sales_channels ?? []) as Business["salesChannels"],
     status: row.status as Business["status"],
     onboardingStatus: row.onboarding_status as Business["onboardingStatus"],
     creationSource: row.creation_source as Business["creationSource"],

@@ -8,6 +8,7 @@
 import { strict as assert } from "node:assert";
 
 import { shouldApplyTestOverride } from "../app/lib/business/featureFlagLogic";
+import { buildTestOverrideEligibilityResult } from "../app/lib/business/eligibilityLogic";
 import { emptyWizardPayload, newContactDraft } from "../app/(site)/dashboard/business-tools/onboarding/wizardTypes";
 
 let passed = 0;
@@ -58,6 +59,17 @@ check("newContactDraft: generates a fresh, empty, non-primary contact each time"
   assert.equal(a.contactType, "");
   assert.equal(a.isPrimary, false);
   assert.equal(a.preferredChannel, false);
+});
+
+// --- BCO-3Q: test-override eligibility result must be clearly labeled, never disguised -------
+check("buildTestOverrideEligibilityResult: status is eligible but every field marks it as a test override, not real evidence", () => {
+  const result = buildTestOverrideEligibilityResult("2026-01-01T00:00:00.000Z");
+  assert.equal(result.status, "eligible");
+  assert.equal(result.evidence.length, 1);
+  assert.equal(result.evidence[0].source, "non_production_test_override");
+  assert.equal(result.evidence[0].reasonCode, "non_production_test_override");
+  assert.ok(result.humanExplanation.toLowerCase().includes("test") || result.humanExplanation.toLowerCase().includes("prueba"));
+  assert.equal(result.contradictions.length, 0);
 });
 
 console.log(`\n${passed} check(s) passed.`);

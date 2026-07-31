@@ -5,13 +5,15 @@
  */
 export * from "./types";
 export * from "./constants";
+export * from "./countries";
 export * from "./normalization";
 export * from "./validation";
 export { resolveBusinessIdentityFlagTier, getBusinessIdentityFlagRow } from "./featureFlag";
 export { resolveNegocioEligibility, evaluateListingSourceSupport } from "./eligibility";
 export { resolveBusinessToolsAccess } from "./access";
 export { resolveDuplicateWarning } from "./duplicates";
-export { verifyListingOwnershipForLinking } from "./listingLinking";
+export { verifyListingOwnershipForLinking, discoverOwnedListingCandidates } from "./listingLinking";
 export { getServerSupabaseForBearerToken, extractBearerToken, resolveAuthenticatedUserId } from "./supabaseUserClient";
 export { finalizeBusinessIdentity } from "./services/finalizeBusiness";
+export { finalizeBusinessIdentityV2 } from "./services/finalizeBusinessV2";
 export { listOwnDrafts, getOwnDraftById, saveDraftStep, deleteOwnDraft } from "./services/draftService";

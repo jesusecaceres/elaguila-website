@@ -9,6 +9,22 @@ export type BusinessStatus = "active" | "archived" | "suspended";
 export type OnboardingStatus = "not_started" | "in_progress" | "complete";
 export type CreationSource = "onboarding_wizard" | "staff_assisted" | "system_backfill";
 
+/** Gate BCO-3R: 16-item controlled taxonomy, enforced by a DB CHECK (businesses_broad_business_type_chk). */
+export type BroadBusinessType =
+  | "retail_ecommerce" | "professional_services" | "food_hospitality" | "health_beauty_wellness"
+  | "construction_trades" | "technology_digital_services" | "education_training_coaching"
+  | "real_estate_property_services" | "automotive_transportation" | "manufacturing_local_production"
+  | "arts_entertainment_events" | "home_personal_services" | "nonprofit_faith_community"
+  | "agriculture_food_production" | "finance_insurance" | "other";
+
+/** Gate BCO-3R: enforced by a DB CHECK (businesses_business_stage_chk). Replaces the earlier unconstrained set. */
+export type BusinessStage = "planning_prelaunch" | "newly_opened" | "operating" | "growing" | "established_mature" | "paused_restructuring";
+
+export type OperatingModel = "fixed_location" | "mobile" | "online_remote" | "regional" | "hybrid" | "multiple_locations";
+export type SalesRelationship = "b2c" | "b2b" | "b2g" | "direct_to_consumer" | "wholesale" | "marketplace" | "subscription" | "nonprofit_community" | "other";
+export type SalesChannel = "physical_location" | "website" | "social_media" | "phone" | "whatsapp" | "marketplace_platform" | "mobile_on_site" | "events" | "referrals" | "other";
+export type AuthorizationRole = "owner" | "authorized_representative";
+
 export type Business = {
   id: string;
   displayName: string;
@@ -16,9 +32,19 @@ export type Business = {
   publicName: string | null;
   normalizedName: string;
   slug: string;
-  broadBusinessType: string;
-  businessStage: string;
+  broadBusinessType: BroadBusinessType;
+  specificBusinessType: string | null;
+  customSpecificType: string | null;
+  businessStage: BusinessStage;
+  /** ES/EN app-interface language for this record — distinct from businessPrimaryLanguage. */
   primaryLanguage: PrimaryLanguage;
+  /** The business's own real-world operating language (global, unconstrained). */
+  businessPrimaryLanguage: string | null;
+  businessAdditionalLanguages: readonly string[];
+  yearStarted: number | null;
+  operatingModels: readonly OperatingModel[];
+  salesRelationships: readonly SalesRelationship[];
+  salesChannels: readonly SalesChannel[];
   status: BusinessStatus;
   onboardingStatus: OnboardingStatus;
   creationSource: CreationSource;
@@ -43,10 +69,18 @@ export type BusinessMembership = {
   revokedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Gate BCO-3R ownership-authorization metadata, set at creation time on the founding row. */
+  authorizationRole: AuthorizationRole;
+  representativeRelationship: string | null;
+  representativeContactEmail: string | null;
+  representativeNote: string | null;
+  manualReviewFlag: boolean;
 };
 
 export type ContactType = "phone" | "email" | "website";
 export type ChannelKind = "whatsapp" | "call" | "email";
+export type ContactLabel = "main" | "sales" | "support" | "booking" | "billing" | "other";
+export type ContactVisibility = "public" | "private";
 
 export type BusinessContact = {
   id: string;
@@ -57,15 +91,60 @@ export type BusinessContact = {
   preferredChannel: boolean;
   channelKind: ChannelKind | null;
   isPrimary: boolean;
+  label: ContactLabel;
+  visibility: ContactVisibility;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DigitalProfilePlatform = "google_business" | "facebook" | "instagram" | "tiktok" | "youtube" | "linkedin" | "x" | "yelp" | "whatsapp_business" | "other";
+
+export type BusinessDigitalProfile = {
+  id: string;
+  businessId: string;
+  platform: DigitalProfilePlatform;
+  handleOrUrl: string;
   createdAt: string;
   updatedAt: string;
 };
 
 export type AreaKind = "physical_address" | "service_area_text";
 
+/** Versioned JSONB shape stored in business_service_areas.structured_details (Gate BCO-3R). */
+export type StructuredLocationDetailsV1 = {
+  schemaVersion: 1;
+  streetNumber?: string;
+  streetName?: string;
+  unit?: string;
+  neighborhood?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  addressVisibility?: "public_exact" | "city_only" | "private";
+  interactionMode?: "business_travels" | "customer_visits" | "both";
+  coverageType?: "local_city" | "custom_radius" | "selected_cities" | "selected_regions" | "nationwide" | "international";
+  serviceRadius?: number;
+  radiusUnit?: "miles" | "kilometers";
+  citiesServed?: readonly string[];
+  regionsServed?: readonly string[];
+  postalCodesServed?: readonly string[];
+  countriesServed?: readonly string[];
+  timezone?: string;
+  languagesServed?: readonly string[];
+  nationwide?: boolean;
+  international?: boolean;
+  hasMultipleLocations?: boolean;
+  customCoverageDescription?: string;
+  baseCity?: string;
+  baseStateProvince?: string;
+  basePostalCode?: string;
+};
+
 export type BusinessServiceArea = {
   id: string;
   businessId: string;
+  country: string | null;
+  structuredDetails: StructuredLocationDetailsV1;
   areaKind: AreaKind;
   rawText: string;
   normalizedText: string;
@@ -121,7 +200,21 @@ export type BusinessOnboardingDraftPayloadV1 = {
   updatedByStep?: number;
 };
 
-export type BusinessOnboardingDraftPayload = BusinessOnboardingDraftPayloadV1;
+/**
+ * Gate BCO-3R — minimal generic shape for v2 draft rows at the repository/API layer. The
+ * wizard itself reads the same jsonb row through its own richer WizardDraftPayloadV2
+ * (onboarding/wizardTypes.ts) — mirrors how V1's richer WizardDraftPayload always related to
+ * this minimal BusinessOnboardingDraftPayloadV1: this layer only needs enough shape for
+ * generic display (e.g. DraftList.tsx), not the full wizard-local field set.
+ */
+export type BusinessOnboardingDraftPayloadV2 = {
+  schemaVersion: 2;
+  setupLanguage?: PrimaryLanguage;
+  basics?: { displayName?: string; legalName?: string; publicName?: string };
+  updatedByStep?: number;
+};
+
+export type BusinessOnboardingDraftPayload = BusinessOnboardingDraftPayloadV1 | BusinessOnboardingDraftPayloadV2;
 
 export type BusinessOnboardingDraft = {
   id: string;
@@ -167,6 +260,7 @@ export type EligibilitySource =
   | "restaurantes_package_tier"
   | "servicios"
   | "unsupported_source"
+  | "non_production_test_override"
   | "none";
 
 export type EligibilityReasonCode =
@@ -177,6 +271,7 @@ export type EligibilityReasonCode =
   | "placement_entitlement_ownership_unverified"
   | "restaurantes_package_tier_unconfirmed_value_set"
   | "servicios_no_verified_signal"
+  | "non_production_test_override"
   | "unsupported_listing_source"
   | "no_evidence_found"
   | "contradictory_evidence";
@@ -253,7 +348,11 @@ export type FieldErrorCode =
   | "ownership_not_confirmed"
   | "feature_access_denied"
   | "listing_ownership_unverified"
-  | "unsupported_listing_source";
+  | "unsupported_listing_source"
+  | "invalid_country"
+  | "invalid_operating_model"
+  | "invalid_authorization_role"
+  | "invalid_digital_profile";
 
 export type FieldError = {
   field: string;

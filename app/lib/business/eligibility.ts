@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { resolveListingSourceOwnershipContract } from "@/app/lib/listingPlans/listingEntitlementOwnership";
-import { statusFromEvidence } from "./eligibilityLogic";
+import { shouldApplyTestOverride } from "./featureFlagLogic";
+import { buildTestOverrideEligibilityResult, statusFromEvidence } from "./eligibilityLogic";
 import type { EligibilityEvidence, EligibilityResult } from "./types";
 
 export { statusFromEvidence };
@@ -92,6 +93,15 @@ async function checkOwnedTableSignal(
  * dependency-injection framework — every real caller omits it and gets the real admin client.
  */
 export async function resolveNegocioEligibility(userId: string, injectedClient?: SupabaseClient): Promise<EligibilityResult> {
+  // Non-production-only test override (BCO-3Q) — same safety gate as the feature-flag override
+  // (shouldApplyTestOverride: impossible when VERCEL_ENV=production, requires an exact user-id
+  // match). Exists because staging currently has none of the source tables this adapter reads
+  // (only the Business Identity migration is applied there) — real evidence cannot be seeded,
+  // so QA needs an honestly-labeled synthetic result rather than a silent "no evidence found."
+  if (shouldApplyTestOverride({ userId, vercelEnv: process.env.VERCEL_ENV, overrideUserId: process.env.BUSINESS_IDENTITY_TEST_OVERRIDE_USER_ID })) {
+    return buildTestOverrideEligibilityResult(now());
+  }
+
   if (!injectedClient && !isSupabaseAdminConfigured()) {
     return {
       status: "ambiguous",

@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BusinessServiceArea } from "../types";
+import type { BusinessServiceArea, StructuredLocationDetailsV1 } from "../types";
 
 type ServiceAreaRow = {
   id: string;
@@ -11,11 +11,18 @@ type ServiceAreaRow = {
   normalized_text: string;
   city_hint: string | null;
   is_primary: boolean;
+  country: string | null;
+  structured_details: unknown;
   created_at: string;
   updated_at: string;
 };
 
-const SERVICE_AREA_COLUMNS = "id, business_id, area_kind, raw_text, normalized_text, city_hint, is_primary, created_at, updated_at";
+const SERVICE_AREA_COLUMNS =
+  "id, business_id, area_kind, raw_text, normalized_text, city_hint, is_primary, country, structured_details, created_at, updated_at";
+
+function isStructuredDetailsV1(value: unknown): value is StructuredLocationDetailsV1 {
+  return typeof value === "object" && value !== null && (value as { schemaVersion?: unknown }).schemaVersion === 1;
+}
 
 function mapServiceAreaRow(row: ServiceAreaRow): BusinessServiceArea {
   return {
@@ -26,6 +33,8 @@ function mapServiceAreaRow(row: ServiceAreaRow): BusinessServiceArea {
     normalizedText: row.normalized_text,
     cityHint: row.city_hint,
     isPrimary: row.is_primary,
+    country: row.country,
+    structuredDetails: isStructuredDetailsV1(row.structured_details) ? row.structured_details : { schemaVersion: 1 },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

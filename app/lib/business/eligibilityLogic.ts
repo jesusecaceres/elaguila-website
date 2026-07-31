@@ -3,7 +3,33 @@
  * unit-testable (see featureFlagLogic.ts for the same rationale). eligibility.ts (server-only,
  * performs the actual DB reads) imports and re-exports this.
  */
-import type { EligibilityEvidence, EligibilityStatus } from "./types";
+import type { EligibilityEvidence, EligibilityResult, EligibilityStatus } from "./types";
+
+/**
+ * Pure constructor for the non-production test-override eligibility result (BCO-3Q). Used only
+ * when shouldApplyTestOverride (featureFlagLogic.ts) is true for the requesting user — same
+ * safety gate as the feature-flag override: impossible when VERCEL_ENV=production, requires an
+ * exact user-id match. Clearly labeled as a synthetic QA override in every field — never
+ * disguised as real evidence, so a reviewer or future maintainer can never mistake this for a
+ * genuine signal.
+ */
+export function buildTestOverrideEligibilityResult(evaluatedAt: string): EligibilityResult {
+  const evidence: EligibilityEvidence = {
+    source: "non_production_test_override",
+    listingSource: null,
+    listingId: null,
+    entitlementId: null,
+    reasonCode: "non_production_test_override",
+  };
+  return {
+    status: "eligible",
+    evidence: [evidence],
+    contradictions: [],
+    requiresManualReview: false,
+    humanExplanation: "Elegibilidad de prueba (no producción) — no es evidencia real. / Test-only eligibility override (non-production) — not real evidence.",
+    evaluatedAt,
+  };
+}
 
 export function statusFromEvidence(
   evidence: readonly EligibilityEvidence[],

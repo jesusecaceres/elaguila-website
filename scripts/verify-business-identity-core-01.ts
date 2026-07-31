@@ -260,8 +260,20 @@ async function main() {
     const r = computeAccessResolution({ tier: "global", membership: null, business: null, drafts: [fakeDraft, { ...fakeDraft, id: "d2", intentKey: "k2" }], eligibility: elig("eligible") });
     assert.equal(r.state, "choose_draft");
   });
-  const fakeBusiness = { id: "b1", displayName: "X", legalName: null, publicName: null, normalizedName: "x", slug: "x", broadBusinessType: "food", businessStage: "active", primaryLanguage: "es" as const, status: "active" as const, onboardingStatus: "complete" as const, creationSource: "onboarding_wizard" as const, createdByUserId: "u1", createdAt: "", updatedAt: "", archivedAt: null };
-  const fakeMembership = { id: "m1", businessId: "b1", userId: "u1", membershipRole: "owner" as const, membershipStatus: "active" as const, isPrimaryOwner: true, invitedByUserId: null, acceptedAt: null, revokedAt: null, createdAt: "", updatedAt: "" };
+  const fakeBusiness = {
+    id: "b1", displayName: "X", legalName: null, publicName: null, normalizedName: "x", slug: "x",
+    broadBusinessType: "food_hospitality" as const, specificBusinessType: null, customSpecificType: null,
+    businessStage: "operating" as const, primaryLanguage: "es" as const, businessPrimaryLanguage: null,
+    businessAdditionalLanguages: [], yearStarted: null, operatingModels: [], salesRelationships: [], salesChannels: [],
+    status: "active" as const, onboardingStatus: "complete" as const, creationSource: "onboarding_wizard" as const,
+    createdByUserId: "u1", createdAt: "", updatedAt: "", archivedAt: null,
+  };
+  const fakeMembership = {
+    id: "m1", businessId: "b1", userId: "u1", membershipRole: "owner" as const, membershipStatus: "active" as const,
+    isPrimaryOwner: true, invitedByUserId: null, acceptedAt: null, revokedAt: null, createdAt: "", updatedAt: "",
+    authorizationRole: "owner" as const, representativeRelationship: null, representativeContactEmail: null,
+    representativeNote: null, manualReviewFlag: false,
+  };
   await check("access: existing active membership takes priority over eligibility re-check", () => {
     const r = computeAccessResolution({ tier: "global", membership: fakeMembership, business: fakeBusiness, drafts: [], eligibility: null });
     assert.equal(r.state, "existing_business");

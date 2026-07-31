@@ -12,11 +12,14 @@ type ContactRow = {
   preferred_channel: boolean;
   channel_kind: string | null;
   is_primary: boolean;
+  label: string;
+  visibility: string;
   created_at: string;
   updated_at: string;
 };
 
-const CONTACT_COLUMNS = "id, business_id, contact_type, value, normalized_value, preferred_channel, channel_kind, is_primary, created_at, updated_at";
+const CONTACT_COLUMNS =
+  "id, business_id, contact_type, value, normalized_value, preferred_channel, channel_kind, is_primary, label, visibility, created_at, updated_at";
 
 function mapContactRow(row: ContactRow): BusinessContact {
   return {
@@ -28,6 +31,8 @@ function mapContactRow(row: ContactRow): BusinessContact {
     preferredChannel: row.preferred_channel,
     channelKind: row.channel_kind as BusinessContact["channelKind"],
     isPrimary: row.is_primary,
+    label: row.label as BusinessContact["label"],
+    visibility: row.visibility as BusinessContact["visibility"],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

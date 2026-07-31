@@ -19,7 +19,9 @@ type DraftRow = {
 const DRAFT_COLUMNS = "id, user_id, intent_key, business_id, current_step, draft_payload, created_at, updated_at, expires_at";
 
 function isDraftPayload(value: unknown): value is BusinessOnboardingDraftPayload {
-  return typeof value === "object" && value !== null && (value as { schemaVersion?: unknown }).schemaVersion === 1;
+  if (typeof value !== "object" || value === null) return false;
+  const version = (value as { schemaVersion?: unknown }).schemaVersion;
+  return version === 1 || version === 2;
 }
 
 function mapDraftRow(row: DraftRow): BusinessOnboardingDraft {

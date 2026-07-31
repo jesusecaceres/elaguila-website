@@ -15,10 +15,15 @@ type MembershipRow = {
   revoked_at: string | null;
   created_at: string;
   updated_at: string;
+  authorization_role: string;
+  representative_relationship: string | null;
+  representative_contact_email: string | null;
+  representative_note: string | null;
+  manual_review_flag: boolean;
 };
 
 const MEMBERSHIP_COLUMNS =
-  "id, business_id, user_id, membership_role, membership_status, is_primary_owner, invited_by_user_id, accepted_at, revoked_at, created_at, updated_at";
+  "id, business_id, user_id, membership_role, membership_status, is_primary_owner, invited_by_user_id, accepted_at, revoked_at, created_at, updated_at, authorization_role, representative_relationship, representative_contact_email, representative_note, manual_review_flag";
 
 function mapMembershipRow(row: MembershipRow): BusinessMembership {
   return {
@@ -33,6 +38,11 @@ function mapMembershipRow(row: MembershipRow): BusinessMembership {
     revokedAt: row.revoked_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    authorizationRole: row.authorization_role as BusinessMembership["authorizationRole"],
+    representativeRelationship: row.representative_relationship,
+    representativeContactEmail: row.representative_contact_email,
+    representativeNote: row.representative_note,
+    manualReviewFlag: row.manual_review_flag,
   };
 }
 
