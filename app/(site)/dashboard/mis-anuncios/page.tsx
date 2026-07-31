@@ -41,6 +41,8 @@ import {
   buildInventoryListingActions,
   listingAnalyticsIsProven,
 } from "../lib/dashboardMisAnunciosCategoryTools";
+import { ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
+import { resolveOwnerDashboardAttentionItems, countByAttentionSeverity, type OwnerAttentionItem } from "../lib/dashboardAttentionItems";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   DEFERRED_DEDICATED_CATEGORIES,
@@ -411,6 +413,80 @@ export default function MyListingsPage() {
     () => comidaLocalRawRows.map((row) => mapComidaLocalRowToDashboardVm(row, lang)),
     [comidaLocalRawRows, lang],
   );
+
+  // Work Package I.8A — pure, additive attention aggregation. Derived only from data already
+  // fetched above; never performs I/O itself. Only the categories with real, already-computed
+  // status/lifecycle truth are covered here (Empleos, Viajes, and Rentas via the same
+  // `resolveListingLifecycle` used by the Rentas card render path) — this intentionally does not
+  // attempt to re-derive every category's own bespoke status logic a second time.
+  const attentionItems = useMemo<OwnerAttentionItem[]>(() => {
+    const out: OwnerAttentionItem[] = [];
+
+    for (const item of empleosInventory) {
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: item.id,
+          category: "empleos",
+          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+          editHref: item.editHref,
+          publicHref: item.publicHref,
+        }),
+      );
+    }
+
+    for (const item of viajesInventory) {
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: item.id,
+          category: "viajes",
+          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+          editHref: item.editHref,
+          publicHref: item.publicHref,
+        }),
+      );
+    }
+
+    for (const row of listings) {
+      const cat = String(row.category ?? "").toLowerCase();
+      if (cat !== "rentas") continue;
+      const lifecycle = resolveListingLifecycle(
+        {
+          category: "rentas",
+          packageKey: "rentas_30d",
+          status: row.status,
+          isPublished: row.is_published,
+          publishedAt: row.published_at,
+          expiresAt: row.expires_at,
+        },
+        RENTAS_LISTING_LIFECYCLE_CONFIG,
+      );
+      const statusDisplayKey =
+        lifecycle.lifecycleState === "pending_payment"
+          ? "pending_payment"
+          : lifecycle.lifecycleState === "expired"
+            ? "expired"
+            : lifecycle.lifecycleState === "suspended"
+              ? "suspended"
+              : "active";
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: row.id,
+          category: "rentas",
+          statusDisplayKey,
+          isPublished: row.is_published,
+          // Edit route not evaluated in this narrow loop (left undefined, not "confirmed
+          // missing") — the real edit href is computed per-row inside LeonixRealEstateListingManageCard's
+          // own render path; this attention pass only claims what it has actually verified.
+          publicHref: rentasListingPublicPath(row.id),
+          renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
+        }),
+      );
+    }
+
+    return out;
+  }, [empleosInventory, viajesInventory, listings]);
+
+  const attentionSeverityCounts = useMemo(() => countByAttentionSeverity(attentionItems), [attentionItems]);
 
   const [dedicatedCounts, setDedicatedCounts] = useState<DedicatedCategoryCounts>(EMPTY_DEDICATED_CATEGORY_COUNTS);
   const [loadedDedicatedCategories, setLoadedDedicatedCategories] = useState<Set<MisAnunciosCategoryKey>>(
@@ -1375,6 +1451,55 @@ export default function MyListingsPage() {
             ) : null}
           </p>
 
+          {attentionItems.length > 0 ? (
+            <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4" role="status" data-testid="mis-anuncios-attention-panel">
+              <p className="text-sm font-bold text-[#1F241C]">
+                {lang === "es" ? "Requiere tu atención" : "Needs your attention"}
+                {" "}
+                <span className="font-normal text-[#5C5346]">
+                  ({attentionSeverityCounts.urgent} {lang === "es" ? "urgente" : "urgent"} ·{" "}
+                  {attentionSeverityCounts.warn} {lang === "es" ? "aviso" : "warn"} ·{" "}
+                  {attentionSeverityCounts.info} {lang === "es" ? "info" : "info"})
+                </span>
+              </p>
+              <ul className="mt-2 space-y-1 text-xs text-[#5C5346]">
+                {attentionItems.slice(0, 6).map((it, i) => (
+                  <li key={`${it.id}-${it.reasonKey}-${i}`} className="flex items-start gap-1.5">
+                    <span
+                      className={
+                        it.severity === "urgent"
+                          ? "font-bold text-red-700"
+                          : it.severity === "warn"
+                            ? "font-bold text-amber-800"
+                            : "font-bold text-[#5C5346]"
+                      }
+                    >
+                      •
+                    </span>
+                    <span>
+                      {lang === "es" ? it.labelEs : it.labelEn}
+                      {it.href ? (
+                        <>
+                          {" — "}
+                          <Link href={it.href} className="underline">
+                            {lang === "es" ? "ver" : "view"}
+                          </Link>
+                        </>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {attentionItems.length > 6 ? (
+                <p className="mt-1 text-[11px] text-[#5C5346]/80">
+                  {lang === "es"
+                    ? `+${attentionItems.length - 6} más`
+                    : `+${attentionItems.length - 6} more`}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <DashboardMisAnunciosCategorySelector
             lang={lang}
             categories={MIS_ANUNCIOS_CATEGORY_DEFS}
@@ -1557,7 +1682,8 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Empleo" : "Job"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
@@ -1581,7 +1707,8 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Viaje" : "Travel"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },

@@ -9,6 +9,10 @@ type DashboardCategoryListingCardProps = {
   categoryLabel: string;
   title: string;
   status: string;
+  /** Work Package I.8A — optional display tone for the status pill. Omitted (or any category
+   * that doesn't yet pass a resolved status) keeps the original hardcoded-emerald look for
+   * backward compatibility with callers not yet updated. */
+  statusTone?: "neutral" | "positive" | "warn" | "danger";
   subtitle?: string | null;
   badges?: string[];
   metaItems?: Array<{ label: string; value: string }>;
@@ -29,6 +33,7 @@ export function DashboardCategoryListingCard({
   categoryLabel,
   title,
   status,
+  statusTone,
   subtitle,
   badges = [],
   metaItems = [],
@@ -39,13 +44,20 @@ export function DashboardCategoryListingCard({
 }: DashboardCategoryListingCardProps) {
   const visibleMeta = compact ? metaItems.slice(0, 3) : metaItems;
 
+  const statusToneClass: Record<"neutral" | "positive" | "warn" | "danger", string> = {
+    positive: "bg-emerald-100 text-emerald-900",
+    warn: "bg-amber-100 text-amber-900",
+    danger: "bg-red-100 text-red-900",
+    neutral: "bg-[color:var(--lx-section)] text-[color:var(--lx-text-2)]",
+  };
+
   const body = (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-[color:var(--lx-section)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
           {categoryLabel}
         </span>
-        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-900">{status}</span>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusToneClass[statusTone ?? "positive"]}`}>{status}</span>
         {badges.map((badge) => (
           <span key={badge} className="rounded-full border border-[color:var(--lx-border)] px-2 py-0.5 text-[10px] font-semibold text-[color:var(--lx-muted)]">
             {badge}

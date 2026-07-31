@@ -23,6 +23,7 @@ import {
   restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
+import { resolveOwnerDashboardStatusDisplay, type OwnerDashboardStatusDisplay } from "./dashboardOwnerStatusDisplay";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -65,6 +66,10 @@ export type DashboardInventoryItem = {
   /** e.g. `{ listing_json, lane }` for Viajes affiliate detection */
   planRaw?: Record<string, unknown> | null;
   actionContract?: CategoryDashboardActionContract;
+  /** Work Package I.8A — display-only truthful status (never used for write behavior). Currently
+   * populated for Empleos and Viajes, the two dedicated-table categories whose raw
+   * `lifecycle_status` was previously shown untranslated with a hardcoded color. */
+  statusDisplay?: OwnerDashboardStatusDisplay;
   source:
     | "listings"
     | "restaurantes_public_listings"
@@ -469,6 +474,7 @@ export function buildEmpleosInventoryItems(
     category: "empleos",
     title: row.title,
     status: row.lifecycle_status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("empleos", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     /** Manage applications + lifecycle — route param is listing id, not slug. */
     editHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
@@ -499,6 +505,7 @@ export function buildViajesInventoryItems(
     category: "viajes",
     title: row.title,
     status: row.lifecycle_status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("viajes", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/viajes/oferta/${encodeURIComponent(row.slug)}`, L),
     editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
     previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane), L),

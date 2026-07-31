@@ -13,10 +13,102 @@ and, for the specific fixes below, by
 [`scripts/gate-i6a-quick-clasificados-lifecycle-selftest.ts`](../scripts/gate-i6a-quick-clasificados-lifecycle-selftest.ts),
 [`scripts/gate-i6b-quick-clasificados-integrity-selftest.ts`](../scripts/gate-i6b-quick-clasificados-integrity-selftest.ts),
 [`scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts`](../scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts),
+[`scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts`](../scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts),
 and
-[`scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts`](../scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts).
+[`scripts/gate-i8a-global-dashboard-truth-selftest.ts`](../scripts/gate-i8a-global-dashboard-truth-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.8A update log
+
+Objective: one truthful global owner Mis Anuncios experience across the whole catalog — not a
+redesign, not Admin, not Analytics. Three new, additive, pure helpers were added; the existing
+Mis Anuncios page/components were wired to them narrowly, without restructuring the page's
+existing per-source fetch/render architecture (documented in full below in
+[Per-pipeline dashboard truth](#per-pipeline-dashboard-truth)).
+
+- **`dashboardOwnerClassification.ts` — new.** One shared function,
+  `classifyOwnerDashboardRow()`, answers three questions for any row from any pipeline: which
+  organizational group it belongs in (`business` / `private` / `inventory_child` /
+  `unsupported`), which canonical `CanonicalCategoryKey` pipeline it maps to, and whether it
+  genuinely qualifies for Business Hub tooling. Business Hub eligibility is computed from the
+  real, currently-live `resolveDashboardActions()` branches (restaurantes, servicios,
+  bienes_raices_negocio, autos_negocios) — **not** from each adapter's `supportsBusinessHub`
+  flag, which is broader than reality for two pipelines: Rentas Negocio and Viajes' business lane
+  both declare `supportsBusinessHub: true` but `resolveDashboardActions()` never actually emits a
+  coupons/offers/inventory action for either. This helper reports the narrower, true set. Never
+  takes an owner id — cannot infer eligibility from ownership alone by construction.
+- **`dashboardOwnerStatusDisplay.ts` — new.** Extends the existing `getStatusLabel`/
+  `ListingLifecycleStatus` table (`app/lib/clasificados/listingLifecycleDomain.ts`) to the two
+  dedicated-table categories that had no truthful status display at all: Empleos and Viajes. Both
+  previously rendered their raw, untranslated DB status string inside a hardcoded-emerald pill on
+  `DashboardCategoryListingCard` (e.g. a rejected Empleos listing showed the literal string
+  `"rejected"` in a green "success" pill). Activates the previously-dead
+  `mapEmpleosStatusToCanonical()` (zero importers before this package) — and fixes a real bug in
+  it while activating it: `"pending_review"` was missing from its mapping table and silently fell
+  back to `"draft"`, mislabeling a listing genuinely awaiting review as a draft. Adds a new
+  Viajes mapper against the real, confirmed `ViajesStagedLifecycleStatus` enum
+  (`viajesStagedListingTypes.ts`); `"changes_requested"` has no 1:1 canonical equivalent and is
+  deliberately left unmapped (falls to an honest "unknown/needs attention" display, raw status
+  preserved) rather than guessed. Never shows an unrecognized raw status as active/published.
+  Rentas/BR/En Venta/Clases/Comunidad/Busco keep using their existing, already-centralized
+  `resolveListingUiStatus`/`listingUiStatusLabel` pipeline, untouched — this helper only fills the
+  two gaps that had nothing.
+- **`dashboardAttentionItems.ts` — new.** One pure, additive attention-item resolver — no I/O, no
+  background jobs, no notifications. Wired into the Mis Anuncios page as a compact panel (top of
+  page, above the category selector) aggregating from data the page already computes: Empleos and
+  Viajes rows (via the new status helper above) and Rentas rows (via the same
+  `resolveListingLifecycle`/`RENTAS_LISTING_LIFECYCLE_CONFIG` the Rentas card's own renewal button
+  already uses). Every item type maps to a real Objective D bullet (payment required, not public,
+  suspended, expired, missing edit/public route, inventory child needing parent, addon inactive,
+  renewal available) and is strictly gated on real, caller-supplied truth — the resolver
+  distinguishes an *unevaluated* route (`undefined`, no claim made) from a *confirmed-missing* one
+  (`null`, produces an info-severity item) so a category this pass didn't wire in full never gets
+  a false "missing route" claim. Renewal items only ever appear when the caller passes a real,
+  already-verified `hasRealAction: true` (Rentas today) — an expired listing with no real renewal
+  path shows only the honest "expired" note, never a fabricated renewal CTA.
+- **`DashboardCategoryListingCard.tsx` — narrow, backward-compatible addition.** New optional
+  `statusTone` prop selects the status pill's color from the resolved display tone; omitted (any
+  caller not yet updated — Restaurantes, Servicios, Autos-classified still pass only the raw
+  `status` string today) keeps the exact previous hardcoded-emerald look, so this change cannot
+  regress any category it wasn't specifically wired into.
+- **`dashboardInventory.ts` — additive field.** `DashboardInventoryItem` gained an optional
+  `statusDisplay` field, populated only by `buildEmpleosInventoryItems`/`buildViajesInventoryItems`
+  today; every other builder is untouched.
+- **`mis-anuncios/page.tsx` — narrow wiring only, not a rewrite.** The Empleos/Viajes card call
+  sites now pass the resolved status label/tone instead of the raw string; one new `useMemo`
+  aggregates attention items from data the page already fetches; one new, compact panel renders
+  it. The existing 2,100+-line per-row render dispatch (`visible.map()`, the BR/Autos inventory
+  sections, the dedicated-category blocks) was **not** restructured — this package deliberately
+  did not rebuild the page.
+
+## Per-pipeline dashboard truth
+
+Objective D/Master-Ledger table for Work Package I.8A. `Discovery` = does a real owner query
+surface this pipeline in Mis Anuncios (or its own dedicated dashboard) today. `Group` = the new
+classification helper's output. `Hub` = Business Hub eligibility per the same helper (see the
+I.8A update log above for why this is narrower than each adapter's `supportsBusinessHub` flag for
+Rentas Negocio and Viajes business).
+
+| Pipeline | Discovery | Group | Identity | Status display | Edit | Preview | Public | Lifecycle actions | Hub | Inventory/add-on | Leads | Analytics | Billing/renewal | Remaining gap |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `restaurantes` | yes, dedicated table + own `/dashboard/restaurantes` page, also surfaced on Mis Anuncios via `DashboardCategoryListingCard` | business | sourceId UUID | existing raw-string/hardcoded-pill pattern, **not extended by I.8A** (only Empleos/Viajes were confirmed broken and fixed) | real | real | real | pause/resume via dedicated page (not re-audited here) | **yes** (parent, `couponsActive` entitlement, server-verified) | coupon-edit, real | none (global leads not built, per Objective H) | omitted (`analytics: "unproven"` per resolver comment) | no renewal path found | status pill parity with Empleos/Viajes not yet extended — real, evidence-backed follow-up, not claimed done here |
+| `servicios` | yes, dedicated table + own `/dashboard/servicios` page, also on Mis Anuncios | business | sourceId UUID | same as restaurantes — not extended | real | real | real | own dedicated page | **yes** (parent, `offersActive` entitlement, server-verified) | offers-edit, real | none | real (`/dashboard/analytics`) | no renewal path found | same status-pill gap as restaurantes |
+| `bienes_raices_negocio` | yes, shared `listings` table + dedicated inventory-grouping section | business (parent) / inventory_child (child) | sourceId UUID, `br_inventory_group_id` grouping | own hand-rolled pill logic (`LeonixRealEstateListingManageCard`), not the centralized helper — pre-existing, not touched | real, parent-only (I.5.7A.1 protection) | real, parent-only | real | pause/resume/archive/mark sold; BR-Negocio-only global attention line (Gate G.2.2) | **yes**, parent only — but `resolveDashboardActions()` is called with a hardcoded `entitlement: {}` at both live call sites, so the resolver itself never actually emits `manageInventory`; real inventory-management functionality exists via a separate legacy href fallback, not through the entitlement-gated resolver path (pre-existing architecture, confirmed again here) | `BrNegocioListingInventoryActions` (real actions for parent, static label only for child) | none | real (`genericWorkspaceAnalyticsHref`, both roles) | inventory-pack checkout exists (not a base-listing renewal) | resolver/entitlement wiring gap noted above is a real, confirmed, pre-existing architecture split — not resolved in I.8A |
+| `bienes_raices_privado` | yes, shared `listings` table | private | sourceId UUID | shared centralized helper (unaffected) | **missing** (pre-existing, unchanged) | real | real | pause/resume/archive | no (correctly) | not_applicable | none | omitted | none | no confirmed edit route (unchanged) |
+| `autos_negocios` | yes, shared `autos_classifieds_listings` table + dedicated inventory section | business (parent) / inventory_child (child) | sourceId UUID | own logic, not re-audited | real, parent-only | real, **child-bound** (confirmed asymmetry vs BR) | real | group-level pause/resume via dedicated section | **yes**, parent — `manageInventory` genuinely ungated (no entitlement check), documented pre-existing asymmetry vs Bienes | real, parent | none | real when `status === "active"` | inventory-pack checkout exists | ungated-vs-BR asymmetry is pre-existing, not resolved here |
+| `autos_privado` | yes, shared table | private | sourceId UUID | own logic | real | real | real | pause/resume/archive | no (correctly) | not_applicable | none | omitted | none | no exported href-builder constant (pre-existing) |
+| `rentas_negocio` | yes, shared `listings` table | business (organizational — seller_type=business) | sourceId UUID | shared centralized helper; **now feeds I.8A attention center** (pending_payment/expired/renewal via `resolveListingLifecycle`) | **real** (I.7A fix) | real | real (dedicated `/clasificados/rentas/listing/{id}`) | pause/resume/archive/mark sold + **real renewal button** (`rentas_30d`, Revenue OS checkout) | **no** — `supportsBusinessHub: true` on the adapter, but `resolveDashboardActions()` never emits any coupons/offers/inventory action for Rentas; I.8A's classifier reports this correctly rather than the aspirational flag | none live | none | omitted | **real, live** — confirmed working renewal CTA | I.7A-confirmed query-error-falls-to-INSERT gap in the shared BR/Rentas publish core, deliberately deferred (locked-adjacent); no reuse protection outside `pending_payment` activation |
+| `rentas_privado` | yes | private | sourceId UUID | same pipeline as Negocio | real (I.7A) | real | real | same as Negocio, same real renewal button | no | none | none | omitted | real | same deferred gaps as Negocio |
+| `empleos` | yes, dedicated table, own `/dashboard/empleos` page + Mis Anuncios tab | private | sourceId UUID (own table, not `listings`) | **fixed in I.8A** — was raw untranslated string in a hardcoded-emerald pill; now truthful (including the `pending_review` mapping bug fixed while activating `mapEmpleosStatusToCanonical`) | real (dedicated `/dashboard/empleos/{id}`) | real, lane-specific | real | publish/pause/archive via `PATCH lifecycle_status` (I.7A repaired existing-identity fail-closed on create/update) | no | not_applicable | none | real (`provenInventoryAnalyticsHref` includes empleos) | no renewal path found | now feeds I.8A attention center (pending_review/rejected/unknown/not-public) |
+| `en_venta` | yes, shared `listings` table | private | sourceId UUID | shared centralized helper (unaffected) | real, generic editor (I.6A) | real | real | pause/resume/archive/republish | no | not_applicable | none | omitted | republish window (not a paid renewal) | unchanged |
+| `comida_local` | yes, dedicated table + dedicated section component | business (organizational) | sourceId UUID | own dedicated component, not re-audited | real | real | category_specific | not re-audited | no (no live resolver action) | not_applicable | none | omitted | none | results route stale (dupes entry), pre-existing, not touched |
+| `ofertas_locales` | **confirmed intentionally excluded from Mis Anuncios** — has its own dedicated `/dashboard/ofertas-locales` surface | not_applicable | n/a | n/a | n/a | n/a | n/a | n/a | not_applicable (own surface) | dedicated | none | omitted | n/a | intentional separation, confirmed again by I.8A, not a gap |
+| `busco` | yes, shared `listings` table | private | sourceId UUID | shared centralized helper | real, generic editor (I.6A) | real | real | archive | no | not_applicable | none | omitted | none | unchanged |
+| `clases` | yes | private | sourceId UUID | shared centralized helper | real, generic editor (I.6A) | real | real | archive | no | not_applicable | none | omitted | none | unchanged |
+| `comunidad` | yes | private | sourceId UUID | shared centralized helper | real, generic editor (I.6A) | real | real | archive | no | not_applicable | none | omitted | none | unchanged |
+| `mascotas_y_perdidos` | **confirmed not discoverable in Mis Anuncios today** — absent from `MIS_ANUNCIOS_CATEGORY_KEYS`, no `dashboardRoute`, no safe `editRoute` | unsupported | n/a | n/a | **missing**, no safe editor exists (confirmed again by I.8A) | n/a | real (I.6B) | n/a | no | not_applicable | none | omitted | none | `classifyOwnerDashboardRow` already fails this closed to `unsupported` should it ever be wired in — reported BLOCKED here, not falsely completed |
+| `viajes` | yes, but via its **own dedicated `/dashboard/viajes` page, entirely bypassing the registry/resolver** (I.7A finding, confirmed again) | business (business lane, organizational) / private (private lane) | sourceId UUID (own `viajes_staged_listings` table, slug-keyed for public/edit/preview) | **fixed in I.8A**, same pattern as Empleos — real `ViajesStagedLifecycleStatus` enum now mapped truthfully | real, via the dedicated page's own hrefs, not through the registry | real, same | real (I.7A fix, `oferta/[slug]`) | publish/unpublish via the dedicated page | **no** — same reasoning as Rentas Negocio: adapter says `supportsBusinessHub: true`, resolver never emits a hub action | none live | none | omitted | no renewal path found | dedicated dashboard still bypasses the canonical registry/resolver entirely — architecture gap, not a truth gap; now feeds I.8A attention center |
 
 ## Work Package I.7A update log
 
