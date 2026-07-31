@@ -19,6 +19,7 @@ import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalSocialLink, OfertaLocalSocialLinkKey } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
   buildOfertaLocalMailtoHref,
@@ -602,7 +603,7 @@ export function OfertasLocalesPreviewCard({
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const resolvedRouteLang = routeLang ?? lang;
-  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang);
+  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, { step: 7 });
   const editReviewHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, { step: 7 });
   const offerLabel = labelForOfferType(draft.offerType, lang);
   const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
@@ -630,7 +631,8 @@ export function OfertasLocalesPreviewCard({
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
   const membershipInstructions = draft.membershipNote.trim();
   const digitalCouponInstructions = draft.digitalCouponNote.trim();
-  const hasAiProducts = draft.wantsAiSearchableSpecials && approvedAiItems.length > 0;
+  const aiIncluded = isOfertaLocalAiIncludedInPackage(draft);
+  const hasAiProducts = aiIncluded && approvedAiItems.length > 0;
 
   const [shareCopied, setShareCopied] = useState(false);
   const [flyerViewerOpen, setFlyerViewerOpen] = useState(false);
@@ -710,7 +712,7 @@ export function OfertasLocalesPreviewCard({
     { id: "oferta", label: lang === "en" ? c.sectionOfferEn : c.sectionOfferEs },
     { id: "volante", label: lang === "en" ? c.sectionFlyerEn : c.sectionFlyerEs },
   ];
-  if (draft.wantsAiSearchableSpecials) {
+  if (aiIncluded) {
     sectionNavItems.push({
       id: "productos",
       label: lang === "en" ? c.sectionProductsEn : c.sectionProductsEs,
@@ -824,7 +826,7 @@ export function OfertasLocalesPreviewCard({
                   {offerLabel && offerLabel !== primaryFormatLabel ? (
                     <span className={PILL_MUTED}>{offerLabel}</span>
                   ) : null}
-                  {draft.wantsAiSearchableSpecials ? (
+                  {aiIncluded ? (
                     <span className={PILL_TRUST}>{lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}</span>
                   ) : null}
                 </div>

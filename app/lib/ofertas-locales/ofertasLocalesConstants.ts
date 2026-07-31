@@ -260,9 +260,9 @@ export const OFERTAS_LOCALES_PRICING: Record<
     interval: "month",
   },
   aiSearchableSpecialsAddOn: {
-    label: "AI Searchable Specials Add-On",
-    regularPriceMonthly: 249,
-    pickupPartnerPriceMonthly: 199,
+    label: "Legacy AI analysis compatibility (retired)",
+    regularPriceMonthly: 0,
+    pickupPartnerPriceMonthly: 0,
     interval: "month",
     isAddOn: true,
   },
@@ -279,7 +279,6 @@ export const OFERTAS_LOCALES_PRICING: Record<
 export const OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS = [
   "digitalCouponListing",
   "digitalWeeklySpecials",
-  "aiSearchableSpecialsAddOn",
 ] as const satisfies ReadonlyArray<keyof typeof OFERTAS_LOCALES_PRICING>;
 
 /** Featured placement scope options — intent only (Stack 8). */
@@ -312,7 +311,7 @@ export const OFERTAS_LOCALES_VERSION_2_FEATURES = [
   "Item-to-flyer flow",
   "Review and approve workflow",
   "Google Document AI scan jobs",
-  "AI Searchable Specials +$249/mo add-on (pickup partner +$199/mo)",
+  "AI analysis included in both locked publish products",
 ] as const;
 
 export const OFERTAS_LOCALES_DEFAULT_FILTERS = {

@@ -283,6 +283,7 @@ export function mapOfertaLocalPublicSearchRowToItem(
     subcategory: sanitizePublicText(row.subcategory, 80),
     searchTags: (row.search_tags ?? []).map((t) => sanitizePublicText(t, 64)).filter(Boolean),
     sourcePage: row.source_page,
+    sourceCropHref: getSafeOfertaLocalSourceAssetHref(row.source_crop_url),
     sourceAssetLabel: source.label,
     sourceAssetHref: source.href,
     validFrom: itemFrom || null,

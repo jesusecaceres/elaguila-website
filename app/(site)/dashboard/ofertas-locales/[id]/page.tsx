@@ -42,7 +42,7 @@ export default function OfertasLocalesOwnerManagePage() {
             contactLeonix: "Contactar a Leonix",
             assetsTitle: "Archivos subidos",
             socialTitle: "Redes y reseñas",
-            aiTitle: "AI Searchable Specials",
+            aiTitle: "Análisis con IA incluido",
             featuredTitle: "Featured placement",
             approvedBlock:
               "Esta oferta está aprobada. Para cambios, contacta al equipo Leonix — no puedes editarla directamente.",
@@ -64,7 +64,7 @@ export default function OfertasLocalesOwnerManagePage() {
             contactLeonix: "Contact Leonix",
             assetsTitle: "Uploaded files",
             socialTitle: "Social & reviews",
-            aiTitle: "AI Searchable Specials",
+            aiTitle: "AI analysis included",
             featuredTitle: "Featured placement",
             approvedBlock:
               "This offer is approved. Contact the Leonix team for changes — you cannot edit it directly.",
@@ -357,7 +357,7 @@ export default function OfertasLocalesOwnerManagePage() {
         <section className="grid gap-4 sm:grid-cols-2">
           <div>
             <h2 className="text-xs font-bold uppercase text-[#7A7164]">{t.aiTitle}</h2>
-            <p>{offer.metadata.wantsAiSearchableSpecials ? (lang === "es" ? "Solicitado" : "Requested") : "—"}</p>
+            <p>{lang === "es" ? "Incluido — revisión de artículos cuando aplique" : "Included — item review when applicable"}</p>
           </div>
           <div>
             <h2 className="text-xs font-bold uppercase text-[#7A7164]">{t.featuredTitle}</h2>

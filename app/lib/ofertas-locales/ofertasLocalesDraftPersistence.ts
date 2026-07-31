@@ -154,6 +154,33 @@ function sanitizeAssetList(raw: unknown): OfertaLocalDraftAsset[] {
   return out;
 }
 
+function legacyPrimaryAdFormatFromStored(stored: Record<string, unknown>): OfertaLocalPrimaryAdFormat | "" {
+  const candidates = [
+    stored.primaryAdFormat,
+    stored.productKey,
+    stored.publishProductKey,
+    stored.selectedProduct,
+    stored.primaryAdFormatKey,
+  ]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+
+  for (const value of candidates) {
+    if (value === "shopping_specials" || value === "interactive_flyer" || value === "digitalWeeklySpecials") {
+      return "shopping_specials";
+    }
+    if (
+      value === "local_coupons" ||
+      value === "coupons" ||
+      value === "coupon_promotion" ||
+      value === "digitalCouponListing"
+    ) {
+      return "local_coupons";
+    }
+  }
+  return "";
+}
+
 function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
   const base = createEmptyOfertaLocalDraft();
   const merged = {
@@ -194,12 +221,18 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
     couponAssets: sanitizeAssetList(stored.couponAssets),
   } as OfertaLocalDraft;
   const normalizedCategory = normalizeOfertaLocalDraftCategoryFields(merged);
+  const legacyPrimaryAdFormat = legacyPrimaryAdFormatFromStored(stored);
   const primaryAdFormatRaw = stored.primaryAdFormat;
   const primaryAdFormat: OfertaLocalPrimaryAdFormat | "" =
     primaryAdFormatRaw === "shopping_specials" || primaryAdFormatRaw === "local_coupons"
       ? primaryAdFormatRaw
+      : legacyPrimaryAdFormat
+        ? legacyPrimaryAdFormat
       : inferPrimaryAdFormatFromDraft(merged);
-  const withLane = { ...merged, ...normalizedCategory, primaryAdFormat };
+  const offerType =
+    merged.offerType ||
+    (primaryAdFormat === "shopping_specials" ? "weekly_flyer" : primaryAdFormat === "local_coupons" ? "coupon" : "");
+  const withLane = { ...merged, ...normalizedCategory, primaryAdFormat, offerType };
   return normalizeOfertaLocalDraftProductEntitlements(migrateOfertaLocalDraftFields(withLane));
 }
 

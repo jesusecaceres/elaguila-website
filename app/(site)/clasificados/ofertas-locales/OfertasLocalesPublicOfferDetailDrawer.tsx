@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { OfertaLocalPublicOfferCard } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import {
+  isOfertaLocalActiveByDates,
+  isOfertaLocalExpired,
+} from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import {
   ofertaLocalPublicOfferTypeLabel,
@@ -31,8 +35,37 @@ function businessInitial(name: string): string {
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
 }
 
+function couponDetailCopy(lang: OfertasLocalesAppLang) {
+  return lang === "en"
+    ? {
+        active: "Active",
+        upcoming: "Upcoming",
+        expired: "Expired",
+        validThrough: "Valid through",
+        starts: "Starts",
+        description: "Description",
+        terms: "Terms and conditions",
+        termsMissing: "No additional terms were provided.",
+        redemption: "Redemption instructions",
+        redemptionDefault: "Show or mention this coupon at the business. Final redemption is handled by the business.",
+      }
+    : {
+        active: "Activo",
+        upcoming: "Próximo",
+        expired: "Vencido",
+        validThrough: "Válido hasta",
+        starts: "Empieza",
+        description: "Descripción",
+        terms: "Términos y condiciones",
+        termsMissing: "No se agregaron términos adicionales.",
+        redemption: "Instrucciones de uso",
+        redemptionDefault: "Muestra o menciona este cupón en el negocio. La redención final la maneja el negocio.",
+      };
+}
+
 export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, surface = "ofertas" }: Props) {
   const c = ofertasLocalesPublicSearchCopy(lang, surface);
+  const couponCopy = couponDetailCopy(lang);
   const isCupones = surface === "cupones";
   const location = [offer.city, offer.state, offer.zipCode].filter(Boolean).join(", ");
   const dates =
@@ -41,6 +74,12 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
       : offer.validFrom || offer.validUntil;
   const typeLabel = ofertaLocalPublicOfferTypeLabel(lang, offer.offerType);
   const initial = businessInitial(offer.businessName);
+  const expired = isOfertaLocalExpired(offer.validUntil);
+  const active = isOfertaLocalActiveByDates(offer.validFrom, offer.validUntil);
+  const validityStatus = expired ? couponCopy.expired : active ? couponCopy.active : couponCopy.upcoming;
+  const validityText = expired || active
+    ? `${couponCopy.validThrough}: ${offer.validUntil || dates}`
+    : `${couponCopy.starts}: ${offer.validFrom || dates}`;
 
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -132,6 +171,7 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
 
           <div className="flex flex-wrap gap-2">
             <span className={BADGE}>{typeLabel}</span>
+            {isCupones ? <span className={BADGE}>{validityStatus}</span> : null}
             {offer.businessCategory ? (
               <span className="text-[10px] font-medium uppercase tracking-wide text-[#2A4536]/75">
                 {offer.businessCategory}
@@ -141,8 +181,39 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
 
           {dates ? (
             <p className="text-sm font-medium text-[#1E1814]/75">
-              {c.validDates}: {dates}
+              {isCupones ? validityText : `${c.validDates}: ${dates}`}
             </p>
+          ) : null}
+
+          {isCupones ? (
+            <div className="space-y-3 rounded-xl border border-[#D4C4A8]/60 bg-white/75 px-3 py-3">
+              {offer.description.trim() ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#2A4536]/75">
+                    {couponCopy.description}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-[#1E1814]/80">
+                    {offer.description}
+                  </p>
+                </div>
+              ) : null}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2A4536]/75">
+                  {couponCopy.terms}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-[#1E1814]/80">
+                  {offer.couponText.trim() || couponCopy.termsMissing}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2A4536]/75">
+                  {couponCopy.redemption}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-[#1E1814]/75">
+                  {couponCopy.redemptionDefault}
+                </p>
+              </div>
+            </div>
           ) : null}
 
           {location || offer.address ? (

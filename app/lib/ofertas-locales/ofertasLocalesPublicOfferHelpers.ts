@@ -25,6 +25,7 @@ export type OfertaLocalPublicOfferRow = {
   business_name: string;
   title: string;
   description: string | null;
+  coupon_text: string | null;
   valid_from: string;
   valid_until: string;
   address: string | null;
@@ -111,6 +112,8 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
     id: row.id,
     businessName: sanitizeText(row.business_name, 200),
     title: sanitizeText(row.title, 200),
+    description: sanitizeText(row.description, 8000),
+    couponText: sanitizeText(row.coupon_text, 4000),
     offerType: sanitizeText(row.offer_type, 64),
     businessCategory: sanitizeText(row.business_category, 80),
     marketType: sanitizeText(row.market_type, 64),

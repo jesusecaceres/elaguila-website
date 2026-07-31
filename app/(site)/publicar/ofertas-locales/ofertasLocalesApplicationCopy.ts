@@ -60,7 +60,7 @@ const COPY = {
     laneShoppingMainFlyerAssetHelper:
       "Sube el volante principal completo. Si el PDF tiene varias páginas, súbelo completo en un solo archivo.",
     laneShoppingMainFlyerMultiPageHelper:
-      "Si tu PDF tiene varias páginas, súbelo completo. Leonix usará el archivo completo para mostrarlo y, si agregaste AI, preparar sugerencias para revisión.",
+      "Si tu PDF tiene varias páginas, súbelo completo. Leonix usará el archivo completo para mostrarlo y preparar sugerencias con IA para revisión.",
     laneShoppingSupportingFlyerExtras: "Archivos adicionales del volante (anteriores)",
     laneShoppingSupportingFlyerExtrasHelper:
       "Estos archivos extra se conservan de un borrador anterior. Puedes quitarlos o mover el contenido al volante principal o a cupones adicionales.",
@@ -113,7 +113,7 @@ const COPY = {
     leonixPartnerBody:
       "Contáctanos para conocer opciones de colaboración. Disponible por invitación o revisión del equipo Leonix.",
     leonixPartnerCta: "Contactar a Leonix",
-    aiAddOnLabel: "Agregar AI Searchable Specials",
+    aiAddOnLabel: "IA incluida para análisis",
     aiAddOnHelper:
       "Podemos ayudar a que tu volante o cupón sea buscable por producto, como carne asada, tomates, tortillas, cambio de aceite, especiales de comida y más.",
     aiProductSearchTitle: "Escaneo y productos con IA",
@@ -194,19 +194,19 @@ const COPY = {
       "Sube el archivo antes de continuar para que no se pierda al actualizar.",
     step5CheckpointUploadTitle: "1. Subir volante",
     step5CheckpointUploadCouponTitle: "1. Subir cupón",
-    step5CheckpointScanTitle: "2. Escanear con AI",
+    step5CheckpointScanTitle: "2. Analizar con IA",
     step5CheckpointReviewTitle: "3. Revisar productos",
     step5CheckpointUploadComplete: "Volante subido",
     step5CheckpointUploadCouponComplete: "Cupón subido",
-    step5CheckpointScanComplete: "Escaneo AI completo",
+    step5CheckpointScanComplete: "Análisis con IA completo",
     step5CheckpointProductsFound: "{count} productos encontrados",
     step5CheckpointReviewSummary:
       "{pending} pendientes · {approved} aprobados · {rejected} rechazados",
-    step5CheckpointLockedScan: "Sube el volante para activar el escaneo AI.",
-    step5CheckpointLockedScanCoupon: "Sube el cupón para activar el escaneo AI.",
+    step5CheckpointLockedScan: "Sube el volante para iniciar el análisis con IA incluido.",
+    step5CheckpointLockedScanCoupon: "Sube el cupón para iniciar el análisis con IA incluido.",
     step5CheckpointLockedReview: "Escanea el volante para revisar los productos.",
     step5CheckpointLockedReviewCoupon: "Escanea el cupón para revisar los productos.",
-    step5CheckpointLockedNext: "Termina la revisión AI para continuar.",
+    step5CheckpointLockedNext: "Termina la revisión de IA para continuar.",
     step5CheckpointReviewProductsCta: "Revisar productos",
     step5CheckpointReviewComplete: "Revisión completa. Puedes continuar.",
     step5CheckpointViewFile: "Ver / previsualizar",
@@ -251,8 +251,8 @@ const COPY = {
     wizardBack: "Atrás",
     wizardNext: "Siguiente",
     wizardReviewStep: "Revisar antes de enviar",
-    aiScanPanelTitle: "Preparación para escaneo AI",
-    aiScanButton: "Escanear con AI",
+    aiScanPanelTitle: "Preparación para análisis con IA",
+    aiScanButton: "Analizar con IA",
     aiScanProcessing: "Escaneando archivo...",
     aiScanCompleted: "Escaneo completado",
     aiScanHelperWait:
@@ -260,7 +260,7 @@ const COPY = {
     aiScanElapsed: "Tiempo transcurrido",
     aiScanReviewBeforePublish:
       "Los productos extraídos deberán revisarse antes de publicarse.",
-    aiScanConfigMissing: "Google Document AI no está configurado en el servidor.",
+    aiScanConfigMissing: "El análisis con IA no está configurado en el servidor.",
     aiScanFailed: "No se pudo escanear",
     aiScanSuccess: "Escaneo completado. Los artículos deben revisarse antes de publicarse.",
     aiReviewSuggestionsFound: "Sugerencias encontradas:",
@@ -303,7 +303,7 @@ const COPY = {
     aiReviewViewProductsOnPage: "Ver productos de esta página",
     aiReviewContinueToPage: "Continuar a Página {page}",
     aiReviewAllPagesComplete: "Todas las páginas están revisadas. Puedes continuar.",
-    step7ScanSummaryTitle: "Resumen del escaneo AI",
+    step7ScanSummaryTitle: "Resumen del análisis con IA",
     step7ScanSummaryTotal: "{total} productos encontrados",
     step7ScanSummaryApproved: "{approved} aprobados",
     step7ScanSummaryReviewLater: "{reviewLater} por revisar después",
@@ -322,15 +322,15 @@ const COPY = {
     step7ConfirmFiles:
       "Confirmo que los archivos y fechas del volante/cupón son correctos.",
     step7ConfirmAi:
-      "Confirmo que los productos AI seleccionados están listos, o terminé la revisión requerida.",
+      "Confirmo que los productos sugeridos por IA están listos, o terminé la revisión requerida.",
     step7ConfirmRules:
       "Confirmo que esta oferta cumple con las reglas de Leonix y soy responsable por la información enviada.",
     step7PreviewGatedHelper: "Marca todas las confirmaciones para ver la vista previa.",
     step7AiIncompleteHelper:
-      "Aún hay productos AI pendientes de revisión. El envío permanece bloqueado hasta terminar.",
+      "Aún hay productos sugeridos por IA pendientes de revisión. El envío permanece bloqueado hasta terminar.",
     step7DeleteStartOverTitle: "Borrar y empezar de nuevo",
     startOverDeviceWarning:
-      "Esto borra el borrador guardado en este navegador. No borra productos AI ya guardados en la base de datos.",
+      "Esto borra el borrador guardado en este navegador. No borra productos de IA ya guardados en la base de datos.",
     aiReviewDescription: "Descripción",
     aiReviewTerms: "Términos",
     aiReviewRegularPrice: "Precio regular",
@@ -492,7 +492,7 @@ const COPY = {
     laneShoppingMainFlyerAssetHelper:
       "Upload the full main flyer. If the PDF has multiple pages, upload the full file as one document.",
     laneShoppingMainFlyerMultiPageHelper:
-      "If your PDF has multiple pages, upload the full file. Leonix will use the full file for display and, if you added AI, prepare suggestions for review.",
+      "If your PDF has multiple pages, upload the full file. Leonix will use the full file for display and prepare AI suggestions for review.",
     laneShoppingSupportingFlyerExtras: "Additional flyer files (legacy)",
     laneShoppingSupportingFlyerExtrasHelper:
       "These extra files are kept from an earlier draft. You can remove them or move content to the main flyer or additional coupons.",
@@ -545,7 +545,7 @@ const COPY = {
     leonixPartnerBody:
       "Contact us to learn about partnership options. Available by invitation or Leonix team review.",
     leonixPartnerCta: "Contact Leonix",
-    aiAddOnLabel: "Add AI Searchable Specials",
+    aiAddOnLabel: "AI analysis included",
     aiAddOnHelper:
       "We can help make your flyer or coupon searchable by item, like carne asada, tomatoes, tortillas, oil change, lunch specials, and more.",
     aiProductSearchTitle: "AI scan and products",
@@ -625,16 +625,16 @@ const COPY = {
       "Upload the file before continuing so it is not lost on refresh.",
     step5CheckpointUploadTitle: "1. Upload flyer",
     step5CheckpointUploadCouponTitle: "1. Upload coupon file",
-    step5CheckpointScanTitle: "2. Scan with AI",
+    step5CheckpointScanTitle: "2. Analyze with AI",
     step5CheckpointReviewTitle: "3. Review products",
     step5CheckpointUploadComplete: "Flyer uploaded",
     step5CheckpointUploadCouponComplete: "Coupon uploaded",
-    step5CheckpointScanComplete: "AI scan complete",
+    step5CheckpointScanComplete: "AI analysis complete",
     step5CheckpointProductsFound: "{count} products found",
     step5CheckpointReviewSummary:
       "{pending} pending · {approved} approved · {rejected} rejected",
-    step5CheckpointLockedScan: "Upload the flyer to activate AI scanning.",
-    step5CheckpointLockedScanCoupon: "Upload the coupon file to activate AI scanning.",
+    step5CheckpointLockedScan: "Upload the flyer to start the included AI analysis.",
+    step5CheckpointLockedScanCoupon: "Upload the coupon file to start the included AI analysis.",
     step5CheckpointLockedReview: "Scan the flyer to review products.",
     step5CheckpointLockedReviewCoupon: "Scan the coupon file to review products.",
     step5CheckpointLockedNext: "Finish the AI review to continue.",
@@ -682,8 +682,8 @@ const COPY = {
     wizardBack: "Back",
     wizardNext: "Next",
     wizardReviewStep: "Review before submitting",
-    aiScanPanelTitle: "AI scan readiness",
-    aiScanButton: "Scan with AI",
+    aiScanPanelTitle: "AI analysis readiness",
+    aiScanButton: "Analyze with AI",
     aiScanProcessing: "Scanning file...",
     aiScanCompleted: "Scan complete",
     aiScanHelperWait:
@@ -691,7 +691,7 @@ const COPY = {
     aiScanElapsed: "Elapsed time",
     aiScanReviewBeforePublish:
       "Extracted items must be reviewed before they can be published.",
-    aiScanConfigMissing: "Google Document AI is not configured on the server.",
+    aiScanConfigMissing: "AI analysis is not configured on the server.",
     aiScanFailed: "Could not scan",
     aiScanSuccess: "Scan completed. Items must be reviewed before they can go live.",
     aiReviewSuggestionsFound: "Suggestions found:",
@@ -733,7 +733,7 @@ const COPY = {
     aiReviewViewProductsOnPage: "View products on this page",
     aiReviewContinueToPage: "Continue to Page {page}",
     aiReviewAllPagesComplete: "All pages are reviewed. You can continue.",
-    step7ScanSummaryTitle: "AI scan summary",
+    step7ScanSummaryTitle: "AI analysis summary",
     step7ScanSummaryTotal: "{total} products found",
     step7ScanSummaryApproved: "{approved} approved",
     step7ScanSummaryReviewLater: "{reviewLater} review later",
@@ -749,12 +749,12 @@ const COPY = {
     step7ConfirmBusiness: "I confirm the business/contact information is correct.",
     step7ConfirmFiles: "I confirm the flyer/coupon files and dates are correct.",
     step7ConfirmAi:
-      "I confirm the selected AI items are ready, or I finished the required review.",
+      "I confirm the AI-suggested products are ready, or I finished the required review.",
     step7ConfirmRules:
       "I confirm this offer follows Leonix rules and I am responsible for the submitted information.",
     step7PreviewGatedHelper: "Check all confirmations to open preview.",
     step7AiIncompleteHelper:
-      "AI items still need review. Submit stays blocked until review is complete.",
+      "AI-suggested items still need review. Submit stays blocked until review is complete.",
     step7DeleteStartOverTitle: "Delete and start over",
     startOverDeviceWarning:
       "This clears the draft saved in this browser. It does not delete AI products already saved in the database.",

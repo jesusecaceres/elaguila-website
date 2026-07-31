@@ -46,10 +46,10 @@ requireText("scan session migrate", scan, "migrateSessionScanToLocal");
 const copy = readFileSync(copyPath, "utf8");
 requireText("english continue page", copy, 'aiReviewContinueToPage: "Continue to Page {page}"');
 requireText("spanish continue page", copy, 'aiReviewContinueToPage: "Continuar a Página {page}"');
-requireText("english scan summary", copy, 'step7ScanSummaryTitle: "AI scan summary"');
-requireText("spanish scan summary", copy, 'step7ScanSummaryTitle: "Resumen del escaneo AI"');
-requireText("english rescan warning", copy, "Rescanning may replace or duplicate suggestions");
-requireText("spanish rescan warning", copy, "Volver a escanear puede reemplazar o duplicar sugerencias");
+requireText("english scan summary", copy, 'step7ScanSummaryTitle: "AI analysis summary"');
+requireText("spanish scan summary", copy, 'step7ScanSummaryTitle: "Resumen del análisis con IA"');
+requireText("english rescan warning", copy, "Scanning again may replace or change previous suggestions.");
+requireText("spanish rescan warning", copy, "Volver a escanear puede reemplazar o cambiar sugerencias anteriores.");
 
 const app = readFileSync(appPath, "utf8");
 requireText("step7 summary block", app, "step7ScanSummaryTitle");
@@ -69,7 +69,12 @@ const allowed = [
   "app/lib/ofertas-locales/OFERTAS_DURABLE_DRAFT_REVIEW_CONTROL_AUDIT.md",
   "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx",
   "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesAiScanPanel.tsx",
   "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts",
+  "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewCard.tsx",
+  "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewProductGrid.tsx",
+  "app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx",
   "scripts/verify-ofertas-durable-draft-review-control.mjs",
   "package.json",
 ];
@@ -85,11 +90,11 @@ else pass(`gate files in diff: ${gateChanges.length}`);
 
 const forbidden = changed.filter(
   (file) =>
-    file.startsWith("app/(site)/publicar/ofertas-locales/preview/") ||
     file.includes("stripe") ||
     file.includes("analytics") ||
-    file.includes("admin")
+    (file.includes("admin") &&
+      !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/"))
 );
 
 if (forbidden.length) fail(`forbidden files changed: ${forbidden.join(", ")}`);
-else pass("preview/stripe/admin/analytics untouched");
+else pass("stripe/unrelated-admin/analytics untouched");

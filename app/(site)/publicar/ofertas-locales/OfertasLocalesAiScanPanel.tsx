@@ -8,6 +8,7 @@ import {
   type OfertaLocalScanEligibleAsset,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
 import { submitOfertaLocalAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanSubmit";
+import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
   formatScanElapsed,
   getOfertaLocalScanPhaseMessage,
@@ -249,7 +250,7 @@ export function OfertasLocalesAiScanPanel({
     ]
   );
 
-  if (!draft.wantsAiSearchableSpecials) return null;
+  if (!isOfertaLocalAiIncludedInPackage(draft)) return null;
 
   if (showCompletedSummary) {
     return (

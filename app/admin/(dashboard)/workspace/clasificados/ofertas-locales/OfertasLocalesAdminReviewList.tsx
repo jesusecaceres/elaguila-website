@@ -240,12 +240,12 @@ function InspectDetail({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm">
-          <h4 className="text-xs font-bold uppercase text-[#7A7164]">AI Searchable Specials</h4>
+          <h4 className="text-xs font-bold uppercase text-[#7A7164]">Análisis con IA incluido</h4>
           <p className="mt-1">
             {wantsAiSearchableSpecials ? (
-              <span className="font-semibold text-emerald-900">Solicitado — pendiente de revisión de ítems</span>
+              <span className="font-semibold text-emerald-900">Incluido — revisar ítems sugeridos</span>
             ) : (
-              <span className="text-[#7A7164]">No solicitado</span>
+              <span className="text-[#7A7164]">Incluido — sin ítems pendientes</span>
             )}
           </p>
         </div>
@@ -400,7 +400,7 @@ export function OfertasLocalesAdminReviewList({
               <th className="border-b border-[#E8DFD0] px-3 py-2">Vigencia</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Assets</th>
-              <th className="border-b border-[#E8DFD0] px-3 py-2">AI</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">IA incluida</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Featured</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Enviado</th>
@@ -428,7 +428,7 @@ export function OfertasLocalesAdminReviewList({
                   </span>
                 </td>
                 <td className="px-3 py-2 text-center">{item.assetCount}</td>
-                <td className="px-3 py-2">{item.wantsAiSearchableSpecials ? "Sí" : "—"}</td>
+                <td className="px-3 py-2">{item.wantsAiSearchableSpecials ? "Con revisión" : "Incluida"}</td>
                 <td className="px-3 py-2">
                   {item.featuredRequested ? (
                     <span title={item.featuredPlacementScope ?? ""}>Sí</span>

@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
       business_name,
       title,
       description,
+      coupon_text,
       valid_from,
       valid_until,
       address,

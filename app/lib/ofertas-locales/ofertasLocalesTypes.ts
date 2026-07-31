@@ -807,6 +807,7 @@ export type OfertaLocalPublicSearchItem = {
   subcategory: string;
   searchTags: string[];
   sourcePage: number | null;
+  sourceCropHref: string | null;
   sourceAssetLabel: string;
   sourceAssetHref: string | null;
   validFrom: string | null;
@@ -863,6 +864,8 @@ export type OfertaLocalPublicOfferCard = {
   id: string;
   businessName: string;
   title: string;
+  description: string;
+  couponText: string;
   offerType: string;
   businessCategory: string;
   marketType: string;

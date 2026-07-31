@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { OfertaLocalPublicSearchItem } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import {
   formatOfertaLocalPublicItemLocation,
@@ -57,6 +58,13 @@ export function OfertasLocalesPublicItemDetailDrawer({
   const dates = formatOfertaLocalPublicItemValidDates(item, lang);
   const tags = item.searchTags.join(", ");
   const showListActions = Boolean(onAdd || onRemove || onOpenList);
+  const [failedImageHref, setFailedImageHref] = useState<string | null>(null);
+  const previewHref =
+    item.sourceCropHref && failedImageHref !== item.sourceCropHref
+      ? item.sourceCropHref
+      : item.sourceAssetHref && failedImageHref !== item.sourceAssetHref
+        ? item.sourceAssetHref
+        : null;
 
   return (
     <div className={OVERLAY} role="dialog" aria-modal="true" onClick={onClose}>
@@ -74,6 +82,20 @@ export function OfertasLocalesPublicItemDetailDrawer({
         </div>
 
         <div className="space-y-4 px-4 py-4">
+          {previewHref ? (
+            <div className="overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewHref}
+                alt={item.itemName}
+                className="mx-auto max-h-[min(42vh,320px)] w-full object-contain object-center"
+                loading="lazy"
+                decoding="async"
+                onError={() => setFailedImageHref(previewHref)}
+              />
+            </div>
+          ) : null}
+
           <div className="rounded-xl border border-[#D4C4A8]/60 bg-white px-4 py-3">
             <p className="text-2xl font-bold text-[#7A1E2C]">{price}</p>
             {item.unit?.trim() ? <p className="text-sm text-[#1E1814]/70">{item.unit}</p> : null}

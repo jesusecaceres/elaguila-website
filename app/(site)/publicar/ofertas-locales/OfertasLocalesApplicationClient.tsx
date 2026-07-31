@@ -260,6 +260,7 @@ function formatSavedAt(ts: number | null, lang: "es" | "en"): string | null {
 
 export default function OfertasLocalesApplicationClient() {
   const searchParams = useSearchParams();
+  const requestedInitialStep = searchParams?.get("step") ?? "";
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = useOfertasLocalesAppLang();
   const c = ofertasLocalesAppCopy(lang);
@@ -304,6 +305,7 @@ export default function OfertasLocalesApplicationClient() {
     leonixRules: false,
   });
   const [signedIn, setSignedIn] = useState(true);
+  const initialStepAppliedRef = useRef(false);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
   const aiIncludedInPackage = isOfertaLocalAiIncludedInPackage(draft);
@@ -312,6 +314,14 @@ export default function OfertasLocalesApplicationClient() {
   const hasExistingAiScan =
     aiIncludedInPackage &&
     Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
+
+  useEffect(() => {
+    if (!hasLoadedDraft || initialStepAppliedRef.current) return;
+    initialStepAppliedRef.current = true;
+    const requested = Number.parseInt(requestedInitialStep, 10);
+    if (!Number.isFinite(requested)) return;
+    setStep(clampWizardStep(requested));
+  }, [hasLoadedDraft, requestedInitialStep]);
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -1178,8 +1188,8 @@ export default function OfertasLocalesApplicationClient() {
                 sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
                 sectionHelper={
                   lang === "en"
-                    ? "Upload your full weekly flyer. AI product extraction is available when you select the AI add-on."
-                    : "Sube tu volante semanal completo. La extracción AI de productos está disponible si seleccionas el complemento AI."
+                    ? "Upload your full weekly flyer. AI analysis is included and prepares product suggestions for review."
+                    : "Sube tu volante semanal completo. El análisis con IA está incluido y prepara sugerencias para revisión."
                 }
                 primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
                 showAiScanFormatsHint={aiIncludedInPackage}
@@ -1440,9 +1450,8 @@ export default function OfertasLocalesApplicationClient() {
                   className={INPUT}
                   type="email"
                   value={draft.email}
-                  onChange={(e) =>
-                    updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })
-                  }
+                  onChange={(e) => updateDraft({ email: e.target.value })}
+                  onBlur={(e) => updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })}
                   placeholder={lang === "en" ? "hello@business.com" : "hola@negocio.com"}
                   inputMode="email"
                   autoComplete="email"

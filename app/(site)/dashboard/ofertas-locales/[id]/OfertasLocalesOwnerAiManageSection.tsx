@@ -47,7 +47,7 @@ function firstScannableAsset(
 export function OfertasLocalesOwnerAiManageSection({
   lang,
   offerId,
-  wantsAiSearchableSpecials,
+  wantsAiSearchableSpecials: _legacyWantsAiSearchableSpecials,
   flyerAssets,
   couponAssets,
   offerStatus,
@@ -62,8 +62,7 @@ export function OfertasLocalesOwnerAiManageSection({
   );
 
   const canScan =
-    wantsAiSearchableSpecials &&
-    scannable &&
+    Boolean(scannable) &&
     offerStatus !== "rejected" &&
     offerStatus !== "archived";
 
@@ -88,21 +87,21 @@ export function OfertasLocalesOwnerAiManageSection({
     setScanMessage(result.message ?? (lang === "es" ? "Escaneo completado." : "Scan completed."));
   }, [canScan, scannable, offerId, lang]);
 
-  if (!wantsAiSearchableSpecials) return null;
+  if (!scannable) return null;
 
   const t =
     lang === "es"
       ? {
-          title: "Revisión de artículos AI",
-          scan: "Escanear volante/cupón",
-          scanning: "Escaneando…",
-          scanHint: "Los artículos extraídos requieren aprobación antes de ser públicos.",
+          title: "Revisión de análisis con IA",
+          scan: "Analizar volante/cupón",
+          scanning: "Analizando…",
+          scanHint: "El análisis con IA está incluido. Los artículos sugeridos requieren aprobación antes de ser públicos.",
         }
       : {
-          title: "AI item review",
-          scan: "Scan flyer/coupon",
-          scanning: "Scanning…",
-          scanHint: "Extracted items require approval before they become public.",
+          title: "AI analysis review",
+          scan: "Analyze flyer/coupon",
+          scanning: "Analyzing…",
+          scanHint: "AI analysis is included. Suggested items require approval before they become public.",
         };
 
   return (
