@@ -623,9 +623,25 @@ const RENTAS_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   // was the one place still resolving to the old, less-proven shell.
   publicRoute: (identity) => `/clasificados/rentas/listing/${identity.sourceId}`,
 
-  // Gate I.5A confirmed a real edit API (app/api/clasificados/rentas/listing-edit/route.ts) but
-  // no confirmed dashboard href-builder constant for it — returning null rather than guessing.
-  editRoute: () => null,
+  // I.7A — CORRECTED. Gate I.5A found a real edit API but no confirmed dashboard href-builder
+  // and returned null rather than guessing. `rentasDashboardEditHref()` in
+  // LeonixRealEstateListingManageCard.tsx:91-109 is that real, live, working builder — this
+  // mirrors its exact param shape (edit/source/mode/listingId/lane/lang/returnTo/leonixAdId)
+  // for the Negocio lane.
+  editRoute: (identity, opts) => {
+    const language = lang(opts);
+    const params = new URLSearchParams({
+      edit: "1",
+      source: "dashboard",
+      mode: "listing-edit",
+      listingId: identity.sourceId,
+      lane: "negocio",
+      lang: language,
+      returnTo: `/dashboard/mis-anuncios?cat=rentas&lang=${language}`,
+    });
+    if (identity.leonixAdId?.trim()) params.set("leonixAdId", identity.leonixAdId.trim());
+    return `/clasificados/publicar/rentas/negocio?${params.toString()}`;
+  },
 
   previewRoute: (identity, opts) => withLang(`/clasificados/rentas/preview/negocio?listingId=${encodeURIComponent(identity.sourceId)}`, lang(opts)),
 
@@ -636,8 +652,8 @@ const RENTAS_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: true,
 
   knownLimitations: [
-    "editRoute() returns null — a real edit API exists but no confirmed dashboard href-builder " +
-      "was found for it in Gate I.5A's pass.",
+    "editRoute() — CORRECTED in Gate I.7A. Now resolves to the real, live dashboard edit href " +
+      "(mirrors rentasDashboardEditHref() in LeonixRealEstateListingManageCard.tsx exactly).",
     "A confirmed renewal capability exists (operation:\"renew_listing\" via the shared " +
       "/api/revenue-os/checkout endpoint) but is not representable as a `route` here — it's an " +
       "async checkout call, not a navigable page.",
@@ -658,7 +674,22 @@ const RENTAS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
 
   // CORRECTED in Gate I.5.4D — same reasoning as Rentas Negocio above.
   publicRoute: (identity) => `/clasificados/rentas/listing/${identity.sourceId}`,
-  editRoute: () => null,
+  // I.7A — CORRECTED, same reasoning and same real href-builder as Rentas Negocio above, Privado
+  // lane.
+  editRoute: (identity, opts) => {
+    const language = lang(opts);
+    const params = new URLSearchParams({
+      edit: "1",
+      source: "dashboard",
+      mode: "listing-edit",
+      listingId: identity.sourceId,
+      lane: "privado",
+      lang: language,
+      returnTo: `/dashboard/mis-anuncios?cat=rentas&lang=${language}`,
+    });
+    if (identity.leonixAdId?.trim()) params.set("leonixAdId", identity.leonixAdId.trim());
+    return `/clasificados/publicar/rentas/privado?${params.toString()}`;
+  },
   previewRoute: (identity, opts) => withLang(`/clasificados/rentas/preview/privado?listingId=${encodeURIComponent(identity.sourceId)}`, lang(opts)),
   dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
 
@@ -667,7 +698,7 @@ const RENTAS_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "editRoute() returns null — same reasoning as Rentas Negocio.",
+    "editRoute() — CORRECTED in Gate I.7A, same reasoning and real href-builder as Rentas Negocio.",
     "Same confirmed-but-unrepresentable renewal capability as Rentas Negocio.",
   ],
 };
@@ -1044,11 +1075,25 @@ const VIAJES_ADAPTER: CategoryRouteAdapter = {
   applicationRoute: "/publicar/viajes",
   resultsRoute: "/clasificados/viajes/resultados",
 
-  // Gate I.5A found TWO separate public detail trees for this category
-  // (/clasificados/viajes/negocio/[slug] and /clasificados/viajes/oferta/[slug]) and could not
-  // confirm which applies to a given identity without a product-level clarification of whether
-  // they represent the same or different listing concepts. Returning null rather than guessing.
-  publicRoute: () => null,
+  // I.7A — CORRECTED. Gate I.5A's "two competing trees" finding is now resolved by direct
+  // re-inspection: `/clasificados/viajes/negocio/[slug]` is dead demo-only code — it hard-404s in
+  // production (viajesAllowCuratedDemoCatalog() forces `false` whenever
+  // process.env.NODE_ENV === "production", app/(site)/clasificados/viajes/lib/
+  // viajesPublicInventory.ts) and never reads viajes_staged_listings at all. The one real, live,
+  // correctly-category-matched public detail route is `/clasificados/viajes/oferta/[slug]`,
+  // confirmed to serve both the Negocios and Privado lanes from the real table, gated on
+  // is_public=true. That route is slug-keyed, not sourceId-keyed, so — same pattern already used
+  // by the Empleos adapter above for the same reason — this defers to a precomputed `publicUrl`
+  // on the identity rather than guessing a URL shape from `sourceId`.
+  publicRoute: (identity) => identity.publicUrl || null,
+  // editRoute()/previewRoute() remain null. Real, working edit/preview destinations DO exist
+  // (`/publicar/viajes/{negocios,privado}?stagedId=...`,
+  // `/clasificados/viajes/preview/{negocios,privado}?stagedId=...`) but require knowing which
+  // lane (negocios vs privado) a given staged row used, and no live code today constructs a
+  // `ListingIdentity` for this pipeline that carries that lane — the real
+  // `/dashboard/viajes` page (DashboardViajesStagedPage) builds these hrefs itself, directly off
+  // its own staged-row query, entirely bypassing this registry/resolveDashboardActions pipeline.
+  // Returning null here rather than fabricating a route this adapter cannot actually prove.
   editRoute: () => null,
   previewRoute: () => null,
   dashboardRoute: (_identity, opts) => withLang("/dashboard/viajes", lang(opts)),
@@ -1058,10 +1103,15 @@ const VIAJES_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: true,
 
   knownLimitations: [
-    "publicRoute()/previewRoute() return null — CONFIRMED AMBIGUITY, not merely unresolved: two " +
-      "separate detail-page trees exist (negocio/[slug] vs oferta/[slug]) and preview has " +
-      "matching negocios/privado sub-branches; resolving this needs product clarification on " +
-      "whether these represent the same listing concept, not a routing guess.",
+    "publicRoute() — CORRECTED in Gate I.7A. The prior \"two competing trees, unresolved\" " +
+      "finding was stale: negocio/[slug] is confirmed dead (production-disabled demo data), and " +
+      "oferta/[slug] is the one real, live public detail route for both lanes. publicRoute() now " +
+      "echoes identity.publicUrl (same pattern as Empleos) instead of returning null.",
+    "editRoute()/previewRoute() still return null — real lane-specific, stagedId-keyed routes " +
+      "exist and work (used directly by the dedicated /dashboard/viajes page), but no live code " +
+      "constructs a ListingIdentity for this pipeline carrying the lane needed to build them here " +
+      "without guessing; this registry/resolveDashboardActions is not currently in the live path " +
+      "for Viajes at all.",
     "Gate I.5.8 — the previously-stale categoryPublishPath(\"viajes\") value in " +
       "categoryStandardRoutes.ts (which mapped to a confirmed-nonexistent route folder, with zero " +
       "confirmed live callers) has been corrected to match this adapter's applicationRoute.",

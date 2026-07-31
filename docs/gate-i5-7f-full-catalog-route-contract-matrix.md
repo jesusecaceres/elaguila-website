@@ -12,10 +12,73 @@ and, for the specific fixes below, by
 [`scripts/gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts`](../scripts/gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts),
 [`scripts/gate-i6a-quick-clasificados-lifecycle-selftest.ts`](../scripts/gate-i6a-quick-clasificados-lifecycle-selftest.ts),
 [`scripts/gate-i6b-quick-clasificados-integrity-selftest.ts`](../scripts/gate-i6b-quick-clasificados-integrity-selftest.ts),
+[`scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts`](../scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts),
 and
-[`scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts`](../scripts/gate-i6c-quick-listing-fail-closed-identity-selftest.ts).
+[`scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts`](../scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.7A update log
+
+- **Empleos — publish CTA reconciled.** The landing page's hero "Publish a job" button
+  (`EmpleosLandingPageClient.tsx`) called the legacy `categoryStandardRoutes.categoryPublishPath("empleos")`
+  builder (`/clasificados/publicar/empleos`), which only reaches the real application form via an
+  extra (safe, tested) redirect hop. It now calls `EMPLEOS_PUBLISH_HUB_PATH` (`empleosLandingRoutes.ts`)
+  directly — the same constant the registry's `applicationRoute` already used — removing the
+  indirection. The redirect shim itself (`/clasificados/publicar/empleos/page.tsx`) is left in place
+  as a compatibility path for any other still-uncorrected inbound link.
+- **Empleos — existing-listing identity now fails closed.** `upsertEmpleosListingFromEnvelope()`
+  (`empleosPublicListingsDbServer.ts`) previously treated a candidate `listingId` that was
+  malformed, or well-formed but pointing at no existing row, the same as "no candidate at all" —
+  silently minting/reusing an id and inserting under it. It now distinguishes the two: no
+  `listingId` supplied at all still inserts normally (truly new application, unchanged); a
+  supplied `listingId` that is not a valid UUID, or is valid but matches no row, now fails closed
+  with the shared `quick_listing_existing_identity_invalid` code (reused from
+  `quickListingIdempotency.ts`, the same constant I.6C introduced for Quick Clasificados) instead
+  of inserting. Owner-mismatch (`forbidden`) and lane-mismatch (`lane_mismatch`) were already
+  fail-closed and are unchanged. `app/api/clasificados/empleos/listings/route.ts` now maps the new
+  code to `400`. No caller changes were needed for draft preservation — the application clients
+  already only clear local state on a successful response.
+- **Rentas — Edit corrected.** Both `rentas_negocio` and `rentas_privado` adapters declared
+  `editRoute: () => null` despite a real, live, working edit entry point
+  (`rentasDashboardEditHref()` in `LeonixRealEstateListingManageCard.tsx`, backed by a confirmed
+  real API, `/api/clasificados/rentas/listing-edit`). Both adapters now mirror that exact href
+  shape (`/clasificados/publicar/rentas/{negocio,privado}?edit=1&source=dashboard&mode=listing-edit&listingId=...&lane=...&lang=...&returnTo=...`,
+  plus `leonixAdId` when known) instead of returning null — same bug class and fix pattern as the
+  Restaurantes (I.5.7E) and En Venta/Busco/Clases/Comunidad (I.6A) Edit corrections.
+- **Rentas — reuse-vs-insert query-error gap identified, deliberately NOT fixed here.** Audit
+  confirmed `leonixPublishRealEstateListingCore.ts`'s pending-payment reuse check silently falls
+  through to INSERT when the reuse lookup itself errors (the same "verification failure becomes a
+  silent insert" bug class I.6C fixed for Quick Clasificados) — but that function is genuinely
+  shared with Bienes Raíces (`category === "rentas" || (category === "bienes-raices" && sellerType
+  === "business")` gates the exact same reuse block). Bienes Raíces is a locked system for this
+  package. Fixing the query-error branch would necessarily change live Bienes Raíces publish
+  behavior too, so this package leaves it untouched and records it here as a real, confirmed,
+  unresolved gap rather than silently repairing it out of scope. See
+  [Rentas duplicate-row protection gap](#rentas-duplicate-row-protection-gap).
+- **Rentas — two-live-renderer / default-lane decision: OWNER DECISION REQUIRED, unchanged.** Two
+  live public renderers exist for a Rentas row today (the dedicated `/clasificados/rentas/listing/{id}`
+  canonical route, and the shared `/clasificados/anuncio/{id}` shell, deliberately kept as a
+  compatibility fallback since Gate I.5.4D) with only the former sharing Preview's exact
+  WYSIWYG contract. Deciding whether to retire/redirect the shell path, or formally adopt it, is a
+  genuine product/architecture decision, not a code bug — not resolved here, consistent with the
+  ledger's pre-existing "Rentas default-lane decision" entry in
+  [Unresolved Route Debt](#unresolved-route-debt).
+- **Viajes — `publicRoute()` corrected.** The registry's "two competing detail trees, confirmed
+  ambiguity" framing (Gate I.5A) was re-audited and found stale:
+  `/clasificados/viajes/negocio/[slug]` is dead, production-disabled demo-catalog code that never
+  reads real data; `/clasificados/viajes/oferta/[slug]` is the one real, live, correctly-lane-aware
+  public detail route, serving both the Negocios and Privado lanes from `viajes_staged_listings`,
+  gated on `is_public = true`. `publicRoute()` now echoes a precomputed `identity.publicUrl`
+  (same pattern already used by the Empleos adapter for the same slug-vs-UUID reason) instead of
+  unconditionally returning null.
+- **Viajes — `editRoute()`/`previewRoute()` deliberately left null.** Real, working, lane-specific
+  edit/preview destinations do exist (`/publicar/viajes/{negocios,privado}?stagedId=...`,
+  `/clasificados/viajes/preview/{negocios,privado}?stagedId=...`) — but no live code today
+  constructs a `ListingIdentity` for the `viajes` pipeline carrying the lane needed to build them
+  generically, and the real `/dashboard/viajes` page builds these hrefs itself, entirely bypassing
+  this registry/`resolveDashboardActions` pipeline. Returning null here is the honest state, not a
+  guess — see [Viajes registry/live-UI gap](#viajes-registrylive-ui-gap).
 
 ## Work Package I.6C update log
 
@@ -258,12 +321,18 @@ for any parent) — an existing live behavior difference, not something introduc
 | ~~Viajes stale publish-map entry~~ | **Resolved in Work Package I.5.8.** `categoryPublishPath("viajes")` confirmed to map to a nonexistent folder with zero live callers, then corrected to the real `applicationRoute` (`/publicar/viajes`). Zero live behavior change. |
 | **Bienes/Autos parent-child protection lives outside the registry** | Still true — see [External Safety Protections](#external-safety-protections). Work Package I.5.8 added executable regression coverage for this (`gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts`) but did not change the architecture itself — a structural risk remains if any future caller invokes `adapter.editRoute()` directly without the external gate. |
 | ~~Autos child-action regression coverage gap~~ | **Addressed in Work Package I.5.8.** `gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts` now exercises the real `resolveDashboardActions()` resolver for both Bienes and Autos Negocio parent/child identities. |
-| **Rentas default-lane decision** | Unchanged, not part of Work Package I.5.8. Both lanes share one `hubRoute` (`/clasificados/publicar/rentas`) distinct from either lane's own `applicationRoute`. The dashboard's default Rentas publish CTA goes straight to Privado, skipping the hub chooser — a product decision, not a bug, but undocumented in the registry itself. |
+| **Rentas default-lane decision** | **OWNER DECISION REQUIRED, unchanged as of I.7A.** Both lanes share one `hubRoute` (`/clasificados/publicar/rentas`) distinct from either lane's own `applicationRoute`. The dashboard's default Rentas publish CTA goes straight to Privado, skipping the hub chooser — a product decision, not a bug, but undocumented in the registry itself. I.7A re-confirmed this is genuinely a product choice (which lane/renderer is canonical for public Rentas at launch), not a code bug, and left it untouched. |
 | **Missing quick-category test coverage** | Before Gate I.5.7F, Ofertas Locales, Cupones, Comida Local, and each quick-listing category (Busco/Clases/Comunidad/Mascotas/Viajes) had no dedicated route-contract test, only generic pass-through coverage via `gate-i5-1`. The matrix now covers all 17 pipelines uniformly. |
 | ~~En Venta / Busco / Clases / Comunidad missing Edit~~ | **Resolved in Work Package I.6A.** All four now resolve to the real, generic, owner-verified `/dashboard/mis-anuncios/{id}/editar` page — same bug class and fix pattern as the Restaurantes correction (I.5.7E). |
 | ~~En Venta / Busco / Clases / Comunidad duplicate-row risk on republish~~ | **Mitigated in Work Package I.6B, not eliminated.** Each publisher now verifies and reuses a session-persisted, owner+category-checked canonical UUID instead of always inserting. This closes the in-flight retry/refresh window. It does NOT protect a later, unrelated visit to the same form (by design — that's the generic editor's job) or two truly concurrent submit clicks racing before either round-trips a row id (documented, not solved — see [Duplicate-Row Prevention Scope](#duplicate-row-prevention-scope)). |
 | ~~Mascotas public-route root cause~~ | **Repaired in Work Package I.6B.** The shared `anuncio/[id]` shell's `CATEGORY_KEYS` allowlist now includes `mascotas-y-perdidos`, and a dedicated `MascotasPerdidosPublishedDetailPage` component renders it correctly. `publicRoute()` is now real. Editing remains unsupported (no safe category-specific editor exists yet). |
 | **Future shared facade / legacy-builder retirement** | Still explicitly deferred — Gate I.5.7D-R's Table G places this as the last wave (Wave 8/9), after the smaller corrections land and prove the pattern repeatedly. Not attempted here. |
+| ~~Empleos publish-CTA slug disagreement~~ | **Resolved in Work Package I.7A.** `EmpleosLandingPageClient.tsx`'s hero CTA now calls the canonical `EMPLEOS_PUBLISH_HUB_PATH` (`/publicar/empleos`) directly instead of the legacy `categoryStandardRoutes` builder's `/clasificados/publicar/empleos`. The legacy value still works via a tested, single-hop redirect shim, kept for any other still-uncorrected inbound link. |
+| ~~Empleos existing-identity duplicate-row risk~~ | **Fixed in Work Package I.7A.** `upsertEmpleosListingFromEnvelope()` now fails closed (shared `quick_listing_existing_identity_invalid` code) on an invalid or not-found candidate `listingId`, instead of silently inserting under it. Owner/lane mismatch were already fail-closed. |
+| ~~Rentas missing Edit~~ | **Resolved in Work Package I.7A.** Both `rentas_negocio`/`rentas_privado` adapters now resolve `editRoute()` to the real, live href shape already used by `LeonixRealEstateListingManageCard.tsx`'s `rentasDashboardEditHref()`, instead of returning null. |
+| **Rentas duplicate-row protection gap** | **Confirmed, deliberately NOT fixed in I.7A.** `leonixPublishRealEstateListingCore.ts`'s pending-payment reuse-vs-insert check silently falls through to INSERT if the reuse lookup query itself errors — the same bug class I.6C fixed for Quick Clasificados. Left untouched because this function is genuinely shared with the locked Bienes Raíces pipeline (the same reuse block runs for `category === "bienes-raices" && sellerType === "business"`); a scoped Rentas-only fix isn't possible without touching locked BR publish behavior. Also: outside `activationMode === "pending_payment"`, Rentas has no reuse-vs-insert protection of any kind — every immediate/free-activation publish always inserts. Both are real, evidence-backed gaps, not resolved here. |
+| ~~Viajes public-route "confirmed ambiguity"~~ | **Corrected finding in Work Package I.7A, not merely resolved — the prior finding itself was stale.** Direct re-inspection found `/clasificados/viajes/negocio/[slug]` is dead, production-disabled demo code (never reads real data), while `/clasificados/viajes/oferta/[slug]` is the one real, live, lane-aware public detail route. `publicRoute()` now echoes `identity.publicUrl` (same pattern as Empleos) instead of unconditionally returning null. |
+| **Viajes registry/live-UI gap** | Still true as of I.7A. The real, working Viajes dashboard experience (`/dashboard/viajes`, edit/preview/view-public all functioning) is delivered entirely by that page's own bespoke, hand-written route-building logic — it never constructs a `ListingIdentity` or calls `resolveDashboardActions()`/the registry. `editRoute()`/`previewRoute()` remain honestly null here rather than fabricated, since this registry cannot currently determine which lane (negocios/privado) a given identity used. |
 
 ## Full pipeline matrix
 
@@ -280,9 +349,9 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | `bienes_raices_privado` | Clasificados | supported | missing | supported | supported | supported (shared) | supported | not_applicable | no |
 | `autos_negocios` | Negocios | supported | protected_externally | supported (child-bound) | supported | supported | supported | category_specific (inventory, ungated) | **yes** |
 | `autos_privado` | Clasificados | supported | supported | supported | supported | supported | supported | not_applicable | no |
-| `rentas_negocio` | Negocios | supported | missing | supported | supported | stale (`/results`) | supported | not_applicable | no |
-| `rentas_privado` | Clasificados | supported | missing | supported | supported | stale (`/results`) | supported | not_applicable | no |
-| `empleos` | Clasificados | supported (legacy CTA disagrees) | supported | intentionally_unsupported (lane-ambiguous) | category_specific | **supported `/resultados`** (I.5.8) | supported | not_applicable | no |
+| `rentas_negocio` | Negocios | supported | **supported** (I.7A) | supported | supported | stale (`/results`) | supported | not_applicable | no |
+| `rentas_privado` | Clasificados | supported | **supported** (I.7A) | supported | supported | stale (`/results`) | supported | not_applicable | no |
+| `empleos` | Clasificados | **supported** (I.7A, CTA fixed) | supported | intentionally_unsupported (lane-ambiguous) | category_specific | **supported `/resultados`** (I.5.8) | supported | not_applicable | no |
 | `en_venta` | Clasificados | category_specific (temp exception) | **supported** (I.6A, generic editor) | supported | supported | supported | supported | not_applicable | no |
 | `comida_local` | Negocios | supported | missing | supported | category_specific | stale (dupes entry) | supported | not_applicable | no |
 | `ofertas_locales` | Negocios | supported | supported | supported | category_specific | supported | supported (dedicated) | not_applicable | no |
@@ -290,7 +359,7 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | `clases` | Clasificados | supported | **supported** (I.6A, generic editor) | supported | supported | supported | intentionally_unsupported (no dedicated tab) | not_applicable | no |
 | `comunidad` | Clasificados | supported | **supported** (I.6A, generic editor) | supported | supported | supported | intentionally_unsupported (no dedicated tab) | not_applicable | no |
 | `mascotas_y_perdidos` | Clasificados | supported | missing (no safe editor) | supported | **supported** (I.6B, shell allowlist fixed) | supported | intentionally_unsupported (no dedicated tab; generic workspace not extended here) | not_applicable | no |
-| `viajes` | Negocios | supported | missing | **missing** (ambiguous lanes) | **missing** (ambiguous trees) | supported | supported | not_applicable | no |
+| `viajes` | Negocios | supported | missing (registry can't determine lane; real route lives outside the registry — see notes) | missing (same reasoning) | **category_specific** (I.7A, echoes `publicUrl`; prior "ambiguous trees" finding was stale) | supported | supported | not_applicable | no |
 
 `cupones` is intentionally absent — confirmed to be a filtered view (`surface="cupones"`) over
 `ofertas_locales`, not its own pipeline.
@@ -305,15 +374,15 @@ but real safety is enforced one layer above) · `missing` (confirmed gap or stal
 | bienes_raices_privado | `sourceId` | full | No confirmed distinct edit route | Confirm/build edit route |
 | autos_negocios | `sourceId` (preview child-bound; edit parent-substituted) | full | No per-child edit UI; inventory limit unenforced | Dedicated child-action regression gate |
 | autos_privado | `sourceId` | full | No exported href-builder constant (shape reproduced) | Export a real constant |
-| rentas_negocio/privado | `sourceId` | full | No confirmed edit href-builder | Confirm/build edit route |
-| empleos | `sourceId` | full | Lane-ambiguous preview; results duplication resolved (I.5.8); legacy landing-CTA slug disagreement (`/clasificados/publicar/empleos` vs `/publicar/empleos`) still unresolved | Empleos publish-CTA reconciliation |
+| rentas_negocio/privado | `sourceId` | full | **Edit resolved (I.7A)** — mirrors the real `rentasDashboardEditHref()` shape. Reuse-vs-insert query-error-falls-to-INSERT gap confirmed but deliberately not fixed (shared with locked Bienes Raíces publish core); no reuse protection at all outside `pending_payment` activation. Default-lane/two-renderer question remains OWNER DECISION REQUIRED. | Server-side idempotency key for the shared BR/Rentas publish core (needs schema work, out of scope); resolve default-lane product decision |
+| empleos | `sourceId` | full | **Publish-CTA slug disagreement resolved (I.7A)** — landing CTA now calls the canonical hub directly. Results duplication resolved (I.5.8). Existing-identity duplicate-row risk fixed (I.7A) — invalid/not-found candidate ids now fail closed instead of silently inserting. Lane-ambiguous preview remains intentionally unsupported. | Confirm a lane-resolvable identity so Preview could someday be generically resolved |
 | en_venta | `sourceId` | full | No modern publish hub; Storefront lane unrepresented; Edit resolved (I.6A) but generic-only; republish duplicate-row risk mitigated, not eliminated (I.6B) | Build modern hub; build prefill-from-existing edit |
 | comida_local | `sourceId` | full | Results route unconfirmed distinct from landing | Confirm/build results route |
 | ofertas_locales | `sourceId` | full | No confirmed payment/checkout route | Confirm monetization contract |
 | busco | `sourceId` | full | Edit resolved (I.6A, generic editor); legacy hub CTA disagreement; republish duplicate-row risk mitigated, not eliminated (I.6B) | Fix legacy CTA; build prefill-from-existing edit |
 | clases/comunidad | `sourceId` | full | Generic dashboard discovery now exposed (I.6B) — registry `dashboardRoute` still correctly null (no dedicated tab); Edit resolved (I.6A, generic editor); republish duplicate-row risk mitigated, not eliminated (I.6B); shared implementation confirmed intentional (not an unconfirmed fork) | Build prefill-from-existing edit if ever prioritized |
 | mascotas_y_perdidos | `sourceId` | full | **Public detail repaired (I.6B)** — shared shell allowlist fixed, dedicated renderer added. Edit remains unsupported (no safe category-specific editor exists). | Build a safe category-specific edit surface if ever prioritized |
-| viajes | `sourceId` | full | Two ambiguous detail/preview trees (unresolved); legacy publish-map value corrected (I.5.8) | Needs product clarification on detail/preview trees, not a routing guess |
+| viajes | `sourceId` (staged rows are actually slug-keyed; public detail is reached by slug, not sourceId) | full | **Public-route "ambiguity" corrected (I.7A)** — the prior finding was stale; `/clasificados/viajes/oferta/[slug]` is the one real live route, now echoed via `identity.publicUrl`. Edit/Preview remain honestly null in the registry — the real, working `/dashboard/viajes` page builds those hrefs itself and never goes through this registry/resolver at all. | Wire a lane-carrying Viajes `ListingIdentity` construction path if this pipeline is ever migrated onto the shared resolver |
 
 ---
 

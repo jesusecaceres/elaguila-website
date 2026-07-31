@@ -5,6 +5,7 @@ import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publi
 import { upsertEmpleosListingFromEnvelope } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { fetchEmpleosPublishedJobRecords } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 import { getBearerUserId } from "../../_lib/bearerUser";
 
 export const runtime = "nodejs";
@@ -43,7 +44,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const res = await upsertEmpleosListingFromEnvelope({ envelope, ownerUserId, mode });
   if (!res.ok) {
-    const status = res.error === "forbidden" ? 403 : res.error === "lane_mismatch" ? 400 : 500;
+    const status =
+      res.error === "forbidden"
+        ? 403
+        : res.error === "lane_mismatch" || res.error === QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE
+          ? 400
+          : 500;
     return NextResponse.json({ ok: false, error: res.error }, { status });
   }
 

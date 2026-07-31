@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { getEmpleoJobBySlug } from "../data/empleosSampleCatalog";
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
@@ -140,10 +141,22 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   }
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const listingId =
-    input.envelope.listingId && isUuid(input.envelope.listingId) ? input.envelope.listingId : crypto.randomUUID();
+
+  // I.7A — a candidate listing id present on the envelope is an existing-listing intention and
+  // must fail closed (never silently mint a fresh id and insert a disconnected new row) when it
+  // is not a valid UUID, or when it is well-formed but no row with that id actually exists. Only
+  // the genuinely-new-application case (no listingId supplied at all) mints a fresh id here.
+  const rawListingId = typeof input.envelope.listingId === "string" ? input.envelope.listingId.trim() : "";
+  if (rawListingId && !isUuid(rawListingId)) {
+    return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
+  }
+  const candidateId = rawListingId || null;
+  const listingId = candidateId ?? crypto.randomUUID();
 
   const { data: existing } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
+  if (candidateId && !existing) {
+    return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
+  }
   if (existing && (existing as { owner_user_id: string | null }).owner_user_id !== input.ownerUserId) {
     return { ok: false, error: "forbidden" };
   }

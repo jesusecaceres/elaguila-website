@@ -183,7 +183,7 @@ async function main() {
     },
     rentas_negocio: {
       application: "supported",
-      edit: "missing", // real edit API exists, no confirmed dashboard href-builder
+      edit: "supported", // corrected in Gate I.7A — mirrors the real rentasDashboardEditHref() shape
       preview: "supported",
       publicRoute: "supported", // corrected in Gate I.5.4D
       results: "stale", // /results, not /resultados — see Empleos-style duplication note below
@@ -193,7 +193,7 @@ async function main() {
     },
     rentas_privado: {
       application: "supported",
-      edit: "missing",
+      edit: "supported", // corrected in Gate I.7A, same reasoning as Rentas Negocio
       preview: "supported",
       publicRoute: "supported",
       results: "stale",
@@ -283,9 +283,9 @@ async function main() {
     },
     viajes: {
       application: "supported",
-      edit: "missing",
-      preview: "missing", // CONFIRMED AMBIGUITY — two competing lane sub-branches
-      publicRoute: "missing", // CONFIRMED AMBIGUITY — two competing detail-page trees
+      edit: "missing", // real lane-specific route exists but identity doesn't carry the lane; see registry comment
+      preview: "missing", // same reasoning as edit
+      publicRoute: "category_specific", // corrected in Gate I.7A — echoes identity.publicUrl like Empleos; negocio/[slug] confirmed dead, oferta/[slug] is the one real route
       results: "supported",
       dashboard: "supported",
       secondaryManage: "not_applicable",
@@ -541,7 +541,8 @@ async function main() {
 
   /* ============================================================================================
    * 16 — Rentas current lane behavior captured (not decided): both lanes share one hub distinct
-   * from either lane's own applicationRoute, and edit remains a confirmed-missing route.
+   * from either lane's own applicationRoute. Edit now resolves to the real, live dashboard href
+   * (Gate I.7A) — mirrors rentasDashboardEditHref() in LeonixRealEstateListingManageCard.tsx.
    * ========================================================================================== */
   {
     const negocio = getCategoryRouteAdapter("rentas_negocio");
@@ -550,7 +551,24 @@ async function main() {
     assert.equal(privado.hubRoute, "/clasificados/publicar/rentas");
     assert.notEqual(negocio.hubRoute, negocio.applicationRoute);
     assert.notEqual(privado.hubRoute, privado.applicationRoute);
-    assert.equal(negocio.editRoute(fakeIdentity({ pipeline: "rentas_negocio", category: "rentas" }), { lang: "es" }), null);
+
+    const negocioIdentity = fakeIdentity({ pipeline: "rentas_negocio", category: "rentas", sourceId: "rentas-uuid-1", leonixAdId: "AD-1" });
+    const negocioEdit = negocio.editRoute(negocioIdentity, { lang: "es" });
+    assert.ok(negocioEdit, "rentas_negocio.editRoute must now resolve a real route (Gate I.7A)");
+    assert.ok(negocioEdit!.startsWith("/clasificados/publicar/rentas/negocio?"), "must target the Negocio lane's own publish/edit form");
+    assert.ok(negocioEdit!.includes("mode=listing-edit"), "must use the real listing-edit mode param");
+    assert.ok(negocioEdit!.includes("listingId=rentas-uuid-1"), "must carry the canonical sourceId as listingId");
+    assert.ok(negocioEdit!.includes("lane=negocio"), "must declare the Negocio lane");
+    assert.ok(negocioEdit!.includes("leonixAdId=AD-1"), "must carry a populated leonixAdId");
+    assert.ok(negocioEdit!.includes("returnTo="), "must round-trip back to Mis Anuncios");
+
+    const privadoIdentity = fakeIdentity({ pipeline: "rentas_privado", category: "rentas", sourceId: "rentas-uuid-2" });
+    const privadoEdit = privado.editRoute(privadoIdentity, { lang: "en" });
+    assert.ok(privadoEdit, "rentas_privado.editRoute must now resolve a real route (Gate I.7A)");
+    assert.ok(privadoEdit!.startsWith("/clasificados/publicar/rentas/privado?"), "must target the Privado lane's own publish/edit form");
+    assert.ok(privadoEdit!.includes("lane=privado"), "must declare the Privado lane");
+    assert.ok(!privadoEdit!.includes("leonixAdId="), "must omit leonixAdId when not populated");
+
     assert.equal(negocio.resultsRoute, privado.resultsRoute, "both Rentas lanes must still share one results route");
   }
 
