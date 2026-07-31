@@ -862,6 +862,7 @@ export type OfertaLocalPublicSearchApiResponse = {
 /** Public approved offer card — FINAL-1 (no private fields). */
 export type OfertaLocalPublicOfferCard = {
   id: string;
+  leonixAdId: string;
   businessName: string;
   title: string;
   description: string;

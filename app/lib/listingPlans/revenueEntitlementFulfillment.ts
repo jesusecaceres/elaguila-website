@@ -81,6 +81,7 @@ export type EntitlementFulfillmentResult = {
   idempotent?: boolean;
   packageEntitlementId?: string | null;
   placementEntitlementId?: string | null;
+  packageEntitlementEndsAt?: string | null;
   code?: string;
   message?: string;
 };
@@ -110,7 +111,7 @@ export async function activateEntitlementsForPayment(input: {
   if (packageEntitlementId) {
     const { data: existing } = await supabase
       .from("listing_package_entitlements")
-      .select("id, status, payment_record_id")
+      .select("id, status, payment_record_id, ends_at")
       .eq("id", packageEntitlementId)
       .maybeSingle();
 
@@ -120,13 +121,14 @@ export async function activateEntitlementsForPayment(input: {
         idempotent: true,
         packageEntitlementId,
         placementEntitlementId: input.paymentRecord.placement_entitlement_id ?? null,
+        packageEntitlementEndsAt: existing.ends_at ?? null,
       };
     }
   }
 
   const { data: byPayment } = await supabase
     .from("listing_package_entitlements")
-    .select("id, status")
+    .select("id, status, ends_at")
     .eq("payment_record_id", input.paymentRecord.id)
     .maybeSingle();
 
@@ -137,6 +139,7 @@ export async function activateEntitlementsForPayment(input: {
       idempotent: true,
       packageEntitlementId,
       placementEntitlementId: input.paymentRecord.placement_entitlement_id ?? null,
+      packageEntitlementEndsAt: byPayment.ends_at ?? null,
     };
   }
 
@@ -250,5 +253,6 @@ export async function activateEntitlementsForPayment(input: {
     ok: true,
     packageEntitlementId,
     placementEntitlementId,
+    packageEntitlementEndsAt: endsAt.toISOString(),
   };
 }

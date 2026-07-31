@@ -39,6 +39,12 @@ export const RENTAS_30D_PACKAGE_KEY = "rentas_30d";
 /** Canonical Revenue OS package key for Empleos regular paid job post ($24.99 / 30 days). */
 export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 
+/** Canonical Revenue OS package key for Ofertas interactive flyer ($399 / 30 days). */
+export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+
+/** Canonical Revenue OS package key for Cupones Leonix ($199 / 30 days). */
+export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+
 /** Canonical Revenue OS package key for Autos privado 30-day listing ($24.99 one-time). */
 export const AUTOS_PRIVADO_30D_PACKAGE_KEY = "autos_privado_30d";
 

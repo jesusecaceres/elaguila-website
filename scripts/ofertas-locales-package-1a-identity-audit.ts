@@ -45,10 +45,10 @@ function run() {
   const aiPublishBranch = between(
     publish,
     "if (aiReview.ofertaLocalId) {",
-    "const row = buildOfertasLocalesProductionInsertRow(draft, ownerId);"
+    "canonical_parent_required"
   );
 
-  assert.match(aiPublishBranch, /\.from\("ofertas_locales"\)[\s\S]*\.select\("id, owner_id, status, offer_type, draft_snapshot"\)/, "AI branch fetches existing parent");
+  assert.match(aiPublishBranch, /\.from\("ofertas_locales"\)[\s\S]*\.select\("id, owner_id, status, offer_type, draft_snapshot, leonix_ad_id"\)/, "AI branch fetches existing parent");
   assert.match(aiPublishBranch, /parent\.owner_id !== ownerId/, "AI branch rejects foreign-owner parent");
   assert.match(aiPublishBranch, /FINAL_PUBLISH_PARENT_STATUSES\.has\(parentStatus\)/, "AI branch validates eligible parent status");
   assert.match(aiPublishBranch, /parentMatchesDraftLane/, "AI branch validates parent lane");
@@ -66,8 +66,8 @@ function run() {
   assert.match(publish, /ai_review_parent_not_editable/, "finalized or ineligible parent is rejected");
   assert.match(publish, /ai_review_parent_mismatch/, "wrong parent lane is rejected");
 
-  const insertPath = publish.slice(publish.indexOf("const row = buildOfertasLocalesProductionInsertRow(draft, ownerId);"));
-  assert.match(insertPath, /\.from\("ofertas_locales"\)[\s\S]*\.insert\(row\)/, "non-scan/Cupones path can still insert");
+  assert.match(publish, /canonical_parent_required/, "non-scan path fails closed instead of inserting a duplicate parent");
+  assert.doesNotMatch(publish, /\.from\("ofertas_locales"\)[\s\S]*\.insert\(/, "publish route never inserts duplicate parents");
 
   assert.match(mapper, /oferta_local_id:\s*ofertaId/, "child rows keep original parent foreign key");
   assert.match(mapper, /scan_job_id:\s*scanJobId/, "child rows keep scan job linkage");

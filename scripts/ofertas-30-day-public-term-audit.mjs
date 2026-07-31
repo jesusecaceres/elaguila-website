@@ -85,7 +85,9 @@ assert.match(src.adminList, /publicTermLabel[\s\S]*Activación incompleta/, "adm
 assert.match(src.adminList, /publicTermLabel[\s\S]*Expirado/, "admin displays expiration");
 assert.doesNotMatch(`${src.ownerList}\n${src.ownerDetail}\n${src.adminList}`, /renew.*onClick|republish.*onClick|extend.*term|fake renewal/i, "no fake renewal or extension action");
 
-assert.doesNotMatch(`${src.adminMutations}\n${src.publishRoute}\n${src.migration}`, /stripe|checkout|webhook|payment_status|entitlement/i, "Package 4B does not implement payment");
+assert.doesNotMatch(`${src.publishRoute}\n${src.migration}`, /published_at\s*[:=]|expires_at\s*[:=]/, "submission/payment paths do not start the public term");
+assert.doesNotMatch(src.migration, /stripe|checkout|webhook|payment_status|entitlement/i, "Package 4B migration remains term-only");
+assert.match(src.adminMutations, /parentUpdate\.published_at = now[\s\S]*parentUpdate\.expires_at = calculateOfertaLocalPublicTermExpiresAt\(now\)/, "approval remains the only public term activation");
 assert.doesNotMatch(`${src.adminMutations}\n${src.publicOffersRoute}\n${src.publicSearchRoute}`, /createClient|execute_sql|supabase db|migration up|db push/i, "audit target files do not connect to databases or apply migrations");
 
 console.log("Package 4B 30-day public term audit passed.");

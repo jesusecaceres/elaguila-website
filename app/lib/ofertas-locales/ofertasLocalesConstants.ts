@@ -16,6 +16,11 @@ export const OFERTAS_LOCALES_CATEGORY_KEY = "ofertas-locales" as const;
 export const OFERTAS_LOCALES_PRODUCT_NAME = "Ofertas Locales";
 export const OFERTAS_LOCALES_NAV_LABEL = "Ofertas";
 export const OFERTAS_LOCALES_PUBLIC_TERM_DAYS = 30;
+export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+export const OFERTAS_LOCALES_FLYER_PRICE_CENTS = 39900;
+export const OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 19900;
+export const OFERTAS_LOCALES_CURRENCY = "usd" as const;
 
 /** Digital-first supermarket value proposition — print is not the core sell. */
 export const OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS = [
@@ -125,6 +130,7 @@ export const OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY = 199;
 export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
   interactive_flyer: {
     key: "interactive_flyer" as const,
+    revenuePackageKey: OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
     primaryAdFormat: "shopping_specials" as const,
     labelEs: "Volante interactivo Leonix",
     labelEn: "Leonix Interactive Flyer",
@@ -138,6 +144,7 @@ export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
   },
   coupons: {
     key: "coupons" as const,
+    revenuePackageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
     primaryAdFormat: "local_coupons" as const,
     labelEs: "Cupones Leonix",
     labelEn: "Leonix Coupons",

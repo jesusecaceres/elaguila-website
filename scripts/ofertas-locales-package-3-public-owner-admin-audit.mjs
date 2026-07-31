@@ -128,7 +128,7 @@ assert.match(src.partnerDoc, /No customer self-assignment/i, "Partner handoff bl
 assert.match(src.partnerDoc, /price sorting/i, "Partner handoff preserves truthful price sorting");
 assert.match(src.analyticsDoc, /planned event names only[\s\S]*ofertas_product_open[\s\S]*Cupones cannot emit shopping list events/i, "Analytics handoff is storage-aware and Cupones-safe");
 assert.match(src.assetDoc, /keeps replacement unavailable[\s\S]*Old items do not remain active/i, "Asset replacement handoff keeps UI truthful and prevents item mixing");
-assert.match(src.checklistDoc, /C1: DONE[\s\S]*D2: BLOCKED[\s\S]*G3: BLOCKED[\s\S]*N4: PARTIAL/, "Package 3 master checklist updated");
+assert.match(src.checklistDoc, /C1: DONE[\s\S]*D2: BLOCKED[\s\S]*G3: (DONE|BLOCKED)[\s\S]*N4: PARTIAL/, "Package 3 master checklist updated");
 
 // No fake analytics implementation.
 assert.match(src.analyticsEvents, /No tracking implementation, API calls, or storage/, "analytics events remain planned-only");

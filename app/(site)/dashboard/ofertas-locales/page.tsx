@@ -52,6 +52,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colCategory: "Categoría",
             colLocation: "Ciudad / ZIP",
             colDates: "Vigencia",
+            colCommercial: "Pago",
             colPublicTerm: "Término público",
             colStatus: "Estado",
             colAssets: "Archivos",
@@ -80,6 +81,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colCategory: "Category",
             colLocation: "City / ZIP",
             colDates: "Valid dates",
+            colCommercial: "Payment",
             colPublicTerm: "Public term",
             colStatus: "Status",
             colAssets: "Assets",
@@ -172,6 +174,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colCategory}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colLocation}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colDates}</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colCommercial}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPublicTerm}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAssets}</th>
@@ -195,6 +198,13 @@ export default function OfertasLocalesOwnerDashboardPage() {
                   <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px]">
                     {item.validFrom}
                     <br />→ {item.validUntil}
+                  </td>
+                  <td className="px-3 py-2 text-[10px]">
+                    <div className="font-mono text-[#7A7164]">{item.leonixAdId || "Sin ID Leonix"}</div>
+                    <div className="font-semibold">{item.commercialAmount || "Sin pago"}</div>
+                    <div>
+                      {item.paymentStatus} · {item.entitlementStatus}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-[10px]">
                     <span className="font-semibold">

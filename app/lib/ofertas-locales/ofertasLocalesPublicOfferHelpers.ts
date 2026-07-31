@@ -27,6 +27,7 @@ import type {
 
 export type OfertaLocalPublicOfferRow = {
   id: string;
+  leonix_ad_id?: string | null;
   status: OfertaLocalPublishStatus;
   offer_type: string;
   business_category: string;
@@ -127,6 +128,7 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
 
   return {
     id: row.id,
+    leonixAdId: sanitizeText(row.leonix_ad_id, 40),
     businessName: sanitizeText(row.business_name, 200),
     title: sanitizeText(row.title, 200),
     description: sanitizeText(row.description, 8000),

@@ -11,6 +11,8 @@ import {
   stripForbiddenOwnerUpdateFields,
   validateOfertaLocalOwnerUpdateInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerUpdateMapper";
+import { validateOfertaLocalSubmissionEntitlement } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
+import { ensureOfertaLocalLeonixAdId } from "@/app/lib/ofertas-locales/ofertasLocalesLeonixAdId";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -93,6 +95,32 @@ export async function PATCH(
   }
 
   const payload = buildOfertaLocalOwnerUpdatePayload(row, updates);
+
+  const leonix = await ensureOfertaLocalLeonixAdId({
+    supabase,
+    ofertaLocalId: id,
+    ownerId,
+  });
+  if (!leonix.ok) {
+    return NextResponse.json({ ok: false, error: leonix.code, detail: leonix.message }, { status: 500 });
+  }
+
+  const entitlement = await validateOfertaLocalSubmissionEntitlement({
+    supabase,
+    parent: {
+      id: row.id,
+      owner_id: row.owner_id,
+      offer_type: row.offer_type,
+      leonix_ad_id: leonix.leonixAdId,
+    },
+    ownerId,
+  });
+  if (!entitlement.ok) {
+    return NextResponse.json(
+      { ok: false, error: entitlement.code, detail: entitlement.message },
+      { status: entitlement.status }
+    );
+  }
 
   const { data, error } = await supabase
     .from("ofertas_locales")

@@ -30,6 +30,7 @@ export const OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES: readonly OfertaLocalPublis
 
 export type OfertaLocalOwnerListItem = {
   id: string;
+  leonixAdId: string | null;
   businessName: string;
   title: string;
   offerType: string;
@@ -44,6 +45,18 @@ export type OfertaLocalOwnerListItem = {
   expiresAt: string | null;
   publicTermStatus: OfertaLocalPublicTermStatus;
   publicTermDaysRemaining: number | null;
+  commercialProductKey: string | null;
+  commercialProductLabel: string | null;
+  commercialAmount: string | null;
+  commercialCurrency: string | null;
+  commercialDurationDays: number | null;
+  commercialAiIncluded: boolean;
+  paymentStatus: string;
+  paidAt: string | null;
+  entitlementStatus: string;
+  entitlementGrantedAt: string | null;
+  entitlementEndsAt: string | null;
+  checkoutEligible: boolean;
   submittedAt: string;
   assetCount: number;
   wantsAiSearchableSpecials: boolean;
@@ -64,6 +77,7 @@ export type OfertaLocalOwnerDetail = Omit<
   canEdit: boolean;
   isExpired: boolean;
   publicResultsHref: string | null;
+  checkoutEligible: boolean;
 };
 
 export function ofertaLocalOwnerStatusLabel(
@@ -186,6 +200,7 @@ export function mapOfertaLocalRowToOwnerListItem(
 
   return {
     id: row.id,
+    leonixAdId: detail.leonixAdId,
     businessName: detail.businessName,
     title: detail.title,
     offerType: detail.offerType,
@@ -200,6 +215,21 @@ export function mapOfertaLocalRowToOwnerListItem(
     expiresAt: detail.expiresAt,
     publicTermStatus: detail.publicTermStatus,
     publicTermDaysRemaining: detail.publicTermDaysRemaining,
+    commercialProductKey: detail.commercialProductKey,
+    commercialProductLabel: detail.commercialProductLabel,
+    commercialAmount: detail.commercialAmount,
+    commercialCurrency: detail.commercialCurrency,
+    commercialDurationDays: detail.commercialDurationDays,
+    commercialAiIncluded: detail.commercialAiIncluded,
+    paymentStatus: detail.paymentStatus,
+    paidAt: detail.paidAt,
+    entitlementStatus: detail.entitlementStatus,
+    entitlementGrantedAt: detail.entitlementGrantedAt,
+    entitlementEndsAt: detail.entitlementEndsAt,
+    checkoutEligible:
+      ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
+      detail.entitlementStatus !== "active" &&
+      detail.paymentStatus !== "paid",
     submittedAt: detail.submittedAt,
     assetCount: detail.flyerAssets.length + detail.couponAssets.length,
     wantsAiSearchableSpecials: metadata.wantsAiSearchableSpecials,
@@ -229,6 +259,10 @@ export function mapOfertaLocalRowToOwnerDetail(
     canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
     isExpired,
     publicResultsHref: publicResultsHrefForStatus(row.status, isExpired || !termActive),
+    checkoutEligible:
+      ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
+      safe.entitlementStatus !== "active" &&
+      safe.paymentStatus !== "paid",
   };
 }
 

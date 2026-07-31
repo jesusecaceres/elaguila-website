@@ -41,6 +41,9 @@ import {
   activatePaidBienesNegocioListingFromRevenueOs,
   BIENES_NEGOCIO_BASE_PACKAGE_KEY,
 } from "./revenueBienesNegocioFulfillment";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getOfertaLocalCommercialProductByPackageKey } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
+import { markOfertaLocalEntitlementFulfilled } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
 import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, AUTOS_PRIVADO_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import {
   loadPaymentRecordById,
@@ -150,6 +153,60 @@ function readBienesInventoryPackPaidFromPaymentRecord(row: LeonixPaymentRecordRo
       typeof a === "object" &&
       String((a as Record<string, unknown>).key ?? "").trim() === "br_inventory_pack_monthly",
   );
+}
+
+async function tryFulfillOfertasLocalesParentAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  packageEntitlementId: string | null | undefined;
+  packageEntitlementEndsAt: string | null | undefined;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.category !== "ofertas-locales") {
+    return { ok: true };
+  }
+
+  const product = getOfertaLocalCommercialProductByPackageKey(input.packageDef.packageKey);
+  if (!product) {
+    return { ok: false, code: "ofertas_product_unknown", message: "Unknown Ofertas commercial product." };
+  }
+
+  const result = await markOfertaLocalEntitlementFulfilled({
+    supabase: getAdminSupabase(),
+    paymentRecord: input.paymentRecord,
+    product,
+    packageEntitlementId: input.packageEntitlementId,
+    entitlementEndsAt: input.packageEntitlementEndsAt,
+  });
+
+  if (!result.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "ofertas_locales",
+      targetId: result.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: result.code,
+        message: result.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+      },
+    });
+    return { ok: false, code: result.code, message: result.message };
+  }
+
+  await writeRevenueAuditLog({
+    action: "ofertas_locales_entitlement_fulfilled_after_payment",
+    targetType: "ofertas_locales",
+    targetId: result.listingId,
+    meta: {
+      payment_record_id: input.paymentRecord.id,
+      package_key: input.packageDef.packageKey,
+      package_entitlement_id: input.packageEntitlementId,
+      public_activation: false,
+      starts_public_term: false,
+    },
+  });
+
+  return { ok: true };
 }
 
 async function tryActivateRestauranteListingAfterEntitlement(input: {
@@ -992,6 +1049,52 @@ export async function fulfillCheckoutSessionCompleted(input: {
     return { ok: false, code: "amount_mismatch", message: "Stripe amount does not match payment record." };
   }
 
+  const paymentCurrency = String(paymentRecord.currency ?? "").trim().toLowerCase();
+  if (session.currency && paymentCurrency && session.currency.toLowerCase() !== paymentCurrency) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "leonix_payment_records",
+      targetId: paymentRecord.id,
+      meta: {
+        code: "currency_mismatch",
+        expected_currency: paymentCurrency,
+        stripe_currency: session.currency,
+        stripe_event_id: eventId,
+      },
+    });
+    return { ok: false, code: "currency_mismatch", message: "Stripe currency does not match payment record." };
+  }
+
+  if (packageDef.category === "ofertas-locales") {
+    if (
+      metadata.schema !== "revenue_os_checkout_v2" ||
+      metadata.amountCents !== packageDef.priceCents ||
+      metadata.currency !== "usd" ||
+      metadata.durationDays !== 30 ||
+      metadata.aiIncluded !== true
+    ) {
+      await writeRevenueAuditLog({
+        action: "revenue_webhook_validation_failed",
+        targetType: "leonix_payment_records",
+        targetId: paymentRecord.id,
+        meta: {
+          code: "ofertas_metadata_contract_mismatch",
+          metadata_schema: metadata.schema,
+          metadata_amount_cents: metadata.amountCents,
+          metadata_currency: metadata.currency,
+          metadata_duration_days: metadata.durationDays,
+          metadata_ai_included: metadata.aiIncluded,
+          stripe_event_id: eventId,
+        },
+      });
+      return {
+        ok: false,
+        code: "ofertas_metadata_contract_mismatch",
+        message: "Ofertas checkout metadata does not match the commercial contract.",
+      };
+    }
+  }
+
   const webhookMeta = {
     stripe_event_id: eventId,
     stripe_event_type: eventType,
@@ -1212,6 +1315,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const ofertasFulfillment = await tryFulfillOfertasLocalesParentAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+      packageEntitlementEndsAt: entitlementResult.packageEntitlementEndsAt,
+    });
+    if (!ofertasFulfillment.ok) {
+      return {
+        ok: false,
+        code: ofertasFulfillment.code,
+        message: ofertasFulfillment.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -1311,6 +1433,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
       stripe_event_id: eventId,
     },
   });
+
+  const ofertasFulfillment = await tryFulfillOfertasLocalesParentAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    packageEntitlementId: entitlementResult.packageEntitlementId,
+    packageEntitlementEndsAt: entitlementResult.packageEntitlementEndsAt,
+  });
+  if (!ofertasFulfillment.ok) {
+    return {
+      ok: false,
+      code: ofertasFulfillment.code,
+      message: ofertasFulfillment.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
 
   const restaurantActivation = await tryActivateRestauranteListingAfterEntitlement({
     paymentRecord: refreshed,

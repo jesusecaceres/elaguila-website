@@ -57,6 +57,19 @@ const FORBIDDEN_TOUCH_PREFIXES = [
   "app/api/webhooks",
 ];
 
+const PACKAGE_5_SHARED_REVENUE_OS_ALLOWED = new Set([
+  "app/lib/listingPlans/publishCheckoutCheckpoint.ts",
+  "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts",
+  "app/lib/listingPlans/revenueDisplay.ts",
+  "app/lib/listingPlans/revenueEntitlementFulfillment.ts",
+  "app/lib/listingPlans/revenueEntitlements.ts",
+  "app/lib/listingPlans/revenueFulfillment.ts",
+  "app/lib/listingPlans/revenueOsReturnPath.ts",
+  "app/lib/listingPlans/revenuePricingMatrix.ts",
+  "app/lib/listingPlans/revenueStripe.ts",
+  "app/lib/listingPlans/revenueWebhook.ts",
+]);
+
 const FORBIDDEN_CUSTOMER_STRINGS = [
   "+$199/mes",
   "+$199/mo",
@@ -222,7 +235,10 @@ try {
     .map(normalizePath);
 
   for (const file of diff) {
-    if (FORBIDDEN_TOUCH_PREFIXES.some((prefix) => file.startsWith(prefix))) {
+    if (
+      !PACKAGE_5_SHARED_REVENUE_OS_ALLOWED.has(file) &&
+      FORBIDDEN_TOUCH_PREFIXES.some((prefix) => file.startsWith(prefix))
+    ) {
       fail(`forbidden file changed: ${file}`);
     }
     if (/stripe|checkout|webhook/i.test(file) && file.includes("ofertas")) {

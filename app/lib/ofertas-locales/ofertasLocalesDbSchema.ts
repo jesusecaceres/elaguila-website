@@ -5,6 +5,7 @@
 
 export const OFERTAS_LOCALES_PRODUCTION_COLUMNS = [
   "id",
+  "leonix_ad_id",
   "owner_id",
   "status",
   "offer_type",
@@ -51,6 +52,20 @@ export const OFERTAS_LOCALES_PRODUCTION_COLUMNS = [
   "reviewed_by",
   "published_at",
   "expires_at",
+  "commercial_product_key",
+  "commercial_amount_cents",
+  "commercial_currency",
+  "commercial_duration_days",
+  "commercial_ai_included",
+  "payment_status",
+  "paid_at",
+  "stripe_checkout_session_id",
+  "stripe_payment_intent_id",
+  "payment_record_id",
+  "package_entitlement_id",
+  "entitlement_status",
+  "entitlement_granted_at",
+  "entitlement_ends_at",
   "archived_at",
   "created_at",
   "updated_at",
@@ -174,6 +189,7 @@ export function filterToOfertasLocalesProductionColumns(
 
 export const OFERTAS_LOCALES_ADMIN_SELECT = `
   id,
+  leonix_ad_id,
   owner_id,
   status,
   offer_type,
@@ -223,6 +239,20 @@ export const OFERTAS_LOCALES_ADMIN_SELECT = `
   internal_notes,
   published_at,
   expires_at,
+  commercial_product_key,
+  commercial_amount_cents,
+  commercial_currency,
+  commercial_duration_days,
+  commercial_ai_included,
+  payment_status,
+  paid_at,
+  stripe_checkout_session_id,
+  stripe_payment_intent_id,
+  payment_record_id,
+  package_entitlement_id,
+  entitlement_status,
+  entitlement_granted_at,
+  entitlement_ends_at,
   submitted_at,
   created_at,
   updated_at
@@ -230,6 +260,7 @@ export const OFERTAS_LOCALES_ADMIN_SELECT = `
 
 export const OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT = `
   id,
+  leonix_ad_id,
   status,
   offer_type,
   business_category,
@@ -265,6 +296,7 @@ export const OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT = `
 
 export const OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT = `
   id,
+  leonix_ad_id,
   status,
   offer_type,
   business_category,
@@ -296,6 +328,7 @@ export const OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT = `
   *,
   ofertas_locales!inner (
     id,
+    leonix_ad_id,
     status,
     offer_type,
     business_category,
@@ -325,4 +358,4 @@ export const OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT = `
 `;
 
 export const OFERTAS_LOCALES_WRITE_RETURN_COLUMNS =
-  "id, status, submitted_at, created_at, updated_at, published_at, expires_at";
+  "id, status, submitted_at, created_at, updated_at, published_at, expires_at, leonix_ad_id, commercial_product_key, payment_status, entitlement_status";

@@ -146,6 +146,18 @@ export async function mutateOfertaLocalAdminReview(
   if (action === "approve") {
     const unresolved = await assertNoUnresolvedItemsBeforeApproval(sb, offerId);
     if (!unresolved.ok) return unresolved;
+    const offer = row as OfertaLocalAdminRow;
+    if (!/^LNX-[A-Z0-9]{8}$/.test(String(offer.leonix_ad_id ?? ""))) {
+      return { ok: false, error: "leonix_ad_id_required" };
+    }
+    if (
+      offer.payment_status !== "paid" ||
+      offer.entitlement_status !== "active" ||
+      !offer.package_entitlement_id ||
+      !offer.payment_record_id
+    ) {
+      return { ok: false, error: "paid_entitlement_required" };
+    }
   }
 
   const internal_notes = appendOfertaLocalAdminReviewNote(

@@ -478,6 +478,9 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
                   </p>
                 ) : null}
                 {location ? <p className="mt-1 text-sm text-[#1E1814]/65">{location}</p> : null}
+                {offer.leonixAdId ? (
+                  <p className="mt-1 font-mono text-[11px] text-[#7A7164]">ID Leonix {offer.leonixAdId}</p>
+                ) : null}
               </div>
             </div>
           </div>

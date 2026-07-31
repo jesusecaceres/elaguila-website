@@ -61,6 +61,7 @@ export type OfertaLocalPublicSearchQuery = {
 
 export type OfertaLocalPublicSearchParentRow = {
   id: string;
+  leonix_ad_id?: string | null;
   status: OfertaLocalPublishStatus;
   offer_type: string;
   business_category: string;

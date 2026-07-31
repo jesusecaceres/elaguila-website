@@ -15,6 +15,10 @@ import {
   parseOfertaLocalDraftSnapshot,
   readDraftSnapshotMembershipFields,
 } from "./ofertasLocalesDbSchema";
+import {
+  formatOfertaLocalCommercialAmount,
+  getOfertaLocalCommercialProductByPackageKey,
+} from "./ofertasLocalesCommercial";
 import { parseOfertaLocalPublishedSocialLinksFromInternalNotes } from "./ofertasLocalesPublicSearchHelpers";
 import type {
   OfertaLocalFeaturedPlacementScope,
@@ -29,6 +33,7 @@ export { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
 
 export type OfertaLocalAdminRow = {
   id: string;
+  leonix_ad_id?: string | null;
   owner_id: string;
   status: OfertaLocalPublishStatus;
   offer_type: string;
@@ -78,6 +83,20 @@ export type OfertaLocalAdminRow = {
   internal_notes: string | null;
   published_at: string | null;
   expires_at: string | null;
+  commercial_product_key?: string | null;
+  commercial_amount_cents?: number | null;
+  commercial_currency?: string | null;
+  commercial_duration_days?: number | null;
+  commercial_ai_included?: boolean | null;
+  payment_status?: string | null;
+  paid_at?: string | null;
+  stripe_checkout_session_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  payment_record_id?: string | null;
+  package_entitlement_id?: string | null;
+  entitlement_status?: string | null;
+  entitlement_granted_at?: string | null;
+  entitlement_ends_at?: string | null;
   submitted_at: string;
   created_at: string;
   updated_at: string;
@@ -95,6 +114,7 @@ export type OfertaLocalAdminMetadata = {
 
 export type OfertaLocalAdminListVm = {
   id: string;
+  leonixAdId: string | null;
   businessName: string;
   title: string;
   offerType: string;
@@ -108,6 +128,21 @@ export type OfertaLocalAdminListVm = {
   expiresAt: string | null;
   publicTermStatus: OfertaLocalPublicTermStatus;
   publicTermDaysRemaining: number | null;
+  commercialProductKey: string | null;
+  commercialProductLabel: string | null;
+  commercialAmount: string | null;
+  commercialCurrency: string | null;
+  commercialDurationDays: number | null;
+  commercialAiIncluded: boolean;
+  paymentStatus: string;
+  paidAt: string | null;
+  entitlementStatus: string;
+  entitlementGrantedAt: string | null;
+  entitlementEndsAt: string | null;
+  stripeReferencePresent: boolean;
+  paymentRecordId: string | null;
+  packageEntitlementId: string | null;
+  commercialDiscrepancyWarning: string | null;
   submittedAt: string;
   assetCount: number;
   wantsAiSearchableSpecials: boolean;
@@ -283,6 +318,17 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
   const flyerAssets = parseAssetArray(row.flyer_assets);
   const couponAssets = parseAssetArray(row.coupon_assets);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
+  const commercialProduct = getOfertaLocalCommercialProductByPackageKey(row.commercial_product_key);
+  const expectedProduct =
+    row.offer_type === "weekly_flyer"
+      ? getOfertaLocalCommercialProductByPackageKey("ofertas_locales_flyer_30d")
+      : getOfertaLocalCommercialProductByPackageKey("ofertas_locales_coupons_30d");
+  const commercialDiscrepancyWarning =
+    commercialProduct && expectedProduct && commercialProduct.packageKey !== expectedProduct.packageKey
+      ? "Product key does not match listing lane."
+      : commercialProduct && row.commercial_amount_cents != null && row.commercial_amount_cents !== commercialProduct.amountCents
+        ? "Paid amount does not match expected product price."
+        : null;
   const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
   const termExpired = isOfertaLocalPublicTermExpired(row.expires_at);
   const publicTermStatus: OfertaLocalPublicTermStatus =
@@ -296,6 +342,7 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
 
   return {
     id: row.id,
+    leonixAdId: row.leonix_ad_id ?? null,
     businessName: row.business_name,
     title: row.title,
     offerType: row.offer_type,
@@ -312,6 +359,24 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
       row.status === "approved" && row.expires_at
         ? getOfertaLocalPublicTermDaysRemaining(row.expires_at)
         : null,
+    commercialProductKey: row.commercial_product_key ?? null,
+    commercialProductLabel: commercialProduct?.labelEs ?? null,
+    commercialAmount:
+      row.commercial_amount_cents == null
+        ? null
+        : formatOfertaLocalCommercialAmount(row.commercial_amount_cents, row.commercial_currency),
+    commercialCurrency: row.commercial_currency ?? null,
+    commercialDurationDays: row.commercial_duration_days ?? null,
+    commercialAiIncluded: row.commercial_ai_included === true,
+    paymentStatus: row.payment_status ?? "unpaid",
+    paidAt: row.paid_at ?? null,
+    entitlementStatus: row.entitlement_status ?? "none",
+    entitlementGrantedAt: row.entitlement_granted_at ?? null,
+    entitlementEndsAt: row.entitlement_ends_at ?? null,
+    stripeReferencePresent: Boolean(row.stripe_checkout_session_id || row.stripe_payment_intent_id),
+    paymentRecordId: row.payment_record_id ?? null,
+    packageEntitlementId: row.package_entitlement_id ?? null,
+    commercialDiscrepancyWarning,
     submittedAt: row.submitted_at,
     assetCount: flyerAssets.length + couponAssets.length,
     wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials ?? metadata.wantsAiSearchableSpecials),

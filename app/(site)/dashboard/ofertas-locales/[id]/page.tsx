@@ -8,6 +8,10 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
 import type { OfertaLocalOwnerDetail } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 import type { OfertaLocalOwnerUpdateInput } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerUpdateMapper";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -51,6 +55,11 @@ export default function OfertasLocalesOwnerManagePage() {
             viewFile: "Ver archivo",
             publicLink: "Ver en resultados públicos",
             publicTermTitle: "Término público",
+            commercialTitle: "Pago y paquete",
+            payNow: "Pagar publicación",
+            paying: "Creando pago seguro…",
+            paymentHelp:
+              "El pago no publica tu oferta. Después del pago, envía la oferta a revisión; los 30 días empiezan cuando Leonix la aprueba.",
             notStarted: "No iniciado",
             activeTerm: "Activo",
             expiredTerm: "Expirado",
@@ -79,6 +88,11 @@ export default function OfertasLocalesOwnerManagePage() {
             viewFile: "View file",
             publicLink: "View in public results",
             publicTermTitle: "Public term",
+            commercialTitle: "Payment and package",
+            payNow: "Pay for publication",
+            paying: "Creating secure checkout…",
+            paymentHelp:
+              "Payment does not publish your listing. After payment, submit for review; the 30 days start when Leonix approves it.",
             notStarted: "Not started",
             activeTerm: "Active",
             expiredTerm: "Expired",
@@ -92,7 +106,9 @@ export default function OfertasLocalesOwnerManagePage() {
   const [offer, setOffer] = useState<OfertaLocalOwnerDetail | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [checkoutMsg, setCheckoutMsg] = useState<string | null>(null);
   const [form, setForm] = useState<OfertaLocalOwnerUpdateInput>({});
   const [ownerId, setOwnerId] = useState<string | null>(null);
 
@@ -194,6 +210,26 @@ export default function OfertasLocalesOwnerManagePage() {
     }
   }
 
+  async function handleCheckout() {
+    if (!offer?.commercialProductKey || !offer.checkoutEligible) return;
+    setCheckoutLoading(true);
+    setCheckoutMsg(null);
+    const result = await startRevenueCategoryCheckout({
+      category: "ofertas-locales",
+      packageKey: offer.commercialProductKey,
+      listingId: offer.id,
+      leonixAdId: offer.leonixAdId,
+      returnPath: `/dashboard/ofertas-locales/${offer.id}?${q}`,
+      locale: lang,
+    });
+    setCheckoutLoading(false);
+    if (result.ok) {
+      redirectToRevenueCategoryCheckout(result.checkoutUrl);
+      return;
+    }
+    setCheckoutMsg(result.userMessage);
+  }
+
   if (loading) {
     return (
       <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
@@ -245,6 +281,30 @@ export default function OfertasLocalesOwnerManagePage() {
         <p className="mt-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-3 text-sm text-[#5C5346]">
           {offer.statusMessage}
         </p>
+        <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.commercialTitle}</p>
+          <p className="mt-1 font-mono text-xs">{offer.leonixAdId || "ID Leonix pendiente"}</p>
+          <p className="mt-1 font-semibold text-[#1E1810]">
+            {offer.commercialProductLabel || offer.commercialProductKey || "Paquete pendiente"}
+          </p>
+          <p className="text-xs">
+            {offer.commercialAmount || "Sin pago"} · {offer.paymentStatus} · {offer.entitlementStatus}
+          </p>
+          {offer.paidAt ? <p className="mt-1 font-mono text-xs">{offer.paidAt}</p> : null}
+          {offer.checkoutEligible ? (
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="mt-3 rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2] disabled:opacity-50"
+            >
+              {checkoutLoading ? t.paying : t.payNow}
+            </button>
+          ) : null}
+          <p className="mt-2 text-xs text-[#7A7164]">{t.paymentHelp}</p>
+          {checkoutMsg ? <p className="mt-2 text-xs text-rose-800">{checkoutMsg}</p> : null}
+        </div>
+
         <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
           <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.publicTermTitle}</p>
           <p className="mt-1 font-semibold text-[#1E1810]">

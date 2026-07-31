@@ -6,6 +6,10 @@ import {
   OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS,
   pickScanPrepSubmittedAt,
 } from "@/app/lib/ofertas-locales/ofertasLocalesProductionRowAdapter";
+import {
+  validateOfertaLocalSubmissionEntitlement,
+} from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
+import { ensureOfertaLocalLeonixAdId } from "@/app/lib/ofertas-locales/ofertasLocalesLeonixAdId";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
 import type {
   OfertaLocalDraft,
@@ -170,8 +174,8 @@ async function validateAiReviewScanJob(params: {
 }
 
 /**
- * Submit Ofertas Locales draft for moderation review.
- * Inserts pending_review row only — no public exposure, payment, or analytics.
+ * Submit Ofertas Locales canonical parent for moderation review.
+ * Requires verified paid entitlement; no public exposure or analytics.
  */
 export async function POST(req: NextRequest) {
   const ownerId = await getBearerUserId(req);
@@ -250,7 +254,7 @@ export async function POST(req: NextRequest) {
   if (aiReview.ofertaLocalId) {
     const { data: parent, error: parentError } = await supabase
       .from("ofertas_locales")
-      .select("id, owner_id, status, offer_type, draft_snapshot")
+      .select("id, owner_id, status, offer_type, draft_snapshot, leonix_ad_id")
       .eq("id", aiReview.ofertaLocalId)
       .maybeSingle();
 
@@ -295,6 +299,35 @@ export async function POST(req: NextRequest) {
           detail: "The AI review parent does not match this offer type.",
         },
         { status: 422 }
+      );
+    }
+
+    const leonix = await ensureOfertaLocalLeonixAdId({
+      supabase,
+      ofertaLocalId: aiReview.ofertaLocalId,
+      ownerId,
+    });
+    if (!leonix.ok) {
+      return NextResponse.json(
+        { ok: false, error: leonix.code, detail: leonix.message },
+        { status: 500 }
+      );
+    }
+
+    const entitlement = await validateOfertaLocalSubmissionEntitlement({
+      supabase,
+      parent: {
+        id: parent.id,
+        owner_id: parent.owner_id,
+        offer_type: parent.offer_type,
+        leonix_ad_id: leonix.leonixAdId,
+      },
+      ownerId,
+    });
+    if (!entitlement.ok) {
+      return NextResponse.json(
+        { ok: false, error: entitlement.code, detail: entitlement.message },
+        { status: entitlement.status }
       );
     }
 
@@ -373,28 +406,21 @@ export async function POST(req: NextRequest) {
         scanJobId: aiReview.scanJobId,
         reviewedItems: aiReviewCounts.totalCount,
       },
+      commercial: {
+        productKey: entitlement.product.packageKey,
+        paymentRecordId: entitlement.paymentRecordId,
+        packageEntitlementId: entitlement.packageEntitlementId,
+        leonixAdId: entitlement.leonixAdId,
+      },
     });
   }
 
-  const row = buildOfertasLocalesProductionInsertRow(draft, ownerId);
-
-  const { data, error } = await supabase
-    .from("ofertas_locales")
-    .insert(row)
-    .select(OFERTAS_LOCALES_SCAN_PREP_RETURN_COLUMNS)
-    .single();
-
-  if (error || !data) {
-    return NextResponse.json(
-      { ok: false, error: "insert_failed", detail: error?.message ?? "unknown" },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    id: data.id,
-    status: data.status,
-    submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
-  });
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "canonical_parent_required",
+      detail: "Create or reuse the AI-reviewed canonical parent before submitting to review.",
+    },
+    { status: 409 }
+  );
 }

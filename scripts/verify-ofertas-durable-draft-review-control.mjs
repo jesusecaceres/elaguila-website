@@ -100,6 +100,20 @@ const allowed = [
   "package.json",
 ];
 
+const package5SharedRevenueOsAllowed = new Set([
+  "app/lib/listingPlans/publishCheckoutCheckpoint.ts",
+  "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts",
+  "app/lib/listingPlans/revenueDisplay.ts",
+  "app/lib/listingPlans/revenueEntitlementFulfillment.ts",
+  "app/lib/listingPlans/revenueEntitlements.ts",
+  "app/lib/listingPlans/revenueFulfillment.ts",
+  "app/lib/listingPlans/revenueOsReturnPath.ts",
+  "app/lib/listingPlans/revenuePricingMatrix.ts",
+  "app/lib/listingPlans/revenueStripe.ts",
+  "app/lib/listingPlans/revenueWebhook.ts",
+  "supabase/migrations/20260731235500_ofertas_locales_commercial_activation_identity.sql",
+]);
+
 const changed = execFileSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" })
   .split(/\r?\n/)
   .map((line) => line.trim())
@@ -111,16 +125,17 @@ else pass(`gate files in diff: ${gateChanges.length}`);
 
 const forbidden = changed.filter(
   (file) =>
-    file.includes("stripe") ||
-    (file.includes("analytics") && !file.startsWith("docs/OFERTAS_ANALYTICS_COORDINATION.md")) ||
-    file.startsWith("supabase/migrations/") ||
-    file.startsWith("app/lib/listingLifecycle/") ||
-    file.startsWith("app/lib/listingIdentity/") ||
-    file.startsWith("app/lib/listingPlans/") ||
-    (file.includes("admin") &&
-      !allowed.includes(file) &&
-      !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/") &&
-      !file.startsWith("app/api/ofertas-locales/admin/"))
+    !package5SharedRevenueOsAllowed.has(file) &&
+    (file.includes("stripe") ||
+      (file.includes("analytics") && !file.startsWith("docs/OFERTAS_ANALYTICS_COORDINATION.md")) ||
+      file.startsWith("supabase/migrations/") ||
+      file.startsWith("app/lib/listingLifecycle/") ||
+      file.startsWith("app/lib/listingIdentity/") ||
+      file.startsWith("app/lib/listingPlans/") ||
+      (file.includes("admin") &&
+        !allowed.includes(file) &&
+        !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/") &&
+        !file.startsWith("app/api/ofertas-locales/admin/")))
 );
 
 if (forbidden.length) fail(`forbidden files changed: ${forbidden.join(", ")}`);

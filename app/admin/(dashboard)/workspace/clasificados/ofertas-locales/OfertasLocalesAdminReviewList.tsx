@@ -121,6 +121,29 @@ function InspectDetail({
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">ID Leonix</dt>
+          <dd className="font-mono">{item.leonixAdId || "Pendiente"}</dd>
+          <dd className="font-mono text-[10px] text-[#7A7164]">UUID {item.id}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Pago / entitlement</dt>
+          <dd>
+            <span className="font-semibold">{item.paymentStatus}</span>
+            <span className="text-[#5C5346]"> · {item.entitlementStatus}</span>
+          </dd>
+          <dd className="text-xs text-[#5C5346]">
+            {item.commercialProductKey || "sin paquete"} · {item.commercialAmount || "sin pago"}
+          </dd>
+          <dd className="text-[10px] text-[#7A7164]">
+            Stripe ref: {item.stripeReferencePresent ? "presente" : "ausente"}
+          </dd>
+          {item.commercialDiscrepancyWarning ? (
+            <dd className="mt-1 rounded bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-900">
+              {item.commercialDiscrepancyWarning}
+            </dd>
+          ) : null}
+        </div>
+        <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Tipo de oferta</dt>
           <dd>{item.offerType}</dd>
         </div>
@@ -427,6 +450,7 @@ export function OfertasLocalesAdminReviewList({
             <tr>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Negocio</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Oferta</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">Comercial</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Tipo</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Categoría</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Ciudad / ZIP</th>
@@ -444,8 +468,23 @@ export function OfertasLocalesAdminReviewList({
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b border-[#F0E8DA] align-top hover:bg-[#FFFCF7]">
-                <td className="max-w-[140px] px-3 py-2 font-semibold">{item.businessName}</td>
+                <td className="max-w-[140px] px-3 py-2 font-semibold">
+                  {item.businessName}
+                  <div className="font-mono text-[10px] font-normal text-[#7A7164]">
+                    {item.leonixAdId || "Sin ID Leonix"}
+                  </div>
+                </td>
                 <td className="max-w-[160px] px-3 py-2">{item.title}</td>
+                <td className="px-3 py-2 text-[10px]">
+                  <div className="font-semibold">{item.commercialProductKey || "sin paquete"}</div>
+                  <div>{item.commercialAmount || "sin pago"}</div>
+                  <div>{item.paymentStatus} · {item.entitlementStatus}</div>
+                  {item.commercialDiscrepancyWarning ? (
+                    <div className="mt-1 rounded bg-rose-50 px-1 py-0.5 font-semibold text-rose-900">
+                      {item.commercialDiscrepancyWarning}
+                    </div>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2">{item.offerType}</td>
                 <td className="px-3 py-2">{item.businessCategory}</td>
                 <td className="px-3 py-2">
