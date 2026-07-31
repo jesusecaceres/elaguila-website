@@ -36,6 +36,7 @@ import {
   readAutosNegociosEditorReturnContext,
 } from "@/app/lib/clasificados/autos/autosNegociosEditorReturnContext";
 import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
+import { autosListingEditNamespace } from "@/app/lib/clasificados/autos/autosListingEditNamespace";
 import {
   clampAutosEditorMaxReached,
   clampAutosEditorStep,
@@ -73,7 +74,7 @@ function inventoryAddFromLocation(): ReturnType<typeof resolveAutosInventoryAddC
   return resolveAutosInventoryAddContextForEditor(new URLSearchParams(window.location.search));
 }
 
-export function useAutoDealerDraft() {
+export function useAutoDealerDraft(editListingId?: string) {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [restoredFromSession, setRestoredFromSession] = useState(false);
@@ -214,18 +215,22 @@ export function useAutoDealerDraft() {
     const supabase = createSupabaseBrowserClient();
 
     const bootstrap = async () => {
-      const ns = await resolveAutosNegociosDraftNamespace();
+      const rawNs = await resolveAutosNegociosDraftNamespace();
       if (cancelled) return;
+      const inventoryAdd = inventoryAddFromLocation();
+      const effectiveListingId = editListingId || inventoryAdd.context?.parentListingId || null;
+      const ns = autosListingEditNamespace(rawNs, effectiveListingId);
       namespaceRef.current = ns;
 
-      migrateLegacyAutosNegociosDraftJsonToNamespace(ns);
+      // Legacy pre-v1 flat-key migration only ever applies to the raw per-user namespace —
+      // a listing-scoped namespace is new with this gate and can never hold legacy data.
+      migrateLegacyAutosNegociosDraftJsonToNamespace(rawNs);
 
       markAutosEditorSessionActive(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
       void shouldResetAutosDraftForFreshEditorTab(AUTOS_NEGOCIOS_EDITOR_SESSION_KEY);
 
       const confirmRoute = isAutosConfirmRoute(pathname);
       const resume = resumeQueryFlag();
-      const inventoryAdd = inventoryAddFromLocation();
 
       /** Preview return or publish confirm — always restore persisted draft. */
       if (confirmRoute || resume) {
@@ -283,9 +288,15 @@ export function useAutoDealerDraft() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
-      const nextNs = session?.user?.id
+      const rawNextNs = session?.user?.id
         ? autosNegociosDraftNamespaceFromUserId(session.user.id)
         : autosNegociosDraftNamespaceFromUserId(null);
+      // Fold the same listing-edit scoping in here too — otherwise a background auth event
+      // (e.g. a token refresh) mid-edit would silently revert to the raw namespace and wipe
+      // the in-progress edit draft via the clear-and-empty branch below.
+      const inventoryAdd = inventoryAddFromLocation();
+      const effectiveListingId = editListingId || inventoryAdd.context?.parentListingId || null;
+      const nextNs = autosListingEditNamespace(rawNextNs, effectiveListingId);
       if (namespaceRef.current === nextNs) return;
       namespaceRef.current = nextNs;
       clearAutosDraftNamespaceHint("negocios");
@@ -302,7 +313,7 @@ export function useAutoDealerDraft() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [pathname, hydrateFromNamespace, emptyListing, applyDraftPayload, applyEditorProgress]);
+  }, [pathname, editListingId, hydrateFromNamespace, emptyListing, applyDraftPayload, applyEditorProgress]);
 
   const setListingPatch = useCallback(
     (patch: Partial<AutoDealerListing>) => {

@@ -249,10 +249,31 @@ async function main() {
       "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
       "app/(site)/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell.tsx",
     ]);
+    /**
+     * Work Package I.11A (Global Media and Draft Persistence Foundation) approved, narrow
+     * exception. I.11A intentionally (a) fixed the Autos Negocios/Privado draft-key collision
+     * between "new listing" and "edit existing listing" (session-namespace resolution only — the
+     * low-level IndexedDB/storage files themselves are provably untouched, see
+     * `gate-i11a-autos-listing-edit-media-isolation-selftest.ts`), and (b) added real upload-owner
+     * verification to the Restaurantes/Servicios draft-media-upload routes. Exact-file,
+     * exact-fragment allowlist only — every other Autos/Restaurantes/Servicios file, and every
+     * other locked fragment for these files, remains fully protected below.
+     */
+    const I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS = new Set<string>([
+      "app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx",
+      "app/(site)/publicar/autos/negocios/hooks/useAutoDealerDraft.ts",
+      "app/(site)/publicar/autos/negocios/lib/autosPublishedToDealerApplicationDraft.ts",
+      "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
+      "app/(site)/publicar/autos/privado/hooks/useAutoPrivadoDraft.ts",
+      "app/lib/clasificados/autos/AUTOS_A5_SHIP_07_ZERO_DATA_LOSS_MEDIA_STORAGE_AUDIT.md",
+      "app/api/clasificados/restaurantes/draft-media-upload/route.ts",
+      "app/api/clasificados/servicios/draft-media-upload/route.ts",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         if (frag === "bienes-raices" && I10A_BR_ANALYTICS_WIRING_EXCEPTIONS.has(f)) continue;
+        if ((frag === "/autos/" || frag === "restaurantes" || frag === "servicios") && I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

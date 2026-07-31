@@ -7,6 +7,7 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { saveAutosNegociosDraftResolved } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import { resolveAutosNegociosDraftNamespace } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
+import { autosListingEditNamespace } from "@/app/lib/clasificados/autos/autosListingEditNamespace";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
@@ -212,7 +213,8 @@ export async function hydrateAutosDealerListingForDashboardEdit(input: {
     const children = childListings.filter((c): c is AutosAdditionalInventoryVehicleDraft => c != null);
 
     const parentListing = normalizeLoadedListing(parentJson.listing);
-    const namespace = await resolveAutosNegociosDraftNamespace();
+    const rawNamespace = await resolveAutosNegociosDraftNamespace();
+    const namespace = autosListingEditNamespace(rawNamespace, listingId);
 
     await saveAutosNegociosDraftResolved(namespace, {
       v: 1,

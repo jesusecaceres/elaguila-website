@@ -20,10 +20,145 @@ and, for the specific fixes below, by
 [`scripts/gate-i9b-admin-write-safety-selftest.ts`](../scripts/gate-i9b-admin-write-safety-selftest.ts),
 and, for the analytics/engagement truth recorded below,
 [`scripts/gate-i10a-analytics-engagement-truth-selftest.ts`](../scripts/gate-i10a-analytics-engagement-truth-selftest.ts)
+[`scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts`](../scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts),
+and, for the media/draft-persistence truth recorded below,
+[`scripts/gate-i11a-media-draft-persistence-truth-selftest.ts`](../scripts/gate-i11a-media-draft-persistence-truth-selftest.ts)
 and
-[`scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts`](../scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts).
+[`scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts`](../scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.11A Update Log
+
+**Scope:** global media/draft-persistence truth — not route/identity truth (the rest of this
+document) and not analytics/engagement truth (the I.10A/I.10B sections above). No shared media
+ledger existed anywhere before this package; media/draft-persistence truth had been tracked
+entirely through fragmented, per-category, per-incident audit `.md` files under `app/lib/clasificados/<category>/`
+and `app/(site)/clasificados/<category>/`, and one-off `*-audit.ts`/`verify-*.mjs`/`smoke-*.mjs`
+scripts — never the `gate-iN` convention. This section does not replace those files; it is the
+first cross-category record.
+
+**Status legend used below** (per-item, not a blanket claim): **contract exists** = a shared
+type/predicate is defined; **live-wired** = a real behavioral change shipped, not just a type;
+**audited, bespoke, not migrated** = read and understood this package, left exactly as-is;
+**proven gap, fixed** = a confirmed defect with a shipped fix; **proven gap, documented, not
+fixed** = a confirmed defect, out of this package's approved scope, named precisely so it isn't
+silently lost.
+
+### Shared media contract — contract exists, not live-wired
+
+`app/lib/media/listingMediaContract.ts` (new): types for the 7 media states (local-unsaved,
+uploaded-hosted, existing-DB, removed, replacement, ordered, external-video) and pure predicates
+(`isBlobOrObjectUrl`, `isDataUrl`, `isPersistableMediaUrl`, `withNormalizedMediaOrder`). **Not
+wired into any existing category's publish/draft pipeline** — every category keeps its own
+bespoke media shape (Autos `MediaImageEntry`, Bienes Raíces `BrChildMediaImage`, Servicios
+`GalleryItem`/`VideoItem`, plain `string[]` for En Venta/Bienes Raíces main listing, Comida Local's
+role-slot `ComidaLocalUploadedImage`). This is an additive foundation for incremental future
+adoption, not evidence that any category was migrated or newly "standardized." `isPersistableMediaUrl`
+was certified against (not used to replace) the independent `blob:`-rejection guard already proven
+in `app/api/clasificados/bienes-raices/listing-edit/route.ts`'s `sourceToUpload()` — same rule,
+two independent implementations, both hold.
+
+### Upload authorization — proven gap, fixed (4 routes) + 1 shared helper (live-wired)
+
+**Proven, not assumed:** `app/api/clasificados/restaurantes/draft-media-upload/route.ts`,
+`.../servicios/draft-media-upload/route.ts`, and `.../rentas/draft-media-upload/route.ts` had **no
+authentication or ownership check at all** — the entire Vercel Blob storage path was built from a
+client-supplied `draftListingId`/`draftId`. Traced the client-side id generation for Servicios
+(`getServiciosPublishDraftListingId()`, `app/(site)/clasificados/publicar/servicios/lib/serviciosDraftPublishPrepare.ts`):
+`` `sv${Date.now().toString(36)}${Math.random().toString(36).slice(2, 11)}` `` — weakly random,
+client-generated, created before any auth call. `app/api/clasificados/comida-local/draft-media-upload/route.ts`
+already resolved a real bearer identity when present, but its anonymous fallback
+(`anon-${draftListingId}`) used that same weak client-supplied id — confirmed **not** safe
+precedent (its `comidaLocalOwnerIdFromBearer()` is byte-for-byte identical to the generic
+`getBearerUserId()` helper). No server-derived anonymous session/cookie mechanism existed anywhere
+in the repository prior to this package.
+
+**Fix — `app/api/clasificados/_lib/anonUploadSession.ts` (new):** a small, explicitly-documented
+**non-authentication** helper — `crypto.randomUUID()`-based, httpOnly/secure/sameSite cookie,
+grants no permissions, checked against no protected resource. All four routes now: resolve real
+identity via `getBearerUserId()` (or Comida Local's equivalent) when a bearer token is present;
+otherwise scope the storage path by this server-issued anonymous session id, never the raw
+client-supplied draft id. No route rejects anonymous requests (anonymous pre-login drafting
+appears to be real, intended product behavior — draft ids are minted and uploads can happen before
+any auth call — so hard-rejecting would break a live flow, not just close a gap). Ownership
+verification of an *existing* listing is out of scope for these four routes — they are pre-publish
+draft-media routes only and never operate on an existing listing id; that verification is handled
+correctly at actual publish/update time (confirmed for the Bienes Raíces edit route; not
+independently re-verified for every other category's publish route in this package — carried
+forward, not re-audited).
+
+### Autos Negocios + Privado draft/media isolation — proven gap, fixed
+
+**Proven, not assumed:** `hydrateAutosDealerListingForDashboardEdit()` (Negocios,
+`app/(site)/publicar/autos/negocios/lib/autosPublishedToDealerApplicationDraft.ts`) and the inline
+dashboard-edit fetch (Privado, `AutosPrivadoApplication.tsx`) wrote the DB-fetched listing into the
+**same per-user** sessionStorage key and IndexedDB namespace a fresh "new listing" application
+uses — confirmed by `app/(site)/clasificados/autos/shared/lib/autosEditorTabSession.ts`'s own
+comment: *"two tabs share one user namespace; last write wins."* This meant opening dashboard-edit
+for listing A could clobber an in-progress "new listing" draft, or a different listing B's
+edit-in-progress state, in the same browser. `logo:${namespace}`, `finance-image:${namespace}`,
+and `video:${namespace}` (`autosNegociosDraftImageIdb.ts`/`autosNegociosDraftVideoIdb.ts`) were
+true single-slot-per-user collision points, not just orphaning risk.
+
+**Fix — `app/lib/clasificados/autos/autosListingEditNamespace.ts` (new):** one pure,
+lane-agnostic function deriving `` `${baseNamespace}:listingEdit:${listingId}` ``. Every
+IndexedDB helper (`autosNegociosDraftImageIdb.ts`, `autosNegociosDraftVideoIdb.ts`,
+`autosNegociosDraftIdbRefs.ts`) already treats `namespace` as an opaque string with zero
+parsing — **none of them needed to change**; only what value callers resolve as `namespace` did.
+`useAutoDealerDraft.ts` / `useAutoPrivadoDraft.ts` now accept an optional `editListingId` and fold
+it into the effective namespace at **both** the bootstrap effect and the `onAuthStateChange`
+handler (the latter was a real, separately-discovered risk: a background auth event, e.g. a token
+refresh, mid-edit would otherwise silently revert to the raw namespace and wipe the in-progress
+edit draft). `AutosNegociosApplication.tsx` / `AutosPrivadoApplication.tsx` thread the
+dashboard-edit `editListingId` search param into the hooks. New-listing behavior (no listing id)
+is byte-for-byte unchanged — same raw namespace, same keys. Preview needed **zero** changes: the
+pre-existing `rememberAutosDraftNamespaceHint`/`peekAutosDraftNamespaceHint` mechanism
+(`autosDraftPreviewNamespaceHint.ts`) already exists to tell Preview which namespace the editor
+just used, so it automatically follows the now-correct effective namespace. `flushDraft`,
+`resetDraft`, and `clearAutosNegociosDraft`/`clearAutosPrivadoDraft` also needed no changes — they
+already read `namespaceRef.current` at call time. Parent/child and sibling isolation (saved
+children as distinct array elements with per-image-id IDB keys; the in-flight child drawer as a
+single slot disambiguated by `inventoryDrawerEditingId`) is orthogonal to this fix and was not
+touched. Autos' own `draft-photo-upload/route.ts` has the same weak-anon-fallback pattern
+documented above for the other four upload routes — **not fixed in this package** (bundled with
+the Autos draft/media work conceptually but out of the approved file list), named here explicitly.
+
+### Stale documentation corrected
+
+`app/lib/clasificados/autos/AUTOS_A5_SHIP_07_ZERO_DATA_LOSS_MEDIA_STORAGE_AUDIT.md` (2026-06-02)
+claimed no Autos pre-publish durable-storage upload route existed. `app/api/clasificados/autos/media/draft-photo-upload/route.ts`
+(Vercel Blob-backed) now exists, added in a later work package with no corresponding audit-doc
+update. Corrected with a dated addendum, not rewritten.
+
+### Audited, bespoke, not migrated (no gap proven, left as-is)
+
+- **No image is ever deleted from storage anywhere in the codebase** (searched for Supabase
+  Storage `.remove()` and `@vercel/blob`'s `del()` — zero matches for either) — removal is always
+  reference-only. Consistent platform-wide; matches "do not delete unless a proven safe path
+  exists" by construction. (Mux *video* assets do have a real delete path,
+  `deleteMuxAssetsBestEffort` in `app/lib/mux/server.ts` — images/Blob objects have no equivalent,
+  a platform-wide storage-growth characteristic, not a per-category bug.)
+- **Bienes Raíces' "omission from `imageSources` = removal"** merge semantics
+  (`app/api/clasificados/bienes-raices/listing-edit/route.ts`'s `resolvePublicImages()`) — by
+  design, not a bug; correctness depends on the client always fully rehydrating existing media
+  before submit, which the existing hydration functions are built to do. Too central/fragile
+  (shared with the locked Bienes Raíces pipeline) to touch without a proven failure.
+- **External video URL validation differs per category** — En Venta and Restaurantes share one
+  validator (`isEmbeddableExternalVideoUrl`); Autos has its own independent, stricter one
+  (`normalizeAutosExternalVideoUrl`, requires `https://` specifically); Servicios and Viajes have
+  none found. Every validator that exists fails safely (drops the invalid entry, never throws).
+  A real inconsistency, not a proven bug; forcing unification risks the same fragile Autos code
+  paths (dozens of prior `autos-a5-recovery-*` fix cycles) for marginal gain.
+- **No staleness/`updated_at` check** anywhere a locally-persisted edit workspace (Bienes Raíces,
+  Rentas) or a freshly-DB-hydrated draft (Autos) is written — an old local draft can in principle
+  silently outrank newer DB truth on next edit-open. Pre-existing, not introduced or worsened by
+  this package's namespace fix (which only changes *which* keys are used, not the staleness logic).
+- **`useLeonixPublishLeaveGuard`** (`app/(site)/clasificados/lib/publishFlowLifecycleClient.ts`) —
+  a `pagehide` handler that clears the draft and beacons a Mux-asset-delete request. Confirmed
+  **unused by any live component** (only self-referenced and two audit scripts reference it) — a
+  latent footgun if ever wired up without noticing its refresh-clearing side effect, not a live bug.
+  Not modified.
 
 ## Work Package I.10A Update Log
 

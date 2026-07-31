@@ -1,8 +1,15 @@
 import { put } from "@vercel/blob";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { SERVICIOS_DRAFT_MEDIA_MAX_BYTES } from "@/app/(site)/clasificados/publicar/servicios/lib/serviciosVideoDraftGate";
+import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
+import { anonUploadPathSegment, applyAnonUploadSessionCookie, resolveAnonUploadSessionId } from "@/app/api/clasificados/_lib/anonUploadSession";
 
 export const runtime = "nodejs";
+
+function ownerPathSegment(ownerUserId: string | null, anonSessionId: string): string {
+  if (ownerUserId) return ownerUserId.replace(/[^a-zA-Z0-9-]+/g, "").slice(0, 36);
+  return anonUploadPathSegment(anonSessionId);
+}
 
 const SLOTS = new Set([
   "logo",
@@ -21,7 +28,7 @@ const SLOTS = new Set([
  * Upload one browser-held file (typically from a data URL fetched as Blob) to public Blob storage.
  * Returns HTTPS `publicUrl` for safe inclusion in `POST .../servicios/publish`.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {
     return NextResponse.json(
@@ -64,7 +71,11 @@ export async function POST(req: Request) {
 
   const safeId = draftListingId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "draft";
   const ix = Number.isFinite(index) ? Math.max(0, Math.floor(index)) : 0;
-  const pathname = `clasificados/servicios/drafts/${safeId}/${slot}-${ix}-${Date.now()}`;
+
+  const ownerUserId = await getBearerUserId(req);
+  const anonSession = ownerUserId ? null : resolveAnonUploadSessionId(req);
+  const ownerSeg = ownerPathSegment(ownerUserId, anonSession?.id ?? "");
+  const pathname = `clasificados/servicios/drafts/${ownerSeg}/${safeId}/${slot}-${ix}-${Date.now()}`;
 
   const uploaded = await put(pathname, file, {
     access: "public",
@@ -73,5 +84,7 @@ export async function POST(req: Request) {
     contentType: file.type || "image/jpeg",
   });
 
-  return NextResponse.json({ ok: true, publicUrl: uploaded.url });
+  const res = NextResponse.json({ ok: true, publicUrl: uploaded.url });
+  if (anonSession?.isNew) applyAnonUploadSessionCookie(res, anonSession.id);
+  return res;
 }

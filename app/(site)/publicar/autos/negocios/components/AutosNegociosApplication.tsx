@@ -79,6 +79,19 @@ export function AutosNegociosApplication() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { lang, routeLang, t } = useAutosNegociosLang();
+
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const listingIdentity = Boolean(editListingId || editLeonixAdId);
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const dashboardMode = searchParams?.get("mode") ?? "";
+  const focusInventoryPack = searchParams?.get("focus") === "inventory-pack";
+  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
+  const isDashboardInventoryEditMode = dashboardSource && dashboardMode === "inventory-edit" && listingIdentity;
+  const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
+
   const {
     hydrated,
     restoredFromSession,
@@ -106,19 +119,8 @@ export function AutosNegociosApplication() {
     setInventoryDrawerOpen,
     inventoryBoostSelected,
     setInventoryBoostSelected,
-  } = useAutoDealerDraft();
+  } = useAutoDealerDraft(isExistingDashboardListingMode ? editListingId : undefined);
 
-  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
-  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
-  const listingIdentity = Boolean(editListingId || editLeonixAdId);
-  const dashboardSource = searchParams?.get("source") === "dashboard";
-  const dashboardMode = searchParams?.get("mode") ?? "";
-  const focusInventoryPack = searchParams?.get("focus") === "inventory-pack";
-  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
-  const isDashboardInventoryEditMode = dashboardSource && dashboardMode === "inventory-edit" && listingIdentity;
-  const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
-  const isExistingDashboardListingMode =
-    isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
   const dashboardReturnHref = appendLangToPath(buildDashboardMisAnunciosReturnPath(lang, "autos"), lang);
   const dashboardHydratedRef = useRef(false);
   const [editHydration, setEditHydration] = useState<

@@ -74,6 +74,9 @@ export function AutosPrivadoApplication() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { lang, routeLang, t } = useAutosPrivadoLang();
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const isDashboardListingEditMode = dashboardSource && searchParams?.get("edit") === "1" && Boolean(editListingId);
   const {
     hydrated,
     restoredFromSession,
@@ -84,10 +87,7 @@ export function AutosPrivadoApplication() {
     editorStep,
     editorMaxReached,
     setEditorProgress,
-  } = useAutoPrivadoDraft();
-  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
-  const dashboardSource = searchParams?.get("source") === "dashboard";
-  const isDashboardListingEditMode = dashboardSource && searchParams?.get("edit") === "1" && Boolean(editListingId);
+  } = useAutoPrivadoDraft(isDashboardListingEditMode ? editListingId : undefined);
   const dashboardHydratedRef = useRef(false);
   const [editHydration, setEditHydration] = useState<
     { status: "idle" } | { status: "loading" } | { status: "error"; message: string }

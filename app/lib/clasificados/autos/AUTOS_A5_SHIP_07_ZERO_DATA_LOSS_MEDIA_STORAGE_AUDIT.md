@@ -5,6 +5,14 @@
 **HEAD:** `1e361d347b88877c2a80f1635965aedcdc45a04c`  
 **Platform:** Cursor with Claude Sonnet
 
+> **Correction (Work Package I.11A, 2026-07-31):** this audit's "NO pre-publish [durable cloud
+> storage]" finding and its stated blocker — "No Autos pre-publish Supabase/Vercel Blob upload
+> route exists" — are now stale. `app/api/clasificados/autos/media/draft-photo-upload/route.ts`
+> (a Vercel Blob `put()`-backed pre-publish draft upload route, gallery/logo/finance-image slots)
+> exists in the current codebase. This document is preserved as a historical snapshot and is not
+> being rewritten; treat `docs/gate-i5-7f-full-catalog-route-contract-matrix.md`'s I.11A section
+> as current truth for Autos media/draft-persistence status.
+
 ## 1. Repo/source confirmation
 
 | Check | Result |
