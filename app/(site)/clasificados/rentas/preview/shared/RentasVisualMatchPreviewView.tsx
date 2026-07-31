@@ -14,6 +14,7 @@ import {
   FiShare2,
 } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { trackListingLikeToggle } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-raices/preview/privado/model/bienesRaicesPrivadoPreviewVm";
 import type {
   BienesRaicesNegocioPreviewVm,
@@ -726,6 +727,16 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }:
               variant="small"
               persistEngagement={Boolean(listingId)}
               previewLabelMode="like"
+              recordLikeEvent={
+                listingId
+                  ? (isLike) =>
+                      trackListingLikeToggle(
+                        { sourceTable: "listings", sourceId: listingId, category: "rentas" },
+                        isLike,
+                        { eventSource: "detail" },
+                      )
+                  : undefined
+              }
             />
             <button
               type="button"

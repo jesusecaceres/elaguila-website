@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { FiHeart, FiShare2 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
+import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import { copyToClipboard } from "@/app/components/cta";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { mapBrListingRowToPrivadoPreviewVm } from "./mapBrListingRowToPrivadoPreviewVm";
@@ -44,14 +45,23 @@ function PrivadoPublicChromeActions({
       window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
       return;
     }
+    if (isSelfEngagement(user.id, ownerId)) return;
     if (saved) {
       await sb.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listingId);
       setSaved(false);
-      void trackListingSave(listingId, false, { ownerUserId: ownerId ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listingId, category: "bienes-raices" },
+        false,
+        { eventSource: "detail" },
+      );
     } else {
       await sb.from("saved_listings").insert({ user_id: user.id, listing_id: listingId });
       setSaved(true);
-      void trackListingSave(listingId, true, { ownerUserId: ownerId ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listingId, category: "bienes-raices" },
+        true,
+        { eventSource: "detail" },
+      );
     }
   }, [listingId, ownerId, saved]);
 

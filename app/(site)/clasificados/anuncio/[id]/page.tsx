@@ -35,7 +35,11 @@ import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/public
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
-import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
+import {
+  trackListingViewOpen,
+  trackListingSaveToggleAuthed,
+  trackListingShare as trackListingShareGlobal,
+} from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -972,21 +976,11 @@ export default function AnuncioDetallePage() {
 
   useEffect(() => {
     if (!listing) return;
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled) return;
-      const uid = user?.id ?? null;
-      void trackEvent(listing.id, "listing_view", uid);
-      void trackEvent(listing.id, "listing_open", uid);
-    })();
+    trackListingViewOpen(
+      { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+      { eventSource: "detail" },
+    );
     addListingView(listing.id);
-    return () => {
-      cancelled = true;
-    };
   }, [listing?.id]);
 
   // Sync saved state from Supabase when user is logged in
@@ -1069,11 +1063,19 @@ export default function AnuncioDetallePage() {
     if (saved) {
       await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
-      void trackListingSave(listing.id, false, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+        false,
+        { eventSource: "detail" },
+      );
     } else {
       await supabase.from("saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
-      void trackListingSave(listing.id, true, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+        true,
+        { eventSource: "detail" },
+      );
     }
   };
 
@@ -2233,6 +2235,13 @@ export default function AnuncioDetallePage() {
                   shareText={anuncioShareBody}
                   category={listing.category}
                   ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
+                  recordShareEvent={(shareMethod, extraMeta) =>
+                    trackListingShareGlobal(
+                      { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+                      shareMethod,
+                      { eventSource: "detail", metadata: extraMeta },
+                    )
+                  }
                   lang={lang}
                   variant="large"
                   className="w-full [&>button]:w-full [&>button]:justify-center [&>button]:border-[#C9B46A]/55 [&>button]:bg-[#F5F5F5] [&>button]:text-[#111111] [&>button]:shadow-[0_16px_40px_-28px_rgba(0,0,0,0.25)] [&>button]:hover:bg-[#D9D9D9]/55 [&>button]:backdrop-blur [&>button]:ring-1 [&>button]:ring-[#C9B46A]/25"

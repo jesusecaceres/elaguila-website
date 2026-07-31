@@ -15,6 +15,8 @@ import {
 import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "@/app/publicar/community/shared/lib/communityWeeklySchedule";
 import { CommunityWeeklyScheduleAligned } from "@/app/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
+import { trackCommunityLikeToggle } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
+import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import {
   clasesCostTypeLabel,
   clasesModeLabel,
@@ -315,6 +317,13 @@ export function CommunityQuickAnuncioDetail({
             ownerUserId={ownerUserId ?? undefined}
             variant="small"
             persistEngagement
+            recordSaveEvent={(isSave) =>
+              trackListingSaveToggleAuthed(
+                { sourceTable: "listings", sourceId: listingId, category },
+                isSave,
+                { eventSource: "detail" },
+              )
+            }
           />
           <LeonixLikeButton
             listingId={listingId}
@@ -323,6 +332,9 @@ export function CommunityQuickAnuncioDetail({
             ownerUserId={ownerUserId ?? undefined}
             variant="small"
             persistEngagement
+            recordLikeEvent={(isLike) =>
+              trackCommunityLikeToggle({ listingUuid: listingId, category }, isLike)
+            }
           />
         </div>
       ) : null}

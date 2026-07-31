@@ -17,10 +17,67 @@ and, for the specific fixes below, by
 [`scripts/gate-i8a-global-dashboard-truth-selftest.ts`](../scripts/gate-i8a-global-dashboard-truth-selftest.ts),
 [`scripts/gate-i8b-live-dashboard-coverage-selftest.ts`](../scripts/gate-i8b-live-dashboard-coverage-selftest.ts),
 [`scripts/gate-i9a-admin-operations-truth-selftest.ts`](../scripts/gate-i9a-admin-operations-truth-selftest.ts),
-and
-[`scripts/gate-i9b-admin-write-safety-selftest.ts`](../scripts/gate-i9b-admin-write-safety-selftest.ts).
+[`scripts/gate-i9b-admin-write-safety-selftest.ts`](../scripts/gate-i9b-admin-write-safety-selftest.ts),
+and, for the analytics/engagement truth recorded below,
+[`scripts/gate-i10a-analytics-engagement-truth-selftest.ts`](../scripts/gate-i10a-analytics-engagement-truth-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.10A Update Log
+
+**Scope:** global analytics/engagement truth — not route/identity truth (the rest of this
+document). Recorded here per Work Package I.10A instruction to use this file as the single
+master ledger rather than create a competing one; `docs/admin-analytics-monetization-table-audit.md`
+(2026-06-12) received a short correction pointer only, not a rewritten table.
+
+**Starting-point correction — the June audit was stale.** That doc marked Bienes Raíces,
+Comunidad, Clases, and Busco as having "no category emitter" (`FALSE`). Direct inspection found
+this is no longer true: `app/lib/clasificados/bienes-raices/brGlobalAnalytics.ts` and
+`app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics.ts` already exist and already
+call the canonical, server-validated pipeline (`POST /api/analytics/events` via
+`app/lib/analytics/client/recordAnalyticsEvent.ts`) for view/open/share/like/CTA events on all
+four categories, wired in prior work packages after that audit was written. The gap was narrower
+than "no tracking at all": `LeonixLikeButton`/`LeonixSaveButton`/`LeonixShareButton` — the shared
+components rendered across nearly every category — already supported an optional
+`recordLikeEvent`/`recordSaveEvent`/`recordShareEvent` override that routes to the canonical path
+when supplied, silently falling back to a legacy client-direct-Supabase-insert default
+(`app/lib/clasificadosAnalytics.ts`) when not. Several real call sites with a provably real
+`listings.id` UUID were still on that legacy default.
+
+**New shared code (server-validated path only — nothing here imports from
+`app/lib/analytics/server/*`, which is Next.js route-handler code):**
+
+- **`app/lib/analytics/selfEngagementGuard.ts`** — new. Pure predicate `isSelfEngagement(currentUserId, ownerUserId)`. Fails open (allows) when either id is unknown — there's nothing to prove self-engagement against.
+- **`app/lib/analytics/client/listingEngagementRecorder.ts`** — new. A category-agnostic dispatcher over the existing canonical `recordAnalyticsEvent()` fetch wrapper, for call sites that don't already have a typed per-category adapter. Requires a real `sourceTable` (`ListingAnalyticsSourceTable`, reused, not widened to `string`) and `sourceId`; fails closed (no request) when either is empty. Exports `trackListingViewOpen`, `trackListingLikeToggle`, `trackListingSaveToggle`/`trackListingSaveToggleAuthed` (the latter resolves the current Supabase session token first, since `listing_save`/`listing_unsave` are auth-required server-side), `trackListingShare`, `trackListingCta`. **`app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics.ts` was deliberately left untouched** (zero edits, its `"comunidad" | "clases" | "busco"` union is not widened) — an earlier draft of this package proposed repurposing it as a global recorder and that was corrected before implementation as a type-safety regression.
+
+**Call sites migrated from the legacy default to the canonical override, identity confirmed real in each case before wiring (no slug/Ad-ID/title ever substituted for a known UUID):**
+
+| Site | Category | `source_table` | Identity | Action(s) migrated |
+|---|---|---|---|---|
+| `CommunityQuickAnuncioDetail.tsx` | comunidad/clases (dynamic) | `listings` | `listing.id` from `.from("listings").eq("id", id)` | Like (existing `trackCommunityLikeToggle`), Save (new recorder) |
+| `EnVentaAnuncioLayout.tsx` (shared en-venta + bienes-raices shell) | en-venta / bienes-raices | `listings` | `listing.id` | inline Save (both branches), non-premium-BR inline Share |
+| `anuncio/[id]/page.tsx` (generic detail page) | dynamic (`listing.category`) | `listings` | `listing.id` | view + open (migrated off the older `app/lib/listingAnalytics.ts` `trackEvent`), inline Save, `LeonixShareButton` override |
+| `RentasListingDetailClient.tsx` | rentas | `listings` | `listing.id`, `isUuid()`-checked in-file | Save override |
+| `RentasVisualMatchPreviewView.tsx` | rentas | `listings` | Same `isUuid()`-checked value from caller | Like override |
+| `BienesRaicesNegocioLiveDetailShell.tsx` / `BienesRaicesPrivadoLiveDetailShell.tsx` | bienes-raices | `listings` | `listingId={listing.id}` | inline Save (both branches) + owner self-check added inline (hand-rolled Save, not via `LeonixSaveButton`) |
+
+**Bug fix, not new wiring — `QuickJobHeaderCard.tsx` (Empleos):** `empleosGlobalLikeRecorder(globalListing)` / `empleosGlobalShareRecorder(globalListing, "detail_share")` were already being built correctly but the returned function was constructed and discarded without ever being called — this component recorded **no analytics at all**, neither canonical nor legacy, before this fix. Now actually invoked with the real `isLike`/`shareMethod`/`extraMeta` arguments.
+
+**Owner self-engagement protection (new — no caller had this before):** `LeonixLikeButton.tsx` and `LeonixSaveButton.tsx` now capture the signed-in user id (already resolved in their existing hydration + auth-change effects) and fold `!isSelfEngagement(currentUserId, ownerUserId)` into their existing `allowEngage` computation — blocks both the real write and the analytics event when the viewer is the listing owner, reusing all existing disabled/inert UI, no new visual states. The two BR shells get the equivalent inline check since their Save is hand-rolled. **Share is never gated** — an owner sharing their own listing is normal and Share never touches Like/Save state. Persistence-before-analytics ordering is unchanged everywhere: the real DB mutation runs and is checked for success before any analytics call, and analytics failures are fire-and-forget (never undo or block the real action).
+
+**Comida Local owner-dashboard rollup gap closed:** `app/lib/ownerEngagementListingKeys.ts` queried 6 tables for `collectOwnerListingKeysForAnalytics`/`countOwnerInventoryListings` but fully omitted `comida_local_public_listings`, even though that table, its `owner_user_id`/`slug`/`leonix_ad_id` columns, and its emitter (`app/lib/clasificados/comida-local/comidaLocalAnalytics.ts`) all already exist. Added to both functions.
+
+**Remaining legacy callers — explicitly named, not silently left as if fully migrated:**
+
+- `EmpleosClasificadosEngagementRow.tsx`, `RestauranteProfileHeader.tsx`, `RestauranteShellInteractiveCtas.tsx` — already fail over to the canonical path only when their `listingSourceId`/`sourceId` prop resolves; when it's absent they fall back to the shared component's legacy default using a value that may be a `leonix_ad_id` rather than a UUID. Pre-existing behavior, not introduced by I.10A; not changed here — fixing it correctly requires auditing every parent caller for whether the prop is ever actually omitted in production, a separately-scoped task.
+- The `message_sent` calls in `anuncio/[id]/page.tsx` (via the older `app/lib/listingAnalytics.ts` `trackEvent`) are **not** migrated — only that file's `listing_view`/`listing_open` calls are.
+- Rentas CTA clicks (phone/whatsapp/email/website/sms/directions, `app/(site)/clasificados/rentas/analytics/rentasAnalytics.ts`) still route through the oldest legacy module (`app/lib/listingAnalytics.ts`'s `trackEvent`), discovered during this package's tracing but out of this package's approved file list.
+- `app/(site)/clasificados/lib/leonixClasificadosAnalytics.ts` and the five `*AnalyticsExtended.ts` / `serviciosAnalytics.ts` / `restaurantesAnalytics.ts` wrapper modules, plus `AutosPreviewCard.tsx`, `RentasPreviewCard.tsx`, `CommunityResultCardEngagement.tsx` — confirmed zero live importers/callers anywhere in `app/`. Dead code, left untouched; a future cleanup package can remove them.
+- `EnVentaAnuncioLayout.tsx`'s inline Save does **not** get the owner self-engagement check the two BR shells received — same category of gap, not fixed in this package (only the two files explicitly scoped for the self-check were touched), flagged here for follow-up.
+
+**Dashboard honesty:** `AdminViajesAnalyticsPlaceholders.tsx` was audited and found already compliant — it's explicitly labeled ("Mock sample" badge, "not live data" heading, disabled "Open full report" button), not silently presented as real. Not a bug; left as-is, with a regression test guarding the label.
+
+**Duplicate/abuse protection reused, not reinvented:** server-side time-window dedupe (`analyticsEventDedupe.ts`, unchanged) applies automatically to the newly-migrated view/open calls since they go through the same `/api/analytics/events` route. Rapid duplicate Like/Save clicks were already prevented by the existing `isLiking`/`isSaving` in-flight guards. No schema or migration changes anywhere in this package.
 
 ## Work Package I.9B update log
 

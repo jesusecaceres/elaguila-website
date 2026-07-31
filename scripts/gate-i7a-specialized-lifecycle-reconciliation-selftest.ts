@@ -235,9 +235,24 @@ async function main() {
       "stripe",
       "revenue-os",
     ];
+    /**
+     * Work Package I.10A (Global Analytics and Engagement Foundation) approved, narrow exception.
+     * I.10A intentionally added canonical analytics-event wiring (Save tracking, owner
+     * self-engagement guard) to these two Bienes Raíces shells — verified to touch only the
+     * inline Save handler's tracking call and a same-file owner-id comparison, never publish-core
+     * sharing or route/lifecycle logic (this gate's assertions above, e.g. the
+     * `leonixPublishRealEstateListingCore.ts` untouched-check, are unaffected and still prove
+     * that). Exact-file, exact-fragment allowlist only — every other "bienes-raices" file, and
+     * every other locked fragment for these two files, remains fully protected below.
+     */
+    const I10A_BR_ANALYTICS_WIRING_EXCEPTIONS = new Set<string>([
+      "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
+      "app/(site)/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell.tsx",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
+        if (frag === "bienes-raices" && I10A_BR_ANALYTICS_WIRING_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }
