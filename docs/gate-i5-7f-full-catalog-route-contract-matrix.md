@@ -25,10 +25,71 @@ and, for the media/draft-persistence truth recorded below,
 [`scripts/gate-i11a-media-draft-persistence-truth-selftest.ts`](../scripts/gate-i11a-media-draft-persistence-truth-selftest.ts)
 [`scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts`](../scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts),
 [`scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts`](../scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts),
-and, for the full-catalog lifecycle certification recorded below,
+and, for the full-catalog lifecycle certification recorded below (including its I.12B live-policy
+verification addendum),
 [`scripts/gate-i12a-full-catalog-certification-selftest.ts`](../scripts/gate-i12a-full-catalog-certification-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.12B Update Log — Live Supabase Policy Verification (Owner-Verified Addendum)
+
+**Scope:** a read-only verification package, not a code or migration change. I.12A's own repository
+inspection could only prove that no tracked migration creates an `UPDATE`/`INSERT` policy on
+`public.listings` — it explicitly could not prove or disprove live database-level enforcement,
+since a policy can exist in the live Supabase project without ever being captured in a tracked
+migration. I.12B's own automated pass (this same work package, first attempt) exhausted every
+available read-only, non-mutating inspection path — Supabase CLI (blocked: not linked, and linking
+was explicitly out of scope for that pass), a direct Postgres connection string (none configured in
+`.env.local`), the Management API (same link requirement), and a repository audit script (none
+exists) — and correctly returned **UNVERIFIABLE**, not a guess.
+
+**Resolution — owner-performed, live Dashboard verification.** The owner directly inspected the
+Policies page for `public.listings` in the "Leonix Media" Supabase project (the project the running
+application's own `NEXT_PUBLIC_SUPABASE_URL` resolves to, confirmed in I.12B's own report) and
+reported the following, verbatim:
+
+| Policy | Table | Command | Role | USING | WITH CHECK |
+|---|---|---|---|---|---|
+| "Owner update own listings" | `public.listings` | `UPDATE` | `authenticated` | `(owner_id = auth.uid())` | `(owner_id = auth.uid())` |
+| "Owner insert own listings" | `public.listings` | `INSERT` | `authenticated` | — | `(owner_id = auth.uid())` |
+
+Also confirmed from the same Policies page: RLS is enabled on `public.listings`; owner SELECT
+policies exist; public active-listing SELECT policies exist.
+
+**This documentation records owner-reported live evidence, not an independent automated re-query.**
+No script in this repository connected to the live database to confirm these rows — the access
+blockers identified in I.12B's first pass were never lifted (no link performed, no connection
+string added, no Management API call made). This distinction is preserved deliberately, per this
+package's own instruction to "remain precise."
+
+**Certification, updated from I.12A/I.12B's prior PARTIAL/UNVERIFIABLE status:**
+
+- RLS enabled on `public.listings`: **CERTIFIED** (owner-verified live).
+- Owner-only `INSERT` enforcement: **CERTIFIED** — `WITH CHECK (owner_id = auth.uid())` on the
+  `authenticated` role prevents inserting a row owned by anyone else.
+- Owner-only `UPDATE` enforcement: **CERTIFIED** — `USING (owner_id = auth.uid())` on the
+  `authenticated` role restricts which rows can be targeted at all.
+- Cross-owner update protection: **CERTIFIED** — a matching `USING` clause means an authenticated
+  user's `UPDATE` against another owner's row matches zero rows at the database level, independent
+  of and prior to I.12A's own `applyOwnerListingPatch()` client-side `.eq("owner_id", ...)` filter.
+- Owner reassignment protection: **CERTIFIED** — the `WITH CHECK (owner_id = auth.uid())` clause on
+  the `UPDATE` policy means even a successfully-matched row cannot have its `owner_id` changed to a
+  different user by the row's own authenticated owner or anyone else.
+- **Not performed and not claimed:** a live runtime cross-owner mutation test (attempting a real
+  `UPDATE` from one authenticated identity against another identity's row) was **not** run. Per this
+  package's own instruction, this remains an optional, disposable-QA-row defense-in-depth
+  validation for a future package, not a blocker to this certification.
+
+**Full ownership certification for the generic owner-dashboard pipeline family (En Venta, Bienes
+Raíces Privado, Rentas' generic actions, Comunidad, Clases, Busco, Mascotas — the 19 call sites
+migrated to `applyOwnerListingPatch()` in I.12A) is now upgraded from PARTIAL to CERTIFIED**: I.12A's
+own client-side `id` + `owner_id` filter and zero-row detection is real, working defense in depth,
+and is now independently backed by a proven, database-level `USING`/`WITH CHECK` pair rather than
+resting on an unverified assumption. `ownerListingsLifecycleClient.ts`'s own source comment (stating
+database enforcement is "unverified from tracked code") remains **literally accurate and
+intentionally unchanged** — it is a true statement about what the tracked migration history alone
+can prove, which is a narrower claim than what this live-Dashboard-sourced documentation now
+separately establishes. No application code was touched by this addendum.
 
 ## Work Package I.12A Update Log
 

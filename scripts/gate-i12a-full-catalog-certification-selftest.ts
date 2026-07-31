@@ -221,6 +221,35 @@ async function main() {
     assert.ok(src.includes("zero callers"), "the corrected comment must state the real, confirmed fact");
   }
 
+  /* ============================================================================================
+   * I.12B ADDENDUM — the ledger must record the owner-verified live-policy evidence for
+   * `public.listings`, distinct from (and superseding, going forward) I.12A's own PARTIAL/
+   * unverified-from-tracked-code status. Source-level only: this proves the documentation claim
+   * is present, not a live re-query (I.12B was explicitly read-only/owner-verified, not automated).
+   * ========================================================================================== */
+  {
+    const ledgerSrc = readSource("docs/gate-i5-7f-full-catalog-route-contract-matrix.md");
+    assert.ok(ledgerSrc.includes("Work Package I.12B Update Log"), "ledger must record an I.12B section");
+    assert.ok(ledgerSrc.includes("Owner update own listings") && ledgerSrc.includes("Owner insert own listings"), "ledger must name the two owner-verified live policies");
+    assert.ok(ledgerSrc.includes("(owner_id = auth.uid())"), "ledger must record the exact USING/WITH CHECK expression");
+    for (const claim of [
+      "RLS enabled on `public.listings`: **CERTIFIED**",
+      "Owner-only `INSERT` enforcement: **CERTIFIED**",
+      "Owner-only `UPDATE` enforcement: **CERTIFIED**",
+      "Cross-owner update protection: **CERTIFIED**",
+      "Owner reassignment protection: **CERTIFIED**",
+    ]) {
+      assert.ok(ledgerSrc.includes(claim), `ledger must state exactly: "${claim}"`);
+    }
+    assert.ok(/was\s+\*\*not\*\*\s+run/i.test(ledgerSrc), "ledger must honestly state no live runtime cross-owner mutation test was run");
+    assert.ok(ledgerSrc.includes("independent automated re-query"), "ledger must honestly distinguish owner-reported evidence from an automated re-query");
+
+    // Regression: the application code's own honest disclaimer must remain untouched — I.12B is
+    // documentation-only and must not alter or weaken the source-level "unverified" language.
+    const helperSrc = readSource(LIFECYCLE_HELPER);
+    assert.ok(helperSrc.toLowerCase().includes("unverified"), "helper's own honest disclaimer must remain unchanged by a docs-only package");
+  }
+
   console.log("gate-i12a-full-catalog-certification-selftest: OK");
 }
 
