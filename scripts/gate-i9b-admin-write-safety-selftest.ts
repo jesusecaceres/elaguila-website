@@ -195,9 +195,27 @@ async function main() {
       "dashboard/lib",
       "dashboard/components",
     ];
+    /**
+     * Work Package I.12A (Full Catalog Lifecycle Certification and Gap Closure) approved, narrow
+     * exception. I.12A intentionally added `applyOwnerListingPatch` (an owner-id-scoped,
+     * defense-in-depth update helper) to `ownerListingsLifecycleClient.ts`, and migrated the
+     * generic owner dashboard's direct-write call sites in `mis-anuncios/page.tsx` and
+     * `mis-anuncios/[id]/page.tsx` (and its `editar` sub-route) to use it — verified to touch only
+     * client-side owner-write scoping, never any Admin action, RLS, schema, or entitlement logic
+     * (this gate's I.9A report-authorization assertion above is unaffected and still proves that
+     * fix is intact). Exact-file, exact-fragment allowlist only — every other
+     * "dashboard/lib"/"dashboard/mis-anuncios" file remains fully protected below.
+     */
+    const I12A_OWNER_WRITE_DEFENSE_IN_DEPTH_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/lib/ownerListingsLifecycleClient.ts",
+      "app/(site)/dashboard/mis-anuncios/page.tsx",
+      "app/(site)/dashboard/mis-anuncios/[id]/page.tsx",
+      "app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
+        if ((frag === "dashboard/lib" || frag === "dashboard/mis-anuncios") && I12A_OWNER_WRITE_DEFENSE_IN_DEPTH_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

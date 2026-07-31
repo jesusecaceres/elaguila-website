@@ -24,10 +24,133 @@ and, for the analytics/engagement truth recorded below,
 and, for the media/draft-persistence truth recorded below,
 [`scripts/gate-i11a-media-draft-persistence-truth-selftest.ts`](../scripts/gate-i11a-media-draft-persistence-truth-selftest.ts)
 [`scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts`](../scripts/gate-i11a-autos-listing-edit-media-isolation-selftest.ts),
-and
-[`scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts`](../scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts).
+[`scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts`](../scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts),
+and, for the full-catalog lifecycle certification recorded below,
+[`scripts/gate-i12a-full-catalog-certification-selftest.ts`](../scripts/gate-i12a-full-catalog-certification-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.12A Update Log
+
+**Scope:** the first full-catalog *lifecycle* certification — not a new audit from zero. Per this
+package's own instruction, the matrix below is **synthesized** from this ledger's already-verified
+truth (routes/identity since I.5.x, dashboard discovery since I.8A/I.8B, Admin operations/write-
+safety since I.9A/I.9B, analytics since I.10A/I.10B, media/draft-persistence since I.11A/I.11B)
+plus three new, parallel, read-only research passes covering the dimensions this ledger did not
+yet cover: save-and-return, pause/resume/renewal accuracy, Preview-to-Public parity, mobile route
+readiness, dead-code inventory, and a systematic direct-write ownership audit. Two prior ledger
+claims were found stale by this process and are corrected below, not silently carried forward.
+
+**Status legend:** CERTIFIED · CERTIFIED WITH CATEGORY ADAPTER (real, category-specific
+implementation, not a gap) · PARTIAL (real but incomplete, or defense-in-depth without full proof)
+· BLOCKED (no safe path found) · UNSUPPORTED BY PRODUCT (confirmed absent by design/current scope,
+not a bug) · EXTERNAL WORKSTREAM (owned by a different branch) · NOT IMPLEMENTED (confirmed zero
+capability) · STALE/UNSAFE (marks what a *prior* claim said, alongside its correction).
+
+### Corrected claims (stale, not previously flagged)
+
+| Pipeline | Prior ledger claim | Corrected classification | Evidence |
+|---|---|---|---|
+| Restaurantes | "pause/resume via dedicated page" (Per-pipeline dashboard truth, I.8A) | **NOT IMPLEMENTED** | `app/lib/listingIdentity/restaurantesLifecycleAdapter.ts:7-11`'s own audit comment: "no certified owner-facing lifecycle mutation today... no Pause/Resume/Archive/Restore/Republish exists anywhere in the Restaurant dashboard." Confirmed independently: `app/(site)/dashboard/restaurantes/page.tsx`'s `cardActions` has no status-mutating action; `app/api/clasificados/restaurantes/` has only `publish` and `draft-media-upload` routes. |
+| Auto Dealers (`autos_negocios`) | "group-level pause/resume via dedicated section" (Per-pipeline dashboard truth, I.8A) | **PARTIAL** — one-way `unpublish` only, per-row, no resume | `app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx:355-382` — an `active` row gets one destructive-styled `unpublish` button calling `POST /api/clasificados/autos/listings/[id]/unpublish` → `updateAutosListingStatus(id, "removed")`; a non-active row gets a static, non-interactive label, no button at all. No `restore_active`/reactivate path exists for the owner. |
+
+### Full catalog certification matrix (representative capabilities; full per-pipeline detail already exists in [Per-pipeline dashboard truth](#per-pipeline-dashboard-truth), [Per-pipeline Admin operations truth](#per-pipeline-admin-operations-truth), and [Full pipeline matrix](#full-pipeline-matrix) above — this table adds the capabilities those didn't cover)
+
+| Pipeline | Pause/Resume | Renew/Republish | Save-and-return (tab close) | Preview↔Public parity | Owner-write authorization |
+|---|---|---|---|---|---|
+| Restaurantes | **NOT IMPLEMENTED** (corrected above) | UNSUPPORTED BY PRODUCT (coupon add-on ≠ base renewal) | PARTIAL — `sessionStorage` only, lost on tab close | CERTIFIED — shared `mapRestauranteDraftToShellData()` | CERTIFIED — dedicated server route, real `owner_user_id` check |
+| Servicios | CERTIFIED — real route (`app/api/clasificados/servicios/manage/route.ts`), real UI, state-transition validated, double-scoped `.eq("owner_user_id", ...)` | UNSUPPORTED BY PRODUCT (offers add-on ≠ base renewal) | PARTIAL — `sessionStorage`; a separate, dead `app/(site)/servicios/publicar/**` tree uses `localStorage` but has zero live inbound links, not the real flow | CERTIFIED — shared `resolveServiciosProfile()` + shared section components | CERTIFIED |
+| Auto Dealers | **PARTIAL** (corrected above) | UNSUPPORTED BY PRODUCT (inventory-pack ≠ renewal) | BLOCKED — no durable persistence found beyond `sessionStorage` | CERTIFIED WITH CATEGORY ADAPTER — literal same component (`AutoDealerPreviewPage`) rendered by both Preview and Public | CERTIFIED — dedicated server route, real ownership check |
+| Bienes Raíces Negocio | CERTIFIED — real cascade-aware API (`brListingLifecycleService.ts`, children paused before parent) + real UI | UNSUPPORTED BY PRODUCT (inventory-pack ≠ renewal) | PARTIAL/uncertain — no dedicated top-level draft store found; routes through shared BR/Rentas machinery, not independently re-verified this pass | CERTIFIED WITH CATEGORY ADAPTER — literal same component for the agente-individual sub-flow | CERTIFIED — dedicated server route |
+| Rentas (both lanes) | CERTIFIED (existing) | **CERTIFIED** — the only pipeline with a real Stripe-driven renewal (`revenueRentasFulfillment.ts`) | PARTIAL — `sessionStorage`; BR Privado's sibling implementation has a confirmed-benign unconditional `localStorage` mirror inconsistency, noted not fixed (accidental extra durability, not data loss) | not re-verified this pass; carried forward from ledger | CERTIFIED (dedicated route) + generic actions now **PARTIAL** (defense-in-depth, see below) |
+| Viajes | CERTIFIED WITH CATEGORY ADAPTER — real `unpublish`/`resubmit` (not symmetric pause/resume, but real, real API, real UI, and genuinely lane-aware in `/dashboard/viajes`) | UNSUPPORTED BY PRODUCT | localStorage (durable) | CERTIFIED WITH CATEGORY ADAPTER — shared `ViajesOfferDetailLayout` + shared `ViajesOfferDetailModel` type | CERTIFIED — dedicated server route |
+| Comida Local | **NOT IMPLEMENTED** — confirmed zero owner-side mutation capability of any kind; the dashboard's only "Formulario" link is unlinked/blank, not a real edit route | UNSUPPORTED BY PRODUCT | localStorage (durable) | CERTIFIED — shared `ComidaLocalDetailShell`, type-linked mapper pair (`ComidaLocalPublicListingDetailVm extends ComidaLocalPreviewVm`) | n/a — no write route exists to audit |
+| Empleos | CERTIFIED (existing, own dashboard page, real `paused` status) | UNSUPPORTED BY PRODUCT | `sessionStorage` only | not re-verified this pass | CERTIFIED — dedicated server route, real ownership check |
+| En Venta / Bienes Raíces Privado / Comunidad / Clases / Busco / Mascotas (generic `listings`-table pipelines) | CERTIFIED for En Venta/BR (archive/pause/resume/mark-sold via generic dashboard); archive-only for Busco/Clases/Comunidad/Mascotas (confirmed, no pause/resume/renew exists for these four) | En Venta: republish window (UNSUPPORTED as paid renewal); others UNSUPPORTED BY PRODUCT | `sessionStorage` (Clases/Comunidad/Empleos-style) or IndexedDB+`sessionStorage` (En Venta, richest mechanism, still no durable "closed tab" resume) | CERTIFIED (no drifting fork found for any of these) | **Fixed this package** — see below |
+| Bienes Raíces Privado edit/photo durability | (no dedicated edit route — existing gap, unchanged) | UNSUPPORTED BY PRODUCT | localStorage mirror (see Rentas row) | n/a | CERTIFIED — generic editor's append-only gallery writes + dedicated seller-photo block, confirmed no photo-loss path (platform-wide: no image is ever deleted from storage) |
+| Mascotas y Perdidos | Archive only (confirmed) | UNSUPPORTED BY PRODUCT | `sessionStorage` | CERTIFIED — real subtype-aware rendering (5 real subtypes, not 4; result cards + detail page both resolve `Leonix:noticeType`) | CERTIFIED (generic path) |
+| Empleos applications / En Venta messaging | Empleos: CERTIFIED (owner-visible, real status transitions, feria lane correctly excluded) — En Venta: **PARTIAL, see Objective F decision below** | — | — | — | — |
+
+### Owner-write authorization — proven gap, fixed this package (defense-in-depth only)
+
+**Proven, not assumed:** 19 direct client-side `supabase.from("listings").update(patch).eq("id", id)` calls across the generic owner dashboard (`mis-anuncios/page.tsx` ×6, `mis-anuncios/[id]/page.tsx` ×5, `mis-anuncios/[id]/editar/page.tsx` ×6, `dashboard/drafts/page.tsx` ×2 — covering En Venta, Bienes Raíces, Rentas' generic actions, Comunidad, Clases, Busco, Mascotas) carried **no owner predicate in the write itself** — only each page's initial read was owner-scoped (`.eq("owner_id", u.id)`, confirmed the real column for `public.listings`). No tracked migration defines a `CREATE POLICY` on `public.listings` — RLS enforcement is **unverified from the repository**, not proven absent. Three quick-publish-flow writes (`publishBuscoQuickToListings.ts` and its Clases/Comunidad/Mascotas siblings) were investigated and excluded — each operates on a row whose ownership was already established earlier in the *same* function invocation (a fresh insert or an I.6C-verified reuse), a different, already-safe risk profile.
+
+**Fix — `applyOwnerListingPatch()` added to the existing, already-imported `app/(site)/dashboard/lib/ownerListingsLifecycleClient.ts`** (no new file, no new mechanism): rejects before any network call when owner identity is missing or blank; scopes the write by both `id` and `owner_id`; adds `.select("id")` so a zero-row match (wrong id, wrong owner, already-deleted) is returned as a real `error` instead of Postgrest's default silent-success-on-zero-rows behavior. All 19 call sites now use it, reusing each file's already-resolved `userId` — no new identity resolution, no change to existing loading/error-display code paths (same destructured `{ error }` shape).
+
+**Certification, stated exactly, not softened:** dashboard owner predicate — **implemented as defense in depth**. Database-enforced UPDATE ownership — **unverified from tracked code**. Full ownership certification for this pipeline — **PARTIAL**. Exact follow-up: a production Supabase RLS/config verification (a runtime check, not a code task), and, if a policy is genuinely missing, a separately approved migration package — explicitly not attempted here (schema/migrations/RLS are locked for I.12A).
+
+### Owner-decision register — En Venta / dashboard messaging: RESOLVED via Option B
+
+**Investigated fully, corrected mid-investigation.** The generic sidebar unread-message badge/nav link was found to already be correctly hidden — `app/(site)/dashboard/components/LeonixDashboardShell.tsx:266-268` and `app/(site)/dashboard/lib/derivedDashboardFeed.ts:104` both already gate on `DASHBOARD_INTERNAL_INBOX_READY` (`app/(site)/dashboard/lib/dashboardProductTruth.ts:3`, currently `false`), corroborated by a pre-existing audit doc (`docs/leonix-user-dashboard-command-center-master-audit.md:112`) explicitly recommending "keep hidden until inbox product." No mobile-specific duplicate exists (confirmed only one nav-rendering block; the dashboard has no separate mobile route/component layer at all, per the mobile-readiness research below).
+
+**The real, live, ungated gap — found by checking every category dashboard, not stopping at the shared shell:** `app/(site)/dashboard/restaurantes/page.tsx:493` (its own, independent `cardActions` array) had an unconditional "Abrir mensajes"/"Open messages" link to the unfinished `/dashboard/mensajes` route. Servicios' equivalent page was checked and confirmed to not have this pattern. Fixed by wrapping that one array entry in the same existing `DASHBOARD_INTERNAL_INBOX_READY` check — reusing the identical flag, not a second mechanism.
+
+**Product behavior after this fix:** buyer message *sending* remains fully functional and untouched (`app/api/clasificados/en-venta/inquiry/route.ts` and siblings, unchanged); stored messages remain intact (no `messages` table, migration, or RLS touched); owners are not shown a badge or navigation promise pointing at an unfinished inbox anywhere in the app; the inbox itself is recorded here as **NOT IMPLEMENTED**, not silently omitted. **A dedicated messaging-center package remains required** before this can be certified CERTIFIED rather than NOT IMPLEMENTED. Also confirmed, related and worth naming: `app/(site)/dashboard/mis-anuncios/[id]/page.tsx` fetches real per-listing messages into `listingMessages` state but never renders them (`"messages"` is force-redirected away from in the tab switcher) — a real data layer with zero UI, consistent with "not implemented," not a second bug to fix.
+
+### Owner-decision register — remaining items (unchanged in substance from prior packages, consolidated here)
+
+1. **Rentas canonical launch lane/default renderer** — unchanged, OWNER DECISION REQUIRED (see [Unresolved Route Debt](#unresolved-route-debt)).
+2. **Categories with no real Edit surface**: Bienes Raíces Privado, Mascotas y Perdidos, Comida Local. Recommend extending the generic `/editar` page's field set over building per-category editors — lower risk, reuses proven infrastructure. Does not block launch.
+3. **Categories with no real renewal/payment behavior**: every Negocios category except Rentas — confirmed current product state this package, not a bug. Recommend an explicit decision on whether renewal is a launch requirement.
+4. **Restaurantes/Auto Dealers pause-resume gap** (now correctly documented, previously overstated) — recommend deferring; building real lifecycle actions for these two pipelines is a feature, not a safe I.12A-scope fix.
+5. **Comida Local lifecycle actions** — confirmed zero owner-side capability; recommend a dedicated future package if production-readiness parity with Restaurantes/Servicios is required for this category.
+
+### Shared category adapter map
+
+Synthesized from the real `CATEGORY_ROUTE_REGISTRY` (`app/lib/listingIdentity/categoryRouteRegistry.ts`, 17 real adapters — no invented entries; the structural self-test cross-references this directly) plus this ledger's own accumulated dashboard/Admin/analytics/media findings. Missing capabilities are recorded as null/unsupported, never fabricated.
+
+| Pipeline | Source table | Parent/child | Payment model | Business Hub | Analytics adapter | Media/draft adapter |
+|---|---|---|---|---|---|---|
+| restaurantes | `restaurantes_public_listings` | no | coupon add-on only | yes (parent, entitlement-verified) | canonical (`restaurantesGlobalAnalytics.ts`) | Vercel Blob pre-publish, `sessionStorage` draft |
+| servicios | `servicios_public_listings` | no | offers add-on only | yes (parent, entitlement-verified) | canonical | Vercel Blob pre-publish, `sessionStorage` draft |
+| bienes_raices_negocio | `listings` | **yes** (`br_inventory_group_id`) | inventory-pack (not renewal) | yes, parent only, resolver-gated | canonical (`brGlobalAnalytics.ts`) | client-storage only (uncertain top-level store, see matrix) |
+| bienes_raices_privado | `listings` | no | none confirmed | no | legacy/bespoke | generic editor, append-only, confirmed safe |
+| autos_negocios | `autos_classifieds_listings` | **yes** | inventory-pack (not renewal) | yes, parent, ungated (asymmetry vs BR, pre-existing) | canonical (`recordAutosGlobalAnalytics.ts`) | I.11A/I.11B-certified isolation |
+| autos_privado | `autos_classifieds_listings` | no | none confirmed | no | canonical | I.11A/I.11B-certified isolation |
+| rentas_negocio / rentas_privado | `listings` | no | **real Stripe renewal** | no (resolver never emits hub action) | legacy (`rentasAnalytics.ts`, CTA clicks still on oldest module — I.10A finding) | `sessionStorage` |
+| empleos | `empleos_public_listings` | no | none confirmed | not applicable | canonical | `sessionStorage` |
+| en_venta | `listings` | no | republish window (not renewal) | no | canonical (I.10A-migrated) | IndexedDB + `sessionStorage`, richest mechanism |
+| comida_local | `comida_local_public_listings` | no | none — no write route at all | no | canonical (`comidaLocalAnalytics.ts`) | localStorage draft, Vercel Blob upload |
+| ofertas_locales | (external — Ofertas worktree) | n/a | n/a | dedicated | n/a | n/a |
+| busco / clases / comunidad | `listings` | no | none | no | canonical | `sessionStorage` (shared community hook) |
+| mascotas_y_perdidos | `listings` | no | none | no | canonical (I.10A rollup fix) | `sessionStorage` |
+| viajes | `viajes_staged_listings` (slug-keyed) | no | none confirmed | no (resolver never emits) | FALSE — `viajesTrack()` stub (I.10A finding, unchanged) | localStorage draft |
+
+### Negocios Locales blueprint certification — **PARTIAL**
+
+Cannot certify complete: **Business Hub eligibility is missing for 2 of 6 categories with a business lane** (Rentas Negocio, Viajes business — adapter declares `supportsBusinessHub: true` but no live resolver branch exists, a confirmed I.8A finding, unchanged); **renewal/expiration exists for exactly 1 of 6** (Rentas); **parent/child inventory exists for exactly 2 of 6** (Auto Dealers, Bienes Raíces Negocio); **pause/resume now correctly shows 2 of 6 with none at all** (Restaurantes, Comida Local) and 1 partial (Auto Dealers). Identity, dashboard discovery, and canonical analytics are solid across all 6. Per Objective H's own instruction, a foundational capability missing across multiple categories means this cannot be certified complete — recorded as PARTIAL with the exact gaps named above, not glossed over.
+
+### Clasificados blueprint certification — **PARTIAL**
+
+Create/save/Preview/publish/public/results/dashboard/Edit and same-row-update are solid and verified across every pipeline in this family (no INSERT-on-failure fallback found anywhere checked this package). Archive/discontinue is universal. What keeps this from full certification: **messaging/applications completeness varies sharply** — Empleos applications are real and owner-visible; En Venta messaging is real on the send side but the owner inbox is confirmed NOT IMPLEMENTED (Option B applied, not built); most other categories have no messaging concept at all (by product design, not a gap). **Owner-write authorization is PARTIAL, not CERTIFIED**, per the defense-in-depth finding above — affects every pipeline routed through the generic dashboard.
+
+### External workstream register
+
+- **Ofertas Locales / Cupones** — confirmed isolated. Zero files under any Ofertas/Cupones-owned path appear in this package's diff (enforced by the self-test). Category-specific implementation remains owned by `integration/ofertas-locales-2026-07`, not inspected or modified here, per instruction.
+- **Business Concierge** — confirmed isolated. Zero Concierge files touched (enforced by the self-test). The Concierge worktree was not accessed during this package's research or implementation.
+
+### Legacy and dead-code truth
+
+| Item | Confirmed zero live importers? | Disposition |
+|---|---|---|
+| `app/(site)/clasificados/lib/leonixClasificadosAnalytics.ts` + 5 `*AnalyticsExtended.ts`/`serviciosAnalytics.ts`/`restaurantesAnalytics.ts` wrappers (I.10A finding) | Yes, re-confirmed this package | safe-to-remove-now (deferred — not removed this package) |
+| `AutosPreviewCard.tsx`, `RentasPreviewCard.tsx`, `CommunityResultCardEngagement.tsx` (I.10A finding) | Yes, re-confirmed | safe-to-remove-now (deferred) |
+| `app/(site)/clasificados/lib/listingDraftsDb.ts` | Yes (real, functional, DB-backed module — just never wired) | **stale comment corrected this package**; module itself deferred, not removed (a real, working feature that could be wired up later, not pure dead weight) |
+| `app/(site)/servicios/publicar/**` (a second, orphaned Servicios draft-storage tree using `localStorage`) | Yes, zero inbound links anywhere | dead but deferred |
+| `app/(site)/clasificados/lib/stripLegacySharedWizardBrKeys.ts` | Yes | safe-to-remove-now (deferred) |
+| `app/(site)/components/mobile/LeonixStickyActionBar.tsx` | Yes (siblings `LeonixResponsiveShell`/`LeonixMobileBottomSheet`/`LeonixMobileScrollRail` from the same "V1 foundation" comment block ARE live, in Ofertas Locales preview) | dead but deferred — possibly intended for near-term use given live siblings; not removed |
+| `app/api/_lib/bearerUser.ts` vs `app/api/clasificados/_lib/bearerUser.ts` | Both still-referenced (9 and 13 importers) — byte-for-byte identical implementations | not dead; a real, low-risk future consolidation opportunity, not attempted here |
+| `app/(site)/clasificados/components/categoryStandard/` (v1) vs `categoryStandardV2/` | Both heavily, actively imported in parallel | **not dead code** — a genuine, live, mid-migration state; do not remove v1 |
+
+No file was deleted in this package — every candidate above is identified, not removed, per Objective I's "identify, but do not broadly delete" and the requirement that removal needs proven zero callers, no compatibility dependency, test coverage, and in-budget scope. A dedicated cleanup package is the right vehicle for the safe-to-remove-now items.
+
+### Remaining launch blockers
+
+None of the findings in this package are launch-blocking in the hard sense (nothing found and left broken that was previously claimed working and load-bearing) — the two corrected claims (Restaurantes/Auto Dealers pause-resume) describe capabilities that were never actually available to users, so correcting the ledger doesn't change live behavior. The owner-write authorization PARTIAL status is the one item worth explicit executive attention before a security-sensitive launch, given it cannot be fully closed without a production RLS check outside this package's scope.
+
+### Next recommended package
+
+**I.12B — Production Supabase RLS verification for `public.listings`** (a config/verification task, not primarily a code package): confirm whether an `UPDATE` RLS policy already exists on the live table; if missing, scope and separately approve a migration package to add one. This is the single item standing between "defense-in-depth" and "fully certified" for owner-write authorization across the entire generic-dashboard pipeline family.
 
 ## Work Package I.11B Update Log
 

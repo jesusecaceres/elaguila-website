@@ -9,6 +9,7 @@ import {
   OWNER_LISTING_PAUSE_PATCH,
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   ownerListingResumeFromPausePatch,
+  applyOwnerListingPatch,
 } from "../lib/ownerListingsLifecycleClient";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
@@ -829,7 +830,7 @@ export default function MyListingsPage() {
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
       setError(uErr.message);
@@ -871,7 +872,7 @@ export default function MyListingsPage() {
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
       setError(uErr.message);
@@ -968,7 +969,7 @@ export default function MyListingsPage() {
     if (status === "active") patch.is_published = true;
     if (status === "sold") patch.is_published = false;
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
       setError(uErr.message);
@@ -1052,7 +1053,7 @@ export default function MyListingsPage() {
       patch.status = "active";
     }
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
       setError(uErr.message);
@@ -1132,7 +1133,7 @@ export default function MyListingsPage() {
       patch.status = "active";
     }
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
       setError(uErr.message);
@@ -1187,7 +1188,7 @@ export default function MyListingsPage() {
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
       setError(uErr.message);

@@ -281,12 +281,25 @@ async function main() {
     const I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS = new Set<string>([
       "app/api/clasificados/autos/media/draft-photo-upload/route.ts",
     ]);
+    /**
+     * Work Package I.12A (Full Catalog Lifecycle Certification and Gap Closure) approved, narrow
+     * exception. I.12A intentionally gated one ungated messages-navigation entry in the
+     * Restaurantes owner dashboard behind the existing `DASHBOARD_INTERNAL_INBOX_READY` flag
+     * (Option B messaging decision) — verified to touch only the `cardActions` array's messages
+     * entry, never publish/lifecycle/media logic (this gate's other assertions are unaffected).
+     * Exact-file, exact-fragment allowlist only — every other "restaurantes" file remains fully
+     * protected below.
+     */
+    const I12A_RESTAURANTES_MESSAGING_GATE_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/restaurantes/page.tsx",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         if (frag === "bienes-raices" && I10A_BR_ANALYTICS_WIRING_EXCEPTIONS.has(f)) continue;
         if ((frag === "/autos/" || frag === "restaurantes" || frag === "servicios") && I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS.has(f)) continue;
         if (frag === "/autos/" && I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS.has(f)) continue;
+        if (frag === "restaurantes" && I12A_RESTAURANTES_MESSAGING_GATE_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

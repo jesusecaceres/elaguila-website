@@ -10,6 +10,7 @@ import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/
 import { readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
+  applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
 
 type Lang = "es" | "en";
@@ -285,7 +286,7 @@ async function uploadImages() {
     const prev = getListingImageUrls(listing?.images);
     const payload: { images: string[] } = { images: [...prev, ...uploadedUrls] };
 
-    const { error: uErr } = await supabase.from("listings").update(payload).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
 
     if (uErr) {
       setError(uErr.message);
@@ -357,7 +358,7 @@ async function uploadSellerPhoto(file: File) {
   const existingPairs = Array.isArray(listing?.detail_pairs) ? (listing.detail_pairs as Array<{ label?: string; value?: string }>) : [];
   const nextPairs = [...existingPairs.filter((p) => p?.label !== SELLER_PHOTO_DETAIL_LABEL), { label: SELLER_PHOTO_DETAIL_LABEL, value: hostedUrl }];
 
-  const { error: uErr } = await supabase.from("listings").update({ detail_pairs: nextPairs }).eq("id", id);
+  const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { detail_pairs: nextPairs });
   if (uErr) {
     setSellerPhotoError(uErr.message || (lang === "es" ? "La foto se subió pero no se pudo guardar." : "Photo uploaded but could not be saved."));
     setSellerPhotoUploading(false);
@@ -379,7 +380,7 @@ async function removeSellerPhoto() {
   const existingPairs = Array.isArray(listing?.detail_pairs) ? (listing.detail_pairs as Array<{ label?: string; value?: string }>) : [];
   const nextPairs = existingPairs.filter((p) => p?.label !== SELLER_PHOTO_DETAIL_LABEL);
 
-  const { error: uErr } = await supabase.from("listings").update({ detail_pairs: nextPairs }).eq("id", id);
+  const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { detail_pairs: nextPairs });
   if (uErr) {
     setSellerPhotoError(uErr.message || (lang === "es" ? "No se pudo quitar la foto." : "Could not remove the photo."));
     setSellerPhotoUploading(false);
@@ -414,7 +415,7 @@ async function removeSellerPhoto() {
       payload.description = description.trim() || null;
     }
 
-    const { error: uErr } = await supabase.from("listings").update(payload).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
 
     if (uErr) {
       setError(uErr.message);
@@ -437,7 +438,7 @@ async function removeSellerPhoto() {
     setError(null);
     setSuccess(null);
 
-    const { error: uErr } = await supabase.from("listings").update({ status }).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { status });
 
     if (uErr) {
       setError(uErr.message);
@@ -464,7 +465,7 @@ async function removeSellerPhoto() {
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { error: dErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: dErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (dErr) {
       setError(dErr.message);

@@ -8,6 +8,7 @@ import {
   OWNER_LISTING_PAUSE_PATCH,
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   ownerListingResumeFromPausePatch,
+  applyOwnerListingPatch,
 } from "../../lib/ownerListingsLifecycleClient";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -443,7 +444,7 @@ export default function ListingWorkspacePage() {
       patch.status = "active";
     }
 
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) {
       setRow((r) =>
         r
@@ -466,7 +467,7 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status, ...(status === "active" ? { is_published: true } : {}) } : r));
     setBusy(false);
   }
@@ -478,7 +479,7 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status: "removed", is_published: false, updated_at: now } : r));
     setBusy(false);
   }
@@ -489,7 +490,7 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status: "paused", is_published: false, updated_at: now } : r));
     setBusy(false);
   }
@@ -500,7 +501,7 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const now = new Date().toISOString();
     const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status: "active", is_published: true, updated_at: now } : r));
     setBusy(false);
   }

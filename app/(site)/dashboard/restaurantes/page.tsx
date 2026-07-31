@@ -7,6 +7,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { DASHBOARD_INTERNAL_INBOX_READY } from "../lib/dashboardProductTruth";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
@@ -489,7 +490,12 @@ export default function DashboardRestaurantesPage() {
                   { href: publicHref, label: t.linkPublic, tone: "primary" },
                   { href: resultsHref, label: t.linkResults, tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: t.openAnalytics, tone: "subtle" },
-                  { href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" },
+                  // Gate I.12A — the inbox route this links to is not built yet; never advertise
+                  // it until DASHBOARD_INTERNAL_INBOX_READY is real (same flag the rest of the
+                  // dashboard already uses to hide this same unfinished feature).
+                  ...(DASHBOARD_INTERNAL_INBOX_READY
+                    ? [{ href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" as const }]
+                    : []),
                   { href: publishHref, label: t.linkForm },
                   {
                     label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,

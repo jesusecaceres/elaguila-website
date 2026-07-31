@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { OWNER_LISTING_SOFT_ARCHIVE_PATCH } from "../lib/ownerListingsLifecycleClient";
+import { OWNER_LISTING_SOFT_ARCHIVE_PATCH, applyOwnerListingPatch } from "../lib/ownerListingsLifecycleClient";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardAutosPaidDraftsBand } from "../components/DashboardAutosPaidDraftsBand";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
@@ -163,7 +163,7 @@ export default function DraftsPage() {
     const sb = createSupabaseBrowserClient();
     setBusy(id);
     setErr(null);
-    const { error } = await sb.from("listings").update({ status: "active", is_published: true }).eq("id", id);
+    const { error } = await applyOwnerListingPatch(sb, id, userId, { status: "active", is_published: true });
     if (error) setErr(error.message);
     else setRows((prev) => prev.filter((x) => x.id !== id));
     setBusy(null);
@@ -176,7 +176,7 @@ export default function DraftsPage() {
     setErr(null);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", id);
+    const { error } = await applyOwnerListingPatch(sb, id, userId, patch);
     if (error) setErr(error.message);
     else setRows((prev) => prev.filter((x) => x.id !== id));
     setBusy(null);
