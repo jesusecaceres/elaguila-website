@@ -10,6 +10,10 @@ import {
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 import { getAutosClassifiedsListingById } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import {
+  ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
+  assertAutosDealerActionAllowed,
+} from "@/app/admin/_lib/adminInventoryActionGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +73,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const row = await getAutosClassifiedsListingById(id);
   if (!row) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+
+  // Work Package I.9B — server-side parent/child role validation, resolved strictly from the
+  // freshly-fetched row (never trusts any client-supplied role/category/parent id). Rejects
+  // parent-only actions (archive/remove_public/restore_active) against a confirmed inventory
+  // vehicle child, or against a row whose role cannot be confirmed — fails closed, no write.
+  const roleCheck = assertAutosDealerActionAllowed(row, action);
+  if (!roleCheck.ok) {
+    return NextResponse.json({ ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE }, { status: 403 });
   }
 
   const supabase = getAdminSupabase();

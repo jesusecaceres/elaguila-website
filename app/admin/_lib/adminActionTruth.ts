@@ -136,16 +136,26 @@ const PIPELINE_OVERRIDES: Partial<Record<CanonicalCategoryKey, ActionTruthRow>> 
     remove: "blocked",
     preview: "working",
     openOwnerEditContext: "working",
-    // Real gap confirmed by audit: Admin's write routes act directly on whatever UUID is passed,
-    // with no parent/child guard analogous to the owner-dashboard's `resolveDashboardActions()`.
-    inspectParentChild: "stale_or_unsafe",
+    // Work Package I.9B — genuinely protected now, not just claimed safe. The Admin write route
+    // (app/api/admin/autos/listings/[id]/route.ts) now calls `assertAutosDealerActionAllowed()`
+    // server-side before mutating, rejecting archive/remove_public/restore_active against a
+    // confirmed inventory-vehicle child or an unresolved role. "working_with_adapter" (not bare
+    // "working") because only those 3 structural actions are role-gated — suspend/unsuspend/
+    // promote/verify/republish remain deliberately ungated per-row flags, unchanged from before.
+    inspectParentChild: "working_with_adapter",
   },
   bienes_raices_negocio: {
     markSoldFilledClosed: "intentionally_unsupported",
     remove: "blocked",
     preview: "working",
     openOwnerEditContext: "working",
-    inspectParentChild: "stale_or_unsafe",
+    // Work Package I.9B — genuinely protected now. The generic Admin write route
+    // (app/api/admin/clasificados/listings/[id]/route.ts) now calls
+    // `assertBrNegocioActionAllowed()` server-side before mutating any bienes-raices row,
+    // rejecting "archive" against a confirmed inventory-property child or an unresolved role.
+    // "working_with_adapter" because only that one structural action is role-gated — suspend/
+    // unsuspend/promote/verify/republish remain deliberately ungated, unchanged.
+    inspectParentChild: "working_with_adapter",
   },
   bienes_raices_privado: { markSoldFilledClosed: "intentionally_unsupported", remove: "blocked", preview: "working", openOwnerEditContext: "working", inspectParentChild: "intentionally_unsupported" },
   rentas_negocio: { markSoldFilledClosed: "intentionally_unsupported", remove: "blocked", preview: "working", openOwnerEditContext: "working", inspectParentChild: "intentionally_unsupported" },

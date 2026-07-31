@@ -8,6 +8,10 @@ import {
   listingsRowIsPublicLive,
 } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import {
+  ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
+  assertBrNegocioActionAllowed,
+} from "@/app/admin/_lib/adminInventoryActionGuard";
 
 type ListingsStaffAction =
   | "suspend"
@@ -63,7 +67,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { data: row, error: rErr } = await supabase
     .from("listings")
     .select(
-      "id, category, leonix_ad_id, owner_id, detail_pairs, is_free, is_published, status, republish_count, republish_override",
+      "id, category, leonix_ad_id, owner_id, detail_pairs, is_free, is_published, status, republish_count, republish_override, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role",
     )
     .eq("id", id)
     .maybeSingle();
@@ -75,6 +79,31 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const rowRec = row as Record<string, unknown>;
   const category = String(rowRec.category ?? "").trim();
   const now = new Date().toISOString();
+
+  // Work Package I.9B — server-side parent/child role validation for Bienes Raíces Negocio,
+  // resolved strictly from the freshly-fetched row (never trusts any client-supplied value).
+  // Every other category (Rentas, En Venta, Bienes Privado, Comunidad, Clases, Busco, Mascotas)
+  // and every non-parent-only action for Bienes Raíces are entirely unaffected — this only
+  // rejects "archive" against a confirmed inventory-property child or an unresolved role.
+  if (category.toLowerCase() === "bienes-raices") {
+    const roleCheck = assertBrNegocioActionAllowed(
+      {
+        id: String(rowRec.id ?? ""),
+        category: rowRec.category as string | null,
+        seller_type: rowRec.seller_type as string | null,
+        detail_pairs: rowRec.detail_pairs,
+        status: rowRec.status as string | null,
+        is_published: rowRec.is_published as boolean | null,
+        br_inventory_group_id: rowRec.br_inventory_group_id as string | null,
+        br_inventory_parent_listing_id: rowRec.br_inventory_parent_listing_id as string | null,
+        inventory_role: rowRec.inventory_role as string | null,
+      },
+      action,
+    );
+    if (!roleCheck.ok) {
+      return NextResponse.json({ ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE }, { status: 403 });
+    }
+  }
 
   if (action === "republish") {
     if (String(rowRec.status ?? "").toLowerCase() === "removed") {

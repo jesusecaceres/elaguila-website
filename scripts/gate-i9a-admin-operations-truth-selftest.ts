@@ -114,11 +114,12 @@ async function main() {
       assert.notEqual(truth.remove, "working", `${pipeline}.remove must never be classified as a routine working action`);
     }
 
-    // Parent-only actions stay parent-only: BR-Negocio and Autos-Negocios both surface the real,
-    // confirmed parent/child protection gap (no resolver-equivalent guard at the Admin API layer)
-    // rather than falsely claiming it's safe.
-    assert.equal(resolveAdminActionTruth("bienes_raices_negocio").inspectParentChild, "stale_or_unsafe");
-    assert.equal(resolveAdminActionTruth("autos_negocios").inspectParentChild, "stale_or_unsafe");
+    // Work Package I.9B — corrected: BR-Negocio and Autos-Negocios now have a real,
+    // server-side parent/child role guard (see gate-i9b), so this classification was updated
+    // from "stale_or_unsafe" to "working_with_adapter" — but only after the real protection
+    // landed, never claimed safe in advance of it.
+    assert.equal(resolveAdminActionTruth("bienes_raices_negocio").inspectParentChild, "working_with_adapter");
+    assert.equal(resolveAdminActionTruth("autos_negocios").inspectParentChild, "working_with_adapter");
     // Non-parent/child pipelines correctly report no such concern.
     assert.equal(resolveAdminActionTruth("restaurantes").inspectParentChild, "intentionally_unsupported");
 

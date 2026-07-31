@@ -16,10 +16,103 @@ and, for the specific fixes below, by
 [`scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts`](../scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts),
 [`scripts/gate-i8a-global-dashboard-truth-selftest.ts`](../scripts/gate-i8a-global-dashboard-truth-selftest.ts),
 [`scripts/gate-i8b-live-dashboard-coverage-selftest.ts`](../scripts/gate-i8b-live-dashboard-coverage-selftest.ts),
+[`scripts/gate-i9a-admin-operations-truth-selftest.ts`](../scripts/gate-i9a-admin-operations-truth-selftest.ts),
 and
-[`scripts/gate-i9a-admin-operations-truth-selftest.ts`](../scripts/gate-i9a-admin-operations-truth-selftest.ts).
+[`scripts/gate-i9b-admin-write-safety-selftest.ts`](../scripts/gate-i9b-admin-write-safety-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.9B update log
+
+Closes the highest-risk gap I.9A confirmed but deliberately left unfixed: Admin's Auto Dealer and
+Bienes Raíces Negocio write routes acted directly on whatever UUID was in the request, with no
+server-side guard preventing a parent-only lifecycle action from being applied to (or through) an
+inventory child row.
+
+- **`adminInventoryActionGuard.ts` — new.** One small, shared target-row validator,
+  `assertAutosDealerActionAllowed()` / `assertBrNegocioActionAllowed()`. Both reuse the existing,
+  canonical role predicates rather than re-deriving them — `isDealerInventoryMainListing`/
+  `isDealerInventoryVehicle` (Autos) and `isBrNegocioListing`/`isBrInventoryMainListing`/
+  `isBrInventoryProperty` (Bienes) — never a new identity system. Every input must be a
+  freshly-fetched server row; nothing here ever trusts a client-supplied role, category, parent
+  id, or owner id.
+- **Deliberately asymmetric between the two pipelines — evidence-based, not stylistic.**
+  - **Autos**: a standalone, never-grouped dealer listing (the common single-vehicle-dealer case)
+    is confirmed, by direct inspection of `promoteNegociosMainInventoryListing()`
+    (`autosClassifiedsListingService.ts:448-465`), to keep `inventory_role = null` until a second
+    vehicle is added — `inventory_role` is only promoted to `"main"` lazily, not proactively at
+    publish. Treating every un-tagged standalone listing as "unresolved" would fail-close the
+    majority case, a real regression. So a listing with `lane = "negocios"` and no parent id at
+    all is still treated as the parent — the same, already-proven convention the owner dashboard
+    already uses (`dashboardInventory.ts`'s `isDealerMain`).
+  - **Bienes Raíces**: confirmed, by direct inspection of `leonixPublishRealEstateListingCore.ts:
+    592-604`, that `inventory_role: "main"` is set proactively at publish time for the default
+    (non-multi-property) Negocio case, via `mainListingInventoryPatchAfterInsert()`. Strict
+    matching (`isBrInventoryMainListing`, requiring the literal `inventory_role === "main"`) is
+    therefore safe and is used as-is — no fail-open fallback. A Bienes Raíces Negocio listing
+    published before this system existed will fail closed on the one parent-only action
+    (`archive`) until its `inventory_role` is backfilled — an explicitly accepted, conservative
+    consequence of Objective B's "do not infer parent role merely from missing parent ID," not an
+    overlooked regression.
+- **Scope of the new restriction, per pipeline (Objective A's matrix, using the owner-dashboard's
+  established `resolveDashboardActions()` precedent — parent-only structural actions vs.
+  reversible per-row flags — as evidence):**
+  - **Auto Dealers**: `archive`, `remove_public`, `restore_active` are now **parent-only**.
+    `suspend`, `unsuspend`, `promote_on`, `promote_off`, `verify_on`, `verify_off`, `republish`
+    remain **allowed for both** roles, unchanged — each is a per-row, reversible flag/status
+    write with no cross-row effect and no evidence restricting it.
+  - **Bienes Raíces Negocio**: only `archive` is **parent-only** (the generic `listings` route has
+    no separate `remove_public`/`restore_active` actions). `suspend`, `unsuspend`, `promote_on`,
+    `promote_off`, `verify_on`, `verify_off`, `republish` remain allowed for both, unchanged.
+  - The destructive hard-delete action (`deleteListingAction`) was **not** reclassified or
+    touched — it remains its own separately-invoked, more-cautiously-gated tool outside this
+    per-row action set, exactly as I.9A already recorded.
+- **Wired into both touched routes, authorization-first, write-last.** Both
+  `app/api/admin/autos/listings/[id]/route.ts` and
+  `app/api/admin/clasificados/listings/[id]/route.ts` (the latter scoped narrowly to
+  `category === "bienes-raices"` — every other category on this shared route is provably
+  untouched) now call the guard immediately after the existing `requireAdminCookie` check and the
+  row fetch, and strictly before the `.update()` call. A rejected action returns the deterministic
+  `admin_inventory_action_forbidden` code with HTTP 403 — never a raw database error, never
+  role-specific detail.
+- **Identity preservation confirmed, not just claimed.** Neither route's `patch` object for any
+  action ever includes the parent id, group id, owner id, category, or Leonix Ad ID columns —
+  confirmed by source-level test assertion, not just design intent. Every write remains
+  `.eq("id", id)` — the exact target row, never a substituted parent/child id.
+- **Generic listings safety (Objective D) — audited, no additional defect found.** Rentas, En
+  Venta, Bienes Raíces Privado, Comunidad, Clases, Busco, Mascotas y Perdidos, and Autos Privado
+  have no inventory/parent-child concept at all on the shared `listings`/`autos_classifieds_listings`
+  tables — confirmed unaffected by the new guard (it only activates for `category ===
+  "bienes-raices"` on the generic route, and for `lane === "negocios"` with a resolvable role on
+  the Autos route). The pre-existing `invalid_action` 400 fail-closed default for unsupported
+  transitions, and the absence of `category`/`owner_id`/`owner_user_id` from every action's patch
+  object, were both confirmed already correct — no additional repair was needed or made.
+- **`adminActionTruth.ts` updated only after the real protection landed.** `inspectParentChild`
+  moved from `stale_or_unsafe` to `working_with_adapter` for `autos_negocios` and
+  `bienes_raices_negocio` — not bare `working`, since only the specific structural actions listed
+  above are now role-gated; the rest of each pipeline's action set was already accurately
+  classified and is unchanged.
+- **I.9A's report-authorization fix (`updateListingReportStatusAction` → `can_manage_reports`)
+  confirmed intact, unchanged.**
+
+## Per-pipeline Admin write-safety truth (Auto Dealers / Bienes Raíces Negocio)
+
+| Action | Auto Dealer allowed role | Auto Dealer authorization | Auto Dealer identity validation | Auto Dealer row scope | Auto Dealer parent/child preservation | Bienes Negocio allowed role | Bienes Negocio status | Remaining gap |
+|---|---|---|---|---|---|---|---|---|
+| `archive` | parent only | `requireAdminCookie`, before guard, before write | server-fetched row; role resolved from `inventory_role`/`lane`/parent id, never client-supplied | exact `id` only | parent/group id never in patch | parent only | same contract, generic route | none — genuinely protected |
+| `remove_public` | parent only | same | same | exact `id` only | same | not applicable (action doesn't exist on generic route) | n/a | none |
+| `restore_active` | parent only | same | same | exact `id` only | same | not applicable | n/a | none |
+| `suspend` / `unsuspend` | allowed for both | same | same | exact `id` only | same | allowed for both | same | none — reversible per-row flag, no restriction needed |
+| `promote_on` / `promote_off` | allowed for both | same | same | exact `id` only | same | allowed for both | same | none |
+| `verify_on` / `verify_off` | allowed for both | same | same | exact `id` only | same | allowed for both | same | none |
+| `republish` | allowed for both | same | same | exact `id` only | same | allowed for both | same | none |
+| `remove` (hard delete) | not part of this action set | `requireLeonixAdminPermission("can_manage_ads")` (`deleteListingAction`, unchanged) | n/a | listings table only | n/a | not part of this action set | unchanged | intentionally kept as its own separately-gated tool, not reclassified |
+
+**Not fixed in this package (unchanged from I.9A, still real, still documented):** the 3-pattern
+authorization-check duplication across the other 19 untouched `app/api/admin/**` routes; owner
+email exposure via `adminProfilesQuery.ts` remains ungated beyond the base cookie and unaudited on
+read; no dedicated coupon/offers-addon Admin status view exists. All three remain out of this
+package's narrow, evidence-scoped fix list.
 
 ## Work Package I.9A update log
 
