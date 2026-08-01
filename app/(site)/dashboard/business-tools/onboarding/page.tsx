@@ -62,7 +62,7 @@ export default function OnboardingPage() {
 
   if (!checkedAuth) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="business" plan="free" userName={null} email={null} accountRef={null} ownerId={null}>
+      <LeonixDashboardShell lang={lang} activeNav="business" plan="free" userName={null} email={null} accountRef={null} ownerId={null} compact>
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
           {lang === "es" ? "Cargando…" : "Loading…"}
         </div>
@@ -71,7 +71,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="business" plan="free" userName={name} email={email} accountRef={accountRef} ownerId={userId}>
+    <LeonixDashboardShell lang={lang} activeNav="business" plan="free" userName={name} email={email} accountRef={accountRef} ownerId={userId} compact>
       <OnboardingWizard lang={lang} intentKey={intentKey} />
     </LeonixDashboardShell>
   );

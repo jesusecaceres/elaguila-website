@@ -7,7 +7,9 @@
 import {
   ALLOWED_PREFERRED_CHANNEL_KINDS_BY_CONTACT_TYPE,
   AREA_KINDS,
+  CONTACT_CAPABILITY_VALUES,
   CONTACT_TYPES,
+  CUSTOM_LINK_TYPES,
   DIGITAL_PROFILE_PLATFORM_VALUES,
   MAX_CONTACT_VALUE_LENGTH,
   MAX_DISPLAY_NAME_LENGTH,
@@ -16,13 +18,17 @@ import {
   PRIMARY_LANGUAGES,
 } from "./constants";
 import { isValidCountryCode } from "./countries";
-import { normalizeContactValue, normalizeDisplayText, normalizeServiceAreaText } from "./normalization";
+import { isKnownStateProvinceLabel } from "./statesProvinces";
+import { normalizeContactValue, normalizeDisplayText, normalizeServiceAreaText, normalizeWebsiteDisplayValue, normalizeWebsiteDomain } from "./normalization";
 import type {
   AreaKind,
   ChannelKind,
+  ContactCapability,
   ContactType,
+  CustomLinkType,
   EligibilityResult,
   FieldError,
+  PreferredResponseMethod,
   PrimaryLanguage,
   ValidationResult,
 } from "./types";
@@ -89,6 +95,8 @@ export type ContactInput = {
   /** Gate BCO-3R additions — optional so v1 callers (finalizeBusiness.ts) are unaffected. */
   label?: string;
   visibility?: string;
+  /** Gate BCO-3R-B.2 — optional so v1/v2 callers are unaffected. Only meaningful for contactType === "phone". */
+  capabilities?: readonly string[];
 };
 
 export function validateContact(input: ContactInput): ValidationResult<{
@@ -100,6 +108,7 @@ export function validateContact(input: ContactInput): ValidationResult<{
   isPrimary: boolean;
   label: string;
   visibility: string;
+  capabilities: ContactCapability[];
 }> {
   const errors: FieldError[] = [];
   const contactType = input.contactType as ContactType;
@@ -128,6 +137,14 @@ export function validateContact(input: ContactInput): ValidationResult<{
     }
   }
 
+  // Capabilities are only meaningful for phone contacts — silently dropped (not an error) for
+  // any other contact type, since a client could legitimately send an empty/stale array.
+  const rawCapabilities = contactType === "phone" ? (input.capabilities ?? []) : [];
+  const capabilities = rawCapabilities.filter((c): c is ContactCapability => (CONTACT_CAPABILITY_VALUES as readonly string[]).includes(c));
+  if (contactType === "phone" && rawCapabilities.length > 0 && capabilities.length !== rawCapabilities.length) {
+    errors.push(err("capabilities", "invalid_contact_capability", "Selecciona capacidades válidas para este teléfono.", "Select valid capabilities for this phone."));
+  }
+
   if (errors.length > 0 || !normalized) return { ok: false, errors };
   return {
     ok: true,
@@ -140,8 +157,70 @@ export function validateContact(input: ContactInput): ValidationResult<{
       isPrimary: input.isPrimary,
       label: input.label ?? "main",
       visibility: input.visibility ?? "public",
+      capabilities,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Gate BCO-3R-B.2 additions — preferred response method, custom business links.
+// ---------------------------------------------------------------------------
+
+export type PreferredResponseMethodInput = {
+  method: string | null;
+  contacts: readonly { contactType: string; capabilities: readonly string[] }[];
+};
+
+/** Mirrors finalize_business_identity_v3's own server-side check exactly — never trust the client alone. */
+export function validatePreferredResponseMethod(input: PreferredResponseMethodInput): ValidationResult<PreferredResponseMethod | null> {
+  if (!input.method) return { ok: true, value: null };
+  const method = input.method as PreferredResponseMethod;
+  const satisfied = input.contacts.some((c) => {
+    if (method === "email") return c.contactType === "email";
+    if (method === "whatsapp") return c.contactType === "phone" && c.capabilities.includes("whatsapp");
+    if (method === "sms") return c.contactType === "phone" && c.capabilities.includes("sms");
+    if (method === "phone_call") return c.contactType === "phone" && c.capabilities.includes("calls");
+    return false;
+  });
+  if (!satisfied) {
+    return {
+      ok: false,
+      errors: [
+        err(
+          "preferredResponseMethod",
+          "invalid_preferred_response_method",
+          "El método de respuesta preferido no coincide con ningún contacto ingresado.",
+          "The preferred response method doesn't match any entered contact.",
+        ),
+      ],
+    };
+  }
+  return { ok: true, value: method };
+}
+
+export type CustomLinkInput = { linkType: string; customLabel: string | null; rawUrl: string; visibility?: string };
+
+export function validateCustomLink(input: CustomLinkInput): ValidationResult<{
+  linkType: CustomLinkType;
+  customLabel: string | null;
+  displayUrl: string;
+  normalizedUrl: string;
+  visibility: string;
+}> {
+  const linkType = input.linkType as CustomLinkType;
+  if (!CUSTOM_LINK_TYPES.some((o) => o.value === linkType)) {
+    return { ok: false, errors: [err("linkType", "invalid_custom_link", "Selecciona un tipo de enlace válido.", "Select a valid link type.")] };
+  }
+  const customLabel = linkType === "other" ? normalizeDisplayText(input.customLabel) : null;
+  if (linkType === "other" && !customLabel) {
+    return { ok: false, errors: [err("customLabel", "invalid_custom_link", "Describe este enlace.", "Describe this link.")] };
+  }
+  const displayUrl = normalizeWebsiteDisplayValue(input.rawUrl);
+  const normalizedUrl = normalizeWebsiteDomain(input.rawUrl);
+  if (!displayUrl || !normalizedUrl) {
+    return { ok: false, errors: [err("rawUrl", "invalid_custom_link", "El enlace no es válido.", "The link is not valid.")] };
+  }
+  return { ok: true, value: { linkType, customLabel: customLabel || null, displayUrl, normalizedUrl, visibility: input.visibility === "private" ? "private" : "public" } };
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +372,147 @@ export function validateAuthorization(input: AuthorizationInput): ValidationResu
   if (input.role === "authorized_representative" && !input.representativeRelationship.trim()) {
     errors.push(err("representativeRelationship", "invalid_authorization_role", "Describe tu relación con el negocio.", "Describe your relationship to the business."));
   }
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, value: true };
+}
+
+// ---------------------------------------------------------------------------
+// Gate BCO-3R-B.3 — service coverage (structuredDetails.coverage). Mirrors Phase 15's rules
+// exactly; every branch below only fires for the coverage `level` it actually applies to, so
+// switching levels never leaves a stale requirement from a different level behind.
+// ---------------------------------------------------------------------------
+
+function hasDuplicates(values: readonly string[]): boolean {
+  return new Set(values).size !== values.length;
+}
+
+export type ServiceCoverageInput = {
+  country: string;
+  coverage: {
+    level: string;
+    radiusValue?: number;
+    radiusUnit?: string;
+    citiesServed?: readonly string[];
+    stateProvince?: string;
+    statesProvincesServed?: readonly string[];
+    excludedStatesProvinces?: readonly string[];
+    excludedCitiesOrAreas?: readonly string[];
+    nationwideConfirmed?: boolean;
+    countriesServedCodes?: readonly string[];
+    excludedCountries?: readonly string[];
+    regionSelections?: readonly { regionCode: string; wholeRegion: boolean; countryCodes: readonly string[] }[];
+    worldwideConfirmed?: boolean;
+  };
+  /** Base city/state, sourced from the shared top-level structuredDetails fields (baseCity / city). */
+  baseCity?: string;
+};
+
+export function validateServiceCoverage(input: ServiceCoverageInput): ValidationResult<true> {
+  const errors: FieldError[] = [];
+  const c = input.coverage;
+  const bad = (field: string, es: string, en: string) => errors.push(err(field, "invalid_service_coverage", es, en));
+
+  switch (c.level) {
+    case "local": {
+      if (!isValidCountryCode(input.country)) {
+        bad("country", "Selecciona el país que atiendes.", "Select the country you serve.");
+      }
+      if (!input.baseCity || !input.baseCity.trim()) {
+        bad("coverage.baseCity", "El área local necesita una ciudad base.", "Local area requires a base city.");
+      }
+      if (c.radiusValue !== undefined) {
+        if (!(c.radiusValue > 0)) bad("coverage.radiusValue", "El radio debe ser un número positivo.", "Radius must be a positive number.");
+        if (c.radiusUnit !== "miles" && c.radiusUnit !== "kilometers") {
+          bad("coverage.radiusUnit", "Selecciona la unidad del radio.", "Select the radius unit.");
+        }
+      }
+      break;
+    }
+    case "multi_city": {
+      if (!isValidCountryCode(input.country)) {
+        bad("country", "Selecciona el país que atiendes.", "Select the country you serve.");
+      }
+      const cities = c.citiesServed ?? [];
+      if (cities.length < 2) bad("coverage.citiesServed", "Agrega al menos 2 ciudades.", "Add at least 2 cities.");
+      if (hasDuplicates(cities)) bad("coverage.citiesServed", "Hay ciudades duplicadas.", "There are duplicate cities.");
+      break;
+    }
+    case "one_state": {
+      if (!isValidCountryCode(input.country)) {
+        bad("country", "Selecciona el país que atiendes.", "Select the country you serve.");
+      }
+      if (!c.stateProvince || !c.stateProvince.trim()) {
+        bad("coverage.stateProvince", "Selecciona o escribe un estado o provincia.", "Select or enter a state or province.");
+      } else if (!isKnownStateProvinceLabel(input.country, c.stateProvince)) {
+        // Gate BCO-3R-B.5 — only fires for countries with a real dataset (US/MX/CA); catches the
+        // "California" survives a switch to "Albania" contradiction at the data layer, not just the UI.
+        bad("coverage.stateProvince", "Ese estado o provincia no corresponde al país seleccionado.", "That state or province doesn't belong to the selected country.");
+      }
+      break;
+    }
+    case "multi_state": {
+      if (!isValidCountryCode(input.country)) {
+        bad("country", "Selecciona el país que atiendes.", "Select the country you serve.");
+      }
+      const regions = c.statesProvincesServed ?? [];
+      if (regions.length < 2) bad("coverage.statesProvincesServed", "Agrega al menos 2 estados o provincias.", "Add at least 2 states or provinces.");
+      if (hasDuplicates(regions)) bad("coverage.statesProvincesServed", "Hay estados o provincias duplicados.", "There are duplicate states or provinces.");
+      if (regions.some((r) => !isKnownStateProvinceLabel(input.country, r))) {
+        bad("coverage.statesProvincesServed", "Uno o más estados o provincias no corresponden al país seleccionado.", "One or more states or provinces don't belong to the selected country.");
+      }
+      const excluded = c.excludedStatesProvinces ?? [];
+      if (excluded.some((r) => regions.includes(r))) {
+        bad("coverage.excludedStatesProvinces", "Un estado excluido no puede estar también incluido.", "An excluded state can't also be included.");
+      }
+      break;
+    }
+    case "nationwide": {
+      if (!isValidCountryCode(input.country)) {
+        bad("country", "Selecciona el país que atiendes.", "Select the country you serve.");
+      }
+      if (!c.nationwideConfirmed) {
+        bad("coverage.nationwideConfirmed", "Confirma que atiendes todo el país.", "Confirm you serve the whole country.");
+      }
+      const excluded = c.excludedStatesProvinces ?? [];
+      if (hasDuplicates(excluded)) bad("coverage.excludedStatesProvinces", "Hay exclusiones duplicadas.", "There are duplicate exclusions.");
+      break;
+    }
+    case "multi_country": {
+      const countries = c.countriesServedCodes ?? [];
+      if (countries.length < 2) bad("coverage.countriesServedCodes", "Agrega al menos 2 países.", "Add at least 2 countries.");
+      if (hasDuplicates(countries)) bad("coverage.countriesServedCodes", "Hay países duplicados.", "There are duplicate countries.");
+      if (countries.some((code) => !isValidCountryCode(code))) {
+        bad("coverage.countriesServedCodes", "Uno o más países no son válidos.", "One or more countries are not valid.");
+      }
+      const excluded = c.excludedCountries ?? [];
+      if (excluded.some((code) => !isValidCountryCode(code))) {
+        bad("coverage.excludedCountries", "Uno o más países excluidos no son válidos.", "One or more excluded countries are not valid.");
+      }
+      if (excluded.some((code) => countries.includes(code))) {
+        bad("coverage.excludedCountries", "Un país excluido no puede estar también incluido.", "An excluded country can't also be included.");
+      }
+      for (const sel of c.regionSelections ?? []) {
+        if (sel.wholeRegion && sel.countryCodes.length === 0) {
+          bad("coverage.regionSelections", "Seleccionar todos los países de una región requiere confirmación explícita.", "Selecting every country in a region requires explicit confirmation.");
+        }
+      }
+      break;
+    }
+    case "worldwide": {
+      if (!c.worldwideConfirmed) {
+        bad("coverage.worldwideConfirmed", "Confirma la disponibilidad mundial.", "Confirm worldwide availability.");
+      }
+      const excluded = c.excludedCountries ?? [];
+      if (excluded.some((code) => !isValidCountryCode(code))) {
+        bad("coverage.excludedCountries", "Uno o más países excluidos no son válidos.", "One or more excluded countries are not valid.");
+      }
+      if (hasDuplicates(excluded)) bad("coverage.excludedCountries", "Hay exclusiones duplicadas.", "There are duplicate exclusions.");
+      break;
+    }
+    default:
+      bad("coverage.level", "Selecciona hasta dónde atiende tu negocio.", "Select how far your business serves.");
+  }
+
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, value: true };
 }

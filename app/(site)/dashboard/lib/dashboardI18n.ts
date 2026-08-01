@@ -42,6 +42,10 @@ export function dashboardShellCopy(lang: Lang) {
       badgeExpiring: "Visibilidad por expirar",
       dashboardLabel: "Panel",
       accountType: "Tipo",
+      menuOpen: "Menú",
+      menuClose: "Cerrar menú",
+      openAccountMenu: "Abrir menú de cuenta",
+      closeAccountMenu: "Cerrar menú de cuenta",
     };
   }
   return {
@@ -69,6 +73,10 @@ export function dashboardShellCopy(lang: Lang) {
     badgeExpiring: "Visibility expiring soon",
     dashboardLabel: "Dashboard",
     accountType: "Type",
+    menuOpen: "Menu",
+    menuClose: "Close menu",
+    openAccountMenu: "Open account menu",
+    closeAccountMenu: "Close account menu",
   };
 }
 

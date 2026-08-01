@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Business } from "../types";
+import { queryWithSelectShrink } from "./selectShrink";
 
 type BusinessRow = {
   id: string;
@@ -21,6 +22,7 @@ type BusinessRow = {
   operating_models: string[] | null;
   sales_relationships: string[] | null;
   sales_channels: string[] | null;
+  preferred_response_method: string | null;
   status: string;
   onboarding_status: string;
   creation_source: string;
@@ -30,8 +32,11 @@ type BusinessRow = {
   archived_at: string | null;
 };
 
+// Gate BCO-3R-B.2 — `preferred_response_method` is requested but gracefully dropped via
+// queryWithSelectShrink if the migration adding it hasn't been applied to this environment yet
+// (see repositories/selectShrink.ts), so this select never breaks existing business reads.
 const BUSINESS_COLUMNS =
-  "id, display_name, legal_name, public_name, normalized_name, slug, broad_business_type, specific_business_type, custom_specific_type, business_stage, primary_language, business_primary_language, business_additional_languages, year_started, operating_models, sales_relationships, sales_channels, status, onboarding_status, creation_source, created_by_user_id, created_at, updated_at, archived_at";
+  "id, display_name, legal_name, public_name, normalized_name, slug, broad_business_type, specific_business_type, custom_specific_type, business_stage, primary_language, business_primary_language, business_additional_languages, year_started, operating_models, sales_relationships, sales_channels, preferred_response_method, status, onboarding_status, creation_source, created_by_user_id, created_at, updated_at, archived_at";
 
 export function mapBusinessRow(row: BusinessRow): Business {
   return {
@@ -52,6 +57,7 @@ export function mapBusinessRow(row: BusinessRow): Business {
     operatingModels: (row.operating_models ?? []) as Business["operatingModels"],
     salesRelationships: (row.sales_relationships ?? []) as Business["salesRelationships"],
     salesChannels: (row.sales_channels ?? []) as Business["salesChannels"],
+    preferredResponseMethod: (row.preferred_response_method ?? null) as Business["preferredResponseMethod"],
     status: row.status as Business["status"],
     onboardingStatus: row.onboarding_status as Business["onboardingStatus"],
     creationSource: row.creation_source as Business["creationSource"],
@@ -62,6 +68,10 @@ export function mapBusinessRow(row: BusinessRow): Business {
   };
 }
 
+function mapPartialBusinessRow(row: Partial<BusinessRow>): Business {
+  return mapBusinessRow({ preferred_response_method: null, ...row } as BusinessRow);
+}
+
 /**
  * `client` should be a user-scoped (RLS-enforced) client for member-facing reads, or the
  * admin/service-role client only for the narrow, explicitly-authorized server paths (feature
@@ -69,16 +79,20 @@ export function mapBusinessRow(row: BusinessRow): Business {
  * business by id" call reachable from user input — RLS is the access boundary by design.
  */
 export async function getBusinessByIdForCurrentUser(client: SupabaseClient, businessId: string): Promise<Business | null> {
-  const { data, error } = await client.from("businesses").select(BUSINESS_COLUMNS).eq("id", businessId).maybeSingle();
+  const { data, error } = await queryWithSelectShrink("businesses", BUSINESS_COLUMNS, (cols) =>
+    client.from("businesses").select(cols).eq("id", businessId).maybeSingle(),
+  );
   if (error || !data) return null;
-  return mapBusinessRow(data as BusinessRow);
+  return mapPartialBusinessRow(data as Partial<BusinessRow>);
 }
 
 /** RLS already scopes this to businesses the caller has an active membership in. */
 export async function listActiveBusinessesForCurrentUser(client: SupabaseClient): Promise<Business[]> {
-  const { data, error } = await client.from("businesses").select(BUSINESS_COLUMNS).eq("status", "active");
+  const { data, error } = await queryWithSelectShrink("businesses", BUSINESS_COLUMNS, (cols) =>
+    client.from("businesses").select(cols).eq("status", "active"),
+  );
   if (error || !data) return [];
-  return (data as BusinessRow[]).map(mapBusinessRow);
+  return (data as Partial<BusinessRow>[]).map(mapPartialBusinessRow);
 }
 
 /**

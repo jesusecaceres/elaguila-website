@@ -9,12 +9,17 @@ import type {
   BroadBusinessType,
   BusinessStage,
   ChannelKind,
+  ContactCapability,
   ContactLabel,
   ContactType,
   ContactVisibility,
+  CoverageLevel,
+  CustomLinkType,
+  DeliveryModel,
   DigitalProfilePlatform,
   FieldErrorCode,
   OperatingModel,
+  PreferredResponseMethod,
   PrimaryLanguage,
   SalesChannel,
   SalesRelationship,
@@ -184,14 +189,31 @@ export const SALES_CHANNELS: readonly LabeledOption<SalesChannel>[] = [
 export const CONTACT_LABELS: readonly LabeledOption<ContactLabel>[] = [
   { value: "main", es: "Principal", en: "Main" },
   { value: "sales", es: "Ventas", en: "Sales" },
-  { value: "support", es: "Soporte", en: "Support" },
-  { value: "booking", es: "Reservaciones", en: "Booking" },
+  { value: "customer_service", es: "Servicio al cliente", en: "Customer service" },
+  { value: "booking", es: "Reservaciones o citas", en: "Booking or appointments" },
+  { value: "quotes", es: "Cotizaciones", en: "Quotes" },
   { value: "billing", es: "Facturación", en: "Billing" },
   { value: "other", es: "Otro", en: "Other" },
 ];
 export const CONTACT_LABEL_VALUES: readonly ContactLabel[] = CONTACT_LABELS.map((o) => o.value);
 
 export const CONTACT_VISIBILITIES: readonly ContactVisibility[] = ["public", "private"];
+
+/** Gate BCO-3R-B.2 — only meaningful for contactType === "phone". */
+export const CONTACT_CAPABILITIES: readonly LabeledOption<ContactCapability>[] = [
+  { value: "calls", es: "Llamadas", en: "Calls" },
+  { value: "sms", es: "Mensajes de texto (SMS)", en: "Text messages (SMS)" },
+  { value: "whatsapp", es: "WhatsApp", en: "WhatsApp" },
+];
+export const CONTACT_CAPABILITY_VALUES: readonly ContactCapability[] = CONTACT_CAPABILITIES.map((o) => o.value);
+
+/** Gate BCO-3R-B.2 — single business-wide preferred response method. */
+export const PREFERRED_RESPONSE_METHODS: readonly LabeledOption<PreferredResponseMethod>[] = [
+  { value: "whatsapp", es: "WhatsApp", en: "WhatsApp" },
+  { value: "phone_call", es: "Llamada telefónica", en: "Phone call" },
+  { value: "sms", es: "Mensaje de texto (SMS)", en: "Text message (SMS)" },
+  { value: "email", es: "Correo electrónico", en: "Email" },
+];
 
 export const DIGITAL_PROFILE_PLATFORMS: readonly LabeledOption<DigitalProfilePlatform>[] = [
   { value: "google_business", es: "Perfil de Google Business", en: "Google Business Profile" },
@@ -203,13 +225,49 @@ export const DIGITAL_PROFILE_PLATFORMS: readonly LabeledOption<DigitalProfilePla
   { value: "x", es: "X (Twitter)", en: "X (Twitter)" },
   { value: "yelp", es: "Yelp", en: "Yelp" },
   { value: "whatsapp_business", es: "Enlace de WhatsApp Business", en: "WhatsApp Business link" },
+  { value: "snapchat", es: "Snapchat", en: "Snapchat" },
+  { value: "pinterest", es: "Pinterest", en: "Pinterest" },
   { value: "other", es: "Otro", en: "Other" },
 ];
 export const DIGITAL_PROFILE_PLATFORM_VALUES: readonly DigitalProfilePlatform[] = DIGITAL_PROFILE_PLATFORMS.map((o) => o.value);
 
+/** Gate BCO-3R-B.2 — repeatable, labeled business links (business_custom_links). */
+export const CUSTOM_LINK_TYPES: readonly LabeledOption<CustomLinkType>[] = [
+  { value: "booking", es: "Reservaciones", en: "Booking" },
+  { value: "menu_catalog", es: "Menú o catálogo", en: "Menu or catalog" },
+  { value: "order_online", es: "Pedidos en línea", en: "Order online" },
+  { value: "portfolio", es: "Portafolio", en: "Portfolio" },
+  { value: "request_quote", es: "Solicitar cotización", en: "Request a quote" },
+  { value: "reviews", es: "Reseñas", en: "Reviews" },
+  { value: "other", es: "Otro", en: "Other" },
+];
+
+/** Gate BCO-3R-B.3 — the single primary "how far does your business serve?" question. */
+export const COVERAGE_LEVELS: readonly LabeledOption<CoverageLevel>[] = [
+  { value: "local", es: "Área local", en: "Local area" },
+  { value: "multi_city", es: "Varias ciudades", en: "Multiple cities" },
+  { value: "one_state", es: "Un estado o provincia", en: "One state or province" },
+  { value: "multi_state", es: "Varios estados o provincias", en: "Multiple states or provinces" },
+  { value: "nationwide", es: "Todo el país", en: "Nationwide" },
+  { value: "multi_country", es: "Varios países", en: "Multiple countries" },
+  { value: "worldwide", es: "Todo el mundo / en línea", en: "Worldwide / online" },
+];
+
+/** Gate BCO-3R-B.3 — local-coverage radius presets; "custom" reveals a free-entry number field. */
+export const RADIUS_PRESETS: readonly number[] = [5, 10, 25, 50, 100];
+
+/** Gate BCO-3R-B.3 — worldwide coverage's delivery/service model, so "worldwide" never silently implies physical shipping. */
+export const DELIVERY_MODELS: readonly LabeledOption<DeliveryModel>[] = [
+  { value: "fully_remote", es: "Totalmente remoto", en: "Fully remote" },
+  { value: "digital_delivery", es: "Entrega digital", en: "Digital delivery" },
+  { value: "shipping", es: "Envío de productos", en: "Shipping" },
+  { value: "consultation", es: "Consultoría / asesoría", en: "Consultation" },
+  { value: "other", es: "Otro", en: "Other" },
+];
+
 export const AUTHORIZATION_ROLES: readonly LabeledOption<AuthorizationRole>[] = [
-  { value: "owner", es: "Soy el/la dueño(a)", en: "I am the owner" },
-  { value: "authorized_representative", es: "Represento autorizadamente a este negocio", en: "I am an authorized representative" },
+  { value: "owner", es: "Soy dueño(a) del negocio", en: "I own the business" },
+  { value: "authorized_representative", es: "Tengo autorización para administrarlo", en: "I am authorized to manage the business" },
 ];
 
 /** contact_type -> allowed channel_kind values when preferred_channel = true. Mirrors the DB CHECK exactly. */
@@ -256,6 +314,10 @@ export const FIELD_ERROR_DEFAULT_MESSAGES: Readonly<Record<FieldErrorCode, { es:
   invalid_operating_model: { es: "Selecciona al menos un modelo de operación.", en: "Select at least one operating model." },
   invalid_authorization_role: { es: "Selecciona tu relación con el negocio.", en: "Select your relationship to the business." },
   invalid_digital_profile: { es: "Revisa los perfiles digitales agregados.", en: "Check the digital profiles you added." },
+  invalid_contact_capability: { es: "Selecciona al menos una capacidad válida para este teléfono.", en: "Select at least one valid capability for this phone." },
+  invalid_preferred_response_method: { es: "El método de respuesta preferido no coincide con ningún contacto ingresado.", en: "The preferred response method doesn't match any entered contact." },
+  invalid_custom_link: { es: "Revisa los enlaces de negocio agregados.", en: "Check the business links you added." },
+  invalid_service_coverage: { es: "Revisa la zona de cobertura de tu negocio.", en: "Check your business's service coverage." },
 };
 
 export function fieldErrorDefaultMessage(code: FieldErrorCode, lang: PrimaryLanguage): string {

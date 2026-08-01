@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { listContactsForBusiness } from "@/app/lib/business/repositories/contactsRepo";
 import { listServiceAreasForBusiness } from "@/app/lib/business/repositories/serviceAreasRepo";
 import { listListingLinksForBusiness } from "@/app/lib/business/repositories/listingLinksRepo";
+import { listDigitalProfilesForBusiness } from "@/app/lib/business/repositories/digitalProfilesRepo";
+import { listCustomLinksForBusiness } from "@/app/lib/business/repositories/customLinksRepo";
 import { findActiveMembershipForCurrentUser } from "@/app/lib/business/repositories/membershipsRepo";
 import { getBusinessByIdForCurrentUser } from "@/app/lib/business/repositories/businessesRepo";
 import { extractBearerToken, getServerSupabaseForBearerToken, resolveAuthenticatedUserId } from "@/app/lib/business/supabaseUserClient";
@@ -24,11 +26,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const business = await getBusinessByIdForCurrentUser(userClient, membership.businessId);
   if (!business) return NextResponse.json({ error: "no_business" }, { status: 404 });
 
-  const [contacts, serviceAreas, listingLinks] = await Promise.all([
+  const [contacts, serviceAreas, listingLinks, digitalProfiles, customLinks] = await Promise.all([
     listContactsForBusiness(userClient, business.id),
     listServiceAreasForBusiness(userClient, business.id),
     listListingLinksForBusiness(userClient, business.id),
+    listDigitalProfilesForBusiness(userClient, business.id),
+    listCustomLinksForBusiness(userClient, business.id),
   ]);
 
-  return NextResponse.json({ business, membership, contacts, serviceAreas, listingLinks });
+  return NextResponse.json({ business, membership, contacts, serviceAreas, listingLinks, digitalProfiles, customLinks });
 }

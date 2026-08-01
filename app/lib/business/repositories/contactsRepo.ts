@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BusinessContact } from "../types";
+import { queryWithSelectShrink } from "./selectShrink";
 
 type ContactRow = {
   id: string;
@@ -14,35 +15,41 @@ type ContactRow = {
   is_primary: boolean;
   label: string;
   visibility: string;
+  capabilities: string[] | null;
   created_at: string;
   updated_at: string;
 };
 
+// Gate BCO-3R-B.2 — `capabilities` gracefully drops via queryWithSelectShrink if that migration
+// hasn't been applied to this environment yet (see repositories/selectShrink.ts).
 const CONTACT_COLUMNS =
-  "id, business_id, contact_type, value, normalized_value, preferred_channel, channel_kind, is_primary, label, visibility, created_at, updated_at";
+  "id, business_id, contact_type, value, normalized_value, preferred_channel, channel_kind, is_primary, label, visibility, capabilities, created_at, updated_at";
 
-function mapContactRow(row: ContactRow): BusinessContact {
+function mapContactRow(row: Partial<ContactRow>): BusinessContact {
   return {
-    id: row.id,
-    businessId: row.business_id,
+    id: row.id!,
+    businessId: row.business_id!,
     contactType: row.contact_type as BusinessContact["contactType"],
-    value: row.value,
-    normalizedValue: row.normalized_value,
-    preferredChannel: row.preferred_channel,
-    channelKind: row.channel_kind as BusinessContact["channelKind"],
-    isPrimary: row.is_primary,
+    value: row.value!,
+    normalizedValue: row.normalized_value!,
+    preferredChannel: Boolean(row.preferred_channel),
+    channelKind: (row.channel_kind ?? null) as BusinessContact["channelKind"],
+    isPrimary: Boolean(row.is_primary),
     label: row.label as BusinessContact["label"],
     visibility: row.visibility as BusinessContact["visibility"],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    capabilities: (row.capabilities ?? []) as BusinessContact["capabilities"],
+    createdAt: row.created_at!,
+    updatedAt: row.updated_at!,
   };
 }
 
 /** RLS scopes this to businesses the caller has an active membership in. */
 export async function listContactsForBusiness(client: SupabaseClient, businessId: string): Promise<BusinessContact[]> {
-  const { data, error } = await client.from("business_contacts").select(CONTACT_COLUMNS).eq("business_id", businessId);
+  const { data, error } = await queryWithSelectShrink("business_contacts", CONTACT_COLUMNS, (cols) =>
+    client.from("business_contacts").select(cols).eq("business_id", businessId),
+  );
   if (error || !data) return [];
-  return (data as ContactRow[]).map(mapContactRow);
+  return (data as Partial<ContactRow>[]).map(mapContactRow);
 }
 
 /**

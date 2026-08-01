@@ -45,6 +45,8 @@ export type Business = {
   operatingModels: readonly OperatingModel[];
   salesRelationships: readonly SalesRelationship[];
   salesChannels: readonly SalesChannel[];
+  /** Gate BCO-3R-B.2 — single business-wide preferred response method, server-validated against entered contacts at finalize time. */
+  preferredResponseMethod: PreferredResponseMethod | null;
   status: BusinessStatus;
   onboardingStatus: OnboardingStatus;
   creationSource: CreationSource;
@@ -79,8 +81,13 @@ export type BusinessMembership = {
 
 export type ContactType = "phone" | "email" | "website";
 export type ChannelKind = "whatsapp" | "call" | "email";
-export type ContactLabel = "main" | "sales" | "support" | "booking" | "billing" | "other";
+/** Gate BCO-3R-B.2 — "support" renamed to "customer_service" (migrated safely), "quotes" added. */
+export type ContactLabel = "main" | "sales" | "customer_service" | "booking" | "quotes" | "billing" | "other";
 export type ContactVisibility = "public" | "private";
+/** Gate BCO-3R-B.2 — only meaningful for contactType === "phone". */
+export type ContactCapability = "calls" | "sms" | "whatsapp";
+/** Gate BCO-3R-B.2 — single business-wide preferred response method (businesses.preferred_response_method). */
+export type PreferredResponseMethod = "whatsapp" | "phone_call" | "sms" | "email";
 
 export type BusinessContact = {
   id: string;
@@ -93,11 +100,25 @@ export type BusinessContact = {
   isPrimary: boolean;
   label: ContactLabel;
   visibility: ContactVisibility;
+  /** Gate BCO-3R-B.2 — which response channels this phone number supports; always [] for non-phone contacts. */
+  capabilities: readonly ContactCapability[];
   createdAt: string;
   updatedAt: string;
 };
 
-export type DigitalProfilePlatform = "google_business" | "facebook" | "instagram" | "tiktok" | "youtube" | "linkedin" | "x" | "yelp" | "whatsapp_business" | "other";
+export type DigitalProfilePlatform =
+  | "google_business"
+  | "facebook"
+  | "instagram"
+  | "tiktok"
+  | "youtube"
+  | "linkedin"
+  | "x"
+  | "yelp"
+  | "whatsapp_business"
+  | "snapchat"
+  | "pinterest"
+  | "other";
 
 export type BusinessDigitalProfile = {
   id: string;
@@ -108,7 +129,80 @@ export type BusinessDigitalProfile = {
   updatedAt: string;
 };
 
+/** Gate BCO-3R-B.2 — repeatable, labeled business links (business_custom_links). */
+export type CustomLinkType = "booking" | "menu_catalog" | "order_online" | "portfolio" | "request_quote" | "reviews" | "other";
+
+export type BusinessCustomLink = {
+  id: string;
+  businessId: string;
+  linkType: CustomLinkType;
+  /** Required (non-empty) when linkType === "other"; null otherwise. */
+  customLabel: string | null;
+  displayUrl: string;
+  normalizedUrl: string;
+  visibility: ContactVisibility;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AreaKind = "physical_address" | "service_area_text";
+
+// ---------------------------------------------------------------------------
+// Service coverage (Gate BCO-3R-B.3). A strict, versioned, nested shape embedded in
+// StructuredLocationDetailsV1.coverage — replaces the old scattered coverageType/nationwide/
+// international fields above (kept as-is, untouched, for backward compatibility with any v2
+// record written before this gate) with one unified "how far does your business serve" model.
+// ---------------------------------------------------------------------------
+
+export type CoverageLevel = "local" | "multi_city" | "one_state" | "multi_state" | "nationwide" | "multi_country" | "worldwide";
+
+export type DeliveryModel = "fully_remote" | "digital_delivery" | "shipping" | "consultation" | "other";
+
+/**
+ * Records a region-shortcut interaction for audit/summary purposes only. `wholeRegion: true` is
+ * set only when the owner explicitly confirmed "select all countries in this region" — the
+ * region code is never itself treated as the stored coverage; `countryCodes` is always the real,
+ * resolved ISO list at the moment of selection, per the gate's "do not store a region name as a
+ * substitute for actual selected countries" rule.
+ */
+export type CoverageRegionSelection = {
+  regionCode: string;
+  wholeRegion: boolean;
+  countryCodes: readonly string[];
+};
+
+export type ServiceCoverageV1 = {
+  schemaVersion: 1;
+  level: CoverageLevel | "";
+  // Local — radius around a base location (baseCity/baseStateProvince/basePostalCode below reuse
+  // the pre-existing top-level fields so the owner never re-types the same city twice).
+  radiusValue?: number;
+  radiusUnit?: "miles" | "kilometers";
+  nearbyNeighborhoods?: readonly string[];
+  localNote?: string;
+  // Multi-city
+  citiesServed?: readonly string[];
+  citiesStateProvince?: string;
+  // One state / multiple states — country served comes from the shared serviceArea.country field.
+  stateProvince?: string;
+  statesProvincesServed?: readonly string[];
+  excludedStatesProvinces?: readonly string[];
+  excludedCitiesOrAreas?: readonly string[];
+  multiStateSelectAllConfirmed?: boolean;
+  // Nationwide
+  nationwideConfirmed?: boolean;
+  // Multiple countries
+  countriesServedCodes?: readonly string[];
+  excludedCountries?: readonly string[];
+  regionSelections?: readonly CoverageRegionSelection[];
+  // Worldwide — languagesServed reuses the pre-existing top-level field.
+  worldwideConfirmed?: boolean;
+  primaryTimeZone?: string;
+  additionalTimeZones?: readonly string[];
+  deliveryModels?: readonly DeliveryModel[];
+  deliveryModelOtherNote?: string;
+};
 
 /** Versioned JSONB shape stored in business_service_areas.structured_details (Gate BCO-3R). */
 export type StructuredLocationDetailsV1 = {
@@ -138,6 +232,12 @@ export type StructuredLocationDetailsV1 = {
   baseCity?: string;
   baseStateProvince?: string;
   basePostalCode?: string;
+  /** Gate BCO-3R-B — free-text territory name when `country === "OTHER"` (no stable ISO code). */
+  customCountryName?: string;
+  /** Gate BCO-3R-B — optional approximate count for the "multiple locations" operating model. */
+  approximateLocationCount?: number;
+  /** Gate BCO-3R-B.3 — strict versioned service-coverage shape. See ServiceCoverageV1 above. */
+  coverage?: ServiceCoverageV1;
 };
 
 export type BusinessServiceArea = {
@@ -352,7 +452,11 @@ export type FieldErrorCode =
   | "invalid_country"
   | "invalid_operating_model"
   | "invalid_authorization_role"
-  | "invalid_digital_profile";
+  | "invalid_digital_profile"
+  | "invalid_contact_capability"
+  | "invalid_preferred_response_method"
+  | "invalid_custom_link"
+  | "invalid_service_coverage";
 
 export type FieldError = {
   field: string;

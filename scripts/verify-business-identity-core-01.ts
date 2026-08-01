@@ -265,6 +265,7 @@ async function main() {
     broadBusinessType: "food_hospitality" as const, specificBusinessType: null, customSpecificType: null,
     businessStage: "operating" as const, primaryLanguage: "es" as const, businessPrimaryLanguage: null,
     businessAdditionalLanguages: [], yearStarted: null, operatingModels: [], salesRelationships: [], salesChannels: [],
+    preferredResponseMethod: null,
     status: "active" as const, onboardingStatus: "complete" as const, creationSource: "onboarding_wizard" as const,
     createdByUserId: "u1", createdAt: "", updatedAt: "", archivedAt: null,
   };

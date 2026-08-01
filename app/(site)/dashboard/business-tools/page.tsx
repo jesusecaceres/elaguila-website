@@ -149,7 +149,7 @@ export default function BusinessToolsPage() {
             </div>
           ) : null}
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {t.cards.map((c) => (
               <div
                 key={c.h}
