@@ -323,6 +323,16 @@ async function main() {
     const I13A_AUTOS_ZERO_ROW_EXCEPTIONS = new Set<string>([
       "app/lib/clasificados/autos/autosClassifiedsListingService.ts",
     ]);
+    /**
+     * Work Package I.13B (Public Visibility and Filter-Query Certification) approved, narrow
+     * exception. I.13B added a Bienes Raíces Negocio-style parent-liveness visibility gate for
+     * Auto Dealers inventory children (a new, pure, no-I/O module plus wiring into 3 existing
+     * read-only query functions in the already-excepted service file above) — verified to touch
+     * only public-visibility filtering, never publish/lifecycle/draft-isolation logic.
+     */
+    const I13B_AUTOS_PARENT_LIVENESS_EXCEPTIONS = new Set<string>([
+      "app/lib/clasificados/autos/autosPublicChildParentVisibility.ts",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
@@ -333,6 +343,7 @@ async function main() {
         if (frag === "restaurantes" && I13A_RESTAURANTES_RESULTS_UX_EXCEPTIONS.has(f)) continue;
         if (frag === "servicios" && I13A_SERVICIOS_UX_AND_ZERO_ROW_EXCEPTIONS.has(f)) continue;
         if (frag === "/autos/" && I13A_AUTOS_ZERO_ROW_EXCEPTIONS.has(f)) continue;
+        if (frag === "/autos/" && I13B_AUTOS_PARENT_LIVENESS_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

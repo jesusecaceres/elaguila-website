@@ -27,6 +27,7 @@ import {
   type AutosDealerInventoryCount,
 } from "./autosDealerInventoryPolicy";
 import { resolveDealerInventoryGroupIdForParent } from "./autosDealerInventoryAddFlow";
+import { filterAutosRowsByActiveParent, isAutosChildParentGateSatisfied } from "./autosPublicChildParentVisibility";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -191,9 +192,13 @@ export async function listActiveDealerInventoryByGroupId(
     .limit(cap);
   if (error || !data?.length) return [];
   const exclude = opts?.excludeListingId?.trim();
-  return data
+  const rows = data
     .map((r) => rowFromDb(r as Record<string, unknown>))
     .filter((row) => !exclude || row.id !== exclude);
+  // Gate I.13B — exclude inventory children whose main parent isn't active/present in this
+  // same active-group fetch, mirroring Bienes Raíces Negocio's proven parent-liveness gate.
+  const parentsById = new Map(rows.map((r) => [r.id, r]));
+  return filterAutosRowsByActiveParent(rows, parentsById);
 }
 
 export async function getAutosClassifiedsListingById(id: string): Promise<AutosClassifiedsListingRow | null> {
@@ -377,7 +382,15 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
     error = fb.error;
   }
   if (error || !data?.length) return [];
-  return data.map((r) => rowFromDb(r as Record<string, unknown>));
+  const rows = data.map((r) => rowFromDb(r as Record<string, unknown>));
+  // Gate I.13B — a suspended/removed dealer's parent row no longer appears in this
+  // active-only fetch; exclude any inventory_vehicle child whose parent isn't in this same
+  // active set, mirroring Bienes Raíces Negocio's proven parent-liveness gate. Every real
+  // caller of this function treats its result as "the public active pool," so this is the
+  // single place that fixes both the public results feed and (via getActiveLiveAutosBundle's
+  // internal reuse below) related-inventory cards on a vehicle's own detail page.
+  const parentsById = new Map(rows.map((r) => [r.id, r]));
+  return filterAutosRowsByActiveParent(rows, parentsById);
 }
 
 /** Admin workspace: paid Autos rows (any status), newest first. */
@@ -624,6 +637,16 @@ export async function getActiveLiveAutosBundle(
 } | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
+  // Gate I.13B — a child (inventory_vehicle) row must not be publicly reachable at its own
+  // direct detail URL unless its main parent is itself active; mirrors the Bienes Raíces
+  // Negocio parent-liveness gate (this row bypasses listActiveAutosClassifiedsRows' own gate
+  // below since it's fetched directly by id, so it needs its own explicit check here).
+  if (row.inventory_role === "inventory_vehicle") {
+    const parentId = row.dealer_inventory_parent_listing_id;
+    const parent = parentId ? await getAutosClassifiedsListingById(parentId) : null;
+    const parentsById = parent ? new Map([[parent.id, parent]]) : new Map();
+    if (!isAutosChildParentGateSatisfied(row, parentsById)) return null;
+  }
   const poolRows = await listActiveAutosClassifiedsRows();
   const groupingKey = resolveDealerInventoryGroupingKey(row);
   const dealerRows = poolRows.filter(

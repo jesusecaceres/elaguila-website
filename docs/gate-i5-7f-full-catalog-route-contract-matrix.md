@@ -29,9 +29,146 @@ and, for the full-catalog lifecycle certification recorded below (including its 
 verification addendum),
 [`scripts/gate-i12a-full-catalog-certification-selftest.ts`](../scripts/gate-i12a-full-catalog-certification-selftest.ts),
 and, for the launch-readiness truth recorded below,
-[`scripts/gate-i13a-launch-readiness-selftest.ts`](../scripts/gate-i13a-launch-readiness-selftest.ts).
+[`scripts/gate-i13a-launch-readiness-selftest.ts`](../scripts/gate-i13a-launch-readiness-selftest.ts),
+and, for the public-visibility and filter-query certification recorded below,
+[`scripts/gate-i13b-public-visibility-filter-selftest.ts`](../scripts/gate-i13b-public-visibility-filter-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.13B Update Log — Public Visibility and Filter-Query Certification
+
+**Scope:** close the explicit coverage gaps I.13A left open — public-visibility enforcement for
+Auto Dealers, Bienes Raíces, Rentas, Empleos, Comida Local, and Viajes, and filter-to-query wiring
+for the 11 pipelines beyond Bienes Raíces/Restaurantes. Built from four parallel, read-only
+research passes. No pipeline remains recorded as NOT CHECKED after this package.
+
+### Certification method
+
+Each pipeline's results query, public-detail route, and (where applicable) parent/child structure
+was traced to exact file:line evidence, not assumed from a sibling pipeline's pattern. Two real,
+proven, safe-to-fix defects were found and repaired (see Safe Repairs). Everything else found was
+either already correctly enforced (often via a mechanism this ledger hadn't previously documented,
+such as Postgres RLS independently reinforcing an app-layer query) or is UNSUPPORTED BY PRODUCT
+(a filter field with no UI control promising it works — not a defect).
+
+### Negocios Locales public visibility
+
+| Pipeline | Table/status field | Results enforcement | Detail enforcement | Parent/child | Classification |
+|---|---|---|---|---|---|
+| Restaurantes | `restaurantes_public_listings.status` | DB-query `.eq("status","published")` (I.13A) | DB-query `.eq("status","published")` (I.13A) | N/A | CERTIFIED (unchanged) |
+| Servicios | discovery table, status branch | App-layer branch to safe "unavailable" page (I.13A) | Same | N/A | CERTIFIED (unchanged, noted fragility) |
+| **Auto Dealers** | `autos_classifieds_listings.status` | DB-query `.eq("status","active")` | App-layer fail-closed (`status!=="active"` → null → not-found), verified at 2 call sites | **Gap found: no cascade — a suspended/removed parent's `inventory_vehicle` children stayed publicly listed and directly reachable** | **Fixed this package → CERTIFIED WITH CATEGORY ADAPTER** |
+| **Bienes Raíces Negocio** | `listings.status`+`is_published`, category="bienes-raices" | DB-query + app-layer `isListingRowActiveAndPublishedForBrowse` | App-layer fail-closed, shared `anuncio/[id]/page.tsx` | **Confirmed safe** — explicit `isBrChildParentGateSatisfied` gate (Gate G.2.3.4), the pattern Auto Dealers now mirrors | CERTIFIED WITH CATEGORY ADAPTER |
+| **Viajes** | `viajes_staged_listings.lifecycle_status`+`is_public` | DB-query, both `lifecycle_status="approved"` AND `is_public=true` | DB-query, same double filter | N/A | **CERTIFIED** |
+| **Comida Local** | `comida_local_public_listings.status` | DB-query `.eq("status","published")` **+ Postgres RLS independently enforcing the same** | DB-query + RLS, same double enforcement | N/A | **CERTIFIED** (strongest mechanism found — query and database policy independently agree) |
+
+### Clasificados public visibility
+
+| Pipeline | Table/status field | Results enforcement | Detail enforcement | Classification |
+|---|---|---|---|---|
+| En Venta | `listings`, category="en-venta" | App-layer `isListingRowActiveAndPublishedForBrowse` (I.13A) | App-layer fail-closed, shared route (I.13A) | CERTIFIED (unchanged) |
+| **Bienes Raíces Privado** | `listings`, category="bienes-raices" | Same query as BR Negocio (shared) | Shared `anuncio/[id]/page.tsx` | CERTIFIED |
+| **Comunidad / Clases / Busco / Mascotas y Perdidos** | `listings`, category-scoped | Bespoke `.eq("is_published",true).in("status",["active","sold"])` per category — does not call the named shared-gate function by name, but is an equivalent filter, **further reinforced by a stricter Postgres RLS policy** (anon reads for these 4 categories are RLS-restricted to `status="active"` only, excluding `sold`) | Shared `anuncio/[id]/page.tsx` (no dedicated `[id]`/`[slug]` route exists for any of these 4) | **CERTIFIED WITH CATEGORY ADAPTER** |
+| **Rentas** (both lanes) | `listings`, category="rentas" | Query filters only `category="rentas"` (RLS is the real gate: anon restricted to `status="active"` + published); app-layer **also** independently rejects expired listings via `expires_at`-based lifecycle computation, not just the stored `status` column | Doubly fail-closed: status check + independent expiry check | **CERTIFIED** |
+| **Empleos** | `empleos_public_listings.lifecycle_status` | DB-query `.eq("lifecycle_status","published")`; production explicitly excludes the dev-only marketing-seed fallback via `EMPLEOS_PUBLIC_LIVE_ONLY`/`NODE_ENV` check | Same query filter; confirmed a direct URL to a paused job 404s in production; dev-fallback path independently confirmed not to leak real DB rows | **CERTIFIED** |
+| **Autos Privado** | `autos_classifieds_listings.status` (shared table with Auto Dealers, `lane="privado"`) | DB-query `.eq("status","active")` | App-layer fail-closed, same mechanism as Auto Dealers | **CERTIFIED** |
+
+**Legacy/duplicate route sweep (cross-cutting):** every `.../results/page.tsx` across every category
+is a bare re-export of the canonical `resultados/page.tsx` — not a second implementation. Every
+found detail-route alias (`bienes-raices/anuncio/[id]`, `rentas/anuncio/[id]`, `/clasificados/travel`)
+is a pure `redirect()` to the already-certified canonical route, preserving all enforcement — none
+are a bypass.
+
+### Direct public-URL enforcement (cross-cutting summary)
+
+Every pipeline audited this package fails closed for a direct URL to a non-public row — either at
+the database query itself, at a Postgres RLS policy independent of the app query, or via an
+explicit post-fetch status re-check before any listing data is set into render state. No pipeline
+was found to render real content for a paused/suspended/archived/expired/rejected row via a direct
+URL.
+
+### Parent/child visibility
+
+Auto Dealers' gap (above) was the only real parent/child visibility defect found. Bienes Raíces
+Negocio's existing gate was re-confirmed, not re-built. No other pipeline in the current catalog
+has a parent/child inventory structure.
+
+### Common and category filters
+
+| Pipeline | City | State | ZIP | Country | Category-specific | Clear/Reset | Notes |
+|---|---|---|---|---|---|---|---|
+| Bienes Raíces, Restaurantes | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | Already certified in I.13A/I.13B research reuse; Restaurantes' country field already fixed in I.13A |
+| Servicios | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED (~30 filters) | CERTIFIED | |
+| Autos Negocios / Autos Privado | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED (price/year/make/model/etc.) | CERTIFIED | `radiusMiles` parsed but has no UI control — UNSUPPORTED BY PRODUCT, not fake |
+| Empleos | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | `premium`/`lane`/`industry` parsed but no UI control — UNSUPPORTED BY PRODUCT |
+| Rentas | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | "Estado del anuncio" (listing status) correctly distinguished from geographic "state" |
+| En Venta | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED (~20 filters) | CERTIFIED | |
+| Comida Local | CERTIFIED | UNSUPPORTED BY PRODUCT | UNSUPPORTED BY PRODUCT | UNSUPPORTED BY PRODUCT | CERTIFIED | CERTIFIED | No state/zip/country UI control exists — narrower surface, not misleading |
+| Busco | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | |
+| Clases | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | |
+| Comunidad | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED | CERTIFIED (+ auto-hides expired events) | CERTIFIED | |
+| **Mascotas y Perdidos** | CERTIFIED | **was FAKE/IGNORED** | **was FAKE/IGNORED** | **was FAKE/IGNORED** | CERTIFIED (tipo/lastSeenArea/hasPhoto) | CERTIFIED | **Fixed this package** — the quick-publish flow never collects state/zip/country, so these 3 controls always returned zero results once touched |
+| Viajes | CERTIFIED (destination, free-text) | N/A | UNSUPPORTED BY PRODUCT (no UI) | N/A | CERTIFIED | CERTIFIED | `departureCity` intentionally limited to 3 real flight-origin hubs — a legitimate travel-domain constraint, not a geography violation |
+
+Combining 2+ filters confirmed AND-chained (sequential `if (...) return false` guards), not
+silently overriding, across every pipeline spot-checked.
+
+### Open geography
+
+Confirmed preserved across every pipeline with a location filter: full 50-state dropdowns, genuinely
+open free-text city/country matching, no hardcoded NorCal-only restriction found anywhere. The one
+pipeline found to have a non-functional geography-adjacent control (Mascotas y Perdidos) was
+disabled rather than left misleading — same principle as I.13A's Restaurantes country-filter fix,
+applied here via a new opt-out on the shared search-bar component instead of a one-off disabled
+input, so it's reusable for any future pipeline in the same situation.
+
+### Results/public identity
+
+Confirmed consistent across all 6 pipelines checked (Autos both lanes, Bienes Raíces Negocio,
+Restaurantes, Servicios, Empleos, En Venta): every result card builds its detail href from the same
+row object the results query produced — no separate lookup, no drift possible. Parent vs. child
+card routing for Auto Dealers and Bienes Raíces Negocio inventory both confirmed to resolve to each
+item's own real id, never the parent's. No legacy route was found to bypass visibility enforcement.
+Cross-category/invalid-combination access is either structurally unroutable (category-dedicated
+tables) or explicitly filtered by a `category` column on the shared `listings` table.
+
+### Mobile filter state
+
+Confirmed (Bienes Raíces, Rentas, Restaurantes' live component): Apply reads current, not stale,
+selected values (dependency-array-captured `useCallback`s); Reset/Clear genuinely resets URL query
+state, not just visual UI state; desktop and mobile controls share one component instance and one
+parent-level state, with no risk of drift by construction (differentiated only by responsive CSS).
+One dead-code note: `RestauranteResultsClient.tsx` (a legacy, non-live file, superseded by
+`RestaurantesResultsShell.tsx`) had its own, lesser mobile-Reset gap — not a certifiable finding
+against the live app, noted for a future cleanup package's dead-code inventory.
+
+### Safe repairs implemented (5 code files + 1 test + this ledger = 7 total)
+
+1. `app/lib/clasificados/autos/autosPublicChildParentVisibility.ts` (new) — `isAutosChildParentGateSatisfied`/`filterAutosRowsByActiveParent`, mirroring Bienes Raíces Negocio's proven `isBrChildParentGateSatisfied`.
+2. `app/lib/clasificados/autos/autosClassifiedsListingService.ts` — wires the new gate into all 3 real call sites: `listActiveAutosClassifiedsRows` (public results feed), `listActiveDealerInventoryByGroupId` (dealer group page), and `getActiveLiveAutosBundle` (single-vehicle detail resolver's own directly-fetched row).
+3. `app/(site)/clasificados/components/categoryStandard/CategoryStandardCompactSearchBar.tsx` — adds `showState`/`showZip`/`showCountry` opt-out props (default `true`, preserving every existing consumer's behavior unchanged); a hidden field never submits a value regardless of internal state.
+4. `app/(site)/clasificados/mascotas-y-perdidos/MascotasResultsSearchPanel.tsx` — opts out of state/zip/country until the Mascotas publish flow collects them.
+5. `scripts/gate-i13b-public-visibility-filter-selftest.ts` (new) — this package's proof.
+6. `docs/gate-i5-7f-full-catalog-route-contract-matrix.md` — this section.
+
+### Deferred runtime-only QA
+
+Explicitly deferred to a future I.13C runtime device pass (not statically certifiable from source):
+touch-target accuracy under real finger input; real small-viewport rendering of responsive
+breakpoints; scroll-lock/overscroll behavior on real iOS Safari/Android Chrome; on-blur commit
+ordering on touch devices (Bienes Raíces' Apply-button correctness relies on standard blur-before-
+click ordering, confirmed correct by spec reasoning, not exercised on a real touch device).
+
+### Remaining launch blockers
+
+None. Both proven defects found this package (Auto Dealers parent-liveness, Mascotas fake filters)
+are now closed. Every pipeline in the current real launch catalog has a recorded, evidence-backed
+public-visibility and filter classification — no pipeline remains NOT CHECKED.
+
+### Next recommended package
+
+**I.13C — Runtime device QA**: the deferred items above (touch targets, real small-viewport
+rendering, scroll-lock behavior) require an actual browser/device pass, not further static audit.
 
 ## Work Package I.13A Update Log — Launch Readiness: Security, ES/EN, Mobile, and UX States
 
