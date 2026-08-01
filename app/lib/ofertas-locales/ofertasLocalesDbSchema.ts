@@ -66,6 +66,12 @@ export const OFERTAS_LOCALES_PRODUCTION_COLUMNS = [
   "entitlement_status",
   "entitlement_granted_at",
   "entitlement_ends_at",
+  "partner_assignment_id",
+  "commercial_eligibility_source",
+  "active_source_asset_id",
+  "public_source_asset_id",
+  "asset_lifecycle_status",
+  "asset_replacement_required_review",
   "archived_at",
   "created_at",
   "updated_at",
@@ -253,6 +259,12 @@ export const OFERTAS_LOCALES_ADMIN_SELECT = `
   entitlement_status,
   entitlement_granted_at,
   entitlement_ends_at,
+  partner_assignment_id,
+  commercial_eligibility_source,
+  active_source_asset_id,
+  public_source_asset_id,
+  asset_lifecycle_status,
+  asset_replacement_required_review,
   submitted_at,
   created_at,
   updated_at
@@ -290,6 +302,10 @@ export const OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT = `
   internal_notes,
   published_at,
   expires_at,
+  partner_assignment_id,
+  commercial_eligibility_source,
+  public_source_asset_id,
+  asset_lifecycle_status,
   submitted_at,
   updated_at
 `;
@@ -321,7 +337,11 @@ export const OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT = `
   draft_snapshot,
   internal_notes,
   published_at,
-  expires_at
+  expires_at,
+  partner_assignment_id,
+  commercial_eligibility_source,
+  public_source_asset_id,
+  asset_lifecycle_status
 `;
 
 export const OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT = `
@@ -353,9 +373,13 @@ export const OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT = `
     draft_snapshot,
     internal_notes,
     published_at,
-    expires_at
+    expires_at,
+    partner_assignment_id,
+    commercial_eligibility_source,
+    public_source_asset_id,
+    asset_lifecycle_status
   )
 `;
 
 export const OFERTAS_LOCALES_WRITE_RETURN_COLUMNS =
-  "id, status, submitted_at, created_at, updated_at, published_at, expires_at, leonix_ad_id, commercial_product_key, payment_status, entitlement_status";
+  "id, status, submitted_at, created_at, updated_at, published_at, expires_at, leonix_ad_id, commercial_product_key, payment_status, entitlement_status, commercial_eligibility_source, partner_assignment_id, asset_lifecycle_status";

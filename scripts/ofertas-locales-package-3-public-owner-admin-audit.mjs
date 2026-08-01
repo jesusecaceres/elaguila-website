@@ -130,7 +130,9 @@ assert.match(src.analyticsDoc, /planned event names only[\s\S]*ofertas_product_o
 assert.match(src.assetDoc, /keeps replacement unavailable[\s\S]*Old items do not remain active/i, "Asset replacement handoff keeps UI truthful and prevents item mixing");
 assert.match(src.checklistDoc, /C1: DONE[\s\S]*D2: BLOCKED[\s\S]*G3: (DONE|BLOCKED)[\s\S]*N4: PARTIAL/, "Package 3 master checklist updated");
 
-// No fake analytics implementation.
-assert.match(src.analyticsEvents, /No tracking implementation, API calls, or storage/, "analytics events remain planned-only");
+// Package 6 replaces the Package 3 planned-only handoff with canonical shared analytics.
+assert.match(src.analyticsEvents, /canonical events recorded through POST \/api\/analytics\/events/, "analytics events use canonical endpoint");
+assert.match(src.analyticsEvents, /Storage remains the shared `listing_analytics` table/, "analytics events do not create duplicate storage");
+assert.match(src.analyticsEvents, /coupon_open/, "Cupones has a canonical open event without shopping-list/cart controls");
 
 console.log("Package 3 Ofertas/Cupones lifecycle and handoff audit passed.");

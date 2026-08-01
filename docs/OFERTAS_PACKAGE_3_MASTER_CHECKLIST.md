@@ -8,9 +8,9 @@ Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
 - D1: DONE - parent/child status relationship is enforced for public search and admin activation.
 - D2: BLOCKED - Gemini DB compatibility requires the shared provider constraint migration; Package 3 only prepared the handoff.
 - D3: DONE - pending/rejected children remain private.
-- D5: PARTIAL - source crop/bbox/page are preserved; source replacement generation is blocked.
+- D5: DONE - source crop/bbox/page are preserved and Package 6 adds versioned source asset linkage for replacement safety.
 - E1: DONE - owner sees truthful status and rejection reason when stored.
-- E2: PARTIAL - owner correction/resubmit keeps same parent for safe fields; source replacement is blocked.
+- E2: DONE - owner correction/resubmit keeps same parent, and Package 6 adds a source-version replacement registration path that preserves identity/payment/term.
 - F1: DONE - admin review can approve/reject/archive category records.
 - F2: DONE - rejection now requires a reason and keeps children private.
 - F3: PARTIAL - admin evidence is category-local; reviewed_by/reviewed_at storage remains shared/schema-blocked.
@@ -29,11 +29,11 @@ Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
 - J3: DONE - Package 5 separates paid entitlement fulfillment from Package 4B approval/public term start.
 - K1: PARTIAL - checkout route and metadata contract exist for both products; live Stripe configuration remains environment work.
 - K2: DONE - Package 5 extends shared payment fulfillment and entitlement activation for Ofertas/Cupones without duplicate parents.
-- L1: BLOCKED - verified partner status requires shared schema/admin entitlement implementation.
-- L2: BLOCKED - partner public badge/priority requires verified shared state.
-- L3: BLOCKED - partner courtesy lifecycle and expiration require shared entitlement/admin implementation.
-- M1: BLOCKED - real analytics storage and dashboard aggregation require shared analytics implementation.
-- M2: DONE - category event contract is documented; dashboards still avoid fake counts.
+- L1: DONE - Package 6 adds verified partner organization and assignment source-of-truth tables plus server-side admin mutation primitives.
+- L2: DONE - Package 6 public badge/priority uses persisted active verified partner assignment truth and preserves explicit sort truth.
+- L3: DONE - Package 6 adds active courtesy term validation as an alternate submission/approval eligibility source without marking courtesy paid.
+- M1: DONE - Package 6 reuses shared `listing_analytics` storage, adds Ofertas identity/event support, and wires public events plus owner metrics.
+- M2: DONE - category event contract is canonicalized through `/api/analytics/events`; dashboards avoid fake counts and show unavailable/zero truth.
 - N1: BLOCKED - environment/schema readiness requires migrated QA database and configured external services.
 - N2: BLOCKED - real flyer QA remains blocked until migrations are applied and Stripe/Gemini staging environment is configured.
 - N3: BLOCKED - real coupon QA remains blocked until migrations are applied and Stripe staging environment is configured.

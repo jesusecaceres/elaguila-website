@@ -19,6 +19,10 @@ import {
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import { buildOfertaLocalTelHref } from "./ofertasLocalesPreviewHelpers";
 import { parseOfertaLocalDraftSnapshot, readDraftSnapshotLocationFields } from "./ofertasLocalesDbSchema";
+import {
+  compareOfertaLocalDefaultRanking,
+  type OfertaLocalPartnerPublicVm,
+} from "./ofertasLocalesPartnerOperations";
 import type {
   OfertaLocalOfferType,
   OfertaLocalPublicOfferCard,
@@ -51,6 +55,10 @@ export type OfertaLocalPublicOfferRow = {
   coupon_assets: unknown;
   published_at: string | null;
   expires_at: string | null;
+  partner_assignment_id?: string | null;
+  commercial_eligibility_source?: string | null;
+  public_source_asset_id?: string | null;
+  asset_lifecycle_status?: string | null;
   submitted_at: string;
   updated_at: string;
 };
@@ -64,10 +72,18 @@ export type OfertaLocalPublicOfferSearchQuery = {
   category?: string;
   marketType?: string;
   offerType?: string;
-  sort?: "newest" | "expiring_soon";
+  sort?: "relevance" | "newest" | "expiring_soon";
 };
 
 const PUBLIC_OFFER_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set(["approved"]);
+const EMPTY_PARTNER_VM: OfertaLocalPartnerPublicVm = {
+  isVerifiedPartner: false,
+  badgeLabel: null,
+  partnerName: null,
+  highlightedPlacement: false,
+  placementPriority: 0,
+  pickupLocations: [],
+};
 
 function sanitizeText(raw: string | null | undefined, max: number): string {
   return String(raw ?? "")
@@ -105,7 +121,10 @@ export function isOfertaLocalPublicOfferRowEligible(
   return true;
 }
 
-export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRow): OfertaLocalPublicOfferCard {
+export function mapOfertaLocalPublicOfferRowToCard(
+  row: OfertaLocalPublicOfferRow,
+  partner: OfertaLocalPartnerPublicVm = EMPTY_PARTNER_VM,
+): OfertaLocalPublicOfferCard {
   const flyer = firstAssetHref(row.flyer_assets);
   const coupon = firstAssetHref(row.coupon_assets);
   const primary = flyer.href ? flyer : coupon;
@@ -145,6 +164,13 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
     validUntil: sanitizeText(row.valid_until, 32),
     publishedAt: sanitizeText(row.published_at, 40),
     expiresAt: sanitizeText(row.expires_at, 40),
+    partner: {
+      isVerifiedPartner: partner.isVerifiedPartner,
+      badgeLabel: partner.badgeLabel,
+      partnerName: partner.partnerName,
+      highlightedPlacement: partner.highlightedPlacement,
+      placementPriority: partner.placementPriority,
+    },
     phoneHref: buildOfertaLocalTelHref(phone) || null,
     websiteHref: getSafeOfertaLocalSourceAssetHref(row.website_url),
     directionsHref,
@@ -203,10 +229,14 @@ export function filterAndSortOfertaLocalPublicOffers(
     return true;
   });
 
-  const sort = query.sort ?? "newest";
+  const sort = query.sort ?? "relevance";
   out = [...out].sort((a, b) => {
     if (sort === "expiring_soon") return a.validUntil.localeCompare(b.validUntil);
-    return b.updatedAt.localeCompare(a.updatedAt);
+    if (sort === "newest") return b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id);
+    return compareOfertaLocalDefaultRanking(
+      { partner: a.partner, updatedAt: a.updatedAt, id: a.id },
+      { partner: b.partner, updatedAt: b.updatedAt, id: b.id },
+    );
   });
   return out;
 }
@@ -244,8 +274,9 @@ function matchesOfferCountry(offer: OfertaLocalPublicOfferCard, country: string)
 export function parseOfertaLocalPublicOfferSearchQuery(
   params: URLSearchParams
 ): OfertaLocalPublicOfferSearchQuery {
-  const sortRaw = params.get("sort")?.trim() ?? "newest";
-  const sort: "newest" | "expiring_soon" = sortRaw === "expiring_soon" ? "expiring_soon" : "newest";
+  const sortRaw = params.get("sort")?.trim() ?? "relevance";
+  const sort: "relevance" | "newest" | "expiring_soon" =
+    sortRaw === "expiring_soon" || sortRaw === "newest" ? sortRaw : "relevance";
   return {
     q: params.get("q")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",

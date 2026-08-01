@@ -97,6 +97,12 @@ export type OfertaLocalAdminRow = {
   entitlement_status?: string | null;
   entitlement_granted_at?: string | null;
   entitlement_ends_at?: string | null;
+  partner_assignment_id?: string | null;
+  commercial_eligibility_source?: string | null;
+  active_source_asset_id?: string | null;
+  public_source_asset_id?: string | null;
+  asset_lifecycle_status?: string | null;
+  asset_replacement_required_review?: boolean | null;
   submitted_at: string;
   created_at: string;
   updated_at: string;
@@ -142,6 +148,12 @@ export type OfertaLocalAdminListVm = {
   stripeReferencePresent: boolean;
   paymentRecordId: string | null;
   packageEntitlementId: string | null;
+  partnerAssignmentId: string | null;
+  commercialEligibilitySource: string;
+  activeSourceAssetId: string | null;
+  publicSourceAssetId: string | null;
+  assetLifecycleStatus: string;
+  assetReplacementRequiredReview: boolean;
   commercialDiscrepancyWarning: string | null;
   submittedAt: string;
   assetCount: number;
@@ -376,6 +388,12 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
     stripeReferencePresent: Boolean(row.stripe_checkout_session_id || row.stripe_payment_intent_id),
     paymentRecordId: row.payment_record_id ?? null,
     packageEntitlementId: row.package_entitlement_id ?? null,
+    partnerAssignmentId: row.partner_assignment_id ?? null,
+    commercialEligibilitySource: row.commercial_eligibility_source ?? "paid",
+    activeSourceAssetId: row.active_source_asset_id ?? null,
+    publicSourceAssetId: row.public_source_asset_id ?? null,
+    assetLifecycleStatus: row.asset_lifecycle_status ?? "legacy",
+    assetReplacementRequiredReview: row.asset_replacement_required_review === true,
     commercialDiscrepancyWarning,
     submittedAt: row.submitted_at,
     assetCount: flyerAssets.length + couponAssets.length,

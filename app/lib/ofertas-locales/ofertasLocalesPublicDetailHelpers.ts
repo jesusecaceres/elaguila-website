@@ -21,6 +21,12 @@ import {
   type OfertaLocalPublicOfferRow,
 } from "./ofertasLocalesPublicOfferHelpers";
 import {
+  fetchOfertaLocalActivePartnerAssignment,
+  fetchOfertaLocalPartnerPickupLocations,
+  resolveOfertaLocalPartnerPublicVm,
+  type OfertaLocalPartnerPublicVm,
+} from "./ofertasLocalesPartnerOperations";
+import {
   isOfertaLocalPublicSearchRowEligible,
   mapOfertaLocalPublicDetailHubItemFromRow,
   parseOfertaLocalPublishedSocialLinksFromInternalNotes,
@@ -86,11 +92,12 @@ function resolvePublicBusinessLogoFromSnapshot(snapshot: OfertaLocalDraftSnapsho
 
 export function mapOfertaLocalPublicDetailRowToDetail(
   row: OfertaLocalPublicDetailRow,
-  now: Date = new Date()
+  now: Date = new Date(),
+  partner?: OfertaLocalPartnerPublicVm,
 ): OfertaLocalPublicOfferDetail | null {
   if (!isOfertaLocalPublicOfferRowEligible(row, now)) return null;
 
-  const card = mapOfertaLocalPublicOfferRowToCard(row);
+  const card = mapOfertaLocalPublicOfferRowToCard(row, partner);
   const meta = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const socialLinks = parseOfertaLocalPublishedSocialLinksFromInternalNotes(row.internal_notes);
   const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot));
@@ -119,6 +126,17 @@ export function mapOfertaLocalPublicDetailRowToDetail(
     isExpired: isOfertaLocalPublicTermExpired(row.expires_at, now),
     businessLogoHref,
     phoneDisplay: phone,
+    pickupLocations: (partner?.pickupLocations ?? []).map((location) => ({
+      id: location.id,
+      displayName: sanitizeText(location.display_name, 160),
+      address: sanitizeText(location.address, 240),
+      city: sanitizeText(location.city, 80),
+      state: sanitizeText(location.state, 40),
+      zipCode: sanitizeText(location.zip_code, 20),
+      hours: sanitizeText(location.hours, 500),
+      contact: sanitizeText(location.contact, 160),
+      mapUrl: getSafeOfertaLocalSourceAssetHref(location.map_url),
+    })),
   };
 }
 
@@ -141,7 +159,13 @@ export async function fetchPublicOfertaLocalDetailById(
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapOfertaLocalPublicDetailRowToDetail(data as OfertaLocalPublicDetailRow);
+  const assignment = await fetchOfertaLocalActivePartnerAssignment(sb, offerId);
+  const pickupLocations =
+    assignment?.partner_organization_id && assignment.pickup_visibility_enabled
+      ? await fetchOfertaLocalPartnerPickupLocations(sb, assignment.partner_organization_id)
+      : [];
+  const partner = resolveOfertaLocalPartnerPublicVm({ assignment, pickupLocations });
+  return mapOfertaLocalPublicDetailRowToDetail(data as OfertaLocalPublicDetailRow, new Date(), partner);
 }
 
 export async function fetchPublicOfertaLocalItemsForOfferId(
@@ -167,9 +191,11 @@ export async function fetchPublicOfertaLocalItemsForOfferId(
 
   if (error || !data) return [];
 
+  const assignment = await fetchOfertaLocalActivePartnerAssignment(sb, id);
+  const partner = resolveOfertaLocalPartnerPublicVm({ assignment });
   return (data as OfertaLocalPublicSearchJoinedRow[])
     .filter((row) => isOfertaLocalPublicSearchRowEligible(row))
-    .map((row) => mapOfertaLocalPublicDetailHubItemFromRow(row, lang));
+    .map((row) => mapOfertaLocalPublicDetailHubItemFromRow(row, lang, partner));
 }
 
 export function ofertaLocalPublicDetailPath(id: string, lang: "es" | "en"): string {

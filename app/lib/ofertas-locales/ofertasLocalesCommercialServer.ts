@@ -11,6 +11,7 @@ import {
   type OfertaLocalCommercialProduct,
 } from "./ofertasLocalesCommercial";
 import { ensureOfertaLocalLeonixAdId } from "./ofertasLocalesLeonixAdId";
+import { validateOfertaLocalPartnerCourtesyEligibility } from "./ofertasLocalesPartnerOperations";
 
 type SupabaseLike = { from: (table: string) => any };
 
@@ -38,6 +39,8 @@ export type OfertaLocalCommercialParentRow = {
   entitlement_ends_at: string | null;
   published_at?: string | null;
   expires_at?: string | null;
+  commercial_eligibility_source?: string | null;
+  partner_assignment_id?: string | null;
 };
 
 export const OFERTAS_LOCALES_COMMERCIAL_PARENT_SELECT = [
@@ -62,6 +65,8 @@ export const OFERTAS_LOCALES_COMMERCIAL_PARENT_SELECT = [
   "entitlement_ends_at",
   "published_at",
   "expires_at",
+  "commercial_eligibility_source",
+  "partner_assignment_id",
 ].join(", ");
 
 export type OfertasCheckoutEligibilityResult =
@@ -266,10 +271,18 @@ export async function markOfertaLocalEntitlementFulfilled(input: {
 export type OfertaLocalSubmissionEntitlementResult =
   | {
       ok: true;
+      source: "paid";
       product: OfertaLocalCommercialProduct;
       leonixAdId: string;
       paymentRecordId: string;
       packageEntitlementId: string;
+    }
+  | {
+      ok: true;
+      source: "partner_courtesy";
+      product: OfertaLocalCommercialProduct;
+      leonixAdId: string;
+      partnerAssignmentId: string;
     }
   | { ok: false; status: number; code: string; message: string };
 
@@ -308,7 +321,26 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
     ? entitlements.find((row) => String(row.status ?? "").toLowerCase() === "active" && !row.revoked_at)
     : null;
   if (!activeEntitlement?.id || !activeEntitlement.payment_record_id) {
-    return { ok: false, status: 402, code: "paid_entitlement_required", message: "Paid entitlement is required before review submission." };
+    const courtesy = await validateOfertaLocalPartnerCourtesyEligibility({
+      supabase: input.supabase,
+      parent: input.parent,
+      ownerId: input.ownerId,
+    });
+    if (courtesy.ok) {
+      return {
+        ok: true,
+        source: "partner_courtesy",
+        product: courtesy.product,
+        leonixAdId,
+        partnerAssignmentId: courtesy.assignment.id,
+      };
+    }
+    return {
+      ok: false,
+      status: 402,
+      code: "commercial_entitlement_required",
+      message: "Paid entitlement or active verified partner courtesy is required before review submission.",
+    };
   }
 
   const { data: payment } = await input.supabase
@@ -332,6 +364,7 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
 
   return {
     ok: true,
+    source: "paid",
     product,
     leonixAdId,
     paymentRecordId: String(payment.id),

@@ -34,6 +34,7 @@ type Props = {
   surface?: "ofertas" | "cupones";
   /** When provided on the Cupones surface, the card opens the coupon drawer instead of navigating. */
   onSelect?: (offer: OfertaLocalPublicOfferCard) => void;
+  onOpen?: (offer: OfertaLocalPublicOfferCard) => void;
 };
 
 function businessInitial(name: string): string {
@@ -102,6 +103,9 @@ function OfferCardBody({
     <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className={BADGE}>{typeLabel}</span>
+        {offer.partner.isVerifiedPartner && offer.partner.badgeLabel ? (
+          <span className={BADGE}>{offer.partner.badgeLabel}</span>
+        ) : null}
         {offer.businessCategory ? (
           <span className="text-[10px] font-medium uppercase tracking-wide text-[#2A4536]/75 sm:text-[11px]">
             {offer.businessCategory}
@@ -142,7 +146,7 @@ function OfferCardBody({
   );
 }
 
-export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas", onSelect }: Props) {
+export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas", onSelect, onOpen }: Props) {
   const c = ofertasLocalesPublicSearchCopy(lang, surface);
   const couponLayout = surface === "cupones" || isOfertaLocalCouponOfferType(offer.offerType);
   const ctaLabel = ofertaLocalPublicOfferCardCta(lang, surface, offer.offerType);
@@ -176,7 +180,10 @@ export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas"
         type="button"
         className={CARD_BASE}
         data-testid="cupones-public-offer-card"
-        onClick={() => onSelect(offer)}
+        onClick={() => {
+          onOpen?.(offer);
+          onSelect(offer);
+        }}
         aria-label={`${ctaLabel}: ${offer.title}`}
       >
         {inner}
@@ -189,6 +196,7 @@ export function OfertasLocalesPublicOfferCard({ lang, offer, surface = "ofertas"
       href={ofertaLocalPublicDetailPath(offer.id, lang)}
       className={CARD_BASE}
       data-testid="ofertas-public-offer-card"
+      onClick={() => onOpen?.(offer)}
     >
       {inner}
     </Link>

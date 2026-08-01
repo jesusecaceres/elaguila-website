@@ -56,6 +56,9 @@ export default function OfertasLocalesOwnerManagePage() {
             publicLink: "Ver en resultados públicos",
             publicTermTitle: "Término público",
             commercialTitle: "Pago y paquete",
+            partnerTitle: "Partner / cortesía",
+            assetLifecycleTitle: "Archivos y reemplazo",
+            analyticsTitle: "Analíticas reales",
             payNow: "Pagar publicación",
             paying: "Creando pago seguro…",
             paymentHelp:
@@ -65,6 +68,8 @@ export default function OfertasLocalesOwnerManagePage() {
             expiredTerm: "Expirado",
             incompleteTerm: "Incompleto",
             daysRemaining: "días restantes",
+            analyticsUnavailable: "Analíticas no disponibles en este ambiente.",
+            lastActivity: "Última actividad",
           }
         : {
             title: "Manage local deal",
@@ -89,6 +94,9 @@ export default function OfertasLocalesOwnerManagePage() {
             publicLink: "View in public results",
             publicTermTitle: "Public term",
             commercialTitle: "Payment and package",
+            partnerTitle: "Partner / courtesy",
+            assetLifecycleTitle: "Assets and replacement",
+            analyticsTitle: "Real analytics",
             payNow: "Pay for publication",
             paying: "Creating secure checkout…",
             paymentHelp:
@@ -98,6 +106,8 @@ export default function OfertasLocalesOwnerManagePage() {
             expiredTerm: "Expired",
             incompleteTerm: "Incomplete",
             daysRemaining: "days remaining",
+            analyticsUnavailable: "Analytics are unavailable in this environment.",
+            lastActivity: "Last activity",
           },
     [lang]
   );
@@ -304,6 +314,32 @@ export default function OfertasLocalesOwnerManagePage() {
           <p className="mt-2 text-xs text-[#7A7164]">{t.paymentHelp}</p>
           {checkoutMsg ? <p className="mt-2 text-xs text-rose-800">{checkoutMsg}</p> : null}
         </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.partnerTitle}</p>
+            <p className="mt-1 font-semibold text-[#1E1810]">{offer.commercialEligibilitySource}</p>
+            <p className="font-mono text-[10px] text-[#7A7164]">
+              {offer.partnerAssignmentId || (lang === "es" ? "Sin asignación partner" : "No partner assignment")}
+            </p>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              {lang === "es"
+                ? "La verificación y cortesía solo las administra Leonix."
+                : "Verification and courtesy are managed only by Leonix."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.assetLifecycleTitle}</p>
+            <p className="mt-1 font-semibold text-[#1E1810]">{offer.assetLifecycleStatus}</p>
+            <p className="font-mono text-[10px] text-[#7A7164]">
+              active {offer.activeSourceAssetId || "legacy"} · public {offer.publicSourceAssetId || "legacy"}
+            </p>
+            {offer.assetReplacementRequiredReview ? (
+              <p className="mt-1 text-xs font-semibold text-amber-900">
+                {lang === "es" ? "Reemplazo pendiente de revisión." : "Replacement pending review."}
+              </p>
+            ) : null}
+          </div>
+        </div>
 
         <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
           <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.publicTermTitle}</p>
@@ -325,6 +361,29 @@ export default function OfertasLocalesOwnerManagePage() {
           ) : null}
         </div>
       </header>
+
+      <section className="mb-6 rounded-2xl border border-[#E8DFD0] bg-white p-4 text-sm">
+        <h2 className="text-xs font-bold uppercase text-[#7A7164]">{t.analyticsTitle}</h2>
+        {offer.analytics?.unavailable ? (
+          <p className="mt-2 text-[#7A7164]">{t.analyticsUnavailable}</p>
+        ) : (
+          <>
+            <dl className="mt-3 grid gap-3 sm:grid-cols-4">
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Views</dt><dd className="text-lg font-bold">{offer.analytics?.views ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Opens</dt><dd className="text-lg font-bold">{offer.analytics?.listingOpens ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Products</dt><dd className="text-lg font-bold">{offer.analytics?.productOpens ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Shares</dt><dd className="text-lg font-bold">{offer.analytics?.shares ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">List adds</dt><dd className="text-lg font-bold">{offer.analytics?.shoppingListAdds ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Contact</dt><dd className="text-lg font-bold">{offer.analytics?.contactActions ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Website</dt><dd className="text-lg font-bold">{offer.analytics?.websiteClicks ?? 0}</dd></div>
+              <div><dt className="text-[10px] uppercase text-[#7A7164]">Directions</dt><dd className="text-lg font-bold">{offer.analytics?.directionsClicks ?? 0}</dd></div>
+            </dl>
+            <p className="mt-3 text-xs text-[#7A7164]">
+              {t.lastActivity}: {offer.analytics?.lastActivity || "—"}
+            </p>
+          </>
+        )}
+      </section>
 
       {!offer.canEdit && offer.status === "approved" ? (
         <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">{t.approvedBlock}</p>

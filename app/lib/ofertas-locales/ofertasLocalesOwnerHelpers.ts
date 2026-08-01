@@ -56,6 +56,12 @@ export type OfertaLocalOwnerListItem = {
   entitlementStatus: string;
   entitlementGrantedAt: string | null;
   entitlementEndsAt: string | null;
+  partnerAssignmentId: string | null;
+  commercialEligibilitySource: string;
+  activeSourceAssetId: string | null;
+  publicSourceAssetId: string | null;
+  assetLifecycleStatus: string;
+  assetReplacementRequiredReview: boolean;
   checkoutEligible: boolean;
   submittedAt: string;
   assetCount: number;
@@ -78,6 +84,19 @@ export type OfertaLocalOwnerDetail = Omit<
   isExpired: boolean;
   publicResultsHref: string | null;
   checkoutEligible: boolean;
+  analytics?: {
+    views: number;
+    listingOpens: number;
+    productOpens: number;
+    productSearchClicks: number;
+    shares: number;
+    shoppingListAdds: number;
+    contactActions: number;
+    websiteClicks: number;
+    directionsClicks: number;
+    lastActivity: string | null;
+    unavailable: boolean;
+  };
 };
 
 export function ofertaLocalOwnerStatusLabel(
@@ -226,8 +245,15 @@ export function mapOfertaLocalRowToOwnerListItem(
     entitlementStatus: detail.entitlementStatus,
     entitlementGrantedAt: detail.entitlementGrantedAt,
     entitlementEndsAt: detail.entitlementEndsAt,
+    partnerAssignmentId: detail.partnerAssignmentId,
+    commercialEligibilitySource: detail.commercialEligibilitySource,
+    activeSourceAssetId: detail.activeSourceAssetId,
+    publicSourceAssetId: detail.publicSourceAssetId,
+    assetLifecycleStatus: detail.assetLifecycleStatus,
+    assetReplacementRequiredReview: detail.assetReplacementRequiredReview,
     checkoutEligible:
       ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
+      detail.commercialEligibilitySource !== "partner_courtesy" &&
       detail.entitlementStatus !== "active" &&
       detail.paymentStatus !== "paid",
     submittedAt: detail.submittedAt,
@@ -261,6 +287,7 @@ export function mapOfertaLocalRowToOwnerDetail(
     publicResultsHref: publicResultsHrefForStatus(row.status, isExpired || !termActive),
     checkoutEligible:
       ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
+      safe.commercialEligibilitySource !== "partner_courtesy" &&
       safe.entitlementStatus !== "active" &&
       safe.paymentStatus !== "paid",
   };

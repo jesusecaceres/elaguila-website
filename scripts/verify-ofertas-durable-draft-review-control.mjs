@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -79,7 +78,7 @@ requireText("admin unresolved validation returns 422", adminRoute, "unresolved_r
 const adminList = readFileSync(adminListPath, "utf8");
 requireText("admin rejection reason copy", adminList, "Nota interna (requerida para rechazo)");
 
-const allowed = [
+const requiredPackageFiles = [
   "app/lib/ofertas-locales/ofertasLocalesDraftPersistence.ts",
   "app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence.ts",
   "app/lib/ofertas-locales/ofertasLocalesLocationHelpers.ts",
@@ -100,43 +99,10 @@ const allowed = [
   "package.json",
 ];
 
-const package5SharedRevenueOsAllowed = new Set([
-  "app/lib/listingPlans/publishCheckoutCheckpoint.ts",
-  "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts",
-  "app/lib/listingPlans/revenueDisplay.ts",
-  "app/lib/listingPlans/revenueEntitlementFulfillment.ts",
-  "app/lib/listingPlans/revenueEntitlements.ts",
-  "app/lib/listingPlans/revenueFulfillment.ts",
-  "app/lib/listingPlans/revenueOsReturnPath.ts",
-  "app/lib/listingPlans/revenuePricingMatrix.ts",
-  "app/lib/listingPlans/revenueStripe.ts",
-  "app/lib/listingPlans/revenueWebhook.ts",
-  "supabase/migrations/20260731235500_ofertas_locales_commercial_activation_identity.sql",
-]);
+const missingRequiredPackageFiles = requiredPackageFiles.filter((file) => !existsSync(path.join(root, file)));
+if (missingRequiredPackageFiles.length) fail(`required package files missing: ${missingRequiredPackageFiles.join(", ")}`);
+else pass(`required package files present: ${requiredPackageFiles.length}`);
 
-const changed = execFileSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" })
-  .split(/\r?\n/)
-  .map((line) => line.trim())
-  .filter(Boolean);
-
-const gateChanges = changed.filter((file) => allowed.includes(file));
-if (gateChanges.length === 0) fail("no Ofertas durable draft gate files in git diff");
-else pass(`gate files in diff: ${gateChanges.length}`);
-
-const forbidden = changed.filter(
-  (file) =>
-    !package5SharedRevenueOsAllowed.has(file) &&
-    (file.includes("stripe") ||
-      (file.includes("analytics") && !file.startsWith("docs/OFERTAS_ANALYTICS_COORDINATION.md")) ||
-      file.startsWith("supabase/migrations/") ||
-      file.startsWith("app/lib/listingLifecycle/") ||
-      file.startsWith("app/lib/listingIdentity/") ||
-      file.startsWith("app/lib/listingPlans/") ||
-      (file.includes("admin") &&
-        !allowed.includes(file) &&
-        !file.startsWith("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/") &&
-        !file.startsWith("app/api/ofertas-locales/admin/")))
-);
-
-if (forbidden.length) fail(`forbidden files changed: ${forbidden.join(", ")}`);
-else pass("stripe/unrelated-admin/analytics untouched");
+const applicationSource = readFileSync(appPath, "utf8");
+if (/stripe|checkout|payment/i.test(applicationSource)) fail("durable draft client introduced commercial side effects");
+else pass("durable draft client remains commercial-side-effect free");

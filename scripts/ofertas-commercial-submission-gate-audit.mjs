@@ -24,15 +24,17 @@ assert.match(ownerRoute, /ensureOfertaLocalLeonixAdId/);
 assert.match(ownerHelpers, /"rejected"/);
 assert.match(ownerHelpers, /checkoutEligible/);
 
-assert.match(server, /paid_entitlement_required/);
+assert.match(server, /commercial_entitlement_required/);
 assert.match(server, /paid_entitlement_invalid/);
+assert.match(server, /source: "paid"/);
+assert.match(server, /source: "partner_courtesy"/);
 assert.match(server, /listing_package_entitlements/);
 assert.match(server, /leonix_payment_records/);
 assert.match(server, /payment\.owner_user_id !== input\.ownerId/);
 assert.match(server, /Number\(payment\.amount_total_cents/);
 assert.match(server, /isPaymentCleared\(payment\.payment_status\)/);
 
-assert.match(adminMutation, /paid_entitlement_required/);
+assert.match(adminMutation, /commercial_entitlement_required/);
 assert.match(adminMutation, /leonix_ad_id_required/);
 assert.match(adminMutation, /parentUpdate\.published_at = now/);
 assert.match(adminMutation, /calculateOfertaLocalPublicTermExpiresAt\(now\)/);

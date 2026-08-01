@@ -154,6 +154,37 @@ function resolveAutosRow(row: Row, sourceId: string): ResolveListingAnalyticsIde
   };
 }
 
+function resolveOfertasLocalesRow(row: Row, sourceId: string): ResolveListingAnalyticsIdentityResult {
+  const owner = str(row.owner_id);
+  if (!owner) return { ok: false, error: "listing_not_found" };
+
+  const status = str(row.status);
+  if (status === "archived") return { ok: false, error: "listing_not_found" };
+
+  const id = str(row.id) || sourceId;
+  const leonixAdId = str(row.leonix_ad_id) || undefined;
+  const canonicalAdId = buildCanonicalAdId({
+    sourceTable: "ofertas_locales",
+    sourceId: id,
+    leonixAdId,
+  });
+
+  return {
+    ok: true,
+    identity: {
+      canonicalAdId,
+      sourceTable: "ofertas_locales",
+      sourceId: id,
+      category: "ofertas-locales",
+      ownerUserId: owner,
+      title: str(row.title) || str(row.business_name) || undefined,
+      status: status || undefined,
+      leonixAdId,
+      legacyListingId: canonicalAdId,
+    },
+  };
+}
+
 function resolveSlugPrimaryRow(
   row: Row,
   sourceId: string,
@@ -269,6 +300,13 @@ async function resolveFromTable(
       });
       if (!row) return { ok: false, error: "listing_not_found" };
       return resolveSlugPrimaryRow(row, sourceId, "viajes_staged_listings", "viajes", ["title"], "lifecycle_status");
+    case "ofertas_locales":
+      row = await fetchRowByIdOrSlug(sb, "ofertas_locales", sourceId, {
+        slugColumn: false,
+        leonixColumn: true,
+      });
+      if (!row) return { ok: false, error: "listing_not_found" };
+      return resolveOfertasLocalesRow(row, sourceId);
     default:
       return { ok: false, error: "invalid_source_table" };
   }

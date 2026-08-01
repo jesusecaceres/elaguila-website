@@ -61,6 +61,7 @@ function isScanRequest(v: unknown): v is OfertaLocalScanApiRequest {
   return (
     typeof o.ofertaLocalId === "string" &&
     typeof o.assetId === "string" &&
+    (o.sourceAssetVersionId === undefined || o.sourceAssetVersionId === null || typeof o.sourceAssetVersionId === "string") &&
     (o.assetKind === "flyer" || o.assetKind === "coupon") &&
     typeof o.assetUrl === "string" &&
     typeof o.storagePath === "string" &&
@@ -610,6 +611,10 @@ export async function handleOfertaLocalScanPost(
     .from("oferta_local_scan_jobs")
     .insert({
       ...scanInsert,
+      source_asset_version_id:
+        typeof body.sourceAssetVersionId === "string" && body.sourceAssetVersionId.trim()
+          ? body.sourceAssetVersionId.trim()
+          : null,
       source_asset_url: body.assetUrl,
       source_asset_type: body.assetKind,
       source_storage_path: storagePath,
@@ -695,9 +700,15 @@ export async function handleOfertaLocalScanPost(
       averageConfidence: scanResult.averageConfidence,
     });
 
-    const itemRows = scanResult.items.map((item) =>
-      mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId)
-    );
+    const sourceAssetVersionId =
+      typeof body.sourceAssetVersionId === "string" && body.sourceAssetVersionId.trim()
+        ? body.sourceAssetVersionId.trim()
+        : null;
+    const itemRows = scanResult.items.map((item) => ({
+      ...mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId),
+      source_asset_version_id: sourceAssetVersionId,
+      source_lifecycle_status: "active",
+    }));
     itemRows.forEach((row, itemIndex) => {
       logAiStage("DB_MAPPING_PREPARED", {
         scanJobId,

@@ -137,6 +137,10 @@ function InspectDetail({
           <dd className="text-[10px] text-[#7A7164]">
             Stripe ref: {item.stripeReferencePresent ? "presente" : "ausente"}
           </dd>
+          <dd className="text-[10px] text-[#7A7164]">
+            Fuente: {item.commercialEligibilitySource}
+            {item.partnerAssignmentId ? ` · partner ${item.partnerAssignmentId}` : ""}
+          </dd>
           {item.commercialDiscrepancyWarning ? (
             <dd className="mt-1 rounded bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-900">
               {item.commercialDiscrepancyWarning}
@@ -146,6 +150,16 @@ function InspectDetail({
         <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Tipo de oferta</dt>
           <dd>{item.offerType}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Asset lifecycle</dt>
+          <dd>{item.assetLifecycleStatus}</dd>
+          <dd className="font-mono text-[10px] text-[#7A7164]">
+            active {item.activeSourceAssetId || "legacy"} · public {item.publicSourceAssetId || "legacy"}
+          </dd>
+          {item.assetReplacementRequiredReview ? (
+            <dd className="text-xs font-semibold text-amber-900">Reemplazo pendiente de revisión</dd>
+          ) : null}
         </div>
         <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Categoría</dt>
@@ -479,6 +493,10 @@ export function OfertasLocalesAdminReviewList({
                   <div className="font-semibold">{item.commercialProductKey || "sin paquete"}</div>
                   <div>{item.commercialAmount || "sin pago"}</div>
                   <div>{item.paymentStatus} · {item.entitlementStatus}</div>
+                  <div className="text-[#7A7164]">{item.commercialEligibilitySource}</div>
+                  {item.partnerAssignmentId ? (
+                    <div className="font-mono text-[10px] text-[#7A7164]">partner {item.partnerAssignmentId.slice(0, 8)}</div>
+                  ) : null}
                   {item.commercialDiscrepancyWarning ? (
                     <div className="mt-1 rounded bg-rose-50 px-1 py-0.5 font-semibold text-rose-900">
                       {item.commercialDiscrepancyWarning}

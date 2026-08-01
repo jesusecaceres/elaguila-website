@@ -12,6 +12,7 @@ import {
 } from "./ofertasLocalesAdminHelpers";
 import { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
 import { calculateOfertaLocalPublicTermExpiresAt } from "./ofertasLocalesFormatting";
+import { validateOfertaLocalPartnerCourtesyEligibility } from "./ofertasLocalesPartnerOperations";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
 export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive";
@@ -96,7 +97,8 @@ export async function syncOfertaLocalItemsActivationAfterAdminReview(
       .from("oferta_local_items")
       .update({ is_active: true, updated_at: now })
       .eq("oferta_local_id", offerId)
-      .eq("review_status", "approved");
+      .eq("review_status", "approved")
+      .eq("source_lifecycle_status", "active");
 
     if (error) return { ok: false, error: "item_activation_failed" };
     return { ok: true };
@@ -150,13 +152,25 @@ export async function mutateOfertaLocalAdminReview(
     if (!/^LNX-[A-Z0-9]{8}$/.test(String(offer.leonix_ad_id ?? ""))) {
       return { ok: false, error: "leonix_ad_id_required" };
     }
-    if (
-      offer.payment_status !== "paid" ||
-      offer.entitlement_status !== "active" ||
-      !offer.package_entitlement_id ||
-      !offer.payment_record_id
-    ) {
-      return { ok: false, error: "paid_entitlement_required" };
+    const hasPaidEntitlement =
+      offer.payment_status === "paid" &&
+      offer.entitlement_status === "active" &&
+      Boolean(offer.package_entitlement_id) &&
+      Boolean(offer.payment_record_id);
+    if (!hasPaidEntitlement) {
+      const courtesy = await validateOfertaLocalPartnerCourtesyEligibility({
+        supabase: sb,
+        parent: {
+          id: offer.id,
+          owner_id: offer.owner_id,
+          offer_type: offer.offer_type,
+          leonix_ad_id: offer.leonix_ad_id,
+        },
+        ownerId: offer.owner_id,
+      });
+      if (!courtesy.ok) {
+        return { ok: false, error: "commercial_entitlement_required" };
+      }
     }
   }
 

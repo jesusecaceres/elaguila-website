@@ -380,6 +380,9 @@ export async function POST(req: NextRequest) {
     const updateRow = buildOfertasLocalesProductionInsertRow(draft, ownerId, parent.draft_snapshot);
     delete updateRow.owner_id;
     delete updateRow.created_at;
+    updateRow.commercial_eligibility_source = entitlement.source;
+    updateRow.partner_assignment_id =
+      entitlement.source === "partner_courtesy" ? entitlement.partnerAssignmentId : null;
 
     const { data, error } = await supabase
       .from("ofertas_locales")
@@ -407,9 +410,11 @@ export async function POST(req: NextRequest) {
         reviewedItems: aiReviewCounts.totalCount,
       },
       commercial: {
+        source: entitlement.source,
         productKey: entitlement.product.packageKey,
-        paymentRecordId: entitlement.paymentRecordId,
-        packageEntitlementId: entitlement.packageEntitlementId,
+        paymentRecordId: entitlement.source === "paid" ? entitlement.paymentRecordId : null,
+        packageEntitlementId: entitlement.source === "paid" ? entitlement.packageEntitlementId : null,
+        partnerAssignmentId: entitlement.source === "partner_courtesy" ? entitlement.partnerAssignmentId : null,
         leonixAdId: entitlement.leonixAdId,
       },
     });

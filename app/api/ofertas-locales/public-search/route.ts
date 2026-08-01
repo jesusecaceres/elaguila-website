@@ -8,6 +8,12 @@ import {
   type OfertaLocalPublicSearchJoinedRow,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers";
 import { OFERTAS_LOCALES_PUBLIC_SEARCH_JOIN_SELECT } from "@/app/lib/ofertas-locales/ofertasLocalesDbSchema";
+import {
+  OFERTAS_LOCALES_PARTNER_ASSIGNMENT_SELECT,
+  resolveOfertaLocalPartnerPublicVm,
+  type OfertaLocalPartnerAssignmentRow,
+  type OfertaLocalPartnerPublicVm,
+} from "@/app/lib/ofertas-locales/ofertasLocalesPartnerOperations";
 import type { OfertaLocalPublicSearchApiResponse } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -18,6 +24,24 @@ const MAX_CANDIDATES = 200;
 function isDbTableMissingError(message: string | undefined): boolean {
   const m = (message ?? "").toLowerCase();
   return m.includes("does not exist") || m.includes("could not find the table");
+}
+
+async function loadPartnerVmByOfferId(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  offerIds: string[],
+): Promise<Map<string, OfertaLocalPartnerPublicVm>> {
+  const ids = [...new Set(offerIds.map((id) => id.trim()).filter(Boolean))];
+  const out = new Map<string, OfertaLocalPartnerPublicVm>();
+  if (ids.length === 0) return out;
+  const { data } = await supabase
+    .from("ofertas_local_partner_assignments")
+    .select(OFERTAS_LOCALES_PARTNER_ASSIGNMENT_SELECT)
+    .in("oferta_local_id", ids)
+    .eq("assignment_status", "active");
+  for (const row of (data ?? []) as unknown as OfertaLocalPartnerAssignmentRow[]) {
+    out.set(row.oferta_local_id, resolveOfertaLocalPartnerPublicVm({ assignment: row }));
+  }
+  return out;
 }
 
 export async function GET(req: NextRequest) {
@@ -62,9 +86,16 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const eligible = (data ?? [])
-    .filter((row) => isOfertaLocalPublicSearchRowEligible(row as OfertaLocalPublicSearchJoinedRow))
-    .map((row) => mapOfertaLocalPublicSearchRowToItem(row as OfertaLocalPublicSearchJoinedRow, lang));
+  const eligibleRows = (data ?? []).filter((row) =>
+    isOfertaLocalPublicSearchRowEligible(row as OfertaLocalPublicSearchJoinedRow)
+  ) as OfertaLocalPublicSearchJoinedRow[];
+  const partnerVmByOfferId = await loadPartnerVmByOfferId(
+    supabase,
+    eligibleRows.map((row) => row.ofertas_locales.id),
+  );
+  const eligible = eligibleRows.map((row) =>
+    mapOfertaLocalPublicSearchRowToItem(row, lang, partnerVmByOfferId.get(row.ofertas_locales.id))
+  );
 
   const items = filterAndSortOfertaLocalPublicSearchItems(eligible, query);
 

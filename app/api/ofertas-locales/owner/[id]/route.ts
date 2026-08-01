@@ -13,6 +13,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerUpdateMapper";
 import { validateOfertaLocalSubmissionEntitlement } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
 import { ensureOfertaLocalLeonixAdId } from "@/app/lib/ofertas-locales/ofertasLocalesLeonixAdId";
+import { fetchListingDashboardAnalyticsServer } from "@/app/lib/analytics/server/fetchOwnerDashboardAnalyticsServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -39,7 +40,36 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, offer: mapOfertaLocalRowToOwnerDetail(row, lang) });
+  const detail = mapOfertaLocalRowToOwnerDetail(row, lang);
+  const analytics = await fetchListingDashboardAnalyticsServer(
+    ownerId,
+    [row.id, row.leonix_ad_id ?? ""].filter(Boolean),
+    getAdminSupabase(),
+  );
+
+  return NextResponse.json({
+    ok: true,
+    offer: {
+      ...detail,
+      analytics: {
+        views: analytics.metrics.views,
+        listingOpens: analytics.metrics.listing_opens,
+        productOpens: analytics.metrics.product_opens,
+        productSearchClicks: analytics.metrics.product_search_result_clicks,
+        shares: analytics.metrics.shares,
+        shoppingListAdds: analytics.metrics.shopping_list_adds,
+        contactActions:
+          analytics.metrics.phone_clicks +
+          analytics.metrics.whatsapp_clicks +
+          analytics.metrics.email_clicks +
+          analytics.metrics.message_clicks,
+        websiteClicks: analytics.metrics.website_clicks,
+        directionsClicks: analytics.metrics.directions_clicks,
+        lastActivity: analytics.recentEvents[0]?.created_at ?? null,
+        unavailable: analytics.analyticsUnavailable,
+      },
+    },
+  });
 }
 
 /**
@@ -121,6 +151,9 @@ export async function PATCH(
       { status: entitlement.status }
     );
   }
+  payload.commercial_eligibility_source = entitlement.source;
+  payload.partner_assignment_id =
+    entitlement.source === "partner_courtesy" ? entitlement.partnerAssignmentId : null;
 
   const { data, error } = await supabase
     .from("ofertas_locales")

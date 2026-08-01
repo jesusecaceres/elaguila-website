@@ -205,6 +205,10 @@ export default function OfertasLocalesOwnerDashboardPage() {
                     <div>
                       {item.paymentStatus} · {item.entitlementStatus}
                     </div>
+                    <div className="text-[#7A7164]">{item.commercialEligibilitySource}</div>
+                    {item.partnerAssignmentId ? (
+                      <div className="font-mono text-[10px] text-[#7A7164]">partner {item.partnerAssignmentId.slice(0, 8)}</div>
+                    ) : null}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-[10px]">
                     <span className="font-semibold">

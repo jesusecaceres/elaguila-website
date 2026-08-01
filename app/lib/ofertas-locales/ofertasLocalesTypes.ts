@@ -635,6 +635,8 @@ export type OfertaLocalItemDbRow = {
   valid_until: string | null;
   source_asset_id: string | null;
   source_asset_url: string | null;
+  source_asset_version_id?: string | null;
+  source_lifecycle_status?: string | null;
   source_page: number | null;
   source_crop_url: string | null;
   source_file_name: string | null;
@@ -669,6 +671,7 @@ export type OfertaLocalItemDbInsert = Omit<
 export type OfertaLocalScanApiRequest = {
   ofertaLocalId: string;
   assetId: string;
+  sourceAssetVersionId?: string | null;
   assetKind: "flyer" | "coupon";
   assetUrl: string;
   storagePath: string;
@@ -798,6 +801,8 @@ export type OfertaLocalItemPatchApiResponse = {
 /** Public shopper search item — Stack D (no private fields). */
 export type OfertaLocalPublicSearchItem = {
   id: string;
+  ofertaLocalId: string;
+  leonixAdId: string;
   itemName: string;
   normalizedItemName: string;
   priceText: string;
@@ -810,6 +815,8 @@ export type OfertaLocalPublicSearchItem = {
   sourceCropHref: string | null;
   sourceAssetLabel: string;
   sourceAssetHref: string | null;
+  sourceAssetVersionId: string | null;
+  sourceLifecycleStatus: string;
   validFrom: string | null;
   validUntil: string | null;
   businessName: string;
@@ -831,6 +838,13 @@ export type OfertaLocalPublicSearchItem = {
   offerType: string;
   marketType: string;
   businessCategory: string;
+  partner: {
+    isVerifiedPartner: boolean;
+    badgeLabel: string | null;
+    partnerName: string | null;
+    highlightedPlacement: boolean;
+    placementPriority: number;
+  };
   socialLinks: {
     facebookUrl?: string;
     instagramUrl?: string;
@@ -848,7 +862,7 @@ export type OfertaLocalPublicSearchItem = {
   updatedAt: string;
 };
 
-export type OfertaLocalPublicSearchSort = "newest" | "price_low" | "expiring_soon";
+export type OfertaLocalPublicSearchSort = "relevance" | "newest" | "price_low" | "expiring_soon";
 
 export type OfertaLocalPublicSearchApiResponse = {
   ok: boolean;
@@ -879,6 +893,13 @@ export type OfertaLocalPublicOfferCard = {
   validUntil: string;
   publishedAt: string;
   expiresAt: string;
+  partner: {
+    isVerifiedPartner: boolean;
+    badgeLabel: string | null;
+    partnerName: string | null;
+    highlightedPlacement: boolean;
+    placementPriority: number;
+  };
   phoneHref: string | null;
   websiteHref: string | null;
   directionsHref: string | null;
@@ -938,6 +959,17 @@ export type OfertaLocalPublicOfferDetail = OfertaLocalPublicOfferCard & {
   isExpired: boolean;
   businessLogoHref: string | null;
   phoneDisplay: string;
+  pickupLocations: Array<{
+    id: string;
+    displayName: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    hours: string;
+    contact: string;
+    mapUrl: string | null;
+  }>;
 };
 
 /** Public detail hub item — approved search item plus optional bbox for flyer overlay (detail page only). */

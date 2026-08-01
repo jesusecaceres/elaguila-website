@@ -35,6 +35,14 @@ export type DashboardAnalyticsTotals = {
   directions_clicks: number;
   result_card_clicks: number;
   impressions: number;
+  flyer_page_views: number;
+  product_impressions: number;
+  product_opens: number;
+  product_searches: number;
+  product_search_result_clicks: number;
+  shopping_list_adds: number;
+  shopping_list_removes: number;
+  coupon_opens: number;
   leads: number;
   applications: number;
   contact_clicks: number;
@@ -58,6 +66,14 @@ export const ZERO_DASHBOARD_ANALYTICS_TOTALS: DashboardAnalyticsTotals = {
   directions_clicks: 0,
   result_card_clicks: 0,
   impressions: 0,
+  flyer_page_views: 0,
+  product_impressions: 0,
+  product_opens: 0,
+  product_searches: 0,
+  product_search_result_clicks: 0,
+  shopping_list_adds: 0,
+  shopping_list_removes: 0,
+  coupon_opens: 0,
   leads: 0,
   applications: 0,
   contact_clicks: 0,
@@ -118,6 +134,14 @@ export function aggregateDashboardAnalyticsTotals(
       totals.views += 1;
       if (uid) viewUsers.add(uid);
     } else if (t === "listing_impression") totals.impressions += 1;
+    else if (t === "flyer_page_view") totals.flyer_page_views += 1;
+    else if (t === "product_impression") totals.product_impressions += 1;
+    else if (t === "product_open") totals.product_opens += 1;
+    else if (t === "product_search") totals.product_searches += 1;
+    else if (t === "product_search_result_click") totals.product_search_result_clicks += 1;
+    else if (t === "shopping_list_add") totals.shopping_list_adds += 1;
+    else if (t === "shopping_list_remove") totals.shopping_list_removes += 1;
+    else if (t === "coupon_open") totals.coupon_opens += 1;
     else if (t === "result_card_click") totals.result_card_clicks += 1;
     else if (t === "listing_save") totals.saves += 1;
     else if (t === "listing_unsave") totals.saves -= 1;
@@ -191,6 +215,14 @@ export function bucketToDashboardListingMetrics(bucket: ListingAnalyticsBucket) 
     directions_clicks: 0,
     result_card_clicks: 0,
     impressions: 0,
+    flyer_page_views: 0,
+    product_impressions: 0,
+    product_opens: 0,
+    product_searches: 0,
+    product_search_result_clicks: 0,
+    shopping_list_adds: 0,
+    shopping_list_removes: 0,
+    coupon_opens: 0,
     leads: bucket.leads,
     applications: bucket.applications,
     contact_clicks: 0,

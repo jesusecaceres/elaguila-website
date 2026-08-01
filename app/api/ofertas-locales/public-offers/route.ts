@@ -7,6 +7,12 @@ import {
   parseOfertaLocalPublicOfferSearchQuery,
   type OfertaLocalPublicOfferRow,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPublicOfferHelpers";
+import {
+  OFERTAS_LOCALES_PARTNER_ASSIGNMENT_SELECT,
+  resolveOfertaLocalPartnerPublicVm,
+  type OfertaLocalPartnerAssignmentRow,
+  type OfertaLocalPartnerPublicVm,
+} from "@/app/lib/ofertas-locales/ofertasLocalesPartnerOperations";
 import type { OfertaLocalPublicOffersApiResponse } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -17,6 +23,24 @@ const MAX_OFFERS = 200;
 function isDbTableMissingError(message: string | undefined): boolean {
   const m = (message ?? "").toLowerCase();
   return m.includes("does not exist") || m.includes("could not find the table");
+}
+
+async function loadPartnerVmByOfferId(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  offerIds: string[],
+): Promise<Map<string, OfertaLocalPartnerPublicVm>> {
+  const ids = [...new Set(offerIds.map((id) => id.trim()).filter(Boolean))];
+  const out = new Map<string, OfertaLocalPartnerPublicVm>();
+  if (ids.length === 0) return out;
+  const { data } = await supabase
+    .from("ofertas_local_partner_assignments")
+    .select(OFERTAS_LOCALES_PARTNER_ASSIGNMENT_SELECT)
+    .in("oferta_local_id", ids)
+    .eq("assignment_status", "active");
+  for (const row of (data ?? []) as unknown as OfertaLocalPartnerAssignmentRow[]) {
+    out.set(row.oferta_local_id, resolveOfertaLocalPartnerPublicVm({ assignment: row }));
+  }
+  return out;
 }
 
 /**
@@ -62,6 +86,10 @@ export async function GET(req: NextRequest) {
       coupon_assets,
       published_at,
       expires_at,
+      partner_assignment_id,
+      commercial_eligibility_source,
+      public_source_asset_id,
+      asset_lifecycle_status,
       submitted_at,
       updated_at
     `
@@ -88,10 +116,15 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const eligibleRows = (data ?? []).filter((row) =>
+    isOfertaLocalPublicOfferRowEligible(row as OfertaLocalPublicOfferRow)
+  ) as OfertaLocalPublicOfferRow[];
+  const partnerVmByOfferId = await loadPartnerVmByOfferId(
+    supabase,
+    eligibleRows.map((row) => row.id),
+  );
   const offers = filterAndSortOfertaLocalPublicOffers(
-    (data ?? [])
-      .filter((row) => isOfertaLocalPublicOfferRowEligible(row as OfertaLocalPublicOfferRow))
-      .map((row) => mapOfertaLocalPublicOfferRowToCard(row as OfertaLocalPublicOfferRow)),
+    eligibleRows.map((row) => mapOfertaLocalPublicOfferRowToCard(row, partnerVmByOfferId.get(row.id))),
     query
   );
 
