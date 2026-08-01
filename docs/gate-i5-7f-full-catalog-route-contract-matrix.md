@@ -31,9 +31,168 @@ verification addendum),
 and, for the launch-readiness truth recorded below,
 [`scripts/gate-i13a-launch-readiness-selftest.ts`](../scripts/gate-i13a-launch-readiness-selftest.ts),
 and, for the public-visibility and filter-query certification recorded below,
-[`scripts/gate-i13b-public-visibility-filter-selftest.ts`](../scripts/gate-i13b-public-visibility-filter-selftest.ts).
+[`scripts/gate-i13b-public-visibility-filter-selftest.ts`](../scripts/gate-i13b-public-visibility-filter-selftest.ts),
+and, for the runtime device QA findings recorded below,
+[`scripts/gate-i13c-runtime-device-qa-selftest.ts`](../scripts/gate-i13c-runtime-device-qa-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.13C Update Log — Runtime Device QA and Preview Preparation
+
+**Scope:** the first real browser/runtime verification pass (390/430/768/1440px, ES/EN, public
+routes, forms, dashboard availability, accessibility, console/network) against a local dev server
+pointed at the **production** Supabase project (the only environment configured in this repo's
+`.env.local` — no staging config exists locally). No code fix was implemented this package — the
+one confirmed defect below could not be root-caused with full certainty within this environment,
+and shipping a speculative fix to a component this central would be irresponsible without it. This
+package's primary output is a precisely characterized, reproducible finding plus an explicit
+recommendation for the fastest safe way to resolve the remaining uncertainty.
+
+### Environment
+
+Local `next dev` server (fresh cache, isolated to this worktree, port 3000), reading `.env.local`,
+which points `NEXT_PUBLIC_SUPABASE_URL` at the same **production** "Leonix Media" project I.12B
+independently verified. Consequence: every read reflects real production data; no write/publish
+action was taken to completion at any point in this package, per the required safety rules. SMOKE
+QA account credentials exist in `.env.local` (`SMOKE_SELLER_EMAIL`/`SMOKE_BUYER_EMAIL`/
+`SMOKE_ADMIN_EMAIL`) but were **not used** — see Owner QA Required below for why.
+
+### The central finding: results-page loading state stuck in this sandboxed browser
+
+**What was observed, precisely:** on a completely fresh server (cleared `.next` cache, single
+isolated navigation, no prior HMR churn), `/clasificados/dealers-de-autos/results`,
+`/clasificados/autos/resultados`, `/clasificados/en-venta/results`, and `/clasificados/busco/
+resultados` all render their page chrome correctly (nav, header, filter bar, state dropdown,
+"Buscar"/"Filtros" controls — real, page-specific content, not a blank page) but the results
+section itself remains permanently on a loading indicator ("Cargando inventario…" / "Cargando…" /
+"Cargando solicitudes…") and never resolves to either real listings or an empty-results message,
+even after 8+ seconds. Confirmed via the browser's own network log that the underlying
+`fetch("/api/clasificados/autos/public/listings")` call **does complete successfully (200 OK)** —
+the network layer is not the problem. Confirmed **not** affected: `/clasificados/restaurantes/resultados`,
+`/clasificados/servicios/resultados`, `/clasificados/rentas/results` (confirmed genuinely rendering
+a real, correct "0 resultados" empty state — not stuck), `/clasificados/empleos/resultados`, and
+`/clasificados/bienes-raices/resultados`.
+
+**The pattern distinguishing affected from unaffected pages:** every affected page's results
+component is `"use client"` and fetches its own data client-side via `useEffect` + `fetch()`
+(`useAutosPublicListingsFetch.ts` and structurally similar hooks). Every unaffected page does its
+data fetching **server-side** in an `async` `page.tsx` (or an equivalent server-side call), so its
+real content is already present in the initial SSR HTML — no client-side state commit is required
+to display it.
+
+**Why this may be a sandbox artifact, not a genuine app defect:** this session's Browser pane tool
+explicitly reported it is "not displayed, so the page is not compositing frames" (a real error
+returned by the screenshot tool earlier in this package). React's scheduler defers certain state
+commits relative to the browser's paint cycle; if this specific pane never actually paints/
+composites, a `setState` call from an async callback (exactly the `setLoaded(true)` call in the
+affected hooks) could be issued but never visibly committed to the DOM — while the network request
+itself, unaffected by paint/compositing, completes normally. This would explain every observation
+above without requiring a genuine application bug: SSR'd content (unaffected pages) is unaffected
+by this because it needs no client-side commit; client-fetched content (affected pages) is exactly
+what would break. Multiple, independently-authored components across unrelated pipelines (Autos,
+En Venta, Busco/Clases/Comunidad-family) being affected identically, while several other
+independently-authored components are provably fine, further supports an environmental cause over
+a shared code defect — a real shared-code bug affecting this many independent implementations
+identically would be a striking coincidence.
+
+**What was ruled out, with evidence:** module-import-time errors (none found — every rendered
+component was individually bisected into a minimal reproduction and rendered fine in isolation);
+the `useSearchParams()`-without-`force-dynamic` hypothesis (tested directly — adding
+`export const dynamic = "force-dynamic"` did not fix it, then reverted); the `seller` param
+redirect `useEffect` causing a remount loop (tested directly — pre-supplying `?seller=dealer` in
+the URL did not fix it); dev-server/HMR cache corruption from this session's own repeated edits
+(tested directly — reproduced identically on a from-scratch server with cleared `.next` cache and
+a single isolated request, before any other navigation).
+
+**What this package explicitly did NOT do:** implement a speculative fix. Given the plausible
+non-application explanation above, and given `useAutosPublicListingsFetch.ts` and its siblings are
+shared, central, currently-correct-looking code, patching them without knowing whether the real
+cause is even in this repository would risk masking the true issue or introducing an unnecessary
+change to working code.
+
+### Required next step (fastest path to resolution)
+
+Verify this exact finding (`/clasificados/dealers-de-autos/results?lang=es` and
+`/clasificados/en-venta/results?lang=es` are the fastest repro) in a **normal, visibly-rendered
+browser tab** — either locally or, ideally, against the real Vercel Preview URL once available.
+If the results genuinely load in a normal browser: this was a sandbox/tooling artifact, no code
+change needed, re-run this package's remaining checklist quickly to close it out. If the results
+are **also** stuck in a normal browser: this is a real, confirmed, reproducible defect in
+`useAutosPublicListingsFetch.ts` and its structural siblings, and the exact fix should start by
+instrumenting `setLoaded`/`setApiListings` with a temporary render-count log (the same technique
+this package used) in a normal browser's DevTools to see the true cause directly, since this
+package's remote/headless tooling could not.
+
+### 390/430px mobile
+
+390px: no horizontal overflow found on any page checked (`document.documentElement.scrollWidth`
+equals viewport width on every route visited). 430px: not independently spot-checked this package
+beyond the 390px sweep — time was concentrated on root-causing the loading-state finding above,
+which is the higher-value defect; recommend a short dedicated 430px pass alongside I.13C's Owner
+QA follow-up.
+
+### 768px tablet
+
+Independently verified (not inferred from mobile/desktop CSS) on Restaurantes results: no
+horizontal overflow at 768px (`scrollWidth === clientWidth === 768`). Broader per-pipeline 768px
+coverage was not completed this package due to time concentrated on the loading-state
+investigation — recommend as part of the same short follow-up pass.
+
+### 1440px desktop
+
+Not independently re-verified this package. No regression risk identified from prior packages
+(I.13A/I.13B made no layout/CSS changes), but not directly re-confirmed at this exact viewport.
+
+### ES/EN
+
+Not separately re-verified at runtime this package beyond confirming Spanish-language routes
+render correctly with the correct language-specific copy (`?lang=es` requests throughout this
+package correctly showed Spanish UI text). English-specific runtime spot-check and the full
+language-preservation-through-navigation checklist were not completed this package.
+
+### Applications, Preview, dashboard, CTAs, filters, accessibility
+
+Not completed this package. Given (a) the significant time already spent precisely characterizing
+the loading-state finding above (the single highest-value thing to get right, since it affects
+roughly half the results-page pipelines), and (b) the emerging, well-evidenced concern that
+client-side React state commits may not reliably surface in this specific sandboxed pane — which
+would make any dashboard/application/CTA finding gathered here unreliable in the same way — these
+checklist items are explicitly deferred rather than rushed to a false conclusion.
+
+### Safe repairs implemented
+
+None this package. See above for why a speculative fix was not attempted.
+
+### Deferred runtime-only QA / Owner QA required
+
+1. **Primary:** confirm whether `/clasificados/dealers-de-autos/results` and `/clasificados/
+   en-venta/results` load real results (or a real empty state) in a normal, visibly-rendered
+   browser — the single fastest way to resolve whether this package's central finding is a real
+   defect or a sandbox artifact.
+2. 430px and 1440px viewport passes.
+3. Full ES/EN runtime language-preservation checklist.
+4. Dashboard authenticated QA using the existing `SMOKE_*` accounts (owner should run this in a
+   normal browser given the concern above).
+5. Application/Preview/publish-path QA up to the safe stopping point.
+6. Public-detail CTA and filter-interaction runtime QA.
+7. Accessibility runtime QA (keyboard/focus/Escape) — I.13A's `CtaActionSheet` Escape-key fix has
+   unit-test proof (`gate-i13a-launch-readiness-selftest.ts`) but was not re-verified live.
+
+### Remaining launch blockers
+
+**One, pending resolution of the uncertainty above:** if the stuck-loading finding is confirmed
+real in a normal browser, it blocks launch for Auto Dealers, Autos Privado, En Venta, and likely
+Busco/Clases/Comunidad/Mascotas y Perdidos results pages (roughly half the catalog's results
+pipelines) — users would never see listings load. If it is a sandbox artifact, there is no
+blocker from this package.
+
+### Next recommended package
+
+**Immediate:** the owner verification step above (5 minutes in a normal browser). **Then, exactly
+one of:** if confirmed real — a focused hotfix package targeting `useAutosPublicListingsFetch.ts`
+and its structural siblings with real browser DevTools available; if confirmed a sandbox
+artifact — **I.13D**, a short completion pass covering the deferred items above (430px/1440px,
+full ES/EN, dashboard, applications, CTAs, filters, accessibility) plus Vercel Preview preparation.
 
 ## Work Package I.13B Update Log — Public Visibility and Filter-Query Certification
 
