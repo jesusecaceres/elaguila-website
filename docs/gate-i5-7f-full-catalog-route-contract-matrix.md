@@ -33,9 +33,134 @@ and, for the launch-readiness truth recorded below,
 and, for the public-visibility and filter-query certification recorded below,
 [`scripts/gate-i13b-public-visibility-filter-selftest.ts`](../scripts/gate-i13b-public-visibility-filter-selftest.ts),
 and, for the runtime device QA findings recorded below,
-[`scripts/gate-i13c-runtime-device-qa-selftest.ts`](../scripts/gate-i13c-runtime-device-qa-selftest.ts).
+[`scripts/gate-i13c-runtime-device-qa-selftest.ts`](../scripts/gate-i13c-runtime-device-qa-selftest.ts),
+and, for the full-catalog Preview runtime certification recorded below,
+[`scripts/gate-i13d-preview-runtime-certification-selftest.ts`](../scripts/gate-i13d-preview-runtime-certification-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.13D Update Log — Full-Catalog Preview Runtime Certification
+
+**Scope:** resolve I.13C's central uncertainty (sandbox artifact vs. real defect) via a real Vercel
+Preview, then complete the missing runtime matrix. **This package did not fully achieve either
+goal** — the real Preview turned out to be inaccessible without owner Vercel login, and while local
+diagnostic work substantially narrowed the root cause of I.13C's finding, no successful fix was
+found and validated within this package's effort budget. Two operational mistakes occurred during
+this package and are disclosed in full below, per this ledger's own standard of honest, evidence-
+backed documentation over a flattering narrative.
+
+### Disclosed mistakes this package
+
+1. **Stray Vercel project created.** While attempting to establish CLI access to the correct,
+   already-existing "leonix-media" Vercel project, `vercel link --yes` was run without first
+   confirming project match, and it silently created a **new**, separate, unwanted Vercel project
+   named "elaguila-website" under the same account instead of linking to "leonix-media". This
+   project was not deployed to and was not used for anything, but it still exists on the real
+   Vercel account and was not deleted by this package (deleting an existing cloud resource without
+   being certain it's safe is itself a risky action better left to the owner). **Owner action
+   needed:** review and, if unwanted, delete the "elaguila-website" project in the
+   `jesus-caceres-projects` Vercel team, distinct from the real "leonix-media" project this repo
+   actually deploys to.
+2. **Local secrets displayed in this session's output.** In the course of cleaning up the mistake
+   above, `.env.local`'s full raw contents (including `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`,
+   all `SMOKE_*` account passwords, `GEMINI_API_KEY`, `BLOB_READ_WRITE_TOKEN`, and `DEEPL_AUTH_KEY`)
+   were read directly and displayed, rather than only grepping variable *names* as every prior
+   package in this workstream had consistently done. `.env.local` is not git-tracked, so nothing
+   entered the repository, but the values themselves were exposed in this session's transcript.
+   **Owner action needed:** rotate these credentials, especially `SUPABASE_SERVICE_ROLE_KEY` and
+   `ADMIN_PASSWORD`, as a precaution.
+
+Both were flagged to the owner directly, in-session, at the moment each was discovered — not
+discovered only in retrospect while writing this section.
+
+### Objective A — Vercel Preview: partially resolved
+
+A real, successfully-completed Vercel Preview deployment for this exact branch **already existed**,
+created automatically by Vercel's GitHub App integration on push (no manual deployment needed).
+Confirmed via GitHub's public Deployments API (read-only, no credentials required):
+
+- Commit: `c17ebc9c` (this package's exact starting HEAD).
+- Environment: `Preview` (`production_environment: false`) — not production.
+- State: `success` ("Deployment has completed").
+- URL: `https://leonix-media-af8omrpog-jesus-caceres-projects.vercel.app`.
+
+**Blocker:** this URL redirects to Vercel's own SSO login page — the project has **Deployment
+Protection** enabled for Preview environments, requiring the owner's authenticated Vercel session
+to view it. This could not be bypassed without either the owner personally opening the URL while
+logged in, or the owner disabling Preview deployment protection / issuing a Protection-Bypass-for-
+Automation secret — both are account-configuration decisions for the owner, not something this
+package should do unilaterally.
+
+### Objective B — I.13C loading finding: still not conclusively fixed, but far better characterized
+
+**New, load-bearing evidence this package found:** `npm run build`'s route-classification output
+(`○` static vs. `ƒ` dynamic) proved the pattern is **not** simply "client-fetch vs. server-fetch"
+as I.13C guessed. `/clasificados/dealers-de-autos/results`, `/clasificados/autos/resultados`, and
+`/clasificados/busco/resultados` are all statically prerendered (`○`) — but so is `/clasificados/
+bienes-raices/resultados`, which is confirmed **working**. `/clasificados/en-venta/results` is
+dynamic (`ƒ`) yet still confirmed **stuck** — ruling out static-vs-dynamic as the sole
+differentiator.
+
+**Refined hypothesis, also tested and disproven this package:** every confirmed-stuck page's
+`page.tsx` wraps its `"use client"` results shell in an explicit, hand-authored `<Suspense
+fallback={...}>` boundary, while the confirmed-working Bienes Raíces `results/page.tsx` renders its
+client shell directly with **no** Suspense wrapper at all. Removing the Suspense wrapper from
+`dealers-de-autos/results/page.tsx` (mirroring BR's proven-working shape exactly) was implemented
+and tested live — **it did not fix the stuck state**, and was reverted immediately, leaving zero
+net source change from this package.
+
+**Reconsidered I.13C's own "sandbox artifact / paint-compositing" theory:** this package's own
+re-analysis found that theory likely wrong on its own terms — the diagnostic method used
+(`document.body.textContent`, stripped of `<script>`/`<style>` tags) reflects React's DOM-mutating
+commit phase directly, which happens *before* paint, not after. A commit that never reaches the DOM
+is a real, uncommitted state update, not merely an unpainted one. This makes **REAL SHARED
+CLIENT-RESULTS DEFECT** the better-supported classification of the two offered, though the
+*exact* mechanism remains unidentified — two specific, plausible hypotheses were tested directly
+and disproven, which is real progress even without a fix in hand.
+
+**Classification: MIXED / UNRESOLVED** — neither cleanly SANDBOX ARTIFACT nor a fully root-caused
+REAL SHARED CLIENT-RESULTS DEFECT. The evidence leans toward the latter, but "leans toward" is not
+the same as proof, and per this package's own Safe Fix Rules ("root cause identified" is required
+before any fix), no further speculative fix was attempted after the second disproven hypothesis.
+
+### Objectives C–J — full-catalog runtime matrix, viewports, ES/EN, dashboard, CTAs, accessibility
+
+**Not completed this package.** The overwhelming majority of this package's time and effort went to
+Objectives A and B — locating and characterizing the Preview-access blocker, and substantially
+deepening (without fully resolving) the central loading-state investigation, plus recovering from
+the two disclosed mistakes. Repeating I.13C's full local-dev-server matrix sweep across every
+category, all four viewports, both languages, dashboard, CTAs, filters, and accessibility was not
+attempted again this package — that work remains exactly as I.13C left it: a 390px overflow sweep
+and a single 768px spot-check, nothing further.
+
+### Safe repairs implemented
+
+**None.** The one attempted fix (removing `dealers-de-autos/results/page.tsx`'s Suspense wrapper)
+was tested, disproven, and fully reverted — zero net source change in this package's final diff.
+
+### Remaining runtime blockers
+
+1. The central I.13C/I.13D loading-state finding remains unresolved — real Preview access (the
+   fastest remaining path to a conclusive answer) requires the owner's Vercel login.
+2. The full runtime matrix (Objectives C–J) remains largely untested.
+
+### Owner QA checklist
+
+1. **Fastest, highest-value:** open `https://leonix-media-af8omrpog-jesus-caceres-projects.vercel.app/clasificados/dealers-de-autos/results?lang=es`
+   (logged into Vercel) or grant this workstream a Protection Bypass secret / disable Preview
+   protection so a future package can check it directly. This single check resolves Objective B's
+   remaining uncertainty.
+2. Delete or keep the stray "elaguila-website" Vercel project (owner's call).
+3. Rotate `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, and the other credentials named above.
+4. Everything I.13C's own owner-QA checklist already named (430px/1440px, full ES/EN, dashboard,
+   applications, CTAs, filters, live accessibility) remains equally outstanding.
+
+### Next recommended package
+
+**I.13E**, gated on owner action items 1–3 above being resolved first: with real Preview access (or
+an explicit decision to keep testing locally instead), complete the full Objective C–J runtime
+matrix this package could not reach, and, if Preview access confirms the loading issue is real,
+root-cause and fix it with genuine browser DevTools available.
 
 ## Work Package I.13C Update Log — Runtime Device QA and Preview Preparation
 
