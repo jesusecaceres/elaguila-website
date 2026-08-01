@@ -3,7 +3,7 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   pageTitleEn: "Local Deals on Leonix",
   pageSubtitleEs: "Promociones, cupones y especiales semanales en una experiencia clara.",
   pageSubtitleEn: "Promotions, coupons, and weekly specials in a clear experience.",
-  previewNoticeEs: "Vista previa — aún no publicada",
+  previewNoticeEs: "Vista previa — todavía no está publicado",
   previewNoticeEn: "Preview — not published yet",
   emptyTitle: "No hay borrador para previsualizar",
   emptyBody:

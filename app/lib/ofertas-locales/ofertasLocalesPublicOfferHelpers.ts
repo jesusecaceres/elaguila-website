@@ -65,6 +65,7 @@ export type OfertaLocalPublicOfferRow = {
 
 export type OfertaLocalPublicOfferSearchQuery = {
   q?: string;
+  business?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -207,6 +208,7 @@ export function filterAndSortOfertaLocalPublicOffers(
       if (!hay) return false;
     }
     if (!locationTokensMatch(query.city ?? "", offer.city)) return false;
+    if (query.business?.trim() && !locationTokensMatch(query.business, offer.businessName)) return false;
     if (!matchesOfferState(offer, query.state ?? "")) return false;
     if (!matchesOfferZip(offer, query.zip ?? "")) return false;
     if (!matchesOfferCountry(offer, query.country ?? "")) return false;
@@ -283,6 +285,7 @@ export function parseOfertaLocalPublicOfferSearchQuery(
     sortRaw === "expiring_soon" || sortRaw === "newest" ? sortRaw : "relevance";
   return {
     q: params.get("q")?.trim() ?? "",
+    business: params.get("business")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
     state: params.get("state")?.trim() ?? "",
     zip: readOfertaLocalPostalFromSearchParams(params),

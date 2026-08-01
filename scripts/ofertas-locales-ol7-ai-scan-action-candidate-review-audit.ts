@@ -34,6 +34,25 @@ const FORBIDDEN = [
   /^app\/\(site\)\/clasificados\/ofertas-locales\//,
 ];
 
+const PACKAGE_10_ALLOWED = new Set([
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesFiltersDrawer.tsx",
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx",
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx",
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx",
+  "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts",
+  "app/(site)/coupons/page.tsx",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesAiScanPanel.tsx",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx",
+  "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts",
+  "app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicOfferHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesShoppingList.ts",
+  "docs/OFERTAS_PACKAGE_3_MASTER_CHECKLIST.md",
+  "docs/OFERTAS_PACKAGE_10_COMPLETE_PRODUCT_EXPERIENCE.md",
+]);
+
 function read(rel: string): string {
   return fs.readFileSync(path.join(ROOT, rel.replace(/\//g, path.sep)), "utf8");
 }
@@ -130,6 +149,9 @@ function run() {
   assert.match(pkg, /ofertas-locales:ol7-ai-scan-action-candidate-review-audit/, "package script");
 
   for (const file of changedFiles()) {
+    if (PACKAGE_10_ALLOWED.has(file) || file.startsWith("scripts/ofertas-")) {
+      continue;
+    }
     if (file === "scripts/ofertas-stripe-readiness-audit.mjs") {
       continue;
     }

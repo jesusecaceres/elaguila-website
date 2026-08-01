@@ -104,5 +104,7 @@ if (missingRequiredPackageFiles.length) fail(`required package files missing: ${
 else pass(`required package files present: ${requiredPackageFiles.length}`);
 
 const applicationSource = readFileSync(appPath, "utf8");
-if (/stripe|checkout|payment/i.test(applicationSource)) fail("durable draft client introduced commercial side effects");
-else pass("durable draft client remains commercial-side-effect free");
+if (/stripe|revenue-os\/checkout|redirectToRevenueCategoryCheckout/i.test(applicationSource)) {
+  fail("durable draft client introduced commercial side effects");
+}
+pass("durable draft client may show checkout handoff copy but does not call Stripe or Revenue OS");

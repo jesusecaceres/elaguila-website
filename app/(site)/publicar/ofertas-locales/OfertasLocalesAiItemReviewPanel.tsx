@@ -1449,6 +1449,18 @@ export function OfertasLocalesAiItemReviewPanel({
               <li key={job.id}>
                 {lang === "en" ? "Scan" : "Escaneo"} {job.status} · {job.itemsExtractedCount}{" "}
                 {lang === "en" ? "items" : "artículos"}
+                {job.totalPages > 0 ? (
+                  <>
+                    {" "}
+                    · {job.completedPages}/{job.totalPages} {lang === "en" ? "pages completed" : "páginas completas"}
+                  </>
+                ) : null}
+                {job.failedPages > 0 ? (
+                  <>
+                    {" "}
+                    · {job.failedPages} {lang === "en" ? "failed page" : "página fallida"}
+                  </>
+                ) : null}
               </li>
             ))}
           </ul>

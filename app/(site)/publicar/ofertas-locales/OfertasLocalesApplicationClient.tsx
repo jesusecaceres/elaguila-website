@@ -261,6 +261,7 @@ function formatSavedAt(ts: number | null, lang: "es" | "en"): string | null {
 export default function OfertasLocalesApplicationClient() {
   const searchParams = useSearchParams();
   const requestedInitialStep = searchParams?.get("step") ?? "";
+  const requestedProduct = searchParams?.get("product") ?? "";
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = useOfertasLocalesAppLang();
   const c = ofertasLocalesAppCopy(lang);
@@ -306,6 +307,7 @@ export default function OfertasLocalesApplicationClient() {
   });
   const [signedIn, setSignedIn] = useState(true);
   const initialStepAppliedRef = useRef(false);
+  const initialProductAppliedRef = useRef(false);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
   const aiIncludedInPackage = isOfertaLocalAiIncludedInPackage(draft);
@@ -322,6 +324,45 @@ export default function OfertasLocalesApplicationClient() {
     if (!Number.isFinite(requested)) return;
     setStep(clampWizardStep(requested));
   }, [hasLoadedDraft, requestedInitialStep]);
+
+  useEffect(() => {
+    if (!hasLoadedDraft || initialProductAppliedRef.current) return;
+    const normalizedProduct = requestedProduct.trim().toLowerCase();
+    const requestedLane =
+      normalizedProduct === "coupon_promotion" ||
+      normalizedProduct === "coupons" ||
+      normalizedProduct === "local_coupons"
+        ? "local_coupons"
+        : normalizedProduct === "weekly_flyer" ||
+            normalizedProduct === "interactive_flyer" ||
+            normalizedProduct === "shopping_specials"
+          ? "shopping_specials"
+          : "";
+    if (!requestedLane) return;
+    initialProductAppliedRef.current = true;
+    const currentLane = inferPrimaryAdFormatFromDraft(draft);
+    if (currentLane === requestedLane) return;
+    const hasDraftContent = Boolean(
+      draft.businessName.trim() ||
+        draft.title.trim() ||
+        draft.description.trim() ||
+        draft.couponText.trim() ||
+        draft.flyerAssets.some((asset) => asset.status !== "removed") ||
+        draft.couponAssets.some((asset) => asset.status !== "removed")
+    );
+    if (hasDraftContent) {
+      const ok = window.confirm(
+        lang === "en"
+          ? "Switch this application to the selected product lane? Some flyer/coupon wording may change."
+          : "¿Cambiar esta solicitud al producto seleccionado? Algunos textos de volante/cupón pueden cambiar."
+      );
+      if (!ok) return;
+    }
+    updateDraft({
+      ...buildPrimaryAdFormatChangePatch(draft, requestedLane),
+      wantsAiSearchableSpecials: true,
+    });
+  }, [draft, hasLoadedDraft, lang, requestedProduct, updateDraft]);
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -735,6 +776,7 @@ export default function OfertasLocalesApplicationClient() {
                   ? OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.interactive_flyer
                   : OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.coupons;
                 const title = isFlyerLane ? c.step1InteractiveFlyerTitle : c.step1CouponsTitle;
+                const cta = isFlyerLane ? c.step1InteractiveFlyerCta : c.step1CouponsCta;
                 const description = isFlyerLane
                   ? c.step1InteractiveFlyerDescription
                   : c.step1CouponsDescription;
@@ -770,6 +812,9 @@ export default function OfertasLocalesApplicationClient() {
                         <li key={item}>· {item}</li>
                       ))}
                     </ul>
+                    <span className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white">
+                      {cta}
+                    </span>
                   </button>
                 );
               })}
@@ -1657,6 +1702,16 @@ export default function OfertasLocalesApplicationClient() {
               </div>
               <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
               <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
+              {effectiveOfertaLocalId ? (
+                <Link
+                  href={`/dashboard/ofertas-locales/${encodeURIComponent(effectiveOfertaLocalId)}?lang=${lang}`}
+                  className={`${BTN_SECONDARY} mt-3 inline-flex`}
+                >
+                  {c.continueSecureCheckout}
+                </Link>
+              ) : (
+                <p className="mt-2 text-xs font-medium text-amber-900">{c.checkoutParentRequired}</p>
+              )}
             </div>
 
             {aiIncludedInPackage && hasExistingAiScan ? (

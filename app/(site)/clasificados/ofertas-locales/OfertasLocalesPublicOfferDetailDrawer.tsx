@@ -46,8 +46,8 @@ function couponDetailCopy(lang: OfertasLocalesAppLang) {
         description: "Description",
         terms: "Terms and conditions",
         termsMissing: "No additional terms were provided.",
-        redemption: "Redemption instructions",
-        redemptionDefault: "Show or mention this coupon at the business. Final redemption is handled by the business.",
+        redemption: "How to use at the business",
+        redemptionDefault: "Show or mention this coupon at the business. Leonix does not verify redemption in this version.",
       }
     : {
         active: "Activo",
@@ -58,8 +58,8 @@ function couponDetailCopy(lang: OfertasLocalesAppLang) {
         description: "Descripción",
         terms: "Términos y condiciones",
         termsMissing: "No se agregaron términos adicionales.",
-        redemption: "Instrucciones de uso",
-        redemptionDefault: "Muestra o menciona este cupón en el negocio. La redención final la maneja el negocio.",
+        redemption: "Cómo usarlo en el negocio",
+        redemptionDefault: "Muestra o menciona este cupón en el negocio. Leonix no verifica redenciones en esta versión.",
       };
 }
 
@@ -82,6 +82,7 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
     : `${couponCopy.starts}: ${offer.validFrom || dates}`;
 
   const [shareCopied, setShareCopied] = useState(false);
+  const smsHref = offer.phoneHref ? offer.phoneHref.replace(/^tel:/, "sms:") : null;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -98,21 +99,23 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
 
   const handleShare = useCallback(async () => {
     if (typeof window === "undefined") return;
-    const url = window.location.href;
+    const url = new URL(window.location.href);
+    url.searchParams.set("coupon", offer.id);
+    if (offer.leonixAdId) url.searchParams.set("ad", offer.leonixAdId);
     try {
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ title: offer.title || offer.businessName, url });
+        await navigator.share({ title: offer.title || offer.businessName, url: url.toString() });
         return;
       }
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(url.toString());
         setShareCopied(true);
         window.setTimeout(() => setShareCopied(false), 2000);
       }
     } catch {
       /* user cancelled share or clipboard blocked */
     }
-  }, [offer.title, offer.businessName]);
+  }, [offer.businessName, offer.id, offer.leonixAdId, offer.title]);
 
   const heading = isCupones ? c.couponDetails : c.offerDetailTitle;
   const closeLabel = isCupones ? c.closeCoupon : c.close;
@@ -226,12 +229,17 @@ export function OfertasLocalesPublicOfferDetailDrawer({ lang, offer, onClose, su
           {hasContact || isCupones ? (
             <div className="space-y-2">
               {isCupones ? (
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#2A4536]">{c.availableBusinessInfo}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#2A4536]">{c.businessHubTitle}</p>
               ) : null}
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 {offer.phoneHref ? (
                   <a href={offer.phoneHref} className={BTN}>
                     {c.call}
+                  </a>
+                ) : null}
+                {smsHref ? (
+                  <a href={smsHref} className={BTN_OUTLINE}>
+                    {c.sms}
                   </a>
                 ) : null}
                 {offer.websiteHref ? (

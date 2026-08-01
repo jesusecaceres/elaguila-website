@@ -162,6 +162,7 @@ export function OfertasLocalesPublicSearchClient({
     searchParams ? readOfertaLocalPostalFromSearchParams(searchParams) : ""
   );
   const [country, setCountry] = useState(() => searchParams?.get("country") ?? "");
+  const [business, setBusiness] = useState(() => searchParams?.get("business") ?? "");
   const [category, setCategory] = useState(() => searchParams?.get("category") ?? "");
   const [marketType, setMarketType] = useState(() => searchParams?.get("marketType") ?? "");
   const [offerType, setOfferType] = useState(() => searchParams?.get("offerType") ?? "");
@@ -236,6 +237,7 @@ export function OfertasLocalesPublicSearchClient({
     setState(searchParams?.get("state") ?? "");
     setZip(searchParams?.get("zip") ?? "");
     setCountry(searchParams?.get("country") ?? "");
+    setBusiness(searchParams?.get("business") ?? "");
     setCategory(searchParams?.get("category") ?? "");
     setMarketType(searchParams?.get("marketType") ?? "");
     const nextOfferType = searchParams?.get("offerType") ?? "";
@@ -264,6 +266,7 @@ export function OfertasLocalesPublicSearchClient({
       state: string;
       zip: string;
       country: string;
+      business: string;
       category: string;
       marketType: string;
       offerType: string;
@@ -277,6 +280,7 @@ export function OfertasLocalesPublicSearchClient({
         state: overrides?.state ?? state,
         zip: overrides?.zip ?? zip,
         country: overrides?.country ?? country,
+        business: overrides?.business ?? business,
         category: overrides?.category ?? category,
         marketType: overrides?.marketType ?? marketType,
         offerType: overrides?.offerType ?? offerType,
@@ -287,6 +291,7 @@ export function OfertasLocalesPublicSearchClient({
       if (next.state.trim()) params.set("state", next.state.trim());
       if (next.zip.trim()) params.set("zip", next.zip.trim());
       if (next.country.trim()) params.set("country", next.country.trim());
+      if (next.business.trim()) params.set("business", next.business.trim());
       if (next.category.trim()) params.set("category", next.category.trim());
       if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
       if (next.offerType.trim() && (!isCupones || CUPON_SURFACE_OFFER_TYPE_SET.has(next.offerType.trim()))) {
@@ -297,7 +302,7 @@ export function OfertasLocalesPublicSearchClient({
       if (mode) params.set("mode", mode);
       router.push(`${resultsPath}?${params.toString()}`);
     },
-    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort, isCupones, resultsPath, searchParams]
+    [router, lang, q, city, state, zip, country, business, category, marketType, offerType, sort, isCupones, resultsPath, searchParams]
   );
 
   const browseAllHref = `${browsePath}?lang=${lang}`;
@@ -332,7 +337,7 @@ export function OfertasLocalesPublicSearchClient({
   const publishHref = isCupones
     ? `/publicar/ofertas-locales?lang=${lang}&product=coupon_promotion`
     : `/publicar/ofertas-locales?lang=${lang}`;
-  const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "relevance"));
+  const hasFilters = Boolean(q || city || state || zip || country || business || category || marketType || offerType || (sort && sort !== "relevance"));
   const shopperMode = !isCupones
     ? resolveOfertasLocalesShopperMode({
         modeParam: searchParams?.get("mode"),
@@ -367,6 +372,7 @@ export function OfertasLocalesPublicSearchClient({
     ...(state ? [{ id: "state", label: state, onClear: () => pushSearch({ state: "" }) }] : []),
     ...(zip ? [{ id: "zip", label: zip, onClear: () => pushSearch({ zip: "" }) }] : []),
     ...(country ? [{ id: "country", label: country, onClear: () => pushSearch({ country: "" }) }] : []),
+    ...(business ? [{ id: "business", label: business, onClear: () => pushSearch({ business: "" }) }] : []),
     ...(category ? [{ id: "category", label: category, onClear: () => pushSearch({ category: "" }) }] : []),
     ...(marketType ? [{ id: "marketType", label: marketType, onClear: () => pushSearch({ marketType: "" }) }] : []),
     ...(offerType ? [{ id: "offerType", label: offerType, onClear: () => pushSearch({ offerType: "" }) }] : []),
@@ -379,6 +385,7 @@ export function OfertasLocalesPublicSearchClient({
     setState("");
     setZip("");
     setCountry("");
+    setBusiness("");
     setCategory("");
     setMarketType("");
     setOfferType("");
@@ -401,12 +408,13 @@ export function OfertasLocalesPublicSearchClient({
         state,
         zip,
         country,
+        business,
         category,
         marketType,
         offerType,
       },
     );
-  }, [category, city, country, filteredItems, isCupones, loading, marketType, offerType, q, resultCount, state, zip]);
+  }, [business, category, city, country, filteredItems, isCupones, loading, marketType, offerType, q, resultCount, state, zip]);
 
   useEffect(() => {
     if (loading || isCupones) return;
@@ -843,6 +851,7 @@ export function OfertasLocalesPublicSearchClient({
         state={state}
         zip={zip}
         country={country}
+        business={business}
         category={category}
         marketType={marketType}
         offerType={offerType}
@@ -851,6 +860,7 @@ export function OfertasLocalesPublicSearchClient({
         onStateChange={setState}
         onZipChange={setZip}
         onCountryChange={setCountry}
+        onBusinessChange={setBusiness}
         onCategoryChange={setCategory}
         onMarketTypeChange={setMarketType}
         onOfferTypeChange={setOfferType}

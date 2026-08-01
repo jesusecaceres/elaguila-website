@@ -13,7 +13,7 @@ import {
   formatScanElapsed,
   getOfertaLocalScanPhaseMessage,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
-import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type { OfertaLocalDraft, OfertaLocalScanApiResponse } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
@@ -44,6 +44,26 @@ function statusLabel(status: OfertaLocalAiScanReadinessStatus, lang: OfertasLoca
 function assetKindLabel(kind: "flyer" | "coupon", lang: OfertasLocalesAppLang): string {
   if (kind === "flyer") return lang === "en" ? "Main flyer" : "Volante principal";
   return lang === "en" ? "Coupon file" : "Archivo de cupón";
+}
+
+function scanPageProgressMessage(result: OfertaLocalScanApiResponse, lang: OfertasLocalesAppLang): string | null {
+  const totalPages = typeof result.totalPages === "number" && result.totalPages > 0 ? result.totalPages : null;
+  const currentPage = typeof result.currentPage === "number" && result.currentPage > 0 ? result.currentPage : null;
+  const completedPages =
+    typeof result.completedPages === "number" && result.completedPages >= 0 ? result.completedPages : null;
+  const failedPages = typeof result.failedPages === "number" && result.failedPages > 0 ? result.failedPages : null;
+  if (currentPage && totalPages) {
+    return lang === "en" ? `Scanning page ${currentPage} of ${totalPages}` : `Escaneando página ${currentPage} de ${totalPages}`;
+  }
+  if (completedPages != null && totalPages) {
+    return lang === "en"
+      ? `${completedPages} of ${totalPages} pages completed`
+      : `${completedPages} de ${totalPages} páginas completadas`;
+  }
+  if (failedPages) {
+    return lang === "en" ? `${failedPages} page failed` : `${failedPages} página falló`;
+  }
+  return null;
 }
 
 type Props = {
@@ -80,6 +100,7 @@ export function OfertasLocalesAiScanPanel({
   const [scanPhase, setScanPhase] = useState<"idle" | "prep" | "scan">("idle");
   const [scanningAssetId, setScanningAssetId] = useState<string | null>(null);
   const [lastCompletedMessage, setLastCompletedMessage] = useState<string | null>(null);
+  const [lastPageProgressMessage, setLastPageProgressMessage] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const scanStartedAtRef = useRef<number | null>(null);
 
@@ -102,6 +123,7 @@ export function OfertasLocalesAiScanPanel({
     setScanStatus("not_ready");
     setScanMessage(null);
     setLastCompletedMessage(null);
+    setLastPageProgressMessage(null);
   }, [readiness.eligibleAssets.length, scanning]);
 
   useEffect(() => {
@@ -155,6 +177,7 @@ export function OfertasLocalesAiScanPanel({
       setScanPhase("prep");
       setScanMessage(null);
       setLastCompletedMessage(null);
+      setLastPageProgressMessage(null);
       setServerConfigurationMissing(false);
       setScanStatus("processing");
       scanStartedAtRef.current = Date.now();
@@ -220,6 +243,7 @@ export function OfertasLocalesAiScanPanel({
 
       if (!result.ok) {
         setScanStatus("failed");
+        setLastPageProgressMessage(scanPageProgressMessage(result, lang));
         setScanMessage(result.message ?? result.detail ?? c.aiScanFailed);
         onScanFinished?.({ ok: false, scanJobId: result.scanJobId });
         return;
@@ -228,6 +252,7 @@ export function OfertasLocalesAiScanPanel({
       const completedMsg = c.aiScanCompleted;
       setScanStatus("needs_review");
       setLastCompletedMessage(completedMsg);
+      setLastPageProgressMessage(scanPageProgressMessage(result, lang));
       setScanMessage(result.message ?? completedMsg);
       if (result.scanJobId) {
         onScanComplete?.(result.scanJobId);
@@ -363,6 +388,12 @@ export function OfertasLocalesAiScanPanel({
       {scanMessage && !scanning ? (
         <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
           {scanMessage}
+        </p>
+      ) : null}
+
+      {lastPageProgressMessage && !scanning ? (
+        <p className="rounded-lg border border-[#7A1E2C]/20 bg-white px-3 py-2 text-xs font-medium text-[#7A1E2C]">
+          {lastPageProgressMessage}
         </p>
       ) : null}
 

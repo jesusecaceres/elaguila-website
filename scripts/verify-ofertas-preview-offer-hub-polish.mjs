@@ -203,7 +203,7 @@ function run() {
   const requiredCopy = [
     "Ofertas Locales en Leonix",
     "Local Deals on Leonix",
-    "Vista previa — aún no publicada",
+    "Vista previa — todavía no está publicado",
     "Preview — not published yet",
     "Publicado en Leonix",
     "Published on Leonix",

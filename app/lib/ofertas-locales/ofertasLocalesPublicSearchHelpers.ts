@@ -54,6 +54,7 @@ const PUBLIC_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set(["
 
 export type OfertaLocalPublicSearchQuery = {
   q?: string;
+  business?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -352,6 +353,7 @@ function matchesKeyword(item: OfertaLocalPublicSearchItem, q: string): boolean {
   const haystacks = [
     item.itemName,
     item.normalizedItemName,
+    item.businessName,
     item.category,
     item.subcategory,
     item.city,
@@ -415,6 +417,7 @@ export function filterAndSortOfertaLocalPublicSearchItems(
       return false;
     }
     if (!matchesKeyword(item, query.q ?? "")) return false;
+    if (query.business?.trim() && !locationTokensMatch(query.business, item.businessName)) return false;
     if (!matchesCity(item, query.city ?? "")) return false;
     if (!matchesState(item, query.state ?? "")) return false;
     if (!matchesZip(item, query.zip ?? "")) return false;
@@ -483,6 +486,7 @@ export function parseOfertaLocalPublicSearchQuery(
       : "relevance";
   return {
     q: params.get("q")?.trim() ?? "",
+    business: params.get("business")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
     state: params.get("state")?.trim() ?? "",
     zip: readOfertaLocalPostalFromSearchParams(params),

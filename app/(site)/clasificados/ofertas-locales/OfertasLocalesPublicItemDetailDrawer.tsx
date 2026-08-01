@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { OfertaLocalPublicSearchItem } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import {
   formatOfertaLocalPublicItemLocation,
@@ -59,12 +59,34 @@ export function OfertasLocalesPublicItemDetailDrawer({
   const tags = item.searchTags.join(", ");
   const showListActions = Boolean(onAdd || onRemove || onOpenList);
   const [failedImageHref, setFailedImageHref] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const previewHref =
     item.sourceCropHref && failedImageHref !== item.sourceCropHref
       ? item.sourceCropHref
       : item.sourceAssetHref && failedImageHref !== item.sourceAssetHref
         ? item.sourceAssetHref
         : null;
+  const smsHref = item.phoneHref ? item.phoneHref.replace(/^tel:/, "sms:") : null;
+
+  const handleShare = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("item", item.id);
+    url.searchParams.set("offer", item.ofertaLocalId);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ title: item.itemName || item.businessName, url: url.toString() });
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url.toString());
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 2000);
+      }
+    } catch {
+      /* user cancelled share or clipboard blocked */
+    }
+  }, [item.businessName, item.id, item.itemName, item.ofertaLocalId]);
 
   return (
     <div
@@ -150,38 +172,50 @@ export function OfertasLocalesPublicItemDetailDrawer({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {item.phoneHref ? (
-              <a href={item.phoneHref} className={BTN}>
-                {c.call}
-              </a>
-            ) : null}
-            {item.websiteHref ? (
-              <a href={item.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
-                {c.website}
-              </a>
-            ) : null}
-            {item.directionsHref ? (
-              <a
-                href={item.directionsHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={BTN_OUTLINE}
-              >
-                {c.directions}
-              </a>
-            ) : null}
-            {item.whatsappHref ? (
-              <a
-                href={item.whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={BTN_OUTLINE}
-              >
-                WhatsApp
-              </a>
-            ) : null}
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-3 py-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2A4536]">{c.businessHubTitle}</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={BTN_OUTLINE} onClick={() => void handleShare()}>
+                {c.shareProduct}
+              </button>
+              {item.phoneHref ? (
+                <a href={item.phoneHref} className={BTN}>
+                  {c.call}
+                </a>
+              ) : null}
+              {smsHref ? (
+                <a href={smsHref} className={BTN_OUTLINE}>
+                  {c.sms}
+                </a>
+              ) : null}
+              {item.websiteHref ? (
+                <a href={item.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
+                  {c.website}
+                </a>
+              ) : null}
+              {item.directionsHref ? (
+                <a
+                  href={item.directionsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_OUTLINE}
+                >
+                  {c.directions}
+                </a>
+              ) : null}
+              {item.whatsappHref ? (
+                <a
+                  href={item.whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_OUTLINE}
+                >
+                  WhatsApp
+                </a>
+              ) : null}
+            </div>
           </div>
+          {shareCopied ? <p className="text-xs font-medium text-[#2A4536]">{c.linkCopied}</p> : null}
 
           {item.requiresMembership || item.membershipUrl || item.membershipNote ? (
             <div className="rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3 text-sm">
@@ -238,6 +272,7 @@ export function OfertasLocalesPublicItemDetailDrawer({
             ) : (
               <p className="mt-2 text-sm text-[#1E1814]/70">{c.sourceUnavailable}</p>
             )}
+            <p className="mt-3 text-xs leading-relaxed text-[#1E1814]/60">{c.exactSourceHelper}</p>
             <p className="mt-3 text-xs text-[#1E1814]/55">{item.boundingBoxNote}</p>
           </div>
 
