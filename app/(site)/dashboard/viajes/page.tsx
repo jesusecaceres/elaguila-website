@@ -8,6 +8,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
@@ -130,7 +131,8 @@ export default function DashboardViajesStagedPage() {
       .eq("owner_user_id", uid)
       .order("submitted_at", { ascending: false });
     if (error) {
-      setErr(error.message);
+      console.error("[dashboard/viajes]", error.message);
+      setErr(dashboardSafeMutationErrorCopy(lang));
       setRows([]);
     } else {
       setErr(null);

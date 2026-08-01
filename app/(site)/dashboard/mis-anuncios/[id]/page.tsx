@@ -176,7 +176,10 @@ export default function ListingWorkspacePage() {
       data: { user },
     } = await sb.auth.getUser();
     if (!user) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      // Gate I.13A — usePathname() alone drops ?lang=, unlike the sibling list/editar
+      // pages which already forward window.location.search here.
+      const redirectTarget = `${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`;
+      router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
       return;
     }
     setUserId(user.id);

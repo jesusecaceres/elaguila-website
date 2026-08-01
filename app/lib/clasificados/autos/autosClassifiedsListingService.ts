@@ -96,7 +96,19 @@ async function ensureDealerInventoryParentMain(
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (needsGroup) patch.dealer_inventory_group_id = groupId;
   if (needsMain) patch.inventory_role = "main";
-  await supabase.from("autos_classifieds_listings").update(patch).eq("id", parent.id).eq("owner_user_id", parent.owner_user_id);
+  const { data: updated, error } = await supabase
+    .from("autos_classifieds_listings")
+    .update(patch)
+    .eq("id", parent.id)
+    .eq("owner_user_id", parent.owner_user_id)
+    .select("id");
+  // Gate I.13A — this write was previously fire-and-forget (result never captured); now
+  // logged so a failed/zero-row promotion is at least visible server-side, not silent.
+  if (error) {
+    console.error("ensureDealerInventoryParentMain", error);
+  } else if (!updated || updated.length === 0) {
+    console.error("ensureDealerInventoryParentMain: zero-row match", { id: parent.id });
+  }
 }
 
 export async function createAutosClassifiedsListing(input: CreateAutosListingInput): Promise<AutosListingPersistResult> {
@@ -454,7 +466,7 @@ export async function promoteNegociosMainInventoryListing(listingId: string): Pr
   }
   const groupId = getDealerInventoryGroupId(row) ?? row.id;
   const supabase = getAdminSupabase();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("autos_classifieds_listings")
     .update({
       dealer_inventory_group_id: groupId,
@@ -462,9 +474,15 @@ export async function promoteNegociosMainInventoryListing(listingId: string): Pr
       updated_at: new Date().toISOString(),
     })
     .eq("id", row.id)
-    .eq("owner_user_id", row.owner_user_id);
+    .eq("owner_user_id", row.owner_user_id)
+    .select("id");
   if (error) {
     console.error("promoteNegociosMainInventoryListing", error);
+    return null;
+  }
+  // Gate I.13A — a zero-row match must never be reported as a successful promotion.
+  if (!updated || updated.length === 0) {
+    console.error("promoteNegociosMainInventoryListing: zero-row match", { id: row.id });
     return null;
   }
   return groupId;

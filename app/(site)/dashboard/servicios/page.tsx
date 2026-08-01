@@ -236,6 +236,10 @@ export default function DashboardServiciosPage() {
     const sb = createSupabaseBrowserClient();
     let mounted = true;
     async function run() {
+      // Gate I.13A — this load previously had no top-level try/finally; a thrown error
+      // anywhere below left the page stuck on the loading spinner forever (setLoading(false)
+      // was only reached on the success path).
+      try {
       const { data } = await sb.auth.getUser();
       if (!mounted) return;
       if (!data.user) {
@@ -381,7 +385,9 @@ export default function DashboardServiciosPage() {
       if (Object.keys(serviciosMetricsBySlug).length > 0) {
         setEngagementTotals(buildServiciosCategoryTotals(merged));
       }
-      setLoading(false);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
     void run();
     return () => {

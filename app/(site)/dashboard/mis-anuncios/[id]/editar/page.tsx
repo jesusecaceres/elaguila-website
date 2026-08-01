@@ -12,6 +12,7 @@ import {
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
+import { dashboardSafeMutationErrorCopy } from "../../../lib/dashboardSafeErrorCopy";
 
 type Lang = "es" | "en";
 
@@ -185,7 +186,8 @@ const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
       if (!mounted) return;
 
       if (qErr) {
-        setError(qErr.message);
+        console.error("[mis-anuncios/editar]", qErr.message);
+        setError(dashboardSafeMutationErrorCopy(lang));
         setListing(null);
         setLoading(false);
         return;
@@ -289,7 +291,8 @@ async function uploadImages() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios/editar]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setUploading(false);
       return;
     }
@@ -360,7 +363,8 @@ async function uploadSellerPhoto(file: File) {
 
   const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { detail_pairs: nextPairs });
   if (uErr) {
-    setSellerPhotoError(uErr.message || (lang === "es" ? "La foto se subió pero no se pudo guardar." : "Photo uploaded but could not be saved."));
+    console.error("[mis-anuncios/editar]", uErr.message);
+    setSellerPhotoError(lang === "es" ? "La foto se subió pero no se pudo guardar." : "Photo uploaded but could not be saved.");
     setSellerPhotoUploading(false);
     return;
   }
@@ -382,7 +386,8 @@ async function removeSellerPhoto() {
 
   const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { detail_pairs: nextPairs });
   if (uErr) {
-    setSellerPhotoError(uErr.message || (lang === "es" ? "No se pudo quitar la foto." : "Could not remove the photo."));
+    console.error("[mis-anuncios/editar]", uErr.message);
+    setSellerPhotoError(lang === "es" ? "No se pudo quitar la foto." : "Could not remove the photo.");
     setSellerPhotoUploading(false);
     return;
   }
@@ -418,7 +423,8 @@ async function removeSellerPhoto() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios/editar]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setSaving(false);
       return;
     }
@@ -441,7 +447,8 @@ async function removeSellerPhoto() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { status });
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios/editar]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyAction(null);
       return;
     }
@@ -468,7 +475,8 @@ async function removeSellerPhoto() {
     const { error: dErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (dErr) {
-      setError(dErr.message);
+      console.error("[mis-anuncios/editar]", dErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyAction(null);
       return;
     }

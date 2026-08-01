@@ -27,9 +27,182 @@ and, for the media/draft-persistence truth recorded below,
 [`scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts`](../scripts/gate-i11b-autos-draft-upload-session-security-selftest.ts),
 and, for the full-catalog lifecycle certification recorded below (including its I.12B live-policy
 verification addendum),
-[`scripts/gate-i12a-full-catalog-certification-selftest.ts`](../scripts/gate-i12a-full-catalog-certification-selftest.ts).
+[`scripts/gate-i12a-full-catalog-certification-selftest.ts`](../scripts/gate-i12a-full-catalog-certification-selftest.ts),
+and, for the launch-readiness truth recorded below,
+[`scripts/gate-i13a-launch-readiness-selftest.ts`](../scripts/gate-i13a-launch-readiness-selftest.ts).
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
+
+## Work Package I.13A Update Log — Launch Readiness: Security, ES/EN, Mobile, and UX States
+
+**Scope:** the first cross-cutting certification pass on dimensions the ledger had not yet covered
+end-to-end: security/ownership beyond I.12A's dashboard-write scope, report/moderation workflow
+truth, raw-error leakage, ES/EN launch-language readiness, mobile/tablet structural readiness,
+loading/error/empty-state truth, CTA/filter consistency, and an accessibility baseline. Built from
+four parallel, read-only research passes plus this ledger's own already-verified I.5.x–I.12B truth
+(not re-derived). `ofertas_locales`/Ofertas Locales/Cupones and Business Concierge were not
+inspected or modified — recorded as EXTERNAL WORKSTREAM throughout.
+
+### Certification method
+
+Each of the 20 primary-objective dimensions was investigated for proof, not assumed. Findings that
+were **proven, safe to fix without a product decision, without schema/migration/payment change, and
+within the file budget** were repaired directly (see Safe Repairs below). Findings that were real
+but required a product decision, a broader redesign, or touched a locked system were **documented,
+not fixed**, and are named explicitly in the tables below with exact evidence and follow-up.
+
+### Security and ownership — per-mutation classification (new ground beyond I.12A)
+
+| Mutation | Pipeline | Prior state | This package | Classification |
+|---|---|---|---|---|
+| Publish (update existing) | Comida Local | **No ownership check at all** on the update-existing-listing branch — an unauthenticated or wrong-owner request could overwrite another owner's listing content and reassign `owner_user_id`. Evidence: `app/api/clasificados/comida-local/publish/route.ts` (pre-fix). | **Fixed** — added the same ownership-mismatch guard already proven in the Restaurantes publish route: rejects with `auth_required` (401) when the existing row has a recorded owner but the request has none, and `ownership_mismatch` (403) on a real mismatch. Legacy ownerless rows keep prior claimable behavior (no schema change). | **SERVER AUTHORIZATION CERTIFIED** (was NOT PROTECTED) |
+| Publish (update existing) | Restaurantes, Servicios | Already had a proven ownership-mismatch guard (I.9x-era). Re-confirmed, not re-fixed. | No change. | SERVER AUTHORIZATION CERTIFIED (unchanged) |
+| Pause/resume | Servicios | Ownership checked via a prior read (`row.owner_user_id !== ownerUserId`), but the write itself had no zero-row detection — a TOCTOU-narrow gap where a failed/raced update was reported as success. | **Fixed** — write now scoped by `.eq("owner_user_id", ...)` and selects the affected row; a zero-row match now returns an error. | SERVER AUTHORIZATION CERTIFIED + zero-row-safe (was PARTIAL) |
+| Lifecycle update (admin + owner), application status update | Empleos | Owner path checks ownership via a prior read; the write itself (both the admin-facing and the owner-facing function) had no zero-row detection. | **Fixed** — both `updateEmpleosListingLifecycleAdmin` and `updateEmpleosJobApplicationStatusOwner` now select the affected row and reject a zero-row match. | SERVER AUTHORIZATION CERTIFIED + zero-row-safe (was PARTIAL) |
+| Moderation update, owner revision, owner resubmit | Viajes | `updateViajesStagedListingModeration` (admin-only, no owner concept) had no zero-row detection. `updateViajesStagedListingOwnerRevision` and `ownerResubmitViajesStagedListing` checked ownership via a prior read only — **the write itself carried no owner predicate**, a real (if narrow, TOCTOU-window) gap. | **Fixed** — all 3 writes now select the affected row and reject a zero-row match; the two owner-facing writes are now also directly scoped by `.eq("owner_user_id", ...)` in the write itself, not just the prior read. | SERVER AUTHORIZATION CERTIFIED + zero-row-safe (was PARTIAL) |
+| Dealer inventory group promotion (×2 call sites) | Autos Negocios | `ensureDealerInventoryParentMain`'s write result was **not even captured** (fully fire-and-forget); `promoteNegociosMainInventoryListing` checked `error` but had no zero-row detection. | **Fixed** — both now capture and check the result; zero-row matches are logged server-side (`ensureDealerInventoryParentMain` stays `void`-returning, now with visibility) or returned as a real failure (`promoteNegociosMainInventoryListing` returns `null`, matching its existing error-return shape). | SERVER AUTHORIZATION CERTIFIED + zero-row-safe (was PARTIAL) |
+| Generic dashboard owner writes (19 sites) | En Venta, BR Privado, Rentas generic actions, Comunidad, Clases, Busco, Mascotas | Fixed in I.12A; live `public.listings` RLS owner-INSERT/UPDATE policy owner-verified in I.12B. | No change — re-confirmed via the existing gate-i12a test, not re-audited. | CLIENT DEFENSE-IN-DEPTH + RLS CERTIFIED (unchanged) |
+| Raw error surfaced to owner | mis-anuncios (list/detail-edit), drafts, dashboard/viajes | Raw Postgrest/Supabase error strings (e.g. column names, constraint text) were rendered directly to the owner dashboard on every mutation failure across 4 files (~15 call sites). | **Fixed** — added `dashboardSafeMutationErrorCopy()` (`app/(site)/dashboard/lib/dashboardSafeErrorCopy.ts`); all 4 files now log the raw message to the console (developer-visible) and show only safe, localized copy to the owner. | Raw-error leakage: CLOSED for these 4 files |
+| Report-listing attribution (`reporterId`) | Generic report path (`submitListingReportAction`) | Client-supplied `reporter_id`, not server-re-verified. Confirmed **attribution-only** — nullable FK with `ON DELETE SET NULL`, insert policy is `WITH CHECK (true)`, nothing downstream trusts it for authorization. | **Deferred, not fixed** — real but low-severity (non-exploitable for authorization), and hardening it touches a Server Action plus its one shared calling component; not worth the file-budget/risk tradeoff this package. Exact follow-up: derive `reporterId` server-side from the bearer/session, mirroring the En Venta-specific report route's already-correct pattern (`app/api/clasificados/en-venta/report/route.ts`). | **PARTIAL**, documented |
+| Service-role key exposure | Repo-wide | Grepped every `SUPABASE_SERVICE_ROLE_KEY` reference against `"use client"` boundaries. Zero real client-side exposure found; one false positive (a literal string inside an operator-facing error message, not the key itself). | No fix needed. | CERTIFIED |
+| Admin write actions (spot-check: publish toggle, delete, report-status, category config) | Admin | All server-side gated via `requireLeonixAdminPermission(...)`, never trust client state. Re-confirmed, not re-fixed. | No change. | SERVER AUTHORIZATION CERTIFIED (unchanged) |
+
+### Reporting and moderation
+
+**Confirmed real and end-to-end wired, not a dead link** — two parallel, both-functional paths:
+the generic path (`LeonixInlineListingReport.tsx` → `submitListingReportAction` → `listing_reports`
+insert) used by En Venta/Comunidad/Busco/Autos detail pages, and the En Venta-specific path
+(`EnVentaListingReportDrawer.tsx` → `POST /api/clasificados/en-venta/report` → same table, plus a
+real email alert). Admin discovery is real: `app/admin/(dashboard)/reportes/page.tsx` queries
+`listing_reports` directly with search/filter, gated by `requireLeonixAdminPermission`. No code
+change required — the one soft finding (`reporterId` client-trust) is recorded above as deferred.
+
+### Suspended/archived listing enforcement in public routes
+
+| Pipeline | Mechanism | Verdict |
+|---|---|---|
+| En Venta (and the shared `listings`-table detail route used by BR Privado/Comunidad/Clases/Busco/Mascotas/Rentas-generic) | Results query filters via `isEnVentaListingPubliclyVisible()`; the detail page has no status filter in the query itself but fails closed immediately after fetch (`is_published===false`/`status==="removed"`/unrecognized status → not-found). | CERTIFIED, app-layer defense-in-depth |
+| Restaurantes | `.eq("status", "published")` directly in both the results and detail queries — DB-query-layer filter. | CERTIFIED, query-layer (strongest mechanism found) |
+| Servicios | The detail-route query deliberately **includes** non-active statuses, but the page branches explicitly to a generic "unavailable"/"under review" page for `suspended`/`rejected`/`pending_review` — no suspended content is ever rendered. Confirmed correct, but this depends on every future consumer of the shared discovery function re-implementing the same branch (verified for 3 of the pipeline's own call sites; not proven as a structural guarantee). | CERTIFIED, but **PARTIAL confidence** in its durability — flagged for awareness, not a launch blocker |
+| Auto Dealers, Bienes Raíces, Rentas, Empleos, Comida Local, Viajes | Not re-verified this package (time-boxed research scope). | **NOT CHECKED** — recommend a follow-up pass before treating this as platform-wide certified |
+
+### ES/EN readiness
+
+| Finding | Evidence | This package | Status |
+|---|---|---|---|
+| Rentas Privado publish flow reachable in Portuguese/Tagalog via manual `?lang=pt`/`?lang=tl` | `app/(site)/clasificados/publicar/rentas/privado/page.tsx` and `app/(site)/publicar/rentas/privado/page.tsx` both used `resolveLocaleFromSearchParams()` (accepts the full `OfficialLocale` set: es/en/pt/tl), unlike Restaurantes' binary `resolveClasificadosPublishLang()`. | **Fixed** — both entry pages now clamp the resolved locale to `es`/`en` before passing it to the application shell. Deliberately did **not** touch the shared `app/lib/language.ts` resolver/`OFFICIAL_LAUNCH_LANGUAGES` — that's a documented ("Gate I.5.6"), reversible, not-yet-launched extensibility mechanism other features may still depend on; narrowing it globally was out of this package's proven-safe scope. | CLOSED for the one proven-reachable pipeline |
+| `?lang=` dropped on login redirect | `app/(site)/dashboard/mis-anuncios/[id]/page.tsx` used `usePathname()` alone (no query string) to build the login-redirect target; sibling list/editar pages already forward `window.location.search`. | **Fixed** — now forwards `window.location.search`, matching the sibling pages exactly. | CLOSED |
+| Untranslated English string inside an ES-branch ternary | `app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx`: `lang === "es" ? "Meal prep" : "Meal prep"` (label mapper + filter `<option>`, 2 occurrences). | **Fixed** — real Spanish translation ("Comida preparada") in both places. | CLOSED |
+| `OFFICIAL_LAUNCH_LANGUAGES` still types pt/tl as "official," and `OFFICIAL_LAUNCH_LANGUAGE_FALLBACK_NOTE` still claims 4 official launch languages | `app/lib/language.ts:42,654-659` | **Deferred, not fixed** — this is the shared extensibility mechanism referenced above; narrowing it is a product decision (is pt/tl a real future launch language or should the mechanism be removed entirely?), not a proven-safe I.13A fix. `ADDITIONAL_LANGUAGES=[]` already hides it from every visible UI selector. | Documented, not launch-blocking (no other reachable pipeline found this pass) |
+| No unsupported language selector visible anywhere in the live UI | Repo-wide grep for a 3+-language dropdown, Google Translate widget, or translation overlay. | No fix needed — confirmed absent. `app/translate-site/page.tsx` is a deliberate, self-hosted "how to use your browser's translation" page, not a stray widget. | CERTIFIED |
+| Stored listing content is not machine-translated | `anuncio/[id]/page.tsx` duplicates the single real `title` column into both `{es, en}` slots (a display shim, not translation). A genuine, **currently non-functional** (env var name mismatch — code reads `DEEPL_API_KEY`, `.env.local` sets `DEEPL_AUTH_KEY`; `TRANSLATION_PROVIDER` unset) opt-in "Translate ad" viewer feature exists and is wired into several detail pages, but never persists a translation back to the DB. | No fix needed — not a live translation-of-user-content risk today. Documented for awareness (would activate if those env vars were corrected). | CERTIFIED (stored content); feature dormant |
+| Missing-translation fallback spot check | 6 files spot-checked (results, detail, dashboard list/detail, 2 dictionaries) — all fully-typed `Record<OfficialLaunchLang,...>` dictionaries, no `Partial`/optional-field gaps found. | No fix needed (spot check only, not exhaustive). | CERTIFIED (sampled) |
+
+### Mobile and tablet readiness
+
+**No proven overflow, clipped-CTA, or inaccessible-modal defect found this pass** across the
+fixed/sticky-element inventory (132 files scanned), 3+ publish/edit wizards, 2 image galleries, and
+every mobile filter drawer checked (all pure controlled components — filter state survives
+open/close by construction). One real UX gap was found and **deliberately not fixed**:
+
+| Finding | Evidence | Disposition |
+|---|---|---|
+| Dashboard sidebar has no mobile hamburger/drawer — it always renders and stacks above content on mobile/tablet instead of collapsing | `app/(site)/dashboard/components/LeonixDashboardShell.tsx:228-299` — no toggle state, no hamburger control; the column grid only applies at `lg:`. | **Not a proven defect** — no overflow, no clipped CTA, no inaccessible control; it's a UX enhancement opportunity, not a break. Building a real drawer is a scoped UI addition, explicitly out of I.13A's "do not visually redesign working pages" safe-fix boundary. Recorded as the exact next mobile-UX follow-up. |
+| `LeonixStickyActionBar.tsx` fully built (safe-area padding, `lg:hidden`) but zero call sites | `app/(site)/components/mobile/LeonixStickyActionBar.tsx` | Dead code, not a risk. Deferred (identify, don't delete, per this session's established convention). |
+| `app/(site)/clasificados/servicios/resultados/page_temp.tsx` — orphaned, unrouted file with a stray `fixed` CTA | Zero imports, no `page.tsx` — not a live route. | Dead code, not a risk. Deferred. |
+
+**Certification: mobile application/Preview/results/public-detail/dashboard readiness — CERTIFIED**
+for the surfaces actually checked (Restaurantes, generic editar, BR Negocio sections, Autos, En
+Venta galleries, Rentas/BR/community-family filter drawers); the dashboard-shell finding above is
+recorded as a non-blocking, deferred UX item, not a certification blocker. **Tablet readiness was
+not separately re-verified at 768px this pass** — the same Tailwind breakpoint patterns apply, but
+this is noted as inferred, not independently proven at that exact width.
+
+### Loading, error, and empty states
+
+| Finding | Evidence | This package | Status |
+|---|---|---|---|
+| `run()`/load effect had no top-level try/finally — a thrown error before the final `setLoading(false)` left the page stuck on the loading spinner forever | `app/(site)/dashboard/servicios/page.tsx`, `app/(site)/dashboard/restaurantes/page.tsx` (badge-entitlement fetch specifically), `app/(site)/dashboard/empleos/page.tsx`, `app/(site)/dashboard/empleos/[listingId]/page.tsx` (applications fetch specifically) | **Fixed** — each now wraps the at-risk async work in try/finally (or try/catch/finally), guaranteeing the loading flag clears even on a thrown error. Mirrors the already-correct pattern in `app/(site)/dashboard/viajes/page.tsx`. | CLOSED for these 4 files |
+| Zero-row mutations reported as success | See Security table above (servicios/manage, empleos ×2, viajes ×3, autos ×2) | **Fixed** — see Security table. | CLOSED for these sites |
+| Empty-state CTAs point to real routes | Spot-checked Restaurantes, Servicios, Empleos, Viajes dashboards + Restaurantes public results | No fix needed — confirmed real in every case checked. | CERTIFIED (sampled) |
+| Broader "loading with no error/empty fallback nearby" audit | Empleos dashboard pages specifically (now fixed above); Servicios/Restaurantes dashboards have separate error `<p>` blocks lower in the tree that only render once loading clears (the risk there was the stuck-loading bug itself, now fixed) | Fixed via the loading-state fix above. | CLOSED |
+
+### CTA consistency
+
+Checked Restaurantes, Autos Negocios (finance contact), En Venta, Empleos, and (spot-check) Bienes
+Raíces Negocio contact CTAs against the shared `app/components/cta/ctaLaunchers.ts`/`ctaDataHelpers.ts`
+infrastructure. **No CTA found that renders unconditionally regardless of empty backing data** in
+any pipeline actually inspected — every contact action is gated on real, non-empty source fields.
+`selfEngagementGuard` (I.10A) confirmed genuinely wired (not dead code) across Restaurantes, Autos,
+Empleos, En Venta, and both Bienes Raíces lanes — the guard disables and relabels (not hides) the
+Save button for the listing's own owner, which is the existing, intentional product behavior.
+Servicios/Rentas/Viajes/Comida Local/Busco/Clases/Comunidad/Mascotas CTA wiring was not
+individually re-verified this pass (only the shared infrastructure they all route through was).
+**Certification: CTA consistency — CERTIFIED for the pipelines checked; not independently
+re-verified for the remainder.**
+
+### Filter consistency
+
+| Finding | Evidence | This package | Status |
+|---|---|---|---|
+| Restaurantes "País/Country" filter silently zeroed results for any non-US input, and didn't filter at all at its own default — with no indication to the user that it wasn't a working filter (`country` isn't stored on `restaurantes_public_listings` yet) | `app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx` + `filterRestaurantesBlueprintRows.ts:108-111` (contract already documented this internally; the UI didn't) | **Fixed** — the input is now `disabled`/`readOnly`, locked to the real supported value, with an honest inline note ("US only for now" / "Por ahora, solo Estados Unidos"). Same control, same position — not a redesign. | CLOSED |
+| Bienes Raíces results filters (primary/secondary/type/seller/pool/pets/furnished/q/city/state/country/zip/price/beds/baths) | `app/(site)/clasificados/bienes-raices/resultados/lib/brResultsFilters.ts:151-292` | No fix needed — every checked field maps to a real applied predicate. | CERTIFIED |
+| Restaurantes' ~25 other documented filter params | `filterRestaurantesBlueprintRows.ts` | No fix needed — real in-memory filtering against real published rows (`restaurantesResultsInventoryServer.ts` explicitly excludes blueprint/sample data on the launch path). | CERTIFIED |
+| Servicios/Autos/Empleos/Rentas/En Venta/Comida Local/Busco/Clases/Comunidad/Mascotas/Viajes filter query-building | Not traced end-to-end this pass. | Not checked. | **NOT CHECKED** — recommend a follow-up pass |
+
+### Accessibility baseline
+
+| Finding | Evidence | This package | Status |
+|---|---|---|---|
+| `CtaActionSheet` (shared contact/share sheet used by every category) had a real, labeled close button but no Escape-key handler | `app/components/cta/CtaActionSheet.tsx` — contrast with its sibling `LeonixPreviewGalleryLightbox.tsx`, which already has one | **Fixed** — added the identical `keydown`/`Escape` → `onClose()` pattern already proven in the lightbox. | CLOSED |
+| Icon-only buttons in shared/high-leverage components | Spot-checked `LeonixLikeButton`, `LeonixSaveButton`, `LeonixShareButton`, `Navbar`, dashboard shell, engagement bar, category cards, search canvas, Servicios top bar | No fix needed — all carry `aria-label`. | CERTIFIED (sampled) |
+| `<div onClick=` without role/keyboard handling in shared components | Searched shared component trees | No fix needed — none found (one match elsewhere was a bubble-stop guard, not an interactive control). | CERTIFIED (sampled) |
+| Restaurantes/Servicios publish-form `<label>`/`<input>` associations | `app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx` and `app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx` — labels rendered as un-linked siblings (no `htmlFor`/`id`), systematically, across most fields. Contrast: `EmpleoPremiumApplicationClient.tsx` already wraps label+input correctly. | **Deferred, not fixed** — real (screen readers won't announce these field names), but both forms are large, business-critical, and fixing every field correctly (without risking an ID collision or a mistaken edit in a complex form) is more file/risk budget than this package should spend alongside everything else proven this pass. Exact follow-up named below. | **PARTIAL**, documented, named follow-up |
+| Modal/drawer close mechanisms elsewhere | `LeonixPreviewGalleryLightbox` (already correct); dashboard shell has no overlay/drawer at all (not applicable) | No fix needed / not applicable. | CERTIFIED / N/A |
+
+### Safe repairs implemented (19 code files + 1 test + this ledger = 21 total)
+
+1. `app/api/clasificados/comida-local/publish/route.ts` — ownership-mismatch guard (highest-severity fix this package).
+2. `app/(site)/dashboard/lib/dashboardSafeErrorCopy.ts` (new) — shared safe-error-copy helper.
+3–6. `app/(site)/dashboard/mis-anuncios/page.tsx`, `.../[id]/editar/page.tsx`, `app/(site)/dashboard/drafts/page.tsx`, `app/(site)/dashboard/viajes/page.tsx` — raw-error-leakage removal (~15 call sites).
+7. `app/api/clasificados/servicios/manage/route.ts` — zero-row detection.
+8. `app/(site)/clasificados/empleos/lib/empleosPublicListingsDbServer.ts` — zero-row detection (2 functions).
+9. `app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer.ts` — zero-row detection + owner-scoped writes (3 functions).
+10. `app/lib/clasificados/autos/autosClassifiedsListingService.ts` — zero-row detection (2 functions).
+11. `app/(site)/dashboard/servicios/page.tsx` — loading-state try/finally fix.
+12. `app/(site)/dashboard/restaurantes/page.tsx` — loading-state try/catch fix (badge-entitlement fetch).
+13. `app/(site)/dashboard/empleos/page.tsx` — loading-state try/catch/finally fix.
+14. `app/(site)/dashboard/empleos/[listingId]/page.tsx` — loading-state try/catch/finally fix.
+15. `app/(site)/dashboard/mis-anuncios/[id]/page.tsx` — `?lang=` preservation on login redirect.
+16–17. `app/(site)/clasificados/publicar/rentas/privado/page.tsx`, `app/(site)/publicar/rentas/privado/page.tsx` — es/en locale clamp.
+18. `app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx` — untranslated-string fix + country-filter honesty fix.
+19. `app/components/cta/CtaActionSheet.tsx` — Escape-key close handler.
+20. `scripts/gate-i13a-launch-readiness-selftest.ts` (new) — this package's proof.
+21. `docs/gate-i5-7f-full-catalog-route-contract-matrix.md` — this section.
+
+### Deferred (named follow-ups, not silently dropped)
+
+1. **`reporterId` client-trust hardening** (generic report path) — low severity, non-exploitable for authorization; derive server-side from bearer/session, mirroring the En Venta report route. Files: `app/admin/actions.ts`, `app/(site)/clasificados/components/LeonixInlineListingReport.tsx`.
+2. **Restaurantes/Servicios publish-form label associations** — add `id`/`htmlFor` (or wrap in `<label>`, matching `EmpleoPremiumApplicationClient.tsx`'s existing correct pattern) across every field. Files: `app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx`, `app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx`.
+3. **Dashboard mobile hamburger/drawer nav** — a real UX addition (not a proven defect), for `app/(site)/dashboard/components/LeonixDashboardShell.tsx`.
+4. **Suspended/archived public-visibility audit** — extend beyond En Venta/Restaurantes/Servicios to Auto Dealers, Bienes Raíces, Rentas, Empleos, Comida Local, Viajes.
+5. **Filter-query audit** — extend beyond Bienes Raíces/Restaurantes to the remaining 11 pipelines.
+6. **`OFFICIAL_LAUNCH_LANGUAGES`/fallback-note scope decision** — decide whether pt/tl remain a real future-launch mechanism (keep, but fix the stale 4-language fallback copy) or should be removed entirely — an owner product decision, not a code fix.
+7. **Tablet (768px) independent re-verification** — inferred from existing Tailwind breakpoint patterns, not separately proven this pass.
+
+### Remaining launch blockers
+
+None of this package's findings are newly launch-blocking. The Comida Local ownership gap was a
+real, proven security defect and is now closed. Every other PARTIAL/deferred item above is either
+low-severity (report attribution), a UX enhancement rather than a defect (mobile drawer), or an
+audit-scope gap (not-yet-checked pipelines) rather than a confirmed break.
+
+### Next recommended package
+
+**I.13B — Suspended/archived public-visibility and filter-query audit** for the pipelines this
+package's research explicitly did not reach (Auto Dealers, Bienes Raíces, Rentas, Empleos, Comida
+Local, Viajes), since that's the one category of finding in this package that reflects a real
+audit-coverage gap rather than a documented, deliberate deferral.
 
 ## Work Package I.12B Update Log — Live Supabase Policy Verification (Owner-Verified Addendum)
 

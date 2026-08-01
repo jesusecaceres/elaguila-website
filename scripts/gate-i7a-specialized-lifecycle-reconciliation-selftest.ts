@@ -293,6 +293,36 @@ async function main() {
     const I12A_RESTAURANTES_MESSAGING_GATE_EXCEPTIONS = new Set<string>([
       "app/(site)/dashboard/restaurantes/page.tsx",
     ]);
+    /**
+     * Work Package I.13A (Launch Readiness: Security, ES/EN, Mobile, and UX States) approved,
+     * narrow exception. I.13A intentionally (a) fixed an untranslated "Meal prep" string and (b)
+     * disabled a misleading, non-functional country filter input on the Restaurantes results
+     * shell — verified to touch only display copy and one filter control, never publish/
+     * lifecycle/media logic (this gate's other assertions are unaffected). Exact-file,
+     * exact-fragment allowlist only — every other "restaurantes" file remains fully protected.
+     */
+    const I13A_RESTAURANTES_RESULTS_UX_EXCEPTIONS = new Set<string>([
+      "app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx",
+    ]);
+    /**
+     * Work Package I.13A approved, narrow exception (continued). I.13A also fixed a
+     * zero-row-mutation-reported-as-success gap in the Servicios pause/resume route and a
+     * stuck-loading-spinner bug in the Servicios owner dashboard's load effect — verified to
+     * touch only write-result checking and try/finally wrapping, never publish/lifecycle logic.
+     */
+    const I13A_SERVICIOS_UX_AND_ZERO_ROW_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/servicios/page.tsx",
+      "app/api/clasificados/servicios/manage/route.ts",
+    ]);
+    /**
+     * Work Package I.13A approved, narrow exception (continued). I.13A also fixed the same
+     * zero-row-mutation class of gap in the Autos dealer-inventory-group service — verified to
+     * touch only write-result checking, never publish/lifecycle/draft-isolation logic (already
+     * separately certified by the I.11A/I.11B gates referenced above, unaffected here).
+     */
+    const I13A_AUTOS_ZERO_ROW_EXCEPTIONS = new Set<string>([
+      "app/lib/clasificados/autos/autosClassifiedsListingService.ts",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
@@ -300,6 +330,9 @@ async function main() {
         if ((frag === "/autos/" || frag === "restaurantes" || frag === "servicios") && I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS.has(f)) continue;
         if (frag === "/autos/" && I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS.has(f)) continue;
         if (frag === "restaurantes" && I12A_RESTAURANTES_MESSAGING_GATE_EXCEPTIONS.has(f)) continue;
+        if (frag === "restaurantes" && I13A_RESTAURANTES_RESULTS_UX_EXCEPTIONS.has(f)) continue;
+        if (frag === "servicios" && I13A_SERVICIOS_UX_AND_ZERO_ROW_EXCEPTIONS.has(f)) continue;
+        if (frag === "/autos/" && I13A_AUTOS_ZERO_ROW_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

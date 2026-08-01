@@ -11,6 +11,7 @@ import {
   ownerListingResumeFromPausePatch,
   applyOwnerListingPatch,
 } from "../lib/ownerListingsLifecycleClient";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
@@ -602,7 +603,8 @@ export default function MyListingsPage() {
       if (!mounted) return;
 
       if (qErr) {
-        setError(qErr.message);
+        console.error("[mis-anuncios]", qErr.message);
+        setError(dashboardSafeMutationErrorCopy(lang));
         setListings([]);
         setListingsLoading(false);
         return;
@@ -833,7 +835,8 @@ export default function MyListingsPage() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -875,7 +878,8 @@ export default function MyListingsPage() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -972,7 +976,8 @@ export default function MyListingsPage() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1056,7 +1061,8 @@ export default function MyListingsPage() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1136,7 +1142,8 @@ export default function MyListingsPage() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1191,7 +1198,8 @@ export default function MyListingsPage() {
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }

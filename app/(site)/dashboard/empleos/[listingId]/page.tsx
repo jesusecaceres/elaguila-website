@@ -92,29 +92,37 @@ export default function EmpleosEmployerManagePage() {
 
   const refresh = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/empleos/${listingId}`)}`);
-      return;
-    }
-    setOwnerId(userData.user.id);
-    const { data: listing, error } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
-    if (error || !listing) {
+    // Gate I.13A — the applications fetch below previously wasn't guarded; a thrown
+    // error there skipped setLoading(false) and left the page stuck on the loading
+    // spinner forever.
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/empleos/${listingId}`)}`);
+        return;
+      }
+      setOwnerId(userData.user.id);
+      const { data: listing, error } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
+      if (error || !listing) {
+        setRow(null);
+        return;
+      }
+      setRow(listing as ListingRow);
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (token) {
+        const res = await fetch(`/api/clasificados/empleos/listings/${listingId}/applications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json()) as { ok?: boolean; rows?: AppRow[] };
+        if (json.ok && json.rows) setApps(json.rows);
+      }
+    } catch (err) {
+      console.error("[dashboard/empleos/listing] refresh failed", err);
       setRow(null);
+    } finally {
       setLoading(false);
-      return;
     }
-    setRow(listing as ListingRow);
-    const { data: session } = await supabase.auth.getSession();
-    const token = session.session?.access_token;
-    if (token) {
-      const res = await fetch(`/api/clasificados/empleos/listings/${listingId}/applications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = (await res.json()) as { ok?: boolean; rows?: AppRow[] };
-      if (json.ok && json.rows) setApps(json.rows);
-    }
-    setLoading(false);
   }, [listingId, router]);
 
   useEffect(() => {

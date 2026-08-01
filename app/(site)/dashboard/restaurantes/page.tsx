@@ -230,21 +230,28 @@ export default function DashboardRestaurantesPage() {
     } else {
       const loaded = (data ?? []) as DashboardRestaurantRow[];
       setRows(loaded);
-      const { data: sessData } = await supabase.auth.getSession();
-      const accessToken = sessData.session?.access_token ?? null;
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
-        loaded.map((r) => ({
-          key: r.id,
-          category: "restaurantes",
-          listingSource: "restaurantes_public_listings",
-          listingId: r.id,
-          slug: r.slug ?? null,
-          leonixAdId: r.leonix_ad_id ?? null,
-          packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-        })),
-        accessToken,
-      );
-      setEntitlementBadges(badges);
+      // Gate I.13A — this fetch previously wasn't guarded; a thrown error here (e.g. a
+      // network failure) skipped the setLoading(false) below and left the page stuck on
+      // the loading spinner forever.
+      try {
+        const { data: sessData } = await supabase.auth.getSession();
+        const accessToken = sessData.session?.access_token ?? null;
+        const badges = await fetchDashboardListingPackageEntitlementBadges(
+          loaded.map((r) => ({
+            key: r.id,
+            category: "restaurantes",
+            listingSource: "restaurantes_public_listings",
+            listingId: r.id,
+            slug: r.slug ?? null,
+            leonixAdId: r.leonix_ad_id ?? null,
+            packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+          })),
+          accessToken,
+        );
+        setEntitlementBadges(badges);
+      } catch (badgeErr) {
+        console.error("[dashboard/restaurantes] entitlement badge fetch failed", badgeErr);
+      }
     }
     setLoading(false);
 

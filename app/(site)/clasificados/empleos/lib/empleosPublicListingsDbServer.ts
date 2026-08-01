@@ -397,8 +397,11 @@ export async function updateEmpleosListingLifecycleAdmin(input: {
   if (input.lifecycle_status === "published") {
     patch.published_at = now;
   }
-  const { error } = await supabase.from("empleos_public_listings").update(patch).eq("id", input.id);
+  const { data: updated, error } = await supabase.from("empleos_public_listings").update(patch).eq("id", input.id).select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match must never be reported as success (I.12A's exact fix
+  // pattern, applied here for the empleos dedicated-table pipeline).
+  if (!updated || updated.length === 0) return { ok: false, error: "listing_not_found" };
   return { ok: true };
 }
 
@@ -511,8 +514,14 @@ export async function updateEmpleosJobApplicationStatusOwner(input: {
   if (lErr || !listing || (listing as { owner_user_id: string }).owner_user_id !== input.ownerUserId) {
     return { ok: false, error: "forbidden" };
   }
-  const { error } = await supabase.from("empleos_job_applications").update({ status: input.status }).eq("id", input.applicationId);
+  const { data: updated, error } = await supabase
+    .from("empleos_job_applications")
+    .update({ status: input.status })
+    .eq("id", input.applicationId)
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match must never be reported as success.
+  if (!updated || updated.length === 0) return { ok: false, error: "application_not_found" };
   return { ok: true };
 }
 

@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { OWNER_LISTING_SOFT_ARCHIVE_PATCH, applyOwnerListingPatch } from "../lib/ownerListingsLifecycleClient";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { DashboardAutosPaidDraftsBand } from "../components/DashboardAutosPaidDraftsBand";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
@@ -138,7 +139,8 @@ export default function DraftsPage() {
 
       if (!mounted) return;
       if (error) {
-        setErr(error.message);
+        console.error("[drafts]", error.message);
+        setErr(dashboardSafeMutationErrorCopy(lang));
         setRows([]);
       } else {
         const all = (list as ListingRow[]) ?? [];
@@ -164,7 +166,10 @@ export default function DraftsPage() {
     setBusy(id);
     setErr(null);
     const { error } = await applyOwnerListingPatch(sb, id, userId, { status: "active", is_published: true });
-    if (error) setErr(error.message);
+    if (error) {
+      console.error("[drafts]", error.message);
+      setErr(dashboardSafeMutationErrorCopy(lang));
+    }
     else setRows((prev) => prev.filter((x) => x.id !== id));
     setBusy(null);
   }
@@ -177,7 +182,10 @@ export default function DraftsPage() {
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
     const { error } = await applyOwnerListingPatch(sb, id, userId, patch);
-    if (error) setErr(error.message);
+    if (error) {
+      console.error("[drafts]", error.message);
+      setErr(dashboardSafeMutationErrorCopy(lang));
+    }
     else setRows((prev) => prev.filter((x) => x.id !== id));
     setBusy(null);
   }
