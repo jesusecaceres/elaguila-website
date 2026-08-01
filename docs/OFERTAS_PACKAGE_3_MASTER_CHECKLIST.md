@@ -38,3 +38,9 @@ Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
 - N2: BLOCKED - real flyer QA remains blocked until migrations are applied and Stripe/Gemini staging environment is configured.
 - N3: BLOCKED - real coupon QA remains blocked until migrations are applied and Stripe staging environment is configured.
 - N4: PARTIAL - browser QA was intentionally not run; static audit coverage is present but live browser verification remains.
+- O1: DONE - Package 7 adds owner-scoped source-version scan jobs, page-progress schema, and server-controlled Gemini-compatible scan progress hooks.
+- O2: DONE - Package 7 adds Ofertas-local decimal price normalization with cents storage, original price text, and review correction persistence.
+- O3: DONE - Package 7 defines a normalized 0-1 bbox contract and rejects invalid/zero-area boxes before review/public mapping.
+- O4: DONE - Package 7 hardens submission/admin approval gates for source version, scan failures, unresolved review, approved source items, and public active source activation.
+- O5: DONE - Package 7 completes a truthful cleanup queue contract; physical storage deletion remains deferred and unclaimed.
+- O6: BLOCKED - real Gemini staging scan, migration application, cleanup worker execution, and browser QA remain environment work.

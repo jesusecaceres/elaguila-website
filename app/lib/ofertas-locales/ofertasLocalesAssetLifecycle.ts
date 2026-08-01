@@ -134,6 +134,18 @@ export async function createOfertaLocalReplacementSourceVersion(input: {
   return { ok: true, sourceAsset: data as OfertaLocalSourceAssetRow };
 }
 
+export async function createOfertaLocalSourceVersion(input: {
+  supabase: SupabaseClient;
+  ofertaLocalId: string;
+  ownerId: string;
+  assetKind: "flyer" | "coupon";
+  asset: OfertaLocalPublishedAssetMetadata;
+  uploadedBy: string;
+  reason?: string | null;
+}) {
+  return createOfertaLocalReplacementSourceVersion(input);
+}
+
 export async function markOfertaLocalSourceVersionActive(input: {
   supabase: SupabaseClient;
   ofertaLocalId: string;
@@ -141,6 +153,12 @@ export async function markOfertaLocalSourceVersionActive(input: {
   nowIso?: string;
 }): Promise<{ ok: true } | { ok: false; error: string; detail?: string }> {
   const now = input.nowIso ?? new Date().toISOString();
+  const { error: rpcError } = await input.supabase.rpc("activate_oferta_local_source_version", {
+    p_oferta_local_id: input.ofertaLocalId,
+    p_source_asset_version_id: input.sourceAssetId,
+  });
+  if (!rpcError) return { ok: true };
+
   const { error: oldError } = await input.supabase
     .from("ofertas_local_source_assets")
     .update({ lifecycle_status: "superseded", superseded_at: now, updated_at: now })
@@ -178,6 +196,29 @@ export async function markOfertaLocalSourceVersionActive(input: {
   return { ok: true };
 }
 
+export async function queueOfertaLocalAssetCleanup(input: {
+  supabase: SupabaseClient;
+  ofertaLocalId: string;
+  sourceAssetId?: string | null;
+  storagePath: string;
+  cleanupType?: "source_asset_removed" | "crop_superseded" | "scan_artifact_superseded";
+  requestedBy?: string | null;
+  reason?: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string; detail?: string }> {
+  const storagePath = input.storagePath.trim();
+  if (!storagePath) return { ok: false, error: "cleanup_storage_path_required" };
+  const { error } = await input.supabase.from("ofertas_local_asset_cleanup_queue").insert({
+    oferta_local_id: input.ofertaLocalId,
+    source_asset_version_id: input.sourceAssetId || null,
+    storage_path: storagePath,
+    cleanup_type: input.cleanupType ?? "source_asset_removed",
+    status: "pending",
+    requested_by: input.requestedBy || null,
+    reason: input.reason?.trim().slice(0, 1000) || null,
+  });
+  return error ? { ok: false, error: "cleanup_queue_insert_failed", detail: error.message } : { ok: true };
+}
+
 export async function markOfertaLocalSourceVersionRemoved(input: {
   supabase: SupabaseClient;
   ofertaLocalId: string;
@@ -200,5 +241,23 @@ export async function markOfertaLocalSourceVersionRemoved(input: {
     .eq("id", input.sourceAssetId)
     .eq("oferta_local_id", input.ofertaLocalId);
   if (error) return { ok: false, error: "source_asset_remove_failed", detail: error.message };
+  const { data: sourceAsset } = await input.supabase
+    .from("ofertas_local_source_assets")
+    .select("storage_path")
+    .eq("id", input.sourceAssetId)
+    .eq("oferta_local_id", input.ofertaLocalId)
+    .maybeSingle();
+  const storagePath = String(sourceAsset?.storage_path ?? "").trim();
+  if (storagePath) {
+    await queueOfertaLocalAssetCleanup({
+      supabase: input.supabase,
+      ofertaLocalId: input.ofertaLocalId,
+      sourceAssetId: input.sourceAssetId,
+      storagePath,
+      cleanupType: "source_asset_removed",
+      requestedBy: input.actorUserId,
+      reason: input.reason,
+    });
+  }
   return { ok: true };
 }

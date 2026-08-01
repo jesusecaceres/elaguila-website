@@ -71,7 +71,9 @@ function run() {
 
   assert.match(mapper, /oferta_local_id:\s*ofertaId/, "child rows keep original parent foreign key");
   assert.match(mapper, /scan_job_id:\s*scanJobId/, "child rows keep scan job linkage");
-  assert.match(mapper, /price_amount:\s*parseOptionalNumber\(item\.priceAmount\)/, "decimal price amount is preserved as number");
+  assert.match(mapper, /normalizeOfertaLocalPrice/, "decimal price amount is normalized through Package 7 price contract");
+  assert.match(mapper, /price_amount:\s*price\.amount/, "decimal price amount is preserved as normalized number");
+  assert.match(mapper, /price_amount_cents:\s*price\.amountCents/, "decimal price cents are preserved for exact storage");
   assert.match(mapper, /source_crop_url:\s*sanitizeOptionalText\(item\.sourceCropUrl/, "crop URL is persisted on child row");
   assert.match(mapper, /source_bbox:\s*item\.sourceBbox/, "bbox is persisted on child row");
 

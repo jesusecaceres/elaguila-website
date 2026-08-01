@@ -142,6 +142,31 @@ export function getOfertaLocalScanPhaseMessage(
   return { phase: "saving", message: copy.saving, longWait: false };
 }
 
+export function formatOfertaLocalPersistedScanProgress(
+  job: OfertaLocalScanJobSummary | null | undefined,
+  lang: OfertasLocalesAppLang
+): string {
+  if (!job) return "";
+  const total = Math.max(0, job.totalPages || job.pagesProcessed || 0);
+  const completed = Math.max(0, job.completedPages || 0);
+  const failed = Math.max(0, job.failedPages || 0);
+  const base =
+    total > 0
+      ? lang === "en"
+        ? `${completed}/${total} pages complete`
+        : `${completed}/${total} páginas completas`
+      : lang === "en"
+        ? "Preparing page count"
+        : "Preparando conteo de páginas";
+  const failedText =
+    failed > 0
+      ? lang === "en"
+        ? ` · ${failed} failed`
+        : ` · ${failed} con error`
+      : "";
+  return `${base}${failedText}`;
+}
+
 export function formatScanElapsed(seconds: number, lang: OfertasLocalesAppLang): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;

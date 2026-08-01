@@ -14,6 +14,7 @@ import {
 } from "./ofertasLocalesDocumentAiClient";
 import type { OfertaLocalAiExtractionDebugStats } from "./ofertasLocalesAiExtractionQuality";
 import type { OfertaLocalSearchableItemDraft } from "./ofertasLocalesTypes";
+import type { OfertaLocalPageImage } from "./ofertasLocalesPdfPageImages";
 
 export type OfertaLocalAiScanExtractionParams = {
   fileBuffer: Buffer;
@@ -33,6 +34,9 @@ export type OfertaLocalAiScanExtractionParams = {
   businessZipCode: string;
   validFrom?: string;
   validUntil?: string;
+  onPagesPrepared?: (pages: OfertaLocalPageImage[], totalPageCount: number) => Promise<void> | void;
+  onPageStarted?: (page: OfertaLocalPageImage) => Promise<void> | void;
+  onPageFinished?: (result: { pageNumber: number; ok: boolean; candidatesCount: number; error?: string }) => Promise<void> | void;
 };
 
 export type OfertaLocalAiScanExtractionResult = {
@@ -85,6 +89,9 @@ export async function runOfertaLocalAiScanExtraction(
         businessZipCode: params.businessZipCode,
         validFrom: params.validFrom,
         validUntil: params.validUntil,
+        onPagesPrepared: params.onPagesPrepared,
+        onPageStarted: params.onPageStarted,
+        onPageFinished: params.onPageFinished,
       });
 
       if (gemini.items.length > 0 || gemini.ok) {

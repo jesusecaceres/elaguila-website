@@ -67,12 +67,20 @@ export function OfertasLocalesPublicItemDetailDrawer({
         : null;
 
   return (
-    <div className={OVERLAY} role="dialog" aria-modal="true" onClick={onClose}>
+    <div
+      className={OVERLAY}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ofertas-public-item-detail-title"
+      onClick={onClose}
+    >
       <div className={DRAWER} onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 z-10 border-b border-[#D4C4A8]/60 bg-[#FAF6F0]/95 px-4 py-3 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-base font-semibold text-[#1E1814]">{c.detailTitle}</p>
+              <p id="ofertas-public-item-detail-title" className="text-base font-semibold text-[#1E1814]">
+                {c.detailTitle}
+              </p>
               <p className="mt-1 text-lg font-bold text-[#7A1E2C]">{item.itemName}</p>
             </div>
             <button type="button" className={BTN_OUTLINE} onClick={onClose}>
@@ -132,11 +140,11 @@ export function OfertasLocalesPublicItemDetailDrawer({
           <div className="grid gap-3 sm:grid-cols-2">
             <DetailRow label={c.pageTitle} value={item.businessName} />
             <DetailRow label={c.cityLabel} value={location} />
-            {item.address ? <DetailRow label="Address" value={item.address} /> : null}
+            {item.address ? <DetailRow label={c.addressLabel} value={item.address} /> : null}
             <DetailRow label={c.validDates} value={dates} />
             {item.category ? <DetailRow label={c.categoryLabel} value={item.category} /> : null}
-            {item.subcategory ? <DetailRow label="Subcategory" value={item.subcategory} /> : null}
-            {tags ? <DetailRow label="Tags" value={tags} /> : null}
+            {item.subcategory ? <DetailRow label={c.subcategoryLabel} value={item.subcategory} /> : null}
+            {tags ? <DetailRow label={c.tagsLabel} value={tags} /> : null}
             {item.sourcePage != null && item.sourcePage > 0 ? (
               <DetailRow label={c.sourcePage} value={String(item.sourcePage)} />
             ) : null}

@@ -103,7 +103,7 @@ async function getAiReviewCounts(params: {
   ownerId: string;
   ofertaLocalId: string;
   scanJobId: string | null;
-}): Promise<{ ok: true; totalCount: number; incompleteCount: number } | { ok: false; error: string; detail?: string }> {
+}): Promise<{ ok: true; totalCount: number; incompleteCount: number; approvedSourceItemCount: number } | { ok: false; error: string; detail?: string }> {
   let totalQuery = params.supabase
     .from("oferta_local_items")
     .select("id", { count: "exact", head: true })
@@ -122,18 +122,38 @@ async function getAiReviewCounts(params: {
     incompleteQuery = incompleteQuery.eq("scan_job_id", params.scanJobId);
   }
 
-  const [{ count: totalCount, error: totalError }, { count: incompleteCount, error: incompleteError }] =
-    await Promise.all([totalQuery, incompleteQuery]);
+  let approvedSourceItems = params.supabase
+    .from("oferta_local_items")
+    .select("id", { count: "exact", head: true })
+    .eq("oferta_local_id", params.ofertaLocalId)
+    .eq("owner_id", params.ownerId)
+    .eq("review_status", "approved")
+    .eq("source_lifecycle_status", "active")
+    .not("source_asset_version_id", "is", null);
+  if (params.scanJobId) {
+    approvedSourceItems = approvedSourceItems.eq("scan_job_id", params.scanJobId);
+  }
 
-  if (totalError || incompleteError) {
+  const [
+    { count: totalCount, error: totalError },
+    { count: incompleteCount, error: incompleteError },
+    { count: approvedSourceItemCount, error: approvedSourceItemError },
+  ] = await Promise.all([totalQuery, incompleteQuery, approvedSourceItems]);
+
+  if (totalError || incompleteError || approvedSourceItemError) {
     return {
       ok: false,
       error: "ai_review_lookup_failed",
-      detail: totalError?.message ?? incompleteError?.message ?? "unknown",
+      detail: totalError?.message ?? incompleteError?.message ?? approvedSourceItemError?.message ?? "unknown",
     };
   }
 
-  return { ok: true, totalCount: totalCount ?? 0, incompleteCount: incompleteCount ?? 0 };
+  return {
+    ok: true,
+    totalCount: totalCount ?? 0,
+    incompleteCount: incompleteCount ?? 0,
+    approvedSourceItemCount: approvedSourceItemCount ?? 0,
+  };
 }
 
 async function validateAiReviewScanJob(params: {
@@ -146,7 +166,7 @@ async function validateAiReviewScanJob(params: {
 
   const { data, error } = await params.supabase
     .from("oferta_local_scan_jobs")
-    .select("id")
+    .select("id, status, failed_pages, current_stage")
     .eq("id", params.scanJobId)
     .eq("oferta_local_id", params.ofertaLocalId)
     .eq("owner_id", params.ownerId)
@@ -166,6 +186,15 @@ async function validateAiReviewScanJob(params: {
       ok: false,
       error: "ai_scan_job_not_found",
       detail: "The AI scan job is not linked to this offer.",
+      status: 422,
+    };
+  }
+
+  if (data.status === "failed" || (data.failed_pages ?? 0) > 0 || data.current_stage === "failed") {
+    return {
+      ok: false,
+      error: "ai_scan_has_blocking_failures",
+      detail: "Resolve failed scan pages before submitting for review.",
       status: 422,
     };
   }
@@ -377,6 +406,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (aiReviewCounts.approvedSourceItemCount < 1) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ai_review_approved_source_item_required",
+          detail: "Approve at least one item from the scanned source before submitting.",
+          issues: [
+            {
+              field: "aiReview",
+              message: "Approve at least one item from the scanned source before submitting.",
+              severity: "error",
+            },
+          ],
+        },
+        { status: 422 }
+      );
+    }
+
     const updateRow = buildOfertasLocalesProductionInsertRow(draft, ownerId, parent.draft_snapshot);
     delete updateRow.owner_id;
     delete updateRow.created_at;
@@ -408,6 +455,7 @@ export async function POST(req: NextRequest) {
         ofertaLocalId: data.id,
         scanJobId: aiReview.scanJobId,
         reviewedItems: aiReviewCounts.totalCount,
+        approvedSourceItems: aiReviewCounts.approvedSourceItemCount,
       },
       commercial: {
         source: entitlement.source,

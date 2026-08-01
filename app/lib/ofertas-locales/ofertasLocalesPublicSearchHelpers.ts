@@ -3,6 +3,7 @@
  */
 
 import { canOfertaLocalItemBePubliclyEligible } from "./ofertasLocalesAiDbMapper";
+import { normalizeOfertaLocalSourceBbox } from "./ofertasLocalesBoundingBoxes";
 import {
   formatOfertaLocalItemPriceDisplay,
   getOfertaLocalClickablePreviewBoundingBoxNote,
@@ -243,13 +244,7 @@ export function isOfertaLocalPublicSearchRowEligible(
 function parseOfertaLocalPublicSourceBbox(
   raw: Record<string, unknown> | null | undefined
 ): OfertaLocalSourceBoundingBox | null {
-  if (!raw) return null;
-  const xMin = Number(raw.xMin);
-  const yMin = Number(raw.yMin);
-  const xMax = Number(raw.xMax);
-  const yMax = Number(raw.yMax);
-  if (![xMin, yMin, xMax, yMax].every((n) => Number.isFinite(n))) return null;
-  return { xMin, yMin, xMax, yMax };
+  return normalizeOfertaLocalSourceBbox(raw);
 }
 
 export function mapOfertaLocalPublicDetailHubItemFromRow(

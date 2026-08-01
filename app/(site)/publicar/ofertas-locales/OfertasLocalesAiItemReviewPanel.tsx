@@ -7,6 +7,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import {
   getOfertaLocalActiveScanCopy,
+  formatOfertaLocalPersistedScanProgress,
   inferScanningAssetId,
   isOfertaLocalActiveReviewStatus,
   isOfertaLocalScanJobActive,
@@ -23,6 +24,7 @@ import {
   resolveItemCropListStatus,
   summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
+import { normalizeOfertaLocalPrice } from "@/app/lib/ofertas-locales/ofertasLocalesPriceNormalization";
 import type { ClipReviewViewerItem } from "./OfertasClipReviewViewer";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
@@ -223,10 +225,16 @@ function sourceRoleText(role: OfertaLocalSourceFileRole | null, lang: OfertasLoc
 }
 
 function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
+  const normalizedPrice = normalizeOfertaLocalPrice({
+    priceText: draft.priceText,
+    priceAmount: draft.priceAmount.trim() ? draft.priceAmount : null,
+    manual: true,
+  });
   return {
     itemName: draft.itemName,
     priceText: draft.priceText,
-    priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
+    priceAmount: normalizedPrice.amount,
+    priceAmountCents: normalizedPrice.amountCents,
     regularPriceText: draft.regularPriceText,
     unit: draft.unit,
     category: draft.category,
@@ -819,6 +827,7 @@ export function OfertasLocalesAiItemReviewPanel({
   const scanJobStillActive = highlightedScanJob
     ? isOfertaLocalScanJobActive(highlightedScanJob.status)
     : false;
+  const persistedProgressLabel = formatOfertaLocalPersistedScanProgress(highlightedScanJob, lang);
 
   const scanActiveForAsset = Boolean(
     selectedSourceAssetId &&
@@ -1456,6 +1465,11 @@ export function OfertasLocalesAiItemReviewPanel({
           {scanCopy.currentScan}: {isWorkspace ? allCurrentScanItems.length : displayItems.length}
           {previousScanItems.length > 0 ? ` · ${scanCopy.previousScans}: ${previousScanItems.length}` : ""}
         </p>
+        {persistedProgressLabel ? (
+          <p className="text-xs font-medium text-[#7A1E2C]" aria-live="polite">
+            {persistedProgressLabel}
+          </p>
+        ) : null}
         <button
           type="button"
           className={BTN_SECONDARY}

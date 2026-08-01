@@ -105,9 +105,9 @@ function run() {
   assert.doesNotMatch(scanPrep, /\.select\("id, status, submitted_at"\)/, "no hardcoded submitted_at select");
 
   assert.match(rowAdapter, /draft_snapshot/, "overflow to draft_snapshot");
-  assert.match(rowAdapter, /OFERTAS_LOCALES_KNOWN_DB_COLUMNS/, "known column filter");
+  assert.match(rowAdapter, /filterToOfertasLocalesProductionColumns/, "known column filter");
 
-  assert.match(scanHandler, /processOfertaLocalAssetWithDocumentAi/, "real Document AI path");
+  assert.match(scanHandler, /runOfertaLocalAiScanExtraction/, "real AI scan orchestrator path");
   assert.match(scanHandler, /External URLs cannot be scanned/, "external URLs blocked");
   assert.match(scanHandler, /review_status: "needs_review"/, "candidates need review");
   assert.match(scanHandler, /is_active: false/, "candidates inactive");
@@ -125,7 +125,10 @@ function run() {
 
   const changed = changedFiles();
   const newMigration = changed.filter((f) => /^supabase\/migrations\//.test(f));
-  assert.equal(newMigration.length, 0, "no new Supabase migration in OL-7E");
+  assert.ok(
+    newMigration.every((f) => f === "supabase/migrations/20260801013000_ofertas_locales_ai_scan_review_publication.sql"),
+    "only the Package 7 forward migration may be present"
+  );
 
   for (const file of changed) {
     if (FORBIDDEN.some((re) => re.test(file))) {

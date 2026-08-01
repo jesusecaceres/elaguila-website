@@ -117,6 +117,8 @@ export function isOfertaLocalPublicOfferRowEligible(
   ) {
     return false;
   }
+  if (!String(row.public_source_asset_id ?? "").trim()) return false;
+  if ((row.asset_lifecycle_status ?? "current") !== "current") return false;
   if (!sanitizeText(row.business_name, 200) || !sanitizeText(row.title, 200)) return false;
   return true;
 }
@@ -127,7 +129,9 @@ export function mapOfertaLocalPublicOfferRowToCard(
 ): OfertaLocalPublicOfferCard {
   const flyer = firstAssetHref(row.flyer_assets);
   const coupon = firstAssetHref(row.coupon_assets);
-  const primary = flyer.href ? flyer : coupon;
+  const isCouponLane =
+    row.offer_type === "coupon" || row.offer_type === "promotion" || row.offer_type === "featured_deal";
+  const primary = isCouponLane ? (coupon.href ? coupon : flyer) : (flyer.href ? flyer : coupon);
   const phone = sanitizeText(row.phone || row.whatsapp, 40);
   const address = sanitizeText(row.address, 200);
   const city = sanitizeText(row.city, 80);

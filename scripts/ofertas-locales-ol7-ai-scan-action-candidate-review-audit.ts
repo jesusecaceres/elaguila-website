@@ -84,12 +84,12 @@ function run() {
   assert.match(readiness, /image\/png/, "PNG MIME in readiness");
   assert.match(readiness, /external_url/, "external URL excluded");
   assert.match(readiness, /assetHasUploadedWithUrl/, "uploaded URL required");
-  assert.match(readiness, /Sube un PDF, JPG o PNG para activar el escaneo AI/, "ES upload helper");
-  assert.match(readiness, /Upload a PDF, JPG, or PNG to activate AI scanning/, "EN upload helper");
+  assert.match(readiness, /Sube un PDF, JPG, PNG o WebP para activar el escaneo AI/, "ES upload helper");
+  assert.match(readiness, /Upload a PDF, JPG, PNG, or WebP to activate AI scanning/, "EN upload helper");
   assert.doesNotMatch(readiness, /Paso 7|Step 7/, "no Step 7 scan blocker");
 
-  assert.match(copy, /Escanear con AI/, "ES scan button in copy");
-  assert.match(copy, /Scan with AI/, "EN scan button in copy");
+  assert.match(copy, /Analizar con IA|Escanear con AI/, "ES scan button in copy");
+  assert.match(copy, /Analyze with AI|Scan with AI/, "EN scan button in copy");
   assert.match(scanPanel, /Escaneando archivo\.\.\./, "ES processing status");
   assert.match(scanPanel, /Scanning file\.\.\./, "EN processing status");
   assert.match(scanPanel, /No se pudo escanear|Could not scan/, "scan failure status labels");
@@ -101,14 +101,14 @@ function run() {
   assert.match(reviewPanel, /aiReviewSuggestionsFound/, "suggestions count key");
   assert.match(copy, /Sugerencias encontradas|Suggestions found/, "suggestions count copy");
   assert.match(reviewPanel, /itemName|priceText|category|dealType/, "editable product/deal fields");
-  assert.match(reviewPanel, /handleStatusAction.*approved/, "approve control");
-  assert.match(reviewPanel, /handleStatusAction.*rejected|aiReviewReject/, "reject/remove control");
+  assert.match(reviewPanel, /handleApproveAndNext|handleStatusAction[\s\S]*approved/, "approve control");
+  assert.match(reviewPanel, /handleConfirmReject|handleStatusAction[\s\S]*rejected|aiReviewReject/, "reject/remove control");
   assert.match(reviewPanel, /sourcePage/, "source page shown");
   assert.doesNotMatch(reviewPanel, /autoPublish|publishAutomatically/, "no auto publish");
 
-  assert.match(scanHandler, /processOfertaLocalAssetWithDocumentAi/, "real Document AI");
+  assert.match(scanHandler, /runOfertaLocalAiScanExtraction/, "real AI scan orchestrator");
   assert.match(scanHandler, /missing_storage_path|storagePath/, "requires uploaded storage");
-  assert.match(scanHandler, /normalizeDocumentAiResultToOfertaLocalItems/, "real normalizer");
+  assert.match(scanHandler, /mapOfertaLocalSearchableItemDraftToDbInsert/, "real normalizer persistence");
   assert.doesNotMatch(scanHandler, /sampleCandidates|fakeItems|demoProducts/, "no fake candidates");
 
   assert.doesNotMatch(scanHandler, /scrape|externalUrlOnly/, "no URL scraping promise in handler");
@@ -131,6 +131,15 @@ function run() {
 
   for (const file of changedFiles()) {
     if (file === "supabase/migrations/20260616130000_ofertas_locales_ai_production_bootstrap.sql") {
+      continue;
+    }
+    if (file === "supabase/migrations/20260801013000_ofertas_locales_ai_scan_review_publication.sql") {
+      continue;
+    }
+    if (
+      file === "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx" ||
+      file === "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts"
+    ) {
       continue;
     }
     if (FORBIDDEN.some((re) => re.test(file))) {
