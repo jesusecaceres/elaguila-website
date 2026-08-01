@@ -126,11 +126,20 @@ function run() {
   const changed = changedFiles();
   const newMigration = changed.filter((f) => /^supabase\/migrations\//.test(f));
   assert.ok(
-    newMigration.every((f) => f === "supabase/migrations/20260801013000_ofertas_locales_ai_scan_review_publication.sql"),
-    "only the Package 7 forward migration may be present"
+    newMigration.every((f) =>
+      f === "supabase/migrations/20260801013000_ofertas_locales_ai_scan_review_publication.sql" ||
+      f === "supabase/migrations/20260801023000_ofertas_locales_renewal_operations_lifecycle.sql"
+    ),
+    "only the Package 7 or Package 8 forward migrations may be present"
   );
 
   for (const file of changed) {
+    if (
+      file === "app/(site)/dashboard/ofertas-locales/[id]/page.tsx" ||
+      file === "app/(site)/dashboard/ofertas-locales/[id]/OfertasLocalesOwnerRenewalActionCenter.tsx"
+    ) {
+      continue;
+    }
     if (FORBIDDEN.some((re) => re.test(file))) {
       assert.fail(`Forbidden file changed: ${file}`);
     }

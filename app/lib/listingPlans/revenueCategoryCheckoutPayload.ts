@@ -134,6 +134,7 @@ export type RevenueCategoryCheckoutPayload = {
   addOns?: RevenueCheckoutAddOnPayload[];
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
+  renewalAttemptId?: string | null;
   returnContext?: string | null;
 };
 
@@ -163,6 +164,7 @@ export function buildRevenueCategoryCheckoutBody(
       : {}),
     ...(input.sourceTable?.trim() ? { sourceTable: input.sourceTable.trim() } : {}),
     ...(input.currentExpiresAt?.trim() ? { currentExpiresAt: input.currentExpiresAt.trim() } : {}),
+    ...(input.renewalAttemptId?.trim() ? { renewalAttemptId: input.renewalAttemptId.trim() } : {}),
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
   };
 }

@@ -136,9 +136,14 @@ function run() {
     if (file === "supabase/migrations/20260801013000_ofertas_locales_ai_scan_review_publication.sql") {
       continue;
     }
+    if (file === "supabase/migrations/20260801023000_ofertas_locales_renewal_operations_lifecycle.sql") {
+      continue;
+    }
     if (
       file === "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx" ||
-      file === "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts"
+      file === "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts" ||
+      file === "app/(site)/dashboard/ofertas-locales/[id]/page.tsx" ||
+      file === "app/(site)/dashboard/ofertas-locales/[id]/OfertasLocalesOwnerRenewalActionCenter.tsx"
     ) {
       continue;
     }

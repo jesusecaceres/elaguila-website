@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { isPaymentCleared } from "@/app/lib/listingPlans/paymentTracking";
 import type { LeonixPaymentRecordRow } from "@/app/lib/listingPlans/revenuePaymentRecords";
 
@@ -12,6 +14,11 @@ import {
 } from "./ofertasLocalesCommercial";
 import { ensureOfertaLocalLeonixAdId } from "./ofertasLocalesLeonixAdId";
 import { validateOfertaLocalPartnerCourtesyEligibility } from "./ofertasLocalesPartnerOperations";
+import {
+  markOfertaLocalRenewalPaymentAuthorized,
+  paymentRecordIsOfertaLocalRenewal,
+  resolveOfertaLocalRenewalEligibility,
+} from "./ofertasLocalesRenewals";
 
 type SupabaseLike = { from: (table: string) => any };
 
@@ -76,6 +83,7 @@ export type OfertasCheckoutEligibilityResult =
       product: OfertaLocalCommercialProduct;
       leonixAdId: string;
       ownerUserId: string;
+      currentExpiresAt: string | null;
     }
   | { ok: false; status: number; code: string; message: string };
 
@@ -104,6 +112,7 @@ export async function validateOfertasLocalesCheckoutOwnership(input: {
   listingId: string;
   bearerUserId: string | null;
   packageKey: string;
+  operation?: "renew_listing" | null;
 }): Promise<OfertasCheckoutEligibilityResult> {
   const ownerId = input.bearerUserId?.trim();
   if (!ownerId) {
@@ -116,6 +125,7 @@ export async function validateOfertasLocalesCheckoutOwnership(input: {
   }
 
   const product = getOfertaLocalCommercialProductByPackageKey(input.packageKey);
+  const isRenewal = input.operation === "renew_listing";
   if (!product) {
     return { ok: false, status: 400, code: "package_not_supported", message: "Unsupported Ofertas package." };
   }
@@ -138,7 +148,7 @@ export async function validateOfertasLocalesCheckoutOwnership(input: {
     return { ok: false, status: 403, code: "listing_owner_mismatch", message: "Listing does not belong to this user." };
   }
 
-  if (!CHECKOUT_ELIGIBLE_STATUSES.has(String(parent.status ?? "").toLowerCase())) {
+  if (!isRenewal && !CHECKOUT_ELIGIBLE_STATUSES.has(String(parent.status ?? "").toLowerCase())) {
     return { ok: false, status: 409, code: "listing_not_checkout_eligible", message: "Listing is not eligible for checkout." };
   }
 
@@ -151,10 +161,10 @@ export async function validateOfertasLocalesCheckoutOwnership(input: {
     listingId,
     packageKey: product.packageKey,
   });
-  if (
+  if (!isRenewal && (
     activeEquivalent ||
     (isPaymentCleared(parent.payment_status) && parent.entitlement_status === "active" && parent.package_entitlement_id)
-  ) {
+  )) {
     return {
       ok: false,
       status: 409,
@@ -168,12 +178,29 @@ export async function validateOfertasLocalesCheckoutOwnership(input: {
     return { ok: false, status: 500, code: leonix.code, message: leonix.message };
   }
 
+  if (isRenewal) {
+    const renewal = await resolveOfertaLocalRenewalEligibility({
+      supabase: input.supabase as SupabaseClient,
+      parent: { ...parent, leonix_ad_id: leonix.leonixAdId },
+      ownerId,
+    });
+    if (!["eligible_paid", "eligible_partner_courtesy", "renewal_in_progress", "already_authorized"].includes(renewal.code)) {
+      return {
+        ok: false,
+        status: renewal.code === "not_yet_eligible" ? 422 : 409,
+        code: renewal.code,
+        message: renewal.message,
+      };
+    }
+  }
+
   return {
     ok: true,
     parent: { ...parent, leonix_ad_id: leonix.leonixAdId },
     product,
     leonixAdId: leonix.leonixAdId,
     ownerUserId: ownerId,
+    currentExpiresAt: typeof parent["expires_at"] === "string" ? parent["expires_at"] : null,
   };
 }
 
@@ -236,6 +263,18 @@ export async function markOfertaLocalEntitlementFulfilled(input: {
   }
   if (!ofertaLocalCommercialProductMatchesOfferType({ packageKey: input.product.packageKey, offerType: row.offer_type })) {
     return { ok: false, code: "package_listing_mismatch", message: "Payment product does not match listing lane.", listingId };
+  }
+
+  if (paymentRecordIsOfertaLocalRenewal(input.paymentRecord.metadata)) {
+    const renewal = await markOfertaLocalRenewalPaymentAuthorized({
+      supabase: input.supabase as SupabaseClient,
+      paymentRecord: input.paymentRecord,
+      packageEntitlementId: input.packageEntitlementId,
+    });
+    if (!renewal.ok) {
+      return { ok: false, code: renewal.code, message: renewal.message, listingId };
+    }
+    return { ok: true, listingId };
   }
 
   const { error } = await input.supabase

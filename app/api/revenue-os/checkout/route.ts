@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
       listingId: String(body.listingId ?? "").trim(),
       bearerUserId,
       packageKey: packageKeyEarly,
+      operation: operationEarly,
     });
     if (!ownerGate.ok) {
       return NextResponse.json(
@@ -168,6 +169,7 @@ export async function POST(request: NextRequest) {
     }
     serverVerifiedLeonixAdId = ownerGate.leonixAdId;
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt ?? null;
     serverVerifiedOfertasProduct = ownerGate.product;
   }
   if (isRentasRenewalEarly) {
@@ -321,9 +323,10 @@ export async function POST(request: NextRequest) {
     promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
     promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly || isServiciosOffersAddonOnly,
-    operation: isRentasRenewal ? "renew_listing" : null,
+    operation: body.operation === "renew_listing" ? "renew_listing" : null,
     sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
-    currentExpiresAt: isRentasRenewal ? serverVerifiedCurrentExpiresAt : body.currentExpiresAt,
+    currentExpiresAt: isRentasRenewal || categoryEarly === "ofertas-locales" ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt : body.currentExpiresAt,
+    renewalAttemptId: categoryEarly === "ofertas-locales" ? body.renewalAttemptId : null,
     returnContext: isRentasRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
   });
 

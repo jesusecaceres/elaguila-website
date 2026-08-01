@@ -37,7 +37,8 @@ assert.match(server, /\.update\(\{/);
 assert.match(server, /payment_status:\s*"paid"/);
 assert.match(server, /entitlement_status:\s*"active"/);
 assert.doesNotMatch(server, /insert\(\{[\s\S]*ofertas_locales/);
-assert.doesNotMatch(server, /published_at\s*[:=]|expires_at\s*[:=]/);
+assert.doesNotMatch(server, /published_at\s*[:=]|expires_at\s*[:=]|status:\s*"approved"/);
+assert.match(server, /parent\["expires_at"\]/);
 
 assert.match(successView, /The 30-day public term starts only when Leonix approves/);
 assert.match(successView, /El término público de 30 días empieza solo cuando Leonix aprueba/);

@@ -44,3 +44,9 @@ Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
 - O4: DONE - Package 7 hardens submission/admin approval gates for source version, scan failures, unresolved review, approved source items, and public active source activation.
 - O5: DONE - Package 7 completes a truthful cleanup queue contract; physical storage deletion remains deferred and unclaimed.
 - O6: BLOCKED - real Gemini staging scan, migration application, cleanup worker execution, and browser QA remain environment work.
+- P1: DONE - Package 8 adds same-parent renewal attempts with stable Leonix ID, server-side eligibility, duplicate-open-attempt protection, and 14-day active-term eligibility.
+- P2: DONE - Package 8 adds renewal checkout metadata and webhook authorization hooks while preserving the rule that checkout/webhook/submission do not start or extend the public term.
+- P3: DONE - Package 8 adds immutable public-term history and a no-day-loss scheduled activation RPC; repeated activation is idempotency-protected by renewal-attempt uniqueness.
+- P4: DONE - Package 8 adds owner renewal action center and owner renewal routes for create/reuse, source selection, submission, and unpaid/unsubmitted cancellation.
+- P5: DONE - Package 8 adds admin renewal inspection/actions, due scheduled activation execution foundation, stuck-work detection, cleanup claim/lease execution contract, and notification outbox contract.
+- P6: BLOCKED - Package 8 runtime requires unapplied migrations, Stripe staging validation, scheduled activation worker configuration, cleanup storage adapter execution, notification delivery adapter, and focused browser QA.

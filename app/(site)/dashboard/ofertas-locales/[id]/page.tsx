@@ -16,6 +16,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { OfertasLocalesOwnerAiManageSection } from "./OfertasLocalesOwnerAiManageSection";
+import { OfertasLocalesOwnerRenewalActionCenter } from "./OfertasLocalesOwnerRenewalActionCenter";
 
 type Lang = "es" | "en";
 
@@ -361,6 +362,10 @@ export default function OfertasLocalesOwnerManagePage() {
           ) : null}
         </div>
       </header>
+
+      <div className="mb-6">
+        <OfertasLocalesOwnerRenewalActionCenter offer={offer} lang={lang} />
+      </div>
 
       <section className="mb-6 rounded-2xl border border-[#E8DFD0] bg-white p-4 text-sm">
         <h2 className="text-xs font-bold uppercase text-[#7A7164]">{t.analyticsTitle}</h2>

@@ -64,10 +64,29 @@ const PACKAGE_5_SHARED_REVENUE_OS_ALLOWED = new Set([
   "app/lib/listingPlans/revenueEntitlementFulfillment.ts",
   "app/lib/listingPlans/revenueEntitlements.ts",
   "app/lib/listingPlans/revenueFulfillment.ts",
+  "app/lib/listingPlans/revenueCheckout.ts",
+  "app/lib/listingPlans/revenuePaymentRecords.ts",
   "app/lib/listingPlans/revenueOsReturnPath.ts",
   "app/lib/listingPlans/revenuePricingMatrix.ts",
   "app/lib/listingPlans/revenueStripe.ts",
   "app/lib/listingPlans/revenueWebhook.ts",
+]);
+
+const PACKAGE_8_ALLOWED = new Set([
+  "supabase/migrations/20260801023000_ofertas_locales_renewal_operations_lifecycle.sql",
+  "scripts/ofertas-renewal-eligibility-audit.mjs",
+  "scripts/ofertas-renewal-checkout-entitlement-audit.mjs",
+  "scripts/ofertas-renewal-term-history-audit.mjs",
+  "scripts/ofertas-renewal-activation-audit.mjs",
+  "scripts/ofertas-renewal-source-reuse-replacement-audit.mjs",
+  "scripts/ofertas-owner-renewal-operations-audit.mjs",
+  "scripts/ofertas-admin-renewal-operations-audit.mjs",
+  "scripts/ofertas-stuck-work-recovery-audit.mjs",
+  "scripts/ofertas-cleanup-execution-audit.mjs",
+  "scripts/ofertas-notification-expiration-contract-audit.mjs",
+  "scripts/ofertas-package-8-security-idempotency-audit.mjs",
+  "scripts/ofertas-package-8-launch-readiness-audit.mjs",
+  "scripts/ofertas-package-8-audit-utils.mjs",
 ]);
 
 const FORBIDDEN_CUSTOMER_STRINGS = [
@@ -235,6 +254,9 @@ try {
     .map(normalizePath);
 
   for (const file of diff) {
+    if (PACKAGE_8_ALLOWED.has(file)) {
+      continue;
+    }
     if (
       !PACKAGE_5_SHARED_REVENUE_OS_ALLOWED.has(file) &&
       FORBIDDEN_TOUCH_PREFIXES.some((prefix) => file.startsWith(prefix))
