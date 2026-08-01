@@ -142,7 +142,7 @@ function run() {
   assert.ok(audit.includes("TRUE/FALSE audit (V2.3)"), "Audit V2.3 TRUE/FALSE table");
 
   // ---- Gate 2: premium header ----
-  assert.ok(card.includes("h-16 w-16") && card.includes("lg:h-24"), "Logo/monogram enlarged (64/96px)");
+  assert.ok(card.includes("LOGO_SIZE") && card.includes("h-[88px]") && card.includes("lg:h-[132px]"), "Logo/monogram premium scale");
   assert.ok(card.includes("PILL_PRIMARY") && card.includes("PILL_MUTED"), "Premium pill discipline");
   assert.ok(card.includes("QUICK_ACTION"), "Compact quick-action row present");
   assert.ok(
@@ -195,8 +195,8 @@ function run() {
     "Product drawer keeps crop/source proof"
   );
   assert.ok(
-    drawer.includes("OfertasLocalesProductDetailDrawer") && grid.includes("OfertasLocalesProductDetailDrawer"),
-    "Product detail drawer wired from grid"
+    card.includes("OfertasLocalesProductDetailDrawer") && grid.includes("onOpenDetail"),
+    "Product detail drawer wired from preview card through grid"
   );
 
   // ---- Copy strings (preserved + new) ----

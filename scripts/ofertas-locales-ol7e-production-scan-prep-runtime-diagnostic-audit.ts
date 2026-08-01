@@ -134,6 +134,9 @@ function run() {
   );
 
   for (const file of changed) {
+    if (file === "scripts/ofertas-stripe-readiness-audit.mjs") {
+      continue;
+    }
     if (
       file === "app/(site)/dashboard/ofertas-locales/[id]/page.tsx" ||
       file === "app/(site)/dashboard/ofertas-locales/[id]/OfertasLocalesOwnerRenewalActionCenter.tsx"

@@ -9,7 +9,7 @@ assertContains(helper, "processing_lease_id", "processing lease");
 assertContains(helper, "lease_expires_at", "lease expiration");
 assertContains(helper, "attempt_count", "attempt count increment");
 assertContains(helper, "physicalDeletionPerformed: false", "no fake deletion completion");
-assertContains(route, "resolveOfertasLocalesOwnerOrAdminAuth", "server/admin authorization");
+assertContains(route, "authenticateOfertaLocalAdminOrWorker", "server/admin-or-worker authorization");
 assertContains(route, "completed: false", "no completed claim without adapter");
 assertContains(migration, "retry_after_at", "retry/backoff metadata");
 assertNotContains(helper, ".storage.from", "no storage deletion call");

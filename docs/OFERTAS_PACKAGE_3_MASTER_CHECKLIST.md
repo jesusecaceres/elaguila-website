@@ -50,3 +50,9 @@ Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
 - P4: DONE - Package 8 adds owner renewal action center and owner renewal routes for create/reuse, source selection, submission, and unpaid/unsubmitted cancellation.
 - P5: DONE - Package 8 adds admin renewal inspection/actions, due scheduled activation execution foundation, stuck-work detection, cleanup claim/lease execution contract, and notification outbox contract.
 - P6: BLOCKED - Package 8 runtime requires unapplied migrations, Stripe staging validation, scheduled activation worker configuration, cleanup storage adapter execution, notification delivery adapter, and focused browser QA.
+- Q1: DONE - Package 9 reconciles the historical checklist against current Package 4A-8 repository truth without treating old blocked/partial statuses as current.
+- Q2: DONE - Package 9 adds a static migration manifest, migration-chain audit, and runtime/schema compatibility map; migration application remains unknown/unapplied by this session.
+- Q3: DONE - Package 9 adds an Ofertas-local environment contract, server-only readiness validator, authorized readiness endpoint, and release-gate evaluator that disclose no secret values.
+- Q4: DONE - Package 9 hardens scheduled activation and cleanup execution routes with admin-or-internal-worker authorization, bounded batch sizes, and dry-run responses that perform no mutations or external calls.
+- Q5: DONE - Package 9 adds staging fixture specifications, disabled-by-default staging harness scripts, and migration/staging/incident runbooks; controlled staging, browser QA, external validation, deployment, commit, and push remain deferred.
+- Q6: DONE - Package 9-R modernizes eight stale historical Ofertas audits so core regressions validate current repository truth instead of historical dirty-file gates; migration application, external validation, staging certification, browser QA, merge, and deployment remain pending.

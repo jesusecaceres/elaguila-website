@@ -130,6 +130,9 @@ function run() {
   assert.match(pkg, /ofertas-locales:ol7-ai-scan-action-candidate-review-audit/, "package script");
 
   for (const file of changedFiles()) {
+    if (file === "scripts/ofertas-stripe-readiness-audit.mjs") {
+      continue;
+    }
     if (file === "supabase/migrations/20260616130000_ofertas_locales_ai_production_bootstrap.sql") {
       continue;
     }

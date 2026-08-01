@@ -89,6 +89,10 @@ const PACKAGE_8_ALLOWED = new Set([
   "scripts/ofertas-package-8-audit-utils.mjs",
 ]);
 
+const PACKAGE_9_AUDIT_ALLOWED = new Set([
+  "scripts/ofertas-stripe-readiness-audit.mjs",
+]);
+
 const FORBIDDEN_CUSTOMER_STRINGS = [
   "+$199/mes",
   "+$199/mo",
@@ -255,6 +259,9 @@ try {
 
   for (const file of diff) {
     if (PACKAGE_8_ALLOWED.has(file)) {
+      continue;
+    }
+    if (PACKAGE_9_AUDIT_ALLOWED.has(file)) {
       continue;
     }
     if (
