@@ -91,7 +91,7 @@ function normalizeOfferTypeProduct(offerType: string | null | undefined): "weekl
 
 function parentMatchesDraftLane(params: {
   parentOfferType: string | null | undefined;
-  draftOfferType: OfertaLocalOfferType;
+  draftOfferType: OfertaLocalOfferType | "";
 }): boolean {
   const parentProduct = normalizeOfferTypeProduct(params.parentOfferType);
   const draftProduct = normalizeOfferTypeProduct(params.draftOfferType);

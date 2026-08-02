@@ -25,7 +25,6 @@ import {
 } from "./ofertasLocalesScanProgress";
 import {
   assertOfertaLocalAiScanSizeWithinLimit,
-  getOfertaLocalAiScanMaxBytes,
   OfertaLocalAiScanSizeExceededError,
 } from "./ofertasLocalesAiScanSizeLimits";
 import {
@@ -42,6 +41,7 @@ import {
   ofertasLocalesAiSchemaMissingDetail,
 } from "./ofertasLocalesSupabaseSchema";
 import type {
+  OfertaLocalDraftAssetType,
   OfertaLocalItemDbRow,
   OfertaLocalPublishedAssetMetadata,
   OfertaLocalPublishStatus,
@@ -62,11 +62,11 @@ const SCAN_BLOCKED_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new 
   "archived",
 ]);
 
-function resolveScanSourceAssetType(assetKind: "flyer" | "coupon", mimeType: string): string {
+function resolveScanSourceAssetType(assetKind: "flyer" | "coupon", mimeType: string): OfertaLocalDraftAssetType {
   const type = mimeType.toLowerCase();
   if (type === "application/pdf") return assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf";
   if (type.startsWith("image/")) return assetKind === "flyer" ? "flyer_image" : "coupon_image";
-  return assetKind;
+  return assetKind === "flyer" ? "flyer_image" : "coupon_image";
 }
 
 function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
@@ -96,9 +96,6 @@ async function fetchAssetBytes(
   if (!url.startsWith("https://")) {
     throw new Error("Asset URL must be a secure HTTPS URL.");
   }
-
-  const maxBytes = getOfertaLocalAiScanMaxBytes(context.mimeType);
-
   const res = await fetch(url, { method: "GET", cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Could not download asset (HTTP ${res.status}).`);
@@ -919,7 +916,10 @@ export async function handleOfertaLocalScanPost(
         throw new Error(itemsError.message);
       }
 
-      const persistedCropRows = itemRows.filter((row) => row.source_crop_url?.trim());
+      const persistedCropRows = itemRows.filter(
+        (row): row is typeof row & { source_crop_url: string } =>
+          typeof row.source_crop_url === "string" && row.source_crop_url.trim().length > 0
+      );
       for (const row of persistedCropRows) {
         console.info("[ofertas-locales crop] source_crop_url persisted", {
           scanJobId,

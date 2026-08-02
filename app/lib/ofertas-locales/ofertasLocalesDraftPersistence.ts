@@ -10,6 +10,7 @@ import type {
   OfertaLocalDraftAssetStatus,
   OfertaLocalDraftAssetType,
   OfertaLocalFeaturedPlacementScope,
+  OfertaLocalOfferType,
 } from "./ofertasLocalesTypes";
 
 /** Durable device draft — survives tab close; sessionStorage is fallback only. */
@@ -229,7 +230,7 @@ function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
       : legacyPrimaryAdFormat
         ? legacyPrimaryAdFormat
       : inferPrimaryAdFormatFromDraft(merged);
-  const offerType =
+  const offerType: OfertaLocalOfferType | "" =
     merged.offerType ||
     (primaryAdFormat === "shopping_specials" ? "weekly_flyer" : primaryAdFormat === "local_coupons" ? "coupon" : "");
   const withLane = { ...merged, ...normalizedCategory, primaryAdFormat, offerType };

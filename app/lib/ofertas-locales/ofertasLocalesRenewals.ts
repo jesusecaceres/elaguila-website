@@ -57,8 +57,8 @@ export type OfertaLocalRenewalParentRow = {
   status: string;
   offer_type: string;
   leonix_ad_id: string | null;
-  published_at: string | null;
-  expires_at: string | null;
+  published_at?: string | null;
+  expires_at?: string | null;
   commercial_product_key: string | null;
   active_source_asset_id?: string | null;
   public_source_asset_id?: string | null;

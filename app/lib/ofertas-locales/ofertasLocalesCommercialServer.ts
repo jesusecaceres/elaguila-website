@@ -8,7 +8,6 @@ import type { LeonixPaymentRecordRow } from "@/app/lib/listingPlans/revenuePayme
 import {
   getOfertaLocalCommercialProductByPackageKey,
   getOfertaLocalCommercialProductForOfferType,
-  isOfertaLocalCommercialPackageKey,
   ofertaLocalCommercialProductMatchesOfferType,
   type OfertaLocalCommercialProduct,
 } from "./ofertasLocalesCommercial";
@@ -365,7 +364,7 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
       parent: input.parent,
       ownerId: input.ownerId,
     });
-    if (courtesy.ok) {
+    if (courtesy.ok && courtesy.source === "partner_courtesy") {
       return {
         ok: true,
         source: "partner_courtesy",

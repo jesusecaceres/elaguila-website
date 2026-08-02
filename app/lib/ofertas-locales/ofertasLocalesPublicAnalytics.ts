@@ -7,6 +7,10 @@ import {
   trackListingViewOpen,
   type ListingEngagementCtaType,
 } from "@/app/lib/analytics/client/listingEngagementRecorder";
+import type {
+  ListingAnalyticsCategory,
+  ListingAnalyticsSourceTable,
+} from "@/app/lib/analytics/listingAnalyticsIdentity";
 import type { ListingAnalyticsEventType } from "@/app/lib/listingAnalyticsEventTypes";
 import { leonixAnalyticsAllowed } from "@/app/lib/leonixPublicConsent";
 import type { OfertaLocalPublicSearchItem } from "./ofertasLocalesTypes";
@@ -16,8 +20,8 @@ type OfertasAnalyticsIdentity = {
   leonixAdId?: string | null;
 };
 
-const SOURCE_TABLE = "ofertas_locales";
-const CATEGORY = "ofertas-locales";
+const SOURCE_TABLE: ListingAnalyticsSourceTable = "ofertas_locales";
+const CATEGORY: ListingAnalyticsCategory = "ofertas-locales";
 
 function anonymousSessionId(): string {
   if (typeof window === "undefined") return "";
