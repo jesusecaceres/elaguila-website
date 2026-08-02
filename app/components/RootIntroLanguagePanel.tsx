@@ -88,7 +88,13 @@ export function RootIntroLanguagePanel({ siteUnlocked }: RootIntroLanguagePanelP
         {copy.selectedLabel}
       </p>
 
-      <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+      <div
+        className={
+          ADDITIONAL_LANGUAGES.length > 0
+            ? "mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3"
+            : "mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2"
+        }
+      >
         {PRIMARY_LANGUAGES.map((code) => (
           <button
             key={code}
@@ -101,71 +107,76 @@ export function RootIntroLanguagePanel({ siteUnlocked }: RootIntroLanguagePanelP
           </button>
         ))}
 
-        <div className="relative min-w-0 sm:col-span-1">
-          <button
-            type="button"
-            onClick={() => setDropdownOpen((open) => !open)}
-            aria-expanded={dropdownOpen}
-            aria-haspopup="listbox"
-            aria-label={
-              additionalActive
-                ? `${UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER} (${copy.selectedLabel})`
-                : UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER
-            }
-            className={[
-              "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition",
-              additionalActive
-                ? "bg-[#FFD700] text-[#1F241C] shadow-[0_0_24px_rgba(255,215,0,0.45)]"
-                : "border border-amber-400/55 bg-[#FFFDF7]/10 text-[#F8F4EA] hover:bg-[#FFFDF7]/20",
-            ].join(" ")}
-          >
-            <span className="shrink-0" aria-hidden>
-              🌐
-            </span>
-            <span className="text-center leading-snug">Languages</span>
-            <span className="shrink-0 text-[0.65rem] leading-none opacity-80" aria-hidden>
-              ▾
-            </span>
-          </button>
-
-          {dropdownOpen ? (
-            <ul
-              role="listbox"
-              aria-label={UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER}
-              className="absolute bottom-full left-0 z-50 mb-2 w-full min-w-[280px] max-h-[320px] overflow-y-auto overflow-x-hidden rounded-xl border border-amber-300/40 bg-black/90 py-1 shadow-2xl backdrop-blur-md sm:left-auto sm:right-0 sm:w-[min(20rem,calc(100vw-2rem))]"
+        {/* Hotfix H.1 — ES/EN-only launch: ADDITIONAL_LANGUAGES is empty, so this trigger would
+            otherwise open an empty dropdown with nothing to select. Hidden entirely rather than
+            shown broken; reappears automatically once ADDITIONAL_LANGUAGES is populated again. */}
+        {ADDITIONAL_LANGUAGES.length > 0 ? (
+          <div className="relative min-w-0 sm:col-span-1">
+            <button
+              type="button"
+              onClick={() => setDropdownOpen((open) => !open)}
+              aria-expanded={dropdownOpen}
+              aria-haspopup="listbox"
+              aria-label={
+                additionalActive
+                  ? `${UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER} (${copy.selectedLabel})`
+                  : UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER
+              }
+              className={[
+                "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition",
+                additionalActive
+                  ? "bg-[#FFD700] text-[#1F241C] shadow-[0_0_24px_rgba(255,215,0,0.45)]"
+                  : "border border-amber-400/55 bg-[#FFFDF7]/10 text-[#F8F4EA] hover:bg-[#FFFDF7]/20",
+              ].join(" ")}
             >
-              {ADDITIONAL_LANGUAGES.map((code) => {
-                const selected = lang === code;
-                const optionCopy = ROOT_INTRO_COPY[code];
-                return (
-                  <li key={code} role="presentation">
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      onClick={() => selectLang(code)}
-                      className={[
-                        "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold transition",
-                        selected
-                          ? "bg-[#FFD700]/15 text-[#FFD700]"
-                          : "text-[#F8F4EA] hover:bg-[#FFFDF7]/10",
-                      ].join(" ")}
-                    >
-                      <span className="min-w-0 break-words leading-snug">
-                        {optionCopy.selectedLabel}
-                      </span>
-                      {selected ? (
-                        <span className="shrink-0 text-sm font-bold text-[#FFD700]" aria-hidden>
-                          ✓
+              <span className="shrink-0" aria-hidden>
+                🌐
+              </span>
+              <span className="text-center leading-snug">Languages</span>
+              <span className="shrink-0 text-[0.65rem] leading-none opacity-80" aria-hidden>
+                ▾
+              </span>
+            </button>
+
+            {dropdownOpen ? (
+              <ul
+                role="listbox"
+                aria-label={UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER}
+                className="absolute bottom-full left-0 z-50 mb-2 w-full min-w-[280px] max-h-[320px] overflow-y-auto overflow-x-hidden rounded-xl border border-amber-300/40 bg-black/90 py-1 shadow-2xl backdrop-blur-md sm:left-auto sm:right-0 sm:w-[min(20rem,calc(100vw-2rem))]"
+              >
+                {ADDITIONAL_LANGUAGES.map((code) => {
+                  const selected = lang === code;
+                  const optionCopy = ROOT_INTRO_COPY[code];
+                  return (
+                    <li key={code} role="presentation">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => selectLang(code)}
+                        className={[
+                          "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold transition",
+                          selected
+                            ? "bg-[#FFD700]/15 text-[#FFD700]"
+                            : "text-[#F8F4EA] hover:bg-[#FFFDF7]/10",
+                        ].join(" ")}
+                      >
+                        <span className="min-w-0 break-words leading-snug">
+                          {optionCopy.selectedLabel}
                         </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </div>
+                        {selected ? (
+                          <span className="shrink-0 text-sm font-bold text-[#FFD700]" aria-hidden>
+                            ✓
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <Link

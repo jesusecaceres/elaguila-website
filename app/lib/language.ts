@@ -86,8 +86,12 @@ export function magazineRouteAdditionalLanguages(): readonly SupportedLang[] {
   return MAGAZINE_ROUTE_LANGUAGES.filter((c) => c !== "es" && c !== "en");
 }
 
-/** Official non-primary languages in public More Languages dropdown. */
-export const ADDITIONAL_LANGUAGES = ["pt", "tl"] as const satisfies readonly SupportedLang[];
+/**
+ * Hotfix H.1 (2026-08) — ES/EN-only launch gateway: the approved launch scope is Español and
+ * English only. Emptied rather than removed so this list (and the gateway's own conditional
+ * rendering around it) can be repopulated later without further code changes.
+ */
+export const ADDITIONAL_LANGUAGES: readonly SupportedLang[] = [];
 
 /** @deprecated Alias for ADDITIONAL_LANGUAGES */
 export const ACTIVE_ADDITIONAL_LANGUAGES = ADDITIONAL_LANGUAGES;
