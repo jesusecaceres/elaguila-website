@@ -379,9 +379,10 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
 /** Global sidebar hrefs (top-level admin shell). */
 export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
   if (isSalesRepRole(ctx.normalizedRole)) {
-    return ["/admin/team", "/admin/support"];
+    // Gate BCO-4A — the Sales Team Business Workspace is the sales_rep role's primary tool.
+    return ["/admin/team", "/admin/support", "/admin/businesses"];
   }
-  const hrefs = ["/admin"];
+  const hrefs = ["/admin", "/admin/businesses"];
   if (canViewGlobalAdminNav(ctx.normalizedRole)) {
     hrefs.push(
       "/admin/team",

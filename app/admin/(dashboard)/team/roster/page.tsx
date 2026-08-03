@@ -22,6 +22,7 @@ import {
 import { AdminEmptyState } from "../../../_components/AdminEmptyState";
 import { getCurrentAdminAccessContext, requireAdminTeamAccess } from "@/app/admin/_lib/adminAccessControl";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { resolveActingRosterIdentity } from "@/app/admin/_lib/adminRosterAudit";
 import {
   createTeamInviteIntentAction,
   createTeamMemberRecordAction,
@@ -64,6 +65,7 @@ type MemberRow = {
   is_active: boolean;
   permissions: unknown;
   created_at: string;
+  updated_at: string;
 };
 
 async function fetchTeamInvites(): Promise<{ rows: InviteRow[]; unavailable: boolean }> {
@@ -86,7 +88,7 @@ async function fetchTeamMembers(): Promise<{ rows: MemberRow[]; unavailable: boo
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("admin_team_members")
-      .select("id, email, display_name, role, is_active, permissions, created_at")
+      .select("id, email, display_name, role, is_active, permissions, created_at, updated_at")
       .order("created_at", { ascending: false })
       .limit(80);
     if (error) return { rows: [], unavailable: true };
@@ -97,6 +99,48 @@ async function fetchTeamMembers(): Promise<{ rows: MemberRow[]; unavailable: boo
 }
 
 const KNOWN_PERM = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
+
+/**
+ * Deactivating your OWN roster row needs an explicit second confirmation
+ * (toggleTeamMemberActiveAction blocks a plain click and redirects with a warning otherwise) —
+ * every other row keeps the single-click toggle unchanged.
+ */
+function DeactivateControl({ member, isSelf }: { member: MemberRow; isSelf: boolean }) {
+  if (!(isSelf && member.is_active)) {
+    return (
+      <form action={toggleTeamMemberActiveAction} className="inline">
+        <input type="hidden" name="id" value={member.id} />
+        <input type="hidden" name="next_active" value={member.is_active ? "0" : "1"} />
+        <button
+          type="submit"
+          className="min-h-[40px] rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
+          title={member.is_active ? "Deactivate row in admin_team_members (does not delete Auth user)" : "Reactivate row in operational roster"}
+          aria-label={member.is_active ? "Deactivate member in roster" : "Activate member in roster"}
+        >
+          {member.is_active ? "Deactivate" : "Activate"}
+        </button>
+      </form>
+    );
+  }
+  return (
+    <details className="inline-block text-left">
+      <summary className="inline-flex min-h-[40px] cursor-pointer list-none items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+        Deactivate my own access…
+      </summary>
+      <div className="mt-2 max-w-xs rounded-lg border border-amber-200 bg-amber-50/80 p-3">
+        <p className="text-[11px] text-amber-900">This is your own roster row. You will lose access to /admin/team immediately.</p>
+        <form action={toggleTeamMemberActiveAction} className="mt-2">
+          <input type="hidden" name="id" value={member.id} />
+          <input type="hidden" name="next_active" value="0" />
+          <input type="hidden" name="confirm_self_deactivate" value="1" />
+          <button type="submit" className="min-h-[36px] w-full rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-bold text-white">
+            Yes, deactivate my own access
+          </button>
+        </form>
+      </div>
+    </details>
+  );
+}
 
 function parsePermissions(raw: unknown): AdminPermissionKey[] {
   if (!Array.isArray(raw)) return [];
@@ -118,6 +162,7 @@ export default async function AdminTeamPage(props: {
   const sp = props.searchParams ? await props.searchParams : {};
   const { rows: invites, unavailable: invitesUnavailable } = await fetchTeamInvites();
   const { rows: members, unavailable: membersUnavailable } = await fetchTeamMembers();
+  const actingIdentity = await resolveActingRosterIdentity();
 
   return (
     <div>
@@ -151,6 +196,16 @@ export default async function AdminTeamPage(props: {
       {sp.member_error === "duplicate" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
           That email is already in the roster.
+        </div>
+      ) : null}
+      {sp.member_error === "last_super_admin" ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          Cannot deactivate the last active super admin — activate another super admin first.
+        </div>
+      ) : null}
+      {sp.member_error === "confirm_self_deactivate" ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          That row is your own roster access. Use the &quot;Yes, deactivate my own access&quot; confirmation control below to proceed.
         </div>
       ) : null}
 
@@ -204,7 +259,7 @@ export default async function AdminTeamPage(props: {
                 </tr>
               </thead>
               <tbody>
-                {invites.map((inv, i) => (
+                {invites.map((inv) => (
                   <tr key={inv.id} className={`border-t border-[#E8DFD0]/80 ${adminTableZebraRow}`}>
                     <td className="p-3 font-mono text-xs">{inv.email}</td>
                     <td className="p-3 text-xs">{ROLE_LABELS[inv.role as AdminTeamRole] ?? inv.role}</td>
@@ -259,12 +314,14 @@ export default async function AdminTeamPage(props: {
                 <th className="p-4">Role</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Permissions</th>
+                <th className="p-4">Updated</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {members.map((m, i) => {
+              {members.map((m) => {
                 const perms = parsePermissions(m.permissions);
+                const isSelf = actingIdentity?.rosterId === m.id;
                 return (
                   <tr key={m.id} className={`border-t border-[#E8DFD0]/80 ${adminTableZebraRow}`}>
                     <td className="p-4">
@@ -343,23 +400,11 @@ export default async function AdminTeamPage(props: {
                         </form>
                       </details>
                     </td>
+                    <td className="p-4 text-xs text-[#7A7164]">
+                      {m.updated_at ? new Date(m.updated_at).toLocaleString("en-US") : "—"}
+                    </td>
                     <td className="p-4 text-right">
-                      <form action={toggleTeamMemberActiveAction} className="inline">
-                        <input type="hidden" name="id" value={m.id} />
-                        <input type="hidden" name="next_active" value={m.is_active ? "0" : "1"} />
-                        <button
-                          type="submit"
-                          className="min-h-[40px] rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
-                          title={
-                            m.is_active
-                              ? "Deactivate row in admin_team_members (does not delete Auth user)"
-                              : "Reactivate row in operational roster"
-                          }
-                          aria-label={m.is_active ? "Deactivate member in roster" : "Activate member in roster"}
-                        >
-                          {m.is_active ? "Deactivate" : "Activate"}
-                        </button>
-                      </form>
+                      <DeactivateControl member={m} isSelf={isSelf} />
                     </td>
                   </tr>
                 );
@@ -370,6 +415,7 @@ export default async function AdminTeamPage(props: {
           <div className={`${adminMobileCardList} p-3`} data-testid="team-roster-mobile-list">
             {members.map((m) => {
               const perms = parsePermissions(m.permissions);
+              const isSelf = actingIdentity?.rosterId === m.id;
               return (
                 <article key={m.id} className={`${adminCardBase} break-words p-4`}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -398,16 +444,10 @@ export default async function AdminTeamPage(props: {
                       </span>
                     ))}
                   </div>
-                  <form action={toggleTeamMemberActiveAction} className="mt-3">
-                    <input type="hidden" name="id" value={m.id} />
-                    <input type="hidden" name="next_active" value={m.is_active ? "0" : "1"} />
-                    <button
-                      type="submit"
-                      className="min-h-[44px] w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#5C5346] sm:min-h-0 sm:w-auto"
-                    >
-                      {m.is_active ? "Deactivate" : "Activate"}
-                    </button>
-                  </form>
+                  <p className="mt-2 text-[11px] text-[#7A7164]">Updated {m.updated_at ? new Date(m.updated_at).toLocaleString("en-US") : "—"}</p>
+                  <div className="mt-3">
+                    <DeactivateControl member={m} isSelf={isSelf} />
+                  </div>
                   <details className="mt-2">
                     <summary className="min-h-[44px] cursor-pointer py-2 text-xs font-semibold text-[#8B4513]">
                       Edit permissions

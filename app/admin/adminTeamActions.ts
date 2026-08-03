@@ -6,6 +6,7 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { ALL_ADMIN_PERMISSION_KEYS, type AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
+import { isUnconfirmedSelfDeactivation, wouldDeactivateLastSuperAdmin, writeRosterAuditLog } from "@/app/admin/_lib/adminRosterAudit";
 
 const PERM_SET = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
 
@@ -114,6 +115,11 @@ export async function createTeamMemberRecordAction(formData: FormData) {
     meta: { role },
   });
 
+  const { data: created } = await supabase.from("admin_team_members").select("id").eq("email", email).maybeSingle();
+  if (created) {
+    await writeRosterAuditLog("staff_row_created", String((created as { id: string }).id), { role, path: "roster_only" });
+  }
+
   revalidatePath("/admin/team/roster");
   redirect("/admin/team/roster?member_saved=1");
 }
@@ -146,16 +152,34 @@ export async function updateTeamMemberPermissionsAction(formData: FormData) {
     targetId: id,
     meta: { permissions: next, source: "leonix_admin" },
   });
+  await writeRosterAuditLog("permissions_changed", id, { permissions: next });
 
   revalidatePath("/admin/team/roster");
   redirect("/admin/team/roster?member_saved=1");
 }
 
+/**
+ * Deactivating/activating a roster row. Two safety guards run before the write:
+ * - the last currently-active super_admin can never be deactivated (would lock every super_admin
+ *   out of staff management permanently);
+ * - deactivating your OWN roster row requires an explicit second confirmation
+ *   (confirm_self_deactivate=1), which the roster page only submits from its dedicated "yes, this
+ *   is me" control — a plain "Deactivate" click on your own row is blocked and redirected with a
+ *   warning instead of silently succeeding.
+ */
 export async function toggleTeamMemberActiveAction(formData: FormData) {
   await assertTeamAdmin();
   const id = str(formData, "id");
   const nextActive = str(formData, "next_active") === "1";
+  const confirmedSelf = str(formData, "confirm_self_deactivate") === "1";
   if (!id) redirect("/admin/team/roster?member_error=1");
+
+  if (await wouldDeactivateLastSuperAdmin(id, nextActive)) {
+    redirect("/admin/team/roster?member_error=last_super_admin");
+  }
+  if (await isUnconfirmedSelfDeactivation(id, nextActive, confirmedSelf)) {
+    redirect("/admin/team/roster?member_error=confirm_self_deactivate");
+  }
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
@@ -171,6 +195,7 @@ export async function toggleTeamMemberActiveAction(formData: FormData) {
     targetId: id,
     meta: {},
   });
+  await writeRosterAuditLog(nextActive ? "activated" : "deactivated", id, {});
 
   revalidatePath("/admin/team/roster");
   redirect("/admin/team/roster?member_saved=1");
