@@ -49,6 +49,12 @@ export default function BusinessToolsPage() {
             loading: "Cargando…",
             completeness: "Completitud del perfil",
             nextSteps: "Siguientes pasos sugeridos",
+            learningCenterTitle: "Centro de aprendizaje",
+            learningCenterDesc: "Educación práctica y gratuita sobre publicidad, SEO local, WhatsApp Business, reseñas y más.",
+            learningCenterCta: "Explorar lecciones",
+            ideaBuilderTitle: "Constructor de ideas",
+            ideaBuilderDesc: "Organiza tu idea de negocio paso a paso, guarda tu progreso y descarga un resumen.",
+            ideaBuilderCta: "Empezar",
           }
         : {
             title: "Business tools",
@@ -66,6 +72,12 @@ export default function BusinessToolsPage() {
             loading: "Loading…",
             completeness: "Profile completeness",
             nextSteps: "Suggested next steps",
+            learningCenterTitle: "Learning Center",
+            learningCenterDesc: "Free, practical education on advertising, local SEO, WhatsApp Business, reviews, and more.",
+            learningCenterCta: "Explore lessons",
+            ideaBuilderTitle: "Idea Builder",
+            ideaBuilderDesc: "Organize your business idea step by step, save your progress, and download a summary.",
+            ideaBuilderCta: "Get started",
           },
     [lang]
   );
@@ -132,6 +144,29 @@ export default function BusinessToolsPage() {
 
           <div className="mt-8">
             <BusinessIdentityAccessPanel lang={lang} userId={userId} />
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
+              <h2 className="text-base font-bold text-[#1E1810]">{t.learningCenterTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.learningCenterDesc}</p>
+              <Link
+                href={`/aprender?${q}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.learningCenterCta}
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
+              <h2 className="text-base font-bold text-[#1E1810]">{t.ideaBuilderTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.ideaBuilderDesc}</p>
+              <Link
+                href={`/dashboard/business-tools/idea-builder?${q}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
+              >
+                {t.ideaBuilderCta}
+              </Link>
+            </div>
           </div>
 
           {completeness ? (
