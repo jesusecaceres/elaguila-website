@@ -21,6 +21,7 @@
     "verify:business-identity-mobile-width-containment": "npx tsx scripts/verify-business-identity-mobile-width-containment-01.ts",
     "verify:sales-business-workspace": "npx tsx scripts/verify-sales-business-workspace-01.ts",
     "verify:admin-roster-foundation": "npx tsx scripts/verify-admin-roster-foundation-01.ts",
+    "verify:living-business-book": "npx tsx scripts/verify-living-business-book-01.ts",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "verify:br:catalog-smoke": "npx tsx scripts/br-supabase-anon-smoke.ts",
     "verify:br:manual-qa-seed": "npx tsx scripts/br-manual-qa-catalog-seed.ts",

@@ -10,6 +10,12 @@ import { formatUsPhoneForDisplay } from "@/app/(site)/dashboard/business-tools/o
 import { physicalAddressSummary, summarizeServiceCoverage } from "@/app/(site)/dashboard/business-tools/onboarding/wizardTypes";
 import { businessIdentityCopy } from "@/app/(site)/dashboard/business-tools/_components/businessIdentityCopy";
 import { FollowUpPanel, NotesPanel, StatusQuickActions } from "./BusinessWorkspaceActions";
+import { CreateFactForm, CreateUnknownForm, DiscoveryPanel, FactDecisionButtons, ResolveUnknownForm } from "./LivingBusinessBookActions";
+import { shapeFactsForStaffActor } from "../../../_lib/livingBookVisibility";
+import {
+  listContradictionsForBusiness, listDiscoverySessionsForBusiness, listFactsForBusiness, listUnknownsForBusiness,
+} from "@/app/lib/business/livingBook/repository";
+import { computeBookCompleteness } from "@/app/lib/business/livingBook/logic";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +74,31 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const primaryPhone = canViewPrivateContacts ? contacts.find((c) => c.contactType === "phone") : undefined;
   const primaryEmail = canViewPrivateContacts ? contacts.find((c) => c.contactType === "email") : undefined;
   const websiteContact = canViewPrivateContacts ? (contacts.find((c) => c.contactType === "website") ?? null) : null;
+
+  const canViewBook = actorHasCapability(access.actor, "view_business_book");
+  const canConfirmFact = actorHasCapability(access.actor, "confirm_business_fact");
+  const canManageUnknowns = actorHasCapability(access.actor, "manage_unknowns");
+  const canConductDiscovery = actorHasCapability(access.actor, "conduct_discovery");
+  const bookData = canViewBook
+    ? await (async () => {
+        const [factsRaw, unknowns, contradictions, discoverySessions] = await Promise.all([
+          listFactsForBusiness(business.id),
+          listUnknownsForBusiness(business.id),
+          listContradictionsForBusiness(business.id),
+          listDiscoverySessionsForBusiness(business.id),
+        ]);
+        const facts = shapeFactsForStaffActor(factsRaw, access.actor.capabilities);
+        const completeness = computeBookCompleteness({
+          facts: facts.map((f) => ({ status: f.status, sourceClass: f.sourceClass, lastVerifiedAt: f.lastVerifiedAt })),
+          unknowns,
+          contradictions,
+          discoveryAnswered: null,
+          discoveryTotal: null,
+          nowIso: new Date().toISOString(),
+        });
+        return { facts, unknowns, contradictions, discoverySessions, completeness };
+      })()
+    : null;
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -295,6 +326,95 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           <NotesPanel businessId={business.id} notes={notes} />
         </div>
       </section>
+
+      {/* Living Business Book (Gate BCO-5A) — capability-gated; entirely absent from the page when the actor lacks view_business_book, not just visually hidden. */}
+      {canViewBook && bookData ? (
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h2 className="text-sm font-bold text-[#1E1810]">Living Business Book</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">What Leonix knows, what&apos;s confirmed, what&apos;s unknown, and what&apos;s changed over time.</p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+              <p className="text-lg font-bold text-[#1E1810]">{bookData.completeness.confirmedFactCount}</p>
+              <p className="text-[10px] text-[#7A7164]">Confirmed facts</p>
+            </div>
+            <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+              <p className="text-lg font-bold text-[#1E1810]">{bookData.completeness.ownerStatementCount}</p>
+              <p className="text-[10px] text-[#7A7164]">Owner statements</p>
+            </div>
+            <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+              <p className="text-lg font-bold text-amber-800">{bookData.completeness.openUnknownCount}</p>
+              <p className="text-[10px] text-[#7A7164]">Open unknowns</p>
+            </div>
+            <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+              <p className="text-lg font-bold text-red-700">{bookData.completeness.unresolvedContradictionCount}</p>
+              <p className="text-[10px] text-[#7A7164]">Unresolved contradictions</p>
+            </div>
+          </div>
+
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Facts</h3>
+          <ul className="mt-2 space-y-2">
+            {bookData.facts.map((f) => (
+              <li key={f.id} className="rounded-lg border border-[#E8DFD0] p-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#1E1810]">{f.factKey}</span>
+                  <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{f.sourceClass}</span>
+                </div>
+                <p className="mt-1 text-sm text-[#3D3428]">{f.displayValue ?? "—"}</p>
+                <p className="mt-1 text-[10px] text-[#9A9184]">
+                  {f.confirmationState} · confidence: {f.confidence} · {f.sensitivity}
+                </p>
+                {canConfirmFact && f.confirmationState !== "owner_confirmed" ? <FactDecisionButtons businessId={business.id} factId={f.id} /> : null}
+              </li>
+            ))}
+            {bookData.facts.length === 0 ? <li className="text-sm text-[#7A7164]">No facts recorded yet.</li> : null}
+          </ul>
+          <div className="mt-3">
+            <CreateFactForm businessId={business.id} canConfirm={canConfirmFact} />
+          </div>
+
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Unknowns</h3>
+          <ul className="mt-2 space-y-2">
+            {bookData.unknowns.map((u) => (
+              <li key={u.id} className="rounded-lg border border-[#E8DFD0] p-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm text-[#1E1810]">{u.questionLabel}</span>
+                  <span className="rounded-full bg-[#FFF4E0] px-2 py-0.5 text-[10px] font-bold text-[#5C4E2E]">{u.status}</span>
+                </div>
+                {u.status === "open" && canManageUnknowns ? <ResolveUnknownForm businessId={business.id} unknown={u} /> : null}
+                {u.status === "answered" ? <p className="mt-1 text-xs text-[#7A7164]">Resolution: {u.resolution}</p> : null}
+              </li>
+            ))}
+            {bookData.unknowns.length === 0 ? <li className="text-sm text-[#7A7164]">No open unknowns.</li> : null}
+          </ul>
+          {canManageUnknowns ? (
+            <div className="mt-3">
+              <CreateUnknownForm businessId={business.id} />
+            </div>
+          ) : null}
+
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Contradictions</h3>
+          <ul className="mt-2 space-y-2">
+            {bookData.contradictions.map((c) => (
+              <li key={c.id} className="rounded-lg border border-[#E8DFD0] p-2 text-xs">
+                <p><span className="font-semibold">A:</span> {c.claimALabel}</p>
+                <p><span className="font-semibold">B:</span> {c.claimBLabel}</p>
+                <p className="mt-1 text-[10px] text-[#9A9184]">{c.status}{c.resolution ? ` — ${c.resolution}` : ""}</p>
+              </li>
+            ))}
+            {bookData.contradictions.length === 0 ? <li className="text-sm text-[#7A7164]">No contradictions on record.</li> : null}
+          </ul>
+
+          {canConductDiscovery ? (
+            <>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Discovery</h3>
+              <div className="mt-2">
+                <DiscoveryPanel businessId={business.id} session={bookData.discoverySessions.find((s) => s.status === "in_progress") ?? null} />
+              </div>
+            </>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }

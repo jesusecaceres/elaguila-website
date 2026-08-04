@@ -31,7 +31,19 @@ export type SalesWorkspaceCapability =
   | "update_sales_status"
   | "archive_sales_record"
   | "view_all_staff_notes"
-  | "manage_staff_assignments";
+  | "manage_staff_assignments"
+  // Gate BCO-5A — Living Business Book capabilities. Kept in this same matrix rather than a
+  // parallel one, per the explicit instruction to extend the Package 4A matrix carefully.
+  | "view_business_book"
+  | "view_private_business_facts"
+  | "create_business_fact"
+  | "confirm_business_fact"
+  | "create_evidence"
+  | "manage_unknowns"
+  | "resolve_contradictions"
+  | "conduct_discovery"
+  | "review_owner_corrections"
+  | "view_business_history";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -43,6 +55,16 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "archive_sales_record",
   "view_all_staff_notes",
   "manage_staff_assignments",
+  "view_business_book",
+  "view_private_business_facts",
+  "create_business_fact",
+  "confirm_business_fact",
+  "create_evidence",
+  "manage_unknowns",
+  "resolve_contradictions",
+  "conduct_discovery",
+  "review_owner_corrections",
+  "view_business_history",
 ];
 
 /**
@@ -51,6 +73,18 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
  * `manage_staff_assignments` is granted to nobody today (no safe assignment feature exists yet —
  * see the Gate B data contract) but is defined now so it's ready, capability-gated, the moment
  * that feature is built, instead of being bolted on as an afterthought.
+ */
+/**
+ * Gate BCO-5A Living Business Book tier, added to each role below:
+ * - super_admin: all 10 (full Package 5 staff capability).
+ * - sales_manager: all 10 — "full discovery and fact-management capability except super-admin-only
+ *   security or roster functions" (none of the 10 Living Business Book capabilities are security/
+ *   roster functions, so nothing is withheld here).
+ * - sales_rep: only view_business_book, create_business_fact, manage_unknowns, create_evidence,
+ *   conduct_discovery, view_business_history. Deliberately WITHOUT view_private_business_facts,
+ *   confirm_business_fact, resolve_contradictions, review_owner_corrections — a sales rep may
+ *   propose (create facts/evidence/unknowns, run discovery) but never silently confirm a fact,
+ *   resolve a contradiction, or decide an owner correction. Those remain manager+ review actions.
  */
 const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorkspaceCapability[]>> = {
   super_admin: [
@@ -63,6 +97,16 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "archive_sales_record",
     "view_all_staff_notes",
     "manage_staff_assignments",
+    "view_business_book",
+    "view_private_business_facts",
+    "create_business_fact",
+    "confirm_business_fact",
+    "create_evidence",
+    "manage_unknowns",
+    "resolve_contradictions",
+    "conduct_discovery",
+    "review_owner_corrections",
+    "view_business_history",
   ],
   sales_manager: [
     "view_business_list",
@@ -73,6 +117,16 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "update_sales_status",
     "archive_sales_record",
     "view_all_staff_notes",
+    "view_business_book",
+    "view_private_business_facts",
+    "create_business_fact",
+    "confirm_business_fact",
+    "create_evidence",
+    "manage_unknowns",
+    "resolve_contradictions",
+    "conduct_discovery",
+    "review_owner_corrections",
+    "view_business_history",
   ],
   sales_rep: [
     "view_business_list",
@@ -82,6 +136,12 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "create_follow_up",
     "update_sales_status",
     "view_all_staff_notes",
+    "view_business_book",
+    "create_business_fact",
+    "manage_unknowns",
+    "create_evidence",
+    "conduct_discovery",
+    "view_business_history",
   ],
 };
 

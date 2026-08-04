@@ -1,0 +1,467 @@
+/**
+ * Gate BCO-5A — structured, extensible discovery question registry (Gate 6). Questions are data,
+ * never hardcoded into UI components — a new question is a new entry here, not a new component.
+ */
+import type { FactCategory, SourceClass } from "./types";
+
+export type QuestionAnswerType = "short_text" | "long_text" | "single_choice" | "multi_choice" | "language" | "yes_no";
+
+export type QuestionAudience = "owner" | "staff" | "both";
+
+export type DiscoveryQuestion = {
+  key: string;
+  category: FactCategory;
+  es: string;
+  en: string;
+  answerType: QuestionAnswerType;
+  choices?: readonly { value: string; es: string; en: string }[];
+  audience: QuestionAudience;
+  required: boolean;
+  sensitive: boolean;
+  /** Shown next to sensitive/optional questions explaining why Leonix asks. */
+  whyWeAsk?: { es: string; en: string };
+  /** The business_facts.fact_key created when this question is answered, if any. */
+  factKey?: string;
+  sourceClassWhenAnsweredByOwner?: SourceClass;
+  sourceClassWhenAnsweredByStaff?: SourceClass;
+  confirmationRequired: boolean;
+};
+
+export const DISCOVERY_QUESTIONS: readonly DiscoveryQuestion[] = [
+  // --- Business and owner goals -----------------------------------------------------------------
+  {
+    key: "owner_goal_success_definition",
+    category: "business_and_owner_goals",
+    es: "¿Cómo se ve el éxito para usted?",
+    en: "What does success look like for you?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "owner_defined_success",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: true,
+  },
+  {
+    key: "owner_goal_life_through_business",
+    category: "business_and_owner_goals",
+    es: "¿Qué tipo de vida está tratando de construir a través de este negocio?",
+    en: "What kind of life are you trying to build through this business?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Preguntamos esto para entender sus prioridades, no para venderle nada.",
+      en: "We ask this to understand your priorities, not to sell you anything.",
+    },
+    factKey: "family_lifestyle_priority",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "owner_goal_business_should_ease",
+    category: "business_and_owner_goals",
+    es: "¿Qué le gustaría que el negocio le facilite a usted o a su familia?",
+    en: "What would you like the business to make easier for you or your family?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Preguntamos esto para entender sus prioridades, no para venderle nada.",
+      en: "We ask this to understand your priorities, not to sell you anything.",
+    },
+    factKey: "family_lifestyle_priority",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "owner_goal_short_long_term",
+    category: "business_and_owner_goals",
+    es: "¿Cuáles son sus metas a corto y largo plazo?",
+    en: "What are your short- and long-term goals?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "owner_goals",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+
+  // --- Customers and market ----------------------------------------------------------------------
+  {
+    key: "customers_best",
+    category: "customers_and_market",
+    es: "¿Quiénes son sus mejores clientes?",
+    en: "Who are your best customers?",
+    answerType: "long_text",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "target_customer",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: true,
+  },
+  {
+    key: "customers_want_more_of",
+    category: "customers_and_market",
+    es: "¿De qué tipo de clientes le gustaría tener más?",
+    en: "Which customers do you want more of?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "target_customer",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "customers_preferred_languages",
+    category: "customers_and_market",
+    es: "¿Qué idiomas prefieren sus clientes?",
+    en: "What languages do your customers prefer?",
+    answerType: "language",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "primary_customer_language",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: false,
+  },
+  {
+    key: "customers_multicultural_importance",
+    category: "customers_and_market",
+    es: "¿Son importantes para su negocio las comunidades inmigrantes o multiculturales?",
+    en: "Are immigrant or multicultural communities important to your business?",
+    answerType: "yes_no",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "multicultural_community_importance",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+
+  // --- Products and services ----------------------------------------------------------------------
+  {
+    key: "products_what_you_sell",
+    category: "products_and_services",
+    es: "¿Qué vende usted?",
+    en: "What do you sell?",
+    answerType: "long_text",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "product_service_summary",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: true,
+  },
+  {
+    key: "products_most_profitable",
+    category: "products_and_services",
+    es: "¿Cuáles servicios son los más rentables?",
+    en: "Which services are most profitable?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Esto nos ayuda a entender qué destacar — nunca lo compartimos públicamente.",
+      en: "This helps us understand what to highlight — we never share it publicly.",
+    },
+    factKey: "most_profitable_service",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "products_most_enjoyed",
+    category: "products_and_services",
+    es: "¿Cuáles servicios disfruta más?",
+    en: "Which services do you enjoy most?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "most_enjoyed_service",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "products_problem_or_low_margin",
+    category: "products_and_services",
+    es: "¿Cuáles servicios le causan problemas o tienen márgenes bajos?",
+    en: "Which services create problems or low margins?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Esto nos ayuda a entender dónde enfocar el apoyo — nunca lo compartimos públicamente.",
+      en: "This helps us understand where to focus support — we never share it publicly.",
+    },
+    factKey: "service_limitation",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "products_most_requested",
+    category: "products_and_services",
+    es: "¿Qué piden los clientes con más frecuencia?",
+    en: "What do customers request most often?",
+    answerType: "long_text",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "most_requested_item",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: false,
+  },
+
+  // --- Operations and capacity ---------------------------------------------------------------------
+  {
+    key: "operations_capacity_now",
+    category: "operations_and_capacity",
+    es: "¿A cuántos clientes puede atender bien en este momento?",
+    en: "How many customers can you serve well right now?",
+    answerType: "short_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "team_capacity",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "operations_busy_slow_periods",
+    category: "operations_and_capacity",
+    es: "¿Cuáles son sus temporadas más ocupadas y más lentas?",
+    en: "What are your busiest and slowest periods?",
+    answerType: "long_text",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "busy_season",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: false,
+  },
+  {
+    key: "operations_delay_causes",
+    category: "operations_and_capacity",
+    es: "¿Qué causa retrasos?",
+    en: "What causes delays?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "current_business_challenge",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "operations_team_stretched",
+    category: "operations_and_capacity",
+    es: "¿El equipo está actualmente al límite?",
+    en: "Is the team currently stretched?",
+    answerType: "yes_no",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Esto nos ayuda a entender su capacidad real — no es una evaluación de desempeño.",
+      en: "This helps us understand your real capacity — it is not a performance evaluation.",
+    },
+    factKey: "team_capacity",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "operations_more_demand_help_or_hurt",
+    category: "operations_and_capacity",
+    es: "¿Más demanda ayudaría o perjudicaría en este momento?",
+    en: "Would more demand help or hurt right now?",
+    answerType: "single_choice",
+    choices: [
+      { value: "help", es: "Ayudaría", en: "Would help" },
+      { value: "hurt", es: "Perjudicaría", en: "Would hurt" },
+      { value: "not_sure", es: "No estoy seguro", en: "Not sure" },
+    ],
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "demand_readiness",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+
+  // --- Visibility and communication -----------------------------------------------------------------
+  {
+    key: "visibility_how_customers_find_you",
+    category: "visibility_and_communication",
+    es: "¿Cómo lo encuentran actualmente los clientes?",
+    en: "How do customers currently find you?",
+    answerType: "long_text",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "current_marketing_channel",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: false,
+  },
+  {
+    key: "visibility_best_channels",
+    category: "visibility_and_communication",
+    es: "¿Qué canales traen a los mejores clientes?",
+    en: "Which channels bring the best customers?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "current_marketing_channel",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "visibility_whatsapp_contact",
+    category: "visibility_and_communication",
+    es: "¿Los clientes lo contactan por WhatsApp?",
+    en: "Do customers contact you through WhatsApp?",
+    answerType: "yes_no",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "preferred_contact_method",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: false,
+  },
+  {
+    key: "visibility_response_speed",
+    category: "visibility_and_communication",
+    es: "¿Qué tan rápido puede responder?",
+    en: "How quickly can you respond?",
+    answerType: "short_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "preferred_contact_method",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "visibility_active_digital_profiles",
+    category: "visibility_and_communication",
+    es: "¿Qué perfiles digitales mantiene activamente?",
+    en: "Which digital profiles do you actively maintain?",
+    answerType: "long_text",
+    audience: "both",
+    required: false,
+    sensitive: false,
+    factKey: "active_digital_profiles",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    sourceClassWhenAnsweredByStaff: "staff_observation",
+    confirmationRequired: false,
+  },
+
+  // --- Challenges and readiness -----------------------------------------------------------------------
+  {
+    key: "challenges_keeps_you_awake",
+    category: "challenges_and_readiness",
+    es: "¿Qué le quita el sueño sobre el negocio?",
+    en: "What keeps you awake at night about the business?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Preguntamos esto para entender dónde ayudar primero, no para presionarlo a comprar algo.",
+      en: "We ask this to understand where to help first, not to pressure you into buying anything.",
+    },
+    factKey: "current_business_challenge",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "challenges_biggest_obstacle",
+    category: "challenges_and_readiness",
+    es: "¿Cuál es el mayor obstáculo en este momento?",
+    en: "What is the biggest obstacle right now?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "current_business_challenge",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: true,
+  },
+  {
+    key: "challenges_already_tried",
+    category: "challenges_and_readiness",
+    es: "¿Qué ha intentado ya?",
+    en: "What have you tried already?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "attempted_solutions",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "challenges_support_level_preferred",
+    category: "challenges_and_readiness",
+    es: "¿Qué nivel de apoyo prefiere?",
+    en: "What level of support do you prefer?",
+    answerType: "single_choice",
+    choices: [
+      { value: "hands_on", es: "Práctico / guiado", en: "Hands-on / guided" },
+      { value: "self_serve", es: "Autoservicio", en: "Self-serve" },
+      { value: "not_sure", es: "No estoy seguro", en: "Not sure" },
+    ],
+    audience: "owner",
+    required: false,
+    sensitive: false,
+    factKey: "preferred_support_level",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+  {
+    key: "challenges_realistic_time_or_investment",
+    category: "challenges_and_readiness",
+    es: "¿Qué nivel de tiempo o inversión le parece realista?",
+    en: "What level of time or investment feels realistic?",
+    answerType: "long_text",
+    audience: "owner",
+    required: false,
+    sensitive: true,
+    whyWeAsk: {
+      es: "Esto nos ayuda a sugerir pasos que realmente puede tomar — nunca es un compromiso.",
+      en: "This helps us suggest steps you can actually take — it is never a commitment.",
+    },
+    factKey: "realistic_time_investment",
+    sourceClassWhenAnsweredByOwner: "owner_statement",
+    confirmationRequired: false,
+  },
+];
+
+export function findQuestionByKey(key: string): DiscoveryQuestion | null {
+  return DISCOVERY_QUESTIONS.find((q) => q.key === key) ?? null;
+}
+
+export function questionsForCategory(category: DiscoveryQuestion["category"]): readonly DiscoveryQuestion[] {
+  return DISCOVERY_QUESTIONS.filter((q) => q.category === category);
+}
+
+/** First question in registry order that has no recorded answer for the given session. */
+export function nextUnansweredQuestionKey(answeredKeys: ReadonlySet<string>): string | null {
+  const next = DISCOVERY_QUESTIONS.find((q) => !answeredKeys.has(q.key));
+  return next?.key ?? null;
+}
