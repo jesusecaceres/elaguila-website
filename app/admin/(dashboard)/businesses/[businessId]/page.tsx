@@ -18,7 +18,7 @@ function labelFromList(list: readonly { value: string; es: string; en: string }[
   return list.find((o) => o.value === value)?.[lang] ?? value;
 }
 
-const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity"];
+const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity", "auth_user_not_found"];
 
 export default async function AdminBusinessDetailPage({ params }: { params: Promise<{ businessId: string }> }) {
   const access = await requireSalesWorkspaceAccess();

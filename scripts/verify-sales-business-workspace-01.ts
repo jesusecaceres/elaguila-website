@@ -216,20 +216,38 @@ check("Scenario: cookie present but no operator email/auth-user-id pair -> denie
   assert.ok(accessText.includes('reason: "no_operator_identity"'));
   assert.ok(/if \(!operatorEmail \|\| !authUserId\)/.test(accessText));
 });
-check("Scenario: operator email has no matching roster row -> denied (roster_not_found)", () => {
+check("Scenario (BCO-4A.7): authUserId cookie does not correspond to a real Supabase Auth user -> denied (auth_user_not_found), checked BEFORE any roster lookup", () => {
+  const authCheckIdx = accessText.indexOf('reason: "auth_user_not_found"');
+  const rosterLookupIdx = accessText.indexOf("lookupActiveAdminRosterByAuthUserId(authUserId)");
+  assert.ok(authCheckIdx >= 0, "auth_user_not_found denial reason missing");
+  assert.ok(rosterLookupIdx >= 0 && authCheckIdx < rosterLookupIdx, "the real-Auth-user check must run before the roster lookup");
+  assert.ok(accessText.includes("lookupAuthUserById(authUserId)"), "must verify the cookie's authUserId against a real Supabase Auth user via the Admin API");
+});
+check("Scenario (BCO-4A.7): a real Auth UUID paired with a mismatched/forged operator-email cookie -> denied (identity_mismatch)", () => {
+  assert.ok(/if \(authUser\.email !== operatorEmail\.trim\(\)\.toLowerCase\(\)\)/.test(accessText), "cookie-claimed email must be compared against the real, verified Supabase Auth email");
+  assert.ok((accessText.match(/"identity_mismatch"/g) ?? []).length >= 2, "identity_mismatch must be checked at least twice — cookie-email-vs-Auth-email AND roster-email-vs-Auth-email");
+});
+check("Scenario (BCO-4A.7): roster row is resolved by auth_user_id, never by email — a NULL auth_user_id roster row can never match and is denied by construction, not by special-case code", () => {
+  assert.ok(!accessText.includes("lookupActiveAdminRosterByEmail"), "businessWorkspaceAccess.ts must not resolve roster identity by email at all anymore — email-only fallback is exactly the gap BCO-4A.7 closed");
+  assert.ok(accessText.includes("lookupActiveAdminRosterByAuthUserId(authUserId)"));
+});
+check("Scenario: operator identity is real and verified but no roster row has this exact auth_user_id -> denied (roster_not_found)", () => {
   assert.ok(accessText.includes('"roster_not_found"'));
 });
-check("Scenario: roster row exists but is_active is false -> denied (roster_inactive)", () => {
+check("Scenario: roster row exists (matched by auth_user_id) but is_active is false -> denied (roster_inactive)", () => {
   assert.ok(accessText.includes('"roster_inactive"'));
   assert.ok(accessText.includes("roster.code"), "must branch on the roster lookup's inactive-vs-missing code");
+});
+check("Scenario (BCO-4A.7): roster row matched by auth_user_id but its own email column has drifted from the verified Auth email -> denied (identity_mismatch)", () => {
+  assert.ok(/if \(roster\.email\.trim\(\)\.toLowerCase\(\) !== authUser\.email\)/.test(accessText), "roster.email must be cross-checked against the verified Auth email as defense in depth");
 });
 check("Scenario: roster role is not one of the three Sales Workspace roles -> denied (role_not_permitted)", () => {
   assert.ok(/if \(!isSalesWorkspaceRole\(normalizedRole\)\)/.test(accessText));
   assert.ok(accessText.includes('"role_not_permitted"'));
 });
-check("Scenario: allowed role succeeds and returns a full StrictSalesActor — never a partial or fallback object", () => {
+check("Scenario: allowed role succeeds and returns a full StrictSalesActor — never a partial or fallback object; the actor's email is the VERIFIED Auth email, not the bare cookie-claimed value", () => {
   assert.ok(/return \{\s*ok: true,\s*actor: \{/.test(accessText));
-  for (const field of ["rosterId: roster.rosterMemberId", "authUserId", "email: operatorEmail", "role: normalizedRole", "capabilities: capabilitiesForRole(normalizedRole)"]) {
+  for (const field of ["rosterId: roster.rosterMemberId", "authUserId", "email: authUser.email", "role: normalizedRole", "capabilities: capabilitiesForRole(normalizedRole)"]) {
     assert.ok(accessText.includes(field), `success actor must set ${field}`);
   }
 });
@@ -241,8 +259,9 @@ check("No inferred owner_admin fallback and no placeholder/anonymous actor anywh
     assert.ok(!accessText.includes(forbidden), `businessWorkspaceAccess.ts must not contain "${forbidden}"`);
   }
 });
-check("Roster freshness is re-checked on every call, never cached — a deactivated staff member loses access on their next request", () => {
-  assert.ok(accessText.includes("lookupActiveAdminRosterByEmail(operatorEmail)"));
+check("Roster and Auth-identity freshness are both re-checked on every call, never cached — a deactivated staff member or a revoked/forged identity loses access on their next request", () => {
+  assert.ok(accessText.includes("lookupActiveAdminRosterByAuthUserId(authUserId)"));
+  assert.ok(accessText.includes("lookupAuthUserById(authUserId)"));
 });
 check("Entrepreneur/business-owner sessions cannot reach this module — it only ever reads admin cookies, never an entrepreneur/business session cookie", () => {
   assert.ok(!/business.?owner.?cookie|entrepreneur.?session|getBusinessOwnerSession/i.test(accessText));
@@ -306,7 +325,7 @@ check("Mutating routes (POST/PATCH) each check a specific capability beyond bare
   const followUpRoute = read("app/api/admin/businesses/[businessId]/follow-up/route.ts");
   assert.ok(followUpRoute.includes('actorHasCapability(access.actor, "create_follow_up")'));
 });
-check("Denial responses use denialStatusCode() (handles all six reasons) — not a two-way ternary that only knows about two", () => {
+check("Denial responses use denialStatusCode() (handles all eight SalesWorkspaceDenialReason values, including the BCO-4A.7 identity-binding reasons) — not a two-way ternary that only knows about two", () => {
   for (const rel of routeFiles) {
     const text = read(rel);
     assert.ok(text.includes("denialStatusCode(access.reason)"), `${rel} must use denialStatusCode(), which maps all six SalesWorkspaceDenialReason values`);

@@ -47,7 +47,7 @@ function statusBadgeClass(status: BusinessSalesStatus): string {
   }
 }
 
-const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity"];
+const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity", "auth_user_not_found"];
 
 export default async function AdminBusinessesListPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const access = await requireSalesWorkspaceAccess();
