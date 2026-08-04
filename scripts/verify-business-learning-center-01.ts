@@ -78,6 +78,101 @@ check("Migration: no destructive statement, no production reference", () => {
   assert.ok(!MIGRATION.includes("xuieateniufcrsfdomwl"));
 });
 
+// ---------------------------------------------------------------------------
+// TODAY-1A — Privilege hardening parity patch migration
+// ---------------------------------------------------------------------------
+
+const HARDENING_PATH = "supabase/migrations/20260807130000_business_learning_center_privilege_hardening.sql";
+
+check("Hardening migration file exists", () => {
+  assert.ok(exists(HARDENING_PATH), `missing ${HARDENING_PATH}`);
+});
+
+const HARDENING = read(HARDENING_PATH);
+
+check("Hardening migration: all six expected tables appear in it", () => {
+  for (const t of TABLES) {
+    assert.ok(HARDENING.includes(`public.${t}`), `hardening migration missing table ${t}`);
+  }
+});
+
+check("Hardening migration: PUBLIC is fully revoked on all six tables", () => {
+  const revokePublicCount = (HARDENING.match(/REVOKE ALL PRIVILEGES ON TABLE public\.\S+ FROM PUBLIC;/g) ?? []).length;
+  assert.strictEqual(revokePublicCount, 6, `expected 6 REVOKE ... FROM PUBLIC, found ${revokePublicCount}`);
+});
+
+check("Hardening migration: anon is fully revoked on all six tables", () => {
+  const revokeAnonCount = (HARDENING.match(/REVOKE ALL PRIVILEGES ON TABLE public\.\S+ FROM anon;/g) ?? []).length;
+  assert.strictEqual(revokeAnonCount, 6, `expected 6 REVOKE ... FROM anon, found ${revokeAnonCount}`);
+});
+
+check("Hardening migration: authenticated is fully revoked on all six tables", () => {
+  const revokeAuthCount = (HARDENING.match(/REVOKE ALL PRIVILEGES ON TABLE public\.\S+ FROM authenticated;/g) ?? []).length;
+  assert.strictEqual(revokeAuthCount, 6, `expected 6 REVOKE ... FROM authenticated, found ${revokeAuthCount}`);
+});
+
+check("Hardening migration: service_role is fully revoked before the narrow grant on all six tables", () => {
+  const revokeSvcCount = (HARDENING.match(/REVOKE ALL PRIVILEGES ON TABLE public\.\S+ FROM service_role;/g) ?? []).length;
+  assert.strictEqual(revokeSvcCount, 6, `expected 6 REVOKE ... FROM service_role, found ${revokeSvcCount}`);
+  // Every REVOKE FROM service_role must be immediately followed by the narrow GRANT to service_role
+  // for the same table (REVOKE-then-GRANT ordering, never GRANT-then-REVOKE).
+  const tables = TABLES;
+  for (const t of tables) {
+    const revokeIdx = HARDENING.indexOf(`REVOKE ALL PRIVILEGES ON TABLE public.${t} FROM service_role;`);
+    const grantIdx = HARDENING.indexOf(`GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.${t} TO service_role;`);
+    assert.ok(revokeIdx !== -1 && grantIdx !== -1, `${t}: missing service_role REVOKE or GRANT`);
+    assert.ok(revokeIdx < grantIdx, `${t}: REVOKE FROM service_role must precede the narrow GRANT`);
+  }
+});
+
+check("Hardening migration: service_role receives exactly SELECT, INSERT, UPDATE, DELETE on all six tables", () => {
+  const grantCount = (HARDENING.match(/GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public\.\S+ TO service_role;/g) ?? []).length;
+  assert.strictEqual(grantCount, 6, `expected 6 narrow service_role grants, found ${grantCount}`);
+  // No other GRANT line may exist in the hardening migration.
+  const otherGrants = HARDENING.split("\n").filter((line) => line.trim().startsWith("GRANT ") && !line.includes("GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public."));
+  assert.strictEqual(otherGrants.length, 0, `unexpected extra GRANT line(s): ${otherGrants.join(" | ")}`);
+});
+
+check("Hardening migration: no REFERENCES grant exists", () => {
+  assert.ok(!/GRANT REFERENCES\b/i.test(HARDENING), "must never grant REFERENCES");
+});
+
+check("Hardening migration: no TRIGGER grant exists", () => {
+  assert.ok(!/GRANT TRIGGER\b/i.test(HARDENING), "must never grant TRIGGER");
+});
+
+check("Hardening migration: no TRUNCATE grant exists", () => {
+  assert.ok(!/GRANT TRUNCATE\b/i.test(HARDENING), "must never grant TRUNCATE");
+});
+
+check("Hardening migration: no GRANT ALL PRIVILEGES exists", () => {
+  assert.ok(!/^GRANT ALL PRIVILEGES/im.test(HARDENING), "must never use GRANT ALL PRIVILEGES as a statement");
+  assert.ok(!/^\s*GRANT ALL\b/im.test(HARDENING), "must never use GRANT ALL as a statement");
+});
+
+check("Hardening migration: no grant to PUBLIC, anon, or authenticated exists", () => {
+  const grantLines = HARDENING.split("\n").filter((line) => line.trim().startsWith("GRANT "));
+  const badGrants = grantLines.filter((line) => /\bTO (anon|authenticated|PUBLIC)\b/i.test(line));
+  assert.strictEqual(badGrants.length, 0, `unexpected grant to anon/authenticated/PUBLIC: ${badGrants.join(" | ")}`);
+});
+
+check("Hardening migration: no Production reference and no secret literal", () => {
+  assert.ok(!HARDENING.includes("xuieateniufcrsfdomwl"), "must not reference the Production project ref");
+  const secretPattern = /sk_live|sk_test_[a-zA-Z0-9]{10}|SUPABASE_SERVICE_ROLE_KEY\s*=\s*[^"'`]|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----/i;
+  assert.ok(!secretPattern.test(HARDENING), "hardening migration matched a secret pattern");
+});
+
+check("Hardening migration: idempotent and wrapped in a single transaction", () => {
+  assert.ok(/^\s*BEGIN;/m.test(HARDENING), "must begin a transaction");
+  assert.ok(/^\s*COMMIT;/m.test(HARDENING), "must commit the transaction");
+  const beginCount = (HARDENING.match(/\bBEGIN\b/g) ?? []).length;
+  const commitCount = (HARDENING.match(/\bCOMMIT\b/g) ?? []).length;
+  assert.strictEqual(beginCount, 1, `expected exactly 1 BEGIN, found ${beginCount}`);
+  assert.strictEqual(commitCount, 1, `expected exactly 1 COMMIT, found ${commitCount}`);
+  // No destructive DDL -- only REVOKE/GRANT.
+  assert.ok(!/^DROP |^TRUNCATE|^DELETE FROM|^ALTER TABLE/im.test(HARDENING), "must contain no destructive statement");
+});
+
 check("Migration: feature flag business_learning_center inserted disabled by default via the existing flags table", () => {
   assert.ok(MIGRATION.includes("business_identity_flags"));
   assert.ok(MIGRATION.includes("'business_learning_center', false, false"));
@@ -352,6 +447,7 @@ check("docs/business-learning-center-content-batch-02.md exists and documents al
 
 const GATE_FILES = [
   MIGRATION_PATH,
+  HARDENING_PATH,
   "app/lib/business/learning/types.ts",
   "app/lib/business/learning/constants.ts",
   "app/lib/business/learning/logic.ts",
