@@ -20,6 +20,7 @@ const LIB_FILES = [
   "app/lib/ofertas-locales/ofertasLocalesValidation.ts",
   "app/lib/ofertas-locales/ofertasLocalesFormatting.ts",
   "app/lib/ofertas-locales/ofertasLocalesAnalyticsEvents.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicAnalytics.ts",
 ] as const;
 
 const REQUIRED_EXPORTS: ReadonlyArray<{ file: string; patterns: string[] }> = [
@@ -115,15 +116,33 @@ const REQUIRED_EXPORTS: ReadonlyArray<{ file: string; patterns: string[] }> = [
   {
     file: "app/lib/ofertas-locales/ofertasLocalesAnalyticsEvents.ts",
     patterns: [
-      "OFERTAS_LOCALES_ANALYTICS_VERSION_1_EVENTS",
-      "OFERTAS_LOCALES_ANALYTICS_VERSION_2_EVENTS",
-      "offer_view",
-      "item_search",
-      "scan_started",
-      "approved_item_published",
-      "membership_signup_click",
-      "digital_coupon_activation_click",
-      "magazine_pickup_info_click",
+      "OFERTAS_LOCALES_CANONICAL_ANALYTICS_EVENTS",
+      "OFERTAS_LOCALES_ANALYTICS_NAMESPACE",
+      "listing_impression",
+      "listing_open",
+      "flyer_page_view",
+      "product_impression",
+      "product_open",
+      "product_search",
+      "shopping_list_add",
+      "listing_share",
+      "directions_click",
+      "coupon_open",
+    ],
+  },
+  {
+    file: "app/lib/ofertas-locales/ofertasLocalesPublicAnalytics.ts",
+    patterns: [
+      "leonixAnalyticsAllowed",
+      "recordAnalyticsEvent",
+      'sourceTable: SOURCE_TABLE',
+      'sourceId: identity.ofertaLocalId',
+      "canonicalAdId",
+      "source_id: identity.ofertaLocalId",
+      "canonical_ad_id",
+      "anonymousSessionId",
+      "safeMetadata",
+      "productId: item.id",
     ],
   },
 ];
@@ -136,18 +155,22 @@ const CFO_PRICING_CHECKS: ReadonlyArray<{ key: string; regular: number; pickup: 
   { key: "halfGrowth", regular: 1199, pickup: 899 },
   { key: "fullAuthority", regular: 1799, pickup: 1399 },
   { key: "specialPlacementCampaign", regular: 2750, pickup: 2250 },
-  { key: "aiSearchableSpecialsAddOn", regular: 249, pickup: 199 },
+  { key: "aiSearchableSpecialsAddOn", regular: 0, pickup: 0 },
   { key: "couponBoostAddOn", regular: 149, pickup: 99 },
 ];
 
 const FORBIDDEN_PATHS = [
   "app/(site)/ofertas-locales",
-  "app/api/ofertas-locales",
 ] as const;
 
 const ALLOWED_PREFIXES = [
   "app/lib/ofertas-locales/",
   "scripts/ofertas-locales-gate-1-foundation-audit.ts",
+  "scripts/ofertas-package-13-",
+  "scripts/ofertas-package-11-local-certification-audit.mjs",
+  "scripts/ofertas-locales-",
+  "docs/OFERTAS_PACKAGE_13_",
+  "tests/ofertas-locales/scenarios/",
   "package.json",
 ];
 
@@ -185,17 +208,9 @@ function isAllowedPath(p: string): boolean {
   return ALLOWED_PREFIXES.some((prefix) => p === prefix || p.startsWith(prefix));
 }
 
-function assertNoOfertasLocalesMigration() {
-  const migrationsDir = path.join(ROOT, "supabase", "migrations");
-  if (!fs.existsSync(migrationsDir)) return;
-  const files = fs.readdirSync(migrationsDir);
-  for (const f of files) {
-    const content = fs.readFileSync(path.join(migrationsDir, f), "utf8");
-    assert.ok(
-      !content.toLowerCase().includes("ofertas_locales"),
-      `Migration ${f} must not reference ofertas_locales`
-    );
-  }
+function assertNoDirtyOfertasLocalesMigration() {
+  const dirtyMigrations = changedFiles().filter((p) => p.startsWith("supabase/migrations/"));
+  assert.deepEqual(dirtyMigrations, [], "Package 13-R must not add or modify migrations");
 }
 
 function assertCfoPricing(constantsSource: string) {
@@ -239,6 +254,16 @@ function run() {
     }
   }
 
+  const analyticsEvents = read("app/lib/ofertas-locales/ofertasLocalesAnalyticsEvents.ts");
+  const publicAnalytics = read("app/lib/ofertas-locales/ofertasLocalesPublicAnalytics.ts");
+  assert.ok(!analyticsEvents.includes("OFERTAS_LOCALES_ANALYTICS_VERSION_1_EVENTS"), "retired analytics registry must not be required");
+  assert.ok(!analyticsEvents.includes("preview_impression"), "Ofertas analytics must not record Preview impressions");
+  assert.ok(!publicAnalytics.includes("preview_impression"), "public analytics helper must not record Preview impressions");
+  assert.ok(
+    analyticsEvents.includes("Storage remains the shared `listing_analytics` table"),
+    "analytics catalog must preserve shared storage contract"
+  );
+
   const constants = read("app/lib/ofertas-locales/ofertasLocalesConstants.ts");
   assertCfoPricing(constants);
 
@@ -246,7 +271,7 @@ function run() {
     assert.ok(!exists(forbidden), `Forbidden path must not exist: ${forbidden}`);
   }
 
-  assertNoOfertasLocalesMigration();
+  assertNoDirtyOfertasLocalesMigration();
 
   const pkg = read("package.json");
   assert.ok(

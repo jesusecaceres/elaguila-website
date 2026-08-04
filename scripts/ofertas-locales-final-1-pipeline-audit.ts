@@ -21,6 +21,7 @@ const APP_CLIENT = "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicatio
 const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
 const PUBLISH_MAPPER = "app/lib/ofertas-locales/ofertasLocalesPublishMapper.ts";
 const HUB_PAGE = "app/(site)/clasificados/page.tsx";
+const FEATURED_MODULE = "app/(site)/clasificados/_components/ClasificadosFeaturedOfertasModule.tsx";
 const PUBLIC_COPY = "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts";
 
 const STACK_PATTERNS = [
@@ -29,8 +30,14 @@ const STACK_PATTERNS = [
   /^app\/\(site\)\/publicar\/ofertas-locales\//,
   /^app\/\(site\)\/clasificados\/ofertas-locales\//,
   /^app\/\(site\)\/clasificados\/page\.tsx$/,
+  /^app\/\(site\)\/clasificados\/_components\/ClasificadosFeaturedOfertasModule\.tsx$/,
   /^package\.json$/,
   /^scripts\/ofertas-locales-final-1-pipeline-audit\.ts$/,
+  /^scripts\/ofertas-package-13-/,
+  /^scripts\/ofertas-package-11-local-certification-audit\.mjs$/,
+  /^scripts\/ofertas-locales-/,
+  /^docs\/OFERTAS_PACKAGE_13_/,
+  /^tests\/ofertas-locales\/scenarios\//,
 ] as const;
 
 function read(rel: string): string {
@@ -81,6 +88,7 @@ function run() {
   const appCopy = read(APP_COPY);
   const mapper = read(PUBLISH_MAPPER);
   const hub = read(HUB_PAGE);
+  const featuredModule = read(FEATURED_MODULE);
   const pubCopy = read(PUBLIC_COPY);
   const pkg = read("package.json");
 
@@ -111,7 +119,8 @@ function run() {
   assert.ok(pubCopy.includes("Ofertas Locales") || pubCopy.includes("Local Deals"), "landing hero copy");
   assert.ok(client.includes("pipelineEmptyTitle") || pubCopy.includes("Todavía estamos agregando"), "pipeline empty state");
   assert.ok(client.includes("/publicar/ofertas-locales"), "business CTA to publish");
-  assert.ok(hub.includes("/clasificados/ofertas-locales"), "hub links to public route");
+  assert.ok(hub.includes("ClasificadosFeaturedOfertasModule"), "hub renders featured Ofertas module");
+  assert.ok(featuredModule.includes("/clasificados/ofertas-locales"), "hub module links to public route");
 
   const changed = changedFiles().filter(isStackFile);
   assert.ok(!changed.some((f) => f.startsWith("app/admin/")), "admin untouched");

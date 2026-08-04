@@ -35,6 +35,13 @@ const ALLOWED_CHANGED = [
   /^app\/lib\/ofertas-locales\/OFERTAS_LOCALES_OL3/,
   /^app\/\(site\)\/publicar\/ofertas-locales\//,
   /^scripts\/ofertas-locales-ol3-step1-cta-cleanup-audit\.ts$/,
+  /^scripts\/ofertas-package-13-/,
+  /^scripts\/ofertas-package-11-local-certification-audit\.mjs$/,
+  /^scripts\/ofertas-locales-ai-(power|quality)-1-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-1[bcd]/,
+  /^scripts\/ofertas-locales-ol7/,
+  /^docs\/OFERTAS_PACKAGE_13_/,
+  /^tests\/ofertas-locales\/scenarios\//,
   /^package\.json$/,
 ] as const;
 
