@@ -16,6 +16,9 @@ import {
   listContradictionsForBusiness, listDiscoverySessionsForBusiness, listFactsForBusiness, listUnknownsForBusiness,
 } from "@/app/lib/business/livingBook/repository";
 import { computeBookCompleteness } from "@/app/lib/business/livingBook/logic";
+import { MarkHumanReviewForm, RunAssessmentButton } from "./HealthMapActions";
+import { getFullRun, getLatestCompletedRun, listRunsForBusiness } from "@/app/lib/business/healthMap/repository";
+import { HEALTH_DIMENSION_KEYS } from "@/app/lib/business/healthMap/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +100,18 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           nowIso: new Date().toISOString(),
         });
         return { facts, unknowns, contradictions, discoverySessions, completeness };
+      })()
+    : null;
+
+  const canViewHealthMap = actorHasCapability(access.actor, "view_business_health_map");
+  const canRunHealthAssessment = actorHasCapability(access.actor, "run_business_health_assessment");
+  const canMarkHumanReview = actorHasCapability(access.actor, "mark_health_human_review");
+  const healthData = canViewHealthMap
+    ? await (async () => {
+        const [latestRun, recentRuns] = await Promise.all([getLatestCompletedRun(business.id), listRunsForBusiness(business.id, 10)]);
+        if (!latestRun) return { latestRun: null, dimensionResults: [], findings: [], readiness: null, recentRuns };
+        const full = await getFullRun(latestRun.id);
+        return { latestRun: full?.run ?? null, dimensionResults: full?.dimensionResults ?? [], findings: full?.findings ?? [], readiness: full?.readiness ?? null, recentRuns };
       })()
     : null;
 
@@ -413,6 +428,86 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
               </div>
             </>
           ) : null}
+        </section>
+      ) : null}
+
+      {/* Business Health Map (Gate BCO-6A) — capability-gated; entirely absent from the page when the actor lacks view_business_health_map. */}
+      {canViewHealthMap && healthData ? (
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-[#1E1810]">Business Health Map</h2>
+            {canRunHealthAssessment ? <RunAssessmentButton businessId={business.id} /> : null}
+          </div>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            A deterministic, explainable read of seven business dimensions — never an AI advisor, never a numeric score.
+          </p>
+
+          {!healthData.latestRun ? (
+            <p className="mt-3 text-sm text-[#7A7164]">No assessment has been run yet.</p>
+          ) : (
+            <>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+                  <p className="text-lg font-bold text-emerald-700">{healthData.latestRun.strongCount}</p>
+                  <p className="text-[10px] text-[#7A7164]">Strong</p>
+                </div>
+                <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+                  <p className="text-lg font-bold text-[#1E1810]">{healthData.latestRun.stableCount}</p>
+                  <p className="text-[10px] text-[#7A7164]">Stable</p>
+                </div>
+                <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+                  <p className="text-lg font-bold text-amber-800">{healthData.latestRun.needsAttentionCount}</p>
+                  <p className="text-[10px] text-[#7A7164]">Needs attention</p>
+                </div>
+                <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+                  <p className="text-lg font-bold text-[#7A7164]">{healthData.latestRun.insufficientInformationCount}</p>
+                  <p className="text-[10px] text-[#7A7164]">Insufficient info</p>
+                </div>
+                <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
+                  <p className="text-lg font-bold text-red-700">{healthData.latestRun.contradictionBlockedCount}</p>
+                  <p className="text-[10px] text-[#7A7164]">Blocked</p>
+                </div>
+              </div>
+              <p className="mt-2 text-[10px] text-[#9A9184]">
+                Calculation version {healthData.latestRun.calculationVersion} · last calculated {healthData.latestRun.completedAt ? new Date(healthData.latestRun.completedAt).toLocaleString("en-US") : "—"}
+              </p>
+
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Dimensions</h3>
+              <ul className="mt-2 space-y-2">
+                {HEALTH_DIMENSION_KEYS.map((key) => {
+                  const dim = healthData.dimensionResults.find((d) => d.dimensionKey === key);
+                  if (!dim) return null;
+                  return (
+                    <li key={key} className="rounded-lg border border-[#E8DFD0] p-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-[#1E1810]">{key}</span>
+                        <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{dim.status}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-[#3D3428]">{dim.explanationEn}</p>
+                      {dim.limitationsEn ? <p className="mt-1 text-xs text-[#7A7164]">{dim.limitationsEn}</p> : null}
+                      <p className="mt-1 text-[10px] text-[#9A9184]">
+                        confidence: {dim.confidence} · evidence: {dim.evidenceStrength} · freshness: {dim.freshness} · {dim.supportingFactIds.length} supporting fact(s) · {dim.relatedUnknownIds.length} related unknown(s) · {dim.relatedContradictionIds.length} related contradiction(s)
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {healthData.readiness ? (
+                <>
+                  <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Recommendation readiness</h3>
+                  <div className="mt-2 rounded-lg border border-[#E8DFD0] p-2">
+                    <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{healthData.readiness.readinessStatus}</span>
+                    <p className="mt-1 text-sm text-[#3D3428]">{healthData.readiness.reasonEn}</p>
+                    {healthData.readiness.humanReviewRequired ? <p className="mt-1 text-xs font-semibold text-amber-800">⚠ Human review flagged{healthData.readiness.humanReviewMarkedByEmail ? ` by ${healthData.readiness.humanReviewMarkedByEmail}` : ""}.</p> : null}
+                    {canMarkHumanReview ? (
+                      <MarkHumanReviewForm businessId={business.id} runId={healthData.latestRun.id} currentlyRequired={healthData.readiness.humanReviewRequired} />
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
+            </>
+          )}
         </section>
       ) : null}
     </div>

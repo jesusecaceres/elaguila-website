@@ -43,7 +43,13 @@ export type SalesWorkspaceCapability =
   | "resolve_contradictions"
   | "conduct_discovery"
   | "review_owner_corrections"
-  | "view_business_history";
+  | "view_business_history"
+  // Gate BCO-6A — Explainable Business Health Map capabilities. Kept in this same matrix rather
+  // than a parallel one, matching the Gate BCO-5A precedent.
+  | "view_business_health_map"
+  | "run_business_health_assessment"
+  | "view_private_health_support"
+  | "mark_health_human_review";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -65,6 +71,10 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "conduct_discovery",
   "review_owner_corrections",
   "view_business_history",
+  "view_business_health_map",
+  "run_business_health_assessment",
+  "view_private_health_support",
+  "mark_health_human_review",
 ];
 
 /**
@@ -107,6 +117,10 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "conduct_discovery",
     "review_owner_corrections",
     "view_business_history",
+    "view_business_health_map",
+    "run_business_health_assessment",
+    "view_private_health_support",
+    "mark_health_human_review",
   ],
   sales_manager: [
     "view_business_list",
@@ -127,6 +141,10 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "conduct_discovery",
     "review_owner_corrections",
     "view_business_history",
+    "view_business_health_map",
+    "run_business_health_assessment",
+    "view_private_health_support",
+    "mark_health_human_review",
   ],
   sales_rep: [
     "view_business_list",
@@ -142,6 +160,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "create_evidence",
     "conduct_discovery",
     "view_business_history",
+    "view_business_health_map",
   ],
 };
 
