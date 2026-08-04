@@ -217,6 +217,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           viewAnalytics: "Ver analíticas",
           viewPreview: "Vista previa",
           unpublish: "Retirar",
+          restore: "Reactivar",
           publish: "Publicar",
           publishAutos: "Publicar en Autos",
           allListings: "Tus anuncios Autos",
@@ -239,6 +240,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           viewAnalytics: "View analytics",
           viewPreview: "Preview",
           unpublish: "Unpublish",
+          restore: "Reactivate",
           publish: "Publish",
           publishAutos: "Publish in Autos",
           allListings: "Your Autos listings",
@@ -254,6 +256,22 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     if (!token) return;
     setBusyId(id);
     await fetch(`/api/clasificados/autos/listings/${id}/unpublish`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setBusyId(null);
+    void load();
+  }
+
+  /** Package A Gate 5 — owner resume: strictly removed→active via the owner-verified restore
+   * API (the missing second half of the pause cycle; admin-suspended rows stay untouched). */
+  async function restore(id: string) {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    setBusyId(id);
+    await fetch(`/api/clasificados/autos/listings/${id}/restore`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -376,6 +394,17 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           {t.unpublish}
                         </button>
                       </>
+                    ) : row.status === "removed" ? (
+                      /* Package A Gate 5 — the missing resume half of the owner pause cycle:
+                         strictly removed→active via the owner-verified restore API. */
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void restore(row.id)}
+                        className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 disabled:opacity-50"
+                      >
+                        {t.restore}
+                      </button>
                     ) : (
                       <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
                         {t.manageListing}
@@ -561,6 +590,16 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                                 {t.unpublish}
                               </button>
                             </>
+                          ) : row.status === "removed" ? (
+                            /* Package A Gate 5 — owner resume (removed→active). */
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void restore(row.id)}
+                              className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 disabled:opacity-50"
+                            >
+                              {t.restore}
+                            </button>
                           ) : (
                             <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
                               {t.manageListing}

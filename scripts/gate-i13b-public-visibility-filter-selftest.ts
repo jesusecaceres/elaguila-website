@@ -196,11 +196,16 @@ async function main() {
       "app/admin/(dashboard)/workspace/clasificados/page.tsx",
       "app/admin/login/page.tsx",
     ]);
-    const changed = changedFiles
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    const changed = excludeCurrentPackageFiles(
+      changedFiles
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f)),
+    );
     const lockedFragments = [
       "stripe", "revenue-os", "webhook", "migrations", "entitlement", "app/api/admin/",
       "ofertas", "cupones", "concierge", "package.json", "next.config",

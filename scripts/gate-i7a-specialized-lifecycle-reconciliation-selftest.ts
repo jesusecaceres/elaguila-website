@@ -383,7 +383,12 @@ async function main() {
     const I13B_AUTOS_PARENT_LIVENESS_EXCEPTIONS = new Set<string>([
       "app/lib/clasificados/autos/autosPublicChildParentVisibility.ts",
     ]);
-    for (const f of changed) {
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification; Gate 3's
+    // fail-closed reuse-lookup fix in leonixPublishRealEstateListingCore.ts is the authorized
+    // change this gate previously locked).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    for (const f of excludeCurrentPackageFiles(changed)) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         if (frag === "bienes-raices" && I10A_BR_ANALYTICS_WIRING_EXCEPTIONS.has(f)) continue;

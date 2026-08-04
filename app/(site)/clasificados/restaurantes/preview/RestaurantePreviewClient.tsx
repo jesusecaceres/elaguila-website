@@ -19,6 +19,10 @@ import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "@/app/lib/listingIdentity/previewModeContract";
 import { saveRestaurantePendingBeforeCheckout } from "@/app/clasificados/restaurantes/application/saveRestaurantePendingBeforeCheckout";
 import {
   redirectToRevenueCategoryCheckout,
@@ -71,6 +75,15 @@ export default function RestaurantePreviewClient() {
   const { hydrated, draft } = useRestauranteDraft({ resolveMediaOnLoad: true });
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+
+  // Globalization Package A Gate 4 — shared preview-mode contract guard (see the checkout
+  // section comment below for the P3 rationale).
+  const listingBoundPreview =
+    (searchParams?.get("preview") ?? "") === "listing" ||
+    ((searchParams?.get("source") ?? "") === "dashboard" && Boolean((searchParams?.get("listingId") ?? "").trim()));
+  const suppressListingBoundCheckout = previewModeSuppressesBasePlanCheckout(
+    resolvePreviewMode({ listingBound: listingBoundPreview }),
+  );
 
   const { routeLang, copyLang: lang } = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
@@ -350,23 +363,31 @@ export default function RestaurantePreviewClient() {
           </div>
         </ClasificadosPreviewAdCanvas>
 
-        {/* Section 3: Final checkout — visible after preview, not inside collapsed panels */}
-        <div className="mt-12">
-          <div className="mb-6">
-            <h2
-              className="mb-3 text-2xl font-bold tracking-tight"
-              style={{ color: LEONIX_PRIMARY_TEXT }}
+        {/* Section 3: Final checkout — visible after preview, not inside collapsed panels.
+            Globalization Package A Gate 4 — the guard P3 documented as required "the moment
+            any link ever points a real listing at this route": in a listing-bound context
+            (source=dashboard + listingId, or preview=listing) this is an already-identified —
+            typically already-paid — listing, and the base-plan checkout must never render
+            again. No live href targets this route with those params today (dashboard "Vista
+            previa" goes to the public slug page), so live behavior is unchanged; this closes
+            the latent unguarded branch. */}
+        {suppressListingBoundCheckout ? null : (
+          <div className="mt-12">
+            <div className="mb-6">
+              <h2
+                className="mb-3 text-2xl font-bold tracking-tight"
+                style={{ color: LEONIX_PRIMARY_TEXT }}
+              >
+                {pageCopy.finalCheckoutTitle}
+              </h2>
+              <p className="text-base font-medium leading-relaxed" style={{ color: LEONIX_SECONDARY_TEXT }}>
+                {pageCopy.finalCheckoutBody}
+              </p>
+            </div>
+            <div
+              className="rounded-3xl border p-4 sm:p-6 md:p-8"
+              style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
             >
-              {pageCopy.finalCheckoutTitle}
-            </h2>
-            <p className="text-base font-medium leading-relaxed" style={{ color: LEONIX_SECONDARY_TEXT }}>
-              {pageCopy.finalCheckoutBody}
-            </p>
-          </div>
-          <div
-            className="rounded-3xl border p-4 sm:p-6 md:p-8"
-            style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
-          >
               <PublishCheckoutCheckpoint
                 config={checkpointConfig}
                 lang={lang}
@@ -378,8 +399,9 @@ export default function RestaurantePreviewClient() {
                 onCheckout={(ctx) => void onCheckout(ctx)}
                 editHref={editHref}
               />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </RestaurantesShellChrome>
   );

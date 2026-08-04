@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint \"app/(site)/clasificados/autos/**/*.{ts,tsx}\" \"app/(site)/publicar/autos/**/*.{ts,tsx}\" \"app/lib/clasificados/autos/**/*.{ts,tsx}\" \"app/api/clasificados/autos/**/*.{ts,tsx}\" \"app/admin/(dashboard)/workspace/clasificados/autos/**/*.{ts,tsx}\" \"scripts/autos-*.ts\" --max-warnings 0",
     "typecheck": "tsc --noEmit --incremental false",
+    "test:gates": "tsx scripts/run-all-gates.ts",
     "lint:br": "eslint \"app/(site)/clasificados/bienes-raices/**/*.{ts,tsx}\" \"app/(site)/clasificados/lib/leonix*.ts\" \"app/(site)/clasificados/lib/publish/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/bienes-raices/**/*.{ts,tsx}\" --max-warnings 0",
     "lint:servicios": "eslint \"app/(site)/clasificados/servicios/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/servicios/**/*.{ts,tsx}\" \"app/(site)/servicios/**/*.{ts,tsx}\" \"app/api/clasificados/servicios/**/*.{ts,tsx}\" \"e2e/**/*.ts\" --max-warnings 0",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",

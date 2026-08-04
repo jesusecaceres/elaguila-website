@@ -49,6 +49,8 @@ export type {
   CanonicalCategoryKey,
   CanonicalDbCategory,
   CanonicalSourceTable,
+  CategoryLaneKey,
+  CategoryLaneRecord,
   CategoryRouteAdapter,
   InventoryChildIdentity,
   InventoryRole,
@@ -74,8 +76,12 @@ export type {
 
 export {
   CATEGORY_ROUTE_REGISTRY,
+  getAllCategoryLaneRecords,
+  getCategoryLaneRecordByKey,
+  getCategoryLaneRecords,
   getCategoryRouteAdapter,
   pipelineSupportsInventoryRole,
+  resolveCategoryLaneRecord,
 } from "./categoryRouteRegistry";
 export type { CategoryRouteRegistry } from "./categoryRouteRegistry";
 

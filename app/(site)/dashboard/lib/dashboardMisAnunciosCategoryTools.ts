@@ -130,9 +130,11 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
   comunidad: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   busco: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   // Work Package I.8B — View public and Archive use the same generic, already-safe mechanisms as
-  // Busco/Clases/Comunidad. Edit is deliberately absent (no key = hidden) — no safe Edit route
-  // exists yet (categoryRouteRegistry.ts MASCOTAS_Y_PERDIDOS_ADAPTER.editRoute() still returns
-  // null). Analytics stays "unproven" — no per-listing analytics route confirmed for Mascotas.
+  // Busco/Clases/Comunidad. Edit carries no key here for the same reason as Busco/Clases/
+  // Comunidad: the Edit action for the generic listings family is delivered by
+  // resolveDashboardActions from the registry editRoute — which Globalization Package A Gate 5
+  // wired to the generic owner-verified editor for Mascotas (safety-proven; see the registry's
+  // adapter comment). Analytics stays "unproven" — no per-listing analytics route confirmed.
   mascotas: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
 };
 

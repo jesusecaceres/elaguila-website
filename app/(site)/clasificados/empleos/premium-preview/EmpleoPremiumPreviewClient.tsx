@@ -13,6 +13,10 @@ import {
   markPublishFlowReturningToEdit,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "@/app/lib/listingIdentity/previewModeContract";
 import { EmpleoPremiumDetailPage } from "../components/premiumJob/EmpleoPremiumDetailPage";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
@@ -44,6 +48,15 @@ export function EmpleoPremiumPreviewClient() {
     [sp],
   );
   const fromPublicar = sp?.get("from") === "publicar";
+
+  // Globalization Package A Gate 4 — shared preview-mode contract guard (rationale at the
+  // checkout section below).
+  const listingBoundPreview =
+    (sp?.get("preview") ?? "") === "listing" ||
+    ((sp?.get("source") ?? "") === "dashboard" && Boolean((sp?.get("listingId") ?? "").trim()));
+  const suppressListingBoundCheckout = previewModeSuppressesBasePlanCheckout(
+    resolvePreviewMode({ listingBound: listingBoundPreview }),
+  );
   const [draft, setDraft] = useState<EmpleosPremiumDraft | null>(null);
   const [ready, setReady] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
@@ -171,6 +184,13 @@ export function EmpleoPremiumPreviewClient() {
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       >
         <EmpleoPremiumDetailPage data={data} withSiteChrome={false} />
+        {/* Globalization Package A Gate 4 — shared preview-mode contract guard. This is the
+            exact lane whose live defect P3 fixed (a paid, published listing pointed at this
+            draft-based preview re-showed the paid checkout widget). The dashboard fix removed
+            the bad href; this guard closes the component side too: a listing-bound context
+            (source=dashboard + listingId, or preview=listing) must never render the base-plan
+            checkout again, regardless of how the URL was reached. */}
+        {suppressListingBoundCheckout ? null : (
         <div className="mx-auto mt-8 max-w-3xl px-4 pb-12 md:px-6">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-[#1E1810]">
@@ -202,6 +222,7 @@ export function EmpleoPremiumPreviewClient() {
             rulesModal={EMPLEOS_PREVIEW_RULES_MODAL}
           />
         </div>
+        )}
       </LeonixPreviewPageShell>
     );
   }

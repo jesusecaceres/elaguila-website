@@ -179,10 +179,11 @@ const PIPELINE_OVERRIDES: Partial<Record<CanonicalCategoryKey, ActionTruthRow>> 
     markSoldFilledClosed: "intentionally_unsupported",
     remove: "blocked",
     preview: "working",
-    // Confirmed: no safe category-specific editor exists yet (categoryRouteRegistry.ts
-    // MASCOTAS_Y_PERDIDOS_ADAPTER.editRoute() still returns null) — same fact already
-    // established on the owner-dashboard side (I.6B/I.8B), still true for Admin.
-    openOwnerEditContext: "blocked",
+    // Globalization Package A Gate 5 — unblocked. The registry now resolves a real,
+    // owner-verified edit surface for Mascotas (the generic /dashboard/mis-anuncios/{id}/editar
+    // page, safety-proven: same publisher/row shape as Clases/Comunidad, detail_pairs never
+    // touched) — same "working" classification as the other generic listings-family pipelines.
+    openOwnerEditContext: "working",
     inspectParentChild: "intentionally_unsupported",
   },
   comida_local: { markSoldFilledClosed: "intentionally_unsupported", remove: "intentionally_unsupported", preview: "ui_only_no_handler", openOwnerEditContext: "ui_only_no_handler", inspectParentChild: "intentionally_unsupported" },

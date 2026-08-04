@@ -39,6 +39,212 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Globalization Package A Update Log — Global Foundation + Complete Customer Lifecycle
+
+### Gate 1 — Catalog and contract freeze (DONE)
+
+Enforced by [`scripts/gate-pkgA-catalog-freeze-selftest.ts`](../scripts/gate-pkgA-catalog-freeze-selftest.ts).
+
+1. **Lane registry.** The three intra-pipeline lane splits previously modeled only in
+   knownLimitations prose are now explicit, typed `CategoryLaneRecord`s on their adapters
+   (`app/lib/listingIdentity/types.ts` + `categoryRouteRegistry.ts`, exported via the barrel and
+   the new `getCategoryLaneRecords()`/`resolveCategoryLaneRecord()`/`getAllCategoryLaneRecords()`/
+   `getCategoryLaneRecordByKey()` accessors): Empleos `quick`/`premium`/`feria` (dbLaneValues
+   mirror the table CHECK), Viajes `business`/`private` (DB values differ from the
+   negocios/privado route segments — the mapping `viajesStagedPreviewPath()` already performs),
+   and En Venta `pro`/`free`/`storefront` (route-level only, dbLaneValue null; Free and
+   Storefront explicitly registered as PARKED per owner decision D7). Registry data only —
+   no live navigation changed. Lane `draftPreviewRoute`s are documented as new-publish-only,
+   never listing-bound (the P3 Empleos defect class).
+2. **Guarded child edit target.** `identityListingIdForEdit()` no longer substitutes the
+   parent's id unconditionally — inventory-child and ambiguous child-shaped identities fail
+   closed (null) from `editRoute()`/`previewRoute()`; inventory-manage keeps its intentional
+   parent/group targeting via the new, separate `inventoryManageTargetId()`. Closes the
+   long-open "registry alone provides no child-safety" debt (struck through in the debt table
+   below). Zero live-href change: the resolver already excluded these actions for children.
+   `gate-i5-7f` §12/13 was updated from pinning the old unguarded truth (as documentation) to
+   pinning the new guarded truth.
+3. **Aggregate gate runner.** New [`scripts/run-all-gates.ts`](../scripts/run-all-gates.ts) +
+   `npm run test:gates` — the first single-command runner for the full
+   `scripts/gate-*-selftest.ts` suite (61 gates at the time of writing; previously zero npm
+   entries and no aggregate runner existed, so nothing ever exercised the whole proof net).
+   Verified: **61/61 pass** post-Gate-1. Supports substring filters
+   (`npm run test:gates -- p3 i11a`).
+4. **Shared diff-scope allowlist.** Five historical gates carried package-scoped "current
+   working diff must not contain X" snapshot assertions that re-trip for every later package
+   (the exact stale-assertion class P1 documented). They now consume one shared, narrow,
+   exact-file allowlist — [`scripts/globalizationCurrentPackageDiff.ts`](../scripts/globalizationCurrentPackageDiff.ts)
+   — instead of five bespoke exception sets: `gate-i13a`, `gate-i13b`, `gate-p1`, `gate-i5-6`,
+   `gate-i5-4d`. Fragment-level protections (stripe/revenue-os/webhook/migrations/…) remain
+   fully in force for every file not explicitly authorized there.
+5. **Ledger correction — `public.listings` RLS.** Work Package I.12A's claim (this document,
+   §"Work Package I.12A", "No tracked migration defines a `CREATE POLICY` on `public.listings`
+   — RLS enforcement is unverified from the repository") is **contradicted by the repository**:
+   `supabase/migrations/20260421130001_listings_enable_rls_full_policies.sql` (91 lines,
+   lowercase `create policy`) defines `listings_anon_select_public_catalog`,
+   `listings_authenticated_select`, `listings_authenticated_insert_own`,
+   `listings_authenticated_update_own`, and `listings_authenticated_delete_own` — matching the
+   owner-verified live policies I.12B later confirmed via the Supabase Dashboard. The original
+   finding appears to have been a case-sensitive grep miss (`CREATE POLICY` vs `create policy`).
+   I.12B's live verification stands and is now *corroborated by tracked source*, not in tension
+   with it. The historical I.12A/I.12B sections below are left as written (they are the honest
+   record of what was believed at the time); this addendum is the correction.
+
+### Gate 2 — Checkpoints and gateway completeness (DONE)
+
+Enforced by [`scripts/gate-pkgA-checkpoints-selftest.ts`](../scripts/gate-pkgA-checkpoints-selftest.ts).
+Closes P3 Gate 6 ("checkpoint rollout to free/quick lanes — NOT YET BUILT").
+
+1. **Seven new checkpoint card builders** in `categoryPublishCheckpoints.ts` (Busco, Clases,
+   Comunidad, Mascotas, En Venta, Comida Local pipeline, Viajes negocios+privado), all
+   truthful against `revenuePricingMatrix.ts`: the free lanes' SKUs are genuinely $0
+   (`busco_free`, `clases_free`, `comunidad_free`, `mascotas_free`, `en_venta_free_v1`) or
+   absent entirely (comida_local pipeline — no SKU, no payment wiring); Viajes negocios prices
+   from `viajes_business_monthly`. The dormant `clases_paid_30d` SKU is deliberately NOT
+   offered — no checkout path exists (owner decision D2: launch free-only).
+2. **Seven new checkpoint pages** rendering the shared shell via one new
+   `QuickLaneCheckpointClient.tsx`: `/publicar/{busco,clases,comunidad,mascotas-y-perdidos,en-venta}`,
+   `/publicar/comida-local/checkpoint`, `/publicar/viajes/checkpoint`. The Launch coupon banner
+   renders only when a paid-style card exists (Viajes negocios), so free lanes never show
+   promo copy that does not apply. The En Venta page is NOT a wrapper of the Pro application
+   (the Gate I.5.1 exception concerned wrapping the application component) — the nested
+   application route is unchanged and remains canonical for the form. The Viajes page leaves
+   the existing `/publicar/viajes` branch chooser untouched (isolated Viajes workstream may
+   supersede that surface at merge; the shared card config is the contract either consumes).
+3. **Registry + gateway checkpoint-first**: new optional `CategoryRouteAdapter.checkpointRoute`
+   set on the seven lanes; `resolvePublicarGatewayDestination()` now resolves
+   `checkpointRoute ?? hubRoute ?? applicationRoute` (hub categories unchanged). The live
+   legacy CTA builder `categoryPublishPath()` routes en-venta/clases/comunidad/busco/
+   mascotas-y-perdidos through their checkpoints; the legacy `/clasificados/publicar/*`
+   redirect shims are untouched for external inbound links (gate-i5-3 pins intact). Updated
+   pins: `gate-i5-2` §5, `gate-i5-8` unrelated-entries table.
+4. **Price copy-accuracy audit (behavioral)**: the Gate 2 self-test asserts every checkpoint
+   card's dollar priceLabel across ALL builders equals a real matrix price — retyped literals
+   are forbidden — with exactly one documented exception:
+   `RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE` ($199/mes, flagged in-code as "not in Revenue V1
+   matrix yet"; its card also routes to `/publicar/restaurantes?product=mobile_food_vendor`,
+   a different surface than the free comida_local pipeline). **Owner decision D15 recorded:**
+   either add a `restaurantes` mobile-vendor SKU to the matrix at the intended price or
+   retire/reprice the card — not silently changed here.
+
+### Gate 3 — Shared draft contract + publish idempotency (DONE)
+
+Enforced by [`scripts/gate-pkgA-draft-idempotency-selftest.ts`](../scripts/gate-pkgA-draft-idempotency-selftest.ts).
+
+1. **Canonical draft-workspace contract** — new `app/lib/listingDrafts/draftWorkspaceContract.ts`
+   encoding three rules, each traced to a shipped defect: (1) namespace isolation
+   (new-publish vs listing-edit keys structurally cannot collide — the I.11A Autos collision
+   class), (2) listing-bound state sources are only the listing's own edit workspace and the
+   DB row, in that order (the P2 BR false-422/media-loss class), (3) staleness precedence —
+   a local edit workspace only outranks the DB row it was hydrated from while that row is
+   unchanged (`resolveDraftPrecedence`; unknown source version degrades to today's
+   local-wins, never a fabricated conflict). Includes the full-catalog
+   `DRAFT_STORE_ADAPTERS` registry (all 17 pipelines, evidence-backed).
+2. **Concurrent double-submit race CLOSED (server-side)** — approved additive migration
+   `20260804120000_listings_publish_attempt_idempotency_key.sql` (nullable
+   `listings.publish_attempt_key` + partial unique index
+   `listings_owner_publish_attempt_key_uidx`). All three quick-lane publishers (En Venta,
+   Busco, shared Community for Clases/Comunidad/Mascotas) stamp a session-stable attempt key,
+   recover their OWN already-created row on 23505 (owner- and category-verified lookup),
+   and clear the key only after a confirmed publish. Fail-open by design: no
+   sessionStorage/crypto, or a DB predating the migration (`insertListingsRowResilient`
+   drops the unknown column; En Venta's raw insert gained a column-missing retry mirroring
+   its zip convention), behaves exactly as before. This upgrades the ledger's
+   "Duplicate-Row Prevention Scope" from retry/refresh-only to genuine concurrency safety.
+3. **Rentas/BR pending-reuse lookup fail-closed** — the long-open "Rentas duplicate-row
+   protection gap" (this table, below): `leonixPublishRealEstateListingCore.ts`'s
+   pending-payment reuse lookup erroring now returns a hard failure BEFORE the
+   reuse-vs-insert decision, never falling through to INSERT. Applies identically to the
+   shared BR Negocio branch (strictly protective: the success path is unchanged).
+   The second half of that debt row (no reuse protection outside `pending_payment`) is
+   covered by the same idempotency-key mechanism at the quick-lane layer and remains open
+   for the immediate-activation real-estate path — Gate 5 wires per-lane save truth.
+4. **Staleness capture hooks (additive)** — the BR (`bienesDashboardListingEditWorkspace.ts`)
+   and Rentas (`rentasListingEditWorkspace.ts`) edit workspaces now persist
+   `sourceUpdatedAt` (the row version they were hydrated from, preserved across incremental
+   saves; Rentas adopted the shared envelope with a legacy-tolerant reader) and expose
+   `read*WorkspaceMeta()` accessors. Precedence wiring into the preview/edit clients lands
+   with Gate 5's per-lane edit/save truth — deliberately not rushed into the P2-protected
+   listing-bound branches without their per-lane verification runway.
+
+### Gate 4 — Preview-mode wiring across the full catalog (DONE)
+
+Enforced by [`scripts/gate-pkgA-preview-modes-selftest.ts`](../scripts/gate-pkgA-preview-modes-selftest.ts).
+
+1. **Latent unguarded previews CLOSED** — `BienesRaicesPrivadoPreviewClient.tsx` and
+   `RestaurantePreviewClient.tsx` (both P3-documented as "must add the guard the moment any
+   link ever points a real listing here") now resolve the shared preview-mode contract and
+   never render the base-plan checkout in a listing-bound context (source=dashboard +
+   listingId, or preview=listing). No live href targets either route with those params today
+   — zero live behavior change; the latent branch is gone.
+2. **Empleos paid lanes guarded** — `EmpleoPremiumPreviewClient.tsx` AND
+   `EmpleoQuickPreviewClient.tsx` carry the same guard. **Lane-registry correction:** direct
+   inspection proved Empleos `quick` is the standard PAID job post ($24.99
+   `empleos_job_post_paid`; its preview starts `saveEmpleosDraftAndStartPaidJobCheckout`) —
+   Gate 1's lane record wrongly marked it free (guessed from the "quick" naming pattern);
+   corrected with evidence, only `feria` is free.
+3. **BR Negocio 3-way split** — the reference lane now implements the full
+   new-publish / edit-draft / published-readonly contract P2 documented as "the most direct
+   next step": a listing-bound preview with NO local edit workspace (detected via Gate 3's
+   `readBienesListingEditWorkspaceMeta`) renders strictly read-only ("Vista previa · Solo
+   lectura") with only the real "Editar anuncio" navigation — never a save affordance for
+   untouched state; an unsaved edit workspace keeps "Guardar cambios" exactly as before. The
+   mode can only tighten after the client-side workspace check (defaults to the pre-split
+   edit-draft behavior), and the P2 no-repeat-payment guard is untouched (still suppressed
+   for BOTH bound modes).
+4. **Free previews pinned checkout-free** — En Venta, Empleos feria, Community
+   (Clases/Comunidad), Mascotas, Comida Local preview clients contain no checkout component;
+   the self-test fires if one is ever added without adopting the guard first. Autos ×2 remain
+   on their own verified-conformant pinned state machines (gate-p3) — deliberately untouched.
+5. Historical added-lines diff checks in `gate-i5-4a-1`/`gate-i5-4d` now skip
+   explicitly-authorized package files (whole-file authorization in
+   `scripts/globalizationCurrentPackageDiff.ts`); they keep protecting every other file.
+
+### Gate 5 — Edit/save truth and lifecycle parity (DONE, one item blocked on approval)
+
+Enforced by [`scripts/gate-pkgA-edit-save-truth-selftest.ts`](../scripts/gate-pkgA-edit-save-truth-selftest.ts).
+
+1. **Editor parity for the `listings` family** — Mascotas and BR Privado now resolve the
+   generic owner-verified editor (`/dashboard/mis-anuncios/{id}/editar`), each with the
+   safety proof previously demanded: Mascotas rows share the exact row shape of
+   Clases/Comunidad (same shared community publisher) and the generic editor never touches
+   `detail_pairs` (where its category fields live); the editor already carried explicit
+   BR-Privado seller-photo support (Gate I.5.4A.1). Coupled truth updated rather than left
+   stale: `adminActionTruth.ts` (mascotas `openOwnerEditContext` → "working"),
+   `dashboardMisAnunciosCategoryTools.ts` comment, and pins in `gate-i6a`, `gate-i6b`,
+   `gate-i8b`, `gate-i9a`, `gate-i5-7f` (matrix cells → supported). The
+   `missing_edit_route` attention item clears live (it derives from `editHref`).
+2. **Autos owner resume** — the missing second half of the pause cycle ("one-way unpublish
+   only"): `markAutosClassifiedsListingRestoredIfOwner()` (strictly "removed" → "active";
+   admin-suspended and draft/pending rows never owner-restorable), new
+   `/api/clasificados/autos/listings/[id]/restore` route mirroring unpublish, and a
+   "Reactivar/Reactivate" button on the dealer dashboard for owner-removed rows.
+3. **Comida Local owner lifecycle** — the pipeline's FIRST owner-side mutation capability
+   (was "zero owner-side mutation"): new `/api/clasificados/comida-local/lifecycle` route
+   (bearer auth; ownership fail-closed including legacy null owners; strict
+   published↔paused transitions — 'paused' already existed in the table CHECK, no schema
+   change; I.13A zero-row detection), with Pausar/Reactivar buttons on the dashboard card
+   and a row refresh hook. Admin write handler remains Package E scope.
+4. **Empleos preview ambiguity RESOLVED AS PRODUCT TRUTH** — the lane previews are
+   new-publish-only (guarded in Gate 4); a published listing's published-readonly surface is
+   its real public page (the P3-validated pattern). `previewRoute() === null` is the correct
+   contract, recorded in the adapter's knownLimitations — no longer an open gap.
+5. **Same-row save truth pinned per lane** — verified-reuse UPDATE paths, fail-closed
+   identity verification, and the Gate 3 idempotency keys re-pinned across all three quick
+   publishers as this package's own regression net.
+6. **BLOCKED BY EXTERNAL APPROVAL — Restaurantes pause/resume.** The
+   `restaurantes_public_listings.status` CHECK constraint (`published|suspended|archived`
+   + pending-payment) has no owner-pausable state; implementing owner pause/resume requires
+   a schema migration that is NOT in the plan's approved migration list (§13). Recorded as
+   owner decision **D16**: approve a `paused` status migration (then the Comida Local
+   route pattern applies directly) or accept launch without Restaurantes owner-pause.
+   Not silently faked with `archived` (a terminal state with different semantics).
+
+**Package A status after Gate 5:** all five gates landed; the full gate suite and typecheck
+are green. Remaining non-terminal item: D16 above (genuine external approval requirement).
+Staleness-precedence wiring into the P2-protected BR/Rentas preview clients (Gate 3's hooks)
+is scheduled with Package B's media/edit work where those lanes get their verification runway.
+
 ## Work Package P3 Update Log — Global Preview-Mode Contract and Payment-Precedence Sweep
 
 Enforced by [`scripts/gate-p3-preview-mode-contract-selftest.ts`](../scripts/gate-p3-preview-mode-contract-selftest.ts).
@@ -2092,7 +2298,7 @@ for any parent) — an existing live behavior difference, not something introduc
 | ~~Empleos results duplication~~ | **Resolved in Work Package I.5.8.** `buildEmpleosResultadosUrl` and `EMPLEOS_RESULTS_PATH` now both generate `/clasificados/empleos/resultados`. Legacy `/results` remains a live compatibility wrapper. |
 | ~~Autos stale publish-map entry~~ | **Not actually stale — corrected finding, not a fix.** Gate I.5.7D-R's original claim was wrong: `categoryPublishPath("autos")` → `/clasificados/publicar/autos` is a real, compiled route with a confirmed live caller (`negociosLocalesLanes.ts`). Left untouched in Work Package I.5.8 after re-verification. |
 | ~~Viajes stale publish-map entry~~ | **Resolved in Work Package I.5.8.** `categoryPublishPath("viajes")` confirmed to map to a nonexistent folder with zero live callers, then corrected to the real `applicationRoute` (`/publicar/viajes`). Zero live behavior change. |
-| **Bienes/Autos parent-child protection lives outside the registry** | Still true — see [External Safety Protections](#external-safety-protections). Work Package I.5.8 added executable regression coverage for this (`gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts`) but did not change the architecture itself — a structural risk remains if any future caller invokes `adapter.editRoute()` directly without the external gate. |
+| ~~Bienes/Autos parent-child protection lives outside the registry~~ | **Resolved in Globalization Package A Gate 1.** `identityListingIdForEdit()` now fails closed: `adapter.editRoute()`/`previewRoute()` called with an inventory-child identity (or an ambiguous child-shaped identity — parent id present, role unconfirmed) returns null instead of silently substituting the parent's id. Inventory-manage routes keep their intentional parent/group targeting via the separate `inventoryManageTargetId()` helper. No live href changed — `resolveDashboardActions()` already excluded these actions for children before ever calling the adapter, and it remains in place as defense in depth. Pinned by the updated §12/13 of `gate-i5-7f-full-catalog-route-contract-selftest.ts` and by `gate-pkgA-catalog-freeze-selftest.ts`. |
 | ~~Autos child-action regression coverage gap~~ | **Addressed in Work Package I.5.8.** `gate-i5-8-bienes-autos-parent-child-action-protection-selftest.ts` now exercises the real `resolveDashboardActions()` resolver for both Bienes and Autos Negocio parent/child identities. |
 | **Rentas default-lane decision** | **OWNER DECISION REQUIRED, unchanged as of I.7A.** Both lanes share one `hubRoute` (`/clasificados/publicar/rentas`) distinct from either lane's own `applicationRoute`. The dashboard's default Rentas publish CTA goes straight to Privado, skipping the hub chooser — a product decision, not a bug, but undocumented in the registry itself. I.7A re-confirmed this is genuinely a product choice (which lane/renderer is canonical for public Rentas at launch), not a code bug, and left it untouched. |
 | **Missing quick-category test coverage** | Before Gate I.5.7F, Ofertas Locales, Cupones, Comida Local, and each quick-listing category (Busco/Clases/Comunidad/Mascotas/Viajes) had no dedicated route-contract test, only generic pass-through coverage via `gate-i5-1`. The matrix now covers all 17 pipelines uniformly. |

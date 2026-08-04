@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { ComidaLocalDashboardListingVm } from "./mapComidaLocalDashboardListing";
 
 type Lang = "es" | "en";
@@ -9,10 +11,46 @@ type Props = {
   lang: Lang;
   items: ComidaLocalDashboardListingVm[];
   showEmpty?: boolean;
+  /** Globalization Package A Gate 5 — re-fetch hook after a pause/resume mutation. */
+  onLifecycleChanged?: () => void | Promise<void>;
 };
 
-export function ComidaLocalDashboardListings({ lang, items, showEmpty = false }: Props) {
+export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, onLifecycleChanged }: Props) {
   const q = `lang=${lang}`;
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  /** Package A Gate 5 — the pipeline's first owner-side lifecycle mutation (published↔paused
+   * via the owner-verified server API; suspended/draft rows are never owner-flippable). */
+  async function mutateLifecycle(listingId: string, action: "pause" | "resume") {
+    setActionError(null);
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) {
+      setActionError(lang === "es" ? "Inicia sesión de nuevo para continuar." : "Sign in again to continue.");
+      return;
+    }
+    setBusyId(listingId);
+    try {
+      const res = await fetch("/api/clasificados/comida-local/lifecycle", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId, action }),
+      });
+      if (!res.ok) {
+        setActionError(
+          lang === "es"
+            ? "No se pudo actualizar el anuncio. Inténtalo de nuevo."
+            : "Could not update the listing. Please try again.",
+        );
+        return;
+      }
+      await onLifecycleChanged?.();
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   if (items.length === 0 && showEmpty) {
     return (
@@ -143,7 +181,37 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false }:
                 >
                   {lang === "es" ? "Formulario" : "Form"}
                 </Link>
+                {item.status === "published" ? (
+                  <button
+                    type="button"
+                    disabled={busyId === item.id}
+                    onClick={() => void mutateLifecycle(item.id, "pause")}
+                    className="inline-flex rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:border-amber-400 disabled:opacity-50"
+                  >
+                    {busyId === item.id ? (lang === "es" ? "Pausando…" : "Pausing…") : lang === "es" ? "Pausar" : "Pause"}
+                  </button>
+                ) : item.status === "paused" ? (
+                  <button
+                    type="button"
+                    disabled={busyId === item.id}
+                    onClick={() => void mutateLifecycle(item.id, "resume")}
+                    className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 hover:border-emerald-400 disabled:opacity-50"
+                  >
+                    {busyId === item.id
+                      ? lang === "es"
+                        ? "Reactivando…"
+                        : "Resuming…"
+                      : lang === "es"
+                        ? "Reactivar"
+                        : "Resume"}
+                  </button>
+                ) : null}
               </div>
+              {actionError && busyId === null ? (
+                <p className="mt-2 text-xs font-semibold text-red-800" role="alert">
+                  {actionError}
+                </p>
+              ) : null}
             </div>
           </article>
         ))}

@@ -13,6 +13,10 @@ import {
   markPublishFlowReturningToEdit,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "@/app/lib/listingIdentity/previewModeContract";
 import { EmpleoQuickDetailPage } from "../components/quickJob/EmpleoQuickDetailPage";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { EMPLEOS_PUBLISH_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
@@ -48,6 +52,17 @@ export function EmpleoQuickPreviewClient() {
   const [ready, setReady] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+
+  // Globalization Package A Gate 4 — shared preview-mode contract guard. Same P3 defect
+  // class as the premium lane: this is a paid, draft-based, new-publish-only preview; a
+  // listing-bound context (source=dashboard + listingId, or preview=listing) must never
+  // render the paid checkout again, regardless of how the URL was reached.
+  const listingBoundPreview =
+    (sp?.get("preview") ?? "") === "listing" ||
+    ((sp?.get("source") ?? "") === "dashboard" && Boolean((sp?.get("listingId") ?? "").trim()));
+  const suppressListingBoundCheckout = previewModeSuppressesBasePlanCheckout(
+    resolvePreviewMode({ listingBound: listingBoundPreview }),
+  );
 
   useLayoutEffect(() => {
     clearLeonixPreviewNavSessionFlag();
@@ -187,6 +202,9 @@ export function EmpleoQuickPreviewClient() {
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
       >
         <EmpleoQuickDetailPage data={data} withSiteChrome={false} hideResultsNav engagement={previewEngagement} />
+        {/* Package A Gate 4 — listing-bound context must never re-show the paid checkout
+            (shared preview-mode contract guard; see the top of the component). */}
+        {suppressListingBoundCheckout ? null : (
         <div className="mx-auto mt-8 max-w-3xl px-4 pb-12 md:px-6">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-[#1E1810]">
@@ -218,6 +236,7 @@ export function EmpleoQuickPreviewClient() {
             rulesModal={EMPLEOS_PREVIEW_RULES_MODAL}
           />
         </div>
+        )}
       </LeonixPreviewPageShell>
     );
   }

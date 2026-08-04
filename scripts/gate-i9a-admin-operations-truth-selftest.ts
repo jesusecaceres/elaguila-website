@@ -125,7 +125,9 @@ async function main() {
 
     // Mascotas: Edit/owner-context is honestly "blocked" — no safe category-specific editor
     // exists, matching the confirmed registry fact (editRoute() still returns null).
-    assert.equal(resolveAdminActionTruth("mascotas_y_perdidos").openOwnerEditContext, "blocked");
+    // Package A Gate 5 — Mascotas edit unblocked (generic owner-verified editor wired in the
+    // registry with the I.6B-required safety proof); was "blocked" while editRoute was null.
+    assert.equal(resolveAdminActionTruth("mascotas_y_perdidos").openOwnerEditContext, "working");
 
     // Unknown/null pipeline fails closed on every action.
     const nullTruth = resolveAdminActionTruth(null);

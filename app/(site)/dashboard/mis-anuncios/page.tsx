@@ -1783,6 +1783,13 @@ function MyListingsPageContent() {
               lang={lang}
               items={comidaLocalDashboardItems}
               showEmpty={false}
+              // Package A Gate 5 — refresh owner rows after a pause/resume mutation.
+              onLifecycleChanged={async () => {
+                if (!userId) return;
+                const supabase = createSupabaseBrowserClient();
+                const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+                setComidaLocalRawRows(fetched);
+              }}
             />
           ) : null}
 

@@ -79,6 +79,8 @@
 
 import type {
   CanonicalCategoryKey,
+  CategoryLaneKey,
+  CategoryLaneRecord,
   CategoryRouteAdapter,
   InventoryRole,
   ListingIdentity,
@@ -115,9 +117,35 @@ function dashboardEditParams(input: {
   return params;
 }
 
-function identityListingIdForEdit(identity: ListingIdentity): string {
-  // Bienes/Autos inventory items are edited through the parent's application, not a
-  // dedicated per-child URL (see the adapter-level knownLimitations for each pipeline).
+/**
+ * Globalization Package A Gate 1 — GUARDED. Previously this substituted the parent's id for
+ * any identity carrying a `parentSourceId`, unconditionally — the exact "registry alone
+ * provides no child-safety" debt recorded in the ledger's Unresolved Route Debt table (the
+ * real protection lived only in dashboardActionResolver.ts + two dashboard components).
+ * Now the registry itself fails closed: an inventory-child identity (or an ambiguous
+ * child-shaped identity with a parent id but no confirmed role) gets NO direct edit/preview
+ * URL — matching resolveDashboardActions(), which has always excluded Edit for BR/Autos
+ * children and Preview for BR children. No live caller receives a different href: the
+ * resolver excluded these actions before ever calling the adapter. Only direct/bypass calls
+ * change, from silently editing the PARENT to returning null.
+ */
+function identityListingIdForEdit(identity: ListingIdentity): string | null {
+  const role = identity.inventoryRole ?? null;
+  if (role === "inventory_property" || role === "inventory_vehicle") return null;
+  // Parent id present but role unconfirmed: ambiguous child-shaped identity — fail closed
+  // rather than guess whether editing the parent row is safe for this row.
+  if (identity.parentSourceId?.trim()) return null;
+  return identity.sourceId;
+}
+
+/**
+ * Inventory management (the parent-scoped inventory-edit drawer/step) is a group-level flow
+ * by design — Bienes/Autos have no per-child manage URL, only the parent's inventory step
+ * (see each adapter's secondaryManageRoute comment). Parent substitution here is therefore
+ * intentional, preserved behavior — deliberately separate from the guarded edit/preview
+ * helper above so the two semantics can never be conflated again.
+ */
+function inventoryManageTargetId(identity: ListingIdentity): string {
   return identity.parentSourceId?.trim() || identity.sourceId;
 }
 
@@ -296,9 +324,11 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
 
   editRoute: (identity, opts) => {
+    const editListingId = identityListingIdForEdit(identity);
+    if (!editListingId) return null;
     const params = dashboardEditParams({
       mode: "listing-edit",
-      listingId: identityListingIdForEdit(identity),
+      listingId: editListingId,
       leonixAdId: identity.leonixAdId,
       returnPanel: "bienes-raices",
     });
@@ -306,9 +336,11 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   },
 
   previewRoute: (identity, opts) => {
+    const previewListingId = identityListingIdForEdit(identity);
+    if (!previewListingId) return null;
     const params = dashboardEditParams({
       mode: "listing-edit",
-      listingId: identityListingIdForEdit(identity),
+      listingId: previewListingId,
       leonixAdId: identity.leonixAdId,
       returnPanel: "bienes-raices",
     });
@@ -325,7 +357,7 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
     const params = dashboardEditParams({
       mode: "inventory-edit",
       focus: "inventory-pack",
-      listingId: identityListingIdForEdit(identity),
+      listingId: inventoryManageTargetId(identity),
       leonixAdId: identity.leonixAdId,
       returnPanel: "bienes-raices",
     });
@@ -392,9 +424,11 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
   publicRoute: (identity) => `/clasificados/autos/vehiculo/${encodeURIComponent(identity.sourceId)}`,
 
   editRoute: (identity, opts) => {
+    const editListingId = identityListingIdForEdit(identity);
+    if (!editListingId) return null;
     const params = dashboardEditParams({
       mode: "listing-edit",
-      listingId: identityListingIdForEdit(identity),
+      listingId: editListingId,
       leonixAdId: identity.leonixAdId,
       returnPanel: "autos",
     });
@@ -428,7 +462,7 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
     const params = dashboardEditParams({
       mode: "inventory-edit",
       focus: "inventory-pack",
-      listingId: identityListingIdForEdit(identity),
+      listingId: inventoryManageTargetId(identity),
       leonixAdId: identity.leonixAdId,
       returnPanel: "autos",
     });
@@ -557,15 +591,21 @@ const BIENES_RAICES_PRIVADO_ADAPTER: CategoryRouteAdapter = {
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
 
-  // No confirmed dashboard edit-route builder distinct from Negocio's was found in the Gate
-  // I.5A pass — the Gate B registry only ever covered the Negocio pipeline's editRoute. Rather
-  // than assume the same query-param shape applies, this returns null honestly.
-  editRoute: () => null,
+  // Globalization Package A Gate 5 — CORRECTED from the honest null. BR Privado rows live in
+  // the generic `listings` table, and the generic owner-verified editor
+  // (/dashboard/mis-anuncios/{id}/editar, same-row UPDATE scoped by owner_id + RLS) already
+  // carries explicit BR-Privado support (its Gate I.5.4A.1 seller-photo section renders only
+  // for category "bienes-raices" + personal seller). Same wiring pattern as En Venta/Busco/
+  // Clases/Comunidad (Gate I.6A). Full category-specific application-field editing remains
+  // unbuilt — see knownLimitations.
+  editRoute: (identity, opts) => withLang(`/dashboard/mis-anuncios/${identity.sourceId}/editar`, lang(opts)),
 
   previewRoute: (identity, opts) => {
+    const previewListingId = identityListingIdForEdit(identity);
+    if (!previewListingId) return null;
     const params = dashboardEditParams({
       mode: "listing-edit",
-      listingId: identityListingIdForEdit(identity),
+      listingId: previewListingId,
       leonixAdId: identity.leonixAdId,
       returnPanel: "bienes-raices",
     });
@@ -580,8 +620,10 @@ const BIENES_RAICES_PRIVADO_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: false,
 
   knownLimitations: [
-    "editRoute() returns null — no confirmed dashboard full-listing edit route was found " +
-      "specific to the Privado lane (only Negocio's edit route was confirmed in Gate B/I.5A).",
+    "Package A Gate 5 — editRoute() now resolves to the generic owner-verified " +
+      "/dashboard/mis-anuncios/{id}/editar page (title/price/description/photos/status + the " +
+      "BR-Privado seller photo). The full category-specific application fields still have no " +
+      "edit surface — same documented limitation as En Venta.",
     "results/resultados duplicate: Gate I.5A found both `/clasificados/bienes-raices/results` " +
       "(brPublishRoutes.ts:28) and `/clasificados/bienes-raices/resultados` (also live) exist. " +
       "`resultados` was chosen here for consistency with the pre-existing Negocio adapter; the " +
@@ -742,10 +784,63 @@ const EMPLEOS_ADAPTER: CategoryRouteAdapter = {
   supportsCoupons: false,
   supportsBusinessHub: false,
 
+  // Globalization Package A Gate 1 — explicit lane records. `dbLaneValue` mirrors
+  // empleos_public_listings.lane's NOT NULL CHECK ('quick','premium','feria')
+  // (supabase migration 20260410210000_empleos_public_listings.sql, lines 7-8). Draft preview
+  // routes are new-publish-only; the P3-fixed dashboard defect (draft preview shown for a paid
+  // published listing) must never be reintroduced by treating these as listing-bound.
+  lanes: [
+    {
+      laneKey: "empleos_quick",
+      pipeline: "empleos",
+      dbLaneValue: "quick",
+      // CORRECTED in Package A Gate 4: quick is the standard PAID job post ($24.99
+      // empleos_job_post_paid — its preview starts saveEmpleosDraftAndStartPaidJobCheckout),
+      // covered by getEmpleosPaidCheckpointCard. Only feria is free.
+      paid: true,
+      parked: false,
+      applicationRoute: "/publicar/empleos/quick",
+      draftPreviewRoute: "/clasificados/empleos/quick-preview",
+      notes: [
+        "Standard paid job-post lane (empleos_job_post_paid, $24.99/30 días); " +
+          "getEmpleosPaidCheckpointCard's CTA targets this lane.",
+      ],
+    },
+    {
+      laneKey: "empleos_premium",
+      pipeline: "empleos",
+      dbLaneValue: "premium",
+      paid: true,
+      parked: false,
+      applicationRoute: "/publicar/empleos/premium",
+      draftPreviewRoute: "/clasificados/empleos/premium-preview",
+      notes: [
+        "Paid lane ($24.99 per revenuePricingMatrix); checkpoint card getEmpleosPaidCheckpointCard.",
+        "Globalization P3: dashboard previewHref for published paid listings must point at the " +
+          "real public page, never this draft preview (buildEmpleosInventoryItems fix).",
+      ],
+    },
+    {
+      laneKey: "empleos_feria",
+      pipeline: "empleos",
+      dbLaneValue: "feria",
+      paid: false,
+      parked: false,
+      applicationRoute: "/publicar/empleos/feria",
+      draftPreviewRoute: "/clasificados/empleos/feria-preview",
+      notes: ["Free job-fair/community lane; shares the free checkpoint card."],
+    },
+  ],
+
   knownLimitations: [
-    "previewRoute() returns null — three lane-specific preview routes exist " +
-      "(/clasificados/empleos/{quick,premium,feria}-preview) but this adapter cannot determine " +
-      "which lane a given identity used without additional (unconfirmed) lookup.",
+    "previewRoute() returns null — RESOLVED AS PRODUCT TRUTH in Package A Gate 5, no longer " +
+      "an open gap: the three lane previews (/clasificados/empleos/{quick,premium,feria}-preview) " +
+      "are draft-based, NEW-PUBLISH-ONLY surfaces (now guarded to never re-show checkout in a " +
+      "listing-bound context, Gate 4), and a published Empleos listing's published-readonly " +
+      "surface is its real public page — the exact safe pattern P3's Gate 2 validated for " +
+      "Restaurantes/BR Privado and applied to Empleos in the dashboardInventory fix. The lanes " +
+      "are modeled as CategoryLaneRecords (see `lanes`); null here is the correct contract, " +
+      "not a missing lookup.",
     "applicationRoute points at the modern \"/publicar/empleos\" hub per this gate's decision; " +
       "the old EMPLEOS_PUBLISH_HUB_PATH constant and several live CTAs still point at the legacy " +
       "\"/clasificados/publicar/empleos\" — unresolved in the live layer until Gate I.5.2.",
@@ -771,6 +866,10 @@ const EN_VENTA_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/en-venta",
   applicationRoute: "/clasificados/publicar/en-venta/pro",
+  // Package A Gate 2 — modern checkpoint card page. NOT a wrapper of the Pro application
+  // (the Gate I.5.1 exception below concerns wrapping the application component); the nested
+  // applicationRoute is unchanged and remains canonical for the form itself.
+  checkpointRoute: "/publicar/en-venta",
   resultsRoute: "/clasificados/en-venta/results",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
@@ -792,6 +891,49 @@ const EN_VENTA_ADAPTER: CategoryRouteAdapter = {
   supportsCoupons: false,
   supportsBusinessHub: false,
 
+  // Globalization Package A Gate 1 — explicit lane records. En Venta lanes are route-level
+  // only (no lane discriminator column on `listings`; dbLaneValue null). Free and Storefront
+  // are registered as PARKED so no lane remains silently unmodeled (owner decision D7:
+  // keep parked, register explicitly).
+  lanes: [
+    {
+      laneKey: "en_venta_pro",
+      pipeline: "en_venta",
+      dbLaneValue: null,
+      paid: false,
+      parked: false,
+      applicationRoute: "/clasificados/publicar/en-venta/pro",
+      draftPreviewRoute: "/clasificados/en-venta/preview",
+      notes: [
+        "The active canonical lane (adapter applicationRoute). No confirmed payment wiring — " +
+          "Pro appears included at no charge per in-code comment.",
+      ],
+    },
+    {
+      laneKey: "en_venta_free",
+      pipeline: "en_venta",
+      dbLaneValue: null,
+      paid: false,
+      parked: true,
+      applicationRoute: "/clasificados/publicar/en-venta/free",
+      draftPreviewRoute: null,
+      notes: ["Parked lane (EN_VENTA_PUBLICAR_FREE) — route exists, not offered to users."],
+    },
+    {
+      laneKey: "en_venta_storefront",
+      pipeline: "en_venta",
+      dbLaneValue: null,
+      paid: false,
+      parked: true,
+      applicationRoute: "/clasificados/publicar/en-venta/storefront",
+      draftPreviewRoute: null,
+      notes: [
+        "Parked lane (EN_VENTA_PUBLICAR_STOREFRONT) — route exists; product decision on its " +
+          "future is open (owner decision D7).",
+      ],
+    },
+  ],
+
   knownLimitations: [
     "DOCUMENTED TEMPORARY EXCEPTION (Gate I.5.1 decision): no modern \"/publicar/en-venta\" " +
       "route exists anywhere in the repository, unlike every other monetized category. Building " +
@@ -803,8 +945,9 @@ const EN_VENTA_ADAPTER: CategoryRouteAdapter = {
       "page (title/price/description/photos/status only). The category-specific Pro/Free " +
       "application fields have no edit surface; re-running the publish flow always inserts a " +
       "new row rather than updating the existing one (no prefill-from-existing exists).",
-    "A separate Storefront lane (EN_VENTA_PUBLICAR_STOREFRONT) exists but is not represented " +
-      "here — this adapter only covers the active Pro lane.",
+    "Globalization Package A Gate 1 — the Free and Storefront lanes are now represented as " +
+      "explicit PARKED CategoryLaneRecords (see `lanes`); the adapter's own route fields still " +
+      "describe only the active Pro lane.",
     "No Stripe/checkout wiring was found for base En Venta listings in Gate I.5A's pass (Pro " +
       "appears to be included at no charge per an in-code comment) — supportsBusinessHub/" +
       "Coupons left false, not because the Storefront concept doesn't imply business-like use, " +
@@ -826,6 +969,9 @@ const COMIDA_LOCAL_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "comida_local_public_listings",
   entryRoute: "/clasificados/comida-local",
   applicationRoute: "/publicar/comida-local",
+  // Package A Gate 2 — the application page owns /publicar/comida-local itself, so the
+  // checkpoint lives one segment deeper and the gateway routes there first.
+  checkpointRoute: "/publicar/comida-local/checkpoint",
   // No dedicated results/browse route was confirmed distinct from the landing page in Gate
   // I.5A's pass — the landing page itself appears to embed browse. Using entryRoute's value
   // honestly rather than inventing a results path that may not exist.
@@ -902,6 +1048,8 @@ const BUSCO_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/busco",
   applicationRoute: "/publicar/busco/quick",
+  // Package A Gate 2 — checkpoint card page before the quick application.
+  checkpointRoute: "/publicar/busco",
   resultsRoute: "/clasificados/busco/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
@@ -954,6 +1102,8 @@ const CLASES_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/clases",
   applicationRoute: "/publicar/clases/quick",
+  // Package A Gate 2 — checkpoint card page before the quick application.
+  checkpointRoute: "/publicar/clases",
   resultsRoute: "/clasificados/clases/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
@@ -988,6 +1138,8 @@ const COMUNIDAD_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/comunidad",
   applicationRoute: "/publicar/comunidad/quick",
+  // Package A Gate 2 — checkpoint card page before the quick application.
+  checkpointRoute: "/publicar/comunidad",
   resultsRoute: "/clasificados/comunidad/resultados",
 
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
@@ -1021,6 +1173,8 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "listings",
   entryRoute: "/clasificados/mascotas-y-perdidos",
   applicationRoute: "/publicar/mascotas-y-perdidos/quick",
+  // Package A Gate 2 — checkpoint card page before the quick application.
+  checkpointRoute: "/publicar/mascotas-y-perdidos",
   // mascotasPerdidosResultsUrl() is the actual live-called function for this route.
   resultsRoute: "/clasificados/mascotas-y-perdidos/results",
 
@@ -1030,10 +1184,14 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
   // MascotasPerdidosPublishedDetailPage component. Verified route shape matches every other
   // UUID-keyed quick category exactly.
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
-  // Deliberately still null — no category-specific editor exists for Mascotas, and the public
-  // rendering fix does not by itself create a safe edit surface. Do not expose the generic Edit
-  // page here without separately proving it's safe for this category's data shape.
-  editRoute: () => null,
+  // Globalization Package A Gate 5 — CORRECTED, with the safety proof I.6B required before
+  // exposing the generic editor: Mascotas rows are written by the SAME shared community quick
+  // publisher as Clases/Comunidad (publishCommunityQuickToListings.ts, category = kind), so
+  // their `listings` row shape is identical to two categories already safely wired to the
+  // generic editor in Gate I.6A. The category-specific content (notice type, last-known
+  // location, contact) lives in `detail_pairs`, which the generic editor never touches — it
+  // updates only title/price/description/photos/status, same-row, owner-scoped + RLS.
+  editRoute: (identity, opts) => withLang(`/dashboard/mis-anuncios/${identity.sourceId}/editar`, lang(opts)),
   previewRoute: (_identity, opts) => withLang("/publicar/mascotas-y-perdidos/quick/preview", lang(opts)),
   dashboardRoute: () => null,
 
@@ -1050,9 +1208,11 @@ const MASCOTAS_Y_PERDIDOS_ADAPTER: CategoryRouteAdapter = {
       "category's own detail_pairs contract — lost/found/adoption notice type, last-known " +
       "location, contact — not a copy of the En Venta renderer). Regression-tested to confirm " +
       "every other shell-served category's classification is unaffected.",
-    "editRoute() remains null on purpose — public rendering being fixed does not by itself " +
-      "create a safe category-specific edit surface; the generic /dashboard/mis-anuncios/{id}/" +
-      "editar page is intentionally NOT exposed for this pipeline pending separate confirmation.",
+    "Package A Gate 5 — editRoute() now resolves to the generic owner-verified " +
+      "/dashboard/mis-anuncios/{id}/editar page. Safety proof: Mascotas rows share the exact " +
+      "row shape of Clases/Comunidad (same shared community publisher), and the generic editor " +
+      "never touches detail_pairs (where this category's specific fields live). Full " +
+      "category-specific field editing (notice type, location) remains unbuilt.",
     "dashboardRoute() returns null — confirmed absent from Mis Anuncios entirely (no key in " +
       "dashboardMisAnunciosCategories.ts), still true as of Gate I.6B.",
   ],
@@ -1073,6 +1233,10 @@ const VIAJES_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "viajes_staged_listings",
   entryRoute: "/clasificados/viajes",
   applicationRoute: "/publicar/viajes",
+  // Package A Gate 2 — truthful paid/free lane checkpoint before either application. The
+  // existing /publicar/viajes branch chooser is untouched (isolated Viajes workstream may
+  // supersede it at merge; the shared card config is the contract both surfaces consume).
+  checkpointRoute: "/publicar/viajes/checkpoint",
   resultsRoute: "/clasificados/viajes/resultados",
 
   // I.7A — CORRECTED. Gate I.5A's "two competing trees" finding is now resolved by direct
@@ -1101,6 +1265,41 @@ const VIAJES_ADAPTER: CategoryRouteAdapter = {
   supportsParentChildInventory: false,
   supportsCoupons: false,
   supportsBusinessHub: true,
+
+  // Globalization Package A Gate 1 — explicit lane records. `dbLaneValue` mirrors
+  // viajes_staged_listings.lane's NOT NULL CHECK ('business','private')
+  // (supabase migration 20260410180000_viajes_staged_listings.sql, lines 9-10); note the DB
+  // values differ from the route segments (business→negocios, private→privado), exactly the
+  // mapping viajesStagedPreviewPath() (dashboardInventory.ts:384-388) already performs.
+  // Registry data only — /dashboard/viajes still builds its own hrefs (see knownLimitations).
+  lanes: [
+    {
+      laneKey: "viajes_negocios",
+      pipeline: "viajes",
+      dbLaneValue: "business",
+      paid: true,
+      parked: false,
+      applicationRoute: "/publicar/viajes/negocios",
+      draftPreviewRoute: "/clasificados/viajes/preview/negocios",
+      notes: [
+        "Business lane ($399/mo per revenuePricingMatrix). Edit destination used live by " +
+          "/dashboard/viajes: /publicar/viajes/negocios?stagedId=... (stagedId-keyed).",
+      ],
+    },
+    {
+      laneKey: "viajes_privado",
+      pipeline: "viajes",
+      dbLaneValue: "private",
+      paid: false,
+      parked: false,
+      applicationRoute: "/publicar/viajes/privado",
+      draftPreviewRoute: "/clasificados/viajes/preview/privado",
+      notes: [
+        "Private lane (free/paid per matrix). Edit destination used live by /dashboard/viajes: " +
+          "/publicar/viajes/privado?stagedId=... (stagedId-keyed).",
+      ],
+    },
+  ],
 
   knownLimitations: [
     "publicRoute() — CORRECTED in Gate I.7A. The prior \"two competing trees, unresolved\" " +
@@ -1156,4 +1355,38 @@ export function pipelineSupportsInventoryRole(
 ): boolean {
   if (role === "main") return true;
   return CATEGORY_ROUTE_REGISTRY[pipeline].supportsParentChildInventory;
+}
+
+/**
+ * Globalization Package A Gate 1 — lane-record accessors. Registry data only; wiring a lane
+ * record into live navigation is a per-gate decision, never implied by these helpers.
+ */
+export function getCategoryLaneRecords(
+  pipeline: keyof CategoryRouteRegistry,
+): readonly CategoryLaneRecord[] {
+  return CATEGORY_ROUTE_REGISTRY[pipeline].lanes ?? [];
+}
+
+/** Resolve a lane record from the backing table's stored lane value (e.g. empleos "premium",
+ * viajes "business"). Returns null for pipelines without lane records, unknown values, and
+ * route-level-only lanes (dbLaneValue null is never matchable by stored value — by design). */
+export function resolveCategoryLaneRecord(
+  pipeline: keyof CategoryRouteRegistry,
+  dbLaneValue: string | null | undefined,
+): CategoryLaneRecord | null {
+  const value = (dbLaneValue ?? "").trim();
+  if (!value) return null;
+  return getCategoryLaneRecords(pipeline).find((laneRecord) => laneRecord.dbLaneValue === value) ?? null;
+}
+
+/** Every registered lane record across the catalog, for exhaustiveness checks. */
+export function getAllCategoryLaneRecords(): readonly CategoryLaneRecord[] {
+  return (Object.keys(CATEGORY_ROUTE_REGISTRY) as Array<keyof CategoryRouteRegistry>).flatMap(
+    (pipeline) => CATEGORY_ROUTE_REGISTRY[pipeline].lanes ?? [],
+  );
+}
+
+/** Lookup by canonical lane key. */
+export function getCategoryLaneRecordByKey(laneKey: CategoryLaneKey): CategoryLaneRecord | null {
+  return getAllCategoryLaneRecords().find((laneRecord) => laneRecord.laneKey === laneKey) ?? null;
 }

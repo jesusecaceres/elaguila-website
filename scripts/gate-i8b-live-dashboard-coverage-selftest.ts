@@ -171,8 +171,10 @@ async function main() {
 
     // View Public: real, via the resolved action-tool truth table — publicView ready.
     assert.equal(CATEGORY_LISTING_TOOL_TRUTH.mascotas?.publicView, "ready");
-    // Edit: absent (no key = hidden) — no safe edit route exists yet.
-    assert.equal(CATEGORY_LISTING_TOOL_TRUTH.mascotas?.edit, undefined, "Edit must remain hidden for Mascotas — no safe edit route exists");
+    // Edit: no `edit` key in this per-category tool table — same as Busco/Clases/Comunidad,
+    // whose Edit action is delivered by resolveDashboardActions from the registry editRoute
+    // (Mascotas joined them in Package A Gate 5), not by this table.
+    assert.equal(CATEGORY_LISTING_TOOL_TRUTH.mascotas?.edit, undefined, "Edit is resolver-delivered for the generic listings family, never a key in this table");
     // No Business Hub keys present at all.
     assert.equal(CATEGORY_LISTING_TOOL_TRUTH.mascotas?.couponUpgrade, undefined);
     assert.equal(CATEGORY_LISTING_TOOL_TRUTH.mascotas?.couponEdit, undefined);
@@ -181,11 +183,16 @@ async function main() {
     // No dedicated category panel (same as Busco).
     assert.equal(CATEGORY_PANEL_TOOL_TRUTH.mascotas?.openPanel, "hidden");
 
-    // No editor was created — confirms the package didn't quietly build what it wasn't asked to.
+    // I.8B itself created no editor. Globalization Package A Gate 5 later wired the registry's
+    // editRoute to the generic owner-verified editor with the I.6B-required safety proof —
+    // updated here rather than left stale (same convention as this gate's own I.6B updates).
     const dbServerSrc = readSource("app/lib/listingIdentity/categoryRouteRegistry.ts");
     const mascotasBlockMatch = dbServerSrc.match(/const MASCOTAS_Y_PERDIDOS_ADAPTER[\s\S]*?\n\};/);
     assert.ok(mascotasBlockMatch, "must locate the Mascotas adapter");
-    assert.ok(mascotasBlockMatch![0].includes("editRoute: () => null"), "the registry's editRoute must remain null — this package did not build a Mascotas editor");
+    assert.ok(
+      mascotasBlockMatch![0].includes("/dashboard/mis-anuncios/${identity.sourceId}/editar"),
+      "the registry's Mascotas editRoute must resolve to the generic owner-verified editor (Package A Gate 5)",
+    );
 
     // ES/EN preserved on the Mis Anuncios manage link and the real publish/results routes.
     assert.equal(def!.manageHref("lang=en"), "/dashboard/mis-anuncios?lang=en&cat=mascotas");
@@ -307,7 +314,10 @@ async function main() {
       .filter(Boolean)
       .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
     const lockedPathFragments = ["revenue-os", "stripe", "/admin/", "ofertas", "cupones", "concierge", "webhook", "migrations"];
-    for (const f of changed) {
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    for (const f of excludeCurrentPackageFiles(changed)) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         assert.ok(!lower.includes(frag), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);

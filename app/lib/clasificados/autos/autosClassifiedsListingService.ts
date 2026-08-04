@@ -363,6 +363,21 @@ export async function markAutosClassifiedsListingRemovedIfOwner(listingId: strin
   return updateAutosListingStatus(listingId, "removed");
 }
 
+/**
+ * Globalization Package A Gate 5 — the missing second half of the owner pause cycle (the
+ * ledger's "Auto Dealers: one-way unpublish only, no resume"). Owner may restore a listing
+ * THEY unpublished: strictly "removed" → "active". Deliberately never restores from
+ * "suspended" (admin moderation state — not owner-reversible), and never from
+ * draft/pending_payment/payment_failed (those resume through their own publish/payment
+ * flows). Same owner verification as unpublish; a restored child stays publicly hidden while
+ * its parent is non-live (the I.13B parent-liveness gate is downstream of status).
+ */
+export async function markAutosClassifiedsListingRestoredIfOwner(listingId: string, ownerUserId: string): Promise<boolean> {
+  const row = await assertAutosListingOwner(listingId, ownerUserId);
+  if (!row || row.status !== "removed") return false;
+  return updateAutosListingStatus(listingId, "active");
+}
+
 export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();

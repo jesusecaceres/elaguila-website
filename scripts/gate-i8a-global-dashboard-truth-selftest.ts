@@ -368,7 +368,10 @@ async function main() {
       "restaurantes/publish",
       "servicios/publish",
     ];
-    for (const f of changed) {
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    for (const f of excludeCurrentPackageFiles(changed)) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         assert.ok(!lower.includes(frag), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);

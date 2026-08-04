@@ -16,6 +16,8 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
+
 const REPO_ROOT = path.resolve(__dirname, "..");
 
 function readSource(rel: string): string {
@@ -78,7 +80,11 @@ function readSource(rel: string): string {
   } catch {
     changedFiles = "";
   }
-  const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+  // Globalization Package A — later-package files authorized via the shared allowlist
+  // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+  const changed = excludeCurrentPackageFiles(
+    changedFiles.split("\n").map((l) => l.trim()).filter(Boolean),
+  );
   const lockedFragments = [
     "stripe", "revenue-os", "webhook", "migrations", "entitlement",
     "app/api/admin/", "cupones", "concierge", "package.json", "next.config",

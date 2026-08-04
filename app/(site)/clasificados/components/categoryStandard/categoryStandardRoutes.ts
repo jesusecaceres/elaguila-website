@@ -68,7 +68,12 @@ export function buildCategoryResultsUrl(
 
 export function categoryPublishPath(slug: CatStdAllSlug): string {
   const map: Record<CatStdAllSlug, string> = {
-    "en-venta": "/clasificados/publicar/en-venta",
+    // Globalization Package A Gate 2 — the five lanes below previously sent live CTAs straight
+    // into their application (or a redirect shim to it) with no product checkpoint. They now
+    // enter through their truthful checkpoint card page (registry `checkpointRoute`); each
+    // application is unchanged one hop deeper, and the legacy /clasificados/publicar/* redirect
+    // shims are untouched for external inbound links.
+    "en-venta": "/publicar/en-venta",
     rentas: "/clasificados/publicar/rentas",
     empleos: "/clasificados/publicar/empleos",
     // "autos": confirmed LIVE, not stale — app/(site)/clasificados/publicar/autos/page.tsx is a
@@ -88,10 +93,10 @@ export function categoryPublishPath(slug: CatStdAllSlug): string {
     // route (categoryRouteRegistry.ts's VIAJES_ADAPTER.applicationRoute), which does exist in the
     // route manifest. Zero live behavior change, since nothing called the old value.
     viajes: "/publicar/viajes",
-    clases: "/clasificados/publicar/clases",
-    comunidad: "/clasificados/publicar/comunidad",
-    busco: "/publicar/busco/quick",
-    "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
+    clases: "/publicar/clases",
+    comunidad: "/publicar/comunidad",
+    busco: "/publicar/busco",
+    "mascotas-y-perdidos": "/publicar/mascotas-y-perdidos",
   };
   return map[slug];
 }

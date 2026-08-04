@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
@@ -78,6 +79,7 @@ import {
 import {
   clearBienesListingEditWorkspace,
   loadBienesListingEditWorkspace,
+  readBienesListingEditWorkspaceMeta,
   saveBienesListingEditWorkspace,
 } from "../application/utils/bienesDashboardListingEditWorkspace";
 import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
@@ -106,15 +108,32 @@ export default function AgenteIndividualResidencialPreviewClient() {
   );
   const listingBound =
     previewListingParam || (dashboardSource && Boolean(listingIdParam || listingSlugParam || leonixAdIdParam));
-  /* Globalization P3 (Gate 1) — routed through the shared preview-mode contract
-     (app/lib/listingIdentity/previewModeContract.ts). This lane has only one listing-bound UI
-     state today (always offers "Guardar cambios" once bound, no separate read-only view), so it
-     resolves as "edit-draft" whenever bound — identical behavior to the prior local boolean,
-     now named against the shared new-publish/edit-draft/published-readonly contract. Named
-     `sharedPreviewMode` — `previewMode` above is a pre-existing, unrelated local reading the raw
-     `?mode=` query param (inventory-edit/inventory-addon/listing-edit), not this contract. */
-  const sharedPreviewMode = resolvePreviewMode({ listingBound });
+  /* Globalization P3 (Gate 1) → Package A Gate 4 — the full 3-way shared preview-mode split
+     P2 documented as "the most direct next step". A listing-bound preview now distinguishes:
+       - "edit-draft": a local edit workspace for THIS listing exists (unsaved changes in
+         progress) → offers "Guardar cambios" exactly as before;
+       - "published-readonly": no unsaved edit workspace → strictly read-only; the header
+         offers only the real "Editar anuncio" navigation (editHref) — never a save
+         affordance for state the owner never touched, and (unchanged since P2) never the
+         new-publish checkout.
+     `hasUnsavedEditWorkspace` starts null (mode resolves as edit-draft — the pre-split
+     behavior) and settles after the client-side workspace check, so the affordance can only
+     tighten (save → read-only), never appear wrongly. `previewMode` above is a pre-existing,
+     unrelated local reading the raw `?mode=` query param, not this contract. */
+  const [hasUnsavedEditWorkspace, setHasUnsavedEditWorkspace] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!listingBound || !listingIdParam) {
+      setHasUnsavedEditWorkspace(null);
+      return;
+    }
+    setHasUnsavedEditWorkspace(Boolean(readBienesListingEditWorkspaceMeta(listingIdParam)));
+  }, [listingBound, listingIdParam]);
+  const sharedPreviewMode = resolvePreviewMode({
+    listingBound,
+    hasUnsavedEditDraft: hasUnsavedEditWorkspace ?? undefined,
+  });
   const listingBoundPreview = previewModeIsListingBound(sharedPreviewMode);
+  const readOnlyBoundPreview = sharedPreviewMode === "published-readonly";
   const backToEditMode: "listing-edit" | "inventory-edit" | "inventory-addon" =
     previewMode === "inventory-edit" || previewMode === "inventory-addon" ? previewMode : "listing-edit";
   const inventoryCtx = useMemo(() => {
@@ -523,24 +542,36 @@ export default function AgenteIndividualResidencialPreviewClient() {
         <div className="mx-auto flex max-w-[1140px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#B8954A]">
             {listingBoundPreview
-              ? lang === "es"
-                ? "Vista previa · Edición"
-                : "Preview · Edit"
+              ? readOnlyBoundPreview
+                ? lang === "es"
+                  ? "Vista previa · Solo lectura"
+                  : "Preview · Read-only"
+                : lang === "es"
+                  ? "Vista previa · Edición"
+                  : "Preview · Edit"
               : lang === "es"
                 ? "Vista previa · Publicar"
                 : "Preview · Publish"}
           </p>
           <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
             {listingBoundPreview ? (
-              <button type="button" className={PUBLISH_BTN} disabled={saveEditBusy} onClick={() => void onSaveListingEdit()}>
-                {saveEditBusy
-                  ? lang === "es"
-                    ? "Guardando cambios…"
-                    : "Saving changes…"
-                  : lang === "es"
-                    ? "Guardar cambios"
-                    : "Save changes"}
-              </button>
+              readOnlyBoundPreview ? (
+                /* Package A Gate 4 — published-readonly: no save affordance for untouched
+                   state; the only action is navigating to the real editor. */
+                <Link href={editHref} className={PUBLISH_BTN}>
+                  {lang === "es" ? "Editar anuncio" : "Edit listing"}
+                </Link>
+              ) : (
+                <button type="button" className={PUBLISH_BTN} disabled={saveEditBusy} onClick={() => void onSaveListingEdit()}>
+                  {saveEditBusy
+                    ? lang === "es"
+                      ? "Guardando cambios…"
+                      : "Saving changes…"
+                    : lang === "es"
+                      ? "Guardar cambios"
+                      : "Save changes"}
+                </button>
+              )
             ) : showPaymentCheckpoint ? (
               <button
                 type="button"

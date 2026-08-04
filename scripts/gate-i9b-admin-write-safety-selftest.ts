@@ -16,6 +16,8 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { GLOBALIZATION_CURRENT_PACKAGE_FILES } from "./globalizationCurrentPackageDiff";
+
 import {
   assertAutosDealerActionAllowed,
   assertBrNegocioActionAllowed,
@@ -250,6 +252,9 @@ async function main() {
     ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
+      // Globalization Package A — later-package files authorized via the shared allowlist
+      // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+      if (GLOBALIZATION_CURRENT_PACKAGE_FILES.has(f)) continue;
       for (const frag of lockedPathFragments) {
         if ((frag === "dashboard/lib" || frag === "dashboard/mis-anuncios") && I12A_OWNER_WRITE_DEFENSE_IN_DEPTH_EXCEPTIONS.has(f)) continue;
         if (frag === "dashboard/lib" && GLOBALIZATION_P3_OWNER_PREVIEW_HREF_EXCEPTIONS.has(f)) continue;

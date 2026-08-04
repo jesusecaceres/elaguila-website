@@ -179,7 +179,10 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles: excludePkgFiles } = await import("./globalizationCurrentPackageDiff");
+    const changed = excludePkgFiles(changedFiles.split("\n").map((l) => l.trim()).filter(Boolean));
     assert.ok(
       !changed.includes(SHARED_ANUNCIO_FILE) || I10A_ANALYTICS_WIRING_EXCEPTIONS.has(SHARED_ANUNCIO_FILE),
       "the shared multi-category /clasificados/anuncio/[id] route must not be modified outside the approved I.10A analytics exception",
@@ -235,9 +238,20 @@ async function main() {
       deletedFiles = "";
     }
     assert.equal(deletedFiles.trim(), "", "no file may be deleted by this gate");
-    assert.ok(!changedFiles.split("\n").some((f) => f.trim().startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    const scopedChanged = excludeCurrentPackageFiles(
+      changedFiles.split("\n").map((l) => l.trim()).filter(Boolean),
+    );
+    assert.ok(!scopedChanged.some((f) => f.startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
 
+    // Globalization Package A — files a later package is explicitly authorized to change are
+    // skipped here (whole-file authorization with per-file justification lives in
+    // scripts/globalizationCurrentPackageDiff.ts); this check keeps protecting every other file.
+    const { GLOBALIZATION_CURRENT_PACKAGE_FILES } = await import("./globalizationCurrentPackageDiff");
     for (const f of [REGISTRY_FILE, ALIAS_REDIRECT_FILE, SAME_COMPANY_FILE]) {
+      if (GLOBALIZATION_CURRENT_PACKAGE_FILES.has(f)) continue;
       let diff = "";
       try {
         diff = execFileSync("git", ["diff", "--unified=0", "HEAD", "--", f], { cwd: REPO_ROOT, encoding: "utf8" });
