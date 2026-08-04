@@ -80,6 +80,7 @@ import {
   loadBienesListingEditWorkspace,
   saveBienesListingEditWorkspace,
 } from "../application/utils/bienesDashboardListingEditWorkspace";
+import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
@@ -103,8 +104,17 @@ export default function AgenteIndividualResidencialPreviewClient() {
     () => ensureBrAgenteResApplicationInstanceId(searchParams),
     [searchParams],
   );
-  const listingBoundPreview =
+  const listingBound =
     previewListingParam || (dashboardSource && Boolean(listingIdParam || listingSlugParam || leonixAdIdParam));
+  /* Globalization P3 (Gate 1) — routed through the shared preview-mode contract
+     (app/lib/listingIdentity/previewModeContract.ts). This lane has only one listing-bound UI
+     state today (always offers "Guardar cambios" once bound, no separate read-only view), so it
+     resolves as "edit-draft" whenever bound — identical behavior to the prior local boolean,
+     now named against the shared new-publish/edit-draft/published-readonly contract. Named
+     `sharedPreviewMode` — `previewMode` above is a pre-existing, unrelated local reading the raw
+     `?mode=` query param (inventory-edit/inventory-addon/listing-edit), not this contract. */
+  const sharedPreviewMode = resolvePreviewMode({ listingBound });
+  const listingBoundPreview = previewModeIsListingBound(sharedPreviewMode);
   const backToEditMode: "listing-edit" | "inventory-edit" | "inventory-addon" =
     previewMode === "inventory-edit" || previewMode === "inventory-addon" ? previewMode : "listing-edit";
   const inventoryCtx = useMemo(() => {

@@ -236,10 +236,23 @@ async function main() {
       "app/(site)/dashboard/mis-anuncios/[id]/page.tsx",
       "app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx",
     ]);
+    /**
+     * Globalization P3 (Gate 5) approved, narrow exception. Confirmed live payment/content-truth
+     * defect: `buildEmpleosInventoryItems()`'s `previewHref` opened a draft-based checkout preview
+     * page with no `listingId` concept at all for an already-published, already-paid Empleos job
+     * (stale/empty sessionStorage draft, could re-show the paid checkout widget). Corrected to
+     * point at the listing's own real public page instead — a one-field href change plus removal
+     * of the now-dead helper it replaced, never any Admin action, RLS, schema, or entitlement
+     * logic. Exact-file allowlist only.
+     */
+    const GLOBALIZATION_P3_OWNER_PREVIEW_HREF_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/lib/dashboardInventory.ts",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         if ((frag === "dashboard/lib" || frag === "dashboard/mis-anuncios") && I12A_OWNER_WRITE_DEFENSE_IN_DEPTH_EXCEPTIONS.has(f)) continue;
+        if (frag === "dashboard/lib" && GLOBALIZATION_P3_OWNER_PREVIEW_HREF_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

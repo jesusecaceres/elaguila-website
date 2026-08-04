@@ -38,6 +38,7 @@ import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile, mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { postServiciosPublishApi, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
@@ -138,8 +139,15 @@ export function ClasificadosServiciosPreviewClient() {
   const returnPanel = searchParams?.get("returnPanel") ?? "";
   const previewMode = searchParams?.get("mode") ?? "";
   const previewFocus = searchParams?.get("focus") === "coupon-upgrade" ? "coupon-upgrade" : null;
-  const listingBoundPreview =
+  const listingBound =
     previewListingParam || (dashboardSource && Boolean(listingId || listingSlug || leonixAdId));
+  /* Globalization P3 (Gate 1) — routed through the shared preview-mode contract
+     (app/lib/listingIdentity/previewModeContract.ts), same as Bienes Raíces Negocio. This lane
+     has only one listing-bound UI state today, so it resolves as "edit-draft" whenever bound —
+     identical behavior to the prior local boolean. Named `sharedPreviewMode` — `previewMode`
+     above is a pre-existing, unrelated local reading the raw `?mode=` query param. */
+  const sharedPreviewMode = resolvePreviewMode({ listingBound });
+  const listingBoundPreview = previewModeIsListingBound(sharedPreviewMode);
   const dashboardReturnHref = withClasificadosPublishLang(
     returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/mis-anuncios?cat=servicios",
     routeLang,

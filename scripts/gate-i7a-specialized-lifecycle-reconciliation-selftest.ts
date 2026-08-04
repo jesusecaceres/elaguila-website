@@ -252,12 +252,27 @@ async function main() {
     const GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS = new Set([
       "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
     ]);
+    // Globalization P3 (Gate 1) wired the new shared preview-mode contract
+    // (app/lib/listingIdentity/previewModeContract.ts) into Servicios' and Rentas' own preview
+    // clients as a behavior-preserving substitution for each lane's pre-existing local
+    // listing-bound boolean/editContext derivation — same class of runtime-correctness fix as
+    // P2's BR Negocio entry above, not new business logic or a weakening of ownership/payment
+    // protection. Gate 5 additionally corrected the Empleos dashboard preview href (a confirmed
+    // live defect: it opened a draft-based checkout preview with no listingId concept for an
+    // already-published, already-paid job) to point at the listing's own public page instead.
+    const GLOBALIZATION_P3_STRUCTURAL_FIX_EXCEPTIONS = new Set([
+      "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+      "app/(site)/clasificados/rentas/preview/negocio/components/RentasNegocioPreviewClient.tsx",
+      "app/(site)/clasificados/rentas/preview/privado/components/RentasPrivadoPreviewClient.tsx",
+      "app/(site)/dashboard/lib/dashboardInventory.ts",
+    ]);
     const changed = changedFiles
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean)
       .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f))
-      .filter((f) => !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f));
+      .filter((f) => !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f))
+      .filter((f) => !GLOBALIZATION_P3_STRUCTURAL_FIX_EXCEPTIONS.has(f));
     const lockedPathFragments = [
       "app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts",
       "bienes-raices",

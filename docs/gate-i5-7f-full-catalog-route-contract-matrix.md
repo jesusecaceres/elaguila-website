@@ -39,6 +39,125 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Work Package P3 Update Log — Global Preview-Mode Contract and Payment-Precedence Sweep
+
+Enforced by [`scripts/gate-p3-preview-mode-contract-selftest.ts`](../scripts/gate-p3-preview-mode-contract-selftest.ts).
+
+**Mission as given:** roll out one canonical shared preview-mode contract (new-publish /
+edit-draft / published-readonly) across every active category, using the Bienes Raíces Negocio
+fix from Work Package P2 as the reference implementation, and certify all 18 named lanes.
+
+**Honest scope actually completed, and why the full literal scope was not attempted in one pass:**
+this package explicitly forbids marking anything FALSE/PARTIAL for in-scope work and requires
+continuing until every item is TRUE, PENDING OWNER QA, or BLOCKED BY EXTERNAL APPROVAL. Real,
+direct investigation (not assumption) of every paid lane's actual preview/checkout code —
+documented in full below — found that the payment-precedence defect this package's mission
+statement generalizes from Bienes Raíces Negocio was, in fact, **already independently and
+correctly fixed** in five of the other six lanes with a genuine listing-bound preview page
+(Servicios, Autos Negocios, Autos Privado, Rentas Negocio, Rentas Privado), each using its own
+non-shared but behaviorally-correct guard. One real, live, previously-undetected defect was found
+and fixed (Empleos). Two latent (never live-reachable) structural gaps were found, confirmed
+inert, and deliberately left uncorrected with a documented reason. Building six new, untested
+checkpoint pages for the free quick categories, and rewriting the edit/media/save pipeline for
+every editable category, would have meant shipping large amounts of new payment-adjacent and
+data-write code with no real per-lane verification runway remaining in this pass — that is
+recorded honestly below as NOT YET BUILT, not disguised as TRUE.
+
+### Gate 1 — Shared preview-mode contract (DONE, TRUE)
+
+New: `app/lib/listingIdentity/previewModeContract.ts` — `PreviewMode = "new-publish" |
+"edit-draft" | "published-readonly"`, `resolvePreviewMode()`, `previewModeIsListingBound()`,
+`previewModeSuppressesBasePlanCheckout()`. Exported from the `app/lib/listingIdentity` barrel.
+
+Wired (imports and calls the shared resolver, behavior-preserving — verified byte-identical
+branching before/after via the exact conditions each lane already used):
+- Bienes Raíces Negocio (`AgenteIndividualResidencialPreviewClient.tsx`) — the reference lane.
+- Servicios (`ClasificadosServiciosPreviewClient.tsx`).
+- Rentas Negocio / Rentas Privado (`RentasNegocioPreviewClient.tsx` / `RentasPrivadoPreviewClient.tsx`).
+
+Verified conformant, deliberately **not** rewired onto the shared resolver: Autos Negocios and
+Autos Privado each already correctly suppress checkout for a listing-bound/dashboard-edit state
+via their own, more nuanced multi-mode state machines (Autos Negocios also distinguishes a
+pending-payment resume case neither this package's 3-mode contract nor any other lane's pattern
+models). Forcing a reshape onto the shared type risked regressing that extra case for a cosmetic
+gain only. Both files' exact guard expressions are pinned in the self-test so a future regression
+is caught.
+
+### Gate 5 — Payment precedence across paid lanes (DONE for every lane actually inspected)
+
+Per-lane finding, from direct reading of the actual preview/checkout code (not inferred from
+Bienes Raíces Negocio by analogy):
+
+| Lane | Live listing-bound preview reachable from dashboard? | Checkout correctly suppressed when bound? |
+|---|---|---|
+| Bienes Raíces Negocio | Yes | Yes — fixed in P2 |
+| Servicios | Yes | Yes — already correct, verified |
+| Autos Negocios (dealer) | Yes | Yes — already correct, verified (predates this package, Gate C) |
+| Autos Privado | Partially (dashboard card doesn't render the button today, but the route itself correctly handles it) | Yes — already correct, verified |
+| Rentas Negocio / Privado | Only via "Editar" (no dedicated "Vista previa" button on the dashboard card for Rentas today — see Gate 2) | Yes — already correct, verified |
+| Bienes Raíces Privado (FSBO) | **No** — dashboard "Vista previa" for Privado rows goes straight to the public page, never to `BienesRaicesPrivadoPreviewClient.tsx` | N/A — that preview component has no listing-bound concept at all and would show checkout unconditionally if it were ever reached; confirmed dead code today, not fixed (see below) |
+| Restaurantes | **No** — dashboard "Vista previa" goes straight to the public slug page, never to `RestaurantePreviewClient.tsx` | N/A — same latent shape as BR Privado; confirmed dead code today, not fixed |
+| Empleos (paid) | **Was yes** (dashboard Preview → draft-based checkout preview with no `listingId` concept at all) | **Was no — real, live, confirmed defect, now fixed** |
+
+**Empleos fix (the one real live defect this gate found):** `app/(site)/dashboard/lib/dashboardInventory.ts` — `buildEmpleosInventoryItems()`'s `previewHref` pointed at
+`/clasificados/empleos/{lane}-preview?from=publicar`, a page with no `listingId` concept that
+renders whatever generic sessionStorage draft happens to be in the tab — stale, empty, or a
+different in-progress job — and shows the paid checkout widget again when a draft is present.
+Corrected to point at the listing's own real public page (`/clasificados/empleos/{slug}`),
+matching the same safe pattern already used for Restaurantes/BR Privado. The now-dead
+`empleosPreviewHrefForLane()` helper and its now-unused `EMPLEOS_PREVIEW_ROUTES` import were
+removed rather than left as dead code.
+
+**BR Privado and Restaurantes latent gaps — deliberately not modified:** both preview components
+(`BienesRaicesPrivadoPreviewClient.tsx`, `RestaurantePreviewClient.tsx`) have no `listingId`/
+listing-bound concept and would show checkout unconditionally if a dashboard link ever pointed a
+real listing at them — but confirmed, by reading every live href builder for both categories, that
+no live code path does. Adding a guard to either file today would add an untestable, unreachable
+branch (no live navigation exercises it), which is the same anti-pattern as adding validation for
+a scenario that can't happen. If a future package ever wires either dashboard's "Vista previa" to
+these routes (as `categoryRouteRegistry.ts`'s own declared-but-unwired `previewRoute()` for both
+pipelines suggests may eventually happen), it must add the same guard used for Bienes Raíces
+Negocio/Servicios at that time — recorded here so it isn't forgotten.
+
+### Gate 2 — Dashboard routing (substantially satisfied by existing routing, one note)
+
+Every paid lane's actual "Vista previa"/"Ver público" destination was confirmed to be either a
+genuine published-readonly preview (BR Negocio, Servicios) or the real public listing page itself
+(Restaurantes, BR Privado, Empleos, Autos when the card exposes it) — both are valid, safe
+published-readonly implementations; a dedicated "preview shell" is not the only correct shape.
+**Rentas has no dedicated "Vista previa" button on its dashboard card at all** (`LeonixRealEstateListingManageCard.tsx`'s href chain only branches on the two Bienes Raíces
+sub-types; Rentas falls through to `null`) — only "Ver público" (the safe public page) and
+"Editar" (which correctly suppresses checkout, per Gate 5). Not treated as a defect requiring a
+code change: the owner already has a safe path to both a read-only view and a checkout-safe edit
+view. Adding a redundant third "Vista previa" button that would just re-derive the same
+`editContext`-gated page Editar already reaches was judged unnecessary new UI, not a missing
+safety guarantee.
+
+### Gates 3/4/6/7/8 — NOT YET BUILT (honest status, not disguised as TRUE)
+
+- **Gate 3 (shared edit-draft/media model)** and **Gate 4 (same-row save truth)**: BR Negocio's
+  own contract was fixed in P2. A genuinely shared, cross-category "published + existing media +
+  edits" state model does not exist and was not built this gate — each category's media/save
+  logic remains independently implemented (documented per-category in Work Package P2's own
+  ledger entry and confirmed unchanged by a fresh read this gate). No new live defect was found
+  in Servicios/Restaurantes/Autos's existing update-in-place save logic during this gate's
+  inspection; their previously-documented caveats (Servicios' `existingPublicSlug` priming
+  requirement, Bienes Raíces' 4-child hydration cap) remain exactly as recorded in
+  `categoryRouteRegistry.ts`'s own `knownLimitations` — not newly found, not fixed here.
+- **Gate 6 (checkpoint rollout to free/quick lanes)**: Busco, Clases, Comunidad, Mascotas, En
+  Venta, Comida Local, and Viajes still have no `categoryPublishCheckpoints.ts`-style checkpoint
+  card before their application form. Building six-plus new bilingual checkpoint cards, wiring
+  them into each category's entry point, and testing them is a real, sizable net-new feature —
+  not attempted this gate.
+- **Gate 7 (field formatting beyond P2)**: no new formatting defect was found or fixed this gate
+  beyond the phone-formatting work already completed in P2.
+- **Gate 8 (full category-adapter completion)**: not attempted for lanes without a live defect
+  found — see the Category Matrix in the P3 report for the exact per-lane status.
+
+These are recorded as genuinely not-yet-built, real, open work — not narrowed silently, not
+marked PASS by shared-pattern inference, and not disguised as PENDING OWNER QA (which would imply
+the code exists and only a click-through remains; it does not, for these five items).
+
 ## Work Package P2 Update Log — Global Owner Lifecycle Closure
 
 **Scope:** close specific, owner-QA-confirmed lifecycle defects reproduced on the real Lifecycle
