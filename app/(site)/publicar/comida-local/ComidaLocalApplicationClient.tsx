@@ -3,11 +3,22 @@
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
-import { saveComidaLocalDraftToStorage } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
+import {
+  clearComidaLocalDraftStorage,
+  comidaLocalEditWorkspaceStorageKey,
+  saveComidaLocalDraftToStorage,
+} from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
+import {
+  clearComidaLocalEditContext,
+  fetchOwnerComidaLocalListingForEdit,
+  readComidaLocalEditContext,
+  writeComidaLocalEditContext,
+} from "@/app/lib/clasificados/comida-local/comidaLocalListingEditContext";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 import {
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
   COMIDA_LOCAL_GALLERY_MAX,
@@ -112,9 +123,34 @@ function formatSavedAt(ts: number | null): string | null {
 export default function ComidaLocalApplicationClient() {
   const searchParams = useSearchParams();
   const routeLang = normalizeLang(searchParams?.get("lang"));
+  const es = routeLang !== "en";
   const comidaLocalHubHref = replaceLangInHref("/clasificados/comida-local", routeLang);
-  const comidaLocalPreviewHref = replaceLangInHref("/clasificados/comida-local/preview", routeLang);
-  const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft();
+  const editListingIdForHrefs = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
+  const comidaLocalPreviewHref = replaceLangInHref(
+    editListingIdForHrefs
+      ? `/clasificados/comida-local/preview?edit=1&listingId=${encodeURIComponent(editListingIdForHrefs)}`
+      : "/clasificados/comida-local/preview",
+    routeLang,
+  );
+
+  /* Globalization Package A closure — dedicated listing-edit mode. The edit workspace lives
+   * under its own per-listing key (draftWorkspaceContract Rule 1 — never the new-ad key), the
+   * row hydrates from its own stored listing_json (owner-scoped), and publishing routes into
+   * the server's same-row update branch via the row's own draft_listing_id (id, slug, Leonix
+   * Ad ID, status, payment, and ownership all preserved server-side). No payment behavior —
+   * this lane is free. */
+  const editListingId = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
+  const editStorageKey = editListingId ? comidaLocalEditWorkspaceStorageKey(editListingId) : undefined;
+  const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft({
+    storageKey: editStorageKey,
+  });
+  const [editHydration, setEditHydration] = useState<
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "ready"; leonixAdId: string | null; publicPath: string }
+    | { status: "error"; message: string }
+  >({ status: editListingId ? "loading" : "idle" });
+  const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<ComidaLocalSectionKey>("identidad");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [publishBusy, setPublishBusy] = useState(false);
@@ -123,6 +159,75 @@ export default function ComidaLocalApplicationClient() {
     publicPath: string;
     leonixAdId?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!editListingId || !hasLoadedDraft) return;
+    let cancelled = false;
+    void (async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      const ownerUserId = auth.user?.id?.trim();
+      if (!ownerUserId) {
+        if (!cancelled) {
+          setEditHydration({
+            status: "error",
+            message: es ? "Inicia sesión para editar tu anuncio de Comida Local." : "Sign in to edit your Comida Local listing.",
+          });
+        }
+        return;
+      }
+      const result = await fetchOwnerComidaLocalListingForEdit(supabase, { ownerUserId, listingId: editListingId });
+      if (cancelled) return;
+      if (!result.ok) {
+        setEditHydration({
+          status: "error",
+          message:
+            result.reason === "not_editable_legacy_row"
+              ? es
+                ? "Este anuncio no se puede editar todavía. Contacta a soporte de Leonix."
+                : "This listing cannot be edited yet. Contact Leonix support."
+              : es
+                ? "No se pudo cargar el anuncio para editar. Verifica que sea tuyo e inténtalo de nuevo."
+                : "Could not load the listing for editing. Verify it is yours and try again.",
+        });
+        return;
+      }
+      // Staleness precedence (draftWorkspaceContract Rule 3): a local edit workspace only
+      // outranks the row it was hydrated from while that row is unchanged. A workspace whose
+      // draftListingId does not match the row is invalid (e.g. an accidental empty autosave)
+      // and is always replaced.
+      const marker = readComidaLocalEditContext();
+      const workspaceValid =
+        marker?.listingId === editListingId && draft.draftListingId === result.context.draftListingId;
+      const precedence = resolveDraftPrecedence({
+        hasLocalWorkspace: workspaceValid,
+        localSourceUpdatedAt: workspaceValid ? marker?.sourceUpdatedAt ?? null : null,
+        dbUpdatedAt: result.context.sourceUpdatedAt,
+      });
+      if (!workspaceValid || precedence !== "local") {
+        setDraft(result.draft);
+        if (editStorageKey) saveComidaLocalDraftToStorage(result.draft, editStorageKey);
+        if (workspaceValid && precedence === "db-newer-conflict") {
+          setStaleDraftNotice(
+            es
+              ? "Este anuncio cambió desde tu último borrador local. Se cargó la versión publicada más reciente; el borrador antiguo se descartó."
+              : "This listing changed since your last local draft. The latest published version was loaded; the outdated draft was discarded.",
+          );
+        }
+      }
+      writeComidaLocalEditContext(result.context);
+      setEditHydration({
+        status: "ready",
+        leonixAdId: result.context.leonixAdId,
+        publicPath: `/clasificados/comida-local/${encodeURIComponent(result.context.slug)}`,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // draft.draftListingId is intentionally read once post-load; re-running on each keystroke
+    // would re-fight the owner's edits.
+  }, [editListingId, hasLoadedDraft, es, editStorageKey]);
 
   const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft), [draft]);
   const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft), [draft]);
@@ -184,11 +289,13 @@ export default function ComidaLocalApplicationClient() {
 
   const handlePublish = useCallback(async () => {
     if (!publishReady || publishBusy) return;
+    if (editListingId && editHydration.status !== "ready") return;
     setPublishError(null);
     setPublishSuccess(null);
     setPublishBusy(true);
     try {
-      saveComidaLocalDraftToStorage(draft);
+      if (editStorageKey) saveComidaLocalDraftToStorage(draft, editStorageKey);
+      else saveComidaLocalDraftToStorage(draft);
       const supabase = createSupabaseBrowserClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token ?? null;
@@ -213,19 +320,42 @@ export default function ComidaLocalApplicationClient() {
               ? data.leonix_ad_id.trim()
               : undefined,
         });
+        // Package A closure — a confirmed same-row save ends this edit session: the edit
+        // workspace and context marker are cleared (the new-ad draft key is never touched).
+        if (editListingId && editStorageKey) {
+          clearComidaLocalDraftStorage(editStorageKey);
+          clearComidaLocalEditContext();
+          setStaleDraftNotice(null);
+        }
       }
     } catch {
       setPublishError(COMIDA_LOCAL_SHELL_COPY.publishErrorGeneric);
     } finally {
       setPublishBusy(false);
     }
-  }, [draft, publishBusy, publishReady]);
+  }, [draft, editHydration.status, editListingId, editStorageKey, publishBusy, publishReady]);
 
-  if (!hasLoadedDraft) {
+  if (!hasLoadedDraft || (editListingId && editHydration.status === "loading")) {
     return (
       <div className={cx("min-h-screen", PAGE_BG)}>
         <div className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-[#1E1814]/60">
-          Cargando borrador…
+          {editListingId ? (es ? "Cargando tu anuncio…" : "Loading your listing…") : "Cargando borrador…"}
+        </div>
+      </div>
+    );
+  }
+
+  if (editListingId && editHydration.status === "error") {
+    return (
+      <div className={cx("min-h-screen", PAGE_BG)}>
+        <div className="mx-auto max-w-lg px-4 py-16 text-center">
+          <p className="text-sm font-semibold text-red-900">{editHydration.message}</p>
+          <Link
+            href={replaceLangInHref("/dashboard/mis-anuncios?cat=comida-local", routeLang)}
+            className="mt-6 inline-flex rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
+          >
+            {es ? "Volver a Mis anuncios" : "Back to My listings"}
+          </Link>
         </div>
       </div>
     );
@@ -244,6 +374,26 @@ export default function ComidaLocalApplicationClient() {
           <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/75">
             {COMIDA_LOCAL_SHELL_COPY.pageSubtitle}
           </p>
+          {editListingId && editHydration.status === "ready" ? (
+            <div className="mt-3 rounded-lg border border-[#7A1E2C]/30 bg-[#7A1E2C]/5 px-3 py-2 text-xs leading-relaxed text-[#1E1814]">
+              <span className="font-bold text-[#7A1E2C]">
+                {es ? "Editando anuncio publicado" : "Editing published listing"}
+              </span>
+              {editHydration.leonixAdId ? (
+                <span className="ml-2 font-mono">{editHydration.leonixAdId}</span>
+              ) : null}
+              <span className="ml-2 text-[#1E1814]/65">
+                {es
+                  ? "Al guardar, se actualiza el mismo anuncio — sin duplicados ni pagos."
+                  : "Saving updates this same listing — no duplicates, no payments."}
+              </span>
+            </div>
+          ) : null}
+          {staleDraftNotice ? (
+            <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950" role="status">
+              {staleDraftNotice}
+            </p>
+          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <p className="rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-2 text-xs leading-relaxed text-[#1E1814]/70">
               {COMIDA_LOCAL_SHELL_COPY.scaffoldNotice}
@@ -252,14 +402,27 @@ export default function ComidaLocalApplicationClient() {
             <button
               type="button"
               onClick={() => {
-                if (window.confirm("¿Borrar el borrador guardado en este dispositivo?")) {
+                const confirmMsg = editListingId
+                  ? es
+                    ? "¿Descartar los cambios sin guardar y recargar la versión publicada?"
+                    : "Discard unsaved changes and reload the published version?"
+                  : "¿Borrar el borrador guardado en este dispositivo?";
+                if (window.confirm(confirmMsg)) {
+                  if (editListingId) {
+                    // Package A closure — safe discard: clear only the edit workspace/marker
+                    // and re-enter the edit flow (fresh DB hydration). Published row untouched.
+                    if (editStorageKey) clearComidaLocalDraftStorage(editStorageKey);
+                    clearComidaLocalEditContext();
+                    window.location.reload();
+                    return;
+                  }
                   resetDraft();
                   setTouched({});
                 }
               }}
               className="text-xs font-medium text-[#7A1E2C] underline-offset-2 hover:underline"
             >
-              {COMIDA_LOCAL_SHELL_COPY.resetDraft}
+              {editListingId ? (es ? "Descartar cambios" : "Discard changes") : COMIDA_LOCAL_SHELL_COPY.resetDraft}
             </button>
           </div>
         </header>
@@ -644,8 +807,20 @@ export default function ComidaLocalApplicationClient() {
 
             {publishSuccess ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-950">
-                <p className="font-semibold">{COMIDA_LOCAL_SHELL_COPY.publishSuccessTitle}</p>
-                <p className="mt-1 text-emerald-900/90">{COMIDA_LOCAL_SHELL_COPY.publishSuccessBody}</p>
+                <p className="font-semibold">
+                  {editListingId
+                    ? es
+                      ? "Cambios guardados en tu anuncio."
+                      : "Changes saved to your listing."
+                    : COMIDA_LOCAL_SHELL_COPY.publishSuccessTitle}
+                </p>
+                <p className="mt-1 text-emerald-900/90">
+                  {editListingId
+                    ? es
+                      ? "Se actualizó el mismo anuncio publicado — mismo ID Leonix, misma dirección pública."
+                      : "The same published listing was updated — same Leonix ID, same public address."
+                    : COMIDA_LOCAL_SHELL_COPY.publishSuccessBody}
+                </p>
                 {publishSuccess.leonixAdId ? (
                   <p className="mt-2 text-xs text-emerald-800/90">
                     ID Leonix:{" "}
@@ -716,11 +891,25 @@ export default function ComidaLocalApplicationClient() {
               )}
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-[#1E1814]">Publicar en Comida Local</p>
+                <p className="text-sm font-medium text-[#1E1814]">
+                  {editListingId
+                    ? es
+                      ? "Guardar cambios en tu anuncio"
+                      : "Save changes to your listing"
+                    : "Publicar en Comida Local"}
+                </p>
                 <p className="mt-1 text-sm text-[#1E1814]/70">
-                  {publishReady
-                    ? "Cuando publiques, tu ficha aparecerá en /clasificados/comida-local con un ID Leonix COMIDA-…"
-                    : "Completa los campos de «Lista para publicar» para habilitar la publicación."}
+                  {editListingId
+                    ? publishReady
+                      ? es
+                        ? "Se actualizará el mismo anuncio publicado — sin duplicados ni pagos."
+                        : "The same published listing will be updated — no duplicates, no payments."
+                      : es
+                        ? "Completa los campos de «Lista para publicar» para habilitar el guardado."
+                        : "Complete the “Ready to publish” fields to enable saving."
+                    : publishReady
+                      ? "Cuando publiques, tu ficha aparecerá en /clasificados/comida-local con un ID Leonix COMIDA-…"
+                      : "Completa los campos de «Lista para publicar» para habilitar la publicación."}
                 </p>
               </div>
               <button
@@ -734,7 +923,17 @@ export default function ComidaLocalApplicationClient() {
                     : "cursor-not-allowed border border-[#7A1E2C]/30 bg-[#7A1E2C]/40 text-[#FFFCF7]"
                 )}
               >
-                {publishBusy ? COMIDA_LOCAL_SHELL_COPY.publishing : COMIDA_LOCAL_SHELL_COPY.publishFicha}
+                {publishBusy
+                  ? editListingId
+                    ? es
+                      ? "Guardando…"
+                      : "Saving…"
+                    : COMIDA_LOCAL_SHELL_COPY.publishing
+                  : editListingId
+                    ? es
+                      ? "Guardar cambios"
+                      : "Save changes"
+                    : COMIDA_LOCAL_SHELL_COPY.publishFicha}
               </button>
             </div>
           </div>

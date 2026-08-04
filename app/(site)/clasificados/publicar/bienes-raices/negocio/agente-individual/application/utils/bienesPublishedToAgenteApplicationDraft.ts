@@ -25,10 +25,14 @@ import {
 } from "../../schema/agenteIndividualResidencialFormState";
 
 const OWNER_LISTING_SELECT =
-  "id, owner_id, title, description, city, price, images, detail_pairs, listing_json, contact_json, seller_type, business_name, business_meta, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, leonix_ad_id, status, is_published";
+  // Package A closure — `updated_at` added so callers can anchor the local edit workspace to
+  // the row version it was hydrated from (draftWorkspaceContract Rule 3). The select-shrink
+  // wrapper drops it gracefully on older DBs (sourceUpdatedAt then resolves null → the
+  // contract degrades to today's local-wins behavior).
+  "id, owner_id, title, description, city, price, images, detail_pairs, listing_json, contact_json, seller_type, business_name, business_meta, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, leonix_ad_id, status, is_published, updated_at";
 
 export type BienesDashboardHydrationResult =
-  | { ok: true; state: AgenteIndividualResidencialFormState }
+  | { ok: true; state: AgenteIndividualResidencialFormState; sourceUpdatedAt: string | null }
   | { ok: false; userMessage: string };
 
 function trim(v: unknown): string {
@@ -200,7 +204,7 @@ export async function hydrateBienesAgenteListingForDashboardEdit(input: {
       .map((r) => r as unknown as Record<string, unknown>);
 
     const hydrated = bienesPublishedRowToAgenteApplicationDraft({ row: parentRow, childRows });
-    return { ok: true, state: hydrated };
+    return { ok: true, state: hydrated, sourceUpdatedAt: trim(parentRow.updated_at) || null };
   } catch {
     return {
       ok: false,

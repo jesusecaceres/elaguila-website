@@ -223,7 +223,7 @@ async function main() {
     },
     comida_local: {
       application: "supported",
-      edit: "missing",
+      edit: "supported", // Package A closure — dedicated listing-bound editor (own-table adapter; same-row via draft_listing_id)
       preview: "supported",
       publicRoute: "category_specific",
       results: "stale", // resultsRoute duplicates entryRoute, no confirmed distinct page

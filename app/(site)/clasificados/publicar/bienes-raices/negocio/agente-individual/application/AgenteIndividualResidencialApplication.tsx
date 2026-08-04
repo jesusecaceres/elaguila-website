@@ -89,8 +89,10 @@ import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateLi
 import {
   clearBienesListingEditWorkspace,
   loadBienesListingEditWorkspace,
+  readBienesListingEditWorkspaceMeta,
   saveBienesListingEditWorkspace,
 } from "./utils/bienesDashboardListingEditWorkspace";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const BR_AGENTE_RES_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
 
@@ -271,20 +273,45 @@ export default function AgenteIndividualResidencialApplication() {
         setEditHydration({ status: "error", message: result.userMessage });
         return;
       }
-      const restored =
-        loadBienesListingEditWorkspace({
-          parentListingId: editListingId,
-          hydratedFromDatabase: result.state,
-        }) ?? result.state;
-      const boot = restored;
+      /* Package A closure — draftWorkspaceContract Rule 3 wired: the local edit workspace only
+         outranks the DB row it was hydrated from while that row is unchanged. If the row moved
+         underneath it, canonical DB truth wins, the stale workspace is discarded, and the
+         conflict is surfaced via the save-edit message channel — never silently applied. A
+         workspace with no captured source version (legacy) keeps local-wins by contract. */
+      const meta = readBienesListingEditWorkspaceMeta(editListingId);
+      const precedence = resolveDraftPrecedence({
+        hasLocalWorkspace: Boolean(meta),
+        localSourceUpdatedAt: meta?.sourceUpdatedAt ?? null,
+        dbUpdatedAt: result.sourceUpdatedAt,
+      });
+      let boot = result.state;
+      if (precedence === "db-newer-conflict") {
+        clearBienesListingEditWorkspace({ parentListingId: editListingId });
+        setSaveEditMessage(
+          lang === "es"
+            ? "Este anuncio cambió desde tu último borrador local. Se cargó la versión publicada más reciente; el borrador antiguo se descartó."
+            : "This listing changed since your last local draft. The latest published version was loaded; the outdated draft was discarded.",
+        );
+      } else {
+        boot =
+          loadBienesListingEditWorkspace({
+            parentListingId: editListingId,
+            hydratedFromDatabase: result.state,
+          }) ?? result.state;
+        setSaveEditMessage(null);
+      }
       setState(boot);
       cleanEditSnapshotRef.current = JSON.stringify(result.state);
       setEditDirty(JSON.stringify(boot) !== cleanEditSnapshotRef.current);
       setSaveEditSuccess(false);
-      setSaveEditMessage(null);
       setSaveEditError(null);
       setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
-      saveBienesListingEditWorkspace({ parentListingId: editListingId, state: boot });
+      saveBienesListingEditWorkspace({
+        parentListingId: editListingId,
+        state: boot,
+        // Rule 3 anchor — re-anchor to the row version this session hydrated.
+        sourceUpdatedAt: result.sourceUpdatedAt,
+      });
       setEditHydration({ status: "idle" });
     });
   }, [editListingId, isExistingDashboardListingMode, lang]);

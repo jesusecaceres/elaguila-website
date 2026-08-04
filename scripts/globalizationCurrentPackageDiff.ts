@@ -116,6 +116,23 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "app/(site)/dashboard/mis-anuncios/page.tsx",
   // New Gate 5 proof:
   "scripts/gate-pkgA-edit-save-truth-selftest.ts",
+
+  // ——— Package A terminal closure (owner-directed corrections) ———
+  // Comida Local dedicated editor (own-table adapter; same-row via draft_listing_id):
+  "app/lib/clasificados/comida-local/comidaLocalDraftPersistence.ts",
+  "app/lib/clasificados/comida-local/comidaLocalListingEditContext.ts",
+  "app/lib/clasificados/comida-local/useComidaLocalDraft.ts",
+  "app/(site)/publicar/comida-local/ComidaLocalApplicationClient.tsx",
+  "app/(site)/clasificados/comida-local/preview/ComidaLocalPreviewClient.tsx",
+  // BR/Rentas stale-draft precedence adoption (Rule 3 wired into the named surfaces):
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/bienesPublishedToAgenteApplicationDraft.ts",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/AgenteIndividualResidencialApplication.tsx",
+  "app/(site)/clasificados/publicar/rentas/shared/rentasDashboardEditHydration.ts",
+  "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx",
+  "app/(site)/clasificados/publicar/rentas/negocio/application/RentasNegocioForm.tsx",
+  // New closure proofs:
+  "scripts/gate-pkgA-comida-local-editor-selftest.ts",
+  "scripts/gate-pkgA-stale-draft-precedence-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

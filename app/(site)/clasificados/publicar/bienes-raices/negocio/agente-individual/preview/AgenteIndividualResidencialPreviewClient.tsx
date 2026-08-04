@@ -83,6 +83,7 @@ import {
   saveBienesListingEditWorkspace,
 } from "../application/utils/bienesDashboardListingEditWorkspace";
 import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
@@ -158,6 +159,10 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const [parentLeonixAdId, setParentLeonixAdId] = useState<string | null>(null);
   const [bridge, setBridge] = useState<BrNegocioInventoryBridgeView | null>(null);
   const [childPreviewId, setChildPreviewId] = useState<string | null>(null);
+  /** Package A closure — Rule 3: the hydrated row version (anchors workspace saves) and the
+   * surfaced stale-draft conflict notice. */
+  const [hydratedSourceUpdatedAt, setHydratedSourceUpdatedAt] = useState<string | null>(null);
+  const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -176,11 +181,36 @@ export default function AgenteIndividualResidencialPreviewClient() {
          (if any) and the real DB-hydrated state — never the generic new-ad draft. */
       void hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang }).then((result) => {
         if (!result.ok) return;
+        setHydratedSourceUpdatedAt(result.sourceUpdatedAt);
+        /* Package A closure — draftWorkspaceContract Rule 3 wired on top of the P2 fix: the
+           local edit workspace only outranks the DB row it was hydrated from while that row is
+           unchanged. If the row moved underneath it (edited elsewhere, admin-touched), the DB
+           is truth: the stale workspace is cleared and the conflict surfaced — never silently
+           applied. A workspace with no captured source version (legacy) keeps local-wins. */
+        const meta = readBienesListingEditWorkspaceMeta(listingIdParam);
+        const precedence = resolveDraftPrecedence({
+          hasLocalWorkspace: Boolean(meta),
+          localSourceUpdatedAt: meta?.sourceUpdatedAt ?? null,
+          dbUpdatedAt: result.sourceUpdatedAt,
+        });
+        if (precedence === "db-newer-conflict") {
+          clearBienesListingEditWorkspace({ parentListingId: listingIdParam });
+          setHasUnsavedEditWorkspace(false);
+          setStaleDraftNotice(
+            lang === "es"
+              ? "Este anuncio cambió desde tu último borrador local. Se muestra la versión publicada más reciente; el borrador antiguo se descartó."
+              : "This listing changed since your last local draft. The latest published version is shown; the outdated draft was discarded.",
+          );
+          setData(result.state);
+          return;
+        }
         const workspace =
-          loadBienesListingEditWorkspace({
-            parentListingId: listingIdParam,
-            hydratedFromDatabase: result.state,
-          }) ?? result.state;
+          precedence === "local"
+            ? loadBienesListingEditWorkspace({
+                parentListingId: listingIdParam,
+                hydratedFromDatabase: result.state,
+              }) ?? result.state
+            : result.state;
         setData(workspace);
       });
       return;
@@ -457,7 +487,12 @@ export default function AgenteIndividualResidencialPreviewClient() {
     setPublishErr(null);
     setSaveEditMessage(null);
     try {
-      saveBienesListingEditWorkspace({ parentListingId: listingIdParam, state: data });
+      saveBienesListingEditWorkspace({
+        parentListingId: listingIdParam,
+        state: data,
+        // Rule 3 anchor — the workspace stays tied to the row version this session hydrated.
+        sourceUpdatedAt: hydratedSourceUpdatedAt,
+      });
       const sb = createSupabaseBrowserClient();
       const { data: auth } = await sb.auth.getSession();
       const token = auth.session?.access_token;
@@ -601,6 +636,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
             {saveEditMessage ? (
               <p className="max-w-[320px] text-right text-[11px] font-semibold text-emerald-700" role="status">
                 {saveEditMessage}
+              </p>
+            ) : null}
+            {staleDraftNotice ? (
+              <p className="max-w-[320px] text-right text-[11px] font-semibold text-amber-800" role="status">
+                {staleDraftNotice}
               </p>
             ) : null}
           </div>

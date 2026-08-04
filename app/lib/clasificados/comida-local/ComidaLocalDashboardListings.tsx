@@ -174,12 +174,15 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
                 >
                   {lang === "es" ? "Ver ficha" : "View listing"}
                 </Link>
+                {/* Package A closure — dedicated listing-bound editor (same-row save; no
+                    payment). The generic "Formulario" link was replaced by the real edit
+                    action carrying this listing's identity. */}
                 <Link
-                  href={`/publicar/comida-local?${q}`}
+                  href={`/publicar/comida-local?edit=1&listingId=${encodeURIComponent(item.id)}&source=dashboard&${q}`}
                   prefetch={false}
                   className="inline-flex rounded-xl border border-[#D4C4A8] bg-white px-4 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/35"
                 >
-                  {lang === "es" ? "Formulario" : "Form"}
+                  {lang === "es" ? "Editar" : "Edit"}
                 </Link>
                 {item.status === "published" ? (
                   <button

@@ -978,7 +978,15 @@ const COMIDA_LOCAL_ADAPTER: CategoryRouteAdapter = {
   resultsRoute: "/clasificados/comida-local",
 
   publicRoute: (identity) => identity.publicUrl || null,
-  editRoute: () => null,
+  // Globalization Package A closure — dedicated listing-bound editor. The application page
+  // hydrates the row's own stored listing_json (owner-scoped) and publishing routes into the
+  // server's same-row update branch via the row's draft_listing_id (id/slug/Leonix Ad ID/
+  // status/payment/ownership preserved server-side). No payment behavior — free lane.
+  editRoute: (identity, opts) =>
+    withLang(
+      `/publicar/comida-local?edit=1&listingId=${encodeURIComponent(identity.sourceId)}&source=dashboard`,
+      lang(opts),
+    ),
   previewRoute: (_identity, opts) => withLang("/clasificados/comida-local/preview", lang(opts)),
   dashboardRoute: (_identity, opts) => withLang("/dashboard/mis-anuncios", lang(opts)),
 
@@ -989,7 +997,9 @@ const COMIDA_LOCAL_ADAPTER: CategoryRouteAdapter = {
   knownLimitations: [
     "resultsRoute duplicates entryRoute — no separate results/browse page was confirmed to " +
       "exist for this category; treat as unconfirmed rather than a genuine distinct route.",
-    "editRoute() returns null — not confirmed in Gate I.5A's pass.",
+    "Package A closure — editRoute() now resolves the dedicated listing-bound editor " +
+      "(/publicar/comida-local?edit=1&listingId=...). Rows without a stored draft_listing_id " +
+      "(legacy) fail closed in the editor rather than risking a duplicate insert.",
   ],
 };
 

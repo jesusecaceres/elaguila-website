@@ -240,10 +240,41 @@ Enforced by [`scripts/gate-pkgA-edit-save-truth-selftest.ts`](../scripts/gate-pk
    route pattern applies directly) or accept launch without Restaurantes owner-pause.
    Not silently faked with `archived` (a terminal state with different semantics).
 
-**Package A status after Gate 5:** all five gates landed; the full gate suite and typecheck
-are green. Remaining non-terminal item: D16 above (genuine external approval requirement).
-Staleness-precedence wiring into the P2-protected BR/Rentas preview clients (Gate 3's hooks)
-is scheduled with Package B's media/edit work where those lanes get their verification runway.
+### Terminal closure — owner-directed corrections (DONE)
+
+Enforced by [`scripts/gate-pkgA-comida-local-editor-selftest.ts`](../scripts/gate-pkgA-comida-local-editor-selftest.ts)
+and [`scripts/gate-pkgA-stale-draft-precedence-selftest.ts`](../scripts/gate-pkgA-stale-draft-precedence-selftest.ts).
+Two Gate 5 items previously (incorrectly) deferred are now complete inside Package A:
+
+1. **Comida Local dedicated editor** — built on the discovery that the category's rows persist
+   the COMPLETE application draft as `listing_json` and that the publish route's update branch
+   already does owner-guarded same-row updates keyed by `draft_listing_id` (preserving id,
+   slug, Leonix Ad ID, status, payment status, ownership — I.13A). The adapter is therefore
+   small and category-true: owner-scoped hydration of the row's own draft
+   (`comidaLocalListingEditContext.ts`, fail-closed on legacy rows without a
+   `draft_listing_id` — a regenerated id would INSERT a duplicate), a per-listing edit
+   workspace key (`comidaLocalEditWorkspaceStorageKey` — draft contract Rule 1: never the
+   new-ad key), a hard-refresh-safe edit-context marker, edit mode in the application
+   (bilingual banner, truthful "Guardar cambios / Save changes" labels and success copy,
+   safe discard, publish-success clears only the edit workspace+marker), edit-draft preview
+   with return-to-edit on the shared preview-mode contract, dashboard "Editar" action, and a
+   real registry `editRoute`. Rule 3 staleness precedence applies on re-entry. No payment
+   behavior anywhere (free lane; preview pinned checkout-free).
+2. **BR/Rentas stale-draft precedence ADOPTED (not just hooked)** — both hydration sources
+   now expose the row's `updated_at` (`sourceUpdatedAt`), and all four named surfaces resolve
+   the SHARED `resolveDraftPrecedence`: BR Negocio application boot + dashboard preview
+   client, Rentas Privado + Negocio form boots (the Rentas boots previously used the cached
+   workspace unconditionally without ever consulting the DB — the exact defect class). DB
+   truth wins when the row is newer; the stale workspace is cleared/replaced and the conflict
+   is surfaced bilingually — never silently applied; workspaces anchored to the unchanged row
+   (and legacy un-anchored ones) keep the owner's unsaved edits; fresh hydrations anchor
+   their saves; parent/child namespaces untouched.
+
+**Package A status: CLOSED.** All five gates plus the terminal-closure corrections landed;
+gate suite, typecheck, changed-file lint, diff-check, and the production build are green.
+The single remaining non-terminal cell is Restaurantes owner pause/resume — **BLOCKED BY
+GENUINE OWNER-APPROVED MIGRATION REQUIREMENT (D16)**: the status CHECK constraint has no
+owner-pausable state and the required migration is deliberately not created here.
 
 ## Work Package P3 Update Log — Global Preview-Mode Contract and Payment-Precedence Sweep
 
