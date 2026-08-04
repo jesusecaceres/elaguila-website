@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 
 import { ViajesLangSwitch } from "../../components/ViajesLangSwitch";
 import { ViajesOfferDetailLayout } from "../../components/ViajesOfferDetailLayout";
 import { getViajesOfferDetailBySlug, VIAJES_OFFER_SLUGS } from "../../data/viajesOfferDetailSampleData";
-import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
 import { resolveViajesStagedOfferDetailBundle } from "../../lib/resolveViajesOfferDetailFromStagedServer";
+import { fetchViajesOfferDetailRelated } from "../../lib/viajesOfferDetailRelatedServer";
 import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
+import type { ViajesOfferDetailModelV2Extras } from "../../lib/v2/mapViajesOfferV2ToDetailModel";
 
 export const dynamic = "force-dynamic";
 
@@ -54,14 +54,14 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
   const stagedListingId = bundle?.stagedListingId ?? null;
   const listingLang = bundle?.listingLang ?? null;
   const listingKey = (bundle?.leonix_ad_id ?? "").trim() || offer.slug;
-  const ui = getViajesUi(lang);
   const fallback = appendLangToPath("/clasificados/viajes", lang);
   const { href: backHref, label: backLabel } = resolveViajesOfferBack(sp.back, fallback, lang);
   const exploreViajesHref = appendLangToPath("/clasificados/viajes", lang);
+  const v2Offer = (offer as ViajesOfferDetailModelV2Extras).v2Offer;
+  const related = await fetchViajesOfferDetailRelated(v2Offer, offer.slug);
 
   return (
     <div className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <Navbar />
       <div className="border-b border-[color:var(--lx-nav-border)] bg-[color:var(--lx-nav-bg)] px-4 py-2 sm:px-5">
         <div className="mx-auto flex max-w-7xl justify-end">
           <ViajesLangSwitch compact />
@@ -74,10 +74,11 @@ export default async function ClasificadosViajesOfertaPage({ params, searchParam
         listingKey={listingKey}
         backHref={backHref}
         backLabel={backLabel}
-        ui={ui}
         exploreViajesHref={exploreViajesHref}
         stagedListingId={stagedListingId}
         leonixAdId={bundle?.leonix_ad_id ?? null}
+        moreFromProvider={related.moreFromProvider}
+        similarGetaways={related.similar}
       />
     </div>
   );

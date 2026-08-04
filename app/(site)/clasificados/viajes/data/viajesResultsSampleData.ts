@@ -43,6 +43,10 @@ export interface ViajesBusinessResult {
   /** Staged publish lane — cards may show “private seller” when `private`. */
   sellerLane?: "business" | "private";
   id: string;
+  /** Offer slug for detail route / related matching */
+  slug?: string;
+  /** Provider profile slug when staged with business_profile_slug */
+  businessProfileSlug?: string;
   imageSrc: string;
   imageAlt: string;
   businessName: string;
@@ -106,7 +110,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
     priceFrom: "Desde $549 / persona",
     duration: "5 días · 4 noches",
     durationKey: "week",
-    departureContext: "Salidas desde SFO y SJO",
+    departureContext: "Salidas desde SFO y SJC",
     href: "/clasificados/viajes/oferta/cancun-resort-mar",
     tripTypeKeys: ["resorts", "hoteles"],
     affiliateNote: "Precio orientativo vía socio Leonix",
@@ -145,7 +149,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-2",
-    imageSrc: "https://images.unsplash.com/photo-1542259670-48a73e819d9c?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
     imageAlt: "Costa hawaiana",
     inventoryLabel: "Oferta especial",
     title: "Maui · boutique junto a la playa",
@@ -168,13 +172,13 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-2",
-    imageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=900&q=80",
     imageAlt: "Selva tropical",
     businessName: "Pura Vida Escapes",
     offerTitle: "Arenal + Manuel Antonio en familia",
     destination: "Costa Rica",
     destSlugs: ["costa-rica"],
-    departureCity: "San José (SJO)",
+    departureCity: "San José, California (SJC)",
     duration: "7 días · 6 noches",
     durationKey: "week",
     price: "Desde $1,420 / persona",

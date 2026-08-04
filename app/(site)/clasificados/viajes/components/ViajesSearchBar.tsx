@@ -17,14 +17,21 @@ type ViajesSearchBarProps = {
   resultsBasePath?: string;
   lang?: Lang;
   ui: ViajesUi;
+  /** Compact target gateway: 4 fields + Buscar, no tall helper copy */
+  compact?: boolean;
 };
 
 const FIELD =
-  "w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
+  "w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2.5 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 
-const LABEL = "mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
+const LABEL = "mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 
-export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/resultados", lang = "es", ui }: ViajesSearchBarProps) {
+export function ViajesSearchBar({
+  resultsBasePath = "/clasificados/viajes/resultados",
+  lang = "es",
+  ui,
+  compact = true,
+}: ViajesSearchBarProps) {
   const router = useRouter();
   const s = ui.search;
   const tripOptions = getViajesTripTypeHeroOptions(lang);
@@ -65,30 +72,21 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
     router.push(exploreHref);
   };
 
-  const hintId = "viajes-search-module-hint";
+  const searchLabel = lang === "en" ? "Search" : "Buscar";
 
   return (
     <form
       onSubmit={onSubmit}
-      aria-describedby={hintId}
-      aria-label={s.moduleTitle}
-      className="max-w-full min-w-0 overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/70 bg-[#fffdf9]/98 p-3 shadow-[0_18px_48px_-28px_rgba(25,50,70,0.14)] backdrop-blur-sm ring-offset-2 ring-offset-[#f3ebdd] focus-within:ring-2 focus-within:ring-[color:var(--lx-focus-ring)] sm:rounded-3xl sm:p-4 md:p-5 lg:p-6"
-      style={{
-        boxShadow:
-          "0 20px 48px -22px rgba(30, 40, 55, 0.12), 0 0 0 1px rgba(201, 168, 74, 0.12), inset 0 1px 0 rgba(255,252,247,0.92)",
-      }}
+      aria-label={searchLabel}
+      className={
+        compact
+          ? "max-w-full min-w-0 overflow-hidden rounded-2xl bg-transparent p-0"
+          : "max-w-full min-w-0 overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/70 bg-[#fffdf9]/98 p-3 sm:p-4"
+      }
     >
-      <div className="mb-2.5 border-b border-[color:var(--lx-gold-border)]/28 pb-2.5 sm:mb-3 sm:pb-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-900/75 sm:tracking-[0.2em]">{s.moduleTitle}</p>
-      </div>
-
-      {/* <lg: stacked; md–lg: 2-col; lg+: 12-col row with dividers */}
-      <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-x-4 md:gap-y-3.5 lg:grid-cols-12 lg:items-end lg:gap-0 lg:divide-x lg:divide-[color:var(--lx-nav-border)]">
-        <label className="min-w-0 md:col-span-2 lg:col-span-3 lg:pr-5">
-          <span className={`${LABEL} flex flex-wrap items-center gap-1.5`}>
-            <span aria-hidden>⌕</span>
-            <span className="min-w-0">{s.whereTo}</span>
-          </span>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end lg:gap-3">
+        <label className="min-w-0">
+          <span className={LABEL}>{s.whereTo}</span>
           <ViajesDestinationAutocomplete
             value={destinationLabel}
             onChange={(v) => {
@@ -103,11 +101,11 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
           />
         </label>
 
-        <div className="min-w-0 md:col-span-2 lg:col-span-3 lg:px-5">
+        <div className="min-w-0">
           <span className={LABEL}>{s.departureFrom}</span>
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
+          <div className="flex gap-2">
             <select
-              className={`${FIELD} min-h-[48px] flex-1`}
+              className={`${FIELD} min-h-[44px] flex-1`}
               value={departure}
               onChange={(e) => {
                 setDeparture(e.target.value);
@@ -118,36 +116,46 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
               <option value="">{s.anyOrigin}</option>
               {VIAJES_ORIGIN_BUCKETS.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.label} · {o.airportLine}
+                  {o.id === "san-jose" ? "San José, California (SJC)" : `${o.label} · ${o.airportLine}`}
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={requestLocation}
-              disabled={geoState.status === "requesting"}
-              className="min-h-[48px] w-full min-w-0 shrink-0 touch-manipulation rounded-xl border border-[color:var(--lx-gold-border)] bg-[rgba(212,188,106,0.14)] px-3 py-2.5 text-center text-xs font-bold leading-snug text-[color:var(--lx-text)] transition hover:bg-[rgba(212,188,106,0.24)] disabled:opacity-60 sm:w-auto sm:min-w-[140px]"
-            >
-              {geoState.status === "requesting" ? s.locationRequesting : s.useMyLocation}
-            </button>
+            {!compact ? (
+              <button
+                type="button"
+                onClick={requestLocation}
+                disabled={geoState.status === "requesting"}
+                className="min-h-[44px] shrink-0 rounded-xl border border-[color:var(--lx-gold-border)] px-3 text-xs font-bold"
+              >
+                {geoState.status === "requesting" ? s.locationRequesting : s.useMyLocation}
+              </button>
+            ) : null}
           </div>
-          {geoState.status === "ready" ? (
-            <p className="mt-1 break-words text-[11px] text-[color:var(--lx-muted)]">
-              {s.geoReady(
-                getViajesOriginById(geoState.originId)?.label ?? geoState.originId,
-                getViajesOriginById(geoState.originId)?.airportLine ?? ""
-              )}
+          {compact ? (
+            <p className="mt-1.5 text-[10px] text-[color:var(--lx-muted)]">
+              <button
+                type="button"
+                onClick={requestLocation}
+                disabled={geoState.status === "requesting"}
+                className="font-semibold text-[color:var(--lx-burgundy)] underline-offset-2 hover:underline disabled:opacity-60"
+              >
+                {geoState.status === "requesting" ? s.locationRequesting : s.useMyLocation}
+              </button>
+              {geoState.status === "ready" ? (
+                <span className="ml-2">
+                  {s.geoReady(
+                    getViajesOriginById(geoState.originId)?.label ?? geoState.originId,
+                    getViajesOriginById(geoState.originId)?.airportLine ?? ""
+                  )}
+                </span>
+              ) : null}
             </p>
           ) : null}
-          {geoState.status === "denied" ? <p className="mt-1 text-[11px] text-amber-800/90">{s.geoDenied}</p> : null}
-          {geoState.status === "unavailable" ? <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{s.geoUnavailable}</p> : null}
-          {geoState.status === "timeout" ? <p className="mt-1 text-[11px] text-amber-800/85">{s.geoTimeout}</p> : null}
-          <p className="mt-2 text-[10px] leading-snug text-[color:var(--lx-muted)] sm:text-[11px]">{s.geoExplainer}</p>
         </div>
 
-        <label className="min-w-0 md:col-span-1 lg:col-span-2 lg:px-5">
+        <label className="min-w-0">
           <span className={LABEL}>{s.tripType}</span>
-          <select className={FIELD} value={tripType} onChange={(e) => setTripType(e.target.value)}>
+          <select className={`${FIELD} min-h-[44px]`} value={tripType} onChange={(e) => setTripType(e.target.value)}>
             {tripOptions.map((o) => (
               <option key={o.value || "all"} value={o.value}>
                 {o.label}
@@ -156,9 +164,9 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
           </select>
         </label>
 
-        <label className="min-w-0 md:col-span-1 lg:col-span-2 lg:px-5">
+        <label className="min-w-0">
           <span className={LABEL}>{s.budget}</span>
-          <select className={FIELD} value={budget} onChange={(e) => setBudget(e.target.value)}>
+          <select className={`${FIELD} min-h-[44px]`} value={budget} onChange={(e) => setBudget(e.target.value)}>
             <option value="">{s.budgetFlexible}</option>
             <option value="economico">{s.budgetEconomy}</option>
             <option value="moderado">{s.budgetModerate}</option>
@@ -166,27 +174,17 @@ export function ViajesSearchBar({ resultsBasePath = "/clasificados/viajes/result
           </select>
         </label>
 
-        <div className="min-w-0 md:col-span-2 lg:col-span-2 lg:flex lg:flex-col lg:justify-end lg:pl-5">
+        <div className="min-w-0 sm:col-span-2 lg:col-span-1">
           <button
             type="submit"
-            className="flex min-h-[52px] w-full min-w-0 items-center justify-center rounded-2xl px-4 py-3.5 text-sm font-bold text-white shadow-[0_14px_32px_-10px_rgba(234,88,12,0.55)] transition hover:brightness-[1.05] active:brightness-95 lg:min-h-[56px]"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-xl px-5 text-sm font-bold text-white shadow-[0_10px_24px_-8px_rgba(234,88,12,0.55)] transition hover:brightness-[1.05] lg:min-w-[120px]"
             style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
           >
-            {s.exploreCta}
+            {searchLabel}
           </button>
         </div>
       </div>
 
-      <p className="mx-auto mt-3 max-w-full break-words text-center text-[10px] leading-snug text-[color:var(--lx-muted)] sm:mx-0 sm:text-left">
-        {s.searchScopeNote}
-      </p>
-
-      <p
-        id={hintId}
-        className="mx-auto mt-2 max-w-full break-words text-center text-[11px] leading-snug text-[color:var(--lx-muted)] sm:mx-0 sm:mt-3 sm:text-left"
-      >
-        {s.moduleHint}
-      </p>
     </form>
   );
 }

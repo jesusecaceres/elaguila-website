@@ -20,7 +20,7 @@ function StarRow({ count, ariaLabel }: { count: number; ariaLabel: string }) {
 
 function resolvePrimaryCta(offer: ViajesTopOffer, ui: ViajesUi): { label: string; variant: "affiliate" | "business" | "editorial" } {
   if (offer.listingKind === "editorial") return { label: ui.cards.explore, variant: "editorial" };
-  if (offer.listingKind === "affiliate") return { label: ui.cards.affiliateCta, variant: "affiliate" };
+  if (offer.listingKind === "affiliate") return { label: ui.lang === "en" ? "View offer" : "Ver oferta", variant: "affiliate" };
   if (offer.href?.includes("/negocio/")) return { label: ui.cards.businessViewListing, variant: "business" };
   return { label: ui.cards.viewOffers, variant: "business" };
 }

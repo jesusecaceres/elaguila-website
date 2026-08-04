@@ -73,6 +73,35 @@ export interface ViajesCategoryPill {
   browse: ViajesResultsLinkPatch;
 }
 
+export interface ViajesNearbyEscapeTile {
+  id: string;
+  imageSrc: string;
+  imageAlt: string;
+  title: string;
+  subline: string;
+  browse: ViajesResultsLinkPatch;
+  /** Bento sizing hint — tall tile spans two rows on lg+ */
+  size: "tall" | "wide" | "regular";
+}
+
+export interface ViajesStayCard {
+  id: "hotels" | "rentals";
+  imageSrc: string;
+  imageAlt: string;
+  title: string;
+  subline: string;
+  browse: ViajesResultsLinkPatch;
+}
+
+export interface ViajesMobilityCard {
+  id: string;
+  imageSrc: string;
+  imageAlt: string;
+  title: string;
+  subline: string;
+  browse: ViajesResultsLinkPatch;
+}
+
 export const VIAJES_HERO_IMAGE = {
   src: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=2400&q=80",
   alt: "Resort tropical al atardecer con bungalows sobre el agua",
@@ -86,21 +115,14 @@ export const VIAJES_PAGE_AMBIENCE = {
     "https://images.unsplash.com/photo-1439066615861-d1af74d74000?auto=format&fit=crop&w=2000&q=75",
 } as const;
 
+/** Landing intent pills — exactly six, matching the approved Prompt 2 target. */
 export const VIAJES_CATEGORY_PILLS: ViajesCategoryPill[] = [
-  { id: "weekend", label: "Escapadas de fin de semana", icon: "🌴", browse: { t: "fin-de-semana" } },
-  { id: "day", label: "Viajes de un día", icon: "☀️", browse: { t: "dia" } },
-  { id: "resorts", label: "Resorts todo incluido", icon: "🏝️", browse: { t: "resorts" } },
-  { id: "hoteles", label: "Hoteles / estadías", icon: "🏨", browse: { t: "hoteles" } },
-  { id: "tours", label: "Tours y excursiones", icon: "🧭", browse: { t: "tours" } },
-  { id: "actividades", label: "Actividades en destino", icon: "🎯", browse: { t: "actividades" } },
+  { id: "day", label: "Viaje de un día", icon: "☀️", browse: { t: "dia" } },
+  { id: "weekend", label: "Escapadas", icon: "🌴", browse: { t: "fin-de-semana" } },
+  { id: "resorts", label: "Hoteles y resorts", icon: "🏝️", browse: { t: "resorts" } },
+  { id: "hoteles", label: "Rentas vacacionales", icon: "🏡", browse: { t: "hoteles" } },
   { id: "cruises", label: "Cruceros", icon: "🚢", browse: { t: "cruceros" } },
-  { id: "renta-autos", label: "Renta de autos", icon: "🚗", browse: { t: "renta-autos" } },
-  { id: "transporte", label: "Transporte / traslados", icon: "🚌", browse: { t: "transporte" } },
-  { id: "ultimo-minuto", label: "Último minuto", icon: "⚡", browse: { t: "ultimo-minuto" } },
-  { id: "family", label: "Viajes familiares", icon: "👨‍👩‍👧", browse: { audience: "familias" } },
-  { id: "romantic", label: "Viajes románticos", icon: "💛", browse: { audience: "parejas" } },
-  { id: "sjo", label: "Salidas desde San José (SJC)", icon: "✈️", browse: { from: "san-jose" } },
-  { id: "budget", label: "Ofertas por presupuesto", icon: "💰", browse: { t: "presupuesto" } },
+  { id: "transporte", label: "Autos y traslados", icon: "🚗", browse: { t: "transporte" } },
 ];
 
 export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
@@ -115,7 +137,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     locationLine: "Quintana Roo, México",
     priceFrom: "Desde $589 por persona",
     duration: "5 días / 4 noches",
-    departureContext: "Salidas desde SFO y SJO (con escala)",
+    departureContext: "Salidas desde SFO y SJC (con escala)",
     partnerLabel: "Socio: paquete resort",
     href: "/clasificados/viajes/oferta/cancun-resort-mar",
     listingKind: "affiliate",
@@ -144,7 +166,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
   },
   {
     id: "maui",
-    imageSrc: "https://images.unsplash.com/photo-1542259670-48a73e819d9c?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Costa de Maui al atardecer",
     badge: "Socio de viaje",
     title: "Maui, Hawái",
@@ -172,8 +194,8 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
     locationLine: "Jalisco, México",
     priceFrom: "Desde $449 por persona",
     duration: "4 días / 3 noches",
-    departureContext: "Salidas desde Oakland y SJO",
-    partnerLabel: "Tour operador verificado",
+    departureContext: "Salidas desde Oakland y SJC",
+    partnerLabel: "Negocio local",
     resultsBrowse: { dest: "puerto-vallarta" },
     listingKind: "business",
     featuredRank: 4,
@@ -199,16 +221,16 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
 
 export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
   {
-    id: "sjo",
+    id: "sjc",
     imageSrc: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1000&q=80",
-    imageAlt: "Avión despegando al atardecer",
-    title: "Desde San José",
-    description: "Escapadas a México, Caribe y ciudades de conexión desde SJO.",
+    imageAlt: "Avión despegando al atardecer sobre el Área de la Bahía",
+    title: "Desde San José, CA",
+    description: "Salidas desde el Valle de Silicio (SJC) hacia la costa, Sierra y el resto de California.",
     browse: { from: "san-jose" },
   },
   {
     id: "sfo",
-    imageSrc: "https://images.unsplash.com/photo-1526481280695-3c469172d1b8?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1000&q=80",
     imageAlt: "Horizonte de San Francisco",
     title: "Desde San Francisco",
     description: "Vuelos directos y paquetes con salida desde la Bahía.",
@@ -232,30 +254,143 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
   },
 ];
 
+/** Five-tile asymmetric bento — editorial navigation into regional browse states (no fake inventory). */
+export const VIAJES_NEARBY_ESCAPES: ViajesNearbyEscapeTile[] = [
+  {
+    id: "napa",
+    imageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=1400&q=80",
+    imageAlt: "Viñedos del Valle de Napa al atardecer",
+    title: "Valle de Napa",
+    subline: "Viñedos, spas y estadías boutique a menos de dos horas.",
+    browse: { dest: "napa" },
+    size: "tall",
+  },
+  {
+    id: "santa-cruz",
+    imageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Malecón de Santa Cruz junto al mar",
+    title: "Santa Cruz",
+    subline: "Playa, malecón y surf en la Costa Norte de California.",
+    browse: { dest: "santa-cruz" },
+    size: "regular",
+  },
+  {
+    id: "salidas-de-un-dia",
+    imageSrc: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Carretera costera escénica en un día soleado",
+    title: "Salidas de un día",
+    subline: "Ida y vuelta el mismo día — sin pernoctar.",
+    browse: { t: "dia" },
+    size: "regular",
+  },
+  {
+    id: "diversion-en-familia",
+    imageSrc: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Familia disfrutando la playa",
+    title: "Diversión en familia",
+    subline: "Planes con ritmo relajado para todas las edades.",
+    browse: { audience: "familias" },
+    size: "wide",
+  },
+  {
+    id: "descubre-mas",
+    imageSrc: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Mapa y accesorios de viaje",
+    title: "Descubre más",
+    subline: "Ver el catálogo completo de escapadas regionales.",
+    browse: {},
+    size: "regular",
+  },
+];
+
+/** Two equal cards: full-service hotels vs. self-catered rentals — no rating/discount claims. */
+export const VIAJES_STAY_CARDS: ViajesStayCard[] = [
+  {
+    id: "hotels",
+    imageSrc: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Piscina de un resort con camastros",
+    title: "Hoteles y resorts",
+    subline: "Todo incluido, boutique y cadenas — con servicio en sitio.",
+    browse: { t: "resorts" },
+  },
+  {
+    id: "rentals",
+    imageSrc: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Sala de una casa de renta vacacional",
+    title: "Rentas vacacionales",
+    subline: "Casas y condos con cocina y espacio para grupos o familias.",
+    browse: { t: "hoteles" },
+  },
+];
+
+/** Four named mobility cards — car rental, transfers, group vans, private drivers. */
+export const VIAJES_MOBILITY_CARDS: ViajesMobilityCard[] = [
+  {
+    id: "autos-de-renta",
+    imageSrc: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1000&q=80",
+    imageAlt: "Auto de renta en carretera costera",
+    title: "Autos de renta",
+    subline: "Recogida en aeropuerto o ciudad; compara categorías de vehículo.",
+    browse: { t: "transporte" },
+  },
+  {
+    id: "traslados-al-aeropuerto",
+    imageSrc: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1000&q=80",
+    imageAlt: "Vehículo esperando en la terminal del aeropuerto",
+    title: "Traslados al aeropuerto",
+    subline: "Vehículo privado o compartido hacia tu hospedaje.",
+    browse: { t: "transporte" },
+  },
+  {
+    id: "vans-para-grupos",
+    imageSrc: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1000&q=80",
+    imageAlt: "Grupo listo para viajar junto a una van",
+    title: "Vans para grupos",
+    subline: "Transporte para grupos grandes o familias numerosas.",
+    browse: { t: "transporte", audience: "grupos" },
+  },
+  {
+    id: "conductores-privados",
+    imageSrc: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80",
+    imageAlt: "Conductor privado abriendo la puerta de un vehículo",
+    title: "Conductores privados",
+    subline: "Servicio con chofer para el día o el itinerario completo.",
+    browse: { t: "transporte" },
+  },
+];
+
 export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
   {
-    id: "cancun-col",
-    imageSrc: "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Cancún vista aérea",
-    name: "Cancún",
-    supportingLine: "Playas, arrecifes y vida nocturna con paquetes curados.",
-    browse: { dest: "cancun" },
+    id: "napa",
+    imageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Viñedos del Valle de Napa",
+    name: "Napa Valley",
+    supportingLine: "Viñedos y spas a poca distancia de la Bahía.",
+    browse: { q: "Napa" },
   },
   {
-    id: "cr",
-    imageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Volcán y naturaleza en Costa Rica",
-    name: "Costa Rica Adventure",
-    supportingLine: "Bosque nuboso, canopy y playas del Pacífico.",
-    browse: { dest: "costa-rica" },
+    id: "monterey",
+    imageSrc: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Costa de Monterey",
+    name: "Monterey",
+    supportingLine: "Acuario, costa y sabor del Pacífico.",
+    browse: { q: "Monterey" },
   },
   {
-    id: "sc",
-    imageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-    imageAlt: "Playa de Santa Cruz",
-    name: "Santa Cruz",
-    supportingLine: "Costa Norte de California: surf, senderos y gastronomía.",
-    browse: { dest: "santa-cruz" },
+    id: "big-sur",
+    imageSrc: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Carretera de Big Sur",
+    name: "Big Sur",
+    supportingLine: "Acantilados y carretera escénica.",
+    browse: { q: "Big Sur" },
+  },
+  {
+    id: "tahoe",
+    imageSrc: "https://images.unsplash.com/photo-1482192505345-5655af888cc4?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Lago Tahoe",
+    name: "Lake Tahoe",
+    supportingLine: "Lago, montaña y escapadas de temporada.",
+    browse: { q: "Lake Tahoe" },
   },
   {
     id: "yosemite",
@@ -264,6 +399,14 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
     name: "Yosemite",
     supportingLine: "Naturaleza icónica con estancias y tours guiados.",
     browse: { dest: "yosemite" },
+  },
+  {
+    id: "santa-cruz",
+    imageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Playa de Santa Cruz",
+    name: "Santa Cruz",
+    supportingLine: "Playa, malecón y surf en la Costa Norte.",
+    browse: { dest: "santa-cruz" },
   },
 ];
 
@@ -293,11 +436,11 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
     browse: { audience: "grupos" },
   },
   {
-    id: "romantic",
-    imageSrc: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80",
-    imageAlt: "Cena romántica al aire libre",
-    label: "Escapadas románticas",
-    subline: "Spa, vistas y detalles para una escapada inolvidable.",
-    browse: { audience: "romanticos" },
+    id: "adventure",
+    imageSrc: "https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=1000&q=80",
+    imageAlt: "Senderismo en la naturaleza",
+    label: "Aventura",
+    subline: "Naturaleza, actividades al aire libre y ritmo activo.",
+    browse: { t: "actividades" },
   },
 ];

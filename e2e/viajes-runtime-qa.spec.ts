@@ -60,6 +60,16 @@ async function seedSupabaseSession(args: {
 
 test.describe.configure({ timeout: 240_000 });
 
+async function viajesAdminSharedPasswordLogin(page: import("@playwright/test").Page) {
+  await page.goto("/admin/login");
+  await page.getByText(/Owner bootstrap \(shared password\)/i).click();
+  const shared = page.getByPlaceholder("Shared admin password");
+  await expect(shared).toBeVisible({ timeout: 15_000 });
+  await shared.fill(ADMIN_SITE_PASSWORD);
+  await page.getByRole("button", { name: /Owner bootstrap login/i }).click();
+  await page.waitForURL(/\/admin(\/|$)/, { timeout: 30_000 });
+}
+
 test.describe("Viajes runtime QA", () => {
   test.beforeAll(async () => {
     test.skip(!url || !anon || !service, "Missing Supabase env vars (url/anon/service)");
@@ -157,19 +167,16 @@ test.describe("Viajes runtime QA", () => {
     expect((row as any).lifecycle_status).toBe("submitted");
 
     await page.goto("/dashboard/viajes?lang=es");
-    await expect(page.getByText(/Viajes/i).first()).toBeVisible({ timeout: 60_000 });
-    // Dashboard table renders `title` column prominently; slug is present but not guaranteed visible as text.
-    await expect(page.getByText(uniq, { exact: false }).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: /Viajes\s*[—-]/i })).toBeVisible({ timeout: 60_000 });
+    // Desktop table is visible at Playwright viewport; mobile cards are md:hidden.
+    await expect(page.locator("table").getByText(uniq, { exact: false }).first()).toBeVisible({ timeout: 60_000 });
 
     // Not public yet
     const pre = await request.get(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}?lang=es`);
     expect([404, 200]).toContain(pre.status());
 
     // Admin approve
-    await page.goto("/admin/login");
-    await page.locator('input[name="password"]').fill(ADMIN_SITE_PASSWORD);
-    await page.getByRole("button", { name: /log in/i }).click();
-    await page.waitForURL(/\/admin(\/|$)/, { timeout: 30_000 });
+    await viajesAdminSharedPasswordLogin(page);
 
     const approve = await page.request.post("/api/admin/viajes/staged-listings/moderate", {
       data: { id, action: "approve" },
@@ -212,9 +219,21 @@ test.describe("Viajes runtime QA", () => {
     expect(inqRows?.some((r) => String((r as { message?: string }).message ?? "").includes(inqMsg))).toBeTruthy();
     await buyerContext.close();
 
-    // Results: find by q (title haystack)
-    await page.goto(`/clasificados/viajes/resultados?lang=es&q=${encodeURIComponent(uniq)}`);
-    await expect(page.locator(`a[href*="/clasificados/viajes/oferta/${slug}"]`).first()).toBeVisible({ timeout: 60_000 });
+    // Results: find by q (title haystack). Retry while browse tag cache expires after approve.
+    const offerLink = page.locator(`a[href*="/clasificados/viajes/oferta/${slug}"]`).first();
+    let foundInResults = false;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await page.goto(`/clasificados/viajes/resultados?lang=es&q=${encodeURIComponent(uniq)}`, {
+        waitUntil: "domcontentloaded",
+      });
+      if (await offerLink.isVisible().catch(() => false)) {
+        foundInResults = true;
+        break;
+      }
+      await page.waitForTimeout(1500);
+    }
+    expect(foundInResults, `offer ${slug} not in results after approve`).toBeTruthy();
+    await expect(offerLink).toBeVisible({ timeout: 15_000 });
 
     // Filter by svcLang and budget and duration and season derived keys
     await page.goto(
@@ -322,10 +341,7 @@ test.describe("Viajes runtime QA", () => {
     const slug = String(js.slug);
     console.log(`[viajes-e2e] privado submitted id=${id} slug=${slug} uniq=${uniq}`);
 
-    await page.goto("/admin/login");
-    await page.locator('input[name="password"]').fill(ADMIN_SITE_PASSWORD);
-    await page.getByRole("button", { name: /log in/i }).click();
-    await page.waitForURL(/\/admin(\/|$)/, { timeout: 30_000 });
+    await viajesAdminSharedPasswordLogin(page);
 
     const approve = await page.request.post("/api/admin/viajes/staged-listings/moderate", {
       data: { id, action: "approve" },

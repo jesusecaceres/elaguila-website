@@ -7,14 +7,19 @@ import type { ViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 export type ViajesContactChannelKind =
   | "tel"
   | "telOffice"
+  | "sms"
   | "whatsapp"
   | "email"
   | "website"
+  | "directions"
   | "facebook"
   | "instagram"
   | "tiktok"
   | "youtube"
-  | "twitter";
+  | "twitter"
+  | "linkedin"
+  | "snapchat"
+  | "pinterest";
 
 export type ViajesContactChannel = {
   kind: ViajesContactChannelKind;
@@ -27,6 +32,8 @@ export type ViajesOfferPartnerBlock = {
   isAffiliate: boolean;
   /** Private individual listing — distinct from business agency card */
   privateSeller?: boolean;
+  /** Guía Leonix / editorial inspiration lane */
+  editorial?: boolean;
   affiliateDisclosure?: string;
   /** Business / operator logo (URL or blob:) for draft previews */
   logoSrc?: string;
@@ -72,7 +79,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
     destination: "Cancún, Quintana Roo, México",
     priceFrom: "Desde $549 por persona",
     duration: "5 días · 4 noches",
-    departureCity: "San Francisco u Oakland (conexión desde SJO disponible)",
+    departureCity: "San Francisco u Oakland (conexión desde SJC disponible)",
     tags: ["Familiar", "Pareja", "Todo incluido"],
     mainCtaLabel: "Reservar con socio",
     mainCtaHref: "https://example.com/partner-booking",
@@ -141,7 +148,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "maui-boutique": {
     slug: "maui-boutique",
-    heroImageSrc: "https://images.unsplash.com/photo-1542259670-48a73e819d9c?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Costa de Maui",
     title: "Maui · boutique junto a la playa",
     destination: "Maui, Hawái",
@@ -173,13 +180,13 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "cr-familia-arenal-manuel": {
     slug: "cr-familia-arenal-manuel",
-    heroImageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Naturaleza en Costa Rica",
     title: "Arenal + Manuel Antonio en familia",
     destination: "Costa Rica",
     priceFrom: "Desde $1,420 por persona",
     duration: "7 días · 6 noches",
-    departureCity: "San José (SJO)",
+    departureCity: "San José, California (SJC)",
     tags: ["Familiar", "Naturaleza", "Aventura suave"],
     mainCtaLabel: "Solicitar itinerario",
     mainCtaHref: "https://wa.me/50688881234",

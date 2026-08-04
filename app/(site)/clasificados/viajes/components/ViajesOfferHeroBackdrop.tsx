@@ -9,12 +9,14 @@ import { buildHeroFallbackChain } from "../lib/viajesOfferHeroFallbacks";
 function laneGradientOnly(lane: ViajesOpenCardLane): string {
   if (lane === "affiliate") return "bg-gradient-to-br from-amber-900 via-stone-900 to-neutral-950";
   if (lane === "business") return "bg-gradient-to-br from-emerald-900 via-stone-900 to-neutral-950";
+  if (lane === "editorial") return "bg-gradient-to-br from-sky-900 via-stone-900 to-neutral-950";
   return "bg-gradient-to-br from-slate-800 via-stone-900 to-neutral-950";
 }
 
 function laneRadial(lane: ViajesOpenCardLane): string {
   if (lane === "affiliate") return "bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(251,191,36,0.22),transparent_55%)]";
   if (lane === "business") return "bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(52,211,153,0.18),transparent_55%)]";
+  if (lane === "editorial") return "bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(56,189,248,0.2),transparent_55%)]";
   return "bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(148,163,184,0.2),transparent_55%)]";
 }
 

@@ -21,6 +21,16 @@ export function ViajesTopOffers({ homeBackHref, browseAllHref, ui, initialBusine
   const rankedLive = sortViajesResultRows([...initialBusinessRows], "featured").slice(0, 8) as ViajesBusinessResult[];
 
   if (rankedLive.length > 0) {
+    const liveFour = rankedLive.slice(0, 4);
+    const curatedFill =
+      allowCurated && liveFour.length < 4
+        ? selectViajesTopOffersFeed()
+            .filter((offer) => {
+              const slug = offer.href?.split("/").filter(Boolean).pop() ?? offer.id;
+              return !liveFour.some((row) => row.href.includes(slug) || row.id === offer.id);
+            })
+            .slice(0, 4 - liveFour.length)
+        : [];
     return (
       <section className="mt-8 sm:mt-10">
         <ViajesSectionHeader
@@ -31,9 +41,12 @@ export function ViajesTopOffers({ homeBackHref, browseAllHref, ui, initialBusine
           headingScale="primary"
           className="mb-6 sm:mb-8"
         />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 lg:gap-6 xl:grid-cols-4">
-          {rankedLive.map((row) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+          {liveFour.map((row) => (
             <ViajesResultsBusinessCard key={row.id} row={row} ui={ui} />
+          ))}
+          {curatedFill.map((offer) => (
+            <ViajesTopOfferCard key={offer.id} offer={offer} homeBackHref={homeBackHref} ui={ui} />
           ))}
         </div>
         <ViajesLandingBrowseMore href={browseAllHref} label={ui.landing.browseAllTrips} />
@@ -53,8 +66,8 @@ export function ViajesTopOffers({ homeBackHref, browseAllHref, ui, initialBusine
           headingScale="primary"
           className="mb-6 sm:mb-8"
         />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-2 lg:gap-6 xl:grid-cols-4">
-          {offers.map((offer) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+          {offers.slice(0, 4).map((offer) => (
             <ViajesTopOfferCard key={offer.id} offer={offer} homeBackHref={homeBackHref} ui={ui} />
           ))}
         </div>

@@ -24,6 +24,8 @@ export type ViajesNegocioProfileModel = {
   phone?: string;
   email?: string;
   website?: string;
+  /** Public office/location label when saved and showPublicly */
+  publicLocationLabel?: string;
   verifiedPlaceholder?: boolean;
   featuredOffers: ViajesNegocioFeaturedOffer[];
 };
@@ -66,8 +68,8 @@ export const VIAJES_NEGOCIO_PROFILES: Record<string, ViajesNegocioProfileModel> 
     slug: "pura-vida-escapes",
     businessName: "Pura Vida Escapes",
     logoAlt: "Logo Pura Vida Escapes",
-    tagline: "Costa Rica: naturaleza, familia y ritmo tico.",
-    destinationsServed: ["San José", "Arenal", "Manuel Antonio", "Guanacaste"],
+    tagline: "Naturaleza, familia y ritmo tico en destinos de Costa Rica.",
+    destinationsServed: ["Arenal", "Manuel Antonio", "Guanacaste"],
     languages: ["Español", "Inglés"],
     about:
       "Operadores locales que combinan hospedaje auténtico, transporte privado y guías certificados. Ideal para primera visita o regreso con niños.",
@@ -79,7 +81,7 @@ export const VIAJES_NEGOCIO_PROFILES: Record<string, ViajesNegocioProfileModel> 
         destination: "Costa Rica",
         priceHint: "Desde $1,420 / persona",
         href: "/clasificados/viajes/oferta/cr-familia-arenal-manuel",
-        imageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=800&q=80",
+        imageSrc: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=800&q=80",
         imageAlt: "Costa Rica",
       },
     ],

@@ -112,6 +112,15 @@ export function buildViajesIntentFromChannel(ch: ViajesContactChannel): CtaSheet
       }
       return buildSendEmailIntent({ email: href, subject: "Consulta sobre viaje — Leonix", body: "" });
     }
+    case "sms": {
+      const phone = href.replace(/^sms:/i, "").split("?")[0] ?? "";
+      const params = new URLSearchParams(href.split("?")[1] ?? "");
+      return buildSendMessageIntent({
+        phone,
+        message: safeDecode(params.get("body") ?? ""),
+      });
+    }
+    case "directions":
     case "website":
       return buildWebsiteIntent({ url: href, headline: ch.label, kind: "website" });
     case "facebook":
@@ -119,6 +128,9 @@ export function buildViajesIntentFromChannel(ch: ViajesContactChannel): CtaSheet
     case "tiktok":
     case "youtube":
     case "twitter":
+    case "linkedin":
+    case "snapchat":
+    case "pinterest":
       return buildSocialLinkIntent({ url: href, headline: ch.label });
     default:
       return buildViajesIntentFromHref(href, { headline: ch.label });

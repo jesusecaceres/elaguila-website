@@ -6,18 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { CategoryVisibilityCta } from "@/app/(site)/clasificados/components/categoryStandard/CategoryVisibilityCta";
-import {
-  CAT_STD_REFINE_EYEBROW,
-  CAT_STD_RESULTS_REFINE_PANEL,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
-
 import { getViajesUi } from "../data/viajesUiCopy";
-import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesResultRow } from "../data/viajesResultsSampleData";
 import { runViajesBrowseContractSanityCheck } from "../lib/viajesBrowseContractSelfCheck";
 import { isViajesPublicInventoryDemoMode } from "../lib/viajesPublicInventory";
-import { getViajesTripTypeHeroOptions } from "../data/viajesTripTypes";
 import {
   buildViajesBrowseUrl,
   defaultViajesBrowseState,
@@ -27,18 +19,22 @@ import {
 } from "../lib/viajesBrowseContract";
 import { sortViajesResultRows } from "../lib/viajesDiscoveryRanking";
 import { viajesRowMatchesBrowse } from "../lib/viajesResultsMatch";
-import { ViajesLandingAmbience } from "./ViajesLandingAmbience";
 import { ViajesLangSwitch } from "./ViajesLangSwitch";
-import { ViajesTrustStrip } from "./ViajesTrustStrip";
 import { ViajesResultsAffiliateCard } from "./ViajesResultsAffiliateCard";
 import { ViajesResultsBusinessCard } from "./ViajesResultsBusinessCard";
 import { ViajesResultsDiscoveryStrip } from "./ViajesResultsDiscoveryStrip";
 import { ViajesResultsEditorialCard } from "./ViajesResultsEditorialCard";
+import { ViajesResultsActiveFilters } from "./ViajesResultsActiveFilters";
+import { ViajesResultsViewToggle, type ViajesResultsViewMode } from "./ViajesResultsViewToggle";
+import { ViajesResultsProviderRail } from "./ViajesResultsProviderRail";
 import {
   ViajesResultsFilterRail,
   emptyViajesResultsFilters,
   type ViajesResultsFiltersState,
 } from "./ViajesResultsFilterRail";
+import { ViajesSearchBar } from "./ViajesSearchBar";
+
+const PAGE_SIZE = 9;
 
 function browseToFilterRail(b: ViajesBrowseState, destDisplay: string): ViajesResultsFiltersState {
   return {
@@ -51,6 +47,7 @@ function browseToFilterRail(b: ViajesBrowseState, destDisplay: string): ViajesRe
     audience: b.audience,
     season: b.season,
     serviceLanguage: b.svcLang,
+    sources: b.src,
   };
 }
 
@@ -67,40 +64,18 @@ function filterRailPatchToBrowse(patch: Partial<ViajesResultsFiltersState>, prev
   if (patch.audience !== undefined) next.audience = patch.audience;
   if (patch.season !== undefined) next.season = patch.season;
   if (patch.serviceLanguage !== undefined) next.svcLang = patch.serviceLanguage;
+  if (patch.sources !== undefined) next.src = patch.sources;
   return next;
 }
 
-function activeSummaryLine(browse: ViajesBrowseState, ui: ViajesUi, tripTypeLabel: (slug: string) => string): string | null {
-  const R = ui.results;
-  const f = ui.filterRail;
-  const hub: Record<string, string> = {
-    "san-jose": "SJC",
-    "san-francisco": "SFO",
-    oakland: "OAK",
-  };
-  const parts: string[] = [];
-  const destPart = browse.q.trim() || browse.dest.trim();
-  if (destPart) parts.push(destPart);
-  if (browse.from.trim()) parts.push(`${R.departurePrefix} ${hub[browse.from] ?? browse.from}`);
-  if (browse.t.trim()) parts.push(tripTypeLabel(browse.t));
-  if (browse.budget.trim()) parts.push(browse.budget);
-  if (browse.audience.trim()) parts.push(browse.audience);
-  if (browse.season.trim()) parts.push(browse.season);
-  if (browse.duration.trim()) parts.push(browse.duration);
-  if (browse.svcLang.trim()) {
-    const m: Record<string, string> = {
-      es: f.serviceLangEs,
-      en: f.serviceLangEn,
-      bilingual: f.serviceLangBilingual,
-      other: f.serviceLangOther,
-    };
-    parts.push(m[browse.svcLang.trim()] ?? browse.svcLang);
-  }
-  if (parts.length === 0) return null;
-  return `${R.activeSearchLabel}: ${parts.join(" · ")}`;
+function matchesSource(row: ViajesResultRow, src: string): boolean {
+  const selected = src
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!selected.length) return true;
+  return selected.includes(row.kind);
 }
-
-export type { ViajesSortKey };
 
 export function ViajesResultsShell({
   initialRows,
@@ -115,13 +90,15 @@ export function ViajesResultsShell({
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const ui = getViajesUi(lang);
   const R = ui.results;
-  const tripOptions = getViajesTripTypeHeroOptions(lang);
 
   const browse = useMemo(() => parseViajesBrowseFromSearchParams(sp, lang), [sp, lang]);
   const browseRef = useRef(browse);
   browseRef.current = browse;
 
   const [destInput, setDestInput] = useState(() => browse.q || browse.dest);
+  const [viewMode, setViewMode] = useState<ViajesResultsViewMode>("grid");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   useEffect(() => {
     setDestInput(browse.q || browse.dest);
   }, [browse.q, browse.dest]);
@@ -159,7 +136,7 @@ export function ViajesResultsShell({
 
   const patchBrowse = useCallback(
     (patch: Partial<ViajesBrowseState>) => {
-      replaceBrowse({ ...browseRef.current, ...patch, page: 1 });
+      replaceBrowse({ ...browseRef.current, ...patch, page: patch.page ?? 1 });
     },
     [replaceBrowse]
   );
@@ -168,24 +145,27 @@ export function ViajesResultsShell({
 
   const publicRows = useMemo(() => initialRows, [initialRows]);
   const filtered = useMemo(
-    () => publicRows.filter((row) => viajesRowMatchesBrowse(row, browse)),
+    () => publicRows.filter((row) => viajesRowMatchesBrowse(row, browse) && matchesSource(row, browse.src)),
     [browse, publicRows]
   );
 
   const sorted = useMemo(() => sortViajesResultRows(filtered, browse.sort), [filtered, browse.sort]);
-
-  const tripTypeLabel = useCallback(
-    (slug: string) => tripOptions.find((o) => o.value === slug)?.label ?? slug,
-    [tripOptions]
-  );
-  const summary = useMemo(() => activeSummaryLine(browse, ui, tripTypeLabel), [browse, ui, tripTypeLabel]);
+  const visibleCount = Math.min(sorted.length, browse.page * PAGE_SIZE);
+  const visible = sorted.slice(0, visibleCount);
+  const hasMore = visibleCount < sorted.length;
 
   const L = lang;
   const viajesHome = appendLangToPath("/clasificados/viajes", L);
   const publicar = appendLangToPath("/publicar/viajes", L);
   const clearHref = buildViajesBrowseUrl(defaultViajesBrowseState(lang), pathname);
-
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const sortLabel =
+    browse.sort === "newest"
+      ? R.sortNewest
+      : browse.sort === "priceAsc"
+        ? R.sortPriceAsc
+        : browse.sort === "priceDesc"
+          ? R.sortPriceDesc
+          : R.sortFeatured;
 
   const onRailChange = (patch: Partial<ViajesResultsFiltersState>) => {
     if (patch.destination !== undefined) {
@@ -205,6 +185,7 @@ export function ViajesResultsShell({
       value={filterRailValue}
       onChange={onRailChange}
       onReset={onRailReset}
+      onApply={() => setMobileFiltersOpen(false)}
       idPrefix="viajes"
       ui={ui}
     />
@@ -217,18 +198,12 @@ export function ViajesResultsShell({
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden pb-24 text-[color:var(--lx-text)] sm:pb-28">
-      <ViajesLandingAmbience />
-      <div className="relative z-[2] min-w-0">
-        <div className="border-b border-[color:var(--lx-gold-border)]/50 bg-[#fffdf9]/90 backdrop-blur-md">
+    <div className="relative min-h-screen overflow-x-hidden bg-[color:var(--lx-page)] pb-24 text-[color:var(--lx-text)] sm:pb-28">
+      <div className="border-b border-[color:var(--lx-gold-border)]/50 bg-[#fffdf9]">
         <div className="mx-auto flex min-w-0 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-6">
           <nav className="min-w-0 flex-1 break-words text-[11px] font-medium text-[color:var(--lx-muted)]">
-            <Link href={appendLangToPath("/clasificados", L)} className="hover:text-[color:var(--lx-text)]">
-              {ui.breadcrumbClassifieds}
-            </Link>
-            <span className="mx-1.5 opacity-50">/</span>
             <Link href={viajesHome} className="hover:text-[color:var(--lx-text)]">
-              {ui.categoryViajes}
+              {R.breadcrumbViajes}
             </Link>
             <span className="mx-1.5 opacity-50">/</span>
             <span className="text-[color:var(--lx-text)]">{R.breadcrumbResults}</span>
@@ -241,94 +216,93 @@ export function ViajesResultsShell({
             >
               {R.post}
             </Link>
-            <Link
-              href={viajesHome}
-              className="whitespace-nowrap rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-xs font-semibold transition hover:bg-[color:var(--lx-nav-hover)] sm:px-4"
-            >
-              {R.viajesHome}
-            </Link>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-7xl min-w-0 px-4 py-6 sm:px-5 lg:px-6 lg:py-8">
-        <header className="mb-6 min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{R.title}</h1>
-          <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{summary ?? R.subtitle}</p>
-          <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text-2)]">
-            {sorted.length} {R.resultsWord}
-          </p>
+        <header className="mb-4 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{R.compactTitle}</h1>
+          <p className="mt-1 text-sm text-[color:var(--lx-muted)]">{R.compactSubtitle}</p>
         </header>
 
-        {isViajesPublicInventoryDemoMode() ? (
-          <div
-            className="mb-6 rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/95 to-[#fffdf9] px-3 py-3 text-xs leading-snug text-amber-950 shadow-sm sm:px-4"
-            role="status"
-          >
-            <p>{R.inventoryDemoBanner}</p>
-            {stagedApprovedCount > 0 ? (
-              <p className="mt-2 font-medium text-amber-950/95">
-                {lang === "en"
-                  ? `${stagedApprovedCount} approved submission(s) from the Viajes publish pipeline are included in this list alongside curated examples.`
-                  : `${stagedApprovedCount} envío(s) aprobado(s) del flujo de publicación Viajes se muestran junto a ejemplos curados.`}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        <ViajesTrustStrip ui={ui} className="mt-0 mb-6 sm:mb-7" />
-        <div className="mb-4">
-          <CategoryVisibilityCta lang={lang} category="viajes" surface="results" compact />
+        <div className="mb-3 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-3 shadow-sm sm:p-4">
+          <ViajesSearchBar ui={ui} lang={lang} resultsBasePath={pathname} />
+          <ViajesResultsActiveFilters browse={browse} ui={ui} pathname={pathname} />
         </div>
 
-        <section
-          className={`${CAT_STD_RESULTS_REFINE_PANEL} mb-4 backdrop-blur-sm`}
-          aria-label={lang === "es" ? "Afina tu búsqueda" : "Refine your search"}
-        >
-          <p className={CAT_STD_REFINE_EYEBROW}>{lang === "es" ? "Afina tu búsqueda" : "Refine your search"}</p>
-          <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-end">
-            <label className="min-w-0">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.destination}</span>
-              <input
-                className="min-h-[40px] w-full min-w-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={destInput}
-                onChange={(e) => setDestInput(e.target.value)}
-                placeholder={R.destPlaceholder}
-                autoComplete="off"
-              />
-            </label>
-            <label className="min-w-0 sm:w-40">
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{R.sort}</span>
-              <select
-                className="min-h-[40px] w-full min-w-0 cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
-                value={browse.sort}
-                onChange={(e) => patchBrowse({ sort: e.target.value as ViajesSortKey })}
-              >
-                <option value="featured">{R.sortFeatured}</option>
-                <option value="newest">{R.sortNewest}</option>
-                <option value="priceAsc">{R.sortPriceAsc}</option>
-                <option value="priceDesc">{R.sortPriceDesc}</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold text-[color:var(--lx-text)] shadow-sm"
-              onClick={() => setMobileFiltersOpen(true)}
-            >
-              {R.filters}
-            </button>
-            <Link
-              href={clearHref}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-4 text-sm font-semibold text-[color:var(--lx-text)]"
-            >
-              {ui.filterRail.reset}
-            </Link>
-          </div>
-        </section>
+        {isViajesPublicInventoryDemoMode() ? (
+          <p className="mb-4 text-[11px] leading-snug text-[color:var(--lx-muted)]" role="status">
+            {R.inventoryDemoBanner}
+            {stagedApprovedCount > 0
+              ? ` · ${stagedApprovedCount} ${lang === "en" ? "approved submissions included" : "envíos aprobados incluidos"}.`
+              : ""}
+          </p>
+        ) : null}
 
         <div className="flex min-w-0 gap-8 lg:gap-10">
+          <aside className="hidden w-[250px] shrink-0 lg:block">
+            <div className="sticky top-4 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4 shadow-sm">
+              {filterPanel}
+            </div>
+          </aside>
+
           <div className="min-w-0 flex-1">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{sorted.map(renderCard)}</div>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-[color:var(--lx-text)]">
+                  {lang === "en" ? "Trips found" : "Viajes encontrados"}
+                </h2>
+                <p className="text-sm font-semibold text-[color:var(--lx-text-2)]">
+                  {sorted.length} {R.resultsWord}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <ViajesResultsViewToggle
+                  value={viewMode}
+                  onChange={setViewMode}
+                  gridLabel={R.viewGrid}
+                  listLabel={R.viewList}
+                />
+                <label className="min-w-0">
+                  <span className="sr-only">{R.sort}</span>
+                  <select
+                    className="min-h-[40px] cursor-pointer rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-3 py-2 text-sm font-medium outline-none focus:ring-2 focus:ring-[color:var(--lx-focus-ring)]"
+                    value={browse.sort}
+                    onChange={(e) => patchBrowse({ sort: e.target.value as ViajesSortKey, page: 1 })}
+                    aria-label={R.sortLabel(sortLabel)}
+                  >
+                    <option value="featured">{R.sortLabel(R.sortFeatured)}</option>
+                    <option value="newest">{R.sortLabel(R.sortNewest)}</option>
+                    <option value="priceAsc">{R.sortLabel(R.sortPriceAsc)}</option>
+                    <option value="priceDesc">{R.sortLabel(R.sortPriceDesc)}</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 text-sm font-bold lg:hidden"
+                  onClick={() => setMobileFiltersOpen(true)}
+                >
+                  {R.filters}
+                </button>
+                <Link
+                  href={clearHref}
+                  className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-4 text-sm font-semibold lg:hidden"
+                >
+                  {ui.filterRail.reset}
+                </Link>
+              </div>
+            </div>
+
+            <div
+              className={
+                viewMode === "list"
+                  ? "grid grid-cols-1 gap-3"
+                  : "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              }
+            >
+              {visible.map(renderCard)}
+            </div>
 
             {sorted.length === 0 ? (
               <div className="mt-8 space-y-4 rounded-2xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-10 text-center">
@@ -343,10 +317,22 @@ export function ViajesResultsShell({
               </div>
             ) : null}
 
+            {hasMore ? (
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-6 text-sm font-bold"
+                  onClick={() => patchBrowse({ page: browse.page + 1 })}
+                >
+                  {R.loadMore}
+                </button>
+              </div>
+            ) : null}
+
             <ViajesResultsDiscoveryStrip ui={ui} browse={browse} />
+            <ViajesResultsProviderRail rows={sorted} ui={ui} />
           </div>
         </div>
-      </div>
       </div>
 
       {mobileFiltersOpen ? (

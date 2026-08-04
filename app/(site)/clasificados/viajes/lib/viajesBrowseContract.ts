@@ -43,6 +43,8 @@ export type ViajesBrowseState = {
   duration: string;
   /** Service language facet (`viajesServiceLanguageKeysFromDraft`). */
   svcLang: string;
+  /** Comma-separated result kinds: business,affiliate,editorial */
+  src: string;
   sort: ViajesSortKey;
   page: number;
   /** `1` if user set departure via geolocation button on landing/results */
@@ -72,6 +74,7 @@ export function defaultViajesBrowseState(lang: Lang): ViajesBrowseState {
     season: "",
     duration: "",
     svcLang: "",
+    src: "",
     sort: "featured",
     page: 1,
     originByGeo: "",
@@ -110,6 +113,7 @@ export function parseViajesBrowseFromSearchParams(sp: URLSearchParams | null, fa
     season: (sp.get("season") ?? "").trim(),
     duration: (sp.get("duration") ?? "").trim(),
     svcLang: (sp.get("svcLang") ?? "").trim(),
+    src: (sp.get("src") ?? "").trim(),
     sort: parseSort(sp.get("sort")),
     page: parsePage(sp.get("page")),
     originByGeo: sp.get("originByGeo") === "1" ? "1" : "",
@@ -139,6 +143,7 @@ export function serializeViajesBrowseToSearchParams(state: ViajesBrowseState): U
   appendIf(qs, "season", state.season);
   appendIf(qs, "duration", state.duration);
   appendIf(qs, "svcLang", state.svcLang);
+  appendIf(qs, "src", state.src);
   if (state.sort !== "featured") qs.set("sort", state.sort);
   if (state.page > 1) qs.set("page", String(state.page));
   if (state.originByGeo === "1") qs.set("originByGeo", "1");
@@ -170,6 +175,7 @@ export type ViajesResultsLinkPatch = Partial<
     | "season"
     | "duration"
     | "svcLang"
+    | "src"
     | "sort"
     | "page"
   >

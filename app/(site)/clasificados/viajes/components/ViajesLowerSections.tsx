@@ -44,9 +44,7 @@ export function ViajesLowerSections({ homeBackHref, ui }: ViajesLowerSectionsPro
               >
                 <div className="flex items-start justify-between gap-2 border-b border-[color:var(--lx-nav-border)]/50 pb-3">
                   <span className="rounded-md bg-[color:var(--lx-cta-dark)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FFFCF7]">{ui.cards.businessListing}</span>
-                  {p.verifiedPlaceholder ? (
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-900">{L.verified}</span>
-                  ) : null}
+                  {/* Never show fake verified badges on public landing */}
                 </div>
                 <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{L.businessPublished}</p>
                 <h3 className="mt-1 text-lg font-bold leading-snug text-[color:var(--lx-text)] group-hover:underline">{p.businessName}</h3>

@@ -57,17 +57,27 @@ export function ViajesNegocioProfileLayout({
                 ) : null}
               </div>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[color:var(--lx-text-2)]">{profile.tagline}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {profile.destinationsServed.map((d) => (
-                  <span key={d} className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1 text-xs font-medium">
-                    {d}
-                  </span>
-                ))}
-              </div>
-              <p className="mt-3 text-xs text-[color:var(--lx-muted)]">
-                <span className="font-semibold text-[color:var(--lx-text-2)]">{n.languages} </span>
-                {profile.languages.join(" · ")}
-              </p>
+              {profile.publicLocationLabel ? (
+                <p className="mt-2 text-sm text-[color:var(--lx-text-2)]">
+                  <span className="font-semibold">{ui.lang === "en" ? "Public location: " : "Ubicación pública: "}</span>
+                  {profile.publicLocationLabel}
+                </p>
+              ) : null}
+              {profile.destinationsServed.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {profile.destinationsServed.map((d) => (
+                    <span key={d} className="rounded-full border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-3 py-1 text-xs font-medium">
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {profile.languages.length ? (
+                <p className="mt-3 text-xs text-[color:var(--lx-muted)]">
+                  <span className="font-semibold text-[color:var(--lx-text-2)]">{n.languages} </span>
+                  {profile.languages.join(" · ")}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
@@ -91,29 +101,31 @@ export function ViajesNegocioProfileLayout({
           />
         </section>
 
-        <section>
-          <h2 className="text-lg font-bold">{n.featuredOffers}</h2>
-          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {profile.featuredOffers.map((o) => (
-              <Link
-                key={o.href}
-                href={offerHref(o.href)}
-                className="group overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-sm transition hover:shadow-md"
-              >
-                <div className="relative aspect-[16/10] w-full">
-                  <Image src={o.imageSrc} alt={o.imageAlt} fill className="object-cover transition group-hover:scale-[1.02]" sizes="(max-width:768px) 100vw, 33vw" />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-[color:var(--lx-text)]">{o.title}</h3>
-                  <p className="text-sm text-[color:var(--lx-text-2)]">{o.destination}</p>
-                  <p className="mt-2 text-sm font-bold" style={{ color: ACCENT }}>
-                    {o.priceHint}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        {profile.featuredOffers.length ? (
+          <section>
+            <h2 className="text-lg font-bold">{n.featuredOffers}</h2>
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {profile.featuredOffers.map((o) => (
+                <Link
+                  key={o.href}
+                  href={offerHref(o.href)}
+                  className="group overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-sm transition hover:shadow-md"
+                >
+                  <div className="relative aspect-[16/10] w-full">
+                    <Image src={o.imageSrc} alt={o.imageAlt} fill className="object-cover transition group-hover:scale-[1.02]" sizes="(max-width:768px) 100vw, 33vw" />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-[color:var(--lx-text)]">{o.title}</h3>
+                    <p className="text-sm text-[color:var(--lx-text-2)]">{o.destination}</p>
+                    <p className="mt-2 text-sm font-bold" style={{ color: ACCENT }}>
+                      {o.priceHint}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-2xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] p-6 text-sm text-[color:var(--lx-text-2)]">
           <h2 className="text-base font-bold text-[color:var(--lx-text)]">{n.trustTitle}</h2>

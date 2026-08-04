@@ -161,13 +161,14 @@ export function AdminViajesBusinessOffersModeration() {
         <table className="min-w-[1220px] w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0]/90 bg-[#FAF7F2]/90 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+              <th className="px-3 py-3">Hero</th>
               <th className="px-3 py-3">Lane</th>
               <th className="px-3 py-3">Title</th>
               <th className="px-3 py-3">Slug</th>
               <th className="px-3 py-3">Leonix Ad ID</th>
               <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Submitted</th>
-              <th className="px-3 py-3">Owner</th>
+              <th className="px-3 py-3">Submitted / Updated</th>
+              <th className="px-3 py-3">Submitter</th>
               <th className="min-w-[180px] px-3 py-3">Moderation note</th>
               <th className="px-3 py-3">Actions</th>
               <th className="px-3 py-3">Links</th>
@@ -176,13 +177,31 @@ export function AdminViajesBusinessOffersModeration() {
           <tbody>
             {filtered.map((r) => (
               <tr key={r.id} className="border-b border-[#F0E8DC]/90 hover:bg-[#FFFCF7]/95">
+                <td className="px-3 py-2.5">
+                  {r.hero_image_url?.trim() ? (
+                    <img src={r.hero_image_url.trim()} alt="" className="h-12 w-16 rounded-md object-cover" />
+                  ) : (
+                    <span className="inline-flex h-12 w-16 items-center justify-center rounded-md bg-[#FAF7F2] text-[10px] text-[#7A7164]">
+                      No img
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2.5 text-xs font-semibold capitalize text-[#5C5346]">{r.lane}</td>
                 <td className="px-3 py-2.5 font-semibold text-[#1E1810]">{r.title}</td>
                 <td className="px-3 py-2.5 font-mono text-xs text-[#5C5346]">{r.slug}</td>
                 <td className="px-3 py-2.5 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id?.trim() || "—"}</td>
                 <td className="px-3 py-2.5">{statusBadge(r.lifecycle_status)}</td>
-                <td className="px-3 py-2.5 text-xs tabular-nums text-[#5C5346]">{r.submitted_at ?? "—"}</td>
-                <td className="px-3 py-2.5 text-xs text-[#5C5346]">{r.owner_user_id ? r.owner_user_id.slice(0, 8) + "…" : "—"}</td>
+                <td className="px-3 py-2.5 text-xs tabular-nums text-[#5C5346]">
+                  <div>{r.submitted_at ?? "—"}</div>
+                  <div className="text-[10px] text-[#7A7164]">upd {r.updated_at ?? "—"}</div>
+                </td>
+                <td className="px-3 py-2.5 text-xs text-[#5C5346]">
+                  <div>{r.submitter_name || "—"}</div>
+                  <div className="text-[10px] text-[#7A7164]">{r.submitter_email || ""}</div>
+                  <div className="text-[10px] text-[#7A7164]">
+                    {r.owner_user_id ? `owner ${r.owner_user_id.slice(0, 8)}…` : ""}
+                  </div>
+                </td>
                 <td className="px-3 py-2.5">
                   <input
                     className={adminInputClass}
@@ -215,6 +234,12 @@ export function AdminViajesBusinessOffersModeration() {
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex flex-col gap-1">
+                    <Link
+                      href={`/admin/clasificados/viajes/business-offers/${encodeURIComponent(r.id)}`}
+                      className="text-xs font-bold text-[#6B5B2E] underline"
+                    >
+                      Open detail →
+                    </Link>
                     {r.lifecycle_status === "approved" && r.is_public ? (
                       <Link
                         href={`/clasificados/viajes/oferta/${r.slug}`}

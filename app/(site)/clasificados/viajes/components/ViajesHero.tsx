@@ -1,66 +1,68 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { VIAJES_HERO_IMAGE } from "../data/viajesLandingSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
+import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 
 type ViajesHeroProps = {
   searchBar: ReactNode;
   tripPills: ReactNode;
   ui: ViajesUi;
+  exploreHref: string;
+  publishHref: string;
 };
 
-/**
- * Hero + search: single bordered card — image band, then search + pills in a contiguous stack.
- * Avoids negative-margin overlap at any breakpoint while keeping a premium framed look.
- */
-export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
+export function ViajesHero({ searchBar, tripPills, ui, exploreHref, publishHref }: ViajesHeroProps) {
   return (
-    <section className="relative z-[1] w-full min-w-0 overflow-x-hidden px-3 pt-2 sm:px-4 md:px-5 lg:px-6">
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/45 shadow-[0_28px_80px_-36px_rgba(15,50,70,0.42)] sm:rounded-3xl">
-        <div className="relative w-full overflow-hidden">
-          <div
-            className="relative aspect-[16/9] w-full max-h-[min(42svh,14rem)] sm:max-h-[min(40svh,15rem)] md:aspect-[2.05/1] md:max-h-[min(36svh,16rem)] lg:max-h-[min(32svh,17rem)] lg:min-h-[12rem]"
-          >
-            <Image
-              src={VIAJES_HERO_IMAGE.src}
-              alt={VIAJES_HERO_IMAGE.alt}
-              fill
-              priority
-              sizes="(max-width:640px) 100vw, (max-width:1024px) 100vw, min(1280px, 100vw)"
-              className="object-cover object-[center_28%] min-[480px]:object-[center_32%] sm:object-[center_34%] md:object-[center_36%] lg:object-[center_38%]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0c2a38]/62 via-[#1a4a5c]/22 to-transparent" aria-hidden />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#f3ebdd] via-[#f3ebdd]/48 to-[#0a1f2a]/32" aria-hidden />
-            <div
-              className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,rgba(255,252,247,0.22),transparent_58%)]"
-              aria-hidden
-            />
+    <section className="relative z-[1] w-full min-w-0 overflow-x-hidden">
+      <div className="relative w-full overflow-hidden">
+        <div className="relative aspect-[16/10] w-full max-h-[min(52svh,22rem)] sm:max-h-[min(48svh,24rem)] md:aspect-[2.4/1] md:max-h-[min(42svh,26rem)] lg:max-h-[min(38svh,28rem)]">
+          <Image
+            src={VIAJES_HERO_IMAGE.src}
+            alt={VIAJES_HERO_IMAGE.alt}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[center_32%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0c2a38]/70 via-[#1a4a5c]/30 to-transparent" aria-hidden />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" aria-hidden />
 
-            <div className="absolute inset-0 flex flex-col justify-end pb-4 pt-10 sm:pb-6 sm:pt-16 md:pb-7 md:pt-20">
-              <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-5 lg:px-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="min-w-0 text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 drop-shadow-sm sm:text-[11px] sm:tracking-[0.2em]">
-                    Leonix · Viajes
-                  </p>
-                  <span className="shrink-0 rounded-full border border-white/35 bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white/95 backdrop-blur-sm sm:px-2.5 sm:text-[10px] sm:tracking-[0.12em]">
-                    {ui.heroPrimaryCue}
-                  </span>
-                </div>
-                <h1 className="mt-2 max-w-full break-words text-[clamp(1.35rem,4vw+0.45rem,2.65rem)] font-bold leading-[1.12] tracking-tight text-[#FFFCF7] drop-shadow-md sm:mt-3">
-                  {ui.heroTitle}
-                </h1>
-                <p className="mt-2 max-w-full break-words text-[13px] leading-snug text-white/95 drop-shadow [text-wrap:pretty] sm:mt-3 sm:max-w-2xl sm:text-sm md:leading-relaxed lg:max-w-2xl lg:text-[0.95rem]">
-                  {ui.heroSubtitle}
-                </p>
+          <div className="absolute inset-0 flex flex-col justify-end pb-6 pt-12 sm:pb-8 sm:pt-16">
+            <div className="mx-auto w-full min-w-0 max-w-[1280px] px-3.5 sm:px-4 lg:px-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 sm:text-[11px]">Leonix · Viajes</p>
+              <h1 className="mt-2 max-w-3xl text-[clamp(1.55rem,4.2vw+0.4rem,3rem)] font-bold leading-[1.1] tracking-tight text-white drop-shadow-md">
+                {ui.heroTitle}
+              </h1>
+              <p className="mt-2 max-w-2xl text-[13px] leading-snug text-white/95 sm:text-sm md:text-[0.95rem]">
+                {ui.heroSubtitle}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <Link
+                  href={exploreHref}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full px-5 text-sm font-bold text-white shadow-md"
+                  style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
+                >
+                  {ui.heroCtaExplore}
+                </Link>
+                <Link
+                  href={publishHref}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-white/70 bg-white/15 px-5 text-sm font-bold text-white backdrop-blur-sm"
+                >
+                  {ui.heroCtaPublish}
+                </Link>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="border-t border-[color:var(--lx-gold-border)]/35 bg-[#fffdf9]/[0.99] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,252,247,0.88)] sm:px-5 sm:py-5 md:px-6 md:py-5">
+      <div className="relative z-[2] mx-auto -mt-6 w-full max-w-[1280px] px-3.5 sm:-mt-8 sm:px-4 lg:px-5">
+        <div className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-white p-3 shadow-[0_18px_44px_-24px_rgba(15,50,70,0.32)] sm:p-4">
           <div className="min-w-0">{searchBar}</div>
-          <div className="mt-3 min-w-0 sm:mt-3.5">{tripPills}</div>
+          <div className="mt-3 min-w-0 border-t border-[color:var(--lx-nav-border)]/70 pt-3">{tripPills}</div>
         </div>
       </div>
     </section>

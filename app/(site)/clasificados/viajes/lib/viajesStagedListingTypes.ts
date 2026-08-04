@@ -10,13 +10,22 @@ export type ViajesStagedLifecycleStatus =
   | "expired"
   | "unpublished";
 
-export type ViajesStagedLane = "business" | "private";
+/** Staged writes today use business|private; affiliate|editorial accepted for public read when present. */
+export type ViajesStagedLane = "business" | "private" | "affiliate" | "editorial";
 
 export type ViajesStagedListingJsonV1 = {
   version: 1;
   negocios?: Record<string, unknown>;
   privado?: Record<string, unknown>;
 };
+
+/** V2 staged envelope — canonical offer lives in `offer`. */
+export type ViajesStagedListingJsonV2 = {
+  version: 2;
+  offer: Record<string, unknown>;
+};
+
+export type ViajesStagedListingJson = ViajesStagedListingJsonV1 | ViajesStagedListingJsonV2;
 
 export type ViajesStagedListingRow = {
   id: string;
@@ -39,7 +48,7 @@ export type ViajesStagedListingRow = {
   review_notes: string | null;
   moderation_reason: string | null;
   hero_image_url: string | null;
-  listing_json: ViajesStagedListingJsonV1 | Record<string, unknown>;
+  listing_json: ViajesStagedListingJson | Record<string, unknown>;
   lang: "es" | "en";
   submitted_at: string | null;
   reviewed_at: string | null;

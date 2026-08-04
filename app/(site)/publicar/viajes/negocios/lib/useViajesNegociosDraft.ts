@@ -2,16 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { viajesDraftMediaDelete } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
-
 import type { ViajesNegociosDraft } from "./viajesNegociosDraftTypes";
 import {
   emptyViajesNegociosDraft,
   mergeViajesNegociosDraftFromPartial,
   VIAJES_NEGOCIOS_DRAFT_STORAGE_KEY,
-  VIAJES_NEGOCIOS_MAX_INLINE_IMAGE,
 } from "./viajesNegociosDraftDefaults";
 
+/**
+ * Compatibility shim only.
+ * Active publisher path is `useViajesNegociosDraftV2` (V2 localStorage key).
+ * This hook may hydrate a legacy V1 draft for inspection but never writes
+ * localStorage, so it cannot compete with the V2 publisher.
+ */
 export function useViajesNegociosDraft() {
   const [draft, setDraft] = useState<ViajesNegociosDraft>(() => emptyViajesNegociosDraft());
   const [hydrated, setHydrated] = useState(false);
@@ -29,42 +32,12 @@ export function useViajesNegociosDraft() {
     setHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    try {
-      const toSave: ViajesNegociosDraft = { ...draft };
-      if (toSave.localImageDataUrl && toSave.localImageDataUrl.length > VIAJES_NEGOCIOS_MAX_INLINE_IMAGE) {
-        toSave.localImageDataUrl = null;
-      }
-      if (toSave.logoLocalDataUrl && toSave.logoLocalDataUrl.length > 160_000) {
-        toSave.logoLocalDataUrl = null;
-      }
-      if (toSave.galeriaUrls?.length) {
-        toSave.galeriaUrls = toSave.galeriaUrls.map((u) => (u.length > 130_000 ? "" : u)).filter(Boolean);
-      }
-      localStorage.setItem(VIAJES_NEGOCIOS_DRAFT_STORAGE_KEY, JSON.stringify(toSave));
-    } catch {
-      /* quota */
-    }
-  }, [draft, hydrated]);
-
   const update = useCallback((patch: Partial<ViajesNegociosDraft>) => {
     setDraft((d) => ({ ...d, ...patch }));
   }, []);
 
   const reset = useCallback(() => {
-    setDraft((d) => {
-      const bid = d.localHeroImageId;
-      if (typeof window !== "undefined" && bid) {
-        queueMicrotask(() => void viajesDraftMediaDelete("negocios", bid));
-      }
-      return emptyViajesNegociosDraft();
-    });
-    try {
-      if (typeof window !== "undefined") localStorage.removeItem(VIAJES_NEGOCIOS_DRAFT_STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
+    setDraft(emptyViajesNegociosDraft());
   }, []);
 
   return { draft, update, setDraft, reset, hydrated };

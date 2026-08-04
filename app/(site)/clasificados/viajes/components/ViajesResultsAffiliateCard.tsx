@@ -8,6 +8,7 @@ import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesAffiliateResult } from "../data/viajesResultsSampleData";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
+import { normalizeViajesSanJoseCaliforniaLabel } from "../lib/viajesPublicLocation";
 
 export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateResult; ui: ViajesUi }) {
   const sp = useSearchParams();
@@ -30,8 +31,8 @@ export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateRe
         <p className="mt-1 line-clamp-1 text-sm text-[color:var(--lx-text-2)]">{row.destination}</p>
         <p className="mt-2 text-base font-bold text-[color:var(--lx-text)]">{row.priceFrom}</p>
         <div className="mt-1.5 space-y-1 text-xs text-[color:var(--lx-muted)]">
-          <p>{row.duration}</p>
-          <p>{row.departureContext}</p>
+          <p>{normalizeViajesSanJoseCaliforniaLabel(row.duration)}</p>
+          <p>{normalizeViajesSanJoseCaliforniaLabel(row.departureContext)}</p>
           {row.affiliateNote ? <p className="rounded-lg border border-amber-200/70 bg-amber-50/90 py-1.5 pl-2 pr-2 text-[10px] font-medium leading-snug text-amber-950">{row.affiliateNote}</p> : null}
         </div>
         <div className="mt-auto pt-3">
@@ -40,7 +41,7 @@ export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateRe
             className="flex min-h-[38px] w-full items-center justify-center rounded-xl px-3 text-sm font-bold text-white shadow-sm transition hover:brightness-105"
             style={{ backgroundColor: VIAJES_LANDING_CTA_ORANGE }}
           >
-            {ui.cards.affiliateCta}
+            {ui.lang === "en" ? "View offer" : "Ver oferta"}
           </Link>
         </div>
       </div>

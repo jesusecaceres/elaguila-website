@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import type { ViajesContactChannel } from "../data/viajesOfferDetailSampleData";
-import { FiGlobe, FiMail, FiPhone } from "react-icons/fi";
-import { SiFacebook, SiInstagram, SiTiktok, SiWhatsapp, SiX, SiYoutube } from "react-icons/si";
+import { FiGlobe, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
+import {
+  SiFacebook,
+  SiInstagram,
+  SiLinkedin,
+  SiPinterest,
+  SiSnapchat,
+  SiTiktok,
+  SiWhatsapp,
+  SiX,
+  SiYoutube,
+} from "react-icons/si";
 import { CtaActionSheet, type CtaSheetIntent } from "@/app/components/cta";
 import { buildViajesIntentFromChannel, isViajesContactHref } from "../lib/viajesCtaSheet";
 import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
@@ -14,10 +24,14 @@ function IconFor({ kind }: { kind: ViajesContactChannel["kind"] }) {
     case "tel":
     case "telOffice":
       return <FiPhone className={common} aria-hidden />;
+    case "sms":
+      return <FiMessageSquare className={common} aria-hidden />;
     case "whatsapp":
       return <SiWhatsapp className={common} aria-hidden />;
     case "email":
       return <FiMail className={common} aria-hidden />;
+    case "directions":
+      return <FiMapPin className={common} aria-hidden />;
     case "website":
       return <FiGlobe className={common} aria-hidden />;
     case "facebook":
@@ -30,6 +44,12 @@ function IconFor({ kind }: { kind: ViajesContactChannel["kind"] }) {
       return <SiYoutube className={common} aria-hidden />;
     case "twitter":
       return <SiX className={common} aria-hidden />;
+    case "linkedin":
+      return <SiLinkedin className={common} aria-hidden />;
+    case "snapchat":
+      return <SiSnapchat className={common} aria-hidden />;
+    case "pinterest":
+      return <SiPinterest className={common} aria-hidden />;
     default:
       return <FiGlobe className={common} aria-hidden />;
   }

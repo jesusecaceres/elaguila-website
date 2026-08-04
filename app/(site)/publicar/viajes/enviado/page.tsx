@@ -4,8 +4,6 @@ import Link from "next/link";
 import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
-import Navbar from "@/app/components/Navbar";
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
@@ -13,9 +11,9 @@ function ViajesEnviadoInner() {
   const sp = useSearchParams();
   const qs = sp ?? new URLSearchParams();
   const { routeLang, copyLang: lang } = resolveClasificadosPublishLang(qs.get("lang"));
-  const slug = qs.get("slug") ?? "";
-  const id = qs.get("id") ?? "";
-  const lane = qs.get("lane") ?? "";
+  const slug = (qs.get("slug") ?? "").trim();
+  const id = (qs.get("id") ?? "").trim();
+  const lane = (qs.get("lane") ?? "").trim();
 
   const copy = useMemo(() => {
     if (lang === "en") {
@@ -48,9 +46,16 @@ function ViajesEnviadoInner() {
   const dashboardHref = `/dashboard/viajes?${q}`;
   const resultsHref = appendLangToPath("/clasificados/viajes/resultados", routeLang);
   const hubHref = appendLangToPath("/publicar/viajes", routeLang);
-  const detailHref = slug ? appendLangToPath(`/clasificados/viajes/oferta/${slug}`, routeLang) : "";
+  const editHref =
+    lane === "private"
+      ? appendLangToPath(`/publicar/viajes/privado?stagedId=${encodeURIComponent(id)}`, routeLang)
+      : lane === "business"
+        ? appendLangToPath(`/publicar/viajes/negocios?stagedId=${encodeURIComponent(id)}`, routeLang)
+        : hubHref;
 
-  if (!slug || !id) {
+  const completeRef = Boolean(slug && id && (lane === "business" || lane === "private"));
+
+  if (!completeRef) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-[color:var(--lx-muted)]">
         <p>{copy.missing}</p>
@@ -76,13 +81,13 @@ function ViajesEnviadoInner() {
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-[color:var(--lx-muted)]">{copy.laneLabel}</dt>
-          <dd className="text-[color:var(--lx-text)]">{lane || "—"}</dd>
+          <dd className="text-[color:var(--lx-text)]">{lane}</dd>
         </div>
       </dl>
       <p className="mt-4 text-xs text-[color:var(--lx-muted)]">
         {lang === "en"
-          ? "After approval, your offer appears in public results and at the offer URL below."
-          : "Tras la aprobación, tu oferta aparece en resultados públicos y en la URL de ficha."}
+          ? "Your listing stays linked to this record id. You can edit and resubmit from the dashboard after review."
+          : "Tu listado queda vinculado a este id. Puedes editar y reenviar desde el panel tras la revisión."}
       </p>
       <div className="mt-8 flex flex-col gap-3">
         <Link
@@ -92,16 +97,17 @@ function ViajesEnviadoInner() {
           {copy.dashboard}
         </Link>
         <Link
+          href={editHref}
+          className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-4 text-sm font-bold text-[color:var(--lx-text)]"
+        >
+          {lang === "en" ? "Continue editing this listing" : "Seguir editando este listado"}
+        </Link>
+        <Link
           href={resultsHref}
           className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[color:var(--lx-nav-border)] px-4 text-sm font-bold text-[color:var(--lx-text)]"
         >
           {copy.results}
         </Link>
-        {detailHref ? (
-          <Link href={detailHref} className="text-center text-sm font-semibold text-[#B45309] underline">
-            {lang === "en" ? "Offer page (after approval)" : "Ficha pública (tras aprobación)"}
-          </Link>
-        ) : null}
         <Link href={hubHref} className="text-center text-sm text-[color:var(--lx-muted)] underline">
           {copy.home}
         </Link>
@@ -113,7 +119,6 @@ function ViajesEnviadoInner() {
 export default function PublicarViajesEnviadoPage() {
   return (
     <div className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
-      <Navbar />
       <Suspense fallback={<div className="px-4 py-16 text-center text-sm text-[color:var(--lx-muted)]">…</div>}>
         <ViajesEnviadoInner />
       </Suspense>

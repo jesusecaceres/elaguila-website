@@ -22,14 +22,19 @@ export async function allocateUniqueViajesStagedSlug(baseTitle: string): Promise
 export async function fetchApprovedViajesStagedRows(): Promise<ViajesStagedListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("viajes_staged_listings")
-    .select("*")
-    .eq("lifecycle_status", "approved")
-    .eq("is_public", true)
-    .order("republish_sort_at", { ascending: false, nullsFirst: true });
-  if (error || !data) return [];
-  return data as ViajesStagedListingRow[];
+  const base = () =>
+    supabase.from("viajes_staged_listings").select("*").eq("lifecycle_status", "approved").eq("is_public", true);
+
+  // Prefer republish sort when the column exists; fall back so browse never collapses to [].
+  const primary = await base().order("republish_sort_at", { ascending: false, nullsFirst: true });
+  if (!primary.error && primary.data) return primary.data as ViajesStagedListingRow[];
+
+  const fallback = await base().order("published_at", { ascending: false, nullsFirst: true });
+  if (!fallback.error && fallback.data) return fallback.data as ViajesStagedListingRow[];
+
+  const last = await base().order("updated_at", { ascending: false });
+  if (last.error || !last.data) return [];
+  return last.data as ViajesStagedListingRow[];
 }
 
 export async function fetchViajesStagedRowBySlugPublic(slug: string): Promise<ViajesStagedListingRow | null> {
@@ -50,8 +55,12 @@ export async function fetchAllViajesStagedForAdmin(): Promise<ViajesStagedListin
   return fetchViajesStagedAdminQueue({ limit: 500 });
 }
 
+/** Expanded staff queue fields — no migration; omit secrets. */
 const VIAJES_ADMIN_QUEUE_SELECT =
-  "id, slug, title, lifecycle_status, is_public, admin_promoted, leonix_verified, leonix_ad_id, owner_user_id, published_at, updated_at, republish_override, republish_count";
+  "id, slug, title, lane, lifecycle_status, is_public, moderation_reason, review_notes, submitted_at, updated_at, created_at, published_at, submitter_email, submitter_name, owner_user_id, hero_image_url, leonix_ad_id, business_profile_slug, listing_json, lang, admin_promoted, leonix_verified, republish_override, republish_count";
+
+/** Exported for Prompt 3 lifecycle selftests (exact select string). */
+export const VIAJES_ADMIN_QUEUE_SELECT_FIELDS = VIAJES_ADMIN_QUEUE_SELECT;
 
 export type ViajesAdminQueueFilters = {
   limit?: number;
@@ -65,17 +74,24 @@ export async function fetchViajesStagedAdminQueue(
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts.limit ?? 100), 1), 500);
-  let q = supabase
-    .from("viajes_staged_listings")
-    .select(VIAJES_ADMIN_QUEUE_SELECT)
-    .order("republish_sort_at", { ascending: false, nullsFirst: true })
-    .limit(cap);
-  if (opts.scope === "live") {
-    q = q.eq("lifecycle_status", "approved").eq("is_public", true);
-  }
-  const { data, error } = await q;
-  if (error || !data) return [];
-  return data as unknown as ViajesStagedListingRow[];
+
+  const run = async (orderCol: "republish_sort_at" | "updated_at") => {
+    let q = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT);
+    if (opts.scope === "live") {
+      q = q.eq("lifecycle_status", "approved").eq("is_public", true);
+    }
+    if (orderCol === "republish_sort_at") {
+      return q.order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
+    }
+    return q.order("updated_at", { ascending: false }).limit(cap);
+  };
+
+  const primary = await run("republish_sort_at");
+  if (!primary.error && primary.data) return primary.data as unknown as ViajesStagedListingRow[];
+
+  const fallback = await run("updated_at");
+  if (fallback.error || !fallback.data) return [];
+  return fallback.data as unknown as ViajesStagedListingRow[];
 }
 
 export async function updateViajesStagedListingModeration(input: {
