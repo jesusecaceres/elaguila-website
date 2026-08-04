@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
@@ -13,12 +13,14 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { OfertasLocalesOwnerAiManageSection } from "./OfertasLocalesOwnerAiManageSection";
 
+export const dynamic = "force-dynamic";
+
 type Lang = "es" | "en";
 
 const INPUT =
   "mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]";
 
-export default function OfertasLocalesOwnerManagePage() {
+function OfertasLocalesOwnerManagePageContent() {
   const params = useParams();
   const offerId = String(params?.id ?? "");
   const router = useRouter();
@@ -385,5 +387,13 @@ export default function OfertasLocalesOwnerManagePage() {
         </dl>
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function OfertasLocalesOwnerManagePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <OfertasLocalesOwnerManagePageContent />
+    </Suspense>
   );
 }

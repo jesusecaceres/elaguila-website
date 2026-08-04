@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -9,6 +9,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { formatEmpleosLocationLine } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -33,7 +35,7 @@ type Row = {
   updated_at: string;
 };
 
-export default function EmpleosEmployerDashboardPage() {
+function EmpleosEmployerDashboardPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = "/dashboard/empleos";
@@ -265,5 +267,13 @@ export default function EmpleosEmployerDashboardPage() {
         ← {lang === "es" ? "Volver al resumen" : "Back to overview"}
       </Link>
     </LeonixDashboardShell>
+  );
+}
+
+export default function EmpleosEmployerDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EmpleosEmployerDashboardPageContent />
+    </Suspense>
   );
 }

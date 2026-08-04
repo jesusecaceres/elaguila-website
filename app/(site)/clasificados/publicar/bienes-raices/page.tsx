@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { BienesRaicesPublicarHubClient } from "./BienesRaicesPublicarHubClient";
 import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
@@ -14,5 +15,9 @@ type PageProps = {
 export default async function BienesRaicesPublicarHubPage(props: PageProps) {
   const sp = props.searchParams ? await props.searchParams : {};
   const { copyLang } = resolveClasificadosPublishLangFromSearchParams(sp);
-  return <BienesRaicesPublicarHubClient lang={copyLang} />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <BienesRaicesPublicarHubClient lang={copyLang} />
+    </Suspense>
+  );
 }

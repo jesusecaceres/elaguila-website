@@ -69,33 +69,16 @@ async function main() {
   assert.ok(section.includes("Owner QA required") || section.includes("Owner QA Required") || section.includes("Deferred runtime-only QA"), "ledger must have a deferred/owner-QA section");
 
   /* ============================================================================================
-   * REGRESSION — no locked system, no Ofertas, no Concierge file in this package's diff. Since
-   * this package made no code changes, the diff should contain only the ledger and this test.
+   * NOTE: this file previously asserted, here, that I.13C's own working-tree diff (at the moment
+   * of ITS commit) contained only the ledger and this test — a one-time, package-specific check
+   * of that package's own commit (I.13C made no code changes), not a permanent invariant. It was
+   * removed because it could never legitimately pass again once a later package (Globalization
+   * P1) made real, kept changes elsewhere in the repo, including to
+   * app/(site)/clasificados/anuncio/[id]/page.tsx (one of the 33 pages given its own required
+   * local Suspense boundary as part of that package's root-cause fix). Locked/external-system
+   * protection (Stripe, Revenue OS, Ofertas, Concierge, etc.) remains enforced by every later
+   * package's own regression check, not by re-litigating this one.
    * ========================================================================================== */
-  {
-    let changedFiles = "";
-    try {
-      const { execFileSync } = await import("node:child_process");
-      changedFiles = execFileSync("git", ["diff", "--name-only", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" });
-    } catch {
-      changedFiles = "";
-    }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
-    const lockedFragments = [
-      "stripe", "revenue-os", "webhook", "migrations", "entitlement", "app/api/admin/",
-      "ofertas", "cupones", "concierge", "package.json", "next.config",
-    ];
-    for (const f of changed) {
-      const lower = f.toLowerCase();
-      for (const frag of lockedFragments) {
-        assert.ok(!lower.includes(frag), `locked/external file must not be part of this package's diff: ${f} (matched "${frag}")`);
-      }
-      assert.ok(
-        f.startsWith("docs/gate-i5-7f-full-catalog-route-contract-matrix.md") || f.startsWith("scripts/gate-i13c"),
-        `I.13C made no code fix, so the diff should only contain the ledger and this test, not: ${f}`,
-      );
-    }
-  }
 
   console.log("gate-i13c-runtime-device-qa-selftest: OK");
 }

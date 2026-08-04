@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
@@ -10,6 +10,8 @@ import {
   dashboardSavedComingSoonCopy,
   dashboardSavedNextActionCopy,
 } from "../lib/dashboardProductTruth";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -25,7 +27,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function GuardadosPage() {
+function GuardadosPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
@@ -133,5 +135,13 @@ export default function GuardadosPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function GuardadosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <GuardadosPageContent />
+    </Suspense>
   );
 }

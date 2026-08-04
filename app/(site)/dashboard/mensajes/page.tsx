@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
@@ -10,6 +10,8 @@ import {
   dashboardInboxComingSoonCopy,
   dashboardInboxNextActionCopy,
 } from "../lib/dashboardProductTruth";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -25,7 +27,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function MensajesPage() {
+function MensajesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -131,5 +133,13 @@ export default function MensajesPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function MensajesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <MensajesPageContent />
+    </Suspense>
   );
 }

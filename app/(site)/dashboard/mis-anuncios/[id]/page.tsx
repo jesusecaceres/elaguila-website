@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -44,6 +44,8 @@ import {
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { misAnunciosDetailCopy } from "../../lib/dashboardI18n";
 import { EV_SELLER_DETAIL, evDetailClass } from "../enVentaSellerDetailTheme";
+
+export const dynamic = "force-dynamic";
 
 type Plan = "free" | "pro";
 type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "status";
@@ -121,7 +123,7 @@ function getFirstListingImageUrl(images: unknown): string | null {
   return null;
 }
 
-export default function ListingWorkspacePage() {
+function ListingWorkspacePageContent() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const router = useRouter();
@@ -929,5 +931,13 @@ export default function ListingWorkspacePage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function ListingWorkspacePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ListingWorkspacePageContent />
+    </Suspense>
   );
 }

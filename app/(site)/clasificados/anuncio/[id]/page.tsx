@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../../components/Navbar";
 import newLogo from "../../../../../public/logo.png";
@@ -408,7 +408,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   return out;
 }
 
-export default function AnuncioDetallePage() {
+function AnuncioDetallePageContent() {
   const params = useParams<{ id: string }>();
 
   // ✅ Null-safe guard: some setups type useSearchParams() as possibly null
@@ -2645,5 +2645,12 @@ export default function AnuncioDetallePage() {
         </div>
       ) : null}
     </div>
+  );
+}
+export default function AnuncioDetallePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AnuncioDetallePageContent />
+    </Suspense>
   );
 }

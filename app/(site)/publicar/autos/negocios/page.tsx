@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AutosNegociosApplication } from "./components/AutosNegociosApplication";
 
 export const metadata: Metadata = {
@@ -10,5 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function PublicarAutosNegociosPage() {
-  return <AutosNegociosApplication />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AutosNegociosApplication />
+    </Suspense>
+  );
 }

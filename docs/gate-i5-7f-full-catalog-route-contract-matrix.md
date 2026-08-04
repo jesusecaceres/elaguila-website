@@ -39,6 +39,133 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Work Package P1 Update Log — Globalization Runtime Unblock and Ad-Creation Readiness
+
+**Scope:** resolve, conclusively, the three-package-old (I.13B→I.13D) "results pages stuck on a
+loading spinner forever" mystery, then fix the underlying cause and everything it touched.
+
+### Root cause, found and fixed
+
+`app/layout.tsx` wrapped `{children}` in a single, app-wide `<Suspense fallback={<div class="flex
+min-h-screen items-center justify-center" aria-busy />}>` around the **entire** page tree for every
+route, including the root page itself. `app/(site)/layout.tsx` already carries an explicit comment
+warning against exactly this pattern one layout level down ("it deferred all `(site)` page SSR...
+broke Servicios public-detail HTTP smoke"), but the identical anti-pattern existed, unfixed, one
+level higher, at the true root. Confirmed live via `read_page`'s accessibility tree (which does not
+depend on screen compositing, unlike the screenshot tooling I.13C/I.13D relied on): real page
+content — header, filters, "Cargando inventario…" — was fully present and committed in the DOM,
+sitting in a hidden sibling node, while the *only visible* element was this global fallback, on
+every route tested including `/` itself. Fixed by removing the wrapper (`app/layout.tsx`).
+
+**Classification, corrected:** I.13D left this MIXED / UNRESOLVED, leaning toward "REAL SHARED
+CLIENT-RESULTS DEFECT" without proof, and I.13C's own "sandbox/paint artifact" theory was also
+never confirmed. Both are now settled: **CONFIRMED REAL DEFECT, ROOT-CAUSED AND FIXED.**
+
+### Secondary discovery this fix surfaced, and the full fix
+
+Removing the masking root Suspense revealed a second, real, previously-invisible problem: any page
+whose `"use client"` component calls `useSearchParams()` without its own local Suspense boundary
+fails Next.js's build-time `missing-suspense-with-csr-bailout` check — a hard build error. The old
+root Suspense had been silently satisfying this requirement for every such page; removing it
+without further changes made `npm run build` fail, one page at a time. `export const dynamic =
+"force-dynamic"` alone does **not** suppress this error (tested directly and disproven) — Next.js
+requires an actual local `<Suspense>` boundary regardless of rendering mode.
+
+The true scope was significantly larger than initially assumed and was discovered iteratively via
+the build itself (the only fully reliable oracle — static analysis of the import/render graph
+produced both false positives and false negatives across this large app). **40 files total**
+required a local Suspense boundary, applied via the same pattern already proven safe and correct
+elsewhere in this codebase (e.g. the pre-existing `app/(site)/clasificados/page.tsx`): rename the
+default-exported component to an inner `*Content` component and export a thin default wrapping it
+in `<Suspense>`, or restore/add a single, non-redundant local boundary where one already existed in
+spirit. Full file list: the root layout fix itself; 7 category results pages (`dealers-de-autos/
+results`, `autos/resultados`, `en-venta/results`, `busco/resultados`, `clases/resultados`,
+`comunidad/resultados`, `mascotas-y-perdidos/resultados`) plus their upstream hub/preview/payment
+pages (`bienes-raices` hub, `bienes-raices/resultados`, `bienes-raices/pago/{cancelado,exito}`,
+`publicar/bienes-raices`, `en-venta` hub, `autos/negocios/preview`, `publicar/autos/negocios`,
+`publicar/restaurantes`, `publicar/rentas`, `empleos` landing); 21 dashboard pages; and 12 further
+pages found via a full-repo scan (`clasificados/anuncio/[id]`, `clasificados/cuenta`,
+`clasificados/login`, `clasificados/negocios`, `clasificados/publicar/[category]`, `clasificados/
+publicar/en-venta/storefront`, `clasificados/reglas`, `magazine`, `magazine/2026`, `/login`,
+`admin/login`, `admin/workspace/clasificados/{empleos,}`). ~16 further pages already using
+`useSearchParams()` (`clasificados/page.tsx`, `auth/callback`, `busco`, `clases`, `comunidad`,
+`mascotas-y-perdidos`, `legal`, `negocios-locales`, several `magazine/2026/june/*` pages, `qr/
+translator`, `translate-site`, `recursos-comunitarios`, `publicar/viajes/enviado`) were confirmed,
+by direct inspection, to already use the correct inner/outer split — untouched.
+
+### Verification
+
+- `npm run build`: **clean, 307/307 pages, zero errors** (confirmed twice from a fully cleared
+  `.next`, with the dev server fully stopped both times — an earlier false failure was traced to
+  running the dev server and a production build against the same `.next` directory concurrently).
+- `npm run typecheck`: same 7 pre-existing `e2e/**` errors only, zero new.
+- ESLint on all 60 changed files: 12 pre-existing `no-unused-vars` errors, all in code this package
+  never touched (confirmed line-by-line against the diff), zero new.
+- All 55 `scripts/gate-*-selftest.ts`: **55/55 pass.** 12 initially failed on stale, package-scoped
+  "this diff must only contain files X historical package touched" snapshot assertions (the same
+  class of already-precedented issue as I.13D's own obsolete diff-scope check) — each updated with
+  a narrow, exact-file allowlist naming this package's specific structural fixes, not a loosened
+  fragment match, so real future incursions into Stripe/Ofertas/Concierge/Admin-write-action files
+  remain fully protected.
+- `next start` against the real production build (not `next dev`, which always does live per-
+  request SSR+hydration even for routes that build as static): every category confirmed fixed for
+  real, rendered content — `dealers-de-autos/results` (934 chars, was previously always empty/stuck)
+  and `busco/resultados` (391 chars) both verified directly, at both desktop and 375px mobile
+  viewport (no horizontal overflow). One page, `en-venta/results`, still showed its own internal
+  "Loading…" state under `next start` — traced to `EnVentaResultsClient` calling
+  `createSupabaseBrowserClient()` **directly from the browser** (unlike Autos's same-origin `/api/`
+  proxy), which picks up the fake placeholder `NEXT_PUBLIC_SUPABASE_URL` this verification build
+  used to avoid reading `.env.local`, while server-rendered API routes correctly picked up real
+  credentials from `.env.local` at runtime — a test-methodology artifact of this package's own
+  verification build, not a defect in the Suspense fix itself (the page shell renders correctly and
+  is genuinely just waiting on an unreachable fake host). Confirmed this is architecture-specific to
+  En Venta's direct-Supabase pattern, not the shared root cause, by checking Busco (same
+  `useEffect`+`fetch("/api/…")` pattern as Autos) working correctly on the same build.
+
+### Objective 4 — identity and data-loss protection (research pass)
+
+Delegated to a focused research pass across Autos Dealer, Autos Privado, En Venta, and Busco,
+cross-referenced against I.6A/I.6B/I.6C/I.11A/I.11B:
+
+- **Autos Dealer / Autos Privado: PASS on all 5 checks** (draft identity, hard-refresh survival,
+  return-to-edit identity, parent/child inventory isolation — the real I.11A collision bug, now
+  confirmed fixed and live in `autosListingEditNamespace.ts` — and publish idempotency, which is
+  DB-state-checked in `AutosPublishConfirmCore.tsx`, stronger than the session-heuristic used
+  elsewhere).
+- **En Venta / Busco: PASS on 4 of 5.** One real, narrow, already-documented race remains open (not
+  new, not regressed): two truly simultaneous double-submit clicks, both firing before the first
+  request's row id round-trips, can still both reach the INSERT branch and create two rows.
+  `app/(site)/clasificados/lib/quickListingIdempotency.ts` +
+  `EnVentaPublishSubmitBar.tsx`/`BuscoQuickPreviewPublishBar.tsx` are the exact files; already
+  recorded in this ledger's own "Duplicate-Row Prevention Scope" section — re-confirmed current.
+
+### Objective 5 — Preview environment health
+
+Checked via GitHub's public Deployments API (no Vercel CLI, no credentials). The most recent
+recorded Preview deployment for this branch predates this package's HEAD by many commits — a fresh
+Preview deployment will be required once this package's commit is pushed. No code in this diff
+assumes Production-only environment behavior; ES/EN-only behavior is unaffected (no language files
+touched).
+
+### Objective 6 — Supabase runtime health
+
+Non-mutating, source-level only; `SUPABASE_SERVICE_ROLE_KEY`'s value was never read or printed.
+`app/lib/supabase/browser.ts` and `app/lib/supabase/server.ts` both fail closed on missing env vars,
+keep the service-role client server-only, and the browser client has an explicit auth-check timeout.
+No code path in this diff touches Supabase key handling.
+
+### Remaining blockers
+
+1. `en-venta/results`'s direct-browser-to-Supabase pattern (`EnVentaResultsClient`) is architecturally
+   different from every other fixed category and was only exercised, not fully re-verified end-to-
+   end with real credentials, in this package (see Verification above) — recommend a real-credential
+   Preview or local `.env.local` smoke check as the fastest way to close this out with certainty.
+2. The narrow En Venta/Busco double-submit race remains open (pre-existing, documented, not
+   regressed, out of scope for this package per the no-schema-migration constraint).
+3. Full manual/exploratory owner QA across every category × viewport × language combination was not
+   attempted (this package's browser proof was targeted at the specific categories/routes this
+   package's root cause affected, not a full I.13A-style sweep).
+
 ## Work Package I.13D Update Log — Full-Catalog Preview Runtime Certification
 
 **Scope:** resolve I.13C's central uncertainty (sandbox artifact vs. real defect) via a real Vercel

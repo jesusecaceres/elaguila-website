@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
@@ -41,6 +41,8 @@ import {
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { buildRestaurantesEligibilityInput } from "@/app/lib/listingIdentity/restaurantesLifecycleAdapter";
 import { resolveAttentionState, resolveOwnerFacingStatus } from "@/app/lib/listingIdentity";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -95,7 +97,7 @@ function ownerTotalsToListingMetrics(totals: OwnerAnalyticsTotals): ListingMetri
   };
 }
 
-export default function DashboardRestaurantesPage() {
+function DashboardRestaurantesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
@@ -565,5 +567,13 @@ export default function DashboardRestaurantesPage() {
         ) : null}
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardRestaurantesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardRestaurantesPageContent />
+    </Suspense>
   );
 }

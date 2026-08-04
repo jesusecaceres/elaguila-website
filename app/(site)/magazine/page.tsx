@@ -17,7 +17,7 @@ import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/Magaz
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
 import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { magazineJune2026ReaderHref } from "@/app/lib/magazine/qrBridge";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 type MagazineEdition = {
@@ -204,7 +204,7 @@ function editionMonthLabel(edition: MagazineEdition, lang: MagazineLang): string
   return edition.monthEs;
 }
 
-export default function MagazineHubPage() {
+function MagazineHubPageContent() {
   const params = useSearchParams()!;
   const lang = resolveMagazineLang(params.get("lang"));
   const t = getMagazineHubPageCopy(lang);
@@ -497,5 +497,13 @@ export default function MagazineHubPage() {
           </div>
       </div>
     </main>
+  );
+}
+
+export default function MagazineHubPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <MagazineHubPageContent />
+    </Suspense>
   );
 }

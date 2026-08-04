@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getMergedEnVentaHubLanding } from "@/app/lib/clasificados/enVentaCategoryContentServer";
 import { navCopyLang, normalizeLang } from "@/app/lib/language";
 import { EnVentaHubPageClient } from "./EnVentaHubPageClient";
@@ -9,5 +10,9 @@ export default async function EnVentaHubPage(props: { searchParams?: Promise<{ l
   const routeLang = normalizeLang(sp.lang);
   const copyLang = navCopyLang(routeLang);
   const hub = await getMergedEnVentaHubLanding(copyLang);
-  return <EnVentaHubPageClient hub={hub} />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EnVentaHubPageClient hub={hub} />
+    </Suspense>
+  );
 }

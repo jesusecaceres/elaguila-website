@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
@@ -19,6 +19,8 @@ import {
   serviciosOffersEditLabel,
   serviciosOffersInactiveDashboardHint,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -109,7 +111,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardServiciosPage() {
+function DashboardServiciosPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/servicios";
   const searchParams = useSearchParams();
@@ -684,5 +686,13 @@ export default function DashboardServiciosPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardServiciosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardServiciosPageContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
@@ -13,6 +13,8 @@ import {
   applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
 import { dashboardSafeMutationErrorCopy } from "../../../lib/dashboardSafeErrorCopy";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -53,7 +55,7 @@ function minutesSince(iso?: string | null) {
   return (Date.now() - ms) / 1000 / 60;
 }
 
-export default function EditListingPage() {
+function EditListingPageContent() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
@@ -738,5 +740,13 @@ async function removeSellerPhoto() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function EditListingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EditListingPageContent />
+    </Suspense>
   );
 }

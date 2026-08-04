@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AutosNegociosPreviewClient } from "./AutosNegociosPreviewClient";
 
 export const metadata: Metadata = {
@@ -11,5 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default function ClasificadosAutosNegociosPreviewPage() {
-  return <AutosNegociosPreviewClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AutosNegociosPreviewClient />
+    </Suspense>
+  );
 }

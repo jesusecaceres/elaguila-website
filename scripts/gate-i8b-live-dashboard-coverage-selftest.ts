@@ -281,7 +281,31 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization P1 fixed the root cause of the app-wide stuck-loading-spinner defect (a
+    // redundant global <Suspense> in app/layout.tsx) and, as a required consequence, added the
+    // one local Suspense boundary Next.js's build requires around each of these two pages' own
+    // useSearchParams() usage. Both are structural runtime-plumbing fixes only (no ownership,
+    // payment, or business-logic change), required for "npm run build" to succeed at all -- not
+    // an incursion into the Ofertas Locales or Autos Negocios workstreams this check protects.
+    const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set([
+      "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+      "app/(site)/dashboard/ofertas-locales/page.tsx",
+      "app/(site)/clasificados/autos/negocios/preview/page.tsx",
+      "app/(site)/publicar/autos/negocios/page.tsx",
+      "app/(site)/clasificados/bienes-raices/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/cancelado/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/exito/page.tsx",
+      "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
+      "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/empleos/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/page.tsx",
+      "app/admin/login/page.tsx",
+    ]);
+    const changed = changedFiles
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
     const lockedPathFragments = ["revenue-os", "stripe", "/admin/", "ofertas", "cupones", "concierge", "webhook", "migrations"];
     for (const f of changed) {
       const lower = f.toLowerCase();

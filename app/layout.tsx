@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { ComingSoonGateRoot } from "./components/ComingSoonGateRoot";
 import { LanguagePreferenceSync } from "./components/LanguagePreferenceSync";
 import { LeonixRootJsonLd } from "./components/LeonixRootJsonLd";
@@ -65,9 +64,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
         <LeonixRootJsonLd />
+        {/*
+          Do not wrap `{children}` in a root <Suspense> here: it defers the entire page's SSR to
+          this fallback and can leave the reveal client-side stuck indefinitely, showing only this
+          empty spinner with real content committed-but-hidden underneath — the exact bug already
+          identified and avoided one layout level down in app/(site)/layout.tsx. Pages that
+          genuinely need a Suspense boundary (e.g. dealers-de-autos/results/page.tsx) already
+          define their own, closer to the actual suspending component.
+        */}
         <ComingSoonGateRoot>
           <LanguagePreferenceSync />
-          <Suspense fallback={<div className="flex min-h-screen items-center justify-center" aria-busy="true" />}>{children}</Suspense>
+          {children}
         </ComingSoonGateRoot>
       </body>
     </html>

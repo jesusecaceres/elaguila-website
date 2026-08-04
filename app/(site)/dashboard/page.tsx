@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
@@ -24,6 +24,8 @@ import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
 import { fetchDashboardAnalyticsSummary } from "./lib/fetchDashboardAnalyticsApi";
 
+export const dynamic = "force-dynamic";
+
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
 
@@ -38,7 +40,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard";
 
@@ -613,5 +615,13 @@ export default function DashboardPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardPageContent />
+    </Suspense>
   );
 }

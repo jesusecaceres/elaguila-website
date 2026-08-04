@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -39,7 +41,7 @@ type AppRow = {
 const BTN =
   "inline-flex items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] hover:bg-[#FAF7F2] disabled:opacity-40";
 
-export default function EmpleosEmployerManagePage() {
+function EmpleosEmployerManagePageContent() {
   const params = useParams();
   const listingId = String(params?.listingId ?? "");
   const router = useRouter();
@@ -272,5 +274,13 @@ export default function EmpleosEmployerManagePage() {
         ← {t.back}
       </Link>
     </LeonixDashboardShell>
+  );
+}
+
+export default function EmpleosEmployerManagePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EmpleosEmployerManagePageContent />
+    </Suspense>
   );
 }

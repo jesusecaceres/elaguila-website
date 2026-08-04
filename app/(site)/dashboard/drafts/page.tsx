@@ -6,7 +6,7 @@
  */
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { OWNER_LISTING_SOFT_ARCHIVE_PATCH, applyOwnerListingPatch } from "../lib/ownerListingsLifecycleClient";
@@ -16,6 +16,8 @@ import { DashboardAutosPaidDraftsBand } from "../components/DashboardAutosPaidDr
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass, shortListingRef } from "../lib/listingDisplayStatus";
 import type { Lang } from "../lib/listingDisplayStatus";
+
+export const dynamic = "force-dynamic";
 
 type Plan = "free" | "pro";
 
@@ -45,7 +47,7 @@ function isDraftRow(row: ListingRow): boolean {
   return st === "draft" || st === "unpublished";
 }
 
-export default function DraftsPage() {
+function DraftsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/drafts";
@@ -301,5 +303,13 @@ export default function DraftsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DraftsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DraftsPageContent />
+    </Suspense>
   );
 }

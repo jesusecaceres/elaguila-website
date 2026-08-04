@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -54,6 +54,7 @@ import {
   resolveMisAnunciosLoadPlan,
   type DedicatedCategoryCounts,
 } from "../lib/dashboardMisAnunciosCategoryLoadPlan";
+
 import {
   buildAutosClassifiedsInventoryItems,
   buildRestaurantInventoryItems,
@@ -128,6 +129,9 @@ import {
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
+
+export const dynamic = "force-dynamic";
+
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -353,7 +357,7 @@ function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
   return lang === "es" ? "Precio reducido" : "Reduced price";
 }
 
-export default function MyListingsPage() {
+function MyListingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/mis-anuncios";
@@ -2312,5 +2316,13 @@ export default function MyListingsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function MyListingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <MyListingsPageContent />
+    </Suspense>
   );
 }

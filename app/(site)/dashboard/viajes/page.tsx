@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -12,6 +12,8 @@ import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -51,7 +53,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardViajesStagedPage() {
+function DashboardViajesStagedPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/viajes";
   const searchParams = useSearchParams();
@@ -402,5 +404,13 @@ export default function DashboardViajesStagedPage() {
         ) : null}
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardViajesStagedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardViajesStagedPageContent />
+    </Suspense>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { BienesRaicesLandingHub } from "./BienesRaicesLandingHub";
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function BienesRaicesCategoryPage() {
-  return <BienesRaicesLandingHub />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <BienesRaicesLandingHub />
+    </Suspense>
+  );
 }

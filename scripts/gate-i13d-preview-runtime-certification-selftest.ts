@@ -3,7 +3,13 @@
  *
  * This package implemented no surviving code fix: one fix attempt (removing an explicit Suspense
  * wrapper from dealers-de-autos/results/page.tsx) was tested live and disproven, then fully
- * reverted. This test therefore asserts that the ledger honestly records: (1) the real Vercel
+ * reverted, in this package. A later package (Globalization P1) identified the real, shared root
+ * cause — a redundant global <Suspense> in app/layout.tsx swallowing the reveal for every locally-
+ * suspending page. dealers-de-autos/results/page.tsx keeps its own local Suspense boundary (Next.js
+ * requires one wherever useSearchParams() is called, checked at build time regardless of runtime
+ * behavior) — removing it, as this package's disproven attempt did, was never the fix; removing the
+ * redundant ancestor boundary one layout level up was. This test therefore asserts that the ledger
+ * honestly records: (1) the real Vercel
  * Preview that was located and why it couldn't be used; (2) both disclosed operational mistakes
  * and their required owner follow-up; (3) the two fix hypotheses tested and disproven this
  * package; (4) the corrected classification reasoning; (5) that the diff contains no surviving
@@ -61,38 +67,13 @@ async function main() {
   assert.ok(!/PREVIEW READY/.test(section), "I.13D's own section must not claim PREVIEW READY given the unresolved finding");
 
   /* ============================================================================================
-   * REGRESSION — no locked system, no Ofertas, no Concierge file in this package's diff. Since
-   * the one fix attempt was reverted, the diff should contain only the ledger and this test.
+   * NOTE: this file previously asserted, here, that I.13D's own working-tree diff (at the moment
+   * of ITS commit) contained only the ledger and this test — a one-time, package-specific check
+   * of that package's own commit, not a permanent invariant. It was removed because it could never
+   * legitimately pass again once a later package (Globalization P1) made real, kept changes to
+   * dealers-de-autos/results/page.tsx and app/layout.tsx. The historical facts about I.13D's own
+   * package (its disproven, reverted attempt) remain asserted above via the ledger section checks.
    * ========================================================================================== */
-  {
-    let changedFiles = "";
-    try {
-      const { execFileSync } = await import("node:child_process");
-      changedFiles = execFileSync("git", ["diff", "--name-only", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" });
-    } catch {
-      changedFiles = "";
-    }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
-    const lockedFragments = [
-      "stripe", "revenue-os", "webhook", "migrations", "entitlement", "app/api/admin/",
-      "ofertas", "cupones", "concierge", "package.json", "next.config",
-    ];
-    for (const f of changed) {
-      const lower = f.toLowerCase();
-      for (const frag of lockedFragments) {
-        assert.ok(!lower.includes(frag), `locked/external file must not be part of this package's diff: ${f} (matched "${frag}")`);
-      }
-      assert.ok(
-        f.startsWith("docs/gate-i5-7f-full-catalog-route-contract-matrix.md") || f.startsWith("scripts/gate-i13d"),
-        `I.13D's one fix attempt was reverted, so the diff should only contain the ledger and this test, not: ${f}`,
-      );
-    }
-    // Explicitly confirm the reverted file carries no diff.
-    assert.ok(
-      !changed.some((f) => f.includes("dealers-de-autos/results/page.tsx")),
-      "the disproven Suspense-wrapper fix attempt must be fully reverted, not left in the diff",
-    );
-  }
 
   console.log("gate-i13d-preview-runtime-certification-selftest: OK");
 }

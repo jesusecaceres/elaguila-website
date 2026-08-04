@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -11,7 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   not_roster: "This account is not authorized for admin access. Customer logins cannot access /admin.",
 };
 
-export default function AdminLoginPage() {
+function AdminLoginPageContent() {
   const searchParams = useSearchParams();
   const errorKey = searchParams?.get("error") ?? undefined;
   const errorMessage = errorKey ? ERROR_MESSAGES[errorKey] ?? "Could not sign in." : undefined;
@@ -108,5 +108,13 @@ export default function AdminLoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AdminLoginPageContent />
+    </Suspense>
   );
 }

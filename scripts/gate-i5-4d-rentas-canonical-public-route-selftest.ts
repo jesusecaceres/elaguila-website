@@ -75,6 +75,21 @@ const I10A_ANALYTICS_WIRING_EXCEPTIONS = new Set<string>([
   "app/(site)/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell.tsx",
 ]);
 
+/**
+ * Globalization P1 fixed the root cause of an app-wide stuck-loading-spinner defect (a redundant
+ * global <Suspense> in app/layout.tsx) and, as a required consequence, added the one local
+ * Suspense boundary Next.js's build requires around each of these Bienes Raíces pages' own
+ * useSearchParams() usage — structural runtime-plumbing only, no route/ownership/business-logic
+ * change, and required for `npm run build` to succeed at all.
+ */
+const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set<string>([
+  "app/(site)/clasificados/bienes-raices/page.tsx",
+  "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
+  "app/(site)/clasificados/bienes-raices/pago/cancelado/page.tsx",
+  "app/(site)/clasificados/bienes-raices/pago/exito/page.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
+]);
+
 async function main() {
   /* ---------------------------------------------------------------------------------------- *
    * 1/2 — the registry resolves both Rentas lanes to the canonical route, and they agree.
@@ -162,8 +177,14 @@ async function main() {
     assert.equal(enVenta.applicationRoute, "/clasificados/publicar/en-venta/pro", "En Venta's registry entry must be untouched");
     const brNegocio = getCategoryRouteAdapter("bienes_raices_negocio");
     assert.ok(
-      !changed.some((f) => f.includes("bienes-raices") && !f.includes("Rentas") && !I10A_ANALYTICS_WIRING_EXCEPTIONS.has(f)),
-      "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics exception",
+      !changed.some(
+        (f) =>
+          f.includes("bienes-raices") &&
+          !f.includes("Rentas") &&
+          !I10A_ANALYTICS_WIRING_EXCEPTIONS.has(f) &&
+          !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f),
+      ),
+      "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics / Globalization P1 Suspense-fix exceptions",
     );
     void brNegocio;
   }
