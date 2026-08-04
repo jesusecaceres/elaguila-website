@@ -136,16 +136,23 @@ export default function AgenteIndividualResidencialPreviewClient() {
 
   useEffect(() => {
     if (listingBoundPreview && listingIdParam) {
+      /* Globalization P2 (Gate 4/D) — do not consult `loadAgenteResPreviewDraftResolved` here.
+         That draft is keyed only by `applicationInstanceId`, which neither the dashboard preview
+         nor edit href ever sets — it falls back to whatever id (or none) already happens to sit
+         in sessionStorage from an unrelated, possibly stale, brand-new-ad session in this tab.
+         Using it here let a stale/empty draft silently overwrite this listing's correctly
+         DB-hydrated existing photos, which is what produced the false 422 "no photos are ready"
+         save failure on an edit that never touched media. For an existing, identified listing the
+         only valid sources of truth are the local edit-in-progress workspace for *this listing*
+         (if any) and the real DB-hydrated state — never the generic new-ad draft. */
       void hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang }).then((result) => {
         if (!result.ok) return;
-        void loadAgenteResPreviewDraftResolved({ applicationInstanceId }).then((loaded) => {
-          const workspace =
-            loadBienesListingEditWorkspace({
-              parentListingId: listingIdParam,
-              hydratedFromDatabase: result.state,
-            }) ?? result.state;
-          setData(loaded ?? workspace);
-        });
+        const workspace =
+          loadBienesListingEditWorkspace({
+            parentListingId: listingIdParam,
+            hydratedFromDatabase: result.state,
+          }) ?? result.state;
+        setData(workspace);
       });
       return;
     }
@@ -227,7 +234,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const hasInventoryPackage = childInventoryCount > 0 && !inventoryCtx;
 
   const checkpointConfig = useMemo((): PublishCheckpointConfig | null => {
-    if (inventoryCtx || !needsNegocioPayment) return null;
+    /* Globalization P2 (Gate 5/B) — a listing-bound preview/edit (an already-published listing
+       opened from the dashboard, via `listingBoundPreview`) must never show the new-ad checkout
+       widget: package price, confirmation checkboxes, and "Continuar al pago seguro" all imply
+       the owner needs to pay again for a listing they already own and already paid for. This was
+       previously only reflected in the sticky header's button label (`showPaymentCheckpoint`
+       below), not in whether the checkout widget itself rendered at all. */
+    if (inventoryCtx || !needsNegocioPayment || listingBoundPreview) return null;
     return {
       category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
       packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
@@ -239,7 +252,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       promoEligible: true,
       returnPath: BIENES_RAICES_NEGOCIO_CHECKOUT.returnPath,
     };
-  }, [childInventoryCount, inventoryCtx, lang, needsNegocioPayment]);
+  }, [childInventoryCount, inventoryCtx, lang, listingBoundPreview, needsNegocioPayment]);
 
   const onPublishLive = useCallback(async (ctx?: { newsletterOptIn?: boolean; promoCode?: string | null }) => {
     if (listingBoundPreview) {

@@ -243,11 +243,21 @@ async function main() {
       "app/admin/login/page.tsx",
       "app/(site)/clasificados/publicar/restaurantes/page.tsx",
     ]);
+    // Globalization P2 fixed two confirmed owner-QA defects in this exact file: the dashboard
+    // "Vista previa" checkout widget rendering for an already-published, already-paid listing
+    // (checkpointConfig now checks listingBoundPreview), and a false-422/existing-media-loss bug
+    // (the listing-bound mount effect no longer lets an unrelated new-ad draft override the
+    // DB-hydrated existing photos). Both are lifecycle/runtime-correctness fixes, not new business
+    // logic or a weakening of ownership/payment protection.
+    const GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS = new Set([
+      "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    ]);
     const changed = changedFiles
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean)
-      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
+      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f))
+      .filter((f) => !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f));
     const lockedPathFragments = [
       "app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts",
       "bienes-raices",

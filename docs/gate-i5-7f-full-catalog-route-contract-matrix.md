@@ -39,6 +39,139 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Work Package P2 Update Log — Global Owner Lifecycle Closure
+
+**Scope:** close specific, owner-QA-confirmed lifecycle defects reproduced on the real Lifecycle
+Vercel Preview at `79e4afd1`, and establish the Global Preview Mode Contract as a documented
+pattern, using the one category where it was actually implemented and verified (Bienes Raíces
+Negocio) as the reference implementation — not a blind mechanical rollout to every category.
+
+### Global Preview Mode Contract (documented; BR Negocio is the reference implementation)
+
+No canonical, shared "preview mode" type/resolver existed anywhere in the codebase before this
+package (confirmed by repo-wide search). The contract, as now implemented for Bienes Raíces
+Negocio and intended as the pattern for every other paid category to adopt:
+
+| Mode | Trigger | May show |
+|---|---|---|
+| **new-publish** | Fresh application, no existing listing identity in the URL | package summary, confirmation checkboxes, Stripe checkout |
+| **edit-draft** | `source=dashboard` + a listing identity (`listingId`/`listingSlug`/`leonixAdId`), OR `preview=listing` | unsaved edited draft, return-to-edit, save/republish — **never** the base-plan checkout |
+| **published-readonly** | Same trigger as edit-draft in the current BR Negocio implementation (see note) | latest published content; the checkout widget must not render |
+
+**Implementation note:** BR Negocio's existing `listingBoundPreview` boolean (`AgenteIndividualResidencialPreviewClient.tsx:106-107`) does not yet distinguish edit-draft from published-readonly as two separate modes — both currently share one "listing-bound" branch that shows the save/republish affordance. This satisfies the reported defect (no repeat checkout) but does not yet implement the full 3-way split Section 5A describes. Splitting "Vista previa" (should be strictly read-only) from "Editar" (should show save/republish) into two distinct modes is the most direct next step, not attempted in this package.
+
+**What this package fixed, concretely, in `AgenteIndividualResidencialPreviewClient.tsx`:**
+
+1. **No-repeat-payment (Confirmed Defect C).** `checkpointConfig`'s own `useMemo` never checked
+   `listingBoundPreview` — only a derived display flag (`showPaymentCheckpoint`) did, which only
+   controlled a button label, not whether the checkout widget itself rendered. An already-paid,
+   already-published Bienes Negocio listing opened via Dashboard "Vista previa" showed the full
+   package-price/confirmation-checkbox/"Continuar al pago seguro" widget. Fixed by adding
+   `listingBoundPreview` to `checkpointConfig`'s own null-return guard — the fix lives at the single
+   source all consumers read from, not a second, parallel guard.
+2. **False 422 / existing-media loss (Confirmed Defect B).** The listing-bound mount effect called
+   `loadAgenteResPreviewDraftResolved({ applicationInstanceId })` — a generic, sessionStorage draft
+   scoped only by `applicationInstanceId`. Neither the dashboard "Vista previa" href builder
+   (`categoryRouteRegistry.ts:308-317`) nor the "Editar" href builder
+   (`bienesDashboardInventoryAddonCheckout.ts:91-94`) ever sets `applicationInstanceId`, so this
+   lookup silently fell back to whatever unrelated, possibly stale or empty draft already happened
+   to sit in that browser tab's sessionStorage from an earlier, unrelated new-ad session — and, via
+   `setData(loaded ?? workspace)`, that stale draft's (often empty) `fotosDataUrls` **overwrote**
+   the correctly DB-hydrated existing photos before the owner ever touched the form. The save
+   validator (`leonixPublishRealEstateFromDraftState.ts:407-424`) then correctly rejected the
+   resulting empty-photos draft with a 422 — the validator itself was not the bug; the state it was
+   given already had the existing media silently stripped. Fixed by removing the generic-draft
+   lookup entirely from the listing-bound branch: an existing, identified listing's only valid
+   state sources are its local edit-in-progress workspace (`loadBienesListingEditWorkspace`) and the
+   real DB-hydrated row, in that order — never the unrelated new-ad draft.
+
+Self-test: `scripts/gate-p2-bienes-negocio-preview-edit-selftest.ts`.
+
+### Community / Clases Preview Crash (Confirmed Defect A) — Fixed
+
+`CommunityQuickPreviewClient.tsx` (shared by Community and Clases quick-listing preview) declared
+`cardModel`'s `useMemo` **after** two early `return` statements (`!ready`, `!draft`) — a genuine
+Rules-of-Hooks violation: the hook ran on some renders and not others, depending on whether
+`ready`/`draft` had resolved yet. Fixed by moving the memo before both early returns, with its
+existing null-guard (`if (!draft) return null;`) preserved so it stays safe to call unconditionally.
+Verified live: both `/publicar/comunidad/quick/preview` and `/publicar/clases/quick/preview` render
+with zero console errors/exceptions across the exact render transition (unready → ready, no-draft →
+draft-checked) where the violation previously fired; the deeper "renders a real draft's content"
+path is gated behind login and was not exercised (no credentials used, per instruction).
+Self-test: `scripts/gate-p2-community-preview-hook-order-selftest.ts`.
+
+### Global Field Syntax — Phone Formatting
+
+Confirmed **two distinct, real defects**, not one:
+
+1. The broadly-shared `app/lib/leonix/phoneFormat.ts`'s `formatUsPhone` (used by the shared
+   `<PhoneInput>` component, Admin lead-inbox tooling, the Tienda contact form, and the Global
+   Contact Form) produced `(408)123-4567` — missing the required space after the area code — while
+   Bienes Raíces's, Servicios', and Empleos' own separate phone-formatting implementations already
+   correctly produced `(408) 123-4567`. Fixed the one broken shared formatter (not the three
+   already-correct ones); updated its validation-message example text and the `<PhoneInput>`
+   component's `maxLength` (13→14, to fit the added character) to match.
+2. The **paid** Empleos application's own contact-field component
+   (`EmpleosPremiumCtaFieldGroup.tsx`) applied **no formatting or masking at all** to its phone
+   field — a plain, unmasked text input — unlike the free Empleos lane's field group
+   (`EmpleosCtaFieldGroup.tsx`), which already correctly used the shared Servicios formatter. This
+   is the direct match for the owner's reported "Empleos phone formatting inconsistent" QA finding
+   (observed on the paid, Stripe-completed flow). Fixed by wiring the same shared formatter into the
+   paid lane's phone field only — its `whatsapp` field's existing placeholder (`"15551234567"`)
+   indicates it is intentionally international/unformatted by design and was left untouched.
+
+Four real phone-formatting implementations exist in the codebase in total (the fixed shared one,
+plus Bienes Raíces's, Servicios', and Empleos' own separate copies) — not yet consolidated into one
+canonical utility. Full consolidation is reasonable future cleanup, out of this package's minimal-
+safe-fix scope (the three category-specific copies were already correct; touching working code
+unnecessarily was avoided). Self-test: `scripts/gate-p2-phone-formatting-selftest.ts`.
+
+### En Venta — loading uncertainty closed
+
+Confirmed on the real Lifecycle Preview: En Venta landing loads, results load real Supabase data,
+public detail opens with no permanent spinner, and a "Relacionados"/"Ver similares" related-listings
+block appears. No code change made — the route was already working. This closes the residual
+uncertainty Work Package P1 left open (§16.1 of that package's report, which was itself only a
+placeholder-credential test-build artifact, not a real defect).
+
+### Global Related Listings Discovery Contract (roadmap only — not built this package)
+
+Recorded per instruction: the "Relacionados"/"Ver similares" pattern already live on En Venta's
+public detail page is a valuable global discovery pattern. Future expected categories: Autos
+(similar vehicles), Rentas (similar rentals), Bienes Raíces (similar properties), Empleos (similar
+jobs), Servicios (similar providers), Restaurantes (similar cuisine/businesses), Comunidad (related
+events), Clases (similar classes), Mascotas (similar notices), Busco (related requests), Viajes
+(similar offers). **Explicitly not built or expanded in this package** — this is a roadmap entry
+only, per instruction.
+
+### Checkpoint system — inventory, not a build-out
+
+Existing checkpoint generator: `app/(site)/clasificados/publicar/_lib/categoryPublishCheckpoints.ts`
+(shell: `PublishEntryCheckpoint.tsx`). Confirmed to already cover Restaurantes, Servicios, Autos,
+Rentas Privado/Negocio, Bienes Raíces, and **both** Empleos lanes (paid: `getEmpleosPaidCheckpointCard`;
+free/feria: `getEmpleosFreeCheckpointCard`) — Empleos' own checkpoint hub
+(`EmpleosPublicarHubClient.tsx`) already correctly presents both the paid ($24.99/30 days) and free
+options before the application form, contrary to this package's initial defect assumption (E) that
+Empleos lacked a checkpoint entirely; direct inspection found it does not. Quick-listing categories
+(Busco, Clases, Comunidad, Mascotas y Perdidos) have their own dedicated
+`/publicar/{category}/quick/preview` pages rather than the shared checkpoint shell — a different,
+but not necessarily incorrect, pattern for free, low-friction lanes. **This package did not audit
+checkpoint copy accuracy (price/duration/inclusions truthfulness) category-by-category, and did not
+build new checkpoints for any lane found missing one** — no lane was confirmed missing a checkpoint
+in this pass. A full copy-accuracy audit against live Stripe pricing is the recommended next step,
+not attempted here.
+
+### Category coverage — honest status
+
+Full 18-lane certification (application → checkpoint → save → preview → publish → dashboard →
+edit → republish, per lane) was **not completed** in this package — see the P2 final report's
+category matrix for the precise, non-inflated status of each lane. Categories with a direct,
+concrete, reported defect (Bienes Raíces Negocio, Community, Clases, Empleos paid) received real,
+verified fixes. Categories named in Gate 5's "already-paid X Preview has no checkout" requirement
+(Servicios, Restaurantes) were spot-checked for the same `listingBoundPreview`-style pattern but not
+independently deep-audited the way BR Negocio was — recorded as NOT INDEPENDENTLY VERIFIED, not
+PASS, per this package's own instruction not to mark PASS based on "shares a component."
+
 ## Work Package P1 Update Log — Globalization Runtime Unblock and Ad-Creation Readiness
 
 **Scope:** resolve, conclusively, the three-package-old (I.13B→I.13D) "results pages stuck on a

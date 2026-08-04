@@ -77,6 +77,17 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
 
   const draft = kind === "clases" ? clasesDraft : comunidadDraft;
 
+  /* Gate 2 (Globalization P2) — this hook must run on every render, in the same position, so it
+     is declared here, before the ready/draft early returns below, rather than after them (the
+     Rules-of-Hooks violation that crashed Community/Clases Preview: the hook count differed
+     between the initial render, before `ready`/`draft` resolve, and later renders). It safely
+     returns null whenever there is no draft yet. */
+  const cardModel = useMemo(() => {
+    if (!draft) return null;
+    const detailHref = typeof window !== "undefined" ? window.location.href : "";
+    return buildCommunityDiscoveryCardModelFromDraft(draft, kind, lang, detailHref);
+  }, [draft, kind, lang]);
+
   const copyText = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -121,12 +132,6 @@ export function CommunityQuickPreviewClient({ kind }: { kind: CommunityKind }) {
 
   const organizerName = draft.organizer.trim() || "—";
   const previewLeonixAdId = formatLeonixAdId(draft.previewListingId);
-
-  const cardModel = useMemo(() => {
-    if (!draft) return null;
-    const detailHref = typeof window !== "undefined" ? window.location.href : "";
-    return buildCommunityDiscoveryCardModelFromDraft(draft, kind, lang, detailHref);
-  }, [draft, kind, lang]);
 
   const adBody =
     kind === "clases" ? (

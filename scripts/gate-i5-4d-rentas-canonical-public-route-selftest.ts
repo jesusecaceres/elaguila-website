@@ -90,6 +90,17 @@ const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set<string>([
   "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
 ]);
 
+/**
+ * Globalization P2 fixed two confirmed owner-QA defects in
+ * AgenteIndividualResidencialPreviewClient.tsx: an unguarded new-ad checkout widget shown on an
+ * already-published, already-paid listing's dashboard preview, and a false-422/existing-media-loss
+ * bug caused by an unrelated new-ad draft silently overriding correctly DB-hydrated existing
+ * photos. Both are lifecycle/runtime-correctness fixes, not new business logic.
+ */
+const GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS = new Set<string>([
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+]);
+
 async function main() {
   /* ---------------------------------------------------------------------------------------- *
    * 1/2 — the registry resolves both Rentas lanes to the canonical route, and they agree.
@@ -182,9 +193,10 @@ async function main() {
           f.includes("bienes-raices") &&
           !f.includes("Rentas") &&
           !I10A_ANALYTICS_WIRING_EXCEPTIONS.has(f) &&
-          !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f),
+          !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f) &&
+          !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f),
       ),
-      "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics / Globalization P1 Suspense-fix exceptions",
+      "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics / Globalization P1 Suspense-fix / Globalization P2 exceptions",
     );
     void brNegocio;
   }
