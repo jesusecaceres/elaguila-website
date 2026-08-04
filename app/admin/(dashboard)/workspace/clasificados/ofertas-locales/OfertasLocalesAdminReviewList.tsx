@@ -33,6 +33,21 @@ function statusBadgeClass(status: string): string {
   }
 }
 
+function operationalToneClass(tone: string): string {
+  switch (tone) {
+    case "success":
+      return "bg-emerald-100 text-emerald-950";
+    case "danger":
+      return "bg-rose-100 text-rose-950";
+    case "warning":
+      return "bg-amber-100 text-amber-950";
+    case "info":
+      return "bg-blue-100 text-blue-950";
+    default:
+      return "bg-[#F0E8DA] text-[#5C5346]";
+  }
+}
+
 function publicTermLabel(item: Pick<OfertaLocalAdminListVm, "publicTermStatus" | "publicTermDaysRemaining">): string {
   if (item.publicTermStatus === "active") {
     return item.publicTermDaysRemaining == null
@@ -118,6 +133,20 @@ function InspectDetail({
           {item.status}
         </span>
       </div>
+      <section className="rounded-xl border border-[#C9B46A]/50 bg-white p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-lg px-2 py-1 text-xs font-bold uppercase ${operationalToneClass(item.operationalStatus.tone)}`}>
+            {item.operationalStatus.adminLabelEs}
+          </span>
+          <span className="font-mono text-[10px] text-[#7A7164]">{item.operationalStatus.adminKey}</span>
+        </div>
+        <p className="mt-2 text-[#5C5346]">{item.operationalStatus.adminNextActionEs}</p>
+        {item.operationalStatus.blockingReasons.length > 0 ? (
+          <p className="mt-2 font-mono text-xs text-[#7A1E2C]">
+            Bloqueos: {item.operationalStatus.blockingReasons.join(", ")}
+          </p>
+        ) : null}
+      </section>
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
@@ -368,6 +397,12 @@ function InspectDetail({
             <input type="hidden" name="offer_id" value={item.id} />
             <input type="hidden" name="return_to" value={returnTo} />
             <input type="hidden" name="target_label" value={item.businessName} />
+            <label className="flex items-start gap-2 rounded-xl border border-[#E8DFD0] bg-white p-2 text-xs text-[#5C5346]">
+              <input type="checkbox" name="confirmed" value="true" required className="mt-0.5" />
+              <span>
+                Confirmo que revisé identidad, fuente, escaneo, revisión, comercial, término público y blockers antes de ejecutar la acción.
+              </span>
+            </label>
             <label className="block text-xs font-semibold text-[#5C5346]">
               Nota interna (requerida para rechazo)
               <textarea
@@ -386,7 +421,13 @@ function InspectDetail({
                     type="submit"
                     name="action"
                     value="approve"
-                    className="rounded-xl border border-emerald-600/40 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900"
+                    disabled={!item.operationalStatus.adminApprovalAllowed}
+                    title={
+                      item.operationalStatus.adminApprovalAllowed
+                        ? "Aprobación disponible"
+                        : `Aprobación bloqueada: ${item.operationalStatus.blockingReasons.join(", ")}`
+                    }
+                    className="rounded-xl border border-emerald-600/40 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Aprobar
                   </button>
@@ -519,9 +560,14 @@ export function OfertasLocalesAdminReviewList({
                   {item.expiresAt ? <div className="font-mono">→ {item.expiresAt.slice(0, 10)}</div> : null}
                 </td>
                 <td className="px-3 py-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusBadgeClass(item.status)}`}>
-                    {item.status}
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${operationalToneClass(item.operationalStatus.tone)}`}>
+                    {item.operationalStatus.adminLabelEs}
                   </span>
+                  {item.operationalStatus.blockingReasons.length > 0 ? (
+                    <div className="mt-1 font-mono text-[10px] text-[#7A1E2C]">
+                      {item.operationalStatus.blockingReasons.slice(0, 3).join(", ")}
+                    </div>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2 text-center">{item.assetCount}</td>
                 <td className="px-3 py-2">{item.wantsAiSearchableSpecials ? "Con revisión" : "Incluida"}</td>

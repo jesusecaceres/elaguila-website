@@ -71,6 +71,13 @@ export default function OfertasLocalesOwnerManagePage() {
             daysRemaining: "días restantes",
             analyticsUnavailable: "Analíticas no disponibles en este ambiente.",
             lastActivity: "Última actividad",
+            nextActionTitle: "Siguiente acción",
+            blockers: "Bloqueos",
+            allowedActions: "Acciones disponibles",
+            sourceReplaceAllowed: "Reemplazo de fuente permitido",
+            scanRetryAllowed: "Reintento de escaneo permitido",
+            submitAllowed: "Envío permitido",
+            publicLinkAllowed: "Enlace público permitido",
           }
         : {
             title: "Manage local deal",
@@ -109,6 +116,13 @@ export default function OfertasLocalesOwnerManagePage() {
             daysRemaining: "days remaining",
             analyticsUnavailable: "Analytics are unavailable in this environment.",
             lastActivity: "Last activity",
+            nextActionTitle: "Next action",
+            blockers: "Blockers",
+            allowedActions: "Available actions",
+            sourceReplaceAllowed: "Source replacement allowed",
+            scanRetryAllowed: "Scan retry allowed",
+            submitAllowed: "Submission allowed",
+            publicLinkAllowed: "Public link allowed",
           },
     [lang]
   );
@@ -292,6 +306,35 @@ export default function OfertasLocalesOwnerManagePage() {
         <p className="mt-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-3 text-sm text-[#5C5346]">
           {offer.statusMessage}
         </p>
+        <section className="mt-3 rounded-xl border border-[#C9B46A]/50 bg-white p-3 text-sm text-[#5C5346]">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.nextActionTitle}</p>
+          <p className="mt-1 font-semibold text-[#1E1810]">
+            {lang === "es" ? offer.operationalStatus.ownerNextActionEs : offer.operationalStatus.ownerNextActionEn}
+          </p>
+          {offer.operationalStatus.blockingReasons.length > 0 ? (
+            <p className="mt-2 font-mono text-xs text-[#7A1E2C]">
+              {t.blockers}: {offer.operationalStatus.blockingReasons.join(", ")}
+            </p>
+          ) : null}
+          <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <dt className="font-bold text-[#7A7164]">{t.sourceReplaceAllowed}</dt>
+              <dd>{offer.operationalStatus.sourceReplacementAllowed ? "TRUE" : "FALSE"}</dd>
+            </div>
+            <div>
+              <dt className="font-bold text-[#7A7164]">{t.scanRetryAllowed}</dt>
+              <dd>{offer.operationalStatus.scanRetryAllowed ? "TRUE" : "FALSE"}</dd>
+            </div>
+            <div>
+              <dt className="font-bold text-[#7A7164]">{t.submitAllowed}</dt>
+              <dd>{offer.operationalStatus.submissionAllowed ? "TRUE" : "FALSE"}</dd>
+            </div>
+            <div>
+              <dt className="font-bold text-[#7A7164]">{t.publicLinkAllowed}</dt>
+              <dd>{offer.operationalStatus.publicLinkAllowed ? "TRUE" : "FALSE"}</dd>
+            </div>
+          </dl>
+        </section>
         <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
           <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.commercialTitle}</p>
           <p className="mt-1 font-mono text-xs">{offer.leonixAdId || "ID Leonix pendiente"}</p>

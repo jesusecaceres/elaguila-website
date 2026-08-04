@@ -27,6 +27,8 @@ function adminReviewActionMessage(error: string): string {
       return "This offer cannot move to that review state.";
     case "not_found":
       return "Offer was not found.";
+    case "confirmation_required":
+      return "Confirm the operational review before executing this action.";
     default:
       return "Review action failed. Try again or inspect the offer state.";
   }
@@ -62,6 +64,7 @@ export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<
   const note = String(formData.get("admin_note") ?? "").trim();
   const returnTo = String(formData.get("return_to") ?? "").trim();
   const label = String(formData.get("target_label") ?? "").trim();
+  const confirmed = String(formData.get("confirmed") ?? "") === "true";
 
   if (!id || !ALLOWED_ACTIONS.has(action)) {
     if (returnTo) {
@@ -75,6 +78,17 @@ export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<
       });
     }
     return;
+  }
+
+  if (!confirmed) {
+    redirectWithReviewResult({
+      returnTo,
+      status: "error",
+      action,
+      id,
+      label,
+      error: adminReviewActionMessage("confirmation_required"),
+    });
   }
 
   const supabase = getAdminSupabase();

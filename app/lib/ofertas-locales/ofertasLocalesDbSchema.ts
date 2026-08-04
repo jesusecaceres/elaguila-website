@@ -265,6 +265,9 @@ export const OFERTAS_LOCALES_ADMIN_SELECT = `
   public_source_asset_id,
   asset_lifecycle_status,
   asset_replacement_required_review,
+  ai_scan_status,
+  ai_last_scan_job_id,
+  last_scan_error,
   submitted_at,
   created_at,
   updated_at

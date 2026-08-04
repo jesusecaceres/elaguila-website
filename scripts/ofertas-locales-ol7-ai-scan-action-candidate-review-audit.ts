@@ -53,6 +53,27 @@ const PACKAGE_10_ALLOWED = new Set([
   "docs/OFERTAS_PACKAGE_10_COMPLETE_PRODUCT_EXPERIENCE.md",
 ]);
 
+const PACKAGE_12_ALLOWED = new Set([
+  "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+  "app/(site)/dashboard/ofertas-locales/page.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/actions.ts",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/page.tsx",
+  "app/lib/ofertas-locales/ofertasLocalesAdminHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesDbSchema.ts",
+  "app/lib/ofertas-locales/ofertasLocalesOperationalStatus.ts",
+  "app/lib/ofertas-locales/ofertasLocalesOwnerHelpers.ts",
+  "docs/OFERTAS_PACKAGE_12_OWNER_ADMIN_OPERATIONS.md",
+  "scripts/ofertas-package-12-admin-review-audit.mjs",
+  "scripts/ofertas-package-12-commercial-term-parity-audit.mjs",
+  "scripts/ofertas-package-12-correction-resubmission-audit.mjs",
+  "scripts/ofertas-package-12-mobile-es-en-accessibility-audit.mjs",
+  "scripts/ofertas-package-12-operational-status-audit.mjs",
+  "scripts/ofertas-package-12-operations-completion-audit.mjs",
+  "scripts/ofertas-package-12-owner-operations-audit.mjs",
+  "scripts/ofertas-package-12-recovery-operations-audit.mjs",
+]);
+
 function read(rel: string): string {
   return fs.readFileSync(path.join(ROOT, rel.replace(/\//g, path.sep)), "utf8");
 }
@@ -149,7 +170,7 @@ function run() {
   assert.match(pkg, /ofertas-locales:ol7-ai-scan-action-candidate-review-audit/, "package script");
 
   for (const file of changedFiles()) {
-    if (PACKAGE_10_ALLOWED.has(file) || file.startsWith("scripts/ofertas-")) {
+    if (PACKAGE_10_ALLOWED.has(file) || PACKAGE_12_ALLOWED.has(file) || file.startsWith("scripts/ofertas-")) {
       continue;
     }
     if (file === "scripts/ofertas-stripe-readiness-audit.mjs") {

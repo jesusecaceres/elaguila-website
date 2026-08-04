@@ -18,6 +18,7 @@ import {
   isOfertaLocalPublicTermExpired,
 } from "./ofertasLocalesFormatting";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
+import type { OfertaLocalOperationalStatus } from "./ofertasLocalesOperationalStatus";
 
 const ADMIN_REVIEW_PREFIX = "[admin_review]";
 
@@ -69,6 +70,7 @@ export type OfertaLocalOwnerListItem = {
   featuredRequested: boolean;
   featuredPlacementScope: string | null;
   rejectionNote: string | null;
+  operationalStatus: OfertaLocalOperationalStatus;
   canEdit: boolean;
   publicResultsHref: string | null;
 };
@@ -214,7 +216,7 @@ export function mapOfertaLocalRowToOwnerListItem(
   const detail = mapOfertaLocalAdminRowToDetailVm(row);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const rejectionNote = parseOfertaLocalOwnerSafeRejectionNote(row.internal_notes);
-  const { displayStatus, isExpired } = resolveDisplayStatus(row, lang);
+  const { isExpired } = resolveDisplayStatus(row, lang);
   const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
 
   return {
@@ -227,7 +229,7 @@ export function mapOfertaLocalRowToOwnerListItem(
     city: detail.city,
     zipCode: detail.zipCode,
     status: row.status,
-    displayStatus,
+    displayStatus: lang === "es" ? detail.operationalStatus.labelEs : detail.operationalStatus.labelEn,
     validFrom: detail.validFrom,
     validUntil: detail.validUntil,
     publishedAt: detail.publishedAt,
@@ -262,8 +264,11 @@ export function mapOfertaLocalRowToOwnerListItem(
     featuredRequested: detail.featuredRequested,
     featuredPlacementScope: detail.featuredPlacementScope,
     rejectionNote,
-    canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
-    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired || !termActive),
+    operationalStatus: detail.operationalStatus,
+    canEdit: detail.operationalStatus.editAllowed,
+    publicResultsHref: detail.operationalStatus.publicLinkAllowed
+      ? publicResultsHrefForStatus(row.status, isExpired || !termActive)
+      : null,
   };
 }
 
@@ -273,18 +278,23 @@ export function mapOfertaLocalRowToOwnerDetail(
 ): OfertaLocalOwnerDetail {
   const vm = mapOfertaLocalAdminRowToDetailVm(row);
   const rejectionNote = parseOfertaLocalOwnerSafeRejectionNote(row.internal_notes);
-  const { displayStatus, isExpired } = resolveDisplayStatus(row, lang);
+  const { isExpired } = resolveDisplayStatus(row, lang);
   const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
   const { internalNotes: _i, ownerId: _o, ...safe } = vm;
 
   return {
     ...safe,
-    displayStatus,
-    statusMessage: ofertaLocalOwnerStatusMessage(row.status, lang, rejectionNote, isExpired),
+    displayStatus: lang === "es" ? safe.operationalStatus.labelEs : safe.operationalStatus.labelEn,
+    statusMessage:
+      lang === "es"
+        ? safe.operationalStatus.explanationEs
+        : safe.operationalStatus.explanationEn,
     rejectionNote,
-    canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
+    canEdit: safe.operationalStatus.editAllowed,
     isExpired,
-    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired || !termActive),
+    publicResultsHref: safe.operationalStatus.publicLinkAllowed
+      ? publicResultsHrefForStatus(row.status, isExpired || !termActive)
+      : null,
     checkoutEligible:
       ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
       safe.commercialEligibilitySource !== "partner_courtesy" &&

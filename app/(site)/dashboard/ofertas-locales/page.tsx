@@ -55,6 +55,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colCommercial: "Pago",
             colPublicTerm: "Término público",
             colStatus: "Estado",
+            colNext: "Siguiente",
             colAssets: "Archivos",
             colAi: "AI",
             colFeatured: "Destacada",
@@ -62,6 +63,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colActions: "Acciones",
             publicLink: "Ver en resultados",
             rejection: "Motivo",
+            blockers: "Bloqueos",
             notStarted: "No iniciado",
             activeTerm: "Activo",
             expiredTerm: "Expirado",
@@ -84,6 +86,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colCommercial: "Payment",
             colPublicTerm: "Public term",
             colStatus: "Status",
+            colNext: "Next",
             colAssets: "Assets",
             colAi: "AI",
             colFeatured: "Featured",
@@ -91,6 +94,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
             colActions: "Actions",
             publicLink: "View in results",
             rejection: "Reason",
+            blockers: "Blockers",
             notStarted: "Not started",
             activeTerm: "Active",
             expiredTerm: "Expired",
@@ -177,6 +181,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colCommercial}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPublicTerm}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colNext}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAssets}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAi}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colFeatured}</th>
@@ -236,6 +241,16 @@ export default function OfertasLocalesOwnerDashboardPage() {
                       <p className="mt-1 text-[10px] text-rose-900" title={item.rejectionNote}>
                         {t.rejection}: {item.rejectionNote.slice(0, 80)}
                         {item.rejectionNote.length > 80 ? "…" : ""}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="max-w-[180px] px-3 py-2 text-[10px]">
+                    <p className="font-semibold text-[#1E1810]">
+                      {lang === "es" ? item.operationalStatus.ownerNextActionEs : item.operationalStatus.ownerNextActionEn}
+                    </p>
+                    {item.operationalStatus.blockingReasons.length > 0 ? (
+                      <p className="mt-1 font-mono text-[10px] text-[#7A1E2C]">
+                        {t.blockers}: {item.operationalStatus.blockingReasons.join(", ")}
                       </p>
                     ) : null}
                   </td>
