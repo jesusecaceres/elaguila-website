@@ -10,6 +10,10 @@ export type DigitalContactSocialLink = {
   url: string;
 };
 
+import type { DigitalContactAccentThemeId } from "./digitalContactAccentTheme";
+
+export type { DigitalContactAccentThemeId };
+
 export type DigitalContactAddress = {
   line1: string;
   line2?: string;
@@ -42,6 +46,12 @@ export type DigitalContactProfile = {
   /** Short trust indicator chips shown in the hero (kept minimal — 2–4 max). */
   trustChips: string[];
   socials: DigitalContactSocialLink[];
+  /**
+   * Secondary accent theme (chip borders, avatar glow, kicker color). Leonix Burgundy
+   * always stays the primary brand color regardless of this setting. Omit to use the
+   * default `leonixGold` look (Chuy's current profile).
+   */
+  accentThemeId?: DigitalContactAccentThemeId;
   /** Optional per-profile meta description override (falls back to a generated default). */
   metaDescription?: string;
   active: boolean;

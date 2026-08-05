@@ -31,6 +31,10 @@ export type DigitalContactCopy = {
   actionCopyPhone: string;
   copiedEmail: string;
   copiedPhone: string;
+  emailModalOpen: string;
+  emailModalShare: string;
+  emailModalClose: string;
+  linkCopiedToast: string;
   saveTitle: string;
   saveBody: string;
   saveButton: string;
@@ -84,6 +88,10 @@ const ES: DigitalContactCopy = {
   actionCopyPhone: "Copiar Teléfono",
   copiedEmail: "Correo copiado.",
   copiedPhone: "Teléfono copiado.",
+  emailModalOpen: "Abrir Correo",
+  emailModalShare: "Compartir",
+  emailModalClose: "Cerrar",
+  linkCopiedToast: "Enlace copiado.",
   saveTitle: "Guardar Contacto",
   saveBody: "Agrega este contacto directamente a tu teléfono o computadora.",
   saveButton: "Guardar en Contactos",
@@ -137,6 +145,10 @@ const EN: DigitalContactCopy = {
   actionCopyPhone: "Copy Phone",
   copiedEmail: "Email copied.",
   copiedPhone: "Phone copied.",
+  emailModalOpen: "Open Email",
+  emailModalShare: "Share",
+  emailModalClose: "Close",
+  linkCopiedToast: "Link copied.",
   saveTitle: "Save Contact",
   saveBody: "Add this contact directly to your phone or computer.",
   saveButton: "Save to Contacts",

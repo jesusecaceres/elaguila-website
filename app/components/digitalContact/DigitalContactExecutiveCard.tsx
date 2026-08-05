@@ -2,26 +2,31 @@
 
 import type { DigitalContactCopy } from "@/app/lib/digitalContact/digitalContactCopy";
 import { digitalContactOfficeLine } from "@/app/lib/digitalContact/digitalContactSeo";
+import type { DigitalContactAccentTheme } from "@/app/lib/digitalContact/digitalContactAccentTheme";
 import type { DigitalContactProfile } from "@/app/lib/digitalContact/digitalContactTypes";
 import { getFormattedPhone } from "@/app/components/cta/ctaDataHelpers";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { openExternalUrl, openMaps, openTel } from "@/app/components/cta/ctaLaunchers";
 
 type Props = {
   profile: DigitalContactProfile;
   copy: DigitalContactCopy;
-  onOpenSheet: (intent: CtaSheetIntent) => void;
+  onOpenEmail: () => void;
+  accentTheme: DigitalContactAccentTheme;
 };
 
-function RowIcon({ children }: { children: React.ReactNode }) {
+function RowIcon({ children, borderColor }: { children: React.ReactNode; borderColor: string }) {
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#C9A84A]/50 bg-[#FBF7EF] text-[#7A1E2C]">
+    <span
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FBF7EF] text-[#7A1E2C] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]"
+      style={{ border: `1px solid ${borderColor}` }}
+    >
       {children}
     </span>
   );
 }
 
-/** Premium executive contact card — Phone / Email / Office / Website, each opens the shared CTA sheet. */
-export function DigitalContactExecutiveCard({ profile, copy, onOpenSheet }: Props) {
+/** Premium executive contact card — Phone / Office / Website launch instantly; Email opens the small email modal. */
+export function DigitalContactExecutiveCard({ profile, copy, onOpenEmail, accentTheme }: Props) {
   const rows: Array<{
     id: string;
     label: string;
@@ -38,7 +43,7 @@ export function DigitalContactExecutiveCard({ profile, copy, onOpenSheet }: Prop
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 5c0-.6.4-1 1-1h2.6c.5 0 .9.3 1 .8l1 3.6c.1.4 0 .8-.3 1.1L7 11c1.2 2.6 3.4 4.8 6 6l1.5-1.3c.3-.3.7-.4 1.1-.3l3.6 1c.5.1.8.5.8 1V20c0 .6-.4 1-1 1h-1C9.9 21 4 15.1 4 8V5Z" />
         </svg>
       ),
-      onClick: () => onOpenSheet({ kind: "call", phone: profile.phoneDigits, contactShareExtras: { email: profile.email, websiteUrl: profile.website } }),
+      onClick: () => openTel(profile.phoneDigits),
     },
     {
       id: "email",
@@ -49,14 +54,7 @@ export function DigitalContactExecutiveCard({ profile, copy, onOpenSheet }: Prop
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16v12H4V6Zm0 0 8 7 8-7" />
         </svg>
       ),
-      onClick: () =>
-        onOpenSheet({
-          kind: "send_email",
-          email: profile.email,
-          subject: "",
-          body: "",
-          contactShareExtras: { websiteUrl: profile.website },
-        }),
+      onClick: onOpenEmail,
     },
     {
       id: "office",
@@ -68,7 +66,7 @@ export function DigitalContactExecutiveCard({ profile, copy, onOpenSheet }: Prop
           <circle cx="12" cy="10" r="2.4" />
         </svg>
       ),
-      onClick: () => onOpenSheet({ kind: "directions", addressOrUrl: digitalContactOfficeLine(profile) }),
+      onClick: () => openMaps(digitalContactOfficeLine(profile)),
     },
     {
       id: "website",
@@ -80,13 +78,13 @@ export function DigitalContactExecutiveCard({ profile, copy, onOpenSheet }: Prop
           <path strokeLinecap="round" d="M3.6 12h16.8M12 3.6c2.2 2.3 3.4 5.3 3.4 8.4s-1.2 6.1-3.4 8.4c-2.2-2.3-3.4-5.3-3.4-8.4S9.8 5.9 12 3.6Z" />
         </svg>
       ),
-      onClick: () => onOpenSheet({ kind: "website", url: profile.website, headline: copy.websiteLabel }),
+      onClick: () => openExternalUrl(profile.website),
     },
   ];
 
   return (
-    <section aria-labelledby="dc-executive-card-title" className="mx-auto -mt-8 w-full max-w-2xl px-5 sm:-mt-10 sm:px-6">
-      <div className="rounded-3xl border border-[#D6C7AD] bg-[#FFFDF7] p-2 shadow-[0_20px_50px_-20px_rgba(31,36,28,0.35)]">
+    <section aria-labelledby="dc-executive-card-title" className="relative mx-auto w-full max-w-2xl px-5 pt-2 sm:px-6">
+      <div className="rounded-3xl border border-[#D6C7AD] bg-[#FFFDF7] p-2 shadow-[0_24px_56px_-20px_rgba(31,36,28,0.4)]">
         <h2 id="dc-executive-card-title" className="sr-only">
           {copy.executiveCardTitle}
         </h2>
@@ -96,11 +94,11 @@ export function DigitalContactExecutiveCard({ profile, copy, onOpenSheet }: Prop
               <button
                 type="button"
                 onClick={row.onClick}
-                className="flex w-full min-h-[64px] items-center gap-4 rounded-2xl px-4 py-3 text-left transition hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
+                className="flex min-h-[68px] w-full items-center gap-3.5 rounded-2xl px-3.5 py-3 text-left transition hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7] sm:gap-4 sm:px-4"
               >
-                <RowIcon>{row.icon}</RowIcon>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-[#5F6258]">{row.label}</span>
+                <RowIcon borderColor={`${accentTheme.accentBorder}80`}>{row.icon}</RowIcon>
+                <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#5F6258]">{row.label}</span>
                   <span className="truncate text-sm font-semibold text-[#1F241C] sm:text-base">{row.value}</span>
                 </span>
                 <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-[#C9A84A]" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>

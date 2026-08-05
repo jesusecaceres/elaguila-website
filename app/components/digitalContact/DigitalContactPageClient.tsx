@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { getDigitalContactCopy } from "@/app/lib/digitalContact/digitalContactCopy";
 import { sanitizeDigitalContactFileNameBase } from "@/app/lib/digitalContact/digitalContactFileName";
 import { digitalContactCanonicalUrl } from "@/app/lib/digitalContact/digitalContactSeo";
+import { resolveDigitalContactAccentTheme } from "@/app/lib/digitalContact/digitalContactAccentTheme";
 import type { DigitalContactLang, DigitalContactProfile } from "@/app/lib/digitalContact/digitalContactTypes";
 import { trackDigitalContactEvent } from "@/app/lib/digitalContact/digitalContactAnalyticsClient";
 
@@ -18,6 +17,7 @@ import { DigitalContactShowcase } from "./DigitalContactShowcase";
 import { DigitalContactLeadForm } from "./DigitalContactLeadForm";
 import { DigitalContactClosingCta } from "./DigitalContactClosingCta";
 import { DigitalContactFooter } from "./DigitalContactFooter";
+import { DigitalContactEmailModal } from "./DigitalContactEmailModal";
 
 type Props = {
   profile: DigitalContactProfile;
@@ -31,20 +31,15 @@ function qrFileNameFor(profile: DigitalContactProfile): string {
 
 export function DigitalContactPageClient({ profile, initialLang }: Props) {
   const [lang, setLang] = useState<DigitalContactLang>(initialLang);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [intent, setIntent] = useState<CtaSheetIntent | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const copy = getDigitalContactCopy(lang);
   const canonicalUrl = digitalContactCanonicalUrl(profile.slug);
+  const accentTheme = resolveDigitalContactAccentTheme(profile.accentThemeId);
 
   useEffect(() => {
     trackDigitalContactEvent(profile.slug, "page_view", { lang });
     // Track once per mount — lang toggles are a UI preference, not a new page view.
   }, [profile.slug]);
-
-  function openSheet(next: CtaSheetIntent) {
-    setIntent(next);
-    setSheetOpen(true);
-  }
 
   return (
     <div className="min-h-screen bg-[#F8F4EA]">
@@ -70,10 +65,34 @@ export function DigitalContactPageClient({ profile, initialLang }: Props) {
         </div>
       </div>
 
-      <DigitalContactHero profile={profile} copy={copy} />
+      {/*
+       * Gate 2 — one continuous gradient spans the hero AND the executive card, so the
+       * burgundy-to-cream fade only completes after the card (no hard stop mid-page).
+       * Percentage stops are relative to this wrapper's full rendered height, which
+       * naturally includes the card since it's a child here, not a sibling of a
+       * fixed-height header.
+       */}
+      <div
+        className="relative overflow-hidden"
+        style={{
+          backgroundImage:
+            "linear-gradient(to bottom, #7A1E2C 0%, #6B1A26 34%, #7D3341 62%, #E4CBC6 84%, #F8F4EA 100%)",
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_0%,rgba(201,168,74,0.16),transparent_60%)]"
+        />
+        <DigitalContactHero profile={profile} copy={copy} accentTheme={accentTheme} />
+        <DigitalContactExecutiveCard
+          profile={profile}
+          copy={copy}
+          onOpenEmail={() => setEmailModalOpen(true)}
+          accentTheme={accentTheme}
+        />
+      </div>
       <main>
-        <DigitalContactExecutiveCard profile={profile} copy={copy} onOpenSheet={openSheet} />
-        <DigitalContactQuickActions profile={profile} copy={copy} onOpenSheet={openSheet} />
+        <DigitalContactQuickActions profile={profile} copy={copy} onOpenEmail={() => setEmailModalOpen(true)} />
         <DigitalContactSaveButton profile={profile} copy={copy} />
         <DigitalContactQrCode profileSlug={profile.slug} value={canonicalUrl} fileName={qrFileNameFor(profile)} copy={copy} />
         <DigitalContactShowcase profileSlug={profile.slug} lang={lang} copy={copy} />
@@ -82,11 +101,11 @@ export function DigitalContactPageClient({ profile, initialLang }: Props) {
       </main>
       <DigitalContactFooter profile={profile} copy={copy} />
 
-      <CtaActionSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        intent={intent}
-        lang={lang}
+      <DigitalContactEmailModal
+        open={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        email={profile.email}
+        copy={copy}
       />
     </div>
   );

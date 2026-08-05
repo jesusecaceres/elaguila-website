@@ -20,10 +20,6 @@ function escapeHtml(s: string): string {
 }
 
 export async function POST(req: Request) {
-  if (!isSupabaseAdminConfigured()) {
-    return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -71,26 +67,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "consent_required" }, { status: 400 });
   }
 
-  const ins = await insertDigitalContactLead({
-    profileSlug,
-    senderName,
-    senderEmail,
-    businessName: businessName || null,
-    senderPhone: senderPhone || null,
-    message: message || null,
-    howMet: howMet || null,
-    consent,
-  });
-
-  if (!ins.ok) {
-    return NextResponse.json({ ok: false, error: ins.error }, { status: 500 });
+  /**
+   * Persistence is best-effort: a misconfigured or momentarily unavailable Supabase
+   * backend must never drop a legitimate lead. Email notification (below) is the
+   * durable fallback channel, so we still validate hard but never 503 on storage.
+   */
+  let leadId: string | null = null;
+  let stored = false;
+  if (!isSupabaseAdminConfigured()) {
+    console.error(`[digital-contact-leads] persistence skipped profile=${profileSlug} reason=supabase_not_configured`);
+  } else {
+    const ins = await insertDigitalContactLead({
+      profileSlug,
+      senderName,
+      senderEmail,
+      businessName: businessName || null,
+      senderPhone: senderPhone || null,
+      message: message || null,
+      howMet: howMet || null,
+      consent,
+    });
+    if (ins.ok) {
+      leadId = ins.id;
+      stored = true;
+      await insertDigitalContactAnalyticsEvent({
+        profileSlug,
+        eventType: "lead_created",
+        meta: { leadId: ins.id, howMet: howMet || null, hasBusinessName: Boolean(businessName) },
+      });
+    } else {
+      console.error(`[digital-contact-leads] persistence failed profile=${profileSlug} reason=${ins.error}`);
+    }
   }
-
-  await insertDigitalContactAnalyticsEvent({
-    profileSlug,
-    eventType: "lead_created",
-    meta: { leadId: ins.id, howMet: howMet || null, hasBusinessName: Boolean(businessName) },
-  });
 
   let emailNotified = false;
   const sent = await sendLeonixResendEmail({
@@ -118,6 +126,9 @@ ${howMet ? `<strong>How we met:</strong> ${escapeHtml(howMet)}<br/>` : ""}</p>
 ${message ? `<p><strong>Message</strong></p><pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(message)}</pre>` : ""}`,
   });
   emailNotified = sent.ok;
+  if (!sent.ok) {
+    console.error(`[digital-contact-leads] email failed profile=${profileSlug} reason=${sent.message}`);
+  }
 
-  return NextResponse.json({ ok: true, id: ins.id, emailNotified });
+  return NextResponse.json({ ok: true, id: leadId, stored, emailNotified }, { status: stored ? 201 : 200 });
 }
