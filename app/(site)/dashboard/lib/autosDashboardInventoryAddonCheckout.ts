@@ -15,6 +15,8 @@ import {
   revenueCategoryCheckoutErrorMessage,
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { confirmRecurringConsentInteractively } from "@/app/lib/listingPlans/recurringConsentInteractive";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
@@ -267,6 +269,22 @@ export async function startAutosDealerInventoryPackCheckout(input: {
       leonixAdId: input.leonixAdId,
     });
 
+  // Package C Build 1 — this add-on is a monthly subscription: affirmative recurring
+  // consent is required before checkout (Agreement v1.2 clause 17). Cancel aborts.
+  const recurringConsent = confirmRecurringConsentInteractively({
+    lang: input.lang,
+    amountCents: getRevenuePackageDefinition(AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT.packageKey)?.priceCents ?? 0,
+  });
+  if (!recurringConsent) {
+    return {
+      ok: false,
+      userMessage:
+        input.lang === "es"
+          ? "Para continuar, autoriza el cobro recurrente mensual."
+          : "To continue, authorize the recurring monthly charge.",
+    };
+  }
+
   const checkout = await startRevenueCategoryCheckout({
     category: AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT.category,
     packageKey: AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT.packageKey,
@@ -275,6 +293,7 @@ export async function startAutosDealerInventoryPackCheckout(input: {
     returnPath,
     locale: input.lang,
     customerEmail: input.customerEmail,
+    recurringConsent,
   });
 
   if (!checkout.ok || !checkout.checkoutUrl?.trim()) {

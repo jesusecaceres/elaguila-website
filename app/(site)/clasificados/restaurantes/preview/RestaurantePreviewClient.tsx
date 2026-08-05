@@ -166,7 +166,11 @@ export default function RestaurantePreviewClient() {
   );
 
   const onCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      promoCode: string | null;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    }) => {
       setCheckoutBusy(true);
       setCheckoutErr(null);
       try {
@@ -218,6 +222,7 @@ export default function RestaurantePreviewClient() {
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
+          recurringConsent: ctx.recurringConsent ?? null,
           ...(couponUpgradeSelected
             ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
             : {}),

@@ -504,7 +504,11 @@ export function ClasificadosServiciosPreviewClient() {
   );
 
   const onCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      promoCode: string | null;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    }) => {
       if (!appState) return;
       setCheckoutBusy(true);
       setCheckoutErr(null);
@@ -544,6 +548,7 @@ export function ClasificadosServiciosPreviewClient() {
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
+          recurringConsent: ctx.recurringConsent ?? null,
           ...(offersAddonSelected
             ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
             : {}),

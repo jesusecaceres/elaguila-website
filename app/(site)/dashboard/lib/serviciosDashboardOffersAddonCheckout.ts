@@ -1,5 +1,5 @@
 /**
- * Dashboard Servicios offers/coupons add-on checkout — add-on-only ($99/mo), no base plan.
+ * Dashboard Servicios offers/coupons add-on checkout — add-on-only ($79/mo), no base plan.
  * Gate SERVICIOS-P0C-DASHBOARD-ADDON-ONLY-STRIPE-AND-EDIT-ROUTE-PARITY
  *
  * Mirrors the proven Restaurante dashboard add-on pattern, Servicios-specific:
@@ -15,6 +15,8 @@ import {
   revenueCategoryCheckoutErrorMessage,
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { confirmRecurringConsentInteractively } from "@/app/lib/listingPlans/recurringConsentInteractive";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
@@ -38,7 +40,7 @@ export function serviciosOffersEditSuccessLabel(lang: Lang): string {
 }
 
 export function serviciosOffersAddonUpgradeLabel(lang: Lang): string {
-  return lang === "es" ? "Destacar ofertas +$99/mes" : "Feature offers +$99/mo";
+  return lang === "es" ? "Destacar ofertas +$79/mes" : "Feature offers +$79/mo";
 }
 
 export function serviciosOffersAddonUpgradeBusyLabel(lang: Lang): string {
@@ -171,6 +173,22 @@ export async function startServiciosDashboardOffersAddonCheckout(input: {
 
   const returnPath =
     input.returnPath?.trim() || buildDashboardMisAnunciosReturnPath(input.lang, "servicios");
+  // Package C Build 1 — this add-on is a monthly subscription: affirmative recurring
+  // consent is required before checkout (Agreement v1.2 clause 17). Cancel aborts.
+  const recurringConsent = confirmRecurringConsentInteractively({
+    lang: input.lang,
+    amountCents: getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT.packageKey)?.priceCents ?? 0,
+  });
+  if (!recurringConsent) {
+    return {
+      ok: false,
+      userMessage:
+        input.lang === "es"
+          ? "Para continuar, autoriza el cobro recurrente mensual."
+          : "To continue, authorize the recurring monthly charge.",
+    };
+  }
+
   const checkout = await startRevenueCategoryCheckout({
     category: SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT.category,
     packageKey: SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT.packageKey,
@@ -179,6 +197,7 @@ export async function startServiciosDashboardOffersAddonCheckout(input: {
     returnPath,
     locale: input.lang,
     customerEmail: input.customerEmail,
+    recurringConsent,
   });
 
   if (!checkout.ok || !checkout.checkoutUrl?.trim()) {

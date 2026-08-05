@@ -19,6 +19,7 @@ import { resolveAdminActionTruth, isAdminActionSafeToShow, DEDICATED_ROUTE_PIPEL
 import { resolveAdminListingStatusDisplay, resolveAdminAttentionItems, countAdminAttentionBySeverity } from "../app/admin/_lib/adminStatusAttention";
 import { CLASSIFIEDS_OPS_CONTRACTS, getClassifiedsOpsContract } from "../app/admin/_lib/classifiedsOpsContract";
 import type { CanonicalCategoryKey } from "../app/lib/listingIdentity/types";
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 
@@ -272,11 +273,13 @@ async function main() {
       "app/admin/(dashboard)/workspace/clasificados/page.tsx",
       "app/admin/login/page.tsx",
     ]);
-    const changed = changedFiles
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
+    const changed = excludeCurrentPackageFiles(
+      changedFiles
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f)),
+    );
     const lockedPathFragments = [
       "revenue-os",
       "stripe",

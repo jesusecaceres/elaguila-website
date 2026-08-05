@@ -240,7 +240,7 @@ export async function activateRestauranteCouponAddonFromRevenueOs(input: {
 
   listingJson.couponUpgradeEnabled = true;
   if (listingJson.couponMonthlyPrice == null) {
-    listingJson.couponMonthlyPrice = 99;
+    listingJson.couponMonthlyPrice = 79;
   }
 
   const now = new Date().toISOString();

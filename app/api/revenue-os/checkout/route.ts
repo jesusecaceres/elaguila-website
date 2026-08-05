@@ -26,20 +26,33 @@ import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/auto
 import {
   attachStripeSessionToPaymentRecord,
   attachPromoRedemptionToPaymentRecord,
+  computeCheckoutAttemptKey,
   createPendingPaymentRecord,
+  findOpenCheckoutAttempt,
+  releaseStaleCheckoutAttempt,
 } from "@/app/lib/listingPlans/revenuePaymentRecords";
+import {
+  attachStripeIdentitiesToConsent,
+  createRecurringConsentRecord,
+  packageRequiresRecurringConsent,
+  parseRecurringConsentAcknowledgment,
+} from "@/app/lib/listingPlans/recurringConsent";
 import {
   attachStripeSessionToPromoRedemption,
   createPendingPromoRedemption,
   resolvePromoForCheckout,
 } from "@/app/lib/listingPlans/revenuePromoRedemptions";
-import { createRevenueStripeCheckoutSession } from "@/app/lib/listingPlans/revenueStripe";
+import {
+  createRevenueStripeCheckoutSession,
+  retrieveRevenueCheckoutSessionState,
+} from "@/app/lib/listingPlans/revenueStripe";
 import {
   buildDashboardMisAnunciosReturnPath,
   resolveRevenueCategoryDefaultReturnPath,
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { validateRentasRenewalCheckoutOwnership } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
+import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -109,6 +122,20 @@ export async function POST(request: NextRequest) {
         { status: ownerGate.status },
       );
     }
+    // Package C Build 1 (decision 11) — no new add-on activation during grace/suspension.
+    const guard = await assertCommercialCapacityForWrite({
+      category: "autos",
+      parentListingId: String(body.listingId ?? "").trim(),
+      ownerUserId: bearerUserId ?? "",
+      operation: "addon_checkout",
+      capacityDelta: 1,
+    });
+    if (!guard.allowed) {
+      return NextResponse.json(
+        { ok: false, code: guard.code, message: guard.message },
+        { status: 409 },
+      );
+    }
   }
 
   if (isBienesInventoryAddonOnlyEarly) {
@@ -120,6 +147,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, code: ownerGate.code, message: ownerGate.message },
         { status: ownerGate.status },
+      );
+    }
+    // Package C Build 1 (decision 11) — no new add-on activation during grace/suspension.
+    const guard = await assertCommercialCapacityForWrite({
+      category: "bienes-raices",
+      parentListingId: String(body.listingId ?? "").trim(),
+      ownerUserId: bearerUserId ?? "",
+      operation: "addon_checkout",
+      capacityDelta: 1,
+    });
+    if (!guard.allowed) {
+      return NextResponse.json(
+        { ok: false, code: guard.code, message: guard.message },
+        { status: 409 },
       );
     }
   }
@@ -269,6 +310,75 @@ export async function POST(request: NextRequest) {
     : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
   const safeReturnPath = sanitizeRevenueOsReturnPath(body.returnPath, returnFallback);
 
+  // ── Package C Build 1: recurring-billing consent (Agreement v1.2 §17). ──────────────────
+  // Subscription-mode packages hard-require an affirmative, versioned consent record written
+  // BEFORE session creation. One-time and free products never require it.
+  let consentRecordId: string | null = null;
+  if (packageRequiresRecurringConsent(packageDef)) {
+    if (!ownerUserId) {
+      return NextResponse.json(
+        { ok: false, code: "auth_required", message: "Sign in to start a subscription." },
+        { status: 401 },
+      );
+    }
+    const acknowledgment = parseRecurringConsentAcknowledgment(
+      (body as Record<string, unknown>).recurringConsent,
+    );
+    const consentResult = await createRecurringConsentRecord({
+      acknowledgment,
+      ownerUserId,
+      customerEmail: body.customerEmail ?? null,
+      category: packageDef.category,
+      listingSource: body.sourceTable ?? null,
+      listingId: listingRef || null,
+      packageKey: packageDef.packageKey,
+      amountCents,
+    });
+    if (!consentResult.ok) {
+      return NextResponse.json(
+        { ok: false, code: consentResult.code, message: consentResult.message },
+        { status: consentResult.code === "consent_write_failed" ? 500 : 422 },
+      );
+    }
+    consentRecordId = consentResult.consentId;
+  }
+
+  // ── Package C Build 1: server-enforced purchase-attempt identity (P0). ──────────────────
+  // One unresolved attempt per stable purchase key; duplicate clicks / second tabs reuse the
+  // open Stripe session; a genuinely new attempt requires the prior one resolved or stale.
+  const checkoutAttemptKey = computeCheckoutAttemptKey({
+    ownerUserId,
+    listingSource: body.sourceTable ?? packageDef.category,
+    listingId: listingRef,
+    packageKey: packageDef.packageKey,
+    addOns: addOns.map((a) => ({ key: a.key, quantity: a.quantity })),
+    billingMode: packageDef.billingMode,
+    operation: isRentasRenewal ? "renew_listing" : null,
+  });
+  let attemptGeneration = 1;
+  const existingAttempt = await findOpenCheckoutAttempt(checkoutAttemptKey);
+  if (existingAttempt) {
+    const priorSessionId = existingAttempt.stripe_checkout_session_id;
+    if (priorSessionId) {
+      const sessionState = await retrieveRevenueCheckoutSessionState(priorSessionId);
+      if (sessionState.status === "open" && sessionState.url) {
+        return NextResponse.json({
+          ok: true,
+          checkoutUrl: sessionState.url,
+          paymentRecordId: existingAttempt.id,
+          stripeCheckoutSessionId: priorSessionId,
+          amountCents,
+          currency,
+          mode: stripeMode,
+          reusedSession: true,
+        });
+      }
+    }
+    // Stale (expired/completed-elsewhere/no session): release and begin the next generation.
+    await releaseStaleCheckoutAttempt(existingAttempt.id);
+    attemptGeneration = Math.max(1, existingAttempt.attempt_generation ?? 1) + 1;
+  }
+
   const paymentInsert = await createPendingPaymentRecord({
     category: packageDef.category,
     packageKey: packageDef.packageKey,
@@ -293,9 +403,40 @@ export async function POST(request: NextRequest) {
     sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
     currentExpiresAt: isRentasRenewal ? serverVerifiedCurrentExpiresAt : body.currentExpiresAt,
     returnContext: isRentasRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
+    checkoutAttemptKey,
+    attemptGeneration,
   });
 
   if (!paymentInsert.ok) {
+    // Concurrent double-click: another request won the attempt slot between our pre-select and
+    // insert. Hand back the winner's open session when it exists; otherwise tell the client to
+    // retry — never mint a second payable session for the same unresolved purchase.
+    if (paymentInsert.code === "open_attempt_exists") {
+      const winner = await findOpenCheckoutAttempt(checkoutAttemptKey);
+      if (winner?.stripe_checkout_session_id) {
+        const sessionState = await retrieveRevenueCheckoutSessionState(winner.stripe_checkout_session_id);
+        if (sessionState.status === "open" && sessionState.url) {
+          return NextResponse.json({
+            ok: true,
+            checkoutUrl: sessionState.url,
+            paymentRecordId: winner.id,
+            stripeCheckoutSessionId: winner.stripe_checkout_session_id,
+            amountCents,
+            currency,
+            mode: stripeMode,
+            reusedSession: true,
+          });
+        }
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "checkout_attempt_in_progress",
+          message: "A checkout for this purchase is already being prepared. Try again in a moment.",
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { ok: false, code: paymentInsert.code, message: paymentInsert.message },
       { status: 500 },
@@ -371,6 +512,9 @@ export async function POST(request: NextRequest) {
     leonixAdId: serverVerifiedLeonixAdId ?? body.leonixAdId,
     promoCodeId,
     promoRedemptionId,
+    checkoutAttemptKey,
+    attemptGeneration,
+    consentRecordId,
   });
 
   if (!stripeResult.ok) {
@@ -384,6 +528,13 @@ export async function POST(request: NextRequest) {
     paymentRecordId: paymentInsert.paymentRecordId,
     stripeCheckoutSessionId: stripeResult.sessionId,
   });
+
+  if (consentRecordId) {
+    await attachStripeIdentitiesToConsent(consentRecordId, {
+      stripeCheckoutSessionId: stripeResult.sessionId,
+      paymentRecordId: paymentInsert.paymentRecordId,
+    });
+  }
 
   if (promoRedemptionId) {
     await attachStripeSessionToPromoRedemption({

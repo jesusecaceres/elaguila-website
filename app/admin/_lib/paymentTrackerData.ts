@@ -27,6 +27,7 @@ export type LeonixPaymentRecordRow = {
   customer_email: string | null;
   business_name: string | null;
   stripe_checkout_session_id: string | null;
+  stripe_subscription_id?: string | null;
   stripe_payment_intent_id: string | null;
   source: string;
   payment_status: string;
@@ -45,6 +46,9 @@ export type LeonixPaymentRecordRow = {
   /** Enriched read-only fields (not DB columns). */
   entitlement_status: string | null;
   promo_redemption_status: string | null;
+  /** Package C Build 1 — canonical subscription state (active/grace/suspended/canceled/
+   * cancel_at_period_end) from leonix_subscription_records; null for one-time payments. */
+  subscription_status?: string | null;
 };
 
 export type PaymentTrackerSnapshot = {
@@ -90,6 +94,7 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     customer_email: raw.customer_email != null ? String(raw.customer_email) : null,
     business_name: raw.business_name != null ? String(raw.business_name) : null,
     stripe_checkout_session_id: raw.stripe_checkout_session_id != null ? String(raw.stripe_checkout_session_id) : null,
+    stripe_subscription_id: raw.stripe_subscription_id != null ? String(raw.stripe_subscription_id) : null,
     stripe_payment_intent_id: raw.stripe_payment_intent_id != null ? String(raw.stripe_payment_intent_id) : null,
     source: String(raw.source ?? "unknown"),
     payment_status: String(raw.payment_status ?? "unknown"),
@@ -107,6 +112,7 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     metadata,
     entitlement_status: null,
     promo_redemption_status: null,
+    subscription_status: null,
   };
 }
 
@@ -140,6 +146,25 @@ async function enrichPaymentTrackerRows(
     }
   }
 
+  // Package C Build 1 (Gate 14) — canonical subscription state per payment record (truthful
+  // Active / grace / suspended / cancelled admin display; separate from entitlement/promo).
+  const subscriptionStatusBySubId = new Map<string, string>();
+  const subIds = rows
+    .map((r) => (r as { stripe_subscription_id?: string | null }).stripe_subscription_id)
+    .filter(Boolean) as string[];
+  if (subIds.length > 0) {
+    const { data } = await supabase
+      .from("leonix_subscription_records")
+      .select("stripe_subscription_id, status, cancel_at_period_end")
+      .in("stripe_subscription_id", subIds.slice(0, 100));
+    for (const row of data ?? []) {
+      const key = String((row as { stripe_subscription_id: string }).stripe_subscription_id);
+      const status = String((row as { status: string }).status);
+      const cape = Boolean((row as { cancel_at_period_end?: boolean }).cancel_at_period_end);
+      subscriptionStatusBySubId.set(key, status === "active" && cape ? "cancel_at_period_end" : status);
+    }
+  }
+
   return rows.map((row) => ({
     ...row,
     entitlement_status: row.package_entitlement_id
@@ -147,6 +172,11 @@ async function enrichPaymentTrackerRows(
       : null,
     promo_redemption_status: row.promo_redemption_id
       ? promoStatusById.get(row.promo_redemption_id) ?? null
+      : null,
+    subscription_status: (row as { stripe_subscription_id?: string | null }).stripe_subscription_id
+      ? subscriptionStatusBySubId.get(
+          String((row as { stripe_subscription_id?: string | null }).stripe_subscription_id),
+        ) ?? null
       : null,
   }));
 }

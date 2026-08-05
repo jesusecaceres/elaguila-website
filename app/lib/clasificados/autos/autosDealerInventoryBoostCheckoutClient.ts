@@ -1,6 +1,11 @@
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { revenueCategoryCheckoutErrorMessage } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import {
+  AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
+  REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { confirmRecurringConsentInteractively } from "@/app/lib/listingPlans/recurringConsentInteractive";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { writeAutosInventoryBoostReturnContext, type AutosInventoryBoostReturnContext } from "./autosInventoryBoostPipeline";
 
 type Lang = "es" | "en";
@@ -59,6 +64,23 @@ export async function startAutosDealerInventoryPackApplicationCheckout(input: {
     };
   }
 
+  // Package C Build 1 — Inventory Boost is a monthly subscription: affirmative recurring
+  // consent required before checkout (Agreement v1.2 clause 17). Cancel aborts.
+  const recurringConsent = confirmRecurringConsentInteractively({
+    lang: input.lang,
+    amountCents:
+      getRevenuePackageDefinition(AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY)?.priceCents ?? 0,
+  });
+  if (!recurringConsent) {
+    return {
+      ok: false,
+      userMessage:
+        input.lang === "es"
+          ? "Para continuar, autoriza el cobro recurrente mensual."
+          : "To continue, authorize the recurring monthly charge.",
+    };
+  }
+
   try {
     const res = await fetch("/api/clasificados/autos/inventory-pack/checkout", {
       method: "POST",
@@ -71,6 +93,7 @@ export async function startAutosDealerInventoryPackApplicationCheckout(input: {
         leonixAdId: input.leonixAdId?.trim() || null,
         lang: input.lang,
         returnPath: input.returnPath?.trim() || null,
+        recurringConsent,
       }),
     });
     const j = (await res.json().catch(() => ({}))) as {

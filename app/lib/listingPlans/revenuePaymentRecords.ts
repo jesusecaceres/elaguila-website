@@ -42,11 +42,53 @@ export type CreatePendingPaymentRecordInput = {
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
   returnContext?: string | null;
+  /** Package C Build 1 — stable purchase-attempt identity (see computeCheckoutAttemptKey). */
+  checkoutAttemptKey?: string | null;
+  attemptGeneration?: number | null;
 };
 
 export type PendingPaymentRecordResult =
   | { ok: true; paymentRecordId: string }
   | { ok: false; code: string; message: string };
+
+export { computeCheckoutAttemptKey } from "./checkoutAttemptIdentity";
+
+export type OpenAttemptRow = {
+  id: string;
+  stripe_checkout_session_id: string | null;
+  attempt_generation: number | null;
+  created_at: string | null;
+};
+
+/** Find the unresolved attempt for a key (if any). */
+export async function findOpenCheckoutAttempt(attemptKey: string): Promise<OpenAttemptRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_payment_records")
+    .select("id, stripe_checkout_session_id, attempt_generation, created_at")
+    .eq("checkout_attempt_key", attemptKey)
+    .in("payment_status", ["pending", "unpaid", "requires_action"])
+    .maybeSingle();
+  return (data as OpenAttemptRow | null) ?? null;
+}
+
+/** Release a stale attempt (expired/abandoned session) so a new generation can begin. */
+export async function releaseStaleCheckoutAttempt(paymentRecordId: string): Promise<boolean> {
+  if (!isSupabaseAdminConfigured()) return false;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_payment_records")
+    .update({
+      payment_status: "canceled",
+      canceled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", paymentRecordId)
+    .in("payment_status", ["pending", "unpaid", "requires_action"])
+    .select("id");
+  return Boolean(data?.length);
+}
 
 /** Each Checkout attempt creates a new pending row (sandbox-safe, auditable retries). */
 export async function createPendingPaymentRecord(
@@ -93,6 +135,12 @@ export async function createPendingPaymentRecord(
       customer_email: input.customerEmail ?? null,
       promo_code_id: input.promoCodeId ?? null,
       promo_redemption_id: input.promoRedemptionId ?? null,
+      ...(input.checkoutAttemptKey
+        ? {
+            checkout_attempt_key: input.checkoutAttemptKey,
+            attempt_generation: Math.max(1, input.attemptGeneration ?? 1),
+          }
+        : {}),
       metadata: {
         gate: "STRIPE-REVENUE-OS-CHECKOUT-SESSION-01",
         ...(input.operation ? { operation: input.operation } : {}),
@@ -171,6 +219,16 @@ export async function createPendingPaymentRecord(
     .single();
 
   if (error || !data?.id) {
+    // Package C Build 1 — concurrent double-click: the partial unique index on
+    // checkout_attempt_key (unresolved statuses) turns the second insert into 23505.
+    // Signal the caller so it reuses the winner's open attempt/session.
+    if (error?.code === "23505" && input.checkoutAttemptKey) {
+      return {
+        ok: false,
+        code: "open_attempt_exists",
+        message: "An unresolved checkout attempt already exists for this purchase.",
+      };
+    }
     return {
       ok: false,
       code: "payment_record_insert_failed",

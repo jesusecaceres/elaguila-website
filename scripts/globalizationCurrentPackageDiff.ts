@@ -170,6 +170,85 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope.ts",
   // New runtime-adoption proof:
   "scripts/gate-pkgB-media-runtime-adoption-selftest.ts",
+
+  // ═══ PACKAGE C BUILD 1 (C2+C3) — REVENUE OS CONVERGENCE, SUBSCRIPTION LIFECYCLE, GRACE ═══
+  // (Package A/B entries above are inert since their commits; audit trail preserved.)
+  // C1 audit artifacts:
+  "docs/globalization/package-c/C1_REVENUE_OS_REFERENCE_FREEZE_AND_CATEGORY_DELTA_AUDIT.md",
+  "scripts/verify-package-c-c1-reference-freeze.mjs",
+  // Canonical Revenue OS core (attempt identity, consent, event ledger, subscription events):
+  "app/api/revenue-os/checkout/route.ts",
+  "app/api/revenue-os/webhook/route.ts",
+  "app/api/revenue-os/admin/subscription-sweep/route.ts",
+  "app/lib/listingPlans/revenueStripe.ts",
+  "app/lib/listingPlans/revenueWebhook.ts",
+  "app/lib/listingPlans/revenueEntitlementFulfillment.ts",
+  "app/lib/listingPlans/revenuePaymentRecords.ts",
+  "app/lib/listingPlans/revenuePricingMatrix.ts",
+  "app/lib/listingPlans/publishCheckoutCheckpoint.ts",
+  "app/lib/listingPlans/revenueRestaurantFulfillment.ts",
+  "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts",
+  // New shared commercial modules (+ pure policy twins for behavioral tests):
+  "app/lib/listingPlans/stripeEventLedger.ts",
+  "app/lib/listingPlans/stripeEventLedgerPolicy.ts",
+  "app/lib/listingPlans/subscriptionLifecycle.ts",
+  "app/lib/listingPlans/subscriptionLifecyclePolicy.ts",
+  "app/lib/listingPlans/revenueSubscriptionEvents.ts",
+  "app/lib/listingPlans/recurringConsent.ts",
+  "app/lib/listingPlans/recurringConsentCopy.ts",
+  "app/lib/listingPlans/recurringConsentInteractive.ts",
+  "app/lib/listingPlans/commercialWriteGuard.ts",
+  "app/lib/listingPlans/commercialWriteGuardPolicy.ts",
+  "app/lib/listingPlans/manualClearedPayments.ts",
+  "app/lib/listingPlans/refundDisputeFoundations.ts",
+  "app/lib/listingPlans/refundDisputePolicy.ts",
+  "app/lib/listingPlans/checkoutAttemptIdentity.ts",
+  "app/lib/listingPlans/commercialStateBadges.ts",
+  // Legacy convergence (guards + bypassOnly handshake + success-page read-only):
+  "app/api/clasificados/autos/checkout/route.ts",
+  "app/api/clasificados/autos/stripe/webhook/route.ts",
+  "app/api/clasificados/leonix/stripe/webhook/route.ts",
+  "app/api/clasificados/autos/inventory-pack/checkout/route.ts",
+  "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
+  "app/(site)/clasificados/bienes-raices/pago/exito/BrPagoExitoClient.tsx",
+  "app/lib/clasificados/autos/autosDealerInventoryBoostCheckoutClient.ts",
+  "app/lib/clasificados/autos/autosPublishApiContract.ts",
+  // Capacity + grace write-path enforcement (decision 11):
+  "app/api/clasificados/autos/listings/route.ts",
+  "app/api/clasificados/autos/listings/[id]/restore/route.ts",
+  "app/api/clasificados/bienes-raices/listing-edit/route.ts",
+  "app/(site)/clasificados/lib/leonixBrPropertyInventoryPolicy.ts",
+  // Recurring-consent checkout surfaces:
+  "app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx",
+  "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+  "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+  "app/(site)/clasificados/bienes-raices/preview/negocio/components/BienesRaicesNegocioPreviewClient.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+  "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+  "app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts",
+  "app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout.ts",
+  "app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout.ts",
+  "app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout.ts",
+  // Minimal truthful state readers + manual-payment/print admin surfaces:
+  "app/api/dashboard/listing-package-entitlements/route.ts",
+  "app/admin/_lib/paymentTrackerData.ts",
+  "app/admin/(dashboard)/workspace/package-entitlements/actions.ts",
+  "app/api/admin/revenue-os/manual-payments/route.ts",
+  // Approved additive migrations (M1-M6):
+  "supabase/migrations/20260805090000_leonix_stripe_webhook_events.sql",
+  "supabase/migrations/20260805090100_leonix_subscription_records.sql",
+  "supabase/migrations/20260805090200_leonix_billing_consents.sql",
+  "supabase/migrations/20260805090300_listing_package_entitlements_uniqueness_grant_source.sql",
+  "supabase/migrations/20260805090400_leonix_payment_records_manual_clearance_attempt_identity.sql",
+  "supabase/migrations/20260805090500_lane_listing_suspended_reason.sql",
+  // New Package C Build 1 proofs + closure artifacts:
+  "scripts/gate-pkgC-canonical-contract-selftest.ts",
+  "scripts/gate-pkgC-event-ledger-idempotency-selftest.ts",
+  "scripts/gate-pkgC-consent-convergence-selftest.ts",
+  "scripts/gate-pkgC-capacity-grace-writeguard-selftest.ts",
+  "scripts/verify-package-c-c2-c3-revenue-os-subscription.mjs",
+  "scripts/package-c/report-duplicate-entitlements.mjs",
+  "docs/globalization/package-c/C2_C3_REVENUE_OS_CONVERGENCE_SUBSCRIPTION_GRACE_CLOSURE.md",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

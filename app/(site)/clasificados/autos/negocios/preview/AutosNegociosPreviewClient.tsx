@@ -464,7 +464,11 @@ function AutosNegociosPreviewInner({
   }, [additionalInventoryVehicles, lang, listing, canonicalListingId]);
 
   const onStartDealerCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      promoCode: string | null;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    }) => {
       setCheckoutBusy(true);
       setCheckoutError(null);
       const pending = await ensurePendingDealerListing();
@@ -497,6 +501,7 @@ function AutosNegociosPreviewInner({
         locale: lang,
         customerEmail: pending.customerEmail,
         promoCode: ctx.promoCode,
+        recurringConsent: ctx.recurringConsent ?? null,
         addOns: autosDealerSelectedAddOns(totalVehicleCount),
       });
       setCheckoutBusy(false);

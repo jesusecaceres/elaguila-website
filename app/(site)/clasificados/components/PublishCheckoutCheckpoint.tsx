@@ -29,6 +29,16 @@ import {
   publishCheckpointPromoDeferredLabel,
   publishCheckpointTotalMonthlyLabel,
 } from "@/app/lib/listingPlans/publishCheckoutCopy";
+import {
+  buildRecurringConsentAcknowledgment,
+  buildRecurringConsentText,
+} from "@/app/lib/listingPlans/recurringConsentCopy";
+
+export type RecurringConsentAcknowledgmentPayload = {
+  accepted: true;
+  consentTextVersion: string;
+  lang: "es" | "en";
+};
 
 const LEONIX_CREAM = "#FFFAF3";
 const LEONIX_BORDER = "#D8C2A0";
@@ -53,6 +63,11 @@ export type PublishCheckoutCheckpointProps = {
     newsletterOptIn: boolean;
     promoCode: string | null;
     checkedConfirmationIds: string[];
+    /** Package C Build 1 — present ONLY when the package is a monthly subscription and the
+     * customer affirmatively checked the recurring-billing consent box (Agreement v1.2 §17).
+     * Forward it verbatim in the checkout payload; the server rejects recurring checkout
+     * without it. Null for one-time packages. */
+    recurringConsent: RecurringConsentAcknowledgmentPayload | null;
   }) => void | Promise<void>;
   onFreePublish?: (ctx: {
     newsletterOptIn: boolean;
@@ -90,6 +105,8 @@ export function PublishCheckoutCheckpoint({
 }: PublishCheckoutCheckpointProps) {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+  // Package C Build 1 — recurring-billing consent: unchecked by default, never implied.
+  const [recurringConsentChecked, setRecurringConsentChecked] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
@@ -113,9 +130,13 @@ export function PublishCheckoutCheckpoint({
   const blockReason = publishCheckpointBlockReason(resolved);
   const draftBlockMessage = !draftReady ? draftReadyMessage?.trim() || null : null;
   const showPromoDeferred = config.promoEligible && !onPromoApply;
-  const finalButtonEnabled = resolved.finalActionEnabled && draftReady && !busy;
   const restaurantCouponBlocked = isRestaurantCouponCheckoutBlocked(config);
   const basePackageIsMonthly = resolved.packageDef?.billingMode === "monthly_subscription";
+  // Package C Build 1 — a monthly subscription checkout additionally requires the affirmative
+  // recurring-billing consent checkbox (Agreement v1.2 §17). One-time/free actions never do.
+  const recurringConsentRequired = basePackageIsMonthly && resolved.mode === "checkout";
+  const finalButtonEnabled =
+    resolved.finalActionEnabled && draftReady && !busy && (!recurringConsentRequired || recurringConsentChecked);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -175,15 +196,21 @@ export function PublishCheckoutCheckpoint({
 
   const handleFinalAction = () => {
     if (!finalButtonEnabled) return;
-    const ctx = {
+    const baseCtx = {
       newsletterOptIn,
       promoCode: appliedPromoCode,
       checkedConfirmationIds: [...checkedIds],
     };
     if (resolved.mode === "checkout") {
-      void onCheckout?.(ctx);
+      void onCheckout?.({
+        ...baseCtx,
+        recurringConsent:
+          recurringConsentRequired && recurringConsentChecked
+            ? buildRecurringConsentAcknowledgment(lang === "en" ? "en" : "es")
+            : null,
+      });
     } else {
-      void onFreePublish?.(ctx);
+      void onFreePublish?.(baseCtx);
     }
   };
 
@@ -391,6 +418,26 @@ export function PublishCheckoutCheckpoint({
           <p className="text-xs" style={{ color: "#8B6914" }}>
             {publishCheckpointConfirmationsHelper(lang, requiredRemaining)}
           </p>
+        ) : null}
+        {recurringConsentRequired ? (
+          // Package C Build 1 — affirmative recurring-billing consent (Agreement v1.2 §17):
+          // exact amount, monthly interval, auto-renewal, cancellation, and the 7-day grace
+          // policy. Unchecked by default; the final action stays disabled without it; the
+          // server independently rejects subscription checkout lacking the acknowledgment.
+          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 border-t pt-3 text-xs leading-relaxed" style={{ borderColor: `${LEONIX_BORDER}99` }}>
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded"
+              style={{ accentColor: LEONIX_BURGUNDY }}
+              checked={recurringConsentChecked}
+              onChange={(e) => setRecurringConsentChecked(e.target.checked)}
+              disabled={busy}
+              aria-describedby={`${id}-recurring-consent-text`}
+            />
+            <span id={`${id}-recurring-consent-text`} style={{ color: LEONIX_MUTED }}>
+              {buildRecurringConsentText({ amountCents: resolved.totalCents, lang: lang === "en" ? "en" : "es" })}
+            </span>
+          </label>
         ) : null}
       </div>
 

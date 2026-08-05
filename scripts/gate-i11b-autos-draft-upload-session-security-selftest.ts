@@ -15,6 +15,7 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const AUTOS_ROUTE = "app/api/clasificados/autos/media/draft-photo-upload/route.ts";
@@ -140,11 +141,11 @@ async function main() {
       "app/admin/(dashboard)/workspace/clasificados/page.tsx",
       "app/admin/login/page.tsx",
     ]);
-    const changed = changedFiles
+    const changed = excludeCurrentPackageFiles(changedFiles
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean)
-      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
+      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f)));
     const forbiddenFragments = [
       "stripe",
       "revenue-os",

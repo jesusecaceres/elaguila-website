@@ -121,6 +121,9 @@ export type RevenueCategoryCheckoutPayload = {
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
   returnContext?: string | null;
+  /** Package C Build 1 — affirmative recurring-billing consent (subscription packages only).
+   * The server hard-rejects subscription-mode checkout without it (Agreement v1.2 §17). */
+  recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -150,5 +153,6 @@ export function buildRevenueCategoryCheckoutBody(
     ...(input.sourceTable?.trim() ? { sourceTable: input.sourceTable.trim() } : {}),
     ...(input.currentExpiresAt?.trim() ? { currentExpiresAt: input.currentExpiresAt.trim() } : {}),
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
+    ...(input.recurringConsent ? { recurringConsent: input.recurringConsent } : {}),
   };
 }

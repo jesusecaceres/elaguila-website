@@ -49,7 +49,8 @@ export const AUTOS_DEALER_MONTHLY_PACKAGE_KEY = "autos_dealer_monthly";
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
-export const BR_INVENTORY_PACK_MAX_CHILDREN = 4;
+// Package C Build 1 — owner-locked: the pack adds THREE properties (base 1 + pack 3 = 4 max).
+export const BR_INVENTORY_PACK_MAX_CHILDREN = 3;
 export const BR_BASE_INCLUDED_PROPERTIES = 1;
 export const BR_TOTAL_ACTIVE_PROPERTY_LIMIT = BR_BASE_INCLUDED_PROPERTIES + BR_INVENTORY_PACK_MAX_CHILDREN;
 
@@ -295,7 +296,7 @@ export function resolvePublishCheckoutCheckpoint(
 
     const restaurantCouponSelected = Boolean(config.restaurantOffersAddonSelected);
     const offersDef = getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
-    const offersPriceCents = offersDef?.priceCents ?? 9900;
+    const offersPriceCents = offersDef?.priceCents ?? 7900;
 
     if (restaurantCouponSelected) {
       if (REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
@@ -333,7 +334,7 @@ export function resolvePublishCheckoutCheckpoint(
 
     const serviciosOffersSelected = Boolean(config.serviciosOffersAddonSelected);
     const serviciosOffersDef = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
-    const serviciosOffersPriceCents = serviciosOffersDef?.priceCents ?? 9900;
+    const serviciosOffersPriceCents = serviciosOffersDef?.priceCents ?? 7900;
 
     if (serviciosOffersSelected) {
       addOns.push({
@@ -475,7 +476,7 @@ export function resolvePublishCheckoutCheckpoint(
     metadata.restaurant_coupon_addon_selected = Boolean(config.restaurantOffersAddonSelected);
     if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
       metadata.restaurant_offers_addon_package_key = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
-      metadata.restaurant_offers_addon_price_cents = offersDef?.priceCents ?? 9900;
+      metadata.restaurant_offers_addon_price_cents = offersDef?.priceCents ?? 7900;
     }
   }
 
@@ -485,7 +486,7 @@ export function resolvePublishCheckoutCheckpoint(
     if (config.pipeline?.trim()) metadata.pipeline = config.pipeline.trim();
     if (config.serviciosOffersAddonSelected && REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED) {
       metadata.servicios_offers_addon_package_key = SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
-      metadata.servicios_offers_addon_price_cents = serviciosOffersDef?.priceCents ?? 9900;
+      metadata.servicios_offers_addon_price_cents = serviciosOffersDef?.priceCents ?? 7900;
     }
   }
 

@@ -64,17 +64,10 @@ function resolvePlacementSurfaces(tier: PlacementTier): string[] {
   return ["clasificados", "category_landing", "category_results"];
 }
 
-function computeEndsAt(startsAt: Date, packageDef: RevenuePackageDefinition): Date {
-  if (packageDef.billingMode === "monthly_subscription") {
-    const end = new Date(startsAt);
-    end.setUTCDate(end.getUTCDate() + 30);
-    return end;
-  }
-  const days = packageDef.durationDays ?? 30;
-  const end = new Date(startsAt);
-  end.setUTCDate(end.getUTCDate() + days);
-  return end;
-}
+/** Locked 7-calendar-day failed-payment grace (Package C Build 1). */
+const SUBSCRIPTION_ENDS_AT_GRACE_BACKSTOP_DAYS = 7;
+export { computeEndsAt } from "./subscriptionLifecyclePolicy";
+import { computeEndsAt } from "./subscriptionLifecyclePolicy";
 
 export type EntitlementFulfillmentResult = {
   ok: boolean;
@@ -91,6 +84,12 @@ export async function activateEntitlementsForPayment(input: {
   stripeEventId: string;
   stripeEventType: string;
   stripeCheckoutSessionId: string;
+  /** Real Stripe subscription period end (post-Basil: from subscription items). */
+  realPeriodEnd?: Date | null;
+  /** Package C Build 1 — grant provenance (defaults to stripe_webhook). */
+  grantSource?: "stripe_webhook" | "admin_manual" | "print_included" | "comp" | "partner" | "manual_cleared_payment";
+  /** Link to the canonical subscription record when subscription-mode. */
+  subscriptionRecordId?: string | null;
 }): Promise<EntitlementFulfillmentResult> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
@@ -103,7 +102,7 @@ export async function activateEntitlementsForPayment(input: {
   }
 
   const startsAt = new Date();
-  const endsAt = computeEndsAt(startsAt, input.packageDef);
+  const endsAt = computeEndsAt(startsAt, input.packageDef, input.realPeriodEnd ?? null);
 
   let packageEntitlementId = input.paymentRecord.package_entitlement_id ?? null;
 
@@ -215,8 +214,15 @@ export async function activateEntitlementsForPayment(input: {
       promo_code_id: input.paymentRecord.promo_code_id,
       promo_redemption_id: input.paymentRecord.promo_redemption_id,
       placement_entitlement_id: placementEntitlementId,
+      grant_source: input.grantSource ?? "stripe_webhook",
+      ...(input.subscriptionRecordId ? { subscription_record_id: input.subscriptionRecordId } : {}),
       metadata: {
         ...webhookMeta,
+        ...(input.realPeriodEnd
+          ? { ends_at_source: "stripe_period_end_plus_grace" }
+          : input.packageDef.billingMode === "monthly_subscription"
+            ? { ends_at_source: "fallback_30d" }
+            : {}),
         ...(input.packageDef.billingMode === "monthly_subscription"
           ? { subscription_active: true }
           : {}),
@@ -228,6 +234,28 @@ export async function activateEntitlementsForPayment(input: {
     .single();
 
   if (pkgError || !pkgInsert?.id) {
+    // Package C Build 1 — the M4 live-uniqueness index turns a concurrent duplicate insert
+    // into 23505. Effectively-once: re-select the live row and return idempotent rather than
+    // failing (closes the concurrent-webhook race the payment-record-only dedupe left open).
+    if (pkgError?.code === "23505") {
+      const { data: liveRow } = await supabase
+        .from("listing_package_entitlements")
+        .select("id, placement_entitlement_id")
+        .eq("listing_source", input.packageDef.category)
+        .eq("listing_id", listingId)
+        .eq("package_key", input.packageDef.packageKey)
+        .in("status", ["active", "scheduled"])
+        .maybeSingle();
+      if (liveRow?.id) {
+        return {
+          ok: true,
+          idempotent: true,
+          packageEntitlementId: liveRow.id as string,
+          placementEntitlementId:
+            (liveRow.placement_entitlement_id as string | null) ?? placementEntitlementId,
+        };
+      }
+    }
     return {
       ok: false,
       code: "package_entitlement_insert_failed",
@@ -251,4 +279,83 @@ export async function activateEntitlementsForPayment(input: {
     packageEntitlementId,
     placementEntitlementId,
   };
+}
+
+/**
+ * Package C Build 1 (C3) — invoice.paid extension: advance the SAME entitlement row to the new
+ * real period end (+7d grace backstop). Never inserts a duplicate; revives expired rows that
+ * lapsed past the backstop during slow recovery; never auto-revives `revoked` (admin-terminal).
+ * Renewal history lives on per-invoice payment records — the entitlement carries only a small
+ * last_extended pointer so metadata stays bounded.
+ */
+export async function extendEntitlementForInvoicePaid(input: {
+  packageEntitlementId: string | null;
+  listingSource?: string | null;
+  listingId?: string | null;
+  packageKey?: string | null;
+  newPeriodEnd: Date;
+  stripeInvoiceId: string;
+  stripeEventId: string;
+}): Promise<{ ok: boolean; entitlementId?: string | null; revived?: boolean; code?: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, code: "supabase_not_configured" };
+  const supabase = getAdminSupabase();
+
+  const newEndsAt = new Date(input.newPeriodEnd);
+  newEndsAt.setUTCDate(newEndsAt.getUTCDate() + SUBSCRIPTION_ENDS_AT_GRACE_BACKSTOP_DAYS);
+
+  let targetId = String(input.packageEntitlementId ?? "").trim() || null;
+  if (!targetId && input.listingSource && input.listingId && input.packageKey) {
+    // Legacy-pointer fallback via the M4 unique key; the caller heals the pointer afterward.
+    const { data } = await supabase
+      .from("listing_package_entitlements")
+      .select("id")
+      .eq("listing_source", input.listingSource)
+      .eq("listing_id", input.listingId)
+      .eq("package_key", input.packageKey)
+      .in("status", ["active", "scheduled", "expired"])
+      .order("ends_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    targetId = (data?.id as string | undefined) ?? null;
+  }
+  if (!targetId) return { ok: false, code: "entitlement_not_found" };
+
+  const { data: current } = await supabase
+    .from("listing_package_entitlements")
+    .select("id, status, metadata")
+    .eq("id", targetId)
+    .maybeSingle();
+  if (!current) return { ok: false, code: "entitlement_not_found" };
+  if (String(current.status) === "revoked") {
+    // Admin-terminal — surfaced, never auto-revived.
+    return { ok: false, code: "entitlement_revoked_requires_admin" };
+  }
+
+  const meta = (current.metadata ?? {}) as Record<string, unknown>;
+  const lastExtended = meta.last_extended as { invoice_id?: string } | undefined;
+  if (lastExtended?.invoice_id === input.stripeInvoiceId) {
+    return { ok: true, entitlementId: targetId }; // replay-idempotent
+  }
+
+  const revived = String(current.status) === "expired";
+  const { error } = await supabase
+    .from("listing_package_entitlements")
+    .update({
+      status: "active",
+      ends_at: newEndsAt.toISOString(),
+      updated_at: new Date().toISOString(),
+      metadata: {
+        ...meta,
+        ends_at_source: "stripe_period_end_plus_grace",
+        last_extended: {
+          invoice_id: input.stripeInvoiceId,
+          stripe_event_id: input.stripeEventId,
+          period_end: input.newPeriodEnd.toISOString(),
+          at: new Date().toISOString(),
+        },
+      },
+    })
+    .eq("id", targetId);
+  if (error) return { ok: false, code: "extension_failed" };
+  return { ok: true, entitlementId: targetId, revived };
 }

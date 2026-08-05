@@ -18,6 +18,7 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
 
 import { CATEGORY_ROUTE_REGISTRY } from "../app/lib/listingIdentity/categoryRouteRegistry";
 import { applyOwnerListingPatch } from "../app/(site)/dashboard/lib/ownerListingsLifecycleClient";
@@ -215,6 +216,9 @@ async function main() {
       .map((l) => l.trim())
       .filter(Boolean)
       .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
+    // Globalization: the current in-flight package's authorized files are excluded via the
+    // shared allowlist (same stale-assertion fix as gates i13a/i9a/i9b et al).
+    const changedScoped = excludeCurrentPackageFiles(changed);
     for (const f of EN_VENTA_INQUIRY_ROUTES) {
       assert.ok(!changed.includes(f), `buyer-inquiry send-side route must not be touched: ${f}`);
     }
@@ -228,7 +232,7 @@ async function main() {
       "stripe", "revenue-os", "webhook", "migrations", "entitlement", "app/api/admin/",
       "ofertas", "cupones", "concierge", "app/lib/analytics/server/", "app/api/analytics/",
     ];
-    for (const f of changed) {
+    for (const f of changedScoped) {
       const lower = f.toLowerCase();
       for (const frag of lockedFragments) {
         assert.ok(!lower.includes(frag), `locked/external file must not be part of this package's diff: ${f} (matched "${frag}")`);

@@ -255,5 +255,36 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ badges });
+  // Package C Build 1 (Gate 14) — truthful subscription/grace/suspension state per listing.
+  // Read from the canonical subscription records; independent of plan/entitlement/placement.
+  const subscriptionStates: Record<
+    string,
+    { status: string; cancelAtPeriodEnd: boolean; graceEndsAt: string | null; suspensionReason: string | null; recoveredAt: string | null }
+  > = {};
+  try {
+    const listingIds = revenueLookupItems.map((i) => i.listingId).filter(Boolean);
+    if (listingIds.length) {
+      const supabase = getAdminSupabase();
+      const { data: subs } = await supabase
+        .from("leonix_subscription_records")
+        .select("listing_id, status, cancel_at_period_end, grace_ends_at, suspension_reason, recovered_at, updated_at")
+        .in("listing_id", listingIds)
+        .order("updated_at", { ascending: false });
+      for (const row of subs ?? []) {
+        const key = String((row as { listing_id?: string }).listing_id ?? "");
+        if (!key || subscriptionStates[key]) continue;
+        subscriptionStates[key] = {
+          status: String((row as { status?: string }).status ?? ""),
+          cancelAtPeriodEnd: Boolean((row as { cancel_at_period_end?: boolean }).cancel_at_period_end),
+          graceEndsAt: ((row as { grace_ends_at?: string | null }).grace_ends_at ?? null) as string | null,
+          suspensionReason: ((row as { suspension_reason?: string | null }).suspension_reason ?? null) as string | null,
+          recoveredAt: ((row as { recovered_at?: string | null }).recovered_at ?? null) as string | null,
+        };
+      }
+    }
+  } catch {
+    // Fail closed to "no subscription state" — never fabricate commercial truth.
+  }
+
+  return NextResponse.json({ badges, subscriptionStates });
 }

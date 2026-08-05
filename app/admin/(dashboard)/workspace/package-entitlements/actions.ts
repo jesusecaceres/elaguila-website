@@ -234,6 +234,13 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     },
   );
 
+  // Package C Build 1 (Gate 11) — explicit grant provenance. Print tiers are the integrated
+  // print+digital package (Agreement v1.2 §2: the digital component is included, not
+  // separately priced/refundable) → grant_source 'print_included'; everything else granted
+  // here is 'admin_manual'. Never a fake Stripe record either way.
+  const isPrintTier = tier !== "digital_only";
+  const grantSource = isPrintTier ? "print_included" : "admin_manual";
+
   const { data, error } = await supabase
     .from("listing_package_entitlements")
     .insert({
@@ -251,6 +258,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
       ends_at: endsAt,
       placement_scope: scopes,
       benefits: def.benefits,
+      grant_source: grantSource,
       metadata,
       updated_at: now.toISOString(),
     })
@@ -265,6 +273,43 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   }
 
   const entitlementId = data?.id ? String((data as { id: string }).id) : null;
+
+  // Package C Build 1 (Gate 11) — print-included grants now ALSO create the matching
+  // placement entitlement row (source 'included_with_print' — first real non-Stripe placement
+  // writer; the public reader remains Package D scope). Placement stays a separate record:
+  // never inferred from the package grant, never a fake payment.
+  if (entitlementId && isPrintTier && listingId) {
+    const placementTierForPrint =
+      tier === "premium"
+        ? "partner_premium"
+        : tier === "full_page"
+          ? "print_full_page"
+          : tier === "half_page"
+            ? "print_half_page"
+            : tier === "quarter_page"
+              ? "print_quarter_page"
+              : null;
+    if (placementTierForPrint) {
+      await supabase.from("leonix_placement_entitlements").insert({
+        listing_id: listingId,
+        category,
+        placement_tier: placementTierForPrint,
+        placement_source: "included_with_print",
+        included_with_print: true,
+        print_contract_id: contractCode || entitlementCode,
+        surfaces: scopes?.length ? scopes : ["clasificados", "category_landing", "category_results"],
+        starts_at: startsAt,
+        ends_at: endsAt,
+        status: status === "active" ? "active" : "scheduled",
+        metadata: {
+          source: "print_included",
+          package_entitlement_id: entitlementId,
+          gate: "PACKAGE-C-BUILD-1-PRINT-INCLUDED",
+        },
+      });
+    }
+  }
+
   if (entitlementId) {
     const promoLink = await upsertPromoCodeFromPackageEntitlement({
       entitlementId,
