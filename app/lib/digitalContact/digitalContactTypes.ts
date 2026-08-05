@@ -10,9 +10,9 @@ export type DigitalContactSocialLink = {
   url: string;
 };
 
-import type { DigitalContactAccentThemeId } from "./digitalContactAccentTheme";
+import type { ExecutiveThemeId } from "./digitalContactExecutiveTheme";
 
-export type { DigitalContactAccentThemeId };
+export type { ExecutiveThemeId };
 
 export type DigitalContactAddress = {
   line1: string;
@@ -47,11 +47,12 @@ export type DigitalContactProfile = {
   trustChips: string[];
   socials: DigitalContactSocialLink[];
   /**
-   * Secondary accent theme (chip borders, avatar glow, kicker color). Leonix Burgundy
-   * always stays the primary brand color regardless of this setting. Omit to use the
-   * default `leonixGold` look (Chuy's current profile).
+   * Executive Theme — drives every brand color across the Contact Hub (gradient, CTA
+   * buttons, accents, badges, glow) via CSS custom properties. Omit to use `leonix`
+   * (Chuy's current profile). New executives are onboarded by declaring a theme id
+   * here, never by duplicating component styling.
    */
-  accentThemeId?: DigitalContactAccentThemeId;
+  theme?: ExecutiveThemeId;
   /** Optional per-profile meta description override (falls back to a generated default). */
   metaDescription?: string;
   active: boolean;

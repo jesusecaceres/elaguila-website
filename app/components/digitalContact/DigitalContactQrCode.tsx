@@ -51,7 +51,7 @@ export function DigitalContactQrCode({ profileSlug, value, fileName, copy }: Pro
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#3D3428]">{copy.qrBody}</p>
 
-        <div className="mx-auto mt-5 flex h-44 w-44 items-center justify-center rounded-2xl border border-[#C9A84A]/50 bg-white p-3 shadow-inner sm:h-52 sm:w-52">
+        <div className="mx-auto mt-5 flex h-44 w-44 items-center justify-center rounded-2xl border border-[var(--dc-accent-border)] bg-white p-3 shadow-inner sm:h-52 sm:w-52">
           {dataUrl ? (
             <img src={dataUrl} alt={copy.qrTitle} width={480} height={480} className="h-full w-full object-contain" />
           ) : (
@@ -65,7 +65,7 @@ export function DigitalContactQrCode({ profileSlug, value, fileName, copy }: Pro
             download={dataUrl ? fileName : undefined}
             aria-disabled={!dataUrl}
             onClick={() => trackDigitalContactEvent(profileSlug, "qr_download")}
-            className={`inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-[#FFFDF7] transition hover:bg-[#6B1A26] sm:w-auto ${!dataUrl ? "pointer-events-none opacity-50" : ""}`}
+            className={`inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[var(--dc-button-primary)] bg-[var(--dc-button-primary)] px-5 py-2.5 text-sm font-bold text-[#FFFDF7] transition hover:bg-[var(--dc-button-hover)] sm:w-auto ${!dataUrl ? "pointer-events-none opacity-50" : ""}`}
           >
             {copy.qrDownload}
           </a>

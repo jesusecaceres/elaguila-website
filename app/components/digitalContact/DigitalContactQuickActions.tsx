@@ -146,9 +146,9 @@ export function DigitalContactQuickActions({ profile, copy, onOpenEmail }: Props
             key={action.id}
             type="button"
             onClick={action.onPress}
-            className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-3 text-center shadow-sm transition hover:border-[#C9A84A] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F8F4EA]"
+            className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-3 text-center shadow-sm transition hover:border-[var(--dc-accent)] hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F8F4EA]"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7A1E2C] text-[#FFFCF7]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--dc-button-primary)] text-[#FFFCF7]">
               {action.icon}
             </span>
             <span className="text-xs font-bold text-[#1F241C] sm:text-sm">{action.label}</span>

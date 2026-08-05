@@ -64,7 +64,7 @@ export function DigitalContactEmailModal({ open, onClose, email, copy, onAction 
             type="button"
             aria-label={copy.emailModalClose}
             onClick={onClose}
-            className="rounded-lg p-1.5 text-[#5F6258] transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]"
+            className="rounded-lg p-1.5 text-[#5F6258] transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)]"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
               <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -82,7 +82,7 @@ export function DigitalContactEmailModal({ open, onClose, email, copy, onAction 
               onAction?.("open");
               openMailto(email, "", "");
             }}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-transparent bg-[#7A1E2C] px-4 py-2.5 text-sm font-bold text-[#FFFDF7] transition hover:bg-[#6B1A26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-transparent bg-[var(--dc-button-primary)] px-4 py-2.5 text-sm font-bold text-[#FFFDF7] transition hover:bg-[var(--dc-button-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
           >
             {copy.emailModalOpen}
           </button>
@@ -96,7 +96,7 @@ export function DigitalContactEmailModal({ open, onClose, email, copy, onAction 
                 }
               });
             }}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-white px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-white px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:bg-[var(--dc-accent-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
           >
             {copy.actionCopyEmail}
           </button>
@@ -117,7 +117,7 @@ export function DigitalContactEmailModal({ open, onClose, email, copy, onAction 
                 }
               })();
             }}
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-white px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-white px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:bg-[var(--dc-accent-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7]"
           >
             {copy.emailModalShare}
           </button>
