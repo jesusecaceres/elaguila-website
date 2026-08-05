@@ -58,6 +58,9 @@ export default function BusinessToolsPage() {
             conciergeTitle: "Concierge DIY",
             conciergeDesc: "Tu mapa de salud, tus acciones personalizadas y tu progreso real, en un solo lugar.",
             conciergeCta: "Abrir Concierge",
+            nextMoveTitle: "Tu próximo paso",
+            nextMoveDesc: "La única acción más importante para tu negocio ahora mismo, explicada con transparencia.",
+            nextMoveCta: "Ver mi próximo paso",
             healthMapTitle: "Mapa de salud del negocio",
             healthMapDesc: "Una mirada en lenguaje claro a lo que Leonix entiende sobre tu negocio.",
             healthMapCta: "Ver mapa de salud",
@@ -90,6 +93,9 @@ export default function BusinessToolsPage() {
             conciergeTitle: "DIY Concierge",
             conciergeDesc: "Your Health Map, your personalized actions, and your real progress, in one place.",
             conciergeCta: "Open Concierge",
+            nextMoveTitle: "Your Next Right Move",
+            nextMoveDesc: "The single most important action for your business right now, explained transparently.",
+            nextMoveCta: "See my Next Right Move",
             healthMapTitle: "Business Health Map",
             healthMapDesc: "A plain-language look at what Leonix understands about your business.",
             healthMapCta: "View Health Map",
@@ -193,6 +199,16 @@ export default function BusinessToolsPage() {
                 className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
               >
                 {t.conciergeCta}
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
+              <h2 className="text-base font-bold text-[#1E1810]">{t.nextMoveTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.nextMoveDesc}</p>
+              <Link
+                href={`/dashboard/business-tools/proximo-paso?${q}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
+              >
+                {t.nextMoveCta}
               </Link>
             </div>
             <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">

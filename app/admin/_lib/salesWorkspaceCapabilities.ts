@@ -55,7 +55,16 @@ export type SalesWorkspaceCapability =
   // sales_rep — deciding a paid Guide Me / Let Leonix Handle It request is a manager+ action.
   | "view_diy_concierge_requests"
   | "decide_concierge_guidance_request"
-  | "decide_managed_service_request";
+  | "decide_managed_service_request"
+  // Gate BCO-TODAY-3 — Next Right Move / Stewardship Engine capabilities. Kept in this same
+  // matrix rather than a parallel one. Every sales role may view; only manager+ may
+  // create/approve/override a recommendation — a sales_rep may never approve, override, or
+  // create one, matching the Living Book/Health Map/DIY Concierge review-action precedent.
+  | "view_recommendations"
+  | "create_recommendation"
+  | "approve_recommendation"
+  | "override_recommendation"
+  | "view_stewardship_ledger";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -84,6 +93,11 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "view_diy_concierge_requests",
   "decide_concierge_guidance_request",
   "decide_managed_service_request",
+  "view_recommendations",
+  "create_recommendation",
+  "approve_recommendation",
+  "override_recommendation",
+  "view_stewardship_ledger",
 ];
 
 /**
@@ -133,6 +147,11 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_diy_concierge_requests",
     "decide_concierge_guidance_request",
     "decide_managed_service_request",
+    "view_recommendations",
+    "create_recommendation",
+    "approve_recommendation",
+    "override_recommendation",
+    "view_stewardship_ledger",
   ],
   sales_manager: [
     "view_business_list",
@@ -160,6 +179,11 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_diy_concierge_requests",
     "decide_concierge_guidance_request",
     "decide_managed_service_request",
+    "view_recommendations",
+    "create_recommendation",
+    "approve_recommendation",
+    "override_recommendation",
+    "view_stewardship_ledger",
   ],
   sales_rep: [
     "view_business_list",
@@ -176,6 +200,8 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "conduct_discovery",
     "view_business_history",
     "view_business_health_map",
+    "view_recommendations",
+    "view_stewardship_ledger",
   ],
 };
 
