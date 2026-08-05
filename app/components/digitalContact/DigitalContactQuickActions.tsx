@@ -6,12 +6,12 @@ import { digitalContactOfficeLine } from "@/app/lib/digitalContact/digitalContac
 import type { DigitalContactProfile } from "@/app/lib/digitalContact/digitalContactTypes";
 import { trackDigitalContactEvent } from "@/app/lib/digitalContact/digitalContactAnalyticsClient";
 import { copyToClipboard, getFormattedPhone } from "@/app/components/cta/ctaDataHelpers";
-import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { openExternalUrl, openMaps, openSms, openTel, openWhatsApp } from "@/app/components/cta/ctaLaunchers";
 
 type Props = {
   profile: DigitalContactProfile;
   copy: DigitalContactCopy;
-  onOpenSheet: (intent: CtaSheetIntent) => void;
+  onOpenEmail: () => void;
 };
 
 type ActionDef = {
@@ -39,7 +39,7 @@ const ICON_PATHS = {
   copy: "M9 9h9v9H9V9Zm-3 3H4V4h8v2",
 } as const;
 
-export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props) {
+export function DigitalContactQuickActions({ profile, copy, onOpenEmail }: Props) {
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = useCallback((msg: string) => {
@@ -57,7 +57,7 @@ export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props
       icon: <ActionIcon path={ICON_PATHS.call} />,
       onPress: () => {
         trackDigitalContactEvent(profile.slug, "cta_call");
-        onOpenSheet({ kind: "call", phone: profile.phoneDigits, contactShareExtras: { email: profile.email, websiteUrl: profile.website } });
+        openTel(profile.phoneDigits);
       },
     },
     {
@@ -66,7 +66,7 @@ export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props
       icon: <ActionIcon path={ICON_PATHS.text} />,
       onPress: () => {
         trackDigitalContactEvent(profile.slug, "cta_text");
-        onOpenSheet({ kind: "send_message", message: "", phone: profile.phoneDigits });
+        openSms(profile.phoneDigits, "");
       },
     },
     {
@@ -75,7 +75,7 @@ export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props
       icon: <ActionIcon path={ICON_PATHS.whatsapp} />,
       onPress: () => {
         trackDigitalContactEvent(profile.slug, "cta_whatsapp");
-        onOpenSheet({ kind: "send_message", message: "", whatsappDigits });
+        openWhatsApp(whatsappDigits, "");
       },
     },
     {
@@ -84,7 +84,7 @@ export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props
       icon: <ActionIcon path={ICON_PATHS.email} />,
       onPress: () => {
         trackDigitalContactEvent(profile.slug, "cta_email");
-        onOpenSheet({ kind: "send_email", email: profile.email, subject: "", body: "", contactShareExtras: { websiteUrl: profile.website } });
+        onOpenEmail();
       },
     },
     {
@@ -93,7 +93,7 @@ export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props
       icon: <ActionIcon path={ICON_PATHS.directions} />,
       onPress: () => {
         trackDigitalContactEvent(profile.slug, "cta_directions");
-        onOpenSheet({ kind: "directions", addressOrUrl: digitalContactOfficeLine(profile) });
+        openMaps(digitalContactOfficeLine(profile));
       },
     },
     {
@@ -102,7 +102,7 @@ export function DigitalContactQuickActions({ profile, copy, onOpenSheet }: Props
       icon: <ActionIcon path={ICON_PATHS.website} />,
       onPress: () => {
         trackDigitalContactEvent(profile.slug, "cta_website");
-        onOpenSheet({ kind: "website", url: profile.website, headline: copy.actionWebsite });
+        openExternalUrl(profile.website);
       },
     },
     {
