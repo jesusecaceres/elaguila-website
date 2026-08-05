@@ -81,3 +81,19 @@ export function magazineReadTranslateSiteHref(lang: SupportedLang): string {
     returnTo: `/magazine/2026/june/read?lang=${lang}`,
   });
 }
+
+/**
+ * TODAY-2 — durable QR destination for the Business Tools / DIY Concierge campaign. Reuses the
+ * same canonical routing pattern as the magazine translator gateway (lang + tracking params on
+ * one stable path) rather than a parallel QR system. The route itself renders a truthful
+ * "coming soon" state until the approved V2 experience is wired up — never a broken destination.
+ */
+export function businessToolsQrDestinationHref(
+  lang: SupportedLang,
+  opts?: { sourcePage?: string; sourceCta?: string },
+): string {
+  const params = new URLSearchParams({ lang });
+  if (opts?.sourcePage) params.set("sourcePage", opts.sourcePage);
+  if (opts?.sourceCta) params.set("sourceCta", opts.sourceCta);
+  return `/qr/business-tools?${params.toString()}`;
+}

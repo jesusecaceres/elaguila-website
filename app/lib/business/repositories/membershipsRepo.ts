@@ -68,6 +68,29 @@ export async function findActiveMembershipForCurrentUser(
   return mapMembershipRow(data as MembershipRow);
 }
 
+/**
+ * TODAY-2 — exact business-access check. Unlike findActiveMembershipForCurrentUser (which
+ * returns the caller's first active membership, useful when a user has exactly one business),
+ * this verifies an active membership for the SPECIFIC businessId the caller claims — required
+ * before granting any personalized DIY Concierge tool, since an owner may control multiple
+ * businesses and personalized access must never be inferred from "any" membership.
+ */
+export async function findActiveMembershipForBusinessAndUser(
+  client: SupabaseClient,
+  businessId: string,
+  userId: string,
+): Promise<BusinessMembership | null> {
+  const { data, error } = await client
+    .from("business_memberships")
+    .select(MEMBERSHIP_COLUMNS)
+    .eq("business_id", businessId)
+    .eq("user_id", userId)
+    .eq("membership_status", "active")
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapMembershipRow(data as MembershipRow);
+}
+
 export async function isPrimaryOwner(client: SupabaseClient, businessId: string, userId: string): Promise<boolean> {
   const { data, error } = await client
     .from("business_memberships")

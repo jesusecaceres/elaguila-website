@@ -49,7 +49,13 @@ export type SalesWorkspaceCapability =
   | "view_business_health_map"
   | "run_business_health_assessment"
   | "view_private_health_support"
-  | "mark_health_human_review";
+  | "mark_health_human_review"
+  // Gate BCO-TODAY-2 — DIY Concierge paid-request capabilities. Kept in this same matrix rather
+  // than a parallel one, matching the Gate BCO-5A/6A precedent. Deliberately withheld from
+  // sales_rep — deciding a paid Guide Me / Let Leonix Handle It request is a manager+ action.
+  | "view_diy_concierge_requests"
+  | "decide_concierge_guidance_request"
+  | "decide_managed_service_request";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -75,6 +81,9 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "run_business_health_assessment",
   "view_private_health_support",
   "mark_health_human_review",
+  "view_diy_concierge_requests",
+  "decide_concierge_guidance_request",
+  "decide_managed_service_request",
 ];
 
 /**
@@ -121,6 +130,9 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "run_business_health_assessment",
     "view_private_health_support",
     "mark_health_human_review",
+    "view_diy_concierge_requests",
+    "decide_concierge_guidance_request",
+    "decide_managed_service_request",
   ],
   sales_manager: [
     "view_business_list",
@@ -145,6 +157,9 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "run_business_health_assessment",
     "view_private_health_support",
     "mark_health_human_review",
+    "view_diy_concierge_requests",
+    "decide_concierge_guidance_request",
+    "decide_managed_service_request",
   ],
   sales_rep: [
     "view_business_list",

@@ -55,6 +55,15 @@ export default function BusinessToolsPage() {
             ideaBuilderTitle: "Constructor de ideas",
             ideaBuilderDesc: "Organiza tu idea de negocio paso a paso, guarda tu progreso y descarga un resumen.",
             ideaBuilderCta: "Empezar",
+            conciergeTitle: "Concierge DIY",
+            conciergeDesc: "Tu mapa de salud, tus acciones personalizadas y tu progreso real, en un solo lugar.",
+            conciergeCta: "Abrir Concierge",
+            healthMapTitle: "Mapa de salud del negocio",
+            healthMapDesc: "Una mirada en lenguaje claro a lo que Leonix entiende sobre tu negocio.",
+            healthMapCta: "Ver mapa de salud",
+            bookTitle: "Lo que Leonix entiende",
+            bookDesc: "Revisa, confirma o corrige la información que Leonix tiene sobre tu negocio.",
+            bookCta: "Revisar información",
           }
         : {
             title: "Business tools",
@@ -78,6 +87,15 @@ export default function BusinessToolsPage() {
             ideaBuilderTitle: "Idea Builder",
             ideaBuilderDesc: "Organize your business idea step by step, save your progress, and download a summary.",
             ideaBuilderCta: "Get started",
+            conciergeTitle: "DIY Concierge",
+            conciergeDesc: "Your Health Map, your personalized actions, and your real progress, in one place.",
+            conciergeCta: "Open Concierge",
+            healthMapTitle: "Business Health Map",
+            healthMapDesc: "A plain-language look at what Leonix understands about your business.",
+            healthMapCta: "View Health Map",
+            bookTitle: "What Leonix understands",
+            bookDesc: "Review, confirm, or correct the information Leonix has about your business.",
+            bookCta: "Review information",
           },
     [lang]
   );
@@ -165,6 +183,36 @@ export default function BusinessToolsPage() {
                 className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
               >
                 {t.ideaBuilderCta}
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
+              <h2 className="text-base font-bold text-[#1E1810]">{t.conciergeTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.conciergeDesc}</p>
+              <Link
+                href={`/dashboard/business-tools/concierge?${q}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
+              >
+                {t.conciergeCta}
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
+              <h2 className="text-base font-bold text-[#1E1810]">{t.healthMapTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.healthMapDesc}</p>
+              <Link
+                href={`/dashboard/business-tools/business-health?${q}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.healthMapCta}
+              </Link>
+            </div>
+            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
+              <h2 className="text-base font-bold text-[#1E1810]">{t.bookTitle}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.bookDesc}</p>
+              <Link
+                href={`/dashboard/business-tools/what-we-understand?${q}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {t.bookCta}
               </Link>
             </div>
           </div>
