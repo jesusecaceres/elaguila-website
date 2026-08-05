@@ -27,6 +27,12 @@ import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+
+/** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
+const SERVICIOS_GALLERY_MAX = 24;
 
 export const runtime = "nodejs";
 
@@ -259,6 +265,34 @@ export async function POST(req: NextRequest) {
       meta: { missing: readiness.missing },
     });
     return NextResponse.json({ ok: false, error: "not_ready", missing: readiness.missing }, { status: 422 });
+  }
+
+  // Globalization Package B (Gate B6) — shared media contract, additive server-side gate.
+  // The client already caps `state.gallery` at SERVICIOS_GALLERY_MAX and video count at
+  // SERVICIOS_MAX_VIDEO_URLS on every add, so this should never fire for any UI-driven submit;
+  // it exists as the authoritative last-line truth (T1/T3/T7/T8) for this single, real save
+  // boundary — both new listings and listing-edit saves route through this same POST handler.
+  const serviciosFinalMedia = buildProposedFinalMediaSet({
+    existing: state.gallery.map((g) => g.url),
+    externalVideoUrls: state.videos.map((v) => v.url),
+  });
+  const serviciosMediaValidation = validateProposedFinalMediaSet(serviciosFinalMedia, {
+    minImages: 0,
+    maxImages: SERVICIOS_GALLERY_MAX,
+    logoAllowed: false,
+    maxExternalVideos: SERVICIOS_MAX_VIDEO_URLS,
+    normalizeExternalVideoUrl: normalizeStrictExternalVideoUrl,
+  });
+  if (!serviciosMediaValidation.ok) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_validation_failed",
+      meta: { mediaIssues: serviciosMediaValidation.issues },
+    });
+    return NextResponse.json(
+      { ok: false, error: "media_invalid", issues: serviciosMediaValidation.issues },
+      { status: 422 },
+    );
   }
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");

@@ -156,6 +156,20 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "scripts/gate-pkgB-media-contract-selftest.ts",
   "scripts/gate-pkgB-media-adoption-selftest.ts",
   "scripts/gate-pkgB-parent-child-selftest.ts",
+
+  // ═══ PACKAGE B CLOSURE — RUNTIME ADOPTION (owner-rejected the config-only B6 report) ═══
+  // Real listingMediaContract.ts call sites added at each dedicated-editor lane's actual
+  // save/validation boundary (additive gates alongside each lane's own proven validation —
+  // no existing category logic rewritten; the locked publishLeonixRealEstateListingCore.ts
+  // was deliberately NOT touched):
+  "app/api/clasificados/servicios/publish/route.ts",
+  "app/api/clasificados/restaurantes/publish/route.ts",
+  "app/lib/clasificados/comida-local/comidaLocalPublishValidation.ts",
+  "app/lib/clasificados/autos/autosListingPayloadPersistence.ts",
+  "app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts",
+  "app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope.ts",
+  // New runtime-adoption proof:
+  "scripts/gate-pkgB-media-runtime-adoption-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

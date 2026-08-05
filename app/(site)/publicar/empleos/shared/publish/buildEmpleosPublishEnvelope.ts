@@ -13,6 +13,25 @@ import type {
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
 import { syncLegacyPayField, syncPublishPayField } from "../lib/empleosPayDisplay";
 import { joinScheduleRowsForPublish } from "../lib/empleosScheduleDisplay";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+
+/**
+ * Globalization Package B (Gate B6) — shared media contract, additive gate. Empleos images are
+ * truthfully uncapped (no enforced count limit exists anywhere for this pipeline), so this only
+ * re-certifies the T7/T8 persistable-URL truth on the final envelope's already-sanitized media
+ * references — mapImagesForPublish/mapVideoUrlsForPublish above already strip blob:/data: with
+ * their own logic; this is a real, additive second pass at the actual envelope boundary, not a
+ * replacement.
+ */
+function auditEmpleosEnvelopeMedia(imageUrls: readonly string[], videoUrls: readonly string[]): void {
+  const result = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: imageUrls, externalVideoUrls: videoUrls }),
+    { minImages: 0, maxImages: Number.POSITIVE_INFINITY, logoAllowed: true, maxExternalVideos: 4, normalizeExternalVideoUrl: sanitizeHttpUrl },
+  );
+  if (!result.ok && process.env.NODE_ENV === "development") {
+    console.warn("[empleos publish envelope] shared media contract flagged", result.issues);
+  }
+}
 
 function joinQuickScheduleForPublish(d: EmpleosQuickDraft): string {
   const joined = joinScheduleRowsForPublish(d.scheduleRows);
@@ -241,6 +260,7 @@ export function buildEmpleosPublishEnvelopeFromQuick(d: EmpleosQuickDraft, lang:
   const data = buildQuickPublishSnapshot(d);
   const primary = data.images.find((x) => x.isMain)?.url ?? data.images[0]?.url ?? null;
   const skippedBlob = quickDraftSkippedBlobImages(d);
+  auditEmpleosEnvelopeMedia(data.images.map((r) => r.url), data.videoUrls ?? []);
   return envelopeBase(
     lang,
     { lane: "quick", data },
@@ -259,6 +279,7 @@ export function buildEmpleosPublishEnvelopeFromPremium(d: EmpleosPremiumDraft, l
   const data = buildPremiumPublishSnapshot(d);
   const primary = data.gallery.find((x) => x.isMain)?.url ?? data.gallery[0]?.url ?? null;
   const skippedBlob = premiumDraftSkippedBlobImages(d);
+  auditEmpleosEnvelopeMedia(data.gallery.map((r) => r.url), data.videoUrl ? [data.videoUrl] : []);
   return envelopeBase(
     lang,
     { lane: "premium", data },

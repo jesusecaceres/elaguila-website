@@ -47,6 +47,25 @@ import {
   normalizeZipForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+
+/**
+ * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
+ * NOT touch publishLeonixRealEstateListingCore.ts (locked per the Globalization master plan —
+ * shared BR/Rentas publish core, changed only under Package A's gated fix). This runs one step
+ * earlier, in each lane's own builder, alongside that lane's existing real min-photo check
+ * (never replacing it), re-certifying only the max-count truth (T1/T3) using each lane's own
+ * real registry-pinned limit. Returns the same bilingual error shape these builders already use.
+ */
+function leonixRealEstateMediaCountError(
+  count: number,
+  max: number,
+  lang: "es" | "en",
+): string {
+  return lang === "es"
+    ? `Demasiadas fotos (${count}). El máximo permitido es ${max}. Quita algunas e inténtalo de nuevo.`
+    : `Too many photos (${count}). The maximum allowed is ${max}. Remove a few and try again.`;
+}
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
@@ -285,6 +304,14 @@ export function buildRentasPrivadoListingParams(
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
   }
+  // Gate B6 — additive max-count re-certification (MAX_PHOTOS = 8, rentasPrivadoFormState.ts:163).
+  const rentasPrivadoMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: orderedGallery }),
+    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!rentasPrivadoMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
+  }
   const vm = mapRentasPrivadoStateToPreviewVm(state, lang);
   let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const note = trim(state.seller.notaContacto);
@@ -341,6 +368,17 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
 ): LeonixBrDraftPublishBuildResult {
   const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
   if (petsErr) return petsErr;
+  // Gate B6 — additive max-count re-certification (max 40, GaleriaMultimediaNegocioSection
+  // steps01-03.tsx:540; min-1 already enforced upstream in the live agente-individual path,
+  // buildPublishParamsFromAgenteResidencialDraft below).
+  const brNegocioOrderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoUrls, state.media.primaryImageIndex);
+  const brNegocioMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: brNegocioOrderedGallery }),
+    { minImages: 0, maxImages: 40, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!brNegocioMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(brNegocioOrderedGallery.length, 40, lang) };
+  }
   const vm = mapBienesRaicesNegocioStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const cat = inferCategoriaPropiedadFromBienesNegocioState(state);
@@ -471,6 +509,14 @@ export function buildRentasNegocioListingParams(
           ? "No hay fotos listas para publicar. Vuelve al formulario, sube al menos una foto y abre la vista previa otra vez."
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
+  }
+  // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
+  const rentasNegocioMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: orderedGallery }),
+    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!rentasNegocioMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
   const vm = mapRentasNegocioStateToPreviewVm(state);
   let human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
