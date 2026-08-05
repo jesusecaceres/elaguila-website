@@ -458,10 +458,17 @@ async function main() {
       path.join(REPO_ROOT, "app/lib/listingIdentity/dashboardActionResolver.ts"),
       "utf8",
     );
+    // Package B (Gates B4/B5) UPDATE — BOTH inventory pipelines now have real per-child edit
+    // entry points, so the resolver delegates edit resolution to the registry's guarded child
+    // routes (fail-closed shapes return null; push() drops nulls). The BR-child preview
+    // exclusion remains the one resolver-level child gate.
     assert.ok(
-      resolverSrc.includes('identity.pipeline === "bienes_raices_negocio" || identity.pipeline === "autos_negocios"') &&
-        resolverSrc.includes("child"),
-      "dashboardActionResolver.ts must still carry the shared child-exclusion check covering both bienes_raices_negocio and autos_negocios — the resolver-level safety layer stays even now that the registry is guarded (defense in depth)",
+      resolverSrc.includes('identity.pipeline === "bienes_raices_negocio" && child'),
+      "dashboardActionResolver.ts must keep the BR-child preview exclusion",
+    );
+    assert.ok(
+      !resolverSrc.includes("editSupported"),
+      "edit is now registry-delegated for every role — no resolver-level edit exclusion remains",
     );
 
     // Package A Gate 1 — the registry now fails closed on its own: calling editRoute/previewRoute
@@ -474,10 +481,14 @@ async function main() {
       parentSourceId: "parent-id-999",
       inventoryRole: "inventory_property",
     });
-    assert.equal(
-      negocio.editRoute(childIdentity, { lang: "es" }),
-      null,
-      "Package A Gate 1: BR Negocio editRoute must fail closed (null) for an inventory-child identity — never substitute the parent id",
+    // Package B (Gate B4) UPDATE — BR child edit now resolves a REAL child-targeted route
+    // (parent inventory-edit context + openChildDraftId → the child's own isolated editor);
+    // it still never silently substitutes the parent as the EDIT TARGET (the parent id is the
+    // context, the child id is the target), and preview stays fail-closed.
+    const brChildEdit = negocio.editRoute(childIdentity, { lang: "es" })!;
+    assert.ok(
+      brChildEdit.includes("openChildDraftId=br-db-child-child-id-111") && brChildEdit.includes("mode=inventory-edit"),
+      "Package B Gate B4: BR Negocio child editRoute must target THIS child's editor via openChildDraftId",
     );
     assert.equal(
       negocio.previewRoute(childIdentity, { lang: "es" }),
@@ -523,10 +534,14 @@ async function main() {
       parentSourceId: "dealer-parent-999",
       inventoryRole: "inventory_vehicle",
     });
-    assert.equal(
-      autos.editRoute(autosChildIdentity, { lang: "es" }),
-      null,
-      "Package A Gate 1: Autos Negocios editRoute must fail closed (null) for an inventory-child identity",
+    // Package B (Gate B5) UPDATE — Autos child edit now resolves its real child-targeted
+    // route (parent inventory-edit context + editVehicleId); fail-closed still holds for a
+    // child without a confirmed parent id (pinned in gate-pkgA-catalog-freeze).
+    const autosChildEditHref = autos.editRoute(autosChildIdentity, { lang: "es" })!;
+    assert.ok(
+      autosChildEditHref.includes("editVehicleId=child-vehicle-111") &&
+        autosChildEditHref.includes("mode=inventory-edit"),
+      "Package B Gate B5: Autos child editRoute must target THIS vehicle's drawer editor via editVehicleId",
     );
     assert.ok(
       autos.secondaryManageRoute!(autosChildIdentity, { lang: "es" })!.includes("listingId=dealer-parent-999"),

@@ -103,6 +103,7 @@ import {
   newVideoId,
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
+import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { ServiciosPublishModal } from "./ServiciosPublishModal";
 import {
   CUSTOM_PAYMENT_LABEL_MAX,
@@ -807,11 +808,15 @@ export function ClasificadosServiciosApplication() {
   const addVideoUrl = () => {
     const raw = videoUrlDraft.trim();
     if (!raw) return;
-    if (!isProbablyValidWebUrl(raw)) {
+    // Globalization Package B (Gate B3) — Servicios previously accepted any web URL for a
+    // video slot (the only paid lane with no video validator). Now gated by the shared strict
+    // validator (https-only, URL-parseable, never blob:/data:) — same semantics as Autos'.
+    const strictNormalized = normalizeStrictExternalVideoUrl(raw);
+    if (!strictNormalized || !isProbablyValidWebUrl(raw)) {
       setMediaFlash(copy.labels.invalidUrl);
       return;
     }
-    const normalizedUrl = normalizeHttpUrl(raw);
+    const normalizedUrl = normalizeHttpUrl(strictNormalized);
     setState((prev) => {
       if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
         queueMicrotask(() => setMediaFlash(copy.labels.videosLimitHint));

@@ -5,6 +5,7 @@ import {useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
+import { buildProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -147,6 +148,8 @@ const [userId, setUserId] = useState<string | null>(null);
 const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 const [uploading, setUploading] = useState(false);
 const [uploadNote, setUploadNote] = useState<string | null>(null);
+/** Globalization Package B (Gate B2) — media action busy flag for remove/reorder/hero. */
+const [mediaActionBusy, setMediaActionBusy] = useState(false);
 
 const [sellerPhotoUrl, setSellerPhotoUrl] = useState<string>("");
 const [sellerPhotoUploading, setSellerPhotoUploading] = useState(false);
@@ -285,21 +288,17 @@ async function uploadImages() {
     uploadedUrls.push(publicUrl);
   }
 
-  // Persist to DB (listings.images jsonb only; no image_urls/image)
+  // Persist to DB (listings.images jsonb only; no image_urls/image). Globalization Package B
+  // (Gate B2): the final set = existing + new (shared proposed-final-set semantics); a failed
+  // upload returned above and can never touch proven existing media.
   try {
     const prev = getListingImageUrls(listing?.images);
-    const payload: { images: string[] } = { images: [...prev, ...uploadedUrls] };
-
-    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
-
-    if (uErr) {
-      console.error("[mis-anuncios/editar]", uErr.message);
-      setError(dashboardSafeMutationErrorCopy(lang));
+    const finalSet = buildProposedFinalMediaSet({ existing: prev, uploaded: uploadedUrls });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (!ok) {
       setUploading(false);
       return;
     }
-
-    setListing((prev: any) => ({ ...(prev || {}), ...payload }));
     setSelectedFiles([]);
     setUploadNote(null);
     setSuccess(lang === "es" ? "Fotos actualizadas" : "Photos updated");
@@ -307,6 +306,95 @@ async function uploadImages() {
     setError(e?.message || "Upload failed");
   } finally {
     setUploading(false);
+  }
+}
+
+/** Package B (Gate B2) — single persistence point for the FINAL ordered image set. */
+async function persistImages(finalImages: string[]): Promise<boolean> {
+  if (!id || !isValidUuid(id) || !userId) return false;
+  const supabase = createSupabaseBrowserClient();
+  const payload: { images: string[] } = { images: finalImages };
+  const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
+  if (uErr) {
+    console.error("[mis-anuncios/editar]", uErr.message);
+    setError(dashboardSafeMutationErrorCopy(lang));
+    return false;
+  }
+  setListing((prev: any) => ({ ...(prev || {}), ...payload }));
+  return true;
+}
+
+/**
+ * Package B (Gate B2) — minimum-image floor per category, mirroring each lane's REAL publish
+ * rule (never invented): rentas/bienes-raices require 1 photo
+ * (leonixPublishRealEstateFromDraftState.ts publish gates), mascotas requires its single image
+ * (publishMascotasPerdidosQuickToListings.ts:85-86); the other listings-family lanes publish
+ * with zero photos. Removing below the floor is blocked with a truthful message.
+ */
+function minImagesForListingCategory(): number {
+  const cat = String(listing?.category ?? "").toLowerCase();
+  if (cat === "rentas" || cat === "bienes-raices" || cat === "mascotas-y-perdidos") return 1;
+  return 0;
+}
+
+async function removeImageAt(index: number) {
+  if (mediaActionBusy) return;
+  const current = getListingImageUrls(listing?.images);
+  if (index < 0 || index >= current.length) return;
+  if (current.length - 1 < minImagesForListingCategory()) {
+    setError(
+      lang === "es"
+        ? "Este anuncio necesita al menos una foto — sube una nueva antes de quitar esta."
+        : "This listing needs at least one photo — upload a new one before removing this one.",
+    );
+    return;
+  }
+  setError(null);
+  setMediaActionBusy(true);
+  try {
+    const finalSet = buildProposedFinalMediaSet({ existing: current, removedUrls: [current[index]] });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (ok) setSuccess(lang === "es" ? "Foto eliminada del anuncio" : "Photo removed from listing");
+  } finally {
+    setMediaActionBusy(false);
+  }
+}
+
+async function moveImage(index: number, direction: -1 | 1) {
+  if (mediaActionBusy) return;
+  const current = getListingImageUrls(listing?.images);
+  const target = index + direction;
+  if (index < 0 || index >= current.length || target < 0 || target >= current.length) return;
+  const reordered = [...current];
+  [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+  setError(null);
+  setMediaActionBusy(true);
+  try {
+    const finalSet = buildProposedFinalMediaSet({ existing: current, orderedUrls: reordered });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (ok) setSuccess(lang === "es" ? "Orden de fotos actualizado" : "Photo order updated");
+  } finally {
+    setMediaActionBusy(false);
+  }
+}
+
+/** Hero = first image — the listings-family cover convention every public shell renders. */
+async function makeHeroImage(index: number) {
+  if (mediaActionBusy || index === 0) return;
+  const current = getListingImageUrls(listing?.images);
+  if (index < 0 || index >= current.length) return;
+  setError(null);
+  setMediaActionBusy(true);
+  try {
+    const finalSet = buildProposedFinalMediaSet({
+      existing: current,
+      orderedUrls: [current[index], ...current.filter((_, i) => i !== index)],
+      heroUrl: current[index],
+    });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (ok) setSuccess(lang === "es" ? "Foto de portada actualizada" : "Cover photo updated");
+  } finally {
+    setMediaActionBusy(false);
   }
 }
 
@@ -625,11 +713,59 @@ async function removeSellerPhoto() {
   ) : null}
 
   {getListingImageUrls(listing?.images).length > 0 ? (
+    /* Globalization Package B (Gate B2) — the gallery is now MANAGEABLE, not read-only:
+       remove, reorder, and cover selection persist the full final ordered set through the
+       same owner-scoped patch. No display cap (previously silently sliced to 8). Index 0 is
+       the cover — the listings-family convention every public shell renders. */
     <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {getListingImageUrls(listing?.images).slice(0, 8).map((url) => (
-        <div key={url} className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
+      {getListingImageUrls(listing?.images).map((url, index, all) => (
+        <div key={url} className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
           { }
-          <img src={url} alt="photo" className="h-full w-full object-cover" />
+          <img src={url} alt={index === 0 ? (lang === "es" ? "Portada" : "Cover") : "photo"} className="h-full w-full object-cover" />
+          {index === 0 ? (
+            <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+              {lang === "es" ? "Portada" : "Cover"}
+            </span>
+          ) : null}
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/65 py-1 opacity-90">
+            <button
+              type="button"
+              disabled={mediaActionBusy || index === 0}
+              onClick={() => void moveImage(index, -1)}
+              aria-label={lang === "es" ? "Mover antes" : "Move earlier"}
+              className="rounded px-1.5 text-xs text-white/90 hover:bg-white/15 disabled:opacity-30"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              disabled={mediaActionBusy || index === all.length - 1}
+              onClick={() => void moveImage(index, 1)}
+              aria-label={lang === "es" ? "Mover después" : "Move later"}
+              className="rounded px-1.5 text-xs text-white/90 hover:bg-white/15 disabled:opacity-30"
+            >
+              ▶
+            </button>
+            {index !== 0 ? (
+              <button
+                type="button"
+                disabled={mediaActionBusy}
+                onClick={() => void makeHeroImage(index)}
+                className="rounded px-1.5 text-[10px] font-semibold text-amber-200 hover:bg-white/15 disabled:opacity-30"
+              >
+                {lang === "es" ? "Portada" : "Cover"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              disabled={mediaActionBusy}
+              onClick={() => void removeImageAt(index)}
+              aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
+              className="rounded px-1.5 text-xs font-bold text-red-300 hover:bg-white/15 disabled:opacity-30"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       ))}
     </div>

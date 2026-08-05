@@ -218,6 +218,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           viewPreview: "Vista previa",
           unpublish: "Retirar",
           restore: "Reactivar",
+          editVehicle: "Editar",
           publish: "Publicar",
           publishAutos: "Publicar en Autos",
           allListings: "Tus anuncios Autos",
@@ -241,6 +242,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           viewPreview: "Preview",
           unpublish: "Unpublish",
           restore: "Reactivate",
+          editVehicle: "Edit",
           publish: "Publish",
           publishAutos: "Publish in Autos",
           allListings: "Your Autos listings",
@@ -547,6 +549,19 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          {/* Package B (Gate B5) — DIRECT child edit action (ledger defect
+                              D3): deep-links into the parent's inventory-edit context with
+                              editVehicleId, opening THIS vehicle's own drawer editor.
+                              Available in every status (drawer edits propagate to the child's
+                              own row via the Gate B5 server sync). */}
+                          {isChildRow && parentId ? (
+                            <Link
+                              href={`${autosDealerInventoryEditHref({ lang, listingId: parentId })}&editVehicleId=${encodeURIComponent(row.id)}`}
+                              className="rounded-lg border border-[#C9B46A]/60 bg-[#FBF7EF] px-2.5 py-1.5 text-[11px] font-bold text-[#5C4E2E]"
+                            >
+                              {t.editVehicle}
+                            </Link>
+                          ) : null}
                           {row.status === "active" ? (
                             <>
                               <Link

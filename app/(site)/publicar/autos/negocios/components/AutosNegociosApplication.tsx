@@ -123,6 +123,21 @@ export function AutosNegociosApplication() {
 
   const dashboardReturnHref = appendLangToPath(buildDashboardMisAnunciosReturnPath(lang, "autos"), lang);
   const dashboardHydratedRef = useRef(false);
+  /* Globalization Package B (Gate B5) — direct child-edit deep link from the dashboard child
+     row: once hydration lands the child (its embedded draft id IS the child row uuid), that
+     vehicle's drawer editor opens — child-bound, sibling/parent drafts untouched. */
+  const editVehicleId = searchParams?.get("editVehicleId")?.trim() ?? "";
+  const editVehicleConsumedRef = useRef(false);
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !editVehicleId || !hydrated) return;
+    if (editVehicleConsumedRef.current) return;
+    const exists = (additionalInventoryVehicles ?? []).some(
+      (v) => String((v as { id?: unknown }).id ?? "").trim() === editVehicleId,
+    );
+    if (!exists) return; // wait for dashboard hydration to land this child
+    editVehicleConsumedRef.current = true;
+    setInventoryDrawerOpen(true, editVehicleId);
+  }, [isExistingDashboardListingMode, editVehicleId, hydrated, additionalInventoryVehicles, setInventoryDrawerOpen]);
   const [editHydration, setEditHydration] = useState<
     { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
   >({ status: "idle" });

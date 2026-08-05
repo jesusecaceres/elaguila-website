@@ -324,6 +324,24 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   publicRoute: (identity) => `/clasificados/anuncio/${identity.sourceId}`,
 
   editRoute: (identity, opts) => {
+    // Globalization Package B (Gate B4) — a REAL direct child edit route now exists: an
+    // inventory-property child resolves to the parent's dashboard inventory-edit context with
+    // `openChildDraftId`, which opens that child's own isolated editor session (never the
+    // parent form, never a sibling). Fail-closed remains for a child without a confirmed
+    // parent id. Parent identities keep the Package A Gate 1 guarded behavior unchanged.
+    if (identity.inventoryRole === "inventory_property") {
+      const parentId = identity.parentSourceId?.trim();
+      if (!parentId) return null;
+      const params = dashboardEditParams({
+        mode: "inventory-edit",
+        focus: "inventory-pack",
+        listingId: parentId,
+        leonixAdId: null,
+        returnPanel: "bienes-raices",
+      });
+      params.set("openChildDraftId", `br-db-child-${identity.sourceId}`);
+      return withLang(`${BIENES_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, lang(opts));
+    }
     const editListingId = identityListingIdForEdit(identity);
     if (!editListingId) return null;
     const params = dashboardEditParams({
@@ -369,22 +387,22 @@ const BIENES_RAICES_NEGOCIO_ADAPTER: CategoryRouteAdapter = {
   supportsBusinessHub: true,
 
   knownLimitations: [
-    "Published-to-draft hydration currently hard-caps mapped inventory children at 4 via " +
-      "`.slice(0,4)` (app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/" +
-      "application/utils/bienesPublishedToAgenteApplicationDraft.ts:116) — a 5th+ child is " +
-      "invisible in the editor even though the DB row is untouched.",
-    "Editing an existing listing to add a new inventory child beyond the already-hydrated set " +
-      "is silently skipped by the edit API (`skippedNewChildren`, " +
-      "app/api/clasificados/bienes-raices/listing-edit/route.ts:310-352) and never surfaced " +
-      "to the UI by either known caller.",
+    "Package B Gate B4 — RESOLVED: the 4-child hydration cap is removed (every owned child " +
+      "hydrates; ACTIVE capacity remains the payment service's server-enforced entitlement " +
+      "truth), `skippedNewChildren` is now surfaced by both save callers (edit cannot create " +
+      "brand-new children — the owner is pointed at the real add-inventory flow), and the " +
+      "dashboard child card offers direct 'Editar propiedad' (parent inventory-edit context + " +
+      "openChildDraftId → the child's own isolated editor) and 'Ver pública' actions; " +
+      "editRoute() resolves the child-targeted route for inventory_property identities.",
+    "Child hero survives via hero-first persisted ordering (children save through the same " +
+      "orderedRentasGallerySourcesForPublish rotation as the parent) — primaryPhotoIndex 0 on " +
+      "hydration points at the stored hero by construction.",
     "The public child page's sibling-inventory carousel is fetched but never rendered on the " +
-      "child's own view (`!isChild` guard, BienesRaicesNegocioLiveDetailShell.tsx:401,467).",
-    "Confirmed (Gate D inspection) that the live dashboard renders NO edit/preview/manage action " +
-      "for a BR inventory-property child row at all — BrNegocioListingInventoryActions.tsx:114-127 " +
-      "renders only a static 'Inventory property' card with no Link/button for children. " +
-      "editRoute()/previewRoute()/secondaryManageRoute() above only resolve real URLs for the " +
-      "parent identity; the dashboard action resolver (Gate D) must not expose edit/preview/" +
-      "manage for a child role on this pipeline, since no genuine per-child entry point exists.",
+      "child's own view (`!isChild` guard, BienesRaicesNegocioLiveDetailShell.tsx:401,467) — " +
+      "deferred as a post-launch enhancement (owner decision D9).",
+    "Child Preview stays intentionally unresolved (null): the child's real public detail page " +
+      "is its published-readonly surface (the P3-validated pattern), and the in-editor drawer " +
+      "preview covers edit-draft preview.",
   ],
 };
 
@@ -424,6 +442,24 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
   publicRoute: (identity) => `/clasificados/autos/vehiculo/${encodeURIComponent(identity.sourceId)}`,
 
   editRoute: (identity, opts) => {
+    // Globalization Package B (Gate B5) — a REAL direct child edit route: an inventory-vehicle
+    // child resolves to the parent's dashboard inventory-edit context with `editVehicleId`,
+    // opening that vehicle's own drawer editor (drawer saves propagate to the child's own row
+    // via the Gate B5 server sync). Fail-closed without a confirmed parent id; parents keep
+    // the Package A Gate 1 guarded behavior unchanged.
+    if (identity.inventoryRole === "inventory_vehicle") {
+      const parentId = identity.parentSourceId?.trim();
+      if (!parentId) return null;
+      const params = dashboardEditParams({
+        mode: "inventory-edit",
+        focus: "inventory-pack",
+        listingId: parentId,
+        leonixAdId: null,
+        returnPanel: "autos",
+      });
+      params.set("editVehicleId", identity.sourceId);
+      return withLang(`${AUTOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, lang(opts));
+    }
     const editListingId = identityListingIdForEdit(identity);
     if (!editListingId) return null;
     const params = dashboardEditParams({
@@ -492,16 +528,19 @@ const AUTOS_NEGOCIOS_ADAPTER: AutosNegociosAdapter = {
       "rows render an explicit error state rather than falling back to the blank/new-listing " +
       "empty state. The original no-listingId draft Preview path (for a genuinely new, " +
       "not-yet-saved listing) is unchanged.",
-    "No per-child edit link/route exists in the dashboard inventory section " +
-      "(AutosDealerInventoryDashboardSection.tsx) — only the parent-level 'Editar inventario' " +
-      "link above, which opens the drawer-based inventory step rather than a dedicated child URL.",
+    "Package B Gate B5 — RESOLVED: a direct per-child edit action now exists (dashboard child " +
+      "rows link the parent inventory-edit context with `editVehicleId`, which opens that " +
+      "vehicle's own drawer editor), editRoute() resolves the child-targeted route for " +
+      "inventory_vehicle identities, and dealer-parent saves propagate embedded inventory " +
+      "edits to each child's OWN row via syncDealerInventoryChildRowsFromParentPayload " +
+      "(rebuilt through the same creation-time mapper, so VIN/NHTSA and manually corrected " +
+      "fields carry; only listing_payload/lang are written — child id/Leonix Ad ID/status/" +
+      "lane/inventory columns preserved; partial failures surfaced in the PATCH response).",
     "No confirmed enforced product limit exists for additional dealer inventory vehicles (unlike " +
-      "Bienes' documented cap of 4) — productLimit for this pipeline is intentionally null, not 4.",
-    "Gate D correction: previewRoute() now resolves from the identity's OWN sourceId (not the " +
-      "parent-fallback used by editRoute/secondaryManageRoute), since Gate C's Preview client " +
-      "genuinely supports being bound to a child vehicle's own id. The dashboard action resolver " +
-      "(Gate D) still must not expose an 'edit' action for a child role on this pipeline — only " +
-      "viewPublic/preview/analytics — since no per-child edit UI exists (see the entry above).",
+      "Bienes' documented cap of 4) — productLimit for this pipeline is intentionally null, not 4; " +
+      "ACTIVE capacity remains the dealer policy's server truth (dealerCanAddActiveVehicle).",
+    "Gate D correction: previewRoute() resolves from the identity's OWN sourceId (genuinely " +
+      "child-bound Preview) — unchanged by Package B.",
   ],
 };
 

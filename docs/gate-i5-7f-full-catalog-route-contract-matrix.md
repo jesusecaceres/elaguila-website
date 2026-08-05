@@ -276,6 +276,99 @@ The single remaining non-terminal cell is Restaurantes owner pause/resume — **
 GENUINE OWNER-APPROVED MIGRATION REQUIREMENT (D16)**: the status CHECK constraint has no
 owner-pausable state and the required migration is deliberately not created here.
 
+## Globalization Package B Update Log — Media + Parent/Child Inventory
+
+Enforced by [`scripts/gate-pkgB-media-contract-selftest.ts`](../scripts/gate-pkgB-media-contract-selftest.ts),
+[`scripts/gate-pkgB-media-adoption-selftest.ts`](../scripts/gate-pkgB-media-adoption-selftest.ts), and
+[`scripts/gate-pkgB-parent-child-selftest.ts`](../scripts/gate-pkgB-parent-child-selftest.ts).
+
+### Gate B1 — Shared media contract (DONE)
+
+`app/lib/media/listingMediaContract.ts` (previously dead code — zero importers) extended with
+the category-agnostic **proposed-final-set engine**: `buildProposedFinalMediaSet()` (existing +
+uploaded − removed, deduped/ordered/hero-indexed, unpersistable inputs dropped AND surfaced,
+inputs never mutated) and `validateProposedFinalMediaSet()` (category-supplied
+`ProposedMediaLimits` — the engine never invents a number). New
+`app/lib/media/listingMediaConfigs.ts`: per-lane classification registry (all 17 pipelines /
+19 lane records) with every limit either the category's real constant or a documented literal
+mechanically asserted equal to the real constant by the adoption self-test — which caught a
+real drift on first run (Comida Local default gallery max is **2**, not the guessed 12).
+Truthful classifications include the genuinely UNCAPPED galleries (Empleos, Comunidad/Clases,
+Autos — the lane constants 3/12/12 are confirmed dead code) — adding caps is a product
+decision, not a repair. Hero-first persisted ordering (BR/Rentas/EnVenta rotation at publish)
+is documented as the mechanism by which hero selection survives edit round-trips (T6).
+
+### Gate B2 — Existing-media hydration and the generic editor (DONE)
+
+The listings-family generic editor (`/dashboard/mis-anuncios/[id]/editar` — En Venta, Busco,
+Clases, Comunidad, Mascotas, BR Privado) was APPEND-ONLY with a silent 8-image display cap
+(ledger defect D8). Now: full gallery rendered, remove/reorder/cover actions persisting the
+FINAL ordered set through a single `persistImages()` point (same
+`applyOwnerListingPatch` call-site count — the I.12A pin holds), per-category minimum floors
+mirroring each lane's REAL publish rule (rentas/bienes-raices/mascotas = 1, others 0), and
+final-set construction through the shared engine (a failed upload can never touch proven
+existing media). Category editors (Rentas, BR, Servicios, Restaurantes, Empleos, Autos,
+Comida Local) already hydrate/reorder/remove/hero with their own proven components — pinned,
+not rewritten.
+
+### Gate B3 — Validation and external video (DONE)
+
+New shared strict validator `app/lib/media/externalVideoUrlValidation.ts` (https-only,
+URL-parseable, never blob:/data: — mirrors the strictest existing category validator, Autos').
+Wired into **Servicios**' add-video path (previously the only paid lane accepting any web URL)
+and declared as the **Viajes** integration-boundary validator in the config registry — no
+Viajes-owned UI edited (asserted by the self-test against the diff allowlist). D16 assessed
+NOT a live defect: `isEmbeddableExternalVideoUrl`'s blob: allowance is local-preview playback
+only; the En Venta/Restaurantes INPUT gates require `^https?://` so blob: never persists.
+
+### Gate B4 — Bienes parent/child (DONE)
+
+1. **4-child hydration cap REMOVED** (D1): every owned child hydrates; ACTIVE capacity remains
+   the payment service's server-enforced entitlement truth (visibility ≠ activation).
+2. **`skippedNewChildren` SURFACED** (D2) by both save callers, bilingually: the owner is told
+   exactly how many new properties were NOT created and pointed at the real add-inventory flow.
+3. **Direct child actions** (D3): the dashboard child card now offers "Editar propiedad"
+   (parent inventory-edit context + `openChildDraftId` → the child's own isolated editor
+   session) and "Ver pública"; the application consumes the deep link once hydration lands the
+   child; registry `editRoute()` resolves the child-targeted route for `inventory_property`
+   identities (fail-closed without a confirmed parent id); the resolver emits child Edit.
+   Child hero survives via hero-first ordering (children save through the same rotation as the
+   parent). Child Preview stays intentionally null (public detail = published-readonly; drawer
+   = edit-draft preview). Cascade/sibling/isolation protections untouched.
+   No `inventory_role` backfill migration is required by any Package B code path (children are
+   matched by role; legacy roleless rows simply aren't children) — the pre-existing OPTIONAL
+   backfill note from I.9B (admin archive fails closed on pre-system BR rows) stands unchanged.
+
+### Gate B5 — Autos dealer child lifecycle (DONE)
+
+1. **Child-row propagation** (D4 — the Autos analogue of skippedNewChildren): dealer-parent
+   saves now propagate embedded inventory edits to each child vehicle's OWN row via
+   `syncDealerInventoryChildRowsFromParentPayload()` — rebuilt through the SAME creation-time
+   mapper (`mapInheritedDealerPreviewListing`, so VIN/NHTSA-decoded and manually corrected
+   fields carry), owner-scoped per child, foreign/draft-only ids never touched (no duplicate
+   vehicle, no sibling overwrite, no self-parenting), only `listing_payload`/`lang` written
+   (child id/Leonix Ad ID/status/lane/inventory columns preserved by service construction),
+   partial failures surfaced in the PATCH response (`childSyncUpdated`/`childSyncFailed`).
+2. **Direct child edit** (D3): dashboard child rows offer "Editar" (parent inventory-edit
+   context + `editVehicleId` → that vehicle's drawer editor, all statuses); the dealer
+   application consumes the deep link post-hydration; registry `editRoute()` resolves the
+   child-targeted route for `inventory_vehicle` identities; the resolver's edit exclusion is
+   fully retired (edit is registry-delegated; fail-closed shapes still return null).
+   No base-payment/checkout behavior enters child edits (drawer + PATCH only; legacy Stripe
+   untouched — Package C owns payment convergence). Capacity remains
+   `dealerCanAddActiveVehicle` server truth; parent lifecycle protections intact.
+
+### Gate B6 — Full-catalog adoption status
+
+Contract proven on the four references (BR parent+child, Autos parent+child, Servicios,
+generic-editor family) and every remaining lane verified conformant through the config
+registry + self-tests: Rentas/BR-Privado (hero-first + real editors + generic editor),
+Restaurantes/Empleos/Comida Local (own proven editors), quick lanes (single-image or
+uncapped, generic editor), Viajes (boundary config + validator), Ofertas (locked). **No
+repetitive adapter backlog remains — the Sonnet delegation checkpoint is moot and no model
+switch is requested.** Updated pins: `gate-pkgA-catalog-freeze`, `gate-i5-7f` §12/13,
+`gate-i5-8` (child edit truths), registry knownLimitations for both inventory pipelines.
+
 ## Work Package P3 Update Log — Global Preview-Mode Contract and Payment-Precedence Sweep
 
 Enforced by [`scripts/gate-p3-preview-mode-contract-selftest.ts`](../scripts/gate-p3-preview-mode-contract-selftest.ts).

@@ -30,6 +30,7 @@ import {
   redirectBienesDashboardInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { buildListingIdentity, resolveDashboardActions } from "@/app/lib/listingIdentity";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -186,6 +187,17 @@ export function BrNegocioListingInventoryActions({
         };
 
   if (isChild) {
+    /* Globalization Package B (Gate B4) — the child card is no longer a static, action-less
+       stub (ledger defect D3): it now offers the DIRECT child actions. "Editar propiedad"
+       deep-links into the parent's dashboard inventory-edit context with `openChildDraftId`,
+       which opens THIS child's own listing-bound editor (isolated child editor session —
+       parent and siblings untouched); "Ver pública" is the child's real public detail page. */
+    const childEditHref = `${bienesInventoryEditHref({
+      lang,
+      listingId: mainListingId,
+      leonixAdId: parentLeonix || null,
+    })}&openChildDraftId=${encodeURIComponent(`br-db-child-${row.id}`)}`;
+    const childPublicHref = appendLangToPath(`/clasificados/anuncio/${row.id}`, lang);
     return (
       <div className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3 sm:p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{t.section}</p>
@@ -196,6 +208,22 @@ export function BrNegocioListingInventoryActions({
             {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
           </p>
         ) : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={childEditHref}
+            prefetch={false}
+            className="inline-flex min-h-[36px] items-center rounded-lg border border-[#B8954A]/60 bg-white px-3 text-xs font-bold text-[#6E5418] hover:border-[#B8954A]"
+          >
+            {lang === "es" ? "Editar propiedad" : "Edit property"}
+          </Link>
+          <Link
+            href={childPublicHref}
+            prefetch={false}
+            className="inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] bg-white px-3 text-xs font-semibold text-[#2C2416] hover:border-[#C9B46A]/60"
+          >
+            {lang === "es" ? "Ver pública" : "View public"}
+          </Link>
+        </div>
       </div>
     );
   }

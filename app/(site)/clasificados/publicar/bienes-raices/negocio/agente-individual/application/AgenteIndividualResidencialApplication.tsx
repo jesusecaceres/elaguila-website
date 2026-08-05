@@ -64,6 +64,7 @@ import {
   clearBrInventoryChildContext,
   parseBrInventoryChildSearchParams,
   readBrInventoryChildContext,
+  resolveChildDraftCategoria,
 } from "../../application/brNegocioInventoryChildContext";
 import { BrAgenteApplicationPricingSummary } from "../../application/sections/shared/BrAgenteApplicationPricingSummary";
 import { BrAgenteApplicationConfirmations } from "../../application/sections/shared/BrAgenteApplicationConfirmations";
@@ -117,6 +118,14 @@ export default function AgenteIndividualResidencialApplication() {
   );
   const [parentDraftReady, setParentDraftReady] = useState(false);
   const inventoryChildConsumedRef = useRef(false);
+  /* Globalization Package B (Gate B4) — direct child-edit deep link from the dashboard child
+     card. `openChildDraftId` composes WITH the dashboard edit modes (the pre-existing
+     `mode=inventory-child` channel could not — `mode` is already the dashboard-edit
+     discriminator). Once the parent hydration lands the child in state (hydration is uncapped
+     as of this gate), that child's own isolated editor session opens; parent and sibling
+     drafts stay untouched. */
+  const dashboardOpenChildDraftId = searchParams?.get("openChildDraftId")?.trim() ?? "";
+  const dashboardChildOpenConsumedRef = useRef(false);
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
@@ -424,7 +433,11 @@ export default function AgenteIndividualResidencialApplication() {
           draft: stateRef.current,
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        skippedNewChildren?: unknown[];
+      };
       if (!res.ok || !json.ok) {
         setSaveEditError(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
         return;
@@ -440,7 +453,17 @@ export default function AgenteIndividualResidencialApplication() {
       cleanEditSnapshotRef.current = JSON.stringify(verified.state);
       setEditDirty(false);
       setSaveEditSuccess(true);
-      setSaveEditMessage(lang === "en" ? "Changes saved" : "Cambios guardados");
+      // Package B (Gate B4) — skippedNewChildren surfaced, never silent (ledger defect D2).
+      const skippedCount = Array.isArray(json.skippedNewChildren) ? json.skippedNewChildren.length : 0;
+      setSaveEditMessage(
+        skippedCount > 0
+          ? lang === "en"
+            ? `Changes saved. ${skippedCount} new propert${skippedCount === 1 ? "y was" : "ies were"} NOT created from this edit — use "Add property" from your dashboard to add them.`
+            : `Cambios guardados. ${skippedCount} propiedad(es) nueva(s) NO se crearon desde esta edición — usa "Agregar propiedad" en tu panel para añadirlas.`
+          : lang === "en"
+            ? "Changes saved"
+            : "Cambios guardados",
+      );
       clearBienesListingEditWorkspace({ parentListingId: editListingId, state: stateRef.current });
       clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
     } catch (e) {
@@ -501,6 +524,20 @@ export default function AgenteIndividualResidencialApplication() {
     // Never apply childPropiedad to parent — only parent `propiedad` query.
     setState((s) => (s.categoriaPropiedad === prop ? s : { ...s, categoriaPropiedad: prop }));
   }, [propiedadParam]);
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !dashboardOpenChildDraftId) return;
+    if (dashboardChildOpenConsumedRef.current) return;
+    const child = (state.additionalInventoryProperties ?? []).find(
+      (c) => c.id === dashboardOpenChildDraftId,
+    );
+    if (!child) return; // wait until dashboard hydration lands this child in state
+    dashboardChildOpenConsumedRef.current = true;
+    setPendingInventoryChildOpen({
+      childDraftId: dashboardOpenChildDraftId,
+      childPropiedad: resolveChildDraftCategoria(child),
+    });
+  }, [isExistingDashboardListingMode, dashboardOpenChildDraftId, state.additionalInventoryProperties]);
 
   useEffect(() => {
     if (!parentDraftReady) return;

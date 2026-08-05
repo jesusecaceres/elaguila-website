@@ -42,8 +42,11 @@ function countPrefetchFalse(text: string): number {
  * ------------------------------------------------------------------------------------------ */
 
 assert.match(brInventoryActionsSrc, /import Link from "next\/link";/, "must still use next/link's <Link>");
-assert.equal(countLinks(brInventoryActionsSrc), 1, "must still render exactly 1 <Link> element");
-assert.equal(countPrefetchFalse(brInventoryActionsSrc), 1, "the single Link must now have prefetch={false}");
+// Globalization Package B Gate B4 added the per-child "Editar propiedad" and "Ver pública"
+// links (direct child dashboard actions) — the coverage rule stays: every action <Link> in
+// this file disables prefetch, so the two counts must remain equal.
+assert.equal(countLinks(brInventoryActionsSrc), 3, "must render exactly 3 <Link> elements (manage pack + child edit + child public)");
+assert.equal(countPrefetchFalse(brInventoryActionsSrc), 3, "every Link in this file must have prefetch={false}");
 
 assert.match(
   brInventoryActionsSrc,

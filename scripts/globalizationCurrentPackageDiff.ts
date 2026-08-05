@@ -133,6 +133,29 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   // New closure proofs:
   "scripts/gate-pkgA-comida-local-editor-selftest.ts",
   "scripts/gate-pkgA-stale-draft-precedence-selftest.ts",
+
+  // ═══ PACKAGE B — MEDIA + PARENT/CHILD INVENTORY ═══
+  // (Package A entries above are inert since commit cdb75453; they remain as the audit trail.)
+  // Gate B1/B3 — shared media contract engine + per-lane config registry + strict video validator:
+  "app/lib/media/listingMediaContract.ts",
+  "app/lib/media/listingMediaConfigs.ts",
+  "app/lib/media/externalVideoUrlValidation.ts",
+  // Gate B3 — Servicios add-video path gated by the shared strict validator:
+  "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
+  // Gate B4 — BR parent/child: cap removal + skip surfacing + child card actions + deep link
+  // (the BR application/preview/hydration files are already authorized above from Package A):
+  "app/(site)/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions.tsx",
+  // Gate B5 — Autos child lifecycle: server sync + PATCH wiring + child edit action + deep link:
+  "app/api/clasificados/autos/listings/[id]/route.ts",
+  // Gate B2/B4/B5 — registry child routes + resolver delegation + generic-editor upgrade
+  // (categoryRouteRegistry/editar page/dashboard section already authorized above):
+  "app/lib/listingIdentity/dashboardActionResolver.ts",
+  // Historical pin updated to the Package B truth (child card gained 2 prefetch-disabled links):
+  "scripts/gate-i4-4c-br-inventory-final-prefetch-gap-selftest.ts",
+  // New Package B proofs:
+  "scripts/gate-pkgB-media-contract-selftest.ts",
+  "scripts/gate-pkgB-media-adoption-selftest.ts",
+  "scripts/gate-pkgB-parent-child-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

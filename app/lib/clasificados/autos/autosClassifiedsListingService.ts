@@ -28,6 +28,7 @@ import {
 } from "./autosDealerInventoryPolicy";
 import { resolveDealerInventoryGroupIdForParent } from "./autosDealerInventoryAddFlow";
 import { filterAutosRowsByActiveParent, isAutosChildParentGateSatisfied } from "./autosPublicChildParentVisibility";
+import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -280,6 +281,83 @@ export async function updateAutosClassifiedsListingDraft(
   }
   const updated = rowFromDb(data as Record<string, unknown>);
   return { row: updated, persistWarnings };
+}
+
+/**
+ * Globalization Package B (Gate B5) — propagate a dealer parent's embedded inventory edits to
+ * each child vehicle's OWN row (ledger defect D4: drawer edits to a child previously updated
+ * only the parent's `listing_payload`, so the child's public page/results kept rendering the
+ * stale payload forever).
+ *
+ * Contract:
+ *  - owner-verified on the parent AND per-child (updateAutosClassifiedsListingDraft is itself
+ *    owner-scoped on read and write);
+ *  - only embedded vehicles whose `id` matches an owned child row of THIS parent's group are
+ *    touched — a draft-only vehicle (not yet a row) or a foreign id is skipped, never created
+ *    or hijacked (no duplicate vehicle, no sibling overwrite, no self-parenting: the parent's
+ *    own id is explicitly excluded);
+ *  - the child payload is rebuilt through the SAME mapper used at child-row creation
+ *    (mapInheritedDealerPreviewListing), so VIN/NHTSA-decoded and manually corrected fields
+ *    carry exactly as they do on create;
+ *  - only `listing_payload`/`lang` are written (service construction) — child id, Leonix Ad
+ *    ID, status, lane, and inventory columns are preserved;
+ *  - partial failures are reported, never silently swallowed.
+ */
+export async function syncDealerInventoryChildRowsFromParentPayload(
+  parentListingId: string,
+  ownerUserId: string,
+): Promise<{ updatedChildIds: string[]; failedChildIds: string[] }> {
+  const none = { updatedChildIds: [] as string[], failedChildIds: [] as string[] };
+  const parent = await assertAutosListingOwner(parentListingId, ownerUserId);
+  if (!parent || parent.lane !== "negocios" || parent.inventory_role === "inventory_vehicle") return none;
+
+  const embeddedRaw = (parent.listing_payload as { additionalInventoryVehicles?: unknown })
+    .additionalInventoryVehicles;
+  const embedded = Array.isArray(embeddedRaw) ? embeddedRaw : [];
+  if (!embedded.length) return none;
+
+  if (!isSupabaseAdminConfigured()) return none;
+  const supabase = getAdminSupabase();
+  const groupId = getDealerInventoryGroupId(parent) ?? parent.id;
+  const { data: childRowsRaw, error } = await supabase
+    .from("autos_classifieds_listings")
+    .select("id, owner_user_id, lane, inventory_role, dealer_inventory_parent_listing_id, dealer_inventory_group_id")
+    .eq("owner_user_id", ownerUserId)
+    .eq("lane", "negocios")
+    .eq("inventory_role", "inventory_vehicle");
+  if (error || !childRowsRaw?.length) return none;
+  const ownedChildIds = new Set(
+    (childRowsRaw as Array<Record<string, unknown>>)
+      .filter((r) => {
+        const id = String(r.id ?? "");
+        if (!id || id === parent.id) return false;
+        return (
+          String(r.dealer_inventory_parent_listing_id ?? "") === parent.id ||
+          String(r.dealer_inventory_group_id ?? "") === groupId
+        );
+      })
+      .map((r) => String(r.id)),
+  );
+
+  const updatedChildIds: string[] = [];
+  const failedChildIds: string[] = [];
+  for (const rawVehicle of embedded) {
+    if (!rawVehicle || typeof rawVehicle !== "object") continue;
+    const vehicle = rawVehicle as { id?: unknown };
+    const childId = typeof vehicle.id === "string" ? vehicle.id.trim() : "";
+    if (!childId || !ownedChildIds.has(childId)) continue; // draft-only or foreign — never touched
+    const merged = mapInheritedDealerPreviewListing(
+      parent.listing_payload,
+      rawVehicle as Parameters<typeof mapInheritedDealerPreviewListing>[1],
+    );
+    const res = await updateAutosClassifiedsListingDraft(childId, ownerUserId, {
+      listing: merged,
+      lang: parent.lang,
+    });
+    if (res.row) updatedChildIds.push(childId);
+    else failedChildIds.push(childId);
+  }
+  return { updatedChildIds, failedChildIds };
 }
 
 export async function listAutosClassifiedsListingsForOwner(ownerUserId: string): Promise<AutosClassifiedsListingRow[]> {

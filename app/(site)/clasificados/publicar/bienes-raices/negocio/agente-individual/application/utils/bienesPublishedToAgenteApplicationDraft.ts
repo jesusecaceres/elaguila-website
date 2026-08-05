@@ -115,9 +115,13 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
       ? contract.categoriaPropiedad
       : "residencial";
 
+  // Globalization Package B (Gate B4) — the hard-coded `.slice(0, 4)` hydration cap is GONE:
+  // every owned child row hydrates into the editor. Visibility ≠ activation: how many
+  // children may be ACTIVE is the payment service's entitlement truth
+  // (brListingPaymentService.ts), enforced server-side — hiding rows 5+ from their owner was
+  // never a capacity rule, it silently orphaned real listings (ledger defect D1).
   const children = (input.childRows ?? [])
     .filter((r) => isBrInventoryProperty(r as Parameters<typeof isBrInventoryProperty>[0]))
-    .slice(0, 4)
     .map((r) => mapChildListingRowToDraft(r as Parameters<typeof mapChildListingRowToDraft>[0]));
 
   const packEnabled = children.length > 0;

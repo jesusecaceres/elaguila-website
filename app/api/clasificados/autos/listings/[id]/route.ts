@@ -4,6 +4,7 @@ import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/a
 import {
   assertAutosListingOwner,
   isAutosClassifiedsDbConfigured,
+  syncDealerInventoryChildRowsFromParentPayload,
   updateAutosClassifiedsListingDraft,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
@@ -145,15 +146,30 @@ export async function PATCH(request: Request, { params }: Props) {
       { status: errorCode === "AUTOS_SUPABASE_UPDATE_FAILED" ? 500 : 400 },
     );
   }
-  return NextResponse.json(
-    buildAutosListingApiSuccessPayload({
+  // Globalization Package B (Gate B5) — after a dealer PARENT save, propagate the embedded
+  // inventory edits to each child vehicle's OWN row (ledger defect D4: drawer edits previously
+  // updated only the parent's payload, so the child's public page kept rendering stale data
+  // forever). Owner-verified per child; draft-only/foreign ids are never touched; partial
+  // failures are surfaced, never silent.
+  let childSync: { updatedChildIds: string[]; failedChildIds: string[] } | null = null;
+  if (result.row.lane === "negocios" && result.row.inventory_role !== "inventory_vehicle") {
+    childSync = await syncDealerInventoryChildRowsFromParentPayload(result.row.id, userId);
+  }
+  return NextResponse.json({
+    ...buildAutosListingApiSuccessPayload({
       id: result.row.id,
       leonixAdId: result.row.leonix_ad_id ?? null,
       lane: result.row.lane,
       status: result.row.status,
       persistWarnings: result.persistWarnings,
     }),
-  );
+    ...(childSync
+      ? {
+          childSyncUpdated: childSync.updatedChildIds,
+          childSyncFailed: childSync.failedChildIds,
+        }
+      : {}),
+  });
 }
 
 export async function GET(request: Request, { params }: Props) {

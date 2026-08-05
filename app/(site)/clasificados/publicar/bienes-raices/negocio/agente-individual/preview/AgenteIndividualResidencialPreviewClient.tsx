@@ -510,7 +510,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
           draft: data,
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        skippedNewChildren?: unknown[];
+      };
       if (!res.ok || !json.ok) {
         setPublishErr(json.message ?? (lang === "es" ? "No se pudieron guardar los cambios." : "Could not save changes."));
         return;
@@ -522,7 +526,20 @@ export default function AgenteIndividualResidencialPreviewClient() {
       }
       setData(verified.state);
       clearBienesListingEditWorkspace({ parentListingId: listingIdParam, state: data });
-      setSaveEditMessage(lang === "es" ? "Cambios guardados" : "Changes saved");
+      // Globalization Package B (Gate B4) — skippedNewChildren is SURFACED, never silent
+      // (ledger defect D2): the edit endpoint updates existing children but does not create
+      // brand-new ones; the owner is told exactly that and pointed at the real add-inventory
+      // flow instead of believing the new property was saved.
+      const skippedCount = Array.isArray(json.skippedNewChildren) ? json.skippedNewChildren.length : 0;
+      setSaveEditMessage(
+        skippedCount > 0
+          ? lang === "es"
+            ? `Cambios guardados. ${skippedCount} propiedad(es) nueva(s) NO se crearon desde esta edición — usa "Agregar propiedad" en tu panel para añadirlas.`
+            : `Changes saved. ${skippedCount} new propert${skippedCount === 1 ? "y was" : "ies were"} NOT created from this edit — use "Add property" from your dashboard to add them.`
+          : lang === "es"
+            ? "Cambios guardados"
+            : "Changes saved",
+      );
     } catch (e) {
       setPublishErr(e instanceof Error ? e.message : String(e));
     } finally {

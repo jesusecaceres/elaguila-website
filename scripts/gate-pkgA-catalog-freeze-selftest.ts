@@ -201,9 +201,51 @@ function fakeIdentity(overrides: Partial<ListingIdentity>): ListingIdentity {
     inventoryRole: "inventory_vehicle",
   });
 
-  assert.equal(negocio.editRoute(brChild, { lang: "es" }), null, "BR child edit must fail closed");
-  assert.equal(negocio.previewRoute(brChild, { lang: "es" }), null, "BR child preview must fail closed");
-  assert.equal(autos.editRoute(autosChild, { lang: "es" }), null, "Autos child edit must fail closed");
+  // Globalization Package B (Gate B4) UPDATE — BR children now have a REAL direct edit route
+  // (parent inventory-edit context + openChildDraftId → the child's own isolated editor);
+  // the Gate 1 fail-closed rule still holds for a child WITHOUT a confirmed parent id.
+  const brChildEditHref = negocio.editRoute(brChild, { lang: "es" })!;
+  assert.ok(
+    brChildEditHref.includes("listingId=parent-id-999") &&
+      brChildEditHref.includes("openChildDraftId=br-db-child-child-id-111") &&
+      brChildEditHref.includes("mode=inventory-edit"),
+    "BR child edit resolves the parent inventory-edit context targeting THIS child's editor",
+  );
+  assert.equal(
+    negocio.editRoute(
+      fakeIdentity({
+        pipeline: "bienes_raices_negocio",
+        category: "bienes-raices",
+        sourceId: "child-id-111",
+        inventoryRole: "inventory_property",
+      }),
+      { lang: "es" },
+    ),
+    null,
+    "a BR child without a confirmed parent id still fails closed",
+  );
+  assert.equal(negocio.previewRoute(brChild, { lang: "es" }), null, "BR child preview must fail closed (public detail is the published-readonly surface)");
+  // Package B (Gate B5) UPDATE — Autos children now have their real direct edit route too.
+  const autosChildEditHref = autos.editRoute(autosChild, { lang: "es" })!;
+  assert.ok(
+    autosChildEditHref.includes("listingId=dealer-parent-999") &&
+      autosChildEditHref.includes("editVehicleId=child-vehicle-111") &&
+      autosChildEditHref.includes("mode=inventory-edit"),
+    "Autos child edit resolves the parent inventory-edit context targeting THIS vehicle's drawer editor",
+  );
+  assert.equal(
+    autos.editRoute(
+      fakeIdentity({
+        pipeline: "autos_negocios",
+        category: "autos",
+        sourceId: "child-vehicle-111",
+        inventoryRole: "inventory_vehicle",
+      }),
+      { lang: "es" },
+    ),
+    null,
+    "an Autos child without a confirmed parent id still fails closed",
+  );
 
   // Ambiguous child-shaped identity (parent id, no confirmed role) fails closed too.
   const ambiguous = fakeIdentity({

@@ -105,15 +105,13 @@ export function resolveDashboardActions(context: DashboardActionContext): Dashbo
   }
 
   // --- Edit ---
-  // Bienes and Autos children: no per-child edit UI exists today — locked product rule for
-  // this gate ("Do not expose Edit until the real per-child dashboard entry point exists").
-  const editSupported = !(
-    (identity.pipeline === "bienes_raices_negocio" || identity.pipeline === "autos_negocios") &&
-    child
-  );
-  if (editSupported) {
-    push("edit", "Editar anuncio", "Edit listing", adapter.editRoute(identity, opts));
-  }
+  // Globalization Package B (Gates B4/B5) — the "real per-child dashboard entry point" the
+  // original lock demanded now EXISTS for BOTH inventory pipelines: BR children resolve the
+  // parent inventory-edit context + openChildDraftId (their own isolated editor session), and
+  // Autos children resolve it + editVehicleId (their own drawer editor, whose saves propagate
+  // to the child's own row via the Gate B5 server sync). Fail-closed child shapes still
+  // return null from the registry, and push() drops null hrefs.
+  push("edit", "Editar anuncio", "Edit listing", adapter.editRoute(identity, opts));
 
   // --- Analytics --- (per confirmed live truth per pipeline; never a guessed/fallback identity)
   if (identity.pipeline === "servicios") {

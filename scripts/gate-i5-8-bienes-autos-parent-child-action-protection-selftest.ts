@@ -99,14 +99,26 @@ async function main() {
     });
     const keys = keysOf(actions);
 
-    assert.ok(!keys.includes("edit"), `BR child must NOT receive an Edit action through the resolver (got: ${keys.join(",")})`);
+    // Globalization Package B (Gate B4) UPDATE — the "real per-child dashboard entry point"
+    // the original lock demanded now exists, so BR children DO receive an Edit action. It is
+    // child-TARGETED (openChildDraftId carries the child's own id); the parent UUID appears
+    // only as the edit CONTEXT (listingId param of the parent application), which is exactly
+    // the designed child-editor entry — no longer a silent parent substitution.
+    assert.ok(keys.includes("edit"), `BR child must now receive its direct Edit action (got: ${keys.join(",")})`);
+    const childEdit = actions.find((a) => a.key === "edit")!;
+    assert.ok(
+      childEdit.href.includes(`openChildDraftId=br-db-child-${CHILD_UUID}`),
+      "BR child Edit must target THIS child's own editor session",
+    );
+    assert.equal(childEdit.sourceId, CHILD_UUID, "BR child Edit action's sourceId stays the child UUID");
     assert.ok(!keys.includes("preview"), `BR child must NOT receive a Preview action through the resolver (got: ${keys.join(",")})`);
     assert.ok(!keys.includes("manageInventory"), "BR child must NOT receive the parent-only inventory-manage action");
     assert.ok(keys.includes("viewPublic"), "BR child must still retain the public-view action");
 
-    // No emitted action for this child may reference the parent's UUID anywhere — proves the
-    // resolver never leaks a parent-substituted href for a role it has correctly excluded.
+    // Non-edit child actions still never reference the parent UUID (the edit action's parent
+    // context param is the one designed exception, asserted child-targeted above).
     for (const action of actions) {
+      if (action.key === "edit") continue;
       assert.ok(
         !action.href.includes(PARENT_UUID),
         `BR child action "${action.key}" href must never reference the parent UUID: ${action.href}`,
@@ -226,7 +238,16 @@ async function main() {
       "Autos dealer child Preview href must never reference the parent UUID",
     );
 
-    assert.ok(!keys.includes("edit"), `Autos dealer child must NOT receive an Edit action through the resolver (got: ${keys.join(",")})`);
+    // Globalization Package B (Gate B5) UPDATE — Autos children now receive their direct Edit
+    // action, child-TARGETED via editVehicleId (the parent UUID is the designed edit context;
+    // drawer saves propagate to this child's own row via the server sync).
+    assert.ok(keys.includes("edit"), `Autos dealer child must now receive its direct Edit action (got: ${keys.join(",")})`);
+    const autosChildEdit = byKey.get("edit")!;
+    assert.ok(
+      autosChildEdit.href.includes(`editVehicleId=${AUTOS_CHILD_UUID}`),
+      "Autos child Edit must target THIS vehicle's drawer editor",
+    );
+    assert.equal(autosChildEdit.sourceId, AUTOS_CHILD_UUID, "Autos child Edit action's sourceId stays the child UUID");
     assert.ok(!keys.includes("manageInventory"), "Autos dealer child must NOT receive the parent-only inventory-manage action");
     assert.ok(keys.includes("viewPublic"), "Autos dealer child must retain the public-view action");
   }
