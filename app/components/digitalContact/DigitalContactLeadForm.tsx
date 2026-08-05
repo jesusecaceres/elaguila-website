@@ -15,7 +15,7 @@ type Props = {
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
 const inputClass =
-  "w-full rounded-lg border border-[#D6C7AD] bg-white px-3.5 py-2.5 text-sm text-[#1F241C] placeholder:text-[#9A9686] outline-none transition focus:border-[#C9A84A] focus:ring-2 focus:ring-[#C9A84A]/35";
+  "w-full rounded-lg border border-[#D6C7AD] bg-white px-3.5 py-2.5 text-sm text-[#1F241C] placeholder:text-[#9A9686] outline-none transition focus:border-[var(--dc-accent)] focus:ring-2 focus:ring-[var(--dc-accent-border)]";
 const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#5F6258]";
 
 /** Lead Exchange — server-validated, honeypot-protected, CRM-ready architecture (digital_contact_leads). */
@@ -146,7 +146,7 @@ export function DigitalContactLeadForm({ profileSlug, lang, copy }: Props) {
                 required
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#D6C7AD] text-[#7A1E2C] focus:ring-[#C9A84A]"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#D6C7AD] text-[var(--dc-primary)] focus:ring-[var(--dc-accent)]"
               />
               <span>{copy.leadConsent} *</span>
             </label>
@@ -160,7 +160,7 @@ export function DigitalContactLeadForm({ profileSlug, lang, copy }: Props) {
             <button
               type="submit"
               disabled={state === "submitting" || !consent}
-              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-6 py-3 text-sm font-bold text-[#FFFDF7] shadow-md transition hover:bg-[#6B1A26] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[var(--dc-button-primary)] px-6 py-3 text-sm font-bold text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {state === "submitting" ? copy.leadSubmitting : copy.leadSubmit}
             </button>

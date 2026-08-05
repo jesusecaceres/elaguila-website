@@ -2,7 +2,6 @@
 
 import type { DigitalContactCopy } from "@/app/lib/digitalContact/digitalContactCopy";
 import { digitalContactOfficeLine } from "@/app/lib/digitalContact/digitalContactSeo";
-import type { DigitalContactAccentTheme } from "@/app/lib/digitalContact/digitalContactAccentTheme";
 import type { DigitalContactProfile } from "@/app/lib/digitalContact/digitalContactTypes";
 import { getFormattedPhone } from "@/app/components/cta/ctaDataHelpers";
 import { openExternalUrl, openMaps, openTel } from "@/app/components/cta/ctaLaunchers";
@@ -11,22 +10,18 @@ type Props = {
   profile: DigitalContactProfile;
   copy: DigitalContactCopy;
   onOpenEmail: () => void;
-  accentTheme: DigitalContactAccentTheme;
 };
 
-function RowIcon({ children, borderColor }: { children: React.ReactNode; borderColor: string }) {
+function RowIcon({ children }: { children: React.ReactNode }) {
   return (
-    <span
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FBF7EF] text-[#7A1E2C] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]"
-      style={{ border: `1px solid ${borderColor}` }}
-    >
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--dc-accent-border)] bg-[#FBF7EF] text-[var(--dc-primary)] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]">
       {children}
     </span>
   );
 }
 
 /** Premium executive contact card — Phone / Office / Website launch instantly; Email opens the small email modal. */
-export function DigitalContactExecutiveCard({ profile, copy, onOpenEmail, accentTheme }: Props) {
+export function DigitalContactExecutiveCard({ profile, copy, onOpenEmail }: Props) {
   const rows: Array<{
     id: string;
     label: string;
@@ -94,14 +89,14 @@ export function DigitalContactExecutiveCard({ profile, copy, onOpenEmail, accent
               <button
                 type="button"
                 onClick={row.onClick}
-                className="flex min-h-[68px] w-full items-center gap-3.5 rounded-2xl px-3.5 py-3 text-left transition hover:bg-[#FBF7EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7] sm:gap-4 sm:px-4"
+                className="flex min-h-[68px] w-full items-center gap-3.5 rounded-2xl px-3.5 py-3 text-left transition hover:bg-[var(--dc-accent-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7] sm:gap-4 sm:px-4"
               >
-                <RowIcon borderColor={`${accentTheme.accentBorder}80`}>{row.icon}</RowIcon>
+                <RowIcon>{row.icon}</RowIcon>
                 <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
                   <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#5F6258]">{row.label}</span>
                   <span className="truncate text-sm font-semibold text-[#1F241C] sm:text-base">{row.value}</span>
                 </span>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-[#C9A84A]" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-[var(--dc-accent)]" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
                 </svg>
               </button>

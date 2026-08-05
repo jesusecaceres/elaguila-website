@@ -33,6 +33,35 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
     socials: [],
     active: true,
   },
+  isaias: {
+    slug: "isaias",
+    fullName: "Isaias Cáceres",
+    preferredName: "Isaias",
+    title: "Business Development Executive",
+    company: LEONIX_MEDIA_SITE_NAME,
+    legalEntity: LEONIX_GLOBAL_LLC,
+    phoneDisplay: "(408) 704-0204",
+    phoneDigits: "14087040204",
+    email: "isaias@leonixmedia.com",
+    website: "https://leonixmedia.com",
+    address: {
+      line1: "871 Coleman Ave",
+      line2: "Suite 201",
+      city: "San Jose",
+      state: "CA",
+      postalCode: "95110",
+      country: "US",
+    },
+    // No approved headshot yet — falls back to the Leonix crest, same as every other
+    // profile without a photo. Swap in a real path here once one is provided.
+    photoPath: null,
+    trustChips: ["Leonix Global LLC", "San Jose, CA", "Que Ruja El León"],
+    // No confidently-identified public social profile for this specific person at Leonix
+    // Media was found — left empty rather than guessing (per onboarding policy).
+    socials: [],
+    theme: "warfitness",
+    active: true,
+  },
 };
 
 export function getDigitalContactProfile(slug: string): DigitalContactProfile | null {
