@@ -5,7 +5,6 @@ import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { DashboardMetricLinkCard } from "./components/DashboardMetricLinkCard";
 import { DashboardCategoryLauncherCard } from "./components/DashboardCategoryLauncherCard";
 import { DashboardQuickActionCard } from "./components/DashboardQuickActionCard";
@@ -519,14 +518,6 @@ function DashboardPageContent() {
               </p>
             ) : null}
           </header>
-
-          <div className="mt-6">
-            <LeonixLaunchCouponCard
-              lang={lang}
-              variant="dashboard"
-              href={`/newsletter?lang=${lang}&source=dashboard_launch_25&sourceCta=launch_25`}
-            />
-          </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <DashboardMetricLinkCard

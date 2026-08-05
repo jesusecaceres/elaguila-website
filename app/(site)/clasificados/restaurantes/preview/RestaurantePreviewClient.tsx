@@ -170,6 +170,7 @@ export default function RestaurantePreviewClient() {
       newsletterOptIn: boolean;
       promoCode: string | null;
       recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+      requestVerifiedIntroDiscount?: boolean;
     }) => {
       setCheckoutBusy(true);
       setCheckoutErr(null);
@@ -223,6 +224,7 @@ export default function RestaurantePreviewClient() {
           customerEmail,
           promoCode: ctx.promoCode,
           recurringConsent: ctx.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
           ...(couponUpgradeSelected
             ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
             : {}),

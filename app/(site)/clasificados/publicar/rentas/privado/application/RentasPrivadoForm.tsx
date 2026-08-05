@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
@@ -560,12 +559,6 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
             {rm.actions.backToRentals}
           </Link>
         </div>
-
-        <LeonixLaunchCouponCard
-          lang={lang}
-          variant="mini"
-          href={`/newsletter?lang=${lang}&source=rentas_privado&sourceCta=launch_25`}
-        />
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.publisher.whoPosting}</h2>

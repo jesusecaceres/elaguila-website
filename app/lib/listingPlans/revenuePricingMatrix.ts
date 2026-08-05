@@ -47,6 +47,13 @@ export type RevenuePackageDefinition = {
   placementTierKey?: string | null;
   /** Owner decision not yet locked in repo. */
   unresolvedOwnerDecision: string | null;
+  /**
+   * Package C Build 2 (C4) — verified 15% introductory discount eligibility. Defaults to true
+   * whenever `promoEligible` is true; set explicitly `false` to exclude a package (e.g. a future
+   * Premium print package) regardless of its promo-code eligibility. Data-driven so exclusion
+   * never depends on a hardcoded price check.
+   */
+  verifiedIntroDiscountEligible?: boolean;
 };
 
 // Package C Build 1 — owner-locked in the Execution Bible v2: Autos boost $129/mo (+10),

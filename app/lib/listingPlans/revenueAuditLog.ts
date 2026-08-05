@@ -10,6 +10,7 @@ export type RevenueAuditAction =
   | "revenue_payment_completed"
   | "revenue_payment_expired"
   | "revenue_promo_redeemed"
+  | "revenue_verified_intro_discount_redeemed"
   | "revenue_entitlement_activated"
   | "restaurante_listing_activated_after_payment"
   | "servicios_listing_activated_after_payment"

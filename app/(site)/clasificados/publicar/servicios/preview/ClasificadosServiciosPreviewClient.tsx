@@ -60,7 +60,6 @@ import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
 } from "@/app/lib/newsletter/checkoutNewsletterCapture";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 /** Seller preview — application draft or DB-backed listing (dashboard preview=listing). */
 type Source = "loading" | "application" | "missing" | "listing-error";
@@ -508,6 +507,7 @@ export function ClasificadosServiciosPreviewClient() {
       newsletterOptIn: boolean;
       promoCode: string | null;
       recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+      requestVerifiedIntroDiscount?: boolean;
     }) => {
       if (!appState) return;
       setCheckoutBusy(true);
@@ -549,6 +549,7 @@ export function ClasificadosServiciosPreviewClient() {
           customerEmail,
           promoCode: ctx.promoCode,
           recurringConsent: ctx.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
           ...(offersAddonSelected
             ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
             : {}),
@@ -726,17 +727,10 @@ export function ClasificadosServiciosPreviewClient() {
                   : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
               </p>
             </div>
-            <div className="mb-5 max-w-xl">
-              <LeonixLaunchCouponCard
-                lang={lang === "en" ? "en" : "es"}
-                variant="compact"
-                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=servicios_checkout&sourceCta=launch_25`}
-              />
-            </div>
             <p className="mb-4 text-[11px] leading-relaxed text-[#7A7164]">
               {lang === "es"
-                ? "Usa tu código Leonix Launch 25 si aplica a este pago."
-                : "Use your Leonix Launch 25 code if it applies to this checkout."}
+                ? "Ingresa tu código promocional si tienes uno."
+                : "Enter your promo code if you have one."}
             </p>
             <PublishCheckoutCheckpoint
               id="servicios-publish-checkout-checkpoint"

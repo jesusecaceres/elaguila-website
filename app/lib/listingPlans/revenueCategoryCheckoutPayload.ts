@@ -124,6 +124,9 @@ export type RevenueCategoryCheckoutPayload = {
   /** Package C Build 1 — affirmative recurring-billing consent (subscription packages only).
    * The server hard-rejects subscription-mode checkout without it (Agreement v1.2 §17). */
   recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+  /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
+   * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
+  requestVerifiedIntroDiscount?: boolean;
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -154,5 +157,6 @@ export function buildRevenueCategoryCheckoutBody(
     ...(input.currentExpiresAt?.trim() ? { currentExpiresAt: input.currentExpiresAt.trim() } : {}),
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
     ...(input.recurringConsent ? { recurringConsent: input.recurringConsent } : {}),
+    ...(input.requestVerifiedIntroDiscount ? { requestVerifiedIntroDiscount: true } : {}),
   };
 }

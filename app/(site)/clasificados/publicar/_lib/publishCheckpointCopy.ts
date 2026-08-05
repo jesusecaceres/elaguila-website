@@ -1,4 +1,8 @@
-/** Paid publish entry checkpoint — cautious Launch 25 / coupon copy (display only). */
+/**
+ * Paid publish entry checkpoint — cautious generic promo-code copy (display only).
+ * The Launch 25 (25% off) campaign has been retired; this file now only describes
+ * whether a package can accept a generic, admin-issued promo code at checkout.
+ */
 
 export type PublishCheckpointLang = "es" | "en";
 
@@ -20,16 +24,16 @@ export function buildPaidCheckpointNewsletterHref(
 export function publishCheckpointCouponLine(lang: PublishCheckpointLang, eligible: boolean): string | null {
   if (!eligible) return null;
   return lang === "es"
-    ? "Puedes usar tu código Launch 25 si este producto web es elegible. El descuento se valida en checkout."
-    : "You can use your Launch 25 code if this website product is eligible. The discount is validated at checkout.";
+    ? "Puedes usar un código promocional si este producto web es elegible. El descuento se valida en checkout."
+    : "You can use a promo code if this website product is eligible. The discount is validated at checkout.";
 }
 
-/** Short per-card line when top Launch 25 banner is shown on the page. */
+/** Short per-card line for packages that can accept a generic promo code at checkout. */
 export function publishCheckpointCouponLineShort(lang: PublishCheckpointLang, eligible: boolean): string | null {
   if (!eligible) return null;
   return lang === "es"
-    ? "Código Launch 25 elegible en checkout."
-    : "Launch 25 code eligible at checkout.";
+    ? "Código promocional elegible en checkout."
+    : "Promo code eligible at checkout.";
 }
 
 export function publishCheckpointCouponExclusions(lang: PublishCheckpointLang): string {

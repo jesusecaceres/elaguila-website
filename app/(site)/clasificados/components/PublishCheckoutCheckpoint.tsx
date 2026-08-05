@@ -33,6 +33,7 @@ import {
   buildRecurringConsentAcknowledgment,
   buildRecurringConsentText,
 } from "@/app/lib/listingPlans/recurringConsentCopy";
+import { VerifiedIntroDiscountVerifyPanel } from "./VerifiedIntroDiscountVerifyPanel";
 
 export type RecurringConsentAcknowledgmentPayload = {
   accepted: true;
@@ -68,6 +69,9 @@ export type PublishCheckoutCheckpointProps = {
      * Forward it verbatim in the checkout payload; the server rejects recurring checkout
      * without it. Null for one-time packages. */
     recurringConsent: RecurringConsentAcknowledgmentPayload | null;
+    /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
+     * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
+    requestVerifiedIntroDiscount: boolean;
   }) => void | Promise<void>;
   onFreePublish?: (ctx: {
     newsletterOptIn: boolean;
@@ -113,6 +117,9 @@ export function PublishCheckoutCheckpoint({
   const [promoDiscountCents, setPromoDiscountCents] = useState<number | null>(null);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  // Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with promo.
+  const [verifiedIntroDiscountApplied, setVerifiedIntroDiscountApplied] = useState(false);
+  const [verifiedIntroDiscountEstimateCents, setVerifiedIntroDiscountEstimateCents] = useState<number | null>(null);
 
   const resolved = useMemo(
     () =>
@@ -208,6 +215,7 @@ export function PublishCheckoutCheckpoint({
           recurringConsentRequired && recurringConsentChecked
             ? buildRecurringConsentAcknowledgment(lang === "en" ? "en" : "es")
             : null,
+        requestVerifiedIntroDiscount: verifiedIntroDiscountApplied,
       });
     } else {
       void onFreePublish?.(baseCtx);
@@ -291,7 +299,7 @@ export function PublishCheckoutCheckpoint({
       ) : null}
 
       {/* Promo — enabled categories with real server validation */}
-      {config.promoEligible && onPromoApply ? (
+      {config.promoEligible && onPromoApply && !verifiedIntroDiscountApplied ? (
         <div className="mt-4 space-y-2 border-t pt-4" style={{ borderColor: `${LEONIX_BORDER}99` }}>
           <label className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
             {lang === "es" ? "Código promocional" : "Promo code"}
@@ -345,6 +353,24 @@ export function PublishCheckoutCheckpoint({
         </p>
       ) : null}
 
+      {/* Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with
+          the promo-code field above (each hides the other's Apply action once selected). */}
+      {resolved.mode === "checkout" ? (
+        <VerifiedIntroDiscountVerifyPanel
+          category={config.category}
+          packageKey={config.packageKey}
+          listingId={config.listingId}
+          subtotalCents={resolved.totalCents}
+          lang={lang}
+          disabled={busy}
+          promoCodeActive={Boolean(appliedPromoCode)}
+          onActiveChange={(active, estimatedDiscountCents) => {
+            setVerifiedIntroDiscountApplied(active);
+            setVerifiedIntroDiscountEstimateCents(estimatedDiscountCents);
+          }}
+        />
+      ) : null}
+
       {/* Total */}
       <div
         className="mt-4 flex items-center justify-between border-t pt-3 text-sm font-bold"
@@ -359,6 +385,12 @@ export function PublishCheckoutCheckpoint({
           {lang === "es" ? "Descuento promocional" : "Promo discount"}:{" "}
           {formatPublishCheckpointMoney(resolved.discountCents, lang, { monthly: false })}
           {appliedPromoCode ? ` (${appliedPromoCode})` : ""}
+        </p>
+      ) : null}
+      {verifiedIntroDiscountApplied && verifiedIntroDiscountEstimateCents != null ? (
+        <p className="mt-1 text-xs" style={{ color: LEONIX_SUCCESS }}>
+          {lang === "es" ? "Descuento de bienvenida (15%, estimado)" : "Welcome discount (15%, estimated)"}:{" "}
+          {formatPublishCheckpointMoney(verifiedIntroDiscountEstimateCents, lang, { monthly: false })}
         </p>
       ) : null}
 

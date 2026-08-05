@@ -48,7 +48,6 @@ import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/componen
 import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const CARD =
@@ -253,11 +252,6 @@ export function AutosPrivadoApplication() {
           banner={
             <>
               <AutosPricingPlanBanner lang={lang} lane="privado" />
-              <LeonixLaunchCouponCard
-                lang={lang === "en" ? "en" : "es"}
-                variant="mini"
-                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=autos_privado&sourceCta=launch_25`}
-              />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
             </>
           }

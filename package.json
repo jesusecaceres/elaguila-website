@@ -579,7 +579,8 @@
     "rss-parser": "^3.13.0",
     "server-only": "^0.0.1",
     "sharp": "^0.34.5",
-    "stripe": "^22.0.1"
+    "stripe": "^22.0.1",
+    "twilio": "^6.0.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

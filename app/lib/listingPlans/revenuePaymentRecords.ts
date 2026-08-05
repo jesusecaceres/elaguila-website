@@ -58,6 +58,9 @@ export type OpenAttemptRow = {
   stripe_checkout_session_id: string | null;
   attempt_generation: number | null;
   created_at: string | null;
+  /** Package C Build 2 (C4) — discount-source consistency check on attempt reuse. */
+  promo_code_id: string | null;
+  verified_intro_discount_redemption_id: string | null;
 };
 
 /** Find the unresolved attempt for a key (if any). */
@@ -66,7 +69,7 @@ export async function findOpenCheckoutAttempt(attemptKey: string): Promise<OpenA
   const supabase = getAdminSupabase();
   const { data } = await supabase
     .from("leonix_payment_records")
-    .select("id, stripe_checkout_session_id, attempt_generation, created_at")
+    .select("id, stripe_checkout_session_id, attempt_generation, created_at, promo_code_id, verified_intro_discount_redemption_id")
     .eq("checkout_attempt_key", attemptKey)
     .in("payment_status", ["pending", "unpaid", "requires_action"])
     .maybeSingle();
@@ -287,6 +290,8 @@ export type LeonixPaymentRecordRow = {
   source: string | null;
   promo_code_id: string | null;
   promo_redemption_id: string | null;
+  /** Package C Build 2 (C4). */
+  verified_intro_discount_redemption_id: string | null;
   package_entitlement_id: string | null;
   placement_entitlement_id: string | null;
   stripe_checkout_session_id: string | null;
@@ -299,7 +304,7 @@ export type LeonixPaymentRecordRow = {
 };
 
 const PAYMENT_RECORD_SELECT =
-  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
 
 /** Extended payment row for promo redemption business attribution (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
 export type LeonixPaymentRecordAttributionRow = LeonixPaymentRecordRow & {

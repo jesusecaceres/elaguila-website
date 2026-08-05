@@ -468,6 +468,7 @@ function AutosNegociosPreviewInner({
       newsletterOptIn: boolean;
       promoCode: string | null;
       recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+      requestVerifiedIntroDiscount?: boolean;
     }) => {
       setCheckoutBusy(true);
       setCheckoutError(null);
@@ -502,6 +503,7 @@ function AutosNegociosPreviewInner({
         customerEmail: pending.customerEmail,
         promoCode: ctx.promoCode,
         recurringConsent: ctx.recurringConsent ?? null,
+        requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
         addOns: autosDealerSelectedAddOns(totalVehicleCount),
       });
       setCheckoutBusy(false);

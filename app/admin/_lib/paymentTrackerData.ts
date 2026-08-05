@@ -35,6 +35,8 @@ export type LeonixPaymentRecordRow = {
   package_key: string | null;
   leonix_ad_id: string | null;
   promo_redemption_id: string | null;
+  /** Package C Build 2 (C4). */
+  verified_intro_discount_redemption_id: string | null;
   amount_total_cents: number | null;
   amount_paid_cents: number | null;
   discount_percent: number | null;
@@ -49,6 +51,14 @@ export type LeonixPaymentRecordRow = {
   /** Package C Build 1 — canonical subscription state (active/grace/suspended/canceled/
    * cancel_at_period_end) from leonix_subscription_records; null for one-time payments. */
   subscription_status?: string | null;
+  /** Package C Build 2 (C4) — verified-intro-15% redemption truth. Masked identity display
+   * only — never the identity hash, never a raw email/phone value. */
+  verified_intro_discount_status: string | null;
+  verified_intro_discount_verification_method: string | null;
+  verified_intro_discount_email_masked: string | null;
+  verified_intro_discount_phone_masked: string | null;
+  verified_intro_discount_business_identity_type: string | null;
+  verified_intro_discount_business_identity_fallback_reason: string | null;
 };
 
 export type PaymentTrackerSnapshot = {
@@ -102,6 +112,8 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     package_key: raw.package_key != null ? String(raw.package_key) : null,
     leonix_ad_id: raw.leonix_ad_id != null ? String(raw.leonix_ad_id).trim() || null : null,
     promo_redemption_id: raw.promo_redemption_id != null ? String(raw.promo_redemption_id) : null,
+    verified_intro_discount_redemption_id:
+      raw.verified_intro_discount_redemption_id != null ? String(raw.verified_intro_discount_redemption_id) : null,
     amount_total_cents: raw.amount_total_cents != null && Number.isFinite(Number(raw.amount_total_cents)) ? Number(raw.amount_total_cents) : null,
     amount_paid_cents: raw.amount_paid_cents != null && Number.isFinite(Number(raw.amount_paid_cents)) ? Number(raw.amount_paid_cents) : null,
     discount_percent: raw.discount_percent != null && Number.isFinite(Number(raw.discount_percent)) ? Number(raw.discount_percent) : null,
@@ -113,6 +125,12 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     entitlement_status: null,
     promo_redemption_status: null,
     subscription_status: null,
+    verified_intro_discount_status: null,
+    verified_intro_discount_verification_method: null,
+    verified_intro_discount_email_masked: null,
+    verified_intro_discount_phone_masked: null,
+    verified_intro_discount_business_identity_type: null,
+    verified_intro_discount_business_identity_fallback_reason: null,
   };
 }
 
@@ -165,20 +183,66 @@ async function enrichPaymentTrackerRows(
     }
   }
 
-  return rows.map((row) => ({
-    ...row,
-    entitlement_status: row.package_entitlement_id
-      ? entitlementStatusById.get(row.package_entitlement_id) ?? "missing"
-      : null,
-    promo_redemption_status: row.promo_redemption_id
-      ? promoStatusById.get(row.promo_redemption_id) ?? null
-      : null,
-    subscription_status: (row as { stripe_subscription_id?: string | null }).stripe_subscription_id
-      ? subscriptionStatusBySubId.get(
-          String((row as { stripe_subscription_id?: string | null }).stripe_subscription_id),
-        ) ?? null
-      : null,
-  }));
+  // Package C Build 2 (C4) — verified-intro-15% redemption truth. Masked display values only.
+  const verifiedIntroById = new Map<
+    string,
+    {
+      status: string;
+      verification_method: string | null;
+      email_masked: string | null;
+      phone_masked: string | null;
+      business_identity_type: string | null;
+      business_identity_fallback_reason: string | null;
+    }
+  >();
+  const verifiedIntroIds = rows.map((r) => r.verified_intro_discount_redemption_id).filter(Boolean) as string[];
+  if (verifiedIntroIds.length > 0) {
+    const { data } = await supabase
+      .from("leonix_verified_intro_discount_redemptions")
+      .select(
+        "id, status, verification_method, verified_email_masked, verified_phone_masked, business_identity_type, business_identity_fallback_reason",
+      )
+      .in("id", verifiedIntroIds.slice(0, 100));
+    for (const row of data ?? []) {
+      const r = row as Record<string, unknown>;
+      verifiedIntroById.set(String(r.id), {
+        status: String(r.status ?? ""),
+        verification_method: r.verification_method != null ? String(r.verification_method) : null,
+        email_masked: r.verified_email_masked != null ? String(r.verified_email_masked) : null,
+        phone_masked: r.verified_phone_masked != null ? String(r.verified_phone_masked) : null,
+        business_identity_type: r.business_identity_type != null ? String(r.business_identity_type) : null,
+        business_identity_fallback_reason:
+          r.business_identity_fallback_reason != null ? String(r.business_identity_fallback_reason) : null,
+      });
+    }
+  }
+
+  return rows.map((row) => {
+    const verifiedIntro = row.verified_intro_discount_redemption_id
+      ? verifiedIntroById.get(row.verified_intro_discount_redemption_id) ?? null
+      : null;
+    return {
+      ...row,
+      entitlement_status: row.package_entitlement_id
+        ? entitlementStatusById.get(row.package_entitlement_id) ?? "missing"
+        : null,
+      promo_redemption_status: row.promo_redemption_id
+        ? promoStatusById.get(row.promo_redemption_id) ?? null
+        : null,
+      subscription_status: (row as { stripe_subscription_id?: string | null }).stripe_subscription_id
+        ? subscriptionStatusBySubId.get(
+            String((row as { stripe_subscription_id?: string | null }).stripe_subscription_id),
+          ) ?? null
+        : null,
+      verified_intro_discount_status: verifiedIntro?.status ?? null,
+      verified_intro_discount_verification_method: verifiedIntro?.verification_method ?? null,
+      verified_intro_discount_email_masked: verifiedIntro?.email_masked ?? null,
+      verified_intro_discount_phone_masked: verifiedIntro?.phone_masked ?? null,
+      verified_intro_discount_business_identity_type: verifiedIntro?.business_identity_type ?? null,
+      verified_intro_discount_business_identity_fallback_reason:
+        verifiedIntro?.business_identity_fallback_reason ?? null,
+    };
+  });
 }
 
 export type PaymentTrackerFilters = {

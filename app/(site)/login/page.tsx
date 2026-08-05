@@ -18,7 +18,6 @@
 import Link from "next/link";
 import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { PasswordInputField } from "../components/auth/PasswordInputField";
 import { PasswordStrengthMeter } from "../components/auth/PasswordStrengthMeter";
 import { evaluatePassword, mapAuthErrorMessage } from "@/app/lib/auth/customerPassword";
@@ -511,7 +510,7 @@ function LoginPageContent() {
           magicDeviceTip:
             "Tip: si usas enlace por email, ábrelo en este mismo dispositivo para continuar aquí.",
           signupPromoHint:
-            "Crea tu cuenta y obtén tu código de 25% para tu primer producto web elegible.",
+            "Crea tu cuenta para publicar tu primer anuncio o paquete web.",
           supportHint:
             "Si tu cuenta ya existe, entra con el mismo método que usaste al crearla.",
           noAccount: "¿No tienes cuenta?",
@@ -543,7 +542,7 @@ function LoginPageContent() {
           magicDeviceTip:
             "Tip: if you use an email link, open it on this same device to continue here.",
           signupPromoHint:
-            "Create your account and get your 25% code for your first eligible website product.",
+            "Create your account to publish your first ad or website package.",
           supportHint:
             "If your account already exists, sign in with the same method you used when you created it.",
           noAccount: "Don't have an account?",
@@ -632,11 +631,6 @@ function LoginPageContent() {
           {mode === "signup" ? (
             <div className="mt-6 space-y-3">
               <p className="text-xs text-white/70 leading-relaxed">{common.signupPromoHint}</p>
-              <LeonixLaunchCouponCard
-                lang={lang}
-                variant="compact"
-                href={`/newsletter?lang=${lang}&source=signup_launch_25&sourceCta=launch_25`}
-              />
             </div>
           ) : null}
 

@@ -38,6 +38,15 @@ export type CreateRevenueCheckoutSessionInput = {
   attemptGeneration?: number | null;
   /** Package C Build 1 — recurring-billing consent evidence id (subscription mode only). */
   consentRecordId?: string | null;
+  /**
+   * Package C Build 2 (C4) — verified-intro-15% Stripe coupon id, subscription mode only. When
+   * set, `unit_amount` in the line items stays FULL price and the discount is applied via
+   * Stripe's native `discounts` array with a `duration:"once"` coupon so renewal automatically
+   * reverts to full price with no Leonix-side recalculation. Never set together with a
+   * Leonix-side unit_amount reduction (one_time mode uses that mechanism instead, with this left
+   * null).
+   */
+  verifiedIntroDiscountStripeCouponId?: string | null;
 };
 
 export type CreateRevenueCheckoutSessionResult =
@@ -153,6 +162,13 @@ export async function createRevenueStripeCheckoutSession(
     metadata: metadataPayload,
     client_reference_id: input.clientReferenceId,
     allow_promotion_codes: false,
+    // Package C Build 2 (C4) — verified-intro-15%, subscription mode only. A server-attached
+    // discounts array (never a customer-typed promotion_code — allow_promotion_codes stays
+    // false) applying a duration:"once" coupon so the subscription's line-item price remains
+    // full and renewal is automatically full price.
+    ...(input.verifiedIntroDiscountStripeCouponId
+      ? { discounts: [{ coupon: input.verifiedIntroDiscountStripeCouponId }] }
+      : {}),
     ...(input.customerEmail?.trim()
       ? { customer_email: input.customerEmail.trim() }
       : {}),

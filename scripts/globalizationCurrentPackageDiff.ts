@@ -249,6 +249,89 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "scripts/verify-package-c-c2-c3-revenue-os-subscription.mjs",
   "scripts/package-c/report-duplicate-entitlements.mjs",
   "docs/globalization/package-c/C2_C3_REVENUE_OS_CONVERGENCE_SUBSCRIPTION_GRACE_CLOSURE.md",
+
+  // ═══ PACKAGE C BUILD 2 (C4) — VERIFIED 15% INTRO DISCOUNT + LAUNCH-25 RETIREMENT ═══
+  // Verified-intro-15% discount core (pure/impure module pairs):
+  "app/lib/listingPlans/verifiedIntroDiscountPolicy.ts",
+  "app/lib/listingPlans/verifiedIntroDiscount.ts",
+  "app/lib/listingPlans/verifiedIntroDiscountRedemptions.ts",
+  "app/lib/listingPlans/verifiedIntroDiscountStripeCoupon.ts",
+  "app/lib/listingPlans/verifiedIntroDiscountClient.ts",
+  "app/lib/listingPlans/commercialBusinessIdentity.ts",
+  "app/lib/security/verifiedIdentityHash.ts",
+  "app/api/_lib/verifiedBearerUser.ts",
+  // SMS/OTP + atomic rate limiting (net-new — no prior infra existed):
+  "app/lib/sms/smsVerificationProvider.ts",
+  "app/lib/sms/twilioVerifyProvider.ts",
+  "app/lib/sms/phoneVerificationRateLimitPolicy.ts",
+  "app/lib/sms/phoneVerificationRateLimit.ts",
+  "app/api/verified-intro-discount/phone/request/route.ts",
+  "app/api/verified-intro-discount/phone/verify/route.ts",
+  "app/api/verified-intro-discount/status/route.ts",
+  // Checkout integration (conflict rejection, coupon-first sequencing, atomic reservation):
+  "app/api/revenue-os/checkout/route.ts",
+  "app/lib/listingPlans/revenueStripe.ts",
+  "app/lib/listingPlans/revenuePaymentRecords.ts",
+  "app/lib/listingPlans/revenuePricingMatrix.ts",
+  "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts",
+  "app/lib/listingPlans/revenueFulfillment.ts",
+  "app/lib/listingPlans/revenueAuditLog.ts",
+  // UI wiring (checkpoint banner + verify panel + 5 category preview clients):
+  "app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx",
+  "app/(site)/clasificados/components/VerifiedIntroDiscountVerifyPanel.tsx",
+  "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+  "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+  "app/(site)/clasificados/bienes-raices/preview/negocio/components/BienesRaicesNegocioPreviewClient.tsx",
+  "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+  // Minimal admin/audit reader:
+  "app/admin/_lib/paymentTrackerData.ts",
+  // Approved additive migrations (5 files, 5 concerns):
+  "supabase/migrations/20260805100000_leonix_verified_intro_discount_redemptions.sql",
+  "supabase/migrations/20260805100100_leonix_phone_verification_challenges.sql",
+  "supabase/migrations/20260805100200_leonix_verified_phone_identities.sql",
+  "supabase/migrations/20260805100300_leonix_payment_records_verified_intro_discount_link.sql",
+  "supabase/migrations/20260805100400_retire_website_launch_25_promo_family.sql",
+  // New Package C Build 2 proof + closure artifacts:
+  "scripts/gate-pkgC-verified-intro-discount-selftest.ts",
+  "scripts/verify-package-c-c4-verified-discount.mjs",
+  "docs/globalization/package-c/C4_VERIFIED_15_PERCENT_AND_25_PERCENT_PROMO_RETIREMENT_CLOSURE.md",
+  // New dependency (twilio):
+  "package.json",
+  "package-lock.json",
+
+  // ——— Launch-25 retirement (old promotional 25% campaign — code-side retirement; the
+  // acceptance-side retirement is migration 20260805100400 above, a status flip requiring zero
+  // code changes since resolveEffectivePromoCodeStatus()/resolvePromoForCheckout() already
+  // reject any non-'active' promo row) ———
+  "app/api/newsletter/subscribe/route.ts",
+  "app/admin/_lib/promoCodeConstants.ts",
+  "app/admin/_lib/promoCodePresetGuide.ts",
+  "app/admin/_lib/leonixLeadReplyTemplates.ts",
+  "app/(site)/clasificados/components/RevenuePromoField.tsx",
+  "app/lib/leonix/publicFormCopy/locales/esEn.ts",
+  "app/(site)/login/page.tsx",
+  "app/components/leonix/coming-soon-v2/comingSoonV2Copy/languages/es.ts",
+  "app/components/leonix/coming-soon-v2/comingSoonV2Copy/languages/en.ts",
+  // LeonixLaunchCouponCard render call sites removed/neutralized (component file itself
+  // untouched — dead-code removal of the component was explicitly out of scope):
+  "app/(site)/newsletter/NewsletterPageClient.tsx",
+  "app/(site)/home/HomeMarketingClient.tsx",
+  "app/(site)/magazine/page.tsx",
+  "app/(site)/dashboard/page.tsx",
+  "app/(site)/dashboard/perfil/page.tsx",
+  "app/(site)/publicar/empleos/EmpleosPublicarHubClient.tsx",
+  "app/(site)/publicar/empleos/quick/EmpleoQuickApplicationClient.tsx",
+  "app/(site)/publicar/empleos/premium/EmpleoPremiumApplicationClient.tsx",
+  "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
+  "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx",
+  "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
+  "app/(site)/clasificados/_components/ClasificadosLandingLaunchBanner.tsx",
+  "app/(site)/clasificados/page.tsx",
+  "app/(site)/negocios-locales/_components/NegociosLocalesLaunchBanner.tsx",
+  "app/(site)/negocios-locales/page.tsx",
+  "app/(site)/clasificados/publicar/_components/PublishEntryCheckpoint.tsx",
+  "app/(site)/clasificados/publicar/_lib/publishCheckpointCopy.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

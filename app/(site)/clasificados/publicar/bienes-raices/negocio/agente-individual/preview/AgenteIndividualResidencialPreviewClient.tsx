@@ -317,6 +317,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
     newsletterOptIn?: boolean;
     promoCode?: string | null;
     recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    requestVerifiedIntroDiscount?: boolean;
   }) => {
     if (listingBoundPreview) {
       setPublishErr(
@@ -426,6 +427,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
           locale: lang,
           promoCode: ctx?.promoCode ?? null,
           recurringConsent: ctx?.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx?.requestVerifiedIntroDiscount ?? false,
           returnPath: withBrAgenteResLangParam("/clasificados/publicar/bienes-raices/negocio/agente-individual/preview?checkout=cancelled", lang),
           ...(bundleCreatedCount > 0 ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] } : {}),
         });
