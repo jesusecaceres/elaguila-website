@@ -353,6 +353,66 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "scripts/gate-pkgC-c5-c6-selftest.ts",
   "scripts/verify-package-c-c5-c6-commercial-grants-and-plan.mjs",
   "docs/globalization/package-c/C5_C6_COMMERCIAL_GRANTS_AND_PACKAGE_CATALOG_CLOSURE.md",
+
+  // ═══ PACKAGE C BUILD 4 (C7+C8) — AUTOS/BIENES PARENT-SCOPED INVENTORY CAPACITY, ATOMIC
+  // ACTIVATION, AND DASHBOARD/ADMIN COMMERCIAL-TRUTH GAPS ═══
+  // New migration (2 additive SECURITY DEFINER RPCs, never applied by this build) + TS wrapper:
+  "supabase/migrations/20260810120000_autos_br_negocio_capacity_activation_rpc.sql",
+  "app/lib/listingPlans/capacityActivationRpc.ts",
+  // C7 — group-scoped counting + child-linkage verification (application preflight, advisory
+  // only). `autosDealerInventoryPolicy.ts`'s group-scoped counter/grouping-key resolver already
+  // existed pre-Build-4 and needed no change — only wiring it into the guard below was new:
+  "app/lib/listingPlans/commercialWriteGuard.ts",
+  "app/lib/listingPlans/commercialWriteGuardPolicy.ts",
+  // C7 — Autos real mutation-path adoption:
+  "app/lib/clasificados/autos/autosClassifiedsListingService.ts",
+  "app/api/clasificados/autos/checkout/route.ts",
+  "app/lib/clasificados/autos/autosNegociosBundlePublish.ts",
+  "app/api/clasificados/autos/listings/[id]/restore/route.ts",
+  "app/api/admin/autos/listings/[id]/route.ts",
+  // Gate 9 — `npm run build` caught a real client/server boundary break: the QA-bypass bundle
+  // publish file now transitively imports "server-only" modules (commercialWriteGuard.ts,
+  // capacityActivationRpc.ts) via this build's own Gate 4 changes, but two "use client" files
+  // statically imported a client-safe constant/type from that same file. Split the client-safe
+  // pieces into their own zero-server-dependency file:
+  "app/lib/clasificados/autos/autosNegociosBundlePublishSessionResult.ts",
+  "app/(site)/clasificados/autos/pago/exito/AutosPagoExitoClient.tsx",
+  "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
+  // C7 — Bienes real mutation-path adoption (payment activation, resume, new "activate_pending"
+  // mutation closing a real insert-time capacity bypass found during Gate 5, admin routes,
+  // dashboard detail-page resume):
+  "app/lib/clasificados/bienes-raices/brListingPaymentService.ts",
+  "app/lib/clasificados/bienes-raices/brListingLifecycleService.ts",
+  "app/lib/clasificados/bienes-raices/brListingLifecycleEligibility.ts",
+  "app/(site)/dashboard/lib/brDashboardLifecycleClient.ts",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+  "app/api/admin/clasificados/listings/[id]/route.ts",
+  "app/(site)/dashboard/mis-anuncios/[id]/page.tsx",
+  // C8 — dashboard subscription-state chip + business-tools dead-code removal:
+  "app/(site)/dashboard/lib/dashboardPackageEntitlementBadges.ts",
+  "app/(site)/dashboard/restaurantes/page.tsx",
+  "app/(site)/dashboard/mis-anuncios/page.tsx",
+  "app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout.ts",
+  "app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout.ts",
+  "app/(site)/clasificados/bienes-raices/dashboard/BrPropertyInventoryDashboardSection.tsx",
+  "app/(site)/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions.tsx",
+  "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx",
+  "app/(site)/dashboard/business-tools/page.tsx",
+  // C8 — admin payment-tracker grant_source/subscription_status + comp/partner grant action:
+  "app/admin/_lib/paymentTrackerData.ts",
+  "app/admin/(dashboard)/workspace/payment-tracker/page.tsx",
+  "app/admin/_lib/packageEntitlementData.ts",
+  "app/admin/(dashboard)/workspace/package-entitlements/actions.ts",
+  "app/admin/(dashboard)/workspace/package-entitlements/page.tsx",
+  // New proof + closure artifacts:
+  "scripts/verify-c7-capacity-rpc-sql-contract.mjs",
+  "scripts/gate-pkgC-c7-capacity-selftest.ts",
+  "scripts/verify-package-c-c7-c8-capacity-and-truth.mjs",
+  "docs/globalization/package-c/C7_C8_CAPACITY_AND_COMMERCIAL_TRUTH_CLOSURE.md",
+  // Gate 8 triage — historical gate script updated to pin the new "activate_pending" mutation key
+  // (added this build to close a real direct-active-INSERT capacity bypass) alongside its
+  // existing five-key vocabulary; every other assertion in the file is unchanged:
+  "scripts/gate-g2-3-1-br-lifecycle-mutation-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

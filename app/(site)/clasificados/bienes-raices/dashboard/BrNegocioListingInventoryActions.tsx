@@ -127,7 +127,7 @@ export function BrNegocioListingInventoryActions({
         if (!cancelled) setEntitlementActive(false);
         return;
       }
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
+      const { badges } = await fetchDashboardListingPackageEntitlementBadges(
         [
           {
             key: mainListingId,

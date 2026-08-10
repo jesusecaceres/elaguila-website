@@ -23,6 +23,8 @@ import {
 import { resolveMagazinePlacementPriority } from "@/app/lib/listingPlans/magazinePlacementPriority";
 import { CATEGORY_BASE_PACKAGE_KEY } from "@/app/lib/listingPlans/categoryCommercialPlanPolicy";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import { grantComplimentaryAccess, grantPartnerCourtesy } from "@/app/lib/listingPlans/complimentaryGrants";
 
 const ALLOWED_TIERS = new Set([
   "premium",
@@ -537,4 +539,74 @@ export async function attachListingToPackageEntitlementAction(formData: FormData
   revalidatePath("/admin/workspace/package-entitlements");
   revalidatePath("/admin/workspace/promo-codes");
   redirectWith({ attached: "1" });
+}
+
+const ALLOWED_COMPLIMENTARY_GRANT_TYPES = new Set(["comp", "partner"]);
+
+/**
+ * Package C Build 4 (C8, Gate 7) — the only live admin path onto `complimentaryGrants.ts`
+ * (`grantComplimentaryAccess`/`grantPartnerCourtesy`, built in Package C Build 3 but never wired
+ * to any caller outside its own file/docs). `createPackageEntitlementAction` above can only ever
+ * produce `grant_source` "print_included" or "admin_manual" — this is the one path that can
+ * produce "comp" or "partner", narrowly scoped to those two grant types and always going through
+ * the same package-key-resolved, real-Revenue-OS-package activation path a paid entitlement uses.
+ */
+export async function grantComplimentaryPackageEntitlementAction(formData: FormData): Promise<void> {
+  const c = await cookies();
+  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
+
+  const grantType = String(formData.get("grant_type") ?? "").trim();
+  if (!ALLOWED_COMPLIMENTARY_GRANT_TYPES.has(grantType)) {
+    redirectWith({ error: "invalid_grant_type" });
+  }
+
+  const packageKey = String(formData.get("package_key") ?? "").trim();
+  const packageDef = getRevenuePackageDefinition(packageKey);
+  if (!packageDef) {
+    redirectWith({ error: "invalid_package_key" });
+  }
+
+  const listingId = String(formData.get("listing_id") ?? "").trim();
+  if (!listingId) {
+    redirectWith({ error: "missing_listing_id" });
+  }
+
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reason) {
+    redirectWith({ error: "missing_reason" });
+  }
+
+  const customerName = String(formData.get("customer_name") ?? "").trim() || null;
+  const businessName = String(formData.get("business_name") ?? "").trim() || null;
+  const durationDaysRaw = String(formData.get("duration_days") ?? "").trim();
+  const durationDays = durationDaysRaw && Number.isFinite(Number(durationDaysRaw)) ? Number(durationDaysRaw) : null;
+
+  const actorAdminUserId = access.authUserId ?? access.operatorEmail ?? access.rosterMemberId ?? "admin";
+  const grant = grantType === "comp" ? grantComplimentaryAccess : grantPartnerCourtesy;
+  const result = await grant({
+    category: packageDef.category,
+    listingId,
+    packageKey,
+    actorAdminUserId,
+    reason,
+    customerName,
+    businessName,
+    durationDays,
+  });
+
+  if (!result.ok) {
+    redirectWith({ error: "grant_failed", detail: (result.message ?? result.code ?? "").slice(0, 120) });
+  }
+
+  void appendAdminAuditLog({
+    action: grantType === "comp" ? "package_entitlement_comp_granted" : "package_entitlement_partner_granted",
+    targetType: "listing_package_entitlement",
+    targetId: result.packageEntitlementId ?? listingId,
+    meta: { category: packageDef.category, package_key: packageKey, listing_id: listingId, reason, idempotent: result.idempotent ?? false },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/workspace/package-entitlements");
+  redirectWith({ granted: "1" });
 }

@@ -47,6 +47,10 @@ export type LeonixPaymentRecordRow = {
   metadata: Record<string, unknown>;
   /** Enriched read-only fields (not DB columns). */
   entitlement_status: string | null;
+  /** Package C Build 4 (C8, Gate 7) — provenance of the entitlement this payment produced
+   * (stripe_webhook/admin_manual/print_included/comp/partner/manual_cleared_payment). Read from
+   * `listing_package_entitlements.grant_source`; null when there is no linked entitlement. */
+  grant_source: string | null;
   promo_redemption_status: string | null;
   /** Package C Build 1 — canonical subscription state (active/grace/suspended/canceled/
    * cancel_at_period_end) from leonix_subscription_records; null for one-time payments. */
@@ -123,6 +127,7 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     estimated_commission_cents: raw.estimated_commission_cents != null && Number.isFinite(Number(raw.estimated_commission_cents)) ? Number(raw.estimated_commission_cents) : null,
     metadata,
     entitlement_status: null,
+    grant_source: null,
     promo_redemption_status: null,
     subscription_status: null,
     verified_intro_discount_status: null,
@@ -143,13 +148,16 @@ async function enrichPaymentTrackerRows(
   const promoIds = rows.map((r) => r.promo_redemption_id).filter(Boolean) as string[];
 
   const entitlementStatusById = new Map<string, string>();
+  const entitlementGrantSourceById = new Map<string, string | null>();
   if (entitlementIds.length > 0) {
     const { data } = await supabase
       .from("listing_package_entitlements")
-      .select("id, status")
+      .select("id, status, grant_source")
       .in("id", entitlementIds.slice(0, 100));
     for (const row of data ?? []) {
-      entitlementStatusById.set(String((row as { id: string }).id), String((row as { status: string }).status));
+      const r = row as { id: string; status: string; grant_source?: string | null };
+      entitlementStatusById.set(String(r.id), String(r.status));
+      entitlementGrantSourceById.set(String(r.id), r.grant_source != null ? String(r.grant_source) : null);
     }
   }
 
@@ -225,6 +233,9 @@ async function enrichPaymentTrackerRows(
       ...row,
       entitlement_status: row.package_entitlement_id
         ? entitlementStatusById.get(row.package_entitlement_id) ?? "missing"
+        : null,
+      grant_source: row.package_entitlement_id
+        ? entitlementGrantSourceById.get(row.package_entitlement_id) ?? null
         : null,
       promo_redemption_status: row.promo_redemption_id
         ? promoStatusById.get(row.promo_redemption_id) ?? null

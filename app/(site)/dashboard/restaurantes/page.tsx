@@ -239,7 +239,7 @@ function DashboardRestaurantesPageContent() {
       try {
         const { data: sessData } = await supabase.auth.getSession();
         const accessToken = sessData.session?.access_token ?? null;
-        const badges = await fetchDashboardListingPackageEntitlementBadges(
+        const { badges } = await fetchDashboardListingPackageEntitlementBadges(
           loaded.map((r) => ({
             key: r.id,
             category: "restaurantes",

@@ -26,6 +26,7 @@ import {
   BR_LIFECYCLE_PARENT_INVALID_ERROR,
   BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR,
   BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+  brActivatePendingEligible,
   brArchiveEligible,
   brDiscontinueEligible,
   brPauseEligible,
@@ -42,7 +43,12 @@ function row(status: string, isPublished: boolean | null = true): BrLifecycleRow
  * Mutation vocabulary
  * ------------------------------------------------------------------------------------------ */
 
-assert.deepEqual([...BR_LIFECYCLE_MUTATION_KEYS], ["pause", "resume", "archive", "discontinue", "republish"]);
+// Package C Build 4 (C7, Gate 5) added "activate_pending" — the one sanctioned way to bring a
+// freshly-inserted (never-yet-live) BR negocio row live when its publish flow skipped Stripe
+// checkout (already covered by existing capacity, or a dev/QA payment bypass). Closes a real
+// direct-active-INSERT capacity bypass found during that gate; not present in G.2.3.1's original
+// five-key vocabulary.
+assert.deepEqual([...BR_LIFECYCLE_MUTATION_KEYS], ["pause", "resume", "archive", "discontinue", "republish", "activate_pending"]);
 // No "restore" key exists yet — G.2.3.1 explicitly does not add it.
 assert.ok(!(BR_LIFECYCLE_MUTATION_KEYS as readonly string[]).includes("restore"));
 
@@ -69,6 +75,17 @@ assert.equal(brResumeEligible(row("pending")), false);
 assert.equal(brResumeEligible(row("flagged")), false);
 assert.equal(brResumeEligible(row("sold")), false);
 assert.equal(brResumeEligible(row("removed")), false);
+
+/* ------------------------------------------------------------------------------------------ *
+ * Activate pending (Package C Build 4, C7 Gate 5)
+ * ------------------------------------------------------------------------------------------ */
+
+assert.equal(brActivatePendingEligible(row("pending")), true);
+assert.equal(brActivatePendingEligible(row("paused")), false, "paused uses Resume, not activate_pending — distinct prior states, distinct history");
+assert.equal(brActivatePendingEligible(row("active")), false);
+assert.equal(brActivatePendingEligible(row("flagged")), false);
+assert.equal(brActivatePendingEligible(row("sold")), false);
+assert.equal(brActivatePendingEligible(row("removed")), false);
 
 /* ------------------------------------------------------------------------------------------ *
  * Archive

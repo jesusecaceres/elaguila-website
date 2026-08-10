@@ -12,6 +12,7 @@ import {
   ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
   assertBrNegocioActionAllowed,
 } from "@/app/admin/_lib/adminInventoryActionGuard";
+import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 
 type ListingsStaffAction =
   | "suspend"
@@ -119,7 +120,27 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       last_republished_source: "admin",
       last_republished_by: null,
     };
-    if (!listingsRowIsPublicLive(rowRec)) {
+    const republishReactivates = !listingsRowIsPublicLive(rowRec);
+    const republishReactivatesBrNegocio = republishReactivates && category.toLowerCase() === "bienes-raices";
+    if (republishReactivatesBrNegocio) {
+      // Package C Build 4 (C7, Gate 4) — reactivating a bienes-raices row via republish is
+      // capacity-increasing; route through the atomic RPC instead of folding status/is_published
+      // into the generic patch below.
+      const rpcResult = await activateBrNegocioListingAtomic({
+        listingId: id,
+        ownerId: String(rowRec.owner_id ?? ""),
+        fromStatus: String(rowRec.status ?? ""),
+      });
+      if (!rpcResult.ok) {
+        return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
+      }
+      if (!rpcResult.activated && !rpcResult.idempotent) {
+        return NextResponse.json(
+          { ok: false, error: rpcResult.blockedReason ?? "capacity_reached", activeCount: rpcResult.activeCount, effectiveLimit: rpcResult.effectiveLimit },
+          { status: 409 },
+        );
+      }
+    } else if (republishReactivates) {
       patch.is_published = true;
       patch.status = "active";
     }
@@ -131,7 +152,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       action: "republish",
       targetType: "listings",
       targetId: id,
-      meta: { category, patch, leonix_ad_id: rowRec.leonix_ad_id },
+      meta: { category, patch, leonix_ad_id: rowRec.leonix_ad_id, viaRpc: republishReactivatesBrNegocio },
     });
     revalidatePath("/admin/workspace/clasificados");
     revalidatePath(`/clasificados/anuncio/${id}`);
@@ -161,6 +182,46 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   const patch: Record<string, unknown> = {};
+
+  // Package C Build 4 (C7, Gate 4) — reactivating a bienes-raices main/inventory_property row is
+  // capacity-increasing; route it through the atomic RPC instead of an unconditional direct write.
+  // `inventory_role` null is legacy pre-grouping data, treated as 'main' (self-parent) — mirrors
+  // the RPC's own `IS DISTINCT FROM 'inventory_property'` legacy-compatibility branch.
+  const isBrNegocioCapacityRow =
+    category.toLowerCase() === "bienes-raices" &&
+    (rowRec.inventory_role === "main" ||
+      rowRec.inventory_role === "inventory_property" ||
+      rowRec.inventory_role === null ||
+      rowRec.inventory_role === undefined);
+
+  if (action === "unsuspend" && isBrNegocioCapacityRow) {
+    const rpcResult = await activateBrNegocioListingAtomic({
+      listingId: id,
+      ownerId: String(rowRec.owner_id ?? ""),
+      fromStatus: String(rowRec.status ?? ""),
+    });
+    if (!rpcResult.ok) {
+      return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
+    }
+    if (!rpcResult.activated && !rpcResult.idempotent) {
+      return NextResponse.json(
+        { ok: false, error: rpcResult.blockedReason ?? "capacity_reached", activeCount: rpcResult.activeCount, effectiveLimit: rpcResult.effectiveLimit },
+        { status: 409 },
+      );
+    }
+    void appendAdminAuditLog({
+      action: `listings_admin_${action}`,
+      targetType: "listings",
+      targetId: id,
+      meta: { category, viaRpc: true, idempotent: rpcResult.idempotent },
+    });
+    revalidatePath("/admin/workspace/clasificados");
+    revalidatePath(`/clasificados/anuncio/${id}`);
+    revalidatePath("/admin/workspace/clasificados/bienes-raices");
+    revalidatePath("/clasificados/bienes-raices");
+    revalidatePath("/clasificados/bienes-raices/resultados");
+    return NextResponse.json({ ok: true, id, is_published: true, status: "active" });
+  }
 
   switch (action) {
     case "suspend":

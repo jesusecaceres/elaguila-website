@@ -6,6 +6,7 @@ import {
   markAutosClassifiedsListingRestoredIfOwner,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
+import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export async function POST(request: Request, { params }: Props) {
       role === "inventory_vehicle"
         ? String(row.dealer_inventory_parent_listing_id ?? "").trim() || id
         : id;
+    // Package C Build 1 (decision 11) — friendly UX preflight (capacity, grace/suspension).
     const guard = await assertCommercialCapacityForWrite({
       category: "autos",
       parentListingId,
@@ -53,6 +55,21 @@ export async function POST(request: Request, { params }: Props) {
         { status: guard.code === "parent_not_owned" ? 403 : 409 },
       );
     }
+
+    // Package C Build 4 (C7, Gate 4) — the atomic RPC is the FINAL financial authority: restore
+    // is a capacity-increasing transition and must never bypass it, even though the preflight
+    // above already passed (that check is advisory-only and can race).
+    const result = await activateAutosDealerListingAtomic({ listingId: id, ownerUserId: userId, fromStatus: "removed" });
+    if (!result.ok) {
+      return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable", message: result.rpcError ?? null }, { status: 500 });
+    }
+    if (!result.activated && !result.idempotent) {
+      return NextResponse.json(
+        { ok: false, error: result.blockedReason ?? "not_found_or_not_removed", activeCount: result.activeCount, effectiveLimit: result.effectiveLimit },
+        { status: result.blockedReason === "not_found_or_owner_mismatch" ? 403 : 409 },
+      );
+    }
+    return NextResponse.json({ ok: true, idempotent: result.idempotent });
   }
 
   const ok = await markAutosClassifiedsListingRestoredIfOwner(id, userId);

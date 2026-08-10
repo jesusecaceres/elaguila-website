@@ -217,7 +217,7 @@ export async function fetchBienesInventoryPackEntitlementActive(input: {
     const token = auth.session?.access_token;
     if (!token?.trim()) return { active: false, pending: false };
 
-    const badges = await fetchDashboardListingPackageEntitlementBadges(
+    const { badges } = await fetchDashboardListingPackageEntitlementBadges(
       [
         {
           key: listingId,

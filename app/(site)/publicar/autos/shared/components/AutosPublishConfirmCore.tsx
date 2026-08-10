@@ -48,7 +48,7 @@ import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/
 import {
   AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY,
   type AutosBundlePublishSessionResult,
-} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublishSessionResult";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { autosQaPaymentBypassLabel } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import { getAutosConfirmPlanSummaryCopy } from "@/app/lib/clasificados/autos/autosPricingCopy";

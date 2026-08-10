@@ -24,7 +24,13 @@ export type CommercialWriteDecision =
         | "parent_not_found"
         | "parent_not_owned"
         | "parent_wrong_role"
-        | "guard_unavailable";
+        | "guard_unavailable"
+        // Package C Build 4 (C7, Gate 2) — server-verified childListingId linkage failures.
+        // A caller-supplied child id is never trusted: it must resolve to a real row, owned by
+        // the same owner, whose own parent-linkage column equals the parent being written to.
+        | "child_not_found"
+        | "child_not_owned"
+        | "child_wrong_parent";
       message: string;
       messageEs: string;
       limit?: number;

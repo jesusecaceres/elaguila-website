@@ -32,6 +32,7 @@ import {
   isBrInventoryUpgradeActive,
   type BrNegocioPublishInventoryContext,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { callBrLifecycleMutation } from "@/app/(site)/dashboard/lib/brDashboardLifecycleClient";
 import {
   brPropertyInventoryAddToInventoryCtaLabel,
   brPropertyInventoryBaseLimitMessage,
@@ -359,14 +360,34 @@ export default function AgenteIndividualResidencialPreviewClient() {
 
       const isInventoryAdd = publishInventory.mode === "add";
       const needsPayment = !isInventoryAdd && brPublishPaymentRequired("negocio");
+      // Package C Build 4 (C7, Gate 5) — always insert as pending/unpublished, never directly
+      // "active". A row that skips Stripe here (already covered by existing paid capacity, or a
+      // dev/QA payment bypass) is brought live immediately below via the atomic, capacity- and
+      // lifecycle-checked `activate_pending` mutation — never by a bare active-status INSERT,
+      // which would bypass the RPC entirely and let a client-side count check be the only guard.
       const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory, {
-        activationMode: needsPayment ? "pending_payment" : "immediate",
+        activationMode: "pending_payment",
       });
 
       if (!r.ok) {
         setPublishBusy(false);
         setPublishErr(r.error);
         return;
+      }
+
+      if (!needsPayment) {
+        const activation = await callBrLifecycleMutation({ listingId: r.listingId, mutation: "activate_pending" });
+        if (!activation.ok) {
+          setPublishBusy(false);
+          setPublishErr(
+            activation.code === "br_active_property_limit_reached"
+              ? brPropertyInventoryMaxTotalLimitMessage(lang)
+              : lang === "es"
+                ? "No se pudo activar el anuncio. Inténtalo de nuevo."
+                : "The listing could not be activated. Please try again.",
+          );
+          return;
+        }
       }
 
       if (r.pendingPayment && needsPayment) {

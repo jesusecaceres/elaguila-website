@@ -191,6 +191,8 @@ export default async function AdminPaymentTrackerPage({
                         <th className="px-4 py-3">Listing</th>
                         <th className="px-4 py-3">Promo</th>
                         <th className="px-4 py-3">Entitlement</th>
+                        <th className="px-4 py-3">Grant source</th>
+                        <th className="px-4 py-3">Subscription</th>
                         <th className="px-4 py-3">Sales rep</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Amount</th>
@@ -262,6 +264,8 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
     ? `${row.promo_code}${row.promo_redemption_status ? ` (${row.promo_redemption_status})` : ""}`
     : row.promo_redemption_status || "—";
   const entitlementLine = row.entitlement_status ?? (row.package_entitlement_id ? "linked" : "—");
+  const grantSourceLine = row.grant_source ? row.grant_source.replace(/_/g, " ") : "—";
+  const subscriptionLine = row.subscription_status ? row.subscription_status.replace(/_/g, " ") : "—";
   const commissionLine = row.commission_eligible
     ? row.estimated_commission_cents != null
       ? `≈ ${formatMoneyCents(row.estimated_commission_cents)}`
@@ -283,6 +287,8 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
       <td className="px-4 py-3 text-xs text-[#5C5346]">{listingLine}</td>
       <td className="px-4 py-3 font-mono text-xs">{promoLine}</td>
       <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{entitlementLine}</td>
+      <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{grantSourceLine}</td>
+      <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{subscriptionLine}</td>
       <td className="px-4 py-3 text-xs text-[#5C5346]">{repLine}</td>
       <td className="px-4 py-3">
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusChip(row.payment_status)}`}>

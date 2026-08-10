@@ -86,9 +86,12 @@ import {
   dashboardEntitlementBadgeForKey,
   dashboardHasCapabilityForKey,
   dashboardRevenueAdPlanBadgeForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
+  type DashboardSubscriptionStateEntry,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { resolveCommercialStateBadges } from "@/app/lib/listingPlans/commercialStateBadges";
 import {
   listingUiStatusChipClass,
   listingUiStatusLabel,
@@ -378,6 +381,9 @@ function MyListingsPageContent() {
   const [listings, setListings] = useState<ListingRow[]>([]);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
+  >({});
+  const [subscriptionStates, setSubscriptionStates] = useState<
+    Record<string, DashboardSubscriptionStateEntry>
   >({});
 
   // Gate I.4.2 — raw rows only, per category; the lang-formatted display VM each category
@@ -801,13 +807,17 @@ function MyListingsPageContent() {
 
     if (items.length === 0) {
       setEntitlementBadges({});
+      setSubscriptionStates({});
       return;
     }
 
     let cancelled = false;
     (async () => {
-      const badges = await fetchDashboardListingPackageEntitlementBadges(items, accessToken);
-      if (!cancelled) setEntitlementBadges(badges);
+      const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, accessToken);
+      if (!cancelled) {
+        setEntitlementBadges(badges);
+        setSubscriptionStates(subs);
+      }
     })();
 
     return () => {
@@ -2049,6 +2059,18 @@ function MyListingsPageContent() {
                         x.id,
                         x.leonix_ad_id ?? "",
                       ])}
+                      commercialStateBadges={(() => {
+                        const subState = dashboardSubscriptionStateForKey(subscriptionStates, [x.id]);
+                        return subState
+                          ? resolveCommercialStateBadges({
+                              subscriptionStatus: subState.status,
+                              cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                              graceEndsAt: subState.graceEndsAt,
+                              suspensionReason: subState.suspensionReason,
+                              recoveredAt: subState.recoveredAt,
+                            })
+                          : null;
+                      })()}
                       ownerUserId={userId}
                     />
                     </div>

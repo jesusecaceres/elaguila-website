@@ -200,7 +200,10 @@ export async function POST(request: Request) {
     }
 
     const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive);
-    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
+    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, {
+      excludeListingId: row.id,
+      groupScopeParent: row,
+    });
     const slotsNeeded = countApplicationInventoryVehicles(additionalDrafts.length);
     if (dealerInventory.activeCount + slotsNeeded > vehicleLimit) {
       return NextResponse.json(

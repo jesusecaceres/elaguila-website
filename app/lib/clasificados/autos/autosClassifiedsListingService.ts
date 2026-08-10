@@ -21,6 +21,7 @@ import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayload
 import {
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
   countActiveDealerVehicles,
+  countActiveDealerInventoryVehicles,
   getDealerInventoryGroupId,
   resolveDealerInventoryGroupingKey,
   summarizeDealerInventory,
@@ -28,6 +29,7 @@ import {
 } from "./autosDealerInventoryPolicy";
 import { resolveDealerInventoryGroupIdForParent } from "./autosDealerInventoryAddFlow";
 import { filterAutosRowsByActiveParent, isAutosChildParentGateSatisfied } from "./autosPublicChildParentVisibility";
+import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
@@ -372,20 +374,25 @@ export async function listAutosClassifiedsListingsForOwner(ownerUserId: string):
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }
 
+/**
+ * Package C Build 4 (C7, Gate 4) — UX/preflight only (never the financial authority; that's the
+ * atomic RPC). `groupScopeParent`, when supplied, scopes the count to that parent's exact dealer
+ * group (`resolveDealerInventoryGroupingKey`) instead of the whole owner — closing the same
+ * owner-wide-pooling defect fixed in `commercialWriteGuard.ts`'s preflight counter. Omitting it
+ * preserves the historical owner-wide count for any caller not yet passing group context.
+ */
 export async function getAutosDealerInventorySummaryForOwner(
   ownerUserId: string,
-  opts?: { excludeListingId?: string },
+  opts?: { excludeListingId?: string; groupScopeParent?: Pick<AutosClassifiedsListingRow, "lane" | "dealer_inventory_group_id" | "owner_user_id"> },
 ): Promise<AutosDealerInventoryCount> {
   const rows = await listAutosClassifiedsListingsForOwner(ownerUserId);
-  const activeCount = countActiveDealerVehicles(rows, opts?.excludeListingId);
+  const activeCount = opts?.groupScopeParent
+    ? countActiveDealerInventoryVehicles(rows, {
+        groupingKey: resolveDealerInventoryGroupingKey(opts.groupScopeParent),
+        excludeListingId: opts?.excludeListingId,
+      })
+    : countActiveDealerVehicles(rows, opts?.excludeListingId);
   return summarizeDealerInventory(activeCount, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
-}
-
-async function canActivateDealerListing(row: AutosClassifiedsListingRow): Promise<AutosDealerInventoryCount> {
-  if (row.lane !== "negocios" || row.status === "active") {
-    return summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
-  }
-  return getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
 }
 
 export type AutosClassifiedsDashboardRow = {
@@ -534,18 +541,28 @@ export async function setAutosListingPendingPayment(listingId: string, stripeChe
   });
 }
 
+/**
+ * Package C Build 4 (C7, Gate 4) — QA/internal-bypass activation path (env/allowlist-gated,
+ * never reachable by a normal paying dealer — see `checkout/route.ts`'s bypass guards). Routes
+ * `negocios` activation through the same atomic RPC as the real payment path so no code path can
+ * write `status='active'` on a capacity-relevant row outside the RPC's group-scoped, lifecycle-
+ * aware, advisory-lock-serialized authority — a QA bypass must never be a capacity backdoor.
+ */
 export async function activateAutosClassifiedsListing(listingId: string): Promise<boolean> {
   const row = await getAutosClassifiedsListingById(listingId);
   if (!row) return false;
-  const dealerSummary = await canActivateDealerListing(row);
-  if (row.lane === "negocios" && !dealerSummary.canAddActiveVehicle) return false;
-  const now = new Date().toISOString();
-  const ok = await updateAutosListingStatus(listingId, "active", { published_at: now });
-  if (!ok) return false;
   if (row.lane === "negocios") {
+    const result = await activateAutosDealerListingAtomic({
+      listingId,
+      ownerUserId: row.owner_user_id,
+      fromStatus: row.status,
+    });
+    if (!result.ok || (!result.activated && !result.idempotent)) return false;
     await ensureNegociosInventoryGroupingOnActivate(listingId);
+    return true;
   }
-  return true;
+  const now = new Date().toISOString();
+  return updateAutosListingStatus(listingId, "active", { published_at: now });
 }
 
 /**
@@ -604,8 +621,17 @@ export type TryActivateAutosResult = {
 };
 
 /**
- * Idempotent activation after Stripe paid. Uses `status = pending_payment` in the WHERE clause
- * so concurrent verify + webhook only perform one transition (the other becomes a no-op ok).
+ * Idempotent activation after Stripe paid.
+ *
+ * Package C Build 4 (C7, Gate 4) — for `negocios` rows, the actual capacity check + status
+ * transition now runs through `autos_dealer_activate_listing` (atomic, group-scoped, entitlement-
+ * and lifecycle-deriving, advisory-lock-serialized) instead of the boost-unaware
+ * `canActivateDealerListing` + unguarded conditional UPDATE this function used before. The RPC's
+ * own idempotent-already-active branch and `p_from_status='pending_payment'` match replace the
+ * former `.eq("status","pending_payment")` CAS — concurrent verify + webhook still only perform
+ * one real transition, now proven atomic under the group lock rather than merely status-CAS-safe.
+ * `privado` rows (not capacity-relevant, not part of the parent/child system) keep the original
+ * direct, unguarded update — unchanged.
  */
 export async function tryActivateAutosListingAfterPayment(
   listingId: string,
@@ -616,15 +642,40 @@ export async function tryActivateAutosListingAfterPayment(
   if (!existing) return { ok: false, transitioned: false };
   if (existing.status === "active") return { ok: true, transitioned: false };
   if (existing.status !== "pending_payment") return { ok: false, transitioned: false };
-  const dealerSummary = await canActivateDealerListing(existing);
-  if (existing.lane === "negocios" && !dealerSummary.canAddActiveVehicle) {
-    return {
-      ok: false,
-      transitioned: false,
-      error: AUTOS_DEALER_ACTIVE_LIMIT_ERROR,
-      dealerInventory: dealerSummary,
-    };
+
+  if (existing.lane === "negocios") {
+    const result = await activateAutosDealerListingAtomic({
+      listingId,
+      ownerUserId: existing.owner_user_id,
+      fromStatus: "pending_payment",
+    });
+    if (!result.ok) {
+      console.error("tryActivateAutosListingAfterPayment RPC error", result.rpcError);
+      return { ok: false, transitioned: false };
+    }
+    if (!result.activated && !result.idempotent) {
+      const limit = result.effectiveLimit ?? STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT;
+      const activeCount = result.activeCount ?? limit;
+      return {
+        ok: false,
+        transitioned: false,
+        error: AUTOS_DEALER_ACTIVE_LIMIT_ERROR,
+        dealerInventory: summarizeDealerInventory(activeCount, limit),
+      };
+    }
+    if (result.activated) {
+      const supabase = getAdminSupabase();
+      const pi = opts?.stripePaymentIntentId;
+      await supabase
+        .from("autos_classifieds_listings")
+        .update({ stripe_checkout_session_id: null, ...(pi ? { stripe_payment_intent_id: pi } : {}) })
+        .eq("id", listingId);
+      await ensureNegociosInventoryGroupingOnActivate(listingId);
+    }
+    return { ok: true, transitioned: result.activated === true };
   }
+
+  // privado — not capacity-relevant, unchanged direct path.
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {
@@ -646,19 +697,9 @@ export async function tryActivateAutosListingAfterPayment(
     console.error("tryActivateAutosListingAfterPayment", error);
     return { ok: false, transitioned: false };
   }
-  if (data) {
-    if (existing.lane === "negocios") {
-      await ensureNegociosInventoryGroupingOnActivate(listingId);
-    }
-    return { ok: true, transitioned: true };
-  }
+  if (data) return { ok: true, transitioned: true };
   const again = await getAutosClassifiedsListingById(listingId);
-  if (again?.status === "active") {
-    if (again.lane === "negocios") {
-      await ensureNegociosInventoryGroupingOnActivate(listingId);
-    }
-    return { ok: true, transitioned: false };
-  }
+  if (again?.status === "active") return { ok: true, transitioned: false };
   return { ok: false, transitioned: false };
 }
 

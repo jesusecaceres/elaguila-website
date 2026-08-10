@@ -19,11 +19,6 @@ function accountRefFromId(id: string): string {
   return `${s.slice(0, 4).toUpperCase()}-${s.slice(-4).toUpperCase()}`;
 }
 
-function normalizePlanFromMembershipTier(raw: unknown): Plan {
-  void raw;
-  return "free";
-}
-
 function BusinessToolsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,7 +69,13 @@ function BusinessToolsPageContent() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-  const [plan, setPlan] = useState<Plan>("free");
+  // Package C Build 4 (C8, Gate 6) — `LeonixDashboardShell.plan` predates Package C's real
+  // plan/entitlement model, is never read from the shell (`void plan`), and this page never had
+  // a real account-tier concept to source it from. Kept as a stable required-prop constant
+  // rather than reading (and silently discarding) `profiles.membership_tier`, which would look
+  // like a real resolved value while being exactly the kind of account/listing-plan conflation
+  // this build's commercial-truth pass exists to remove.
+  const plan: Plan = "free";
   const [userId, setUserId] = useState<string | null>(null);
   const [completeness, setCompleteness] = useState<ReturnType<typeof computeBusinessCompleteness> | null>(null);
 
@@ -100,7 +101,6 @@ function BusinessToolsPageContent() {
         const { row } = await fetchDashboardProfile(sb, u.id);
         if (row?.display_name?.trim()) setName(row.display_name.trim());
         if (row?.email?.trim()) setEmail(row.email.trim());
-        setPlan(normalizePlanFromMembershipTier(row?.membership_tier));
         const meta = u.user_metadata as Record<string, unknown> | undefined;
         const wa = typeof meta?.whatsapp === "string" ? meta.whatsapp : "";
         setCompleteness(

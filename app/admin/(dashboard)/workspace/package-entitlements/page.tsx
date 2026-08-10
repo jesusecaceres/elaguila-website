@@ -39,10 +39,12 @@ import {
 } from "@/app/admin/_lib/packageEntitlementData";
 import { PackageEntitlementSalesPreview } from "./PackageEntitlementSalesPreview";
 import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
+import { REVENUE_V1_PACKAGE_MATRIX } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import {
   attachListingToPackageEntitlementAction,
   createPackageEntitlementAction,
   extendPackageEntitlementAction,
+  grantComplimentaryPackageEntitlementAction,
   revokePackageEntitlementAction,
 } from "./actions";
 
@@ -105,6 +107,13 @@ function alertFromSearch(sp: Record<string, string | undefined>) {
   if (sp.revoked === "1") return { kind: "ok" as const, text: "Package revoked (record not deleted)." };
   if (sp.extended === "1") return { kind: "ok" as const, text: "End date updated." };
   if (sp.attached === "1") return { kind: "ok" as const, text: "Listing ID attached. Does not activate public sorting yet." };
+  if (sp.granted === "1") return { kind: "ok" as const, text: "Complimentary/partner entitlement granted." };
+  if (sp.error === "invalid_grant_type" || sp.error === "invalid_package_key" || sp.error === "missing_listing_id" || sp.error === "missing_reason") {
+    return { kind: "err" as const, text: "Grant form incomplete — check grant type, package, listing ID, and reason." };
+  }
+  if (sp.error === "grant_failed") {
+    return { kind: "err" as const, text: `Could not grant entitlement${sp.detail ? `: ${sp.detail}` : ""}.` };
+  }
   if (sp.error === "premium_cap") {
     return {
       kind: "warn" as const,
@@ -129,7 +138,7 @@ function alertFromSearch(sp: Record<string, string | undefined>) {
 function preserveFilterHiddenFields(sp: Record<string, string | undefined>, exclude?: string[]) {
   const skip = new Set(exclude ?? []);
   return Object.entries(sp)
-    .filter(([k, v]) => v && !skip.has(k) && !k.startsWith("error") && !["created", "revoked", "extended", "attached", "code", "warn", "detail"].includes(k))
+    .filter(([k, v]) => v && !skip.has(k) && !k.startsWith("error") && !["created", "revoked", "extended", "attached", "granted", "code", "warn", "detail"].includes(k))
     .map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />);
 }
 
@@ -494,6 +503,68 @@ export default async function AdminPackageEntitlementsPage(props: {
         </button>
       </form>
 
+      <form
+        id="package-entitlement-comp-grant-form"
+        action={grantComplimentaryPackageEntitlementAction}
+        className={`${adminCardBase} space-y-4 p-4 sm:p-6`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-bold text-[#1E1810]">Complimentary / partner grant</h2>
+          <span className={adminPartialBadgeClass}>Comp · Partner</span>
+        </div>
+        <p className="text-xs text-[#7A7164]">
+          Grants a real Revenue OS package as comp (goodwill/support) or partner (courtesy) — never fabricates a Stripe
+          payment. Creates one <span className="font-mono">listing_package_entitlements</span> row with
+          <span className="font-mono"> grant_source</span> = comp/partner, audited below. Revoke from the tracker like any
+          other entitlement.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Grant type
+            <select name="grant_type" required className={`${adminInputClass} mt-1`} defaultValue="comp">
+              <option value="comp">Comp (goodwill / support)</option>
+              <option value="partner">Partner (courtesy)</option>
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Package
+            <select name="package_key" required className={`${adminInputClass} mt-1`}>
+              {REVENUE_V1_PACKAGE_MATRIX.map((def) => (
+                <option key={def.packageKey} value={def.packageKey}>
+                  {def.category} — {def.packageKey}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Listing ID
+            <input name="listing_id" required className={`${adminInputClass} mt-1 font-mono text-xs`} placeholder="UUID del anuncio" />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Duration (days, optional)
+            <input name="duration_days" type="number" min="1" className={`${adminInputClass} mt-1`} placeholder="Default 30" />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Business (optional)
+            <input name="business_name" className={`${adminInputClass} mt-1`} />
+          </label>
+          <label className="block text-xs font-semibold text-[#5C5346]">
+            Customer (optional)
+            <input name="customer_name" className={`${adminInputClass} mt-1`} />
+          </label>
+        </div>
+
+        <label className="block text-xs font-semibold text-[#5C5346]">
+          Reason (required — recorded for audit)
+          <textarea name="reason" required rows={2} className={`${adminInputClass} mt-1`} placeholder="e.g. Goodwill after service outage; partner co-marketing agreement 2026-Q3" />
+        </label>
+
+        <button type="submit" className={adminBtnPrimary} disabled={unavailable}>
+          Grant entitlement
+        </button>
+      </form>
+
       <section className={`${adminCardBase} p-4 sm:p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Tracker — entitlements</h2>
         <p className="mt-1 text-xs text-[#7A7164]">Revoke, extend end date, or attach listing. Revoke does not delete the row.</p>
@@ -523,6 +594,11 @@ export default async function AdminPackageEntitlementsPage(props: {
                       <p className="mt-0.5 font-semibold text-[#1E1810]">{formatEntitlementListingHeadline(row)}</p>
                       <p className="text-xs text-[#7A7164]">
                         {row.package_tier} · {row.category} · {row.listing_source}
+                        {row.grant_source ? (
+                          <span className="ml-1 rounded-full bg-[#E8DFD0]/80 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#5C5346]">
+                            {row.grant_source.replace(/_/g, " ")}
+                          </span>
+                        ) : null}
                         {!row.listing_id ? (
                           <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-950">
                             Pending listing

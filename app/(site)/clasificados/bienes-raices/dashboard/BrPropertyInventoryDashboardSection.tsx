@@ -119,7 +119,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
         if (!cancelled) setEntitlementStatusByParentId(new Map());
         return;
       }
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
+      const { badges } = await fetchDashboardListingPackageEntitlementBadges(
         parentIds.map((id) => ({
           key: id,
           category: "bienes-raices",
