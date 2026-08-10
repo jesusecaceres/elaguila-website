@@ -45,6 +45,17 @@ function csvList(s: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * `PhoneInput` emits plain 10-digit US numbers, but `openWhatsApp` (unlike `openTel`/`openSms`)
+ * requires the country code already present in the digit string it's handed. Normalizing here
+ * keeps stored digits consistent with the legacy registry format (e.g. "16693664300") so the
+ * WhatsApp deep link resolves correctly without touching the locked CTA launcher code.
+ */
+function normalizeDialDigits(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  return digits.length === 10 ? `1${digits}` : digits;
+}
+
 function parseTheme(raw: string): ExecutiveThemeId {
   return (THEME_IDS.has(raw) ? raw : "leonix") as ExecutiveThemeId;
 }
@@ -93,8 +104,8 @@ function readCommonFields(formData: FormData) {
     company: str(formData, "company"),
     legalEntity: str(formData, "legalEntity"),
     phoneDisplay: str(formData, "phoneDisplay"),
-    phoneDigits: str(formData, "phoneDigits"),
-    whatsappDigits: str(formData, "whatsappDigits"),
+    phoneDigits: normalizeDialDigits(str(formData, "phoneDigits")),
+    whatsappDigits: normalizeDialDigits(str(formData, "whatsappDigits")),
     email: str(formData, "email"),
     website: str(formData, "website"),
     address: {
