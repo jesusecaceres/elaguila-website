@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 /** Standards-compliant vCard download — works identically on Android, iPhone, and desktop. */
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
-  const profile = getDigitalContactProfile(slug);
+  const profile = await getDigitalContactProfile(slug);
   if (!profile) {
     return NextResponse.json({ ok: false, error: "profile_not_found" }, { status: 404 });
   }

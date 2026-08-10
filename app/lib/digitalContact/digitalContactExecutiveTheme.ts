@@ -161,6 +161,15 @@ export function resolveExecutiveTheme(id: ExecutiveThemeId | undefined | null): 
   return EXECUTIVE_THEMES[id ?? "leonix"] ?? LEONIX;
 }
 
+/** Human labels for every theme id — Executive Hub theme selector reads this so new themes need no admin UI changes. */
+export const EXECUTIVE_THEME_OPTIONS: { id: ExecutiveThemeId; label: string }[] = [
+  { id: "leonix", label: "Leonix (burgundy & gold)" },
+  { id: "warfitness", label: "WarFitness (black & red)" },
+  { id: "realestate", label: "Real Estate (navy & gold)" },
+  { id: "restaurant", label: "Restaurant (forest green & gold)" },
+  { id: "partner", label: "Partner (neutral bronze)" },
+];
+
 /**
  * Maps a resolved theme onto `--dc-*` CSS custom properties. Set once on the page root
  * (`DigitalContactPageClient`); every descendant reads the variables directly via

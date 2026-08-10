@@ -1,12 +1,18 @@
 import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 import type { DigitalContactProfile } from "./digitalContactTypes";
+import { dbGetPublishedExecutiveProfile, dbListPublishedExecutiveSlugs } from "./digitalContactExecutivesDb";
 
 /**
- * Leonix Digital Contact Platform — profile registry.
+ * Leonix Digital Contact Platform — profile registry (EXEC-HUB-02 Real Database Foundation).
  *
- * This is the ONLY place employee contact data lives. `/contact/[slug]` reads from here;
- * onboarding a new employee means adding an entry, never duplicating page code. When this
- * moves to Admin, this map becomes the seed/fallback data source for the same shape.
+ * `/contact/[slug]` now reads with this priority:
+ *   1. `public.executives` (Supabase) — the real, admin-managed record, published only.
+ *   2. This hardcoded map — legacy fallback so `/contact/chuy` and `/contact/isaias` keep
+ *      working while they have not yet been recreated as real Executive Hub records.
+ *
+ * Onboarding a brand-new executive going forward should happen in the Executive Hub admin
+ * UI (writes to Supabase), not by editing this file. This map only exists for migration
+ * continuity and will shrink over time as executives are recreated in the real table.
  */
 const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
   chuy: {
@@ -64,15 +70,29 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
   },
 };
 
-export function getDigitalContactProfile(slug: string): DigitalContactProfile | null {
+function legacyDigitalContactProfile(slug: string): DigitalContactProfile | null {
   const key = String(slug ?? "").trim().toLowerCase();
   const profile = DIGITAL_CONTACT_PROFILES[key];
   if (!profile || !profile.active) return null;
   return profile;
 }
 
-export function listDigitalContactSlugs(): string[] {
-  return Object.values(DIGITAL_CONTACT_PROFILES)
+/**
+ * Read priority: 1) real Executive Hub record (published), 2) legacy registry fallback.
+ * Guarantees /contact/chuy and /contact/isaias keep working during migration while any
+ * newly-created (or newly-published) executive record immediately takes over its slug.
+ */
+export async function getDigitalContactProfile(slug: string): Promise<DigitalContactProfile | null> {
+  const key = String(slug ?? "").trim().toLowerCase();
+  const fromDb = await dbGetPublishedExecutiveProfile(key);
+  if (fromDb) return fromDb;
+  return legacyDigitalContactProfile(key);
+}
+
+export async function listDigitalContactSlugs(): Promise<string[]> {
+  const dbSlugs = await dbListPublishedExecutiveSlugs();
+  const legacySlugs = Object.values(DIGITAL_CONTACT_PROFILES)
     .filter((p) => p.active)
     .map((p) => p.slug);
+  return Array.from(new Set([...dbSlugs, ...legacySlugs]));
 }
