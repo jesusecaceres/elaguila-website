@@ -21,6 +21,10 @@ import { getFullRun, getLatestCompletedRun, listRunsForBusiness } from "@/app/li
 import { HEALTH_DIMENSION_KEYS } from "@/app/lib/business/healthMap/constants";
 import { CreateRecommendationButton, OverrideForm, RecommendationTransitionButtons } from "./StewardshipActions";
 import { listLedgerForBusiness, listOverridesForRecommendation, listRecommendationsForBusiness, listTestsForRecommendation } from "@/app/lib/business/stewardship/repository";
+import { BriefingReviewPanel, ConsentStatusPanel, RunResearchButton, SourceFilesPanel, SourceLinksPanel } from "./FieldDiscoveryActions";
+import { listConsentForBusiness, listSourceFilesForBusiness, listSourceLinksForBusiness } from "@/app/lib/business/fieldDiscovery/repository";
+import { getDefaultBusinessIntelligenceProvider } from "@/app/lib/business/aiResearch/providerRegistry";
+import { listBriefingDraftsForBusiness, listResearchRunsForBusiness } from "@/app/lib/business/aiResearch/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +136,27 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           canViewLedger ? listLedgerForBusiness(business.id, 50) : Promise.resolve([]),
         ]);
         return { recommendations, current, tests, overrides, ledger };
+      })()
+    : null;
+
+  const canViewFieldDiscovery = actorHasCapability(access.actor, "view_field_discovery");
+  const canRunAiResearch = actorHasCapability(access.actor, "run_ai_research");
+  const canReviewAiBriefing = actorHasCapability(access.actor, "review_ai_briefing");
+  const canPromoteAiBriefing = actorHasCapability(access.actor, "promote_ai_briefing");
+  const fieldDiscoveryData = canViewFieldDiscovery
+    ? await (async () => {
+        const [sourceLinks, sourceFiles, consent, runs, drafts, provider] = await Promise.all([
+          listSourceLinksForBusiness(business.id),
+          listSourceFilesForBusiness(business.id),
+          listConsentForBusiness(business.id),
+          listResearchRunsForBusiness(business.id),
+          listBriefingDraftsForBusiness(business.id),
+          getDefaultBusinessIntelligenceProvider(),
+        ]);
+        const latestRun = runs[0] ?? null;
+        const latestDraft = latestRun ? drafts.find((d) => d.researchRunId === latestRun.id) ?? null : null;
+        const providerAvailable = await provider.isConfigured();
+        return { sourceLinks, sourceFiles, consent, runs, latestDraft, providerAvailable };
       })()
     : null;
 
@@ -611,6 +636,30 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
               </ul>
             </>
           ) : null}
+        </section>
+      ) : null}
+
+      {/* Program 4 — Field Discovery + AI Research Engine */}
+      {fieldDiscoveryData ? (
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h2 className="text-sm font-bold text-[#1E1810]">Field Discovery</h2>
+          <div className="mt-3 space-y-3">
+            <ConsentStatusPanel consent={fieldDiscoveryData.consent} />
+            <SourceLinksPanel sourceLinks={fieldDiscoveryData.sourceLinks} />
+            <SourceFilesPanel sourceFiles={fieldDiscoveryData.sourceFiles} />
+            <RunResearchButton
+              businessId={business.id}
+              canRun={canRunAiResearch}
+              providerAvailable={fieldDiscoveryData.providerAvailable}
+              runs={fieldDiscoveryData.runs}
+            />
+            <BriefingReviewPanel
+              businessId={business.id}
+              draft={fieldDiscoveryData.latestDraft}
+              canReview={canReviewAiBriefing}
+              canPromote={canPromoteAiBriefing}
+            />
+          </div>
         </section>
       ) : null}
     </div>

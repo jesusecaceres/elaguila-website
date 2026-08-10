@@ -64,7 +64,22 @@ export type SalesWorkspaceCapability =
   | "create_recommendation"
   | "approve_recommendation"
   | "override_recommendation"
-  | "view_stewardship_ledger";
+  | "view_stewardship_ledger"
+  // Program 4, Gates 4A-4D — Field Discovery + AI Research Engine capabilities. Kept in this
+  // same matrix rather than a parallel one, matching the Gate BCO-5A/6A/TODAY-2/TODAY-3
+  // precedent. sales_rep may canvass, capture sources/files, and participate in discovery, but
+  // may never run AI research or review/promote an AI briefing draft — those are manager+
+  // actions, matching the "AI drafts never directly become facts without staff review" doctrine
+  // and the existing confirm_business_fact/resolve_contradictions precedent (a sales_rep already
+  // cannot silently confirm a fact or resolve a contradiction; an AI-authored draft item is held
+  // to the same or a stricter standard).
+  | "view_field_discovery"
+  | "conduct_canvassing"
+  | "manage_discovery_sources"
+  | "upload_discovery_files"
+  | "run_ai_research"
+  | "review_ai_briefing"
+  | "promote_ai_briefing";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -98,6 +113,13 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "approve_recommendation",
   "override_recommendation",
   "view_stewardship_ledger",
+  "view_field_discovery",
+  "conduct_canvassing",
+  "manage_discovery_sources",
+  "upload_discovery_files",
+  "run_ai_research",
+  "review_ai_briefing",
+  "promote_ai_briefing",
 ];
 
 /**
@@ -152,6 +174,13 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "approve_recommendation",
     "override_recommendation",
     "view_stewardship_ledger",
+    "view_field_discovery",
+    "conduct_canvassing",
+    "manage_discovery_sources",
+    "upload_discovery_files",
+    "run_ai_research",
+    "review_ai_briefing",
+    "promote_ai_briefing",
   ],
   sales_manager: [
     "view_business_list",
@@ -184,6 +213,13 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "approve_recommendation",
     "override_recommendation",
     "view_stewardship_ledger",
+    "view_field_discovery",
+    "conduct_canvassing",
+    "manage_discovery_sources",
+    "upload_discovery_files",
+    "run_ai_research",
+    "review_ai_briefing",
+    "promote_ai_briefing",
   ],
   sales_rep: [
     "view_business_list",
@@ -202,6 +238,10 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_business_health_map",
     "view_recommendations",
     "view_stewardship_ledger",
+    "view_field_discovery",
+    "conduct_canvassing",
+    "manage_discovery_sources",
+    "upload_discovery_files",
   ],
 };
 
