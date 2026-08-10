@@ -66,6 +66,15 @@ export type DigitalContactCopy = {
   closingCta: string;
   footerTagline: string;
   footerRights: string;
+  /** Build 03 — executive routing context (human language only). */
+  availWithinHours: string;
+  availOutsideHours: string;
+  availAvailable: string;
+  availBusy: string;
+  availAway: string;
+  availAbsentFallback: string;
+  availBackupCta: string;
+  availContactHoursLabel: string;
 };
 
 const ES: DigitalContactCopy = {
@@ -123,6 +132,14 @@ const ES: DigitalContactCopy = {
   closingCta: "Solicitar Consulta",
   footerTagline: "Que Ruja El León — Let The Lion Roar",
   footerRights: "Todos los derechos reservados.",
+  availWithinHours: "Dentro de su horario habitual de contacto.",
+  availOutsideHours: "Fuera de su horario habitual de contacto.",
+  availAvailable: "Disponible para contacto en este momento.",
+  availBusy: "En este momento no está disponible.",
+  availAway: "Está fuera temporalmente.",
+  availAbsentFallback: "No está disponible por ahora.",
+  availBackupCta: "También puedes comunicarte con",
+  availContactHoursLabel: "Horario de contacto",
 };
 
 const EN: DigitalContactCopy = {
@@ -180,6 +197,14 @@ const EN: DigitalContactCopy = {
   closingCta: "Request Consultation",
   footerTagline: "Que Ruja El León — Let The Lion Roar",
   footerRights: "All rights reserved.",
+  availWithinHours: "Within normal contact hours.",
+  availOutsideHours: "Outside normal contact hours.",
+  availAvailable: "Available to connect right now.",
+  availBusy: "Not available at the moment.",
+  availAway: "Temporarily away.",
+  availAbsentFallback: "Not available right now.",
+  availBackupCta: "You can also reach",
+  availContactHoursLabel: "Contact hours",
 };
 
 export function getDigitalContactCopy(lang: DigitalContactLang): DigitalContactCopy {

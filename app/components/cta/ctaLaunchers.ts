@@ -1,34 +1,26 @@
-import { getCleanPhone, normalizeExternalUrl } from "./ctaDataHelpers";
+import { normalizeExternalUrl } from "./ctaDataHelpers";
+import {
+  buildMailtoHref,
+  buildSmsHref,
+  buildTelHref,
+  buildWhatsAppUrl,
+} from "@/app/lib/digitalContact/humanConnection/nativeChannelHrefs";
 
 function trim(s: string | null | undefined): string {
   return String(s ?? "").trim();
 }
 
-function telHrefFromPhone(phone: string): string | null {
-  const raw = trim(phone);
-  if (!raw) return null;
-  if (/^tel:/i.test(raw)) return raw;
-  const digits = getCleanPhone(raw);
-  if (!digits) return null;
-  if (digits.length === 10) return `tel:+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `tel:+${digits}`;
-  return `tel:+${digits}`;
-}
-
 export function openTel(phone: string): void {
   if (typeof window === "undefined") return;
-  const href = telHrefFromPhone(phone);
+  const href = buildTelHref(phone);
   if (!href) return;
   window.location.href = href;
 }
 
 export function openSms(phone: string, body: string): void {
   if (typeof window === "undefined") return;
-  const digits = getCleanPhone(phone);
-  if (digits.length < 8) return;
-  const b = trim(body);
-  const base = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : digits;
-  const href = b ? `sms:${base}?body=${encodeURIComponent(b)}` : `sms:${base}`;
+  const href = buildSmsHref(phone, body);
+  if (!href) return;
   window.location.href = href;
 }
 
@@ -42,29 +34,26 @@ export function openSmsShareComposer(body: string): void {
 
 export function openWhatsApp(phone: string, body: string): void {
   if (typeof window === "undefined") return;
-  const digits = getCleanPhone(phone);
-  if (digits.length < 8) return;
-  const b = trim(body);
-  const url = b
-    ? `https://wa.me/${digits}?text=${encodeURIComponent(b)}`
-    : `https://wa.me/${digits}`;
+  const url = buildWhatsAppUrl(phone, body);
+  if (!url) return;
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export function openMailto(email: string, subject: string, body: string): void {
   if (typeof window === "undefined") return;
-  const em = trim(email);
-  const sub = trim(subject);
-  const bod = trim(body);
-  const q = new URLSearchParams();
-  if (sub) q.set("subject", sub);
-  if (bod) q.set("body", bod);
-  const qs = q.toString();
-  if (em) {
-    window.location.href = qs ? `mailto:${em}?${qs}` : `mailto:${em}`;
-  } else {
+  const href = buildMailtoHref(email, subject, body);
+  if (!href) {
+    // Composer-only fallback when no approved recipient (share flows).
+    const sub = trim(subject);
+    const bod = trim(body);
+    const q = new URLSearchParams();
+    if (sub) q.set("subject", sub);
+    if (bod) q.set("body", bod);
+    const qs = q.toString();
     window.location.href = qs ? `mailto:?${qs}` : "mailto:";
+    return;
   }
+  window.location.href = href;
 }
 
 export function openExternalUrl(url: string): void {

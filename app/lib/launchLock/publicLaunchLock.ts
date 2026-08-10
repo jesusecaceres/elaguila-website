@@ -20,6 +20,8 @@ const ALLOWED_PUBLIC_PREFIXES = [
   "/coming-soon-v2",
   "/contacto",
   "/contact",
+  /** Physical office window QR → Virtual Front Desk reception experience. */
+  "/visitanos",
   "/newsletter",
   "/media-kit",
   "/magazine/2026/june/read",

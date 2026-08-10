@@ -12,6 +12,11 @@ type Props = {
   profile: DigitalContactProfile;
   copy: DigitalContactCopy;
   onOpenEmail: () => void;
+  /**
+   * When true (Build 07 + router mode), omit Call/SMS/WhatsApp/Email so the
+   * Human Connection Router remains the single contact CTA surface.
+   */
+  omitContactLaunchers?: boolean;
 };
 
 type ActionDef = {
@@ -39,7 +44,12 @@ const ICON_PATHS = {
   copy: "M9 9h9v9H9V9Zm-3 3H4V4h8v2",
 } as const;
 
-export function DigitalContactQuickActions({ profile, copy, onOpenEmail }: Props) {
+export function DigitalContactQuickActions({
+  profile,
+  copy,
+  onOpenEmail,
+  omitContactLaunchers = false,
+}: Props) {
   const [toast, setToast] = useState<string | null>(null);
 
   const flash = useCallback((msg: string) => {
@@ -50,43 +60,48 @@ export function DigitalContactQuickActions({ profile, copy, onOpenEmail }: Props
   const formattedPhone = getFormattedPhone(profile.phoneDisplay || profile.phoneDigits);
   const whatsappDigits = profile.whatsappDigits || profile.phoneDigits;
 
-  const actions: ActionDef[] = [
-    {
-      id: "call",
-      label: copy.actionCall,
-      icon: <ActionIcon path={ICON_PATHS.call} />,
-      onPress: () => {
-        trackDigitalContactEvent(profile.slug, "cta_call");
-        openTel(profile.phoneDigits);
-      },
-    },
-    {
-      id: "text",
-      label: copy.actionText,
-      icon: <ActionIcon path={ICON_PATHS.text} />,
-      onPress: () => {
-        trackDigitalContactEvent(profile.slug, "cta_text");
-        openSms(profile.phoneDigits, "");
-      },
-    },
-    {
-      id: "whatsapp",
-      label: copy.actionWhatsapp,
-      icon: <ActionIcon path={ICON_PATHS.whatsapp} />,
-      onPress: () => {
-        trackDigitalContactEvent(profile.slug, "cta_whatsapp");
-        openWhatsApp(whatsappDigits, "");
-      },
-    },
-    {
-      id: "email",
-      label: copy.actionEmail,
-      icon: <ActionIcon path={ICON_PATHS.email} />,
-      onPress: () => {
-        trackDigitalContactEvent(profile.slug, "cta_email");
-        onOpenEmail();
-      },
-    },
+  const contactActions: ActionDef[] = omitContactLaunchers
+    ? []
+    : [
+        {
+          id: "call",
+          label: copy.actionCall,
+          icon: <ActionIcon path={ICON_PATHS.call} />,
+          onPress: () => {
+            trackDigitalContactEvent(profile.slug, "cta_call");
+            openTel(profile.phoneDigits);
+          },
+        },
+        {
+          id: "text",
+          label: copy.actionText,
+          icon: <ActionIcon path={ICON_PATHS.text} />,
+          onPress: () => {
+            trackDigitalContactEvent(profile.slug, "cta_text");
+            openSms(profile.phoneDigits, "");
+          },
+        },
+        {
+          id: "whatsapp",
+          label: copy.actionWhatsapp,
+          icon: <ActionIcon path={ICON_PATHS.whatsapp} />,
+          onPress: () => {
+            trackDigitalContactEvent(profile.slug, "cta_whatsapp");
+            openWhatsApp(whatsappDigits, "");
+          },
+        },
+        {
+          id: "email",
+          label: copy.actionEmail,
+          icon: <ActionIcon path={ICON_PATHS.email} />,
+          onPress: () => {
+            trackDigitalContactEvent(profile.slug, "cta_email");
+            onOpenEmail();
+          },
+        },
+      ];
+
+  const utilityActions: ActionDef[] = [
     {
       id: "directions",
       label: copy.actionDirections,
@@ -134,6 +149,8 @@ export function DigitalContactQuickActions({ profile, copy, onOpenEmail }: Props
       },
     },
   ];
+
+  const actions: ActionDef[] = [...contactActions, ...utilityActions];
 
   return (
     <section aria-labelledby="dc-quick-actions-title" className="mx-auto w-full max-w-2xl px-5 pt-10 sm:px-6 sm:pt-12">

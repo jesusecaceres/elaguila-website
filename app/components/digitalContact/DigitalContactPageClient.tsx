@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getDigitalContactCopy } from "@/app/lib/digitalContact/digitalContactCopy";
 import { sanitizeDigitalContactFileNameBase } from "@/app/lib/digitalContact/digitalContactFileName";
 import { digitalContactCanonicalUrl } from "@/app/lib/digitalContact/digitalContactSeo";
 import { executiveThemeCssVars, resolveExecutiveTheme } from "@/app/lib/digitalContact/digitalContactExecutiveTheme";
 import type { DigitalContactLang, DigitalContactProfile } from "@/app/lib/digitalContact/digitalContactTypes";
 import { trackDigitalContactEvent } from "@/app/lib/digitalContact/digitalContactAnalyticsClient";
+import { resolveHumanConnectionChannels } from "@/app/lib/digitalContact/humanConnection/resolveHumanConnectionChannels";
+import { getConnectionChannelCopy } from "@/app/lib/digitalContact/humanConnection/connectionChannelCopy";
 
 import { DigitalContactHero } from "./DigitalContactHero";
 import { DigitalContactExecutiveCard } from "./DigitalContactExecutiveCard";
+import { DigitalContactAvailabilityNote } from "./DigitalContactAvailabilityNote";
 import { DigitalContactQuickActions } from "./DigitalContactQuickActions";
+import { HumanConnectionPanel } from "./humanConnection/HumanConnectionPanel";
+import { HumanConnectionChannelActions } from "./humanConnection/HumanConnectionChannelActions";
 import { DigitalContactSaveButton } from "./DigitalContactSaveButton";
 import { DigitalContactQrCode } from "./DigitalContactQrCode";
 import { DigitalContactShowcase } from "./DigitalContactShowcase";
@@ -32,15 +37,44 @@ function qrFileNameFor(profile: DigitalContactProfile): string {
 export function DigitalContactPageClient({ profile, initialLang }: Props) {
   const [lang, setLang] = useState<DigitalContactLang>(initialLang);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [browserVideoOffer, setBrowserVideoOffer] = useState(false);
+  const [scheduleOffer, setScheduleOffer] = useState(false);
+  const [openIntent, setOpenIntent] = useState<"video" | "schedule" | null>(null);
   const copy = getDigitalContactCopy(lang);
+  const channelCopy = getConnectionChannelCopy(lang);
   const canonicalUrl = digitalContactCanonicalUrl(profile.slug);
   const executiveTheme = resolveExecutiveTheme(profile.theme);
   const themeVars = executiveThemeCssVars(executiveTheme);
+
+  const route = useMemo(
+    () =>
+      resolveHumanConnectionChannels({
+        profile,
+        surface: "digital_contact",
+        managed: {
+          browserVideo: browserVideoOffer,
+          googleMeet: false,
+          scheduleRequest: scheduleOffer,
+        },
+      }),
+    [profile, browserVideoOffer, scheduleOffer],
+  );
 
   useEffect(() => {
     trackDigitalContactEvent(profile.slug, "page_view", { lang });
     // Track once per mount — lang toggles are a UI preference, not a new page view.
   }, [profile.slug]);
+
+  useEffect(() => {
+    for (const ch of route.channels) {
+      trackDigitalContactEvent(profile.slug, "connection_channel_view", {
+        surface: "digital_contact",
+        lang,
+        channel: ch.type,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile.slug, route.channels.map((c) => c.type).join(","), lang]);
 
   return (
     <div className="min-h-screen bg-[var(--dc-gradient-end)]" style={themeVars}>
@@ -68,12 +102,6 @@ export function DigitalContactPageClient({ profile, initialLang }: Props) {
         </div>
       </div>
 
-      {/*
-       * Gate 2 — one continuous gradient spans the hero AND the executive card, so the
-       * brand-to-cream fade only completes after the card (no hard stop mid-page).
-       * `color-mix` derives the transitional tones from the theme's own colors, so this
-       * stays banding-free and elegant for any future Executive Theme, not just Leonix.
-       */}
       <div
         className="relative overflow-hidden"
         style={{
@@ -89,7 +117,44 @@ export function DigitalContactPageClient({ profile, initialLang }: Props) {
         <DigitalContactExecutiveCard profile={profile} copy={copy} onOpenEmail={() => setEmailModalOpen(true)} />
       </div>
       <main>
-        <DigitalContactQuickActions profile={profile} copy={copy} onOpenEmail={() => setEmailModalOpen(true)} />
+        <DigitalContactAvailabilityNote profile={profile} lang={lang} copy={copy} />
+        <section className="mx-auto w-full max-w-2xl px-5 pt-8 sm:px-6" aria-labelledby="dc-connect-way">
+          <h2 id="dc-connect-way" className="text-center font-serif text-xl font-bold text-[#1F241C] sm:text-2xl">
+            {channelCopy.connectYourWay}
+          </h2>
+          <p className="mx-auto mt-1.5 max-w-md text-center text-sm text-[#3D3428]">{channelCopy.connectYourWayBody}</p>
+          <div className="mt-5">
+            <HumanConnectionChannelActions
+              channels={route.channels}
+              profileSlug={profile.slug}
+              lang={lang}
+              surface="digital_contact"
+              onManagedBrowserVideo={() => setOpenIntent("video")}
+              onScheduleRequest={() => setOpenIntent("schedule")}
+            />
+          </div>
+          <HumanConnectionPanel
+            profile={profile}
+            lang={lang}
+            surface="digital_contact"
+            variant="inline"
+            enableSchedule={scheduleOffer}
+            entryMode="router"
+            openIntent={openIntent}
+            onOpenIntentConsumed={() => setOpenIntent(null)}
+            onOfferResolved={(o) => {
+              setBrowserVideoOffer(o.offerVideo);
+              setScheduleOffer(o.offerSchedule);
+            }}
+          />
+        </section>
+        {/* Router already owns Call/SMS/WhatsApp/Email — keep only non-duplicated utilities. */}
+        <DigitalContactQuickActions
+          profile={profile}
+          copy={copy}
+          onOpenEmail={() => setEmailModalOpen(true)}
+          omitContactLaunchers
+        />
         <DigitalContactSaveButton profile={profile} copy={copy} />
         <DigitalContactQrCode profileSlug={profile.slug} value={canonicalUrl} fileName={qrFileNameFor(profile)} copy={copy} />
         <DigitalContactShowcase profileSlug={profile.slug} lang={lang} copy={copy} />
