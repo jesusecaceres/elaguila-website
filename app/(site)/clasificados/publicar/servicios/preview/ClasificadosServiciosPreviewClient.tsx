@@ -52,7 +52,6 @@ import {
 import { SERVICIOS_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   SERVICIOS_CHECKPOINT_CONFIRMATIONS,
-  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
@@ -452,11 +451,11 @@ export function ClasificadosServiciosPreviewClient() {
   const showFinalCheckout =
     !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
 
+  // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+  // package. The toggle stays as content/setup intent only — never a checkout line item.
   const checkoutSubtotalCents = useMemo(() => {
-    const baseCents = getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
-    const offersCents = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
-    return baseCents + (offersAddonSelected ? offersCents : 0);
-  }, [offersAddonSelected]);
+    return getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
+  }, []);
 
   const checkpointConfig = useMemo((): PublishCheckpointConfig => {
     return {
@@ -550,9 +549,6 @@ export function ClasificadosServiciosPreviewClient() {
           promoCode: ctx.promoCode,
           recurringConsent: ctx.recurringConsent ?? null,
           requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
-          ...(offersAddonSelected
-            ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
-            : {}),
         });
 
         if (!checkout.ok) {

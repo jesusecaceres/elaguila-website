@@ -9,10 +9,8 @@ import {
   RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
   validateRevenueCheckoutAddOns,
   validateRevenueCheckoutRequest,
-  validateRestauranteAddonOnlyListingOwnership,
   validateAutosDealerInventoryAddonOwnership,
   validateBienesInventoryAddonOwnership,
-  validateServiciosOffersAddonOwnership,
   type RevenueCheckoutRequest,
 } from "@/app/lib/listingPlans/revenueCheckout";
 import {
@@ -111,17 +109,21 @@ export async function POST(request: NextRequest) {
   const isServiciosOffersAddonOnlyEarly =
     categoryEarly === "servicios" && packageKeyEarly === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
 
-  if (isRestauranteAddonOnlyEarly) {
-    const ownerGate = await validateRestauranteAddonOnlyListingOwnership({
-      listingId: String(body.listingId ?? "").trim(),
-      bearerUserId,
-    });
-    if (!ownerGate.ok) {
-      return NextResponse.json(
-        { ok: false, code: ownerGate.code, message: ownerGate.message },
-        { status: ownerGate.status },
-      );
-    }
+  // Package C Build 3 (C5/C6) — cheap, no-DB-call defense-in-depth: the retired restaurantes/
+  // servicios offers add-ons can no longer be purchased standalone. The central guard
+  // (validateRevenueCheckoutRequest's stripeEligible check, which every path eventually reaches)
+  // already rejects these packageKeys too — this early check exists only to return a specific,
+  // honest error before any ownership DB round-trip is wasted on an unsellable package.
+  if (isRestauranteAddonOnlyEarly || isServiciosOffersAddonOnlyEarly) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "addon_retired_included_in_base",
+        message:
+          "This add-on is no longer sold separately — coupons/offers are included with the active $399 base package.",
+      },
+      { status: 410 },
+    );
   }
 
   if (isAutosDealerInventoryAddonEarly) {
@@ -174,19 +176,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, code: guard.code, message: guard.message },
         { status: 409 },
-      );
-    }
-  }
-
-  if (isServiciosOffersAddonOnlyEarly) {
-    const ownerGate = await validateServiciosOffersAddonOwnership({
-      listingId: String(body.listingId ?? "").trim(),
-      bearerUserId,
-    });
-    if (!ownerGate.ok) {
-      return NextResponse.json(
-        { ok: false, code: ownerGate.code, message: ownerGate.message },
-        { status: ownerGate.status },
       );
     }
   }

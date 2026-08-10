@@ -21,6 +21,7 @@ import {
   type PackageEntitlementTier,
 } from "@/app/lib/listingPlans/packageEntitlements";
 import { resolveMagazinePlacementPriority } from "@/app/lib/listingPlans/magazinePlacementPriority";
+import { CATEGORY_BASE_PACKAGE_KEY } from "@/app/lib/listingPlans/categoryCommercialPlanPolicy";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
 const ALLOWED_TIERS = new Set([
@@ -241,6 +242,13 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   const isPrintTier = tier !== "digital_only";
   const grantSource = isPrintTier ? "print_included" : "admin_manual";
 
+  // Package C Build 3 (C5/C6) — narrow, additive: print-tier grants in restaurantes/servicios
+  // also stamp the real Revenue OS base package_key, so this NEW grant resolves capability via
+  // the exact package_key match (resolveCategoryListingPlan) rather than needing the historical
+  // print-included compatibility fallback. Every other category/tier combination is unaffected;
+  // historical rows are never rewritten.
+  const packageKeyForGrant = isPrintTier ? CATEGORY_BASE_PACKAGE_KEY[category] ?? null : null;
+
   const { data, error } = await supabase
     .from("listing_package_entitlements")
     .insert({
@@ -259,6 +267,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
       placement_scope: scopes,
       benefits: def.benefits,
       grant_source: grantSource,
+      package_key: packageKeyForGrant,
       metadata,
       updated_at: now.toISOString(),
     })

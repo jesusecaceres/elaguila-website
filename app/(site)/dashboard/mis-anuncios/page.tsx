@@ -84,6 +84,7 @@ import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
+  dashboardHasCapabilityForKey,
   dashboardRevenueAdPlanBadgeForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
@@ -121,7 +122,7 @@ import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-loc
 import { mapComidaLocalRowToDashboardVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
-import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import { startRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
@@ -401,10 +402,15 @@ function MyListingsPageContent() {
   const restaurantAddonStatusByListingId = useMemo(() => {
     if (restaurantRawRows.length === 0) return undefined;
     return new Map(
-      restaurantRawRows.map((row) => [
-        row.id,
-        dashboardAddonStatusForKey(entitlementBadges, [row.id, row.slug ?? "", row.leonix_ad_id ?? ""]),
-      ]),
+      restaurantRawRows.map((row) => {
+        const keys = [row.id, row.slug ?? "", row.leonix_ad_id ?? ""];
+        const addonStatus = dashboardAddonStatusForKey(entitlementBadges, keys);
+        // Package C Build 3 (C5/C6) — coupons are included in the $399/mo base package; a
+        // listing with no separate addon entitlement row can still have a real, server-verified
+        // active module via resolveBusinessToolsAccess. Never downgrade a real "active" status.
+        const hasCouponsCapability = dashboardHasCapabilityForKey(entitlementBadges, keys, "coupons_offers");
+        return [row.id, addonStatus === "not_purchased" && hasCouponsCapability ? "active" : addonStatus] as const;
+      }),
     );
   }, [restaurantRawRows, entitlementBadges]);
 
@@ -894,27 +900,41 @@ function MyListingsPageContent() {
     setBusyId(null);
   }
 
+  // Package C Build 3 (C5/C6) — repurposed: coupons are included in the $399/mo base package, so
+  // this enables the module via a server-verified capability check (no Stripe checkout) and then
+  // opens the coupon editor directly, matching the already-enabled edit flow below.
   async function startRestauranteCouponAddonCheckout(item: DashboardInventoryItem) {
     setCouponCheckoutBusyId(item.id);
     setError(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const result = await redirectRestauranteDashboardCouponAddonCheckout({
+      const enableResult = await startRestauranteDashboardCouponAddonCheckout({
         listingId: item.id,
         leonixAdId: item.leonixAdId,
         lang,
-        customerEmail: auth.user?.email ?? null,
       });
-      if (!result.ok) {
-        setError(result.userMessage);
+      if (!enableResult.ok) {
+        setError(enableResult.userMessage);
         setCouponCheckoutBusyId(null);
+        return;
       }
+      const editResult = await hydrateRestauranteListingForCouponEdit({ listingId: item.id, lang });
+      if (!editResult.ok) {
+        setError(editResult.userMessage);
+        setCouponCheckoutBusyId(null);
+        return;
+      }
+      router.push(
+        restauranteCouponEditHref({
+          lang,
+          listingId: item.id,
+          leonixAdId: item.leonixAdId,
+        }),
+      );
     } catch {
       setError(
         lang === "es"
-          ? "No pudimos iniciar el pago del módulo de cupones. Intenta de nuevo."
-          : "We could not start coupon module checkout. Please try again.",
+          ? "No pudimos activar el módulo de cupones. Intenta de nuevo."
+          : "We could not enable the coupon module. Please try again.",
       );
       setCouponCheckoutBusyId(null);
     }

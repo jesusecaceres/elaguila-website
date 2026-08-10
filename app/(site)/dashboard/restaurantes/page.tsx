@@ -35,6 +35,7 @@ import {
 import {
   dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
+  dashboardHasCapabilityForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
@@ -449,6 +450,17 @@ function DashboardRestaurantesPageContent() {
                   r.slug ?? "",
                   r.leonix_ad_id ?? "",
                 ]);
+                // Package C Build 3 (C5/C6) — coupons are now included in the $399/mo base
+                // package, so a listing with no separate addon entitlement row can still have a
+                // real, server-verified active module via resolveBusinessToolsAccess. Never
+                // downgrade a real "active" addonStatus; only upgrade "not_purchased".
+                const hasCouponsCapability = dashboardHasCapabilityForKey(
+                  entitlementBadges,
+                  [r.id, r.slug ?? "", r.leonix_ad_id ?? ""],
+                  "coupons_offers",
+                );
+                const couponEntitlementStatus =
+                  addonStatus === "not_purchased" && hasCouponsCapability ? "active" : addonStatus;
                 // Gate G.3.2 — real global status/attention pilot, read-only. Every row here is
                 // already scoped to this authenticated owner by the fetch's own
                 // `.eq("owner_user_id", user.id)` filter, so `ownerVerified` is always true.
@@ -457,7 +469,7 @@ function DashboardRestaurantesPageContent() {
                     canonicalListingId: r.id,
                     ownerVerified: true,
                     rawStatus: r.status,
-                    couponEntitlementStatus: addonStatus,
+                    couponEntitlementStatus,
                     now: new Date(),
                   });
                   return {
@@ -483,11 +495,11 @@ function DashboardRestaurantesPageContent() {
                   : null;
                 const couponUpgradeEligible = restaurantCouponAddonUpgradeEligibleFromLifecycle({
                   status: r.status,
-                  addonStatus,
+                  addonStatus: couponEntitlementStatus,
                 });
                 const couponEditEligible = restaurantCouponEditEligibleFromLifecycle({
                   status: r.status,
-                  addonStatus,
+                  addonStatus: couponEntitlementStatus,
                 });
                 const cardActions: Array<{
                   href?: string;

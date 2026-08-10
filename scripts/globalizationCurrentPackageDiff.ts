@@ -332,6 +332,27 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "app/(site)/negocios-locales/page.tsx",
   "app/(site)/clasificados/publicar/_components/PublishEntryCheckpoint.tsx",
   "app/(site)/clasificados/publicar/_lib/publishCheckpointCopy.ts",
+
+  // ═══ PACKAGE C BUILD 3 (C5+C6) — COMMERCIAL GRANTS + PACKAGE CATALOG + BUSINESS TOOLS +
+  // RESTAURANTES/SERVICIOS COUPONS-INCLUDED CONVERSION ═══
+  // New resolvers (pure/impure split) + comp/partner grant primitive:
+  "app/lib/listingPlans/categoryCommercialPlanPolicy.ts",
+  "app/lib/listingPlans/categoryCommercialPlan.ts",
+  "app/lib/listingPlans/complimentaryGrants.ts",
+  // Retired-add-on checkout closure (allowlist removal) — file already listed above for C4,
+  // touched again here for the coupons-included conversion:
+  "app/lib/listingPlans/revenueCheckout.ts",
+  // Dashboard capability-enable route (replaces the retired $79 dashboard checkout) + its client:
+  "app/api/dashboard/enable-included-capability/route.ts",
+  "app/lib/listingPlans/enableIncludedCapabilityClient.ts",
+  // Dashboard readers consuming the new capability field:
+  "app/(site)/dashboard/lib/dashboardPackageEntitlementBadges.ts",
+  "app/(site)/dashboard/restaurantes/page.tsx",
+  "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
+  // New proof + closure artifacts:
+  "scripts/gate-pkgC-c5-c6-selftest.ts",
+  "scripts/verify-package-c-c5-c6-commercial-grants-and-plan.mjs",
+  "docs/globalization/package-c/C5_C6_COMMERCIAL_GRANTS_AND_PACKAGE_CATALOG_CLOSURE.md",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

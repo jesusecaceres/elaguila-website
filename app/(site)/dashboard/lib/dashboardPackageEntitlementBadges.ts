@@ -12,6 +12,9 @@ export type DashboardEntitlementBadgePayload = {
   revenuePackageKey?: string | null;
   /** Additive — present only when the lookup item included a `packageKey`. */
   addonStatus?: AddonLifecycleStatus;
+  /** Package C Build 3 (C5/C6) — additive, present only for capability-model categories
+   * (restaurantes/servicios). Resolved server-side; never trust a client-computed value instead. */
+  capabilities?: string[];
 };
 
 export type DashboardEntitlementLookupItem = {
@@ -74,6 +77,21 @@ export function dashboardAddonStatusForKey(
     if (badge?.addonStatus) return badge.addonStatus;
   }
   return "not_purchased";
+}
+
+/** Package C Build 3 (C5/C6) — fails closed to false when no matching key resolved the
+ * capability. Never infers capability from placement/tier/addonStatus. */
+export function dashboardHasCapabilityForKey(
+  badges: Record<string, DashboardEntitlementBadgePayload>,
+  keys: string[],
+  capability: string,
+): boolean {
+  for (const k of keys) {
+    const t = k.trim();
+    const badge = t ? badges[t] : null;
+    if (badge?.capabilities?.includes(capability)) return true;
+  }
+  return false;
 }
 
 export function dashboardRevenueAdPlanBadgeForKey(

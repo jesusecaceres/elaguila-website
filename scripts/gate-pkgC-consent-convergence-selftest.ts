@@ -78,15 +78,27 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
   ]) {
     assert.ok(read(p).includes("recurringConsent"), `${p} forwards recurring consent`);
   }
-  // Dashboard add-on quick-buttons collect interactive consent before checkout.
+  // Dashboard add-on quick-buttons that still start a real recurring Stripe checkout collect
+  // interactive consent before checkout.
   for (const p of [
-    "app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts",
-    "app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout.ts",
     "app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout.ts",
     "app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout.ts",
     "app/lib/clasificados/autos/autosDealerInventoryBoostCheckoutClient.ts",
   ]) {
     assert.ok(read(p).includes("confirmRecurringConsentInteractively"), `${p} requires interactive consent`);
+  }
+  // Package C Build 3 (C5/C6) — owner-locked: Restaurantes/Servicios coupons are included in the
+  // $399/mo base package. These two dashboard "quick-buttons" no longer start a Stripe checkout
+  // at all (repurposed into a server-verified capability check), so there is no NEW recurring
+  // charge to collect consent for — the customer already consented when they bought the base
+  // package. Interactive consent must be ABSENT here, not present.
+  for (const p of [
+    "app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts",
+    "app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout.ts",
+  ]) {
+    const src = read(p);
+    assert.ok(!src.includes("confirmRecurringConsentInteractively"), `${p} no longer starts checkout — must not collect recurring consent for a non-existent new charge`);
+    assert.ok(src.includes("enableIncludedCommercialCapability"), `${p} enables via the capability-check client instead of checkout`);
   }
 }
 

@@ -31,7 +31,6 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
-  RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
@@ -133,13 +132,13 @@ export default function RestaurantePreviewClient() {
     });
   }, [readiness, normalizedDraft, minOk, normalizedDraft.couponUpgradeEnabled]);
 
+  // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+  // package. The toggle stays as content/setup intent (seeds the coupon editor after publish)
+  // but never adds a checkout line item, never adds Stripe cost, and is never sent as an addOn.
   const couponUpgradeSelected = Boolean(normalizedDraft.couponUpgradeEnabled);
   const restaurantBaseCents =
     getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
-  const restaurantCouponAddonCents =
-    getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
-  const checkoutSubtotalCents =
-    restaurantBaseCents + (couponUpgradeSelected ? restaurantCouponAddonCents : 0);
+  const checkoutSubtotalCents = restaurantBaseCents;
 
   const handlePromoApply = useCallback(
     async (code: string) => {
@@ -225,9 +224,6 @@ export default function RestaurantePreviewClient() {
           promoCode: ctx.promoCode,
           recurringConsent: ctx.recurringConsent ?? null,
           requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
-          ...(couponUpgradeSelected
-            ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
-            : {}),
         });
 
         if (!checkout.ok) {

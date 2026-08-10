@@ -287,10 +287,14 @@ export function PublishCheckoutCheckpoint({
                   className={`shrink-0 font-semibold tabular-nums ${addon.selected ? "" : "opacity-60"}`}
                   style={{ color: LEONIX_CHARCOAL }}
                 >
-                  {formatPublishCheckpointMoney(addon.priceCents, lang, {
-                    isAddOn: true,
-                    monthly: true,
-                  })}
+                  {addon.selected && addon.priceCents === 0
+                    ? lang === "es"
+                      ? "Incluido"
+                      : "Included"
+                    : formatPublishCheckpointMoney(addon.priceCents, lang, {
+                        isAddOn: true,
+                        monthly: true,
+                      })}
                 </span>
               </li>
             ))}

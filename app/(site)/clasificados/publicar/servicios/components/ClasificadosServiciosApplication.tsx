@@ -51,11 +51,12 @@ import {
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
-  redirectServiciosDashboardOffersAddonCheckout,
+  startServiciosDashboardOffersAddonCheckout,
   serviciosListingPreviewHref,
   serviciosOffersAddonUpgradeLabel,
   serviciosOffersAddonUpgradeBusyLabel,
   serviciosOffersModuleHeading,
+  serviciosOffersEditHref,
 } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import {
   getServiciosApplicationStepLabels,
@@ -321,28 +322,36 @@ export function ClasificadosServiciosApplication() {
     setDashboardAddonCheckoutBusy(true);
     setDashboardContextErr(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const result = await redirectServiciosDashboardOffersAddonCheckout({
+      // Package C Build 3 (C5/C6) — repurposed: coupons/offers are included in the $399/mo base
+      // package, so this only verifies real capability server-side (no Stripe checkout) and then
+      // moves to the offers-edit mode for the same listing to reveal the editor.
+      const result = await startServiciosDashboardOffersAddonCheckout({
         listingId: editListingId,
         leonixAdId: editLeonixAdId || null,
         lang,
-        customerEmail: auth.user?.email ?? null,
-        returnPath: dashboardReturnHref,
       });
       if (!result.ok) {
         setDashboardContextErr(result.userMessage);
         setDashboardAddonCheckoutBusy(false);
+        return;
       }
+      router.replace(
+        serviciosOffersEditHref({
+          lang,
+          listingId: editListingId,
+          listingSlug: editListingSlug || null,
+          leonixAdId: editLeonixAdId || null,
+        }),
+      );
     } catch {
       setDashboardContextErr(
         lang === "en"
-          ? "We could not start offers module checkout."
-          : "No pudimos iniciar el pago del módulo de ofertas.",
+          ? "We could not enable the offers module."
+          : "No pudimos activar el módulo de ofertas.",
       );
       setDashboardAddonCheckoutBusy(false);
     }
-  }, [editListingId, editLeonixAdId, lang, dashboardReturnHref]);
+  }, [editListingId, editLeonixAdId, editListingSlug, lang, router]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
