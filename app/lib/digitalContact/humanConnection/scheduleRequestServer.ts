@@ -13,6 +13,7 @@ import {
   HUMAN_CONNECTION_SCHEDULE_RATE_WINDOW_MS,
 } from "./constants";
 import { checkHumanConnectionRateLimit } from "./rateLimit";
+import { isHumanConnectionScheduleEnabled } from "./videoKillSwitch";
 import type { ScheduleContactMethod, ScheduleRequestInput, HumanConnectionSurface } from "./humanConnectionTypes";
 
 function isEmail(s: string): boolean {
@@ -92,6 +93,10 @@ export async function submitHumanConnectionScheduleRequest(
 
   const profile = getDigitalContactProfile(slug);
   if (!profile) return { ok: false, error: "profile_not_found" };
+
+  if (!isHumanConnectionScheduleEnabled()) {
+    return { ok: false, error: "schedule_disabled" };
+  }
 
   const rate = checkHumanConnectionRateLimit({
     key: `schedule:${input.clientKey}:${slug}`,

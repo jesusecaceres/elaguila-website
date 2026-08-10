@@ -79,11 +79,21 @@ Required for: managed video host notify + schedule request email.
 
 **Not** required for visitor `mailto:` / tel / SMS / WhatsApp.
 
-## SCHEDULE POLICY (Build 07)
+## SCHEDULE POLICY (Build 07–08)
 
-If Resend is missing: Schedule channel is **hidden**. Visitor uses Call/WhatsApp/SMS/Email or `/contacto`.
+Native V1 default: Schedule is **hidden**.
 
-API returns `notification_unavailable` if neither email notify nor DB store succeeded — never fake success.
+Requires all of:
+
+1. Executive/capability allows scheduling
+2. `RESEND_API_KEY` configured
+3. Explicit `HUMAN_CONNECTION_SCHEDULE_ENABLED=true`
+
+Resend alone (used elsewhere at Leonix) does **not** activate Schedule.
+
+API returns `schedule_disabled` / `notification_unavailable` when not production-ready — never fake success.
+
+Visitor follow-up without Schedule: Call / WhatsApp / SMS / Email / `/contacto`.
 
 ## VIDEO KILL SWITCH
 

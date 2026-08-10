@@ -7,6 +7,7 @@ import { getHumanConnectionVideoProvider } from "./providers/getVideoProvider";
 import { resolveVideoEligibility } from "./resolveVideoEligibility";
 import {
   isHumanConnectionNotificationReady,
+  isHumanConnectionScheduleEnabled,
   isHumanConnectionVideoEnabled,
 } from "./videoKillSwitch";
 import type { HumanConnectionPublicOffer, HumanConnectionSurface } from "./humanConnectionTypes";
@@ -78,10 +79,14 @@ export async function resolveHumanConnectionPublicOffer(
     input.forceOfferSchedule === true || input.surface === "virtual_front_desk";
   const scheduleCapability = forceSchedule || eligibility.allowScheduling === true;
   /**
-   * Build 07 — Schedule CTA only when a real notify path exists (Resend).
-   * Capability alone must not expose a form that reports fake success.
+   * Build 07/08 — Schedule CTA only when:
+   * 1) capability allows it, AND
+   * 2) notify path exists (Resend), AND
+   * 3) explicit HUMAN_CONNECTION_SCHEDULE_ENABLED (Native V1 default: off).
+   * Resend for other Leonix mail must not silently activate Schedule.
    */
-  const offerSchedule = scheduleCapability && notificationReady;
+  const offerSchedule =
+    scheduleCapability && notificationReady && isHumanConnectionScheduleEnabled();
 
   return {
     slug: profile.slug,

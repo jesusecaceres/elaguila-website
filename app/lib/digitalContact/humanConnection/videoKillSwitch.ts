@@ -23,3 +23,15 @@ export function isHumanConnectionVideoEnabled(): boolean {
 export function isHumanConnectionNotificationReady(): boolean {
   return Boolean(String(process.env.RESEND_API_KEY ?? "").trim());
 }
+
+/**
+ * Build 08 Native V1 — schedule/follow-up REQUEST is opt-in, not automatic.
+ * Resend may exist for other Leonix mail; that alone must NOT expose Schedule.
+ * Set HUMAN_CONNECTION_SCHEDULE_ENABLED=true only when intentionally activating.
+ */
+export function isHumanConnectionScheduleEnabled(): boolean {
+  const raw = String(process.env.HUMAN_CONNECTION_SCHEDULE_ENABLED ?? "")
+    .trim()
+    .toLowerCase();
+  return raw === "true" || raw === "1" || raw === "on" || raw === "yes";
+}

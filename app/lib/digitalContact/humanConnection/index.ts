@@ -7,6 +7,7 @@ export {
   isHumanConnectionVideoEnabled,
   isHumanConnectionNotificationReady,
 } from "./videoKillSwitch";
+export { isHumanConnectionScheduleEnabled } from "./videoKillSwitch";
 export { resolveHumanConnectionChannels } from "./resolveHumanConnectionChannels";
 export type { ResolveHumanConnectionChannelsInput, ManagedSessionOffers } from "./resolveHumanConnectionChannels";
 export * from "./channelTypes";
