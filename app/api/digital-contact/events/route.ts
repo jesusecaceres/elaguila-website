@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   const eventType = String(b.eventType ?? "").trim();
   const meta = typeof b.meta === "object" && b.meta !== null ? (b.meta as Record<string, unknown>) : {};
 
-  if (!getDigitalContactProfile(profileSlug)) {
+  if (!(await getDigitalContactProfile(profileSlug))) {
     return NextResponse.json({ ok: false, error: "profile_not_found" }, { status: 404 });
   }
   if (!ALLOWED_EVENT_TYPES.has(eventType)) {

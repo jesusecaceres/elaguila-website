@@ -12,13 +12,14 @@ type PageProps = {
 };
 
 /** Executive contact cards are lightweight and slug-driven — static generation keeps them instant. */
-export function generateStaticParams(): { slug: string }[] {
-  return listDigitalContactSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  const slugs = await listDigitalContactSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
-  const profile = getDigitalContactProfile(slug);
+  const profile = await getDigitalContactProfile(slug);
   if (!profile) {
     return { title: "Contact · Leonix Media", robots: { index: false, follow: false } };
   }
@@ -33,7 +34,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 export default async function DigitalContactPage(props: PageProps) {
   const { slug } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
-  const profile = getDigitalContactProfile(slug);
+  const profile = await getDigitalContactProfile(slug);
   if (!profile) notFound();
 
   const lang = resolveDigitalContactLang(sp);

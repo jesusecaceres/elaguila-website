@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, accepted: false }, { status: 200 });
   }
 
-  const profile = getDigitalContactProfile(profileSlug);
+  const profile = await getDigitalContactProfile(profileSlug);
   if (!profile) {
     return NextResponse.json({ ok: false, error: "profile_not_found" }, { status: 404 });
   }
