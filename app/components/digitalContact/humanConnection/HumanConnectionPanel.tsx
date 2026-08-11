@@ -98,6 +98,8 @@ export function HumanConnectionPanel({
   const [scheduleStatus, setScheduleStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [contactMethod, setContactMethod] = useState<ScheduleContactMethod>("email");
   const waitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readyJoinRef = useRef<HTMLDivElement | null>(null);
+  const readyScrolledRef = useRef(false);
 
   const meta = analyticsMeta(surface, source, lang);
   const whatsappDigits = profile.whatsappDigits || profile.phoneDigits;
@@ -114,6 +116,27 @@ export function HumanConnectionPanel({
     }
     onOpenIntentConsumed?.();
   }, [openIntent, enableVideo, enableSchedule, onOpenIntentConsumed]);
+
+  // Scroll ready-to-join into view once — never auto-join; respect reduced motion.
+  useEffect(() => {
+    if (videoState !== "ready" || !joinUrl) {
+      readyScrolledRef.current = false;
+      return;
+    }
+    if (readyScrolledRef.current) return;
+    const node = readyJoinRef.current;
+    if (!node) return;
+    readyScrolledRef.current = true;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.requestAnimationFrame(() => {
+      node.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+  }, [videoState, joinUrl]);
 
   const clearWaitTimer = useCallback(() => {
     if (waitTimerRef.current) {
@@ -394,18 +417,52 @@ export function HumanConnectionPanel({
       ) : null}
 
       {videoState === "ready" && joinUrl ? (
-        <div className="space-y-3 text-center">
-          <p className="text-sm font-semibold text-[#1F241C]">
-            {teamNotified ? copy.videoReadyNotified : copy.videoReady}
+        <div
+          ref={readyJoinRef}
+          className="space-y-3 text-center"
+          data-leonix-video-ready="true"
+        >
+          <style>{`
+            @keyframes leonix-join-cta-glow {
+              0%, 100% {
+                box-shadow:
+                  0 0 0 1px rgba(184, 148, 58, 0.55),
+                  0 10px 28px -10px rgba(138, 107, 31, 0.55),
+                  0 0 22px rgba(201, 168, 74, 0.35);
+              }
+              50% {
+                box-shadow:
+                  0 0 0 3px rgba(201, 168, 74, 0.28),
+                  0 12px 32px -8px rgba(138, 107, 31, 0.58),
+                  0 0 34px rgba(201, 168, 74, 0.48);
+              }
+            }
+            .leonix-join-cta-glow {
+              animation: leonix-join-cta-glow 2.8s ease-in-out infinite;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .leonix-join-cta-glow {
+                animation: none !important;
+              }
+            }
+          `}</style>
+          <p
+            role="status"
+            className="font-serif text-lg font-bold leading-snug text-[#1F241C] sm:text-xl"
+          >
+            {copy.videoReady}
           </p>
+          {teamNotified ? (
+            <p className="text-sm font-medium text-[#3D3428]">{copy.videoReadyNotified}</p>
+          ) : null}
           <button
             type="button"
             onClick={launchJoin}
-            className="min-h-[48px] w-full rounded-xl bg-[var(--dc-button-primary)] px-4 py-2.5 text-sm font-bold text-[#FFFDF7]"
+            className="leonix-join-cta-glow inline-flex min-h-[56px] w-full max-w-full items-center justify-center rounded-xl border-2 border-[#B8943A] bg-gradient-to-b from-[#F0D78A] via-[#D4B04E] to-[#C9A84A] px-3 py-3.5 text-[0.95rem] font-bold leading-snug tracking-wide text-[#1F241C] transition hover:from-[#F3DE9A] hover:via-[#DCB95A] hover:to-[#D0B054] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8A6B1F] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFDF7] active:brightness-[0.97] sm:px-4 sm:text-base sm:leading-normal"
           >
             {copy.videoReadyCta}
           </button>
-          <p className="text-xs text-[#5F6258]">{copy.videoWaiting}</p>
+          <p className="text-sm font-semibold leading-snug text-[#3D3428]">{copy.videoReadyHint}</p>
           <p className="text-xs text-[#5F6258]">{copy.videoMicDenied}</p>
         </div>
       ) : null}

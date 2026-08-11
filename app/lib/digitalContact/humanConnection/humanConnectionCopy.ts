@@ -13,6 +13,7 @@ export type HumanConnectionCopy = {
   videoRequesting: string;
   videoReady: string;
   videoReadyNotified: string;
+  videoReadyHint: string;
   videoReadyCta: string;
   videoWaiting: string;
   videoLaunched: string;
@@ -62,9 +63,10 @@ const ES: HumanConnectionCopy = {
   videoStart: "Iniciar videollamada",
   videoCancel: "Cancelar",
   videoRequesting: "Preparando la conexión…",
-  videoReady: "Tu sala está lista. Únete cuando quieras.",
+  videoReady: "Tu videollamada está lista",
   videoReadyNotified: "Hemos enviado una notificación al equipo.",
-  videoReadyCta: "Unirme ahora",
+  videoReadyHint: "Toca el botón para entrar y hablar con nuestro equipo.",
+  videoReadyCta: "🎥 Entrar a la videollamada",
   videoWaiting: "Esperando respuesta del equipo…",
   videoLaunched: "Abrimos la sala de video. Si no puedes unirte, usa otra forma de contacto abajo.",
   videoNoAnswerTitle: "No pudimos conectar por video en este momento.",
@@ -115,9 +117,10 @@ const EN: HumanConnectionCopy = {
   videoStart: "Start video call",
   videoCancel: "Cancel",
   videoRequesting: "Preparing the connection…",
-  videoReady: "Your room is ready. Join when you’re ready.",
+  videoReady: "Your video call is ready",
   videoReadyNotified: "We’ve sent a notification to the team.",
-  videoReadyCta: "Join now",
+  videoReadyHint: "Tap the button to enter and speak with our team.",
+  videoReadyCta: "🎥 Join video call",
   videoWaiting: "Waiting for the team to respond…",
   videoLaunched: "We opened the video room. If you can’t join, use another way to reach us below.",
   videoNoAnswerTitle: "We couldn’t connect by video right now.",
