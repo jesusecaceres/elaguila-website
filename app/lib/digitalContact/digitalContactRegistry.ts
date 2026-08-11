@@ -61,7 +61,7 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
     },
     /** Build 09B — owner-approved face-to-face Google Meet destination (ECP only). */
     connectionDestinations: {
-      googleMeetUrl: "https://meet.google.com/coo-sjkf-fio",
+      googleMeetUrl: "https://meet.google.com/hdd-xkzj-npj",
     },
     // No backupRepresentativeSlug — owner did not approve one.
     // No temporaryPresence — staff must activate via /admin/digital-contact/presence.

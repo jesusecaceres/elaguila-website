@@ -212,7 +212,7 @@ function types(
   assertEq(
     "16 chuy meet url ecp",
     chuy.connectionDestinations?.googleMeetUrl,
-    "https://meet.google.com/coo-sjkf-fio",
+    "https://meet.google.com/hdd-xkzj-npj",
   );
 }
 
