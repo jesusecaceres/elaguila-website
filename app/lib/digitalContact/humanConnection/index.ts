@@ -44,6 +44,8 @@ export {
   isValidPublicPhoneDigits,
   isValidPublicEmail,
 } from "./channelValidation";
+export { dispatchDigitalContactDoorbell } from "./doorbellDispatcher";
+export { isWebPushConfigured, getWebPushPublicKey } from "./webPushConfig";
 export {
   buildTelHref,
   buildSmsHref,

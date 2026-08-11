@@ -94,5 +94,10 @@ export async function POST(req: Request) {
       expiresAt: result.visitor.expiresAt,
       providerId: result.visitor.providerId,
     },
+    notification: result.notification ?? {
+      anySucceeded: false,
+      pushSucceeded: false,
+      emailSucceeded: false,
+    },
   });
 }

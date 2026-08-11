@@ -93,6 +93,7 @@ export function HumanConnectionPanel({
   const [offer, setOffer] = useState<OfferState | null>(null);
   const [videoState, setVideoState] = useState<HumanConnectionPublicState>("idle");
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
+  const [teamNotified, setTeamNotified] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleStatus, setScheduleStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [contactMethod, setContactMethod] = useState<ScheduleContactMethod>("email");
@@ -213,6 +214,7 @@ export function HumanConnectionPanel({
         ok?: boolean;
         error?: string;
         session?: { visitorJoinUrl?: string; expiresAt?: string; sessionId?: string };
+        notification?: { anySucceeded?: boolean };
       } | null;
 
       if (!res.ok || !json?.ok || !json.session?.visitorJoinUrl) {
@@ -225,10 +227,12 @@ export function HumanConnectionPanel({
       }
 
       setJoinUrl(json.session.visitorJoinUrl);
+      setTeamNotified(Boolean(json.notification?.anySucceeded));
       setVideoState("ready");
       trackDigitalContactEvent(profile.slug, "daily_video_room_created", {
         ...meta,
         sessionId: json.session.sessionId,
+        notified: Boolean(json.notification?.anySucceeded),
       });
       startWaitTimer();
     } catch {
@@ -391,7 +395,9 @@ export function HumanConnectionPanel({
 
       {videoState === "ready" && joinUrl ? (
         <div className="space-y-3 text-center">
-          <p className="text-sm font-semibold text-[#1F241C]">{copy.videoReady}</p>
+          <p className="text-sm font-semibold text-[#1F241C]">
+            {teamNotified ? copy.videoReadyNotified : copy.videoReady}
+          </p>
           <button
             type="button"
             onClick={launchJoin}

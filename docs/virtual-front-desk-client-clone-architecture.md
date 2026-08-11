@@ -73,6 +73,26 @@ Examples (configuration only — no router rewrite):
 
 **Executive #500** requires a new ECP profile (data), not new Virtual Front Desk code, as long as channels are already supported.
 
+## Doorbell notifications (Build 12)
+
+```
+VISITOR video request
+  → Daily ephemeral room
+  → dispatchDigitalContactDoorbell(executiveSlug)
+      → Web Push to that executive’s enrolled devices (PRIMARY)
+      → Resend email (SECONDARY)
+      → SMS seam reserved (NOT implemented / no paid provider)
+  → visitor joins visitor-safe Daily URL
+STAFF taps notification
+  → /admin/digital-contact/video/{sessionId}
+  → admin auth
+  → host Daily credential resolved server-side
+```
+
+Enrollment is authenticated at `/admin/digital-contact/doorbell`.
+
+Subscriptions are scoped by `executive_slug` — Executive #500 adds profile data + enrolls devices; no router rewrite.
+
 ## QR contract
 
 Leonix office QR stays:
@@ -85,4 +105,5 @@ Provider changes ⇒ update ECP destinations. **No QR reprint.**
 
 ## Cost doctrine
 
-Prefer free / already-used apps and reusable meeting rooms. Do not require Daily, Resend, paid video SaaS, Google OAuth, or video DB migrations for native connection options.
+Prefer free / already-used apps and reusable meeting rooms. Do not require a paid push vendor for the doorbell. SMS remains a future optional escalation (not required for V1).
+

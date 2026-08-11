@@ -19,6 +19,13 @@ export const metadata: Metadata = {
     template: `%s | ${LEONIX_MEDIA_SITE_NAME}`,
   },
   description: LEONIX_ROOT_META_DESCRIPTION_EN,
+  manifest: "/manifest.webmanifest",
+  themeColor: "#1F241C",
+  appleWebApp: {
+    capable: true,
+    title: LEONIX_MEDIA_SITE_NAME,
+    statusBarStyle: "default",
+  },
   keywords: [
     "Leonix Media",
     "Leonix Global LLC",

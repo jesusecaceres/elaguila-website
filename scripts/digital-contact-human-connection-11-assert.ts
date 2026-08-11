@@ -121,8 +121,7 @@ assertTrue("EPHEMERAL_ROOM_ARCHITECTURE", dailyProvider.includes('privacy: "priv
 assertTrue("RECORDING_DISABLED_IN_ROOM", dailyProvider.includes("enable_recording_ui: false") || dailyProvider.includes("start_cloud_recording: false"));
 assertTrue(
   "VISITOR_HOST_CREDENTIAL_SEPARATION",
-  videoService.includes("leonixHostUrl") &&
-    (videoService.includes("never host") || videoService.includes("Never returns host") || videoService.includes("Visitor-safe payload only")),
+  videoService.includes("Never returns host") && hostPage.includes("requireAdminCookie"),
 );
 assertTrue("HOST_ROUTE_PROTECTED", hostPage.includes("requireAdminCookie") && hostPage.includes("HostVideoJoinClient"));
 
@@ -136,14 +135,21 @@ assertTrue(
   ["phone", "whatsapp", "sms", "email"].every((t) => routeDaily.channels.some((c) => c.type === t)),
 );
 
-assertTrue("NOTIFICATION_PATH_EXISTS", videoService.includes("sendLeonixResendEmail") && videoService.includes("daily_video_notification"));
+const dispatcherSrc = fs.readFileSync(
+  path.join(root, "app/lib/digitalContact/humanConnection/doorbellDispatcher.ts"),
+  "utf8",
+);
+assertTrue(
+  "NOTIFICATION_PATH_EXISTS",
+  videoService.includes("dispatchDigitalContactDoorbell") && dispatcherSrc.includes("sendLeonixResendEmail"),
+);
 assertTrue(
   "NOTIFICATION_FALSELY_CALLED_RINGING",
-  videoService.includes("not a phone ring") || videoService.includes("email notification"),
+  dispatcherSrc.includes("not a phone ring") || dispatcherSrc.includes("email notification"),
 );
 assertTrue(
   "NOTIFICATION_DOES_NOT_REVOKE_ROOM",
-  videoService.includes("NEVER revoke") || videoService.includes("Best-effort host email"),
+  videoService.includes("NEVER revoke"),
 );
 
 assertTrue("FAILURE_HAS_FALLBACK", visitanos.includes("meetFallbackLabel") && visitanos.includes("nativeFallbackChannels"));

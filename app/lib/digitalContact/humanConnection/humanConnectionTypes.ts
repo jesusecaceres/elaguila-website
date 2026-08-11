@@ -73,6 +73,12 @@ export type HumanConnectionSessionResult =
       visitor: HumanConnectionVisitorSafeSession;
       /** Present only in server-internal flows — stripped before client response. */
       host?: HumanConnectionHostSessionHint;
+      /** Build 12 — visitor-safe notification delivery summary (no secrets). */
+      notification?: {
+        anySucceeded: boolean;
+        pushSucceeded: boolean;
+        emailSucceeded: boolean;
+      };
     }
   | {
       ok: false;

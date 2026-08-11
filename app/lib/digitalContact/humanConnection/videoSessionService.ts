@@ -15,14 +15,13 @@ import { resolveVideoEligibility } from "./resolveVideoEligibility";
 import { normalizeVisitorFirstName } from "./normalizeVisitorName";
 import { isHumanConnectionVideoEnabled } from "./videoKillSwitch";
 import { storeVideoSession } from "./sessionStoreServer";
+import { dispatchDigitalContactDoorbell } from "./doorbellDispatcher";
 import type {
   HumanConnectionRequestInput,
   HumanConnectionSessionResult,
   HumanConnectionSurface,
 } from "./humanConnectionTypes";
 import { insertDigitalContactAnalyticsEvent } from "../digitalContactOpsTablesServer";
-import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
-import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 function normalizeSource(raw: string | null | undefined): string | null {
   const v = String(raw ?? "")
@@ -36,12 +35,6 @@ function normalizeSurface(raw: string | null | undefined): HumanConnectionSurfac
   return raw === "digital_contact" ? "digital_contact" : "virtual_front_desk";
 }
 
-function publicOrigin(): string {
-  const fromEnv = String(process.env.HUMAN_CONNECTION_PUBLIC_ORIGIN ?? "").trim().replace(/\/$/, "");
-  if (fromEnv.startsWith("https://") || fromEnv.startsWith("http://")) return fromEnv;
-  return LEONIX_SITE_ORIGIN;
-}
-
 export { normalizeVisitorFirstName };
 
 export type RequestVideoSessionArgs = HumanConnectionRequestInput & {
@@ -52,8 +45,8 @@ export type RequestVideoSessionArgs = HumanConnectionRequestInput & {
 };
 
 /**
- * Server-side video session boundary (Build 04B → Build 11).
- * Creates ephemeral Daily room; host notification is best-effort (does not revoke visitor room).
+ * Server-side video session boundary (Build 04B → Build 12).
+ * Creates ephemeral Daily room; doorbell push + Resend are best-effort.
  * Never returns host/provider secrets to the visitor.
  */
 export async function requestHumanConnectionVideoSession(
@@ -110,7 +103,7 @@ export async function requestHumanConnectionVideoSession(
     providerConfigured: provider.isConfigured() && cap.configured,
     providerHealthy: cap.healthy && cap.canCreateEphemeralSession,
     videoEnabled: true,
-    notificationReady: true, // ignored for offer; kept for API compat
+    notificationReady: true,
   });
 
   if (!eligibility.offerImmediateVideo) {
@@ -185,9 +178,7 @@ export async function requestHumanConnectionVideoSession(
     },
   }).catch(() => {});
 
-  const leonixHostUrl = `${publicOrigin()}/admin/digital-contact/video/${encodeURIComponent(created.visitor.sessionId)}`;
-
-  await storeVideoSession({
+  const persisted = await storeVideoSession({
     sessionId: created.visitor.sessionId,
     profileSlug: slug,
     providerId: created.visitor.providerId,
@@ -198,74 +189,21 @@ export async function requestHumanConnectionVideoSession(
     createdAt: now.toISOString(),
   });
 
-  // Best-effort host email notification — NEVER revoke visitor room on notify failure.
-  const textBody = [
-    `Visitor ${firstName} requested a face-to-face video session.`,
-    `Executive: ${profile.fullName} (${slug})`,
-    reason ? `Reason: ${reason}` : null,
-    `Surface: ${surface}`,
-    source ? `Source: ${source}` : null,
-    `Session expires: ${created.host.expiresAt}`,
-    "",
-    `SECURE HOST JOIN (authorized Leonix staff only):`,
-    leonixHostUrl,
-    "",
-    "Sign in to Leonix Admin if prompted. Do not forward this link to visitors.",
-    "This is an email notification of a video request — not a phone ring.",
-    "No recording. Ephemeral room only.",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  void insertDigitalContactAnalyticsEvent({
-    profileSlug: slug,
-    eventType: "daily_video_notification_attempted",
-    meta: { surface, source, sessionId: created.visitor.sessionId, channel: "email" },
-  }).catch(() => {});
-
-  const sent = await sendLeonixResendEmail({
-    to: profile.email,
-    subject:
-      lang === "en"
-        ? `Leonix — visitor video request (${firstName})`
-        : `Leonix — solicitud de video de visitante (${firstName})`,
-    text: textBody,
-    html: `<p><strong>Visitor video request</strong></p>
-<p>This is an email notification — not a phone ring.</p>
-<pre style="white-space:pre-wrap;font-family:inherit">${textBody
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")}</pre>
-<p><a href="${leonixHostUrl.replace(/"/g, "")}">Join as host (staff)</a></p>`,
-  });
-
-  if (!sent.ok) {
+  if (!persisted.persistedToDatabase && process.env.VERCEL_ENV === "production") {
     console.error(
-      `[human-connection] host notification failed session=${created.visitor.sessionId} class=${sent.code}`,
+      `[human-connection] CRITICAL: video session ${created.visitor.sessionId} not persisted to database — host answer may fail across instances`,
     );
-    void insertDigitalContactAnalyticsEvent({
-      profileSlug: slug,
-      eventType: "daily_video_notification_failed",
-      meta: {
-        surface,
-        source,
-        sessionId: created.visitor.sessionId,
-        channel: "email",
-        code: sent.code,
-      },
-    }).catch(() => {});
-  } else {
-    void insertDigitalContactAnalyticsEvent({
-      profileSlug: slug,
-      eventType: "daily_video_notification_sent",
-      meta: {
-        surface,
-        source,
-        sessionId: created.visitor.sessionId,
-        channel: "email",
-      },
-    }).catch(() => {});
   }
+
+  // Build 12: PWA push primary + Resend secondary. NEVER revoke room on notify failure.
+  const doorbell = await dispatchDigitalContactDoorbell({
+    executiveSlug: slug,
+    sessionId: created.visitor.sessionId,
+    visitorFirstName: firstName,
+    lang,
+    surface,
+    source,
+  });
 
   void insertDigitalContactAnalyticsEvent({
     profileSlug: slug,
@@ -275,14 +213,19 @@ export async function requestHumanConnectionVideoSession(
       source,
       sessionId: created.visitor.sessionId,
       providerId: created.visitor.providerId,
-      notified: sent.ok,
-      notificationChannel: "email",
+      pushSucceeded: doorbell.pushSucceeded,
+      emailSucceeded: doorbell.emailSucceeded,
+      notified: doorbell.anySucceeded,
     },
   }).catch(() => {});
 
-  // Visitor-safe payload only — never host provider URL / tokens.
   return {
     ok: true,
     visitor: created.visitor,
+    notification: {
+      anySucceeded: doorbell.anySucceeded,
+      pushSucceeded: doorbell.pushSucceeded > 0,
+      emailSucceeded: doorbell.emailSucceeded,
+    },
   };
 }

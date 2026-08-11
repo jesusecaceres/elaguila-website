@@ -12,6 +12,7 @@ export type HumanConnectionCopy = {
   videoCancel: string;
   videoRequesting: string;
   videoReady: string;
+  videoReadyNotified: string;
   videoReadyCta: string;
   videoWaiting: string;
   videoLaunched: string;
@@ -52,7 +53,7 @@ const ES: HumanConnectionCopy = {
   videoCta: "Videollamada",
   videoPrecallTitle: "Videollamada",
   videoPrecallBody:
-    "Antes de conectar, dinos cómo llamarte. Intentaremos conectarte con nuestro equipo. La sesión es temporal y no se graba.",
+    "Antes de conectar, dinos cómo llamarte. Solicita una videollamada con nuestro equipo. La sesión es temporal y no se graba.",
   videoFirstName: "Nombre",
   videoReasonOptional: "Motivo de la visita (opcional)",
   videoPrivacyNotice:
@@ -62,6 +63,7 @@ const ES: HumanConnectionCopy = {
   videoCancel: "Cancelar",
   videoRequesting: "Preparando la conexión…",
   videoReady: "Tu sala está lista. Únete cuando quieras.",
+  videoReadyNotified: "Hemos enviado una notificación al equipo.",
   videoReadyCta: "Unirme ahora",
   videoWaiting: "Esperando respuesta del equipo…",
   videoLaunched: "Abrimos la sala de video. Si no puedes unirte, usa otra forma de contacto abajo.",
@@ -104,7 +106,7 @@ const EN: HumanConnectionCopy = {
   videoCta: "Video call",
   videoPrecallTitle: "Video call",
   videoPrecallBody:
-    "Before we connect, tell us what to call you. We’ll try to connect you with our team. The session is temporary and is not recorded.",
+    "Before we connect, tell us what to call you. Request a video call with our team. The session is temporary and is not recorded.",
   videoFirstName: "First name",
   videoReasonOptional: "Reason for visit (optional)",
   videoPrivacyNotice:
@@ -114,6 +116,7 @@ const EN: HumanConnectionCopy = {
   videoCancel: "Cancel",
   videoRequesting: "Preparing the connection…",
   videoReady: "Your room is ready. Join when you’re ready.",
+  videoReadyNotified: "We’ve sent a notification to the team.",
   videoReadyCta: "Join now",
   videoWaiting: "Waiting for the team to respond…",
   videoLaunched: "We opened the video room. If you can’t join, use another way to reach us below.",

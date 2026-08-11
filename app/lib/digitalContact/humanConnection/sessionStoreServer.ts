@@ -14,7 +14,7 @@ export type StoredVideoSession = {
   createdAt: string;
 };
 
-/** Process-local fallback when DB unavailable (single-instance / local only). */
+/** Process-local fallback for local/dev only — production must persist to Supabase. */
 const memorySessions = new Map<string, StoredVideoSession>();
 
 function pruneMemory(now = Date.now()) {
@@ -23,11 +23,23 @@ function pruneMemory(now = Date.now()) {
   }
 }
 
-export async function storeVideoSession(session: StoredVideoSession): Promise<{ ok: boolean }> {
+function allowMemoryFallback(): boolean {
+  // Production: memory is an emergency same-instance cache only; DB is required for host answer.
+  return process.env.VERCEL_ENV !== "production" || process.env.NODE_ENV !== "production";
+}
+
+export async function storeVideoSession(
+  session: StoredVideoSession,
+): Promise<{ ok: boolean; persistedToDatabase: boolean }> {
   pruneMemory();
   memorySessions.set(session.sessionId, session);
 
-  if (!isSupabaseAdminConfigured()) return { ok: true };
+  if (!isSupabaseAdminConfigured()) {
+    if (process.env.VERCEL_ENV === "production") {
+      console.error("[human-connection] SUPABASE admin not configured — cannot persist video session");
+    }
+    return { ok: true, persistedToDatabase: false };
+  }
 
   try {
     const supabase = getAdminSupabase();
@@ -43,14 +55,14 @@ export async function storeVideoSession(session: StoredVideoSession): Promise<{ 
     });
     if (error) {
       console.error(`[human-connection] video session persist failed: ${error.message}`);
-      // Memory still holds it for this instance.
+      return { ok: true, persistedToDatabase: false };
     }
-    return { ok: true };
+    return { ok: true, persistedToDatabase: true };
   } catch (e) {
     console.error(
       `[human-connection] video session persist error: ${e instanceof Error ? e.message : "unknown"}`,
     );
-    return { ok: true };
+    return { ok: true, persistedToDatabase: false };
   }
 }
 
@@ -59,43 +71,51 @@ export async function getVideoSession(sessionId: string): Promise<StoredVideoSes
   if (!id) return null;
   pruneMemory();
 
+  // Prefer database in production so host join works across Vercel instances.
+  if (isSupabaseAdminConfigured()) {
+    try {
+      const supabase = getAdminSupabase();
+      const { data, error } = await supabase
+        .from("digital_contact_video_sessions")
+        .select(
+          "id, profile_slug, provider_id, provider_room_name, host_provider_join_url, visitor_join_url, expires_at, created_at",
+        )
+        .eq("id", id)
+        .maybeSingle();
+      if (!error && data) {
+        if (Date.parse(String(data.expires_at)) <= Date.now()) return null;
+        const stored: StoredVideoSession = {
+          sessionId: String(data.id),
+          profileSlug: String(data.profile_slug),
+          providerId: String(data.provider_id),
+          providerRoomName: String(data.provider_room_name),
+          hostProviderJoinUrl: String(data.host_provider_join_url),
+          visitorJoinUrl: String(data.visitor_join_url),
+          expiresAt: String(data.expires_at),
+          createdAt: String(data.created_at),
+        };
+        memorySessions.set(id, stored);
+        return stored;
+      }
+    } catch {
+      /* fall through to memory */
+    }
+  }
+
   const mem = memorySessions.get(id);
   if (mem) {
     if (Date.parse(mem.expiresAt) <= Date.now()) {
       memorySessions.delete(id);
       return null;
     }
+    if (!allowMemoryFallback() && process.env.VERCEL_ENV === "production") {
+      // Still return memory hit for same-instance recovery, but log.
+      console.warn(`[human-connection] serving video session ${id} from memory in production`);
+    }
     return mem;
   }
 
-  if (!isSupabaseAdminConfigured()) return null;
-
-  try {
-    const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from("digital_contact_video_sessions")
-      .select(
-        "id, profile_slug, provider_id, provider_room_name, host_provider_join_url, visitor_join_url, expires_at, created_at",
-      )
-      .eq("id", id)
-      .maybeSingle();
-    if (error || !data) return null;
-    if (Date.parse(String(data.expires_at)) <= Date.now()) return null;
-    const stored: StoredVideoSession = {
-      sessionId: String(data.id),
-      profileSlug: String(data.profile_slug),
-      providerId: String(data.provider_id),
-      providerRoomName: String(data.provider_room_name),
-      hostProviderJoinUrl: String(data.host_provider_join_url),
-      visitorJoinUrl: String(data.visitor_join_url),
-      expiresAt: String(data.expires_at),
-      createdAt: String(data.created_at),
-    };
-    memorySessions.set(id, stored);
-    return stored;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 export async function deleteVideoSession(sessionId: string): Promise<void> {

@@ -63,7 +63,11 @@ export default async function DigitalContactHostVideoPage(props: PageProps) {
         subtitle={`Executive: ${session.profileSlug} · expires ${new Date(session.expiresAt).toLocaleString()}`}
         helperText="Host-only join. Do not share this page or the provider link with visitors."
       />
-      <HostVideoJoinClient hostJoinUrl={session.hostProviderJoinUrl} expiresAt={session.expiresAt} />
+      <HostVideoJoinClient
+        hostJoinUrl={session.hostProviderJoinUrl}
+        expiresAt={session.expiresAt}
+        profileSlug={session.profileSlug}
+      />
     </div>
   );
 }

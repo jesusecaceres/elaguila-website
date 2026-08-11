@@ -48,7 +48,7 @@ const ES: FaceToFaceCopy = {
   videoCtaPrimary: "Videollamada",
   videoCtaSub: "Intentaremos conectarte con nuestro equipo.",
   dailyPrimaryCta: "Videollamada",
-  dailyPrimarySub: "Intentaremos conectarte con nuestro equipo.",
+  dailyPrimarySub: "Solicita una videollamada con nuestro equipo.",
   meetFallbackLabel: "También: Google Meet",
   meetFallbackHint:
     "Abre nuestra sala de Google Meet. Es posible que necesitemos aceptar tu solicitud para entrar.",
@@ -81,7 +81,7 @@ const EN: FaceToFaceCopy = {
   videoCtaPrimary: "Video call",
   videoCtaSub: "We’ll try to connect you with our team.",
   dailyPrimaryCta: "Video call",
-  dailyPrimarySub: "We’ll try to connect you with our team.",
+  dailyPrimarySub: "Request a video call with our team.",
   meetFallbackLabel: "Also: Google Meet",
   meetFallbackHint:
     "Open our Google Meet room. We may need to approve your request to join.",
