@@ -79,7 +79,24 @@ export type SalesWorkspaceCapability =
   | "upload_discovery_files"
   | "run_ai_research"
   | "review_ai_briefing"
-  | "promote_ai_briefing";
+  | "promote_ai_briefing"
+  // Program 5 — Meeting Studio + Proposal + Promise Keeper capabilities. Kept in this
+  // same matrix, matching the Program 4 precedent. sales_rep may prepare meetings, record
+  // consent/notes, and view commitments, but may never create/review proposals or manage
+  // team commitments — those are manager+ actions.
+  | "view_meeting_studio"
+  | "prepare_business_meeting"
+  | "conduct_business_meeting"
+  | "record_meeting_consent"
+  | "record_meeting_notes"
+  | "review_meeting_notes"
+  | "create_proposal"
+  | "review_proposal"
+  | "record_proposal_decision"
+  | "view_commitments"
+  | "manage_own_commitments"
+  | "manage_team_commitments"
+  | "assign_business_staff";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -120,6 +137,19 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "run_ai_research",
   "review_ai_briefing",
   "promote_ai_briefing",
+  "view_meeting_studio",
+  "prepare_business_meeting",
+  "conduct_business_meeting",
+  "record_meeting_consent",
+  "record_meeting_notes",
+  "review_meeting_notes",
+  "create_proposal",
+  "review_proposal",
+  "record_proposal_decision",
+  "view_commitments",
+  "manage_own_commitments",
+  "manage_team_commitments",
+  "assign_business_staff",
 ];
 
 /**
@@ -181,6 +211,19 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "run_ai_research",
     "review_ai_briefing",
     "promote_ai_briefing",
+    "view_meeting_studio",
+    "prepare_business_meeting",
+    "conduct_business_meeting",
+    "record_meeting_consent",
+    "record_meeting_notes",
+    "review_meeting_notes",
+    "create_proposal",
+    "review_proposal",
+    "record_proposal_decision",
+    "view_commitments",
+    "manage_own_commitments",
+    "manage_team_commitments",
+    "assign_business_staff",
   ],
   sales_manager: [
     "view_business_list",
@@ -220,6 +263,18 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "run_ai_research",
     "review_ai_briefing",
     "promote_ai_briefing",
+    "view_meeting_studio",
+    "prepare_business_meeting",
+    "conduct_business_meeting",
+    "record_meeting_consent",
+    "record_meeting_notes",
+    "review_meeting_notes",
+    "create_proposal",
+    "review_proposal",
+    "record_proposal_decision",
+    "view_commitments",
+    "manage_own_commitments",
+    "manage_team_commitments",
   ],
   sales_rep: [
     "view_business_list",
@@ -242,6 +297,13 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "conduct_canvassing",
     "manage_discovery_sources",
     "upload_discovery_files",
+    "view_meeting_studio",
+    "prepare_business_meeting",
+    "conduct_business_meeting",
+    "record_meeting_consent",
+    "record_meeting_notes",
+    "view_commitments",
+    "manage_own_commitments",
   ],
 };
 

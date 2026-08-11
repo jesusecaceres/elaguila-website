@@ -25,6 +25,14 @@ import { BriefingReviewPanel, ConsentStatusPanel, RunResearchButton, SourceFiles
 import { listConsentForBusiness, listSourceFilesForBusiness, listSourceLinksForBusiness } from "@/app/lib/business/fieldDiscovery/repository";
 import { getDefaultBusinessIntelligenceProvider } from "@/app/lib/business/aiResearch/providerRegistry";
 import { listBriefingDraftsForBusiness, listResearchRunsForBusiness } from "@/app/lib/business/aiResearch/repository";
+import { assembleCockpitBriefing } from "@/app/lib/business/meetingStudio/cockpitBriefing";
+import { listMeetingsForBusiness, listAttendeesForMeeting, listConsentsForMeeting, listNotesForMeeting, listTranscriptsForMeeting } from "@/app/lib/business/meetingStudio/repository";
+import { isMeetingStudioEnabled } from "@/app/lib/business/meetingStudio/featureFlag";
+import { CreateMeetingForm, MeetingDetailPanel } from "./MeetingStudioActions";
+import { listProposalsForBusiness } from "@/app/lib/business/proposals/repository";
+import { ProposalDetailPanel } from "./ProposalActions";
+import { listCommitmentsForBusiness, listEventsForCommitment } from "@/app/lib/business/promiseKeeper/repository";
+import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActions";
 
 export const dynamic = "force-dynamic";
 
@@ -157,6 +165,50 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         const latestDraft = latestRun ? drafts.find((d) => d.researchRunId === latestRun.id) ?? null : null;
         const providerAvailable = await provider.isConfigured();
         return { sourceLinks, sourceFiles, consent, runs, latestDraft, providerAvailable };
+      })()
+    : null;
+
+  // Program 5 — Lion's Cockpit + Meeting Studio + Proposals + Promise Keeper
+  const canViewMeetingStudio = actorHasCapability(access.actor, "view_meeting_studio");
+  const canPrepareMeeting = actorHasCapability(access.actor, "prepare_business_meeting");
+  const canCreateProposal = actorHasCapability(access.actor, "create_proposal");
+  const canReviewProposal = actorHasCapability(access.actor, "review_proposal");
+  const canRecordProposalDecision = actorHasCapability(access.actor, "record_proposal_decision");
+  const canViewCommitments = actorHasCapability(access.actor, "view_commitments");
+  const canManageCommitments = actorHasCapability(access.actor, "manage_own_commitments") || actorHasCapability(access.actor, "manage_team_commitments");
+  const meetingStudioEnabled = canViewMeetingStudio ? await isMeetingStudioEnabled() : false;
+
+  const program5Data = (canViewMeetingStudio && meetingStudioEnabled)
+    ? await (async () => {
+        const [briefing, meetings, proposals, commitments] = await Promise.all([
+          assembleCockpitBriefing(business.id, business.displayName, business.businessPrimaryLanguage ?? null),
+          listMeetingsForBusiness(business.id),
+          canViewCommitments ? listProposalsForBusiness(business.id) : Promise.resolve([]),
+          canViewCommitments ? listCommitmentsForBusiness(business.id) : Promise.resolve([]),
+        ]);
+
+        const meetingsWithDetails = await Promise.all(
+          meetings.slice(0, 5).map(async (m) => {
+            const [attendees, consents, notes, transcripts] = await Promise.all([
+              listAttendeesForMeeting(m.id, business.id),
+              listConsentsForMeeting(m.id, business.id),
+              listNotesForMeeting(m.id, business.id),
+              listTranscriptsForMeeting(m.id, business.id),
+            ]);
+            return { meeting: m, attendees, consents, notes, transcripts };
+          }),
+        );
+
+        const commitmentsWithEvents = canViewCommitments
+          ? await Promise.all(
+              commitments.slice(0, 10).map(async (c) => {
+                const events = await listEventsForCommitment(c.id, business.id);
+                return { commitment: c, events };
+              }),
+            )
+          : [];
+
+        return { briefing, meetingsWithDetails, proposals, commitmentsWithEvents };
       })()
     : null;
 
@@ -661,6 +713,162 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             />
           </div>
         </section>
+      ) : null}
+
+      {/* Program 5 — Lion's Cockpit + Meeting Studio + Proposals + Promise Keeper */}
+      {program5Data ? (
+        <>
+          {/* Lion's Cockpit — deterministic briefing assembler */}
+          <section className="rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
+            <h2 className="text-sm font-bold text-[#1E1810]">Lion&apos;s Cockpit</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">Deterministic briefing — truth classes separated, no AI advisor, no invented pricing.</p>
+
+            {/* Truth classes */}
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {([
+                ["Confirmed", program5Data.briefing.truthClasses.confirmed, "text-emerald-700"],
+                ["Owner-stated", program5Data.briefing.truthClasses.ownerStated, "text-[#3D3428]"],
+                ["Staff observation", program5Data.briefing.truthClasses.staffObservation, "text-[#3D3428]"],
+                ["System-derived", program5Data.briefing.truthClasses.systemDerived, "text-[#3D3428]"],
+                ["AI inference", program5Data.briefing.truthClasses.aiInference, "text-purple-700"],
+                ["Unknown", program5Data.briefing.truthClasses.unknown, "text-amber-700"],
+                ["Contradiction", program5Data.briefing.truthClasses.contradiction, "text-red-700"],
+              ] as const).map(([label, items, color]) => (
+                <div key={label} className="rounded-lg border border-[#E8DFD0] p-2">
+                  <p className={`text-[10px] font-bold uppercase tracking-wide ${color}`}>{label} ({items.length})</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {items.slice(0, 5).map((item) => (
+                      <li key={item.key} className="text-[10px] text-[#5C5346]">
+                        <span className="font-semibold">{item.label}</span>: {item.value}
+                      </li>
+                    ))}
+                    {items.length === 0 ? <li className="text-[10px] text-[#A0A0A0]">None</li> : null}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            {/* Health Map summary */}
+            {program5Data.briefing.healthMap ? (
+              <div className="mt-3 rounded-lg border border-[#E8DFD0] p-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Health Map</p>
+                <p className="mt-1 text-xs text-[#3D3428]">
+                  Strong: {program5Data.briefing.healthMap.strongCount} · Needs attention: {program5Data.briefing.healthMap.needsAttentionCount} · Insufficient info: {program5Data.briefing.healthMap.insufficientInfoCount} · Blocked: {program5Data.briefing.healthMap.contradictionBlockedCount}
+                </p>
+              </div>
+            ) : null}
+
+            {/* Recommendation summary */}
+            {program5Data.briefing.recommendation ? (
+              <div className="mt-3 rounded-lg border border-[#E8DFD0] p-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Current recommendation</p>
+                <p className="mt-1 text-xs font-semibold text-[#1E1810]">{program5Data.briefing.recommendation.candidateKey}</p>
+                <p className="mt-1 text-xs text-[#3D3428]">{program5Data.briefing.recommendation.verifiedNeedEn}</p>
+                <p className="mt-1 text-[10px] text-[#7A7164]">
+                  {program5Data.briefing.recommendation.primaryIntervention} · effort: {program5Data.briefing.recommendation.expectedEffort} · cost: {program5Data.briefing.recommendation.costBand}
+                </p>
+                {program5Data.briefing.recommendation.rejectedHigherCostReasonEn ? (
+                  <p className="mt-1 text-[10px] text-[#7A7164]">Why not higher-cost: {program5Data.briefing.recommendation.rejectedHigherCostReasonEn}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* What NOT to sell */}
+            {program5Data.briefing.whatNotToSell.length > 0 ? (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-red-700">What NOT to sell</p>
+                <ul className="mt-1 space-y-0.5">
+                  {program5Data.briefing.whatNotToSell.map((w, i) => (
+                    <li key={i} className="text-[10px] text-red-800">{w}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Suggested topics */}
+            {program5Data.briefing.suggestedTopics.length > 0 ? (
+              <div className="mt-3 rounded-lg border border-[#E8DFD0] p-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Suggested topics</p>
+                <ul className="mt-1 space-y-0.5">
+                  {program5Data.briefing.suggestedTopics.map((t, i) => (
+                    <li key={i} className="text-[10px] text-[#3D3428]">{t.en}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Commitments summary */}
+            {program5Data.briefing.commitments ? (
+              <div className="mt-3 rounded-lg border border-[#E8DFD0] p-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Commitments</p>
+                <p className="mt-1 text-xs text-[#3D3428]">
+                  Active: {program5Data.briefing.commitments.activeCount} · Blocked: {program5Data.briefing.commitments.blockedCount}
+                  {program5Data.briefing.commitments.nextDueDate ? ` · Next due: ${new Date(program5Data.briefing.commitments.nextDueDate).toLocaleDateString("en-US")}` : ""}
+                </p>
+              </div>
+            ) : null}
+          </section>
+
+          {/* Meeting Studio */}
+          <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+            <h2 className="text-sm font-bold text-[#1E1810]">Meeting Studio</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">Structured meetings with explicit consent, typed notes, and manual transcript import.</p>
+            {canPrepareMeeting ? <CreateMeetingForm businessId={business.id} /> : null}
+            <div className="mt-3 space-y-3">
+              {program5Data.meetingsWithDetails.map(({ meeting, attendees, consents, notes, transcripts }) => (
+                <MeetingDetailPanel
+                  key={meeting.id}
+                  businessId={business.id}
+                  meeting={meeting}
+                  attendees={attendees}
+                  consents={consents}
+                  notes={notes}
+                  transcripts={transcripts}
+                />
+              ))}
+              {program5Data.meetingsWithDetails.length === 0 ? <p className="text-sm text-[#7A7164]">No meetings yet.</p> : null}
+            </div>
+          </section>
+
+          {/* Proposals */}
+          {canViewCommitments && program5Data.proposals.length > 0 ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Proposals</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Truthful proposals referencing real pricing. Acceptance does not charge or fulfill.</p>
+              <div className="mt-3 space-y-3">
+                {program5Data.proposals.filter((p) => p.isCurrent).slice(0, 5).map((p) => (
+                  <ProposalDetailPanel
+                    key={p.id}
+                    businessId={business.id}
+                    proposal={p}
+                    canReview={canReviewProposal}
+                    canRecord={canRecordProposalDecision}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {/* Promise Keeper */}
+          {canViewCommitments ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Promise Keeper</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Commitments are tracked, never silently disappear. No shame language — capacity/blocker/release supported.</p>
+              {canManageCommitments ? <CreateCommitmentForm businessId={business.id} /> : null}
+              <div className="mt-3 space-y-3">
+                {program5Data.commitmentsWithEvents.map(({ commitment, events }) => (
+                  <CommitmentDetailPanel
+                    key={commitment.id}
+                    businessId={business.id}
+                    commitment={commitment}
+                    events={events}
+                  />
+                ))}
+                {program5Data.commitmentsWithEvents.length === 0 ? <p className="text-sm text-[#7A7164]">No commitments yet.</p> : null}
+              </div>
+            </section>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
