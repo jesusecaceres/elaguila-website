@@ -199,7 +199,7 @@ function types(
   assertEq("15 primary phone", r.primaryType, "phone");
 }
 
-// 16. Chuy real profile — no invent facetime/meet; schedule gated without backend
+// 16. Chuy real profile — Meet is owner-approved ECP destination (Build 09B); FaceTime not invented
 {
   const chuy = getDigitalContactProfile("chuy")!;
   const t = types(chuy, { browserVideo: false, scheduleRequest: false });
@@ -208,7 +208,12 @@ function types(
   assertTrue("16 chuy email", t.includes("email"));
   assertTrue("16 chuy schedule gated", !t.includes("schedule_request"));
   assertTrue("16 chuy no facetime invent", !t.includes("facetime"));
-  assertTrue("16 chuy no meet invent", !t.includes("google_meet"));
+  assertTrue("16 chuy meet from ecp", t.includes("google_meet"));
+  assertEq(
+    "16 chuy meet url ecp",
+    chuy.connectionDestinations?.googleMeetUrl,
+    "https://meet.google.com/coo-sjkf-fio",
+  );
 }
 
 // 17. duplicate types removed

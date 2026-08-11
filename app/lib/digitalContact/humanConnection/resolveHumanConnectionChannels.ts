@@ -16,7 +16,9 @@ import {
   isValidPublicEmail,
   isValidPublicPhoneDigits,
   validateFacetimeDestination,
+  validateGoogleMeetUrl,
 } from "./channelValidation";
+import { resolvePreferredFaceToFaceConnection } from "./resolvePreferredFaceToFaceConnection";
 
 export type ManagedSessionOffers = {
   /**
@@ -76,22 +78,29 @@ export function resolveHumanConnectionChannels(
 
   const facetimeUrl = validateFacetimeDestination(profile.connectionDestinations?.facetimeUrl);
   const hasFacetime = Boolean(facetimeUrl);
+  const googleMeetUrl = validateGoogleMeetUrl(profile.connectionDestinations?.googleMeetUrl);
+  const hasApprovedMeetLink = Boolean(googleMeetUrl);
 
   const hasBrowserVideo = managed.browserVideo === true;
-  const hasGoogleMeetManaged = managed.googleMeet === true;
+  const hasGoogleMeetManaged = managed.googleMeet === true && !hasApprovedMeetLink;
 
-  const hasLiveFaceToFace = hasBrowserVideo || hasFacetime || hasGoogleMeetManaged;
+  /** Immediate video via approved external destinations and/or eligible managed video. */
+  const faceToFace = resolvePreferredFaceToFaceConnection({ profile });
+  const hasExternalVideo = faceToFace.hasImmediateVideo;
+  const hasLiveFaceToFace = hasBrowserVideo || hasExternalVideo || hasGoogleMeetManaged;
 
-  // --- Live face-to-face (when truthful) ---
-  if (hasBrowserVideo) {
+  // --- Face-to-face / video (when truthful) ---
+  // Build 09: approved Google Meet URL is a DIRECT external destination (no Daily/Resend).
+  // Preference: Meet link → FaceTime → managed browser video (dormant) → managed Meet API (dormant).
+  if (hasApprovedMeetLink && googleMeetUrl) {
     collected.push({
-      type: "browser_video",
-      channelClass: "managed_session",
-      priority: 10,
+      type: "google_meet",
+      channelClass: "direct",
+      priority: 5,
       presentation: "primary",
-      action: { kind: "managed_browser_video" },
-      requiresPresence: true,
-      requiresWorkingHours: true,
+      action: { kind: "external_url", url: googleMeetUrl, channel: "google_meet" },
+      requiresPresence: false,
+      requiresWorkingHours: false,
     });
   }
 
@@ -99,11 +108,23 @@ export function resolveHumanConnectionChannels(
     collected.push({
       type: "facetime",
       channelClass: "direct",
-      priority: 20,
-      presentation: hasBrowserVideo ? "secondary" : "primary",
+      priority: 15,
+      presentation: hasApprovedMeetLink ? "secondary" : "primary",
       action: { kind: "external_url", url: facetimeUrl, channel: "facetime" },
       requiresPresence: false,
       requiresWorkingHours: false,
+    });
+  }
+
+  if (hasBrowserVideo) {
+    collected.push({
+      type: "browser_video",
+      channelClass: "managed_session",
+      priority: 30,
+      presentation: hasExternalVideo ? "secondary" : "primary",
+      action: { kind: "managed_browser_video" },
+      requiresPresence: true,
+      requiresWorkingHours: true,
     });
   }
 
@@ -111,8 +132,8 @@ export function resolveHumanConnectionChannels(
     collected.push({
       type: "google_meet",
       channelClass: "managed_session",
-      priority: 25,
-      presentation: hasBrowserVideo || hasFacetime ? "secondary" : "primary",
+      priority: 35,
+      presentation: hasExternalVideo || hasBrowserVideo ? "secondary" : "primary",
       action: { kind: "managed_google_meet" },
       requiresPresence: true,
       requiresWorkingHours: true,

@@ -10,6 +10,18 @@ export {
 export { isHumanConnectionScheduleEnabled } from "./videoKillSwitch";
 export { resolveHumanConnectionChannels } from "./resolveHumanConnectionChannels";
 export type { ResolveHumanConnectionChannelsInput, ManagedSessionOffers } from "./resolveHumanConnectionChannels";
+export {
+  resolvePreferredFaceToFaceConnection,
+  listProfilesWithFaceToFaceVideo,
+} from "./resolvePreferredFaceToFaceConnection";
+export type {
+  PreferredFaceToFaceResult,
+  FaceToFaceVideoOption,
+  FaceToFaceVideoProvider,
+  ResolvePreferredFaceToFaceInput,
+} from "./resolvePreferredFaceToFaceConnection";
+export { getFaceToFaceCopy, providerOpensLabel } from "./faceToFaceCopy";
+export type { FaceToFaceCopy } from "./faceToFaceCopy";
 export * from "./channelTypes";
 export * from "./humanConnectionTypes";
 export * from "./constants";

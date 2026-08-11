@@ -38,6 +38,8 @@ export type VisitanosCopy = {
   kicker: string;
   headline: string;
   subhead: string;
+  /** Face-to-face doorbell subhead when a video destination exists. */
+  subheadFaceToFace: string;
   hoursLabel: string;
   hoursWindow: string;
   hoursWithinTitle: string;
@@ -72,6 +74,8 @@ const ES: VisitanosCopy = {
   headline: "Gracias por visitarnos.",
   subhead:
     "Si llegaste a nuestra oficina y salimos un momento, no queremos que tu visita sea en vano. Estamos aquí para ayudarte.",
+  subheadFaceToFace:
+    "Si llegaste a nuestra oficina y salimos un momento, intentemos conectarnos cara a cara.",
   hoursLabel: "Horario habitual",
   hoursWindow: "9:00 AM – 5:00 PM",
   hoursWithinTitle: "Estamos dentro de nuestro horario habitual.",
@@ -96,7 +100,7 @@ const ES: VisitanosCopy = {
   privacyNote: "Usamos solo la información de contacto pública de Leonix.",
   metaTitle: "Visítanos — Recepción Virtual",
   metaDescription:
-    "¿Llegaste a la oficina de Leonix Media? Gracias por visitarnos. Conéctate con nuestro equipo por llamada, WhatsApp o mensaje.",
+    "¿Llegaste a la oficina de Leonix Media? Gracias por visitarnos. Intenta una videollamada o conéctate por llamada, WhatsApp o mensaje.",
   execBackupLead: "También puedes comunicarte con",
   execBackupCta: "Ver contacto",
 };
@@ -104,9 +108,11 @@ const ES: VisitanosCopy = {
 const EN: VisitanosCopy = {
   langToggle: { es: "Español", en: "English" },
   kicker: "Virtual Front Desk",
-  headline: "Thanks for stopping by.",
+  headline: "Thanks for visiting us.",
   subhead:
     "If you came to our office and we stepped away for a moment, we don’t want your visit to be wasted. We’re still here to help.",
+  subheadFaceToFace:
+    "If you arrived at our office and we stepped away, let’s try to connect face-to-face.",
   hoursLabel: "Normal office hours",
   hoursWindow: "9:00 AM – 5:00 PM",
   hoursWithinTitle: "We’re within our normal office hours.",
@@ -131,7 +137,7 @@ const EN: VisitanosCopy = {
   privacyNote: "We only share Leonix public contact information.",
   metaTitle: "Visit Us — Virtual Front Desk",
   metaDescription:
-    "Arrived at Leonix Media’s office? Thanks for stopping by. Connect with our team by call, WhatsApp, or message.",
+    "Arrived at Leonix Media’s office? Thanks for visiting. Try a video call or connect by phone, WhatsApp, or message.",
   execBackupLead: "You can also reach",
   execBackupCta: "View contact",
 };

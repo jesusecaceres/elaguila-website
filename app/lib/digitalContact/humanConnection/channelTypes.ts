@@ -65,4 +65,10 @@ export type ExecutiveConnectionDestinations = {
    * (e.g. facetime: link or Apple FaceTime https link). Never a private Apple ID dump.
    */
   facetimeUrl?: string | null;
+  /**
+   * Owner-approved Google Meet HTTPS URL (meet.google.com).
+   * Used as a DIRECT external video destination — not a managed Meet API session.
+   * Do NOT invent. Leave absent until owner provides an approved link.
+   */
+  googleMeetUrl?: string | null;
 };

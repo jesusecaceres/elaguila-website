@@ -97,10 +97,10 @@ assertEq("7 display contamination", buildTelHref("(669) 366-4300"), "tel:+166936
   assertTrue("8 chuy whatsapp", t.includes("whatsapp"));
   assertTrue("8 chuy email", t.includes("email"));
   assertTrue("8 no facetime", !t.includes("facetime"));
-  assertTrue("8 no meet", !t.includes("google_meet"));
+  assertTrue("8 meet from ecp", t.includes("google_meet"));
   assertTrue("8 no browser video", !t.includes("browser_video"));
   assertTrue("8 no schedule without backend", !t.includes("schedule_request"));
-  assertEq("8 primary call", r.primaryType, "phone");
+  assertEq("8 primary meet", r.primaryType, "google_meet");
 }
 
 {

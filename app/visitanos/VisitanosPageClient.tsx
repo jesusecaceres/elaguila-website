@@ -16,7 +16,13 @@ import {
   type ExecutivePublicAvailabilityView,
 } from "@/app/lib/digitalContact/resolveExecutivePublicAvailability";
 import { resolveHumanConnectionChannels } from "@/app/lib/digitalContact/humanConnection/resolveHumanConnectionChannels";
+import {
+  listProfilesWithFaceToFaceVideo,
+  resolvePreferredFaceToFaceConnection,
+} from "@/app/lib/digitalContact/humanConnection/resolvePreferredFaceToFaceConnection";
+import { getFaceToFaceCopy } from "@/app/lib/digitalContact/humanConnection/faceToFaceCopy";
 import { getConnectionChannelCopy } from "@/app/lib/digitalContact/humanConnection/connectionChannelCopy";
+import { openExternalUrl } from "@/app/components/cta/ctaLaunchers";
 import { LEONIX_GLOBAL_LLC } from "@/app/lib/leonixBrand";
 import {
   getVisitanosCopy,
@@ -30,6 +36,7 @@ import {
 } from "@/app/lib/visitanos/visitanosOfficeHours";
 import { HumanConnectionPanel } from "@/app/components/digitalContact/humanConnection/HumanConnectionPanel";
 import { HumanConnectionChannelActions } from "@/app/components/digitalContact/humanConnection/HumanConnectionChannelActions";
+import { FaceToFaceVideoCta } from "@/app/components/digitalContact/humanConnection/FaceToFaceVideoCta";
 
 type Props = {
   profiles: DigitalContactProfile[];
@@ -67,6 +74,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
   const [scheduleOffer, setScheduleOffer] = useState(false);
   const [openIntent, setOpenIntent] = useState<"video" | "schedule" | null>(null);
   const copy = getVisitanosCopy(lang);
+  const faceCopy = getFaceToFaceCopy(lang);
   const channelCopy = getConnectionChannelCopy(lang);
   const themeVars = executiveThemeCssVars(resolveExecutiveTheme("leonix"));
   const year = new Date().getFullYear();
@@ -85,12 +93,18 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
   const waBody = visitanosWhatsAppPrefill(lang);
   const smsBody = visitanosSmsPrefill(lang);
 
+  const primaryFaceToFace = useMemo(
+    () => (primary ? resolvePreferredFaceToFaceConnection({ profile: primary }) : null),
+    [primary],
+  );
+  const videoStaff = useMemo(() => listProfilesWithFaceToFaceVideo(profiles), [profiles]);
+  const hasImmediateVideo = Boolean(primaryFaceToFace?.hasImmediateVideo);
+
   const route = useMemo(() => {
     if (!primary) return null;
     return resolveHumanConnectionChannels({
       profile: primary,
       surface: "virtual_front_desk",
-      // Build 07: do not force a broken schedule form; /contacto remains the follow-up path.
       forceOfferSchedule: false,
       smsPrefill: smsBody,
       whatsappPrefill: waBody,
@@ -104,15 +118,21 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
 
   useEffect(() => {
     if (!primary || !route) return;
+    if (primaryFaceToFace?.primary) {
+      trackDigitalContactEvent(primary.slug, "face_to_face_cta_view", {
+        ...analyticsMeta(source, lang),
+        channel: primaryFaceToFace.primary.provider,
+      });
+    }
     for (const ch of route.channels) {
+      if (ch.type === "google_meet" || ch.type === "facetime" || ch.type === "browser_video") continue;
       trackDigitalContactEvent(primary.slug, "connection_channel_view", {
         ...analyticsMeta(source, lang),
         channel: ch.type,
       });
     }
-    // Track once when route identity changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [primary?.slug, route?.channels.map((c) => c.type).join(","), lang, source]);
+  }, [primary?.slug, route?.channels.map((c) => c.type).join(","), primaryFaceToFace?.primary?.provider, lang, source]);
 
   let primaryAvailability: ExecutivePublicAvailabilityView | null = null;
   if (primary && availabilityNow) {
@@ -164,6 +184,8 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
       : hoursStatus === "outside"
         ? copy.hoursOutsideBody
         : null;
+
+  const heroSubhead = hasImmediateVideo ? copy.subheadFaceToFace : copy.subhead;
 
   return (
     <div className="min-h-screen bg-[var(--dc-gradient-end)]" style={themeVars}>
@@ -228,7 +250,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
             {copy.headline}
           </h1>
           <p className="mt-2.5 max-w-sm text-pretty text-[0.9rem] leading-relaxed text-[#F8F4EA]/92 sm:text-[0.95rem]">
-            {copy.subhead}
+            {heroSubhead}
           </p>
 
           <div
@@ -256,19 +278,94 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
       </header>
 
       <main className="relative z-10 mx-auto -mt-3 w-full max-w-md px-5 pb-4 sm:px-6">
+        {/* 1. Face-to-face video doorbell (only when ECP has approved destination) */}
+        {primary && primaryFaceToFace?.hasImmediateVideo ? (
+          <section
+            aria-labelledby="vfd-video-title"
+            className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
+          >
+            <h2 id="vfd-video-title" className="sr-only">
+              {faceCopy.videoCtaPrimary}
+            </h2>
+            <FaceToFaceVideoCta
+              faceToFace={primaryFaceToFace}
+              lang={lang}
+              source={source}
+              variant="doorbell"
+            />
+            <p className="mt-3 text-center text-xs text-[#5F6258]">
+              {primary.preferredName || primary.fullName}
+            </p>
+          </section>
+        ) : null}
+
+        {/* 2. Staff video choice when multiple executives have video destinations */}
+        {videoStaff.length > 1 ? (
+          <section aria-labelledby="vfd-who-video" className="mt-6">
+            <h2 id="vfd-who-video" className="text-center font-serif text-lg font-bold text-[#1F241C]">
+              {faceCopy.whoToSpeakWith}
+            </h2>
+            <p className="mx-auto mt-1.5 max-w-sm text-center text-sm text-[#3D3428]">{faceCopy.whoToSpeakWithBody}</p>
+            <ul className="mt-4 space-y-2.5">
+              {videoStaff.map(({ profile, faceToFace }) => {
+                const opt = faceToFace.primary;
+                if (!opt) return null;
+                return (
+                  <li key={profile.slug}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackDigitalContactEvent(profile.slug, "face_to_face_cta_selected", {
+                          ...analyticsMeta(source, lang),
+                          channel: opt.provider,
+                          action: "staff_video_choice",
+                        });
+                        openExternalUrl(opt.url);
+                      }}
+                      className="flex min-h-[64px] w-full items-center gap-3 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-left transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
+                    >
+                      <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[var(--dc-accent-border)] bg-white">
+                        <Image
+                          src={profile.photoPath ?? "/logo-clean.png"}
+                          alt=""
+                          fill
+                          sizes="44px"
+                          className={profile.photoPath ? "object-cover" : "object-contain p-1.5"}
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold text-[#1F241C]">
+                          {profile.preferredName || profile.fullName}
+                        </span>
+                        <span className="block truncate text-xs text-[#5F6258]">{profile.title}</span>
+                      </span>
+                      <span className="shrink-0 text-xs font-bold text-[var(--dc-button-primary)]">
+                        {faceCopy.personVideoCta}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+
+        {/* 3. Native contact fallback — demoted when video exists; primary when not */}
         {primary && hasContactable && route ? (
           <section
             aria-labelledby="vfd-connect-title"
-            className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
+            className={`rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5 ${
+              hasImmediateVideo ? "mt-6" : ""
+            }`}
           >
             <h2
               id="vfd-connect-title"
               className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
             >
-              {channelCopy.connectYourWay}
+              {hasImmediateVideo ? faceCopy.otherWaysTitle : channelCopy.connectYourWay}
             </h2>
             <p className="mt-1 text-center text-sm leading-relaxed text-[#3D3428]">
-              {channelCopy.connectYourWayBody}
+              {hasImmediateVideo ? faceCopy.otherWaysBody : channelCopy.connectYourWayBody}
             </p>
 
             <div className="mt-4">
@@ -278,6 +375,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
                 lang={lang}
                 surface="virtual_front_desk"
                 source={source}
+                omitTypes={["google_meet", "facetime", "browser_video", "schedule_request"]}
                 onManagedBrowserVideo={() => setOpenIntent("video")}
                 onScheduleRequest={() => setOpenIntent("schedule")}
               />
@@ -302,11 +400,13 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
               }}
             />
 
-            <p className="mt-3 text-center text-xs text-[#5F6258]">
-              {primary.preferredName || primary.fullName}
-              {" · "}
-              {primary.phoneDisplay}
-            </p>
+            {!hasImmediateVideo ? (
+              <p className="mt-3 text-center text-xs text-[#5F6258]">
+                {primary.preferredName || primary.fullName}
+                {" · "}
+                {primary.phoneDisplay}
+              </p>
+            ) : null}
 
             {backupProfile ? (
               <p className="mt-3 border-t border-[#E8DCC5] pt-3 text-center text-sm leading-relaxed text-[#3D3428]">
@@ -330,6 +430,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           </section>
         ) : null}
 
+        {/* 4. Staff → ECP profiles */}
         {profiles.length > 0 ? (
           <section aria-labelledby="vfd-team-title" className="mt-8">
             <h2 id="vfd-team-title" className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl">

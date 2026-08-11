@@ -53,15 +53,34 @@ See: `docs/human-connection-router-architecture.md`
 
 ---
 
-## HOW WINDOW QR WORKS
+## FACE-TO-FACE DOORBELL (Build 09)
 
-Encoded destination (verified):
+Primary product intent: scan QR → attempt face-to-face video via an owner-approved
+**external** destination (Google Meet preferred).
 
-`https://leonixmedia.com/visitanos?source=office-window`
+### Owner configuration (ONE field)
 
-Asset: `public/qr/visitanos-office-window.png`
+In `app/lib/digitalContact/digitalContactRegistry.ts` on the executive profile:
 
-Provider-independent. Do not reprint for Daily/Meet/FaceTime changes.
+```ts
+connectionDestinations: {
+  googleMeetUrl: "https://meet.google.com/xxx-yyyy-zzz", // owner-approved only
+}
+```
+
+Optional FaceTime:
+
+```ts
+connectionDestinations: {
+  facetimeUrl: "facetime:…", // or https://facetime.apple.com/…
+}
+```
+
+Do **not** invent URLs. Without a valid destination, the video CTA stays hidden and
+native Call/WhatsApp/SMS/Email remain available.
+
+Daily / Resend / DB are **not** required for this external video path.
+
 
 ---
 
