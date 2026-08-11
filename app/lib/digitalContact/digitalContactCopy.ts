@@ -66,6 +66,22 @@ export type DigitalContactCopy = {
   closingCta: string;
   footerTagline: string;
   footerRights: string;
+  /** Executive identity mission line — fixed Leonix brand statement, shown in both languages at once (like `footerTagline`), independent of the active toggle. */
+  missionEn: string;
+  missionEs: string;
+  whatWeDoKicker: string;
+  whatWeDoTitle: string;
+  whatWeDoBody: string;
+  whatWeDoClosing1: string;
+  whatWeDoClosing2: string;
+  aboutTitlePrefix: string;
+  focusTitle: string;
+  socialTitle: string;
+  socialSubtitle: string;
+  comingSoonLabel: string;
+  businessHubKicker: string;
+  businessHubTitle: string;
+  businessHubBody: string;
 };
 
 const ES: DigitalContactCopy = {
@@ -123,6 +139,23 @@ const ES: DigitalContactCopy = {
   closingCta: "Solicitar Consulta",
   footerTagline: "Que Ruja El León — Let The Lion Roar",
   footerRights: "Todos los derechos reservados.",
+  missionEn: "Building Better Businesses. Creating Better Lives.",
+  missionEs: "Construyendo Mejores Negocios. Creando Mejores Vidas.",
+  whatWeDoKicker: "Leonix Media",
+  whatWeDoTitle: "Qué Hacemos",
+  whatWeDoBody:
+    "Leonix ayuda a los emprendedores a construir mejores negocios mediante desarrollo empresarial, tecnología, inteligencia artificial, marca, automatización, sitios web, marketing y acompañamiento estratégico.",
+  whatWeDoClosing1: "No solamente publicitamos negocios.",
+  whatWeDoClosing2: "Ayudamos a construirlos.",
+  aboutTitlePrefix: "Conoce a",
+  focusTitle: "Enfoque Profesional",
+  socialTitle: "Mantente Conectado",
+  socialSubtitle: "Síguenos para novedades, ideas y lo próximo en Leonix Media.",
+  comingSoonLabel: "Próximamente",
+  businessHubKicker: "Lo que viene",
+  businessHubTitle: "Business Hub",
+  businessHubBody:
+    "Tu Business Hub se convertirá en el único lugar donde tus clientes podrán descubrir tu negocio, servicios, reseñas, información de contacto, productos, redes sociales, promociones y el futuro AI Business Concierge.",
 };
 
 const EN: DigitalContactCopy = {
@@ -180,6 +213,23 @@ const EN: DigitalContactCopy = {
   closingCta: "Request Consultation",
   footerTagline: "Que Ruja El León — Let The Lion Roar",
   footerRights: "All rights reserved.",
+  missionEn: "Building Better Businesses. Creating Better Lives.",
+  missionEs: "Construyendo Mejores Negocios. Creando Mejores Vidas.",
+  whatWeDoKicker: "Leonix Media",
+  whatWeDoTitle: "What We Do",
+  whatWeDoBody:
+    "Leonix helps entrepreneurs build better businesses through business development, technology, artificial intelligence, branding, automation, websites, marketing, and long-term strategic guidance.",
+  whatWeDoClosing1: "We don't simply advertise businesses.",
+  whatWeDoClosing2: "We help build them.",
+  aboutTitlePrefix: "Meet",
+  focusTitle: "Professional Focus",
+  socialTitle: "Stay Connected",
+  socialSubtitle: "Follow along for updates, insights, and what's next from Leonix Media.",
+  comingSoonLabel: "Coming Soon",
+  businessHubKicker: "What's Coming Next",
+  businessHubTitle: "Business Hub",
+  businessHubBody:
+    "Your Business Hub will become the single place where customers can discover your business, services, reviews, contact information, products, social media, promotions, and future AI Business Concierge.",
 };
 
 export function getDigitalContactCopy(lang: DigitalContactLang): DigitalContactCopy {

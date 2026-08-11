@@ -15,7 +15,7 @@ import {
   setExecutiveHubStatus,
 } from "@/app/admin/_lib/executiveHubStore";
 import type { DigitalContactSocialLink } from "@/app/lib/digitalContact/digitalContactTypes";
-import type { ExecutiveThemeId } from "@/app/lib/digitalContact/digitalContactExecutiveTheme";
+import { EXECUTIVE_THEME_OPTIONS, type ExecutiveThemeId } from "@/app/lib/digitalContact/digitalContactExecutiveTheme";
 import { EXECUTIVE_HUB_STATUSES, type ExecutiveHubStatus } from "@/app/admin/_lib/executiveHubTypes";
 import type { DayHoursRow } from "@/app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { emptyCommunityWeeklySchedule } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
@@ -26,7 +26,9 @@ import {
   type BusinessHubSummary,
 } from "@/app/admin/_components/executiveHub/businessHubAdapter";
 
-const THEME_IDS = new Set<string>(["leonix", "warfitness", "realestate", "restaurant", "partner"]);
+// Derived from the canonical theme registry (not a duplicated list) so a new Executive
+// Theme is automatically accepted here the moment it's added to `digitalContactExecutiveTheme.ts`.
+const THEME_IDS = new Set<string>(EXECUTIVE_THEME_OPTIONS.map((opt) => opt.id));
 const STATUS_SET = new Set<string>(EXECUTIVE_HUB_STATUSES);
 
 async function assertExecutiveHubAdmin(): Promise<void> {
