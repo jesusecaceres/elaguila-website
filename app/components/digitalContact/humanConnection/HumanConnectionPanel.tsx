@@ -149,6 +149,10 @@ export function HumanConnectionPanel({
         });
         if (json.offerVideo && enableVideo && entryMode === "self") {
           trackDigitalContactEvent(profile.slug, "video_cta_view", meta);
+          trackDigitalContactEvent(profile.slug, "daily_video_cta_view", {
+            ...meta,
+            channel: "browser_video",
+          });
         }
         if (json.offerVideo) {
           trackDigitalContactEvent(profile.slug, "connection_channel_view", {
@@ -222,6 +226,10 @@ export function HumanConnectionPanel({
 
       setJoinUrl(json.session.visitorJoinUrl);
       setVideoState("ready");
+      trackDigitalContactEvent(profile.slug, "daily_video_room_created", {
+        ...meta,
+        sessionId: json.session.sessionId,
+      });
       startWaitTimer();
     } catch {
       trackDigitalContactEvent(profile.slug, "video_failed", { ...meta, error: "network" });
@@ -234,6 +242,7 @@ export function HumanConnectionPanel({
     // Prefer new tab — preserves /visitanos state; avoids popup-blocker dead ends when possible.
     const opened = window.open(joinUrl, "_blank", "noopener,noreferrer");
     trackDigitalContactEvent(profile.slug, "video_join_launched", meta);
+    trackDigitalContactEvent(profile.slug, "daily_video_join_launched", meta);
     setVideoState("launched");
     if (!opened) {
       // Fallback: same-tab navigate as last resort still leaves join URL visible.

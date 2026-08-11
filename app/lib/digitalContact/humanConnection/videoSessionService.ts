@@ -13,11 +13,8 @@ import { getHumanConnectionVideoProvider } from "./providers/getVideoProvider";
 import { checkHumanConnectionRateLimit } from "./rateLimit";
 import { resolveVideoEligibility } from "./resolveVideoEligibility";
 import { normalizeVisitorFirstName } from "./normalizeVisitorName";
-import {
-  isHumanConnectionNotificationReady,
-  isHumanConnectionVideoEnabled,
-} from "./videoKillSwitch";
-import { deleteVideoSession, storeVideoSession } from "./sessionStoreServer";
+import { isHumanConnectionVideoEnabled } from "./videoKillSwitch";
+import { storeVideoSession } from "./sessionStoreServer";
 import type {
   HumanConnectionRequestInput,
   HumanConnectionSessionResult,
@@ -55,8 +52,8 @@ export type RequestVideoSessionArgs = HumanConnectionRequestInput & {
 };
 
 /**
- * Server-side video session boundary (Build 04B).
- * Fail closed without credible human-answer notification.
+ * Server-side video session boundary (Build 04B → Build 11).
+ * Creates ephemeral Daily room; host notification is best-effort (does not revoke visitor room).
  * Never returns host/provider secrets to the visitor.
  */
 export async function requestHumanConnectionVideoSession(
@@ -104,7 +101,6 @@ export async function requestHumanConnectionVideoSession(
 
   const provider = getHumanConnectionVideoProvider();
   const cap = provider.getCapability();
-  const notificationReady = isHumanConnectionNotificationReady();
 
   const eligibility = resolveVideoEligibility({
     profile,
@@ -114,13 +110,13 @@ export async function requestHumanConnectionVideoSession(
     providerConfigured: provider.isConfigured() && cap.configured,
     providerHealthy: cap.healthy && cap.canCreateEphemeralSession,
     videoEnabled: true,
-    notificationReady,
+    notificationReady: true, // ignored for offer; kept for API compat
   });
 
   if (!eligibility.offerImmediateVideo) {
     void insertDigitalContactAnalyticsEvent({
       profileSlug: slug,
-      eventType: "video_failed",
+      eventType: "daily_video_request_failed",
       meta: {
         surface,
         source,
@@ -140,6 +136,12 @@ export async function requestHumanConnectionVideoSession(
     };
   }
 
+  void insertDigitalContactAnalyticsEvent({
+    profileSlug: slug,
+    eventType: "daily_video_request_started",
+    meta: { surface, source, lang },
+  }).catch(() => {});
+
   const preferredExpiresAt = new Date(now.getTime() + HUMAN_CONNECTION_SESSION_TTL_MS).toISOString();
 
   let created;
@@ -152,15 +154,36 @@ export async function requestHumanConnectionVideoSession(
       preferredExpiresAt,
     });
   } catch {
+    void insertDigitalContactAnalyticsEvent({
+      profileSlug: slug,
+      eventType: "daily_video_request_failed",
+      meta: { surface, source, stage: "provider_throw" },
+    }).catch(() => {});
     return { ok: false, error: "provider_error" };
   }
 
   if (!created.ok) {
+    void insertDigitalContactAnalyticsEvent({
+      profileSlug: slug,
+      eventType: "daily_video_request_failed",
+      meta: { surface, source, stage: "room_create", error: created.error },
+    }).catch(() => {});
     if (created.error === "not_configured") {
       return { ok: false, error: "provider_unconfigured", eligibilityReason: "provider_unconfigured" };
     }
     return { ok: false, error: "session_create_failed" };
   }
+
+  void insertDigitalContactAnalyticsEvent({
+    profileSlug: slug,
+    eventType: "daily_video_room_created",
+    meta: {
+      surface,
+      source,
+      sessionId: created.visitor.sessionId,
+      providerId: created.visitor.providerId,
+    },
+  }).catch(() => {});
 
   const leonixHostUrl = `${publicOrigin()}/admin/digital-contact/video/${encodeURIComponent(created.visitor.sessionId)}`;
 
@@ -175,7 +198,7 @@ export async function requestHumanConnectionVideoSession(
     createdAt: now.toISOString(),
   });
 
-  // Credible human-answer path required — do not present READY without notification success.
+  // Best-effort host email notification — NEVER revoke visitor room on notify failure.
   const textBody = [
     `Visitor ${firstName} requested a face-to-face video session.`,
     `Executive: ${profile.fullName} (${slug})`,
@@ -188,10 +211,17 @@ export async function requestHumanConnectionVideoSession(
     leonixHostUrl,
     "",
     "Sign in to Leonix Admin if prompted. Do not forward this link to visitors.",
+    "This is an email notification of a video request — not a phone ring.",
     "No recording. Ephemeral room only.",
   ]
     .filter(Boolean)
     .join("\n");
+
+  void insertDigitalContactAnalyticsEvent({
+    profileSlug: slug,
+    eventType: "daily_video_notification_attempted",
+    meta: { surface, source, sessionId: created.visitor.sessionId, channel: "email" },
+  }).catch(() => {});
 
   const sent = await sendLeonixResendEmail({
     to: profile.email,
@@ -201,6 +231,7 @@ export async function requestHumanConnectionVideoSession(
         : `Leonix — solicitud de video de visitante (${firstName})`,
     text: textBody,
     html: `<p><strong>Visitor video request</strong></p>
+<p>This is an email notification — not a phone ring.</p>
 <pre style="white-space:pre-wrap;font-family:inherit">${textBody
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -212,18 +243,28 @@ export async function requestHumanConnectionVideoSession(
     console.error(
       `[human-connection] host notification failed session=${created.visitor.sessionId} class=${sent.code}`,
     );
-    try {
-      await provider.revokeSession?.(created.visitor.sessionId);
-    } catch {
-      /* natural expiry remains */
-    }
-    await deleteVideoSession(created.visitor.sessionId);
     void insertDigitalContactAnalyticsEvent({
       profileSlug: slug,
-      eventType: "video_failed",
-      meta: { surface, source, stage: "notification", sessionId: created.visitor.sessionId },
+      eventType: "daily_video_notification_failed",
+      meta: {
+        surface,
+        source,
+        sessionId: created.visitor.sessionId,
+        channel: "email",
+        code: sent.code,
+      },
     }).catch(() => {});
-    return { ok: false, error: "notification_failed", eligibilityReason: "notification_unconfigured" };
+  } else {
+    void insertDigitalContactAnalyticsEvent({
+      profileSlug: slug,
+      eventType: "daily_video_notification_sent",
+      meta: {
+        surface,
+        source,
+        sessionId: created.visitor.sessionId,
+        channel: "email",
+      },
+    }).catch(() => {});
   }
 
   void insertDigitalContactAnalyticsEvent({
@@ -234,7 +275,8 @@ export async function requestHumanConnectionVideoSession(
       source,
       sessionId: created.visitor.sessionId,
       providerId: created.visitor.providerId,
-      notified: true,
+      notified: sent.ok,
+      notificationChannel: "email",
     },
   }).catch(() => {});
 

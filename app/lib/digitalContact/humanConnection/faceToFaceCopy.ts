@@ -15,6 +15,11 @@ export type FaceToFaceCopy = {
   /** Legacy alias used by compact CTAs. */
   videoCtaPrimary: string;
   videoCtaSub: string;
+  /** Build 11 — Daily managed primary CTA. */
+  dailyPrimaryCta: string;
+  dailyPrimarySub: string;
+  meetFallbackLabel: string;
+  meetFallbackHint: string;
   /** Truthful Meet room disclaimer (not a ringing call). */
   googleMeetRoomHint: string;
   teamsRoomHint: string;
@@ -38,10 +43,15 @@ export type FaceToFaceCopy = {
 
 const ES: FaceToFaceCopy = {
   sectionTitle: "Hablar cara a cara",
-  sectionBody: "Elige la app o el método que prefieras para intentar conectarte ahora.",
+  sectionBody: "Conéctate cara a cara con nuestro equipo.",
   videoRoomCta: "Abrir sala de video",
-  videoCtaPrimary: "Abrir sala de video",
-  videoCtaSub: "Hablar cara a cara",
+  videoCtaPrimary: "Videollamada",
+  videoCtaSub: "Intentaremos conectarte con nuestro equipo.",
+  dailyPrimaryCta: "Videollamada",
+  dailyPrimarySub: "Intentaremos conectarte con nuestro equipo.",
+  meetFallbackLabel: "También: Google Meet",
+  meetFallbackHint:
+    "Abre nuestra sala de Google Meet. Es posible que necesitemos aceptar tu solicitud para entrar.",
   googleMeetRoomHint:
     "Abre nuestra sala de Google Meet. Es posible que necesitemos aceptar tu solicitud para entrar.",
   teamsRoomHint:
@@ -50,26 +60,31 @@ const ES: FaceToFaceCopy = {
   opensWithTeams: "Se abre con Microsoft Teams",
   opensWithFacetime: "Se abre con FaceTime",
   whoToSpeakWith: "¿Con quién quieres hablar?",
-  whoToSpeakWithBody: "Elige a la persona e inicia la sala de video.",
-  personVideoCta: "Abrir sala",
-  appConnectionsTitle: "También puedes contactarnos con una app",
-  appConnectionsBody: "Envía un mensaje por la plataforma que ya usas.",
+  whoToSpeakWithBody: "Elige a la persona e inicia la videollamada.",
+  personVideoCta: "Videollamada",
+  appConnectionsTitle: "También puedes contactarnos por:",
+  appConnectionsBody: "Usa la app o el método que prefieras.",
   appWhatsAppAction: "Enviar mensaje",
   appMessengerAction: "Abrir Messenger",
   appInstagramAction: "Abrir Instagram",
   appTeamsAction: "Abrir sala de Teams",
   nativeFallbackTitle: "Llamar, mensaje o correo",
-  nativeFallbackBody: "Si las apps no están disponibles, usa estas opciones.",
+  nativeFallbackBody: "Si el video no es posible ahora, usa estas opciones.",
   otherWaysTitle: "Otras formas de contactarnos",
-  otherWaysBody: "Si la sala de video no es posible ahora, usa la opción que te resulte más fácil.",
+  otherWaysBody: "Si la videollamada no es posible ahora, usa la opción que te resulte más fácil.",
 };
 
 const EN: FaceToFaceCopy = {
   sectionTitle: "Talk face-to-face",
-  sectionBody: "Choose the app or method you prefer to try connecting now.",
+  sectionBody: "Connect face-to-face with our team.",
   videoRoomCta: "Open video room",
-  videoCtaPrimary: "Open video room",
-  videoCtaSub: "Talk face-to-face",
+  videoCtaPrimary: "Video call",
+  videoCtaSub: "We’ll try to connect you with our team.",
+  dailyPrimaryCta: "Video call",
+  dailyPrimarySub: "We’ll try to connect you with our team.",
+  meetFallbackLabel: "Also: Google Meet",
+  meetFallbackHint:
+    "Open our Google Meet room. We may need to approve your request to join.",
   googleMeetRoomHint:
     "Open our Google Meet room. We may need to approve your request to join.",
   teamsRoomHint:
@@ -78,18 +93,18 @@ const EN: FaceToFaceCopy = {
   opensWithTeams: "Opens with Microsoft Teams",
   opensWithFacetime: "Opens with FaceTime",
   whoToSpeakWith: "Who would you like to speak with?",
-  whoToSpeakWithBody: "Choose a person and open the video room.",
-  personVideoCta: "Open room",
-  appConnectionsTitle: "You can also reach us with an app",
-  appConnectionsBody: "Send a message on a platform you already use.",
+  whoToSpeakWithBody: "Choose a person and start the video call.",
+  personVideoCta: "Video call",
+  appConnectionsTitle: "You can also reach us by:",
+  appConnectionsBody: "Use whichever app or method you prefer.",
   appWhatsAppAction: "Send message",
   appMessengerAction: "Open Messenger",
   appInstagramAction: "Open Instagram",
   appTeamsAction: "Open Teams room",
   nativeFallbackTitle: "Call, text, or email",
-  nativeFallbackBody: "If apps aren’t available, use these options.",
+  nativeFallbackBody: "If video isn’t possible right now, use these options.",
   otherWaysTitle: "Other ways to reach us",
-  otherWaysBody: "If the video room isn’t possible right now, use whichever option is easiest for you.",
+  otherWaysBody: "If video isn’t possible right now, use whichever option is easiest for you.",
 };
 
 export function getFaceToFaceCopy(lang: DigitalContactLang): FaceToFaceCopy {

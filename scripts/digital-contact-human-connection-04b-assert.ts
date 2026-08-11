@@ -97,7 +97,7 @@ function assertTrue(name: string, cond: boolean) {
   assertEq("1 offer false", r.offerImmediateVideo, false);
 }
 
-// 2. notification unconfigured
+// 2. notification unconfigured — Build 11: does NOT block offering doorbell
 {
   const r = resolveVideoEligibility({
     profile: eligibleBase,
@@ -108,8 +108,8 @@ function assertTrue(name: string, cond: boolean) {
     videoEnabled: true,
     notificationReady: false,
   });
-  assertEq("2 notification_unconfigured", r.reason, "notification_unconfigured");
-  assertEq("2 offer false", r.offerImmediateVideo, false);
+  assertEq("2 eligible without notify", r.reason, "eligible");
+  assertEq("2 offer true", r.offerImmediateVideo, true);
 }
 
 // 3. fully eligible with notify + provider
@@ -173,7 +173,7 @@ function assertTrue(name: string, cond: boolean) {
   assertEq("9 allow_video_false", r.reason, "allow_video_false");
 }
 
-// 10. presence expired
+// 10. presence expired — Build 11: does not block office-hours doorbell
 {
   const r = resolveVideoEligibility({
     profile: {
@@ -190,7 +190,7 @@ function assertTrue(name: string, cond: boolean) {
     videoEnabled: true,
     notificationReady: true,
   });
-  assertEq("10 presence_expired", r.reason, "presence_expired");
+  assertEq("10 presence_expired_still_eligible", r.offerImmediateVideo, true);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

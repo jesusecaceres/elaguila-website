@@ -97,16 +97,29 @@ export function resolveHumanConnectionChannels(
   /** Immediate video via approved external destinations and/or eligible managed video. */
   const faceToFace = resolvePreferredFaceToFaceConnection({ profile });
   const hasExternalVideo = faceToFace.hasImmediateVideo;
+  /** Build 11: Daily managed browser video is the primary face-to-face path when offered. */
   const hasLiveFaceToFace = hasBrowserVideo || hasExternalVideo || hasGoogleMeetManaged;
 
-  // --- Face-to-face / video rooms (when truthful) ---
-  // Preference: Meet → Teams → FaceTime → managed browser video (dormant) → managed Meet API (dormant).
+  // --- Face-to-face / video ---
+  // Preference: Daily (managed) → Meet room → Teams → FaceTime → managed Meet API (dormant).
+  if (hasBrowserVideo) {
+    collected.push({
+      type: "browser_video",
+      channelClass: "managed_session",
+      priority: 1,
+      presentation: "primary",
+      action: { kind: "managed_browser_video" },
+      requiresPresence: false,
+      requiresWorkingHours: true,
+    });
+  }
+
   if (hasApprovedMeetLink && googleMeetUrl) {
     collected.push({
       type: "google_meet",
       channelClass: "direct",
-      priority: 5,
-      presentation: "primary",
+      priority: hasBrowserVideo ? 25 : 5,
+      presentation: hasBrowserVideo ? "secondary" : "primary",
       action: { kind: "external_url", url: googleMeetUrl, channel: "google_meet" },
       requiresPresence: false,
       requiresWorkingHours: false,
@@ -117,8 +130,8 @@ export function resolveHumanConnectionChannels(
     collected.push({
       type: "teams",
       channelClass: "direct",
-      priority: 8,
-      presentation: hasApprovedMeetLink ? "secondary" : "primary",
+      priority: 28,
+      presentation: hasBrowserVideo || hasApprovedMeetLink ? "secondary" : "primary",
       action: { kind: "external_url", url: teamsUrl, channel: "teams" },
       requiresPresence: false,
       requiresWorkingHours: false,
@@ -129,23 +142,11 @@ export function resolveHumanConnectionChannels(
     collected.push({
       type: "facetime",
       channelClass: "direct",
-      priority: 15,
-      presentation: hasApprovedMeetLink || hasTeams ? "secondary" : "primary",
+      priority: 30,
+      presentation: hasBrowserVideo || hasApprovedMeetLink || hasTeams ? "secondary" : "primary",
       action: { kind: "external_url", url: facetimeUrl, channel: "facetime" },
       requiresPresence: false,
       requiresWorkingHours: false,
-    });
-  }
-
-  if (hasBrowserVideo) {
-    collected.push({
-      type: "browser_video",
-      channelClass: "managed_session",
-      priority: 30,
-      presentation: hasExternalVideo ? "secondary" : "primary",
-      action: { kind: "managed_browser_video" },
-      requiresPresence: true,
-      requiresWorkingHours: true,
     });
   }
 
@@ -154,7 +155,7 @@ export function resolveHumanConnectionChannels(
       type: "google_meet",
       channelClass: "managed_session",
       priority: 35,
-      presentation: hasExternalVideo || hasBrowserVideo ? "secondary" : "primary",
+      presentation: "secondary",
       action: { kind: "managed_google_meet" },
       requiresPresence: true,
       requiresWorkingHours: true,

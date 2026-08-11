@@ -1,10 +1,12 @@
 /**
- * Central immediate-video eligibility (Build 04).
+ * Central immediate-video eligibility (Build 04 → Build 11 doorbell).
  *
- * allowVideo alone is NEVER enough.
- * Office hours alone are NEVER enough.
- * Unknown schedule is NEVER available.
- * Stale temporary presence is NEVER available.
+ * Build 11 V1 digital doorbell:
+ * - Office hours + allowVideo + configured provider are enough to OFFER the CTA.
+ * - Manual temporary presence is NOT required for the doorbell button.
+ * - Fresh "available" presence is NEVER claimed in visitor copy from this flag alone.
+ * - If staff marked busy/away with fresh presence, fail closed (do not offer).
+ * - Notification readiness does NOT block offering (notify is best-effort at request time).
  */
 
 import { resolveExecutivePublicAvailability } from "../resolveExecutivePublicAvailability";
@@ -24,7 +26,10 @@ export type ResolveVideoEligibilityInput = {
   providerHealthy?: boolean;
   /** Kill switch — when false, immediate video is refused. Default true for pure unit tests. */
   videoEnabled?: boolean;
-  /** Staff notification channel must be ready for a credible human-answer path. */
+  /**
+   * Legacy notify gate. Build 11: ignored for offering the doorbell.
+   * Notification is attempted at session-create time and must not block the CTA.
+   */
   notificationReady?: boolean;
 };
 
@@ -58,7 +63,6 @@ export function resolveVideoEligibility(
   const providerConfigured = input.providerConfigured === true;
   const providerHealthy = input.providerHealthy !== false;
   const videoEnabled = input.videoEnabled !== false;
-  const notificationReady = input.notificationReady !== false;
 
   const profile = input.profile;
   if (!profile) {
@@ -108,7 +112,7 @@ export function resolveVideoEligibility(
         providerConfigured,
         providerHealthy,
         videoEnabled,
-        notificationReady,
+        notificationReady: input.notificationReady,
       });
       backupOfferImmediateVideo = backupElig.offerImmediateVideo;
     }
@@ -131,38 +135,26 @@ export function resolveVideoEligibility(
     return denial(slug, "outside_hours", baseExtras);
   }
 
-  if (!profile.publicAvailabilityPolicy || profile.publicAvailabilityPolicy.showAvailability !== true) {
-    return denial(slug, "policy_hides_availability", baseExtras);
-  }
-
+  // Soft presence: only deny when a FRESH busy/away signal exists.
+  // Missing / expired presence does NOT block the V1 office-hours doorbell.
   const presence = profile.temporaryPresence;
-  if (!presence) {
-    return denial(slug, "presence_missing", baseExtras);
-  }
+  if (presence) {
+    const expiresAt = Date.parse(presence.expiresAt);
+    const setAt = Date.parse(presence.setAt);
+    const fresh =
+      Number.isFinite(expiresAt) &&
+      Number.isFinite(setAt) &&
+      expiresAt > setAt &&
+      now.getTime() < expiresAt;
 
-  const expiresAt = Date.parse(presence.expiresAt);
-  const setAt = Date.parse(presence.setAt);
-  if (!Number.isFinite(expiresAt) || !Number.isFinite(setAt) || !(expiresAt > setAt)) {
-    return denial(slug, "presence_expired", baseExtras);
-  }
-  if (now.getTime() >= expiresAt) {
-    return denial(slug, "presence_expired", baseExtras);
-  }
-
-  if (presence.status === "busy" || avail.publicAvailabilityState === "busy") {
-    return denial(slug, "presence_busy", baseExtras);
-  }
-  if (presence.status === "away" || avail.publicAvailabilityState === "away") {
-    return denial(slug, "presence_away", baseExtras);
-  }
-
-  // Fresh AVAILABLE is required — within_hours alone is never enough.
-  if (
-    presence.status !== "available" ||
-    avail.publicAvailabilityState !== "available" ||
-    !avail.temporaryStatusFresh
-  ) {
-    return denial(slug, "not_freshly_available", baseExtras);
+    if (fresh) {
+      if (presence.status === "busy" || avail.publicAvailabilityState === "busy") {
+        return denial(slug, "presence_busy", baseExtras);
+      }
+      if (presence.status === "away" || avail.publicAvailabilityState === "away") {
+        return denial(slug, "presence_away", baseExtras);
+      }
+    }
   }
 
   if (!providerConfigured) {
@@ -170,9 +162,6 @@ export function resolveVideoEligibility(
   }
   if (!providerHealthy) {
     return denial(slug, "provider_unhealthy", baseExtras);
-  }
-  if (!notificationReady) {
-    return denial(slug, "notification_unconfigured", baseExtras);
   }
 
   return {

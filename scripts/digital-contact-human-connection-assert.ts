@@ -199,7 +199,7 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
   assertEq("8 absence_active", r.reason, "absence_active");
 }
 
-// 9. presence missing
+// 9. presence missing — Build 11: office hours + provider enough (no manual presence)
 {
   const r = resolveVideoEligibility({
     profile: { ...eligibleBase, temporaryPresence: null },
@@ -207,10 +207,11 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
     lookupProfile: lookup,
     providerConfigured: true,
   });
-  assertEq("9 presence_missing", r.reason, "presence_missing");
+  assertEq("9 presence_missing_still_eligible", r.offerImmediateVideo, true);
+  assertEq("9 reason eligible", r.reason, "eligible");
 }
 
-// 10. presence expired
+// 10. presence expired — Build 11: expired presence does not block office-hours doorbell
 {
   const r = resolveVideoEligibility({
     profile: {
@@ -225,7 +226,7 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
     lookupProfile: lookup,
     providerConfigured: true,
   });
-  assertEq("10 presence_expired", r.reason, "presence_expired");
+  assertEq("10 presence_expired_still_eligible", r.offerImmediateVideo, true);
 }
 
 // 11. busy
@@ -256,7 +257,7 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
   assertEq("12 presence_away", r.reason, "presence_away");
 }
 
-// 13. allowVideo alone never enough (hours + video, no presence)
+// 13. allowVideo + hours + provider (no presence) — Build 11 doorbell OK
 {
   const r = resolveVideoEligibility({
     profile: {
@@ -268,10 +269,10 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
     lookupProfile: lookup,
     providerConfigured: true,
   });
-  assertTrue("13 allowVideo alone denied", r.offerImmediateVideo === false);
+  assertTrue("13 hours+provider eligible", r.offerImmediateVideo === true);
 }
 
-// 14. office hours alone never enough
+// 14. office hours + allowVideo + provider — Build 11: sufficient for doorbell
 {
   const r = resolveVideoEligibility({
     profile: {
@@ -285,7 +286,7 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
     lookupProfile: lookup,
     providerConfigured: true,
   });
-  assertTrue("14 hours alone denied", r.offerImmediateVideo === false);
+  assertTrue("14 hours+provider eligible", r.offerImmediateVideo === true);
 }
 
 // 15. provider unhealthy
@@ -374,7 +375,7 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
   assertEq("21 backup offer video", r.backupOfferImmediateVideo, true);
 }
 
-// 22. policy hides availability
+// 22. policy showAvailability=false — Build 11: still offer doorbell from office hours
 {
   const r = resolveVideoEligibility({
     profile: {
@@ -385,7 +386,7 @@ const lookup = lookupFrom({ alpha: eligibleBase, beta });
     lookupProfile: lookup,
     providerConfigured: true,
   });
-  assertEq("22 policy_hides", r.reason, "policy_hides_availability");
+  assertEq("22 policy_hides_still_offers_doorbell", r.offerImmediateVideo, true);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

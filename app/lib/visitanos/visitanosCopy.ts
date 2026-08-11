@@ -74,8 +74,7 @@ const ES: VisitanosCopy = {
   headline: "Gracias por visitarnos.",
   subhead:
     "Si llegaste a nuestra oficina y salimos un momento, no queremos que tu visita sea en vano. Estamos aquí para ayudarte.",
-  subheadFaceToFace:
-    "¿Quieres hablar con nosotros cara a cara? Elige la app o el método que prefieras.",
+  subheadFaceToFace: "Conéctate cara a cara con nuestro equipo.",
   hoursLabel: "Horario habitual",
   hoursWindow: "9:00 AM – 5:00 PM",
   hoursWithinTitle: "Estamos dentro de nuestro horario habitual.",
@@ -111,8 +110,7 @@ const EN: VisitanosCopy = {
   headline: "Thanks for visiting us.",
   subhead:
     "If you came to our office and we stepped away for a moment, we don’t want your visit to be wasted. We’re still here to help.",
-  subheadFaceToFace:
-    "Want to talk with us face-to-face? Choose the app or method you prefer.",
+  subheadFaceToFace: "Connect face-to-face with our team.",
   hoursLabel: "Normal office hours",
   hoursWindow: "9:00 AM – 5:00 PM",
   hoursWithinTitle: "We’re within our normal office hours.",

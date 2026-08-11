@@ -4,7 +4,7 @@ import "server-only";
  * Server-controlled immediate-video kill switch (Build 04B).
  *
  * HUMAN_CONNECTION_VIDEO_ENABLED=false|0|off|no → video refused (CTA + API).
- * Unset or true → allowed only if provider + eligibility + notification still pass.
+ * Unset or true → allowed only if provider + eligibility still pass.
  *
  * Never rely on hiding a React button alone — callers must enforce this server-side.
  */
@@ -17,8 +17,8 @@ export function isHumanConnectionVideoEnabled(): boolean {
 }
 
 /**
- * Staff notification channel readiness for human-answer path.
- * Without a deliverable notify path, immediate video must remain disabled.
+ * Staff notification channel readiness (Resend).
+ * Build 11: used for schedule + best-effort host email — does NOT gate Daily doorbell offering.
  */
 export function isHumanConnectionNotificationReady(): boolean {
   return Boolean(String(process.env.RESEND_API_KEY ?? "").trim());

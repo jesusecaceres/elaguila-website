@@ -77,8 +77,8 @@ assertEq("17 primary is chuy", active[0]?.slug, "chuy");
     videoEnabled: true,
     notificationReady: true,
   });
-  assertEq("19 no presence → video denied", video.offerImmediateVideo, false);
-  assertEq("19 reason presence_missing", video.reason, "presence_missing");
+  assertEq("19 no presence → video offered (Build 11 office-hours doorbell)", video.offerImmediateVideo, true);
+  assertEq("19 reason eligible", video.reason, "eligible");
 }
 
 // Fresh presence + dependencies → eligible
@@ -145,7 +145,7 @@ assertEq("17 primary is chuy", active[0]?.slug, "chuy");
     videoEnabled: true,
     notificationReady: true,
   });
-  assertEq("22 expired denied", video.reason, "presence_expired");
+  assertEq("22 expired still eligible", video.offerImmediateVideo, true);
 }
 
 // Kill switch
@@ -210,7 +210,7 @@ assertEq("17 primary is chuy", active[0]?.slug, "chuy");
     videoEnabled: true,
     notificationReady: false,
   });
-  assertEq("25 missing notification", video.reason, "notification_unconfigured");
+  assertEq("25 missing notification still eligible", video.offerImmediateVideo, true);
 }
 
 // QR / source

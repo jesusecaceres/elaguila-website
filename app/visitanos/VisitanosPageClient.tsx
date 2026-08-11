@@ -102,7 +102,10 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
     [primary],
   );
   const videoStaff = useMemo(() => listProfilesWithFaceToFaceVideo(profiles), [profiles]);
-  const hasImmediateVideo = Boolean(primaryFaceToFace?.hasImmediateVideo);
+  const hasMeetFallback = Boolean(primaryFaceToFace?.hasImmediateVideo);
+  /** Build 11: Daily managed video is primary when offered; Meet is secondary. */
+  const hasDailyPrimary = browserVideoOffer;
+  const hasImmediateVideo = hasDailyPrimary || hasMeetFallback;
 
   const route = useMemo(() => {
     if (!primary) return null;
@@ -129,23 +132,64 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
     [route],
   );
 
+  /** Early status fetch so Daily CTA can render as primary without waiting on panel mount order. */
+  useEffect(() => {
+    if (!primary) return;
+    let cancelled = false;
+    const params = new URLSearchParams({
+      slug: primary.slug,
+      lang,
+      surface: "virtual_front_desk",
+    });
+    void fetch(`/api/digital-contact/human-connection/status?${params.toString()}`, {
+      method: "GET",
+      cache: "no-store",
+    })
+      .then(async (res) => {
+        const json = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          offerVideo?: boolean;
+          offerSchedule?: boolean;
+        } | null;
+        if (cancelled || !json?.ok) return;
+        const offerVideo = Boolean(json.offerVideo);
+        const offerSchedule = Boolean(json.offerSchedule);
+        setBrowserVideoOffer(offerVideo);
+        setScheduleOffer(offerSchedule);
+        if (offerVideo) {
+          trackDigitalContactEvent(primary.slug, "daily_video_cta_view", {
+            ...analyticsMeta(source, lang),
+            channel: "browser_video",
+          });
+        }
+      })
+      .catch(() => {
+        /* status failure must not break native CTAs */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [primary?.slug, lang, source]);
+
   useEffect(() => {
     if (!primary || !route) return;
-    if (primaryFaceToFace?.primary) {
+    if (hasMeetFallback && primaryFaceToFace?.primary && !hasDailyPrimary) {
       trackDigitalContactEvent(primary.slug, "face_to_face_cta_view", {
         ...analyticsMeta(source, lang),
         channel: primaryFaceToFace.primary.provider,
       });
     }
     for (const ch of route.channels) {
-      if (ch.type === "google_meet" || ch.type === "facetime" || ch.type === "browser_video") continue;
+      if (ch.type === "google_meet" || ch.type === "facetime" || ch.type === "browser_video" || ch.type === "teams") {
+        continue;
+      }
       trackDigitalContactEvent(primary.slug, "connection_channel_view", {
         ...analyticsMeta(source, lang),
         channel: ch.type,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [primary?.slug, route?.channels.map((c) => c.type).join(","), primaryFaceToFace?.primary?.provider, lang, source]);
+  }, [primary?.slug, route?.channels.map((c) => c.type).join(","), hasDailyPrimary, hasMeetFallback, lang, source]);
 
   let primaryAvailability: ExecutivePublicAvailabilityView | null = null;
   if (primary && availabilityNow) {
@@ -291,8 +335,8 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
       </header>
 
       <main className="relative z-10 mx-auto -mt-3 w-full max-w-md px-5 pb-4 sm:px-6">
-        {/* 1. Face-to-face video doorbell (only when ECP has approved destination) */}
-        {primary && primaryFaceToFace?.hasImmediateVideo ? (
+        {/* 1. Face-to-face — Daily primary (office hours), Meet secondary fallback */}
+        {primary && (hasDailyPrimary || hasMeetFallback) ? (
           <section
             aria-labelledby="vfd-video-title"
             className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
@@ -306,18 +350,104 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
             <p className="mt-1.5 text-center text-sm leading-relaxed text-[#3D3428]">
               {faceCopy.sectionBody}
             </p>
-            <div className="mt-4">
-              <FaceToFaceVideoCta
-                faceToFace={primaryFaceToFace}
-                lang={lang}
-                source={source}
-                variant="doorbell"
-              />
-            </div>
+
+            {hasDailyPrimary ? (
+              <div className="mt-4 space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackDigitalContactEvent(primary.slug, "daily_video_request_started", {
+                      ...analyticsMeta(source, lang),
+                      channel: "browser_video",
+                      stage: "cta_tap",
+                    });
+                    setOpenIntent("video");
+                  }}
+                  aria-label={faceCopy.dailyPrimaryCta}
+                  className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-4 text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
+                >
+                  <span className="text-lg font-bold tracking-tight sm:text-xl">{faceCopy.dailyPrimaryCta}</span>
+                  <span className="text-sm font-medium text-[#FFFDF7]/90">{faceCopy.dailyPrimarySub}</span>
+                </button>
+
+                <HumanConnectionPanel
+                  profile={primary}
+                  lang={lang}
+                  surface="virtual_front_desk"
+                  source={source}
+                  whatsappPrefill={waBody}
+                  smsPrefill={smsBody}
+                  variant="inline"
+                  enableVideo
+                  enableSchedule={scheduleOffer}
+                  entryMode="router"
+                  openIntent={openIntent}
+                  onOpenIntentConsumed={() => setOpenIntent(null)}
+                  onOfferResolved={(o) => {
+                    setBrowserVideoOffer(o.offerVideo);
+                    setScheduleOffer(o.offerSchedule);
+                  }}
+                />
+
+                {hasMeetFallback && primaryFaceToFace?.primary ? (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackDigitalContactEvent(primary.slug, "face_to_face_cta_selected", {
+                          ...analyticsMeta(source, lang),
+                          channel: primaryFaceToFace.primary!.provider,
+                          role: "secondary_fallback",
+                        });
+                        openExternalUrl(primaryFaceToFace.primary!.url);
+                      }}
+                      className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#D6C7AD] bg-[#FBF7EF] px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)]"
+                    >
+                      {faceCopy.meetFallbackLabel}
+                    </button>
+                    <p className="mt-1.5 text-center text-xs leading-relaxed text-[#5F6258]">
+                      {faceCopy.meetFallbackHint}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : primaryFaceToFace?.hasImmediateVideo ? (
+              <div className="mt-4">
+                <FaceToFaceVideoCta
+                  faceToFace={primaryFaceToFace}
+                  lang={lang}
+                  source={source}
+                  variant="doorbell"
+                />
+              </div>
+            ) : null}
+
             <p className="mt-3 text-center text-xs text-[#5F6258]">
               {primary.preferredName || primary.fullName}
             </p>
           </section>
+        ) : null}
+
+        {/* Always mount panel when Daily may become available but primary section skipped (outside hours) */}
+        {primary && !hasDailyPrimary && !hasMeetFallback ? (
+          <HumanConnectionPanel
+            profile={primary}
+            lang={lang}
+            surface="virtual_front_desk"
+            source={source}
+            whatsappPrefill={waBody}
+            smsPrefill={smsBody}
+            variant="inline"
+            enableVideo
+            enableSchedule={scheduleOffer}
+            entryMode="router"
+            openIntent={openIntent}
+            onOpenIntentConsumed={() => setOpenIntent(null)}
+            onOfferResolved={(o) => {
+              setBrowserVideoOffer(o.offerVideo);
+              setScheduleOffer(o.offerSchedule);
+            }}
+          />
         ) : null}
 
         {/* 2. Staff video choice when multiple executives have video destinations */}
@@ -442,24 +572,27 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
               />
             </div>
 
-            <HumanConnectionPanel
-              profile={primary}
-              lang={lang}
-              surface="virtual_front_desk"
-              source={source}
-              whatsappPrefill={waBody}
-              smsPrefill={smsBody}
-              variant="inline"
-              enableVideo
-              enableSchedule={scheduleOffer}
-              entryMode="router"
-              openIntent={openIntent}
-              onOpenIntentConsumed={() => setOpenIntent(null)}
-              onOfferResolved={(o) => {
-                setBrowserVideoOffer(o.offerVideo);
-                setScheduleOffer(o.offerSchedule);
-              }}
-            />
+            {/* Panel for Meet-only / schedule flows when Daily primary section did not mount it */}
+            {!hasDailyPrimary ? (
+              <HumanConnectionPanel
+                profile={primary}
+                lang={lang}
+                surface="virtual_front_desk"
+                source={source}
+                whatsappPrefill={waBody}
+                smsPrefill={smsBody}
+                variant="inline"
+                enableVideo
+                enableSchedule={scheduleOffer}
+                entryMode="router"
+                openIntent={openIntent}
+                onOpenIntentConsumed={() => setOpenIntent(null)}
+                onOfferResolved={(o) => {
+                  setBrowserVideoOffer(o.offerVideo);
+                  setScheduleOffer(o.offerSchedule);
+                }}
+              />
+            ) : null}
 
             {!hasImmediateVideo ? (
               <p className="mt-3 text-center text-xs text-[#5F6258]">

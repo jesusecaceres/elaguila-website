@@ -49,25 +49,26 @@ export type HumanConnectionCopy = {
 };
 
 const ES: HumanConnectionCopy = {
-  videoCta: "Hablar por video",
-  videoPrecallTitle: "Conexión por video",
-  videoPrecallBody: "Antes de conectar, dinos cómo llamarte. La sesión es temporal y no se graba.",
+  videoCta: "Videollamada",
+  videoPrecallTitle: "Videollamada",
+  videoPrecallBody:
+    "Antes de conectar, dinos cómo llamarte. Intentaremos conectarte con nuestro equipo. La sesión es temporal y no se graba.",
   videoFirstName: "Nombre",
   videoReasonOptional: "Motivo de la visita (opcional)",
   videoPrivacyNotice:
-    "No grabamos video ni audio. El proveedor puede pedir permiso de cámara y micrófono.",
-  videoProviderNotice: "La videollamada la facilita un proveedor externo de salas temporales.",
-  videoStart: "Iniciar video",
+    "No grabamos video ni audio. El navegador puede pedir permiso de cámara y micrófono.",
+  videoProviderNotice: "La conexión por video se abre en tu navegador. No necesitas instalar una app.",
+  videoStart: "Iniciar videollamada",
   videoCancel: "Cancelar",
   videoRequesting: "Preparando la conexión…",
   videoReady: "Tu sala está lista. Únete cuando quieras.",
   videoReadyCta: "Unirme ahora",
-  videoWaiting: "Esperando respuesta…",
+  videoWaiting: "Esperando respuesta del equipo…",
   videoLaunched: "Abrimos la sala de video. Si no puedes unirte, usa otra forma de contacto abajo.",
   videoNoAnswerTitle: "No pudimos conectar por video en este momento.",
   videoNoAnswerBody: "Todavía podemos ayudarte. Elige otra forma de contacto.",
   videoFailedTitle: "No pudimos iniciar el video.",
-  videoFailedBody: "Todavía podemos ayudarte por llamada, mensaje o solicitud de conversación.",
+  videoFailedBody: "Todavía podemos ayudarte por Google Meet, llamada, WhatsApp o mensaje.",
   videoExpiredTitle: "La sala de video expiró.",
   videoExpiredBody: "Todavía podemos ayudarte. Elige otra forma de contacto.",
   videoMicDenied:
@@ -100,25 +101,26 @@ const ES: HumanConnectionCopy = {
 };
 
 const EN: HumanConnectionCopy = {
-  videoCta: "Talk by video",
-  videoPrecallTitle: "Video connection",
-  videoPrecallBody: "Before we connect, tell us what to call you. The session is temporary and is not recorded.",
+  videoCta: "Video call",
+  videoPrecallTitle: "Video call",
+  videoPrecallBody:
+    "Before we connect, tell us what to call you. We’ll try to connect you with our team. The session is temporary and is not recorded.",
   videoFirstName: "First name",
   videoReasonOptional: "Reason for visit (optional)",
   videoPrivacyNotice:
-    "We do not record video or audio. The provider may ask for camera and microphone permission.",
-  videoProviderNotice: "Video is provided by an external ephemeral-room service.",
-  videoStart: "Start video",
+    "We do not record video or audio. Your browser may ask for camera and microphone permission.",
+  videoProviderNotice: "Video opens in your browser. No app install required.",
+  videoStart: "Start video call",
   videoCancel: "Cancel",
   videoRequesting: "Preparing the connection…",
   videoReady: "Your room is ready. Join when you’re ready.",
   videoReadyCta: "Join now",
-  videoWaiting: "Waiting for a response…",
+  videoWaiting: "Waiting for the team to respond…",
   videoLaunched: "We opened the video room. If you can’t join, use another way to reach us below.",
   videoNoAnswerTitle: "We couldn’t connect by video right now.",
   videoNoAnswerBody: "We can still help. Choose another way to reach us.",
   videoFailedTitle: "We couldn’t start video.",
-  videoFailedBody: "We can still help by call, message, or a conversation request.",
+  videoFailedBody: "We can still help by Google Meet, call, WhatsApp, or message.",
   videoExpiredTitle: "The video room expired.",
   videoExpiredBody: "We can still help. Choose another way to reach us.",
   videoMicDenied:
