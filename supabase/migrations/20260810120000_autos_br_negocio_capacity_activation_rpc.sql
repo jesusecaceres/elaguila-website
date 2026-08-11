@@ -99,7 +99,7 @@ begin
   -- call sites/webhook cranks, not duplicated here.
   select status, grace_ends_at into v_sub_status, v_grace_ends_at
   from public.leonix_subscription_records
-  where listing_id = v_parent.id
+  where listing_id = v_parent.id::text
     and listing_source in ('autos_classifieds_listings', 'autos')
   order by created_at desc
   limit 1;
@@ -122,7 +122,7 @@ begin
 
   select exists (
     select 1 from public.listing_package_entitlements e
-    where e.listing_id = v_parent.id
+    where e.listing_id = v_parent.id::text
       and e.package_key = 'autos_dealer_inventory_pack_monthly'
       and e.status = 'active'
       and e.revoked_at is null
@@ -230,7 +230,7 @@ begin
 
   select status, grace_ends_at into v_sub_status, v_grace_ends_at
   from public.leonix_subscription_records
-  where listing_id = v_parent.id
+  where listing_id = v_parent.id::text
     and listing_source in ('listings', 'bienes-raices')
   order by created_at desc
   limit 1;
@@ -252,7 +252,7 @@ begin
 
   select exists (
     select 1 from public.listing_package_entitlements e
-    where e.listing_id = v_parent.id
+    where e.listing_id = v_parent.id::text
       and e.package_key = 'br_inventory_pack_monthly'
       and e.status = 'active'
       and e.revoked_at is null

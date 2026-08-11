@@ -56,8 +56,24 @@ for (const [name, body] of [["autos_dealer_activate_listing", autos], ["br_negoc
   // 4. Entitlement subquery scoped to the exact parent's own listing_id, never a group key.
   check(/e\.listing_id\s*=\s*v_parent\.id/.test(body), `${name}: entitlement lookup scoped to e.listing_id = v_parent.id (exact parent, never group-wide/owner-wide)`);
 
+  // 4b. C9 live certification (2026-08-11) caught a genuine runtime defect here: listing_id on
+  // both leonix_subscription_records and listing_package_entitlements is `text`, while v_parent.id
+  // is `uuid` — PL/pgSQL does not type-check embedded SQL until execution, so `CREATE OR REPLACE
+  // FUNCTION` accepted the raw `text = uuid` comparison silently and every non-idempotent
+  // activation call failed live with `42883 operator does not exist: text = uuid`. Every one of
+  // the 4 occurrences (2 lookups x 2 RPCs) must carry the ::text cast; this check fails closed if
+  // any one of them ever regresses back to a bare, uncast comparison.
+  // Negative lookbehind excludes br_inventory_parent_listing_id (a genuinely uuid-typed column,
+  // correctly left uncast) — without it the fragment "listing_id" inside that longer identifier
+  // false-positives as an uncast match.
+  const uncastListingIdComparison = /(?<![a-z_])listing_id\s*=\s*v_parent\.id(?!::text)/g;
+  const uncastMatches = body.match(uncastListingIdComparison) ?? [];
+  check(uncastMatches.length === 0, `${name}: no uncast text=uuid listing_id comparison remains (found ${uncastMatches.length})`);
+  const castMatches = body.match(/listing_id\s*=\s*v_parent\.id::text/g) ?? [];
+  check(castMatches.length === 2, `${name}: both listing_id comparisons (subscription + entitlement lookup) carry the ::text cast (found ${castMatches.length}, expected 2)`);
+
   // 5. Lifecycle: queries leonix_subscription_records filtered by the parent's own id, denies grace/suspended/canceled.
-  check(/where\s+listing_id\s*=\s*v_parent\.id/i.test(body), `${name}: subscription lookup filtered by the parent's own id`);
+  check(/where\s+listing_id\s*=\s*v_parent\.id::text/i.test(body), `${name}: subscription lookup filtered by the parent's own id (cast)`);
   check(/'grace_blocks_new_capacity'/.test(body), `${name}: denies on grace`);
   check(/'subscription_suspended'/.test(body), `${name}: denies on suspended`);
   check(/'subscription_canceled'/.test(body), `${name}: denies on canceled`);

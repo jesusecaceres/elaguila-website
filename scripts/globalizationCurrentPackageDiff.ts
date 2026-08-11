@@ -413,6 +413,26 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   // (added this build to close a real direct-active-INSERT capacity bypass) alongside its
   // existing five-key vocabulary; every other assertion in the file is unchanged:
   "scripts/gate-g2-3-1-br-lifecycle-mutation-selftest.ts",
+
+  // ═══ PACKAGE C C9 — LIVE MIGRATION CERTIFICATION (Autos/Bienes capacity RPCs applied and
+  // exercised against an isolated, non-Production Supabase project; Production never touched) ═══
+  // New certification-only artifacts (never applied to Production, never touch app runtime):
+  "scripts/c9-certification-schema-setup.sql",
+  "scripts/certify-package-c-c9-capacity-rpcs.mjs",
+  "docs/globalization/package-c/C9_MIGRATION_CERTIFICATION_CLOSURE.md",
+  // supabase/migrations/20260810120000_autos_br_negocio_capacity_activation_rpc.sql and
+  // scripts/verify-c7-capacity-rpc-sql-contract.mjs are already listed above (Build 4 section) —
+  // C9 corrected 4 text/uuid casts in the former and added a regression guard to the latter;
+  // same paths, no new entry needed.
+  // Historical gate triage — this gate's own blanket "no migration file in the diff" check
+  // predates the shared allowlist mechanism; rewired onto excludeCurrentPackageFiles() so a
+  // later package's already-authorized migration touch (like C9's cast fix above) doesn't trip
+  // it, while its second, non-exempt rule (the original views-column migration must never be
+  // touched by anyone) is unchanged:
+  "scripts/gate-i5-5-invalid-query-column-cleanup-selftest.ts",
+  // Same stale blanket-migration-check pattern, same fix, found in a second historical gate
+  // during Package C final closeout triage:
+  "scripts/gate-i5-4c-empleos-lane-shell-fallback-safety-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a
