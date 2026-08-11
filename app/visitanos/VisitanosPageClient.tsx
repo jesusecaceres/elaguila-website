@@ -16,13 +16,9 @@ import {
   type ExecutivePublicAvailabilityView,
 } from "@/app/lib/digitalContact/resolveExecutivePublicAvailability";
 import { resolveHumanConnectionChannels } from "@/app/lib/digitalContact/humanConnection/resolveHumanConnectionChannels";
-import {
-  listProfilesWithFaceToFaceVideo,
-  resolvePreferredFaceToFaceConnection,
-} from "@/app/lib/digitalContact/humanConnection/resolvePreferredFaceToFaceConnection";
 import { getFaceToFaceCopy } from "@/app/lib/digitalContact/humanConnection/faceToFaceCopy";
 import { getConnectionChannelCopy } from "@/app/lib/digitalContact/humanConnection/connectionChannelCopy";
-import { openExternalUrl } from "@/app/components/cta/ctaLaunchers";
+import { openWhatsApp } from "@/app/components/cta/ctaLaunchers";
 import { LEONIX_GLOBAL_LLC } from "@/app/lib/leonixBrand";
 import {
   getVisitanosCopy,
@@ -36,7 +32,6 @@ import {
 } from "@/app/lib/visitanos/visitanosOfficeHours";
 import { HumanConnectionPanel } from "@/app/components/digitalContact/humanConnection/HumanConnectionPanel";
 import { HumanConnectionChannelActions } from "@/app/components/digitalContact/humanConnection/HumanConnectionChannelActions";
-import { FaceToFaceVideoCta } from "@/app/components/digitalContact/humanConnection/FaceToFaceVideoCta";
 import {
   isAppConnectionChannel,
   isNativeContactFallbackChannel,
@@ -97,15 +92,9 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
   const waBody = visitanosWhatsAppPrefill(lang);
   const smsBody = visitanosSmsPrefill(lang);
 
-  const primaryFaceToFace = useMemo(
-    () => (primary ? resolvePreferredFaceToFaceConnection({ profile: primary }) : null),
-    [primary],
-  );
-  const videoStaff = useMemo(() => listProfilesWithFaceToFaceVideo(profiles), [profiles]);
-  const hasMeetFallback = Boolean(primaryFaceToFace?.hasImmediateVideo);
-  /** Build 11: Daily managed video is primary when offered; Meet is secondary. */
+  /** Build 13: Daily is the only public face-to-face video on /visitanos. Meet stays in ECP only. */
   const hasDailyPrimary = browserVideoOffer;
-  const hasImmediateVideo = hasDailyPrimary || hasMeetFallback;
+  const hasImmediateVideo = hasDailyPrimary;
 
   const route = useMemo(() => {
     if (!primary) return null;
@@ -123,8 +112,15 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
     });
   }, [primary, smsBody, waBody, browserVideoOffer, scheduleOffer]);
 
-  const appChannels = useMemo(
-    () => (route ? route.channels.filter((c) => isAppConnectionChannel(c.type)) : []),
+  const whatsappChannel = useMemo(
+    () => route?.channels.find((c) => c.type === "whatsapp") ?? null,
+    [route],
+  );
+  const otherAppChannels = useMemo(
+    () =>
+      route
+        ? route.channels.filter((c) => isAppConnectionChannel(c.type) && c.type !== "whatsapp")
+        : [],
     [route],
   );
   const nativeFallbackChannels = useMemo(
@@ -173,14 +169,14 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
 
   useEffect(() => {
     if (!primary || !route) return;
-    if (hasMeetFallback && primaryFaceToFace?.primary && !hasDailyPrimary) {
-      trackDigitalContactEvent(primary.slug, "face_to_face_cta_view", {
-        ...analyticsMeta(source, lang),
-        channel: primaryFaceToFace.primary.provider,
-      });
-    }
     for (const ch of route.channels) {
-      if (ch.type === "google_meet" || ch.type === "facetime" || ch.type === "browser_video" || ch.type === "teams") {
+      // Build 13: do not surface Google Meet / room providers as public visitanos CTAs.
+      if (
+        ch.type === "google_meet" ||
+        ch.type === "facetime" ||
+        ch.type === "browser_video" ||
+        ch.type === "teams"
+      ) {
         continue;
       }
       trackDigitalContactEvent(primary.slug, "connection_channel_view", {
@@ -189,7 +185,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [primary?.slug, route?.channels.map((c) => c.type).join(","), hasDailyPrimary, hasMeetFallback, lang, source]);
+  }, [primary?.slug, route?.channels.map((c) => c.type).join(","), hasDailyPrimary, lang, source]);
 
   let primaryAvailability: ExecutivePublicAvailabilityView | null = null;
   if (primary && availabilityNow) {
@@ -335,8 +331,8 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
       </header>
 
       <main className="relative z-10 mx-auto -mt-3 w-full max-w-md px-5 pb-4 sm:px-6">
-        {/* 1. Face-to-face — Daily primary (office hours), Meet secondary fallback */}
-        {primary && (hasDailyPrimary || hasMeetFallback) ? (
+        {/* 1. Face-to-face — Daily primary only (Build 13: no public Google Meet) */}
+        {primary && hasDailyPrimary ? (
           <section
             aria-labelledby="vfd-video-title"
             className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
@@ -351,76 +347,43 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
               {faceCopy.sectionBody}
             </p>
 
-            {hasDailyPrimary ? (
-              <div className="mt-4 space-y-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    trackDigitalContactEvent(primary.slug, "daily_video_request_started", {
-                      ...analyticsMeta(source, lang),
-                      channel: "browser_video",
-                      stage: "cta_tap",
-                    });
-                    setOpenIntent("video");
-                  }}
-                  aria-label={faceCopy.dailyPrimaryCta}
-                  className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-4 text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
-                >
-                  <span className="text-lg font-bold tracking-tight sm:text-xl">{faceCopy.dailyPrimaryCta}</span>
-                  <span className="text-sm font-medium text-[#FFFDF7]/90">{faceCopy.dailyPrimarySub}</span>
-                </button>
+            <div className="mt-4 space-y-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  trackDigitalContactEvent(primary.slug, "daily_video_request_started", {
+                    ...analyticsMeta(source, lang),
+                    channel: "browser_video",
+                    stage: "cta_tap",
+                  });
+                  setOpenIntent("video");
+                }}
+                aria-label={faceCopy.dailyPrimaryCta}
+                className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-4 text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
+              >
+                <span className="text-lg font-bold tracking-tight sm:text-xl">{faceCopy.dailyPrimaryCta}</span>
+                <span className="text-sm font-medium text-[#FFFDF7]/90">{faceCopy.dailyPrimarySub}</span>
+              </button>
 
-                <HumanConnectionPanel
-                  profile={primary}
-                  lang={lang}
-                  surface="virtual_front_desk"
-                  source={source}
-                  whatsappPrefill={waBody}
-                  smsPrefill={smsBody}
-                  variant="inline"
-                  enableVideo
-                  enableSchedule={scheduleOffer}
-                  entryMode="router"
-                  openIntent={openIntent}
-                  onOpenIntentConsumed={() => setOpenIntent(null)}
-                  onOfferResolved={(o) => {
-                    setBrowserVideoOffer(o.offerVideo);
-                    setScheduleOffer(o.offerSchedule);
-                  }}
-                />
-
-                {hasMeetFallback && primaryFaceToFace?.primary ? (
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        trackDigitalContactEvent(primary.slug, "face_to_face_cta_selected", {
-                          ...analyticsMeta(source, lang),
-                          channel: primaryFaceToFace.primary!.provider,
-                          role: "secondary_fallback",
-                        });
-                        openExternalUrl(primaryFaceToFace.primary!.url);
-                      }}
-                      className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#D6C7AD] bg-[#FBF7EF] px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)]"
-                    >
-                      {faceCopy.meetFallbackLabel}
-                    </button>
-                    <p className="mt-1.5 text-center text-xs leading-relaxed text-[#5F6258]">
-                      {faceCopy.meetFallbackHint}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            ) : primaryFaceToFace?.hasImmediateVideo ? (
-              <div className="mt-4">
-                <FaceToFaceVideoCta
-                  faceToFace={primaryFaceToFace}
-                  lang={lang}
-                  source={source}
-                  variant="doorbell"
-                />
-              </div>
-            ) : null}
+              <HumanConnectionPanel
+                profile={primary}
+                lang={lang}
+                surface="virtual_front_desk"
+                source={source}
+                whatsappPrefill={waBody}
+                smsPrefill={smsBody}
+                variant="inline"
+                enableVideo
+                enableSchedule={scheduleOffer}
+                entryMode="router"
+                openIntent={openIntent}
+                onOpenIntentConsumed={() => setOpenIntent(null)}
+                onOfferResolved={(o) => {
+                  setBrowserVideoOffer(o.offerVideo);
+                  setScheduleOffer(o.offerSchedule);
+                }}
+              />
+            </div>
 
             <p className="mt-3 text-center text-xs text-[#5F6258]">
               {primary.preferredName || primary.fullName}
@@ -429,7 +392,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
         ) : null}
 
         {/* Always mount panel when Daily may become available but primary section skipped (outside hours) */}
-        {primary && !hasDailyPrimary && !hasMeetFallback ? (
+        {primary && !hasDailyPrimary ? (
           <HumanConnectionPanel
             profile={primary}
             lang={lang}
@@ -450,64 +413,58 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           />
         ) : null}
 
-        {/* 2. Staff video choice when multiple executives have video destinations */}
-        {videoStaff.length > 1 ? (
-          <section aria-labelledby="vfd-who-video" className="mt-6">
-            <h2 id="vfd-who-video" className="text-center font-serif text-lg font-bold text-[#1F241C]">
-              {faceCopy.whoToSpeakWith}
-            </h2>
-            <p className="mx-auto mt-1.5 max-w-sm text-center text-sm text-[#3D3428]">{faceCopy.whoToSpeakWithBody}</p>
-            <ul className="mt-4 space-y-2.5">
-              {videoStaff.map(({ profile, faceToFace }) => {
-                const opt = faceToFace.primary;
-                if (!opt) return null;
-                return (
-                  <li key={profile.slug}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        trackDigitalContactEvent(profile.slug, "face_to_face_cta_selected", {
-                          ...analyticsMeta(source, lang),
-                          channel: opt.provider,
-                          action: "staff_video_choice",
-                        });
-                        openExternalUrl(opt.url);
-                      }}
-                      className="flex min-h-[64px] w-full items-center gap-3 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-2.5 text-left transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
-                    >
-                      <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[var(--dc-accent-border)] bg-white">
-                        <Image
-                          src={profile.photoPath ?? "/logo-clean.png"}
-                          alt=""
-                          fill
-                          sizes="44px"
-                          className={profile.photoPath ? "object-cover" : "object-contain p-1.5"}
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-[#1F241C]">
-                          {profile.preferredName || profile.fullName}
-                        </span>
-                        <span className="block truncate text-xs text-[#5F6258]">{profile.title}</span>
-                      </span>
-                      <span className="shrink-0 text-xs font-bold text-[var(--dc-button-primary)]">
-                        {faceCopy.personVideoCta}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
-
-        {/* 3. App-based connections (WhatsApp / Messenger / Instagram when configured) */}
-        {primary && appChannels.length > 0 ? (
+        {/* 2. WhatsApp — strong secondary after Daily (ECP digits + prefilled message) */}
+        {primary && whatsappChannel && whatsappChannel.action.kind === "whatsapp" ? (
           <section
-            aria-labelledby="vfd-apps-title"
+            aria-labelledby="vfd-whatsapp-title"
             className={`rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5 ${
               hasImmediateVideo ? "mt-6" : ""
             }`}
+          >
+            <h2
+              id="vfd-whatsapp-title"
+              className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
+            >
+              {faceCopy.whatsappPreferTitle}
+            </h2>
+            <p className="mt-1 text-center text-sm leading-relaxed text-[#3D3428]">
+              {faceCopy.whatsappPreferBody}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                trackDigitalContactEvent(primary.slug, "connection_channel_selected", {
+                  ...analyticsMeta(source, lang),
+                  channel: "whatsapp",
+                });
+                if (whatsappChannel.action.kind === "whatsapp") {
+                  openWhatsApp(
+                    whatsappChannel.action.phoneDigits,
+                    whatsappChannel.action.bodyPrefill ?? waBody,
+                  );
+                }
+              }}
+              aria-label={`WhatsApp — ${faceCopy.appWhatsAppAction}`}
+              className="mt-4 flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-2xl bg-[#25D366] px-5 py-3.5 text-base font-bold text-white shadow-md transition hover:bg-[#1EBE5A] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#128C7E] focus-visible:ring-offset-2"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="currentColor" aria-hidden>
+                <path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3Zm-3.2 5.4c.2-.5.5-.5.8-.5h.6c.2 0 .4 0 .6.5l.7 1.7c.1.3 0 .5-.2.7l-.5.5c.3.8 1.5 2 2.3 2.3l.5-.5c.2-.2.4-.3.7-.2l1.7.7c.5.2.5.4.5.6v.6c0 .3 0 .6-.5.8-1 .5-2.5.2-4-1.3-1.5-1.5-1.8-3-1.2-4Z" />
+              </svg>
+              <span className="flex flex-col items-start leading-tight sm:flex-row sm:items-baseline sm:gap-2">
+                <span>WhatsApp</span>
+                <span className="text-sm font-semibold text-white/95 sm:text-base sm:font-bold">
+                  {faceCopy.appWhatsAppAction}
+                </span>
+              </span>
+            </button>
+          </section>
+        ) : null}
+
+        {/* 3. Other app connections (Messenger / Instagram when configured) — WhatsApp already shown */}
+        {primary && otherAppChannels.length > 0 ? (
+          <section
+            aria-labelledby="vfd-apps-title"
+            className="mt-6 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
           >
             <h2
               id="vfd-apps-title"
@@ -520,7 +477,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
             </p>
             <div className="mt-4">
               <HumanConnectionChannelActions
-                channels={appChannels}
+                channels={otherAppChannels}
                 profileSlug={primary.slug}
                 lang={lang}
                 surface="virtual_front_desk"
@@ -531,24 +488,24 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           </section>
         ) : null}
 
-        {/* 4. Native contact fallback — demoted when video/apps exist */}
+        {/* 4. Native contact fallback — call / SMS / email */}
         {primary && hasContactable && route ? (
           <section
             aria-labelledby="vfd-connect-title"
             className={`rounded-2xl border border-[#D6C7AD]/80 bg-[#FBF7EF] px-4 py-4 sm:px-5 sm:py-5 ${
-              hasImmediateVideo || appChannels.length > 0 ? "mt-6" : ""
+              hasImmediateVideo || whatsappChannel || otherAppChannels.length > 0 ? "mt-6" : ""
             }`}
           >
             <h2
               id="vfd-connect-title"
               className="text-center font-serif text-base font-bold text-[#1F241C] sm:text-lg"
             >
-              {hasImmediateVideo || appChannels.length > 0
+              {hasImmediateVideo || whatsappChannel || otherAppChannels.length > 0
                 ? faceCopy.nativeFallbackTitle
                 : channelCopy.connectYourWay}
             </h2>
             <p className="mt-1 text-center text-sm leading-relaxed text-[#3D3428]">
-              {hasImmediateVideo || appChannels.length > 0
+              {hasImmediateVideo || whatsappChannel || otherAppChannels.length > 0
                 ? faceCopy.nativeFallbackBody
                 : channelCopy.connectYourWayBody}
             </p>
@@ -556,43 +513,34 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
             <div className="mt-4">
               <HumanConnectionChannelActions
                 channels={
-                  hasImmediateVideo || appChannels.length > 0 ? nativeFallbackChannels : route.channels
+                  hasImmediateVideo || whatsappChannel || otherAppChannels.length > 0
+                    ? nativeFallbackChannels
+                    : route.channels.filter(
+                        (c) =>
+                          c.type !== "google_meet" &&
+                          c.type !== "facetime" &&
+                          c.type !== "teams" &&
+                          c.type !== "browser_video",
+                      )
                 }
                 profileSlug={primary.slug}
                 lang={lang}
                 surface="virtual_front_desk"
                 source={source}
-                omitTypes={
-                  hasImmediateVideo || appChannels.length > 0
-                    ? ["google_meet", "facetime", "teams", "browser_video", "schedule_request", "whatsapp", "messenger", "instagram"]
-                    : ["google_meet", "facetime", "teams", "browser_video", "schedule_request"]
-                }
+                omitTypes={[
+                  "google_meet",
+                  "facetime",
+                  "teams",
+                  "browser_video",
+                  "schedule_request",
+                  "whatsapp",
+                  "messenger",
+                  "instagram",
+                ]}
                 onManagedBrowserVideo={() => setOpenIntent("video")}
                 onScheduleRequest={() => setOpenIntent("schedule")}
               />
             </div>
-
-            {/* Panel for Meet-only / schedule flows when Daily primary section did not mount it */}
-            {!hasDailyPrimary ? (
-              <HumanConnectionPanel
-                profile={primary}
-                lang={lang}
-                surface="virtual_front_desk"
-                source={source}
-                whatsappPrefill={waBody}
-                smsPrefill={smsBody}
-                variant="inline"
-                enableVideo
-                enableSchedule={scheduleOffer}
-                entryMode="router"
-                openIntent={openIntent}
-                onOpenIntentConsumed={() => setOpenIntent(null)}
-                onOfferResolved={(o) => {
-                  setBrowserVideoOffer(o.offerVideo);
-                  setScheduleOffer(o.offerSchedule);
-                }}
-              />
-            ) : null}
 
             {!hasImmediateVideo ? (
               <p className="mt-3 text-center text-xs text-[#5F6258]">

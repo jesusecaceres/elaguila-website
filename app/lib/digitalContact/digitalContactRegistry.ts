@@ -24,6 +24,8 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
     legalEntity: LEONIX_GLOBAL_LLC,
     phoneDisplay: "(669) 366-4300",
     phoneDigits: "16693664300",
+    /** Explicit business WhatsApp (same approved digits as phone). */
+    whatsappDigits: "16693664300",
     email: "chuy@leonixmedia.com",
     website: "https://www.leonixmedia.com",
     address: {

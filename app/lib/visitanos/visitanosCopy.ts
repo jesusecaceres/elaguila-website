@@ -146,8 +146,8 @@ export function getVisitanosCopy(lang: VisitanosLang): VisitanosCopy {
 
 export function visitanosWhatsAppPrefill(lang: VisitanosLang): string {
   return lang === "en"
-    ? "Hi — I’m outside the Leonix Media office and would like to connect."
-    : "Hola — estoy afuera de la oficina de Leonix Media y me gustaría conectar.";
+    ? "Hi, I'm at the Leonix office and would like to speak with someone from the team."
+    : "Hola, estoy en la oficina de Leonix y quisiera comunicarme con alguien del equipo.";
 }
 
 export function visitanosSmsPrefill(lang: VisitanosLang): string {

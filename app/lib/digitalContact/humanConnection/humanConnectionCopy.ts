@@ -72,7 +72,7 @@ const ES: HumanConnectionCopy = {
   videoNoAnswerTitle: "No pudimos conectar por video en este momento.",
   videoNoAnswerBody: "Todavía podemos ayudarte. Elige otra forma de contacto.",
   videoFailedTitle: "No pudimos iniciar el video.",
-  videoFailedBody: "Todavía podemos ayudarte por Google Meet, llamada, WhatsApp o mensaje.",
+  videoFailedBody: "Todavía podemos ayudarte por WhatsApp, llamada o mensaje.",
   videoExpiredTitle: "La sala de video expiró.",
   videoExpiredBody: "Todavía podemos ayudarte. Elige otra forma de contacto.",
   videoMicDenied:
@@ -126,7 +126,7 @@ const EN: HumanConnectionCopy = {
   videoNoAnswerTitle: "We couldn’t connect by video right now.",
   videoNoAnswerBody: "We can still help. Choose another way to reach us.",
   videoFailedTitle: "We couldn’t start video.",
-  videoFailedBody: "We can still help by Google Meet, call, WhatsApp, or message.",
+  videoFailedBody: "We can still help by WhatsApp, call, or message.",
   videoExpiredTitle: "The video room expired.",
   videoExpiredBody: "We can still help. Choose another way to reach us.",
   videoMicDenied:

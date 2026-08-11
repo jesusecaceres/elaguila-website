@@ -31,6 +31,9 @@ export type FaceToFaceCopy = {
   personVideoCta: string;
   appConnectionsTitle: string;
   appConnectionsBody: string;
+  /** Build 13 — WhatsApp as intentional secondary after Daily. */
+  whatsappPreferTitle: string;
+  whatsappPreferBody: string;
   appWhatsAppAction: string;
   appMessengerAction: string;
   appInstagramAction: string;
@@ -64,7 +67,9 @@ const ES: FaceToFaceCopy = {
   personVideoCta: "Videollamada",
   appConnectionsTitle: "También puedes contactarnos por:",
   appConnectionsBody: "Usa la app o el método que prefieras.",
-  appWhatsAppAction: "Enviar mensaje",
+  whatsappPreferTitle: "¿Prefieres WhatsApp?",
+  whatsappPreferBody: "Escríbenos por WhatsApp — te responderemos lo antes posible.",
+  appWhatsAppAction: "Escríbenos por WhatsApp",
   appMessengerAction: "Abrir Messenger",
   appInstagramAction: "Abrir Instagram",
   appTeamsAction: "Abrir sala de Teams",
@@ -97,7 +102,9 @@ const EN: FaceToFaceCopy = {
   personVideoCta: "Video call",
   appConnectionsTitle: "You can also reach us by:",
   appConnectionsBody: "Use whichever app or method you prefer.",
-  appWhatsAppAction: "Send message",
+  whatsappPreferTitle: "Prefer WhatsApp?",
+  whatsappPreferBody: "Message us on WhatsApp — we’ll get back to you as soon as we can.",
+  appWhatsAppAction: "Message us on WhatsApp",
   appMessengerAction: "Open Messenger",
   appInstagramAction: "Open Instagram",
   appTeamsAction: "Open Teams room",

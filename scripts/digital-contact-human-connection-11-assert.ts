@@ -152,7 +152,7 @@ assertTrue(
   videoService.includes("NEVER revoke"),
 );
 
-assertTrue("FAILURE_HAS_FALLBACK", visitanos.includes("meetFallbackLabel") && visitanos.includes("nativeFallbackChannels"));
+assertTrue("FAILURE_HAS_FALLBACK", visitanos.includes("nativeFallbackChannels") && visitanos.includes("whatsappChannel"));
 assertTrue("MOBILE_QR_FLOW_PRESERVED", visitanos.includes("max-w-md") && resolveVisitanosSource({ source: "office-window" }) === "office-window");
 assertEq(
   "QR_UNCHANGED",
@@ -164,7 +164,7 @@ assertTrue("NO_NEW_PAID_PROVIDER", !visitanos.includes("zoom.us") && dailyProvid
 assertTrue("NO_STRIPE_CHANGES", !visitanos.toLowerCase().includes("stripe"));
 assertTrue("NO_PAYMENT_CHANGES", !visitanos.toLowerCase().includes("checkout"));
 assertTrue("NO_CATEGORY_CHANGES", !visitanos.includes("clasificados"));
-assertTrue("NO_BROAD_REFACTOR", visitanos.includes("HumanConnectionPanel") && visitanos.includes("FaceToFaceVideoCta"));
+assertTrue("NO_BROAD_REFACTOR", visitanos.includes("HumanConnectionPanel") && visitanos.includes("hasDailyPrimary"));
 
 const es = getFaceToFaceCopy("es");
 const en = getFaceToFaceCopy("en");

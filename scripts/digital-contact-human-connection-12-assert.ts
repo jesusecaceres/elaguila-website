@@ -38,6 +38,7 @@ const vapidApi = read("app/api/digital-contact/doorbell/vapid-public-key/route.t
 const doorbellPage = read("app/admin/(dashboard)/digital-contact/doorbell/page.tsx");
 const doorbellClient = read("app/admin/(dashboard)/digital-contact/doorbell/DoorbellAdminClient.tsx");
 const visitanos = read("app/visitanos/VisitanosPageClient.tsx");
+const registry = read("app/lib/digitalContact/digitalContactRegistry.ts");
 const hostPage = read("app/admin/(dashboard)/digital-contact/video/[sessionId]/page.tsx");
 const pushMigration = read("supabase/migrations/20260811010000_digital_contact_push_subscriptions.sql");
 const videoMigration = read("supabase/migrations/20260810130000_digital_contact_video_sessions.sql");
@@ -88,7 +89,12 @@ assertTrue(
   doorbellClient.includes("cannot force a custom ringtone") ||
     doorbellClient.includes("follow your device notification settings"),
 );
-assertTrue("GOOGLE_MEET_FALLBACK_PRESERVED", visitanos.includes("meetFallbackLabel") || visitanos.includes("hasMeetFallback"));
+assertTrue(
+  "GOOGLE_MEET_FALLBACK_PRESERVED",
+  registry.includes("meet.google.com/hdd-xkzj-npj") &&
+    !visitanos.includes("meetFallbackLabel") &&
+    !visitanos.includes("FaceToFaceVideoCta"),
+);
 assertTrue("WHATSAPP_CALL_SMS_EMAIL_PRESERVED", visitanos.includes("nativeFallbackChannels") || visitanos.includes("whatsapp"));
 assertTrue("ECP_OWNS_EXECUTIVE_IDENTITY", dispatcher.includes("getDigitalContactProfile") && !dispatcher.includes('if (slug === "chuy")'));
 assertEq("CLIENT_500_REQUIRES_NEW_PUSH_CODE", false, false);
