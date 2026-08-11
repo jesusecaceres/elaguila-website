@@ -158,6 +158,8 @@ export function rowToDigitalContactProfile(row: ExecutiveRow): DigitalContactPro
     website: row.website ?? "",
     address,
     photoPath: row.photo_path ?? null,
+    coverPath: row.cover_path ?? null,
+    bio: row.bio || undefined,
     trustChips: asStringArray(row.trust_chips),
     socials: asSocials(row.socials),
     theme: (row.theme as ExecutiveThemeId) ?? "leonix",

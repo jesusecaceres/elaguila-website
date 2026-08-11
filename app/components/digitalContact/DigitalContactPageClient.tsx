@@ -18,7 +18,12 @@ import { HumanConnectionPanel } from "./humanConnection/HumanConnectionPanel";
 import { HumanConnectionChannelActions } from "./humanConnection/HumanConnectionChannelActions";
 import { DigitalContactSaveButton } from "./DigitalContactSaveButton";
 import { DigitalContactQrCode } from "./DigitalContactQrCode";
+import { DigitalContactWhatWeDo } from "./DigitalContactWhatWeDo";
+import { DigitalContactAbout } from "./DigitalContactAbout";
+import { DigitalContactFocusAreas } from "./DigitalContactFocusAreas";
+import { DigitalContactSocialCards } from "./DigitalContactSocialCards";
 import { DigitalContactShowcase } from "./DigitalContactShowcase";
+import { DigitalContactBusinessHubTeaser } from "./DigitalContactBusinessHubTeaser";
 import { DigitalContactLeadForm } from "./DigitalContactLeadForm";
 import { DigitalContactClosingCta } from "./DigitalContactClosingCta";
 import { DigitalContactFooter } from "./DigitalContactFooter";
@@ -157,7 +162,12 @@ export function DigitalContactPageClient({ profile, initialLang }: Props) {
         />
         <DigitalContactSaveButton profile={profile} copy={copy} />
         <DigitalContactQrCode profileSlug={profile.slug} value={canonicalUrl} fileName={qrFileNameFor(profile)} copy={copy} />
+        <DigitalContactWhatWeDo copy={copy} />
+        <DigitalContactAbout profile={profile} lang={lang} copy={copy} />
+        <DigitalContactFocusAreas profile={profile} copy={copy} />
+        <DigitalContactSocialCards profile={profile} copy={copy} />
         <DigitalContactShowcase profileSlug={profile.slug} lang={lang} copy={copy} />
+        <DigitalContactBusinessHubTeaser copy={copy} />
         <DigitalContactLeadForm profileSlug={profile.slug} lang={lang} copy={copy} />
         <DigitalContactClosingCta profileSlug={profile.slug} copy={copy} />
       </main>

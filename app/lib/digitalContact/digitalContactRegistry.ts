@@ -25,7 +25,7 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
     slug: "chuy",
     fullName: 'Jesus "Chuy" Cáceres',
     preferredName: "Chuy",
-    title: "Founder & CEO",
+    title: "Founder & Steward · Fundador y Administrador",
     company: LEONIX_MEDIA_SITE_NAME,
     legalEntity: LEONIX_GLOBAL_LLC,
     phoneDisplay: "(669) 366-4300",
