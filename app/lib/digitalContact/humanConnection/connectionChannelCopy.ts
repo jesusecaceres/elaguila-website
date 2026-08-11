@@ -2,7 +2,7 @@ import type { DigitalContactLang } from "../digitalContactTypes";
 import type { HumanConnectionChannelType } from "./channelTypes";
 
 export type ConnectionChannelLabels = Record<
-  Exclude<HumanConnectionChannelType, "zoom" | "teams" | "messenger">,
+  Exclude<HumanConnectionChannelType, "zoom">,
   string
 >;
 
@@ -17,6 +17,9 @@ const ES: ConnectionChannelLabels & { connectYourWay: string; connectYourWayBody
   browser_video: "Hablar por video",
   email: "Correo",
   schedule_request: "Programar una conversación",
+  teams: "Microsoft Teams",
+  messenger: "Messenger",
+  instagram: "Instagram",
 };
 
 const EN: ConnectionChannelLabels & { connectYourWay: string; connectYourWayBody: string } = {
@@ -30,6 +33,9 @@ const EN: ConnectionChannelLabels & { connectYourWay: string; connectYourWayBody
   browser_video: "Talk by video",
   email: "Email",
   schedule_request: "Schedule a conversation",
+  teams: "Microsoft Teams",
+  messenger: "Messenger",
+  instagram: "Instagram",
 };
 
 export function getConnectionChannelCopy(lang: DigitalContactLang) {

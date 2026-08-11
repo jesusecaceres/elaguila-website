@@ -59,7 +59,11 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
       allowVideo: true,
       allowScheduling: true,
     },
-    /** Build 09B — owner-approved face-to-face Google Meet destination (ECP only). */
+    /**
+     * Build 09C/10 — owner-approved destinations (ECP only).
+     * Google Meet = video room (not a guaranteed ringing call).
+     * Do not invent Messenger / Instagram / Teams / FaceTime without owner approval.
+     */
     connectionDestinations: {
       googleMeetUrl: "https://meet.google.com/hdd-xkzj-npj",
     },

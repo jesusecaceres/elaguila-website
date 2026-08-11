@@ -5,6 +5,7 @@ import { trackDigitalContactEvent } from "@/app/lib/digitalContact/digitalContac
 import {
   getFaceToFaceCopy,
   providerOpensLabel,
+  videoRoomHintForProvider,
 } from "@/app/lib/digitalContact/humanConnection/faceToFaceCopy";
 import type {
   FaceToFaceVideoOption,
@@ -42,24 +43,34 @@ function launchOption(
     surface: "virtual_front_desk",
     lang,
     channel: option.provider,
+    capability: option.capability,
     ...(source ? { source } : {}),
   });
   openExternalUrl(option.url);
 }
 
 /**
- * Dominant face-to-face video CTA. Hidden entirely when no approved destination.
+ * Dominant face-to-face video-room CTA. Hidden entirely when no approved destination.
+ * Does not claim ringing, answering, or connected state.
  */
 export function FaceToFaceVideoCta({ faceToFace, lang, source = null, variant = "doorbell" }: Props) {
   if (!faceToFace.primary) return null;
   const copy = getFaceToFaceCopy(lang);
   const primary = faceToFace.primary;
+  const platformLabel = providerOpensLabel(primary.provider, lang);
+  const roomLabel =
+    primary.provider === "google_meet"
+      ? "Google Meet"
+      : primary.provider === "teams"
+        ? "Microsoft Teams"
+        : "FaceTime";
 
   return (
     <div className="space-y-2.5">
       <button
         type="button"
         onClick={() => launchOption(primary, faceToFace.slug, lang, source)}
+        aria-label={`${copy.videoRoomCta} — ${roomLabel}`}
         className={
           variant === "doorbell"
             ? "flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-4 text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
@@ -69,26 +80,38 @@ export function FaceToFaceVideoCta({ faceToFace, lang, source = null, variant = 
         <span className="flex items-center gap-2.5">
           <VideoIcon className={variant === "doorbell" ? "h-7 w-7" : "h-5 w-5"} />
           <span className={variant === "doorbell" ? "text-lg font-bold tracking-tight sm:text-xl" : undefined}>
-            {copy.videoCtaPrimary}
+            {copy.videoRoomCta}
           </span>
         </span>
         {variant === "doorbell" ? (
-          <span className="text-sm font-medium text-[#FFFDF7]/90">{copy.videoCtaSub}</span>
+          <span className="text-sm font-medium text-[#FFFDF7]/90">{roomLabel}</span>
         ) : null}
       </button>
-      <p className="text-center text-xs font-medium text-[#5F6258]">{providerOpensLabel(primary.provider, lang)}</p>
+      <p className="text-center text-xs leading-relaxed text-[#5F6258]">
+        {videoRoomHintForProvider(primary.provider, lang)}
+      </p>
+      <p className="sr-only">{platformLabel}</p>
 
-      {faceToFace.secondary.map((opt) => (
-        <button
-          key={opt.provider}
-          type="button"
-          onClick={() => launchOption(opt, faceToFace.slug, lang, source)}
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-[#FBF7EF] px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)]"
-        >
-          <VideoIcon className="h-5 w-5" />
-          <span>{providerOpensLabel(opt.provider, lang)}</span>
-        </button>
-      ))}
+      {faceToFace.secondary.map((opt) => {
+        const secondaryRoom =
+          opt.provider === "google_meet"
+            ? "Google Meet"
+            : opt.provider === "teams"
+              ? "Microsoft Teams"
+              : "FaceTime";
+        return (
+          <button
+            key={opt.provider}
+            type="button"
+            onClick={() => launchOption(opt, faceToFace.slug, lang, source)}
+            aria-label={`${copy.videoRoomCta} — ${secondaryRoom}`}
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-[#FBF7EF] px-4 py-2.5 text-sm font-bold text-[#1F241C] transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)]"
+          >
+            <VideoIcon className="h-5 w-5" />
+            <span>{providerOpensLabel(opt.provider, lang)}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -47,8 +47,8 @@ export function validateFacetimeDestination(raw: string | null | undefined): str
 }
 
 /**
- * Static Google Meet links are NOT treated as live availability.
- * Validation exists for future managed/direct config — permanent links alone do not unlock "available now."
+ * Static Google Meet links are NOT treated as live availability / ringing calls.
+ * Permanent links alone do not unlock "available now" or "Chuy is being notified."
  */
 export function validateGoogleMeetUrl(raw: string | null | undefined): string | null {
   const s = String(raw ?? "").trim();
@@ -61,6 +61,74 @@ export function validateGoogleMeetUrl(raw: string | null | undefined): string | 
     if (host === "meet.google.com" || host.endsWith(".meet.google.com")) {
       return u.toString();
     }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Microsoft Teams meeting destinations only (HTTPS).
+ * Rejects arbitrary hosts and javascript: schemes.
+ */
+export function validateMicrosoftTeamsUrl(raw: string | null | undefined): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s || s.length > 800) return null;
+  if (BLOCKED_SCHEMES.test(s)) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:") return null;
+    const host = u.hostname.toLowerCase();
+    const allowed =
+      host === "teams.microsoft.com" ||
+      host.endsWith(".teams.microsoft.com") ||
+      host === "teams.live.com" ||
+      host.endsWith(".teams.live.com");
+    if (!allowed) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Facebook Messenger public destinations only (HTTPS).
+ * Accepts m.me, messenger.com, and facebook.com/messages paths.
+ */
+export function validateMessengerUrl(raw: string | null | undefined): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s || s.length > 800) return null;
+  if (BLOCKED_SCHEMES.test(s)) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:") return null;
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "m.me" || host.endsWith(".m.me")) return u.toString();
+    if (host === "messenger.com" || host.endsWith(".messenger.com")) return u.toString();
+    if (host === "facebook.com" || host.endsWith(".facebook.com")) {
+      const path = u.pathname.toLowerCase();
+      if (path.startsWith("/messages") || path.startsWith("/msg")) return u.toString();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Instagram public destinations only (HTTPS profile or ig.me message links).
+ * Do not invent handles — owner must supply the approved URL.
+ */
+export function validateInstagramUrl(raw: string | null | undefined): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s || s.length > 800) return null;
+  if (BLOCKED_SCHEMES.test(s)) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:") return null;
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "instagram.com" || host.endsWith(".instagram.com")) return u.toString();
+    if (host === "ig.me" || host.endsWith(".ig.me")) return u.toString();
     return null;
   } catch {
     return null;

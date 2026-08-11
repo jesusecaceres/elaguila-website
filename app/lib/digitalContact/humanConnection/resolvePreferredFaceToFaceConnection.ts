@@ -1,17 +1,20 @@
 /**
- * Build 09 — Preferred face-to-face (digital doorbell) resolver.
+ * Build 09/10 — Preferred face-to-face (digital doorbell) resolver.
  *
  * Leonix owns discovery/routing. External platforms own video transport.
  * Daily/managed browser video is NOT required for this V1 path.
+ *
+ * VIDEO ROOM destinations (Meet / Teams) open a room — they do NOT prove ringing.
  */
 
 import type { DigitalContactProfile } from "../digitalContactTypes";
 import {
   validateFacetimeDestination,
   validateGoogleMeetUrl,
+  validateMicrosoftTeamsUrl,
 } from "./channelValidation";
 
-export type FaceToFaceVideoProvider = "google_meet" | "facetime";
+export type FaceToFaceVideoProvider = "google_meet" | "teams" | "facetime";
 
 export type FaceToFaceVideoOption = {
   provider: FaceToFaceVideoProvider;
@@ -19,6 +22,11 @@ export type FaceToFaceVideoOption = {
   url: string;
   /** True only when destination truthfully opens a video/meeting experience. */
   isImmediateVideo: true;
+  /**
+   * video_room = shared meeting room (may require host admit).
+   * direct_video = device-native video link when configured (e.g. FaceTime).
+   */
+  capability: "video_room" | "direct_video";
   /** Presentation priority — lower first. */
   priority: number;
 };
@@ -36,7 +44,7 @@ export type ResolvePreferredFaceToFaceInput = {
 
 /**
  * Resolve owner-approved immediate video destinations from ECP.
- * Preference: Google Meet (universal) → FaceTime (when configured).
+ * Preference: Google Meet → Microsoft Teams → FaceTime (when configured).
  * Does not invent destinations. Does not require Daily/Resend/DB.
  */
 export function resolvePreferredFaceToFaceConnection(
@@ -52,7 +60,19 @@ export function resolvePreferredFaceToFaceConnection(
       provider: "google_meet",
       url: meetUrl,
       isImmediateVideo: true,
+      capability: "video_room",
       priority: 10,
+    });
+  }
+
+  const teamsUrl = validateMicrosoftTeamsUrl(profile.connectionDestinations?.microsoftTeamsUrl);
+  if (teamsUrl) {
+    options.push({
+      provider: "teams",
+      url: teamsUrl,
+      isImmediateVideo: true,
+      capability: "video_room",
+      priority: 15,
     });
   }
 
@@ -62,6 +82,7 @@ export function resolvePreferredFaceToFaceConnection(
       provider: "facetime",
       url: facetimeUrl,
       isImmediateVideo: true,
+      capability: "direct_video",
       priority: 20,
     });
   }

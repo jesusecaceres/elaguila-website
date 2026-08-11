@@ -75,7 +75,7 @@ const ES: VisitanosCopy = {
   subhead:
     "Si llegaste a nuestra oficina y salimos un momento, no queremos que tu visita sea en vano. Estamos aquí para ayudarte.",
   subheadFaceToFace:
-    "Si llegaste a nuestra oficina y salimos un momento, intentemos conectarnos cara a cara.",
+    "¿Quieres hablar con nosotros cara a cara? Elige la app o el método que prefieras.",
   hoursLabel: "Horario habitual",
   hoursWindow: "9:00 AM – 5:00 PM",
   hoursWithinTitle: "Estamos dentro de nuestro horario habitual.",
@@ -100,7 +100,7 @@ const ES: VisitanosCopy = {
   privacyNote: "Usamos solo la información de contacto pública de Leonix.",
   metaTitle: "Visítanos — Recepción Virtual",
   metaDescription:
-    "¿Llegaste a la oficina de Leonix Media? Gracias por visitarnos. Intenta una videollamada o conéctate por llamada, WhatsApp o mensaje.",
+    "¿Llegaste a la oficina de Leonix Media? Gracias por visitarnos. Abre nuestra sala de video o conéctate por WhatsApp, llamada o mensaje.",
   execBackupLead: "También puedes comunicarte con",
   execBackupCta: "Ver contacto",
 };
@@ -112,7 +112,7 @@ const EN: VisitanosCopy = {
   subhead:
     "If you came to our office and we stepped away for a moment, we don’t want your visit to be wasted. We’re still here to help.",
   subheadFaceToFace:
-    "If you arrived at our office and we stepped away, let’s try to connect face-to-face.",
+    "Want to talk with us face-to-face? Choose the app or method you prefer.",
   hoursLabel: "Normal office hours",
   hoursWindow: "9:00 AM – 5:00 PM",
   hoursWithinTitle: "We’re within our normal office hours.",
@@ -137,7 +137,7 @@ const EN: VisitanosCopy = {
   privacyNote: "We only share Leonix public contact information.",
   metaTitle: "Visit Us — Virtual Front Desk",
   metaDescription:
-    "Arrived at Leonix Media’s office? Thanks for visiting. Try a video call or connect by phone, WhatsApp, or message.",
+    "Arrived at Leonix Media’s office? Thanks for visiting. Open our video room or connect by WhatsApp, phone, or message.",
   execBackupLead: "You can also reach",
   execBackupCta: "View contact",
 };

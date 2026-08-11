@@ -37,6 +37,10 @@ import {
 import { HumanConnectionPanel } from "@/app/components/digitalContact/humanConnection/HumanConnectionPanel";
 import { HumanConnectionChannelActions } from "@/app/components/digitalContact/humanConnection/HumanConnectionChannelActions";
 import { FaceToFaceVideoCta } from "@/app/components/digitalContact/humanConnection/FaceToFaceVideoCta";
+import {
+  isAppConnectionChannel,
+  isNativeContactFallbackChannel,
+} from "@/app/lib/digitalContact/humanConnection/connectionCapability";
 
 type Props = {
   profiles: DigitalContactProfile[];
@@ -115,6 +119,15 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
       },
     });
   }, [primary, smsBody, waBody, browserVideoOffer, scheduleOffer]);
+
+  const appChannels = useMemo(
+    () => (route ? route.channels.filter((c) => isAppConnectionChannel(c.type)) : []),
+    [route],
+  );
+  const nativeFallbackChannels = useMemo(
+    () => (route ? route.channels.filter((c) => isNativeContactFallbackChannel(c.type)) : []),
+    [route],
+  );
 
   useEffect(() => {
     if (!primary || !route) return;
@@ -284,15 +297,23 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
             aria-labelledby="vfd-video-title"
             className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
           >
-            <h2 id="vfd-video-title" className="sr-only">
-              {faceCopy.videoCtaPrimary}
+            <h2
+              id="vfd-video-title"
+              className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
+            >
+              {faceCopy.sectionTitle}
             </h2>
-            <FaceToFaceVideoCta
-              faceToFace={primaryFaceToFace}
-              lang={lang}
-              source={source}
-              variant="doorbell"
-            />
+            <p className="mt-1.5 text-center text-sm leading-relaxed text-[#3D3428]">
+              {faceCopy.sectionBody}
+            </p>
+            <div className="mt-4">
+              <FaceToFaceVideoCta
+                faceToFace={primaryFaceToFace}
+                lang={lang}
+                source={source}
+                variant="doorbell"
+              />
+            </div>
             <p className="mt-3 text-center text-xs text-[#5F6258]">
               {primary.preferredName || primary.fullName}
             </p>
@@ -350,32 +371,72 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           </section>
         ) : null}
 
-        {/* 3. Native contact fallback — demoted when video exists; primary when not */}
-        {primary && hasContactable && route ? (
+        {/* 3. App-based connections (WhatsApp / Messenger / Instagram when configured) */}
+        {primary && appChannels.length > 0 ? (
           <section
-            aria-labelledby="vfd-connect-title"
+            aria-labelledby="vfd-apps-title"
             className={`rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5 ${
               hasImmediateVideo ? "mt-6" : ""
             }`}
           >
             <h2
-              id="vfd-connect-title"
+              id="vfd-apps-title"
               className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
             >
-              {hasImmediateVideo ? faceCopy.otherWaysTitle : channelCopy.connectYourWay}
+              {faceCopy.appConnectionsTitle}
             </h2>
             <p className="mt-1 text-center text-sm leading-relaxed text-[#3D3428]">
-              {hasImmediateVideo ? faceCopy.otherWaysBody : channelCopy.connectYourWayBody}
+              {faceCopy.appConnectionsBody}
             </p>
-
             <div className="mt-4">
               <HumanConnectionChannelActions
-                channels={route.channels}
+                channels={appChannels}
                 profileSlug={primary.slug}
                 lang={lang}
                 surface="virtual_front_desk"
                 source={source}
-                omitTypes={["google_meet", "facetime", "browser_video", "schedule_request"]}
+                layout="app_rows"
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {/* 4. Native contact fallback — demoted when video/apps exist */}
+        {primary && hasContactable && route ? (
+          <section
+            aria-labelledby="vfd-connect-title"
+            className={`rounded-2xl border border-[#D6C7AD]/80 bg-[#FBF7EF] px-4 py-4 sm:px-5 sm:py-5 ${
+              hasImmediateVideo || appChannels.length > 0 ? "mt-6" : ""
+            }`}
+          >
+            <h2
+              id="vfd-connect-title"
+              className="text-center font-serif text-base font-bold text-[#1F241C] sm:text-lg"
+            >
+              {hasImmediateVideo || appChannels.length > 0
+                ? faceCopy.nativeFallbackTitle
+                : channelCopy.connectYourWay}
+            </h2>
+            <p className="mt-1 text-center text-sm leading-relaxed text-[#3D3428]">
+              {hasImmediateVideo || appChannels.length > 0
+                ? faceCopy.nativeFallbackBody
+                : channelCopy.connectYourWayBody}
+            </p>
+
+            <div className="mt-4">
+              <HumanConnectionChannelActions
+                channels={
+                  hasImmediateVideo || appChannels.length > 0 ? nativeFallbackChannels : route.channels
+                }
+                profileSlug={primary.slug}
+                lang={lang}
+                surface="virtual_front_desk"
+                source={source}
+                omitTypes={
+                  hasImmediateVideo || appChannels.length > 0
+                    ? ["google_meet", "facetime", "teams", "browser_video", "schedule_request", "whatsapp", "messenger", "instagram"]
+                    : ["google_meet", "facetime", "teams", "browser_video", "schedule_request"]
+                }
                 onManagedBrowserVideo={() => setOpenIntent("video")}
                 onScheduleRequest={() => setOpenIntent("schedule")}
               />
@@ -430,7 +491,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           </section>
         ) : null}
 
-        {/* 4. Staff → ECP profiles */}
+        {/* 5. Staff → ECP profiles */}
         {profiles.length > 0 ? (
           <section aria-labelledby="vfd-team-title" className="mt-8">
             <h2 id="vfd-team-title" className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl">

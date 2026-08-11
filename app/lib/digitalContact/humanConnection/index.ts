@@ -20,7 +20,7 @@ export type {
   FaceToFaceVideoProvider,
   ResolvePreferredFaceToFaceInput,
 } from "./resolvePreferredFaceToFaceConnection";
-export { getFaceToFaceCopy, providerOpensLabel } from "./faceToFaceCopy";
+export { getFaceToFaceCopy, providerOpensLabel, videoRoomHintForProvider } from "./faceToFaceCopy";
 export type { FaceToFaceCopy } from "./faceToFaceCopy";
 export * from "./channelTypes";
 export * from "./humanConnectionTypes";
@@ -28,6 +28,22 @@ export * from "./constants";
 export { getHumanConnectionCopy } from "./humanConnectionCopy";
 export type { HumanConnectionCopy } from "./humanConnectionCopy";
 export { getConnectionChannelCopy, labelForChannel } from "./connectionChannelCopy";
+export {
+  capabilityForChannel,
+  isVideoRoomChannel,
+  isAppConnectionChannel,
+  isNativeContactFallbackChannel,
+} from "./connectionCapability";
+export type { ConnectionCapabilityKind } from "./connectionCapability";
+export {
+  validateGoogleMeetUrl,
+  validateMicrosoftTeamsUrl,
+  validateMessengerUrl,
+  validateInstagramUrl,
+  validateFacetimeDestination,
+  isValidPublicPhoneDigits,
+  isValidPublicEmail,
+} from "./channelValidation";
 export {
   buildTelHref,
   buildSmsHref,

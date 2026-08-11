@@ -1,8 +1,9 @@
 /**
- * Central Human Connection Router (Build 06).
+ * Central Human Connection Router (Build 06 / Build 10).
  *
  * Answers: "What truthful connection options can this executive offer?"
  * Consumed by /visitanos and /contact/{slug}. Does not own transport.
+ * Destinations come from ECP only — never invent platform URLs.
  */
 
 import type { DigitalContactProfile } from "../digitalContactTypes";
@@ -17,6 +18,9 @@ import {
   isValidPublicPhoneDigits,
   validateFacetimeDestination,
   validateGoogleMeetUrl,
+  validateInstagramUrl,
+  validateMessengerUrl,
+  validateMicrosoftTeamsUrl,
 } from "./channelValidation";
 import { resolvePreferredFaceToFaceConnection } from "./resolvePreferredFaceToFaceConnection";
 
@@ -80,6 +84,12 @@ export function resolveHumanConnectionChannels(
   const hasFacetime = Boolean(facetimeUrl);
   const googleMeetUrl = validateGoogleMeetUrl(profile.connectionDestinations?.googleMeetUrl);
   const hasApprovedMeetLink = Boolean(googleMeetUrl);
+  const teamsUrl = validateMicrosoftTeamsUrl(profile.connectionDestinations?.microsoftTeamsUrl);
+  const hasTeams = Boolean(teamsUrl);
+  const messengerUrl = validateMessengerUrl(profile.connectionDestinations?.messengerUrl);
+  const hasMessenger = Boolean(messengerUrl);
+  const instagramUrl = validateInstagramUrl(profile.connectionDestinations?.instagramUrl);
+  const hasInstagram = Boolean(instagramUrl);
 
   const hasBrowserVideo = managed.browserVideo === true;
   const hasGoogleMeetManaged = managed.googleMeet === true && !hasApprovedMeetLink;
@@ -89,9 +99,8 @@ export function resolveHumanConnectionChannels(
   const hasExternalVideo = faceToFace.hasImmediateVideo;
   const hasLiveFaceToFace = hasBrowserVideo || hasExternalVideo || hasGoogleMeetManaged;
 
-  // --- Face-to-face / video (when truthful) ---
-  // Build 09: approved Google Meet URL is a DIRECT external destination (no Daily/Resend).
-  // Preference: Meet link → FaceTime → managed browser video (dormant) → managed Meet API (dormant).
+  // --- Face-to-face / video rooms (when truthful) ---
+  // Preference: Meet → Teams → FaceTime → managed browser video (dormant) → managed Meet API (dormant).
   if (hasApprovedMeetLink && googleMeetUrl) {
     collected.push({
       type: "google_meet",
@@ -104,12 +113,24 @@ export function resolveHumanConnectionChannels(
     });
   }
 
+  if (hasTeams && teamsUrl) {
+    collected.push({
+      type: "teams",
+      channelClass: "direct",
+      priority: 8,
+      presentation: hasApprovedMeetLink ? "secondary" : "primary",
+      action: { kind: "external_url", url: teamsUrl, channel: "teams" },
+      requiresPresence: false,
+      requiresWorkingHours: false,
+    });
+  }
+
   if (hasFacetime && facetimeUrl) {
     collected.push({
       type: "facetime",
       channelClass: "direct",
       priority: 15,
-      presentation: hasApprovedMeetLink ? "secondary" : "primary",
+      presentation: hasApprovedMeetLink || hasTeams ? "secondary" : "primary",
       action: { kind: "external_url", url: facetimeUrl, channel: "facetime" },
       requiresPresence: false,
       requiresWorkingHours: false,
@@ -140,65 +161,64 @@ export function resolveHumanConnectionChannels(
     });
   }
 
-  // --- Direct app / carrier channels ---
-  // Order when no live F2F: Call → WhatsApp → SMS → Email (Build 02 hierarchy).
-  // When live F2F exists: WhatsApp → Call → SMS → Email after live options.
+  // --- App messaging / DM (only when approved destinations exist) ---
+  // WhatsApp uses profile phone/whatsapp digits — never a duplicated destination URL.
+  const appBase = hasLiveFaceToFace ? 60 : 50;
+
+  if (hasWhatsApp) {
+    collected.push({
+      type: "whatsapp",
+      channelClass: "direct",
+      priority: appBase,
+      presentation: hasLiveFaceToFace ? "secondary" : "secondary",
+      action: {
+        kind: "whatsapp",
+        phoneDigits: waDigits,
+        bodyPrefill: input.whatsappPrefill,
+      },
+      requiresPresence: false,
+      requiresWorkingHours: false,
+    });
+  }
+
+  if (hasMessenger && messengerUrl) {
+    collected.push({
+      type: "messenger",
+      channelClass: "direct",
+      priority: appBase + 5,
+      presentation: "secondary",
+      action: { kind: "external_url", url: messengerUrl, channel: "messenger" },
+      requiresPresence: false,
+      requiresWorkingHours: false,
+    });
+  }
+
+  if (hasInstagram && instagramUrl) {
+    collected.push({
+      type: "instagram",
+      channelClass: "direct",
+      priority: appBase + 10,
+      presentation: "secondary",
+      action: { kind: "external_url", url: instagramUrl, channel: "instagram" },
+      requiresPresence: false,
+      requiresWorkingHours: false,
+    });
+  }
+
+  // --- Carrier / native contact fallbacks ---
+  // Order when no live F2F: Call first as primary; when F2F exists, demote to secondary.
   const directBase = hasLiveFaceToFace ? 100 : 40;
 
-  if (hasLiveFaceToFace) {
-    if (hasWhatsApp) {
-      collected.push({
-        type: "whatsapp",
-        channelClass: "direct",
-        priority: directBase,
-        presentation: "secondary",
-        action: {
-          kind: "whatsapp",
-          phoneDigits: waDigits,
-          bodyPrefill: input.whatsappPrefill,
-        },
-        requiresPresence: false,
-        requiresWorkingHours: false,
-      });
-    }
-    if (hasPhone) {
-      collected.push({
-        type: "phone",
-        channelClass: "direct",
-        priority: directBase + 10,
-        presentation: "secondary",
-        action: { kind: "tel", phoneDigits },
-        requiresPresence: false,
-        requiresWorkingHours: false,
-      });
-    }
-  } else {
-    if (hasPhone) {
-      collected.push({
-        type: "phone",
-        channelClass: "direct",
-        priority: directBase,
-        presentation: "primary",
-        action: { kind: "tel", phoneDigits },
-        requiresPresence: false,
-        requiresWorkingHours: false,
-      });
-    }
-    if (hasWhatsApp) {
-      collected.push({
-        type: "whatsapp",
-        channelClass: "direct",
-        priority: directBase + 10,
-        presentation: "secondary",
-        action: {
-          kind: "whatsapp",
-          phoneDigits: waDigits,
-          bodyPrefill: input.whatsappPrefill,
-        },
-        requiresPresence: false,
-        requiresWorkingHours: false,
-      });
-    }
+  if (hasPhone) {
+    collected.push({
+      type: "phone",
+      channelClass: "direct",
+      priority: hasLiveFaceToFace ? directBase + 10 : directBase,
+      presentation: hasLiveFaceToFace ? "secondary" : "primary",
+      action: { kind: "tel", phoneDigits },
+      requiresPresence: false,
+      requiresWorkingHours: false,
+    });
   }
 
   if (hasPhone) {
@@ -272,5 +292,9 @@ export const DIRECT_CHANNELS_WITHOUT_MANAGED_VIDEO: HumanConnectionChannelType[]
   "whatsapp",
   "email",
   "facetime",
+  "google_meet",
+  "teams",
+  "messenger",
+  "instagram",
   "schedule_request",
 ];

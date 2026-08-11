@@ -4,6 +4,7 @@ import { openMailto, openSms, openTel, openWhatsApp, openExternalUrl } from "@/a
 import { trackDigitalContactEvent } from "@/app/lib/digitalContact/digitalContactAnalyticsClient";
 import type { HumanConnectionChannel } from "@/app/lib/digitalContact/humanConnection/channelTypes";
 import { labelForChannel } from "@/app/lib/digitalContact/humanConnection/connectionChannelCopy";
+import { getFaceToFaceCopy } from "@/app/lib/digitalContact/humanConnection/faceToFaceCopy";
 import type { DigitalContactLang } from "@/app/lib/digitalContact/digitalContactTypes";
 import type { HumanConnectionSurface } from "@/app/lib/digitalContact/humanConnection/humanConnectionTypes";
 
@@ -18,6 +19,11 @@ type Props = {
   onScheduleRequest?: () => void;
   /** Skip rendering these types (parent already renders them). */
   omitTypes?: Array<HumanConnectionChannel["type"]>;
+  /**
+   * app_rows = labeled app connection cards (WhatsApp / Messenger / Instagram).
+   * default = existing primary/secondary/tertiary button layout.
+   */
+  layout?: "default" | "app_rows";
 };
 
 function ActionIcon({ path }: { path: string }) {
@@ -40,8 +46,21 @@ const ICONS: Partial<Record<HumanConnectionChannel["type"], string>> = {
   browser_video:
     "M4 7.5A2.5 2.5 0 0 1 6.5 5h7A2.5 2.5 0 0 1 16 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 4 16.5v-9ZM17 9.5l3-2v9l-3-2v-5Z",
   google_meet: "M4 6h10v12H4V6Zm11 3 5-2v10l-5-2V9Z",
+  teams: "M4 6h9v12H4V6Zm10 2h4a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-4V8Z",
+  messenger: "M12 3a9 9 0 0 0-7.2 14.4L4 21l3.8-1.1A9 9 0 1 0 12 3Zm-3 8.5 2.2 2.2L15 9l-2.2 2.2L9 11.5Z",
+  instagram:
+    "M8 4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Zm4 4.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 0 0 12 8.5Zm4.2-.9a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z",
   schedule_request: "M7 4v2M17 4v2M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z",
 };
+
+function appActionLabel(type: HumanConnectionChannel["type"], lang: DigitalContactLang): string {
+  const copy = getFaceToFaceCopy(lang);
+  if (type === "whatsapp") return copy.appWhatsAppAction;
+  if (type === "messenger") return copy.appMessengerAction;
+  if (type === "instagram") return copy.appInstagramAction;
+  if (type === "teams") return copy.appTeamsAction;
+  return labelForChannel(type, lang);
+}
 
 /**
  * Renders router channels using existing CTA launchers.
@@ -56,6 +75,7 @@ export function HumanConnectionChannelActions({
   onManagedBrowserVideo,
   onScheduleRequest,
   omitTypes = [],
+  layout = "default",
 }: Props) {
   const omit = new Set(omitTypes);
   const visible = channels.filter((c) => !omit.has(c.type));
@@ -103,6 +123,33 @@ export function HumanConnectionChannelActions({
     }
   }
 
+  if (layout === "app_rows") {
+    return (
+      <ul className="space-y-2.5">
+        {visible.map((ch) => {
+          const name = labelForChannel(ch.type, lang);
+          const action = appActionLabel(ch.type, lang);
+          return (
+            <li key={ch.type}>
+              <button
+                type="button"
+                onClick={() => launch(ch)}
+                aria-label={`${name} — ${action}`}
+                className="flex min-h-[52px] w-full items-center gap-3 rounded-xl border border-[#D6C7AD] bg-[#FBF7EF] px-3.5 py-2.5 text-left transition hover:border-[var(--dc-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
+              >
+                {ICONS[ch.type] ? <ActionIcon path={ICONS[ch.type]!} /> : null}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-[#1F241C]">{name}</span>
+                  <span className="block text-xs text-[#5F6258]">{action}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
   const primary = visible.find((c) => c.presentation === "primary");
   const secondary = visible.filter((c) => c !== primary && c.presentation !== "tertiary");
   const tertiary = visible.filter((c) => c.presentation === "tertiary");
@@ -113,6 +160,7 @@ export function HumanConnectionChannelActions({
         <button
           type="button"
           onClick={() => launch(primary)}
+          aria-label={labelForChannel(primary.type, lang)}
           className="flex min-h-[56px] w-full items-center justify-center gap-2.5 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-3.5 text-base font-bold text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
         >
           {ICONS[primary.type] ? <ActionIcon path={ICONS[primary.type]!} /> : null}
@@ -127,6 +175,7 @@ export function HumanConnectionChannelActions({
               key={ch.type}
               type="button"
               onClick={() => launch(ch)}
+              aria-label={labelForChannel(ch.type, lang)}
               className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[#D6C7AD] bg-[#FBF7EF] px-3 py-2.5 text-sm font-bold text-[#1F241C] transition hover:border-[var(--dc-accent)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
             >
               {ICONS[ch.type] ? <ActionIcon path={ICONS[ch.type]!} /> : null}
@@ -142,6 +191,7 @@ export function HumanConnectionChannelActions({
             key={ch.type}
             type="button"
             onClick={() => launch(ch)}
+            aria-label={labelForChannel("email", lang)}
             className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-[#3D3428] underline-offset-2 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)]"
           >
             {ICONS.email ? <ActionIcon path={ICONS.email} /> : null}
