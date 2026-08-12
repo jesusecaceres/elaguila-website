@@ -33,6 +33,15 @@ import { listProposalsForBusiness } from "@/app/lib/business/proposals/repositor
 import { ProposalDetailPanel } from "./ProposalActions";
 import { listCommitmentsForBusiness, listEventsForCommitment } from "@/app/lib/business/promiseKeeper/repository";
 import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActions";
+import { listBusinessOutcomes } from "@/app/lib/business/outcomes/repository";
+import { isOutcomesEnabled } from "@/app/lib/business/outcomes/featureFlag";
+import { OutcomesPanel } from "./OutcomesPanel";
+import { listAllSignals } from "@/app/lib/business/advisor/repository";
+import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
+import { AdvisorPanel } from "./AdvisorPanel";
+import { listThreadsForBusiness } from "@/app/lib/business/assistant/repository";
+import { isAssistantEnabled } from "@/app/lib/business/assistant/featureFlag";
+import { AssistantPanel } from "./AssistantPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -211,6 +220,16 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         return { briefing, meetingsWithDetails, proposals, commitmentsWithEvents };
       })()
     : null;
+
+  // Program 7 — Outcomes + Advisor + Assistant
+  const outcomesEnabled = await isOutcomesEnabled();
+  const program7Outcomes = outcomesEnabled ? await listBusinessOutcomes(business.id) : [];
+
+  const advisorEnabled = await isAdvisorEnabled();
+  const program7Signals = advisorEnabled ? await listAllSignals(business.id) : [];
+
+  const assistantEnabled = await isAssistantEnabled();
+  const program7Threads = assistantEnabled ? await listThreadsForBusiness(business.id) : [];
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -866,6 +885,33 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 ))}
                 {program5Data.commitmentsWithEvents.length === 0 ? <p className="text-sm text-[#7A7164]">No commitments yet.</p> : null}
               </div>
+            </section>
+          ) : null}
+
+          {/* Program 7 — Outcomes */}
+          {outcomesEnabled ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Business Outcomes</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
+              <OutcomesPanel outcomes={program7Outcomes.map((o) => ({ id: o.id, metricKey: o.metricKey, metricLabelEs: o.metricLabelEs, metricLabelEn: o.metricLabelEn, baselineValue: o.baselineValue, measuredValue: o.measuredValue, result: o.result, confidence: o.confidence, causationClaim: o.causationClaim, reviewStatus: o.reviewStatus, createdAt: o.createdAt }))} />
+            </section>
+          ) : null}
+
+          {/* Program 7 — Proactive Advisor */}
+          {advisorEnabled ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Proactive Advisor</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Deterministic signals from existing truth. Not a second recommendation engine. Never auto-acts or auto-sends.</p>
+              <AdvisorPanel signals={program7Signals.map((s) => ({ id: s.id, signalType: s.signalType, severity: s.severity, status: s.status, titleEn: s.titleEn, titleEs: s.titleEs, explanationEn: s.explanationEn, explanationEs: s.explanationEs, detectedAt: s.detectedAt }))} />
+            </section>
+          ) : null}
+
+          {/* Program 7 — Contextual Business Concierge Assistant */}
+          {assistantEnabled ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Business Concierge Assistant</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Bounded to this business context. AI may READ, EXPLAIN, SUMMARIZE, GUIDE, DRAFT, SUGGEST — never autonomously mutate state.</p>
+              <AssistantPanel threads={program7Threads.map((t) => ({ id: t.id, status: t.status, titleEn: t.titleEn, titleEs: t.titleEs, primaryContextType: t.primaryContextType, lastMessageAt: t.lastMessageAt, createdAt: t.createdAt }))} />
             </section>
           ) : null}
         </>

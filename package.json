@@ -28,6 +28,8 @@
     "verify:business-stewardship-engine": "npx tsx scripts/verify-business-stewardship-engine-01.ts",
     "verify:field-discovery-canvassing": "npx tsx scripts/verify-field-discovery-canvassing-01.ts",
     "verify:business-ai-research-engine": "npx tsx scripts/verify-business-ai-research-engine-01.ts",
+    "verify:program7": "npx tsx scripts/program7-verifier.ts",
+    "test:program7": "npx tsx scripts/program7-business-concierge-tests.ts",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
     "verify:br:catalog-smoke": "npx tsx scripts/br-supabase-anon-smoke.ts",
     "verify:br:manual-qa-seed": "npx tsx scripts/br-manual-qa-catalog-seed.ts",

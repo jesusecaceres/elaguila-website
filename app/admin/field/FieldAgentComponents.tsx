@@ -1,0 +1,242 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+/**
+ * Program 7, Gate 7G — Mobile Staff Field Agent shell.
+ * Reuses the existing Field Discovery upload pipeline (Program 4) — never a new upload path.
+ * Provides: business-context quick actions, camera/file capture, dictation (feature-detected,
+ * no raw audio persistence), truthful offline/network indicator, install CTA.
+ *
+ * Doctrine:
+ * - No native app. No new paid infrastructure.
+ * - No fake offline mutation success — actions requiring network show a truthful blocked state.
+ * - Dictation transcribes client-side via Web Speech API when available; raw audio is never
+ *   sent to or stored on the server. If unsupported, the feature is hidden — not faked.
+ * - Meeting recording and transcription remain unavailable (Program 5 doctrine, unchanged).
+ */
+
+type NetworkState = "online" | "offline";
+
+function useNetworkState(): NetworkState {
+  const [state, setState] = useState<NetworkState>("online");
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    setState(navigator.onLine ? "online" : "offline");
+    const on = () => setState("online");
+    const off = () => setState("offline");
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return state;
+}
+
+function useInstallPrompt() {
+  const [installEvent, setInstallEvent] = useState<Event | null>(null);
+  useEffect(() => {
+    function handler(e: Event) {
+      e.preventDefault();
+      setInstallEvent(e);
+    }
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+  return {
+    canInstall: Boolean(installEvent),
+    promptInstall: async () => {
+      if (!installEvent) return;
+      await (installEvent as any).prompt();
+    },
+  };
+}
+
+function useDictationSupport(): boolean {
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    setSupported(Boolean(SpeechRecognition));
+  }, []);
+  return supported;
+}
+
+export function DictationButton({ onTranscript }: { onTranscript: (text: string) => void }) {
+  const supported = useDictationSupport();
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  if (!supported) {
+    return (
+      <p className="text-xs text-[color:var(--lx-text-muted)]">
+        Dictado no disponible en este navegador. / Dictation is not available in this browser.
+      </p>
+    );
+  }
+
+  function toggle() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-US";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? "";
+      if (transcript) onTranscript(transcript);
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+        listening ? "bg-red-700 text-white" : "bg-[#7A1E2C] text-white"
+      }`}
+    >
+      {listening ? "Escuchando… / Listening…" : "Dictar / Dictate"}
+    </button>
+  );
+}
+
+export function CameraFileCapture({
+  businessId,
+  onUploaded,
+}: {
+  businessId: string;
+  onUploaded?: (fileId: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const network = useNetworkState();
+
+  async function handleFile(file: File) {
+    if (network === "offline") {
+      setError("Sin conexión. No se puede subir el archivo. / Offline. Cannot upload the file.");
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("businessId", businessId);
+      form.append("fileKind", "photo");
+      form.append("file", file);
+      const res = await fetch("/api/admin/field-discovery/assets/upload", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.ok) {
+        setError(String(body?.error ?? "upload_failed"));
+        return;
+      }
+      onUploaded?.(String(body.sourceFile?.id ?? ""));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[color:var(--lx-text)]">
+          Tomar foto / Take photo
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={uploading || network === "offline"}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFile(file);
+          }}
+          className="block w-full text-xs"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[color:var(--lx-text)]">
+          Subir archivo / Upload file
+        </span>
+        <input
+          type="file"
+          disabled={uploading || network === "offline"}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFile(file);
+          }}
+          className="block w-full text-xs"
+        />
+      </label>
+      {uploading ? <p className="text-xs text-[color:var(--lx-text-muted)]">Subiendo… / Uploading…</p> : null}
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function NetworkStatusIndicator() {
+  const network = useNetworkState();
+  return (
+    <div
+      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+        network === "online" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+      }`}
+    >
+      {network === "online" ? "En línea / Online" : "Sin conexión / Offline"}
+    </div>
+  );
+}
+
+export function InstallCta() {
+  const { canInstall, promptInstall } = useInstallPrompt();
+  if (!canInstall) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => void promptInstall()}
+      className="rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white"
+    >
+      Instalar app / Install app
+    </button>
+  );
+}
+
+export function BusinessQuickActions({ businessId }: { businessId: string }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <a
+        href={`/admin/businesses/${businessId}`}
+        className="rounded-lg bg-[color:var(--lx-badge-bg)] px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)]"
+      >
+        Ver negocio / View business
+      </a>
+      <a
+        href={`/admin/businesses/${businessId}#field-discovery`}
+        className="rounded-lg bg-[color:var(--lx-badge-bg)] px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)]"
+      >
+        Descubrimiento / Discovery
+      </a>
+      <a
+        href={`/admin/businesses/${businessId}#advisor`}
+        className="rounded-lg bg-[color:var(--lx-badge-bg)] px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)]"
+      >
+        Señales / Signals
+      </a>
+    </div>
+  );
+}
