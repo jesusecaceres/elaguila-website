@@ -5,6 +5,14 @@
  */
 import type { CreativeJob, CreativeJobVersion, CreativeBrief } from "./types";
 import type { PrintFormatSpec } from "./printSpecs";
+import {
+  BLEED_INCHES,
+  CRITICAL_SAFE_OFFSET_INCHES,
+  BINDING_MARGINS,
+  PRINT_EXPORT_TARGET,
+  CONFIRM_WITH_PRINTER_ITEMS,
+  PRINT_PPI,
+} from "./printSpecs";
 import type { ArchetypeDefinition } from "./archetypes/types";
 import type { CreativeCompositionZone } from "./archetypes/compositionRules";
 import type { BusinessCreativeAsset } from "./assetTypes";
@@ -99,12 +107,12 @@ export function generateExport(type: ExportType, input: ExportInput): ExportResu
             format: input.formatSpec.label,
             trim: `${input.formatSpec.trimWidthIn}" x ${input.formatSpec.trimHeightIn}"`,
             bleed: `${input.formatSpec.bleedWidthIn}" x ${input.formatSpec.bleedHeightIn}"`,
-            pixels: `${input.formatSpec.pixelWidth} x ${input.formatSpec.pixelHeight} @ 300 PPI`,
-            bleedInches: 0.125,
-            criticalSafeOffset: 0.375,
-            bindingMargins: { inside: 0.50, outside: 0.25, top: 0.375, bottom: 0.375 },
-            exportTarget: "PDF Print / CMYK",
-            confirmWithPrinter: ["Printer-specific PDF standard", "CMYK profile", "Rich-black build", "Ink limit", "Crop mark requirement", "Creep settings"],
+            pixels: `${input.formatSpec.pixelWidth} x ${input.formatSpec.pixelHeight} @ ${PRINT_PPI} PPI`,
+            bleedInches: BLEED_INCHES,
+            criticalSafeOffset: CRITICAL_SAFE_OFFSET_INCHES,
+            bindingMargins: { ...BINDING_MARGINS },
+            exportTarget: PRINT_EXPORT_TARGET,
+            confirmWithPrinter: [...CONFIRM_WITH_PRINTER_ITEMS],
           }, null, 2),
           status: "generated",
         };

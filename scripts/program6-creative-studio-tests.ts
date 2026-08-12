@@ -21,8 +21,13 @@ import {
   PRINT_PPI,
   BINDING_MARGINS,
   getPrintFormat,
+  MAGAZINE_TRIM_IN,
+  MAGAZINE_TRIM_PX,
+  MAGAZINE_SAFE_AREA_IN,
+  MAGAZINE_SAFE_PX,
   type PrintFormatKey,
 } from "../app/lib/business/creativeStudio/printSpecs";
+import { buildCanvaPrompt } from "../app/lib/business/creativeStudio/canvaPromptCompiler";
 
 // Production rules
 import {
@@ -550,83 +555,133 @@ test("19. Official wordmark truth reflects file availability", () => {
   assert(LEONIX_WORDMARK.exists, "wordmark exists should be true after restoration");
 });
 
-// 20. Full bleed dimensions exact
-test("20. Full bleed dimensions exact", () => {
+// 20. Canonical magazine trim = 8.5 x 11 portrait
+test("20. Canonical magazine trim = 8.5 x 11 portrait", () => {
+  assertEq(MAGAZINE_TRIM_IN.widthIn, 8.5, "trim width");
+  assertEq(MAGAZINE_TRIM_IN.heightIn, 11, "trim height");
+  assert(MAGAZINE_TRIM_IN.heightIn > MAGAZINE_TRIM_IN.widthIn, "portrait orientation");
+});
+
+// 20b. Canonical trim pixels = 2550 x 3300
+test("20b. Canonical trim pixels = 2550 x 3300", () => {
+  assertEq(MAGAZINE_TRIM_PX.pixelWidth, 2550, "trim pixel width");
+  assertEq(MAGAZINE_TRIM_PX.pixelHeight, 3300, "trim pixel height");
+});
+
+// 21. Canonical full bleed document = 8.75 x 11.25
+test("21. Canonical full bleed document = 8.75 x 11.25", () => {
   const f = PRINT_FORMATS.FULL_BLEED;
-  assertEq(f.trimWidthIn, 8.00, "trim width");
-  assertEq(f.trimHeightIn, 11.50, "trim height");
-  assertEq(f.bleedWidthIn, 8.25, "bleed width");
-  assertEq(f.bleedHeightIn, 11.75, "bleed height");
-  assertEq(f.pixelWidth, 2475, "pixel width");
-  assertEq(f.pixelHeight, 3525, "pixel height");
+  assertEq(f.trimWidthIn, 8.5, "trim width");
+  assertEq(f.trimHeightIn, 11, "trim height");
+  assertEq(f.bleedWidthIn, 8.75, "bleed width");
+  assertEq(f.bleedHeightIn, 11.25, "bleed height");
+  assertEq(f.pixelWidth, 2625, "pixel width");
+  assertEq(f.pixelHeight, 3375, "pixel height");
   assert(f.isFullBleed, "isFullBleed");
   assert(!f.isSpread, "not spread");
 });
 
-// 21. Full non-bleed dimensions exact
-test("21. Full page non-bleed dimensions exact", () => {
+// 22. Full page non-bleed / live = safe area 7.75 x 10.25
+test("22. Full page non-bleed / live area = 7.75 x 10.25", () => {
   const f = PRINT_FORMATS.FULL_PAGE;
-  assertEq(f.trimWidthIn, 8.00, "trim width");
-  assertEq(f.trimHeightIn, 11.50, "trim height");
-  assertEq(f.bleedWidthIn, 8.00, "bleed width = trim (no bleed)");
-  assertEq(f.bleedHeightIn, 11.50, "bleed height = trim (no bleed)");
-  assertEq(f.pixelWidth, 2175, "pixel width");
-  assertEq(f.pixelHeight, 3225, "pixel height");
+  assertEq(f.trimWidthIn, 7.75, "trim width");
+  assertEq(f.trimHeightIn, 10.25, "trim height");
+  assertEq(f.pixelWidth, 2325, "pixel width");
+  assertEq(f.pixelHeight, 3075, "pixel height");
   assert(!f.isFullBleed, "not full bleed");
 });
 
-// 22. Half-horizontal exact
-test("22. Half-horizontal dimensions exact", () => {
+// 23. Safe area exact = 7.75 x 10.25 / 2325 x 3075
+test("23. Safe area exact = 7.75 x 10.25", () => {
+  assertEq(MAGAZINE_SAFE_AREA_IN.widthIn, 7.75, "safe width");
+  assertEq(MAGAZINE_SAFE_AREA_IN.heightIn, 10.25, "safe height");
+  assertEq(MAGAZINE_SAFE_PX.pixelWidth, 2325, "safe pixel width");
+  assertEq(MAGAZINE_SAFE_PX.pixelHeight, 3075, "safe pixel height");
+});
+
+// 24. Half-horizontal exact = 7.75 x 5 / 2325 x 1500
+test("24. Half-horizontal dimensions exact", () => {
   const f = PRINT_FORMATS.HALF_HORIZONTAL;
-  assertEq(f.trimWidthIn, 7.25, "trim width");
-  assertEq(f.trimHeightIn, 5.25, "trim height");
-  assertEq(f.pixelWidth, 2175, "pixel width");
-  assertEq(f.pixelHeight, 1575, "pixel height");
+  assertEq(f.trimWidthIn, 7.75, "trim width");
+  assertEq(f.trimHeightIn, 5, "trim height");
+  assertEq(f.pixelWidth, 2325, "pixel width");
+  assertEq(f.pixelHeight, 1500, "pixel height");
 });
 
-// 23. Half-vertical exact
-test("23. Half-vertical dimensions exact", () => {
+// 25. Half-vertical exact = 3.75 x 10.25 / 1125 x 3075
+test("25. Half-vertical dimensions exact", () => {
   const f = PRINT_FORMATS.HALF_VERTICAL;
-  assertEq(f.trimWidthIn, 3.50, "trim width");
-  assertEq(f.trimHeightIn, 10.75, "trim height");
-  assertEq(f.pixelWidth, 1050, "pixel width");
-  assertEq(f.pixelHeight, 3225, "pixel height");
+  assertEq(f.trimWidthIn, 3.75, "trim width");
+  assertEq(f.trimHeightIn, 10.25, "trim height");
+  assertEq(f.pixelWidth, 1125, "pixel width");
+  assertEq(f.pixelHeight, 3075, "pixel height");
 });
 
-// 24. Quarter exact
-test("24. Quarter dimensions exact", () => {
+// 26. Quarter exact = 3.75 x 5 / 1125 x 1500
+test("26. Quarter dimensions exact", () => {
   const f = PRINT_FORMATS.QUARTER;
-  assertEq(f.trimWidthIn, 3.50, "trim width");
-  assertEq(f.trimHeightIn, 5.25, "trim height");
-  assertEq(f.pixelWidth, 1050, "pixel width");
-  assertEq(f.pixelHeight, 1575, "pixel height");
+  assertEq(f.trimWidthIn, 3.75, "trim width");
+  assertEq(f.trimHeightIn, 5, "trim height");
+  assertEq(f.pixelWidth, 1125, "pixel width");
+  assertEq(f.pixelHeight, 1500, "pixel height");
 });
 
-// 25. Spread exact
-test("25. Spread trim dimensions exact", () => {
+// 27. Spread trim exact = 17 x 11 / 5100 x 3300
+test("27. Spread trim dimensions exact", () => {
   const f = PRINT_FORMATS.SPREAD_TRIM;
-  assertEq(f.trimWidthIn, 16.00, "trim width");
-  assertEq(f.trimHeightIn, 11.50, "trim height");
-  assertEq(f.pixelWidth, 4800, "pixel width");
-  assertEq(f.pixelHeight, 3450, "pixel height");
+  assertEq(f.trimWidthIn, 17, "trim width");
+  assertEq(f.trimHeightIn, 11, "trim height");
+  assertEq(f.pixelWidth, 5100, "pixel width");
+  assertEq(f.pixelHeight, 3300, "pixel height");
   assert(f.isSpread, "is spread");
   assert(!f.isFullBleed, "not full bleed");
 });
 
-test("25b. Spread bleed dimensions exact", () => {
+// 28. Spread outer-bleed exact = 17.25 x 11.25 / 5175 x 3375
+test("28. Spread outer-bleed working size exact", () => {
   const f = PRINT_FORMATS.SPREAD_BLEED;
-  assertEq(f.trimWidthIn, 16.00, "trim width");
-  assertEq(f.trimHeightIn, 11.50, "trim height");
-  assertEq(f.bleedWidthIn, 16.25, "bleed width");
-  assertEq(f.bleedHeightIn, 11.75, "bleed height");
-  assertEq(f.pixelWidth, 4875, "pixel width");
-  assertEq(f.pixelHeight, 3525, "pixel height");
+  assertEq(f.trimWidthIn, 17, "trim width");
+  assertEq(f.trimHeightIn, 11, "trim height");
+  assertEq(f.bleedWidthIn, 17.25, "bleed width");
+  assertEq(f.bleedHeightIn, 11.25, "bleed height");
+  assertEq(f.pixelWidth, 5175, "pixel width");
+  assertEq(f.pixelHeight, 3375, "pixel height");
   assert(f.isSpread, "is spread");
   assert(f.isFullBleed, "is full bleed");
 });
 
+// 28b. Old 8 x 11.5 magazine geometry is no longer canonical
+test("28b. Old 8 x 11.5 magazine geometry is not canonical", () => {
+  const trimWidth: number = MAGAZINE_TRIM_IN.widthIn;
+  const trimHeight: number = MAGAZINE_TRIM_IN.heightIn;
+  assert(trimWidth !== 8.00, "trim width must not be old 8.00");
+  assert(trimHeight !== 11.50, "trim height must not be old 11.50");
+  const fb = PRINT_FORMATS.FULL_BLEED;
+  assert(!(fb.pixelWidth === 2475 && fb.pixelHeight === 3525), "old 2475 x 3525 full-bleed pixel geometry must be rejected as canonical");
+});
+
+// 28c. Canva handoff prompt references new canonical geometry, never old geometry
+test("28c. Canva handoff prompt uses new geometry, never old 8 x 11.5", () => {
+  const plan = getCompositionPlan("AUTHORITY_TRADITIONAL_UPGRADED", "FULL_BLEED", "A");
+  const prompt = buildCanvaPrompt({
+    formatSpec: PRINT_FORMATS.FULL_BLEED,
+    archetype: ARCHETYPES.AUTHORITY_TRADITIONAL_UPGRADED,
+    layoutVariant: "A",
+    brief: makeBrief({ format: "FULL_BLEED" }),
+    zones: plan.zones,
+    generatedCopy: {},
+    assets: [],
+    qrDestination: "https://leonix.media/landing",
+  });
+  assert(prompt.includes("LEONIX MAGAZINE"), "Prompt should declare LEONIX MAGAZINE");
+  assert(prompt.includes('FINAL TRIM: 8.5" x 11" in portrait'), "Prompt should state final trim 8.5 x 11 portrait");
+  assert(prompt.includes('WORKING FULL BLEED: 8.75" x 11.25" in'), "Prompt should state working full bleed 8.75 x 11.25");
+  assert(prompt.includes("CONFIRM WITH PRINTER"), "Prompt should flag printer-dependent items");
+  assert(!prompt.includes('8" x 11.5"') && !prompt.includes("8.00\" x 11.50\""), "Prompt must never state old 8 x 11.5 geometry");
+});
+
 // 26. Bleed exact
-test("26. Bleed inches exact", () => {
+test("26b. Bleed inches exact", () => {
   assertEq(BLEED_INCHES, 0.125, "BLEED_INCHES");
   // Full bleed adds 0.125" all sides
   const fb = PRINT_FORMATS.FULL_BLEED;
@@ -1068,8 +1123,8 @@ test("72. Export PRINT_SPEC_SHEET contains dimensions", () => {
   const result = generateExport("PRINT_SPEC_SHEET", exportInput);
   assertEq(result.status, "generated", "status");
   assert(result.content.includes("Full Page"), "Should contain format label");
-  assert(result.content.includes("2175"), "Should contain pixel width");
-  assert(result.content.includes("3225"), "Should contain pixel height");
+  assert(result.content.includes("2325"), "Should contain pixel width");
+  assert(result.content.includes("3075"), "Should contain pixel height");
   assert(result.content.includes("300 PPI"), "Should contain PPI");
 });
 

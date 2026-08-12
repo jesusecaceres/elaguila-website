@@ -926,6 +926,184 @@ export function verifyArchitecture(): VerifyCheck[] {
     detail: "REVIEW_CHECKLIST no longer uses resolved boolean",
   });
 
+  // ═════════════════════════════════════════════════════════════════════════
+  // Magazine print spec correction — canonical 8.5 x 11 portrait geometry.
+  // ═════════════════════════════════════════════════════════════════════════
+  checks.push(...verifyMagazinePrintGeometry());
+
+  return checks;
+}
+
+// ─── Magazine print geometry checks (8.5 x 11 portrait correction) ─────────
+
+function verifyMagazinePrintGeometry(): VerifyCheck[] {
+  const checks: VerifyCheck[] = [];
+  const printContent = readCsFile("printSpecs.ts");
+  const canvaPromptContent = readCsFile("canvaPromptCompiler.ts");
+  const canvaHandoffContent = readCsFile("canvaHandoff.ts");
+
+  // ─── No old canonical geometry remains ───────────────────────────────────
+  checks.push({
+    check: "No canonical 8.00/11.50 (8 x 11.5) trim remains in printSpecs.ts",
+    pass: !printContent.includes("8.00") && !printContent.includes("11.50"),
+    detail: "printSpecs.ts must not contain old trim literals 8.00 / 11.50",
+  });
+
+  checks.push({
+    check: "No canonical 2475 x 3525 old bleed pixel geometry remains",
+    pass: !printContent.includes("2475") && !printContent.includes("3525"),
+    detail: "printSpecs.ts must not contain old bleed pixel literals 2475 / 3525",
+  });
+
+  checks.push({
+    check: "No canonical 2175 x 3225 / 1050 x 1575 / 4800 x 3450 / 4875 old pixel geometry remains",
+    pass: !printContent.includes("2175") && !printContent.includes("3225") &&
+          !printContent.includes("1050") && !printContent.includes("1575") &&
+          !printContent.includes("4800") && !printContent.includes("3450") &&
+          !printContent.includes("4875"),
+    detail: "printSpecs.ts must not contain any old pixel geometry literals",
+  });
+
+  // ─── Canonical trim ───────────────────────────────────────────────────────
+  checks.push({
+    check: "Canonical trim is 8.5 x 11 (MAGAZINE_TRIM_IN)",
+    pass: printContent.includes("MAGAZINE_TRIM_IN = { widthIn: 8.5, heightIn: 11 }"),
+    detail: "MAGAZINE_TRIM_IN = { widthIn: 8.5, heightIn: 11 }",
+  });
+
+  checks.push({
+    check: "Canonical trim pixels 2550 x 3300 (derived via PRINT_PPI)",
+    pass: printContent.includes("MAGAZINE_TRIM_PX") && printContent.includes("inchesToPx(MAGAZINE_TRIM_IN.widthIn)"),
+    detail: "MAGAZINE_TRIM_PX derives from MAGAZINE_TRIM_IN * PRINT_PPI (8.5*300=2550, 11*300=3300)",
+  });
+
+  // ─── Canonical bleed ────────────────────────────────────────────────────
+  checks.push({
+    check: "Canonical bleed document is 8.75 x 11.25 (derived from trim + 2*BLEED_INCHES)",
+    pass: printContent.includes("MAGAZINE_BLEED_DOCUMENT_IN") &&
+          printContent.includes("MAGAZINE_TRIM_IN.widthIn + 2 * BLEED_INCHES") &&
+          printContent.includes("MAGAZINE_TRIM_IN.heightIn + 2 * BLEED_INCHES"),
+    detail: "MAGAZINE_BLEED_DOCUMENT_IN = trim + 2*0.125 = 8.75 x 11.25",
+  });
+
+  checks.push({
+    check: "Canonical bleed pixels 2625 x 3375 (derived via PRINT_PPI)",
+    pass: printContent.includes("MAGAZINE_BLEED_PX"),
+    detail: "MAGAZINE_BLEED_PX derives from MAGAZINE_BLEED_DOCUMENT_IN * PRINT_PPI (8.75*300=2625, 11.25*300=3375)",
+  });
+
+  // ─── Safe area ────────────────────────────────────────────────────────────
+  checks.push({
+    check: "Canonical safe area is 7.75 x 10.25 (derived from trim - 2*CRITICAL_SAFE_OFFSET_INCHES)",
+    pass: printContent.includes("MAGAZINE_SAFE_AREA_IN") &&
+          printContent.includes("MAGAZINE_TRIM_IN.widthIn - 2 * CRITICAL_SAFE_OFFSET_INCHES") &&
+          printContent.includes("MAGAZINE_TRIM_IN.heightIn - 2 * CRITICAL_SAFE_OFFSET_INCHES"),
+    detail: "MAGAZINE_SAFE_AREA_IN = trim - 2*0.375 = 7.75 x 10.25",
+  });
+
+  checks.push({
+    check: "Canonical safe pixels 2325 x 3075 (derived via PRINT_PPI)",
+    pass: printContent.includes("MAGAZINE_SAFE_PX"),
+    detail: "MAGAZINE_SAFE_PX derives from MAGAZINE_SAFE_AREA_IN * PRINT_PPI (7.75*300=2325, 10.25*300=3075)",
+  });
+
+  // ─── FULL_BLEED / FULL_PAGE formats reflect canonical geometry ───────────
+  checks.push({
+    check: "PRINT_FORMATS.FULL_BLEED derives from MAGAZINE_TRIM_IN / MAGAZINE_BLEED_DOCUMENT_IN / MAGAZINE_BLEED_PX",
+    pass: /FULL_BLEED:\s*\{[\s\S]*?trimWidthIn:\s*MAGAZINE_TRIM_IN\.widthIn/.test(printContent) &&
+          /FULL_BLEED:\s*\{[\s\S]*?bleedWidthIn:\s*MAGAZINE_BLEED_DOCUMENT_IN\.widthIn/.test(printContent) &&
+          /FULL_BLEED:\s*\{[\s\S]*?pixelWidth:\s*MAGAZINE_BLEED_PX\.pixelWidth/.test(printContent),
+    detail: "FULL_BLEED format must derive from canonical trim/bleed/px, not hardcoded literals",
+  });
+
+  checks.push({
+    check: "PRINT_FORMATS.FULL_PAGE derives from MAGAZINE_SAFE_AREA_IN / MAGAZINE_SAFE_PX",
+    pass: /FULL_PAGE:\s*\{[\s\S]*?trimWidthIn:\s*MAGAZINE_SAFE_AREA_IN\.widthIn/.test(printContent) &&
+          /FULL_PAGE:\s*\{[\s\S]*?pixelWidth:\s*MAGAZINE_SAFE_PX\.pixelWidth/.test(printContent),
+    detail: "FULL_PAGE (non-bleed/live) format must derive from canonical safe-area geometry",
+  });
+
+  // ─── Half / Quarter / Spread modular geometry ────────────────────────────
+  checks.push({
+    check: "MAGAZINE_HALF_HORIZONTAL_IN derives from safe area + gutter (7.75 x 5.00)",
+    pass: printContent.includes("MAGAZINE_HALF_HORIZONTAL_IN") &&
+          printContent.includes("MAGAZINE_SAFE_AREA_IN.heightIn - INTER_AD_GUTTER_INCHES) / 2"),
+    detail: "HALF_HORIZONTAL derived, not hardcoded",
+  });
+
+  checks.push({
+    check: "MAGAZINE_HALF_VERTICAL_IN derives from safe area + gutter (3.75 x 10.25)",
+    pass: printContent.includes("MAGAZINE_HALF_VERTICAL_IN") &&
+          printContent.includes("MAGAZINE_SAFE_AREA_IN.widthIn - INTER_AD_GUTTER_INCHES) / 2"),
+    detail: "HALF_VERTICAL derived, not hardcoded",
+  });
+
+  checks.push({
+    check: "MAGAZINE_QUARTER_IN derives from half-vertical width x half-horizontal height (3.75 x 5.00)",
+    pass: printContent.includes("MAGAZINE_QUARTER_IN") &&
+          printContent.includes("widthIn: MAGAZINE_HALF_VERTICAL_IN.widthIn") &&
+          printContent.includes("heightIn: MAGAZINE_HALF_HORIZONTAL_IN.heightIn"),
+    detail: "QUARTER derived from half-page geometry, not hardcoded",
+  });
+
+  checks.push({
+    check: "MAGAZINE_SPREAD_TRIM_IN = 2x trim width (17 x 11)",
+    pass: printContent.includes("MAGAZINE_SPREAD_TRIM_IN") && printContent.includes("MAGAZINE_TRIM_IN.widthIn * 2"),
+    detail: "Spread trim derived as 2x single-page trim width",
+  });
+
+  checks.push({
+    check: "MAGAZINE_SPREAD_OUTER_BLEED_IN = spread trim + 2*BLEED_INCHES (17.25 x 11.25)",
+    pass: printContent.includes("MAGAZINE_SPREAD_OUTER_BLEED_IN") &&
+          printContent.includes("MAGAZINE_SPREAD_TRIM_IN.widthIn + 2 * BLEED_INCHES") &&
+          printContent.includes("MAGAZINE_SPREAD_TRIM_IN.heightIn + 2 * BLEED_INCHES"),
+    detail: "Spread outer-bleed derived from spread trim + working bleed",
+  });
+
+  checks.push({
+    check: "Gutter remains 0.25in (INTER_AD_GUTTER_INCHES)",
+    pass: printContent.includes("INTER_AD_GUTTER_INCHES = 0.25"),
+    detail: "INTER_AD_GUTTER_INCHES = 0.25",
+  });
+
+  checks.push({
+    check: "QR minimum remains 0.75in and preferred 0.90-1.00in",
+    pass: readCsFile("productionRules.ts").includes("QR_MIN_SIZE_INCHES = 0.75") &&
+          readCsFile("productionRules.ts").includes("QR_PREFERRED_MIN_INCHES = 0.90") &&
+          readCsFile("productionRules.ts").includes("QR_PREFERRED_MAX_INCHES = 1.00"),
+    detail: "QR sizing doctrine unchanged by print spec correction",
+  });
+
+  // ─── Canva handoff references new geometry ───────────────────────────────
+  checks.push({
+    check: "Canva prompt compiler declares LEONIX MAGAZINE canonical geometry",
+    pass: canvaPromptContent.includes("LEONIX MAGAZINE") &&
+          canvaPromptContent.includes("FINAL TRIM") &&
+          canvaPromptContent.includes("WORKING FULL BLEED") &&
+          canvaPromptContent.includes("CRITICAL SAFE INSET") &&
+          canvaPromptContent.includes("CONFIRM WITH PRINTER"),
+    detail: "canvaPromptCompiler.ts must declare canonical trim/bleed/safe-inset and printer-confirm items",
+  });
+
+  checks.push({
+    check: "Canva prompt compiler references MAGAZINE_TRIM_IN / MAGAZINE_BLEED_DOCUMENT_IN (not hardcoded old geometry)",
+    pass: canvaPromptContent.includes("MAGAZINE_TRIM_IN") && canvaPromptContent.includes("MAGAZINE_BLEED_DOCUMENT_IN"),
+    detail: "Canva prompt must source geometry from canonical printSpecs constants",
+  });
+
+  checks.push({
+    check: "No old 8 x 11.5 geometry referenced in Canva handoff/prompt files",
+    pass: !canvaPromptContent.includes("8.00") && !canvaPromptContent.includes("11.50") &&
+          !canvaHandoffContent.includes("8.00") && !canvaHandoffContent.includes("11.50"),
+    detail: "Canva handoff/prompt must never state old 8 x 11.5 geometry",
+  });
+
+  checks.push({
+    check: "No Canva API integration claimed (manual handoff only)",
+    pass: !canvaHandoffContent.toLowerCase().includes("api.canva.com"),
+    detail: "canvaHandoff.ts must not claim live Canva API integration",
+  });
+
   return checks;
 }
 

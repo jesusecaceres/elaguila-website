@@ -4,6 +4,15 @@
  * Canva integration status defaults to manual_handoff.
  */
 import type { PrintFormatSpec } from "./printSpecs";
+import {
+  BLEED_INCHES,
+  CRITICAL_SAFE_OFFSET_INCHES,
+  MODULAR_CONTENT_SAFETY_INCHES,
+  BINDING_MARGINS,
+  CONFIRM_WITH_PRINTER_ITEMS,
+  PRINT_EXPORT_TARGET,
+  PRINT_RESOLUTION_TARGET,
+} from "./printSpecs";
 import type { CreativeBrief } from "./types";
 import type { CreativeCompositionZone } from "./archetypes/compositionRules";
 import type { ArchetypeDefinition } from "./archetypes/types";
@@ -113,8 +122,8 @@ export function buildCanvaProductionPack(
     qrAsset: qrDestination ? { destination: qrDestination, sizeInches: 0.90 } : null,
     sponsorTreatment: brief.creativeLane === "LANE_C_SPONSORED_EDITORIAL" ? "Sponsor supports useful Leonix content. Disclosure required." : null,
     disclaimer: brief.requiredDisclaimers[0] ?? null,
-    exportRequirements: ["PDF Print / CMYK", "300 PPI final placed size"],
-    printerConfirmationItems: ["Printer-specific PDF standard", "CMYK profile", "Rich-black build", "Ink limit", "Crop mark requirement", "Creep settings"],
+    exportRequirements: [PRINT_EXPORT_TARGET, PRINT_RESOLUTION_TARGET],
+    printerConfirmationItems: [...CONFIRM_WITH_PRINTER_ITEMS],
     canvaPrompt,
     humanQaChecklist: [
       "Verify all business names, phone numbers, and addresses match approved snapshot.",

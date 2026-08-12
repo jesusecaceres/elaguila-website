@@ -25,11 +25,22 @@ export interface PrintFormatSpec {
   readonly isFullBleed: boolean;
 }
 
+export const PRINT_PPI = 300;
+
+/**
+ * Canonical Leonix Magazine geometry (locked source of truth).
+ * FINAL TRIM: 8.5 x 11 in, portrait, US Letter proportion, 300 PPI working standard.
+ * Printer-specific bleed/binding/creep/crop-mark/PDF/CMYK/ink/coating requirements
+ * remain CONFIRM WITH PRINTER — never represented here as certified facts.
+ */
+export function inchesToPx(inches: number): number {
+  return Math.round(inches * PRINT_PPI);
+}
+
 export const BLEED_INCHES = 0.125;
 export const INTER_AD_GUTTER_INCHES = 0.25;
 export const CRITICAL_SAFE_OFFSET_INCHES = 0.375;
 export const MODULAR_CONTENT_SAFETY_INCHES = 0.25;
-export const PRINT_PPI = 300;
 
 export const BINDING_MARGINS = {
   inside: 0.50,
@@ -49,90 +60,153 @@ export const CONFIRM_WITH_PRINTER_ITEMS: readonly string[] = [
   "Ink limit",
   "Crop mark requirement",
   "Creep settings",
+  "Coating requirements",
+  "Final bleed/binding creep",
 ];
+
+// ─── Canonical Leonix Magazine trim / bleed / safe-area geometry ──────────
+
+export const MAGAZINE_TRIM_IN = { widthIn: 8.5, heightIn: 11 } as const;
+export const MAGAZINE_TRIM_PX = {
+  pixelWidth: inchesToPx(MAGAZINE_TRIM_IN.widthIn),
+  pixelHeight: inchesToPx(MAGAZINE_TRIM_IN.heightIn),
+} as const;
+
+export const MAGAZINE_BLEED_DOCUMENT_IN = {
+  widthIn: MAGAZINE_TRIM_IN.widthIn + 2 * BLEED_INCHES,
+  heightIn: MAGAZINE_TRIM_IN.heightIn + 2 * BLEED_INCHES,
+} as const;
+export const MAGAZINE_BLEED_PX = {
+  pixelWidth: inchesToPx(MAGAZINE_BLEED_DOCUMENT_IN.widthIn),
+  pixelHeight: inchesToPx(MAGAZINE_BLEED_DOCUMENT_IN.heightIn),
+} as const;
+
+export const MAGAZINE_SAFE_AREA_IN = {
+  widthIn: MAGAZINE_TRIM_IN.widthIn - 2 * CRITICAL_SAFE_OFFSET_INCHES,
+  heightIn: MAGAZINE_TRIM_IN.heightIn - 2 * CRITICAL_SAFE_OFFSET_INCHES,
+} as const;
+export const MAGAZINE_SAFE_PX = {
+  pixelWidth: inchesToPx(MAGAZINE_SAFE_AREA_IN.widthIn),
+  pixelHeight: inchesToPx(MAGAZINE_SAFE_AREA_IN.heightIn),
+} as const;
+
+export const MAGAZINE_SPREAD_TRIM_IN = {
+  widthIn: MAGAZINE_TRIM_IN.widthIn * 2,
+  heightIn: MAGAZINE_TRIM_IN.heightIn,
+} as const;
+export const MAGAZINE_SPREAD_TRIM_PX = {
+  pixelWidth: inchesToPx(MAGAZINE_SPREAD_TRIM_IN.widthIn),
+  pixelHeight: inchesToPx(MAGAZINE_SPREAD_TRIM_IN.heightIn),
+} as const;
+
+export const MAGAZINE_SPREAD_OUTER_BLEED_IN = {
+  widthIn: MAGAZINE_SPREAD_TRIM_IN.widthIn + 2 * BLEED_INCHES,
+  heightIn: MAGAZINE_SPREAD_TRIM_IN.heightIn + 2 * BLEED_INCHES,
+} as const;
+export const MAGAZINE_SPREAD_OUTER_BLEED_PX = {
+  pixelWidth: inchesToPx(MAGAZINE_SPREAD_OUTER_BLEED_IN.widthIn),
+  pixelHeight: inchesToPx(MAGAZINE_SPREAD_OUTER_BLEED_IN.heightIn),
+} as const;
+
+// ─── Modular ad geometry (derived from safe/live area + working gutter) ───
+
+export const MAGAZINE_HALF_HORIZONTAL_IN = {
+  widthIn: MAGAZINE_SAFE_AREA_IN.widthIn,
+  heightIn: (MAGAZINE_SAFE_AREA_IN.heightIn - INTER_AD_GUTTER_INCHES) / 2,
+} as const;
+
+export const MAGAZINE_HALF_VERTICAL_IN = {
+  widthIn: (MAGAZINE_SAFE_AREA_IN.widthIn - INTER_AD_GUTTER_INCHES) / 2,
+  heightIn: MAGAZINE_SAFE_AREA_IN.heightIn,
+} as const;
+
+export const MAGAZINE_QUARTER_IN = {
+  widthIn: MAGAZINE_HALF_VERTICAL_IN.widthIn,
+  heightIn: MAGAZINE_HALF_HORIZONTAL_IN.heightIn,
+} as const;
 
 export const PRINT_FORMATS: Record<PrintFormatKey, PrintFormatSpec> = {
   FULL_BLEED: {
     key: "FULL_BLEED",
-    label: "Full Bleed",
-    trimWidthIn: 8.00,
-    trimHeightIn: 11.50,
-    bleedWidthIn: 8.25,
-    bleedHeightIn: 11.75,
-    pixelWidth: 2475,
-    pixelHeight: 3525,
+    label: "Full Page — Bleed",
+    trimWidthIn: MAGAZINE_TRIM_IN.widthIn,
+    trimHeightIn: MAGAZINE_TRIM_IN.heightIn,
+    bleedWidthIn: MAGAZINE_BLEED_DOCUMENT_IN.widthIn,
+    bleedHeightIn: MAGAZINE_BLEED_DOCUMENT_IN.heightIn,
+    pixelWidth: MAGAZINE_BLEED_PX.pixelWidth,
+    pixelHeight: MAGAZINE_BLEED_PX.pixelHeight,
     isSpread: false,
     isFullBleed: true,
   },
   FULL_PAGE: {
     key: "FULL_PAGE",
-    label: "Full Page (Non-Bleed)",
-    trimWidthIn: 8.00,
-    trimHeightIn: 11.50,
-    bleedWidthIn: 8.00,
-    bleedHeightIn: 11.50,
-    pixelWidth: 2175,
-    pixelHeight: 3225,
+    label: "Full Page — Non-Bleed / Live",
+    trimWidthIn: MAGAZINE_SAFE_AREA_IN.widthIn,
+    trimHeightIn: MAGAZINE_SAFE_AREA_IN.heightIn,
+    bleedWidthIn: MAGAZINE_SAFE_AREA_IN.widthIn,
+    bleedHeightIn: MAGAZINE_SAFE_AREA_IN.heightIn,
+    pixelWidth: MAGAZINE_SAFE_PX.pixelWidth,
+    pixelHeight: MAGAZINE_SAFE_PX.pixelHeight,
     isSpread: false,
     isFullBleed: false,
   },
   HALF_HORIZONTAL: {
     key: "HALF_HORIZONTAL",
-    label: "Half Horizontal",
-    trimWidthIn: 7.25,
-    trimHeightIn: 5.25,
-    bleedWidthIn: 7.25,
-    bleedHeightIn: 5.25,
-    pixelWidth: 2175,
-    pixelHeight: 1575,
+    label: "Half Page — Horizontal",
+    trimWidthIn: MAGAZINE_HALF_HORIZONTAL_IN.widthIn,
+    trimHeightIn: MAGAZINE_HALF_HORIZONTAL_IN.heightIn,
+    bleedWidthIn: MAGAZINE_HALF_HORIZONTAL_IN.widthIn,
+    bleedHeightIn: MAGAZINE_HALF_HORIZONTAL_IN.heightIn,
+    pixelWidth: inchesToPx(MAGAZINE_HALF_HORIZONTAL_IN.widthIn),
+    pixelHeight: inchesToPx(MAGAZINE_HALF_HORIZONTAL_IN.heightIn),
     isSpread: false,
     isFullBleed: false,
   },
   HALF_VERTICAL: {
     key: "HALF_VERTICAL",
-    label: "Half Vertical",
-    trimWidthIn: 3.50,
-    trimHeightIn: 10.75,
-    bleedWidthIn: 3.50,
-    bleedHeightIn: 10.75,
-    pixelWidth: 1050,
-    pixelHeight: 3225,
+    label: "Half Page — Vertical",
+    trimWidthIn: MAGAZINE_HALF_VERTICAL_IN.widthIn,
+    trimHeightIn: MAGAZINE_HALF_VERTICAL_IN.heightIn,
+    bleedWidthIn: MAGAZINE_HALF_VERTICAL_IN.widthIn,
+    bleedHeightIn: MAGAZINE_HALF_VERTICAL_IN.heightIn,
+    pixelWidth: inchesToPx(MAGAZINE_HALF_VERTICAL_IN.widthIn),
+    pixelHeight: inchesToPx(MAGAZINE_HALF_VERTICAL_IN.heightIn),
     isSpread: false,
     isFullBleed: false,
   },
   QUARTER: {
     key: "QUARTER",
     label: "Quarter Page",
-    trimWidthIn: 3.50,
-    trimHeightIn: 5.25,
-    bleedWidthIn: 3.50,
-    bleedHeightIn: 5.25,
-    pixelWidth: 1050,
-    pixelHeight: 1575,
+    trimWidthIn: MAGAZINE_QUARTER_IN.widthIn,
+    trimHeightIn: MAGAZINE_QUARTER_IN.heightIn,
+    bleedWidthIn: MAGAZINE_QUARTER_IN.widthIn,
+    bleedHeightIn: MAGAZINE_QUARTER_IN.heightIn,
+    pixelWidth: inchesToPx(MAGAZINE_QUARTER_IN.widthIn),
+    pixelHeight: inchesToPx(MAGAZINE_QUARTER_IN.heightIn),
     isSpread: false,
     isFullBleed: false,
   },
   SPREAD_TRIM: {
     key: "SPREAD_TRIM",
     label: "Two-Page Trim Spread",
-    trimWidthIn: 16.00,
-    trimHeightIn: 11.50,
-    bleedWidthIn: 16.00,
-    bleedHeightIn: 11.50,
-    pixelWidth: 4800,
-    pixelHeight: 3450,
+    trimWidthIn: MAGAZINE_SPREAD_TRIM_IN.widthIn,
+    trimHeightIn: MAGAZINE_SPREAD_TRIM_IN.heightIn,
+    bleedWidthIn: MAGAZINE_SPREAD_TRIM_IN.widthIn,
+    bleedHeightIn: MAGAZINE_SPREAD_TRIM_IN.heightIn,
+    pixelWidth: MAGAZINE_SPREAD_TRIM_PX.pixelWidth,
+    pixelHeight: MAGAZINE_SPREAD_TRIM_PX.pixelHeight,
     isSpread: true,
     isFullBleed: false,
   },
   SPREAD_BLEED: {
     key: "SPREAD_BLEED",
-    label: "Two-Page Bleed Spread",
-    trimWidthIn: 16.00,
-    trimHeightIn: 11.50,
-    bleedWidthIn: 16.25,
-    bleedHeightIn: 11.75,
-    pixelWidth: 4875,
-    pixelHeight: 3525,
+    label: "Two-Page Outer-Bleed Working Size",
+    trimWidthIn: MAGAZINE_SPREAD_TRIM_IN.widthIn,
+    trimHeightIn: MAGAZINE_SPREAD_TRIM_IN.heightIn,
+    bleedWidthIn: MAGAZINE_SPREAD_OUTER_BLEED_IN.widthIn,
+    bleedHeightIn: MAGAZINE_SPREAD_OUTER_BLEED_IN.heightIn,
+    pixelWidth: MAGAZINE_SPREAD_OUTER_BLEED_PX.pixelWidth,
+    pixelHeight: MAGAZINE_SPREAD_OUTER_BLEED_PX.pixelHeight,
     isSpread: true,
     isFullBleed: true,
   },

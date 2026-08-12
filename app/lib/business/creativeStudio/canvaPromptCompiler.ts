@@ -11,6 +11,14 @@ import type { ArchetypeDefinition } from "./archetypes/types";
 import type { BusinessCreativeAsset } from "./assetTypes";
 import { CREATIVE_DOCTRINE_RULES } from "./types";
 import { getComplianceRule } from "./compliance";
+import {
+  BLEED_INCHES,
+  CRITICAL_SAFE_OFFSET_INCHES,
+  MAGAZINE_TRIM_IN,
+  MAGAZINE_BLEED_DOCUMENT_IN,
+  PRINT_PPI,
+  CONFIRM_WITH_PRINTER_ITEMS,
+} from "./printSpecs";
 
 export interface CanvaPromptInput {
   formatSpec: PrintFormatSpec;
@@ -38,12 +46,19 @@ export function buildCanvaPrompt(input: CanvaPromptInput): string {
   lines.push("");
 
   lines.push("=== FORMAT SPECIFICATIONS ===");
+  lines.push("LEONIX MAGAZINE");
+  lines.push(`FINAL TRIM: ${MAGAZINE_TRIM_IN.widthIn}" x ${MAGAZINE_TRIM_IN.heightIn}" in portrait`);
+  lines.push(`WORKING FULL BLEED: ${MAGAZINE_BLEED_DOCUMENT_IN.widthIn}" x ${MAGAZINE_BLEED_DOCUMENT_IN.heightIn}" in`);
+  lines.push(`${PRINT_PPI} PPI`);
+  lines.push(`CRITICAL SAFE INSET: ${CRITICAL_SAFE_OFFSET_INCHES}" in inside trim`);
+  lines.push("");
   lines.push(`Format: ${formatSpec.label}`);
   lines.push(`Trim: ${formatSpec.trimWidthIn}" x ${formatSpec.trimHeightIn}"`);
   lines.push(`Bleed: ${formatSpec.bleedWidthIn}" x ${formatSpec.bleedHeightIn}"`);
-  lines.push(`Pixels: ${formatSpec.pixelWidth} x ${formatSpec.pixelHeight} @ 300 PPI`);
-  lines.push(`Bleed: 0.125" all sides`);
-  lines.push(`Critical safe offset: 0.375" from trim`);
+  lines.push(`Pixels: ${formatSpec.pixelWidth} x ${formatSpec.pixelHeight} @ ${PRINT_PPI} PPI`);
+  lines.push(`Bleed inset: ${BLEED_INCHES}" all sides`);
+  lines.push(`Critical safe offset: ${CRITICAL_SAFE_OFFSET_INCHES}" from trim`);
+  lines.push(`PRINTER-DEPENDENT ITEMS: CONFIRM WITH PRINTER (${CONFIRM_WITH_PRINTER_ITEMS.join(", ")})`);
   lines.push("");
 
   lines.push("=== ARCHETYPE ===");
