@@ -4,9 +4,15 @@ import type { DigitalContactProfile } from "./digitalContactTypes";
 /**
  * Leonix Digital Contact Platform — profile registry.
  *
- * This is the ONLY place employee contact data lives. `/contact/[slug]` reads from here;
- * onboarding a new employee means adding an entry, never duplicating page code. When this
- * moves to Admin, this map becomes the seed/fallback data source for the same shape.
+ * This module MUST stay free of any `server-only` import (directly or transitively).
+ * Human Connection / Virtual Front Desk (presence, doorbell, video session, schedule
+ * request, availability UI, `/visitanos`) import this registry from client components
+ * and plain synchronous server code that predates the Executive Hub database layer.
+ *
+ * The Executive Hub DB-first lookup (`public.executives` in Supabase) lives in
+ * `digitalContactExecutiveHubProfile.ts` instead — a separate `server-only` module used
+ * only by Executive Contact / Executive Hub server code (the public contact page and its
+ * API routes). Do not re-import that module (or `digitalContactExecutivesDb.ts`) here.
  *
  * Build 03 availability fields (workingHours, temporaryPresence, absence,
  * backupRepresentativeSlug, publicAvailabilityPolicy, capabilities) are OPTIONAL.
@@ -19,7 +25,7 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
     slug: "chuy",
     fullName: 'Jesus "Chuy" Cáceres',
     preferredName: "Chuy",
-    title: "Founder & CEO",
+    title: "Founder & Steward · Fundador y Administrador",
     company: LEONIX_MEDIA_SITE_NAME,
     legalEntity: LEONIX_GLOBAL_LLC,
     phoneDisplay: "(669) 366-4300",
@@ -104,11 +110,23 @@ const DIGITAL_CONTACT_PROFILES: Record<string, DigitalContactProfile> = {
   },
 };
 
-export function getDigitalContactProfile(slug: string): DigitalContactProfile | null {
+function legacyDigitalContactProfile(slug: string): DigitalContactProfile | null {
   const key = String(slug ?? "").trim().toLowerCase();
   const profile = DIGITAL_CONTACT_PROFILES[key];
   if (!profile || !profile.active) return null;
   return profile;
+}
+
+/**
+ * Synchronous, DB-free lookup — the ORIGINAL contract this registry has always exposed.
+ * Human Connection / Virtual Front Desk (presence, doorbell, video session, schedule
+ * request, availability UI) all call this synchronously and predate the Executive Hub
+ * database layer. Keep this function synchronous and legacy-map-only so none of those
+ * existing call sites (outside Executive Contact / Executive Hub scope) ever break.
+ */
+export function getDigitalContactProfile(slug: string): DigitalContactProfile | null {
+  const key = String(slug ?? "").trim().toLowerCase();
+  return legacyDigitalContactProfile(key);
 }
 
 export function listDigitalContactSlugs(): string[] {

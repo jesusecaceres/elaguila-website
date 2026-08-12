@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDigitalContactProfile } from "@/app/lib/digitalContact/digitalContactRegistry";
+import { getPublishedExecutiveContactProfile } from "@/app/lib/digitalContact/digitalContactExecutiveHubProfile";
 import { buildDigitalContactVCardText, digitalContactVCardFileName } from "@/app/lib/digitalContact/digitalContactVCard";
 import { digitalContactCanonicalUrl } from "@/app/lib/digitalContact/digitalContactSeo";
 import { insertDigitalContactAnalyticsEvent } from "@/app/lib/digitalContact/digitalContactOpsTablesServer";
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 /** Standards-compliant vCard download — works identically on Android, iPhone, and desktop. */
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
-  const profile = getDigitalContactProfile(slug);
+  const profile = await getPublishedExecutiveContactProfile(slug);
   if (!profile) {
     return NextResponse.json({ ok: false, error: "profile_not_found" }, { status: 404 });
   }

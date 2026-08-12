@@ -10,11 +10,11 @@ import type { CSSProperties } from "react";
  * set `theme: "warfitness"` (etc.) on their registry entry — zero component edits,
  * zero duplicated styling.
  *
- * `leonix` is the only theme in active use today. The rest are reserved presets for
- * future executives/verticals and render nowhere on Chuy's page.
+ * `armygreen` is Chuy's selected Executive Theme. `leonix`, `warfitness`, `realestate`,
+ * `restaurant`, and `partner` remain reserved presets for future executives/verticals.
  */
 
-export type ExecutiveThemeId = "leonix" | "warfitness" | "realestate" | "restaurant" | "partner";
+export type ExecutiveThemeId = "leonix" | "warfitness" | "realestate" | "restaurant" | "partner" | "armygreen";
 
 export type ExecutiveTheme = {
   id: ExecutiveThemeId;
@@ -149,17 +149,48 @@ const PARTNER: ExecutiveTheme = {
   glow: "rgba(201,168,74,0.4)",
 };
 
+/** Chuy's selected Executive Theme — deep executive olive/army green with warm gold accents and cream cards. */
+const ARMYGREEN: ExecutiveTheme = {
+  id: "armygreen",
+  primary: "#4B5320",
+  primaryDark: "#3A4118",
+  secondary: "#242A0D",
+  accent: "#C9A84A",
+  accentSoft: "rgba(201,168,74,0.12)",
+  accentBorder: "rgba(201,168,74,0.5)",
+  accentBackground: "#F5F3EA",
+  gradientStart: "#4B5320",
+  gradientEnd: "#F8F4EA",
+  buttonPrimary: "#4B5320",
+  buttonHover: "#3A4118",
+  badge: "#C9A84A",
+  badgeHover: "#D4BC6A",
+  badgeText: "#242A0D",
+  glow: "rgba(201,168,74,0.4)",
+};
+
 const EXECUTIVE_THEMES: Record<ExecutiveThemeId, ExecutiveTheme> = {
   leonix: LEONIX,
   warfitness: WARFITNESS,
   realestate: REALESTATE,
   restaurant: RESTAURANT,
   partner: PARTNER,
+  armygreen: ARMYGREEN,
 };
 
 export function resolveExecutiveTheme(id: ExecutiveThemeId | undefined | null): ExecutiveTheme {
   return EXECUTIVE_THEMES[id ?? "leonix"] ?? LEONIX;
 }
+
+/** Human labels for every theme id — Executive Hub theme selector reads this so new themes need no admin UI changes. */
+export const EXECUTIVE_THEME_OPTIONS: { id: ExecutiveThemeId; label: string }[] = [
+  { id: "leonix", label: "Leonix (burgundy & gold)" },
+  { id: "warfitness", label: "WarFitness (black & red)" },
+  { id: "realestate", label: "Real Estate (navy & gold)" },
+  { id: "restaurant", label: "Restaurant (forest green & gold)" },
+  { id: "partner", label: "Partner (neutral bronze)" },
+  { id: "armygreen", label: "Army Green (executive olive & gold)" },
+];
 
 /**
  * Maps a resolved theme onto `--dc-*` CSS custom properties. Set once on the page root

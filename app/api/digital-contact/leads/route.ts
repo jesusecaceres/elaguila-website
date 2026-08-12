@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDigitalContactProfile } from "@/app/lib/digitalContact/digitalContactRegistry";
+import { getPublishedExecutiveContactProfile } from "@/app/lib/digitalContact/digitalContactExecutiveHubProfile";
 import { isValidDigitalContactHowMetId } from "@/app/lib/digitalContact/digitalContactHowMet";
 import { insertDigitalContactLead, insertDigitalContactAnalyticsEvent } from "@/app/lib/digitalContact/digitalContactOpsTablesServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, accepted: false }, { status: 200 });
   }
 
-  const profile = getDigitalContactProfile(profileSlug);
+  const profile = await getPublishedExecutiveContactProfile(profileSlug);
   if (!profile) {
     return NextResponse.json({ ok: false, error: "profile_not_found" }, { status: 404 });
   }

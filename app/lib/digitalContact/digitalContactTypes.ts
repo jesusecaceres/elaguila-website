@@ -6,7 +6,7 @@
  */
 
 export type DigitalContactSocialLink = {
-  id: "facebook" | "instagram" | "linkedin" | "x" | "tiktok" | "youtube";
+  id: "facebook" | "instagram" | "linkedin" | "x" | "tiktok" | "youtube" | "threads";
   url: string;
 };
 
@@ -111,7 +111,7 @@ export type DigitalContactProfile = {
   slug: string;
   fullName: string;
   preferredName?: string;
-  /** e.g. "Founder & CEO" */
+  /** e.g. "Founder & Steward · Fundador y Administrador" */
   title: string;
   company: string;
   /** Legal parent entity for schema/trust copy. */
@@ -126,7 +126,16 @@ export type DigitalContactProfile = {
   address: DigitalContactAddress;
   /** Absolute path under /public, or null to fall back to the Leonix crest. */
   photoPath: string | null;
-  /** Short trust indicator chips shown in the hero (kept minimal — 2–4 max). */
+  /** Absolute path under /public (or uploaded asset URL), or null/absent to use the premium gradient presentation. */
+  coverPath?: string | null;
+  /**
+   * Optional biography, admin-populated (Executive Hub "Biography" field). Presentation-only —
+   * shown in the "Meet {name}" section when present; the section is omitted entirely when absent
+   * rather than showing placeholder text. Supports an "EN — …" / "ES — …" convention for bilingual
+   * content (see `digitalContactBilingualText.ts`); plain single-language text degrades gracefully.
+   */
+  bio?: string;
+  /** Short trust indicator chips shown as Professional Focus cards (kept minimal — 2–4 max recommended). */
   trustChips: string[];
   socials: DigitalContactSocialLink[];
   /**
