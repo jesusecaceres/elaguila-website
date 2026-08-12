@@ -92,6 +92,9 @@ export type RentasPublicListing = {
   promoted?: boolean;
   layout?: "vertical" | "horizontal";
   recencyRank?: number;
+  /** Package D Build D3, Gate 1 — pre-resolved canonical `leonix_placement_entitlements` weight,
+   * batched server-side. Used only by the default sort, never by precio_asc/precio_desc. */
+  canonicalPlacementRankWeight?: number | null;
   amueblado?: boolean;
   mascotasPermitidas?: boolean;
   /** Parsed interior / lot size when numeric (from detail_pairs text). */

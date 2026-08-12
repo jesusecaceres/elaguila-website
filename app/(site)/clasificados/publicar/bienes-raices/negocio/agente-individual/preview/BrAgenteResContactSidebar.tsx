@@ -42,6 +42,7 @@ import {
   trackBrYelpClickGlobal,
   type BrGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
+import { dispatchConnectionHubCta } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
 
 /** Package D Build D2, Gate 6A — real listing identity for the live published detail render only.
  * Reuses the existing canonical `brGlobalAnalytics.ts` module; this component fires no analytics of
@@ -89,11 +90,13 @@ function SocialCircle({
   label,
   children,
   color,
+  onClick,
 }: {
   href: string;
   label: string;
   children: ReactNode;
   color?: string;
+  onClick?: () => void;
 }) {
   return (
     <a
@@ -104,6 +107,7 @@ function SocialCircle({
       aria-label={label}
       className="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-white/90 transition hover:bg-white sm:h-8 sm:w-8"
       style={{ borderColor: BORDER, color: color ?? CHARCOAL }}
+      onClick={onClick}
     >
       {children}
     </a>
@@ -208,6 +212,21 @@ export function BrAgenteResContactSidebar({
   const cr = buildContactModel(data);
   const track = (fn: (ctx: BrGlobalAnalyticsContext) => void) => {
     if (analyticsContext) fn(analyticsContext);
+  };
+  // Package D Build D3, Gate 2 — social-icon clicks (the one D2-deferred gap on this component)
+  // use the shared dispatcher directly; no dedicated brGlobalAnalytics.ts export exists for a
+  // generic social-platform click, and the shared contract already covers this exact case.
+  const trackSocial = (provider: string) => {
+    if (!analyticsContext) return;
+    dispatchConnectionHubCta({
+      kind: "social",
+      provider,
+      category: "bienes-raices",
+      sourceTable: "listings",
+      sourceId: analyticsContext.listingUuid,
+      surface: "contact_sidebar",
+      leonixAdId: analyticsContext.leonixAdId,
+    });
   };
   const locale = _locale;
   const hub = buildMainAgentBusinessHub(data, locale);
@@ -373,42 +392,42 @@ export function BrAgenteResContactSidebar({
             {hub.hasSocialIcons ? (
               <div className="flex flex-wrap justify-center gap-1.5">
                 {hub.socialInstagram ? (
-                  <SocialCircle href={hub.socialInstagram} label="Instagram" color="#E4405F">
+                  <SocialCircle href={hub.socialInstagram} label="Instagram" color="#E4405F" onClick={() => trackSocial("instagram")}>
                     <SiInstagram className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialFacebook ? (
-                  <SocialCircle href={hub.socialFacebook} label="Facebook" color="#1877F2">
+                  <SocialCircle href={hub.socialFacebook} label="Facebook" color="#1877F2" onClick={() => trackSocial("facebook")}>
                     <SiFacebook className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialYoutube ? (
-                  <SocialCircle href={hub.socialYoutube} label="YouTube" color="#FF0000">
+                  <SocialCircle href={hub.socialYoutube} label="YouTube" color="#FF0000" onClick={() => trackSocial("youtube")}>
                     <SiYoutube className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialTiktok ? (
-                  <SocialCircle href={hub.socialTiktok} label="TikTok" color="#010101">
+                  <SocialCircle href={hub.socialTiktok} label="TikTok" color="#010101" onClick={() => trackSocial("tiktok")}>
                     <SiTiktok className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialLinkedin ? (
-                  <SocialCircle href={hub.socialLinkedin} label="LinkedIn" color="#0A66C2">
+                  <SocialCircle href={hub.socialLinkedin} label="LinkedIn" color="#0A66C2" onClick={() => trackSocial("linkedin")}>
                     <SiLinkedin className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialX ? (
-                  <SocialCircle href={hub.socialX} label="X" color="#14171A">
+                  <SocialCircle href={hub.socialX} label="X" color="#14171A" onClick={() => trackSocial("x")}>
                     <SiX className="h-3 w-3" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialSnapchat ? (
-                  <SocialCircle href={hub.socialSnapchat} label="Snapchat" color="#FFFC00">
+                  <SocialCircle href={hub.socialSnapchat} label="Snapchat" color="#FFFC00" onClick={() => trackSocial("snapchat")}>
                     <SiSnapchat className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialOtro ? (
-                  <SocialCircle href={hub.socialOtro} label="Enlace">
+                  <SocialCircle href={hub.socialOtro} label="Enlace" onClick={() => trackSocial("other")}>
                     <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
@@ -496,32 +515,32 @@ export function BrAgenteResContactSidebar({
           {agente2Social.showRow ? (
             <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
               {agente2Social.socialInstagram ? (
-                <SocialCircle href={agente2Social.socialInstagram} label="Instagram" color="#E4405F">
+                <SocialCircle href={agente2Social.socialInstagram} label="Instagram" color="#E4405F" onClick={() => trackSocial("instagram")}>
                   <SiInstagram className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialFacebook ? (
-                <SocialCircle href={agente2Social.socialFacebook} label="Facebook" color="#1877F2">
+                <SocialCircle href={agente2Social.socialFacebook} label="Facebook" color="#1877F2" onClick={() => trackSocial("facebook")}>
                   <SiFacebook className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialYoutube ? (
-                <SocialCircle href={agente2Social.socialYoutube} label="YouTube" color="#FF0000">
+                <SocialCircle href={agente2Social.socialYoutube} label="YouTube" color="#FF0000" onClick={() => trackSocial("youtube")}>
                   <SiYoutube className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialTiktok ? (
-                <SocialCircle href={agente2Social.socialTiktok} label="TikTok" color="#010101">
+                <SocialCircle href={agente2Social.socialTiktok} label="TikTok" color="#010101" onClick={() => trackSocial("tiktok")}>
                   <SiTiktok className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialX ? (
-                <SocialCircle href={agente2Social.socialX} label="X" color="#14171A">
+                <SocialCircle href={agente2Social.socialX} label="X" color="#14171A" onClick={() => trackSocial("x")}>
                   <SiX className="h-3 w-3" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialOtro ? (
-                <SocialCircle href={agente2Social.socialOtro} label="Enlace">
+                <SocialCircle href={agente2Social.socialOtro} label="Enlace" onClick={() => trackSocial("other")}>
                   <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}

@@ -16,6 +16,7 @@ import {
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
+import { resolveCanonicalVisibilityBucketWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 
 /**
  * `published` — real DB inventory (may be empty array).
@@ -78,7 +79,19 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
   const rowsForMap = hydrated.map(applyRestaurantesPromotedFromEntitlement);
   const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
   const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);
-  const rows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
+  let rows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
+
+  // Package D Build D3, Gate 1 — attach canonical leonix_placement_entitlements weight, batched.
+  const canonicalWeights = await resolveCanonicalVisibilityBucketWeights(rows, {
+    category: "restaurantes",
+    surface: "category_results",
+  });
+  if (canonicalWeights.size > 0) {
+    rows = rows.map((row) => {
+      const w = canonicalWeights.get(row.id);
+      return w != null ? { ...row, canonicalPlacementRankWeight: w } : row;
+    });
+  }
 
   return {
     rows,

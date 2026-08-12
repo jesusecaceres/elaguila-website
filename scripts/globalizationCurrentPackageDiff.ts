@@ -470,6 +470,39 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "scripts/gate-i10a-analytics-engagement-truth-selftest.ts",
   // Same stale blanket "no analytics server file in the diff" pattern, same fix:
   "scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts",
+
+  // ═══ PACKAGE D BUILD D3 — GLOBAL CATEGORY ADOPTION (canonical placement wired into Servicios/
+  // Restaurantes/Autos Dealer/Bienes Negocio-Agente/Rentas/Empleos default-order ranking only —
+  // strict numeric sorts and Privado/FSBO isolation preserved; Bienes social-icon CTA analytics
+  // gap closed; Busco ContactActions analytics gap closed) ═══
+  "app/lib/listingPlans/placementResultsOverlay.ts",
+  "app/(site)/clasificados/servicios/resultados/page.tsx",
+  "app/(site)/clasificados/servicios/lib/serviciosResultsFilter.ts",
+  "app/(site)/clasificados/servicios/lib/serviciosVisibilityRanking.ts",
+  "app/(site)/clasificados/restaurantes/data/restaurantesPublicBlueprintData.ts",
+  "app/(site)/clasificados/restaurantes/lib/restaurantesResultsInventoryServer.ts",
+  "app/(site)/clasificados/restaurantes/lib/restaurantesVisibilityRanking.ts",
+  "app/api/clasificados/autos/public/listings/route.ts",
+  "app/lib/clasificados/autos/autosPublicRanking.ts",
+  "app/(site)/clasificados/autos/data/autosPublicSampleTypes.ts",
+  "app/api/clasificados/bienes-raices/public/entitlement-overlay/route.ts",
+  "app/(site)/clasificados/bienes-raices/lib/brPublicEntitlementOverlay.ts",
+  "app/(site)/clasificados/bienes-raices/resultados/cards/listingTypes.ts",
+  "app/(site)/clasificados/bienes-raices/resultados/lib/brResultsFilters.ts",
+  "app/(site)/clasificados/rentas/lib/fetchRentasPublicListingsForBrowse.ts",
+  "app/(site)/clasificados/rentas/model/rentasPublicListing.ts",
+  "app/(site)/clasificados/rentas/shared/rentasBrowseFilters.ts",
+  "app/api/clasificados/empleos/listings/route.ts",
+  "app/(site)/clasificados/empleos/data/empleosJobTypes.ts",
+  "app/(site)/clasificados/empleos/lib/empleosResultsQuery.ts",
+  // Bienes social-icon CTA analytics (Gate 2) — the one D2-deferred gap on the live contact sidebar:
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/BrAgenteResContactSidebar.tsx",
+  // Busco ContactActions analytics (Gate 3) — had listingId but no onContact before this build:
+  "app/(site)/publicar/busco/components/BuscoQuickAdCanvas.tsx",
+  // New Package D D3 docs + verifiers:
+  "docs/globalization/package-d/D3_CATEGORY_ADOPTION_CLOSURE.md",
+  "scripts/verify-package-d-d3-category-adoption.ts",
+  "scripts/verify-package-d-d3-hub-analytics-gaps.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

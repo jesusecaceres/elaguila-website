@@ -285,6 +285,14 @@ export function filterBrListings(
     });
   } else {
     sorted.sort((a, b) => {
+      // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight wins over the
+      // legacy sponsored-badge signal, but only for `negocio`-lane rows: a `privado`/FSBO row
+      // contributes 0 here regardless of what the overlay attached, so it can never inherit
+      // business/agent placement.
+      const wa = getSellerKind(a) === "negocio" ? (a.canonicalPlacementRankWeight ?? 0) : 0;
+      const wb = getSellerKind(b) === "negocio" ? (b.canonicalPlacementRankWeight ?? 0) : 0;
+      if (wa !== wb) return wb - wa;
+
       const s = compareBrSponsoredRank(a, b);
       if (s !== 0) return s;
       const t = effectivePublishedMsForSort(b) - effectivePublishedMsForSort(a);
