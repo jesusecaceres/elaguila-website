@@ -85,12 +85,20 @@ export type DigitalContactCopy = {
   whatWeDoClosing2: string;
   aboutTitlePrefix: string;
   focusTitle: string;
+  /** Accessible micro-cue on each Professional Focus card (sr-only + hint text). */
+  focusTapHint: string;
+  /** aria-label for the close affordance on an expanded Professional Focus card detail. */
+  focusCloseLabel: string;
   socialTitle: string;
   socialSubtitle: string;
   comingSoonLabel: string;
-  businessHubKicker: string;
-  businessHubTitle: string;
-  businessHubBody: string;
+  /** "Lo que viene" teaser — Business Concierge (NOT Business Hub; Business Hub is no longer presented as Chuy's coming-soon item). */
+  businessConciergeKicker: string;
+  businessConciergeTitle: string;
+  businessConciergeLead: string;
+  businessConciergeBody: string;
+  /** Fixed bilingual badge, shown identically regardless of the active lang toggle (same pattern as `footerTagline`). */
+  businessConciergeBadge: string;
 };
 
 const ES: DigitalContactCopy = {
@@ -162,17 +170,21 @@ const ES: DigitalContactCopy = {
   whatWeDoTitle: "Qué Hacemos",
   whatWeDoBody:
     "Leonix ayuda a los emprendedores a construir mejores negocios mediante desarrollo empresarial, tecnología, inteligencia artificial, marca, automatización, sitios web, marketing y acompañamiento estratégico.",
-  whatWeDoClosing1: "No solamente publicitamos negocios.",
+  whatWeDoClosing1: "No solo publicitamos negocios.",
   whatWeDoClosing2: "Ayudamos a construirlos.",
   aboutTitlePrefix: "Conoce a",
   focusTitle: "Enfoque Profesional",
+  focusTapHint: "Toca para más información",
+  focusCloseLabel: "Cerrar",
   socialTitle: "Mantente Conectado",
   socialSubtitle: "Síguenos para novedades, ideas y lo próximo en Leonix Media.",
   comingSoonLabel: "Próximamente",
-  businessHubKicker: "Lo que viene",
-  businessHubTitle: "Business Hub",
-  businessHubBody:
-    "Tu Business Hub se convertirá en el único lugar donde tus clientes podrán descubrir tu negocio, servicios, reseñas, información de contacto, productos, redes sociales, promociones y el futuro AI Business Concierge.",
+  businessConciergeKicker: "Lo que viene",
+  businessConciergeTitle: "Business Concierge",
+  businessConciergeLead: "Tu negocio. Mejor entendido. Mejor acompañado.",
+  businessConciergeBody:
+    "Business Concierge se está construyendo para ayudar a los dueños de negocios locales a organizar lo que importa, entender sus próximos pasos y conectarse con herramientas y recursos útiles de Leonix — todo en un solo lugar.",
+  businessConciergeBadge: "PRÓXIMAMENTE / COMING SOON",
 };
 
 const EN: DigitalContactCopy = {
@@ -244,17 +256,21 @@ const EN: DigitalContactCopy = {
   whatWeDoTitle: "What We Do",
   whatWeDoBody:
     "Leonix helps entrepreneurs build better businesses through business development, technology, artificial intelligence, branding, automation, websites, marketing, and long-term strategic guidance.",
-  whatWeDoClosing1: "We don't simply advertise businesses.",
+  whatWeDoClosing1: "We do more than advertise businesses.",
   whatWeDoClosing2: "We help build them.",
   aboutTitlePrefix: "Meet",
   focusTitle: "Professional Focus",
+  focusTapHint: "Tap to learn more",
+  focusCloseLabel: "Close",
   socialTitle: "Stay Connected",
   socialSubtitle: "Follow along for updates, insights, and what's next from Leonix Media.",
   comingSoonLabel: "Coming Soon",
-  businessHubKicker: "What's Coming Next",
-  businessHubTitle: "Business Hub",
-  businessHubBody:
-    "Your Business Hub will become the single place where customers can discover your business, services, reviews, contact information, products, social media, promotions, and future AI Business Concierge.",
+  businessConciergeKicker: "What's Coming Next",
+  businessConciergeTitle: "Business Concierge",
+  businessConciergeLead: "Your business. Better understood. Better supported.",
+  businessConciergeBody:
+    "Business Concierge is being built to help local business owners organize what matters, understand their next steps, and connect with useful Leonix tools and resources — all in one place.",
+  businessConciergeBadge: "PRÓXIMAMENTE / COMING SOON",
 };
 
 export function getDigitalContactCopy(lang: DigitalContactLang): DigitalContactCopy {
