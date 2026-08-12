@@ -227,6 +227,11 @@ export default async function AdminPaymentTrackerPage({
               <Link href="/admin/workspace/sales-tracker" className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]">
                 Sales Tracker →
               </Link>
+              {/* Package E Build E3, Gate 4/5 — the manual cleared-payment UI lives inside this
+                  same Revenue workflow, not a new top-level admin universe. */}
+              <Link href="/admin/workspace/payment-tracker/manual-payment" className="rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] hover:bg-[#F3EBDD]">
+                Record Manual Payment →
+              </Link>
             </div>
           </>
         )}
@@ -276,7 +281,18 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
 
   return (
     <tr className="bg-white/80 hover:bg-[#FAF7F2]">
-      <td className="px-4 py-3 text-[#1E1810]">{customerLine}</td>
+      <td className="px-4 py-3 text-[#1E1810]">
+        {/* Package E Build E3, Gate 5 — real navigation to the unified customer support view,
+            only when a real owner_user_id is on this payment record (never guessed by
+            name/email match). */}
+        {row.owner_user_id ? (
+          <Link href={`/admin/usuarios/${row.owner_user_id}`} className="font-semibold text-[#6B5B2E] underline">
+            {customerLine}
+          </Link>
+        ) : (
+          customerLine
+        )}
+      </td>
       <td className="px-4 py-3 text-xs">
         {packageLine}
         {row.category ? <span className="ml-1 text-[#7A7164]">({row.category})</span> : null}

@@ -538,6 +538,34 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "docs/globalization/package-e/E2_USER_DASHBOARD_GLOBAL_COMMAND_CENTER_CLOSURE.md",
   "scripts/verify-package-e-e2-user-dashboard-command-center.ts",
   "scripts/globalizationCurrentPackageDiff.ts",
+
+  // ═══ PACKAGE E BUILD E3 — ADMIN OS GLOBAL OPERATIONS (admin nav truth: real payment tracker
+  // primary + site settings discoverable + six nav groups; unified customer/commercial support
+  // view; user-scoped + filterable audit history; real manual cleared-payment UI with the
+  // critical server-derived-actor audit fix; Revenue OS cross-navigation; activity-log
+  // permission gate) ═══
+  "app/admin/_lib/adminGlobalNav.ts",
+  "app/admin/_lib/adminStrings.ts",
+  "app/admin/_components/AdminSidebar.tsx",
+  "app/admin/_lib/adminAccessControl.ts",
+  "app/admin/_lib/adminAuditLogServer.ts",
+  "app/admin/_lib/adminCustomerCommercialContext.ts",
+  "app/admin/_lib/paymentTrackerData.ts",
+  "app/admin/(dashboard)/activity-log/page.tsx",
+  "app/admin/(dashboard)/usuarios/[id]/page.tsx",
+  "app/admin/(dashboard)/workspace/payment-tracker/page.tsx",
+  "app/admin/(dashboard)/workspace/payment-tracker/manual-payment/page.tsx",
+  "app/admin/(dashboard)/workspace/payment-tracker/manual-payment/ManualPaymentClient.tsx",
+  "app/api/admin/revenue-os/manual-payments/route.ts",
+  // Historical gate triage — I.7A/I.8A/I.8B/I.9A/I.9B's blanket "no /admin/ file in the diff"
+  // checks route through excludeCurrentPackageFiles() (the established mechanism since Package
+  // A) precisely so a later package's already-authorized admin-surface work doesn't re-trip
+  // them; every OTHER assertion in these gates (schema shape, dashboard truth, write-safety) is
+  // unchanged and still runs against the real, current files.
+  "scripts/verify-admin-nav-ops.mjs",
+  // New Package E E3 docs + verifier:
+  "docs/globalization/package-e/E3_ADMIN_OS_GLOBAL_OPERATIONS_CLOSURE.md",
+  "scripts/verify-package-e-e3-admin-os-global-operations.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

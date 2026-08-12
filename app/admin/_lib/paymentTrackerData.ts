@@ -37,6 +37,12 @@ export type LeonixPaymentRecordRow = {
   promo_redemption_id: string | null;
   /** Package C Build 2 (C4). */
   verified_intro_discount_redemption_id: string | null;
+  /** Package E Build E3, Gate 4 — real columns for the manual-cleared-payment state machine
+   * (source: 'admin_manual' only). Additive: every other source's rows just carry null here. */
+  owner_user_id: string | null;
+  manual_method: string | null;
+  manual_state: string | null;
+  evidence_reference: string | null;
   amount_total_cents: number | null;
   amount_paid_cents: number | null;
   discount_percent: number | null;
@@ -118,6 +124,10 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     promo_redemption_id: raw.promo_redemption_id != null ? String(raw.promo_redemption_id) : null,
     verified_intro_discount_redemption_id:
       raw.verified_intro_discount_redemption_id != null ? String(raw.verified_intro_discount_redemption_id) : null,
+    owner_user_id: raw.owner_user_id != null ? String(raw.owner_user_id) : null,
+    manual_method: raw.manual_method != null ? String(raw.manual_method) : null,
+    manual_state: raw.manual_state != null ? String(raw.manual_state) : null,
+    evidence_reference: raw.evidence_reference != null ? String(raw.evidence_reference) : null,
     amount_total_cents: raw.amount_total_cents != null && Number.isFinite(Number(raw.amount_total_cents)) ? Number(raw.amount_total_cents) : null,
     amount_paid_cents: raw.amount_paid_cents != null && Number.isFinite(Number(raw.amount_paid_cents)) ? Number(raw.amount_paid_cents) : null,
     discount_percent: raw.discount_percent != null && Number.isFinite(Number(raw.discount_percent)) ? Number(raw.discount_percent) : null,

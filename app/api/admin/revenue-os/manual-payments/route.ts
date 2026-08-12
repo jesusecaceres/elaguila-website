@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
+import { getCurrentAdminAccessContext } from "@/app/admin/_lib/adminAccessControl";
 import {
   markManualPaymentRejected,
   markManualPaymentReversed,
@@ -36,7 +37,16 @@ export async function POST(request: NextRequest) {
   }
 
   const action = String(body.action ?? "").trim();
-  const adminUserId = String(body.adminUserId ?? "admin").trim();
+  // Package E Build E3, Gate 4 — CRITICAL AUDIT FIX. This route previously trusted a
+  // client-supplied `body.adminUserId` for audit attribution (any caller past the cookie gate
+  // could claim to be any admin, or default to the literal string "admin"). The existing admin
+  // access context already resolves a real, server-authenticated identity for the current
+  // request (same precedence already used by grantComplimentaryPackageEntitlementAction in
+  // package-entitlements/actions.ts: authUserId, else operatorEmail, else rosterMemberId, else
+  // the literal "admin" as the last-resort fallback only when no identity is resolvable at all).
+  // `adminUserId` is no longer read from the request body.
+  const access = await getCurrentAdminAccessContext();
+  const adminUserId = access.authUserId ?? access.operatorEmail ?? access.rosterMemberId ?? "admin";
 
   if (action === "record") {
     const result = await recordManualPaymentPendingVerification({
