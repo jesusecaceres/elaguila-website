@@ -94,6 +94,8 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
 
   /** Build 13: Daily is the only public face-to-face video on /visitanos. Meet stays in ECP only. */
   const hasDailyPrimary = browserVideoOffer;
+  /** Product identity — show Daily section even when office-hours gate blocks requests. */
+  const showDailyProduct = Boolean(primary);
   const hasImmediateVideo = hasDailyPrimary;
 
   const route = useMemo(() => {
@@ -238,7 +240,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
         ? copy.hoursOutsideBody
         : null;
 
-  const heroSubhead = hasImmediateVideo ? copy.subheadFaceToFace : copy.subhead;
+  const heroSubhead = showDailyProduct ? copy.subheadFaceToFace : copy.subhead;
 
   return (
     <div className="min-h-screen bg-[var(--dc-gradient-end)]" style={themeVars}>
@@ -307,110 +309,109 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           </p>
 
           <div
-            className="mt-4 w-full max-w-sm rounded-2xl border border-[var(--dc-accent-border)] bg-[rgba(255,253,247,0.12)] px-4 py-3 text-left backdrop-blur-[2px]"
+            className="mt-4 w-full max-w-sm rounded-2xl border-2 border-[#C9A84A]/80 bg-[#FFFDF7] px-4 py-3.5 text-left shadow-[0_10px_24px_-14px_rgba(31,36,28,0.55)]"
             aria-live="polite"
           >
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--dc-accent)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7A1E2C]">
               {copy.hoursLabel}
-              <span className="ml-2 font-semibold tracking-normal text-[#F8F4EA]/95 normal-case">
-                {copy.hoursWindow}
-              </span>
             </p>
+            <p className="mt-1 text-sm font-bold leading-snug text-[#1F241C]">{copy.hoursWindow}</p>
             {hoursTitle ? (
               <>
-                <p className="mt-1.5 text-sm font-semibold leading-snug text-[#FFFDF7]">{hoursTitle}</p>
+                <p className="mt-2 text-sm font-semibold leading-snug text-[#1F241C]">{hoursTitle}</p>
                 {hoursBody ? (
-                  <p className="mt-1 text-xs leading-relaxed text-[#F8F4EA]/88 sm:text-[0.8rem]">{hoursBody}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[#2A241C]">{hoursBody}</p>
                 ) : null}
               </>
             ) : (
-              <p className="mt-1.5 text-xs leading-relaxed text-[#F8F4EA]/75">{copy.hoursWindow}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[#2A241C]">{copy.hoursWindow}</p>
             )}
           </div>
         </div>
       </header>
 
       <main className="relative z-10 mx-auto -mt-3 w-full max-w-md px-5 pb-4 sm:px-6">
-        {/* 1. Face-to-face — Daily primary only (Build 13: no public Google Meet) */}
-        {primary && hasDailyPrimary ? (
+        {/* 1. Face-to-face — Daily primary (active in hours; informational outside hours). No public Meet. */}
+        {primary && showDailyProduct ? (
           <section
             aria-labelledby="vfd-video-title"
             className="rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5"
           >
-            <h2
-              id="vfd-video-title"
-              className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
-            >
-              {faceCopy.sectionTitle}
-            </h2>
-            <p className="mt-1.5 text-center text-sm leading-relaxed text-[#3D3428]">
-              {faceCopy.sectionBody}
-            </p>
+            {hasDailyPrimary ? (
+              <>
+                <h2
+                  id="vfd-video-title"
+                  className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
+                >
+                  {faceCopy.sectionTitle}
+                </h2>
+                <p className="mt-1.5 text-center text-sm leading-relaxed text-[#3D3428]">
+                  {faceCopy.sectionBody}
+                </p>
 
-            <div className="mt-4 space-y-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  trackDigitalContactEvent(primary.slug, "daily_video_request_started", {
-                    ...analyticsMeta(source, lang),
-                    channel: "browser_video",
-                    stage: "cta_tap",
-                  });
-                  setOpenIntent("video");
-                }}
-                aria-label={faceCopy.dailyPrimaryCta}
-                className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-4 text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
-              >
-                <span className="text-lg font-bold tracking-tight sm:text-xl">{faceCopy.dailyPrimaryCta}</span>
-                <span className="text-sm font-medium text-[#FFFDF7]/90">{faceCopy.dailyPrimarySub}</span>
-              </button>
+                <div className="mt-4 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackDigitalContactEvent(primary.slug, "daily_video_request_started", {
+                        ...analyticsMeta(source, lang),
+                        channel: "browser_video",
+                        stage: "cta_tap",
+                      });
+                      setOpenIntent("video");
+                    }}
+                    aria-label={faceCopy.dailyPrimaryCta}
+                    className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1 rounded-2xl bg-[var(--dc-button-primary)] px-5 py-4 text-[#FFFDF7] shadow-md transition hover:bg-[var(--dc-button-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dc-accent)] focus-visible:ring-offset-2"
+                  >
+                    <span className="text-lg font-bold tracking-tight sm:text-xl">{faceCopy.dailyPrimaryCta}</span>
+                    <span className="text-sm font-medium text-[#FFFDF7]/90">{faceCopy.dailyPrimarySub}</span>
+                  </button>
 
-              <HumanConnectionPanel
-                profile={primary}
-                lang={lang}
-                surface="virtual_front_desk"
-                source={source}
-                whatsappPrefill={waBody}
-                smsPrefill={smsBody}
-                variant="inline"
-                enableVideo
-                enableSchedule={scheduleOffer}
-                entryMode="router"
-                openIntent={openIntent}
-                onOpenIntentConsumed={() => setOpenIntent(null)}
-                onOfferResolved={(o) => {
-                  setBrowserVideoOffer(o.offerVideo);
-                  setScheduleOffer(o.offerSchedule);
-                }}
-              />
-            </div>
+                  <HumanConnectionPanel
+                    profile={primary}
+                    lang={lang}
+                    surface="virtual_front_desk"
+                    source={source}
+                    whatsappPrefill={waBody}
+                    smsPrefill={smsBody}
+                    variant="inline"
+                    enableVideo
+                    enableSchedule={scheduleOffer}
+                    entryMode="router"
+                    openIntent={openIntent}
+                    onOpenIntentConsumed={() => setOpenIntent(null)}
+                    onOfferResolved={(o) => {
+                      setBrowserVideoOffer(o.offerVideo);
+                      setScheduleOffer(o.offerSchedule);
+                    }}
+                  />
+                </div>
 
-            <p className="mt-3 text-center text-xs text-[#5F6258]">
-              {primary.preferredName || primary.fullName}
-            </p>
+                <p className="mt-3 text-center text-xs text-[#5F6258]">
+                  {primary.preferredName || primary.fullName}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2
+                  id="vfd-video-title"
+                  className="text-center font-serif text-lg font-bold text-[#1F241C] sm:text-xl"
+                >
+                  {copy.videoProductTitle}
+                </h2>
+                <div
+                  role="status"
+                  className="mt-4 rounded-2xl border border-[#D6C7AD] bg-[#F3EEE4] px-4 py-4 text-center"
+                >
+                  <p className="text-sm font-semibold leading-snug text-[#1F241C]">
+                    {copy.videoUnavailableHoursLead}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#7A1E2C]">{copy.videoUnavailableHoursDetail}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-[#2A241C]">{copy.videoUnavailableHint}</p>
+                </div>
+              </>
+            )}
           </section>
-        ) : null}
-
-        {/* Always mount panel when Daily may become available but primary section skipped (outside hours) */}
-        {primary && !hasDailyPrimary ? (
-          <HumanConnectionPanel
-            profile={primary}
-            lang={lang}
-            surface="virtual_front_desk"
-            source={source}
-            whatsappPrefill={waBody}
-            smsPrefill={smsBody}
-            variant="inline"
-            enableVideo
-            enableSchedule={scheduleOffer}
-            entryMode="router"
-            openIntent={openIntent}
-            onOpenIntentConsumed={() => setOpenIntent(null)}
-            onOfferResolved={(o) => {
-              setBrowserVideoOffer(o.offerVideo);
-              setScheduleOffer(o.offerSchedule);
-            }}
-          />
         ) : null}
 
         {/* 2. WhatsApp — strong secondary after Daily (ECP digits + prefilled message) */}
@@ -418,7 +419,7 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
           <section
             aria-labelledby="vfd-whatsapp-title"
             className={`rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 py-4 shadow-[0_10px_28px_-16px_rgba(31,36,28,0.35)] sm:px-5 sm:py-5 ${
-              hasImmediateVideo ? "mt-6" : ""
+              showDailyProduct ? "mt-6" : ""
             }`}
           >
             <h2
@@ -537,7 +538,9 @@ export function VisitanosPageClient({ profiles, initialLang, source }: Props) {
                   "messenger",
                   "instagram",
                 ]}
-                onManagedBrowserVideo={() => setOpenIntent("video")}
+                onManagedBrowserVideo={() => {
+                  if (hasDailyPrimary) setOpenIntent("video");
+                }}
                 onScheduleRequest={() => setOpenIntent("schedule")}
               />
             </div>

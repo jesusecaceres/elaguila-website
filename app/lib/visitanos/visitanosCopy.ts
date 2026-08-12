@@ -46,6 +46,11 @@ export type VisitanosCopy = {
   hoursWithinBody: string;
   hoursOutsideTitle: string;
   hoursOutsideBody: string;
+  /** Build 13A — video product remains visible when Daily is gated off-hours. */
+  videoProductTitle: string;
+  videoUnavailableHoursLead: string;
+  videoUnavailableHoursDetail: string;
+  videoUnavailableHint: string;
   connectTitle: string;
   primaryCall: string;
   primaryWhatsapp: string;
@@ -82,6 +87,11 @@ const ES: VisitanosCopy = {
   hoursOutsideTitle: "En este momento estamos fuera de nuestro horario habitual.",
   hoursOutsideBody:
     "Puedes dejarnos un mensaje o elegir una forma de contacto y te responderemos tan pronto como sea posible.",
+  videoProductTitle: "Videollamada",
+  videoUnavailableHoursLead: "Disponible durante nuestro horario habitual:",
+  videoUnavailableHoursDetail: "Lunes a viernes, 9:00 AM – 5:00 PM",
+  videoUnavailableHint:
+    "Ahora puedes escribirnos por WhatsApp o usar las opciones de contacto de abajo.",
   connectTitle: "Hablemos",
   primaryCall: "Llamar",
   primaryWhatsapp: "WhatsApp",
@@ -118,6 +128,10 @@ const EN: VisitanosCopy = {
   hoursOutsideTitle: "We’re currently outside our normal office hours.",
   hoursOutsideBody:
     "You can leave a message or choose a way to reach us, and we’ll get back to you as soon as we can.",
+  videoProductTitle: "Video call",
+  videoUnavailableHoursLead: "Available during our normal business hours:",
+  videoUnavailableHoursDetail: "Monday–Friday, 9:00 AM – 5:00 PM",
+  videoUnavailableHint: "You can message us on WhatsApp or use the contact options below.",
   connectTitle: "Let’s connect",
   primaryCall: "Call",
   primaryWhatsapp: "WhatsApp",
