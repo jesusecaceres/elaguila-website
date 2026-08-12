@@ -23,7 +23,7 @@ import { DigitalContactAbout } from "./DigitalContactAbout";
 import { DigitalContactFocusAreas } from "./DigitalContactFocusAreas";
 import { DigitalContactSocialCards } from "./DigitalContactSocialCards";
 import { DigitalContactShowcase } from "./DigitalContactShowcase";
-import { DigitalContactBusinessHubTeaser } from "./DigitalContactBusinessHubTeaser";
+import { DigitalContactBusinessConciergeTeaser } from "./DigitalContactBusinessConciergeTeaser";
 import { DigitalContactLeadForm } from "./DigitalContactLeadForm";
 import { DigitalContactClosingCta } from "./DigitalContactClosingCta";
 import { DigitalContactFooter } from "./DigitalContactFooter";
@@ -167,7 +167,7 @@ export function DigitalContactPageClient({ profile, initialLang }: Props) {
         <DigitalContactFocusAreas profile={profile} copy={copy} />
         <DigitalContactSocialCards profile={profile} copy={copy} />
         <DigitalContactShowcase profileSlug={profile.slug} lang={lang} copy={copy} />
-        <DigitalContactBusinessHubTeaser copy={copy} />
+        <DigitalContactBusinessConciergeTeaser copy={copy} />
         <DigitalContactLeadForm profileSlug={profile.slug} lang={lang} copy={copy} />
         <DigitalContactClosingCta profileSlug={profile.slug} copy={copy} />
       </main>

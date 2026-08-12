@@ -19,9 +19,7 @@ export function DigitalContactWhatWeDo({ copy }: Props) {
         <p className="text-center text-sm leading-relaxed text-[#3D3428] sm:text-base">{copy.whatWeDoBody}</p>
 
         <div className="mx-auto mt-6 max-w-sm border-t border-[#E8DCC5] pt-5 text-center">
-          <p className="text-sm font-medium leading-relaxed text-[#8A8172] line-through decoration-1">
-            {copy.whatWeDoClosing1}
-          </p>
+          <p className="text-sm font-medium leading-relaxed text-[#8A8172]">{copy.whatWeDoClosing1}</p>
           <p className="mt-1.5 font-serif text-lg font-bold leading-snug text-[var(--dc-primary)] sm:text-xl">
             {copy.whatWeDoClosing2}
           </p>
