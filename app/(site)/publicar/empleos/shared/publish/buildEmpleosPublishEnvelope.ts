@@ -11,7 +11,7 @@ import type {
   EmpleosQuickPublishSnapshot,
 } from "./empleosPublishSnapshots";
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
-import { syncLegacyPayField, syncPublishPayField } from "../lib/empleosPayDisplay";
+import { syncPublishPayField } from "../lib/empleosPayDisplay";
 import { joinScheduleRowsForPublish } from "../lib/empleosScheduleDisplay";
 import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
 
@@ -97,7 +97,10 @@ export function buildQuickPublishSnapshot(d: EmpleosQuickDraft): EmpleosQuickPub
     categoryCustom: catCustom || undefined,
     experienceLevel: d.experienceLevel,
     workModality: d.workModality,
-    workModalityCustom: d.workModality.trim() || undefined,
+    // Package F Build F2, Gate 10 (P1 "Otro" truth fix) — this was assigning the slug itself
+    // (e.g. "otro") instead of the employer's actual custom text field, so a real visitor saw the
+    // bare sentinel "otro" on the published listing whenever this field was set to "Otro".
+    workModalityCustom: d.workModalityCustom.trim() || undefined,
     city: d.city.trim(),
     state: d.state.trim(),
     jobType: d.jobType === "otro" && d.jobTypeCustom.trim() ? d.jobTypeCustom.trim() : d.jobType.trim(),

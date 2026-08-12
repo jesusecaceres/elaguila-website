@@ -41,6 +41,21 @@ export type DashboardAnalyticsTotals = {
   profile_views: number;
   listing_opens: number;
   cta_clicks_other: number;
+  /**
+   * Package F Build F2, Gate 11 — Ofertas Package 11 Globalization dependency handoff
+   * (docs/OFERTAS_PACKAGE_11_GLOBALIZATION_DEPENDENCY_HANDOFF.md, Dependencies 2-3). Ofertas'
+   * expanded canonical analytics metrics reference these 8 fields on this shared contract; no
+   * event type on this branch produces them yet, so they stay honestly zero everywhere (this
+   * mirrors the existing zero-fallback pattern, not fabricated data).
+   */
+  flyer_page_views: number;
+  product_impressions: number;
+  product_opens: number;
+  product_searches: number;
+  product_search_result_clicks: number;
+  shopping_list_adds: number;
+  flyer_viewer_opens: number;
+  offer_hub_opens: number;
 };
 
 export const ZERO_DASHBOARD_ANALYTICS_TOTALS: DashboardAnalyticsTotals = {
@@ -64,6 +79,14 @@ export const ZERO_DASHBOARD_ANALYTICS_TOTALS: DashboardAnalyticsTotals = {
   profile_views: 0,
   listing_opens: 0,
   cta_clicks_other: 0,
+  flyer_page_views: 0,
+  product_impressions: 0,
+  product_opens: 0,
+  product_searches: 0,
+  product_search_result_clicks: 0,
+  shopping_list_adds: 0,
+  flyer_viewer_opens: 0,
+  offer_hub_opens: 0,
 };
 
 export type DashboardRecentActivityItem = {

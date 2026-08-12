@@ -111,6 +111,8 @@ export type RentasPublicListing = {
   highlightSlugs?: string[];
   /** Rentas machine: `Leonix:rent:lease_term_code` (e.g. mes-a-mes, 12-meses). */
   leaseTermCode?: string | null;
+  /** Package F Build F2, Gate 10 ("Otro" truth fix) — custom text when leaseTermCode is "otro". */
+  leaseTermCustom?: string | null;
   availabilityNote?: string | null;
   servicesIncluded?: string | null;
   requirements?: string | null;

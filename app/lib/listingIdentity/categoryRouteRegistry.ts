@@ -41,6 +41,15 @@
  * match its decisions) is Gate I.5.2's job. `categoryStandardRoutes.ts` itself was only given a
  * documentation comment pointing here, no value changed.
  *
+ * Package F Build F2, Gate 12 (P1 route-authority reconciliation) — RECONCILED. Re-verification
+ * found `categoryPublishPath()`'s only remaining caller (`CategoryStandardLandingPage.tsx`) is
+ * itself unreferenced by any live page — every CAT_STD_ALL_SLUGS category, including Empleos
+ * (Gate I.7A) and Servicios, builds its publish CTA some other way. With zero live callers left,
+ * `categoryStandardRoutes.ts`'s disagreeing `servicios`/`empleos` entries were corrected to match
+ * this registry (zero live-behavior change). `bienes-raices` already matched (Gate I.5.3A).
+ * `autos` intentionally left as-is: both values are separately confirmed-live, equivalent routes
+ * (see that file's own protective comment) — not a stale-truth defect.
+ *
  * Per-category canonical decisions made in this gate (see each adapter's own header comment for
  * evidence, and the Gate I.5.1 report for full reasoning):
  *   - Servicios:      "/publicar/servicios" (already the value the pre-existing SERVICIOS_ADAPTER

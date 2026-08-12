@@ -168,7 +168,9 @@ export function LeonixDashboardShell({
     <Link
       href={href}
       className={cx(
-        "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+        // Package F Build F2, Gate 9 (P1 accessibility fix) — py-2.5 alone netted ~36-39px, under
+        // the 44px minimum touch target; min-h enforces the floor without changing desktop density.
+        "flex min-h-[44px] items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
         activeNav === key
           ? varioSidebar
             ? "bg-[#FBF7EF] text-[#1F241C] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9A84A]/35"

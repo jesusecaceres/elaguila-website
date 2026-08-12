@@ -523,6 +523,9 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     resultsPropertyKind: mf.resultsPropertyKind,
     highlightSlugs: mf.highlightSlugs?.length ? [...mf.highlightSlugs] : undefined,
     leaseTermCode: rx.leaseTermCode ?? undefined,
+    // Package F Build F2, Gate 10 ("Otro" truth fix) — previously dropped here, so the "Plazo del
+    // contrato" custom text never reached the public listing model.
+    leaseTermCustom: rx.leaseTermCustom ?? undefined,
     availabilityNote: rx.availabilityNote ?? undefined,
     servicesIncluded: rx.servicesIncluded ?? undefined,
     requirements: rx.requirements ?? undefined,

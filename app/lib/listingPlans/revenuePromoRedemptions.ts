@@ -283,6 +283,45 @@ export function calculatePromoDiscountCents(input: {
   return 0;
 }
 
+/**
+ * Package F Build F2, Gate 2 (P0 security fix) — `per_customer_limit` was already read into
+ * `validatePromoEligibility()`, but no real caller ever populated `customerRedemptionCount`
+ * (it silently defaulted to 0), so the same customer could redeem a per-customer-capped promo
+ * code an unlimited number of times, bounded only by the code's unrelated global max. This
+ * counts only TERMINAL, real redemptions (`status = 'redeemed'`, set only after Stripe webhook
+ * confirmation — see the `pending`/`validated` -> `redeemed` transition below) against the same
+ * server-resolved identity (owner_user_id or email) already used for the subscriber-identity
+ * check above, so an abandoned/never-paid checkout attempt never falsely blocks a real one.
+ */
+async function countCustomerPromoRedemptions(
+  promoCodeId: string,
+  ownerUserId: string | null | undefined,
+  email: string | null | undefined,
+): Promise<number> {
+  const owner = String(ownerUserId ?? "").trim();
+  const mail = String(email ?? "").trim().toLowerCase();
+  if (!owner && !mail) return 0;
+
+  const supabase = getAdminSupabase();
+  let query = supabase
+    .from("leonix_promo_code_redemptions")
+    .select("id", { count: "exact", head: true })
+    .eq("promo_code_id", promoCodeId)
+    .eq("status", "redeemed");
+
+  if (owner && mail) {
+    query = query.or(`owner_user_id.eq.${owner},email.eq.${mail}`);
+  } else if (owner) {
+    query = query.eq("owner_user_id", owner);
+  } else {
+    query = query.eq("email", mail);
+  }
+
+  const { count, error } = await query;
+  if (error) return 0;
+  return count ?? 0;
+}
+
 export async function resolvePromoForCheckout(input: {
   promoCode: string;
   packageDef: RevenuePackageDefinition;
@@ -342,6 +381,8 @@ export async function resolvePromoForCheckout(input: {
   const percentOff = resolvePromoPercentOff(row);
   const amountOffCents = resolvePromoAmountOffCents(row);
 
+  const customerRedemptionCount = await countCustomerPromoRedemptions(row.id, input.ownerUserId, input.email);
+
   const validation = validatePromoEligibility({
     promoType,
     isActive: row.is_active !== false && row.status !== "revoked",
@@ -353,6 +394,7 @@ export async function resolvePromoForCheckout(input: {
     maxRedemptions: row.max_redemptions,
     redemptionCount: row.redemption_count,
     perCustomerLimit: row.per_customer_limit,
+    customerRedemptionCount,
     category: input.packageDef.category,
     packageKey: input.packageDef.packageKey,
     placementTier: input.packageDef.placementTierKey,

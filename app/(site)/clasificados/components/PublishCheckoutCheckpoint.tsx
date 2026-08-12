@@ -305,11 +305,14 @@ export function PublishCheckoutCheckpoint({
       {/* Promo — enabled categories with real server validation */}
       {config.promoEligible && onPromoApply && !verifiedIntroDiscountApplied ? (
         <div className="mt-4 space-y-2 border-t pt-4" style={{ borderColor: `${LEONIX_BORDER}99` }}>
-          <label className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
+          {/* Package F Build F2, Gate 9 (P1 accessibility fix) — htmlFor/id pairing added; this
+              field previously had a sibling label with no programmatic association. */}
+          <label htmlFor="publish-checkout-promo-code" className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
             {lang === "es" ? "Código promocional" : "Promo code"}
           </label>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <input
+              id="publish-checkout-promo-code"
               type="text"
               value={promoInput}
               onChange={(e) => setPromoInput(e.target.value.toUpperCase())}

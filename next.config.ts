@@ -82,6 +82,55 @@ const nextConfig: NextConfig = {
         destination: "/clasificados/en-venta/results",
         permanent: true,
       },
+      // Package F Build F2, Gate 4 (P0 SEO fix) — F1 found ~10 categories serving byte-identical
+      // duplicate content between an English `/results` path and a Spanish `/resultados` path
+      // (one side a literal `export { default } from "..."` re-export of the other), with no
+      // redirect and no distinguishing canonical — confirmed duplicate-content indexing risk.
+      // Direction per category was verified against REAL live navigational callers (hero
+      // search/quick-chip hrefs, shared URL-builder constants), not assumed — Autos, Restaurantes,
+      // and Servicios turned out to have `/results` as the true live-linked route (same situation
+      // already fixed for En Venta above), while the rest have `/resultados` as the real target
+      // (same situation already fixed for Bienes Raíces above).
+      {
+        source: "/clasificados/autos/resultados",
+        destination: "/clasificados/autos/results",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/restaurantes/resultados",
+        destination: "/clasificados/restaurantes/results",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/servicios/resultados",
+        destination: "/clasificados/servicios/results",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/empleos/results",
+        destination: "/clasificados/empleos/resultados",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/busco/results",
+        destination: "/clasificados/busco/resultados",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/clases/results",
+        destination: "/clasificados/clases/resultados",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/mascotas-y-perdidos/results",
+        destination: "/clasificados/mascotas-y-perdidos/resultados",
+        permanent: true,
+      },
+      {
+        source: "/clasificados/comunidad/results",
+        destination: "/clasificados/comunidad/resultados",
+        permanent: true,
+      },
     ];
   },
 
