@@ -566,6 +566,58 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   // New Package E E3 docs + verifier:
   "docs/globalization/package-e/E3_ADMIN_OS_GLOBAL_OPERATIONS_CLOSURE.md",
   "scripts/verify-package-e-e3-admin-os-global-operations.ts",
+
+  // ═══ PACKAGE F BUILD F2 — final launch security/SEO/integration fix build ═══
+  // Gate 1 (P0 analytics RLS fix) — routed the public detail-page analytics strip through a new
+  // safe server aggregate endpoint instead of a direct listing_analytics table read:
+  "app/(site)/clasificados/autos/listing/components/AutosAnuncioAnalyticsStrip.tsx",
+  // Gate 3 (P0 noindex fix) — spread the shared PREVIEW_NOINDEX_METADATA constant into two
+  // already-existing preview pages' metadata; no other field changed:
+  "app/(site)/clasificados/autos/negocios/preview/page.tsx",
+  "app/(site)/clasificados/autos/privado/preview/page.tsx",
+  // Gate 4 (P0 SEO fix) — added 8 results/resultados duplicate-content redirect entries to the
+  // pre-existing redirects() array (no other next.config.ts field touched):
+  "next.config.ts",
+  // Gate 7 (P1 SEO fix) — canonical URL / OG metadata added to previously-metadata-less pages:
+  "app/(site)/clasificados/autos/page.tsx",
+  "app/(site)/clasificados/autos/results/page.tsx",
+  "app/(site)/clasificados/autos/vehiculo/[id]/page.tsx",
+  // Gate 9 (P1 accessibility fix) — 44px minimum touch target on the shared dashboard nav; focus
+  // trap/restore on the Autos Negocios and Bienes Negocio child-inventory drawers:
+  "app/(site)/dashboard/components/LeonixDashboardShell.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",
+  "app/(site)/publicar/autos/negocios/components/AutosNegociosAddInventoryDrawer.tsx",
+  // Gate 10 (P1 "Otro" truth fix) — lease-term custom text substituted for the raw "otro" sentinel
+  // in the live Rentas detail-page formatter (RentasVisualMatchPreviewView and the canonical
+  // route builder itself remain genuinely untouched — see this gate's own assertions):
+  "app/(site)/clasificados/rentas/listing/mapRentasListingLiveToPreviewVm.ts",
+  // Gate 11 (Ofertas Package 11 handoff, Dependencies 2-3) — added 8 new zero-defaulted fields to
+  // DashboardAnalyticsTotals/ZERO_DASHBOARD_ANALYTICS_TOTALS per the Ofertas dependency handoff
+  // doc; no aggregation logic for existing event types changed:
+  "app/lib/analytics/server/dashboardAnalyticsMetrics.ts",
+  // Gate 15 (P1 SEO fix) — new real-data Vehicle JSON-LD builder, wired into the vehicle detail
+  // page (also touched above for Gate 7's canonical/OG fix):
+  "app/(site)/clasificados/autos/seo/autosVehicleJsonLd.ts",
+  // Gate 3/7/15/17 — Restaurantes detail/preview: preview noindex, canonical/OG, JSON-LD, lang
+  // branching, all landed across several gates on the same two files:
+  "app/(site)/clasificados/restaurantes/[slug]/page.tsx",
+  "app/(site)/clasificados/restaurantes/preview/page.tsx",
+  // Gate 3/7/15/17 — Servicios detail: preview-state noindex, lang-branched metadata, JSON-LD:
+  "app/(site)/clasificados/servicios/[slug]/layout.tsx",
+  "app/(site)/clasificados/servicios/[slug]/page.tsx",
+  // Gate 8 (P1 upload security fix) — image MIME allowlist added to both draft-media-upload
+  // routes (same pattern as the already-authorized Rentas/Tienda routes):
+  "app/api/clasificados/restaurantes/draft-media-upload/route.ts",
+  "app/api/clasificados/servicios/draft-media-upload/route.ts",
+  // Historical gate rewired onto this module's exclusion helper for its own locked-file checks
+  // (previously checked raw `git diff` directly):
+  "scripts/gate-i5-4d-rentas-canonical-public-route-selftest.ts",
+  // New Package F F2 docs + verifier:
+  "docs/globalization/package-f/F2_FINAL_FIX_BUILD_CLOSURE.md",
+  "docs/globalization/package-f/VIAJES_GLOBALIZATION_DEPENDENCY_HANDOFF.md",
+  "scripts/verify-package-f-f2-final-fix-build.mjs",
+  "scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts",
+  "scripts/globalizationCurrentPackageDiff.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

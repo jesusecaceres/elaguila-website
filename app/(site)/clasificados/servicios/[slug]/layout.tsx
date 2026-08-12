@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
+import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
+import { LEONIX_LANG_COOKIE, normalizeLang } from "@/app/lib/language";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +23,17 @@ export default function ServiciosSlugLayout({ children }: { children: React.Reac
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  /** Tab/OG titles default to ES; the page still respects `?lang=` for rendered copy. */
-  const lang: ServiciosLang = "es";
+  // Package F Build F2, Gate 7 (P1 SEO fix) — this layout previously hardcoded `lang: "es"` for
+  // tab/OG titles regardless of the viewer's actual language. Next.js `generateMetadata` for a
+  // `layout.tsx` never receives `searchParams` (by design — layouts are shared across sibling
+  // routes with different query strings), and this route's `generateMetadata` was moved here from
+  // `page.tsx` for a documented production metadata-merging bug (see file header), so we cannot
+  // read `?lang=` directly here. Falls back to the same `leonix_lang` cookie the public language
+  // picker persists (`writePersistedLangPreference`) — correct for any returning/preference-set
+  // visitor, though a first-ever visit via a bare `?lang=en` link with no cookie yet still renders
+  // ES metadata (the page body itself still fully respects `?lang=` via its own searchParams).
+  const cookieStore = await cookies();
+  const lang: ServiciosLang = normalizeLang(cookieStore.get(LEONIX_LANG_COOKIE)?.value) === "en" ? "en" : "es";
 
   try {
     const row = await getServiciosPublicListingBySlugForDiscovery(slug);
@@ -29,8 +41,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       return { title: { absolute: SERVICIOS_METADATA_FALLBACK_TITLE } };
     }
 
+    // Package F Build F2, Gate 3 (P0 SEO/indexing fix) — these two states previously changed
+    // the <title> but never set robots:noindex, so a pending/rejected/suspended Servicios
+    // profile was indexable by default.
     if (row.listing_status === "pending_review") {
       return {
+        ...PREVIEW_NOINDEX_METADATA,
         title: {
           absolute: "Anuncio en revisión · Servicios · Leonix",
         },
@@ -38,6 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
     if (row.listing_status === "rejected" || row.listing_status === "suspended") {
       return {
+        ...PREVIEW_NOINDEX_METADATA,
         title: {
           absolute: "Anuncio no disponible · Leonix",
         },

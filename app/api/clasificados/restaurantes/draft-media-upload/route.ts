@@ -7,6 +7,11 @@ export const runtime = "nodejs";
 
 const SLOTS = new Set(["hero", "gallery", "food", "interior", "exterior", "featured", "logo", "coupon", "coupon_flyer"]);
 
+// Package F Build F2, Gate 8 (P1 security fix) — this route previously accepted any file with no
+// MIME check at all. Every slot here is an image; matches the same JPEG/PNG/WebP allowlist already
+// used by Comida Local's draft-media-upload route.
+const ACCEPTED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 function ownerPathSegment(ownerUserId: string | null, anonSessionId: string): string {
   if (ownerUserId) return ownerUserId.replace(/[^a-zA-Z0-9-]+/g, "").slice(0, 36);
   return anonUploadPathSegment(anonSessionId);
@@ -46,6 +51,14 @@ export async function POST(req: NextRequest) {
   const file = form.get("file");
   if (!(file instanceof Blob) || file.size < 1) {
     return NextResponse.json({ ok: false, error: "missing_file" }, { status: 400 });
+  }
+
+  const contentType = (file.type || "image/jpeg").toLowerCase();
+  if (!ACCEPTED_IMAGE_MIME.has(contentType)) {
+    return NextResponse.json(
+      { ok: false, error: "unsupported_type", detail: "Use JPEG, PNG, or WebP." },
+      { status: 400 },
+    );
   }
 
   if (file.size > 12 * 1024 * 1024) {

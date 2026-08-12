@@ -10,6 +10,10 @@ const SLOTS = new Set(["gallery", "logo", "video"]);
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 90 * 1024 * 1024;
 
+// Package F Build F2, Gate 8 (P1 security fix) — the "video" slot already validated its content
+// type; "gallery"/"logo" (image slots) previously had no MIME check at all.
+const ACCEPTED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 function ownerPathSegment(ownerUserId: string | null, anonSessionId: string): string {
   if (ownerUserId) return ownerUserId.replace(/[^a-zA-Z0-9-]+/g, "").slice(0, 36);
   return anonUploadPathSegment(anonSessionId);
@@ -65,6 +69,14 @@ export async function POST(req: NextRequest) {
       ct === "";
     if (!okType) {
       return NextResponse.json({ ok: false, error: "unsupported_video_type", detail: ct || "empty" }, { status: 400 });
+    }
+  } else {
+    const ct = (file.type || "image/jpeg").toLowerCase();
+    if (!ACCEPTED_IMAGE_MIME.has(ct)) {
+      return NextResponse.json(
+        { ok: false, error: "unsupported_type", detail: "Use JPEG, PNG, or WebP." },
+        { status: 400 },
+      );
     }
   }
 

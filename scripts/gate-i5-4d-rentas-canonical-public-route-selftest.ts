@@ -214,7 +214,10 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles: excludePkgFilesLockedSystems } = await import("./globalizationCurrentPackageDiff");
+    const changed = excludePkgFilesLockedSystems(changedFiles.split("\n").map((l) => l.trim()).filter(Boolean));
     assert.ok(
       !changed.includes(VISUAL_MATCH_RENDERER_FILE) || I10A_ANALYTICS_WIRING_EXCEPTIONS.has(VISUAL_MATCH_RENDERER_FILE),
       "RentasVisualMatchPreviewView must not be modified outside the approved I.10A analytics exception",

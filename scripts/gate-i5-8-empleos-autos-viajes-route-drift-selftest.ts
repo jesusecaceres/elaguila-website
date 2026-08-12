@@ -124,9 +124,15 @@ async function main() {
     const unrelatedExpected: Record<string, string> = {
       "en-venta": "/publicar/en-venta",
       rentas: "/clasificados/publicar/rentas",
-      empleos: "/clasificados/publicar/empleos",
+      // Package F Build F2, Gate 12 — corrected from the legacy "/clasificados/publicar/empleos"
+      // to "/publicar/empleos", matching categoryRouteRegistry.ts's canonical decision (confirmed
+      // zero live callers of categoryPublishPath() read empleos, so this is a truth correction,
+      // not a navigation change — see categoryStandardRoutes.ts's own header comment).
+      empleos: "/publicar/empleos",
       "bienes-raices": "/clasificados/publicar/bienes-raices",
-      servicios: "/clasificados/publicar/servicios/checkpoint",
+      // Package F Build F2, Gate 12 — corrected from the legacy checkpoint path to
+      // "/publicar/servicios", same reasoning as empleos above.
+      servicios: "/publicar/servicios",
       restaurantes: "/clasificados/restaurantes/publicar",
       clases: "/publicar/clases",
       comunidad: "/publicar/comunidad",

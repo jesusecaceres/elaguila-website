@@ -175,9 +175,11 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
+        {/* Package F Build F2, Gate 9 (P1 accessibility fix) — htmlFor/id pairing added. */}
         <div>
-          <label className={labelClass}>{t.phone}</label>
+          <label htmlFor="en-venta-free-phone" className={labelClass}>{t.phone}</label>
           <input
+            id="en-venta-free-phone"
             className={`${inputClass} mt-2`}
             inputMode="tel"
             autoComplete="tel"
@@ -186,8 +188,9 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
           />
         </div>
         <div>
-          <label className={labelClass}>{t.email}</label>
+          <label htmlFor="en-venta-free-email" className={labelClass}>{t.email}</label>
           <input
+            id="en-venta-free-email"
             className={`${inputClass} mt-2`}
             type="email"
             autoComplete="email"

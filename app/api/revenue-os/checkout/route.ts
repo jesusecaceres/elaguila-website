@@ -244,6 +244,8 @@ export async function POST(request: NextRequest) {
   let promoFamilyForRecord: string | null | undefined;
   let promoWebsiteCheckoutOnly: boolean | undefined;
   let promoBaseAmountForRecord: number | undefined;
+  // Package F Build F2, promo concurrency closure — threaded to the atomic reservation RPC below.
+  let promoPerCustomerLimitForRecord: number | null | undefined;
   if (promoCodeRaw) {
     const prelim = validateRevenueCheckoutRequest(body, { validatedAddOns });
     if (!prelim.ok) {
@@ -286,6 +288,7 @@ export async function POST(request: NextRequest) {
     promoFamilyForRecord = promoResult.promoFamily;
     promoWebsiteCheckoutOnly = promoResult.websiteCheckoutOnly;
     promoBaseAmountForRecord = prelim.subtotalCents;
+    promoPerCustomerLimitForRecord = promoResult.perCustomerLimit;
   }
 
   // ── Package C Build 2 (C4) — verified 15% introductory discount. ────────────────────────
@@ -653,12 +656,17 @@ export async function POST(request: NextRequest) {
       packageKey: packageDef.packageKey,
       placementTier: packageDef.placementTierKey,
       discountCents,
+      perCustomerLimit: promoPerCustomerLimitForRecord ?? null,
     });
 
     if (!redemptionInsert.ok) {
+      // Package F Build F2, promo concurrency closure — a concurrent attempt that lost the
+      // atomic reservation race surfaces the same truthful "promo_ineligible" shape and 400
+      // status this route already uses for every other eligibility rejection above; a genuine
+      // insert/RPC failure keeps the existing 500.
       return NextResponse.json(
         { ok: false, code: redemptionInsert.code, message: redemptionInsert.message },
-        { status: 500 },
+        { status: redemptionInsert.code === "promo_ineligible" ? 400 : 500 },
       );
     }
 
