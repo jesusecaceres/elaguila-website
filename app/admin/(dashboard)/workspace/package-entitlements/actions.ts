@@ -25,6 +25,7 @@ import { CATEGORY_BASE_PACKAGE_KEY } from "@/app/lib/listingPlans/categoryCommer
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { grantComplimentaryAccess, grantPartnerCourtesy } from "@/app/lib/listingPlans/complimentaryGrants";
+import { writePlacementEntitlement } from "@/app/lib/listingPlans/placementEntitlementWriter";
 
 const ALLOWED_TIERS = new Set([
   "premium",
@@ -301,16 +302,18 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
               ? "print_quarter_page"
               : null;
     if (placementTierForPrint) {
-      await supabase.from("leonix_placement_entitlements").insert({
-        listing_id: listingId,
+      // Package D Build D2, Gate 9 — routed through the canonical placement writer instead of a
+      // hand-built insert; tier mapping/eligibility above is unchanged, only the write path moved.
+      await writePlacementEntitlement({
+        listingId,
         category,
-        placement_tier: placementTierForPrint,
-        placement_source: "included_with_print",
-        included_with_print: true,
-        print_contract_id: contractCode || entitlementCode,
+        placementTier: placementTierForPrint,
+        placementSource: "included_with_print",
+        includedWithPrint: true,
+        printContractId: contractCode || entitlementCode,
         surfaces: scopes?.length ? scopes : ["clasificados", "category_landing", "category_results"],
-        starts_at: startsAt,
-        ends_at: endsAt,
+        startsAt: new Date(startsAt),
+        endsAt: new Date(endsAt),
         status: status === "active" ? "active" : "scheduled",
         metadata: {
           source: "print_included",

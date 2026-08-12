@@ -433,6 +433,43 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   // Same stale blanket-migration-check pattern, same fix, found in a second historical gate
   // during Package C final closeout triage:
   "scripts/gate-i5-4c-empleos-lane-shell-fallback-safety-selftest.ts",
+
+  // ═══ PACKAGE D BUILD D2 — GLOBAL CORE UNIFICATION (canonical placement resolver + ranking
+  // adapter, shared Connection Hub foundation, unified CTA analytics dispatch, Bienes strict-sort
+  // fix, Ofertas contact-hub defect fixes, Servicios manual-rating removal, canonical placement
+  // writer adoption) ═══
+  // New shared/global infrastructure (no DB schema change):
+  "app/lib/listingPlans/placementResolution.ts",
+  "app/lib/listingPlans/placementRankingAdapter.ts",
+  "app/lib/listingPlans/placementEntitlementWriter.ts",
+  "app/lib/analytics/client/connectionHubCtaDispatch.ts",
+  "app/components/contact/connectionHub/sharedConnectionHubContactTypes.ts",
+  "app/components/contact/connectionHub/sharedConnectionHubContactModel.ts",
+  // Existing placement-writer callers routed through the one canonical writer (no behavior change):
+  "app/lib/listingPlans/revenueEntitlementFulfillment.ts",
+  "app/admin/(dashboard)/workspace/package-entitlements/actions.ts",
+  // Confirmed live defect fixes:
+  "app/(site)/clasificados/bienes-raices/resultados/lib/brResultsFilters.ts",
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicDetailView.tsx",
+  "app/(site)/clasificados/components/ContactActions.tsx",
+  "app/(site)/clasificados/anuncio/[id]/page.tsx",
+  "app/(site)/servicios/publicar/components/ServiciosApplicationForm.tsx",
+  // Real analytics identity + wiring for the previously-untracked Bienes live contact path:
+  "app/lib/analytics/listingAnalyticsIdentity.ts",
+  "app/lib/analytics/server/resolveListingAnalyticsIdentity.ts",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/BrAgenteResContactSidebar.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage.tsx",
+  "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
+  // New Package D docs + verifiers:
+  "docs/globalization/package-d/D2_GLOBAL_CORE_UNIFICATION_CLOSURE.md",
+  "scripts/verify-package-d-d2-br-strict-price-sort.ts",
+  "scripts/verify-package-d-d2-global-core-unification.ts",
+  // Historical gate triage — pinned an exact pre-D2 count of a legacy trackEvent(...,
+  // "message_sent", ...) call-site pattern; updated to the new, correct truth after Gate 6C
+  // removed the one fabricated (non-chat) usage, not to bypass the check:
+  "scripts/gate-i10a-analytics-engagement-truth-selftest.ts",
+  // Same stale blanket "no analytics server file in the diff" pattern, same fix:
+  "scripts/gate-i10b-en-venta-inline-save-owner-protection-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

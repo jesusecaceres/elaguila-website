@@ -18,6 +18,7 @@ import {
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import { BrAgenteResidencialLocaleProvider } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/BrAgenteResidencialLocaleContext";
 import { AgenteIndividualResidencialPreviewPage } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage";
+import { brAnalyticsContextFromListing } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import {
   createEmptyAgenteIndividualResidencialState,
   type AgenteIndividualResidencialFormState,
@@ -455,12 +456,19 @@ export function BienesRaicesNegocioLiveDetailShell({
   }, [groupId, lang, listing.br_inventory_parent_listing_id, listing.id, listing.inventory_role, listing.owner_id]);
 
   const data = useMemo(() => buildPublishedState({ listing, parentIdentity, lang }), [lang, listing, parentIdentity]);
+  // Package D Build D2, Gate 6A — real listing identity so the contact sidebar's CTAs track
+  // truthfully on this live, published detail render only.
+  const analyticsContext = useMemo(
+    () => brAnalyticsContextFromListing({ id: listing.id, leonix_ad_id: listing.leonix_ad_id }),
+    [listing.id, listing.leonix_ad_id],
+  );
 
   return (
     <BrAgenteResidencialLocaleProvider>
       <div className="bg-[#F9F6F1]">
         <AgenteIndividualResidencialPreviewPage
           data={data}
+          analyticsContext={analyticsContext}
           publicChrome={{
             eyebrow: (
               <Link

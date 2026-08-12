@@ -144,9 +144,13 @@ async function main() {
     assert.ok(anuncio.includes("trackListingSaveToggleAuthed("), "Generic detail page inline Save must use the canonical recorder");
     assert.ok(anuncio.includes("recordShareEvent={(shareMethod, extraMeta) =>"), "Generic detail page Share must supply a canonical override");
     assert.ok(!/trackListingSave\(/.test(anuncio), "Generic detail page must not call the legacy trackListingSave anymore");
-    // message_sent is the one documented remaining legacy caller in this file — must still exist.
+    // Package D Build D2, Gate 6C fixed a real truth defect here: the CTA-click contact handler
+    // was fabricating "message_sent" for every click type (call/directions/website/etc), not just
+    // real chat messages. That fake usage is gone — its clicks now dispatch truthful per-CTA-type
+    // events via dispatchConnectionHubCta. Exactly one legitimate trackEvent(..., "message_sent",
+    // ...) call remains: the real chat-message-send handler, where a message genuinely was sent.
     const messageSentCount = (anuncio.match(/trackEvent\(listing\.id, "message_sent"/g) ?? []).length;
-    assert.equal(messageSentCount, 2, "message_sent must remain on the old trackEvent path, documented, not silently migrated");
+    assert.equal(messageSentCount, 1, "message_sent must remain only on the real chat-message-send path, never fabricated for CTA clicks");
 
     const rentasDetail = readSource(RENTAS_DETAIL);
     assert.ok(rentasDetail.includes("trackListingSaveToggleAuthed("), "Rentas detail Save must use the canonical recorder");

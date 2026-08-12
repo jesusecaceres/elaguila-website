@@ -261,21 +261,26 @@ export function filterBrListings(
 
   const sorted = [...rows];
   const sort = state.sort || "reciente";
-  /** Filters first; then sponsored entitlement lane; then price/freshness within lane. */
+  /**
+   * Package D Build D2, Gate 3 — strict sort truth fix. `precio_asc`/`precio_desc` are an explicit
+   * user-selected numeric order: price is the ONLY primary key. Sponsored/placement rank may only
+   * break a true numeric tie (equal price) — it must never reorder unequal prices. Default/"reciente"
+   * discovery is unaffected and keeps using sponsored rank as its primary key.
+   */
   if (sort === "precio_asc") {
     sorted.sort((a, b) => {
-      const s = compareBrSponsoredRank(a, b);
-      if (s !== 0) return s;
       const p = brDemoPriceNumber(a.price) - brDemoPriceNumber(b.price);
       if (p !== 0) return p;
+      const s = compareBrSponsoredRank(a, b);
+      if (s !== 0) return s;
       return compareBrListingFairness(a, b);
     });
   } else if (sort === "precio_desc") {
     sorted.sort((a, b) => {
-      const s = compareBrSponsoredRank(a, b);
-      if (s !== 0) return s;
       const p = brDemoPriceNumber(b.price) - brDemoPriceNumber(a.price);
       if (p !== 0) return p;
+      const s = compareBrSponsoredRank(a, b);
+      if (s !== 0) return s;
       return compareBrListingFairness(a, b);
     });
   } else {

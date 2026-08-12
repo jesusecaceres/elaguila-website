@@ -26,6 +26,7 @@ import {
   type PlacementTier,
 } from "./placementEntitlements";
 import { computeEndsAt } from "./subscriptionLifecyclePolicy";
+import { writePlacementEntitlement } from "./placementEntitlementWriter";
 
 export { computeEndsAt };
 
@@ -298,7 +299,6 @@ export async function activatePlacementForRealPayment(
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
   }
-  const supabase = getAdminSupabase();
   const listingId = String(input.listingId ?? "").trim();
   const placementTier = resolveCheckoutPlacementTier(input.packageDef);
   if (!placementTier) return { ok: true, placementEntitlementId: input.existingPlacementEntitlementId ?? null };
@@ -306,52 +306,34 @@ export async function activatePlacementForRealPayment(
     return { ok: true, placementEntitlementId: input.existingPlacementEntitlementId };
   }
 
-  const { data: existingPlacement } = await supabase
-    .from("leonix_placement_entitlements")
-    .select("id, status")
-    .eq("stripe_payment_record_id", input.paymentRecordId)
-    .maybeSingle();
-  if (existingPlacement?.id && existingPlacement.status === "active") {
-    return { ok: true, placementEntitlementId: existingPlacement.id as string };
-  }
-  if (existingPlacement?.id) {
-    return { ok: true, placementEntitlementId: existingPlacement.id as string };
-  }
+  // Package D Build D2, Gate 9 — routed through the canonical writer (natural-key idempotency on
+  // stripe_payment_record_id lives inside the writer now; behavior/shape unchanged from before).
+  const written = await writePlacementEntitlement({
+    listingId,
+    ownerUserId: input.ownerUserId,
+    leonixAdId: input.leonixAdId,
+    category: input.packageDef.category,
+    placementTier,
+    placementSource: input.placementSource,
+    surfaces: resolvePlacementSurfaces(placementTier),
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    status: "active",
+    stripePaymentRecordId: input.paymentRecordId,
+    promoCodeId: input.promoCodeId ?? null,
+    metadata: {
+      source: input.placementSource,
+      stripe_event_id: input.stripeEventId,
+      stripe_event_type: input.stripeEventType,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      package_key: input.packageDef.packageKey,
+    },
+  });
 
-  const { data: placementInsert, error: placementError } = await supabase
-    .from("leonix_placement_entitlements")
-    .insert({
-      owner_user_id: input.ownerUserId,
-      listing_id: listingId,
-      leonix_ad_id: input.leonixAdId,
-      category: input.packageDef.category,
-      placement_tier: placementTier,
-      placement_source: input.placementSource,
-      surfaces: resolvePlacementSurfaces(placementTier),
-      starts_at: input.startsAt.toISOString(),
-      ends_at: input.endsAt.toISOString(),
-      status: "active",
-      stripe_payment_record_id: input.paymentRecordId,
-      promo_code_id: input.promoCodeId ?? null,
-      metadata: {
-        source: input.placementSource,
-        stripe_event_id: input.stripeEventId,
-        stripe_event_type: input.stripeEventType,
-        stripe_checkout_session_id: input.stripeCheckoutSessionId,
-        package_key: input.packageDef.packageKey,
-      },
-    })
-    .select("id")
-    .single();
-
-  if (placementError || !placementInsert?.id) {
-    return {
-      ok: false,
-      code: "placement_entitlement_insert_failed",
-      message: placementError?.message ?? "Failed to create placement entitlement.",
-    };
+  if (!written.ok) {
+    return { ok: false, code: written.code, message: written.message };
   }
-  return { ok: true, placementEntitlementId: placementInsert.id as string };
+  return { ok: true, placementEntitlementId: written.placementEntitlementId };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────

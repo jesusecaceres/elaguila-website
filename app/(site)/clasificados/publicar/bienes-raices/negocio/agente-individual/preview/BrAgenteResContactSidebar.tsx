@@ -27,6 +27,26 @@ import {
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
 import { digitsOnly } from "../application/utils/phoneMask";
+import {
+  trackBrEmailClickGlobal,
+  trackBrGoogleBusinessClickGlobal,
+  trackBrGoogleReviewsClickGlobal,
+  trackBrMlsClickGlobal,
+  trackBrPhoneClickGlobal,
+  trackBrRequestInfoClickGlobal,
+  trackBrScheduleVisitClickGlobal,
+  trackBrTourVideoClickGlobal,
+  trackBrBrochureClickGlobal,
+  trackBrWebsiteClickGlobal,
+  trackBrWhatsAppClickGlobal,
+  trackBrYelpClickGlobal,
+  type BrGlobalAnalyticsContext,
+} from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
+
+/** Package D Build D2, Gate 6A — real listing identity for the live published detail render only.
+ * Reuses the existing canonical `brGlobalAnalytics.ts` module; this component fires no analytics of
+ * its own vocabulary. Undefined/null on the pre-publish owner preview, where clicks must not track. */
+export type BrAgenteResContactSidebarAnalyticsContext = BrGlobalAnalyticsContext;
 
 const BORDER = "rgba(44, 36, 22, 0.1)";
 const CREAM = "#FDFBF7";
@@ -90,7 +110,7 @@ function SocialCircle({
   );
 }
 
-function ReviewCard({ href, label }: { href: string; label: string }) {
+function ReviewCard({ href, label, onClick }: { href: string; label: string; onClick?: () => void }) {
   return (
     <a
       href={href}
@@ -98,6 +118,7 @@ function ReviewCard({ href, label }: { href: string; label: string }) {
       rel="noopener noreferrer"
       className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg border bg-white/80 px-3 py-2.5 text-[12px] font-semibold transition hover:bg-white"
       style={{ borderColor: "rgba(201, 180, 106, 0.45)", color: CHARCOAL }}
+      onClick={onClick}
     >
       <span>{label}</span>
       <FiExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
@@ -137,12 +158,25 @@ function openInNewTabAnchorProps() {
   return { target: "_blank" as const, rel: "noopener noreferrer" };
 }
 
-function EmailRow({ email, copyLabel }: { email: string; copyLabel: string }) {
+function EmailRow({
+  email,
+  copyLabel,
+  onEmailClick,
+}: {
+  email: string;
+  copyLabel: string;
+  onEmailClick?: () => void;
+}) {
   const trimmed = email.trim();
   if (!trimmed) return null;
   return (
     <div className="flex items-center justify-center gap-2">
-      <a href={`mailto:${trimmed}`} className="truncate text-[12px] font-semibold" style={{ color: BRONZE }}>
+      <a
+        href={`mailto:${trimmed}`}
+        className="truncate text-[12px] font-semibold"
+        style={{ color: BRONZE }}
+        onClick={onEmailClick}
+      >
         {trimmed}
       </a>
       <button
@@ -164,12 +198,17 @@ export function BrAgenteResContactSidebar({
   data,
   locale: _locale,
   p,
+  analyticsContext,
 }: {
   data: AgenteIndividualResidencialFormState;
   locale: AgenteResPreviewLocale;
   p: PreviewUi;
+  analyticsContext?: BrAgenteResContactSidebarAnalyticsContext | null;
 }) {
   const cr = buildContactModel(data);
+  const track = (fn: (ctx: BrGlobalAnalyticsContext) => void) => {
+    if (analyticsContext) fn(analyticsContext);
+  };
   const locale = _locale;
   const hub = buildMainAgentBusinessHub(data, locale);
   const showBrand = hasBrandBlockVisible(data);
@@ -285,7 +324,11 @@ export function BrAgenteResContactSidebar({
             {agentePersonalOk ? (
               <p className="text-[12px] font-semibold leading-snug">
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
-                <a href={`tel:${digitsOnly(agentePersonalRaw)}`} className="text-[#2C2416] underline-offset-2 hover:underline">
+                <a
+                  href={`tel:${digitsOnly(agentePersonalRaw)}`}
+                  className="text-[#2C2416] underline-offset-2 hover:underline"
+                  onClick={() => track(trackBrPhoneClickGlobal)}
+                >
                   {formatPreviewPhoneDisplay(agentePersonalRaw)}
                 </a>
               </p>
@@ -293,7 +336,11 @@ export function BrAgenteResContactSidebar({
             {agenteOfficeOk ? (
               <p className="text-[12px] font-semibold leading-snug">
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
-                <a href={`tel:${digitsOnly(agenteOfficeRaw)}`} className="text-[#2C2416] underline-offset-2 hover:underline">
+                <a
+                  href={`tel:${digitsOnly(agenteOfficeRaw)}`}
+                  className="text-[#2C2416] underline-offset-2 hover:underline"
+                  onClick={() => track(trackBrPhoneClickGlobal)}
+                >
                   {formatPreviewPhoneDisplay(agenteOfficeRaw)}
                 </a>
               </p>
@@ -302,6 +349,7 @@ export function BrAgenteResContactSidebar({
               <EmailRow
                 email={trim(data.correoPrincipal)}
                 copyLabel={locale === "en" ? "Copy email" : "Copiar correo"}
+                onEmailClick={() => track(trackBrEmailClickGlobal)}
               />
             ) : null}
             {agenteCardSiteHref ? (
@@ -311,6 +359,7 @@ export function BrAgenteResContactSidebar({
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1 text-[12px] font-semibold"
                 style={{ color: BRONZE }}
+                onClick={() => track(trackBrWebsiteClickGlobal)}
               >
                 {p.sitioWeb}
                 <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
@@ -365,14 +414,28 @@ export function BrAgenteResContactSidebar({
                 ) : null}
               </div>
             ) : null}
-            {hub.googleBusinessUrl ? <ReviewCard href={hub.googleBusinessUrl} label={p.googleBusiness} /> : null}
+            {hub.googleBusinessUrl ? (
+              <ReviewCard
+                href={hub.googleBusinessUrl}
+                label={p.googleBusiness}
+                onClick={() => track(trackBrGoogleBusinessClickGlobal)}
+              />
+            ) : null}
             {(hub.googleReviewsUrl || hub.yelpReviewsUrl) && (hub.googleBusinessUrl || hub.hasSocialIcons) ? (
               <p className="pt-0.5 text-center text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE }}>
                 {p.businessHubReviews}
               </p>
             ) : null}
-            {hub.googleReviewsUrl ? <ReviewCard href={hub.googleReviewsUrl} label={p.googleReviews} /> : null}
-            {hub.yelpReviewsUrl ? <ReviewCard href={hub.yelpReviewsUrl} label={p.yelpReviews} /> : null}
+            {hub.googleReviewsUrl ? (
+              <ReviewCard
+                href={hub.googleReviewsUrl}
+                label={p.googleReviews}
+                onClick={() => track(trackBrGoogleReviewsClickGlobal)}
+              />
+            ) : null}
+            {hub.yelpReviewsUrl ? (
+              <ReviewCard href={hub.yelpReviewsUrl} label={p.yelpReviews} onClick={() => track(trackBrYelpClickGlobal)} />
+            ) : null}
             {hub.businessExtraLinks.map((link) => (
               <ReviewCard key={link.href} href={link.href} label={link.label} />
             ))}
@@ -478,6 +541,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.llamarHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg px-2 py-2.5 text-[13px] font-bold text-[#F9F6F1] shadow-sm transition hover:brightness-[1.02] lg:min-h-0"
                 style={{ background: `linear-gradient(180deg, ${BURGUNDY} 0%, #5A2222 100%)` }}
+                onClick={() => track(trackBrPhoneClickGlobal)}
               >
                 {p.llamar}
               </a>
@@ -489,6 +553,7 @@ export function BrAgenteResContactSidebar({
                 rel="noopener noreferrer"
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border bg-white/70 px-2 py-2 text-[13px] font-semibold transition hover:bg-white lg:min-h-0"
                 style={{ borderColor: "rgba(37,211,102,0.35)", color: "#128C7E" }}
+                onClick={() => track(trackBrWhatsAppClickGlobal)}
               >
                 {p.whatsapp}
               </a>
@@ -498,6 +563,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.solicitarInfoHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
+                onClick={() => track(trackBrRequestInfoClickGlobal)}
               >
                 {p.solicitarInfo}
               </a>
@@ -508,6 +574,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...(cr.programarVisitaHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                onClick={() => track(trackBrScheduleVisitClickGlobal)}
               >
                 {p.programarVisita}
               </a>
@@ -519,6 +586,7 @@ export function BrAgenteResContactSidebar({
                 rel="noopener noreferrer"
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
+                onClick={() => track(trackBrWebsiteClickGlobal)}
               >
                 {p.verSitioWeb}
               </a>
@@ -539,6 +607,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...openInNewTabAnchorProps()}
+                onClick={() => track(trackBrMlsClickGlobal)}
               >
                 {p.verMls}
               </a>
@@ -549,6 +618,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...openInNewTabAnchorProps()}
+                onClick={() => track((ctx) => trackBrTourVideoClickGlobal(ctx, "tour"))}
               >
                 {p.verTour}
               </a>
@@ -559,6 +629,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...openInNewTabAnchorProps()}
+                onClick={() => track(trackBrBrochureClickGlobal)}
               >
                 {p.verFolleto}
               </a>

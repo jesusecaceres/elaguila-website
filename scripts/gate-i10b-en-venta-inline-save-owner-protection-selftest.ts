@@ -92,6 +92,10 @@ async function main() {
 
   /* ============================================================================================
    * SCOPE — no other category file, no analytics API/server file, changed by this package.
+   * This blanket check predates the shared allowlist mechanism (scripts/globalizationCurrentPackageDiff.ts);
+   * a later package's own already-authorized analytics-server touch (e.g. Package D Build D2's
+   * Ofertas Locales identity-resolver addition) must not trip it — rewired the same way every other
+   * historical diff-scope gate in this program already is.
    * ========================================================================================== */
   {
     let changedFiles = "";
@@ -102,7 +106,9 @@ async function main() {
       changedFiles = "";
     }
     const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
-    for (const f of changed) {
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    const changedOutsideAllowlist = excludeCurrentPackageFiles(changed);
+    for (const f of changedOutsideAllowlist) {
       assert.ok(!f.includes("app/lib/analytics/server/"), `I.10B must not touch server-only analytics code: ${f}`);
       assert.ok(!f.includes("app/api/analytics/"), `I.10B must not touch the analytics API route: ${f}`);
     }
