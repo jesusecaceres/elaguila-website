@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { DigitalContactJsonLd } from "@/app/components/digitalContact/DigitalContactJsonLd";
 import { DigitalContactPageClient } from "@/app/components/digitalContact/DigitalContactPageClient";
 import { resolveDigitalContactLang } from "@/app/lib/digitalContact/digitalContactCopy";
-import { getDigitalContactProfile, listDigitalContactSlugs } from "@/app/lib/digitalContact/digitalContactRegistry";
+import {
+  getPublishedExecutiveContactProfile,
+  listPublishedExecutiveContactSlugs,
+} from "@/app/lib/digitalContact/digitalContactExecutiveHubProfile";
 import { buildDigitalContactMetadata } from "@/app/lib/digitalContact/digitalContactSeo";
 
 type PageProps = {
@@ -13,13 +16,13 @@ type PageProps = {
 
 /** Executive contact cards are lightweight and slug-driven — static generation keeps them instant. */
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  const slugs = await listDigitalContactSlugs();
+  const slugs = await listPublishedExecutiveContactSlugs();
   return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
-  const profile = await getDigitalContactProfile(slug);
+  const profile = await getPublishedExecutiveContactProfile(slug);
   if (!profile) {
     return { title: "Contact · Leonix Media", robots: { index: false, follow: false } };
   }
@@ -34,7 +37,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 export default async function DigitalContactPage(props: PageProps) {
   const { slug } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
-  const profile = await getDigitalContactProfile(slug);
+  const profile = await getPublishedExecutiveContactProfile(slug);
   if (!profile) notFound();
 
   const lang = resolveDigitalContactLang(sp);

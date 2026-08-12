@@ -1,18 +1,18 @@
 import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
 import type { DigitalContactProfile } from "./digitalContactTypes";
-import { dbGetPublishedExecutiveProfile, dbListPublishedExecutiveSlugs } from "./digitalContactExecutivesDb";
 
 /**
- * Leonix Digital Contact Platform — profile registry (EXEC-HUB-02 Real Database Foundation).
+ * Leonix Digital Contact Platform — profile registry.
  *
- * `/contact/[slug]` now reads with this priority:
- *   1. `public.executives` (Supabase) — the real, admin-managed record, published only.
- *   2. This hardcoded map — legacy fallback so `/contact/chuy` and `/contact/isaias` keep
- *      working while they have not yet been recreated as real Executive Hub records.
+ * This module MUST stay free of any `server-only` import (directly or transitively).
+ * Human Connection / Virtual Front Desk (presence, doorbell, video session, schedule
+ * request, availability UI, `/visitanos`) import this registry from client components
+ * and plain synchronous server code that predates the Executive Hub database layer.
  *
- * Onboarding a brand-new executive going forward should happen in the Executive Hub admin
- * UI (writes to Supabase), not by editing this file. This map only exists for migration
- * continuity and will shrink over time as executives are recreated in the real table.
+ * The Executive Hub DB-first lookup (`public.executives` in Supabase) lives in
+ * `digitalContactExecutiveHubProfile.ts` instead — a separate `server-only` module used
+ * only by Executive Contact / Executive Hub server code (the public contact page and its
+ * API routes). Do not re-import that module (or `digitalContactExecutivesDb.ts`) here.
  *
  * Build 03 availability fields (workingHours, temporaryPresence, absence,
  * backupRepresentativeSlug, publicAvailabilityPolicy, capabilities) are OPTIONAL.
@@ -118,23 +118,21 @@ function legacyDigitalContactProfile(slug: string): DigitalContactProfile | null
 }
 
 /**
- * Read priority: 1) real Executive Hub record (published), 2) legacy registry fallback.
- * Guarantees /contact/chuy and /contact/isaias keep working during migration while any
- * newly-created (or newly-published) executive record immediately takes over its slug.
+ * Synchronous, DB-free lookup — the ORIGINAL contract this registry has always exposed.
+ * Human Connection / Virtual Front Desk (presence, doorbell, video session, schedule
+ * request, availability UI) all call this synchronously and predate the Executive Hub
+ * database layer. Keep this function synchronous and legacy-map-only so none of those
+ * existing call sites (outside Executive Contact / Executive Hub scope) ever break.
  */
-export async function getDigitalContactProfile(slug: string): Promise<DigitalContactProfile | null> {
+export function getDigitalContactProfile(slug: string): DigitalContactProfile | null {
   const key = String(slug ?? "").trim().toLowerCase();
-  const fromDb = await dbGetPublishedExecutiveProfile(key);
-  if (fromDb) return fromDb;
   return legacyDigitalContactProfile(key);
 }
 
-export async function listDigitalContactSlugs(): Promise<string[]> {
-  const dbSlugs = await dbListPublishedExecutiveSlugs();
-  const legacySlugs = Object.values(DIGITAL_CONTACT_PROFILES)
+export function listDigitalContactSlugs(): string[] {
+  return Object.values(DIGITAL_CONTACT_PROFILES)
     .filter((p) => p.active)
     .map((p) => p.slug);
-  return Array.from(new Set([...dbSlugs, ...legacySlugs]));
 }
 
 /** Active public profiles — consumers (e.g. Virtual Front Desk) must read from here, never duplicate. */
