@@ -7,6 +7,12 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { computeBusinessCompleteness } from "../lib/businessProfileCompleteness";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { fetchOwnerRestaurantListings, fetchOwnerServiciosListings } from "../lib/dashboardInventory";
+import {
+  fetchDashboardListingPackageEntitlementBadges,
+  dashboardHasCapabilityForKey,
+  type DashboardEntitlementLookupItem,
+} from "../lib/dashboardPackageEntitlementBadges";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +24,16 @@ function accountRefFromId(id: string): string {
   if (s.length < 8) return "—";
   return `${s.slice(0, 4).toUpperCase()}-${s.slice(-4).toUpperCase()}`;
 }
+
+/** Package E Build E2, Gate 2 — a real, per-listing capability row. `active` is resolved
+ * server-side via `resolveBusinessToolsAccess()` (Package C canonical resolver); never inferred
+ * from profile completeness, account tier, placement, or a listing label. */
+type CapabilityRow = {
+  key: string;
+  label: string;
+  href: string;
+  active: boolean;
+};
 
 function BusinessToolsPageContent() {
   const router = useRouter();
@@ -45,6 +61,12 @@ function BusinessToolsPageContent() {
             loading: "Cargando…",
             completeness: "Completitud del perfil",
             nextSteps: "Siguientes pasos sugeridos",
+            capabilitiesTitle: "Capacidades por anuncio",
+            capabilitiesHint: "Estado real según tu paquete activo — nunca según el plan de tu cuenta.",
+            capabilitiesEmpty: "No tienes anuncios de Restaurantes o Servicios todavía. Esta capacidad aplica a esas categorías.",
+            active: "Incluido",
+            locked: "No incluido",
+            couponsLabel: "Cupones y ofertas",
           }
         : {
             title: "Business tools",
@@ -62,6 +84,12 @@ function BusinessToolsPageContent() {
             loading: "Loading…",
             completeness: "Profile completeness",
             nextSteps: "Suggested next steps",
+            capabilitiesTitle: "Per-listing capabilities",
+            capabilitiesHint: "Real status from your active package — never from your account plan.",
+            capabilitiesEmpty: "You don't have any Restaurantes or Servicios listings yet. This capability applies to those categories.",
+            active: "Included",
+            locked: "Not included",
+            couponsLabel: "Coupons & offers",
           },
     [lang]
   );
@@ -69,15 +97,11 @@ function BusinessToolsPageContent() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-  // Package C Build 4 (C8, Gate 6) — `LeonixDashboardShell.plan` predates Package C's real
-  // plan/entitlement model, is never read from the shell (`void plan`), and this page never had
-  // a real account-tier concept to source it from. Kept as a stable required-prop constant
-  // rather than reading (and silently discarding) `profiles.membership_tier`, which would look
-  // like a real resolved value while being exactly the kind of account/listing-plan conflation
-  // this build's commercial-truth pass exists to remove.
   const plan: Plan = "free";
   const [userId, setUserId] = useState<string | null>(null);
   const [completeness, setCompleteness] = useState<ReturnType<typeof computeBusinessCompleteness> | null>(null);
+  const [capabilityRows, setCapabilityRows] = useState<CapabilityRow[]>([]);
+  const [capabilitiesChecked, setCapabilitiesChecked] = useState(false);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -109,6 +133,66 @@ function BusinessToolsPageContent() {
       } catch {
         /* ignore */
       }
+
+      // Package E Build E2, Gate 2 — real capability truth. Only Restaurantes/Servicios have a
+      // real capability model today (`categoryCommercialPlan.ts`'s CAPABILITY_CATEGORIES); no
+      // other category is treated as gated here, and nothing here reads profile completeness or
+      // account tier to decide inclusion.
+      try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess.session?.access_token ?? null;
+        const [restaurantRows, serviciosRows] = await Promise.all([
+          fetchOwnerRestaurantListings(sb, u.id),
+          fetchOwnerServiciosListings(token),
+        ]);
+
+        const items: DashboardEntitlementLookupItem[] = [
+          ...restaurantRows.map((row) => ({
+            key: row.id,
+            category: "restaurantes",
+            listingSource: "restaurantes_public_listings",
+            listingId: row.id,
+            slug: row.slug ?? null,
+            leonixAdId: row.leonix_ad_id ?? null,
+          })),
+          ...serviciosRows.map((row) => {
+            const id = (row.id ?? row.slug) as string;
+            return {
+              key: id,
+              category: "servicios",
+              listingSource: "servicios_public_listings",
+              listingId: id,
+              slug: row.slug ?? null,
+              leonixAdId: row.leonix_ad_id ?? null,
+            };
+          }),
+        ];
+
+        if (items.length > 0 && token) {
+          const { badges } = await fetchDashboardListingPackageEntitlementBadges(items, token);
+          const rows: CapabilityRow[] = [
+            ...restaurantRows.map((row) => ({
+              key: row.id,
+              label: `${t.couponsLabel} — ${row.business_name?.trim() || row.slug}`,
+              href: `/dashboard/restaurantes?${q}`,
+              active: dashboardHasCapabilityForKey(badges, [row.id], "coupons_offers"),
+            })),
+            ...serviciosRows.map((row) => {
+              const id = (row.id ?? row.slug) as string;
+              return {
+                key: id,
+                label: `${t.couponsLabel} — ${row.business_name?.trim() || row.slug}`,
+                href: `/dashboard/servicios?${q}`,
+                active: dashboardHasCapabilityForKey(badges, [id], "coupons_offers"),
+              };
+            }),
+          ];
+          if (mounted) setCapabilityRows(rows);
+        }
+      } catch {
+        /* fail closed to empty — never fabricate a capability */
+      }
+      if (mounted) setCapabilitiesChecked(true);
       setLoading(false);
     }
     void run();
@@ -130,6 +214,38 @@ function BusinessToolsPageContent() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
             <p className="mt-4 text-sm text-[#3D3428]/90">{t.lead}</p>
           </header>
+
+          {capabilitiesChecked ? (
+            <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-[#FFFDF7] p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
+              <h2 className="text-sm font-bold text-[#1E1810]">{t.capabilitiesTitle}</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">{t.capabilitiesHint}</p>
+              {capabilityRows.length === 0 ? (
+                <p className="mt-3 text-sm text-[#5C5346]">{t.capabilitiesEmpty}</p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {capabilityRows.map((row) => (
+                    <li
+                      key={row.key}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3"
+                    >
+                      <Link href={row.href} className="text-sm font-medium text-[#1E1810] hover:underline">
+                        {row.label}
+                      </Link>
+                      <span
+                        className={
+                          row.active
+                            ? "inline-flex rounded-full border border-[#2A4536]/25 bg-[#2A4536]/[0.08] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]"
+                            : "inline-flex rounded-full border border-[#D6C7AD]/70 bg-[#F3EBDD]/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]"
+                        }
+                      >
+                        {row.active ? t.active : t.locked}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
 
           {completeness ? (
             <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#F3EBDD]/90 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">

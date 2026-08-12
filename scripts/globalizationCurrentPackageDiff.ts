@@ -503,6 +503,41 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "docs/globalization/package-d/D3_CATEGORY_ADOPTION_CLOSURE.md",
   "scripts/verify-package-d-d3-category-adoption.ts",
   "scripts/verify-package-d-d3-hub-analytics-gaps.ts",
+
+  // ═══ PACKAGE E BUILD E2 — USER DASHBOARD GLOBAL COMMAND CENTER (global commercial-state badge
+  // adoption, real Business Tools capability gate, Autos Dealer/Bienes Negocio parent-subscription
+  // read-only visibility, category action truth fixes, real Messages inbox, real Saved listings,
+  // real payment-attention notifications, Ofertas Locales dashboard boundary card) ═══
+  "app/lib/listingPlans/commercialStateBadges.ts",
+  "app/(site)/dashboard/mis-anuncios/page.tsx",
+  "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
+  "app/(site)/clasificados/autos/dashboard/AutosClassifiedListingManageCard.tsx",
+  "app/(site)/clasificados/bienes-raices/dashboard/BrPropertyInventoryDashboardSection.tsx",
+  "app/(site)/dashboard/business-tools/page.tsx",
+  "app/(site)/dashboard/guardados/page.tsx",
+  "app/(site)/dashboard/mensajes/page.tsx",
+  "app/(site)/dashboard/lib/dashboardI18n.ts",
+  "app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools.ts",
+  "app/(site)/dashboard/lib/dashboardProductTruth.ts",
+  "app/(site)/dashboard/lib/derivedDashboardFeed.ts",
+  "app/(site)/dashboard/page.tsx",
+  // Historical gate triage — I.12A pinned the inbox readiness flag as permanently false because,
+  // at the time I.12A was written, no gate had built a real inbox yet; that was a snapshot of the
+  // then-current truth, not a permanent lock (I.12A's own assertion message is "I.12A does not
+  // build the inbox" — a statement about I.12A's own scope, not a rule for all future work).
+  // E2 Gate 5 built the real, receiver_id-scoped inbox and only then flipped the flag — updated
+  // to pin the new, real truth instead of leaving a stale assertion in place.
+  "scripts/gate-i12a-full-catalog-certification-selftest.ts",
+  // Historical gate triage — I.4.4b/I.4.4c pinned AutosClassifiedListingManageCard.tsx at exactly
+  // 1 rendered Link because, before E2, it only ever rendered the public "View listing" link. E2
+  // Gate 4 added a second, genuinely real Edit link (the confirmed live Autos Privado edit route,
+  // previously unwired) — updated both counts to 2 rather than leaving a stale pin in place.
+  "scripts/gate-i4-4b-dedicated-card-prefetch-selftest.ts",
+  "scripts/gate-i4-4c-br-inventory-final-prefetch-gap-selftest.ts",
+  // New Package E E2 docs + verifier:
+  "docs/globalization/package-e/E2_USER_DASHBOARD_GLOBAL_COMMAND_CENTER_CLOSURE.md",
+  "scripts/verify-package-e-e2-user-dashboard-command-center.ts",
+  "scripts/globalizationCurrentPackageDiff.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

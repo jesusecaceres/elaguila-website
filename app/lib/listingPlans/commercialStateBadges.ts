@@ -92,3 +92,40 @@ export function resolveCommercialStateBadges(input: CommercialStateBadgeInput): 
 
   return badges;
 }
+
+const BADGE_TONE: Record<CommercialStateBadge["key"], "urgent" | "warning" | "neutral"> = {
+  active: "neutral",
+  payment_issue: "warning",
+  grace: "warning",
+  suspended_nonpayment: "urgent",
+  disputed: "urgent",
+  cancels_at_period_end: "warning",
+  canceled: "urgent",
+  refunded: "neutral",
+  payment_recovered: "neutral",
+  manual_cleared_payment: "neutral",
+  manual_pending_verification: "warning",
+  included_with_print: "neutral",
+};
+
+/**
+ * Package E Build E2, Gate 1 — thin display adapter (not a new resolver) so any dashboard card
+ * that already supports a single `{ text, tone }` "lifecycle note" slot can surface real
+ * subscription/payment state without a bespoke badge-rendering block per category. Picks the
+ * single most urgent badge (grace/suspended/disputed/canceled/cancels-at-period-end outrank a
+ * plain "active" confirmation) since the note slot renders one line, not a list.
+ */
+export function commercialStateBadgesToLifecycleNote(
+  badges: CommercialStateBadge[],
+  lang: "es" | "en",
+): { text: string; tone: "urgent" | "warning" | "neutral" } | null {
+  if (badges.length === 0) return null;
+  const priority = badges
+    .map((b) => ({ badge: b, tone: BADGE_TONE[b.key] }))
+    .sort((a, z) => {
+      const rank = { urgent: 0, warning: 1, neutral: 2 } as const;
+      return rank[a.tone] - rank[z.tone];
+    });
+  const top = priority[0];
+  return { text: lang === "es" ? top.badge.labelEs : top.badge.labelEn, tone: top.tone };
+}

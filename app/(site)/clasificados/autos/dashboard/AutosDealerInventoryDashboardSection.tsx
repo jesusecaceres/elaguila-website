@@ -38,6 +38,12 @@ import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/auto
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { autosDealerListingPreviewHref } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
+import {
+  fetchDashboardListingPackageEntitlementBadges,
+  dashboardSubscriptionStateForKey,
+  type DashboardSubscriptionStateEntry,
+} from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
+import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 
 type Lang = "es" | "en";
 
@@ -141,6 +147,12 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   /** Gate D.3 — page-level authenticated owner id, sourced from the same session fetch already
    * used for the API bearer token (no duplicate auth call, no new Supabase client). */
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
+  /** Package E Build E2, Gate 1/3 — parent-listing subscription state, keyed exactly like
+   * `mis-anuncios/page.tsx`'s own fetch (same route, same shape). This component manages its own
+   * data independently of that page, so it fetches once here, scoped only to Negocios PARENT rows
+   * (never per-vehicle-child — children never carry an independent subscription), not a new
+   * resolver or a per-row call. */
+  const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -164,9 +176,25 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     if (r.ok && j.ok && Array.isArray(j.listings)) {
       setRows(j.listings);
       setDealerInventory(j.dealerInventory ?? null);
+      const parentRows = j.listings.filter((row) => row.lane === "negocios" && row.inventory_role === "main");
+      if (parentRows.length > 0) {
+        const items = parentRows.map((row) => ({
+          key: row.id,
+          category: "autos",
+          listingSource: "autos_classifieds_listings",
+          listingId: row.id,
+          slug: null,
+          leonixAdId: row.leonix_ad_id ?? null,
+        }));
+        const { subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, token);
+        setSubscriptionStates(subs);
+      } else {
+        setSubscriptionStates({});
+      }
     } else {
       setRows([]);
       setDealerInventory(null);
+      setSubscriptionStates({});
     }
     setLoading(false);
   }, []);
@@ -454,6 +482,28 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                   <p className="mt-0.5 text-xs text-[#5C5346]">
                     {group.activeCount} / {limit} {t.activeCount}
                   </p>
+                  {(() => {
+                    const subState = dashboardSubscriptionStateForKey(subscriptionStates, [parentId]);
+                    if (!subState) return null;
+                    const note = commercialStateBadgesToLifecycleNote(
+                      resolveCommercialStateBadges({
+                        subscriptionStatus: subState.status,
+                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                        graceEndsAt: subState.graceEndsAt,
+                        suspensionReason: subState.suspensionReason,
+                        recoveredAt: subState.recoveredAt,
+                      }),
+                      lang,
+                    );
+                    if (!note) return null;
+                    const toneClass =
+                      note.tone === "urgent"
+                        ? "text-red-700"
+                        : note.tone === "warning"
+                          ? "text-amber-800"
+                          : "text-[#5C5346]";
+                    return <p className={`mt-1 text-xs font-semibold ${toneClass}`}>{note.text}</p>;
+                  })()}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!atLimit ? (

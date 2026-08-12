@@ -176,8 +176,13 @@ async function main() {
     assert.ok(shellSrc.includes("DASHBOARD_INTERNAL_INBOX_READY") && shellSrc.includes('navItem("messages"'), "shared dashboard shell must still gate the messages nav item");
     const feedSrc = readSource(DERIVED_FEED);
     assert.ok(feedSrc.includes("DASHBOARD_INTERNAL_INBOX_READY && unreadInbox > 0"), "derived feed inbox item must still be gated");
+    // Package E Build E2, Gate 5 — the flag was false because no gate had built a real inbox
+    // yet (I.12A's own assertion message says "I.12A does not build the inbox" — a statement
+    // about I.12A's scope, not a permanent lock). E2 built the real, receiver_id-scoped
+    // `messages` inbox at /dashboard/mensajes and only then flipped the flag; pin the new,
+    // real truth instead of a now-stale assumption.
     const truthSrc = readSource(PRODUCT_TRUTH);
-    assert.ok(truthSrc.includes("DASHBOARD_INTERNAL_INBOX_READY = false"), "the readiness flag itself must remain false — I.12A does not build the inbox");
+    assert.ok(truthSrc.includes("DASHBOARD_INTERNAL_INBOX_READY = true"), "the readiness flag must be true now that Package E Build E2 built the real inbox");
   }
 
   /* ============================================================================================

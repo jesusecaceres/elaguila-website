@@ -519,6 +519,26 @@ function DashboardPageContent() {
             ) : null}
           </header>
 
+          {/* Package E Build E2, Gate 7 — real commercial-state alerts (payment issue, grace,
+              cancel-at-period-end), from the SAME derived-feed source as Notifications; no
+              second implementation, no fabricated alerts. */}
+          {derivedFeed.filter((f) => f.kind === "payment_attention").length > 0 ? (
+            <div className="mt-6 flex flex-col gap-2">
+              {derivedFeed
+                .filter((f) => f.kind === "payment_attention")
+                .map((f) => (
+                  <Link
+                    key={f.id}
+                    href={f.href}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900 hover:bg-red-100"
+                  >
+                    <span className="min-w-0 flex-1 break-words">{f.title}</span>
+                    <span aria-hidden className="shrink-0">→</span>
+                  </Link>
+                ))}
+            </div>
+          ) : null}
+
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <DashboardMetricLinkCard
               href={`/dashboard/mis-anuncios?${q}`}
