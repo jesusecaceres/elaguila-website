@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import CityAutocomplete from "../../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../../data/locations/californiaLocationHelpers";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -44,7 +45,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/perfil";
@@ -359,7 +360,7 @@ export default function ProfilePage() {
         }
 
         if (redirectTo) router.replace(redirectTo);
-        else router.replace(`/clasificados/publicar?${q}`);
+        else router.replace(`/publicar?${q}`);
         return;
       }
 
@@ -433,6 +434,7 @@ export default function ProfilePage() {
       userName={shellName}
       email={email}
       accountRef={accountRef}
+      ownerId={userId}
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
@@ -454,16 +456,6 @@ export default function ProfilePage() {
           {showSavedBanner && !requirePost && !onboarding ? (
             <div className="mt-6 rounded-2xl border border-emerald-200/90 bg-emerald-50/95 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm">
               {L.savedBanner}
-            </div>
-          ) : null}
-
-          {onboarding ? (
-            <div className="mt-6">
-              <LeonixLaunchCouponCard
-                lang={lang}
-                variant="compact"
-                href={`/newsletter?lang=${lang}&source=profile_onboarding_launch_25&sourceCta=launch_25`}
-              />
             </div>
           ) : null}
 
@@ -724,5 +716,13 @@ export default function ProfilePage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

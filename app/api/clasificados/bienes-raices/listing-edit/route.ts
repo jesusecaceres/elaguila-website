@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import {
   buildPublishParamsFromAgenteResidencialDraft,
 } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
@@ -275,6 +276,28 @@ export async function POST(request: NextRequest) {
   }
   if (trim(body.leonixAdId) && trim(parent.leonix_ad_id) && trim(body.leonixAdId) !== trim(parent.leonix_ad_id)) {
     return NextResponse.json({ ok: false, code: "leonix_id_mismatch", message: "Leonix Ad ID mismatch." }, { status: 409 });
+  }
+
+  // Package C Build 1 (decision 11) — commercial write guard, delta-0 semantics: ordinary
+  // edits to the parent and EXISTING children stay allowed through grace and suspension
+  // (content preserved, owner can always maintain data); this call verifies parent role/
+  // ownership commercially and reconciles a lapsed grace inline. New-child creation is
+  // already refused by this route (skippedNewChildren) — capacity-increasing BR activation
+  // is enforced at checkout/fulfillment, never unlockable via ordinary edit.
+  {
+    const guard = await assertCommercialCapacityForWrite({
+      category: "bienes-raices",
+      parentListingId: listingId,
+      ownerUserId: bearerUserId,
+      operation: "child_edit",
+      capacityDelta: 0,
+    });
+    if (!guard.allowed && guard.code !== "guard_unavailable") {
+      return NextResponse.json(
+        { ok: false, code: guard.code, message: guard.message, messageEs: guard.messageEs },
+        { status: guard.code === "parent_not_owned" ? 403 : 409 },
+      );
+    }
   }
 
   const draft = body.draft as AgenteIndividualResidencialFormState;

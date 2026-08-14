@@ -1,8 +1,8 @@
 import type { SupportedLang } from "@/app/lib/language";
 import { mascotasPerdidosPathWithLang } from "./mascotasPerdidosShellCopy";
 
-/** Category publish entry (server redirect → `/publicar/mascotas-y-perdidos/quick`). */
-export const MASCOTAS_PERDIDOS_PUBLISH_ENTRY_PATH = "/clasificados/publicar/mascotas-y-perdidos";
+/** Gate I.5.2 — canonical publish entry, matches categoryRouteRegistry.ts's mascotas_y_perdidos adapter. */
+export const MASCOTAS_PERDIDOS_PUBLISH_ENTRY_PATH = "/publicar/mascotas-y-perdidos/quick";
 
 export function mascotasPerdidosPublishEntryUrl(routeLang: SupportedLang): string {
   return mascotasPerdidosPathWithLang(MASCOTAS_PERDIDOS_PUBLISH_ENTRY_PATH, routeLang);

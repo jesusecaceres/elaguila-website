@@ -67,6 +67,17 @@ export function LeonixDashboardShell({
   sidebarTone = "default",
   /** Wider main canvas for seller listing workbench (Mis anuncios). */
   contentLayout = "default",
+  /**
+   * Gate I.4.4 — already-verified owner id from the calling page's own `supabase.auth.getUser()`
+   * resolution. When provided, the shell trusts it for nav-count loading and skips its own
+   * `getUser()` call entirely, removing one duplicate `auth/v1/user` request per page load
+   * (confirmed by the Gate I.4A audit). Optional and purely additive: callers that don't pass it
+   * (every dashboard page besides `mis-anuncios/page.tsx` as of this gate) keep the shell's
+   * original self-resolving behavior, byte-for-byte unchanged. Never sourced from a URL param,
+   * localStorage, or any other client-editable value — only ever the id a real
+   * `supabase.auth.getUser()` call already returned to the caller.
+   */
+  ownerId = null,
 }: {
   lang: Lang;
   activeNav: ActiveNav;
@@ -82,6 +93,7 @@ export function LeonixDashboardShell({
   rightPanel?: ReactNode;
   sidebarTone?: "default" | "varios";
   contentLayout?: "default" | "workbench";
+  ownerId?: string | null;
 }) {
   const router = useRouter();
   const [navCounts, setNavCounts] = useState<{ messages: number | null; drafts: number | null; expiring: number | null }>({
@@ -95,11 +107,15 @@ export function LeonixDashboardShell({
     async function run() {
       try {
         const sb = createSupabaseBrowserClient();
-        const {
-          data: { user },
-        } = await sb.auth.getUser();
-        if (!user || cancelled) return;
-        const c = await fetchDashboardNavCounts(sb, user.id);
+        let resolvedOwnerId = ownerId;
+        if (!resolvedOwnerId) {
+          const {
+            data: { user },
+          } = await sb.auth.getUser();
+          resolvedOwnerId = user?.id ?? null;
+        }
+        if (!resolvedOwnerId || cancelled) return;
+        const c = await fetchDashboardNavCounts(sb, resolvedOwnerId);
         if (cancelled) return;
         setNavCounts({
           messages: c.messageInbox,
@@ -114,7 +130,7 @@ export function LeonixDashboardShell({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ownerId]);
 
   const L = dashboardShellCopy(lang);
 
@@ -152,7 +168,9 @@ export function LeonixDashboardShell({
     <Link
       href={href}
       className={cx(
-        "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+        // Package F Build F2, Gate 9 (P1 accessibility fix) — py-2.5 alone netted ~36-39px, under
+        // the 44px minimum touch target; min-h enforces the floor without changing desktop density.
+        "flex min-h-[44px] items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
         activeNav === key
           ? varioSidebar
             ? "bg-[#FBF7EF] text-[#1F241C] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9A84A]/35"
@@ -264,7 +282,7 @@ export function LeonixDashboardShell({
             </nav>
 
             <Link
-              href={`/clasificados/publicar?${q}`}
+              href={`/publicar?${q}`}
               className="mt-6 flex w-full items-center justify-center rounded-2xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] transition hover:bg-[#5e1721] active:scale-[0.99]"
             >
               {L.publish}

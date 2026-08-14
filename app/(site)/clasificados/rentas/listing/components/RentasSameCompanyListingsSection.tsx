@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
+import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import type { RentasAnuncioLang, RentasSameCompanySampleItem } from "../types/rentasAnuncioLiveTypes";
 
 export function RentasSameCompanyListingsSection(props: {
@@ -19,7 +21,7 @@ export function RentasSameCompanyListingsSection(props: {
           {items.map((item) => (
             <Link
               key={item.id}
-              href={`/clasificados/anuncio/${item.id}?lang=${lang}`}
+              href={withRentasLandingLang(rentasListingPublicPath(item.id), lang)}
               className="block rounded-2xl border border-[#C9B46A]/55 bg-[#F5F5F5] p-4 hover:bg-[#EFEFEF] transition"
             >
               <div className="text-base font-bold text-[#111111] line-clamp-2">{item.title[lang]}</div>

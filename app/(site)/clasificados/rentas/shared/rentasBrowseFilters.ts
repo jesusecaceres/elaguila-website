@@ -229,7 +229,13 @@ export function sortRentasPublicListings(rows: RentasPublicListing[], sort: stri
   if (sort === "precio_asc") r.sort((a, b) => monthlyRentNumber(a) - monthlyRentNumber(b));
   else if (sort === "precio_desc") r.sort((a, b) => monthlyRentNumber(b) - monthlyRentNumber(a));
   else {
-    r.sort((a, b) => (b.recencyRank ?? 0) - (a.recencyRank ?? 0));
+    // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight wins over plain
+    // recency in the default sort only; precio_asc/precio_desc above stay strictly numeric.
+    r.sort((a, b) => {
+      const w = (b.canonicalPlacementRankWeight ?? 0) - (a.canonicalPlacementRankWeight ?? 0);
+      if (w !== 0) return w;
+      return (b.recencyRank ?? 0) - (a.recencyRank ?? 0);
+    });
   }
   return r;
 }

@@ -4,6 +4,15 @@
 **Date:** 2026-06-12  
 **Scope:** Audit/proof only — no UI, schema, Stripe, or public-page changes in this gate.
 
+> **Correction (Work Package I.10A, see
+> [`docs/gate-i5-7f-full-catalog-route-contract-matrix.md`](gate-i5-7f-full-catalog-route-contract-matrix.md#work-package-i10a-update-log)
+> for the current, maintained record):** the emitter verdicts in §B below for **bienes-raices**,
+> **comunidad**, **clases**, and **busco** are stale. Real, canonical-identity emitters
+> (`brGlobalAnalytics.ts`, `comunidadClasesBuscoGlobalAnalytics.ts`) were shipped in work
+> packages after this audit was written. This document is not being rewritten or kept current —
+> treat the I.10A ledger section above as the source of truth for analytics/engagement status
+> going forward; this file is preserved as a historical snapshot only.
+
 ## Executive summary
 
 Leonix admin is **operationally capable** for listing moderation across all six source-table families, but **analytics truth** and **monetization visibility** are **PARTIAL**, not fully green. The global `listing_analytics` pipeline and category monetization read model exist and are honest about gaps, yet several categories lack emitters, several siloed analytics tables are never read by admin/dashboard, package entitlements are not overlaid on queue rows, and live Supabase state must still be verified independently of repo migrations.

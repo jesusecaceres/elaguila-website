@@ -237,6 +237,9 @@ export default function RestauranteApplicationClient() {
     });
   }, [dashboardListingId, dashboardLeonixAdId, lang, returnPanel]);
 
+  // Package C Build 3 (C5/C6) — repurposed: coupons are included in the $399/mo base package, so
+  // this only verifies real capability server-side (no Stripe checkout, no redirect handled by
+  // Stripe return) and then navigates straight to coupon-edit mode for the same listing.
   const startDashboardAddonCheckout = useCallback(async () => {
     if (!dashboardListingId) {
       setDashboardContextErr(fc.dashboard.missingListingId);
@@ -245,24 +248,24 @@ export default function RestauranteApplicationClient() {
     setDashboardAddonCheckoutBusy(true);
     setDashboardContextErr(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
       const result = await redirectRestauranteDashboardCouponAddonCheckout({
         listingId: dashboardListingId,
         leonixAdId: dashboardLeonixAdId,
         lang,
-        customerEmail: auth.user?.email ?? null,
-        returnPath: dashboardCouponCheckoutReturnPath,
       });
       if (!result.ok) {
         setDashboardContextErr(result.userMessage);
         setDashboardAddonCheckoutBusy(false);
+        return;
+      }
+      if (dashboardCouponCheckoutReturnPath) {
+        router.push(dashboardCouponCheckoutReturnPath);
       }
     } catch {
       setDashboardContextErr(fc.dashboard.couponCheckoutFailed);
       setDashboardAddonCheckoutBusy(false);
     }
-  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath, fc]);
+  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath, fc, router]);
 
   const saveExistingDashboardListing = useCallback(async () => {
     if (!isExistingDashboardListingMode || !dashboardListingId) return;
@@ -274,8 +277,9 @@ export default function RestauranteApplicationClient() {
     setDashboardContextErr(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const ownerUserId = auth.user?.id?.trim();
+      const { data: sess } = await supabase.auth.getSession();
+      const ownerUserId = sess.session?.user?.id?.trim();
+      const accessToken = sess.session?.access_token ?? null;
       if (!ownerUserId) {
         setDashboardContextErr(fc.dashboard.signInToSave);
         setDashboardSaveBusy(false);
@@ -293,11 +297,20 @@ export default function RestauranteApplicationClient() {
 
       await saveRestauranteDraftToStorageResolved(draftForSave);
       const payload = buildRestaurantePublishPayload(draftForSave, ownerUserId, undefined, lang);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
       const res = await fetch("/api/clasificados/restaurantes/publish", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        setDashboardContextErr(fc.dashboard.signInToSave);
+        setDashboardSaveBusy(false);
+        return;
+      }
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean };
       if (res.ok && j.ok) {
         router.push(dashboardReturnHref);

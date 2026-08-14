@@ -77,9 +77,16 @@ function phoneDisplay(raw: string): string {
   return d.length >= 10 ? formatUsPhoneDisplay(d) : t;
 }
 
-function formatLeaseCode(code: string | null | undefined, lang: "es" | "en"): string {
+function formatLeaseCode(
+  code: string | null | undefined,
+  lang: "es" | "en",
+  custom?: string | null,
+): string {
   const c = (code ?? "").trim();
   if (!c) return "";
+  // Package F Build F2, Gate 10 ("Otro" truth fix) — previously fell through to the raw code
+  // (literally "otro") when the landlord picked a custom lease term; now substitutes the real text.
+  if (c === "otro") return (custom ?? "").trim() || (lang === "es" ? "Otro" : "Other");
   const labels: Record<string, { es: string; en: string }> = {
     "mes-a-mes": { es: "Mes a mes", en: "Month-to-month" },
     "6-meses": { es: "6 meses", en: "6 months" },
@@ -225,7 +232,7 @@ function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): Bie
   if (tipo) pushRow(rows, "Tipo de renta", tipo);
   const dep = depositDisplay(listing, lang);
   if (dep) rows.push({ label: "Depósito", value: dep });
-  const pl = formatLeaseCode(listing.leaseTermCode, lang);
+  const pl = formatLeaseCode(listing.leaseTermCode, lang, listing.leaseTermCustom);
   if (pl) rows.push({ label: "Plazo del contrato", value: pl });
   const disp = trim(listing.availabilityNote);
   if (disp) rows.push({ label: "Disponibilidad", value: disp });
@@ -369,7 +376,7 @@ function contractQuickStrip(listing: RentasPublicListing, lang: "es" | "en"): Bi
   if (rent) out.push({ label: "Renta mensual", value: rent, icon: "calendar" });
   const dep = depositDisplay(listing, lang);
   if (dep) out.push({ label: "Depósito", value: dep, icon: "pin" });
-  const pl = formatLeaseCode(listing.leaseTermCode, lang);
+  const pl = formatLeaseCode(listing.leaseTermCode, lang, listing.leaseTermCustom);
   if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
   const disp = trim(listing.availabilityNote);
   if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });

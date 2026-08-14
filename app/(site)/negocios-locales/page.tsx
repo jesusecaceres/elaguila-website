@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import { resolveRouteLang, type SupportedLang } from "@/app/lib/language";
 import { NegociosLocalesBusinessCard } from "./_components/NegociosLocalesBusinessCard";
 import { NegociosLocalesFeaturedOfertasModule } from "./_components/NegociosLocalesFeaturedOfertasModule";
-import { NegociosLocalesLaunchBanner } from "./_components/NegociosLocalesLaunchBanner";
 import {
   buildBusinessAdvertiseEntryHref,
   buildNegociosAdvertiseHref,
@@ -204,10 +203,6 @@ function NegociosLocalesInner() {
             </Link>
           </div>
         </section>
-
-        <div className="mt-10 max-w-3xl">
-          <NegociosLocalesLaunchBanner routeLang={routeLang} />
-        </div>
 
         <div className="mt-8">
           <NegociosLocalesFeaturedOfertasModule routeLang={routeLang} />

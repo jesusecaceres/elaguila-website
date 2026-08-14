@@ -79,6 +79,74 @@ function digitsOnly(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
 
+/**
+ * Gate I.5.4A.1 — uploads a Privado/Rentas-Privado seller photo (`data:` URL) to the same
+ * `listing-images` bucket the gallery already uses, then patches the hosted URL into
+ * `detail_pairs`' "Foto del vendedor" pair. No-op when there is nothing to upload (empty, or
+ * already an `http(s)://` URL the caller already embedded in `detailPairs` at insert time).
+ * Never fails the publish — a warning string is returned instead so the listing still goes live.
+ */
+async function persistSellerPhotoIfNeeded(args: {
+  supabase: ReturnType<typeof createSupabaseBrowserClient>;
+  userId: string;
+  listingId: string;
+  sellerPhotoSource?: string | null;
+  lang: "es" | "en";
+}): Promise<string | null> {
+  const { supabase, userId, listingId, lang } = args;
+  const raw = String(args.sellerPhotoSource ?? "").trim();
+  if (!raw.startsWith("data:")) return null;
+
+  const fail = (es: string, en: string) => (lang === "es" ? es : en);
+  try {
+    const blob = await fetchAsBlob(raw);
+    const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+    const path = `${userId}/${listingId}/seller-photo.${ext}`;
+    const up = await supabase.storage
+      .from("listing-images")
+      .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
+    if (up.error) {
+      devLog("seller photo upload failed", up.error.message);
+      return fail(
+        "No se pudo subir la foto del vendedor; el anuncio se publicó sin ella.",
+        "The seller photo could not be uploaded; the listing was published without it.",
+      );
+    }
+    const publicUrl = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+    if (!publicUrl) {
+      return fail(
+        "No se pudo generar la URL de la foto del vendedor; el anuncio se publicó sin ella.",
+        "Could not generate the seller photo URL; the listing was published without it.",
+      );
+    }
+    // Cache-bust: the same fixed path can be re-uploaded if the seller retries before the row goes live.
+    const hostedUrl = `${publicUrl}?v=${Date.now()}`;
+
+    const { data: row } = await supabase.from("listings").select("detail_pairs").eq("id", listingId).maybeSingle();
+    const existingPairs = Array.isArray((row as { detail_pairs?: unknown } | null)?.detail_pairs)
+      ? ((row as { detail_pairs: Array<{ label?: string; value?: string }> }).detail_pairs)
+      : [];
+    const nextPairs = existingPairs.filter((p) => p?.label !== "Foto del vendedor");
+    nextPairs.push({ label: "Foto del vendedor", value: hostedUrl });
+
+    const upd = await updateListingsRowResilient(supabase, listingId, { detail_pairs: nextPairs });
+    if (upd.error) {
+      devLog("seller photo detail_pairs patch failed", upd.error.message);
+      return fail(
+        "La foto del vendedor se subió pero no se pudo guardar en el anuncio.",
+        "The seller photo uploaded but could not be saved to the listing.",
+      );
+    }
+    return null;
+  } catch (e) {
+    devLog("seller photo processing error", e);
+    return fail(
+      "Error al procesar la foto del vendedor; el anuncio se publicó sin ella.",
+      "Error while processing the seller photo; the listing was published without it.",
+    );
+  }
+}
+
 /** Same row shape as browser publish insert (Node scripts / QA seeds may call with authenticated `ownerId`). */
 export function buildListingsInsertRowForLeonixPublish(
   ownerId: string,
@@ -285,6 +353,14 @@ export type PublishLeonixRealEstateListingCoreParams = {
   brPaymentLane?: "negocio" | "privado";
   /** Rentas publish: privado vs negocio lane metadata for pending checkout. */
   rentasPaymentLane?: "negocio" | "privado";
+  /**
+   * Gate I.5.4A.1 — optional Privado/Rentas-Privado seller profile photo, separate from the
+   * gallery. A `data:` URL is uploaded to `listing-images` and patched into `detailPairs`'
+   * "Foto del vendedor" pair once the row exists; an already-hosted `http(s)://` URL is assumed
+   * already embedded in `detailPairs` by the caller and is left untouched here; empty/omitted
+   * means no seller photo to persist.
+   */
+  sellerPhotoSource?: string | null;
 };
 
 export type PublishLeonixRealEstateListingCoreResult =
@@ -445,6 +521,24 @@ export async function publishLeonixRealEstateListingCore(
           .limit(1)
           .maybeSingle()
       : { data: null, error: null };
+
+  // Globalization Package A Gate 3 — a failed reuse lookup is a HARD STOP, never a silent
+  // fall-through to INSERT. This closes the ledger's long-open "Rentas duplicate-row
+  // protection gap": a transient lookup error previously caused a brand-new row to be
+  // inserted alongside the still-existing pending row (same fail-closed rule Gate I.6C
+  // already applied to Quick Clasificados identity verification). The rule applies
+  // identically to the shared Bienes Raíces Negocio branch — reuse-vs-insert is only ever
+  // decided on a successful lookup; the success path is unchanged.
+  if (reusableRealEstatePending.error) {
+    devLog("pending-reuse lookup error — failing closed, no insert", reusableRealEstatePending.error);
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No se pudo verificar tu anuncio pendiente. Inténtalo de nuevo — no se creó un anuncio duplicado."
+          : "Could not verify your pending listing. Please try again — no duplicate listing was created.",
+    };
+  }
 
   const reusablePendingId =
     !reusableRealEstatePending.error && typeof reusableRealEstatePending.data?.id === "string"
@@ -672,6 +766,15 @@ export async function publishLeonixRealEstateListingCore(
           : "The photo gallery could not be saved; the listing was not published.",
     };
   }
+
+  const sellerPhotoWarning = await persistSellerPhotoIfNeeded({
+    supabase,
+    userId,
+    listingId,
+    sellerPhotoSource: params.sellerPhotoSource,
+    lang,
+  });
+  if (sellerPhotoWarning) warnings.push(sellerPhotoWarning);
 
   devLog("publish ok", listingId, "warnings", warnings.length);
   if ((category === "rentas" || category === "bienes-raices") && (!persistedLeonixAdId || !persistedListingStatus)) {

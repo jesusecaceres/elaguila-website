@@ -126,7 +126,13 @@ export default function RecentlyViewedSection({ lang }: { lang: Lang }) {
       .then(async (ids) => {
         if (!mounted || ids.length === 0) return;
 
-        const requestedIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+        // Gate I.5.5 — same UUID-shape guard already proven in `/dashboard/vistos-recientes`:
+        // `listings.id` is a uuid column, so a malformed/non-uuid id (corrupted localStorage, a
+        // future caller storing a non-`listings` id) would 400 the whole `.in()` query instead of
+        // just being silently absent from the results.
+        const requestedIds = [
+          ...new Set(ids.map((id) => id.trim()).filter((id) => /^[0-9a-f-]{36}$/i.test(id))),
+        ];
 
         const dbById = new Map<string, Listing>();
         if (requestedIds.length > 0) {

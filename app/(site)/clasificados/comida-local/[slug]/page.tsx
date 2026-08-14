@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublishedComidaLocalListingBySlug } from "@/app/lib/clasificados/comida-local/comidaLocalPublicQueries";
 import {
+  mapComidaLocalRowToCardVm,
   mapComidaLocalRowToDetailVm,
   resolveComidaLocalFoodTypeLabel,
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalPublicListing";
@@ -24,19 +25,39 @@ type PageProps = {
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
+  const sp = (await props.searchParams) ?? {};
+  const lang = normalizeLang(sp.lang);
   const row = await getPublishedComidaLocalListingBySlug(slug);
   if (!row) {
-    return { title: "Ficha no encontrada | Comida Local | Leonix" };
+    return {
+      title:
+        lang === "en" ? "Listing not found | Local Food | Leonix" : "Ficha no encontrada | Comida Local | Leonix",
+    };
   }
   const food = resolveComidaLocalFoodTypeLabel(row);
   const city = row.city_display?.trim() || row.city_canonical?.trim() || "";
-  const title = `${row.business_name.trim()} | Comida Local | Leonix`;
+  const categoryLabel = lang === "en" ? "Local Food" : "Comida Local";
+  const title = `${row.business_name.trim()} | ${categoryLabel} | Leonix`;
   const description = [food, city, row.que_vendes?.trim()].filter(Boolean).join(" · ").slice(0, 160);
+  const fallbackDescription =
+    lang === "en"
+      ? "Local food seller profile on Leonix Classifieds."
+      : "Ficha de vendedor local de comida en Leonix Clasificados.";
+  const canonical = `/clasificados/comida-local/${encodeURIComponent(row.slug)}`;
+  const mainImageSrc = mapComidaLocalRowToCardVm(row).mainImageSrc;
 
   return {
     title,
-    description: description || "Ficha de vendedor local de comida en Leonix Clasificados.",
-    alternates: { canonical: `/clasificados/comida-local/${encodeURIComponent(row.slug)}` },
+    description: description || fallbackDescription,
+    alternates: { canonical },
+    // Package F Build F2, Gate 7 (P1 SEO fix) — no Open Graph previously; title/description were
+    // also hardcoded Spanish regardless of `?lang=`.
+    openGraph: {
+      title,
+      description: description || fallbackDescription,
+      url: canonical,
+      images: mainImageSrc ? [{ url: mainImageSrc }] : undefined,
+    },
   };
 }
 

@@ -67,6 +67,19 @@ body {
   box-shadow: 0 0 0 3px var(--lx-focus-ring);
 }
 
+/* Package F Build F2, Gate 9 (P1 accessibility fix) — respect the OS-level motion preference
+   site-wide; no matches existed anywhere in the codebase before this. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Pro upgrade preview in listing modal */
 .upgrade-preview {
   border: 2px solid var(--lx-gold);

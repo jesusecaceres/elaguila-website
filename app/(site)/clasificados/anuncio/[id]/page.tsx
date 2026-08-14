@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../../components/Navbar";
 import newLogo from "../../../../../public/logo.png";
@@ -17,6 +17,11 @@ import { CommunityQuickAnuncioDetail } from "../../community/CommunityQuickAnunc
 import { CommunityQuickPublishedDetailPage } from "../../community/CommunityQuickPublishedDetailPage";
 import { BuscoPublishedDetailPage } from "../../busco/BuscoPublishedDetailPage";
 import { detailPairsToMap as buscoDetailPairsToMap, isBuscoQuickListing } from "../../busco/shared/buscoListingDetailPairs";
+import { MascotasPerdidosPublishedDetailPage } from "../../mascotas-y-perdidos/MascotasPerdidosPublishedDetailPage";
+import {
+  detailPairsToMap as mascotasDetailPairsToMap,
+  isMascotasPerdidosSimpleListing,
+} from "../../mascotas-y-perdidos/shared/mascotasPerdidosListingDetailPairs";
 import { ClasesPublishedQuickAd } from "@/app/(site)/publicar/clases/components/ClasesPublishedQuickAd";
 import { ComunidadPublishedQuickAd } from "@/app/(site)/publicar/comunidad/components/ComunidadPublishedQuickAd";
 import { COMMUNITY_ANUNCIO_HERO_FRAME } from "@/app/(site)/clasificados/community/shared/communityAnuncioHeroClasses";
@@ -30,7 +35,13 @@ import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/public
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
-import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
+import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
+import {
+  trackListingViewOpen,
+  trackListingSaveToggleAuthed,
+  trackListingShare as trackListingShareGlobal,
+} from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -41,6 +52,8 @@ import { TranslateAdControl } from "@/app/components/translation/TranslateAdCont
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
 import { BienesRaicesNegocioLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell";
+import { BienesRaicesPrivadoLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell";
+import { resolveBrListingLane } from "@/app/clasificados/bienes-raices/listing/brListingLane";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -82,6 +95,10 @@ import {
   businessLinkPublicLabel,
   parsePublishedBusinessExtraLinks,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/bienesAdditionalBusinessLinks";
+import {
+  isBrChildParentGateSatisfied,
+  type BrPublicParentCandidate,
+} from "@/app/(site)/clasificados/lib/brPublicChildParentVisibility";
 type Lang = "es" | "en";
 
 const ANUNCIO_LISTING_SELECT_BASE =
@@ -102,6 +119,7 @@ type CategoryKey =
   | "clases"
   | "comunidad"
   | "busco"
+  | "mascotas-y-perdidos"
   | "travel";
 
 type SellerType = "personal" | "business";
@@ -187,14 +205,42 @@ const CATEGORY_KEYS: readonly CategoryKey[] = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas-y-perdidos",
   "travel",
 ];
 
+/**
+ * I.6B — corrected. Previously, any category NOT in this allowlist (including the real,
+ * confirmed "mascotas-y-perdidos" value) silently fell through to "en-venta", causing real
+ * Mascotas y Perdidos listings to render through the wrong layout with wrong content (Gate
+ * I.6A root-cause finding). "mascotas-y-perdidos" is now accepted.
+ *
+ * I.6C — the last-resort "en-venta" branch below is retained only so this function stays total
+ * (every call must return a `CategoryKey`), but it is no longer reachable from the live fetch
+ * path: `isRecognizedListingCategory()` gates the row before `mapDbListingRowToListing()` is
+ * ever called, so a genuinely unknown category now fails closed to the existing not-found state
+ * instead of silently masquerading as En Venta. See `isRecognizedListingCategory`.
+ */
 function coerceCategoryKey(raw: unknown): CategoryKey {
   const s = String(raw ?? "").trim();
   if (s === "bienes-raices") return "bienes-raices";
   if (isEnVentaCategorySlug(s)) return "en-venta";
   return (CATEGORY_KEYS as readonly string[]).includes(s) ? (s as CategoryKey) : "en-venta";
+}
+
+/**
+ * I.6C — fail-closed gate run BEFORE `mapDbListingRowToListing()` on every live-fetched row.
+ * Mirrors exactly the set of values `coerceCategoryKey` can map to a real category (never its
+ * last-resort fallback): "bienes-raices", any En Venta slug, or a value already in
+ * `CATEGORY_KEYS`. A `false` result means the category is genuinely unmodeled by this shell —
+ * the caller must treat the row as not-found, the same truthful outcome already used for
+ * unpublished/removed/inactive rows, never render it through the En Venta layout.
+ */
+function isRecognizedListingCategory(raw: unknown): boolean {
+  const s = String(raw ?? "").trim();
+  if (s === "bienes-raices") return true;
+  if (isEnVentaCategorySlug(s)) return true;
+  return (CATEGORY_KEYS as readonly string[]).includes(s);
 }
 
 function imageUrlsFromJsonb(images: unknown): string[] {
@@ -364,7 +410,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   return out;
 }
 
-export default function AnuncioDetallePage() {
+function AnuncioDetallePageContent() {
   const params = useParams<{ id: string }>();
 
   // ✅ Null-safe guard: some setups type useSearchParams() as possibly null
@@ -473,6 +519,7 @@ export default function AnuncioDetallePage() {
       clases: { es: "Clases", en: "Classes" },
       comunidad: { es: "Comunidad y Eventos", en: "Community & Events" },
       busco: { es: "Busco / Se busca", en: "Wanted / Looking for" },
+      "mascotas-y-perdidos": { es: "Mascotas y Perdidos", en: "Lost & Found Pets" },
       travel: { es: "Viajes", en: "Travel" },
     };
     return map;
@@ -559,6 +606,48 @@ export default function AnuncioDetallePage() {
           setRemoteState("ready");
           return;
         }
+
+        // Gate G.2.3.4 — an inventory child (Bienes Raíces Negocio) additionally requires an
+        // active, published, same-owner canonical main parent to render publicly. Defense in
+        // depth on top of the existing status/publication checks above, not a replacement for
+        // them; a missing/invalid/inactive parent fails closed to the exact same "not found"
+        // outcome the existing checks already use — no parent status or internal detail leaks.
+        if (
+          String(row.category ?? "").toLowerCase() === "bienes-raices" &&
+          row.inventory_role === "inventory_property"
+        ) {
+          const parentId = String(row.br_inventory_parent_listing_id ?? "").trim();
+          let parentRow: BrPublicParentCandidate | null = null;
+          if (parentId) {
+            const { data: parentData } = await supabase
+              .from("listings")
+              .select("id, category, seller_type, inventory_role, owner_id, status, is_published")
+              .eq("id", parentId)
+              .maybeSingle();
+            parentRow = (parentData as BrPublicParentCandidate | null) ?? null;
+          }
+          const parentsById = new Map<string, BrPublicParentCandidate>(parentRow ? [[parentRow.id, parentRow]] : []);
+          const childCandidate = {
+            id: String(row.id ?? ""),
+            inventory_role: (row.inventory_role as string | null) ?? null,
+            br_inventory_parent_listing_id: parentId || null,
+            owner_id: (row.owner_id as string | null) ?? null,
+          };
+          if (!isBrChildParentGateSatisfied(childCandidate, parentsById)) {
+            setFetchedListing(undefined);
+            setRemoteState("ready");
+            return;
+          }
+        }
+        // I.6C — an unsupported/unmodeled category fails closed to the same not-found outcome
+        // used above, instead of falling through coerceCategoryKey's last-resort "en-venta"
+        // default and mis-rendering a genuinely unknown category as En Venta.
+        if (!isRecognizedListingCategory(row.category)) {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+
         setPublishedSourceRow(row);
         setFetchedListing(mapDbListingRowToListing(row));
         setRemoteState("ready");
@@ -716,6 +805,16 @@ export default function AnuncioDetallePage() {
   }, [listing]);
 
   const useBuscoQuickDetail = Boolean(listing && listing.category === "busco" && buscoQuickPairMap);
+
+  const mascotasPerdidosQuickPairMap = useMemo(() => {
+    if (!listing || listing.category !== "mascotas-y-perdidos") return null;
+    const m = mascotasDetailPairsToMap(listing.detailPairs);
+    return isMascotasPerdidosSimpleListing(m) ? m : null;
+  }, [listing]);
+
+  const useMascotasPerdidosQuickDetail = Boolean(
+    listing && listing.category === "mascotas-y-perdidos" && mascotasPerdidosQuickPairMap,
+  );
 
   const communityQuickContactExtras = useMemo(() => {
     if (!listing || !communityQuickPairMap) return null;
@@ -879,21 +978,11 @@ export default function AnuncioDetallePage() {
 
   useEffect(() => {
     if (!listing) return;
-    let cancelled = false;
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (cancelled) return;
-      const uid = user?.id ?? null;
-      void trackEvent(listing.id, "listing_view", uid);
-      void trackEvent(listing.id, "listing_open", uid);
-    })();
+    trackListingViewOpen(
+      { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+      { eventSource: "detail" },
+    );
     addListingView(listing.id);
-    return () => {
-      cancelled = true;
-    };
   }, [listing?.id]);
 
   // Sync saved state from Supabase when user is logged in
@@ -976,11 +1065,19 @@ export default function AnuncioDetallePage() {
     if (saved) {
       await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
-      void trackListingSave(listing.id, false, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+        false,
+        { eventSource: "detail" },
+      );
     } else {
       await supabase.from("saved_listings").upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
-      void trackListingSave(listing.id, true, { ownerUserId: (listing as { owner_id?: string | null }).owner_id ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+        true,
+        { eventSource: "detail" },
+      );
     }
   };
 
@@ -1244,7 +1341,7 @@ export default function AnuncioDetallePage() {
                 {t.viewAll}
               </a>
               <a
-                href={`/clasificados/publicar?lang=${lang}`}
+                href={`/publicar?lang=${lang}`}
                 className="px-7 py-3 rounded-full border border-[#C9B46A]/55 bg-[#F5F5F5] backdrop-blur ring-1 ring-[#C9B46A]/25 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.85)] text-[#111111] font-semibold hover:bg-[#D9D9D9]/45 transition"
               >
                 {t.post}
@@ -1281,6 +1378,28 @@ export default function AnuncioDetallePage() {
     );
   }
 
+  if (useMascotasPerdidosQuickDetail && listing.category === "mascotas-y-perdidos") {
+    return (
+      <>
+        {translateControl}
+        <MascotasPerdidosPublishedDetailPage
+          listing={{
+            id: listing.id,
+            title: proseListing!.title[lang],
+            city: listing.city,
+            description: proseListing!.blurb[lang],
+            images: listing.images ?? null,
+            contact_phone: listing.contact_phone ?? null,
+            contact_email: listing.contact_email ?? null,
+            detailPairs: proseListing!.detailPairs,
+          }}
+          lang={lang}
+          skipAnalytics={Boolean(sampleListing)}
+        />
+      </>
+    );
+  }
+
   if (useCommunityQuickWysiwyg && (listing.category === "clases" || listing.category === "comunidad")) {
     return (
       <>
@@ -1307,6 +1426,36 @@ export default function AnuncioDetallePage() {
   }
 
   if (listing.category === "bienes-raices") {
+    // Gate I.5.4A — lane-aware BR published rendering. Before this gate, every bienes-raices
+    // listing rendered through BienesRaicesNegocioLiveDetailShell regardless of lane, which
+    // silently dropped Privado sellers' name/photo (that shell's buildPublishedState() only
+    // reads agent-schema business_meta fields Privado never populated). Negocio parent/child
+    // rendering is completely untouched below — same component, same props, same behavior.
+    const brLane = resolveBrListingLane({
+      sellerType: listing.sellerType,
+      inventory_role: listing.inventory_role,
+      br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id,
+    });
+    const brListingProps = {
+      id: listing.id,
+      title: proseListing!.title,
+      priceLabel: listing.priceLabel,
+      city: listing.city,
+      blurb: proseListing!.blurb,
+      images: listing.images ?? null,
+      businessName: listing.businessName ?? null,
+      business_name: listing.business_name ?? null,
+      detailPairs: proseListing!.detailPairs,
+      owner_id: listing.owner_id ?? null,
+      leonix_ad_id: listing.leonix_ad_id ?? null,
+      business_meta: listing.business_meta ?? null,
+      contact_phone: listing.contact_phone ?? null,
+      contact_email: listing.contact_email ?? null,
+      zip: listing.zip ?? null,
+      br_inventory_group_id: listing.br_inventory_group_id ?? null,
+      br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
+      inventory_role: listing.inventory_role ?? null,
+    };
     return (
       <>
         {brPublishBanner ? (
@@ -1315,29 +1464,11 @@ export default function AnuncioDetallePage() {
           </div>
         ) : null}
         {translateControl}
-        <BienesRaicesNegocioLiveDetailShell
-          listing={{
-            id: listing.id,
-            title: proseListing!.title,
-            priceLabel: listing.priceLabel,
-            city: listing.city,
-            blurb: proseListing!.blurb,
-            images: listing.images ?? null,
-            businessName: listing.businessName ?? null,
-            business_name: listing.business_name ?? null,
-            detailPairs: proseListing!.detailPairs,
-            owner_id: listing.owner_id ?? null,
-            leonix_ad_id: listing.leonix_ad_id ?? null,
-            business_meta: listing.business_meta ?? null,
-            contact_phone: listing.contact_phone ?? null,
-            contact_email: listing.contact_email ?? null,
-            zip: listing.zip ?? null,
-            br_inventory_group_id: listing.br_inventory_group_id ?? null,
-            br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
-            inventory_role: listing.inventory_role ?? null,
-          }}
-          lang={lang}
-        />
+        {brLane === "privado" ? (
+          <BienesRaicesPrivadoLiveDetailShell listing={brListingProps} lang={lang} />
+        ) : (
+          <BienesRaicesNegocioLiveDetailShell listing={brListingProps} lang={lang} />
+        )}
       </>
     );
   }
@@ -2106,6 +2237,13 @@ export default function AnuncioDetallePage() {
                   shareText={anuncioShareBody}
                   category={listing.category}
                   ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
+                  recordShareEvent={(shareMethod, extraMeta) =>
+                    trackListingShareGlobal(
+                      { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+                      shareMethod,
+                      { eventSource: "detail", metadata: extraMeta },
+                    )
+                  }
                   lang={lang}
                   variant="large"
                   className="w-full [&>button]:w-full [&>button]:justify-center [&>button]:border-[#C9B46A]/55 [&>button]:bg-[#F5F5F5] [&>button]:text-[#111111] [&>button]:shadow-[0_16px_40px_-28px_rgba(0,0,0,0.25)] [&>button]:hover:bg-[#D9D9D9]/55 [&>button]:backdrop-blur [&>button]:ring-1 [&>button]:ring-[#C9B46A]/25"
@@ -2442,14 +2580,38 @@ export default function AnuncioDetallePage() {
                   ownerUserId={(listing as any)?.owner_id ?? null}
                   onContact={
                     listing
-                      ? () => {
-                          void (async () => {
-                            const sb = createSupabaseBrowserClient();
-                            const {
-                              data: { user },
-                            } = await sb.auth.getUser();
-                            void trackEvent(listing.id, "message_sent", user?.id ?? null);
-                          })();
+                      ? (intent?: CtaSheetIntent) => {
+                          // Package D Build D2, Gate 6C — each CTA now tracks its actual click type
+                          // instead of every click being fabricated as a "message_sent" event.
+                          if (!intent) return;
+                          const kindAndProvider: { kind: ConnectionHubCtaKind; provider?: string } | null =
+                            intent.kind === "call"
+                              ? { kind: "phone" }
+                              : intent.kind === "send_message"
+                                ? intent.whatsappDigits
+                                  ? { kind: "whatsapp" }
+                                  : { kind: "phone", provider: "sms" }
+                                : intent.kind === "send_email"
+                                  ? { kind: "email" }
+                                  : intent.kind === "directions"
+                                    ? { kind: "directions" }
+                                    : intent.kind === "website" ||
+                                        intent.kind === "booking" ||
+                                        intent.kind === "menu" ||
+                                        intent.kind === "order" ||
+                                        intent.kind === "social_link" ||
+                                        intent.kind === "other"
+                                      ? { kind: "website" }
+                                      : null;
+                          if (!kindAndProvider) return;
+                          dispatchConnectionHubCta({
+                            kind: kindAndProvider.kind,
+                            provider: kindAndProvider.provider,
+                            category: listing.category ?? "listings",
+                            sourceTable: "listings",
+                            sourceId: listing.id,
+                            surface: "anuncio_detail",
+                          });
                         }
                       : undefined
                   }
@@ -2509,5 +2671,12 @@ export default function AnuncioDetallePage() {
         </div>
       ) : null}
     </div>
+  );
+}
+export default function AnuncioDetallePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AnuncioDetallePageContent />
+    </Suspense>
   );
 }

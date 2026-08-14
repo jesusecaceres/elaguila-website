@@ -31,6 +31,13 @@ export async function POST(request: Request) {
   }
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    // Package C Build 1 — explicit source guard alongside the existing category guard: this
+    // LEGACY handler never processes canonical Revenue OS sessions (leonix_* metadata
+    // namespace); those are fulfilled exclusively by /api/revenue-os/webhook.
+    const metadataKeys = Object.keys(session.metadata ?? {});
+    if (metadataKeys.some((k) => k.startsWith("leonix_"))) {
+      return NextResponse.json({ received: true, ignored: true, reason: "canonical_revenue_os_session" });
+    }
     if (session.metadata?.category !== "bienes-raices") {
       return NextResponse.json({ received: true });
     }

@@ -11,9 +11,7 @@ import {
   computeBrPropertyInventoryCounts,
   isBrInventoryMainListing,
   isBrInventoryProperty,
-  isBrInventoryUpgradeActive,
   isBrNegocioListing,
-  resolveBrInventoryGroupingKey,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import {
@@ -29,9 +27,17 @@ import {
   bienesInventoryPackAddonUpgradeLabel,
   bienesInventoryPackEditLabel,
   bienesInventoryPackInactiveDashboardHint,
-  fetchBienesInventoryPackEntitlementActive,
   redirectBienesDashboardInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { buildListingIdentity, resolveDashboardActions } from "@/app/lib/listingIdentity";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
+  dashboardAddonStatusForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+} from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
+import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 type Lang = "es" | "en";
 
@@ -41,9 +47,58 @@ type Props = {
   parentLeonixAdIdByListingId: ReadonlyMap<string, string>;
   /** All negocio rows in owner inventory — used for active-count limits. */
   inventoryRows?: readonly BrPropertyInventoryRowLike[];
+  /** Gate D.2 — page-level authenticated owner id; required to source canonical resolver hrefs. */
+  ownerUserId?: string | null;
 };
 
-export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdByListingId, inventoryRows }: Props) {
+/**
+ * Gate D.2 — the parent's "Manage inventory" href, sourced from `resolveDashboardActions` when
+ * ownership/identity resolve, falling back to the existing `bienesInventoryEditHref` builder
+ * otherwise. Verified byte-identical to the live builder at this exact call site (neither passes
+ * `listingSlug` nor `categoriaPropiedad` here), so the swap is a pure canonical-identity
+ * pass-through with no behavior change.
+ */
+function canonicalManageInventoryHref(input: {
+  mainListingId: string;
+  leonixAdId: string | null | undefined;
+  ownerUserId: string | null | undefined;
+  upgradeActive: boolean;
+  status: string | null | undefined;
+  lang: Lang;
+}): string | null {
+  const owner = input.ownerUserId?.trim();
+  if (!owner) return null;
+
+  const identityResult = buildListingIdentity({
+    sourceTable: "listings",
+    sourceId: input.mainListingId,
+    category: "bienes-raices",
+    pipeline: "bienes_raices_negocio",
+    leonixAdId: input.leonixAdId ?? "",
+    ownerUserId: owner,
+    publicUrl: leonixLiveAnuncioPath(input.mainListingId),
+  });
+  if (!identityResult.ok) return null;
+
+  const actions = resolveDashboardActions({
+    identity: identityResult.identity,
+    lifecycle: { status: input.status ?? "active" },
+    entitlement: { inventoryPackActive: input.upgradeActive },
+    role: "main",
+    ownerVerified: true,
+    lang: input.lang,
+  });
+
+  return actions.find((action) => action.key === "manageInventory")?.href ?? null;
+}
+
+export function BrNegocioListingInventoryActions({
+  lang,
+  row,
+  parentLeonixAdIdByListingId,
+  inventoryRows,
+  ownerUserId,
+}: Props) {
   const isNegocio = isBrNegocioListing(row);
   const isChild = isNegocio && isBrInventoryProperty(row);
   const isMain = isNegocio && (isBrInventoryMainListing(row) || (!isChild && !row.inventory_role));
@@ -61,16 +116,36 @@ export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdBy
   useEffect(() => {
     if (!isMain) return;
     let cancelled = false;
-    void fetchBienesInventoryPackEntitlementActive({
-      listingId: mainListingId,
-      leonixAdId: row.leonix_ad_id,
-    }).then((result) => {
-      if (!cancelled) setEntitlementActive(result.active);
-    });
+    void (async () => {
+      // Gate F.2.4.3 — canonical main-parent uuid + shared lifecycle-backed entitlement API;
+      // never the placement-tier/ad-plan-proof mechanism, never slug/Leonix Ad ID matching.
+      // Fails closed to inactive on missing auth or any fetch failure.
+      const supabase = createSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getSession();
+      const token = auth.session?.access_token;
+      if (!token) {
+        if (!cancelled) setEntitlementActive(false);
+        return;
+      }
+      const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+        [
+          {
+            key: mainListingId,
+            category: "bienes-raices",
+            listingSource: "listings",
+            listingId: mainListingId,
+            packageKey: BR_INVENTORY_PACK_PACKAGE_KEY,
+          },
+        ],
+        token,
+      );
+      if (cancelled) return;
+      setEntitlementActive(dashboardAddonStatusForKey(badges, [mainListingId]) === "active");
+    })();
     return () => {
       cancelled = true;
     };
-  }, [isMain, mainListingId, row.leonix_ad_id]);
+  }, [isMain, mainListingId]);
 
   const startInventoryPackCheckout = useCallback(async () => {
     setCheckoutError(null);
@@ -112,6 +187,17 @@ export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdBy
         };
 
   if (isChild) {
+    /* Globalization Package B (Gate B4) — the child card is no longer a static, action-less
+       stub (ledger defect D3): it now offers the DIRECT child actions. "Editar propiedad"
+       deep-links into the parent's dashboard inventory-edit context with `openChildDraftId`,
+       which opens THIS child's own listing-bound editor (isolated child editor session —
+       parent and siblings untouched); "Ver pública" is the child's real public detail page. */
+    const childEditHref = `${bienesInventoryEditHref({
+      lang,
+      listingId: mainListingId,
+      leonixAdId: parentLeonix || null,
+    })}&openChildDraftId=${encodeURIComponent(`br-db-child-${row.id}`)}`;
+    const childPublicHref = appendLangToPath(`/clasificados/anuncio/${row.id}`, lang);
     return (
       <div className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3 sm:p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{t.section}</p>
@@ -122,28 +208,62 @@ export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdBy
             {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {(row.leonix_ad_id ?? "").trim()}
           </p>
         ) : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={childEditHref}
+            prefetch={false}
+            className="inline-flex min-h-[36px] items-center rounded-lg border border-[#B8954A]/60 bg-white px-3 text-xs font-bold text-[#6E5418] hover:border-[#B8954A]"
+          >
+            {lang === "es" ? "Editar propiedad" : "Edit property"}
+          </Link>
+          <Link
+            href={childPublicHref}
+            prefetch={false}
+            className="inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] bg-white px-3 text-xs font-semibold text-[#2C2416] hover:border-[#C9B46A]/60"
+          >
+            {lang === "es" ? "Ver pública" : "View public"}
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const upgradeActive =
-    entitlementActive === true || isBrInventoryUpgradeActive({ entitlementActive: entitlementActive ?? undefined });
-  const groupingKey = resolveBrInventoryGroupingKey(row);
+  // Gate F.2.4.3 — the shared entitlement fetch above is now the sole source of truth (already
+  // fails closed to `false`); no bare/no-argument fallback authority remains.
+  const upgradeActive = entitlementActive === true;
+  // Gate F.2.3 — scope the active-count rows to this row's real effective parent (canonical
+  // parent uuid or parent reference), never `resolveBrInventoryGroupingKey`'s owner-wide
+  // fallback; two distinct ungrouped parent businesses for the same owner must never share one
+  // active-property count.
+  const effectiveParentId = (r: BrPropertyInventoryRowLike): string =>
+    isBrInventoryMainListing(r) ? r.id : r.br_inventory_parent_listing_id?.trim() || r.id;
+  const scopedInventoryRows = (inventoryRows ?? [row]).filter(
+    (r) => effectiveParentId(r) === mainListingId,
+  );
   const addCtx: BrInventoryAddContext = {
     parentListingId: mainListingId,
     returnToListingId: mainListingId,
     brInventoryGroupId: row.br_inventory_group_id?.trim() || mainListingId,
   };
-  const counts = computeBrPropertyInventoryCounts(inventoryRows ?? [row], {
-    groupingKey,
+  const counts = computeBrPropertyInventoryCounts(scopedInventoryRows, {
+    groupingKey: null,
     upgradeActive,
   });
 
-  const inventoryEditHref = bienesInventoryEditHref({
-    lang,
-    listingId: mainListingId,
-    leonixAdId: row.leonix_ad_id,
-  });
+  const inventoryEditHref =
+    canonicalManageInventoryHref({
+      mainListingId,
+      leonixAdId: row.leonix_ad_id,
+      ownerUserId,
+      upgradeActive,
+      status: row.status,
+      lang,
+    }) ??
+    bienesInventoryEditHref({
+      lang,
+      listingId: mainListingId,
+      leonixAdId: row.leonix_ad_id,
+    });
 
   return (
     <div className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3 sm:p-4">
@@ -163,6 +283,7 @@ export function BrNegocioListingInventoryActions({ lang, row, parentLeonixAdIdBy
         {upgradeActive ? (
           <Link
             href={inventoryEditHref}
+            prefetch={false}
             className="inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FFF6E7] px-4 py-2 text-sm font-semibold text-[#6E5418]"
           >
             {bienesInventoryPackEditLabel(lang)}

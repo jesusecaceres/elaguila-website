@@ -17,7 +17,9 @@ import {
 import {
   activatePaidServiciosListingFromRevenueOs,
   grantServiciosOffersAddonEntitlementFromBasePayment,
+  normalizeServiciosOffersAddonEntitlementSource,
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import {
   activatePaidRentasListingFromRevenueOs,
@@ -52,6 +54,10 @@ import {
   markPromoRedemptionExpiredOrCancelled,
   markPromoRedemptionRedeemedWithBusinessAttribution,
 } from "./revenuePromoRedemptions";
+import {
+  markVerifiedIntroDiscountRedemptionRedeemed,
+  markVerifiedIntroDiscountRedemptionExpiredOrCancelled,
+} from "./verifiedIntroDiscountRedemptions";
 import {
   isRevenueOsCheckoutSession,
   parseCheckoutSessionMetadata,
@@ -398,6 +404,51 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  return { ok: true };
+}
+
+/**
+ * Gate E.1 — fires only for the standalone (dashboard-direct) Servicios offers add-on purchase
+ * (packageKey === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY), never for the bundled base+addOn purchase
+ * (that path already writes the correct listing_source via
+ * grantServiciosOffersAddonEntitlementFromBasePayment above). See
+ * normalizeServiciosOffersAddonEntitlementSource for the underlying defect and fix.
+ */
+async function tryNormalizeServiciosOffersAddonEntitlementSource(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  packageEntitlementId: string | null | undefined;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== SERVICIOS_OFFERS_ADDON_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const result = await normalizeServiciosOffersAddonEntitlementSource({
+    packageEntitlementId: input.packageEntitlementId,
+  });
+
+  if (!result.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "listing_package_entitlements",
+      targetId: input.packageEntitlementId ?? null,
+      meta: {
+        code: "servicios_offers_addon_listing_source_normalize_failed",
+        message: result.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: "servicios_offers_addon_listing_source_normalize_failed",
+      message: result.message ?? "Servicios offers add-on entitlement source normalization failed.",
+    };
+  }
 
   return { ok: true };
 }
@@ -1028,6 +1079,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const serviciosOffersAddonSourceFix = await tryNormalizeServiciosOffersAddonEntitlementSource({
+      paymentRecord,
+      packageDef,
+      packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+    });
+    if (!serviciosOffersAddonSourceFix.ok) {
+      return {
+        ok: false,
+        code: serviciosOffersAddonSourceFix.code,
+        message: serviciosOffersAddonSourceFix.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     const rentasActivation = await tryActivateRentasListingAfterEntitlement({
       paymentRecord,
       packageDef,
@@ -1212,6 +1283,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
     }
   }
 
+  // Package C Build 2 (C4) — parallel to the promo-redemption block above. Conditional,
+  // replay-safe 'reserved' -> 'redeemed' UPDATE; without this the reservation never leaves
+  // 'reserved' after a real successful payment.
+  const verifiedIntroDiscountRedemptionId = paymentRecord.verified_intro_discount_redemption_id;
+  if (verifiedIntroDiscountRedemptionId) {
+    const verifiedIntroResult = await markVerifiedIntroDiscountRedemptionRedeemed(verifiedIntroDiscountRedemptionId);
+    if (verifiedIntroResult.ok) {
+      await writeRevenueAuditLog({
+        action: "revenue_verified_intro_discount_redeemed",
+        targetType: "leonix_verified_intro_discount_redemptions",
+        targetId: verifiedIntroDiscountRedemptionId,
+        meta: {
+          payment_record_id: paymentRecord.id,
+          idempotent: verifiedIntroResult.idempotent === true,
+          stripe_event_id: eventId,
+        },
+      });
+    }
+  }
+
   const refreshed = (await loadPaymentRecordById(paymentRecord.id)) ?? paymentRecord;
   const entitlementResult = await activateEntitlementsForPayment({
     paymentRecord: refreshed,
@@ -1292,6 +1383,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: serviciosActivation.code,
       message: serviciosActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const serviciosOffersAddonSourceFix = await tryNormalizeServiciosOffersAddonEntitlementSource({
+    paymentRecord: refreshed,
+    packageDef,
+    packageEntitlementId: entitlementResult.packageEntitlementId,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+  });
+  if (!serviciosOffersAddonSourceFix.ok) {
+    return {
+      ok: false,
+      code: serviciosOffersAddonSourceFix.code,
+      message: serviciosOffersAddonSourceFix.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,
@@ -1500,6 +1610,12 @@ export async function markCheckoutSessionExpired(input: {
       stripeCheckoutSessionId: session.id,
       webhookMeta,
     });
+  }
+
+  // Package C Build 2 (C4) — mirrors the promo-redemption expiry branch above.
+  const verifiedIntroDiscountRedemptionId = paymentRecord.verified_intro_discount_redemption_id;
+  if (verifiedIntroDiscountRedemptionId) {
+    await markVerifiedIntroDiscountRedemptionExpiredOrCancelled(verifiedIntroDiscountRedemptionId);
   }
 
   return {

@@ -18,6 +18,15 @@ import type {
 
 export const COMIDA_LOCAL_DRAFT_STORAGE_KEY = "leonix:comida-local:draft:v1";
 
+/**
+ * Globalization Package A closure — per-listing edit workspace key. A listing-edit draft and
+ * a new-ad draft must NEVER share a key (draftWorkspaceContract Rule 1): editing a published
+ * listing hydrates into this key and leaves any in-progress new-ad draft untouched.
+ */
+export function comidaLocalEditWorkspaceStorageKey(listingId: string): string {
+  return `leonix:comida-local:edit:v1:${listingId.trim()}`;
+}
+
 const FOOD_TYPES = new Set([
   "tacos",
   "pupusas",
@@ -133,10 +142,12 @@ export function sanitizeComidaLocalDraftForStorage(draft: ComidaLocalDraft): Com
   return mergeComidaLocalDraftFromStorage(draft);
 }
 
-export function loadComidaLocalDraftFromStorage(): ComidaLocalDraft | null {
+export function loadComidaLocalDraftFromStorage(
+  storageKey: string = COMIDA_LOCAL_DRAFT_STORAGE_KEY,
+): ComidaLocalDraft | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(COMIDA_LOCAL_DRAFT_STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     return mergeComidaLocalDraftFromStorage(parsed);
@@ -145,20 +156,25 @@ export function loadComidaLocalDraftFromStorage(): ComidaLocalDraft | null {
   }
 }
 
-export function saveComidaLocalDraftToStorage(draft: ComidaLocalDraft): void {
+export function saveComidaLocalDraftToStorage(
+  draft: ComidaLocalDraft,
+  storageKey: string = COMIDA_LOCAL_DRAFT_STORAGE_KEY,
+): void {
   if (typeof window === "undefined") return;
   try {
     const payload = sanitizeComidaLocalDraftForStorage(draft);
-    window.localStorage.setItem(COMIDA_LOCAL_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.setItem(storageKey, JSON.stringify(payload));
   } catch {
     /* quota or private mode — ignore */
   }
 }
 
-export function clearComidaLocalDraftStorage(): void {
+export function clearComidaLocalDraftStorage(
+  storageKey: string = COMIDA_LOCAL_DRAFT_STORAGE_KEY,
+): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.removeItem(COMIDA_LOCAL_DRAFT_STORAGE_KEY);
+    window.localStorage.removeItem(storageKey);
   } catch {
     /* ignore */
   }

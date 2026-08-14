@@ -201,7 +201,10 @@ export function EmpleosJobResultCard({ job, lang, variant = "list", showRecentRi
               </span>
               {job.category ? (
                 <span className="rounded-md border border-[#D6C7AD]/60 bg-[#F8F4EC] px-2 py-0.5 text-[11px] font-medium text-[#7A7164]">
-                  {job.category}
+                  {/* Package F Build F2, Gate 10 (P1 "Otro" truth fix) — job.category was the raw
+                      slug ("otro") when the employer picked a custom category; substitute the real
+                      custom text when present, same as the already-correct jobType handling. */}
+                  {job.categoryCustomLabel?.trim() || job.category}
                 </span>
               ) : null}
             </>

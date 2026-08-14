@@ -60,6 +60,7 @@ import {
   clearRentasListingEditWorkspace,
   loadRentasListingEditWorkspace,
 } from "@/app/clasificados/publicar/rentas/shared/rentasListingEditWorkspace";
+import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 
 type Phase = "loading" | "ready" | "recovery";
 
@@ -100,6 +101,10 @@ export default function RentasPrivadoPreviewClient() {
     () => parseRentasListingEditContext(new URLSearchParams(searchParams?.toString() ?? ""), "privado"),
     [searchParams],
   );
+  /* Globalization P3 (Gate 1) — named against the shared preview-mode contract
+     (app/lib/listingIdentity/previewModeContract.ts), same wiring as Rentas Negocio. */
+  const previewMode = useMemo(() => resolvePreviewMode({ listingBound: Boolean(editContext) }), [editContext]);
+  const isListingBoundPreview = previewModeIsListingBound(previewMode);
 
   const publishReadiness = useMemo(() => {
     if (!draft) return { ok: false as const, message: null };
@@ -323,7 +328,7 @@ export default function RentasPrivadoPreviewClient() {
       <RentasVisualMatchPreviewView vm={vm} lang={lang} videoUrls={draftVideoUrls(draft)} />
 
       <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
-        {editContext ? (
+        {isListingBoundPreview && editContext ? (
           <div className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
             <p className="font-bold">{lang === "en" ? "Previewing unsaved edit workspace" : "Vista previa del espacio de edición"}</p>
             <p className="mt-1 text-xs text-[#5C5346]">

@@ -25,7 +25,7 @@ export function detectLangFromPath(path: string, fallback: PublishLang = "es"): 
 export function buildPublishLoginHref(returnPath: string, lang?: PublishLang): string {
   const safe = safeInternalRedirect(returnPath);
   const resolvedLang = lang ?? detectLangFromPath(safe);
-  const fallback = `/clasificados/publicar?lang=${resolvedLang}`;
+  const fallback = `/publicar?lang=${resolvedLang}`;
   const redirect = encodeURIComponent(safe || fallback);
   return `/login?mode=post&lang=${resolvedLang}&redirect=${redirect}`;
 }

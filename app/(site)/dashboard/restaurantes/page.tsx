@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { DASHBOARD_INTERNAL_INBOX_READY } from "../lib/dashboardProductTruth";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
@@ -23,8 +24,8 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import {
   hydrateRestauranteListingForCouponEdit,
-  restaurantCouponAddonUpgradeEligible,
-  restaurantCouponEditEligible,
+  restaurantCouponAddonUpgradeEligibleFromLifecycle,
+  restaurantCouponEditEligibleFromLifecycle,
   restauranteCouponInactiveDashboardHint,
   restauranteCouponEditFooterHint,
   restauranteCouponEditLabel,
@@ -32,10 +33,17 @@ import {
   restauranteListingEditHref,
 } from "../lib/restaurantesDashboardCouponAddonCheckout";
 import {
+  dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
+  dashboardHasCapabilityForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { buildRestaurantesEligibilityInput } from "@/app/lib/listingIdentity/restaurantesLifecycleAdapter";
+import { resolveAttentionState, resolveOwnerFacingStatus } from "@/app/lib/listingIdentity";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -62,6 +70,17 @@ function fmt(ts: string, lang: Lang) {
   }
 }
 
+/**
+ * Gate G.3.2 — small, generic severity-level message (not reason-specific, mirroring the same
+ * choice already made for Bienes Raíces in `LeonixRealEstateListingManageCard.tsx`).
+ */
+function restauranteLifecycleAttentionMessage(severity: "none" | "informational" | "action_required" | "urgent", lang: Lang): string | null {
+  if (severity === "urgent") return lang === "es" ? "Requiere atención urgente" : "Requires urgent attention";
+  if (severity === "action_required") return lang === "es" ? "Requiere tu atención" : "Needs your attention";
+  if (severity === "informational") return lang === "es" ? "Nota informativa" : "Informational note";
+  return null;
+}
+
 function ownerTotalsToListingMetrics(totals: OwnerAnalyticsTotals): ListingMetrics {
   return {
     views: totals.listingViews + totals.profileViews + totals.listingOpens,
@@ -79,7 +98,7 @@ function ownerTotalsToListingMetrics(totals: OwnerAnalyticsTotals): ListingMetri
   };
 }
 
-export default function DashboardRestaurantesPage() {
+function DashboardRestaurantesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
@@ -156,6 +175,7 @@ export default function DashboardRestaurantesPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const [hydrateId, setHydrateId] = useState<string | null>(null);
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
@@ -175,6 +195,7 @@ export default function DashboardRestaurantesPage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/restaurantes?${q}`)}`);
       return;
     }
+    setOwnerId(user.id);
     setAccountRef(accountRefFromId(user.id));
     setEmail(user.email ?? null);
     const meta = user.user_metadata as Record<string, unknown> | undefined;
@@ -212,20 +233,28 @@ export default function DashboardRestaurantesPage() {
     } else {
       const loaded = (data ?? []) as DashboardRestaurantRow[];
       setRows(loaded);
-      const { data: sessData } = await supabase.auth.getSession();
-      const accessToken = sessData.session?.access_token ?? null;
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
-        loaded.map((r) => ({
-          key: r.id,
-          category: "restaurantes",
-          listingSource: "restaurantes_public_listings",
-          listingId: r.id,
-          slug: r.slug ?? null,
-          leonixAdId: r.leonix_ad_id ?? null,
-        })),
-        accessToken,
-      );
-      setEntitlementBadges(badges);
+      // Gate I.13A — this fetch previously wasn't guarded; a thrown error here (e.g. a
+      // network failure) skipped the setLoading(false) below and left the page stuck on
+      // the loading spinner forever.
+      try {
+        const { data: sessData } = await supabase.auth.getSession();
+        const accessToken = sessData.session?.access_token ?? null;
+        const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+          loaded.map((r) => ({
+            key: r.id,
+            category: "restaurantes",
+            listingSource: "restaurantes_public_listings",
+            listingId: r.id,
+            slug: r.slug ?? null,
+            leonixAdId: r.leonix_ad_id ?? null,
+            packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+          })),
+          accessToken,
+        );
+        setEntitlementBadges(badges);
+      } catch (badgeErr) {
+        console.error("[dashboard/restaurantes] entitlement badge fetch failed", badgeErr);
+      }
     }
     setLoading(false);
 
@@ -347,6 +376,7 @@ export default function DashboardRestaurantesPage() {
       userName={name}
       email={email}
       accountRef={accountRef}
+      ownerId={ownerId}
     >
       <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-7">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -407,8 +437,6 @@ export default function DashboardRestaurantesPage() {
               {rows.map((r) => {
                 const publicHref = appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(r.slug)}`, lang);
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=${lang}&q=${encodeURIComponent(r.business_name)}`;
-                const statusLabel =
-                  r.status === "published" ? (lang === "es" ? "Publicado" : "Published") : r.status;
                 const restaurantListingPlan = categoryAdPlanDisplayLabel(
                   resolveCategoryAdPlan({
                     category: "restaurantes",
@@ -417,13 +445,61 @@ export default function DashboardRestaurantesPage() {
                   }),
                   lang,
                 );
-                const couponUpgradeEligible = restaurantCouponAddonUpgradeEligible({
+                const addonStatus = dashboardAddonStatusForKey(entitlementBadges, [
+                  r.id,
+                  r.slug ?? "",
+                  r.leonix_ad_id ?? "",
+                ]);
+                // Package C Build 3 (C5/C6) — coupons are now included in the $399/mo base
+                // package, so a listing with no separate addon entitlement row can still have a
+                // real, server-verified active module via resolveBusinessToolsAccess. Never
+                // downgrade a real "active" addonStatus; only upgrade "not_purchased".
+                const hasCouponsCapability = dashboardHasCapabilityForKey(
+                  entitlementBadges,
+                  [r.id, r.slug ?? "", r.leonix_ad_id ?? ""],
+                  "coupons_offers",
+                );
+                const couponEntitlementStatus =
+                  addonStatus === "not_purchased" && hasCouponsCapability ? "active" : addonStatus;
+                // Gate G.3.2 — real global status/attention pilot, read-only. Every row here is
+                // already scoped to this authenticated owner by the fetch's own
+                // `.eq("owner_user_id", user.id)` filter, so `ownerVerified` is always true.
+                const restauranteLifecycleContract = (() => {
+                  const eligibilityInput = buildRestaurantesEligibilityInput({
+                    canonicalListingId: r.id,
+                    ownerVerified: true,
+                    rawStatus: r.status,
+                    couponEntitlementStatus,
+                    now: new Date(),
+                  });
+                  return {
+                    status: resolveOwnerFacingStatus(eligibilityInput),
+                    attention: resolveAttentionState(eligibilityInput),
+                  };
+                })();
+                const statusLabel =
+                  lang === "es" ? restauranteLifecycleContract.status.labelEs : restauranteLifecycleContract.status.labelEn;
+                const lifecycleAttentionMessage = restauranteLifecycleAttentionMessage(
+                  restauranteLifecycleContract.attention.severity,
+                  lang,
+                );
+                const lifecycleNote = lifecycleAttentionMessage
+                  ? {
+                      text: lifecycleAttentionMessage,
+                      tone: (restauranteLifecycleContract.attention.severity === "urgent"
+                        ? "urgent"
+                        : restauranteLifecycleContract.attention.severity === "action_required"
+                          ? "warning"
+                          : "neutral") as "urgent" | "warning" | "neutral",
+                    }
+                  : null;
+                const couponUpgradeEligible = restaurantCouponAddonUpgradeEligibleFromLifecycle({
                   status: r.status,
-                  listingJson: r.listing_json,
+                  addonStatus: couponEntitlementStatus,
                 });
-                const couponEditEligible = restaurantCouponEditEligible({
+                const couponEditEligible = restaurantCouponEditEligibleFromLifecycle({
                   status: r.status,
-                  listingJson: r.listing_json,
+                  addonStatus: couponEntitlementStatus,
                 });
                 const cardActions: Array<{
                   href?: string;
@@ -435,7 +511,12 @@ export default function DashboardRestaurantesPage() {
                   { href: publicHref, label: t.linkPublic, tone: "primary" },
                   { href: resultsHref, label: t.linkResults, tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: t.openAnalytics, tone: "subtle" },
-                  { href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" },
+                  // Gate I.12A — the inbox route this links to is not built yet; never advertise
+                  // it until DASHBOARD_INTERNAL_INBOX_READY is real (same flag the rest of the
+                  // dashboard already uses to hide this same unfinished feature).
+                  ...(DASHBOARD_INTERNAL_INBOX_READY
+                    ? [{ href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" as const }]
+                    : []),
                   { href: publishHref, label: t.linkForm },
                   {
                     label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,
@@ -481,6 +562,7 @@ export default function DashboardRestaurantesPage() {
                       r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                     ].filter(Boolean)}
                     footerHint={cardFooterHint}
+                    lifecycleNote={lifecycleNote}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: restaurantListingPlan },
                       { label: t.cardSlug, value: r.slug },
@@ -497,5 +579,13 @@ export default function DashboardRestaurantesPage() {
         ) : null}
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardRestaurantesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardRestaurantesPageContent />
+    </Suspense>
   );
 }

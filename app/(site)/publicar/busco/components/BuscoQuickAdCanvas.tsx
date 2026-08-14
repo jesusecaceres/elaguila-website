@@ -6,6 +6,8 @@ import { FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa";
 import { FiExternalLink, FiMapPin } from "react-icons/fi";
 
 import ContactActions from "@/app/(site)/clasificados/components/ContactActions";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { LeonixTrustFooter } from "@/app/(site)/clasificados/components/leonixShell/LeonixTrustFooter";
 import { LEONIX_SHELL } from "@/app/(site)/clasificados/components/leonixShell/leonixShellTheme";
@@ -189,6 +191,40 @@ export function BuscoQuickAdCanvas({
                 listingId={vm.listingId}
                 listingCategory="busco"
                 className="flex flex-wrap gap-2"
+                onContact={
+                  vm.listingId
+                    ? (intent?: CtaSheetIntent) => {
+                        // Package D Build D3, Gate 3 — this call-site previously had listingId but
+                        // no onContact at all, so no CTA click was tracked here.
+                        if (!intent) return;
+                        const kindAndProvider: { kind: ConnectionHubCtaKind; provider?: string } | null =
+                          intent.kind === "call"
+                            ? { kind: "phone" }
+                            : intent.kind === "send_message"
+                              ? intent.whatsappDigits
+                                ? { kind: "whatsapp" }
+                                : { kind: "phone", provider: "sms" }
+                              : intent.kind === "send_email"
+                                ? { kind: "email" }
+                                : intent.kind === "directions"
+                                  ? { kind: "directions" }
+                                  : intent.kind === "website"
+                                    ? { kind: "website" }
+                                    : null;
+                        if (!kindAndProvider) return;
+                        dispatchConnectionHubCta({
+                          kind: kindAndProvider.kind,
+                          provider: kindAndProvider.provider,
+                          category: "busco",
+                          sourceTable: "listings",
+                          // Non-null: this callback only exists when `vm.listingId` was truthy at
+                          // render time (see the ternary above).
+                          sourceId: vm.listingId!,
+                          surface: "busco_detail",
+                        });
+                      }
+                    : undefined
+                }
               />
             </div>
           </section>

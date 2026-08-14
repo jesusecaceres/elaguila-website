@@ -102,6 +102,43 @@ export async function grantServiciosOffersAddonEntitlementFromBasePayment(input:
   return { ok: true };
 }
 
+/**
+ * Gate E.1 — corrects `listing_source` on the entitlement row created for a standalone
+ * (dashboard-direct) Servicios offers add-on purchase (packageKey === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+ * not bundled with a base-listing purchase).
+ *
+ * The shared, category-agnostic `activateEntitlementsForPayment` (revenueEntitlementFulfillment.ts)
+ * writes `listing_source: packageDef.category` for every category — for Servicios that's the
+ * literal string `"servicios"`. But the only live reader of this entitlement
+ * (`fetchActiveServiciosOffersEntitlementKeys` in `app/api/clasificados/servicios/my-listings/route.ts`)
+ * filters on `listing_source = "servicios_public_listings"` (matching the bundled-purchase path in
+ * `grantServiciosOffersAddonEntitlementFromBasePayment` below, which already writes the correct
+ * value). Without this correction, a real, successful standalone add-on payment never shows as
+ * active anywhere in the product.
+ *
+ * Scoped to the exact entitlement row created for this payment (by id, plus category/package_key
+ * as a defensive scope guard) — never a broad table backfill. Other categories' entitlement rows
+ * are never touched by this function.
+ */
+export async function normalizeServiciosOffersAddonEntitlementSource(input: {
+  packageEntitlementId: string | null | undefined;
+}): Promise<{ ok: boolean; message?: string }> {
+  const id = input.packageEntitlementId?.trim();
+  if (!id) return { ok: true };
+  if (!isSupabaseAdminConfigured()) return { ok: false, message: "Supabase admin is not configured." };
+
+  const supabase = getAdminSupabase();
+  const { error } = await supabase
+    .from("listing_package_entitlements")
+    .update({ listing_source: "servicios_public_listings" })
+    .eq("id", id)
+    .eq("category", "servicios")
+    .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
+
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
 export type ServiciosRevenueActivationOutcome =
   | "activated"
   | "already_published"

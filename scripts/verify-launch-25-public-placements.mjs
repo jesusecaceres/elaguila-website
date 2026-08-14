@@ -36,16 +36,14 @@ const homeSrc = read(home);
 const magazineSrc = read(magazine);
 const combined = [homeSrc, magazineSrc].join("\n");
 
-if (!homeSrc.includes("LeonixLaunchCouponCard")) fail("Home must use LeonixLaunchCouponCard");
-if (!homeSrc.includes('source=home')) fail("Home CTA must include source=home");
-if (!homeSrc.includes("sourceCta=launch_25")) fail("Home CTA must include sourceCta=launch_25");
-if (!homeSrc.includes('variant="compact"')) fail("Home should use compact Launch 25 variant");
-ok("Home Launch 25 placement verified");
+// Package C Build 2 (C4) — the Launch 25 campaign is retired. LeonixLaunchCouponCard is no
+// longer rendered anywhere live (the component file itself is untouched; only its render call
+// sites were removed). This gate now asserts absence, not presence.
+if (homeSrc.includes("LeonixLaunchCouponCard")) fail("Home must no longer render LeonixLaunchCouponCard (Launch 25 retired)");
+ok("Home no longer renders the retired Launch 25 card");
 
-if (!magazineSrc.includes("LeonixLaunchCouponCard")) fail("Magazine must use LeonixLaunchCouponCard");
-if (!magazineSrc.includes("source=digital_magazine")) fail("Magazine CTA must include source=digital_magazine");
-if (!magazineSrc.includes("sourceCta=launch_25")) fail("Magazine CTA must include sourceCta=launch_25");
-ok("Digital magazine Launch 25 placement verified");
+if (magazineSrc.includes("LeonixLaunchCouponCard")) fail("Magazine must no longer render LeonixLaunchCouponCard (Launch 25 retired)");
+ok("Digital magazine no longer renders the retired Launch 25 card");
 
 for (const s of [
   "coupon works for all categories",

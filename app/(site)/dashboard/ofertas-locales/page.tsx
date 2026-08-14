@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -9,6 +9,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { OfertaLocalOwnerListItem } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -29,7 +31,7 @@ function statusChipClass(status: string): string {
   }
 }
 
-export default function OfertasLocalesOwnerDashboardPage() {
+function OfertasLocalesOwnerDashboardPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/ofertas-locales";
   const searchParams = useSearchParams();
@@ -88,6 +90,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
 
   const [authLoading, setAuthLoading] = useState(true);
   const [offers, setOffers] = useState<OfertaLocalOwnerListItem[]>([]);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +102,7 @@ export default function OfertasLocalesOwnerDashboardPage() {
         router.replace(`/login?redirect=${redirect}`);
         return;
       }
+      if (!cancelled) setOwnerId(userData.user.id);
       const { data: sess } = await sb.auth.getSession();
       const token = sess.session?.access_token ?? "";
       if (!token) {
@@ -124,14 +128,14 @@ export default function OfertasLocalesOwnerDashboardPage() {
 
   if (authLoading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
       </LeonixDashboardShell>
     );
   }
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#1E1810] sm:text-3xl">{t.title}</h1>
@@ -223,5 +227,13 @@ export default function OfertasLocalesOwnerDashboardPage() {
         </div>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function OfertasLocalesOwnerDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <OfertasLocalesOwnerDashboardPageContent />
+    </Suspense>
   );
 }

@@ -38,6 +38,7 @@ import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile, mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { postServiciosPublishApi, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
 import { upsertLocalServiciosPublish } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
@@ -51,7 +52,6 @@ import {
 import { SERVICIOS_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   SERVICIOS_CHECKPOINT_CONFIRMATIONS,
-  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
@@ -59,7 +59,6 @@ import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
 } from "@/app/lib/newsletter/checkoutNewsletterCapture";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 /** Seller preview — application draft or DB-backed listing (dashboard preview=listing). */
 type Source = "loading" | "application" | "missing" | "listing-error";
@@ -138,8 +137,15 @@ export function ClasificadosServiciosPreviewClient() {
   const returnPanel = searchParams?.get("returnPanel") ?? "";
   const previewMode = searchParams?.get("mode") ?? "";
   const previewFocus = searchParams?.get("focus") === "coupon-upgrade" ? "coupon-upgrade" : null;
-  const listingBoundPreview =
+  const listingBound =
     previewListingParam || (dashboardSource && Boolean(listingId || listingSlug || leonixAdId));
+  /* Globalization P3 (Gate 1) — routed through the shared preview-mode contract
+     (app/lib/listingIdentity/previewModeContract.ts), same as Bienes Raíces Negocio. This lane
+     has only one listing-bound UI state today, so it resolves as "edit-draft" whenever bound —
+     identical behavior to the prior local boolean. Named `sharedPreviewMode` — `previewMode`
+     above is a pre-existing, unrelated local reading the raw `?mode=` query param. */
+  const sharedPreviewMode = resolvePreviewMode({ listingBound });
+  const listingBoundPreview = previewModeIsListingBound(sharedPreviewMode);
   const dashboardReturnHref = withClasificadosPublishLang(
     returnPanel === "servicios" ? "/dashboard/servicios" : "/dashboard/mis-anuncios?cat=servicios",
     routeLang,
@@ -445,11 +451,11 @@ export function ClasificadosServiciosPreviewClient() {
   const showFinalCheckout =
     !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
 
+  // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+  // package. The toggle stays as content/setup intent only — never a checkout line item.
   const checkoutSubtotalCents = useMemo(() => {
-    const baseCents = getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
-    const offersCents = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
-    return baseCents + (offersAddonSelected ? offersCents : 0);
-  }, [offersAddonSelected]);
+    return getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
+  }, []);
 
   const checkpointConfig = useMemo((): PublishCheckpointConfig => {
     return {
@@ -496,7 +502,12 @@ export function ClasificadosServiciosPreviewClient() {
   );
 
   const onCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      promoCode: string | null;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+      requestVerifiedIntroDiscount?: boolean;
+    }) => {
       if (!appState) return;
       setCheckoutBusy(true);
       setCheckoutErr(null);
@@ -536,9 +547,8 @@ export function ClasificadosServiciosPreviewClient() {
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
-          ...(offersAddonSelected
-            ? { addOns: [{ key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY, quantity: 1 }] }
-            : {}),
+          recurringConsent: ctx.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
         });
 
         if (!checkout.ok) {
@@ -713,17 +723,10 @@ export function ClasificadosServiciosPreviewClient() {
                   : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
               </p>
             </div>
-            <div className="mb-5 max-w-xl">
-              <LeonixLaunchCouponCard
-                lang={lang === "en" ? "en" : "es"}
-                variant="compact"
-                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=servicios_checkout&sourceCta=launch_25`}
-              />
-            </div>
             <p className="mb-4 text-[11px] leading-relaxed text-[#7A7164]">
               {lang === "es"
-                ? "Usa tu código Leonix Launch 25 si aplica a este pago."
-                : "Use your Leonix Launch 25 code if it applies to this checkout."}
+                ? "Ingresa tu código promocional si tienes uno."
+                : "Enter your promo code if you have one."}
             </p>
             <PublishCheckoutCheckpoint
               id="servicios-publish-checkout-checkpoint"

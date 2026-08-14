@@ -21,12 +21,16 @@ import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayload
 import {
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
   countActiveDealerVehicles,
+  countActiveDealerInventoryVehicles,
   getDealerInventoryGroupId,
   resolveDealerInventoryGroupingKey,
   summarizeDealerInventory,
   type AutosDealerInventoryCount,
 } from "./autosDealerInventoryPolicy";
 import { resolveDealerInventoryGroupIdForParent } from "./autosDealerInventoryAddFlow";
+import { filterAutosRowsByActiveParent, isAutosChildParentGateSatisfied } from "./autosPublicChildParentVisibility";
+import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
+import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -96,7 +100,19 @@ async function ensureDealerInventoryParentMain(
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (needsGroup) patch.dealer_inventory_group_id = groupId;
   if (needsMain) patch.inventory_role = "main";
-  await supabase.from("autos_classifieds_listings").update(patch).eq("id", parent.id).eq("owner_user_id", parent.owner_user_id);
+  const { data: updated, error } = await supabase
+    .from("autos_classifieds_listings")
+    .update(patch)
+    .eq("id", parent.id)
+    .eq("owner_user_id", parent.owner_user_id)
+    .select("id");
+  // Gate I.13A — this write was previously fire-and-forget (result never captured); now
+  // logged so a failed/zero-row promotion is at least visible server-side, not silent.
+  if (error) {
+    console.error("ensureDealerInventoryParentMain", error);
+  } else if (!updated || updated.length === 0) {
+    console.error("ensureDealerInventoryParentMain: zero-row match", { id: parent.id });
+  }
 }
 
 export async function createAutosClassifiedsListing(input: CreateAutosListingInput): Promise<AutosListingPersistResult> {
@@ -179,9 +195,13 @@ export async function listActiveDealerInventoryByGroupId(
     .limit(cap);
   if (error || !data?.length) return [];
   const exclude = opts?.excludeListingId?.trim();
-  return data
+  const rows = data
     .map((r) => rowFromDb(r as Record<string, unknown>))
     .filter((row) => !exclude || row.id !== exclude);
+  // Gate I.13B — exclude inventory children whose main parent isn't active/present in this
+  // same active-group fetch, mirroring Bienes Raíces Negocio's proven parent-liveness gate.
+  const parentsById = new Map(rows.map((r) => [r.id, r]));
+  return filterAutosRowsByActiveParent(rows, parentsById);
 }
 
 export async function getAutosClassifiedsListingById(id: string): Promise<AutosClassifiedsListingRow | null> {
@@ -198,17 +218,41 @@ export async function assertAutosListingOwner(listingId: string, ownerUserId: st
   return row;
 }
 
-/** Payload + lang may be updated while status is draft or payment_failed (recoverable). */
+/**
+ * Payload + lang may be updated:
+ *  - while status is draft / payment_failed / pending_payment (recoverable pre-publish states,
+ *    all lanes, unchanged from prior behavior), OR
+ *  - while status is active AND lane is "negocios" — an authenticated owner editing an
+ *    already-published dealer parent or vehicle child row in place. This is the only status/
+ *    lane combination this gate adds; Autos Privado's editable-status set is unchanged (an
+ *    active `privado` row is still rejected here, exactly as before).
+ *
+ * Never touches `status`, Stripe fields, entitlement state, `dealer_inventory_group_id`,
+ * `dealer_inventory_parent_listing_id`, `inventory_role`, or `lane` — only `listing_payload`
+ * and `lang` are ever written, so identity/lifecycle columns are preserved by construction.
+ * Always updates the existing row by its real primary UUID; never inserts a replacement row.
+ */
 export async function updateAutosClassifiedsListingDraft(
   listingId: string,
   ownerUserId: string,
   input: { listing: AutoDealerListing; lang?: AutosClassifiedsLang },
 ): Promise<AutosListingPersistResult> {
   const row = await assertAutosListingOwner(listingId, ownerUserId);
-  if (!row) return { row: null, persistWarnings: [] };
-  if (row.status !== "draft" && row.status !== "payment_failed" && row.status !== "pending_payment")
-    return { row: null, persistWarnings: [] };
-  if (!isSupabaseAdminConfigured()) return { row: null, persistWarnings: [] };
+  if (!row) {
+    // Deliberately the same outcome for "no such row" and "row belongs to another owner" —
+    // matches the pre-existing anti-enumeration posture of assertAutosListingOwner, not weakened.
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  const recoverableStatus = row.status === "draft" || row.status === "payment_failed" || row.status === "pending_payment";
+  const negociosActiveEditable = row.lane === "negocios" && row.status === "active";
+  if (!recoverableStatus && !negociosActiveEditable) {
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_STATUS_NOT_EDITABLE" };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_DB_NOT_CONFIGURED" };
+  }
   const supabase = getAdminSupabase();
   const normalized = normalizeLoadedListing({
     ...input.listing,
@@ -224,6 +268,8 @@ export async function updateAutosClassifiedsListingDraft(
       updated_at: new Date().toISOString(),
     })
     .eq("id", listingId)
+    // Defense in depth: the write itself is owner-scoped, not just the preceding read.
+    .eq("owner_user_id", ownerUserId)
     .select()
     .single();
   if (error || !data) {
@@ -239,6 +285,83 @@ export async function updateAutosClassifiedsListingDraft(
   return { row: updated, persistWarnings };
 }
 
+/**
+ * Globalization Package B (Gate B5) — propagate a dealer parent's embedded inventory edits to
+ * each child vehicle's OWN row (ledger defect D4: drawer edits to a child previously updated
+ * only the parent's `listing_payload`, so the child's public page/results kept rendering the
+ * stale payload forever).
+ *
+ * Contract:
+ *  - owner-verified on the parent AND per-child (updateAutosClassifiedsListingDraft is itself
+ *    owner-scoped on read and write);
+ *  - only embedded vehicles whose `id` matches an owned child row of THIS parent's group are
+ *    touched — a draft-only vehicle (not yet a row) or a foreign id is skipped, never created
+ *    or hijacked (no duplicate vehicle, no sibling overwrite, no self-parenting: the parent's
+ *    own id is explicitly excluded);
+ *  - the child payload is rebuilt through the SAME mapper used at child-row creation
+ *    (mapInheritedDealerPreviewListing), so VIN/NHTSA-decoded and manually corrected fields
+ *    carry exactly as they do on create;
+ *  - only `listing_payload`/`lang` are written (service construction) — child id, Leonix Ad
+ *    ID, status, lane, and inventory columns are preserved;
+ *  - partial failures are reported, never silently swallowed.
+ */
+export async function syncDealerInventoryChildRowsFromParentPayload(
+  parentListingId: string,
+  ownerUserId: string,
+): Promise<{ updatedChildIds: string[]; failedChildIds: string[] }> {
+  const none = { updatedChildIds: [] as string[], failedChildIds: [] as string[] };
+  const parent = await assertAutosListingOwner(parentListingId, ownerUserId);
+  if (!parent || parent.lane !== "negocios" || parent.inventory_role === "inventory_vehicle") return none;
+
+  const embeddedRaw = (parent.listing_payload as { additionalInventoryVehicles?: unknown })
+    .additionalInventoryVehicles;
+  const embedded = Array.isArray(embeddedRaw) ? embeddedRaw : [];
+  if (!embedded.length) return none;
+
+  if (!isSupabaseAdminConfigured()) return none;
+  const supabase = getAdminSupabase();
+  const groupId = getDealerInventoryGroupId(parent) ?? parent.id;
+  const { data: childRowsRaw, error } = await supabase
+    .from("autos_classifieds_listings")
+    .select("id, owner_user_id, lane, inventory_role, dealer_inventory_parent_listing_id, dealer_inventory_group_id")
+    .eq("owner_user_id", ownerUserId)
+    .eq("lane", "negocios")
+    .eq("inventory_role", "inventory_vehicle");
+  if (error || !childRowsRaw?.length) return none;
+  const ownedChildIds = new Set(
+    (childRowsRaw as Array<Record<string, unknown>>)
+      .filter((r) => {
+        const id = String(r.id ?? "");
+        if (!id || id === parent.id) return false;
+        return (
+          String(r.dealer_inventory_parent_listing_id ?? "") === parent.id ||
+          String(r.dealer_inventory_group_id ?? "") === groupId
+        );
+      })
+      .map((r) => String(r.id)),
+  );
+
+  const updatedChildIds: string[] = [];
+  const failedChildIds: string[] = [];
+  for (const rawVehicle of embedded) {
+    if (!rawVehicle || typeof rawVehicle !== "object") continue;
+    const vehicle = rawVehicle as { id?: unknown };
+    const childId = typeof vehicle.id === "string" ? vehicle.id.trim() : "";
+    if (!childId || !ownedChildIds.has(childId)) continue; // draft-only or foreign — never touched
+    const merged = mapInheritedDealerPreviewListing(
+      parent.listing_payload,
+      rawVehicle as Parameters<typeof mapInheritedDealerPreviewListing>[1],
+    );
+    const res = await updateAutosClassifiedsListingDraft(childId, ownerUserId, {
+      listing: merged,
+      lang: parent.lang,
+    });
+    if (res.row) updatedChildIds.push(childId);
+    else failedChildIds.push(childId);
+  }
+  return { updatedChildIds, failedChildIds };
+}
+
 export async function listAutosClassifiedsListingsForOwner(ownerUserId: string): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
@@ -251,20 +374,25 @@ export async function listAutosClassifiedsListingsForOwner(ownerUserId: string):
   return data.map((r) => rowFromDb(r as Record<string, unknown>));
 }
 
+/**
+ * Package C Build 4 (C7, Gate 4) — UX/preflight only (never the financial authority; that's the
+ * atomic RPC). `groupScopeParent`, when supplied, scopes the count to that parent's exact dealer
+ * group (`resolveDealerInventoryGroupingKey`) instead of the whole owner — closing the same
+ * owner-wide-pooling defect fixed in `commercialWriteGuard.ts`'s preflight counter. Omitting it
+ * preserves the historical owner-wide count for any caller not yet passing group context.
+ */
 export async function getAutosDealerInventorySummaryForOwner(
   ownerUserId: string,
-  opts?: { excludeListingId?: string },
+  opts?: { excludeListingId?: string; groupScopeParent?: Pick<AutosClassifiedsListingRow, "lane" | "dealer_inventory_group_id" | "owner_user_id"> },
 ): Promise<AutosDealerInventoryCount> {
   const rows = await listAutosClassifiedsListingsForOwner(ownerUserId);
-  const activeCount = countActiveDealerVehicles(rows, opts?.excludeListingId);
+  const activeCount = opts?.groupScopeParent
+    ? countActiveDealerInventoryVehicles(rows, {
+        groupingKey: resolveDealerInventoryGroupingKey(opts.groupScopeParent),
+        excludeListingId: opts?.excludeListingId,
+      })
+    : countActiveDealerVehicles(rows, opts?.excludeListingId);
   return summarizeDealerInventory(activeCount, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
-}
-
-async function canActivateDealerListing(row: AutosClassifiedsListingRow): Promise<AutosDealerInventoryCount> {
-  if (row.lane !== "negocios" || row.status === "active") {
-    return summarizeDealerInventory(0, STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
-  }
-  return getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
 }
 
 export type AutosClassifiedsDashboardRow = {
@@ -320,6 +448,21 @@ export async function markAutosClassifiedsListingRemovedIfOwner(listingId: strin
   return updateAutosListingStatus(listingId, "removed");
 }
 
+/**
+ * Globalization Package A Gate 5 — the missing second half of the owner pause cycle (the
+ * ledger's "Auto Dealers: one-way unpublish only, no resume"). Owner may restore a listing
+ * THEY unpublished: strictly "removed" → "active". Deliberately never restores from
+ * "suspended" (admin moderation state — not owner-reversible), and never from
+ * draft/pending_payment/payment_failed (those resume through their own publish/payment
+ * flows). Same owner verification as unpublish; a restored child stays publicly hidden while
+ * its parent is non-live (the I.13B parent-liveness gate is downstream of status).
+ */
+export async function markAutosClassifiedsListingRestoredIfOwner(listingId: string, ownerUserId: string): Promise<boolean> {
+  const row = await assertAutosListingOwner(listingId, ownerUserId);
+  if (!row || row.status !== "removed") return false;
+  return updateAutosListingStatus(listingId, "active");
+}
+
 export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
@@ -339,7 +482,15 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
     error = fb.error;
   }
   if (error || !data?.length) return [];
-  return data.map((r) => rowFromDb(r as Record<string, unknown>));
+  const rows = data.map((r) => rowFromDb(r as Record<string, unknown>));
+  // Gate I.13B — a suspended/removed dealer's parent row no longer appears in this
+  // active-only fetch; exclude any inventory_vehicle child whose parent isn't in this same
+  // active set, mirroring Bienes Raíces Negocio's proven parent-liveness gate. Every real
+  // caller of this function treats its result as "the public active pool," so this is the
+  // single place that fixes both the public results feed and (via getActiveLiveAutosBundle's
+  // internal reuse below) related-inventory cards on a vehicle's own detail page.
+  const parentsById = new Map(rows.map((r) => [r.id, r]));
+  return filterAutosRowsByActiveParent(rows, parentsById);
 }
 
 /** Admin workspace: paid Autos rows (any status), newest first. */
@@ -390,18 +541,28 @@ export async function setAutosListingPendingPayment(listingId: string, stripeChe
   });
 }
 
+/**
+ * Package C Build 4 (C7, Gate 4) — QA/internal-bypass activation path (env/allowlist-gated,
+ * never reachable by a normal paying dealer — see `checkout/route.ts`'s bypass guards). Routes
+ * `negocios` activation through the same atomic RPC as the real payment path so no code path can
+ * write `status='active'` on a capacity-relevant row outside the RPC's group-scoped, lifecycle-
+ * aware, advisory-lock-serialized authority — a QA bypass must never be a capacity backdoor.
+ */
 export async function activateAutosClassifiedsListing(listingId: string): Promise<boolean> {
   const row = await getAutosClassifiedsListingById(listingId);
   if (!row) return false;
-  const dealerSummary = await canActivateDealerListing(row);
-  if (row.lane === "negocios" && !dealerSummary.canAddActiveVehicle) return false;
-  const now = new Date().toISOString();
-  const ok = await updateAutosListingStatus(listingId, "active", { published_at: now });
-  if (!ok) return false;
   if (row.lane === "negocios") {
+    const result = await activateAutosDealerListingAtomic({
+      listingId,
+      ownerUserId: row.owner_user_id,
+      fromStatus: row.status,
+    });
+    if (!result.ok || (!result.activated && !result.idempotent)) return false;
     await ensureNegociosInventoryGroupingOnActivate(listingId);
+    return true;
   }
-  return true;
+  const now = new Date().toISOString();
+  return updateAutosListingStatus(listingId, "active", { published_at: now });
 }
 
 /**
@@ -428,7 +589,7 @@ export async function promoteNegociosMainInventoryListing(listingId: string): Pr
   }
   const groupId = getDealerInventoryGroupId(row) ?? row.id;
   const supabase = getAdminSupabase();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("autos_classifieds_listings")
     .update({
       dealer_inventory_group_id: groupId,
@@ -436,9 +597,15 @@ export async function promoteNegociosMainInventoryListing(listingId: string): Pr
       updated_at: new Date().toISOString(),
     })
     .eq("id", row.id)
-    .eq("owner_user_id", row.owner_user_id);
+    .eq("owner_user_id", row.owner_user_id)
+    .select("id");
   if (error) {
     console.error("promoteNegociosMainInventoryListing", error);
+    return null;
+  }
+  // Gate I.13A — a zero-row match must never be reported as a successful promotion.
+  if (!updated || updated.length === 0) {
+    console.error("promoteNegociosMainInventoryListing: zero-row match", { id: row.id });
     return null;
   }
   return groupId;
@@ -454,8 +621,17 @@ export type TryActivateAutosResult = {
 };
 
 /**
- * Idempotent activation after Stripe paid. Uses `status = pending_payment` in the WHERE clause
- * so concurrent verify + webhook only perform one transition (the other becomes a no-op ok).
+ * Idempotent activation after Stripe paid.
+ *
+ * Package C Build 4 (C7, Gate 4) — for `negocios` rows, the actual capacity check + status
+ * transition now runs through `autos_dealer_activate_listing` (atomic, group-scoped, entitlement-
+ * and lifecycle-deriving, advisory-lock-serialized) instead of the boost-unaware
+ * `canActivateDealerListing` + unguarded conditional UPDATE this function used before. The RPC's
+ * own idempotent-already-active branch and `p_from_status='pending_payment'` match replace the
+ * former `.eq("status","pending_payment")` CAS — concurrent verify + webhook still only perform
+ * one real transition, now proven atomic under the group lock rather than merely status-CAS-safe.
+ * `privado` rows (not capacity-relevant, not part of the parent/child system) keep the original
+ * direct, unguarded update — unchanged.
  */
 export async function tryActivateAutosListingAfterPayment(
   listingId: string,
@@ -466,15 +642,40 @@ export async function tryActivateAutosListingAfterPayment(
   if (!existing) return { ok: false, transitioned: false };
   if (existing.status === "active") return { ok: true, transitioned: false };
   if (existing.status !== "pending_payment") return { ok: false, transitioned: false };
-  const dealerSummary = await canActivateDealerListing(existing);
-  if (existing.lane === "negocios" && !dealerSummary.canAddActiveVehicle) {
-    return {
-      ok: false,
-      transitioned: false,
-      error: AUTOS_DEALER_ACTIVE_LIMIT_ERROR,
-      dealerInventory: dealerSummary,
-    };
+
+  if (existing.lane === "negocios") {
+    const result = await activateAutosDealerListingAtomic({
+      listingId,
+      ownerUserId: existing.owner_user_id,
+      fromStatus: "pending_payment",
+    });
+    if (!result.ok) {
+      console.error("tryActivateAutosListingAfterPayment RPC error", result.rpcError);
+      return { ok: false, transitioned: false };
+    }
+    if (!result.activated && !result.idempotent) {
+      const limit = result.effectiveLimit ?? STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT;
+      const activeCount = result.activeCount ?? limit;
+      return {
+        ok: false,
+        transitioned: false,
+        error: AUTOS_DEALER_ACTIVE_LIMIT_ERROR,
+        dealerInventory: summarizeDealerInventory(activeCount, limit),
+      };
+    }
+    if (result.activated) {
+      const supabase = getAdminSupabase();
+      const pi = opts?.stripePaymentIntentId;
+      await supabase
+        .from("autos_classifieds_listings")
+        .update({ stripe_checkout_session_id: null, ...(pi ? { stripe_payment_intent_id: pi } : {}) })
+        .eq("id", listingId);
+      await ensureNegociosInventoryGroupingOnActivate(listingId);
+    }
+    return { ok: true, transitioned: result.activated === true };
   }
+
+  // privado — not capacity-relevant, unchanged direct path.
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {
@@ -496,19 +697,9 @@ export async function tryActivateAutosListingAfterPayment(
     console.error("tryActivateAutosListingAfterPayment", error);
     return { ok: false, transitioned: false };
   }
-  if (data) {
-    if (existing.lane === "negocios") {
-      await ensureNegociosInventoryGroupingOnActivate(listingId);
-    }
-    return { ok: true, transitioned: true };
-  }
+  if (data) return { ok: true, transitioned: true };
   const again = await getAutosClassifiedsListingById(listingId);
-  if (again?.status === "active") {
-    if (again.lane === "negocios") {
-      await ensureNegociosInventoryGroupingOnActivate(listingId);
-    }
-    return { ok: true, transitioned: false };
-  }
+  if (again?.status === "active") return { ok: true, transitioned: false };
   return { ok: false, transitioned: false };
 }
 
@@ -580,6 +771,16 @@ export async function getActiveLiveAutosBundle(
 } | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
+  // Gate I.13B — a child (inventory_vehicle) row must not be publicly reachable at its own
+  // direct detail URL unless its main parent is itself active; mirrors the Bienes Raíces
+  // Negocio parent-liveness gate (this row bypasses listActiveAutosClassifiedsRows' own gate
+  // below since it's fetched directly by id, so it needs its own explicit check here).
+  if (row.inventory_role === "inventory_vehicle") {
+    const parentId = row.dealer_inventory_parent_listing_id;
+    const parent = parentId ? await getAutosClassifiedsListingById(parentId) : null;
+    const parentsById = parent ? new Map([[parent.id, parent]]) : new Map();
+    if (!isAutosChildParentGateSatisfied(row, parentsById)) return null;
+  }
   const poolRows = await listActiveAutosClassifiedsRows();
   const groupingKey = resolveDealerInventoryGroupingKey(row);
   const dealerRows = poolRows.filter(

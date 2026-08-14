@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { RestaurantesSelectorClient } from "./RestaurantesSelectorClient";
 import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
@@ -99,9 +100,11 @@ export default async function RestaurantesPublicarSelectorPage(props: PageProps)
   const t = COPY[lang];
 
   return (
-    <RestaurantesSelectorClient
-      t={t}
-      lang={lang}
-    />
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <RestaurantesSelectorClient
+        t={t}
+        lang={lang}
+      />
+    </Suspense>
   );
 }

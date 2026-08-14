@@ -1,11 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getLeonixMarketplaceRulesCopy } from "@/app/clasificados/en-venta/shared/lib/leonixMarketplaceRulesCopy";
 import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 
-export default function ReglasPage() {
+function ReglasPageContent() {
   const searchParams = useSearchParams();
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = navCopyLang(routeLang);
@@ -35,5 +37,13 @@ export default function ReglasPage() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function ReglasPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ReglasPageContent />
+    </Suspense>
   );
 }

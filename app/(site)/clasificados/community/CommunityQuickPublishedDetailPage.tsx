@@ -287,7 +287,7 @@ export function CommunityQuickPublishedDetailPage({
               </a>
               <div className="flex flex-wrap gap-3">
                 <a
-                  href={`/clasificados/publicar?lang=${lang}`}
+                  href={`/publicar?lang=${lang}`}
                   className="inline-flex min-h-[40px] items-center rounded-xl bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-[#FFFDF7] shadow-sm transition hover:opacity-90"
                 >
                   {t.post}

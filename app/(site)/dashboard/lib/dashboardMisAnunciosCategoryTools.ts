@@ -1,4 +1,5 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import type { DashboardInventoryItem } from "./dashboardInventory";
 import {
   type MisAnunciosCategoryDef,
@@ -57,6 +58,9 @@ export const CATEGORY_PANEL_TOOL_TRUTH: Record<
   clases: { publish: "future" },
   comunidad: { publish: "future" },
   busco: { openPanel: "hidden", publish: "ready" },
+  // Work Package I.8B — Mascotas now discoverable in Mis Anuncios (real rows, canonical UUID,
+  // safe public route). No dedicated category panel, same as Busco.
+  mascotas: { openPanel: "hidden", publish: "ready", publicResults: "ready" },
 };
 
 /** Listing-level tools on Mis anuncios cards. */
@@ -89,6 +93,12 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     preview: "ready",
     publicResults: "ready",
     analytics: "ready",
+    // Package E Build E2, Gate 4 — real backend already exists
+    // (/api/clasificados/servicios/manage, owner-verified, slug-keyed, published <->
+    // paused_unpublished state machine), previously only wired on the separate
+    // /dashboard/servicios page. Now also available on the unified My Listings card.
+    pause: "ready",
+    reactivate: "ready",
   },
   "comida-local": { publicView: "ready", analytics: "unproven" },
   autos: { publicView: "ready", archive: "ready", analytics: "ready" },
@@ -98,6 +108,13 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     preview: "ready",
     publicResults: "ready",
     analytics: "ready",
+    // Package E Build E2, Gate 4 — real backend already exists
+    // (PATCH /api/clasificados/empleos/listings/{id}, owner-verified, accepts
+    // published|paused|archived|draft with no per-transition gating), previously only wired on
+    // the /dashboard/empleos/[listingId] detail page. Now also available on the unified card.
+    pause: "ready",
+    archive: "ready",
+    reactivate: "ready",
   },
   rentas: {
     publicView: "ready",
@@ -125,6 +142,13 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
   clases: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   comunidad: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   busco: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
+  // Work Package I.8B — View public and Archive use the same generic, already-safe mechanisms as
+  // Busco/Clases/Comunidad. Edit carries no key here for the same reason as Busco/Clases/
+  // Comunidad: the Edit action for the generic listings family is delivered by
+  // resolveDashboardActions from the registry editRoute — which Globalization Package A Gate 5
+  // wired to the generic owner-verified editor for Mascotas (safety-proven; see the registry's
+  // adapter comment). Analytics stays "unproven" — no per-listing analytics route confirmed.
+  mascotas: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
 };
 
 export function categoryPanelToolStatus(
@@ -259,6 +283,57 @@ export function buildCategoryPanelActions(
 
 type InventoryCategory = "restaurantes" | "servicios" | "empleos" | "viajes";
 
+type CanonicalInventoryCategory = "restaurantes" | "servicios";
+
+const CANONICAL_SOURCE_TABLE: Record<
+  CanonicalInventoryCategory,
+  "restaurantes_public_listings" | "servicios_public_listings"
+> = {
+  restaurantes: "restaurantes_public_listings",
+  servicios: "servicios_public_listings",
+};
+
+/**
+ * Gate D.1 — resolves the truthful, canonical-identity href actions for one inventory item
+ * (Restaurantes/Servicios only). Returns an empty map (never a guessed/fallback href) when
+ * ownership isn't available or the item's id doesn't validate as the real DB uuid — callers
+ * must keep their existing legacy href as the fallback in that case, never render nothing.
+ */
+function canonicalInventoryHrefActions(
+  category: CanonicalInventoryCategory,
+  item: DashboardInventoryItem,
+  ownerUserId: string | null | undefined,
+  lang: Lang,
+): Map<string, DashboardAction> {
+  const owner = ownerUserId?.trim();
+  if (!owner) return new Map();
+
+  const identityResult = buildListingIdentity({
+    sourceTable: CANONICAL_SOURCE_TABLE[category],
+    sourceId: item.id,
+    category,
+    pipeline: category,
+    leonixAdId: item.leonixAdId ?? "",
+    ownerUserId: owner,
+    publicUrl: item.publicHref,
+  });
+  if (!identityResult.ok) return new Map();
+
+  const actions = resolveDashboardActions({
+    identity: identityResult.identity,
+    lifecycle: { status: item.status },
+    entitlement: {
+      couponsActive: item.restaurantCouponEditEligible,
+      offersActive: item.serviciosOffersAddonActive,
+    },
+    role: null,
+    ownerVerified: true,
+    lang: lang === "en" ? "en" : "es",
+  });
+
+  return new Map(actions.map((action) => [action.key, action]));
+}
+
 /** Listing-level CTAs for inventory cards (restaurant, service, jobs, travel). */
 export function buildInventoryListingActions(
   category: InventoryCategory,
@@ -280,14 +355,31 @@ export function buildInventoryListingActions(
     editLabelOverride?: string;
     /** Servicios offers-edit CTA label override (e.g. "Editar ofertas"). */
     offersEditLabelOverride?: string;
+    /** Gate D.1 — page-level authenticated owner id; required to source resolver hrefs. */
+    ownerUserId?: string | null;
+    /** Package E Build E2, Gate 4 — real pause/resume via /api/clasificados/servicios/manage. */
+    onServiciosManage?: (action: "pause" | "resume") => void;
+    serviciosManageBusy?: boolean;
+    /** Package E Build E2, Gate 4 — real pause/archive/resume via PATCH
+     * /api/clasificados/empleos/listings/{id}. */
+    onEmpleosLifecycle?: (next: "published" | "paused" | "archived") => void;
+    empleosLifecycleBusy?: boolean;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
 
+  const canonical: Map<string, DashboardAction> =
+    category === "restaurantes" || category === "servicios"
+      ? canonicalInventoryHrefActions(category, item, opts?.ownerUserId, lang)
+      : new Map();
+
   if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
     // Servicios existing-listing edit must carry P0C identity (mode=listing-edit, returnPanel=servicios).
+    // Gate D.4 — canonical resolver output preferred (verified parity in Gate D.4's read-only
+    // pass: `listingSlug` is a hydration fallback only, never required when a real listingId is
+    // present), falling back to the existing opts/href chain when identity isn't available.
     actions.push({
-      href: opts?.serviciosEditHref ?? item.editHref,
+      href: canonical.get("edit")?.href ?? opts?.serviciosEditHref ?? item.editHref,
       label: opts?.editLabelOverride ?? editListingLabel(lang),
       tone: "primary",
     });
@@ -307,7 +399,7 @@ export function buildInventoryListingActions(
 
   if (listingToolIsReady(category, "publicView")) {
     actions.push({
-      href: item.publicHref,
+      href: canonical.get("viewPublic")?.href ?? item.publicHref,
       label: publicViewLabel(lang),
       tone: category === "servicios" ? "secondary" : "primary",
     });
@@ -360,6 +452,42 @@ export function buildInventoryListingActions(
     });
   }
 
+  if (
+    category === "servicios" &&
+    item.status === "published" &&
+    listingToolIsReady(category, "pause") &&
+    opts?.onServiciosManage
+  ) {
+    actions.push({
+      label: opts.serviciosManageBusy
+        ? lang === "es"
+          ? "Pausando…"
+          : "Pausing…"
+        : pauseListingLabel(lang),
+      onClick: () => opts.onServiciosManage!("pause"),
+      disabled: opts.serviciosManageBusy,
+      tone: "secondary",
+    });
+  }
+
+  if (
+    category === "servicios" &&
+    item.status === "paused_unpublished" &&
+    listingToolIsReady(category, "reactivate") &&
+    opts?.onServiciosManage
+  ) {
+    actions.push({
+      label: opts.serviciosManageBusy
+        ? lang === "es"
+          ? "Restaurando…"
+          : "Restoring…"
+        : resumeListingLabel(lang),
+      onClick: () => opts.onServiciosManage!("resume"),
+      disabled: opts.serviciosManageBusy,
+      tone: "secondary",
+    });
+  }
+
   if (category === "servicios" && item.actionContract?.manageUrl) {
     actions.push({
       href: item.actionContract.manageUrl,
@@ -374,6 +502,34 @@ export function buildInventoryListingActions(
     });
   }
 
+  if (category === "empleos" && opts?.onEmpleosLifecycle) {
+    const busyLabel = lang === "es" ? "Actualizando…" : "Updating…";
+    if (item.status === "published" && listingToolIsReady(category, "pause")) {
+      actions.push({
+        label: opts.empleosLifecycleBusy ? busyLabel : pauseListingLabel(lang),
+        onClick: () => opts.onEmpleosLifecycle!("paused"),
+        disabled: opts.empleosLifecycleBusy,
+        tone: "secondary",
+      });
+    }
+    if (item.status === "paused" && listingToolIsReady(category, "reactivate")) {
+      actions.push({
+        label: opts.empleosLifecycleBusy ? busyLabel : resumeListingLabel(lang),
+        onClick: () => opts.onEmpleosLifecycle!("published"),
+        disabled: opts.empleosLifecycleBusy,
+        tone: "secondary",
+      });
+    }
+    if ((item.status === "published" || item.status === "paused") && listingToolIsReady(category, "archive")) {
+      actions.push({
+        label: opts.empleosLifecycleBusy ? busyLabel : archiveListingLabel(lang),
+        onClick: () => opts.onEmpleosLifecycle!("archived"),
+        disabled: opts.empleosLifecycleBusy,
+        tone: "subtle",
+      });
+    }
+  }
+
   if (category === "viajes" && listingToolIsReady(category, "edit")) {
     actions.push({
       href: item.editHref,
@@ -382,8 +538,11 @@ export function buildInventoryListingActions(
   }
 
   if (item.previewHref && listingToolIsReady(category, "preview")) {
+    // Gate D.4 — canonical resolver output preferred for Servicios only (verified safe; `mode`
+    // forced to "listing-edit" is inert since the Preview client defaults to the same value when
+    // absent). Restaurantes/Empleos/Viajes keep their existing item.previewHref untouched.
     actions.push({
-      href: item.previewHref,
+      href: (category === "servicios" ? canonical.get("preview")?.href : undefined) ?? item.previewHref,
       label: previewLabel(lang),
       tone: "subtle",
     });
@@ -397,7 +556,9 @@ export function buildInventoryListingActions(
     });
   }
 
-  const analyticsHref = provenInventoryAnalyticsHref(item);
+  const analyticsHref =
+    (category === "servicios" ? canonical.get("analytics")?.href : undefined) ??
+    provenInventoryAnalyticsHref(item);
   if (analyticsHref && listingToolIsReady(category, "analytics")) {
     actions.push({
       href: analyticsHref,

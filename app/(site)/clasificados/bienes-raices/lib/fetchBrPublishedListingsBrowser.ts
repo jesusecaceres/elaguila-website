@@ -1,6 +1,11 @@
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
+import {
+  collectBrChildParentIds,
+  filterBrRowsByActiveParent,
+  type BrPublicParentCandidate,
+} from "@/app/(site)/clasificados/lib/brPublicChildParentVisibility";
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados/lib/mapBrListingRowToCard";
 
@@ -72,9 +77,28 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
       return { listings: [], error: error.message };
     }
     const rows = (data ?? []) as BrListingDbRow[];
-    const mapped = rows
-      .filter((r) => isListingRowActiveAndPublishedForBrowse(r))
-      .map((r) => mapBrListingRowToNegocioCard(r, opts.lang));
+    const publicRows = rows.filter((r) => isListingRowActiveAndPublishedForBrowse(r));
+
+    // Gate G.2.3.4 — an inventory child additionally requires an active, published, same-owner
+    // canonical main parent to remain publicly visible. One batched parent fetch for every
+    // distinct `br_inventory_parent_listing_id` in this page of results — never one query per
+    // child (no N+1), and RLS itself already excludes non-active/non-sold parents from anon read.
+    const parentIds = collectBrChildParentIds(publicRows);
+    let parentsById: ReadonlyMap<string, BrPublicParentCandidate> = new Map();
+    if (parentIds.length > 0) {
+      const { data: parentRows } = await sb
+        .from("listings")
+        .select("id, category, seller_type, inventory_role, owner_id, status, is_published")
+        .in("id", parentIds);
+      const map = new Map<string, BrPublicParentCandidate>();
+      for (const p of (parentRows ?? []) as BrPublicParentCandidate[]) {
+        if (p?.id) map.set(p.id, p);
+      }
+      parentsById = map;
+    }
+    const eligibleRows = filterBrRowsByActiveParent(publicRows, parentsById);
+
+    const mapped = eligibleRows.map((r) => mapBrListingRowToNegocioCard(r, opts.lang));
     return { listings: mapped, error: null };
   } catch (e) {
     return { listings: [], error: e instanceof Error ? e.message : String(e) };

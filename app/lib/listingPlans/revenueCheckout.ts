@@ -42,16 +42,10 @@ const CHECKOUT_ADDON_ALLOWLIST: Record<
   string,
   { category: string; basePackageKey: string; allowedKeys: readonly string[] }
 > = {
-  restaurantes: {
-    category: "restaurantes",
-    basePackageKey: "restaurantes_base_monthly",
-    allowedKeys: [RESTAURANTES_COUPON_ADDON_PACKAGE_KEY],
-  },
-  servicios: {
-    category: "servicios",
-    basePackageKey: "servicios_base_monthly",
-    allowedKeys: [SERVICIOS_OFFERS_ADDON_PACKAGE_KEY],
-  },
+  // Package C Build 3 (C5/C6) — restaurantes/servicios offers add-ons are retired: coupons are
+  // now included in the $399 base package (owner-locked). No bundled-checkout add-on remains
+  // for either category; RESTAURANTES_COUPON_ADDON_PACKAGE_KEY / SERVICIOS_OFFERS_ADDON_PACKAGE_KEY
+  // stay defined (historical reads) but are no longer reachable from this allowlist.
   "bienes-raices": {
     category: "bienes-raices",
     basePackageKey: "br_agent_monthly",
@@ -470,6 +464,110 @@ export async function validateRestauranteAddonOnlyListingOwnership(input: {
   return { ok: true };
 }
 
+export type ServiciosOffersAddonOwnerValidationResult =
+  | { ok: true }
+  | { ok: false; status: number; code: string; message: string };
+
+/**
+ * Server gate: Servicios dashboard offers add-on-only checkout — listing must belong to bearer
+ * user. Gate E.1 — mirrors validateRestauranteAddonOnlyListingOwnership; Servicios previously had
+ * no equivalent check in this route, unlike Restaurantes/Bienes/Autos.
+ *
+ * The duplicate-active-entitlement check intentionally does not filter on `listing_source`: a
+ * pre-Gate-E.1 purchase may have been written with the (incorrect) `listing_source = "servicios"`
+ * tag rather than `"servicios_public_listings"` — see normalizeServiciosOffersAddonEntitlementSource
+ * in revenueServiciosFulfillment.ts. Matching by category + package_key + listing_id alone
+ * correctly finds an existing active entitlement regardless of which tag it carries.
+ */
+export async function validateServiciosOffersAddonOwnership(input: {
+  listingId: string;
+  bearerUserId: string | null;
+}): Promise<ServiciosOffersAddonOwnerValidationResult> {
+  if (!input.bearerUserId?.trim()) {
+    return {
+      ok: false,
+      status: 401,
+      code: "auth_required",
+      message: "Authentication required for Servicios offers add-on checkout.",
+    };
+  }
+
+  const listingId = String(input.listingId ?? "").trim();
+  if (!listingId) {
+    return {
+      ok: false,
+      status: 400,
+      code: "listing_id_required",
+      message: "listingId is required for Servicios add-on-only checkout.",
+    };
+  }
+
+  if (!isSupabaseAdminConfigured()) {
+    return {
+      ok: false,
+      status: 503,
+      code: "supabase_not_configured",
+      message: "Supabase admin is not configured.",
+    };
+  }
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("servicios_public_listings")
+    .select("id, listing_status, owner_user_id")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    return {
+      ok: false,
+      status: 404,
+      code: "listing_not_found",
+      message: "Servicios listing not found.",
+    };
+  }
+
+  if (String(data.owner_user_id ?? "").trim() !== input.bearerUserId.trim()) {
+    return {
+      ok: false,
+      status: 403,
+      code: "listing_owner_mismatch",
+      message: "Listing does not belong to the authenticated user.",
+    };
+  }
+
+  const status = String(data.listing_status ?? "").trim().toLowerCase();
+  if (status !== "published") {
+    return {
+      ok: false,
+      status: 422,
+      code: "listing_not_eligible",
+      message: "Offers add-on can only be purchased for published Servicios listings.",
+    };
+  }
+
+  const { data: activeEntitlements } = await supabase
+    .from("listing_package_entitlements")
+    .select("id")
+    .eq("category", "servicios")
+    .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)
+    .eq("listing_id", listingId)
+    .eq("status", "active")
+    .is("revoked_at", null)
+    .limit(1);
+
+  if (activeEntitlements && activeEntitlements.length > 0) {
+    return {
+      ok: false,
+      status: 409,
+      code: "addon_already_active",
+      message: "Offers module is already active on this listing.",
+    };
+  }
+
+  return { ok: true };
+}
+
 export type AutosDealerInventoryAddonOwnerValidationResult =
   | { ok: true }
   | { ok: false; status: number; code: string; message: string };
@@ -514,7 +612,7 @@ export async function validateAutosDealerInventoryAddonOwnership(input: {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
-    .select("id, status, lane, owner_user_id")
+    .select("id, status, lane, owner_user_id, inventory_role")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -553,6 +651,21 @@ export async function validateAutosDealerInventoryAddonOwnership(input: {
       status: 422,
       code: "listing_not_eligible",
       message: "Inventory add-on can only be purchased for an active dealer listing.",
+    };
+  }
+
+  // Gate F.2.2.1 — canonical parent-role authority is the explicit `inventory_role` column, never
+  // inferred from `dealer_inventory_parent_listing_id`/`dealer_inventory_group_id`/owner identity
+  // alone. Rejects an active, owned child vehicle (`inventory_role: "inventory_vehicle"`) or a
+  // not-yet-promoted null-role row just as strictly as a mismatched owner/lane/status — the
+  // inventory pack can only ever be purchased against the dealer's real main parent row.
+  const inventoryRole = String(data.inventory_role ?? "").trim().toLowerCase();
+  if (inventoryRole !== "main") {
+    return {
+      ok: false,
+      status: 422,
+      code: "autos_dealer_parent_listing_required",
+      message: "Vehicle inventory add-on can only be purchased for the dealer's main parent listing.",
     };
   }
 
@@ -653,6 +766,22 @@ export async function validateBienesInventoryAddonOwnership(input: {
       status: 422,
       code: "listing_not_eligible",
       message: "Inventory add-on can only be purchased for an active published Bienes negocio listing.",
+    };
+  }
+
+  // Gate F.2.4.2 — canonical main-parent authority is the explicit `inventory_role` column, never
+  // inferred from `br_inventory_parent_listing_id`/`br_inventory_group_id`/`seller_type`/owner
+  // identity alone. The `inventory_property` check above already rejects children explicitly;
+  // this closes the remaining gap for an active, published, business-seller row that simply
+  // hasn't been promoted to `"main"` (a legacy or null-role row) — the inventory pack can only
+  // ever be purchased against the real main parent row.
+  const inventoryRole = String(data.inventory_role ?? "").trim().toLowerCase();
+  if (inventoryRole !== "main") {
+    return {
+      ok: false,
+      status: 422,
+      code: "br_main_parent_listing_required",
+      message: "Inventory add-on can only be purchased for the Bienes Raíces main parent listing.",
     };
   }
 

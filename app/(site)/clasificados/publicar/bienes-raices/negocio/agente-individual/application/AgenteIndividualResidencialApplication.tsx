@@ -64,6 +64,7 @@ import {
   clearBrInventoryChildContext,
   parseBrInventoryChildSearchParams,
   readBrInventoryChildContext,
+  resolveChildDraftCategoria,
 } from "../../application/brNegocioInventoryChildContext";
 import { BrAgenteApplicationPricingSummary } from "../../application/sections/shared/BrAgenteApplicationPricingSummary";
 import { BrAgenteApplicationConfirmations } from "../../application/sections/shared/BrAgenteApplicationConfirmations";
@@ -89,8 +90,10 @@ import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateLi
 import {
   clearBienesListingEditWorkspace,
   loadBienesListingEditWorkspace,
+  readBienesListingEditWorkspaceMeta,
   saveBienesListingEditWorkspace,
 } from "./utils/bienesDashboardListingEditWorkspace";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const BR_AGENTE_RES_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
 
@@ -115,6 +118,14 @@ export default function AgenteIndividualResidencialApplication() {
   );
   const [parentDraftReady, setParentDraftReady] = useState(false);
   const inventoryChildConsumedRef = useRef(false);
+  /* Globalization Package B (Gate B4) — direct child-edit deep link from the dashboard child
+     card. `openChildDraftId` composes WITH the dashboard edit modes (the pre-existing
+     `mode=inventory-child` channel could not — `mode` is already the dashboard-edit
+     discriminator). Once the parent hydration lands the child in state (hydration is uncapped
+     as of this gate), that child's own isolated editor session opens; parent and sibling
+     drafts stay untouched. */
+  const dashboardOpenChildDraftId = searchParams?.get("openChildDraftId")?.trim() ?? "";
+  const dashboardChildOpenConsumedRef = useRef(false);
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
@@ -271,20 +282,45 @@ export default function AgenteIndividualResidencialApplication() {
         setEditHydration({ status: "error", message: result.userMessage });
         return;
       }
-      const restored =
-        loadBienesListingEditWorkspace({
-          parentListingId: editListingId,
-          hydratedFromDatabase: result.state,
-        }) ?? result.state;
-      const boot = restored;
+      /* Package A closure — draftWorkspaceContract Rule 3 wired: the local edit workspace only
+         outranks the DB row it was hydrated from while that row is unchanged. If the row moved
+         underneath it, canonical DB truth wins, the stale workspace is discarded, and the
+         conflict is surfaced via the save-edit message channel — never silently applied. A
+         workspace with no captured source version (legacy) keeps local-wins by contract. */
+      const meta = readBienesListingEditWorkspaceMeta(editListingId);
+      const precedence = resolveDraftPrecedence({
+        hasLocalWorkspace: Boolean(meta),
+        localSourceUpdatedAt: meta?.sourceUpdatedAt ?? null,
+        dbUpdatedAt: result.sourceUpdatedAt,
+      });
+      let boot = result.state;
+      if (precedence === "db-newer-conflict") {
+        clearBienesListingEditWorkspace({ parentListingId: editListingId });
+        setSaveEditMessage(
+          lang === "es"
+            ? "Este anuncio cambió desde tu último borrador local. Se cargó la versión publicada más reciente; el borrador antiguo se descartó."
+            : "This listing changed since your last local draft. The latest published version was loaded; the outdated draft was discarded.",
+        );
+      } else {
+        boot =
+          loadBienesListingEditWorkspace({
+            parentListingId: editListingId,
+            hydratedFromDatabase: result.state,
+          }) ?? result.state;
+        setSaveEditMessage(null);
+      }
       setState(boot);
       cleanEditSnapshotRef.current = JSON.stringify(result.state);
       setEditDirty(JSON.stringify(boot) !== cleanEditSnapshotRef.current);
       setSaveEditSuccess(false);
-      setSaveEditMessage(null);
       setSaveEditError(null);
       setChildInventoryMediaBridge(boot.additionalInventoryProperties ?? []);
-      saveBienesListingEditWorkspace({ parentListingId: editListingId, state: boot });
+      saveBienesListingEditWorkspace({
+        parentListingId: editListingId,
+        state: boot,
+        // Rule 3 anchor — re-anchor to the row version this session hydrated.
+        sourceUpdatedAt: result.sourceUpdatedAt,
+      });
       setEditHydration({ status: "idle" });
     });
   }, [editListingId, isExistingDashboardListingMode, lang]);
@@ -397,7 +433,11 @@ export default function AgenteIndividualResidencialApplication() {
           draft: stateRef.current,
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        skippedNewChildren?: unknown[];
+      };
       if (!res.ok || !json.ok) {
         setSaveEditError(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
         return;
@@ -413,7 +453,17 @@ export default function AgenteIndividualResidencialApplication() {
       cleanEditSnapshotRef.current = JSON.stringify(verified.state);
       setEditDirty(false);
       setSaveEditSuccess(true);
-      setSaveEditMessage(lang === "en" ? "Changes saved" : "Cambios guardados");
+      // Package B (Gate B4) — skippedNewChildren surfaced, never silent (ledger defect D2).
+      const skippedCount = Array.isArray(json.skippedNewChildren) ? json.skippedNewChildren.length : 0;
+      setSaveEditMessage(
+        skippedCount > 0
+          ? lang === "en"
+            ? `Changes saved. ${skippedCount} new propert${skippedCount === 1 ? "y was" : "ies were"} NOT created from this edit — use "Add property" from your dashboard to add them.`
+            : `Cambios guardados. ${skippedCount} propiedad(es) nueva(s) NO se crearon desde esta edición — usa "Agregar propiedad" en tu panel para añadirlas.`
+          : lang === "en"
+            ? "Changes saved"
+            : "Cambios guardados",
+      );
       clearBienesListingEditWorkspace({ parentListingId: editListingId, state: stateRef.current });
       clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
     } catch (e) {
@@ -474,6 +524,20 @@ export default function AgenteIndividualResidencialApplication() {
     // Never apply childPropiedad to parent — only parent `propiedad` query.
     setState((s) => (s.categoriaPropiedad === prop ? s : { ...s, categoriaPropiedad: prop }));
   }, [propiedadParam]);
+
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !dashboardOpenChildDraftId) return;
+    if (dashboardChildOpenConsumedRef.current) return;
+    const child = (state.additionalInventoryProperties ?? []).find(
+      (c) => c.id === dashboardOpenChildDraftId,
+    );
+    if (!child) return; // wait until dashboard hydration lands this child in state
+    dashboardChildOpenConsumedRef.current = true;
+    setPendingInventoryChildOpen({
+      childDraftId: dashboardOpenChildDraftId,
+      childPropiedad: resolveChildDraftCategoria(child),
+    });
+  }, [isExistingDashboardListingMode, dashboardOpenChildDraftId, state.additionalInventoryProperties]);
 
   useEffect(() => {
     if (!parentDraftReady) return;

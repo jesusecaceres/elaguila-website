@@ -3,12 +3,14 @@
 /** Derived alerts from listings, messages, and profile — prefs stay local until a notifications/preferences table exists. */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import type { Lang } from "../lib/listingDisplayStatus";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "../lib/derivedDashboardFeed";
+
+export const dynamic = "force-dynamic";
 
 type Plan = "free" | "pro";
 
@@ -92,7 +94,7 @@ function Toggle({
   );
 }
 
-export default function NotificacionesPage() {
+function NotificacionesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/notificaciones";
@@ -198,7 +200,7 @@ export default function NotificacionesPage() {
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="notifications" plan={plan} userName={name} email={email} accountRef={accountRef}>
+    <LeonixDashboardShell lang={lang} activeNav="notifications" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
@@ -258,5 +260,13 @@ export default function NotificacionesPage() {
         </div>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function NotificacionesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <NotificacionesPageContent />
+    </Suspense>
   );
 }

@@ -12,6 +12,8 @@ export type BrPublicEntitlementBadge = {
   grantsResultsPriority: boolean;
   digitalPlacementPriority: number | null;
   printPlacementType: string | null;
+  /** Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, when active. */
+  canonicalPlacementRankWeight?: number | null;
 };
 
 const TIER_RANK: Record<string, number> = {
@@ -45,6 +47,7 @@ export function applyBrEntitlementBadgeToListing(
       packageEntitlementTier: undefined,
       entitlementEndsAt: undefined,
       digitalPlacementPriority: undefined,
+      canonicalPlacementRankWeight: undefined,
     };
   }
 
@@ -70,6 +73,7 @@ export function applyBrEntitlementBadgeToListing(
     packageEntitlementTier: badge.tier,
     entitlementEndsAt: badge.endsAt,
     digitalPlacementPriority: badge.digitalPlacementPriority,
+    canonicalPlacementRankWeight: badge.canonicalPlacementRankWeight ?? null,
     placementSignals: [
       ...(listing.placementSignals ?? []).filter((s) => !s.startsWith("entitlement:")),
       `entitlement:${badge.tier}`,

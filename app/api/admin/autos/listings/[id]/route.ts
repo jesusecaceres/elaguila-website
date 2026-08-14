@@ -10,6 +10,11 @@ import {
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 import { getAutosClassifiedsListingById } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import {
+  ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
+  assertAutosDealerActionAllowed,
+} from "@/app/admin/_lib/adminInventoryActionGuard";
+import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +76,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
 
+  // Work Package I.9B — server-side parent/child role validation, resolved strictly from the
+  // freshly-fetched row (never trusts any client-supplied role/category/parent id). Rejects
+  // parent-only actions (archive/remove_public/restore_active) against a confirmed inventory
+  // vehicle child, or against a row whose role cannot be confirmed — fails closed, no write.
+  const roleCheck = assertAutosDealerActionAllowed(row, action);
+  if (!roleCheck.ok) {
+    return NextResponse.json({ ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE }, { status: 403 });
+  }
+
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -95,11 +109,31 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       last_republished_source: "admin",
       last_republished_by: null,
     };
-    if (!autosRowIsPublicLive(rec)) {
-      if (rec.status === "removed" || rec.status === "cancelled") {
-        patch.status = "active" satisfies AutosClassifiedsListingStatus;
-        patch.published_at = row.published_at ?? now;
+    // Package C Build 4 (C7, Gate 4) — republish can reactivate a removed/cancelled negocios row,
+    // which is a capacity-increasing transition. Route that specific transition through the
+    // atomic RPC instead of folding status/published_at into the generic patch below.
+    const republishReactivates =
+      !autosRowIsPublicLive(rec) && (rec.status === "removed" || rec.status === "cancelled");
+    if (republishReactivates && String(rec.lane) === "negocios") {
+      const rpcResult = await activateAutosDealerListingAtomic({
+        listingId: id,
+        ownerUserId: String(rec.owner_user_id ?? row.owner_user_id),
+        fromStatus: String(rec.status),
+      });
+      if (!rpcResult.ok) {
+        return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
       }
+      if (!rpcResult.activated && !rpcResult.idempotent) {
+        return NextResponse.json(
+          { ok: false, error: rpcResult.blockedReason ?? "capacity_reached", activeCount: rpcResult.activeCount, effectiveLimit: rpcResult.effectiveLimit },
+          { status: 409 },
+        );
+      }
+      // Status already transitioned atomically by the RPC — apply only the remaining republish
+      // bookkeeping fields here, never status/published_at again.
+    } else if (republishReactivates) {
+      patch.status = "active" satisfies AutosClassifiedsListingStatus;
+      patch.published_at = row.published_at ?? now;
     }
     const { error } = await supabase.from("autos_classifieds_listings").update(patch).eq("id", id);
     if (error) {
@@ -127,6 +161,34 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   } else if (action === "restore_active" || action === "unsuspend") {
     if (row.status !== "removed" && row.status !== "cancelled") {
       return NextResponse.json({ ok: false, error: "not_removed_or_cancelled" }, { status: 400 });
+    }
+    // Package C Build 4 (C7, Gate 4) — capacity-increasing admin reactivation of a negocios row
+    // now routes through the atomic RPC (previously: role-guarded only, zero capacity check).
+    if (row.lane === "negocios") {
+      const rpcResult = await activateAutosDealerListingAtomic({
+        listingId: id,
+        ownerUserId: row.owner_user_id,
+        fromStatus: row.status,
+      });
+      if (!rpcResult.ok) {
+        return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
+      }
+      if (!rpcResult.activated && !rpcResult.idempotent) {
+        return NextResponse.json(
+          { ok: false, error: rpcResult.blockedReason ?? "capacity_reached", activeCount: rpcResult.activeCount, effectiveLimit: rpcResult.effectiveLimit },
+          { status: 409 },
+        );
+      }
+      void appendAdminAuditLog({
+        action: `autos_admin_${action}`,
+        targetType: "autos_classifieds_listing",
+        targetId: id,
+        meta: { from: row.status, viaRpc: true, idempotent: rpcResult.idempotent },
+      });
+      revalidatePath("/clasificados/autos");
+      revalidatePath(`/clasificados/autos/vehiculo/${id}`);
+      revalidatePath("/admin/workspace/clasificados/autos");
+      return NextResponse.json({ ok: true, id, status: "active" });
     }
     patch.status = "active" satisfies AutosClassifiedsListingStatus;
     patch.published_at = row.published_at ?? now;

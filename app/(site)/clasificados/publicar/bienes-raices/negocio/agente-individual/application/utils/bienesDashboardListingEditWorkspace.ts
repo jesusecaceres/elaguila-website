@@ -10,6 +10,11 @@ type StoredParentWorkspace = {
   version: 1;
   parentListingId: string;
   savedAt: string;
+  /** Globalization Package A Gate 3 (draftWorkspaceContract Rule 3) — the source row's
+   * `updated_at` as hydrated when this workspace was created. Optional/additive: legacy
+   * workspaces without it degrade to today's local-wins behavior (never a fabricated
+   * conflict). Precedence wiring lands with Gate 5's per-lane edit/save truth. */
+  sourceUpdatedAt?: string | null;
   state: AgenteIndividualResidencialFormState;
 };
 
@@ -61,14 +66,20 @@ function writeJson(key: string, value: unknown): void {
 export function saveBienesListingEditWorkspace(input: {
   parentListingId: string;
   state: AgenteIndividualResidencialFormState;
+  /** Source row `updated_at` as hydrated (Gate 3 staleness capture) — pass when known. */
+  sourceUpdatedAt?: string | null;
 }): void {
   const parentListingId = trim(input.parentListingId);
   if (!parentListingId) return;
   const savedAt = new Date().toISOString();
+  const existingMeta = readBienesListingEditWorkspaceMeta(parentListingId);
   writeJson(bienesListingEditParentWorkspaceKey(parentListingId), {
     version: 1,
     parentListingId,
     savedAt,
+    // Preserve the originally-captured source version across incremental saves — the
+    // workspace stays anchored to the row it was hydrated from, not to later save times.
+    sourceUpdatedAt: input.sourceUpdatedAt?.trim() || existingMeta?.sourceUpdatedAt || null,
     state: input.state,
   } satisfies StoredParentWorkspace);
 
@@ -84,6 +95,21 @@ export function saveBienesListingEditWorkspace(input: {
       draft,
     } satisfies StoredChildWorkspace);
   }
+}
+
+/** Globalization Package A Gate 3 — staleness metadata accessor for Rule 3 precedence
+ * (resolveDraftPrecedence in app/lib/listingDrafts/draftWorkspaceContract.ts). */
+export function readBienesListingEditWorkspaceMeta(
+  parentListingId: string,
+): { savedAt: string | null; sourceUpdatedAt: string | null } | null {
+  const id = trim(parentListingId);
+  if (!id) return null;
+  const stored = readJson<StoredParentWorkspace>(bienesListingEditParentWorkspaceKey(id));
+  if (!stored || stored.version !== 1 || stored.parentListingId !== id) return null;
+  return {
+    savedAt: typeof stored.savedAt === "string" ? stored.savedAt : null,
+    sourceUpdatedAt: typeof stored.sourceUpdatedAt === "string" ? stored.sourceUpdatedAt : null,
+  };
 }
 
 export function loadBienesListingEditWorkspace(input: {

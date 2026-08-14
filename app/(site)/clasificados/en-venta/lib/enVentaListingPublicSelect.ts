@@ -6,8 +6,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 
+/**
+ * Gate I.5.5 — `views` deliberately excluded: the production `listings` table has no such
+ * column (confirmed via live read-only check, "column listings.views does not exist" — same
+ * finding already documented for the owner dashboard query in `ownerListingsQuery.ts`, Gate
+ * I.4.1). Requesting it only ever bought a guaranteed failed round trip before the tiered
+ * `listingsQueryWithSelectShrink` retry stripped it back out. The results card model already
+ * treats a missing/zero view count as "unavailable" (`showViews: plan === "pro" && dto.views > 0`
+ * in `buildEnVentaResultsCardModel.ts` — never renders a fake "0 views" badge), and the owner
+ * dashboard's own view count already comes from the event-based `listing_analytics` table via
+ * `aggregateListingAnalyticsEvents`, never from this column.
+ */
 export const EN_VENTA_LISTING_PUBLIC_ROW_BASE =
-  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, seller_type, business_name, status, is_published, created_at, images, views, rentas_tier, published_at, republished_at, republish_sort_at, admin_promoted, leonix_ad_id, mux_playback_id";
+  "id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, seller_type, business_name, status, is_published, created_at, images, rentas_tier, published_at, republished_at, republish_sort_at, admin_promoted, leonix_ad_id, mux_playback_id";
 
 const BROWSE_LIMIT = 800;
 

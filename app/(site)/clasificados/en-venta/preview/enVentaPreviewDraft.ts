@@ -28,6 +28,36 @@ export const EN_VENTA_PUBLISH_TAB_SESSION_KEY = "en-venta-publish-tab-session";
 /** Single sessionStorage payload for returning from preview → edit (one-shot; not a resume system). */
 export const EN_VENTA_PREVIEW_RETURN_DRAFT = "EN_VENTA_PREVIEW_RETURN_DRAFT";
 
+/**
+ * I.6B — canonical listing id this exact in-progress submission already created. Written as soon
+ * as the row id is known (before photo upload/finalize), read at the start of the next publish
+ * attempt so a retry/refresh mid-flight updates that same row instead of inserting a duplicate.
+ * Cleared by clearEnVentaPublishTempState() once the submission fully completes — this is a
+ * bounded in-flight-retry protection, not a general "resume editing later" mechanism (that's the
+ * dashboard's generic /editar page).
+ */
+function inFlightListingIdKey(plan: "free" | "pro"): string {
+  return `en-venta-in-flight-listing-id-${plan}`;
+}
+
+export function saveEnVentaInFlightListingId(plan: "free" | "pro", listingId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(inFlightListingIdKey(plan), listingId);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadEnVentaInFlightListingId(plan: "free" | "pro"): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(inFlightListingIdKey(plan));
+  } catch {
+    return null;
+  }
+}
+
 type EnVentaPreviewDraftMeta = {
   plan: "free" | "pro";
   updatedAt: number;
@@ -283,6 +313,8 @@ export function clearEnVentaPublishTempState(): void {
     sessionStorage.removeItem(EN_VENTA_PREVIEW_RETURN_DRAFT);
     sessionStorage.removeItem(EN_VENTA_PUBLISH_TAB_SESSION_KEY);
     sessionStorage.removeItem(EN_VENTA_REPUBLISH_SEED_FLAG);
+    sessionStorage.removeItem(inFlightListingIdKey("free"));
+    sessionStorage.removeItem(inFlightListingIdKey("pro"));
   } catch {
     /* ignore */
   }

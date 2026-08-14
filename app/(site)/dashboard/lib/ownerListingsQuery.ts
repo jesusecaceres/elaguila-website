@@ -5,8 +5,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { missingListingsColumnName, stripSelectColumn } from "@/app/clasificados/lib/listingsSelectShrink";
 import { isListingUuid } from "@/app/lib/listingSaveDbKey";
 
+/**
+ * Gate I.4.1 — `views` deliberately excluded: the production `listings` table has no such
+ * column (confirmed PostgREST 42703, "column listings.views does not exist"). The dashboard's
+ * displayed view count already comes from `aggregateListingAnalyticsEvents`
+ * (`resolveViews()` in `mis-anuncios/page.tsx` takes `Math.max(analyticsViews, row.views ?? 0)`,
+ * so a always-0/never-present `views` field here changes nothing visible) — requesting it only
+ * ever bought a guaranteed failed round trip before the tiered retry stripped it back out.
+ */
 const CORE =
-  "id,leonix_ad_id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,republished_at,republish_count,views,original_price,current_price,price_last_updated,is_published";
+  "id,leonix_ad_id,title,price,city,zip,status,created_at,category,seller_type,images,detail_pairs,republished_at,republish_count,original_price,current_price,price_last_updated,is_published";
 
 /** Extra columns when present (tiered fallback on unknown columns). */
 const WITH_BR_INVENTORY = `${CORE}, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role`;

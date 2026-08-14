@@ -280,43 +280,10 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
                   onChange={(e) => setDraft((d) => ({ ...d, hero: { ...d.hero, coverImageAlt: e.target.value } }))}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-800">{copy.labels.rating}</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  max={5}
-                  className={inputClass(!!issueMsg("hero.rating"))}
-                  value={draft.hero.rating ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((d) => ({
-                      ...d,
-                      hero: { ...d.hero, rating: v === "" ? undefined : Number(v) },
-                    }));
-                  }}
-                />
-                {labelHint(issueMsg("hero.rating"))}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-800">{copy.labels.reviewCount}</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  className={inputClass(!!issueMsg("hero.reviewCount"))}
-                  value={draft.hero.reviewCount ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((d) => ({
-                      ...d,
-                      hero: { ...d.hero, reviewCount: v === "" ? undefined : Math.floor(Number(v)) },
-                    }));
-                  }}
-                />
-                {labelHint(issueMsg("hero.reviewCount"))}
-              </div>
+              {/* Package D Build D2, Gate 8 — owner-entered rating/review-count inputs removed: an
+                  owner must never be able to type in a rating or review count (locked reviews
+                  doctrine). `hero.rating`/`hero.reviewCount` remain on the type/schema for any
+                  existing historical values; they are simply no longer editable here. */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-neutral-800">{copy.labels.locationSummary}</label>
                 <input

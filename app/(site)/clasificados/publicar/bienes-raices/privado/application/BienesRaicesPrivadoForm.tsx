@@ -70,6 +70,8 @@ import { formatSqftDisplay, formatUsdWhole, priceDigitsUnbounded } from "@/app/(
 const MAX_PHOTOS = 8;
 /** Soft cap for draft video data URLs (sessionStorage); no Mux upload in this flow. */
 const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
+/** Gate I.5.4A.1 — reject an oversized seller photo up front instead of letting a slow/huge upload fail silently later. */
+const MAX_SELLER_PHOTO_BYTES = 12 * 1024 * 1024;
 
 /** Live preview of how price will render in the ad (USD, commas). */
 function formatPricePreviewUsd(digitsRaw: string): string {
@@ -120,6 +122,7 @@ export function BienesRaicesPrivadoForm() {
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [localVideoFileName, setLocalVideoFileName] = useState("");
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
+  const [sellerPhotoNotice, setSellerPhotoNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -812,7 +815,17 @@ export function BienesRaicesPrivadoForm() {
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
+                  if (ownerPhotoInputRef.current) ownerPhotoInputRef.current.value = "";
                   if (!f) return;
+                  setSellerPhotoNotice(null);
+                  if (!f.type.startsWith("image/")) {
+                    setSellerPhotoNotice("Elige un archivo de imagen válido.");
+                    return;
+                  }
+                  if (f.size > MAX_SELLER_PHOTO_BYTES) {
+                    setSellerPhotoNotice(`La foto supera ${Math.round(MAX_SELLER_PHOTO_BYTES / (1024 * 1024))} MB. Elige una imagen más ligera.`);
+                    return;
+                  }
                   try {
                     const data = await compressImageFileToJpegDataUrl(f);
                     setState((s) => {
@@ -821,9 +834,8 @@ export function BienesRaicesPrivadoForm() {
                       return out;
                     });
                   } catch {
-                    /* ignore */
+                    setSellerPhotoNotice("No se pudo leer la foto. Inténtalo de nuevo.");
                   }
-                  if (ownerPhotoInputRef.current) ownerPhotoInputRef.current.value = "";
                 }}
               />
               <div className="mt-2 flex flex-wrap items-start gap-3">
@@ -845,19 +857,21 @@ export function BienesRaicesPrivadoForm() {
                     <button
                       type="button"
                       className="text-left text-xs font-bold text-[#B8954A] underline"
-                      onClick={() =>
+                      onClick={() => {
+                        setSellerPhotoNotice(null);
                         setState((s) => {
                           const out: BienesRaicesPrivadoFormState = { ...s, seller: { ...s.seller, fotoDataUrl: "" } };
                           queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
                           return out;
-                        })
-                      }
+                        });
+                      }}
                     >
                       Quitar foto
                     </button>
                   </div>
                 ) : null}
               </div>
+              {sellerPhotoNotice ? <p className="mt-2 text-xs font-semibold text-[#9A3B1F]">{sellerPhotoNotice}</p> : null}
             </div>
             <AiField required label="Nombre completo">
               <input

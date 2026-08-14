@@ -76,8 +76,10 @@ import { parseRentasListingEditContext, rentasListingEditPreviewParams, type Ren
 import {
   clearRentasListingEditWorkspace,
   loadRentasListingEditWorkspace,
+  readRentasListingEditWorkspaceMeta,
   saveRentasListingEditWorkspace,
 } from "../../shared/rentasListingEditWorkspace";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -167,6 +169,8 @@ export function RentasNegocioForm() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
+  /** Package A closure — Rule 3 conflict surfaced to the owner (never silently applied). */
+  const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -185,18 +189,51 @@ export function RentasNegocioForm() {
         merge: mergePartialRentasNegocioState,
       });
       if (cached) {
+        // Package A closure — draftWorkspaceContract Rule 3 wired (same pattern as the Privado
+        // form): cached workspace shows immediately, DB row consulted in the background;
+        // canonical DB truth wins when newer, and the conflict is surfaced, never silent.
         setState(cached);
         cleanEditSnapshotRef.current = JSON.stringify(cached);
         setHydrationStatus("ready");
         setEditContext({ ...ctx, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         setHydrated(true);
+        const cachedMeta = readRentasListingEditWorkspaceMeta({ listingId: ctx.listingId, lane: "negocio" });
+        void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "negocio" }).then((result) => {
+          if (!(result.ok && result.lane === "negocio")) return;
+          const precedence = resolveDraftPrecedence({
+            hasLocalWorkspace: true,
+            localSourceUpdatedAt: cachedMeta?.sourceUpdatedAt ?? null,
+            dbUpdatedAt: result.sourceUpdatedAt,
+          });
+          if (precedence !== "db-newer-conflict") return;
+          setState(result.draft);
+          cleanEditSnapshotRef.current = JSON.stringify(result.draft);
+          saveRentasListingEditWorkspace({
+            listingId: ctx.listingId,
+            lane: "negocio",
+            draft: result.draft,
+            sourceUpdatedAt: result.sourceUpdatedAt,
+          });
+          setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
+          setStaleDraftNotice(
+            lang === "es"
+              ? "Este anuncio cambió desde tu último borrador local. Se muestra la versión publicada más reciente; el borrador antiguo se descartó."
+              : "This listing changed since your last local draft. The latest published version is shown; the outdated draft was discarded.",
+          );
+        });
         return;
       }
       void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "negocio" }).then((result) => {
         if (result.ok && result.lane === "negocio") {
           setState(result.draft);
           cleanEditSnapshotRef.current = JSON.stringify(result.draft);
-          saveRentasListingEditWorkspace({ listingId: ctx.listingId, lane: "negocio", draft: result.draft });
+          // Anchor the workspace to the row version it was hydrated from (Rule 3).
+          saveRentasListingEditWorkspace({
+            listingId: ctx.listingId,
+            lane: "negocio",
+            draft: result.draft,
+            sourceUpdatedAt: result.sourceUpdatedAt,
+          });
           setHydrationStatus("ready");
           setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         } else if (!result.ok) {
@@ -578,6 +615,11 @@ export function RentasNegocioForm() {
             . Los videos se agregan como enlaces externos (hasta {MAX_VIDEO_URLS}); no se suben archivos de video en esta
             versión pública de Rentas. Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
+          {staleDraftNotice ? (
+            <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950" role="status">
+              {staleDraftNotice}
+            </p>
+          ) : null}
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
               {mediaNotice}

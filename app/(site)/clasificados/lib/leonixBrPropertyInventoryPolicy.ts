@@ -1,13 +1,24 @@
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  BR_BASE_INCLUDED_PROPERTIES,
+  BR_INVENTORY_PACK_MAX_CHILDREN,
+  BR_TOTAL_ACTIVE_PROPERTY_LIMIT,
+} from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 /** @deprecated BR13B uses locked product limits below — kept for BR13A audit compatibility. */
 export const BR_NEGOCIO_RECOMMENDED_ACTIVE_PROPERTY_LIMIT = 5;
 
 export const BASE_BR_NEGOCIO_MONTHLY_PRICE = 399;
-export const BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = 3;
-export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.99;
-export const BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = 5;
-export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = 8;
+/**
+ * Gate F.2.4.1 — these three symbols are aliases of the single authoritative source
+ * (`publishCheckoutCheckpoint.ts`, also consumed by the application form, pending-child
+ * truncation, payment/activation fan-out, and Stripe checkout metadata). This file must never
+ * re-define its own independent property-count truth again.
+ */
+export const BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = BR_BASE_INCLUDED_PROPERTIES;
+export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.00;
+export const BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = BR_INVENTORY_PACK_MAX_CHILDREN;
+export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = BR_TOTAL_ACTIVE_PROPERTY_LIMIT;
 /** Base + upgrade monthly total (BR13D locked product). */
 export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE = 498.99;
 
@@ -52,7 +63,7 @@ function trim(v: unknown): string {
 }
 
 /**
- * BR property inventory add-on (+5 @ $99.99/mo → 8 total).
+ * BR property inventory add-on (+3 @ $99.00/mo → 4 total).
  * Production truth: active entitlement only (C6 Stripe). Until then, dev/QA flags are non-production.
  */
 export function isBrInventoryUpgradeActive(opts?: { entitlementActive?: boolean }): boolean {

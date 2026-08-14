@@ -29,15 +29,12 @@ import {
   LEONIX_LANDING_SECTION_PAD,
 } from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import {
-  buildCategoryResultsUrl,
-  categoryPublishPath,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import {
   categoryStandardDescription,
   categoryStandardSearchPlaceholder,
   categoryStandardTitle,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
+import { EMPLEOS_PUBLISH_HUB_PATH } from "./empleosLandingRoutes";
 
 const JOB_CATEGORY_TILES = [
   { slug: "salud", titleEs: "Salud", titleEn: "Health", hintEs: "Cuidado y bienestar", hintEn: "Care and wellness", icon: FiHeart },
@@ -55,11 +52,19 @@ export function EmpleosLandingPage() {
   const routeLang = useMemo(() => resolveRouteLang(sp?.get("lang")), [sp]);
   const lang = useMemo<Lang>(() => resolveHubCopyLang(sp?.get("lang")), [sp]);
   const resultsHref = useMemo(
-    () => buildCategoryResultsUrl("empleos", routeLang as Lang),
+    // I.5.8 — use the Empleos-specific canonical builder (already imported/used below for the
+    // discovery tiles) instead of the generic categoryStandardRoutes builder, whose default
+    // results segment is the English "results" slug and disagreed with the registry's canonical
+    // "/resultados". Same lang input/cast as before — only the target builder changed.
+    () => buildEmpleosResultadosUrl(routeLang as Lang, {}),
     [routeLang],
   );
   const publishHref = useMemo(
-    () => appendRouteLangToPath(categoryPublishPath("empleos"), routeLang),
+    // I.7A — use the registry-canonical "/publicar/empleos" hub directly (matches
+    // EMPLEOS_PUBLISH_HUB_PATH / categoryRouteRegistry's applicationRoute) instead of the legacy
+    // categoryStandardRoutes builder's "/clasificados/publicar/empleos", which only reaches the
+    // same destination via an extra redirect hop.
+    () => appendRouteLangToPath(EMPLEOS_PUBLISH_HUB_PATH, routeLang),
     [routeLang],
   );
   const visibilityHref = `/contacto?lang=${routeLang}&categoria=empleos&surface=landing`;

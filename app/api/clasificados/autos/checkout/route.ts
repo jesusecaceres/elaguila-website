@@ -41,6 +41,12 @@ type Body = {
   listingId?: string;
   lang?: AutosClassifiedsLang;
   returnToListingId?: string;
+  /** Package C Build 1 — the confirm surface asks this route ONLY for QA/internal bypass
+   * publication; when no bypass applies it returns no_bypass_available WITHOUT creating a
+   * Stripe session, and the client proceeds to canonical Revenue OS checkout. This is the
+   * convergence handshake: the env-price Stripe branch below is legacy, retained for rollback
+   * only, and unreachable from the converged UI. */
+  bypassOnly?: boolean;
   /** Negocios QA bundle: additional inventory drafts to publish after main activates (bypass only). */
   additionalInventoryVehicles?: unknown[];
 };
@@ -194,7 +200,10 @@ export async function POST(request: Request) {
     }
 
     const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive);
-    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
+    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, {
+      excludeListingId: row.id,
+      groupScopeParent: row,
+    });
     const slotsNeeded = countApplicationInventoryVehicles(additionalDrafts.length);
     if (dealerInventory.activeCount + slotsNeeded > vehicleLimit) {
       return NextResponse.json(
@@ -250,6 +259,13 @@ export async function POST(request: Request) {
       negociosQaAllowlistBypass: true,
       additionalInventoryVehicles: body.additionalInventoryVehicles,
     });
+  }
+
+  // Package C Build 1 — convergence handshake: no bypass applied, and the caller only wanted
+  // bypass evaluation. Return WITHOUT creating any Stripe session; the client proceeds to
+  // canonical Revenue OS checkout (server-owned matrix pricing, ledgers, consent).
+  if (body.bypassOnly === true) {
+    return NextResponse.json({ ok: false, error: "no_bypass_available" }, { status: 409 });
   }
 
   if (row.lane === "negocios" && additionalDrafts.length > 0) {

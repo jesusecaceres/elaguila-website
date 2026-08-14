@@ -45,6 +45,8 @@ export type PromoCheckoutResolution =
       requiresCheckout: true;
       promoFamily: string | null;
       websiteCheckoutOnly: boolean;
+      /** Package F Build F2, promo concurrency closure — threaded to the atomic reservation RPC. */
+      perCustomerLimit: number | null;
     }
   | {
       ok: true;
@@ -58,6 +60,7 @@ export type PromoCheckoutResolution =
       message: string;
       promoFamily: string | null;
       websiteCheckoutOnly: boolean;
+      perCustomerLimit: number | null;
     }
   | { ok: false; code: string; message: string };
 
@@ -283,6 +286,45 @@ export function calculatePromoDiscountCents(input: {
   return 0;
 }
 
+/**
+ * Package F Build F2, Gate 2 (P0 security fix) — `per_customer_limit` was already read into
+ * `validatePromoEligibility()`, but no real caller ever populated `customerRedemptionCount`
+ * (it silently defaulted to 0), so the same customer could redeem a per-customer-capped promo
+ * code an unlimited number of times, bounded only by the code's unrelated global max. This
+ * counts only TERMINAL, real redemptions (`status = 'redeemed'`, set only after Stripe webhook
+ * confirmation — see the `pending`/`validated` -> `redeemed` transition below) against the same
+ * server-resolved identity (owner_user_id or email) already used for the subscriber-identity
+ * check above, so an abandoned/never-paid checkout attempt never falsely blocks a real one.
+ */
+async function countCustomerPromoRedemptions(
+  promoCodeId: string,
+  ownerUserId: string | null | undefined,
+  email: string | null | undefined,
+): Promise<number> {
+  const owner = String(ownerUserId ?? "").trim();
+  const mail = String(email ?? "").trim().toLowerCase();
+  if (!owner && !mail) return 0;
+
+  const supabase = getAdminSupabase();
+  let query = supabase
+    .from("leonix_promo_code_redemptions")
+    .select("id", { count: "exact", head: true })
+    .eq("promo_code_id", promoCodeId)
+    .eq("status", "redeemed");
+
+  if (owner && mail) {
+    query = query.or(`owner_user_id.eq.${owner},email.eq.${mail}`);
+  } else if (owner) {
+    query = query.eq("owner_user_id", owner);
+  } else {
+    query = query.eq("email", mail);
+  }
+
+  const { count, error } = await query;
+  if (error) return 0;
+  return count ?? 0;
+}
+
 export async function resolvePromoForCheckout(input: {
   promoCode: string;
   packageDef: RevenuePackageDefinition;
@@ -342,6 +384,8 @@ export async function resolvePromoForCheckout(input: {
   const percentOff = resolvePromoPercentOff(row);
   const amountOffCents = resolvePromoAmountOffCents(row);
 
+  const customerRedemptionCount = await countCustomerPromoRedemptions(row.id, input.ownerUserId, input.email);
+
   const validation = validatePromoEligibility({
     promoType,
     isActive: row.is_active !== false && row.status !== "revoked",
@@ -353,6 +397,7 @@ export async function resolvePromoForCheckout(input: {
     maxRedemptions: row.max_redemptions,
     redemptionCount: row.redemption_count,
     perCustomerLimit: row.per_customer_limit,
+    customerRedemptionCount,
     category: input.packageDef.category,
     packageKey: input.packageDef.packageKey,
     placementTier: input.packageDef.placementTierKey,
@@ -403,6 +448,7 @@ export async function resolvePromoForCheckout(input: {
         "Promo reduces amount to zero — comp fulfillment deferred to next gate (no Stripe Checkout).",
       promoFamily,
       websiteCheckoutOnly,
+      perCustomerLimit: row.per_customer_limit,
     };
   }
 
@@ -416,8 +462,31 @@ export async function resolvePromoForCheckout(input: {
     requiresCheckout: true,
     promoFamily,
     websiteCheckoutOnly,
+    perCustomerLimit: row.per_customer_limit,
   };
 }
+
+/**
+ * Package F Build F2, promo concurrency closure — calls `reserve_promo_customer_redemption_slot`
+ * (see migration `20260812150000_promo_customer_redemption_slot_reservation_rpc.sql`) instead of
+ * a plain INSERT. The RPC atomically re-counts this exact customer's pending/validated/redeemed
+ * rows under a transaction-scoped advisory lock and only inserts when still under
+ * `perCustomerLimit`, closing the race between `resolvePromoForCheckout()`'s earlier
+ * non-atomic count and this insert. `perCustomerLimit` is the value already read from the promo
+ * row by `resolvePromoForCheckout()` — never a client-supplied count.
+ *
+ * NOTE: matching the "authored, not applied" convention already established across this program
+ * (see e.g. `capacityActivationRpc.ts`'s header comment), this RPC will fail with a real Postgres
+ * "function does not exist" error until the migration above is applied as a separate, later,
+ * explicitly-authorized step. `promo_redemption_reservation_rpc_unavailable` surfaces that failure
+ * mode distinctly so it is never confused with a genuine limit-reached rejection.
+ */
+type ReserveRedemptionSlotRow = {
+  reserved: boolean;
+  blocked_reason: string | null;
+  redemption_id: string | null;
+  customer_count: number | null;
+};
 
 export async function createPendingPromoRedemption(input: {
   promoCodeId: string;
@@ -430,43 +499,52 @@ export async function createPendingPromoRedemption(input: {
   packageKey: string;
   placementTier?: string | null;
   discountCents: number;
+  perCustomerLimit: number | null;
 }): Promise<{ ok: true; redemptionId: string } | { ok: false; code: string; message: string }> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "supabase_not_configured", message: "Supabase admin not configured." };
   }
 
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leonix_promo_code_redemptions")
-    .insert({
-      promo_code_id: input.promoCodeId,
-      payment_record_id: input.paymentRecordId,
-      owner_user_id: input.ownerUserId ?? null,
-      email: input.email ?? null,
-      listing_id: input.listingId,
-      leonix_ad_id: input.leonixAdId ?? null,
-      category: input.category,
-      package_key: input.packageKey,
-      placement_tier: input.placementTier ?? null,
-      status: "pending",
-      discount_cents: input.discountCents,
-      metadata: {
-        gate: "PUBLISH-CHECKOUT-PROMO-VALIDATION-UI-01",
-        destructive: false,
-      },
-    })
-    .select("id")
-    .single();
+  const { data, error } = await supabase.rpc("reserve_promo_customer_redemption_slot", {
+    p_promo_code_id: input.promoCodeId,
+    p_owner_user_id: input.ownerUserId ?? null,
+    p_email: input.email ?? null,
+    p_per_customer_limit: input.perCustomerLimit,
+    p_payment_record_id: input.paymentRecordId,
+    p_listing_id: input.listingId,
+    p_leonix_ad_id: input.leonixAdId ?? null,
+    p_category: input.category,
+    p_package_key: input.packageKey,
+    p_placement_tier: input.placementTier ?? null,
+    p_discount_cents: input.discountCents,
+  });
 
-  if (error || !data?.id) {
+  if (error) {
     return {
       ok: false,
-      code: "promo_redemption_insert_failed",
-      message: error?.message ?? "Failed to create pending promo redemption.",
+      code: "promo_redemption_reservation_rpc_unavailable",
+      message: error.message,
     };
   }
 
-  return { ok: true, redemptionId: data.id as string };
+  const row = Array.isArray(data) ? (data[0] as ReserveRedemptionSlotRow | undefined) : (data as ReserveRedemptionSlotRow | undefined);
+
+  if (!row?.reserved || !row.redemption_id) {
+    const blockedReason = row?.blocked_reason;
+    return {
+      ok: false,
+      code: blockedReason === "per_customer_limit_reached" ? "promo_ineligible" : "promo_redemption_insert_failed",
+      message:
+        blockedReason === "per_customer_limit_reached"
+          ? "Customer redemption limit reached."
+          : blockedReason === "no_customer_identity"
+            ? "Promo code requires a matching subscriber identity."
+            : "Failed to create pending promo redemption.",
+    };
+  }
+
+  return { ok: true, redemptionId: row.redemption_id };
 }
 
 export async function attachStripeSessionToPromoRedemption(input: {

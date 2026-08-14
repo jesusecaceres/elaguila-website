@@ -42,7 +42,7 @@ import {
 } from "../lib/agenteResidencialPreviewFormat";
 import { digitsOnly } from "../application/utils/phoneMask";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
-import { BrAgenteResContactSidebar } from "./BrAgenteResContactSidebar";
+import { BrAgenteResContactSidebar, type BrAgenteResContactSidebarAnalyticsContext } from "./BrAgenteResContactSidebar";
 import { BrLeonixPreviewMiniMap } from "@/app/clasificados/publicar/bienes-raices/shared/BrLeonixPreviewMiniMap";
 import { AgenteIndividualResidencialMediaLightbox } from "./AgenteIndividualResidencialMediaLightbox";
 import { BrPreviewVideoModal } from "./BrPreviewVideoModal";
@@ -150,6 +150,7 @@ export function AgenteIndividualResidencialPreviewPage({
   footerExtra,
   onBeforeNavigateToEdit,
   publicChrome,
+  analyticsContext,
 }: {
   data: AgenteIndividualResidencialFormState;
   editHref?: string;
@@ -161,6 +162,9 @@ export function AgenteIndividualResidencialPreviewPage({
     headerRight?: ReactNode;
     beforeMainGrid?: ReactNode;
   };
+  /** Package D Build D2, Gate 6A — set only on the real published/live detail render (never during
+   * the owner's pre-publish draft preview, which has no real listing id to attribute clicks to). */
+  analyticsContext?: BrAgenteResContactSidebarAnalyticsContext | null;
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
   const locale: AgenteResPreviewLocale = lang === "en" ? "en" : "es";
@@ -802,7 +806,7 @@ export function AgenteIndividualResidencialPreviewPage({
             }}
           >
             <div className="p-3.5 sm:p-4">
-              <BrAgenteResContactSidebar data={data} locale={locale} p={p} />
+              <BrAgenteResContactSidebar data={data} locale={locale} p={p} analyticsContext={analyticsContext} />
             </div>
           </aside>
         </section>

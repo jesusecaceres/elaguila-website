@@ -1,7 +1,10 @@
 /** Dashboard product readiness — hide nav/cards/CTAs until features are truth-tested. */
 
-export const DASHBOARD_INTERNAL_INBOX_READY = false;
-export const DASHBOARD_SAVED_LISTINGS_READY = false;
+// Package E Build E2, Gate 5/6 — both surfaces now read real data (messages.receiver_id inbox,
+// saved_listings via the existing resolver) instead of a static shell. Flipped only after the
+// real implementation landed, per instruction.
+export const DASHBOARD_INTERNAL_INBOX_READY = true;
+export const DASHBOARD_SAVED_LISTINGS_READY = true;
 
 export function dashboardInboxComingSoonCopy(lang: "es" | "en"): string {
   return lang === "es"

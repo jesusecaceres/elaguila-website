@@ -55,7 +55,7 @@ export function buildServiciosDashboardActionContract(args: {
     status: args.status,
     publicUrl,
     resultsUrl,
-    editUrl: slug ? `/clasificados/publicar/servicios?${q.toString()}` : null,
+    editUrl: slug ? `/publicar/servicios?${q.toString()}` : null,
     manageUrl: `/dashboard/servicios?${publicQ}${slug ? `&listingSlug=${encodeURIComponent(slug)}` : ""}`,
     previewUrl: null,
     canEdit: Boolean(slug),

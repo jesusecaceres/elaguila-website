@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
@@ -9,6 +9,8 @@ import { dashboardCountLabelTotalGestionados } from "../lib/dashboardCountDefini
 import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
 import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import type { ListingViewRow } from "../lib/ownerListingAnalyticsInsights";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -49,7 +51,7 @@ function formatLastEngagement(iso: string | undefined, lang: Lang): string | nul
   }
 }
 
-export default function DashboardAnalyticsPage() {
+function DashboardAnalyticsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/analytics";
@@ -208,7 +210,7 @@ export default function DashboardAnalyticsPage() {
   const lastEngagementLabel = totals ? formatLastEngagement(totals.lastEngagement, lang) : null;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="analytics" plan={plan} userName={name} email={email} accountRef={accountRef}>
+    <LeonixDashboardShell lang={lang} activeNav="analytics" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
@@ -323,5 +325,13 @@ export default function DashboardAnalyticsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardAnalyticsPageContent />
+    </Suspense>
   );
 }

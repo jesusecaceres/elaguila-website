@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import {useMemo, Suspense } from "react";
 import { EN_VENTA_PUBLICAR_HUB } from "@/app/clasificados/en-venta/shared/constants/enVentaPublishRoutes";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import {
@@ -15,7 +15,7 @@ import {
  * Full intake lives in `application/LeonixEnVentaStorefrontApplication.tsx` for a future launch.
  */
 
-export default function EnVentaStorefrontComingSoonPage() {
+function EnVentaStorefrontComingSoonPageContent() {
   const searchParams = useSearchParams();
   const { routeLang, copyLang: lang } = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
@@ -69,5 +69,13 @@ export default function EnVentaStorefrontComingSoonPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function EnVentaStorefrontComingSoonPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EnVentaStorefrontComingSoonPageContent />
+    </Suspense>
   );
 }

@@ -4,6 +4,7 @@ import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/a
 import {
   assertAutosListingOwner,
   isAutosClassifiedsDbConfigured,
+  syncDealerInventoryChildRowsFromParentPayload,
   updateAutosClassifiedsListingDraft,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
@@ -111,6 +112,26 @@ export async function PATCH(request: Request, { params }: Props) {
   const lang: AutosClassifiedsLang | undefined = body.lang === "en" || body.lang === "es" ? body.lang : undefined;
   const result = await updateAutosClassifiedsListingDraft(id, userId, { listing: body.listing, lang });
   if (!result.row) {
+    if (result.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN") {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "NOT_FOUND",
+          message: "Listing not found or you do not have access to it.",
+          legacyError: "not_found",
+        }),
+        { status: 404 },
+      );
+    }
+    if (result.errorCode === "AUTOS_LISTING_STATUS_NOT_EDITABLE") {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "UPDATE_FAILED",
+          message: "This listing's current status does not allow edits right now.",
+          legacyError: "status_not_editable",
+        }),
+        { status: 409 },
+      );
+    }
     const errorCode =
       result.errorCode === "AUTOS_SUPABASE_UPDATE_FAILED"
         ? "AUTOS_SUPABASE_UPDATE_FAILED"
@@ -125,15 +146,30 @@ export async function PATCH(request: Request, { params }: Props) {
       { status: errorCode === "AUTOS_SUPABASE_UPDATE_FAILED" ? 500 : 400 },
     );
   }
-  return NextResponse.json(
-    buildAutosListingApiSuccessPayload({
+  // Globalization Package B (Gate B5) — after a dealer PARENT save, propagate the embedded
+  // inventory edits to each child vehicle's OWN row (ledger defect D4: drawer edits previously
+  // updated only the parent's payload, so the child's public page kept rendering stale data
+  // forever). Owner-verified per child; draft-only/foreign ids are never touched; partial
+  // failures are surfaced, never silent.
+  let childSync: { updatedChildIds: string[]; failedChildIds: string[] } | null = null;
+  if (result.row.lane === "negocios" && result.row.inventory_role !== "inventory_vehicle") {
+    childSync = await syncDealerInventoryChildRowsFromParentPayload(result.row.id, userId);
+  }
+  return NextResponse.json({
+    ...buildAutosListingApiSuccessPayload({
       id: result.row.id,
       leonixAdId: result.row.leonix_ad_id ?? null,
       lane: result.row.lane,
       status: result.row.status,
       persistWarnings: result.persistWarnings,
     }),
-  );
+    ...(childSync
+      ? {
+          childSyncUpdated: childSync.updatedChildIds,
+          childSyncFailed: childSync.failedChildIds,
+        }
+      : {}),
+  });
 }
 
 export async function GET(request: Request, { params }: Props) {
@@ -158,5 +194,10 @@ export async function GET(request: Request, { params }: Props) {
     lang: row.lang,
     listing: row.listing_payload,
     stripe_checkout_session_id: row.stripe_checkout_session_id,
+    // Parent/child identity — needed by listing-bound Preview to distinguish a dealer parent
+    // from an inventory vehicle child and to preserve group/parent relationships (Gate C).
+    inventory_role: row.inventory_role ?? null,
+    dealer_inventory_group_id: row.dealer_inventory_group_id ?? null,
+    dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id ?? null,
   });
 }

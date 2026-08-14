@@ -15,7 +15,8 @@ export type MisAnunciosCategoryKey =
   | "comida-local"
   | "clases"
   | "comunidad"
-  | "busco";
+  | "busco"
+  | "mascotas";
 
 export const MIS_ANUNCIOS_CATEGORY_KEYS: MisAnunciosCategoryKey[] = [
   "en-venta",
@@ -30,6 +31,7 @@ export const MIS_ANUNCIOS_CATEGORY_KEYS: MisAnunciosCategoryKey[] = [
   "clases",
   "comunidad",
   "busco",
+  "mascotas",
 ];
 
 export function isMisAnunciosCategoryKey(raw: string | null | undefined): raw is MisAnunciosCategoryKey {
@@ -76,7 +78,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Perfiles de servicios profesionales." : "Professional service profiles.",
     ready: true,
     manageHref: (q) => `/dashboard/servicios?${q}`,
-    publishHref: (q) => `/clasificados/publicar/servicios?${q}`,
+    publishHref: (q) => `/publicar/servicios?${q}`,
     resultsHref: (q) => `/clasificados/servicios/resultados?${q}`,
   },
   {
@@ -105,7 +107,7 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Vacantes y ferias de empleo." : "Job listings and job fairs.",
     ready: true,
     manageHref: (q) => `/dashboard/empleos?${q}`,
-    publishHref: (q) => `/clasificados/publicar/empleos?${q}`,
+    publishHref: (q) => `/publicar/empleos?${q}`,
     resultsHref: (q) => `/clasificados/empleos/resultados?${q}`,
   },
   {
@@ -125,6 +127,8 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Propiedades en venta (privado o negocio)." : "Properties for sale (private or business).",
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=bienes-raices`,
+    // Gate I.5.3A — reverted to BR_PUBLICAR_HUB (see categoryRouteRegistry.ts's Gate I.5.3A
+    // correction — the Gate I.5.2 bypass literal was proven wrong).
     publishHref: (q) => `${BR_PUBLICAR_HUB}?${q}`,
     resultsHref: (q) => `${BR_RESULTS}?${q}`,
   },
@@ -142,19 +146,27 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
     key: "clases",
     title: (lang) => (lang === "es" ? "Clases" : "Classes"),
     description: (lang) =>
-      lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
-    ready: false,
-    manageHref: () => null,
-    publishHref: (q) => `/clasificados/publicar/clases?${q}`,
+      lang === "es" ? "Anuncios de clases publicados." : "Published class listings.",
+    // I.6B — corrected. fetchOwnerListingsForDashboard has no category filter (queries by
+    // owner_id only), and the generic Mis Anuncios card already renders working View
+    // public/Edit/Results/Archive actions for clases rows (confirmed by direct inspection) —
+    // "no manageable inventory" was stale. No dedicated tab/architecture was built; this only
+    // exposes the existing generic organization, mirroring the working "busco" entry below.
+    ready: true,
+    manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=clases`,
+    publishHref: (q) => `/publicar/clases/quick?${q}`,
+    resultsHref: (q) => `/clasificados/clases/resultados?${q}`,
   },
   {
     key: "comunidad",
     title: (lang) => (lang === "es" ? "Comunidad" : "Community"),
     description: (lang) =>
-      lang === "es" ? "Sin inventario gestionable en el panel aún." : "No manageable inventory in the dashboard yet.",
-    ready: false,
-    manageHref: () => null,
-    publishHref: (q) => `/clasificados/publicar/comunidad?${q}`,
+      lang === "es" ? "Anuncios de comunidad publicados." : "Published community listings.",
+    // I.6B — corrected, same reasoning as Clases above.
+    ready: true,
+    manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=comunidad`,
+    publishHref: (q) => `/publicar/comunidad/quick?${q}`,
+    resultsHref: (q) => `/clasificados/comunidad/resultados?${q}`,
   },
   {
     key: "busco",
@@ -163,8 +175,23 @@ export const MIS_ANUNCIOS_CATEGORY_DEFS: MisAnunciosCategoryDef[] = [
       lang === "es" ? "Anuncios de búsqueda publicados." : "Published wanted/looking-for listings.",
     ready: true,
     manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=busco`,
-    publishHref: (q) => `/clasificados/publicar/busco?${q}`,
+    publishHref: (q) => `/publicar/busco/quick?${q}`,
     resultsHref: (q) => `/clasificados/busco/resultados?${q}`,
+  },
+  {
+    key: "mascotas",
+    title: (lang) => (lang === "es" ? "Mascotas y Perdidos" : "Pets and Lost & Found"),
+    description: (lang) =>
+      lang === "es" ? "Anuncios de mascotas y perdidos publicados." : "Published pets and lost & found listings.",
+    // Work Package I.8B — corrected. `fetchOwnerListingsForDashboard` has no category filter
+    // (queries by owner_id only, same as Clases/Comunidad/Busco, confirmed I.6B/I.7A/I.8A), and a
+    // real, safe public route now exists (Gate I.6B). Only the generic catch-all card's actions
+    // apply (View public/Manage/Archive) — it never renders an Edit or Preview button at all, so
+    // no unsafe action is exposed. No dedicated architecture was built.
+    ready: true,
+    manageHref: (q) => `/dashboard/mis-anuncios?${q}&cat=mascotas`,
+    publishHref: (q) => `/publicar/mascotas-y-perdidos/quick?${q}`,
+    resultsHref: (q) => `/clasificados/mascotas-y-perdidos/results?${q}`,
   },
 ];
 
