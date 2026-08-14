@@ -2,6 +2,7 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { hasListingVideo } from "@/app/clasificados/autos/negocios/lib/autoDealerVideo";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
+import { hasPrivadoPreviewLocation } from "@/app/clasificados/autos/privado/lib/autosPrivadoLocationReady";
 import { AUTOS_DEFAULT_STATE } from "@/app/lib/clasificados/autos/autosLocationContract";
 
 export type AutosPreviewLane = "negocios" | "privado";
@@ -77,7 +78,7 @@ export function getAutosPreviewCompletenessIssues(lane: AutosPreviewLane, listin
   const hasLocation =
     lane === "negocios"
       ? listingHasAutosNegociosPreviewLocation(listing)
-      : hasCityStateZip(listing.city, listing.state, listing.zip);
+      : hasPrivadoPreviewLocation(listing);
   if (!hasLocation) missing.push("location");
 
   if (lane === "negocios") {
