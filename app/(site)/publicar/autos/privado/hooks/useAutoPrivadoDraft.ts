@@ -30,6 +30,7 @@ import {
 } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import type { AutosPrivadoDraftV1 } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftStorage";
 import { autosListingEditNamespace } from "@/app/lib/clasificados/autos/autosListingEditNamespace";
+import { withPrivadoLocationDefaults } from "@/app/clasificados/autos/privado/lib/autosPrivadoLocationReady";
 
 /** Privado: canonical public title always follows structured year / make / model / trim. */
 function applyPrivadoCanonicalTitle(listing: AutoDealerListing): AutoDealerListing {
@@ -50,10 +51,9 @@ export function useAutoPrivadoDraft(editListingId?: string) {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [restoredFromSession, setRestoredFromSession] = useState(false);
-  const [listing, setListing] = useState<AutoDealerListing>(() => ({
-    ...createEmptyListing(),
-    autosLane: "privado",
-  }));
+  const [listing, setListing] = useState<AutoDealerListing>(() =>
+    withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" }),
+  );
 
   const namespaceRef = useRef<string | null>(null);
   const listingRef = useRef(listing);
@@ -77,7 +77,11 @@ export function useAutoPrivadoDraft(editListingId?: string) {
 
   const applyDraftPayload = useCallback(
     (d: AutosPrivadoDraftV1) => {
-      setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
+      setListing(
+        withPrivadoLocationDefaults(
+          safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"),
+        ),
+      );
       applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
       setRestoredFromSession(true);
     },
@@ -89,14 +93,14 @@ export function useAutoPrivadoDraft(editListingId?: string) {
     if (d) {
       applyDraftPayload(d);
     } else {
-      setListing({ ...createEmptyListing(), autosLane: "privado" });
+      setListing(withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" }));
       applyEditorProgress(0, 0);
       setRestoredFromSession(false);
     }
   }, [applyDraftPayload, applyEditorProgress]);
 
   const emptyPrivado = useCallback(() => {
-    setListing({ ...createEmptyListing(), autosLane: "privado" });
+    setListing(withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" }));
     applyEditorProgress(0, 0);
     setRestoredFromSession(false);
   }, [applyEditorProgress]);
@@ -169,7 +173,7 @@ export function useAutoPrivadoDraft(editListingId?: string) {
         merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
       }
       const withTitle = applyPrivadoCanonicalTitle(merged);
-      return normalizeLoadedListing(withTitle, { liveDraft: true });
+      return withPrivadoLocationDefaults(normalizeLoadedListing(withTitle, { liveDraft: true }));
     });
   }, []);
 
@@ -182,7 +186,7 @@ export function useAutoPrivadoDraft(editListingId?: string) {
       /* ignore */
     }
     if (ns) await clearAutosPrivadoDraft(ns);
-    const empty = { ...createEmptyListing(), autosLane: "privado" as const };
+    const empty = withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" as const });
     listingRef.current = empty;
     setListing(empty);
     applyEditorProgress(0, 0);
@@ -198,12 +202,16 @@ export function useAutoPrivadoDraft(editListingId?: string) {
     if (!ns) return;
     rememberAutosDraftNamespaceHint("privado", ns);
     if (opts?.listing) {
-      listingRef.current = normalizeLoadedListing({ ...opts.listing, autosLane: "privado" });
+      listingRef.current = withPrivadoLocationDefaults(
+        normalizeLoadedListing({ ...opts.listing, autosLane: "privado" }),
+      );
       setListing(listingRef.current);
     }
-    const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
+    const merged = withPrivadoLocationDefaults(
+      normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" }),
+    );
     const withTitle = applyPrivadoCanonicalTitle(merged);
-    const normalized = normalizeLoadedListing(withTitle);
+    const normalized = withPrivadoLocationDefaults(normalizeLoadedListing(withTitle));
     const step =
       opts?.editorStep !== undefined ? clampAutosEditorStep(opts.editorStep) : editorStepRef.current;
     const max =
