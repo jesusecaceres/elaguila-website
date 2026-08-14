@@ -103,6 +103,8 @@ end;
 $$;
 
 revoke all on function public.reserve_promo_customer_redemption_slot(uuid, uuid, text, int, uuid, text, text, text, text, text, int) from public;
+revoke execute on function public.reserve_promo_customer_redemption_slot(uuid, uuid, text, int, uuid, text, text, text, text, text, int) from anon;
+revoke execute on function public.reserve_promo_customer_redemption_slot(uuid, uuid, text, int, uuid, text, text, text, text, text, int) from authenticated;
 grant execute on function public.reserve_promo_customer_redemption_slot(uuid, uuid, text, int, uuid, text, text, text, text, text, int) to service_role;
 
 comment on function public.reserve_promo_customer_redemption_slot(uuid, uuid, text, int, uuid, text, text, text, text, text, int) is
