@@ -55,7 +55,7 @@ export async function assembleResearchPacket(businessId: string): Promise<Resear
   // 2. Approved facts from Living Business Book
   const { data: facts } = await supabase
     .from("business_facts")
-    .select("id, field_key, display_value, status, source_class, confirmation_state, last_verified_at")
+    .select("id, fact_key, display_value, status, source_class, confirmation_state, last_verified_at")
     .eq("business_id", businessId)
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -67,7 +67,7 @@ export async function assembleResearchPacket(businessId: string): Promise<Resear
     categories.push({
       category: "approved_contacts_location",
       truthStatus: verifiedFacts.length > 0 ? "KNOWN" : "UNKNOWN",
-      data: { facts: verifiedFacts.map((f) => ({ fieldKey: f.field_key, displayValue: f.display_value, sourceClass: f.source_class })) },
+      data: { facts: verifiedFacts.map((f) => ({ fieldKey: f.fact_key, displayValue: f.display_value, sourceClass: f.source_class })) },
       evidenceRefs: verifiedFacts.map((f) => ({ factId: f.id, sourceClass: f.source_class, approvalState: f.confirmation_state, evidenceId: null })),
       snapshotTimestamp: now,
     });
@@ -81,7 +81,7 @@ export async function assembleResearchPacket(businessId: string): Promise<Resear
     staleThreshold.setDate(staleThreshold.getDate() - 90);
     for (const f of facts) {
       if (f.last_verified_at && new Date(f.last_verified_at) < staleThreshold) {
-        staleItems.push(`Fact ${f.field_key} last verified ${f.last_verified_at}.`);
+        staleItems.push(`Fact ${f.fact_key} last verified ${f.last_verified_at}.`);
       }
     }
   } else {
@@ -91,13 +91,13 @@ export async function assembleResearchPacket(businessId: string): Promise<Resear
   // 3. Contradictions
   const { data: contradictions } = await supabase
     .from("business_contradictions")
-    .select("id, description")
+    .select("id, claim_a_label, claim_b_label")
     .eq("business_id", businessId)
-    .eq("status", "active");
+    .eq("status", "open");
 
   if (contradictions && contradictions.length > 0) {
     for (const c of contradictions) {
-      contradictedItems.push(`Contradiction: ${c.description}`);
+      contradictedItems.push(`Contradiction: ${c.claim_a_label} ↔ ${c.claim_b_label}`);
     }
   }
 
