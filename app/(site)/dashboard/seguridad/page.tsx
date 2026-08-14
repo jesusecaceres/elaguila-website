@@ -15,7 +15,7 @@
  */
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { PasswordInputField } from "../../components/auth/PasswordInputField";
 import { PasswordStrengthMeter } from "../../components/auth/PasswordStrengthMeter";
@@ -30,6 +30,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
+export const dynamic = "force-dynamic";
+
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
 
@@ -38,7 +40,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardSecurityPage() {
+function DashboardSecurityPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/seguridad";
@@ -140,6 +142,7 @@ export default function DashboardSecurityPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [shellName, setShellName] = useState<string | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -168,6 +171,7 @@ export default function DashboardSecurityPage() {
       }
 
       const u = data.user;
+      setOwnerId(u.id);
       setEmail(u.email ?? null);
       setOauthProviderIds(getOAuthProviderIds(u));
       setPasswordMode(resolveDashboardPasswordMode(u, recoveryMode));
@@ -320,6 +324,7 @@ export default function DashboardSecurityPage() {
       userName={shellName}
       email={email}
       accountRef={null}
+      ownerId={ownerId}
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
@@ -477,5 +482,13 @@ export default function DashboardSecurityPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardSecurityPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardSecurityPageContent />
+    </Suspense>
   );
 }

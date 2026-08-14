@@ -19,6 +19,7 @@ import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPan
 import { ofertaLocalPublicOfferTypeLabel } from "./ofertasLocalesPublicSearchCopy";
 import { ofertasLocalesPublicDetailCopy } from "./ofertasLocalesPublicDetailCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
+import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
 
 const BTN =
   "inline-flex min-h-11 items-center justify-center rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-semibold text-[#1E1814] hover:border-[#7A1E2C]/40";
@@ -307,6 +308,19 @@ function ContactHub({
 
   if (!hasContact && !hasSocial && !location && !offer.address) return null;
 
+  // Package D Build D2, Gate 6B/7 — every visible CTA here now tracks a truthful click event, and
+  // every social/review link with real data renders a button (previously TikTok/YouTube/Google
+  // Reviews/Yelp were detected but never rendered).
+  const track = (kind: ConnectionHubCtaKind, provider?: string) =>
+    dispatchConnectionHubCta({
+      kind,
+      provider,
+      category: "ofertas-locales",
+      sourceTable: "ofertas_locales",
+      sourceId: offer.id,
+      surface: "public_detail",
+    });
+
   return (
     <section
       className="rounded-2xl border border-[#B8860B]/55 bg-white p-4 shadow-sm sm:p-5"
@@ -325,31 +339,56 @@ function ContactHub({
       {hasContact ? (
         <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {offer.phoneHref ? (
-            <a href={offer.phoneHref} className={BTN_PRIMARY}>
+            <a href={offer.phoneHref} className={BTN_PRIMARY} onClick={() => track("phone")}>
               {c.call}
             </a>
           ) : null}
           {smsHref && offer.phoneDisplay ? (
-            <a href={smsHref} className={BTN}>
+            <a href={smsHref} className={BTN} onClick={() => track("phone", "sms")}>
               {c.sms}
             </a>
           ) : null}
           {offer.whatsappHref ? (
-            <a href={offer.whatsappHref} target="_blank" rel="noopener noreferrer" className={BTN_PRIMARY}>
+            <a
+              href={offer.whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN_PRIMARY}
+              onClick={() => track("whatsapp")}
+            >
               {c.whatsapp}
             </a>
           ) : null}
           {offer.websiteHref ? (
-            <a href={offer.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN}>
+            <a
+              href={offer.websiteHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("website")}
+            >
               {c.website}
             </a>
           ) : null}
           {offer.directionsHref ? (
-            <a href={offer.directionsHref} target="_blank" rel="noopener noreferrer" className={BTN}>
+            <a
+              href={offer.directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("directions")}
+            >
               {c.directions}
             </a>
           ) : null}
-          <button type="button" className={BTN} onClick={() => void onShare()}>
+          <button
+            type="button"
+            className={BTN}
+            onClick={() => {
+              track("share");
+              void onShare();
+            }}
+          >
             {c.share}
           </button>
         </div>
@@ -359,18 +398,80 @@ function ContactHub({
       {hasSocial ? (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-[#D4C4A8]/50 pt-3">
           {social.facebookUrl ? (
-            <a href={social.facebookUrl} target="_blank" rel="noopener noreferrer" className={BTN}>
+            <a
+              href={social.facebookUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("social", "facebook")}
+            >
               {c.facebook}
             </a>
           ) : null}
           {social.instagramUrl ? (
-            <a href={social.instagramUrl} target="_blank" rel="noopener noreferrer" className={BTN}>
+            <a
+              href={social.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("social", "instagram")}
+            >
               {c.instagram}
             </a>
           ) : null}
+          {social.tiktokUrl ? (
+            <a
+              href={social.tiktokUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("social", "tiktok")}
+            >
+              {c.tiktok}
+            </a>
+          ) : null}
+          {social.youtubeUrl ? (
+            <a
+              href={social.youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("social", "youtube")}
+            >
+              {c.youtube}
+            </a>
+          ) : null}
           {social.googleBusinessUrl ? (
-            <a href={social.googleBusinessUrl} target="_blank" rel="noopener noreferrer" className={BTN}>
+            <a
+              href={social.googleBusinessUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("social", "google_business")}
+            >
               {c.googleBusiness}
+            </a>
+          ) : null}
+          {social.googleReviewUrl ? (
+            <a
+              href={social.googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("review", "google")}
+            >
+              {c.googleReviews}
+            </a>
+          ) : null}
+          {social.yelpUrl ? (
+            <a
+              href={social.yelpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={BTN}
+              onClick={() => track("review", "yelp")}
+            >
+              {c.yelp}
             </a>
           ) : null}
         </div>

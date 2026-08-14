@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { listingPlanFieldLabel } from "@/app/lib/listingPlans/categoryAdPlans";
+import { listingUiStatusChipClass, listingUiStatusLabel, type ListingUiStatus } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 
 type Lang = "es" | "en";
 
@@ -47,6 +48,16 @@ export function AutosClassifiedListingManageCard({
   thumbUrl,
   listingAdPlanLabel,
   leonixAdId = null,
+  /** Work Package I.8B — pre-computed by the caller via `resolveListingUiStatus`/
+   * `normalizeUiStatus` (same pipeline En Venta and the generic classified card already use).
+   * Optional so this stays backward compatible; when omitted, falls back to the previous
+   * sold-vs-active-only display so no other caller of this shared component breaks. */
+  uiStatus,
+  /** Package E Build E2, Gate 4 — real Autos Privado edit route (confirmed live:
+   * `/publicar/autos/privado?edit=1&source=dashboard&listingId={id}`), sourced by the caller
+   * from the same registry-backed href every other pipeline's edit action already uses.
+   * Optional so this stays backward compatible with any other caller. */
+  editHref = null,
 }: {
   row: {
     id: string;
@@ -57,6 +68,7 @@ export function AutosClassifiedListingManageCard({
     created_at?: string | null;
   };
   lang: Lang;
+  uiStatus?: ListingUiStatus;
   priceText: string;
   dateText: string;
   busy: boolean;
@@ -67,6 +79,7 @@ export function AutosClassifiedListingManageCard({
   listingAdPlanLabel?: string | null;
   /** `listings` legacy row or paid table id — display only when present. */
   leonixAdId?: string | null;
+  editHref?: string | null;
 }) {
   const L =
     lang === "es"
@@ -75,6 +88,7 @@ export function AutosClassifiedListingManageCard({
           active: "Activo",
           sold: "Vendido",
           view: "Ver anuncio",
+          edit: "Editar",
           archive: "Archivar anuncio",
           views: "Vistas",
           uniq: "Únicas",
@@ -96,6 +110,7 @@ export function AutosClassifiedListingManageCard({
           active: "Active",
           sold: "Sold",
           view: "View listing",
+          edit: "Edit",
           archive: "Archive ad",
           views: "Views",
           uniq: "Unique",
@@ -115,6 +130,12 @@ export function AutosClassifiedListingManageCard({
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
   const v = analytics.views;
+  // Work Package I.8B — previously ANY non-"sold" status (paused, removed, expired, flagged,
+  // pending, ...) rendered as green "Active", regardless of the real status. When the caller
+  // supplies a real resolved `uiStatus`, use its truthful label/tone; otherwise keep the
+  // previous sold-vs-active-only behavior for backward compatibility.
+  const statusLabel = uiStatus ? listingUiStatusLabel(uiStatus, lang) : isSold ? L.sold : L.active;
+  const statusChipClass = uiStatus ? listingUiStatusChipClass(uiStatus) : isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900";
 
   return (
     <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.12)] sm:p-5">
@@ -135,12 +156,8 @@ export function AutosClassifiedListingManageCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start gap-2">
               <h3 className="line-clamp-2 text-base font-bold text-[#1E1810] sm:text-lg">{row.title || "—"}</h3>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                  isSold ? "bg-[#E8DFD0] text-[#5C5346]" : "bg-emerald-100 text-emerald-900"
-                }`}
-              >
-                {isSold ? L.sold : L.active}
+              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusChipClass}`}>
+                {statusLabel}
               </span>
             </div>
             <p className="mt-1 text-lg font-bold text-[#1E1810]">{priceText}</p>
@@ -181,10 +198,20 @@ export function AutosClassifiedListingManageCard({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
+              prefetch={false}
               className="inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#F3EBDD]"
             >
               {L.view} →
             </Link>
+            {editHref ? (
+              <Link
+                href={editHref}
+                prefetch={false}
+                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {L.edit}
+              </Link>
+            ) : null}
             <button
               type="button"
               disabled={busy}

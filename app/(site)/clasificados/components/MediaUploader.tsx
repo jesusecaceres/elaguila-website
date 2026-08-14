@@ -588,7 +588,7 @@ export function MediaUploader({
                   </button>
                 ) : (
                   <a
-                    href={`/clasificados/publicar?lang=${lang}`}
+                    href={`/publicar?lang=${lang}`}
                     target="_blank"
                     rel="noreferrer"
                     className="cta-premium flex-1 rounded-xl bg-[#111111] px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-95"

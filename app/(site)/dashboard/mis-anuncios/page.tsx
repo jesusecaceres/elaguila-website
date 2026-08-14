@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -9,7 +9,9 @@ import {
   OWNER_LISTING_PAUSE_PATCH,
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   ownerListingResumeFromPausePatch,
+  applyOwnerListingPatch,
 } from "../lib/ownerListingsLifecycleClient";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
@@ -19,6 +21,7 @@ import {
   isBrNegocioListing,
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { callBrLifecycleMutation } from "../lib/brDashboardLifecycleClient";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -40,7 +43,18 @@ import {
   buildInventoryListingActions,
   listingAnalyticsIsProven,
 } from "../lib/dashboardMisAnunciosCategoryTools";
+import { ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
+import { resolveOwnerDashboardAttentionItems, countByAttentionSeverity, type OwnerAttentionItem } from "../lib/dashboardAttentionItems";
+import { classifyOwnerDashboardRow, type OwnerDashboardGroup } from "../lib/dashboardOwnerClassification";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
+import {
+  DEFERRED_DEDICATED_CATEGORIES,
+  EMPTY_DEDICATED_CATEGORY_COUNTS,
+  fetchDedicatedCategoryCounts,
+  resolveMisAnunciosLoadPlan,
+  type DedicatedCategoryCounts,
+} from "../lib/dashboardMisAnunciosCategoryLoadPlan";
+
 import {
   buildAutosClassifiedsInventoryItems,
   buildRestaurantInventoryItems,
@@ -68,11 +82,16 @@ import {
 } from "@/app/lib/listingPlans/categoryAdPlans";
 import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
+  dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
+  dashboardHasCapabilityForKey,
   dashboardRevenueAdPlanBadgeForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
+  type DashboardSubscriptionStateEntry,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 import {
   listingUiStatusChipClass,
   listingUiStatusLabel,
@@ -103,19 +122,20 @@ import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/list
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
-import {
-  mapComidaLocalRowToDashboardVm,
-  type ComidaLocalDashboardListingVm,
-} from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
+import { mapComidaLocalRowToDashboardVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
-import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import { hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   serviciosListingEditHref,
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
+
+export const dynamic = "force-dynamic";
+
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -252,6 +272,42 @@ function normalizeStatus(s: string | null | undefined): string {
   return String(s ?? "active").toLowerCase() || "active";
 }
 
+/**
+ * Gate G.2.3.1 — sanitized owner-facing text for the new BR lifecycle mutation route's error
+ * codes. Never surfaces a raw database error message (unlike the legacy client-direct handlers
+ * this replaces for BR rows only).
+ */
+function brLifecycleErrorMessage(code: string, lang: Lang): string {
+  const es: Record<string, string> = {
+    br_lifecycle_auth_required: "Debes iniciar sesión de nuevo.",
+    br_lifecycle_listing_not_found: "No se encontró el anuncio.",
+    br_lifecycle_owner_mismatch: "Este anuncio no pertenece a tu cuenta.",
+    br_lifecycle_listing_not_eligible: "Esta acción no aplica a este anuncio.",
+    br_lifecycle_transition_not_allowed: "Esta acción no está disponible en el estado actual del anuncio.",
+    br_lifecycle_parent_invalid: "No se pudo verificar el anuncio principal.",
+    br_lifecycle_parent_inactive: "El anuncio principal debe estar activo para reanudar esta propiedad.",
+    br_active_property_limit_reached: "Alcanzaste el límite de propiedades activas para este plan.",
+    br_lifecycle_child_disposition_required:
+      "Antes de archivar o descontinuar este perfil, pausa, archiva o finaliza sus propiedades activas.",
+    supabase_not_configured: "Servicio no disponible en este momento.",
+  };
+  const en: Record<string, string> = {
+    br_lifecycle_auth_required: "Please sign in again.",
+    br_lifecycle_listing_not_found: "Listing not found.",
+    br_lifecycle_owner_mismatch: "This listing does not belong to your account.",
+    br_lifecycle_listing_not_eligible: "This action does not apply to this listing.",
+    br_lifecycle_transition_not_allowed: "This action is not available in the listing's current state.",
+    br_lifecycle_parent_invalid: "The main listing could not be verified.",
+    br_lifecycle_parent_inactive: "The main listing must be active to resume this property.",
+    br_active_property_limit_reached: "You reached the active property limit for this plan.",
+    br_lifecycle_child_disposition_required:
+      "Before archiving or discontinuing this profile, pause, archive, or finish its active properties.",
+    supabase_not_configured: "Service unavailable right now.",
+  };
+  const table = lang === "es" ? es : en;
+  return table[code] ?? (lang === "es" ? "No se pudo completar la acción." : "Could not complete the action.");
+}
+
 function passesTab(row: ListingRow, tab: Tab): boolean {
   const st = normalizeStatus(row.status);
   /** Keep removed rows in "All" so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
@@ -272,11 +328,21 @@ function listingRowCategoryKey(row: ListingRow): MisAnunciosCategoryKey | "other
   if (cat === "clases") return "clases";
   if (cat === "comunidad") return "comunidad";
   if (cat === "busco") return "busco";
+  if (cat === "mascotas-y-perdidos") return "mascotas";
   const lx = parseLeonixListingContract(row.detail_pairs);
   const br = lx.branch;
   if (br === "bienes_raices_privado" || br === "bienes_raices_negocio") return "bienes-raices";
   if (br === "rentas_privado" || br === "rentas_negocio") return "rentas";
   return "other";
+}
+
+/** Work Package I.8B — live label for `classifyOwnerDashboardRow()`'s group output, so the
+ * classification helper actually controls what the owner visibly sees, not just test coverage. */
+function ownerDashboardGroupLabel(group: OwnerDashboardGroup, lang: Lang): string {
+  if (group === "business") return lang === "es" ? "Negocio" : "Business";
+  if (group === "inventory_child") return lang === "es" ? "Inventario" : "Inventory";
+  if (group === "unsupported") return lang === "es" ? "Requiere atención" : "Needs attention";
+  return lang === "es" ? "Privado / Clasificado" : "Private / Classified";
 }
 
 function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
@@ -295,7 +361,7 @@ function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
   return lang === "es" ? "Precio reducido" : "Reduced price";
 }
 
-export default function MyListingsPage() {
+function MyListingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/mis-anuncios";
@@ -313,17 +379,172 @@ export default function MyListingsPage() {
 
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listings, setListings] = useState<ListingRow[]>([]);
-  const [restaurantInventory, setRestaurantInventory] = useState<DashboardInventoryItem[]>([]);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
-  const [empleosInventory, setEmpleosInventory] = useState<DashboardInventoryItem[]>([]);
-  const [viajesInventory, setViajesInventory] = useState<DashboardInventoryItem[]>([]);
-  const [serviciosInventory, setServiciosInventory] = useState<DashboardInventoryItem[]>([]);
-  const [autosPaidInventory, setAutosPaidInventory] = useState<DashboardInventoryItem[]>([]);
-  const [comidaLocalDashboardItems, setComidaLocalDashboardItems] = useState<
-    ComidaLocalDashboardListingVm[]
+  const [subscriptionStates, setSubscriptionStates] = useState<
+    Record<string, DashboardSubscriptionStateEntry>
+  >({});
+
+  // Gate I.4.2 — raw rows only, per category; the lang-formatted display VM each category
+  // renders is derived below via `useMemo`, so switching ES/EN never re-fetches this data. Every
+  // other place in this file keeps reading the same `restaurantInventory` / `empleosInventory` /
+  // etc. names it always has — only the source (state -> derived memo) changed.
+  const [restaurantRawRows, setRestaurantRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerRestaurantListings>>
   >([]);
+  const [empleosRawRows, setEmpleosRawRows] = useState<Awaited<ReturnType<typeof fetchOwnerEmpleosListings>>>([]);
+  const [viajesRawRows, setViajesRawRows] = useState<Awaited<ReturnType<typeof fetchOwnerViajesListings>>>([]);
+  const [serviciosRawRows, setServiciosRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerServiciosListings>>
+  >([]);
+  /** Package E Build E2, Gate 8 — Ofertas Locales dashboard boundary: real owner reader,
+   * summary-only, links out to the dedicated management surface. Never moved into the generic
+   * listing architecture. */
+  const [ofertasLocalesOwnerCount, setOfertasLocalesOwnerCount] = useState<number | null>(null);
+  const [autosPaidRawRows, setAutosPaidRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerAutosClassifiedsListings>>
+  >([]);
+  const [comidaLocalRawRows, setComidaLocalRawRows] = useState<
+    Awaited<ReturnType<typeof fetchOwnerComidaLocalListings>>
+  >([]);
+
+  const restaurantAddonStatusByListingId = useMemo(() => {
+    if (restaurantRawRows.length === 0) return undefined;
+    return new Map(
+      restaurantRawRows.map((row) => {
+        const keys = [row.id, row.slug ?? "", row.leonix_ad_id ?? ""];
+        const addonStatus = dashboardAddonStatusForKey(entitlementBadges, keys);
+        // Package C Build 3 (C5/C6) — coupons are included in the $399/mo base package; a
+        // listing with no separate addon entitlement row can still have a real, server-verified
+        // active module via resolveBusinessToolsAccess. Never downgrade a real "active" status.
+        const hasCouponsCapability = dashboardHasCapabilityForKey(entitlementBadges, keys, "coupons_offers");
+        return [row.id, addonStatus === "not_purchased" && hasCouponsCapability ? "active" : addonStatus] as const;
+      }),
+    );
+  }, [restaurantRawRows, entitlementBadges]);
+
+  const restaurantInventory = useMemo(
+    () =>
+      dedupeRestaurantInventoryWithListings(
+        buildRestaurantInventoryItems(restaurantRawRows, lang, restaurantAddonStatusByListingId),
+        listings,
+      ),
+    [restaurantRawRows, lang, restaurantAddonStatusByListingId, listings],
+  );
+  const empleosInventory = useMemo(() => buildEmpleosInventoryItems(empleosRawRows, lang), [empleosRawRows, lang]);
+  const viajesInventory = useMemo(() => buildViajesInventoryItems(viajesRawRows, lang), [viajesRawRows, lang]);
+  const serviciosInventory = useMemo(
+    () => buildServiciosInventoryItems(serviciosRawRows, lang),
+    [serviciosRawRows, lang],
+  );
+  const autosPaidInventory = useMemo(
+    () => buildAutosClassifiedsInventoryItems(autosPaidRawRows, lang),
+    [autosPaidRawRows, lang],
+  );
+  const comidaLocalDashboardItems = useMemo(
+    () => comidaLocalRawRows.map((row) => mapComidaLocalRowToDashboardVm(row, lang)),
+    [comidaLocalRawRows, lang],
+  );
+
+  // Work Package I.8A — pure, additive attention aggregation. Derived only from data already
+  // fetched above; never performs I/O itself. Only the categories with real, already-computed
+  // status/lifecycle truth are covered here (Empleos, Viajes, and Rentas via the same
+  // `resolveListingLifecycle` used by the Rentas card render path) — this intentionally does not
+  // attempt to re-derive every category's own bespoke status logic a second time.
+  const attentionItems = useMemo<OwnerAttentionItem[]>(() => {
+    const out: OwnerAttentionItem[] = [];
+
+    for (const item of empleosInventory) {
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: item.id,
+          category: "empleos",
+          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+          editHref: item.editHref,
+          publicHref: item.publicHref,
+        }),
+      );
+    }
+
+    for (const item of viajesInventory) {
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: item.id,
+          category: "viajes",
+          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+          editHref: item.editHref,
+          publicHref: item.publicHref,
+        }),
+      );
+    }
+
+    for (const row of listings) {
+      const cat = String(row.category ?? "").toLowerCase();
+      if (cat !== "rentas") continue;
+      const lifecycle = resolveListingLifecycle(
+        {
+          category: "rentas",
+          packageKey: "rentas_30d",
+          status: row.status,
+          isPublished: row.is_published,
+          publishedAt: row.published_at,
+          expiresAt: row.expires_at,
+        },
+        RENTAS_LISTING_LIFECYCLE_CONFIG,
+      );
+      const statusDisplayKey =
+        lifecycle.lifecycleState === "pending_payment"
+          ? "pending_payment"
+          : lifecycle.lifecycleState === "expired"
+            ? "expired"
+            : lifecycle.lifecycleState === "suspended"
+              ? "suspended"
+              : "active";
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: row.id,
+          category: "rentas",
+          statusDisplayKey,
+          isPublished: row.is_published,
+          // Edit route not evaluated in this narrow loop (left undefined, not "confirmed
+          // missing") — the real edit href is computed per-row inside LeonixRealEstateListingManageCard's
+          // own render path; this attention pass only claims what it has actually verified.
+          publicHref: rentasListingPublicPath(row.id),
+          renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
+        }),
+      );
+    }
+
+    // Work Package I.8B — a row whose category matches no known tab (`listingRowCategoryKey`
+    // returns "other") would otherwise never appear under any tab filter and would silently
+    // disappear from the owner's view entirely. Surface it here instead — real data, a real
+    // (generic) manage link, never a fabricated category-specific action.
+    for (const row of listings) {
+      if (listingRowCategoryKey(row) !== "other") continue;
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: row.id,
+          category: String(row.category ?? "unknown"),
+          statusDisplayKey: "unknown",
+          isUnsupportedPipeline: true,
+          publicHref: `/dashboard/mis-anuncios/${row.id}?${q}`,
+        }),
+      );
+    }
+
+    return out;
+  }, [empleosInventory, viajesInventory, listings, q]);
+
+  const attentionSeverityCounts = useMemo(() => countByAttentionSeverity(attentionItems), [attentionItems]);
+
+  const [dedicatedCounts, setDedicatedCounts] = useState<DedicatedCategoryCounts>(EMPTY_DEDICATED_CATEGORY_COUNTS);
+  const [loadedDedicatedCategories, setLoadedDedicatedCategories] = useState<Set<MisAnunciosCategoryKey>>(
+    () => new Set(),
+  );
+  const [categoryInventoryLoading, setCategoryInventoryLoading] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
   const [unifiedActiveCount, setUnifiedActiveCount] = useState<number | null>(null);
   const [totalManagedCount, setTotalManagedCount] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<MisAnunciosCategoryKey>("en-venta");
@@ -347,9 +568,10 @@ export default function MyListingsPage() {
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
   const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  const [serviciosManageBusySlug, setServiciosManageBusySlug] = useState<string | null>(null);
+  const [empleosLifecycleBusyId, setEmpleosLifecycleBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
@@ -402,7 +624,8 @@ export default function MyListingsPage() {
       if (!mounted) return;
 
       if (qErr) {
-        setError(qErr.message);
+        console.error("[mis-anuncios]", qErr.message);
+        setError(dashboardSafeMutationErrorCopy(lang));
         setListings([]);
         setListingsLoading(false);
         return;
@@ -411,84 +634,41 @@ export default function MyListingsPage() {
       setRepublishColsAvailable(meta?.republishColsAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
-      const restaurantRows = await fetchOwnerRestaurantListings(supabase, u.id);
-      const restaurantItems = buildRestaurantInventoryItems(restaurantRows, lang);
-      
-      const empleosRows = await fetchOwnerEmpleosListings(supabase, u.id);
-      const empleosItems = buildEmpleosInventoryItems(empleosRows, lang);
-      
-      const viajesRows = await fetchOwnerViajesListings(supabase, u.id);
-      const viajesItems = buildViajesInventoryItems(viajesRows, lang);
 
       const { data: sessData } = await supabase.auth.getSession();
-      const accessToken = sessData.session?.access_token ?? null;
-      const [activeAcross, autosPaidRows, serviciosRows, comidaLocalRows, managedTotal] = await Promise.all([
+      const token = sessData.session?.access_token ?? null;
+      if (mounted) setAccessToken(token);
+
+      // Gate I.4.2 — only lightweight, always-needed data loads unconditionally on initial
+      // render: real per-category counts (tab badges + smart default-category selection) and
+      // Servicios' already-necessary full fetch (no lightweight count endpoint exists for it —
+      // see the Gate I.4.2 report §3/§6). Every other dedicated category's full content loads on
+      // demand only once actually selected, via the separate effect below.
+      const [dedCounts, activeAcross, serviciosRows, managedTotal] = await Promise.all([
+        fetchDedicatedCategoryCounts(supabase, u.id),
         countOwnerActiveListingsAcrossSources(supabase, u.id),
-        fetchOwnerAutosClassifiedsListings(supabase, u.id),
-        fetchOwnerServiciosListings(accessToken),
-        fetchOwnerComidaLocalListings(supabase, u.id),
+        fetchOwnerServiciosListings(token),
         countOwnerInventoryListings(supabase, u.id),
       ]);
-      const autosPaidItems = buildAutosClassifiedsInventoryItems(autosPaidRows, lang);
-      const serviciosItems = buildServiciosInventoryItems(serviciosRows, lang);
-      const comidaLocalItems = comidaLocalRows.map((row) =>
-        mapComidaLocalRowToDashboardVm(row, lang)
-      );
 
       if (!mounted) return;
+      setDedicatedCounts(dedCounts);
       setUnifiedActiveCount(activeAcross);
       setTotalManagedCount(managedTotal);
-      setRestaurantInventory(dedupeRestaurantInventoryWithListings(restaurantItems, list));
-      setEmpleosInventory(empleosItems);
-      setViajesInventory(viajesItems);
-      setAutosPaidInventory(autosPaidItems);
-      setServiciosInventory(serviciosItems);
-      setComidaLocalDashboardItems(comidaLocalItems);
+      setServiciosRawRows(serviciosRows);
 
-      const entitlementLookup = [
-        ...restaurantItems.map((item) => ({
-          key: item.id,
-          category: "restaurantes",
-          listingSource: "restaurantes_public_listings",
-          listingId: item.id,
-          slug: item.slug ?? null,
-          leonixAdId: item.leonixAdId ?? null,
-        })),
-        ...serviciosItems.map((item) => ({
-          key: item.id,
-          category: "servicios",
-          listingSource: "servicios_public_listings",
-          listingId: item.id,
-          slug: item.slug ?? null,
-          leonixAdId: item.leonixAdId ?? null,
-        })),
-        ...autosPaidItems.map((item) => ({
-          key: item.id,
-          category: "autos",
-          listingSource: "autos_classifieds_listings",
-          listingId: item.id,
-          slug: null,
-          leonixAdId: item.leonixAdId ?? null,
-        })),
-        ...list
-          .filter((row) => {
-            const c = String(row.category ?? "").toLowerCase();
-            return c === "bienes-raices" || c === "rentas" || c === "en-venta";
-          })
-          .map((row) => ({
-            key: row.id,
-            category: String(row.category ?? "").toLowerCase(),
-            listingSource: "listings",
-            listingId: row.id,
-            slug: null,
-            leonixAdId: row.leonix_ad_id ?? null,
-          })),
-      ];
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
-        entitlementLookup,
-        accessToken,
-      );
-      if (mounted) setEntitlementBadges(badges);
+      // Package E Build E2, Gate 8 — real, existing owner reader; boundary-safe summary only.
+      if (token) {
+        try {
+          const ofertasRes = await fetch(`/api/ofertas-locales/owner?lang=${lang}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const ofertasJson = (await ofertasRes.json()) as { ok?: boolean; total?: number };
+          if (mounted) setOfertasLocalesOwnerCount(ofertasRes.ok && ofertasJson.ok ? (ofertasJson.total ?? 0) : null);
+        } catch {
+          if (mounted) setOfertasLocalesOwnerCount(null);
+        }
+      }
 
       setListingsLoading(false);
 
@@ -520,18 +700,181 @@ export default function MyListingsPage() {
     return () => {
       mounted = false;
     };
-  }, [router, pathname, lang]);
+    // Gate I.4.2 — `lang` deliberately excluded: nothing fetched here is language-dependent
+    // (raw rows only); every lang-formatted display value is derived separately via `useMemo`
+    // below, so switching ES/EN no longer re-runs this entire load.
+  }, [router, pathname]);
+
+  // Gate I.4.2 — on-demand dedicated-category loader. Fires only when the selected category is
+  // one of `DEFERRED_DEDICATED_CATEGORIES` and hasn't been loaded yet this session; cached in
+  // `loadedDedicatedCategories` so switching back to an already-visited category never refetches.
+  // Waits on `inventoryReady` (not just `userId`) so the shared `listings` array — needed by
+  // Restaurant's own de-dupe-against-listings step — is already populated before this runs.
+  useEffect(() => {
+    if (!inventoryReady || !userId) return;
+    if (!resolveMisAnunciosLoadPlan(categoryFilter).requiresDedicatedFetch) return;
+    if (loadedDedicatedCategories.has(categoryFilter)) return;
+
+    let cancelled = false;
+    const supabase = createSupabaseBrowserClient();
+
+    (async () => {
+      setCategoryInventoryLoading(true);
+      try {
+        if (categoryFilter === "restaurantes") {
+          const fetched = await fetchOwnerRestaurantListings(supabase, userId);
+          if (cancelled) return;
+          setRestaurantRawRows(fetched);
+        } else if (categoryFilter === "empleos") {
+          const fetched = await fetchOwnerEmpleosListings(supabase, userId);
+          if (cancelled) return;
+          setEmpleosRawRows(fetched);
+        } else if (categoryFilter === "viajes") {
+          const fetched = await fetchOwnerViajesListings(supabase, userId);
+          if (cancelled) return;
+          setViajesRawRows(fetched);
+        } else if (categoryFilter === "autos") {
+          const fetched = await fetchOwnerAutosClassifiedsListings(supabase, userId);
+          if (cancelled) return;
+          setAutosPaidRawRows(fetched);
+        } else if (categoryFilter === "comida-local") {
+          const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+          if (cancelled) return;
+          setComidaLocalRawRows(fetched);
+        }
+        if (!cancelled) {
+          setLoadedDedicatedCategories((prev) => {
+            const next = new Set(prev);
+            next.add(categoryFilter);
+            return next;
+          });
+        }
+      } finally {
+        if (!cancelled) setCategoryInventoryLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryReady, userId, categoryFilter, loadedDedicatedCategories]);
+
+  // Gate I.4.2 — entitlement lookup scoped to only the currently selected category's currently
+  // loaded rows, never the owner's entire cross-category catalog. Depends only on raw, lang-
+  // independent data, so switching ES/EN never re-fetches entitlements either.
+  useEffect(() => {
+    if (!inventoryReady) return;
+    if (!resolveMisAnunciosLoadPlan(categoryFilter).requiresEntitlementLookup) {
+      setEntitlementBadges({});
+      return;
+    }
+
+    let items: Array<{
+      key: string;
+      category: string;
+      listingSource: string;
+      listingId: string;
+      slug: string | null;
+      leonixAdId: string | null;
+      packageKey?: string;
+    }> = [];
+
+    if (categoryFilter === "restaurantes") {
+      items = restaurantRawRows.map((row) => ({
+        key: row.id,
+        category: "restaurantes",
+        listingSource: "restaurantes_public_listings",
+        listingId: row.id,
+        slug: row.slug ?? null,
+        leonixAdId: row.leonix_ad_id ?? null,
+        packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+      }));
+    } else if (categoryFilter === "servicios") {
+      items = serviciosRawRows.map((row) => {
+        const id = (row.id ?? row.slug) as string;
+        return {
+          key: id,
+          category: "servicios",
+          listingSource: "servicios_public_listings",
+          listingId: id,
+          slug: row.slug ?? null,
+          leonixAdId: row.leonix_ad_id ?? null,
+        };
+      });
+    } else if (categoryFilter === "autos") {
+      items = autosPaidRawRows.map((row) => ({
+        key: row.id,
+        category: "autos",
+        listingSource: "autos_classifieds_listings",
+        listingId: row.id,
+        slug: null,
+        leonixAdId: row.leonix_ad_id ?? null,
+      }));
+    } else if (categoryFilter === "bienes-raices" || categoryFilter === "rentas" || categoryFilter === "en-venta") {
+      items = listings
+        .filter((row) => listingRowCategoryKey(row) === categoryFilter)
+        .map((row) => ({
+          key: row.id,
+          category: categoryFilter,
+          listingSource: "listings",
+          listingId: row.id,
+          slug: null,
+          leonixAdId: row.leonix_ad_id ?? null,
+        }));
+    }
+
+    if (items.length === 0) {
+      setEntitlementBadges({});
+      setSubscriptionStates({});
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, accessToken);
+      if (!cancelled) {
+        setEntitlementBadges(badges);
+        setSubscriptionStates(subs);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inventoryReady, categoryFilter, restaurantRawRows, serviciosRawRows, autosPaidRawRows, listings, accessToken]);
 
   async function markPauseListing(id: string) {
+    // Gate G.2.3.1 — Bienes Raíces Negocio rows go through the new server-authorized mutation
+    // route; every other listings-table category (Rentas, En Venta, Bienes Raíces Privado) keeps
+    // its existing client-direct behavior exactly as-is, unchanged by this gate.
+    const row = listings.find((x) => x.id === id);
+    if (row && isBrNegocioListing(row)) {
+      setBusyId(id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: id, mutation: "pause" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+      );
+      setBusyId(null);
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -543,15 +886,38 @@ export default function MyListingsPage() {
   }
 
   async function markResumeListing(id: string) {
+    // Gate G.2.3.1 — same BR/other-category split as markPauseListing. Resume additionally
+    // rechecks the canonical main parent, entitlement, and capacity server-side for an inventory
+    // child (Gate G.2.3A's confirmed most severe gap) — this client function never knows or
+    // needs to know that; it only surfaces whatever error the server route returns.
+    const row = listings.find((x) => x.id === id);
+    if (row && isBrNegocioListing(row)) {
+      setBusyId(id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: id, mutation: "resume" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+      );
+      setBusyId(null);
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -560,32 +926,6 @@ export default function MyListingsPage() {
       prev.map((x) => (x.id === id ? { ...x, status: "active", is_published: true, updated_at: now } : x)),
     );
     setBusyId(null);
-  }
-
-  async function startRestauranteCouponAddonCheckout(item: DashboardInventoryItem) {
-    setCouponCheckoutBusyId(item.id);
-    setError(null);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const result = await redirectRestauranteDashboardCouponAddonCheckout({
-        listingId: item.id,
-        leonixAdId: item.leonixAdId,
-        lang,
-        customerEmail: auth.user?.email ?? null,
-      });
-      if (!result.ok) {
-        setError(result.userMessage);
-        setCouponCheckoutBusyId(null);
-      }
-    } catch {
-      setError(
-        lang === "es"
-          ? "No pudimos iniciar el pago del módulo de cupones. Intenta de nuevo."
-          : "We could not start coupon module checkout. Please try again.",
-      );
-      setCouponCheckoutBusyId(null);
-    }
   }
 
   async function openRestauranteCouponEdit(item: DashboardInventoryItem) {
@@ -613,7 +953,83 @@ export default function MyListingsPage() {
     }
   }
 
+  // Package E Build E2, Gate 4 — real pause/resume for Servicios, previously only wired on the
+  // separate /dashboard/servicios page. Reuses the existing owner-verified
+  // /api/clasificados/servicios/manage route; no new mutation API.
+  async function manageServiciosListing(slug: string, action: "pause" | "resume") {
+    if (!accessToken) return;
+    setServiciosManageBusySlug(slug);
+    setError(null);
+    try {
+      const res = await fetch("/api/clasificados/servicios/manage", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, action }),
+      });
+      if (!res.ok) {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+      const fresh = await fetchOwnerServiciosListings(accessToken);
+      setServiciosRawRows(fresh);
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+    } finally {
+      setServiciosManageBusySlug(null);
+    }
+  }
+
+  // Package E Build E2, Gate 4 — real pause/archive/resume for Empleos, previously only wired on
+  // the /dashboard/empleos/[listingId] detail page. Reuses the existing owner-verified PATCH
+  // route; no new mutation API.
+  async function updateEmpleosLifecycle(id: string, lifecycle_status: "published" | "paused" | "archived") {
+    if (!accessToken || !userId) return;
+    setEmpleosLifecycleBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/clasificados/empleos/listings/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ lifecycle_status }),
+      });
+      if (!res.ok) {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+      const supabase = createSupabaseBrowserClient();
+      const fresh = await fetchOwnerEmpleosListings(supabase, userId);
+      setEmpleosRawRows(fresh);
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+    } finally {
+      setEmpleosLifecycleBusyId(null);
+    }
+  }
+
   async function markStatus(id: string, status: "active" | "sold") {
+    // Gate G.2.3.1 — only the BR "mark sold" case (maps to Discontinue) moves to the server
+    // route; En Venta's "active" (relist) and "sold" calls through this same shared function
+    // keep their existing client-direct behavior unchanged.
+    if (status === "sold") {
+      const row = listings.find((x) => x.id === id);
+      if (row && isBrNegocioListing(row)) {
+        setBusyId(id);
+        setError(null);
+        const result = await callBrLifecycleMutation({ listingId: id, mutation: "discontinue" });
+        if (!result.ok) {
+          setError(brLifecycleErrorMessage(result.code, lang));
+          setBusyId(null);
+          return;
+        }
+        const now = new Date().toISOString();
+        setListings((prev) =>
+          prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+        );
+        setBusyId(null);
+        return;
+      }
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
@@ -622,10 +1038,11 @@ export default function MyListingsPage() {
     if (status === "active") patch.is_published = true;
     if (status === "sold") patch.is_published = false;
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -655,6 +1072,39 @@ export default function MyListingsPage() {
     if (!republishColsAvailable) return;
     if (!dashboardCanRepublishListingsRow(rec, cat)) return;
 
+    // Gate G.2.3.1 — the confirmed critical fix: Republish for Bienes Raíces Negocio now goes
+    // through the server route, which only ever allows it for an already-active, already-
+    // published row (never a pending/flagged/sold/paused/removed reactivation — see
+    // `applyBrRepublish` in brListingLifecycleService.ts). Rentas keeps its unrelated,
+    // unchanged republish path below.
+    if (cat === "bienes-raices" && isBrNegocioListing(row)) {
+      setBusyId(row.id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "republish" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const renewedAtIso = new Date().toISOString();
+      const nextCount = Number(row.republish_count ?? 0) + 1;
+      setListings((prev) =>
+        prev.map((x) =>
+          x.id === row.id
+            ? {
+                ...x,
+                republished_at: renewedAtIso,
+                republish_count: nextCount,
+                status: result.status,
+                is_published: result.isPublished,
+              }
+            : x,
+        ),
+      );
+      setBusyId(null);
+      return;
+    }
+
     const live = listingsRowIsPublicLive(rec);
     const supabase = createSupabaseBrowserClient();
     setBusyId(row.id);
@@ -673,10 +1123,11 @@ export default function MyListingsPage() {
       patch.status = "active";
     }
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -753,10 +1204,11 @@ export default function MyListingsPage() {
       patch.status = "active";
     }
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -781,16 +1233,38 @@ export default function MyListingsPage() {
   async function softArchiveListing(id: string) {
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
 
+    // Gate G.2.3.1 — same BR/other-category split as the other lifecycle handlers. Active-child
+    // disposition for a BR main parent (Gate G.2.3A Scenario C) is not yet implemented — this
+    // gate only adds server-side ownership/state validation, not the child-cascade policy.
+    const row = listings.find((x) => x.id === id);
+    if (row && isBrNegocioListing(row)) {
+      setBusyId(id);
+      setError(null);
+      const result = await callBrLifecycleMutation({ listingId: id, mutation: "archive" });
+      if (!result.ok) {
+        setError(brLifecycleErrorMessage(result.code, lang));
+        setBusyId(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setListings((prev) =>
+        prev.map((x) => (x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x)),
+      );
+      setBusyId(null);
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -831,6 +1305,9 @@ export default function MyListingsPage() {
   }, [listings, analyticsByListing]);
 
   const showLoading = authLoading || listingsLoading;
+  // Gate I.4.2 — `dedicatedCounts` (real, DB-backed head-count queries, always loaded) covers any
+  // dedicated category not yet visited this session; once a category is actually loaded, its own
+  // live array length takes over (reflects any mutation made since, e.g. an archive action).
   const hasAnyInventory =
     listings.length > 0 ||
     restaurantInventory.length > 0 ||
@@ -838,7 +1315,12 @@ export default function MyListingsPage() {
     viajesInventory.length > 0 ||
     serviciosInventory.length > 0 ||
     comidaLocalDashboardItems.length > 0 ||
-    autosPaidInventory.length > 0;
+    autosPaidInventory.length > 0 ||
+    dedicatedCounts.restaurantes > 0 ||
+    dedicatedCounts.empleos > 0 ||
+    dedicatedCounts.viajes > 0 ||
+    dedicatedCounts.comidaLocal > 0 ||
+    dedicatedCounts.autosPaid > 0;
 
   const categoryCounts = useMemo(() => {
     let enVenta = 0;
@@ -848,6 +1330,7 @@ export default function MyListingsPage() {
     let clases = 0;
     let comunidad = 0;
     let busco = 0;
+    let mascotas = 0;
     for (const row of listings) {
       const k = listingRowCategoryKey(row);
       if (k === "en-venta") enVenta += 1;
@@ -857,20 +1340,25 @@ export default function MyListingsPage() {
       if (k === "clases") clases += 1;
       if (k === "comunidad") comunidad += 1;
       if (k === "busco") busco += 1;
+      if (k === "mascotas") mascotas += 1;
     }
+    const autosPaidCount = loadedDedicatedCategories.has("autos") ? autosPaidInventory.length : dedicatedCounts.autosPaid;
     return {
       "en-venta": enVenta,
-      autos: autosTbl + autosPaidInventory.length,
+      autos: autosTbl + autosPaidCount,
       "bienes-raices": br,
       rentas,
       clases,
       comunidad,
       busco,
-      restaurantes: restaurantInventory.length,
-      empleos: empleosInventory.length,
-      viajes: viajesInventory.length,
+      mascotas,
+      restaurantes: loadedDedicatedCategories.has("restaurantes") ? restaurantInventory.length : dedicatedCounts.restaurantes,
+      empleos: loadedDedicatedCategories.has("empleos") ? empleosInventory.length : dedicatedCounts.empleos,
+      viajes: loadedDedicatedCategories.has("viajes") ? viajesInventory.length : dedicatedCounts.viajes,
       servicios: serviciosInventory.length,
-      "comida-local": comidaLocalDashboardItems.length,
+      "comida-local": loadedDedicatedCategories.has("comida-local")
+        ? comidaLocalDashboardItems.length
+        : dedicatedCounts.comidaLocal,
     } as Record<MisAnunciosCategoryKey, number>;
   }, [
     listings,
@@ -880,6 +1368,8 @@ export default function MyListingsPage() {
     viajesInventory,
     serviciosInventory,
     comidaLocalDashboardItems,
+    dedicatedCounts,
+    loadedDedicatedCategories,
   ]);
 
   useEffect(() => {
@@ -978,7 +1468,8 @@ export default function MyListingsPage() {
       categoryFilter === "rentas" ||
       categoryFilter === "clases" ||
       categoryFilter === "comunidad" ||
-      categoryFilter === "busco");
+      categoryFilter === "busco" ||
+      categoryFilter === "mascotas");
 
   /** selectedCategoryKey — URL `cat` param, drives all listing filters. */
   const selectedCategoryKey = categoryFilter;
@@ -1008,6 +1499,14 @@ export default function MyListingsPage() {
     (showComidaLocalBlock && comidaLocalDashboardItems.length > 0) ||
     (showListingsTableSection && visible.length > 0);
 
+  // Gate I.4.2 — the selected category's own dedicated fetch may still be in flight (deferred
+  // load). Distinguish that from a confirmed-empty category so the page never flashes "you don't
+  // have listings here" before the real data has had a chance to arrive.
+  const isLoadingSelectedDedicatedCategory =
+    categoryInventoryLoading &&
+    DEFERRED_DEDICATED_CATEGORIES.has(categoryFilter) &&
+    !loadedDedicatedCategories.has(categoryFilter);
+
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   const tabBtn = (id: Tab, label: string) => (
@@ -1029,6 +1528,7 @@ export default function MyListingsPage() {
       email={email}
       accountRef={accountRef}
       contentLayout="workbench"
+      ownerId={userId}
     >
       {showLoading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
@@ -1041,7 +1541,7 @@ export default function MyListingsPage() {
               <h1 className={`mt-2 ${LX_DASH.pageTitle}`}>{t.title}</h1>
               <p className={`mt-2 max-w-2xl ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
             </div>
-            <Link href={`/clasificados/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
+            <Link href={`/publicar?${q}`} className={`inline-flex shrink-0 ${LX_DASH.btnPrimary} px-5 py-2.5 text-sm`}>
               {t.cta}
             </Link>
           </header>
@@ -1057,6 +1557,55 @@ export default function MyListingsPage() {
             ) : null}
           </p>
 
+          {attentionItems.length > 0 ? (
+            <div className="mt-4 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-4" role="status" data-testid="mis-anuncios-attention-panel">
+              <p className="text-sm font-bold text-[#1F241C]">
+                {lang === "es" ? "Requiere tu atención" : "Needs your attention"}
+                {" "}
+                <span className="font-normal text-[#5C5346]">
+                  ({attentionSeverityCounts.urgent} {lang === "es" ? "urgente" : "urgent"} ·{" "}
+                  {attentionSeverityCounts.warn} {lang === "es" ? "aviso" : "warn"} ·{" "}
+                  {attentionSeverityCounts.info} {lang === "es" ? "info" : "info"})
+                </span>
+              </p>
+              <ul className="mt-2 space-y-1 text-xs text-[#5C5346]">
+                {attentionItems.slice(0, 6).map((it, i) => (
+                  <li key={`${it.id}-${it.reasonKey}-${i}`} className="flex items-start gap-1.5">
+                    <span
+                      className={
+                        it.severity === "urgent"
+                          ? "font-bold text-red-700"
+                          : it.severity === "warn"
+                            ? "font-bold text-amber-800"
+                            : "font-bold text-[#5C5346]"
+                      }
+                    >
+                      •
+                    </span>
+                    <span>
+                      {lang === "es" ? it.labelEs : it.labelEn}
+                      {it.href ? (
+                        <>
+                          {" — "}
+                          <Link href={it.href} className="underline">
+                            {lang === "es" ? "ver" : "view"}
+                          </Link>
+                        </>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {attentionItems.length > 6 ? (
+                <p className="mt-1 text-[11px] text-[#5C5346]/80">
+                  {lang === "es"
+                    ? `+${attentionItems.length - 6} más`
+                    : `+${attentionItems.length - 6} more`}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <DashboardMisAnunciosCategorySelector
             lang={lang}
             categories={MIS_ANUNCIOS_CATEGORY_DEFS}
@@ -1066,6 +1615,25 @@ export default function MyListingsPage() {
             readyLabel={lang === "es" ? "Listo" : "Ready"}
             soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
           />
+
+          {/* Package E Build E2, Gate 8 — Ofertas Locales lives on its own isolated dashboard
+              surface (real, separate data model). Represented here only as a summary card
+              linking out, never absorbed into the generic category list above. */}
+          {ofertasLocalesOwnerCount != null && ofertasLocalesOwnerCount > 0 ? (
+            <Link
+              href={`/dashboard/ofertas-locales?${q}`}
+              className={`mt-3 flex flex-wrap items-center justify-between gap-2 ${LX_DASH.panelCompact} hover:border-[#C9A84A]/45`}
+            >
+              <span className="min-w-0 flex-1 break-words text-sm font-semibold text-[#1F241C]">
+                {lang === "es"
+                  ? `Ofertas Locales (${ofertasLocalesOwnerCount})`
+                  : `Local Deals (${ofertasLocalesOwnerCount})`}
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-[#7A1E2C]">
+                {lang === "es" ? "Ver / gestionar →" : "View / manage →"}
+              </span>
+            </Link>
+          ) : null}
 
           <div className={`mt-3 min-w-0 overflow-visible ${LX_DASH.panelCompact}`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1144,9 +1712,13 @@ export default function MyListingsPage() {
             {!hasAnyInventory ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
-                <Link href={`/clasificados/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
+                <Link href={`/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
                   {t.cta}
                 </Link>
+              </div>
+            ) : isLoadingSelectedDedicatedCategory ? (
+              <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center text-sm text-[#5C5346] sm:p-5">
+                {t.loading}
               </div>
             ) : !hasSelectedCategoryListings ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
@@ -1191,9 +1763,11 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug ?? undefined}
                     badges={[
+                      ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "restaurantes" }).group, lang),
                       (() => {
                         const b = dashboardEntitlementBadgeForKey(entitlementBadges, [
                           item.id,
@@ -1216,11 +1790,29 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
+                    lifecycleNote={(() => {
+                      const subState = dashboardSubscriptionStateForKey(subscriptionStates, [
+                        item.id,
+                        item.slug ?? "",
+                        item.leonixAdId ?? "",
+                      ]);
+                      if (!subState) return null;
+                      const badges = resolveCommercialStateBadges({
+                        subscriptionStatus: subState.status,
+                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                        graceEndsAt: subState.graceEndsAt,
+                        suspensionReason: subState.suspensionReason,
+                        recoveredAt: subState.recoveredAt,
+                      });
+                      return commercialStateBadgesToLifecycleNote(badges, lang);
+                    })()}
                     actions={buildInventoryListingActions("restaurantes", item, lang, q, {
-                      onCouponUpgrade: () => void startRestauranteCouponAddonCheckout(item),
-                      couponUpgradeBusy: couponCheckoutBusyId === item.id,
+                      // Package E Build E2, Gate 4 — the +$99/mes coupon-upgrade CTA is removed:
+                      // coupons are already included at $399/mo with no real paid add-on backend,
+                      // so the prior CTA misrepresented a free capability as a paid upsell.
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
+                      ownerUserId: userId,
                     })}
                   />
                 ))
@@ -1234,8 +1826,10 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Empleo" : "Job"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug}
+                    badges={[ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "empleos" }).group, lang)]}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
@@ -1245,7 +1839,10 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={buildInventoryListingActions("empleos", item, lang, q)}
+                    actions={buildInventoryListingActions("empleos", item, lang, q, {
+                      onEmpleosLifecycle: (next) => void updateEmpleosLifecycle(item.id, next),
+                      empleosLifecycleBusy: empleosLifecycleBusyId === item.id,
+                    })}
                   />
                 ))
           ) : null}
@@ -1258,8 +1855,10 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Viaje" : "Travel"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug}
+                    badges={[ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "viajes", viajesLane: item.viajesLane }).group, lang)]}
                     metaItems={[
                       { label: listingPlanFieldLabel(lang), value: adPlanLabelWithRevenueProof([item.id, item.slug ?? "", item.leonixAdId ?? ""], categoryAdPlanDisplayLabel(resolveCategoryAdPlanFromDashboardInventoryItem(item), lang)) },
                       { label: "Slug", value: item.slug ?? "—" },
@@ -1284,6 +1883,13 @@ export default function MyListingsPage() {
               lang={lang}
               items={comidaLocalDashboardItems}
               showEmpty={false}
+              // Package A Gate 5 — refresh owner rows after a pause/resume mutation.
+              onLifecycleChanged={async () => {
+                if (!userId) return;
+                const supabase = createSupabaseBrowserClient();
+                const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+                setComidaLocalRawRows(fetched);
+              }}
             />
           ) : null}
 
@@ -1295,9 +1901,11 @@ export default function MyListingsPage() {
                     compact
                     categoryLabel={lang === "es" ? "Servicio" : "Service"}
                     title={item.title}
-                    status={item.status}
+                    status={item.statusDisplay ? ownerDashboardStatusLabel(item.statusDisplay, lang) : item.status}
+                    statusTone={item.statusDisplay?.tone}
                     subtitle={item.slug ?? undefined}
                     badges={[
+                      ownerDashboardGroupLabel(classifyOwnerDashboardRow({ category: "servicios" }).group, lang),
                       (() => {
                         const b = dashboardEntitlementBadgeForKey(entitlementBadges, [
                           item.id,
@@ -1319,6 +1927,22 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
+                    lifecycleNote={(() => {
+                      const subState = dashboardSubscriptionStateForKey(subscriptionStates, [
+                        item.id,
+                        item.slug ?? "",
+                        item.leonixAdId ?? "",
+                      ]);
+                      if (!subState) return null;
+                      const badges = resolveCommercialStateBadges({
+                        subscriptionStatus: subState.status,
+                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                        graceEndsAt: subState.graceEndsAt,
+                        suspensionReason: subState.suspensionReason,
+                        recoveredAt: subState.recoveredAt,
+                      });
+                      return commercialStateBadgesToLifecycleNote(badges, lang);
+                    })()}
                     actions={buildInventoryListingActions("servicios", item, lang, q, {
                       serviciosEditHref: serviciosListingEditHref({
                         lang,
@@ -1339,6 +1963,9 @@ export default function MyListingsPage() {
                         leonixAdId: item.leonixAdId,
                       }),
                       offersEditLabelOverride: serviciosOffersEditLabel(lang),
+                      ownerUserId: userId,
+                      onServiciosManage: (action) => void manageServiciosListing(item.slug ?? "", action),
+                      serviciosManageBusy: serviciosManageBusySlug === item.slug,
                     })}
                   />
                 ))
@@ -1387,6 +2014,7 @@ export default function MyListingsPage() {
                     : null;
 
                 if ((x.category ?? "").toLowerCase() === "autos") {
+                  const autosUiStatus = normalizeUiStatus(resolveListingUiStatus(x), x);
                   const autosPlanLabel = adPlanLabelWithRevenueProof(
                     [x.id, x.leonix_ad_id ?? ""],
                     categoryAdPlanDisplayLabel(
@@ -1400,9 +2028,13 @@ export default function MyListingsPage() {
                     lang,
                   ),
                   );
+                  const autosClassification = classifyOwnerDashboardRow({ category: "autos", autosLane: "privado" });
                   return (
+                    <div key={x.id} className="relative" data-owner-dashboard-group={autosClassification.group}>
+                      <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                        {ownerDashboardGroupLabel(autosClassification.group, lang)}
+                      </span>
                     <AutosClassifiedListingManageCard
-                      key={x.id}
                       row={{
                         id: x.id,
                         title: x.title,
@@ -1411,6 +2043,7 @@ export default function MyListingsPage() {
                         status: x.status,
                         created_at: x.created_at,
                       }}
+                      uiStatus={autosUiStatus}
                       lang={lang}
                       priceText={priceText}
                       dateText={dateText}
@@ -1430,8 +2063,10 @@ export default function MyListingsPage() {
                       }}
                       maxViews={maxViews}
                       listingAdPlanLabel={autosPlanLabel}
+                      editHref={`/publicar/autos/privado?${new URLSearchParams({ edit: "1", source: "dashboard", listingId: x.id }).toString()}&lang=${lang}`}
                       leonixAdId={x.leonix_ad_id ?? null}
                     />
+                    </div>
                   );
                 }
 
@@ -1453,14 +2088,35 @@ export default function MyListingsPage() {
                           RENTAS_LISTING_LIFECYCLE_CONFIG,
                         )
                       : null;
+                  // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
+                  // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
+                  // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
+                  // only for a row that is already active and published. Rentas and En Venta are
+                  // unaffected (`catKey !== "rentas"` already excludes Rentas from this branch;
+                  // `isBrNegocioRepublishEligible` is trivially true for every non-BR-Negocio row).
+                  const isBrNegocioRepublishRow = catKey === "bienes-raices" && isBrNegocioListing(x);
+                  const isBrNegocioRepublishEligible =
+                    !isBrNegocioRepublishRow ||
+                    (String(x.status ?? "").toLowerCase() === "active" && x.is_published !== false);
                   const repKind =
-                    catKey !== "rentas" && republishColsAvailable && dashboardCanRepublishListingsRow(rowRec, catKey)
+                    catKey !== "rentas" &&
+                    republishColsAvailable &&
+                    dashboardCanRepublishListingsRow(rowRec, catKey) &&
+                    isBrNegocioRepublishEligible
                       ? dashboardRepublishPrimaryKind(rowRec, catKey)
                       : null;
                   const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
+                  const brRentasClassification = classifyOwnerDashboardRow({
+                    category: catKey,
+                    brRentasBranch: lx.branch,
+                    inventoryRole: (x as unknown as { inventory_role?: string | null }).inventory_role,
+                  });
                   return (
+                    <div key={x.id} className="relative" data-owner-dashboard-group={brRentasClassification.group}>
+                      <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                        {ownerDashboardGroupLabel(brRentasClassification.group, lang)}
+                      </span>
                     <LeonixRealEstateListingManageCard
-                      key={x.id}
                       row={x}
                       lang={lang}
                       busy={busy}
@@ -1492,7 +2148,21 @@ export default function MyListingsPage() {
                         x.id,
                         x.leonix_ad_id ?? "",
                       ])}
+                      commercialStateBadges={(() => {
+                        const subState = dashboardSubscriptionStateForKey(subscriptionStates, [x.id]);
+                        return subState
+                          ? resolveCommercialStateBadges({
+                              subscriptionStatus: subState.status,
+                              cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                              graceEndsAt: subState.graceEndsAt,
+                              suspensionReason: subState.suspensionReason,
+                              recoveredAt: subState.recoveredAt,
+                            })
+                          : null;
+                      })()}
+                      ownerUserId={userId}
                     />
+                    </div>
                   );
                 }
 
@@ -1516,9 +2186,13 @@ export default function MyListingsPage() {
                         ? "Refrescar anuncio"
                         : "Refresh listing"
                       : null;
+                  const enVentaClassification = classifyOwnerDashboardRow({ category: "en-venta" });
                   return (
+                    <div key={x.id} className="relative" data-owner-dashboard-group={enVentaClassification.group}>
+                      <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                        {ownerDashboardGroupLabel(enVentaClassification.group, lang)}
+                      </span>
                     <EnVentaListingManageCard
-                      key={x.id}
                       row={{
                         id: x.id,
                         title: x.title,
@@ -1590,6 +2264,7 @@ export default function MyListingsPage() {
                       hidePlanUpsell
                       compactDashboard
                     />
+                    </div>
                   );
                 }
 
@@ -1624,7 +2299,11 @@ export default function MyListingsPage() {
                         ? lang === "es"
                           ? "Busco / Se busca"
                           : "Looking for / Wanted"
-                        : null;
+                        : catLower === "mascotas-y-perdidos"
+                          ? lang === "es"
+                            ? "Mascotas y Perdidos"
+                            : "Pets & Lost/Found"
+                          : null;
                 const buscoTypeChip =
                   catLower === "busco" ? buscoOwnerDashboardTypeLabel(x.detail_pairs, lang) : null;
                 const locationLine =
@@ -1632,11 +2311,19 @@ export default function MyListingsPage() {
                     ? buscoOwnerDashboardLocationLine(x.city, x.detail_pairs)
                     : (x.city || "").trim();
                 const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
+                const genericClassification = classifyOwnerDashboardRow({
+                  category: x.category ?? "",
+                  brRentasBranch: lx.branch,
+                });
                 return (
                   <div
                     key={x.id}
-                    className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
+                    className="relative rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
+                    data-owner-dashboard-group={genericClassification.group}
                   >
+                    <span className="absolute -top-2 left-3 z-10 rounded-full border border-[#E8DFD0] bg-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346] shadow-sm">
+                      {ownerDashboardGroupLabel(genericClassification.group, lang)}
+                    </span>
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1693,19 +2380,34 @@ export default function MyListingsPage() {
                               ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
                               : `/clasificados/anuncio/${x.id}?${q}`
                           }
+                          prefetch={false}
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
                           {t.viewPublic}
                         </Link>
                         <Link
                           href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                          prefetch={false}
                           className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                         >
                           {t.manageListing}
                         </Link>
+                        {/* Package E Build E2, Gate 4 — Clases/Comunidad/Busco share the real
+                            generic listings-table editor. Mascotas intentionally has no safe
+                            edit route (by design, not a gap) and stays without this link. */}
+                        {catLower === "clases" || catLower === "comunidad" || catLower === "busco" ? (
+                          <Link
+                            href={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}
+                            prefetch={false}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {t.editListing}
+                          </Link>
+                        ) : null}
                         {listingAnalyticsIsProven(catLower) ? (
                           <Link
                             href={`/dashboard/mis-anuncios/${x.id}?${q}`}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {analyticsActionLabel(lang)}
@@ -1714,6 +2416,7 @@ export default function MyListingsPage() {
                         {catLower === "clases" ? (
                           <Link
                             href={appendLangToPath("/clasificados/clases/resultados", lang)}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {publicResultsActionLabel(lang)}
@@ -1722,6 +2425,7 @@ export default function MyListingsPage() {
                         {catLower === "comunidad" ? (
                           <Link
                             href={appendLangToPath("/clasificados/comunidad/resultados", lang)}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {publicResultsActionLabel(lang)}
@@ -1730,6 +2434,7 @@ export default function MyListingsPage() {
                         {catLower === "busco" ? (
                           <Link
                             href={appendLangToPath("/clasificados/busco/resultados", lang)}
+                            prefetch={false}
                             className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
                           >
                             {t.viewRequests}
@@ -1761,5 +2466,13 @@ export default function MyListingsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function MyListingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <MyListingsPageContent />
+    </Suspense>
   );
 }

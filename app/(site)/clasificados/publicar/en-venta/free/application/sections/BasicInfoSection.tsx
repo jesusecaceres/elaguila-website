@@ -74,9 +74,11 @@ export function BasicInfoSection<S extends EnVentaFreeApplicationState>({
   return (
     <SectionShell lang={lang} title={t.title} description={t.desc}>
       <div>
-        <label className={labelClass}>{t.titleL}</label>
+        {/* Package F Build F2, Gate 9 (P1 accessibility fix) — htmlFor/id pairing added. */}
+        <label htmlFor="en-venta-free-title" className={labelClass}>{t.titleL}</label>
         <p className="mt-1 text-xs text-[#111111]/60">{t.titleH}</p>
         <input
+          id="en-venta-free-title"
           className={`${inputClass} mt-2`}
           value={state.title}
           onChange={(e) => setState((s) => ({ ...s, title: e.target.value }))}

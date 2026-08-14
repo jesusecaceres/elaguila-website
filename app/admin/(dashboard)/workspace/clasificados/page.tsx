@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
@@ -385,16 +386,18 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             {error ? (
               <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
             ) : (
-              <AdminListingsTable
-                listings={rows}
-                detailPairsAvailable={detailPairsAvailable}
-                republishColsAvailable={republishColsAvailable}
-                listingsCategorySlug={catFilter}
-                staffQueueMode
-                flagReportByListingId={flagContext.reportsByListingId}
-                ownerEmailByUserId={flagContext.ownerEmailByUserId}
-                aiReviewByListingId={flagContext.aiReviewByListingId}
-              />
+              <Suspense fallback={<div className="min-h-[200px]" aria-busy="true" />}>
+                <AdminListingsTable
+                  listings={rows}
+                  detailPairsAvailable={detailPairsAvailable}
+                  republishColsAvailable={republishColsAvailable}
+                  listingsCategorySlug={catFilter}
+                  staffQueueMode
+                  flagReportByListingId={flagContext.reportsByListingId}
+                  ownerEmailByUserId={flagContext.ownerEmailByUserId}
+                  aiReviewByListingId={flagContext.aiReviewByListingId}
+                />
+              </Suspense>
             )}
           </div>
         </>

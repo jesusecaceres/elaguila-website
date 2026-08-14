@@ -401,6 +401,7 @@ export function EnVentaListingManageCard({
                 ))}</ul>
                 <Link
                   href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
+                  prefetch={false}
                   className="mt-2 inline-flex rounded-xl bg-[#2A2620] px-3 py-1.5 text-xs font-semibold text-[#FAF7F2] hover:bg-[#1a1814]"
                 >
                   {lang === "es" ? "Publicar en Varios →" : "Post in For Sale →"}
@@ -481,6 +482,7 @@ export function EnVentaListingManageCard({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
+              prefetch={false}
               className={
                 hidePlanUpsell
                   ? "inline-flex rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-4px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
@@ -490,18 +492,19 @@ export function EnVentaListingManageCard({
               {L.details} →
             </Link>
             {canEdit && isActiveLifecycle ? (
-              <Link href={editHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
+              <Link href={editHref} prefetch={false} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
                 {L.edit}
               </Link>
             ) : null}
             {analyticsHref ? (
-              <Link href={analyticsHref} className="inline-flex rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]">
+              <Link href={analyticsHref} prefetch={false} className="inline-flex rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#2C2416]">
                 {L.analytics}
               </Link>
             ) : null}
             {!isPro && !hidePlanUpsell ? (
               <Link
                 href={`/clasificados/publicar/en-venta/pro?lang=${lang}`}
+                prefetch={false}
                 className="inline-flex rounded-xl border border-[#C9B46A]/30 bg-[#FFFCF7] px-4 py-2 text-xs font-bold text-[#6B5B2E]"
               >
                 {L.proUpgradeCta}

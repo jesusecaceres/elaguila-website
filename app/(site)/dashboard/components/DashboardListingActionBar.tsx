@@ -28,6 +28,12 @@ export function DashboardListingActionBar({ actions }: { actions: ActionItem[] }
           <Link
             key={`${action.label}-${action.href}`}
             href={action.href}
+            // Gate I.4.4 — these links scale with listing count x actions per listing (a busy
+            // dashboard can render dozens to hundreds of them); most are low-probability clicks,
+            // so automatic Next.js viewport prefetch here was confirmed a real contributor to
+            // background RSC request volume (Gate I.4A). Click navigation is unaffected —
+            // `prefetch={false}` only disables the automatic viewport-triggered fetch.
+            prefetch={false}
             className={`inline-flex min-h-[40px] max-w-full min-w-0 items-center justify-center rounded-xl border px-4 py-2 text-center text-sm font-semibold leading-snug break-words ${actionClass(action.tone)}`}
           >
             {action.label}

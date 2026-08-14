@@ -1,5 +1,7 @@
 /**
- * Dashboard Restaurante coupon add-on checkout — add-on-only ($99/mo), no base plan.
+ * Dashboard Restaurante coupon module — included with the $399/mo base package (Package C
+ * Build 3, C5/C6). Historically a standalone $79/mo Stripe add-on; now a capability-check +
+ * direct enable, no separate purchase.
  * Gate REVENUE-OS-GLOBAL-RETURN-SAFETY-PLUS-RESTAURANTES-ADDON-ONLY-01
  * P0B: coupon image persistence + dashboard edit hydrate — RESTAURANTES-P0B
  */
@@ -8,16 +10,11 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import {
-  redirectToRevenueCategoryCheckout,
-  revenueCategoryCheckoutErrorMessage,
-  startRevenueCategoryCheckout,
-} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import { enableIncludedCommercialCapability } from "@/app/lib/listingPlans/enableIncludedCapabilityClient";
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 
 export type RestauranteDashboardCouponAddonCheckoutResult =
-  | { ok: true; checkoutUrl: string }
+  | { ok: true }
   | { ok: false; userMessage: string };
 
 export function restauranteCouponInactiveDashboardHint(lang: "es" | "en"): string {
@@ -51,13 +48,13 @@ export function resolveRestauranteOffersAddonSuccessPrimaryCta(input: {
 }
 
 export function restauranteCouponAddonUpgradeLabel(lang: "es" | "en"): string {
-  return lang === "es" ? "Destacar ofertas +$99/mes" : "Feature offers +$99/mo";
+  return lang === "es" ? "Activar módulo de cupones" : "Enable coupon module";
 }
 
 export function restauranteCouponAddonUpgradeFooterHint(lang: "es" | "en"): string {
   return lang === "es"
-    ? "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes."
-    : "Add up to 4 featured offers/coupons to your listing to attract more customers.";
+    ? "Incluido en tu plan de $399/mes. Agrega hasta 4 ofertas/cupones destacados a tu anuncio."
+    : "Included with your $399/mo plan. Add up to 4 featured offers/coupons to your listing.";
 }
 
 export function restauranteCouponEditFooterHint(lang: "es" | "en"): string {
@@ -75,9 +72,17 @@ export function restauranteOffersModuleHeading(lang: "es" | "en"): string {
 }
 
 export function restauranteCouponAddonUpgradeBusyLabel(lang: "es" | "en"): string {
-  return lang === "es" ? "Iniciando pago…" : "Starting checkout…";
+  return lang === "es" ? "Activando…" : "Enabling…";
 }
 
+/**
+ * Package C Build 3 (C5/C6) — repurposed from a $79/mo Stripe checkout starter into a capability
+ * check + direct enable. The base $399/mo Restaurante package already includes coupons/offers;
+ * this calls the server-verified enable-included-capability route (real ownership + real
+ * base-package capability check server-side, never trusted from the client) and never starts
+ * Stripe checkout. `leonixAdId`/`customerEmail`/`returnPath` are accepted for call-site
+ * compatibility but unused now that there is no checkout redirect.
+ */
 export async function startRestauranteDashboardCouponAddonCheckout(input: {
   listingId: string;
   leonixAdId?: string | null;
@@ -96,36 +101,23 @@ export async function startRestauranteDashboardCouponAddonCheckout(input: {
     };
   }
 
-  const returnPath =
-    input.returnPath?.trim() || buildDashboardMisAnunciosReturnPath(input.lang, "restaurantes");
-  const checkout = await startRevenueCategoryCheckout({
-    category: RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT.category,
-    packageKey: RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT.packageKey,
+  const result = await enableIncludedCommercialCapability({
+    category: "restaurantes",
     listingId,
-    leonixAdId: input.leonixAdId?.trim() || null,
-    returnPath,
-    locale: input.lang,
-    customerEmail: input.customerEmail,
+    capability: "coupons_offers",
+    lang: input.lang,
   });
-
-  if (!checkout.ok || !checkout.checkoutUrl?.trim()) {
-    return {
-      ok: false,
-      userMessage: checkout.ok ? revenueCategoryCheckoutErrorMessage(input.lang) : checkout.userMessage,
-    };
+  if (!result.ok) {
+    return { ok: false, userMessage: result.userMessage };
   }
-
-  return { ok: true, checkoutUrl: checkout.checkoutUrl.trim() };
+  return { ok: true };
 }
 
+/** Kept for existing call-site compatibility — there is no checkout URL to redirect to anymore. */
 export async function redirectRestauranteDashboardCouponAddonCheckout(
   input: Parameters<typeof startRestauranteDashboardCouponAddonCheckout>[0],
 ): Promise<RestauranteDashboardCouponAddonCheckoutResult> {
-  const result = await startRestauranteDashboardCouponAddonCheckout(input);
-  if (result.ok) {
-    redirectToRevenueCategoryCheckout(result.checkoutUrl);
-  }
-  return result;
+  return startRestauranteDashboardCouponAddonCheckout(input);
 }
 
 export function restaurantListingJsonCouponEnabled(listingJson: unknown): boolean {
@@ -149,6 +141,35 @@ export function restaurantCouponEditEligible(input: {
   const status = String(input.status ?? "").trim().toLowerCase();
   if (status !== "published") return false;
   return restaurantListingJsonCouponEnabled(input.listingJson);
+}
+
+/**
+ * Gate E.2.3 — lifecycle-truth versions of the eligibility checks above, used by the unified
+ * Mis anuncios dashboard. `listing_json.couponUpgradeEnabled` is no longer the entitlement
+ * authority for that path; only `AddonLifecycleStatus === "active"` counts as active.
+ */
+export function restaurantCouponAddonLifecycleIsActive(
+  addonStatus: AddonLifecycleStatus | null | undefined,
+): boolean {
+  return addonStatus === "active";
+}
+
+export function restaurantCouponAddonUpgradeEligibleFromLifecycle(input: {
+  status: string;
+  addonStatus: AddonLifecycleStatus | null | undefined;
+}): boolean {
+  const status = String(input.status ?? "").trim().toLowerCase();
+  if (status !== "published") return false;
+  return !restaurantCouponAddonLifecycleIsActive(input.addonStatus);
+}
+
+export function restaurantCouponEditEligibleFromLifecycle(input: {
+  status: string;
+  addonStatus: AddonLifecycleStatus | null | undefined;
+}): boolean {
+  const status = String(input.status ?? "").trim().toLowerCase();
+  if (status !== "published") return false;
+  return restaurantCouponAddonLifecycleIsActive(input.addonStatus);
 }
 
 export async function hydrateRestauranteListingForCouponEdit(input: {

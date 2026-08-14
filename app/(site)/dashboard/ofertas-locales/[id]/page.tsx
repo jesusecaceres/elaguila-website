@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
@@ -13,12 +13,14 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { OfertasLocalesOwnerAiManageSection } from "./OfertasLocalesOwnerAiManageSection";
 
+export const dynamic = "force-dynamic";
+
 type Lang = "es" | "en";
 
 const INPUT =
   "mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]";
 
-export default function OfertasLocalesOwnerManagePage() {
+function OfertasLocalesOwnerManagePageContent() {
   const params = useParams();
   const offerId = String(params?.id ?? "");
   const router = useRouter();
@@ -82,6 +84,7 @@ export default function OfertasLocalesOwnerManagePage() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [form, setForm] = useState<OfertaLocalOwnerUpdateInput>({});
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   const loadOffer = useCallback(async () => {
     const sb = createSupabaseBrowserClient();
@@ -90,6 +93,7 @@ export default function OfertasLocalesOwnerManagePage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/ofertas-locales/${offerId}?${q}`)}`);
       return null;
     }
+    setOwnerId(userData.user.id);
     const { data: sess } = await sb.auth.getSession();
     const token = sess.session?.access_token ?? "";
     if (!token) return null;
@@ -182,7 +186,7 @@ export default function OfertasLocalesOwnerManagePage() {
 
   if (loading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
       </LeonixDashboardShell>
     );
@@ -190,7 +194,7 @@ export default function OfertasLocalesOwnerManagePage() {
 
   if (!offer) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
         <p className="text-sm text-[#5C5346]">{t.notFound}</p>
         <Link href={`/dashboard/ofertas-locales?${q}`} className="mt-4 inline-block text-[#6B5B2E] underline">
           {t.back}
@@ -202,7 +206,7 @@ export default function OfertasLocalesOwnerManagePage() {
   const social = offer.metadata.socialLinks ?? {};
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null}>
+    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
       <div className="mb-4">
         <Link href={`/dashboard/ofertas-locales?${q}`} className="text-sm text-[#6B5B2E] underline">
           ← {t.back}
@@ -383,5 +387,13 @@ export default function OfertasLocalesOwnerManagePage() {
         </dl>
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function OfertasLocalesOwnerManagePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <OfertasLocalesOwnerManagePageContent />
+    </Suspense>
   );
 }

@@ -19,7 +19,10 @@ export type AutosPublishApiErrorCode =
   | "UPDATE_FAILED"
   | "NOT_FOUND"
   | "REQUEST_TIMEOUT"
-  | "AUTOS_NEGOCIOS_QA_ALLOWLIST_MISSING";
+  | "AUTOS_NEGOCIOS_QA_ALLOWLIST_MISSING"
+  // Package C Build 1 (decision 11) — server-side commercial write guard rejection
+  // (capacity/grace/suspension/parent-ownership); details ride in message/legacyError.
+  | "COMMERCIAL_WRITE_BLOCKED";
 
 export type AutosListingApiSuccessListing = {
   id: string;

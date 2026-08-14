@@ -4,6 +4,8 @@ import { assertTiendaOrderId, tiendaOrderBlobPrefix } from "@/app/lib/tienda/tie
 import type { TiendaOrderSource } from "@/app/tienda/types/orderHandoff";
 import type { TiendaAssetRole } from "@/app/tienda/types/tiendaStoredAssets";
 import { isRegisteredOrderHandoff } from "@/app/tienda/order/orderHandoffRegistry";
+import { BUSINESS_CARD_UPLOAD_MAX_MB } from "@/app/tienda/product-configurators/business-cards/uploadValidation";
+import { DEFAULT_MAX_FILE_MB } from "@/app/tienda/product-configurators/print-upload/constants";
 
 export const runtime = "nodejs";
 
@@ -14,6 +16,29 @@ const ROLES = [
   "upload-back",
   "design-json-snapshot",
 ] as const satisfies readonly TiendaAssetRole[];
+
+/**
+ * Package F Build F2, Gate 5 (P0 security fix) — this route previously accepted any file with no
+ * MIME allowlist and no size cap (only a non-empty-body check). Rules below match the EXACT
+ * accepted types/sizes the client-side upload UI already advertises to the user
+ * (`PRINT_UPLOAD_INPUT_ACCEPT`, `BUSINESS_CARD_UPLOAD_MAX_MB`, `DEFAULT_MAX_FILE_MB`) — this
+ * closes the gap between what the UI promises and what the server actually enforces, rather than
+ * inventing new limits.
+ */
+const PRINT_UPLOAD_ACCEPTED_MIME = new Set(["application/pdf", "image/png", "image/jpeg", "image/tiff"]);
+const BUSINESS_CARD_PNG_MIME = "image/png";
+const DESIGN_JSON_MAX_BYTES = 2 * 1024 * 1024;
+
+function roleUploadLimits(role: TiendaAssetRole): { acceptedMime: Set<string> | null; maxBytes: number } {
+  if (role === "business-card-front" || role === "business-card-back") {
+    return { acceptedMime: new Set([BUSINESS_CARD_PNG_MIME]), maxBytes: BUSINESS_CARD_UPLOAD_MAX_MB * 1024 * 1024 };
+  }
+  if (role === "upload-front" || role === "upload-back") {
+    return { acceptedMime: PRINT_UPLOAD_ACCEPTED_MIME, maxBytes: DEFAULT_MAX_FILE_MB * 1024 * 1024 };
+  }
+  // design-json-snapshot: small structured data, not a media file.
+  return { acceptedMime: new Set(["application/json"]), maxBytes: DESIGN_JSON_MAX_BYTES };
+}
 
 function sanitizeFilename(s: string): string {
   return s.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 180) || "file";
@@ -72,6 +97,25 @@ export async function POST(req: Request): Promise<NextResponse> {
   const file = form.get("file");
   if (!(file instanceof Blob) || file.size < 1) {
     return NextResponse.json({ ok: false, error: "Missing file body", code: "MISSING_FILE" }, { status: 400 });
+  }
+
+  const limits = roleUploadLimits(role);
+  const effectiveMime = (mimeType || file.type || "").toLowerCase();
+  if (limits.acceptedMime && !limits.acceptedMime.has(effectiveMime)) {
+    return NextResponse.json(
+      { ok: false, error: "Unsupported file type", code: "UNSUPPORTED_TYPE" },
+      { status: 400 },
+    );
+  }
+  if (file.size > limits.maxBytes) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `Maximum size is ${Math.round(limits.maxBytes / (1024 * 1024))} MB.`,
+        code: "FILE_TOO_LARGE",
+      },
+      { status: 413 },
+    );
   }
 
   const pathname = buildPathname(orderId, role, originalFilename || "asset");

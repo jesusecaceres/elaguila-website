@@ -129,7 +129,7 @@ export function appendLangToAdvertisePath(path: string, lang: SupportedLang): st
 
 /** Clasificados — publish category chooser (not Varios). */
 export function buildClasificadosAdvertiseHref(lang: SupportedLang): string {
-  const redirect = encodeURIComponent(`/clasificados/publicar?lang=${lang}`);
+  const redirect = encodeURIComponent(`/publicar?lang=${lang}`);
   return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
 }
 

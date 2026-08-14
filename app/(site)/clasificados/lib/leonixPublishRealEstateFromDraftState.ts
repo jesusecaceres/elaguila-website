@@ -47,6 +47,25 @@ import {
   normalizeZipForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+
+/**
+ * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
+ * NOT touch publishLeonixRealEstateListingCore.ts (locked per the Globalization master plan —
+ * shared BR/Rentas publish core, changed only under Package A's gated fix). This runs one step
+ * earlier, in each lane's own builder, alongside that lane's existing real min-photo check
+ * (never replacing it), re-certifying only the max-count truth (T1/T3) using each lane's own
+ * real registry-pinned limit. Returns the same bilingual error shape these builders already use.
+ */
+function leonixRealEstateMediaCountError(
+  count: number,
+  max: number,
+  lang: "es" | "en",
+): string {
+  return lang === "es"
+    ? `Demasiadas fotos (${count}). El máximo permitido es ${max}. Quita algunas e inténtalo de nuevo.`
+    : `Too many photos (${count}). The maximum allowed is ${max}. Remove a few and try again.`;
+}
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
@@ -217,7 +236,15 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
       detailPairs: pairs,
       contactPhoneDigits: contact.phone,
       contactEmail: contact.email,
-      imageSources: [...state.media.photoDataUrls],
+      // Gate I.5.4 — reorder by the seller's chosen cover photo before publish (same proven
+      // pattern already used for Rentas Privado below), so the published detail page and
+      // results card — which both assume "first image = cover" — actually show the cover the
+      // seller picked in preview, instead of always reverting to raw upload order.
+      imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
+      // Gate I.5.4A.1 — durable seller photo: a `data:` value is uploaded to hosted storage and
+      // patched into `detailPairs` by the core publish function; an already-hosted URL was
+      // already embedded above by `buildDetailPairsFromBienesRaicesPrivadoPreviewVm`.
+      sellerPhotoSource: trim(state.seller.fotoDataUrl) || null,
       lang,
     },
   };
@@ -277,6 +304,14 @@ export function buildRentasPrivadoListingParams(
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
   }
+  // Gate B6 — additive max-count re-certification (MAX_PHOTOS = 8, rentasPrivadoFormState.ts:163).
+  const rentasPrivadoMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: orderedGallery }),
+    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!rentasPrivadoMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
+  }
   const vm = mapRentasPrivadoStateToPreviewVm(state, lang);
   let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const note = trim(state.seller.notaContacto);
@@ -308,6 +343,11 @@ export function buildRentasPrivadoListingParams(
     contactPhoneDigits: contact.phone,
     contactEmail: contact.email,
     imageSources: orderedGallery,
+    // Gate I.5.4A.1 — same durable seller-photo upload as BR Privado above; this builder shares
+    // `buildDetailPairsFromBienesRaicesPrivadoPreviewVm`, so Rentas Privado must get the same
+    // hosted-upload treatment or its seller photo would regress from "capped inline" to "never
+    // persisted."
+    sellerPhotoSource: trim(state.seller.fotoDataUrl) || null,
     lang,
     ...(muxPid
       ? {
@@ -328,6 +368,17 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
 ): LeonixBrDraftPublishBuildResult {
   const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
   if (petsErr) return petsErr;
+  // Gate B6 — additive max-count re-certification (max 40, GaleriaMultimediaNegocioSection
+  // steps01-03.tsx:540; min-1 already enforced upstream in the live agente-individual path,
+  // buildPublishParamsFromAgenteResidencialDraft below).
+  const brNegocioOrderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoUrls, state.media.primaryImageIndex);
+  const brNegocioMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: brNegocioOrderedGallery }),
+    { minImages: 0, maxImages: 40, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!brNegocioMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(brNegocioOrderedGallery.length, 40, lang) };
+  }
   const vm = mapBienesRaicesNegocioStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const cat = inferCategoriaPropiedadFromBienesNegocioState(state);
@@ -357,7 +408,11 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
       detailPairs: pairs,
       contactPhoneDigits: c.phone,
       contactEmail: c.email,
-      imageSources: [...state.media.photoUrls],
+      // Gate I.5.4 — same cover-photo-order fix as BR Privado above; this builder is also the
+      // live agente-individual path's downstream target (via mapAgenteResidencialFormStateToNegocioForPublish),
+      // so this fixes the Negocio parent and inventory-child lanes too, not just the standalone
+      // (currently-unreachable) BienesRaicesNegocioApplication.tsx form.
+      imageSources: orderedRentasGallerySourcesForPublish(state.media.photoUrls, state.media.primaryImageIndex),
       lang,
       ...inventoryMetadataForBrNegocioPublish(inventory),
     },
@@ -454,6 +509,14 @@ export function buildRentasNegocioListingParams(
           ? "No hay fotos listas para publicar. Vuelve al formulario, sube al menos una foto y abre la vista previa otra vez."
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
+  }
+  // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
+  const rentasNegocioMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: orderedGallery }),
+    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!rentasNegocioMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
   const vm = mapRentasNegocioStateToPreviewVm(state);
   let human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);

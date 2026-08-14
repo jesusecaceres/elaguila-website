@@ -13,7 +13,7 @@ import { clearInventoryAddContextFromSession } from "@/app/lib/clasificados/auto
 import {
   AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY,
   type AutosBundlePublishSessionResult,
-} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublishSessionResult";
 import {
   buildAutosDealerPublishedProfileHref,
   getAutosDealerBasePublishSuccessCopy,

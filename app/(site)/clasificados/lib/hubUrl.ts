@@ -69,7 +69,7 @@ export function buildCategoryBrowseUrl(
   return `${path}?${sp.toString()}`;
 }
 
-/** Post-login redirect: category chooser first (`/clasificados/publicar`), not a single category slug. */
+/** Post-login redirect: category chooser first (`/publicar`, Gate I.5.2), not a single category slug. */
 export function buildHubPostEntryHref(lang: SupportedLang): string {
-  return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/clasificados/publicar?lang=${lang}`)}`;
+  return `/login?mode=post&lang=${lang}&redirect=${encodeURIComponent(`/publicar?lang=${lang}`)}`;
 }

@@ -436,7 +436,7 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
   };
 
   const landingHref = appendLangToPath("/clasificados/empleos", routeLang);
-  const publishHref = appendLangToPath("/clasificados/publicar/empleos", routeLang);
+  const publishHref = appendLangToPath("/publicar/empleos", routeLang);
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; href: string }[] = [];

@@ -2,42 +2,37 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { listServiciosPublicListingsForOwner } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
-import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 
 export const runtime = "nodejs";
 
+/**
+ * Gate E.3.3 — replaces the previous bespoke `listing_package_entitlements` query (which filtered
+ * on a legacy dual `listing_source` value and matched by canonical id OR slug OR leonix_ad_id)
+ * with the shared Gate E.2.1 lifecycle reader. The shared reader never filters by
+ * `listing_source` and matches only the real `servicios_public_listings.id` — see
+ * addonEntitlementReader.ts for why (that column has been written inconsistently across
+ * categories, and identity must be the canonical row UUID, never a mutable slug or ad id).
+ * Response shape (`offers_addon_active`) is unchanged; only the truth source is.
+ */
 async function fetchActiveServiciosOffersEntitlementKeys(
   rows: Awaited<ReturnType<typeof listServiciosPublicListingsForOwner>>,
 ): Promise<Set<string>> {
-  const keys = new Set<string>();
-  for (const row of rows) {
-    if (row.id?.trim()) keys.add(row.id.trim());
-    if (row.slug?.trim()) keys.add(row.slug.trim());
-    if (row.leonix_ad_id?.trim()) keys.add(row.leonix_ad_id.trim());
-  }
-  if (keys.size === 0) return new Set();
+  const canonicalIds = rows
+    .map((row) => row.id?.trim())
+    .filter((id): id is string => Boolean(id));
+  if (canonicalIds.length === 0) return new Set();
 
-  const supabase = getAdminSupabase();
-  const { data } = await supabase
-    .from("listing_package_entitlements")
-    .select("listing_id, status, starts_at, ends_at, revoked_at")
-    .eq("category", "servicios")
-    .eq("listing_source", "servicios_public_listings")
-    .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY)
-    .eq("status", "active")
-    .is("revoked_at", null)
-    .in("listing_id", [...keys]);
+  const entitlements = await fetchAddonEntitlementsForListings({
+    category: "servicios",
+    packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+    listingIds: canonicalIds,
+  });
 
-  const now = Date.now();
   const active = new Set<string>();
-  for (const row of data ?? []) {
-    const listingId = String(row.listing_id ?? "").trim();
-    if (!listingId) continue;
-    const starts = row.starts_at ? Date.parse(String(row.starts_at)) : NaN;
-    const ends = row.ends_at ? Date.parse(String(row.ends_at)) : NaN;
-    if (Number.isFinite(starts) && starts > now) continue;
-    if (Number.isFinite(ends) && ends <= now) continue;
-    active.add(listingId);
+  for (const id of canonicalIds) {
+    if (entitlements.get(id)?.status === "active") active.add(id);
   }
   return active;
 }
@@ -78,10 +73,8 @@ export async function GET(req: NextRequest) {
       listing_status: r.listing_status,
       leonix_verified: r.leonix_verified,
       leonix_ad_id: r.leonix_ad_id ?? null,
-      offers_addon_active:
-        Boolean(r.id?.trim() && activeOffersEntitlementKeys.has(r.id.trim())) ||
-        Boolean(r.slug?.trim() && activeOffersEntitlementKeys.has(r.slug.trim())) ||
-        Boolean(r.leonix_ad_id?.trim() && activeOffersEntitlementKeys.has(r.leonix_ad_id.trim())),
+      // Gate E.3.3 — canonical `id` only; slug/leonix_ad_id are never entitlement identity.
+      offers_addon_active: Boolean(r.id?.trim() && activeOffersEntitlementKeys.has(r.id.trim())),
     })),
   });
 }

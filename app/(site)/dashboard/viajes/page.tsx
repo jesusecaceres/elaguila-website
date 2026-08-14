@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -50,7 +53,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardViajesStagedPage() {
+function DashboardViajesStagedPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/viajes";
   const searchParams = useSearchParams();
@@ -130,7 +133,8 @@ export default function DashboardViajesStagedPage() {
       .eq("owner_user_id", uid)
       .order("submitted_at", { ascending: false });
     if (error) {
-      setErr(error.message);
+      console.error("[dashboard/viajes]", error.message);
+      setErr(dashboardSafeMutationErrorCopy(lang));
       setRows([]);
     } else {
       setErr(null);
@@ -251,6 +255,7 @@ export default function DashboardViajesStagedPage() {
       userName={name}
       email={email}
       accountRef={userId ? accountRefFromId(userId) : null}
+      ownerId={userId}
     >
       <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-8">
         <h1 className="text-2xl font-bold text-[#1E1810]">{t.title}</h1>
@@ -399,5 +404,13 @@ export default function DashboardViajesStagedPage() {
         ) : null}
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardViajesStagedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardViajesStagedPageContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
@@ -10,7 +10,7 @@ import { getCuentaLang } from "./shared/utils/cuentaLang";
 
 type SellerMode = "personal" | "business";
 
-export default function ClasificadosCuentaPage() {
+function ClasificadosCuentaPageContent() {
   const sp = useSearchParams();
   const router = useRouter();
   const lang = useMemo(() => getCuentaLang(sp), [sp]);
@@ -192,5 +192,13 @@ export default function ClasificadosCuentaPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ClasificadosCuentaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ClasificadosCuentaPageContent />
+    </Suspense>
   );
 }

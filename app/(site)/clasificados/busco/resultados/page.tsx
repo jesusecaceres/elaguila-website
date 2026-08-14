@@ -4,9 +4,7 @@ import { BuscoResultsClient } from "../BuscoResultsClient";
 
 export default function BuscoResultadosPage() {
   return (
-    <Suspense
-      fallback={<BuscoResultadosFallback />}
-    >
+    <Suspense fallback={<BuscoResultadosFallback />}>
       <BuscoResultsClient />
     </Suspense>
   );

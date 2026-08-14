@@ -59,8 +59,14 @@ type Props = {
    */
   showDisabled?: boolean;
 
-  /** Called when user initiates contact (call, text, email, etc.) for analytics */
-  onContact?: () => void;
+  /**
+   * Called when user initiates contact, for analytics. Package D Build D2, Gate 6C: receives the
+   * full intent (not just a bare signal) so callers can record a truthful, CTA-specific event type
+   * — including distinguishing WhatsApp from SMS, both of which are `kind: "send_message"` and only
+   * differ by `whatsappDigits`. The parameter is optional so existing callers that only need a bare
+   * "something was clicked" signal keep working unchanged.
+   */
+  onContact?: (intent?: CtaSheetIntent) => void;
 
   /** When set with `email`, opens the email options sheet instead of only mailto: */
   listingId?: string | null;
@@ -157,7 +163,7 @@ export default function ContactActions(props: Props) {
   };
 
   const openSheet = (intent: CtaSheetIntent) => {
-    onContact?.();
+    onContact?.(intent);
     setCtaIntent(intent);
     setCtaOpen(true);
   };

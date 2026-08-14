@@ -7,6 +7,10 @@ import { publishLeonixListingFromBienesRaicesPrivadoDraft } from "@/app/clasific
 import { useLeonixPublishFlowExitClear } from "@/app/clasificados/lib/leonixApplicationStandard/useLeonixPublishFlowExitClear";
 import { PublishCheckoutCheckpoint } from "@/app/clasificados/components/PublishCheckoutCheckpoint";
 import {
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "@/app/lib/listingIdentity/previewModeContract";
+import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
@@ -166,6 +170,16 @@ export default function BienesRaicesPrivadoPreviewClient() {
         activationMode: "pending_payment",
       });
       if (!r.ok) return { ok: false, error: r.error };
+      // Gate I.5.4A.1 — same warnings-banner pattern already proven for BR Negocio: surfaces a
+      // seller-photo upload failure (or any other publish warning) on the published page instead
+      // of silently dropping it.
+      if (r.warnings.length) {
+        try {
+          sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify(r.warnings));
+        } catch {
+          /* ignore */
+        }
+      }
       writeCachedPendingListingId(r.listingId);
 
       let leonixAdId: string | null = null;
@@ -281,20 +295,35 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const editHref = `${BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
   const checkpointConfig = bienesRaicesFsboPreviewCheckpointConfig(lang);
 
+  // Globalization Package A Gate 4 — the guard P3 documented as required "the moment any link
+  // ever points a real listing at this route": when the URL carries a listing-bound context
+  // (the registry's previewRoute shape: source=dashboard + listingId, or preview=listing),
+  // this is an already-identified — typically already-paid — listing, and the base-plan
+  // checkout must never render again (same rule as BR Negocio/Servicios/Rentas). No live href
+  // targets this route with those params today, so live behavior is unchanged; this closes
+  // the latent unguarded branch.
+  const listingBoundPreview =
+    (searchParams?.get("preview") ?? "") === "listing" ||
+    ((searchParams?.get("source") ?? "") === "dashboard" && Boolean((searchParams?.get("listingId") ?? "").trim()));
+  const previewMode = resolvePreviewMode({ listingBound: listingBoundPreview });
+  const suppressCheckout = previewModeSuppressesBasePlanCheckout(previewMode);
+
   return (
     <LeonixPreviewPageShell
       editHref={editHref}
       publishSlot={
-        <PublishCheckoutCheckpoint
-          config={checkpointConfig}
-          lang={lang}
-          busy={publishBusy}
-          errorMessage={publishErr}
-          onPromoApply={(code) => applyBienesRaicesFsboPreviewPromoCode({ code, lang })}
-          onCheckout={(ctx) => void onStartFsboCheckout(ctx)}
-          rulesModal={BIENES_RAICES_FSBO_PREVIEW_RULES_MODAL}
-          className="w-full max-w-[420px]"
-        />
+        suppressCheckout ? undefined : (
+          <PublishCheckoutCheckpoint
+            config={checkpointConfig}
+            lang={lang}
+            busy={publishBusy}
+            errorMessage={publishErr}
+            onPromoApply={(code) => applyBienesRaicesFsboPreviewPromoCode({ code, lang })}
+            onCheckout={(ctx) => void onStartFsboCheckout(ctx)}
+            rulesModal={BIENES_RAICES_FSBO_PREVIEW_RULES_MODAL}
+            className="w-full max-w-[420px]"
+          />
+        )
       }
     >
       <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />

@@ -25,6 +25,7 @@ import type {
   ComidaLocalPackageTierDb,
 } from "./comidaLocalPublishTypes";
 import { validateComidaLocalDraftForFuturePublish } from "./comidaLocalValidation";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
 
 const MAX_TEXT = {
   businessName: 120,
@@ -206,6 +207,35 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
   const errors = issues.filter((i) => i.severity === "error");
   if (errors.length > 0) {
     return { ok: false, error: "not_ready", issues: errors };
+  }
+
+  // Globalization Package B (Gate B6) — shared media contract, additive gate. The real,
+  // tier-aware truth already ran above (validateComidaLocalPublishPayload, which enforces
+  // getComidaLocalPackageLimits(packageTier).maxGalleryImages, main-photo presence, and
+  // per-image metadata validity) — this exists as the authoritative last-line max/blob-safety
+  // truth (T1/T3/T7/T8) for this single, real parse boundary that both new listings and the
+  // same-row edit path (draft_listing_id) route through.
+  const comidaLocalLimits = getComidaLocalPackageLimits(packageTier);
+  const comidaLocalFinalMedia = buildProposedFinalMediaSet({
+    existing: draft.galleryImages.map((g) => g.url).filter(Boolean),
+    logoUrl: draft.logoImage?.url ?? null,
+  });
+  const comidaLocalMediaValidation = validateProposedFinalMediaSet(comidaLocalFinalMedia, {
+    minImages: 0,
+    maxImages: comidaLocalLimits.maxGalleryImages,
+    logoAllowed: comidaLocalLimits.allowLogo,
+    maxExternalVideos: 0,
+  });
+  if (!comidaLocalMediaValidation.ok) {
+    return {
+      ok: false,
+      error: "media_invalid",
+      issues: comidaLocalMediaValidation.issues.map((i) => ({
+        field: "galleryImages",
+        message: `Media inválida: ${i.code}`,
+        severity: "error" as const,
+      })),
+    };
   }
 
   const draftListingId =

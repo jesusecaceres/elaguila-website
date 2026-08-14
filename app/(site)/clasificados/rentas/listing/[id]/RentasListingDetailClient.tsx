@@ -7,6 +7,7 @@ import { FiChevronLeft } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRentasListingTranslation";
@@ -160,7 +161,19 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
             <div className="border-t border-[#C9D4E0]/55 pt-6">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1810]">{eg.title}</h2>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <LeonixSaveButton listingId={listing.id} category="rentas" variant="small" lang={lang} />
+                <LeonixSaveButton
+                  listingId={listing.id}
+                  category="rentas"
+                  variant="small"
+                  lang={lang}
+                  recordSaveEvent={(isSave) =>
+                    trackListingSaveToggleAuthed(
+                      { sourceTable: "listings", sourceId: listing.id, category: "rentas" },
+                      isSave,
+                      { eventSource: "detail" },
+                    )
+                  }
+                />
               </div>
               <p className="mt-3 text-xs italic text-[#5C5346]/88">{eg.metricsNote}</p>
             </div>

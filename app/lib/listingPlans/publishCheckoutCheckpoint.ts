@@ -18,13 +18,18 @@ import {
 /** Revenue OS checkout does not yet support a separate Bienes inventory pack line item. */
 export const REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = true;
 
-/** Revenue OS checkout supports one packageKey per session; offers add-on is bundled via addOns[]. */
-export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = true;
+/**
+ * Package C Build 3 (C5/C6) — owner-locked commercial decision: Restaurantes/Servicios coupons
+ * are now INCLUDED in the $399/mo base package, not a separate purchase. These flags are
+ * permanently retired to false — the coupon module is never bundled into a checkout addOns[]
+ * entry and never adds Stripe cost, regardless of the toggle state. The toggle below stays as
+ * content/setup intent only (seeds the coupon editor), never as a commercial entitlement signal.
+ */
+export const REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED = false;
+export const REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED = false;
 
-/** Revenue OS checkout supports Servicios offers/coupons add-on bundled via addOns[]. */
-export const REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED = true;
-
-/** Canonical Revenue OS package key for Restaurante category-owned coupon module. */
+/** Historical/retired Revenue OS package key for the old Restaurante coupon add-on — kept only
+ * for historical price/label reads (getRevenuePackageDefinition); no longer purchasable. */
 export const RESTAURANTES_COUPON_ADDON_PACKAGE_KEY = "restaurantes_offers_addon";
 
 /** Canonical Revenue OS base package key for Servicios provider listing ($399/mo). */
@@ -49,7 +54,8 @@ export const AUTOS_DEALER_MONTHLY_PACKAGE_KEY = "autos_dealer_monthly";
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
-export const BR_INVENTORY_PACK_MAX_CHILDREN = 4;
+// Package C Build 1 — owner-locked: the pack adds THREE properties (base 1 + pack 3 = 4 max).
+export const BR_INVENTORY_PACK_MAX_CHILDREN = 3;
 export const BR_BASE_INCLUDED_PROPERTIES = 1;
 export const BR_TOTAL_ACTIVE_PROPERTY_LIMIT = BR_BASE_INCLUDED_PROPERTIES + BR_INVENTORY_PACK_MAX_CHILDREN;
 
@@ -211,19 +217,13 @@ function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount:
   return null;
 }
 
-function restaurantCouponAddonBlockReason(lang: PublishCheckpointLanguage): string {
-  return lang === "es"
-    ? "Para continuar al pago seguro hoy, vuelve a editar y desactiva el módulo de cupones del restaurante. Tu descuento promocional sí queda aplicado al plan base de $399/mes."
-    : "To continue to secure payment today, go back and turn off the restaurant coupon module. Your promo discount is applied to the $399/mo base plan.";
-}
-
-/** True when Restaurante coupon module is selected but Revenue OS cannot charge it yet. */
-export function isRestaurantCouponCheckoutBlocked(config: PublishCheckpointConfig): boolean {
-  return (
-    config.category === "restaurantes" &&
-    Boolean(config.restaurantOffersAddonSelected) &&
-    !REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED
-  );
+/**
+ * Package C Build 3 (C5/C6) — coupons/offers are included in the $399/mo base package for both
+ * Restaurantes and Servicios; the module toggle can never block checkout. Kept as a function
+ * (always false) rather than deleted so existing callers do not need to change.
+ */
+export function isRestaurantCouponCheckoutBlocked(_config: PublishCheckpointConfig): boolean {
+  return false;
 }
 
 /**
@@ -293,35 +293,20 @@ export function resolvePublishCheckoutCheckpoint(
       priceCents: baseCents,
     });
 
+    // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+    // package. The toggle is content/setup intent only — it never adds a checkout line item,
+    // never adds Stripe cost, and never blocks checkout either way.
     const restaurantCouponSelected = Boolean(config.restaurantOffersAddonSelected);
-    const offersDef = getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
-    const offersPriceCents = offersDef?.priceCents ?? 9900;
-
     if (restaurantCouponSelected) {
-      if (REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
-        addOns.push({
-          id: "restaurant_coupon_module",
-          labelEn: "Restaurant coupon module",
-          labelEs: "Módulo de cupones del restaurante",
-          priceCents: offersPriceCents,
-          selected: true,
-          detailEn: "Category-owned coupon module selected in your application",
-          detailEs: "Módulo de cupones seleccionado en tu solicitud",
-        });
-      } else {
-        blocked = true;
-        blockReasonEs = restaurantCouponAddonBlockReason("es");
-        blockReasonEn = restaurantCouponAddonBlockReason("en");
-        addOns.push({
-          id: "restaurant_coupon_module",
-          labelEn: "Restaurant coupon module",
-          labelEs: "Módulo de cupones del restaurante",
-          priceCents: offersPriceCents,
-          selected: true,
-          detailEn: "Selected in your application — not included in today's secure checkout",
-          detailEs: "Seleccionado en tu solicitud — no incluido en el pago seguro de hoy",
-        });
-      }
+      addOns.push({
+        id: "restaurant_coupon_module",
+        labelEn: "Restaurant coupon module",
+        labelEs: "Módulo de cupones del restaurante",
+        priceCents: 0,
+        selected: true,
+        detailEn: "Included with your $399/mo plan",
+        detailEs: "Incluido en tu plan de $399/mes",
+      });
     }
   } else if (config.category === "servicios" && config.packageKey === SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
     lineItems.push({
@@ -331,19 +316,19 @@ export function resolvePublishCheckoutCheckpoint(
       priceCents: baseCents,
     });
 
+    // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+    // package. The toggle is content/setup intent only — it never adds a checkout line item,
+    // never adds Stripe cost, and never blocks checkout either way.
     const serviciosOffersSelected = Boolean(config.serviciosOffersAddonSelected);
-    const serviciosOffersDef = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
-    const serviciosOffersPriceCents = serviciosOffersDef?.priceCents ?? 9900;
-
     if (serviciosOffersSelected) {
       addOns.push({
         id: "servicios_offers_module",
         labelEn: "Offers/coupons module",
         labelEs: "Módulo de ofertas/cupones",
-        priceCents: serviciosOffersPriceCents,
+        priceCents: 0,
         selected: true,
-        detailEn: "Category-owned offers/coupons module selected in your application",
-        detailEs: "Módulo de ofertas/cupones seleccionado en tu solicitud",
+        detailEn: "Included with your $399/mo plan",
+        detailEs: "Incluido en tu plan de $399/mes",
       });
     }
   } else if (config.category === "rentas" && config.packageKey === RENTAS_30D_PACKAGE_KEY) {
@@ -406,17 +391,8 @@ export function resolvePublishCheckoutCheckpoint(
     });
   }
 
-  const restaurantCouponBlockedCheckout =
-    config.category === "restaurantes" &&
-    Boolean(config.restaurantOffersAddonSelected) &&
-    !REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED;
-
   const selectedAddOnCents = addOns
-    .filter((a) => {
-      if (!a.selected) return false;
-      if (restaurantCouponBlockedCheckout && a.id === "restaurant_coupon_module") return false;
-      return true;
-    })
+    .filter((a) => a.selected)
     .reduce((sum, a) => sum + a.priceCents, 0);
 
   const subtotalCents = lineItems.reduce((sum, li) => sum + li.priceCents, 0) + selectedAddOnCents;
@@ -471,22 +447,14 @@ export function resolvePublishCheckoutCheckpoint(
   }
 
   if (config.category === "restaurantes") {
-    const offersDef = getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY);
+    // Package C Build 3 (C5/C6) — content/setup intent only; coupons are included in the $399/mo
+    // base package, so this flag never carries a package_key or price into checkout metadata.
     metadata.restaurant_coupon_addon_selected = Boolean(config.restaurantOffersAddonSelected);
-    if (config.restaurantOffersAddonSelected && REVENUE_OS_RESTAURANTES_OFFERS_ADDON_SUPPORTED) {
-      metadata.restaurant_offers_addon_package_key = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
-      metadata.restaurant_offers_addon_price_cents = offersDef?.priceCents ?? 9900;
-    }
   }
 
   if (config.category === "servicios") {
-    const serviciosOffersDef = getRevenuePackageDefinition(SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
     metadata.servicios_offers_addon_selected = Boolean(config.serviciosOffersAddonSelected);
     if (config.pipeline?.trim()) metadata.pipeline = config.pipeline.trim();
-    if (config.serviciosOffersAddonSelected && REVENUE_OS_SERVICIOS_OFFERS_ADDON_SUPPORTED) {
-      metadata.servicios_offers_addon_package_key = SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
-      metadata.servicios_offers_addon_price_cents = serviciosOffersDef?.priceCents ?? 9900;
-    }
   }
 
   if (config.category === "rentas") {

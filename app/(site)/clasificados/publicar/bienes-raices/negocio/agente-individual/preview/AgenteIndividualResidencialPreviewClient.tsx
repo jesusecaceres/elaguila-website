@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
@@ -31,6 +32,7 @@ import {
   isBrInventoryUpgradeActive,
   type BrNegocioPublishInventoryContext,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { callBrLifecycleMutation } from "@/app/(site)/dashboard/lib/brDashboardLifecycleClient";
 import {
   brPropertyInventoryAddToInventoryCtaLabel,
   brPropertyInventoryBaseLimitMessage,
@@ -78,8 +80,11 @@ import {
 import {
   clearBienesListingEditWorkspace,
   loadBienesListingEditWorkspace,
+  readBienesListingEditWorkspaceMeta,
   saveBienesListingEditWorkspace,
 } from "../application/utils/bienesDashboardListingEditWorkspace";
+import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const PUBLISH_BTN =
   "inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-full bg-[#1E1810] px-5 py-2.5 text-center text-[11px] font-bold uppercase leading-snug tracking-wide text-[#F9F6F1] hover:bg-[#2C2416] disabled:opacity-50 sm:min-h-[40px] sm:w-auto sm:py-2";
@@ -103,8 +108,34 @@ export default function AgenteIndividualResidencialPreviewClient() {
     () => ensureBrAgenteResApplicationInstanceId(searchParams),
     [searchParams],
   );
-  const listingBoundPreview =
+  const listingBound =
     previewListingParam || (dashboardSource && Boolean(listingIdParam || listingSlugParam || leonixAdIdParam));
+  /* Globalization P3 (Gate 1) → Package A Gate 4 — the full 3-way shared preview-mode split
+     P2 documented as "the most direct next step". A listing-bound preview now distinguishes:
+       - "edit-draft": a local edit workspace for THIS listing exists (unsaved changes in
+         progress) → offers "Guardar cambios" exactly as before;
+       - "published-readonly": no unsaved edit workspace → strictly read-only; the header
+         offers only the real "Editar anuncio" navigation (editHref) — never a save
+         affordance for state the owner never touched, and (unchanged since P2) never the
+         new-publish checkout.
+     `hasUnsavedEditWorkspace` starts null (mode resolves as edit-draft — the pre-split
+     behavior) and settles after the client-side workspace check, so the affordance can only
+     tighten (save → read-only), never appear wrongly. `previewMode` above is a pre-existing,
+     unrelated local reading the raw `?mode=` query param, not this contract. */
+  const [hasUnsavedEditWorkspace, setHasUnsavedEditWorkspace] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!listingBound || !listingIdParam) {
+      setHasUnsavedEditWorkspace(null);
+      return;
+    }
+    setHasUnsavedEditWorkspace(Boolean(readBienesListingEditWorkspaceMeta(listingIdParam)));
+  }, [listingBound, listingIdParam]);
+  const sharedPreviewMode = resolvePreviewMode({
+    listingBound,
+    hasUnsavedEditDraft: hasUnsavedEditWorkspace ?? undefined,
+  });
+  const listingBoundPreview = previewModeIsListingBound(sharedPreviewMode);
+  const readOnlyBoundPreview = sharedPreviewMode === "published-readonly";
   const backToEditMode: "listing-edit" | "inventory-edit" | "inventory-addon" =
     previewMode === "inventory-edit" || previewMode === "inventory-addon" ? previewMode : "listing-edit";
   const inventoryCtx = useMemo(() => {
@@ -129,6 +160,10 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const [parentLeonixAdId, setParentLeonixAdId] = useState<string | null>(null);
   const [bridge, setBridge] = useState<BrNegocioInventoryBridgeView | null>(null);
   const [childPreviewId, setChildPreviewId] = useState<string | null>(null);
+  /** Package A closure — Rule 3: the hydrated row version (anchors workspace saves) and the
+   * surfaced stale-draft conflict notice. */
+  const [hydratedSourceUpdatedAt, setHydratedSourceUpdatedAt] = useState<string | null>(null);
+  const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -136,16 +171,48 @@ export default function AgenteIndividualResidencialPreviewClient() {
 
   useEffect(() => {
     if (listingBoundPreview && listingIdParam) {
+      /* Globalization P2 (Gate 4/D) — do not consult `loadAgenteResPreviewDraftResolved` here.
+         That draft is keyed only by `applicationInstanceId`, which neither the dashboard preview
+         nor edit href ever sets — it falls back to whatever id (or none) already happens to sit
+         in sessionStorage from an unrelated, possibly stale, brand-new-ad session in this tab.
+         Using it here let a stale/empty draft silently overwrite this listing's correctly
+         DB-hydrated existing photos, which is what produced the false 422 "no photos are ready"
+         save failure on an edit that never touched media. For an existing, identified listing the
+         only valid sources of truth are the local edit-in-progress workspace for *this listing*
+         (if any) and the real DB-hydrated state — never the generic new-ad draft. */
       void hydrateBienesListingForDashboardEdit({ listingId: listingIdParam, lang }).then((result) => {
         if (!result.ok) return;
-        void loadAgenteResPreviewDraftResolved({ applicationInstanceId }).then((loaded) => {
-          const workspace =
-            loadBienesListingEditWorkspace({
-              parentListingId: listingIdParam,
-              hydratedFromDatabase: result.state,
-            }) ?? result.state;
-          setData(loaded ?? workspace);
+        setHydratedSourceUpdatedAt(result.sourceUpdatedAt);
+        /* Package A closure — draftWorkspaceContract Rule 3 wired on top of the P2 fix: the
+           local edit workspace only outranks the DB row it was hydrated from while that row is
+           unchanged. If the row moved underneath it (edited elsewhere, admin-touched), the DB
+           is truth: the stale workspace is cleared and the conflict surfaced — never silently
+           applied. A workspace with no captured source version (legacy) keeps local-wins. */
+        const meta = readBienesListingEditWorkspaceMeta(listingIdParam);
+        const precedence = resolveDraftPrecedence({
+          hasLocalWorkspace: Boolean(meta),
+          localSourceUpdatedAt: meta?.sourceUpdatedAt ?? null,
+          dbUpdatedAt: result.sourceUpdatedAt,
         });
+        if (precedence === "db-newer-conflict") {
+          clearBienesListingEditWorkspace({ parentListingId: listingIdParam });
+          setHasUnsavedEditWorkspace(false);
+          setStaleDraftNotice(
+            lang === "es"
+              ? "Este anuncio cambió desde tu último borrador local. Se muestra la versión publicada más reciente; el borrador antiguo se descartó."
+              : "This listing changed since your last local draft. The latest published version is shown; the outdated draft was discarded.",
+          );
+          setData(result.state);
+          return;
+        }
+        const workspace =
+          precedence === "local"
+            ? loadBienesListingEditWorkspace({
+                parentListingId: listingIdParam,
+                hydratedFromDatabase: result.state,
+              }) ?? result.state
+            : result.state;
+        setData(workspace);
       });
       return;
     }
@@ -227,7 +294,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const hasInventoryPackage = childInventoryCount > 0 && !inventoryCtx;
 
   const checkpointConfig = useMemo((): PublishCheckpointConfig | null => {
-    if (inventoryCtx || !needsNegocioPayment) return null;
+    /* Globalization P2 (Gate 5/B) — a listing-bound preview/edit (an already-published listing
+       opened from the dashboard, via `listingBoundPreview`) must never show the new-ad checkout
+       widget: package price, confirmation checkboxes, and "Continuar al pago seguro" all imply
+       the owner needs to pay again for a listing they already own and already paid for. This was
+       previously only reflected in the sticky header's button label (`showPaymentCheckpoint`
+       below), not in whether the checkout widget itself rendered at all. */
+    if (inventoryCtx || !needsNegocioPayment || listingBoundPreview) return null;
     return {
       category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
       packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
@@ -239,9 +312,14 @@ export default function AgenteIndividualResidencialPreviewClient() {
       promoEligible: true,
       returnPath: BIENES_RAICES_NEGOCIO_CHECKOUT.returnPath,
     };
-  }, [childInventoryCount, inventoryCtx, lang, needsNegocioPayment]);
+  }, [childInventoryCount, inventoryCtx, lang, listingBoundPreview, needsNegocioPayment]);
 
-  const onPublishLive = useCallback(async (ctx?: { newsletterOptIn?: boolean; promoCode?: string | null }) => {
+  const onPublishLive = useCallback(async (ctx?: {
+    newsletterOptIn?: boolean;
+    promoCode?: string | null;
+    recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    requestVerifiedIntroDiscount?: boolean;
+  }) => {
     if (listingBoundPreview) {
       setPublishErr(
         lang === "es"
@@ -282,14 +360,34 @@ export default function AgenteIndividualResidencialPreviewClient() {
 
       const isInventoryAdd = publishInventory.mode === "add";
       const needsPayment = !isInventoryAdd && brPublishPaymentRequired("negocio");
+      // Package C Build 4 (C7, Gate 5) — always insert as pending/unpublished, never directly
+      // "active". A row that skips Stripe here (already covered by existing paid capacity, or a
+      // dev/QA payment bypass) is brought live immediately below via the atomic, capacity- and
+      // lifecycle-checked `activate_pending` mutation — never by a bare active-status INSERT,
+      // which would bypass the RPC entirely and let a client-side count check be the only guard.
       const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory, {
-        activationMode: needsPayment ? "pending_payment" : "immediate",
+        activationMode: "pending_payment",
       });
 
       if (!r.ok) {
         setPublishBusy(false);
         setPublishErr(r.error);
         return;
+      }
+
+      if (!needsPayment) {
+        const activation = await callBrLifecycleMutation({ listingId: r.listingId, mutation: "activate_pending" });
+        if (!activation.ok) {
+          setPublishBusy(false);
+          setPublishErr(
+            activation.code === "br_active_property_limit_reached"
+              ? brPropertyInventoryMaxTotalLimitMessage(lang)
+              : lang === "es"
+                ? "No se pudo activar el anuncio. Inténtalo de nuevo."
+                : "The listing could not be activated. Please try again.",
+          );
+          return;
+        }
       }
 
       if (r.pendingPayment && needsPayment) {
@@ -349,6 +447,8 @@ export default function AgenteIndividualResidencialPreviewClient() {
           leonixAdId: r.leonixAdId?.trim() || leonixAdId,
           locale: lang,
           promoCode: ctx?.promoCode ?? null,
+          recurringConsent: ctx?.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx?.requestVerifiedIntroDiscount ?? false,
           returnPath: withBrAgenteResLangParam("/clasificados/publicar/bienes-raices/negocio/agente-individual/preview?checkout=cancelled", lang),
           ...(bundleCreatedCount > 0 ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] } : {}),
         });
@@ -415,7 +515,12 @@ export default function AgenteIndividualResidencialPreviewClient() {
     setPublishErr(null);
     setSaveEditMessage(null);
     try {
-      saveBienesListingEditWorkspace({ parentListingId: listingIdParam, state: data });
+      saveBienesListingEditWorkspace({
+        parentListingId: listingIdParam,
+        state: data,
+        // Rule 3 anchor — the workspace stays tied to the row version this session hydrated.
+        sourceUpdatedAt: hydratedSourceUpdatedAt,
+      });
       const sb = createSupabaseBrowserClient();
       const { data: auth } = await sb.auth.getSession();
       const token = auth.session?.access_token;
@@ -433,7 +538,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
           draft: data,
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        skippedNewChildren?: unknown[];
+      };
       if (!res.ok || !json.ok) {
         setPublishErr(json.message ?? (lang === "es" ? "No se pudieron guardar los cambios." : "Could not save changes."));
         return;
@@ -445,7 +554,20 @@ export default function AgenteIndividualResidencialPreviewClient() {
       }
       setData(verified.state);
       clearBienesListingEditWorkspace({ parentListingId: listingIdParam, state: data });
-      setSaveEditMessage(lang === "es" ? "Cambios guardados" : "Changes saved");
+      // Globalization Package B (Gate B4) — skippedNewChildren is SURFACED, never silent
+      // (ledger defect D2): the edit endpoint updates existing children but does not create
+      // brand-new ones; the owner is told exactly that and pointed at the real add-inventory
+      // flow instead of believing the new property was saved.
+      const skippedCount = Array.isArray(json.skippedNewChildren) ? json.skippedNewChildren.length : 0;
+      setSaveEditMessage(
+        skippedCount > 0
+          ? lang === "es"
+            ? `Cambios guardados. ${skippedCount} propiedad(es) nueva(s) NO se crearon desde esta edición — usa "Agregar propiedad" en tu panel para añadirlas.`
+            : `Changes saved. ${skippedCount} new propert${skippedCount === 1 ? "y was" : "ies were"} NOT created from this edit — use "Add property" from your dashboard to add them.`
+          : lang === "es"
+            ? "Cambios guardados"
+            : "Changes saved",
+      );
     } catch (e) {
       setPublishErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -500,24 +622,36 @@ export default function AgenteIndividualResidencialPreviewClient() {
         <div className="mx-auto flex max-w-[1140px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#B8954A]">
             {listingBoundPreview
-              ? lang === "es"
-                ? "Vista previa · Edición"
-                : "Preview · Edit"
+              ? readOnlyBoundPreview
+                ? lang === "es"
+                  ? "Vista previa · Solo lectura"
+                  : "Preview · Read-only"
+                : lang === "es"
+                  ? "Vista previa · Edición"
+                  : "Preview · Edit"
               : lang === "es"
                 ? "Vista previa · Publicar"
                 : "Preview · Publish"}
           </p>
           <div className="flex w-full flex-col items-stretch gap-1 sm:w-auto sm:items-end">
             {listingBoundPreview ? (
-              <button type="button" className={PUBLISH_BTN} disabled={saveEditBusy} onClick={() => void onSaveListingEdit()}>
-                {saveEditBusy
-                  ? lang === "es"
-                    ? "Guardando cambios…"
-                    : "Saving changes…"
-                  : lang === "es"
-                    ? "Guardar cambios"
-                    : "Save changes"}
-              </button>
+              readOnlyBoundPreview ? (
+                /* Package A Gate 4 — published-readonly: no save affordance for untouched
+                   state; the only action is navigating to the real editor. */
+                <Link href={editHref} className={PUBLISH_BTN}>
+                  {lang === "es" ? "Editar anuncio" : "Edit listing"}
+                </Link>
+              ) : (
+                <button type="button" className={PUBLISH_BTN} disabled={saveEditBusy} onClick={() => void onSaveListingEdit()}>
+                  {saveEditBusy
+                    ? lang === "es"
+                      ? "Guardando cambios…"
+                      : "Saving changes…"
+                    : lang === "es"
+                      ? "Guardar cambios"
+                      : "Save changes"}
+                </button>
+              )
             ) : showPaymentCheckpoint ? (
               <button
                 type="button"
@@ -547,6 +681,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
             {saveEditMessage ? (
               <p className="max-w-[320px] text-right text-[11px] font-semibold text-emerald-700" role="status">
                 {saveEditMessage}
+              </p>
+            ) : null}
+            {staleDraftNotice ? (
+              <p className="max-w-[320px] text-right text-[11px] font-semibold text-amber-800" role="status">
+                {staleDraftNotice}
               </p>
             ) : null}
           </div>

@@ -98,7 +98,7 @@ export function EmpleoPremiumDetailPage({
 
   const hubHref = appendLangToPath("/clasificados", lang);
   const empleosLandingHref = appendLangToPath("/clasificados/empleos", lang);
-  const publicarHref = appendLangToPath("/clasificados/publicar", lang);
+  const publicarHref = appendLangToPath("/publicar", lang);
 
   const galleryImages = hasPremiumGallery(data.gallery) ? data.gallery : [];
   const showRelated = data.relatedJobs.length > 0;

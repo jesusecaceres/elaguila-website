@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
@@ -19,6 +19,8 @@ import {
   serviciosOffersEditLabel,
   serviciosOffersInactiveDashboardHint,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -109,7 +111,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardServiciosPage() {
+function DashboardServiciosPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/servicios";
   const searchParams = useSearchParams();
@@ -236,6 +238,10 @@ export default function DashboardServiciosPage() {
     const sb = createSupabaseBrowserClient();
     let mounted = true;
     async function run() {
+      // Gate I.13A — this load previously had no top-level try/finally; a thrown error
+      // anywhere below left the page stuck on the loading spinner forever (setLoading(false)
+      // was only reached on the success path).
+      try {
       const { data } = await sb.auth.getUser();
       if (!mounted) return;
       if (!data.user) {
@@ -381,7 +387,9 @@ export default function DashboardServiciosPage() {
       if (Object.keys(serviciosMetricsBySlug).length > 0) {
         setEngagementTotals(buildServiciosCategoryTotals(merged));
       }
-      setLoading(false);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
     void run();
     return () => {
@@ -416,7 +424,7 @@ export default function DashboardServiciosPage() {
   };
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan={plan} userName={name} email={email} accountRef={accountRef}>
+    <LeonixDashboardShell lang={lang} activeNav="listings" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
@@ -429,7 +437,7 @@ export default function DashboardServiciosPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/clasificados/publicar/servicios?${q}`}
+                href={`/publicar/servicios?${q}`}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
               >
                 {t.publish}
@@ -678,5 +686,13 @@ export default function DashboardServiciosPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardServiciosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardServiciosPageContent />
+    </Suspense>
   );
 }

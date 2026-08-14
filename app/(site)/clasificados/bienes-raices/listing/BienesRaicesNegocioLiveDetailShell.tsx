@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiHeart, FiShare2 } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { trackListingSave } from "@/app/lib/clasificadosAnalytics";
+import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import { copyToClipboard } from "@/app/components/cta";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import {
@@ -17,6 +18,7 @@ import {
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import { BrAgenteResidencialLocaleProvider } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/BrAgenteResidencialLocaleContext";
 import { AgenteIndividualResidencialPreviewPage } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage";
+import { brAnalyticsContextFromListing } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import {
   createEmptyAgenteIndividualResidencialState,
   type AgenteIndividualResidencialFormState,
@@ -346,14 +348,23 @@ function PublicChromeActions({
       window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
       return;
     }
+    if (isSelfEngagement(user.id, ownerId)) return;
     if (saved) {
       await sb.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listingId);
       setSaved(false);
-      void trackListingSave(listingId, false, { ownerUserId: ownerId ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listingId, category: "bienes-raices" },
+        false,
+        { eventSource: "detail" },
+      );
     } else {
       await sb.from("saved_listings").insert({ user_id: user.id, listing_id: listingId });
       setSaved(true);
-      void trackListingSave(listingId, true, { ownerUserId: ownerId ?? undefined });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listingId, category: "bienes-raices" },
+        true,
+        { eventSource: "detail" },
+      );
     }
   }, [listingId, ownerId, saved]);
 
@@ -445,12 +456,19 @@ export function BienesRaicesNegocioLiveDetailShell({
   }, [groupId, lang, listing.br_inventory_parent_listing_id, listing.id, listing.inventory_role, listing.owner_id]);
 
   const data = useMemo(() => buildPublishedState({ listing, parentIdentity, lang }), [lang, listing, parentIdentity]);
+  // Package D Build D2, Gate 6A — real listing identity so the contact sidebar's CTAs track
+  // truthfully on this live, published detail render only.
+  const analyticsContext = useMemo(
+    () => brAnalyticsContextFromListing({ id: listing.id, leonix_ad_id: listing.leonix_ad_id }),
+    [listing.id, listing.leonix_ad_id],
+  );
 
   return (
     <BrAgenteResidencialLocaleProvider>
       <div className="bg-[#F9F6F1]">
         <AgenteIndividualResidencialPreviewPage
           data={data}
+          analyticsContext={analyticsContext}
           publicChrome={{
             eyebrow: (
               <Link

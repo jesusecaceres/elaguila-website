@@ -5,7 +5,9 @@ import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publi
 import { upsertEmpleosListingFromEnvelope } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { fetchEmpleosPublishedJobRecords } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 import { getBearerUserId } from "../../_lib/bearerUser";
+import { resolveCanonicalPlacementRankWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 
 export const runtime = "nodejs";
 
@@ -15,7 +17,21 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
   }
   const jobs = await fetchEmpleosPublishedJobRecords();
-  return NextResponse.json({ ok: true, jobs });
+
+  // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, batched.
+  const canonicalWeights = await resolveCanonicalPlacementRankWeights(jobs, {
+    category: "empleos",
+    surface: "category_results",
+  });
+  const jobsWithPlacement =
+    canonicalWeights.size > 0
+      ? jobs.map((j) => {
+          const w = canonicalWeights.get(j.id);
+          return w != null ? { ...j, canonicalPlacementRankWeight: w } : j;
+        })
+      : jobs;
+
+  return NextResponse.json({ ok: true, jobs: jobsWithPlacement });
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -43,7 +59,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const res = await upsertEmpleosListingFromEnvelope({ envelope, ownerUserId, mode });
   if (!res.ok) {
-    const status = res.error === "forbidden" ? 403 : res.error === "lane_mismatch" ? 400 : 500;
+    const status =
+      res.error === "forbidden"
+        ? 403
+        : res.error === "lane_mismatch" || res.error === QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE
+          ? 400
+          : 500;
     return NextResponse.json({ ok: false, error: res.error }, { status });
   }
 

@@ -17,17 +17,22 @@ export type RestaurantePendingPublishResult =
 
 export async function saveRestaurantePendingBeforeCheckout(
   draft: RestauranteListingDraft,
-  opts: { ownerUserId?: string | null; lang: "es" | "en" },
+  opts: { ownerUserId?: string | null; lang: "es" | "en"; accessToken?: string | null },
 ): Promise<RestaurantePendingPublishResult> {
   const lang = opts.lang === "en" ? "en" : "es";
   const payload = buildRestaurantePublishPayload(draft, opts.ownerUserId ?? undefined, undefined, lang, {
     activationMode: "pending_payment",
   });
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (opts.accessToken) {
+    headers.Authorization = `Bearer ${opts.accessToken}`;
+  }
+
   try {
     const res = await fetch("/api/clasificados/restaurantes/publish", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
     const j = (await res.json().catch(() => ({}))) as {

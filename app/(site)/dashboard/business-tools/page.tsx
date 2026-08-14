@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { computeBusinessCompleteness } from "../lib/businessProfileCompleteness";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { fetchOwnerRestaurantListings, fetchOwnerServiciosListings } from "../lib/dashboardInventory";
+import {
+  fetchDashboardListingPackageEntitlementBadges,
+  dashboardHasCapabilityForKey,
+  type DashboardEntitlementLookupItem,
+} from "../lib/dashboardPackageEntitlementBadges";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -17,12 +25,17 @@ function accountRefFromId(id: string): string {
   return `${s.slice(0, 4).toUpperCase()}-${s.slice(-4).toUpperCase()}`;
 }
 
-function normalizePlanFromMembershipTier(raw: unknown): Plan {
-  void raw;
-  return "free";
-}
+/** Package E Build E2, Gate 2 — a real, per-listing capability row. `active` is resolved
+ * server-side via `resolveBusinessToolsAccess()` (Package C canonical resolver); never inferred
+ * from profile completeness, account tier, placement, or a listing label. */
+type CapabilityRow = {
+  key: string;
+  label: string;
+  href: string;
+  active: boolean;
+};
 
-export default function BusinessToolsPage() {
+function BusinessToolsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/business-tools";
@@ -48,6 +61,12 @@ export default function BusinessToolsPage() {
             loading: "Cargando…",
             completeness: "Completitud del perfil",
             nextSteps: "Siguientes pasos sugeridos",
+            capabilitiesTitle: "Capacidades por anuncio",
+            capabilitiesHint: "Estado real según tu paquete activo — nunca según el plan de tu cuenta.",
+            capabilitiesEmpty: "No tienes anuncios de Restaurantes o Servicios todavía. Esta capacidad aplica a esas categorías.",
+            active: "Incluido",
+            locked: "No incluido",
+            couponsLabel: "Cupones y ofertas",
           }
         : {
             title: "Business tools",
@@ -65,6 +84,12 @@ export default function BusinessToolsPage() {
             loading: "Loading…",
             completeness: "Profile completeness",
             nextSteps: "Suggested next steps",
+            capabilitiesTitle: "Per-listing capabilities",
+            capabilitiesHint: "Real status from your active package — never from your account plan.",
+            capabilitiesEmpty: "You don't have any Restaurantes or Servicios listings yet. This capability applies to those categories.",
+            active: "Included",
+            locked: "Not included",
+            couponsLabel: "Coupons & offers",
           },
     [lang]
   );
@@ -72,9 +97,11 @@ export default function BusinessToolsPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-  const [plan, setPlan] = useState<Plan>("free");
+  const plan: Plan = "free";
   const [userId, setUserId] = useState<string | null>(null);
   const [completeness, setCompleteness] = useState<ReturnType<typeof computeBusinessCompleteness> | null>(null);
+  const [capabilityRows, setCapabilityRows] = useState<CapabilityRow[]>([]);
+  const [capabilitiesChecked, setCapabilitiesChecked] = useState(false);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -98,7 +125,6 @@ export default function BusinessToolsPage() {
         const { row } = await fetchDashboardProfile(sb, u.id);
         if (row?.display_name?.trim()) setName(row.display_name.trim());
         if (row?.email?.trim()) setEmail(row.email.trim());
-        setPlan(normalizePlanFromMembershipTier(row?.membership_tier));
         const meta = u.user_metadata as Record<string, unknown> | undefined;
         const wa = typeof meta?.whatsapp === "string" ? meta.whatsapp : "";
         setCompleteness(
@@ -107,6 +133,66 @@ export default function BusinessToolsPage() {
       } catch {
         /* ignore */
       }
+
+      // Package E Build E2, Gate 2 — real capability truth. Only Restaurantes/Servicios have a
+      // real capability model today (`categoryCommercialPlan.ts`'s CAPABILITY_CATEGORIES); no
+      // other category is treated as gated here, and nothing here reads profile completeness or
+      // account tier to decide inclusion.
+      try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess.session?.access_token ?? null;
+        const [restaurantRows, serviciosRows] = await Promise.all([
+          fetchOwnerRestaurantListings(sb, u.id),
+          fetchOwnerServiciosListings(token),
+        ]);
+
+        const items: DashboardEntitlementLookupItem[] = [
+          ...restaurantRows.map((row) => ({
+            key: row.id,
+            category: "restaurantes",
+            listingSource: "restaurantes_public_listings",
+            listingId: row.id,
+            slug: row.slug ?? null,
+            leonixAdId: row.leonix_ad_id ?? null,
+          })),
+          ...serviciosRows.map((row) => {
+            const id = (row.id ?? row.slug) as string;
+            return {
+              key: id,
+              category: "servicios",
+              listingSource: "servicios_public_listings",
+              listingId: id,
+              slug: row.slug ?? null,
+              leonixAdId: row.leonix_ad_id ?? null,
+            };
+          }),
+        ];
+
+        if (items.length > 0 && token) {
+          const { badges } = await fetchDashboardListingPackageEntitlementBadges(items, token);
+          const rows: CapabilityRow[] = [
+            ...restaurantRows.map((row) => ({
+              key: row.id,
+              label: `${t.couponsLabel} — ${row.business_name?.trim() || row.slug}`,
+              href: `/dashboard/restaurantes?${q}`,
+              active: dashboardHasCapabilityForKey(badges, [row.id], "coupons_offers"),
+            })),
+            ...serviciosRows.map((row) => {
+              const id = (row.id ?? row.slug) as string;
+              return {
+                key: id,
+                label: `${t.couponsLabel} — ${row.business_name?.trim() || row.slug}`,
+                href: `/dashboard/servicios?${q}`,
+                active: dashboardHasCapabilityForKey(badges, [id], "coupons_offers"),
+              };
+            }),
+          ];
+          if (mounted) setCapabilityRows(rows);
+        }
+      } catch {
+        /* fail closed to empty — never fabricate a capability */
+      }
+      if (mounted) setCapabilitiesChecked(true);
       setLoading(false);
     }
     void run();
@@ -118,7 +204,7 @@ export default function BusinessToolsPage() {
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="business" plan={plan} userName={name} email={email} accountRef={accountRef}>
+    <LeonixDashboardShell lang={lang} activeNav="business" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
@@ -128,6 +214,38 @@ export default function BusinessToolsPage() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
             <p className="mt-4 text-sm text-[#3D3428]/90">{t.lead}</p>
           </header>
+
+          {capabilitiesChecked ? (
+            <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-[#FFFDF7] p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
+              <h2 className="text-sm font-bold text-[#1E1810]">{t.capabilitiesTitle}</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">{t.capabilitiesHint}</p>
+              {capabilityRows.length === 0 ? (
+                <p className="mt-3 text-sm text-[#5C5346]">{t.capabilitiesEmpty}</p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {capabilityRows.map((row) => (
+                    <li
+                      key={row.key}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3"
+                    >
+                      <Link href={row.href} className="text-sm font-medium text-[#1E1810] hover:underline">
+                        {row.label}
+                      </Link>
+                      <span
+                        className={
+                          row.active
+                            ? "inline-flex rounded-full border border-[#2A4536]/25 bg-[#2A4536]/[0.08] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]"
+                            : "inline-flex rounded-full border border-[#D6C7AD]/70 bg-[#F3EBDD]/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]"
+                        }
+                      >
+                        {row.active ? t.active : t.locked}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
 
           {completeness ? (
             <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#F3EBDD]/90 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
@@ -173,5 +291,13 @@ export default function BusinessToolsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function BusinessToolsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <BusinessToolsPageContent />
+    </Suspense>
   );
 }

@@ -47,14 +47,33 @@ export type RevenuePackageDefinition = {
   placementTierKey?: string | null;
   /** Owner decision not yet locked in repo. */
   unresolvedOwnerDecision: string | null;
+  /**
+   * Package C Build 2 (C4) — verified 15% introductory discount eligibility. Defaults to true
+   * whenever `promoEligible` is true; set explicitly `false` to exclude a package (e.g. a future
+   * Premium print package) regardless of its promo-code eligibility. Data-driven so exclusion
+   * never depends on a hardcoded price check.
+   */
+  verifiedIntroDiscountEligible?: boolean;
+  /**
+   * Package C Build 3 (C5/C6) — data-driven capability grants this package includes, resolved
+   * by resolveCategoryListingPlan()/resolveBusinessToolsAccess() (categoryCommercialPlan.ts).
+   * Additive, config-driven — never inferred from placement, verification, or account tier.
+   */
+  capabilities?: string[];
+  /**
+   * Package C Build 3 (C5/C6) — true when this package can no longer be purchased (new sales),
+   * while the definition itself stays resolvable for historical price/label reads. The actual
+   * sale-blocking enforcement is `stripeEligible: false` / `promoEligible: false` on the same
+   * entry (read by the existing generic checkout/promo validators) — this flag is documentation
+   * and the basis for a cheap route-level defense-in-depth check, not a second guard mechanism.
+   */
+  newSalesRetired?: boolean;
 };
 
+// Package C Build 1 — owner-locked in the Execution Bible v2: Autos boost $129/mo (+10),
+// Bienes pack $99/mo (+3, max 4 total), FSBO $49.99/45d, offers add-ons $79/mo. Only the
+// genuinely still-open decisions remain below.
 export const REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS = [
-  "Autos dealer +10 inventory add-on final price ($149/mo likely)",
-  "Bienes Raices FSBO $49.99 final lock",
-  "Bienes Raices +4 properties add-on final lock",
-  "Restaurantes offers add-on $99/mo final lock",
-  "Servicios offers add-on $99/mo final lock",
   "Viajes business monthly pricing final lock",
   "Rentas V1 negocio split confirmation",
   "Clases / Comunidad / Mascotas listing window duration",
@@ -119,12 +138,12 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     billingMode: "monthly_subscription",
     durationDays: null,
     includedInventory: "1 business/agent package",
-    addOnInventory: "+4 properties via br_inventory_pack_monthly ($99/mo)",
+    addOnInventory: "+3 properties via br_inventory_pack_monthly ($99/mo)",
     promoEligible: true,
     printCompEligible: true,
     placementEligible: true,
     stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
+    unresolvedOwnerDecision: null,
   },
   {
     category: "bienes-raices",
@@ -134,13 +153,13 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     priceCents: 9900,
     billingMode: "monthly_subscription",
     durationDays: null,
-    includedInventory: "+4 additional properties",
+    includedInventory: "+3 additional properties",
     addOnInventory: null,
     promoEligible: false,
     printCompEligible: false,
     placementEligible: false,
     stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
+    unresolvedOwnerDecision: null,
   },
   {
     category: "bienes-raices",
@@ -156,7 +175,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     printCompEligible: false,
     placementEligible: true,
     stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[1],
+    unresolvedOwnerDecision: null,
   },
   {
     category: "rentas",
@@ -172,7 +191,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     printCompEligible: false,
     placementEligible: true,
     stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[6],
+    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[1],
   },
   {
     category: "restaurantes",
@@ -189,22 +208,32 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     unresolvedOwnerDecision: null,
+    // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are now INCLUDED in the $399
+    // base package (supersedes the retired restaurantes_offers_addon $79 add-on below).
+    capabilities: ["coupons_offers"],
   },
   {
     category: "restaurantes",
     packageKey: "restaurantes_offers_addon",
     customerType: "restaurant_business",
-    label: "Restaurantes offers add-on",
-    priceCents: 9900,
+    label: "Restaurantes offers add-on (retired — included in base package)",
+    priceCents: 7900,
     billingMode: "monthly_subscription",
     durationDays: null,
     includedInventory: "coupons/offers module",
     addOnInventory: null,
-    promoEligible: true,
+    // Package C Build 3 (C5/C6) — retired for new sales: coupons/offers are now included in
+    // restaurantes_base_monthly. Definition kept (never deleted) so historical payment/
+    // entitlement/promo rows still resolve labels and price. stripeEligible/promoEligible
+    // false is the actual central guard (read by validateRevenueCheckoutRequest and the promo
+    // resolver); newSalesRetired is documentation + a cheap route-level defense-in-depth check.
+    promoEligible: false,
     printCompEligible: true,
     placementEligible: true,
-    stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[3],
+    stripeEligible: false,
+    unresolvedOwnerDecision: null,
+    capabilities: [],
+    newSalesRetired: true,
   },
   {
     category: "servicios",
@@ -221,22 +250,28 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     unresolvedOwnerDecision: null,
+    // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are now INCLUDED in the $399
+    // base package (supersedes the retired servicios_offers_addon $79 add-on below).
+    capabilities: ["coupons_offers"],
   },
   {
     category: "servicios",
     packageKey: "servicios_offers_addon",
     customerType: "service_business",
-    label: "Servicios offers add-on",
-    priceCents: 9900,
+    label: "Servicios offers add-on (retired — included in base package)",
+    priceCents: 7900,
     billingMode: "monthly_subscription",
     durationDays: null,
     includedInventory: "coupons/offers module",
     addOnInventory: null,
-    promoEligible: true,
+    // Package C Build 3 (C5/C6) — retired for new sales; see restaurantes_offers_addon above.
+    promoEligible: false,
     printCompEligible: true,
     placementEligible: true,
-    stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[4],
+    stripeEligible: false,
+    unresolvedOwnerDecision: null,
+    capabilities: [],
+    newSalesRetired: true,
   },
   {
     category: "empleos",
@@ -305,7 +340,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     placementTierKey: "paid_private",
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[7],
+    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
   },
   {
     category: "clases",
@@ -322,7 +357,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: false,
     stripeEligible: false,
     placementTierKey: "free",
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[7],
+    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
   },
   {
     category: "comunidad",
@@ -389,7 +424,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     printCompEligible: true,
     placementEligible: true,
     stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[5],
+    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[0],
   },
   {
     category: "viajes",

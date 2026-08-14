@@ -7,7 +7,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { SupportedLang } from "@/app/lib/language";
 
-import type { CommunityKind } from "../constants/communitySessionKeys";
+import { COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS, type CommunityKind } from "../constants/communitySessionKeys";
 import { COMMUNITY_PUBLISH_COPY } from "../copy/communityPublishCopy";
 import { publishCommunityQuickToListings } from "../publish/publishCommunityQuickToListings";
 import { clearCommunityStagedPublish } from "../publish/communityPublishStaging";
@@ -73,10 +73,26 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
         setPublishError(shared.paidClassPublishBlocked);
         return;
       }
+      // I.6B — reuse this same in-progress submission's row (if a prior attempt already created
+      // one and hasn't fully completed yet) instead of always inserting a fresh row.
+      let inFlightId: string | null = null;
+      try {
+        inFlightId = window.sessionStorage.getItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS[kind]);
+      } catch {
+        /* sessionStorage optional */
+      }
       const r = await publishCommunityQuickToListings({
         kind,
         draft,
         lang,
+        existingListingId: inFlightId,
+        onListingIdKnown: (listingId) => {
+          try {
+            window.sessionStorage.setItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS[kind], listingId);
+          } catch {
+            /* sessionStorage optional */
+          }
+        },
       });
       if (!r.ok) {
         setPublishError(r.error);
@@ -85,6 +101,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
       setPublishSuccess(successLabel);
       try {
         window.sessionStorage.setItem(`leonix-community-publish-success:${r.listingId}`, "1");
+        window.sessionStorage.removeItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS[kind]);
       } catch {
         /* sessionStorage can be unavailable; redirect still provides completion feedback by URL. */
       }

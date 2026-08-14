@@ -10,6 +10,7 @@ import type { ValidatedRevenueCheckoutAddOn } from "./revenueCheckout";
 import {
   BR_INVENTORY_PACK_PACKAGE_KEY,
   RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+  SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 
 export type CreatePendingPaymentRecordInput = {
@@ -41,11 +42,56 @@ export type CreatePendingPaymentRecordInput = {
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
   returnContext?: string | null;
+  /** Package C Build 1 — stable purchase-attempt identity (see computeCheckoutAttemptKey). */
+  checkoutAttemptKey?: string | null;
+  attemptGeneration?: number | null;
 };
 
 export type PendingPaymentRecordResult =
   | { ok: true; paymentRecordId: string }
   | { ok: false; code: string; message: string };
+
+export { computeCheckoutAttemptKey } from "./checkoutAttemptIdentity";
+
+export type OpenAttemptRow = {
+  id: string;
+  stripe_checkout_session_id: string | null;
+  attempt_generation: number | null;
+  created_at: string | null;
+  /** Package C Build 2 (C4) — discount-source consistency check on attempt reuse. */
+  promo_code_id: string | null;
+  verified_intro_discount_redemption_id: string | null;
+};
+
+/** Find the unresolved attempt for a key (if any). */
+export async function findOpenCheckoutAttempt(attemptKey: string): Promise<OpenAttemptRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_payment_records")
+    .select("id, stripe_checkout_session_id, attempt_generation, created_at, promo_code_id, verified_intro_discount_redemption_id")
+    .eq("checkout_attempt_key", attemptKey)
+    .in("payment_status", ["pending", "unpaid", "requires_action"])
+    .maybeSingle();
+  return (data as OpenAttemptRow | null) ?? null;
+}
+
+/** Release a stale attempt (expired/abandoned session) so a new generation can begin. */
+export async function releaseStaleCheckoutAttempt(paymentRecordId: string): Promise<boolean> {
+  if (!isSupabaseAdminConfigured()) return false;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("leonix_payment_records")
+    .update({
+      payment_status: "canceled",
+      canceled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", paymentRecordId)
+    .in("payment_status", ["pending", "unpaid", "requires_action"])
+    .select("id");
+  return Boolean(data?.length);
+}
 
 /** Each Checkout attempt creates a new pending row (sandbox-safe, auditable retries). */
 export async function createPendingPaymentRecord(
@@ -92,6 +138,12 @@ export async function createPendingPaymentRecord(
       customer_email: input.customerEmail ?? null,
       promo_code_id: input.promoCodeId ?? null,
       promo_redemption_id: input.promoRedemptionId ?? null,
+      ...(input.checkoutAttemptKey
+        ? {
+            checkout_attempt_key: input.checkoutAttemptKey,
+            attempt_generation: Math.max(1, input.attemptGeneration ?? 1),
+          }
+        : {}),
       metadata: {
         gate: "STRIPE-REVENUE-OS-CHECKOUT-SESSION-01",
         ...(input.operation ? { operation: input.operation } : {}),
@@ -142,6 +194,13 @@ export async function createPendingPaymentRecord(
                 : {}),
             }
           : {}),
+        ...(input.category === "servicios" && input.addonOnly === true
+          ? {
+              checkout_mode: "addon_only",
+              servicios_offers_addon_package_key: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
+              servicios_offers_addon_price_cents: input.packageDef.priceCents,
+            }
+          : {}),
         ...(input.promoCode?.trim() ? { promo_code: input.promoCode.trim() } : {}),
         ...(input.discountType?.trim() ? { promo_discount_type: input.discountType.trim() } : {}),
         ...(input.promoFamily?.trim() ? { promo_family: input.promoFamily.trim() } : {}),
@@ -163,6 +222,16 @@ export async function createPendingPaymentRecord(
     .single();
 
   if (error || !data?.id) {
+    // Package C Build 1 — concurrent double-click: the partial unique index on
+    // checkout_attempt_key (unresolved statuses) turns the second insert into 23505.
+    // Signal the caller so it reuses the winner's open attempt/session.
+    if (error?.code === "23505" && input.checkoutAttemptKey) {
+      return {
+        ok: false,
+        code: "open_attempt_exists",
+        message: "An unresolved checkout attempt already exists for this purchase.",
+      };
+    }
     return {
       ok: false,
       code: "payment_record_insert_failed",
@@ -221,6 +290,8 @@ export type LeonixPaymentRecordRow = {
   source: string | null;
   promo_code_id: string | null;
   promo_redemption_id: string | null;
+  /** Package C Build 2 (C4). */
+  verified_intro_discount_redemption_id: string | null;
   package_entitlement_id: string | null;
   placement_entitlement_id: string | null;
   stripe_checkout_session_id: string | null;
@@ -233,7 +304,7 @@ export type LeonixPaymentRecordRow = {
 };
 
 const PAYMENT_RECORD_SELECT =
-  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
 
 /** Extended payment row for promo redemption business attribution (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
 export type LeonixPaymentRecordAttributionRow = LeonixPaymentRecordRow & {

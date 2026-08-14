@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";import type { EnVentaFreeApplication
 import { clearAllClassifiedsDrafts } from "@/app/clasificados/lib/classifiedsDraftStorage";
 import {
   clearEnVentaPublishTempState,
+  loadEnVentaInFlightListingId,
+  saveEnVentaInFlightListingId,
   saveEnVentaPreviewDraft,
   saveEnVentaPreviewReturnDraft,
 } from "@/app/clasificados/en-venta/preview/enVentaPreviewDraft";
@@ -68,7 +70,12 @@ export function EnVentaPublishSubmitBar({ lang, plan, state }: Props) {
     try {
       saveEnVentaPreviewDraft(plan, state, lang);
       saveEnVentaPreviewReturnDraft(plan, state);
-      const res = await publishEnVentaFromDraft(state, lang, plan);
+      // I.6B — reuse this same in-progress submission's row (if a prior attempt already created
+      // one and hasn't fully completed yet) instead of always inserting a fresh row.
+      const inFlightId = loadEnVentaInFlightListingId(plan);
+      const res = await publishEnVentaFromDraft(state, lang, plan, inFlightId, (listingId) => {
+        saveEnVentaInFlightListingId(plan, listingId);
+      });
       if (!res.ok) {
         setErr(res.error);
         return;

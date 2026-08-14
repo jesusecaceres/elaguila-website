@@ -13,11 +13,32 @@ function pushFact(out: Array<{ label: string; value: string }>, label: string, v
   out.push({ label: l, value: v });
 }
 
+/**
+ * Gate I.5.4A — confirmed BR Privado never persisted seller name/photo anywhere (neither this
+ * function nor `buildPublishParamsFromBienesRaicesPrivadoDraft`'s `contactPhoneDigits`/
+ * `contactEmail` extraction touched them), which is the root cause of the published page
+ * silently dropping the seller's identity. `detail_pairs` is the same existing, flexible JSON
+ * structure every other BR/Rentas fact already flows through — no new column, no migration.
+ *
+ * Gate I.5.4A.1 — the seller photo is a browser-local `data:` URL at this point. Rather than
+ * embedding that base64 blob into `detail_pairs` (the old size-capped interim behavior), an
+ * un-hosted `data:` photo is left out of this insert-time fact list entirely:
+ * `publishLeonixRealEstateListingCore` uploads it to the `listing-images` bucket right after the
+ * row exists (same bucket/path convention as the gallery) and patches the hosted URL into
+ * `detail_pairs` afterward. An already-hosted `http(s)://` value (e.g. carried over from a prior
+ * successful upload) is embedded directly here — no re-upload needed.
+ */
+
 /** BR / Rentas privado preview VM → detail pair rows (human labels, Spanish). */
 export function buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm: BienesRaicesPrivadoPreviewVm): Array<{ label: string; value: string }> {
   const out: Array<{ label: string; value: string }> = [];
   pushFact(out, "Operación", vm.operationSummary);
   pushFact(out, "Estado del anuncio", vm.listingStatusLabel);
+  pushFact(out, "Vendedor", vm.seller?.name ?? "");
+  const sellerPhoto = String(vm.seller?.photoUrl ?? "").trim();
+  if (/^https?:\/\//i.test(sellerPhoto)) {
+    pushFact(out, "Foto del vendedor", sellerPhoto);
+  }
   const exact = Boolean(vm.mostrarDireccionExacta);
   if (exact) {
     if (vm.location?.hasMeaningfulAddress) {

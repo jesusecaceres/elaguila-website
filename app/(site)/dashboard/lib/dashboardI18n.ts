@@ -110,6 +110,7 @@ export function misAnunciosListCopy(lang: Lang) {
       manageListing: "Administrar anuncio",
       viewRequests: "Ver solicitudes",
       archiveAd: "Archivar anuncio",
+      editListing: "Editar",
     };
   }
   return {
@@ -148,6 +149,7 @@ export function misAnunciosListCopy(lang: Lang) {
     manageListing: "Manage listing",
     viewRequests: "View requests",
     archiveAd: "Archive ad",
+    editListing: "Edit",
   };
 }
 

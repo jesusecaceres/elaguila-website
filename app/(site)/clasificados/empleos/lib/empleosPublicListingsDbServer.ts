@@ -2,12 +2,14 @@ import "server-only";
 
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { getEmpleoJobBySlug } from "../data/empleosSampleCatalog";
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import { empleosEnvelopeToCanonical } from "./staged/empleosEnvelopeToJobRecord";
 import type { EmpleosCanonicalListing } from "./staged/empleosCanonicalListing";
 import { buildEmpleosLiveSlugBase } from "./empleosLiveSlug";
+import { resolveEmpleosPublicationLane } from "./empleosLaneResolve";
 
 export type EmpleosListingLifecycleDb =
   | "draft"
@@ -139,10 +141,22 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   }
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const listingId =
-    input.envelope.listingId && isUuid(input.envelope.listingId) ? input.envelope.listingId : crypto.randomUUID();
+
+  // I.7A — a candidate listing id present on the envelope is an existing-listing intention and
+  // must fail closed (never silently mint a fresh id and insert a disconnected new row) when it
+  // is not a valid UUID, or when it is well-formed but no row with that id actually exists. Only
+  // the genuinely-new-application case (no listingId supplied at all) mints a fresh id here.
+  const rawListingId = typeof input.envelope.listingId === "string" ? input.envelope.listingId.trim() : "";
+  if (rawListingId && !isUuid(rawListingId)) {
+    return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
+  }
+  const candidateId = rawListingId || null;
+  const listingId = candidateId ?? crypto.randomUUID();
 
   const { data: existing } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
+  if (candidateId && !existing) {
+    return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
+  }
   if (existing && (existing as { owner_user_id: string | null }).owner_user_id !== input.ownerUserId) {
     return { ok: false, error: "forbidden" };
   }
@@ -262,9 +276,22 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
   if (snap?.jobRecord) {
     const jr = snap.jobRecord;
     const verified = Boolean(jr.verifiedEmployer) || Boolean(row.verified_employer) || Boolean(row.leonix_verified);
+    // Gate I.5.4C — backfill from the canonical `lane` DB column when this row's own snapshot
+    // (old envelope shape, or a jobRecord written before `publicationLane` existed) doesn't
+    // already carry it, so the public route's lane-shell resolution never depends solely on the
+    // JSON snapshot being complete.
+    const resolvedLane = resolveEmpleosPublicationLane({
+      jobPublicationLane: jr.publicationLane,
+      envelopeLane: snap.envelope?.lane,
+      rowLane: row.lane,
+      feriaDateLine: jr.feriaDateLine,
+      feriaTimeLine: jr.feriaTimeLine,
+      feriaVenue: jr.feriaVenue,
+    });
+    const laneBackfill = resolvedLane !== "unknown" ? { publicationLane: resolvedLane } : {};
     return applyCount != null
-      ? { ...jr, verifiedEmployer: verified, applicationCount: applyCount }
-      : { ...jr, verifiedEmployer: verified };
+      ? { ...jr, ...laneBackfill, verifiedEmployer: verified, applicationCount: applyCount }
+      : { ...jr, ...laneBackfill, verifiedEmployer: verified };
   }
   const salaryLabel =
     row.salary_label?.trim() ||
@@ -278,6 +305,9 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
     row.city && row.state ? `${row.city}, ${row.state}` : row.city || row.state || "",
   ].filter(Boolean);
   const summary = summaryParts.join(" · ") || row.title;
+  // Gate I.5.4C — this branch runs when `listing_snapshot.jobRecord` itself is absent; the
+  // canonical `lane` DB column is still the resolver's authoritative source here.
+  const resolvedLane = resolveEmpleosPublicationLane({ rowLane: row.lane });
   return {
     id: row.id,
     slug: row.slug,
@@ -310,6 +340,7 @@ export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {
     benefitChips: [],
     showOnLandingFeatured: false,
     showOnLandingRecent: false,
+    ...(resolvedLane !== "unknown" ? { publicationLane: resolvedLane } : {}),
     ...(applyCount != null ? { applicationCount: applyCount } : {}),
   };
 }
@@ -366,8 +397,11 @@ export async function updateEmpleosListingLifecycleAdmin(input: {
   if (input.lifecycle_status === "published") {
     patch.published_at = now;
   }
-  const { error } = await supabase.from("empleos_public_listings").update(patch).eq("id", input.id);
+  const { data: updated, error } = await supabase.from("empleos_public_listings").update(patch).eq("id", input.id).select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match must never be reported as success (I.12A's exact fix
+  // pattern, applied here for the empleos dedicated-table pipeline).
+  if (!updated || updated.length === 0) return { ok: false, error: "listing_not_found" };
   return { ok: true };
 }
 
@@ -480,8 +514,14 @@ export async function updateEmpleosJobApplicationStatusOwner(input: {
   if (lErr || !listing || (listing as { owner_user_id: string }).owner_user_id !== input.ownerUserId) {
     return { ok: false, error: "forbidden" };
   }
-  const { error } = await supabase.from("empleos_job_applications").update({ status: input.status }).eq("id", input.applicationId);
+  const { data: updated, error } = await supabase
+    .from("empleos_job_applications")
+    .update({ status: input.status })
+    .eq("id", input.applicationId)
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match must never be reported as success.
+  if (!updated || updated.length === 0) return { ok: false, error: "application_not_found" };
   return { ok: true };
 }
 

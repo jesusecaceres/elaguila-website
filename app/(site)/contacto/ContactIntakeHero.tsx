@@ -62,7 +62,7 @@ export function ContactIntakeHero({ lang, copy, highlightInquiryIndex }: Props) 
                 {hero.secondaryPromo}
               </Link>
               <Link
-                href={withLang("/clasificados/publicar", lang)}
+                href={withLang("/publicar", lang)}
                 className="inline-flex min-h-[3rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FAF6EE] px-6 py-3 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]"
               >
                 {hero.secondaryClassified}

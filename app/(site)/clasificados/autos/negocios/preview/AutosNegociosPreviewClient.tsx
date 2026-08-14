@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
@@ -51,7 +53,141 @@ import {
 const EDIT_BASE = "/publicar/autos/negocios";
 const AUTOS_DEALER_PENDING_CHECKOUT_KEY = "lx-autos-publish-listing-negocios";
 
-type AutosNegociosPreviewMode = "empty" | "draft" | "mock";
+type AutosNegociosPreviewMode = "empty" | "draft" | "mock" | "canonical-active" | "canonical-error";
+
+/**
+ * Gate C: reasons a canonical (listingId-bound) Preview fetch can fail. Kept distinct from the
+ * generic "empty" (no draft yet — normal for a brand-new visitor) so a missing/unauthorized
+ * identity never silently falls through to the "start a new listing" empty state.
+ */
+type CanonicalPreviewErrorReason = "auth" | "not_found" | "wrong_lane" | "unsupported_role" | "network";
+
+type CanonicalDealerListingApiResponse = {
+  ok?: boolean;
+  id?: string;
+  lane?: string;
+  status?: string;
+  listing?: AutoDealerListing;
+  inventory_role?: string | null;
+};
+
+/**
+ * Fetch and hydrate the owner-authorized dealer parent or vehicle child row for `listingId`.
+ * This is the ONLY source of truth when a canonical identity is present — the shared,
+ * user-scoped local draft (loadAutosNegociosCanonicalActiveDraft) is never used to fill in or
+ * override data for an identified listing, since that draft carries no field identifying which
+ * DB row (if any) it belongs to and could otherwise leak another listing's or another tab's
+ * unsaved state into this one.
+ */
+async function fetchCanonicalDealerPreview(
+  listingId: string,
+): Promise<
+  | { ok: true; listing: AutoDealerListing; status: string }
+  | { ok: false; reason: CanonicalPreviewErrorReason }
+> {
+  let token: string | null = null;
+  try {
+    const sb = createSupabaseBrowserClient();
+    const { data } = await sb.auth.getSession();
+    token = data.session?.access_token ?? null;
+  } catch {
+    token = null;
+  }
+  if (!token) return { ok: false, reason: "auth" };
+
+  let res: Response;
+  try {
+    res = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(listingId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+  if (res.status === 401 || res.status === 403) return { ok: false, reason: "auth" };
+  if (res.status === 404) return { ok: false, reason: "not_found" };
+  if (!res.ok) return { ok: false, reason: "network" };
+
+  const json = (await res.json().catch(() => null)) as CanonicalDealerListingApiResponse | null;
+  if (!json?.ok || !json.listing) return { ok: false, reason: "not_found" };
+  if (json.lane !== "negocios") return { ok: false, reason: "wrong_lane" };
+  if (json.inventory_role != null && json.inventory_role !== "main" && json.inventory_role !== "inventory_vehicle") {
+    return { ok: false, reason: "unsupported_role" };
+  }
+
+  const listing = safeNormalizeAutosDraftListing({ ...json.listing, autosLane: "negocios" }, "negocios");
+  return { ok: true, listing, status: json.status ?? "" };
+}
+
+function autosNegociosCanonicalErrorCopy(reason: CanonicalPreviewErrorReason, lang: "es" | "en"): { title: string; body: string } {
+  const es = lang === "es";
+  switch (reason) {
+    case "auth":
+      return {
+        title: es ? "Inicia sesión" : "Sign in required",
+        body: es ? "Inicia sesión para ver este anuncio de dealer." : "Sign in to view this dealer listing.",
+      };
+    case "wrong_lane":
+      return {
+        title: es ? "Anuncio no compatible" : "Unsupported listing",
+        body: es
+          ? "Este enlace no corresponde a un anuncio de dealer (Negocios)."
+          : "This link does not point to a dealer (Negocios) listing.",
+      };
+    case "unsupported_role":
+      return {
+        title: es ? "Registro no compatible" : "Unsupported record",
+        body: es
+          ? "No pudimos determinar el tipo de este registro de inventario."
+          : "We could not determine this inventory record's type.",
+      };
+    case "not_found":
+      return {
+        title: es ? "Anuncio no encontrado" : "Listing not found",
+        body: es
+          ? "No encontramos este anuncio o no tienes acceso a él."
+          : "We couldn't find this listing, or you don't have access to it.",
+      };
+    case "network":
+    default:
+      return {
+        title: es ? "No se pudo cargar" : "Could not load",
+        body: es ? "No pudimos cargar este anuncio. Intenta de nuevo." : "We could not load this listing. Please try again.",
+      };
+  }
+}
+
+/** Distinct from AutosNegociosPreviewEmptyState — never offers a "start new listing" CTA for a
+ * failed canonical-identity lookup, so a missing/unauthorized listing never reads as an
+ * invitation to create a duplicate. */
+function AutosNegociosPreviewCanonicalErrorState({
+  reason,
+  lang,
+}: {
+  reason: CanonicalPreviewErrorReason;
+  lang: "es" | "en";
+}) {
+  const copy = autosNegociosCanonicalErrorCopy(reason, lang);
+  const dashboardHref = `/dashboard/mis-anuncios?lang=${lang}`;
+  return (
+    <AutoDealerPreviewChrome showSiteLogo={false} hideBackToEdit>
+      <main className="mx-auto mt-8 max-w-[1280px] px-4 md:px-5 lg:px-6">
+        <div className="rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6">
+          <h1 className="text-xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-2xl">{copy.title}</h1>
+          <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-[color:var(--lx-text-2)]">{copy.body}</p>
+          <div className="mt-6">
+            <Link
+              href={dashboardHref}
+              className="inline-flex h-11 items-center justify-center rounded-[14px] bg-[color:var(--lx-cta-dark)] px-5 text-sm font-bold text-[#FFFCF7] shadow-lg transition hover:bg-[color:var(--lx-cta-dark-hover)]"
+            >
+              {lang === "es" ? "Volver al panel" : "Back to dashboard"}
+            </Link>
+          </div>
+        </div>
+      </main>
+    </AutoDealerPreviewChrome>
+  );
+}
 
 function isDemoQuery(): boolean {
   if (typeof window === "undefined") return false;
@@ -78,11 +214,24 @@ function writeCachedDealerListingId(listingId: string): void {
   }
 }
 
-async function resolvePreviewState(): Promise<{
+type PreviewResolveResult = {
   mode: AutosNegociosPreviewMode;
   listing: AutoDealerListing;
   additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
-}> {
+  /** Set only when `listing` was hydrated from a real DB row via `urlListingId`. Threads through
+   * to checkout so it PATCHes the same row instead of the local-draft cached-id-or-create path. */
+  canonicalListingId: string | null;
+  canonicalError: CanonicalPreviewErrorReason | null;
+};
+
+/**
+ * `urlListingId`, when present, comes from the dashboard-edit/Preview URL convention already
+ * used elsewhere in the repo (`?listingId=...`, see autosDealerListingPreviewHref-equivalent
+ * query shape). When present it is the ONLY source of truth for this preview — the shared,
+ * user-scoped local draft is never consulted or merged in, since it carries no field
+ * identifying which DB row (if any) it belongs to.
+ */
+async function resolvePreviewStateForRoute(urlListingId: string | null): Promise<PreviewResolveResult> {
   try {
     const demo = isDemoQuery();
     if (demo) {
@@ -93,22 +242,61 @@ async function resolvePreviewState(): Promise<{
         mode: "mock",
         listing: safeNormalizeAutosDraftListing({ ...base, relatedDealerListings }, "negocios"),
         additionalInventoryVehicles: [],
+        canonicalListingId: null,
+        canonicalError: null,
+      };
+    }
+
+    if (urlListingId) {
+      const fetched = await fetchCanonicalDealerPreview(urlListingId);
+      if (!fetched.ok) {
+        return {
+          mode: "canonical-error",
+          listing: safeNormalizeAutosDraftListing(undefined, "negocios"),
+          additionalInventoryVehicles: [],
+          canonicalListingId: urlListingId,
+          canonicalError: fetched.reason,
+        };
+      }
+      return {
+        // Already-active: render the plain live-style shell (no checkout — already published).
+        // Not yet active (draft/pending_payment/payment_failed): reuse the existing
+        // draft-capture shell so the owner can still complete checkout, bound to this same id.
+        mode: fetched.status === "active" ? "canonical-active" : "draft",
+        listing: fetched.listing,
+        additionalInventoryVehicles: [],
+        canonicalListingId: urlListingId,
+        canonicalError: null,
       };
     }
 
     const d = await loadAutosNegociosCanonicalActiveDraft();
 
     if (!d) {
-      return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios"), additionalInventoryVehicles: [] };
+      return {
+        mode: "empty",
+        listing: safeNormalizeAutosDraftListing(undefined, "negocios"),
+        additionalInventoryVehicles: [],
+        canonicalListingId: null,
+        canonicalError: null,
+      };
     }
 
     return {
       mode: "draft",
       listing: d.listing,
       additionalInventoryVehicles: d.additionalInventoryVehicles ?? [],
+      canonicalListingId: null,
+      canonicalError: null,
     };
   } catch {
-    return { mode: "empty", listing: safeNormalizeAutosDraftListing(undefined, "negocios"), additionalInventoryVehicles: [] };
+    return {
+      mode: "empty",
+      listing: safeNormalizeAutosDraftListing(undefined, "negocios"),
+      additionalInventoryVehicles: [],
+      canonicalListingId: null,
+      canonicalError: null,
+    };
   }
 }
 
@@ -117,14 +305,35 @@ function AutosNegociosPreviewInner({
   mode,
   listing,
   additionalInventoryVehicles,
+  canonicalListingId,
+  canonicalError,
 }: {
   ready: boolean;
   mode: AutosNegociosPreviewMode;
   listing: AutoDealerListing;
   additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
+  canonicalListingId: string | null;
+  canonicalError: CanonicalPreviewErrorReason | null;
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
-  const editBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
+  const searchParams = useSearchParams();
+  const genericEditBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
+  /** Preserves the same listingId/leonixAdId/mode/returnPanel identity context so "back to
+   * edit" resumes editing the SAME listing rather than the generic new-application resume. */
+  const canonicalEditBackHref = useMemo(() => {
+    if (!canonicalListingId) return null;
+    const p = new URLSearchParams();
+    p.set("edit", "1");
+    p.set("source", "dashboard");
+    p.set("mode", searchParams?.get("mode") || "listing-edit");
+    p.set("listingId", canonicalListingId);
+    const leonixAdId = searchParams?.get("leonixAdId");
+    if (leonixAdId) p.set("leonixAdId", leonixAdId);
+    p.set("returnPanel", searchParams?.get("returnPanel") || "autos");
+    p.set("lang", lang);
+    return `${EDIT_BASE}?${p.toString()}`;
+  }, [canonicalListingId, searchParams, lang]);
+  const editBackHref = canonicalEditBackHref ?? genericEditBackHref;
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const viewModel = useMemo(
@@ -163,6 +372,40 @@ function AutosNegociosPreviewInner({
     if (!photoPrep.ok) return { ok: false, message: photoPrep.message };
 
     const preparedListing = prepareAutosListingForApiTransport(photoPrep.listing);
+
+    // An existing canonical listing (reached via dashboard edit) is PATCHed only — never
+    // falls back to POST/create. A failure here is surfaced as a clear error, not silently
+    // routed into creating a duplicate listing.
+    if (canonicalListingId) {
+      const sync = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(canonicalListingId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ listing: preparedListing, lang }),
+      });
+      if (sync.ok) {
+        const j = (await sync.json().catch(() => ({}))) as {
+          id?: string;
+          leonixAdId?: string | null;
+          leonix_ad_id?: string | null;
+        };
+        return {
+          ok: true,
+          listingId: canonicalListingId,
+          leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
+          customerEmail: data.session?.user?.email ?? null,
+        };
+      }
+      const errJson = (await sync.json().catch(() => ({}))) as { message?: string };
+      return {
+        ok: false,
+        message:
+          errJson.message?.trim() ||
+          (lang === "es"
+            ? "No pudimos actualizar tu anuncio. Intenta de nuevo o contacta a Leonix."
+            : "We could not update your listing. Please try again or contact Leonix."),
+      };
+    }
+
     const cached = readCachedDealerListingId();
     if (cached) {
       const sync = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(cached)}`, {
@@ -218,10 +461,15 @@ function AutosNegociosPreviewInner({
       leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
       customerEmail: data.session?.user?.email ?? null,
     };
-  }, [additionalInventoryVehicles, lang, listing]);
+  }, [additionalInventoryVehicles, lang, listing, canonicalListingId]);
 
   const onStartDealerCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      promoCode: string | null;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+      requestVerifiedIntroDiscount?: boolean;
+    }) => {
       setCheckoutBusy(true);
       setCheckoutError(null);
       const pending = await ensurePendingDealerListing();
@@ -254,6 +502,8 @@ function AutosNegociosPreviewInner({
         locale: lang,
         customerEmail: pending.customerEmail,
         promoCode: ctx.promoCode,
+        recurringConsent: ctx.recurringConsent ?? null,
+        requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
         addOns: autosDealerSelectedAddOns(totalVehicleCount),
       });
       setCheckoutBusy(false);
@@ -268,6 +518,20 @@ function AutosNegociosPreviewInner({
 
   if (!ready) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
+  }
+
+  // A missing/unauthorized/unsupported canonical identity fails clearly here — it never falls
+  // through to the generic "start a new listing" empty state below.
+  if (mode === "canonical-error") {
+    return <AutosNegociosPreviewCanonicalErrorState reason={canonicalError ?? "network"} lang={lang} />;
+  }
+
+  if (mode === "canonical-active") {
+    return (
+      <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
+        <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />
+      </AutosDraftPreviewErrorBoundary>
+    );
   }
 
   if (mode === "empty") {
@@ -338,32 +602,42 @@ function AutosNegociosPreviewInner({
 }
 
 export function AutosNegociosPreviewClient() {
+  const searchParams = useSearchParams();
+  const canonicalListingId = useMemo(() => searchParams?.get("listingId")?.trim() || null, [searchParams]);
+
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<AutosNegociosPreviewMode>("empty");
   const [listing, setListing] = useState<AutoDealerListing>(() => safeNormalizeAutosDraftListing(undefined, "negocios"));
   const [additionalInventoryVehicles, setAdditionalInventoryVehicles] = useState<AutosAdditionalInventoryVehicleDraft[]>([]);
+  const [resolvedCanonicalListingId, setResolvedCanonicalListingId] = useState<string | null>(null);
+  const [canonicalError, setCanonicalError] = useState<CanonicalPreviewErrorReason | null>(null);
   const [recoverHint, setRecoverHint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const next = await resolvePreviewState();
+      const next = await resolvePreviewStateForRoute(canonicalListingId);
       setRecoverHint(null);
       setMode(next.mode);
       setListing(next.listing);
       setAdditionalInventoryVehicles(next.additionalInventoryVehicles);
+      setResolvedCanonicalListingId(next.canonicalListingId);
+      setCanonicalError(next.canonicalError);
     } catch {
       setMode("empty");
       setListing(safeNormalizeAutosDraftListing(undefined, "negocios"));
       setAdditionalInventoryVehicles([]);
+      setResolvedCanonicalListingId(null);
+      setCanonicalError(null);
       if (process.env.NODE_ENV === "development") {
         setRecoverHint("Preview fell back to empty state after an unexpected error");
       }
     }
-  }, []);
+  }, [canonicalListingId]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      setReady(false);
       await refresh();
       if (!cancelled) setReady(true);
     })();
@@ -374,7 +648,9 @@ export function AutosNegociosPreviewClient() {
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (storageEventAffectsAutosNegociosDraft(e.key)) void refresh();
+      // A canonical (listingId-bound) preview never reflects local draft storage — no need to
+      // refetch the DB record just because an unrelated draft key changed in another tab.
+      if (!canonicalListingId && storageEventAffectsAutosNegociosDraft(e.key)) void refresh();
     }
     function onFocus() {
       void refresh();
@@ -404,6 +680,8 @@ export function AutosNegociosPreviewClient() {
         mode={mode}
         listing={listing}
         additionalInventoryVehicles={additionalInventoryVehicles}
+        canonicalListingId={resolvedCanonicalListingId}
+        canonicalError={canonicalError}
       />
     </AutosNegociosPreviewLocaleProvider>
   );

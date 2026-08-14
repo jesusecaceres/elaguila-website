@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getRecentlyViewedIds } from "../../../lib/recentlyViewed";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -46,7 +48,7 @@ function firstImage(images: unknown): string | null {
   return null;
 }
 
-export default function VistosRecientesPage() {
+function VistosRecientesPageContent() {
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
   const q = `lang=${lang}`;
@@ -85,6 +87,7 @@ export default function VistosRecientesPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [plan, setPlan] = useState<Plan>("free");
   const [accountRef, setAccountRef] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const [membershipTier, setMembershipTier] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
 
@@ -98,6 +101,7 @@ export default function VistosRecientesPage() {
       } = await supabase.auth.getUser();
       if (!mounted) return;
       if (user) {
+        setOwnerId(user.id);
         setAccountRef(accountRefFromId(user.id));
         setEmail(user.email ?? null);
         const meta = user.user_metadata as Record<string, unknown> | undefined;
@@ -177,6 +181,7 @@ export default function VistosRecientesPage() {
       accountRef={accountRef}
       membershipTier={membershipTier}
       accountType={accountType}
+      ownerId={ownerId}
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
@@ -261,5 +266,13 @@ export default function VistosRecientesPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function VistosRecientesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <VistosRecientesPageContent />
+    </Suspense>
   );
 }

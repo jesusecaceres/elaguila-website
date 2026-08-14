@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
 import { fetchDashboardListingAnalytics } from "../../lib/fetchDashboardAnalyticsApi";
 import { buildAutosDealerPublishedProfileHref } from "@/app/lib/clasificados/autos/autosDealerPublishSuccessCopy";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -23,7 +25,7 @@ type ListingMeta = {
   category?: string | null;
 };
 
-export default function DashboardListingAnalyticsPage() {
+function DashboardListingAnalyticsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
@@ -219,7 +221,7 @@ export default function DashboardListingAnalyticsPage() {
     : false;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="analytics" plan="free" userName={name} email={email} accountRef={accountRef}>
+    <LeonixDashboardShell lang={lang} activeNav="analytics" plan="free" userName={name} email={email} accountRef={accountRef} ownerId={userId}>
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : access === "missing" ? (
@@ -302,5 +304,13 @@ export default function DashboardListingAnalyticsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardListingAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardListingAnalyticsPageContent />
+    </Suspense>
   );
 }

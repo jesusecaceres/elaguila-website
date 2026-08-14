@@ -78,7 +78,11 @@ import {
   trackEnVentaContactClickGlobal,
   type EnVentaGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
-import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
+import {
+  trackListingShare,
+  trackListingSaveToggleAuthed,
+} from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import {
   enVentaCategoryLine,
   enVentaConditionDisplay,
@@ -522,16 +526,26 @@ export function EnVentaAnuncioLayout({
       window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
       return;
     }
+    if (isSelfEngagement(user.id, ownerId)) return;
+    const engagementCategory = surface === "en-venta" ? "en-venta" : "bienes-raices";
     if (saved) {
       await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
-      void trackListingSave(listing.id, false, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: engagementCategory },
+        false,
+        { eventSource: "detail" },
+      );
     } else {
       await supabase
         .from("saved_listings")
         .upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
-      void trackListingSave(listing.id, true, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: engagementCategory },
+        true,
+        { eventSource: "detail" },
+      );
     }
   }, [listing.id, saved, ownerId, surface]);
 
@@ -564,13 +578,11 @@ export function EnVentaAnuncioLayout({
       trackBrListingShareGlobal(brAnalyticsCtx, shareMethod);
       return;
     }
-    void trackListingShare(listing.id, {
-      ownerUserId: ownerId ?? undefined,
-      eventSource: "detail",
+    trackListingShare(
+      { sourceTable: "listings", sourceId: listing.id, category: "en-venta" },
       shareMethod,
-      category: "en-venta",
-      metadata: { actorHint: user?.id ?? null },
-    });
+      { eventSource: "detail", metadata: { actorHint: user?.id ?? null } },
+    );
   }, [brAnalyticsCtx, lang, listing.id, listing.title, ownerId, premiumBr, surface]);
 
   const publicListingPath = useMemo(

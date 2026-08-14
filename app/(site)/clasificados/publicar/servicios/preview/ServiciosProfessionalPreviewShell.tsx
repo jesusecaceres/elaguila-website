@@ -18,6 +18,7 @@ import { ServiciosAbout } from "@/app/servicios/components/ServiciosAbout";
 import { ServiciosOfferedSection } from "@/app/servicios/components/ServiciosServicesGrid";
 import { ServiciosGalleryWithTabs } from "@/app/servicios/components/ServiciosGalleryWithTabs";
 import { ServiciosReviews } from "@/app/servicios/components/ServiciosReviews";
+import { ServiciosHours } from "@/app/servicios/components/ServiciosHours";
 import { ServiciosBusinessHubContactCard } from "@/app/servicios/components/ServiciosBusinessHubContactCard";
 import { ServiciosLikeEngagementCluster } from "@/app/servicios/components/ServiciosLikeEngagementCluster";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
@@ -209,6 +210,13 @@ export function ServiciosProfessionalPreviewShell({
 
           {hasReviewsSectionResolved(displayProfile) ? (
             <ServiciosReviews profile={displayProfile} lang={lang} />
+          ) : null}
+
+          {/* Gate I.5.4B — same component + same condition as ServiciosProfessionalProfileShell (Published):
+              when a structured weekly schedule exists, ServiciosBusinessHubContactCard above already renders
+              it inline, so this section is skipped to avoid showing the same weekly list twice. */}
+          {!profile.contact.hours?.weeklyRows ? (
+            <ServiciosHours profile={profile} lang={lang} />
           ) : null}
         </div>
 

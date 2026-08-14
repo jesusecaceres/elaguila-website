@@ -35,6 +35,15 @@ import {
   resolveEnVentaPublishDescriptionForDb,
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
+import {
+  clearSessionPublishAttemptKey,
+  fetchOwnListingIdByPublishAttemptKey,
+  getOrCreateSessionPublishAttemptKey,
+  isPublishAttemptKeyConflict,
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 function resolveContactForInsert(state: EnVentaFreeApplicationState): {
   contact_phone: string | null;
@@ -307,7 +316,21 @@ export type EnVentaPublishFromDraftResult =
 export async function publishEnVentaFromDraft(
   state: EnVentaFreeApplicationState,
   lang: PublishLang,
-  plan: "free" | "pro"
+  plan: "free" | "pro",
+  /**
+   * I.6B — canonical UUID of a listing this exact logical submission already created (persisted
+   * by the caller after a prior successful publish of the same draft). When present and verified
+   * (owner + category match, via verifyQuickListingReusable), that row is reused/updated instead
+   * of inserting a new one. Any verification failure falls back to the original insert-only
+   * behavior — it never performs an unscoped update.
+   */
+  existingListingId?: string | null,
+  /**
+   * I.6B — invoked as soon as the canonical row id is known (reused or freshly inserted), BEFORE
+   * the slower photo-upload/finalize steps run. Lets the caller persist the id immediately so a
+   * refresh or retry mid-upload resumes this same row instead of inserting a second one.
+   */
+  onListingIdKnown?: (listingId: string) => void
 ): Promise<EnVentaPublishFromDraftResult> {
   state = prepareEnVentaStateForPublish(state);
   const familySafety = evaluateEnVentaFamilySafetyFromState(state, lang);
@@ -381,30 +404,94 @@ export async function publishEnVentaFromDraft(
     insertPayload.business_name = state.displayName.trim();
   }
 
-  // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
-  const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
-  let row = firstIns.data as { id?: string } | null;
-  let insErr = firstIns.error;
-  if (insErr && insertPayload.zip != null) {
-    const m = (insErr.message ?? "").toLowerCase();
-    if (m.includes("zip")) {
-      const retryPayload = { ...insertPayload };
-      delete retryPayload.zip;
-      const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
-      row = second.data as { id?: string } | null;
-      insErr = second.error;
+  // I.6B — reuse this exact submission's already-created row when a verified canonical UUID is
+  // present, instead of always inserting a fresh one (duplicate-row-on-republish protection).
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: "en-venta",
+      })
+    : null;
+
+  let listingId: string | undefined;
+
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const reuseUpd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (reuseUpd.error) {
+      const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(reuseUpd.error, lang);
+      return { ok: false, error: friendly ?? reuseUpd.error.message };
     }
+  } else if (existingListingId) {
+    // I.6C — an existing-listing intention was supplied but failed verification. Fail closed:
+    // never fall back to an INSERT here, or a failed identity check would silently become a
+    // second, duplicate row. The local draft is left untouched by returning early.
+    logQuickListingReuseFailure("en-venta", reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
+  } else {
+    // Globalization Package A Gate 3 — stamp this logical submission with its session-stable
+    // idempotency key so two racing submits can never both INSERT (partial unique index
+    // listings_owner_publish_attempt_key_uidx; recovery below). Fail-open: key null (or DB
+    // predating the migration — column-missing retry below) preserves pre-gate behavior.
+    const publishAttemptKey = getOrCreateSessionPublishAttemptKey("en-venta");
+    if (publishAttemptKey) insertPayload.publish_attempt_key = publishAttemptKey;
+
+    // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
+    const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
+    let row = firstIns.data as { id?: string } | null;
+    let insErr = firstIns.error;
+    if (insErr && insertPayload.zip != null) {
+      const m = (insErr.message ?? "").toLowerCase();
+      if (m.includes("zip")) {
+        const retryPayload = { ...insertPayload };
+        delete retryPayload.zip;
+        const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
+        row = second.data as { id?: string } | null;
+        insErr = second.error;
+      }
+    }
+    // Older DB without the idempotency column: retry without it (same convention as zip above).
+    if (insErr && insertPayload.publish_attempt_key != null) {
+      const m = (insErr.message ?? "").toLowerCase();
+      if (m.includes("publish_attempt_key") && m.includes("column")) {
+        const retryPayload = { ...insertPayload };
+        delete retryPayload.publish_attempt_key;
+        const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
+        row = second.data as { id?: string } | null;
+        insErr = second.error;
+      }
+    }
+    // Racing/retried submission: this exact key already created a row — recover it, never
+    // insert a duplicate.
+    if (insErr && publishAttemptKey && isPublishAttemptKeyConflict(insErr)) {
+      const recoveredId = await fetchOwnListingIdByPublishAttemptKey(supabase, {
+        ownerUserId: userId,
+        attemptKey: publishAttemptKey,
+        expectedCategory: "en-venta",
+      });
+      if (recoveredId) {
+        row = { id: recoveredId };
+        insErr = null;
+      }
+    }
+
+    if (insErr) {
+      const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(insErr, lang);
+      return { ok: false, error: friendly ?? insErr.message };
+    }
+
+    listingId = (row as { id?: string } | null)?.id;
+    if (listingId) clearSessionPublishAttemptKey("en-venta");
   }
 
-  if (insErr) {
-    const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(insErr, lang);
-    return { ok: false, error: friendly ?? insErr.message };
-  }
-
-  const listingId = (row as { id?: string } | null)?.id;
   if (!listingId) {
     return { ok: false, error: lang === "es" ? "No se recibió el ID del anuncio." : "No listing id returned." };
   }
+  onListingIdKnown?.(listingId);
 
   const ordered = getOrderedEnVentaImageUrls(state);
   const photoUrls: string[] = [];

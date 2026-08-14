@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
@@ -19,9 +20,87 @@ import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/
 import { buildRestaurantePublish422MediaAudit } from "@/app/clasificados/restaurantes/application/restaurantePublishMediaAudit";
 import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurantes/lib/restaurantesLeonixAdId";
 import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
+import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
+import { coerceRestauranteImageRefToString } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
+import {
+  collectRestauranteExternalVideoUrls,
+  isValidRestauranteExternalVideoUrl,
+  trimRestauranteVideoUrl,
+  RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
+} from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+
+/** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
+const RESTAURANTE_GALLERY_MAX = 24;
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
+}
+
+/**
+ * Production-style Restaurantes publish: real DB + authenticated provider only.
+ * Preview / local dev stays lenient unless `RESTAURANTES_STRICT_PUBLISH=1`.
+ * Mirrors the Servicios publish authentication doctrine
+ * (app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts).
+ */
+function isRestaurantesStrictPublishEnvironment(): boolean {
+  if (process.env.RESTAURANTES_STRICT_PUBLISH === "1") return true;
+  return process.env.VERCEL_ENV === "production";
+}
+
+async function restauranteOwnerIdFromBearer(req: Request): Promise<string | null> {
+  const auth = req.headers.get("authorization");
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  if (!token) return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return null;
+  const sb = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await sb.auth.getUser(token);
+  if (error || !data.user) return null;
+  return data.user.id;
+}
+
+/** Gate E.2.1 — coupon content already durably stored on the existing row, trusted as-is. */
+type TrustedRestauranteCouponContent = Pick<
+  RestauranteListingDraft,
+  "coupons" | "couponFlyer" | "couponMoreOffers" | "couponMonthlyPrice"
+>;
+
+/**
+ * Coupon entitlement (`couponUpgradeEnabled` + coupon content) is server/payment truth only.
+ * A client can never submit this listing_json flag or its content into an active state —
+ * only an already-entitled row (real, live `listing_package_entitlements` truth as of Gate
+ * E.2.1) may keep it active.
+ *
+ * Gate E.2.1 — when not entitled, this used to erase `coupons`/`couponFlyer`/`couponMoreOffers`/
+ * `couponMonthlyPrice` outright on every save, which would permanently destroy a customer's
+ * coupon content the next time they saved an unrelated base-listing field (name, hours, etc.)
+ * after their entitlement lapsed or was revoked. It now falls back to `trustedExisting` — the
+ * content already durably stored on this row — instead of either the incoming client draft
+ * (never trusted while unentitled, whether or not `mergeRestauranteDraft` already zeroed it) or
+ * a hard-coded erasure. The coupon module still stays off (`couponUpgradeEnabled: false`) and
+ * therefore hidden/unpublishable while unentitled; only the underlying data survives for
+ * reactivation.
+ */
+function enforceRestauranteCouponEntitlementServerTruth(
+  draft: RestauranteListingDraft,
+  entitled: boolean,
+  trustedExisting: TrustedRestauranteCouponContent,
+): RestauranteListingDraft {
+  if (entitled) {
+    return { ...draft, couponUpgradeEnabled: true };
+  }
+  return {
+    ...draft,
+    couponUpgradeEnabled: false,
+    coupons: trustedExisting.coupons,
+    couponFlyer: trustedExisting.couponFlyer,
+    couponMoreOffers: trustedExisting.couponMoreOffers,
+    couponMonthlyPrice: trustedExisting.couponMonthlyPrice,
+  };
 }
 
 /**
@@ -146,6 +225,13 @@ export async function POST(req: Request) {
     }, { status: 400 });
   }
 
+  const strict = isRestaurantesStrictPublishEnvironment();
+  const verifiedOwnerId = await restauranteOwnerIdFromBearer(req);
+
+  if (strict && !verifiedOwnerId) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
+
   // For new payload format, the draft data is now at the root level
   // But maintain backward compatibility with old format
   const draftData = b.draft || b;
@@ -180,6 +266,36 @@ export async function POST(req: Request) {
     }, { status: 422 });
   }
 
+  // Globalization Package B (Gate B6) — shared media contract, additive server-side gate. The
+  // real minimum-image truth already ran above (satisfiesRestauranteMinimumValidPreview /
+  // hasRestauranteMinimumPublishImage, which treats hero-OR-gallery as satisfying "at least one
+  // photo") — minImages stays 0 here so this check never duplicates or contradicts that proven
+  // rule. Gallery is already capped at RESTAURANTE_GALLERY_MAX client-side, and
+  // collectRestauranteExternalVideoUrls() already validates/dedupes/caps video URLs using this
+  // category's own validator — this is the authoritative last-line max/video truth for this
+  // single, real save boundary (new listings and listing-edit both route through this handler).
+  const restauranteHeroUrl = coerceRestauranteImageRefToString(draft.heroImage);
+  const restauranteGalleryUrls = (draft.galleryImages ?? [])
+    .map((ref) => coerceRestauranteImageRefToString(ref))
+    .filter((u): u is string => Boolean(u));
+  const restauranteFinalMedia = buildProposedFinalMediaSet({
+    existing: [...(restauranteHeroUrl ? [restauranteHeroUrl] : []), ...restauranteGalleryUrls],
+    externalVideoUrls: collectRestauranteExternalVideoUrls(draft),
+  });
+  const restauranteMediaValidation = validateProposedFinalMediaSet(restauranteFinalMedia, {
+    minImages: 0,
+    maxImages: RESTAURANTE_GALLERY_MAX,
+    logoAllowed: false,
+    maxExternalVideos: RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
+    normalizeExternalVideoUrl: (url) => (isValidRestauranteExternalVideoUrl(url) ? trimRestauranteVideoUrl(url) : null),
+  });
+  if (!restauranteMediaValidation.ok) {
+    return NextResponse.json(
+      { ok: false, error: "media_invalid", issues: restauranteMediaValidation.issues },
+      { status: 422 },
+    );
+  }
+
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json(
       {
@@ -191,7 +307,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const ownerUserId = typeof b.owner_user_id === "string" ? b.owner_user_id : null;
+  // Owner identity is server-verified only — the client-supplied owner_user_id is never trusted.
+  const ownerUserId = verifiedOwnerId;
   const pendingPayment =
     b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
@@ -206,7 +323,7 @@ export async function POST(req: Request) {
 
   const { data: existingByDraft, error: exErr } = await supabase
     .from("restaurantes_public_listings")
-    .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id")
+    .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id, listing_json")
     .eq("draft_listing_id", draft.draftListingId)
     .maybeSingle();
 
@@ -214,12 +331,77 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
   }
 
+  // Ownership: an authenticated request may never edit or republish another user's listing.
+  const existingOwnerUserId =
+    existingByDraft && typeof (existingByDraft as { owner_user_id?: unknown }).owner_user_id === "string"
+      ? ((existingByDraft as { owner_user_id?: string | null }).owner_user_id ?? null)
+      : null;
+
+  if (existingOwnerUserId && verifiedOwnerId && existingOwnerUserId !== verifiedOwnerId) {
+    return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+  }
+
+  // Gate E.2.1 — paid coupon entitlement is server/payment truth only (live
+  // `listing_package_entitlements` state), never a client-submitted flag, the old sticky
+  // `listing_json.couponUpgradeEnabled` boolean, slug, or Leonix Ad ID.
+  const existingListingJson =
+    existingByDraft && typeof (existingByDraft as { listing_json?: unknown }).listing_json === "object"
+      ? ((existingByDraft as { listing_json?: Record<string, unknown> | null }).listing_json ?? null)
+      : null;
+  const existingListingId = (existingByDraft as { id?: string } | null)?.id ?? null;
+
+  // A brand-new listing (no canonical row UUID yet) can never have an entitlement — never
+  // invent one; only an already-existing row can be looked up.
+  let serverVerifiedCouponEntitlement = false;
+  if (existingListingId) {
+    const entitlements = await fetchAddonEntitlementsForListings({
+      category: "restaurantes",
+      packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+      listingIds: [existingListingId],
+    });
+    serverVerifiedCouponEntitlement = entitlements.get(existingListingId)?.status === "active";
+  }
+
+  if (!serverVerifiedCouponEntitlement && draft.couponUpgradeEnabled === true) {
+    console.warn("[restaurantes publish api] coupon activation attempted without server entitlement", {
+      draftListingId: draft.draftListingId,
+      existingListingId,
+    });
+  }
+
+  // Gate E.2.1 — content already durably stored on the existing row (never the incoming client
+  // draft) is the only trusted source to fall back to while unentitled; see
+  // enforceRestauranteCouponEntitlementServerTruth for why.
+  const trustedExistingCouponContent: TrustedRestauranteCouponContent = {
+    coupons: Array.isArray(existingListingJson?.coupons)
+      ? (existingListingJson.coupons as RestauranteListingDraft["coupons"])
+      : [],
+    couponFlyer:
+      existingListingJson?.couponFlyer && typeof existingListingJson.couponFlyer === "object"
+        ? (existingListingJson.couponFlyer as RestauranteListingDraft["couponFlyer"])
+        : undefined,
+    couponMoreOffers:
+      existingListingJson?.couponMoreOffers && typeof existingListingJson.couponMoreOffers === "object"
+        ? (existingListingJson.couponMoreOffers as RestauranteListingDraft["couponMoreOffers"])
+        : undefined,
+    couponMonthlyPrice:
+      typeof existingListingJson?.couponMonthlyPrice === "number"
+        ? existingListingJson.couponMonthlyPrice
+        : undefined,
+  };
+
+  const sanitizedDraft = enforceRestauranteCouponEntitlementServerTruth(
+    draft,
+    serverVerifiedCouponEntitlement,
+    trustedExistingCouponContent,
+  );
+
   let slugOut = slugifyRestauranteBusinessName(draft.businessName);
 
   try {
     if (existingByDraft?.slug) {
       slugOut = existingByDraft.slug;
-      const baseRow = draftToRestaurantePublicListingInsert(draft, slugOut, {
+      const baseRow = draftToRestaurantePublicListingInsert(sanitizedDraft, slugOut, {
         ownerUserId,
         promoted: false,
         packageTier: requestedLane,
@@ -236,14 +418,17 @@ export async function POST(req: Request) {
         leonix_ad_id?: string | null;
       };
       baseRow.leonix_verified = ex.leonix_verified ?? false;
-      if (pendingPayment) {
-        baseRow.status = ex.status === "published" ? "published" : RESTAURANTE_PENDING_CHECKOUT_STATUS;
-      } else {
-        baseRow.status =
-          ex.status === "archived" || ex.status === RESTAURANTE_PENDING_CHECKOUT_STATUS
-            ? "published"
-            : (ex.status ?? "published");
+      // Gate G.3.1A — the confirmed critical fix: an ordinary owner edit of an EXISTING row must
+      // never escalate a protected status (`pending_payment`, `archived`, `suspended`) to
+      // `published`. The `activation_mode`/`pendingPayment` request flag is deliberately never
+      // consulted for this decision — only the certified Revenue OS webhook
+      // (`activatePaidRestauranteListingFromRevenueOs`) or an authorized staff admin action may
+      // publish a protected row. See `restauranteOwnerEditStatusAuthority.ts` for the full rule.
+      const statusDecision = resolveRestauranteOwnerEditTargetStatus(ex.status);
+      if (!statusDecision.ok) {
+        return NextResponse.json({ ok: false, error: statusDecision.error }, { status: 409 });
       }
+      baseRow.status = statusDecision.targetStatus;
       /** Paid placement is admin-controlled only; republish/renew must not flip it from the client. */
       baseRow.promoted = ex.promoted ?? false;
       baseRow.package_tier = mergePackageTierForUpdate(ex.package_tier, requestedLane);
@@ -266,23 +451,46 @@ export async function POST(req: Request) {
       listingIdOut = ex.id ?? null;
       leonixAdIdOut = typeof baseRow.leonix_ad_id === "string" ? baseRow.leonix_ad_id : null;
 
-      const { error } = await supabase
+      // Gate G.3.1A — compare-and-set on the status we just decided to preserve: if another
+      // process (staff moderation, a Stripe webhook landing concurrently) changed the row's
+      // status between our read above and this write, the update matches zero rows instead of
+      // silently overwriting whatever that other process just set. Raw Postgres error detail is
+      // logged server-side only, never returned in the response body.
+      const { data: updatedRow, error } = await supabase
         .from("restaurantes_public_listings")
         .update({
           ...baseRow,
           updated_at: now,
         })
-        .eq("draft_listing_id", draft.draftListingId);
+        .eq("draft_listing_id", draft.draftListingId)
+        .eq("status", statusDecision.targetStatus)
+        .select("id")
+        .maybeSingle();
 
       if (error) {
-        return NextResponse.json({ ok: false, error: "update_failed", detail: error.message }, { status: 500 });
+        console.error("[restaurantes publish api] update failed", {
+          draftListingId: draft.draftListingId,
+          code: error.code,
+          message: error.message,
+        });
+        return NextResponse.json({ ok: false, error: "restaurante_update_failed" }, { status: 500 });
+      }
+      if (!updatedRow?.id) {
+        console.error("[restaurantes publish api] update matched no row (concurrent status change)", {
+          draftListingId: draft.draftListingId,
+          expectedStatus: statusDecision.targetStatus,
+        });
+        return NextResponse.json(
+          { ok: false, error: "restaurante_status_transition_not_allowed" },
+          { status: 409 },
+        );
       }
     } else {
       const requested = typeof b.slug === "string" ? b.slug.trim() : "";
       const base = requested || slugifyRestauranteBusinessName(draft.businessName);
       slugOut = await allocateSlug(base);
       const row = {
-        ...draftToRestaurantePublicListingInsert(draft, slugOut, {
+        ...draftToRestaurantePublicListingInsert(sanitizedDraft, slugOut, {
           ownerUserId,
           promoted: false,
           packageTier: requestedLane,

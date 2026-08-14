@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import {
   autosDealerInventoryEditHref,
   autosDealerListingEditHref,
@@ -18,10 +17,12 @@ import {
   serviciosListingPreviewHref,
 } from "./serviciosDashboardOffersAddonCheckout";
 import {
-  restaurantCouponAddonUpgradeEligible,
-  restaurantCouponEditEligible,
+  restaurantCouponAddonUpgradeEligibleFromLifecycle,
+  restaurantCouponEditEligibleFromLifecycle,
   restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
+import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
+import { resolveOwnerDashboardStatusDisplay, type OwnerDashboardStatusDisplay } from "./dashboardOwnerStatusDisplay";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -51,6 +52,8 @@ export type DashboardInventoryItem = {
   restaurantCouponUpgradeEligible?: boolean;
   /** True when published Restaurante has paid coupon module and can edit coupons. */
   restaurantCouponEditEligible?: boolean;
+  /** Gate E.2.3 — lifecycle truth backing the two flags above (`not_purchased` when not yet resolved). */
+  restaurantCouponAddonStatus?: AddonLifecycleStatus;
   /** True when a Servicios listing already shows offers/coupons content (P0C honest display state). */
   serviciosOffersAddonActive?: boolean;
   /** Optional fields for `resolveCategoryAdPlanFromDashboardInventoryItem`. */
@@ -62,6 +65,10 @@ export type DashboardInventoryItem = {
   /** e.g. `{ listing_json, lane }` for Viajes affiliate detection */
   planRaw?: Record<string, unknown> | null;
   actionContract?: CategoryDashboardActionContract;
+  /** Work Package I.8A — display-only truthful status (never used for write behavior). Currently
+   * populated for Empleos and Viajes, the two dedicated-table categories whose raw
+   * `lifecycle_status` was previously shown untranslated with a hardcoded color. */
+  statusDisplay?: OwnerDashboardStatusDisplay;
   source:
     | "listings"
     | "restaurantes_public_listings"
@@ -302,6 +309,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       category: "servicios",
       title: row.business_name?.trim() || row.slug,
       status: row.listing_status,
+      statusDisplay: resolveOwnerDashboardStatusDisplay("servicios", row.listing_status),
       publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
       editHref:
         serviciosListingEditHref({
@@ -373,14 +381,6 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
   }
 }
 
-function empleosPreviewHrefForLane(lane: string, lang: Lang): string | null {
-  const raw = String(lane ?? "").trim().toLowerCase();
-  if (raw !== "quick" && raw !== "premium" && raw !== "feria") return null;
-  const basePath = EMPLEOS_PREVIEW_ROUTES[raw];
-  const withFrom = `${basePath}?from=publicar`;
-  return appendLangToPath(withFrom, lang);
-}
-
 function viajesStagedPreviewPath(lane: string): string {
   const raw = String(lane ?? "").trim().toLowerCase();
   if (raw === "private") return "/clasificados/viajes/preview/privado";
@@ -406,13 +406,18 @@ export function restauranteDashboardListingPreviewHref(input: {
 export function buildRestaurantInventoryItems(
   rows: DashboardRestaurantRow[],
   lang: "es" | "en",
+  /** Gate E.2.3 — canonical-UUID-keyed lifecycle status map; missing entries fail closed to `not_purchased`. */
+  addonStatusByListingId?: Map<string, AddonLifecycleStatus>,
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
-  return rows.map((row) => ({
+  return rows.map((row) => {
+  const addonStatus: AddonLifecycleStatus = addonStatusByListingId?.get(row.id) ?? "not_purchased";
+  return {
     id: row.id,
     category: "restaurantes",
     title: row.business_name,
     status: row.status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("restaurantes", row.status),
     publicHref: `/clasificados/restaurantes/${encodeURIComponent(row.slug)}?${q}`,
     editHref: restauranteListingEditHref({
       lang,
@@ -437,16 +442,18 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
-    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligible({
+    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligibleFromLifecycle({
       status: row.status,
-      listingJson: row.listing_json,
+      addonStatus,
     }),
-    restaurantCouponEditEligible: restaurantCouponEditEligible({
+    restaurantCouponEditEligible: restaurantCouponEditEligibleFromLifecycle({
       status: row.status,
-      listingJson: row.listing_json,
+      addonStatus,
     }),
+    restaurantCouponAddonStatus: addonStatus,
     source: "restaurantes_public_listings",
-  }));
+  };
+  });
 }
 
 export function buildEmpleosInventoryItems(
@@ -460,10 +467,20 @@ export function buildEmpleosInventoryItems(
     category: "empleos",
     title: row.title,
     status: row.lifecycle_status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("empleos", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     /** Manage applications + lifecycle — route param is listing id, not slug. */
     editHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
-    previewHref: empleosPreviewHrefForLane(row.lane, L),
+    /* Globalization P3 (Gate 5) — CORRECTED. Was `empleosPreviewHrefForLane(row.lane, L)`, which
+       opens /clasificados/empleos/{lane}-preview?from=publicar with no listingId at all: that
+       page only ever renders whatever generic sessionStorage draft happens to be in this tab
+       (stale, empty, or a different in-progress job) and, when a draft IS present, shows the
+       paid checkout widget again for a listing that is already published and already paid.
+       No DB-hydration/listing-bound mode exists for this preview page today. Same safe pattern
+       already used for Restaurantes/Bienes Raíces Privado: an existing, identified listing's
+       "Vista previa" opens its own real public page (always the true published truth, and
+       structurally has no checkout widget) instead of the draft-based application preview. */
+    previewHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     resultsHref: `/clasificados/empleos/resultados?${q}`,
     analyticsHref: `/dashboard/empleos?${q}`,
     publishedAt: null,
@@ -490,6 +507,7 @@ export function buildViajesInventoryItems(
     category: "viajes",
     title: row.title,
     status: row.lifecycle_status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("viajes", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/viajes/oferta/${encodeURIComponent(row.slug)}`, L),
     editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
     previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane), L),

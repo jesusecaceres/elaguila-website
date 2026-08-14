@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
@@ -77,8 +76,10 @@ import { parseRentasListingEditContext, rentasListingEditPreviewParams, type Ren
 import {
   clearRentasListingEditWorkspace,
   loadRentasListingEditWorkspace,
+  readRentasListingEditWorkspaceMeta,
   saveRentasListingEditWorkspace,
 } from "../../shared/rentasListingEditWorkspace";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -168,6 +169,8 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
+  /** Package A closure — Rule 3 conflict surfaced to the owner (never silently applied). */
+  const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -187,18 +190,54 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         merge: mergePartialRentasPrivadoState,
       });
       if (cached) {
+        // Package A closure — draftWorkspaceContract Rule 3 wired: the cached workspace shows
+        // immediately (fast return-to-edit), but the DB row is still consulted in the
+        // background. If the row moved underneath the workspace (edited elsewhere,
+        // admin-touched), canonical DB truth wins, the stale workspace is replaced, and the
+        // conflict is surfaced — never silently applied. A workspace with no captured source
+        // version (legacy) keeps today's local-wins behavior by contract.
         setState(cached);
         cleanEditSnapshotRef.current = JSON.stringify(cached);
         setHydrationStatus("ready");
         setEditContext({ ...ctx, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         setHydrated(true);
+        const cachedMeta = readRentasListingEditWorkspaceMeta({ listingId: ctx.listingId, lane: "privado" });
+        void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "privado" }).then((result) => {
+          if (!(result.ok && result.lane === "privado")) return;
+          const precedence = resolveDraftPrecedence({
+            hasLocalWorkspace: true,
+            localSourceUpdatedAt: cachedMeta?.sourceUpdatedAt ?? null,
+            dbUpdatedAt: result.sourceUpdatedAt,
+          });
+          if (precedence !== "db-newer-conflict") return;
+          setState(result.draft);
+          cleanEditSnapshotRef.current = JSON.stringify(result.draft);
+          saveRentasListingEditWorkspace({
+            listingId: ctx.listingId,
+            lane: "privado",
+            draft: result.draft,
+            sourceUpdatedAt: result.sourceUpdatedAt,
+          });
+          setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
+          setStaleDraftNotice(
+            lang === "es"
+              ? "Este anuncio cambió desde tu último borrador local. Se muestra la versión publicada más reciente; el borrador antiguo se descartó."
+              : "This listing changed since your last local draft. The latest published version is shown; the outdated draft was discarded.",
+          );
+        });
         return;
       }
       void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "privado" }).then((result) => {
         if (result.ok && result.lane === "privado") {
           setState(result.draft);
           cleanEditSnapshotRef.current = JSON.stringify(result.draft);
-          saveRentasListingEditWorkspace({ listingId: ctx.listingId, lane: "privado", draft: result.draft });
+          // Anchor the workspace to the row version it was hydrated from (Rule 3).
+          saveRentasListingEditWorkspace({
+            listingId: ctx.listingId,
+            lane: "privado",
+            draft: result.draft,
+            sourceUpdatedAt: result.sourceUpdatedAt,
+          });
           setHydrationStatus("ready");
           setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         } else if (!result.ok) {
@@ -521,12 +560,6 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
           </Link>
         </div>
 
-        <LeonixLaunchCouponCard
-          lang={lang}
-          variant="mini"
-          href={`/newsletter?lang=${lang}&source=rentas_privado&sourceCta=launch_25`}
-        />
-
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.publisher.whoPosting}</h2>
           <p className={aiSubClass}>{rm.publisher.whoHint}</p>
@@ -589,6 +622,11 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.media.sectionTitle}</h2>
           <p className={aiSubClass}>{rm.media.intro}</p>
+          {staleDraftNotice ? (
+            <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950" role="status">
+              {staleDraftNotice}
+            </p>
+          ) : null}
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
               {mediaNotice}

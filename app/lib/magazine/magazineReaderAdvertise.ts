@@ -17,7 +17,7 @@ function appendRouteLang(path: string, routeLang: SupportedLang): string {
 }
 
 function buildClasificadosHref(routeLang: SupportedLang): string {
-  const redirect = encodeURIComponent(`/clasificados/publicar?lang=${routeLang}`);
+  const redirect = encodeURIComponent(`/publicar?lang=${routeLang}`);
   return `/login?mode=post&lang=${routeLang}&redirect=${redirect}`;
 }
 

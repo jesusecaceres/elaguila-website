@@ -124,6 +124,6 @@ export function buildNegociosAdvertiseHref(lane: BusinessLaneKey, lang: Supporte
 }
 
 export function buildBusinessAdvertiseEntryHref(lang: SupportedLang): string {
-  const redirect = encodeURIComponent(`/clasificados/publicar?lang=${lang}`);
+  const redirect = encodeURIComponent(`/publicar?lang=${lang}`);
   return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
 }

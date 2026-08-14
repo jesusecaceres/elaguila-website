@@ -29,6 +29,7 @@ import {
   AUTOS_PUBLISH_FINAL_STEP_INDEX,
 } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import type { AutosPrivadoDraftV1 } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftStorage";
+import { autosListingEditNamespace } from "@/app/lib/clasificados/autos/autosListingEditNamespace";
 
 /** Privado: canonical public title always follows structured year / make / model / trim. */
 function applyPrivadoCanonicalTitle(listing: AutoDealerListing): AutoDealerListing {
@@ -45,7 +46,7 @@ function resumeQueryFlag(): boolean {
   return new URLSearchParams(window.location.search).get("resume") === "1";
 }
 
-export function useAutoPrivadoDraft() {
+export function useAutoPrivadoDraft(editListingId?: string) {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [restoredFromSession, setRestoredFromSession] = useState(false);
@@ -105,8 +106,9 @@ export function useAutoPrivadoDraft() {
     const supabase = createSupabaseBrowserClient();
 
     const bootstrap = async () => {
-      const ns = await resolveAutosPrivadoDraftNamespace();
+      const rawNs = await resolveAutosPrivadoDraftNamespace();
       if (cancelled) return;
+      const ns = autosListingEditNamespace(rawNs, editListingId);
       namespaceRef.current = ns;
 
       markAutosEditorSessionActive(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
@@ -141,9 +143,12 @@ export function useAutoPrivadoDraft() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
-      const nextNs = session?.user?.id
+      const rawNextNs = session?.user?.id
         ? autosPrivadoDraftNamespaceFromUserId(session.user.id)
         : autosPrivadoDraftNamespaceFromUserId(null);
+      // Fold listing-edit scoping in here too — a background auth event mid-edit must not
+      // revert to the raw namespace and wipe the in-progress edit draft.
+      const nextNs = autosListingEditNamespace(rawNextNs, editListingId);
       if (namespaceRef.current === nextNs) return;
       namespaceRef.current = nextNs;
       clearAutosDraftNamespaceHint("privado");
@@ -155,7 +160,7 @@ export function useAutoPrivadoDraft() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [pathname, hydrateFromNamespace, emptyPrivado, applyEditorProgress]);
+  }, [pathname, editListingId, hydrateFromNamespace, emptyPrivado, applyEditorProgress]);
 
   const setListingPatch = useCallback((patch: Partial<AutoDealerListing>) => {
     setListing((prev) => {

@@ -36,6 +36,14 @@ import {
 } from "@/app/lib/clasificados/autos/autosDealerInventoryDisplay";
 import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/autosPaidListingAnalyticsHref";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
+import { autosDealerListingPreviewHref } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
+import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
+import {
+  fetchDashboardListingPackageEntitlementBadges,
+  dashboardSubscriptionStateForKey,
+  type DashboardSubscriptionStateEntry,
+} from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
+import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 
 type Lang = "es" | "en";
 
@@ -61,16 +69,96 @@ type InventoryGroup = {
   activeCount: number;
 };
 
+/**
+ * Gate F.2.1 — deterministic, dashboard-only grouping key. `dealer_inventory_group_id` is
+ * grouping metadata, not canonical identity (F.2A certification): the durable authority is
+ * always a row's own `id` (parent) or its `dealer_inventory_parent_listing_id` (child). Never
+ * falls back to an owner-wide or global literal — two distinct, still-ungrouped parent rows for
+ * the same owner must never collapse into one dashboard bucket (each gets its own `parent:` key
+ * derived from its own canonical uuid), and a malformed child row with neither a group id nor a
+ * parent reference stays isolated under its own row id rather than guessing an owner-wide or
+ * arbitrary attachment. `"parent:"`/`"orphan:"`-prefixed keys are synthetic (dashboard-local only)
+ * and are never a real stored `dealer_inventory_group_id` value — see the `startsWith` check where
+ * `group.groupKey` is turned into a real group id for the public group page / Add Vehicle context.
+ */
+function resolveAutosDealerInventoryGroupKey(row: AutosClassifiedsDashboardRow): string {
+  const groupId = row.dealer_inventory_group_id?.trim();
+  if (groupId) return groupId;
+  if (row.inventory_role === "inventory_vehicle") {
+    const parentId = row.dealer_inventory_parent_listing_id?.trim();
+    if (parentId) return `parent:${parentId}`;
+    return `orphan:${row.id}`;
+  }
+  return `parent:${row.id}`;
+}
+
+/**
+ * Gate D.3 — canonical dashboard actions for one Autos Negocio dealer row (parent or vehicle
+ * child), sourced from `resolveDashboardActions`. `sourceId` is always this row's OWN uuid
+ * (never substituted with the parent's). Verified against the live builders before wiring:
+ * `viewPublic` (`autosLiveVehiclePath`) and `analytics` (`autosPaidListingAnalyticsHref`) are
+ * byte-identical to the registry's output; `edit`/`preview`/`manageInventory` add the row's real
+ * `leonixAdId` as an optional query param the live call sites in this component simply don't
+ * pass today — an addition of correct data, not a missing-required-field gap (unlike the
+ * Bienes/Servicios parity gaps found in Gate D.1/D.2). Child Edit/Manage-inventory are never
+ * consumed by any caller below — the resolver's own `editSupported`/`parent`-only gating already
+ * excludes them for `autos_negocios` children, matching the locked product rule that no
+ * per-child dashboard Edit entry point exists yet.
+ */
+function canonicalAutosNegocioActions(
+  row: AutosClassifiedsDashboardRow,
+  isChild: boolean,
+  ownerUserId: string | null,
+  lang: Lang,
+): Map<string, DashboardAction> {
+  if (!ownerUserId) return new Map();
+
+  const identityResult = buildListingIdentity({
+    sourceTable: "autos_classifieds_listings",
+    sourceId: row.id,
+    category: "autos",
+    pipeline: "autos_negocios",
+    leonixAdId: row.leonix_ad_id ?? "",
+    ownerUserId,
+    publicUrl: `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`,
+    parentSourceId: row.dealer_inventory_parent_listing_id ?? null,
+    inventoryGroupId: row.dealer_inventory_group_id ?? null,
+    inventoryRole: isChild ? "inventory_vehicle" : "main",
+  });
+  if (!identityResult.ok) return new Map();
+
+  const actions = resolveDashboardActions({
+    identity: identityResult.identity,
+    lifecycle: { status: row.status },
+    entitlement: {},
+    role: isChild ? "inventory_vehicle" : "main",
+    ownerVerified: true,
+    lang,
+  });
+
+  return new Map(actions.map((action) => [action.key, action]));
+}
+
 export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const [rows, setRows] = useState<AutosClassifiedsDashboardRow[]>([]);
   const [dealerInventory, setDealerInventory] = useState<AutosDealerInventoryCount | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** Gate D.3 — page-level authenticated owner id, sourced from the same session fetch already
+   * used for the API bearer token (no duplicate auth call, no new Supabase client). */
+  const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
+  /** Package E Build E2, Gate 1/3 — parent-listing subscription state, keyed exactly like
+   * `mis-anuncios/page.tsx`'s own fetch (same route, same shape). This component manages its own
+   * data independently of that page, so it fetches once here, scoped only to Negocios PARENT rows
+   * (never per-vehicle-child — children never carry an independent subscription), not a new
+   * resolver or a per-row call. */
+  const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
+    setOwnerUserId(data.session?.user?.id ?? null);
     if (!token) {
       setRows([]);
       setDealerInventory(null);
@@ -88,9 +176,25 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     if (r.ok && j.ok && Array.isArray(j.listings)) {
       setRows(j.listings);
       setDealerInventory(j.dealerInventory ?? null);
+      const parentRows = j.listings.filter((row) => row.lane === "negocios" && row.inventory_role === "main");
+      if (parentRows.length > 0) {
+        const items = parentRows.map((row) => ({
+          key: row.id,
+          category: "autos",
+          listingSource: "autos_classifieds_listings",
+          listingId: row.id,
+          slug: null,
+          leonixAdId: row.leonix_ad_id ?? null,
+        }));
+        const { subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, token);
+        setSubscriptionStates(subs);
+      } else {
+        setSubscriptionStates({});
+      }
     } else {
       setRows([]);
       setDealerInventory(null);
+      setSubscriptionStates({});
     }
     setLoading(false);
   }, []);
@@ -102,7 +206,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const groups = useMemo((): InventoryGroup[] => {
     const byKey = new Map<string, InventoryGroup>();
     for (const row of rows.filter((x) => x.lane === "negocios")) {
-      const groupKey = row.dealer_inventory_group_id?.trim() || "owner:default";
+      const groupKey = resolveAutosDealerInventoryGroupKey(row);
       const existing = byKey.get(groupKey);
       const dealerName = row.sellerName.trim() || (lang === "es" ? "Dealer" : "Dealer");
       if (!existing) {
@@ -139,7 +243,10 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           manageListing: "Gestión disponible desde vista pública / admin",
           viewLive: "Ver público",
           viewAnalytics: "Ver analíticas",
+          viewPreview: "Vista previa",
           unpublish: "Retirar",
+          restore: "Reactivar",
+          editVehicle: "Editar",
           publish: "Publicar",
           publishAutos: "Publicar en Autos",
           allListings: "Tus anuncios Autos",
@@ -160,7 +267,10 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           manageListing: "Manage from public view / admin",
           viewLive: "View live",
           viewAnalytics: "View analytics",
+          viewPreview: "Preview",
           unpublish: "Unpublish",
+          restore: "Reactivate",
+          editVehicle: "Edit",
           publish: "Publish",
           publishAutos: "Publish in Autos",
           allListings: "Your Autos listings",
@@ -176,6 +286,22 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     if (!token) return;
     setBusyId(id);
     await fetch(`/api/clasificados/autos/listings/${id}/unpublish`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setBusyId(null);
+    void load();
+  }
+
+  /** Package A Gate 5 — owner resume: strictly removed→active via the owner-verified restore
+   * API (the missing second half of the pause cycle; admin-suspended rows stay untouched). */
+  async function restore(id: string) {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    setBusyId(id);
+    await fetch(`/api/clasificados/autos/listings/${id}/restore`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -298,6 +424,17 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           {t.unpublish}
                         </button>
                       </>
+                    ) : row.status === "removed" ? (
+                      /* Package A Gate 5 — the missing resume half of the owner pause cycle:
+                         strictly removed→active via the owner-verified restore API. */
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void restore(row.id)}
+                        className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 disabled:opacity-50"
+                      >
+                        {t.restore}
+                      </button>
                     ) : (
                       <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
                         {t.manageListing}
@@ -318,7 +455,12 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             group.rows.find((r) => r.inventory_role === "main")?.id ??
             group.rows[0]?.id;
           if (!parentId) return null;
-          const groupId = group.groupKey.startsWith("owner:") ? null : group.groupKey;
+          // Synthetic dashboard-local keys (never a real stored dealer_inventory_group_id) must
+          // never leak into the public group page or the Add Vehicle context's explicit group id.
+          const groupId =
+            group.groupKey.startsWith("parent:") || group.groupKey.startsWith("orphan:")
+              ? null
+              : group.groupKey;
           const addCtx = {
             parentListingId: parentId,
             returnToListingId: parentId,
@@ -328,6 +470,10 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           const manageHref = groupId
             ? dealerInventoryGroupPublicPath(groupId, lang)
             : `/dashboard/mis-anuncios?lang=${lang}&cat=autos`;
+          const parentRow = group.rows.find((r) => r.id === parentId);
+          const parentCanonical = parentRow
+            ? canonicalAutosNegocioActions(parentRow, false, ownerUserId, lang)
+            : new Map<string, DashboardAction>();
           return (
             <section key={group.groupKey} className="rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -336,6 +482,28 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                   <p className="mt-0.5 text-xs text-[#5C5346]">
                     {group.activeCount} / {limit} {t.activeCount}
                   </p>
+                  {(() => {
+                    const subState = dashboardSubscriptionStateForKey(subscriptionStates, [parentId]);
+                    if (!subState) return null;
+                    const note = commercialStateBadgesToLifecycleNote(
+                      resolveCommercialStateBadges({
+                        subscriptionStatus: subState.status,
+                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                        graceEndsAt: subState.graceEndsAt,
+                        suspensionReason: subState.suspensionReason,
+                        recoveredAt: subState.recoveredAt,
+                      }),
+                      lang,
+                    );
+                    if (!note) return null;
+                    const toneClass =
+                      note.tone === "urgent"
+                        ? "text-red-700"
+                        : note.tone === "warning"
+                          ? "text-amber-800"
+                          : "text-[#5C5346]";
+                    return <p className={`mt-1 text-xs font-semibold ${toneClass}`}>{note.text}</p>;
+                  })()}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!atLimit ? (
@@ -349,19 +517,40 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                   ) : null}
                   {parentId ? (
                     <Link
-                      href={autosDealerListingEditHref({ lang, listingId: parentId })}
+                      href={
+                        parentCanonical.get("edit")?.href ??
+                        autosDealerListingEditHref({ lang, listingId: parentId })
+                      }
                       className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-xs font-bold text-[#2C2416]"
                     >
                       {lang === "es" ? "Editar anuncio" : "Edit listing"}
                     </Link>
                   ) : null}
-                  {parentId && group.rows.find((r) => r.id === parentId)?.status === "active" ? (
+                  {parentId ? (
                     <Link
-                      href={autosPaidListingAnalyticsHref({
-                        listingId: parentId,
-                        lang,
-                        leonixAdId: group.rows.find((r) => r.id === parentId)?.leonix_ad_id ?? null,
-                      })}
+                      href={
+                        parentCanonical.get("preview")?.href ??
+                        autosDealerListingPreviewHref({
+                          lang,
+                          listingId: parentId,
+                          leonixAdId: parentRow?.leonix_ad_id ?? null,
+                        })
+                      }
+                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-white/70 px-3 text-xs font-bold text-[#2C2416]"
+                    >
+                      {t.viewPreview}
+                    </Link>
+                  ) : null}
+                  {parentId && parentRow?.status === "active" ? (
+                    <Link
+                      href={
+                        parentCanonical.get("analytics")?.href ??
+                        autosPaidListingAnalyticsHref({
+                          listingId: parentId,
+                          lang,
+                          leonixAdId: parentRow?.leonix_ad_id ?? null,
+                        })
+                      }
                       className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-white/70 px-3 text-xs font-bold text-[#2C2416]"
                     >
                       {t.viewAnalytics}
@@ -369,7 +558,10 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                   ) : null}
                   {parentId ? (
                     <Link
-                      href={autosDealerInventoryEditHref({ lang, listingId: parentId })}
+                      href={
+                        parentCanonical.get("manageInventory")?.href ??
+                        autosDealerInventoryEditHref({ lang, listingId: parentId })
+                      }
                       className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#C9B46A]/45 bg-[#FBF7EF] px-3 text-xs font-bold text-[#5C4E2E]"
                     >
                       {autosDealerInventoryPackEditLabel(lang)}
@@ -386,13 +578,15 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               <ul className="mt-4 flex flex-col gap-3">
                 {group.rows.map((row) => {
                   const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
+                  const isChildRow = row.inventory_role === "inventory_vehicle";
                   const roleLabel =
                     row.inventory_role === "main"
                       ? t.main
-                      : row.inventory_role === "inventory_vehicle"
+                      : isChildRow
                         ? t.inventory
                         : null;
                   const busy = busyId === row.id;
+                  const rowCanonical = canonicalAutosNegocioActions(row, isChildRow, ownerUserId, lang);
                   return (
                     <li key={row.id} className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -405,17 +599,49 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          {/* Package B (Gate B5) — DIRECT child edit action (ledger defect
+                              D3): deep-links into the parent's inventory-edit context with
+                              editVehicleId, opening THIS vehicle's own drawer editor.
+                              Available in every status (drawer edits propagate to the child's
+                              own row via the Gate B5 server sync). */}
+                          {isChildRow && parentId ? (
+                            <Link
+                              href={`${autosDealerInventoryEditHref({ lang, listingId: parentId })}&editVehicleId=${encodeURIComponent(row.id)}`}
+                              className="rounded-lg border border-[#C9B46A]/60 bg-[#FBF7EF] px-2.5 py-1.5 text-[11px] font-bold text-[#5C4E2E]"
+                            >
+                              {t.editVehicle}
+                            </Link>
+                          ) : null}
                           {row.status === "active" ? (
                             <>
-                              <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
+                              <Link
+                                href={rowCanonical.get("viewPublic")?.href ?? liveHref}
+                                className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold"
+                              >
                                 {t.viewLive}
                               </Link>
                               <Link
-                                href={autosPaidListingAnalyticsHref({
-                                  listingId: row.id,
-                                  lang,
-                                  leonixAdId: row.leonix_ad_id,
-                                })}
+                                href={
+                                  rowCanonical.get("preview")?.href ??
+                                  autosDealerListingPreviewHref({
+                                    lang,
+                                    listingId: row.id,
+                                    leonixAdId: row.leonix_ad_id,
+                                  })
+                                }
+                                className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
+                              >
+                                {t.viewPreview}
+                              </Link>
+                              <Link
+                                href={
+                                  rowCanonical.get("analytics")?.href ??
+                                  autosPaidListingAnalyticsHref({
+                                    listingId: row.id,
+                                    lang,
+                                    leonixAdId: row.leonix_ad_id,
+                                  })
+                                }
                                 className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
                               >
                                 {t.viewAnalytics}
@@ -429,6 +655,16 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                                 {t.unpublish}
                               </button>
                             </>
+                          ) : row.status === "removed" ? (
+                            /* Package A Gate 5 — owner resume (removed→active). */
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void restore(row.id)}
+                              className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 disabled:opacity-50"
+                            >
+                              {t.restore}
+                            </button>
                           ) : (
                             <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
                               {t.manageListing}

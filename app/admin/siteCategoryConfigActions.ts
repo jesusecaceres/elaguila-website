@@ -57,5 +57,7 @@ export async function saveSiteCategoryConfigRowAction(formData: FormData) {
   revalidatePath("/admin/workspace/clasificados");
   revalidatePath("/admin");
   revalidatePath("/clasificados/publicar");
+  // Gate I.5.2 — /publicar reads the same getPublishChooserCategoryKeys() data source.
+  revalidatePath("/publicar");
   redirect("/admin/categories?cat_saved=1");
 }
