@@ -693,6 +693,130 @@ checks.push({
   detail: "Repository must clear all decision attribution when transitioning to expired or cancelled",
 });
 
+// === Promotion workflow checks ===
+
+const migration3 = path.join(root, "supabase/migrations/20260813120000_business_meeting_note_promotions.sql");
+
+// 65. Promotion migration exists
+checks.push({
+  name: "Meeting note promotion migration exists",
+  passed: fs.existsSync(migration3),
+  detail: "Migration 20260813120000_business_meeting_note_promotions.sql must exist",
+});
+
+// 66. Promotion table created
+checks.push({
+  name: "business_meeting_note_promotions table created",
+  passed: checkFileContains(migration3, /CREATE TABLE IF NOT EXISTS public\.business_meeting_note_promotions/),
+  detail: "Migration must create business_meeting_note_promotions",
+});
+
+// 67. UNIQUE(meeting_note_id) prevents double-promotion
+checks.push({
+  name: "UNIQUE(meeting_note_id) prevents double-promotion",
+  passed: checkFileContains(migration3, /business_meeting_note_promotions_note_uk\s+UNIQUE\s*\(meeting_note_id\)/),
+  detail: "Promotion table must have UNIQUE(meeting_note_id) constraint",
+});
+
+// 68. RLS enabled on promotion table
+checks.push({
+  name: "RLS enabled on business_meeting_note_promotions",
+  passed: checkFileContains(migration3, /ALTER TABLE public\.business_meeting_note_promotions ENABLE ROW LEVEL SECURITY/),
+  detail: "Promotion table must have RLS enabled",
+});
+
+// 69. anon revoked on promotion table
+checks.push({
+  name: "anon revoked on business_meeting_note_promotions",
+  passed: checkFileContains(migration3, /REVOKE ALL PRIVILEGES ON TABLE public\.business_meeting_note_promotions FROM anon/),
+  detail: "anon must be explicitly revoked on promotion table",
+});
+
+// 70. authenticated revoked on promotion table
+checks.push({
+  name: "authenticated revoked on business_meeting_note_promotions",
+  passed: checkFileContains(migration3, /REVOKE ALL PRIVILEGES ON TABLE public\.business_meeting_note_promotions FROM authenticated/),
+  detail: "authenticated must be explicitly revoked on promotion table",
+});
+
+// 71. service_role SELECT+INSERT only (append-only) on promotion table
+checks.push({
+  name: "Promotion table append-only (SELECT, INSERT only for service_role)",
+  passed: checkFileContains(migration3, /GRANT SELECT, INSERT ON TABLE public\.business_meeting_note_promotions TO service_role/) &&
+         checkFileNotContains(migration3, /GRANT SELECT, INSERT, UPDATE/) &&
+         checkFileNotContains(migration3, /GRANT SELECT, INSERT, UPDATE, DELETE[\s\S]*?business_meeting_note_promotions/),
+  detail: "Promotion table must have SELECT + INSERT only (no UPDATE, no DELETE)",
+});
+
+// 72. Same-business composite FK for meeting
+checks.push({
+  name: "Promotion table has composite FK to business_meetings(id, business_id)",
+  passed: checkFileContains(migration3, /business_meeting_note_promotions_meeting_business_fk[\s\S]*?FOREIGN KEY\s*\(meeting_id,\s*business_id\)\s*REFERENCES public\.business_meetings\(id,\s*business_id\)/),
+  detail: "Promotion table must have composite FK (meeting_id, business_id) → business_meetings(id, business_id)",
+});
+
+// 73. Same-business composite FK for note
+checks.push({
+  name: "Promotion table has composite FK to business_meeting_notes(id, business_id)",
+  passed: checkFileContains(migration3, /business_meeting_note_promotions_note_business_fk[\s\S]*?FOREIGN KEY\s*\(meeting_note_id,\s*business_id\)\s*REFERENCES public\.business_meeting_notes\(id,\s*business_id\)/),
+  detail: "Promotion table must have composite FK (meeting_note_id, business_id) → business_meeting_notes(id, business_id)",
+});
+
+// 74. business_meeting_notes gets UNIQUE(id, business_id) via DO block
+checks.push({
+  name: "business_meeting_notes gets UNIQUE(id, business_id) via safe DO block",
+  passed: checkFileContains(migration3, /business_meeting_notes_id_business_id_uk/) &&
+         checkFileContains(migration3, /DO\s*\$\$/),
+  detail: "Migration must add UNIQUE(id, business_id) to business_meeting_notes using a DO block",
+});
+
+// 75. meetingStudio/repository.ts still does NOT query business_facts directly
+checks.push({
+  name: "Meeting Studio repository still does not directly query business_facts",
+  passed: checkFileNotContains(
+    path.join(root, "app/lib/business/meetingStudio/repository.ts"),
+    /from\(['"]business_facts['"]\)|\.from\(['"]business_facts['"]\)|insert.*business_facts|update.*business_facts/,
+  ),
+  detail: "promoteMeetingNote must delegate to livingBook/repository — never query business_facts directly",
+});
+
+// 76. promoteMeetingNote function exists in meetingStudio/repository
+checks.push({
+  name: "promoteMeetingNote function exists in meetingStudio/repository",
+  passed: checkFileContains(
+    path.join(root, "app/lib/business/meetingStudio/repository.ts"),
+    /export async function promoteMeetingNote/,
+  ),
+  detail: "Meeting Studio repository must export promoteMeetingNote",
+});
+
+// 77. eligiblePromotionDestinations function exists in meetingStudio/logic
+checks.push({
+  name: "eligiblePromotionDestinations function exists in meetingStudio/logic",
+  passed: checkFileContains(
+    path.join(root, "app/lib/business/meetingStudio/logic.ts"),
+    /export function eligiblePromotionDestinations/,
+  ),
+  detail: "Meeting Studio logic must export eligiblePromotionDestinations",
+});
+
+// 78. promote_note API action uses review_meeting_notes capability
+checks.push({
+  name: "promote_note action requires review_meeting_notes capability",
+  passed: checkFileContains(
+    path.join(root, "app/api/admin/businesses/[businessId]/meetings/[meetingId]/route.ts"),
+    /promote_note[\s\S]*?review_meeting_notes/,
+  ),
+  detail: "promote_note API action must gate on review_meeting_notes capability",
+});
+
+// 79. No CREATE POLICY on promotion table
+checks.push({
+  name: "Zero RLS policies on promotion table",
+  passed: !checkFileContains(migration3, /CREATE POLICY/),
+  detail: "No RLS policies may be created on promotion table — service_role bypasses RLS",
+});
+
 // Report
 const passed = checks.filter((c) => c.passed).length;
 const failed = checks.filter((c) => !c.passed).length;

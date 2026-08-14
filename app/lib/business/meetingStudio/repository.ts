@@ -7,13 +7,21 @@
 import "server-only";
 
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { canTransitionMeetingStatus, noteSourceClassForType, noteRequiresConfirmation } from "./logic";
+import {
+  canTransitionMeetingStatus, noteSourceClassForType, noteRequiresConfirmation,
+  eligiblePromotionDestinations, mapNoteSourceClassToLivingBook, confidenceForNoteSourceClass,
+} from "./logic";
 import type {
   BusinessMeeting, MeetingActor, MeetingAttendee, MeetingConsentRecord, MeetingConsentMethod,
   MeetingConsentState, MeetingConsentType, MeetingLanguage, MeetingNote, MeetingNoteSensitivity,
-  MeetingNoteType, MeetingNoteVisibility, MeetingStatus, MeetingTranscriptImport, MeetingType,
+  MeetingNoteType, MeetingNoteVisibility, MeetingNotePromotionDestination, MeetingNotePromotion,
+  MeetingStatus, MeetingTranscriptImport, MeetingType,
   TranscriptImportMethod, TranscriptImportStatus,
 } from "./types";
+import { upsertFact, createUnknown, createContradiction } from "@/app/lib/business/livingBook/repository";
+import type {
+  LivingBookActor, FactCategory, ContradictionType, ContradictionSeverity,
+} from "@/app/lib/business/livingBook/types";
 
 function actorRosterId(actor: MeetingActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;
@@ -459,4 +467,228 @@ export async function listTranscriptsForMeeting(meetingId: string, businessId: s
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map(mapTranscriptRow);
+}
+
+// ---------------------------------------------------------------------------
+// Meeting note → Living Business Book promotion
+// ---------------------------------------------------------------------------
+
+const PROMOTION_COLUMNS =
+  "id, business_id, meeting_id, meeting_note_id, destination_type, destination_record_id, promoted_by_roster_id, promoted_by_auth_user_id, promoted_by_email, promoted_by_role, created_at";
+
+function mapPromotionRow(row: Record<string, unknown>): MeetingNotePromotion {
+  return {
+    id: String(row.id),
+    businessId: String(row.business_id),
+    meetingId: String(row.meeting_id),
+    meetingNoteId: String(row.meeting_note_id),
+    destinationType: row.destination_type as MeetingNotePromotionDestination,
+    destinationRecordId: String(row.destination_record_id),
+    promotedByRosterId: (row.promoted_by_roster_id as string | null) ?? null,
+    promotedByAuthUserId: String(row.promoted_by_auth_user_id),
+    promotedByEmail: String(row.promoted_by_email),
+    promotedByRole: String(row.promoted_by_role),
+    createdAt: String(row.created_at),
+  };
+}
+
+export async function getPromotionsForMeeting(meetingId: string, businessId: string): Promise<MeetingNotePromotion[]> {
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("business_meeting_note_promotions")
+    .select(PROMOTION_COLUMNS)
+    .eq("meeting_id", meetingId)
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: true });
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map(mapPromotionRow);
+}
+
+export type PromoteToFactFields = {
+  factKey: string;
+  factCategory: FactCategory;
+  displayValue: string;
+};
+
+export type PromoteToUnknownFields = {
+  questionLabel: string;
+};
+
+export type PromoteToContradictionFields = {
+  claimALabel: string;
+  claimBLabel: string;
+  contradictionType: ContradictionType;
+  severity: ContradictionSeverity;
+};
+
+export type PromoteMeetingNoteInput = {
+  noteId: string;
+  meetingId: string;
+  businessId: string;
+  destination: MeetingNotePromotionDestination;
+  fact?: PromoteToFactFields;
+  unknown?: PromoteToUnknownFields;
+  contradiction?: PromoteToContradictionFields;
+};
+
+/**
+ * Explicit staff promotion of a meeting note to the Living Business Book.
+ * Steps:
+ * 1. Load source note — enforces (noteId, meetingId, businessId) triple
+ * 2. Reject if not found or cross-business mismatch
+ * 3. Reject already-promoted note (UNIQUE enforced at DB level too)
+ * 4. Validate destination compatibility with note type
+ * 5. Map MeetingActor → LivingBookActor (staff only)
+ * 6. Call canonical Living Book repository — no SQL here, no direct business_facts reference
+ * 7. Write durable promotion record ONLY after destination write succeeds
+ * 8. Return destination ID
+ *
+ * Source meeting note is NEVER mutated.
+ * meeting notes do NOT directly mutate business_facts — upsertFact/createUnknown/createContradiction are called.
+ */
+export async function promoteMeetingNote(
+  input: PromoteMeetingNoteInput,
+  actor: MeetingActor,
+): Promise<{ ok: true; destinationId: string; destinationType: MeetingNotePromotionDestination } | { ok: false; error: string }> {
+  if (input.destination === "correction") {
+    return { ok: false, error: "correction_promotion_deferred" };
+  }
+
+  if (actor.type !== "staff") {
+    return { ok: false, error: "only_staff_may_promote" };
+  }
+
+  const supabase = getAdminSupabase();
+
+  // 1. Load source note — exact business + meeting + note ID triple
+  const { data: noteRow } = await supabase
+    .from("business_meeting_notes")
+    .select(NOTE_COLUMNS)
+    .eq("id", input.noteId)
+    .eq("meeting_id", input.meetingId)
+    .eq("business_id", input.businessId)
+    .maybeSingle();
+
+  if (!noteRow) return { ok: false, error: "note_not_found" };
+  const note = mapNoteRow(noteRow as Record<string, unknown>);
+
+  // 3. Reject already-promoted
+  const { data: existingPromotion } = await supabase
+    .from("business_meeting_note_promotions")
+    .select("id")
+    .eq("meeting_note_id", input.noteId)
+    .maybeSingle();
+  if (existingPromotion) return { ok: false, error: "already_promoted" };
+
+  // 4. Validate destination compatibility
+  const validDestinations = eligiblePromotionDestinations(note.noteType);
+  if (!validDestinations.includes(input.destination)) {
+    return { ok: false, error: "destination_not_eligible_for_note_type" };
+  }
+
+  // 5. Build canonical LivingBookActor — never accept caller-supplied fake fields
+  const livingBookActor: Extract<LivingBookActor, { type: "staff" }> = {
+    type: "staff",
+    rosterId: actor.rosterId,
+    authUserId: actor.authUserId,
+    email: actor.email,
+    role: actor.role,
+  };
+
+  const visibility = note.visibility === "shared_with_owner" ? "owner_and_staff" as const : "staff_only" as const;
+  const sensitivity = note.sensitivity === "sensitive" ? "sensitive" as const : "standard" as const;
+
+  // 6. Call canonical Living Book repository
+  let destinationId: string;
+
+  if (input.destination === "fact") {
+    if (!input.fact) return { ok: false, error: "missing_fact_input" };
+    const { factKey, factCategory, displayValue } = input.fact;
+    if (!factKey.trim()) return { ok: false, error: "empty_fact_key" };
+    if (!factCategory) return { ok: false, error: "missing_fact_category" };
+
+    const sourceClass = mapNoteSourceClassToLivingBook(note.sourceClass) as import("@/app/lib/business/livingBook/types").SourceClass;
+    const confidence = confidenceForNoteSourceClass(note.sourceClass);
+
+    const result = await upsertFact({
+      businessId: input.businessId,
+      factKey: factKey.trim(),
+      factCategory,
+      value: note.content,
+      displayValue: displayValue.trim() || null,
+      sourceClass,
+      confidence,
+      visibility,
+      sensitivity,
+      effectiveDate: null,
+    }, livingBookActor);
+
+    if (!result.ok) return { ok: false, error: result.error };
+    destinationId = result.id;
+
+  } else if (input.destination === "unknown") {
+    if (!input.unknown) return { ok: false, error: "missing_unknown_input" };
+    const questionLabel = (input.unknown.questionLabel || note.content).trim();
+    if (!questionLabel) return { ok: false, error: "empty_question_label" };
+
+    const result = await createUnknown({
+      businessId: input.businessId,
+      questionLabel,
+      whyItMatters: null,
+      whoCanAnswer: null,
+      priority: "medium",
+      assignedChannel: null,
+      visibility,
+    }, livingBookActor);
+
+    if (!result.ok) return { ok: false, error: result.error };
+    destinationId = result.id;
+
+  } else if (input.destination === "contradiction") {
+    if (!input.contradiction) return { ok: false, error: "missing_contradiction_input" };
+    const { claimALabel, claimBLabel, contradictionType, severity } = input.contradiction;
+    if (!claimALabel.trim()) return { ok: false, error: "empty_claim_a_label" };
+    if (!claimBLabel.trim()) return { ok: false, error: "empty_claim_b_label" };
+
+    const result = await createContradiction({
+      businessId: input.businessId,
+      contradictionType: contradictionType ?? "fact_vs_fact",
+      severity: severity ?? "medium",
+      claimALabel: claimALabel.trim(),
+      claimAFactId: null,
+      claimAEvidenceId: null,
+      claimBLabel: claimBLabel.trim(),
+      claimBFactId: null,
+      claimBEvidenceId: null,
+    }, livingBookActor);
+
+    if (!result.ok) return { ok: false, error: result.error };
+    destinationId = result.id;
+
+  } else {
+    return { ok: false, error: "unsupported_destination" };
+  }
+
+  // 7. Write durable promotion record ONLY after destination write succeeds
+  const { data: promotionRow, error: promotionError } = await supabase
+    .from("business_meeting_note_promotions")
+    .insert({
+      business_id: input.businessId,
+      meeting_id: input.meetingId,
+      meeting_note_id: input.noteId,
+      destination_type: input.destination,
+      destination_record_id: destinationId,
+      promoted_by_roster_id: actor.rosterId,
+      promoted_by_auth_user_id: actor.authUserId,
+      promoted_by_email: actor.email,
+      promoted_by_role: actorRole(actor),
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (promotionError || !promotionRow) {
+    return { ok: false, error: promotionError?.message ?? "promotion_record_failed" };
+  }
+
+  return { ok: true, destinationId, destinationType: input.destination };
 }

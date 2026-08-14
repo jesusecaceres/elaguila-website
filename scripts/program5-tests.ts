@@ -7,6 +7,10 @@ import {
   noteRequiresConfirmation,
   noteSourceClassForType,
   canPromoteNoteToFact,
+  canPromoteNote,
+  eligiblePromotionDestinations,
+  mapNoteSourceClassToLivingBook,
+  confidenceForNoteSourceClass,
   consentTypeRequiresExplicitAck,
   isAudioRecordingLive,
   isTranscriptionLive,
@@ -380,6 +384,119 @@ test("LIFE-14: repository clears declined_at on accepted transition", () =>
 test("LIFE-15: repository clears all decision attribution on expired/cancelled", () =>
   sqlContains(fs.readFileSync(path.join(root, "app/lib/business/proposals/repository.ts"), "utf-8"),
     /input\.newStatus === "expired" \|\| input\.newStatus === "cancelled"[\s\S]*?update\.declined_at = null/));
+
+// === Promotion workflow logic tests ===
+
+// Positive: eligible destinations per note type
+test("PROMO-1: owner_statement eligible for fact promotion", () => {
+  const dests = eligiblePromotionDestinations("owner_statement");
+  return dests.includes("fact") && dests.length === 1;
+});
+test("PROMO-2: staff_observation eligible for fact promotion", () => {
+  const dests = eligiblePromotionDestinations("staff_observation");
+  return dests.includes("fact") && dests.length === 1;
+});
+test("PROMO-3: potential_fact eligible for fact promotion", () => {
+  const dests = eligiblePromotionDestinations("potential_fact");
+  return dests.includes("fact") && dests.length === 1;
+});
+test("PROMO-4: unknown note eligible for unknown promotion only", () => {
+  const dests = eligiblePromotionDestinations("unknown");
+  return dests.includes("unknown") && !dests.includes("fact") && dests.length === 1;
+});
+test("PROMO-5: contradiction note eligible for contradiction promotion only", () => {
+  const dests = eligiblePromotionDestinations("contradiction");
+  return dests.includes("contradiction") && !dests.includes("fact") && dests.length === 1;
+});
+test("PROMO-6: decision note has no eligible promotion destination", () => {
+  return eligiblePromotionDestinations("decision").length === 0;
+});
+test("PROMO-7: action_item note has no eligible promotion destination", () => {
+  return eligiblePromotionDestinations("action_item").length === 0;
+});
+
+// canPromoteNote helper
+test("PROMO-8: canPromoteNote true for owner_statement", () => canPromoteNote("owner_statement"));
+test("PROMO-9: canPromoteNote true for staff_observation", () => canPromoteNote("staff_observation"));
+test("PROMO-10: canPromoteNote true for potential_fact", () => canPromoteNote("potential_fact"));
+test("PROMO-11: canPromoteNote false for decision", () => !canPromoteNote("decision"));
+test("PROMO-12: canPromoteNote false for action_item", () => !canPromoteNote("action_item"));
+
+// canPromoteNoteToFact: backward-compat — only potential_fact returns true
+test("PROMO-13: canPromoteNoteToFact still only true for potential_fact (backward compat)", () =>
+  canPromoteNoteToFact("potential_fact") &&
+  !canPromoteNoteToFact("owner_statement") &&
+  !canPromoteNoteToFact("staff_observation"));
+
+// Source class mapping — truthful, no false confirmation
+test("PROMO-14: owner_stated maps to owner_statement (NOT owner_confirmed)", () =>
+  mapNoteSourceClassToLivingBook("owner_stated") === "owner_statement");
+test("PROMO-15: staff_observed maps to staff_observation", () =>
+  mapNoteSourceClassToLivingBook("staff_observed") === "staff_observation");
+test("PROMO-16: system_derived maps to system_derived", () =>
+  mapNoteSourceClassToLivingBook("system_derived") === "system_derived");
+test("PROMO-17: ai_inference maps to ai_inference", () =>
+  mapNoteSourceClassToLivingBook("ai_inference") === "ai_inference");
+
+// Confidence — conservative defaults
+test("PROMO-18: owner_stated confidence is medium (not high)", () => {
+  const c = confidenceForNoteSourceClass("owner_stated");
+  return c === "medium";
+});
+test("PROMO-19: staff_observed confidence is low", () => {
+  const c = confidenceForNoteSourceClass("staff_observed");
+  return c === "low";
+});
+test("PROMO-20: system_derived confidence is low", () => {
+  const c = confidenceForNoteSourceClass("system_derived");
+  return c === "low";
+});
+
+// Negative: note types ineligible for wrong destinations
+test("NEG-PROMO-1: owner_statement is not eligible for unknown promotion", () =>
+  !eligiblePromotionDestinations("owner_statement").includes("unknown"));
+test("NEG-PROMO-2: unknown note is not eligible for fact promotion", () =>
+  !eligiblePromotionDestinations("unknown").includes("fact"));
+test("NEG-PROMO-3: contradiction note is not eligible for fact promotion", () =>
+  !eligiblePromotionDestinations("contradiction").includes("fact"));
+test("NEG-PROMO-4: contradiction requires two-sided input (not automatically parsed)", () => {
+  // Structural test: the eligible destination for contradiction is "contradiction",
+  // which requires explicit claimA and claimB — no single-label automatic inference.
+  const dests = eligiblePromotionDestinations("contradiction");
+  return dests.length === 1 && dests[0] === "contradiction";
+});
+
+// Schema structure tests for promotion migration
+test("SCHEMA-PROMO-1: promotion migration file exists", () => {
+  const migPath = path.join(root, "supabase/migrations/20260813120000_business_meeting_note_promotions.sql");
+  return fs.existsSync(migPath);
+});
+
+const migration3 = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260813120000_business_meeting_note_promotions.sql"),
+  "utf-8",
+);
+
+test("SCHEMA-PROMO-2: promotion table has UNIQUE(meeting_note_id)", () =>
+  sqlContains(migration3, /business_meeting_note_promotions_note_uk\s+UNIQUE\s*\(meeting_note_id\)/));
+test("SCHEMA-PROMO-3: promotion table RLS enabled", () =>
+  sqlContains(migration3, /ALTER TABLE public\.business_meeting_note_promotions ENABLE ROW LEVEL SECURITY/));
+test("SCHEMA-PROMO-4: promotion table anon revoked", () =>
+  sqlContains(migration3, /REVOKE ALL PRIVILEGES ON TABLE public\.business_meeting_note_promotions FROM anon/));
+test("SCHEMA-PROMO-5: promotion table authenticated revoked", () =>
+  sqlContains(migration3, /REVOKE ALL PRIVILEGES ON TABLE public\.business_meeting_note_promotions FROM authenticated/));
+test("SCHEMA-PROMO-6: promotion table append-only (SELECT, INSERT only)", () =>
+  sqlContains(migration3, /GRANT SELECT, INSERT ON TABLE public\.business_meeting_note_promotions TO service_role/));
+test("SCHEMA-PROMO-7: promotion table same-business FK for meeting", () =>
+  sqlContains(migration3, /business_meeting_note_promotions_meeting_business_fk[\s\S]*?FOREIGN KEY\s*\(meeting_id,\s*business_id\)\s*REFERENCES public\.business_meetings\(id,\s*business_id\)/));
+test("SCHEMA-PROMO-8: promotion table same-business FK for note", () =>
+  sqlContains(migration3, /business_meeting_note_promotions_note_business_fk[\s\S]*?FOREIGN KEY\s*\(meeting_note_id,\s*business_id\)\s*REFERENCES public\.business_meeting_notes\(id,\s*business_id\)/));
+test("SCHEMA-PROMO-9: business_meeting_notes gets UNIQUE(id, business_id) additive constraint", () =>
+  sqlContains(migration3, /business_meeting_notes_id_business_id_uk/));
+test("SCHEMA-PROMO-10: no CREATE POLICY on promotion table (service_role bypasses RLS)", () =>
+  !sqlContains(migration3, /CREATE POLICY/));
+test("SCHEMA-PROMO-11: destination_type CHECK constraint limits to valid destinations", () =>
+  sqlContains(migration3, /destination_type[\s\S]*?CHECK[\s\S]*?'fact'[\s\S]*?'unknown'[\s\S]*?'contradiction'[\s\S]*?'correction'/));
 
 // Report
 const passed = results.filter((r) => r.passed).length;

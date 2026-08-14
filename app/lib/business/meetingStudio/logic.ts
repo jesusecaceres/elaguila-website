@@ -9,6 +9,7 @@ import type {
   MeetingConsentType,
   MeetingNoteType,
   MeetingNoteSourceClass,
+  MeetingNotePromotionDestination,
   MeetingStatus,
 } from "./types";
 
@@ -50,6 +51,45 @@ export function noteSourceClassForType(noteType: MeetingNoteType): MeetingNoteSo
 
 export function canPromoteNoteToFact(noteType: MeetingNoteType): boolean {
   return noteType === "potential_fact";
+}
+
+export function eligiblePromotionDestinations(noteType: MeetingNoteType): MeetingNotePromotionDestination[] {
+  switch (noteType) {
+    case "owner_statement":
+    case "staff_observation":
+    case "potential_fact":
+      return ["fact"];
+    case "unknown":
+      return ["unknown"];
+    case "contradiction":
+      return ["contradiction"];
+    default:
+      return [];
+  }
+}
+
+export function canPromoteNote(noteType: MeetingNoteType): boolean {
+  return eligiblePromotionDestinations(noteType).length > 0;
+}
+
+export function mapNoteSourceClassToLivingBook(sourceClass: MeetingNoteSourceClass): string {
+  switch (sourceClass) {
+    case "owner_stated":   return "owner_statement";
+    case "staff_observed": return "staff_observation";
+    case "system_derived": return "system_derived";
+    case "ai_inference":   return "ai_inference";
+    default:               return "staff_observation";
+  }
+}
+
+export function confidenceForNoteSourceClass(sourceClass: MeetingNoteSourceClass): "low" | "medium" | "high" {
+  switch (sourceClass) {
+    case "owner_stated":   return "medium";
+    case "staff_observed": return "low";
+    case "system_derived": return "low";
+    case "ai_inference":   return "low";
+    default:               return "low";
+  }
 }
 
 export function consentTypeRequiresExplicitAck(consentType: MeetingConsentType): boolean {

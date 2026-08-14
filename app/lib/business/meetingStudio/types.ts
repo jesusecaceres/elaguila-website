@@ -226,3 +226,23 @@ export type CockpitBriefingItem = {
   source: string;
   lastVerifiedAt: string | null;
 };
+
+// ---------------------------------------------------------------------------
+// Meeting note → Living Business Book promotion
+// ---------------------------------------------------------------------------
+
+export type MeetingNotePromotionDestination = "fact" | "unknown" | "contradiction" | "correction";
+
+export type MeetingNotePromotion = {
+  id: string;
+  businessId: string;
+  meetingId: string;
+  meetingNoteId: string;
+  destinationType: MeetingNotePromotionDestination;
+  destinationRecordId: string;
+  promotedByRosterId: string | null;
+  promotedByAuthUserId: string;
+  promotedByEmail: string;
+  promotedByRole: string;
+  createdAt: string;
+};
