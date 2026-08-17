@@ -74,22 +74,9 @@ function isRenderableLogoUrl(raw: string): boolean {
   return false;
 }
 
-function StarRow({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5" role="img" aria-label={`${rating.toFixed(1)} de 5 estrellas`}>
-      {Array.from({ length: 5 }, (_, i) => {
-        const v = rating - i;
-        const pct = Math.round(Math.min(1, Math.max(0, v)) * 100);
-        return (
-          <span key={i} className="relative h-4 w-[1.05em] text-[15px] leading-none">
-            <span className="absolute text-white/35" aria-hidden>★</span>
-            <span className="absolute overflow-hidden text-[#f0d78c]" style={{ width: `${pct}%` }} aria-hidden>★</span>
-          </span>
-        );
-      })}
-    </div>
-  );
-}
+// Global Business Hub OS — REVIEWS MASTER RULE (Level A, link-only): the StarRow owner-typed
+// rating renderer (5-star fill graphic from trustRating.average) was removed outright, along
+// with every call site. No provider API exists; the DB field is untouched.
 
 interface RestaurantePreviewCardProps {
   data: RestaurantDetailShellData;
@@ -134,8 +121,6 @@ export function RestaurantePreviewCard({
   const logoCandidate = (data.businessLogo ?? "").trim();
   const logoUrl = isRenderableLogoUrl(logoCandidate) ? logoCandidate : "";
   const showLogoOnHero = presentation !== "public_discovery" && Boolean(heroImage && logoUrl);
-  const trustRating = data.trustRating;
-  const showTrustStars = presentation !== "public_discovery" && Boolean(trustRating);
   const showLikeBadge =
     presentation === "public_discovery" && typeof likesCount === "number" && likesCount > 0;
 
@@ -277,13 +262,6 @@ export function RestaurantePreviewCard({
 
         <div className={CONTENT}>
           <div className="min-w-0 space-y-1.5 md:space-y-3">
-            {showTrustStars && trustRating ? (
-              <div className="flex items-center gap-2">
-                <StarRow rating={trustRating.average} />
-                <span className="text-xs font-semibold text-[#8B7E70]">({trustRating.count})</span>
-              </div>
-            ) : null}
-
             <h2 className={TITLE}>{data.businessName}</h2>
 
             {showLikeBadge ? (

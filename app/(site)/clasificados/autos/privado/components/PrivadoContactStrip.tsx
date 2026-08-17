@@ -1,7 +1,7 @@
 "use client";
 
-import { FiMail, FiMessageCircle, FiPhone, FiGlobe } from "react-icons/fi";
-import { SiWhatsapp, SiFacebook, SiInstagram, SiTiktok, SiYoutube, SiX } from "react-icons/si";
+import { FiMail, FiMessageCircle, FiPhone } from "react-icons/fi";
+import { SiWhatsapp } from "react-icons/si";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { resolveDealerOfficePhone } from "@/app/clasificados/autos/negocios/lib/dealerContactResolve";
 import { formatUsPhoneDisplay, phoneDigitsForTel, formatCityStateZipLine } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
@@ -21,17 +21,8 @@ const BTN_PRIMARY =
 const BTN_SECONDARY =
   "touch-manipulation inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 text-center text-[13px] font-semibold text-[color:var(--lx-text)] shadow-sm transition hover:border-[color:var(--lx-gold-border)] hover:bg-[color:var(--lx-nav-hover)] active:scale-[0.99] sm:px-3.5 sm:text-sm";
 
-function isValidUrl(url: string | undefined | null): boolean {
-  if (!url) return false;
-  const trimmed = url.trim();
-  if (trimmed.length < 4) return false;
-  try {
-    const u = new URL(trimmed);
-    return u.protocol === "https:" || u.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
+// Global Business Hub OS — isValidUrl removed; no code path in this file reads dealer
+// socials/website anymore (see the structural leak fix above), so it has no remaining callers.
 
 /** Private seller contact — strong CTAs; optional seller-provided socials (https only). */
 export function PrivadoContactStrip({
@@ -73,49 +64,30 @@ export function PrivadoContactStrip({
   const siteMessageHref = buildPrivadoSiteMessageHref(lang, data);
 
   const seller = data.dealerName?.trim();
-  const socials = data.dealerSocials ?? {};
-  const website = data.dealerWebsite;
 
-  // Compute seller location for display
+  /**
+   * Global Business Hub OS — Mode B hard rules, structural leak fix. `data` is `AutoDealerListing`
+   * (the SAME type Autos Dealer uses — Autos Privado has no separate type), so `dealerSocials`,
+   * `dealerWebsite`, and `dealerAddress*` are populated-but-must-not-render business/dealer fields
+   * on a private-seller card, not vehicle-location fields. No draft-save/publish sanitizer strips
+   * them today, so this card previously rendered whatever happened to be present — a real, live
+   * leak (confirmed: only 5 of 9 dealer social platforms were even filtered, an inconsistent
+   * subset, not an intentional exclusion). Fixed here as an absent code path (never read these
+   * fields at all), not a runtime gate, matching `AUTOS_PRIVADO_PRODUCT`'s own documented
+   * exclusions ("Website, socials, hours, booking URL", "Dealership logo / business stack").
+   */
+
+  // Compute seller location for display — vehicle city/state/zip only (never dealer/business address).
   const sellerLoc = formatCityStateZipLine(data.city, data.state, data.zip);
 
-  // Optional location for meeting
-  const hasLocation =
-    Boolean(data.dealerAddress) ||
-    Boolean(data.dealerAddressCity) ||
-    Boolean(data.dealerAddressState) ||
-    Boolean(data.dealerAddressZip);
-  
-  // Build address string for maps query
-  const locationParts = [
-    data.dealerAddress?.trim(),
-    data.dealerAddressCity?.trim(),
-    data.dealerAddressState?.trim(),
-    data.dealerAddressZip?.trim(),
-  ].filter(Boolean);
-  const locationString = locationParts.join(", ");
-  const mapsUrl = locationString ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}` : null;
+  // Autos Privado never shows a "meeting location" built from dealer/business address fields —
+  // default to coarse city/state/zip only, per the Mode B hard rule.
+  const hasLocation = false;
+  const locationString = "";
+  const mapsUrl: string | null = null;
 
-  // Optional social links - only show if valid URLs
+  // Autos Privado never renders dealer socials/website — structurally empty, not runtime-filtered.
   const socialLinks: Array<{ platform: string; url: string; icon: React.ReactNode }> = [];
-  if (socials?.facebook && isValidUrl(socials.facebook)) {
-    socialLinks.push({ platform: "Facebook", url: socials.facebook, icon: <SiFacebook className="h-5 w-5 text-[#1877F2]" /> });
-  }
-  if (socials?.instagram && isValidUrl(socials.instagram)) {
-    socialLinks.push({ platform: "Instagram", url: socials.instagram, icon: <SiInstagram className="h-5 w-5 text-[#E4405F]" /> });
-  }
-  if (socials?.tiktok && isValidUrl(socials.tiktok)) {
-    socialLinks.push({ platform: "TikTok", url: socials.tiktok, icon: <SiTiktok className="h-5 w-5 text-[#000000]" /> });
-  }
-  if (socials?.youtube && isValidUrl(socials.youtube)) {
-    socialLinks.push({ platform: "YouTube", url: socials.youtube, icon: <SiYoutube className="h-5 w-5 text-[#FF0000]" /> });
-  }
-  if (socials?.x && isValidUrl(socials.x)) {
-    socialLinks.push({ platform: "X", url: socials.x, icon: <SiX className="h-5 w-5 text-[#000000]" /> });
-  }
-  if (website && isValidUrl(website)) {
-    socialLinks.push({ platform: "Website", url: website, icon: <FiGlobe className="h-5 w-5 text-[color:var(--lx-text)]" /> });
-  }
 
   const hasAnyCta = showCall || showWa || showEmail || showSms || Boolean(siteMessageHref);
   if (!seller && !hasAnyCta) return null;

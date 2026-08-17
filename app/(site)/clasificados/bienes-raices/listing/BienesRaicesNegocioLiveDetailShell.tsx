@@ -239,7 +239,11 @@ function buildPublishedState(input: {
     fotosDataUrls: photos,
     fotoPortadaIndex: 0,
     videoUrl: "",
-    videoUrls: parseJsonArray(identityMeta.negocioExternalVideoUrls).map(normalizeUrl).filter(Boolean).slice(0, 4),
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8, matching the publish-side
+    // AGENTE_RES_MAX_VIDEO_URLS. This is the real live-display cap (the equivalent literal at
+    // anuncio/[id]/page.tsx:762 is dead code — that block never renders for bienes-raices
+    // listings, confirmed unreachable, left untouched).
+    videoUrls: parseJsonArray(identityMeta.negocioExternalVideoUrls).map(normalizeUrl).filter(Boolean).slice(0, 8),
     tourUrl: normalizeUrl(gate.virtualTourUrl ?? contact.tourUrl),
     brochureUrl: normalizeUrl(gate.brochureUrl ?? contact.brochureUrl),
     recamaras: facets.bedroomsCount != null ? String(facets.bedroomsCount) : humanPairValue(detailPairs, ["Recámaras", "Habitaciones", "Bedrooms"]),

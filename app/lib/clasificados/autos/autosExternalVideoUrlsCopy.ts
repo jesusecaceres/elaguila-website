@@ -6,14 +6,14 @@ export function autosExternalVideoTitle(lang: AutosNegociosLang): string {
 
 export function autosExternalVideoDescription(lang: AutosNegociosLang): string {
   return lang === "es"
-    ? "Puedes agregar hasta 4 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado."
-    : "You can add up to 4 video links. Videos will show in the preview and published listing.";
+    ? "Puedes agregar hasta 8 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado."
+    : "You can add up to 8 video links. Videos will show in the preview and published listing.";
 }
 
 export function autosExternalVideoHelper(lang: AutosNegociosLang): string {
   return lang === "es"
-    ? "Agrega hasta 4 enlaces de video de YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible."
-    : "Add up to 4 video links from YouTube, TikTok, Instagram, Vimeo, or another compatible platform.";
+    ? "Agrega hasta 8 enlaces de video de YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible."
+    : "Add up to 8 video links from YouTube, TikTok, Instagram, Vimeo, or another compatible platform.";
 }
 
 export function autosExternalVideoSecondaryHelper(lang: AutosNegociosLang): string {
@@ -35,7 +35,7 @@ export function autosExternalVideoRemoveCta(lang: AutosNegociosLang): string {
 }
 
 export function autosExternalVideoLimitReached(lang: AutosNegociosLang): string {
-  return lang === "es" ? "Límite de 4 videos alcanzado." : "4 video limit reached.";
+  return lang === "es" ? "Límite de 8 videos alcanzado." : "8 video limit reached.";
 }
 
 export function autosExternalVideoInvalid(lang: AutosNegociosLang): string {
