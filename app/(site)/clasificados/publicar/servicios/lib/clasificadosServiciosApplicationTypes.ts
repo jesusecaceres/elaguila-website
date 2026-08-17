@@ -60,8 +60,9 @@ export type GalleryItem = {
   source: "file" | "url";
 };
 
-/** External video links only in the application UI (gate SERVICIOS-GATE-01). */
-export const SERVICIOS_MAX_VIDEO_URLS = 4;
+/** External video links only in the application UI (gate SERVICIOS-GATE-01).
+ * Global Business Hub OS — pilot-lane video cap raised 4 -> 8. */
+export const SERVICIOS_MAX_VIDEO_URLS = 8;
 
 export type VideoItem = {
   id: string;

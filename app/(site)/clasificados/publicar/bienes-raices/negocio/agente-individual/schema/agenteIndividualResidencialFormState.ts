@@ -59,7 +59,8 @@ export type AgenteResOpenHouseSlot = {
 export type AgentePrincipalLlamadas = "personal" | "oficina";
 
 export const AGENTE_RES_MAX_OPEN_HOUSE_SLOTS = 4;
-export const AGENTE_RES_MAX_VIDEO_URLS = 4;
+// Global Business Hub OS — pilot-lane video cap raised 4 -> 8 (open house slots above unaffected).
+export const AGENTE_RES_MAX_VIDEO_URLS = 8;
 export const AGENTE_RES_MAX_BUSINESS_URLS = BIENES_MAX_ADDITIONAL_BUSINESS_LINKS;
 export type { BienesAdditionalBusinessLink };
 

@@ -70,7 +70,13 @@ export function buildDealerDisplayAddress(L: Pick<AutoDealerListing, keyof Deale
   return line1 || line2 || legacy;
 }
 
-/** Preview-only Google Maps embed URL from a real address line (no API key). */
+/**
+ * Preview-only Google Maps embed URL from a real address line (no API key).
+ * Global Business Hub OS — surgical adoption: delegates to the shared formula
+ * (`sharedConnectionHubLocationHelpers.ts`) while preserving this function's original signature
+ * exactly (`string` return, empty string for no address, no minimum-length guard) so every
+ * existing caller is unaffected.
+ */
 export function buildAutosDealerMapEmbedUrl(locationLine: string): string {
   const q = locationLine.trim();
   if (!q) return "";
