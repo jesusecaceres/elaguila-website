@@ -20,7 +20,8 @@ export type RevenueAuditAction =
   | "bienes_fsbo_listing_activated_after_payment"
   | "bienes_negocio_listing_activated_after_payment"
   | "revenue_webhook_ignored"
-  | "revenue_webhook_validation_failed";
+  | "revenue_webhook_validation_failed"
+  | "ofertas_locales_entitlement_fulfilled_after_payment";
 
 export async function writeRevenueAuditLog(entry: {
   action: RevenueAuditAction;
