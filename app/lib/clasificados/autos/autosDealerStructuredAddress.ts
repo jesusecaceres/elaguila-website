@@ -1,6 +1,7 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   AUTOS_DEFAULT_COUNTRY,
+  AUTOS_DEFAULT_STATE,
   normalizeAutosCountry,
   normalizeAutosPostalCode,
   normalizeAutosStateCode,
@@ -104,7 +105,9 @@ export function syncDealerAddressFromStructured(L: AutoDealerListing): AutoDeale
   const next: AutoDealerListing = {
     ...L,
     dealerAddressZip: zip,
-    dealerAddressState: normalizeAutosStateCode(L.dealerAddressState) ?? L.dealerAddressState,
+    dealerAddressState:
+      normalizeAutosStateCode(L.dealerAddressState) ??
+      (hasStructuredDealerAddressFields({ ...L, dealerAddressZip: zip }) ? AUTOS_DEFAULT_STATE : L.dealerAddressState),
     dealerAddressCountry: normalizeAutosCountry(L.dealerAddressCountry),
   };
   if (!hasStructuredDealerAddressFields(next)) return next;
