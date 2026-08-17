@@ -33,6 +33,9 @@ import { listProposalsForBusiness } from "@/app/lib/business/proposals/repositor
 import { ProposalDetailPanel } from "./ProposalActions";
 import { listCommitmentsForBusiness, listEventsForCommitment } from "@/app/lib/business/promiseKeeper/repository";
 import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActions";
+import { listJobsForBusiness } from "@/app/lib/business/creativeStudio/repository";
+import { isCreativeStudioEnabled } from "@/app/lib/business/creativeStudio/featureFlag";
+import { CreativeStudioPanel } from "./CreativeStudioActions";
 import { listBusinessOutcomes } from "@/app/lib/business/outcomes/repository";
 import { isOutcomesEnabled } from "@/app/lib/business/outcomes/featureFlag";
 import { OutcomesPanel } from "./OutcomesPanel";
@@ -220,6 +223,13 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         return { briefing, meetingsWithDetails, proposals, commitmentsWithEvents };
       })()
     : null;
+
+  // Program 6 — Creative Studio
+  const canViewCreativeStudio = actorHasCapability(access.actor, "view_creative_studio");
+  const creativeStudioEnabled = canViewCreativeStudio ? await isCreativeStudioEnabled() : false;
+  const creativeJobs = (canViewCreativeStudio && creativeStudioEnabled)
+    ? await listJobsForBusiness(business.id)
+    : [];
 
   // Program 7 — Outcomes + Advisor + Assistant
   const outcomesEnabled = await isOutcomesEnabled();
@@ -885,6 +895,15 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 ))}
                 {program5Data.commitmentsWithEvents.length === 0 ? <p className="text-sm text-[#7A7164]">No commitments yet.</p> : null}
               </div>
+            </section>
+          ) : null}
+
+          {/* Program 6 — Creative Studio */}
+          {canViewCreativeStudio && creativeStudioEnabled ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Creative Studio</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets.</p>
+              <CreativeStudioPanel businessId={business.id} jobs={creativeJobs.map((j) => ({ id: j.id, assetType: j.assetType, language: j.language, format: j.format, archetype: j.archetype, status: j.status, riskClass: j.riskClass, createdAt: j.createdAt }))} />
             </section>
           ) : null}
 

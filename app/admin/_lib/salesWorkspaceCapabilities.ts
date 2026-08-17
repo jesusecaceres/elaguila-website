@@ -96,7 +96,18 @@ export type SalesWorkspaceCapability =
   | "view_commitments"
   | "manage_own_commitments"
   | "manage_team_commitments"
-  | "assign_business_staff";
+  | "assign_business_staff"
+  // Program 6 — Creative Studio capabilities. Kept in this same matrix, matching the
+  // Program 5 precedent. sales_rep may view creative jobs and upload assets, but may never
+  // approve creative or generate from an unapproved brief — those are manager+ actions.
+  | "view_creative_studio"
+  | "create_creative_job"
+  | "upload_creative_assets"
+  | "approve_creative_brief"
+  | "generate_creative_draft"
+  | "review_creative"
+  | "approve_creative_final"
+  | "export_creative_production_pack";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -150,6 +161,14 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "manage_own_commitments",
   "manage_team_commitments",
   "assign_business_staff",
+  "view_creative_studio",
+  "create_creative_job",
+  "upload_creative_assets",
+  "approve_creative_brief",
+  "generate_creative_draft",
+  "review_creative",
+  "approve_creative_final",
+  "export_creative_production_pack",
 ];
 
 /**
@@ -224,6 +243,14 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_own_commitments",
     "manage_team_commitments",
     "assign_business_staff",
+    "view_creative_studio",
+    "create_creative_job",
+    "upload_creative_assets",
+    "approve_creative_brief",
+    "generate_creative_draft",
+    "review_creative",
+    "approve_creative_final",
+    "export_creative_production_pack",
   ],
   sales_manager: [
     "view_business_list",
@@ -275,6 +302,14 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_commitments",
     "manage_own_commitments",
     "manage_team_commitments",
+    "view_creative_studio",
+    "create_creative_job",
+    "upload_creative_assets",
+    "approve_creative_brief",
+    "generate_creative_draft",
+    "review_creative",
+    "approve_creative_final",
+    "export_creative_production_pack",
   ],
   sales_rep: [
     "view_business_list",
@@ -304,6 +339,8 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "record_meeting_notes",
     "view_commitments",
     "manage_own_commitments",
+    "view_creative_studio",
+    "upload_creative_assets",
   ],
 };
 
