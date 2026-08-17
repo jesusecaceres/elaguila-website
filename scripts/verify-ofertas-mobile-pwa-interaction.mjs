@@ -142,8 +142,8 @@ function run() {
   assert.ok(card.includes("lg:hidden"), "Mobile-only patterns");
   assert.ok(card.includes("HubCollapsibleGroup"), "Collapsible business hub");
   assert.ok(card.includes("hidden lg:block"), "Desktop Business Hub open layout");
-  assert.ok(card.includes('id="proximamente"'), "Future modules anchor");
-  assert.ok(card.includes("comingSoonListsRoutes") && card.includes("border-dashed"), "Future modules are neutralized info, not live controls");
+  assert.ok(!card.includes('id="proximamente"'), "Stale future-tools preview block must stay removed");
+  assert.ok(!card.includes("comingSoonListsRoutes"), "Preview must not advertise unbuilt lists/routes");
 
   assert.ok(grid.includes("selectedCategory"), "Category filter state");
   assert.ok(grid.includes("LeonixMobileScrollRail") && grid.includes('desktopMode="wrap"'), "Product filter supports mobile rail and desktop wrap");

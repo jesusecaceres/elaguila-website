@@ -278,6 +278,8 @@ export type OfertaLocalValidationIssue = {
 };
 
 export type OfertaLocalDraft = {
+  /** Browser application-session id — not a database listing id. */
+  applicationSessionId: string;
   /** Primary ad format lane — drives copy, upload sections, and AI wording. */
   primaryAdFormat: OfertaLocalPrimaryAdFormat | "";
   offerType: OfertaLocalOfferType | "";

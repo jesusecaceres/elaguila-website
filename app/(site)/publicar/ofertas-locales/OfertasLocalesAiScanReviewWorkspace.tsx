@@ -22,6 +22,7 @@ type Props = {
   scanRefreshToken?: number;
   reviewMode?: "weekly" | "coupon";
   onReviewGateChange?: (state: OfertaLocalAiReviewGateState) => void;
+  onContinueToNextStep?: () => void;
 };
 
 type ReviewScope = {
@@ -40,6 +41,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
   scanRefreshToken = 0,
   reviewMode = "weekly",
   onReviewGateChange,
+  onContinueToNextStep,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
   const eligibleAssets = useMemo(() => getOfertaLocalScanEligibleAssets(draft), [draft]);
@@ -154,8 +156,8 @@ export function OfertasLocalesAiScanReviewWorkspace({
         </div>
       ) : null}
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,54fr)_minmax(0,46fr)] xl:items-start">
-        <div className="order-2 min-w-0 xl:order-1 xl:sticky xl:top-20 xl:max-h-[calc(100vh-5.5rem)] xl:self-start">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,54fr)_minmax(0,46fr)]">
+        <div className="order-2 min-w-0 xl:order-1">
           <OfertasLocalesProductClipPanel
             lang={lang}
             draft={draft}
@@ -175,7 +177,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
           />
         </div>
 
-        <div className="order-1 min-w-0 xl:order-2 xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden">
+        <div className="order-1 min-w-0 xl:order-2">
           <OfertasLocalesAiItemReviewPanel
             lang={lang}
             ofertaLocalId={ofertaLocalId}
@@ -192,6 +194,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
             onScopeChange={handleScopeChange}
             onAssetTabStatuses={handleAssetStatuses}
             onViewerBridge={handleViewerBridge}
+            onContinueToNextStep={onContinueToNextStep}
             clipInspectorSlot={
               <OfertasLocalesClipInspectorSection
                 lang={lang}

@@ -1,6 +1,7 @@
 import { assertIncludes, pass, readRepoFile } from "./ofertas-package-10-audit-helpers.mjs";
 
 const app = readRepoFile("app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx");
+const preview = readRepoFile("app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewClient.tsx");
 const steps = readRepoFile("app/lib/ofertas-locales/ofertasLocalesWizardSteps.ts");
 const publishSubmit = readRepoFile("app/lib/ofertas-locales/ofertasLocalesPublishSubmit.ts");
 const owner = readRepoFile("app/(site)/dashboard/ofertas-locales/[id]/page.tsx");
@@ -16,10 +17,11 @@ for (const required of [
   "OfertasLocalesValidationPanel",
   "continueSecureCheckout",
   "/dashboard/ofertas-locales/",
-  "submitOfertaLocalDraftForReview",
 ]) {
   assertIncludes("advertiser application", app, required);
 }
+
+assertIncludes("preview submit", preview, "submitOfertaLocalDraftForReview");
 
 assertIncludes("wizard truthful steps", steps, "OFERTAS_LOCALES_WIZARD_STEPS");
 assertIncludes("publish API submitter", publishSubmit, "/api/ofertas-locales/publish");

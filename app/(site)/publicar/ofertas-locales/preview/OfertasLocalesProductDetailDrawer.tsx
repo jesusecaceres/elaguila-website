@@ -7,7 +7,6 @@ import {
   FiGlobe,
   FiImage,
   FiList,
-  FiLock,
   FiMapPin,
   FiShare2,
   FiShoppingBag,
@@ -156,7 +155,6 @@ export function OfertasLocalesProductDetailDrawer({
           <div className="overflow-hidden rounded-lg border border-[#D4C4A8]/70 bg-white shadow-sm">
             {showCropImage ? (
               <div className="bg-[#FDF8F0]/50 p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={cropUrl!}
                   alt={title || (lang === "en" ? c.flyerProductEn : c.flyerProductEs)}
@@ -382,14 +380,6 @@ export function OfertasLocalesProductDetailDrawer({
                 {lang === "en" ? c.viewMoreOffersEn : c.viewMoreOffersEs}
               </button>
             </div>
-          </div>
-
-          {/* Neutralized future roadmap — non-interactive info only (no live-looking buttons). */}
-          <div className="mt-4 rounded-lg border border-dashed border-[#D4C4A8]/60 bg-[#FDF8F0]/40 p-2.5 sm:mt-5 sm:p-3">
-            <p className="flex items-start gap-1.5 text-xs font-medium leading-relaxed text-[#1E1814]/60">
-              <FiLock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
-              {lang === "en" ? c.comingSoonListsRoutesEn : c.comingSoonListsRoutesEs}
-            </p>
           </div>
     </LeonixMobileBottomSheet>
   );

@@ -1,6 +1,10 @@
 import { createEmptyOfertaLocalDraft } from "./createEmptyOfertaLocalDraft";
 import { normalizeOfertaLocalDraftProductEntitlements } from "./ofertasLocalesApplicationHelpers";
 import { normalizeOfertaLocalDraftCategoryFields } from "./ofertasLocalesBusinessCategoryUx";
+import {
+  createOfertaLocalApplicationSessionId,
+  sanitizeOfertaLocalApplicationSessionId,
+} from "./ofertasLocalesDraftIdentity";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import type { OfertaLocalPrimaryAdFormat } from "./ofertasLocalesTypes";
 import { normalizeOfertaLocalUrlInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
@@ -13,8 +17,12 @@ import type {
   OfertaLocalOfferType,
 } from "./ofertasLocalesTypes";
 
-/** Durable device draft — survives tab close; sessionStorage is fallback only. */
+/** Draft payload — localStorage holds last draft; sessionStorage holds the active application session. */
 export const OFERTAS_LOCALES_DRAFT_STORAGE_KEY = "leonix:ofertas-locales:draft:v1" as const;
+export const OFERTAS_LOCALES_ACTIVE_SESSION_KEY = "leonix:ofertas-locales:active-session:v1" as const;
+export const OFERTAS_LOCALES_WIZARD_STEP_KEY = "leonix:ofertas-locales:wizard-step:v1" as const;
+export const OFERTAS_LOCALES_PROMO_SESSION_KEY = "leonix:ofertas-locales:promo:v1" as const;
+export const OFERTAS_LOCALES_SUBMISSION_SESSION_KEY = "leonix:ofertas-locales:submission:v1" as const;
 
 function getLocalDraftStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -184,9 +192,14 @@ function legacyPrimaryAdFormatFromStored(stored: Record<string, unknown>): Ofert
 
 function mergeDraft(stored: Record<string, unknown>): OfertaLocalDraft {
   const base = createEmptyOfertaLocalDraft();
+  const applicationSessionId =
+    sanitizeOfertaLocalApplicationSessionId(stored.applicationSessionId) ||
+    base.applicationSessionId ||
+    createOfertaLocalApplicationSessionId();
   const merged = {
     ...base,
     ...stored,
+    applicationSessionId,
     serviceZipCodes: Array.isArray(stored.serviceZipCodes)
       ? stored.serviceZipCodes.filter((z): z is string => typeof z === "string")
       : base.serviceZipCodes,
@@ -275,6 +288,141 @@ export function clearOfertaLocalDraftStorage(): void {
   try {
     getLocalDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
     getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_ACTIVE_SESSION_KEY);
+    getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_WIZARD_STEP_KEY);
+    getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_PROMO_SESSION_KEY);
+    getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_SUBMISSION_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function readActiveOfertaLocalApplicationSessionId(): string | null {
+  try {
+    const value = sanitizeOfertaLocalApplicationSessionId(
+      getSessionDraftStorage()?.getItem(OFERTAS_LOCALES_ACTIVE_SESSION_KEY)
+    );
+    return value || null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeActiveOfertaLocalApplicationSessionId(sessionId: string): void {
+  const value = sanitizeOfertaLocalApplicationSessionId(sessionId);
+  if (!value) return;
+  try {
+    getSessionDraftStorage()?.setItem(OFERTAS_LOCALES_ACTIVE_SESSION_KEY, value);
+  } catch {
+    // ignore
+  }
+}
+
+export function peekStoredOfertaLocalApplicationSessionId(): string | null {
+  const stored = loadOfertaLocalDraftFromStorage();
+  const value = sanitizeOfertaLocalApplicationSessionId(stored?.applicationSessionId);
+  return value || null;
+}
+
+export type OfertaLocalPromoSession = {
+  applicationSessionId: string;
+  code: string;
+  discountCents: number;
+  totalCents: number;
+  discountLabel: string;
+  packageKey: string;
+};
+
+export function loadOfertaLocalPromoSession(applicationSessionId: string): OfertaLocalPromoSession | null {
+  try {
+    const raw = getSessionDraftStorage()?.getItem(OFERTAS_LOCALES_PROMO_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<OfertaLocalPromoSession>;
+    if (parsed.applicationSessionId !== applicationSessionId) return null;
+    if (!parsed.code || typeof parsed.discountCents !== "number" || typeof parsed.totalCents !== "number") {
+      return null;
+    }
+    return {
+      applicationSessionId,
+      code: String(parsed.code),
+      discountCents: parsed.discountCents,
+      totalCents: parsed.totalCents,
+      discountLabel: String(parsed.discountLabel ?? ""),
+      packageKey: String(parsed.packageKey ?? ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveOfertaLocalPromoSession(session: OfertaLocalPromoSession): void {
+  try {
+    getSessionDraftStorage()?.setItem(OFERTAS_LOCALES_PROMO_SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearOfertaLocalPromoSession(): void {
+  try {
+    getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_PROMO_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export type OfertaLocalSubmissionSession = {
+  applicationSessionId: string;
+  id: string;
+  status: string;
+};
+
+export function loadOfertaLocalSubmissionSession(
+  applicationSessionId: string
+): OfertaLocalSubmissionSession | null {
+  try {
+    const raw = getSessionDraftStorage()?.getItem(OFERTAS_LOCALES_SUBMISSION_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<OfertaLocalSubmissionSession>;
+    if (parsed.applicationSessionId !== applicationSessionId) return null;
+    if (!parsed.id) return null;
+    return {
+      applicationSessionId,
+      id: String(parsed.id),
+      status: String(parsed.status ?? "pending_review"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveOfertaLocalSubmissionSession(session: OfertaLocalSubmissionSession): void {
+  try {
+    getSessionDraftStorage()?.setItem(OFERTAS_LOCALES_SUBMISSION_SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadOfertaLocalWizardStep(applicationSessionId: string): number | null {
+  try {
+    const raw = getSessionDraftStorage()?.getItem(OFERTAS_LOCALES_WIZARD_STEP_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { applicationSessionId?: string; step?: number };
+    if (parsed.applicationSessionId !== applicationSessionId) return null;
+    const step = Number(parsed.step);
+    return Number.isFinite(step) ? step : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveOfertaLocalWizardStep(applicationSessionId: string, step: number): void {
+  try {
+    getSessionDraftStorage()?.setItem(
+      OFERTAS_LOCALES_WIZARD_STEP_KEY,
+      JSON.stringify({ applicationSessionId, step })
+    );
   } catch {
     // ignore
   }

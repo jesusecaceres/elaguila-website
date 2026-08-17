@@ -119,7 +119,7 @@ export function getOfertaLocalScanPhaseMessage(
     generating_crops: "Generando recortes…",
     saving: "Guardando sugerencias…",
     long_wait:
-      "El escaneo sigue procesando. Puedes esperar o revisar los resultados que ya estén disponibles abajo.",
+      "Este volante tiene varias páginas y el análisis está tomando más tiempo de lo normal. Puedes seguir esperando; los resultados aparecerán automáticamente.",
   };
   const en: Record<OfertaLocalScanUiPhase, string> = {
     preparing: "Preparing file…",
@@ -128,7 +128,7 @@ export function getOfertaLocalScanPhaseMessage(
     generating_crops: "Generating ad clips…",
     saving: "Saving suggestions…",
     long_wait:
-      "The scan is still processing. You can wait or review any results already available below.",
+      "This flyer has several pages and the analysis is taking longer than usual. You can keep waiting; results will appear automatically.",
   };
   const copy = lang === "en" ? en : es;
 
