@@ -1,11 +1,18 @@
 /**
- * Saved Search 02 — deterministic canonicalization + fingerprinting, shared by every category.
+ * Saved Search 02/03 — deterministic canonicalization, shared by every category AND by both
+ * server and browser code. Deliberately contains NO hashing (no `node:crypto`, no Web Crypto):
+ * Saved Search 03 needs to run this same canonicalization client-side (to show truthful
+ * "already saved" state before the user clicks), and `node:crypto` cannot be bundled into a
+ * browser build. The actual SHA-256 hashing lives in two small sibling files that both hash the
+ * identical `buildSavedSearchFingerprintInput` output produced here —
+ * `savedSearchFingerprintServer.ts` (Node `crypto`, used by `savedSearchServerCrud.ts`) and
+ * `savedSearchFingerprintBrowser.ts` (Web Crypto `crypto.subtle`, used by client components) —
+ * so canonicalization itself is never duplicated, only the platform-specific hash primitive is.
  *
  * The fingerprint must be identical for two searches a user would consider "the same," and
  * different whenever the actual match semantics differ — never influenced by object-key
  * insertion order, incidental whitespace, UI-only state, pagination, or sort order.
  */
-import { createHash } from "node:crypto";
 import { normalizeLocationKey } from "@/app/data/locations/californiaLocationHelpers";
 import type { SavedSearchNormalizedInput } from "./savedSearchTypes";
 
@@ -87,14 +94,4 @@ export function buildSavedSearchFingerprintInput(canonical: SavedSearchNormalize
     maxPrice: canonical.maxPrice,
     filterPayload: canonical.filterPayload,
   });
-}
-
-/** SHA-256 hex digest of the canonical fingerprint input — deterministic, collision-resistant,
- * no secret material involved (this hashes the search criteria, not anything sensitive). Safe to
- * store as `saved_searches.fingerprint` and to compare directly against the `legacy:<id>`
- * compatibility placeholder (never equal to it — that prefix isn't valid hex). */
-export function buildSavedSearchFingerprint(input: SavedSearchNormalizedInput): string {
-  const canonical = canonicalizeSavedSearch(input);
-  const fingerprintInput = buildSavedSearchFingerprintInput(canonical);
-  return createHash("sha256").update(fingerprintInput).digest("hex");
 }

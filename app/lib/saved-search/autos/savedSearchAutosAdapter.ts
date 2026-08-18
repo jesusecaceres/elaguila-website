@@ -125,3 +125,31 @@ export function savedSearchToAutosFilterState(
   };
   return { filters, searchQ: p.q ?? "" };
 }
+
+/**
+ * Saved Search 03 — human-readable summary of the major matching facets for the owner
+ * dashboard's list of saved searches. Never dumps raw `filter_payload` JSON; only surfaces the
+ * fields a person would recognize from having set them (make/model/year/mileage/transmission/
+ * drivetrain/bodyStyle/sellerType/condition), each already a plain display string.
+ */
+export function describeAutosSavedSearchFacets(saved: SavedSearchNormalizedInput, lang: "es" | "en"): string[] {
+  const p = (saved.filterPayload ?? {}) as AutosSavedSearchFilterPayload;
+  const parts: string[] = [];
+  const vehicle = [p.make, p.model].filter(Boolean).join(" ");
+  if (vehicle) parts.push(vehicle);
+  if (p.yearMin != null || p.yearMax != null) {
+    parts.push(p.yearMin != null && p.yearMax != null ? `${p.yearMin}–${p.yearMax}` : `${p.yearMin ?? p.yearMax}`);
+  }
+  if (p.sellerType) parts.push(p.sellerType === "dealer" ? (lang === "es" ? "Concesionario" : "Dealer") : lang === "es" ? "Particular" : "Private seller");
+  if (p.condition) {
+    const conditionLabel =
+      p.condition === "new" ? (lang === "es" ? "Nuevo" : "New") : p.condition === "certified" ? (lang === "es" ? "Certificado" : "Certified") : lang === "es" ? "Usado" : "Used";
+    parts.push(conditionLabel);
+  }
+  if (p.bodyStyle) parts.push(p.bodyStyle);
+  if (p.transmission) parts.push(p.transmission);
+  if (p.drivetrain) parts.push(p.drivetrain.toUpperCase());
+  if (p.mileageMax != null) parts.push(lang === "es" ? `Máx. ${p.mileageMax.toLocaleString()} mi` : `Max ${p.mileageMax.toLocaleString()} mi`);
+  if (p.q) parts.push(`"${p.q}"`);
+  return parts;
+}

@@ -5,6 +5,8 @@
 // real implementation landed, per instruction.
 export const DASHBOARD_INTERNAL_INBOX_READY = true;
 export const DASHBOARD_SAVED_LISTINGS_READY = true;
+/** Saved Search 03 — Autos-only owner management surface (list/pause/reactivate/delete). */
+export const DASHBOARD_SAVED_SEARCHES_READY = true;
 
 export function dashboardInboxComingSoonCopy(lang: "es" | "en"): string {
   return lang === "es"

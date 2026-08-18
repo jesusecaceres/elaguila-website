@@ -15,7 +15,8 @@
  * the route handler) — never an email, and never a value read from the request body.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildSavedSearchFingerprint, canonicalizeSavedSearch } from "./savedSearchCanonicalize";
+import { canonicalizeSavedSearch } from "./savedSearchCanonicalize";
+import { buildSavedSearchFingerprint } from "./savedSearchFingerprintServer";
 import type { SavedSearchNormalizedInput, SavedSearchRow } from "./savedSearchTypes";
 
 const TABLE = "saved_searches";
