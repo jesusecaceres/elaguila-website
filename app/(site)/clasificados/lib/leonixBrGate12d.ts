@@ -179,8 +179,14 @@ export function buildBrGate12dV1FromPrivadoState(s: BienesRaicesPrivadoFormState
     const t = v.trim();
     if (t) (p as Record<string, unknown>)[k] = t;
   };
-  pushS("streetAddress", g.calleNumero);
-  pushS("unit", g.unidad);
+  // Foundation 02 — `detail_pairs` is selected in full by every public read path (no
+  // column-level restriction), so the exact street/unit must never be written into this
+  // machine-readable payload unless the owner authorized showing it — matching the same
+  // `mostrarDireccionExacta` gate already used for the human-readable "Ubicación" pair.
+  if (Boolean(s.mostrarDireccionExacta)) {
+    pushS("streetAddress", g.calleNumero);
+    pushS("unit", g.unidad);
+  }
   pushS("state", g.estado);
   const zDigits = g.codigoPostal.replace(/\D/g, "").slice(0, 12);
   if (zDigits.length >= 5) pushS("zip", zDigits);
@@ -296,7 +302,11 @@ export function buildBrGate12dV1FromNegocioState(s: BienesRaicesNegocioFormState
     const t = v.trim();
     if (t) (p as Record<string, unknown>)[k] = t;
   };
-  pushS("streetAddress", s.direccion);
+  // Foundation 02 — same rule as the Privado builder above: only include the exact street
+  // when the owner authorized showing it.
+  if (Boolean(s.mostrarDireccionExacta)) {
+    pushS("streetAddress", s.direccion);
+  }
   pushS("state", s.estado);
   pushS("zip", s.codigoPostal.replace(/\D/g, "").slice(0, 12));
   pushS("neighborhood", s.colonia);
