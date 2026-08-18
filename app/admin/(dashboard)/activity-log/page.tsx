@@ -1,6 +1,10 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { getCurrentAdminAccessContext, requireActivityLogAccess } from "@/app/admin/_lib/adminAccessControl";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { adminCardBase, adminStubBadgeClass } from "../../_components/adminTheme";
-import { fetchAdminAuditLogRecent, type AdminAuditLogRow } from "../../_lib/adminAuditLogServer";
+import { fetchAdminAuditLogFiltered, type AdminAuditLogRow } from "../../_lib/adminAuditLogServer";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +18,41 @@ function summarizeMeta(meta: Record<string, unknown>): string {
   }
 }
 
-export default async function AdminActivityLogPage() {
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(v: string | string[] | undefined): string {
+  return typeof v === "string" ? v : Array.isArray(v) ? (v[0] ?? "") : "";
+}
+
+export default async function AdminActivityLogPage(props: PageProps) {
+  const cookieStore = await cookies();
+  if (!requireAdminCookie(cookieStore)) redirect("/admin/login");
+  const access = await getCurrentAdminAccessContext();
+  requireActivityLogAccess(access);
+
   const lang = await getAdminLang();
   const m = adminMessages(lang);
-  const audit = await fetchAdminAuditLogRecent(80);
+
+  // Package E Build E3, Gate 3 — narrow, truthful filters over the SAME admin_audit_log reader
+  // (no actor filter: the schema has no actor column anywhere, so one is not offered).
+  const sp = props.searchParams ? await props.searchParams : {};
+  const actionFilter = firstParam(sp.action).trim();
+  const targetTypeFilter = firstParam(sp.targetType).trim();
+  const targetIdFilter = firstParam(sp.targetId).trim();
+
+  const audit = await fetchAdminAuditLogFiltered({
+    action: actionFilter || undefined,
+    targetType: targetTypeFilter || undefined,
+    targetId: targetIdFilter || undefined,
+    limit: 80,
+  });
 
   const showLive = audit.mode === "live" && audit.rows.length > 0;
   const showEmptyLive = audit.mode === "empty";
   const showUnavailable = audit.mode === "unavailable";
+  const hasFilters = Boolean(actionFilter || targetTypeFilter || targetIdFilter);
 
   const displayRows: Array<{
     id: string;
@@ -52,7 +83,7 @@ export default async function AdminActivityLogPage() {
           </span>
         ) : showEmptyLive ? (
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-900">
-            {m("activityLog.badgeEmptyTable")}
+            {hasFilters ? "No matching events" : m("activityLog.badgeEmptyTable")}
           </span>
         ) : showUnavailable ? (
           <span className={adminStubBadgeClass}>{m("activityLog.badgeUnavailable")}</span>
@@ -76,13 +107,60 @@ export default async function AdminActivityLogPage() {
         }
       />
 
+      <form method="get" className={`${adminCardBase} mb-4 flex flex-wrap items-end gap-3 p-4`}>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
+          Action
+          <input
+            type="text"
+            name="action"
+            defaultValue={actionFilter}
+            placeholder="e.g. client_account_updated"
+            className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-1.5 text-xs"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
+          Target type
+          <input
+            type="text"
+            name="targetType"
+            defaultValue={targetTypeFilter}
+            placeholder="e.g. profiles"
+            className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-1.5 text-xs"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
+          Target / entity id
+          <input
+            type="text"
+            name="targetId"
+            defaultValue={targetIdFilter}
+            placeholder="uuid"
+            className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-1.5 text-xs"
+          />
+        </label>
+        <button type="submit" className="rounded-lg bg-[#2A2620] px-3 py-2 text-xs font-bold text-white">
+          Filter
+        </button>
+        {hasFilters ? (
+          <a href="/admin/activity-log" className="text-xs font-semibold text-[#6B5B2E] underline">
+            Clear filters
+          </a>
+        ) : null}
+        <p className="w-full text-[10px] text-[#7A7164]">
+          No actor/operator filter — the audit table does not record who performed each action (a
+          confirmed schema gap, not hidden here).
+        </p>
+      </form>
+
       <div className={`${adminCardBase} overflow-hidden`}>
         <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
           {showLive ? m("activityLog.bannerLive") : m("activityLog.bannerOther")}
         </div>
         <div className="overflow-x-auto">
           {displayRows.length === 0 && showEmptyLive ? (
-            <p className="p-6 text-sm text-[#5C5346]">{m("activityLog.emptyLive")}</p>
+            <p className="p-6 text-sm text-[#5C5346]">
+              {hasFilters ? "No events matched these filters." : m("activityLog.emptyLive")}
+            </p>
           ) : displayRows.length === 0 && showUnavailable ? (
             <p className="p-6 text-sm text-[#5C5346]">
               {m("activityLog.unavailableP1")}{" "}

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -39,7 +41,7 @@ type AppRow = {
 const BTN =
   "inline-flex items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] hover:bg-[#FAF7F2] disabled:opacity-40";
 
-export default function EmpleosEmployerManagePage() {
+function EmpleosEmployerManagePageContent() {
   const params = useParams();
   const listingId = String(params?.listingId ?? "");
   const router = useRouter();
@@ -92,29 +94,37 @@ export default function EmpleosEmployerManagePage() {
 
   const refresh = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/empleos/${listingId}`)}`);
-      return;
-    }
-    setOwnerId(userData.user.id);
-    const { data: listing, error } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
-    if (error || !listing) {
+    // Gate I.13A — the applications fetch below previously wasn't guarded; a thrown
+    // error there skipped setLoading(false) and left the page stuck on the loading
+    // spinner forever.
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        router.replace(`/login?redirect=${encodeURIComponent(`/dashboard/empleos/${listingId}`)}`);
+        return;
+      }
+      setOwnerId(userData.user.id);
+      const { data: listing, error } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
+      if (error || !listing) {
+        setRow(null);
+        return;
+      }
+      setRow(listing as ListingRow);
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (token) {
+        const res = await fetch(`/api/clasificados/empleos/listings/${listingId}/applications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json()) as { ok?: boolean; rows?: AppRow[] };
+        if (json.ok && json.rows) setApps(json.rows);
+      }
+    } catch (err) {
+      console.error("[dashboard/empleos/listing] refresh failed", err);
       setRow(null);
+    } finally {
       setLoading(false);
-      return;
     }
-    setRow(listing as ListingRow);
-    const { data: session } = await supabase.auth.getSession();
-    const token = session.session?.access_token;
-    if (token) {
-      const res = await fetch(`/api/clasificados/empleos/listings/${listingId}/applications`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = (await res.json()) as { ok?: boolean; rows?: AppRow[] };
-      if (json.ok && json.rows) setApps(json.rows);
-    }
-    setLoading(false);
   }, [listingId, router]);
 
   useEffect(() => {
@@ -264,5 +274,13 @@ export default function EmpleosEmployerManagePage() {
         ← {t.back}
       </Link>
     </LeonixDashboardShell>
+  );
+}
+
+export default function EmpleosEmployerManagePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EmpleosEmployerManagePageContent />
+    </Suspense>
   );
 }

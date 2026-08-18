@@ -148,12 +148,9 @@ export function LeonixHeaderLanguageSelector({
         );
       })}
 
-      {/* Gate I.5.6A — ADDITIONAL_LANGUAGES is empty for the ES/EN-only launch, so this trigger
-          would otherwise open with zero selectable languages, showing only the Google Translate
-          help panel as an unlabeled third control. Hidden entirely rather than shown empty;
-          reappears automatically once ADDITIONAL_LANGUAGES is populated again. The standalone
-          `/translate-site` and `/qr/translator` routes and their own content are untouched —
-          only this redundant embedded trigger is removed. */}
+      {/* Hotfix H.2 — ES/EN-only launch: ADDITIONAL_LANGUAGES is empty, so this trigger would
+          otherwise open an empty dropdown with nothing to select. Hidden entirely rather than
+          shown broken; reappears automatically once ADDITIONAL_LANGUAGES is populated again. */}
       {ADDITIONAL_LANGUAGES.length > 0 ? (
         <div className="relative shrink-0">
           <button

@@ -395,6 +395,8 @@ export type RentasPublicListingFlowSlice = {
   parking?: string;
   parkingSpots?: number | null;
   leaseTermCode?: string | null;
+  /** Package F Build F2, Gate 10 ("Otro" truth fix) — custom text when leaseTermCode is "otro". */
+  leaseTermCustom?: string | null;
   depositUsd?: number;
   availabilityNote?: string | null;
   servicesIncluded?: string | null;
@@ -479,8 +481,11 @@ export function buildRentasPublishedFlowExtensionRows(
   return out;
 }
 
-function leaseTermCardLabel(code: string | null | undefined): string {
+function leaseTermCardLabel(code: string | null | undefined, custom?: string | null): string {
   const c = (code ?? "").trim();
+  // Package F Build F2, Gate 10 ("Otro" truth fix) — previously fell through to the raw code
+  // (literally "otro") when the landlord picked a custom lease term.
+  if (c === "otro") return (custom ?? "").trim() || "Otro";
   const m: Record<string, string> = {
     "mes-a-mes": "Mes a mes",
     "6-meses": "6 meses",
@@ -526,7 +531,7 @@ export function buildRentasResultsCardSummaryEs(listing: RentasPublicListingFlow
     if (sqOk) parts.push(sq);
     if (listing.rentasStorageAccess24h === true) parts.push("Acceso 24/7");
     if (listing.rentasStorageSecurity === true) parts.push("Seguridad");
-    const pl = leaseTermCardLabel(listing.leaseTermCode);
+    const pl = leaseTermCardLabel(listing.leaseTermCode, listing.leaseTermCustom);
     if (pl) parts.push(pl);
     return parts.join(" · ");
   }
@@ -541,7 +546,7 @@ export function buildRentasResultsCardSummaryEs(listing: RentasPublicListingFlow
           : "";
     if (bath) parts.push(bath);
     if (trim(listing.parking ?? "")) parts.push("Estacionamiento");
-    const pl = leaseTermCardLabel(listing.leaseTermCode);
+    const pl = leaseTermCardLabel(listing.leaseTermCode, listing.leaseTermCustom);
     if (pl) parts.push(pl);
     return parts.join(" · ");
   }

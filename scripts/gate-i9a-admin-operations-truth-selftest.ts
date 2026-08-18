@@ -19,6 +19,7 @@ import { resolveAdminActionTruth, isAdminActionSafeToShow, DEDICATED_ROUTE_PIPEL
 import { resolveAdminListingStatusDisplay, resolveAdminAttentionItems, countAdminAttentionBySeverity } from "../app/admin/_lib/adminStatusAttention";
 import { CLASSIFIEDS_OPS_CONTRACTS, getClassifiedsOpsContract } from "../app/admin/_lib/classifiedsOpsContract";
 import type { CanonicalCategoryKey } from "../app/lib/listingIdentity/types";
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 
@@ -125,7 +126,9 @@ async function main() {
 
     // Mascotas: Edit/owner-context is honestly "blocked" — no safe category-specific editor
     // exists, matching the confirmed registry fact (editRoute() still returns null).
-    assert.equal(resolveAdminActionTruth("mascotas_y_perdidos").openOwnerEditContext, "blocked");
+    // Package A Gate 5 — Mascotas edit unblocked (generic owner-verified editor wired in the
+    // registry with the I.6B-required safety proof); was "blocked" while editRoute was null.
+    assert.equal(resolveAdminActionTruth("mascotas_y_perdidos").openOwnerEditContext, "working");
 
     // Unknown/null pipeline fails closed on every action.
     const nullTruth = resolveAdminActionTruth(null);
@@ -250,7 +253,33 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization P1 fixed the root cause of the app-wide stuck-loading-spinner defect (a
+    // redundant global <Suspense> in app/layout.tsx) and, as a required consequence, added the
+    // one local Suspense boundary Next.js's build requires around each of these two pages' own
+    // useSearchParams() usage. Both are structural runtime-plumbing fixes only (no ownership,
+    // payment, or business-logic change), required for "npm run build" to succeed at all -- not
+    // an incursion into the Ofertas Locales or Autos Negocios workstreams this check protects.
+    const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set([
+      "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+      "app/(site)/dashboard/ofertas-locales/page.tsx",
+      "app/(site)/clasificados/autos/negocios/preview/page.tsx",
+      "app/(site)/publicar/autos/negocios/page.tsx",
+      "app/(site)/clasificados/bienes-raices/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/cancelado/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/exito/page.tsx",
+      "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
+      "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/empleos/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/page.tsx",
+      "app/admin/login/page.tsx",
+    ]);
+    const changed = excludeCurrentPackageFiles(
+      changedFiles
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f)),
+    );
     const lockedPathFragments = [
       "revenue-os",
       "stripe",

@@ -48,7 +48,6 @@ import { AutosVehicleIdentityFields } from "@/app/publicar/autos/shared/componen
 import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/AutosVinDecodeBlock";
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 const CARD =
@@ -74,6 +73,9 @@ export function AutosPrivadoApplication() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { lang, routeLang, t } = useAutosPrivadoLang();
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const isDashboardListingEditMode = dashboardSource && searchParams?.get("edit") === "1" && Boolean(editListingId);
   const {
     hydrated,
     restoredFromSession,
@@ -84,10 +86,7 @@ export function AutosPrivadoApplication() {
     editorStep,
     editorMaxReached,
     setEditorProgress,
-  } = useAutoPrivadoDraft();
-  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
-  const dashboardSource = searchParams?.get("source") === "dashboard";
-  const isDashboardListingEditMode = dashboardSource && searchParams?.get("edit") === "1" && Boolean(editListingId);
+  } = useAutoPrivadoDraft(isDashboardListingEditMode ? editListingId : undefined);
   const dashboardHydratedRef = useRef(false);
   const [editHydration, setEditHydration] = useState<
     { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
@@ -253,11 +252,6 @@ export function AutosPrivadoApplication() {
           banner={
             <>
               <AutosPricingPlanBanner lang={lang} lane="privado" />
-              <LeonixLaunchCouponCard
-                lang={lang === "en" ? "en" : "es"}
-                variant="mini"
-                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=autos_privado&sourceCta=launch_25`}
-              />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
             </>
           }

@@ -24,6 +24,7 @@ import {
   getBrListingById,
   type BrListingRowForPayment,
 } from "./brListingPaymentService";
+import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 import {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
   BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
@@ -40,6 +41,7 @@ import {
   brArchiveEligible,
   brChildBlocksParentDisposition,
   brChildCascadePauseEligible,
+  brActivatePendingEligible,
   brDiscontinueEligible,
   brPauseEligible,
   brRepublishEligible,
@@ -65,6 +67,7 @@ export {
   BR_LIFECYCLE_PARENT_PAUSE_INCOMPLETE_ERROR,
   BR_LIFECYCLE_SERVICE_UNAVAILABLE_ERROR,
   BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+  brActivatePendingEligible,
   brArchiveEligible,
   brChildBlocksParentDisposition,
   brChildCascadePauseEligible,
@@ -291,6 +294,13 @@ async function applyBrPause(row: BrListingRowForPayment): Promise<BrLifecycleMut
  * does not add a migration, so that distinction is not recorded, and none is needed: every paused
  * child, regardless of how it got paused, requires the exact same explicit, individual Resume.
  */
+/**
+ * Package C Build 4 (C7, Gate 4/5) — the actual status transition now routes through the atomic
+ * `br_negocio_activate_listing` RPC for BOTH roles, closing the pre-existing gap where a `main`
+ * parent's own resume was never capacity-checked (only `inventory_property` children were).
+ * `checkBrChildActivationCapacity` (via `requireActiveBrParentForChildResume`) remains as the
+ * pre-flight friendly-error check for children — advisory only, the RPC is the real authority.
+ */
 async function applyBrResume(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
   if (!brResumeEligible(row)) {
     return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
@@ -312,17 +322,69 @@ async function applyBrResume(row: BrListingRowForPayment): Promise<BrLifecycleMu
     }
   }
 
-  const supabase = getAdminSupabase();
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("listings")
-    .update({ status: "active", is_published: true, updated_at: now })
-    .eq("id", row.id)
-    .eq("status", "paused")
-    .select("id, status, is_published")
-    .maybeSingle();
-  if (error || !data) return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
-  return { ok: true, id: data.id, status: data.status, isPublished: data.is_published === true };
+  const ownerId = String(row.owner_id ?? "").trim();
+  const rpcResult = await activateBrNegocioListingAtomic({ listingId: row.id, ownerId, fromStatus: "paused" });
+  if (!rpcResult.ok) {
+    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  }
+  if (!rpcResult.activated && !rpcResult.idempotent) {
+    return {
+      ok: false,
+      error: rpcResult.blockedReason === "capacity_reached" ? BR_ACTIVE_PROPERTY_LIMIT_ERROR : BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+    };
+  }
+
+  const live = await getBrListingById(row.id);
+  if (!live || live.status !== "active" || live.is_published !== true) {
+    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  }
+  return { ok: true, id: live.id, status: live.status, isPublished: live.is_published === true };
+}
+
+/**
+ * Package C Build 4 (C7, Gate 5) — activates a freshly-inserted, never-yet-live BR negocio row
+ * (`status: "pending"`) whose publish flow skipped Stripe checkout because it was either already
+ * covered by existing paid capacity (adding a property under an active pack) or a dev/QA payment
+ * bypass. `leonixPublishRealEstateListingCore.ts` now always inserts such rows as
+ * `activationMode: "pending_payment"` (never `"active"` directly) — this is the one sanctioned,
+ * capacity/lifecycle-checked way to bring one live. Structurally identical to `applyBrResume`
+ * except the required prior state (`"pending"`, not `"paused"`) and the RPC's `p_from_status`.
+ */
+async function applyBrActivatePending(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
+  if (!brActivatePendingEligible(row)) {
+    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  }
+
+  if (row.inventory_role === "inventory_property") {
+    const parentGuard = await requireActiveBrParentForChildResume(row);
+    if (!parentGuard.ok) return parentGuard;
+
+    const capacity = await checkBrChildActivationCapacity(row, row.id);
+    if (!capacity.ok) {
+      return {
+        ok: false,
+        error: capacity.error === BR_ACTIVE_PROPERTY_LIMIT_ERROR ? BR_ACTIVE_PROPERTY_LIMIT_ERROR : BR_LIFECYCLE_PARENT_INVALID_ERROR,
+      };
+    }
+  }
+
+  const ownerId = String(row.owner_id ?? "").trim();
+  const rpcResult = await activateBrNegocioListingAtomic({ listingId: row.id, ownerId, fromStatus: "pending" });
+  if (!rpcResult.ok) {
+    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  }
+  if (!rpcResult.activated && !rpcResult.idempotent) {
+    return {
+      ok: false,
+      error: rpcResult.blockedReason === "capacity_reached" ? BR_ACTIVE_PROPERTY_LIMIT_ERROR : BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+    };
+  }
+
+  const live = await getBrListingById(row.id);
+  if (!live || live.status !== "active" || live.is_published !== true) {
+    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  }
+  return { ok: true, id: live.id, status: live.status, isPublished: live.is_published === true };
 }
 
 /**
@@ -440,5 +502,7 @@ export async function applyBrLifecycleMutation(input: {
       return applyBrDiscontinue(loaded.row);
     case "republish":
       return applyBrRepublish(loaded.row, bearerUserId);
+    case "activate_pending":
+      return applyBrActivatePending(loaded.row);
   }
 }

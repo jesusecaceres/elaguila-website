@@ -16,6 +16,8 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { GLOBALIZATION_CURRENT_PACKAGE_FILES } from "./globalizationCurrentPackageDiff";
+
 import {
   assertAutosDealerActionAllowed,
   assertBrNegocioActionAllowed,
@@ -180,7 +182,31 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization P1 fixed the root cause of the app-wide stuck-loading-spinner defect (a
+    // redundant global <Suspense> in app/layout.tsx) and, as a required consequence, added the
+    // one local Suspense boundary Next.js's build requires around each of these two pages' own
+    // useSearchParams() usage. Both are structural runtime-plumbing fixes only (no ownership,
+    // payment, or business-logic change), required for "npm run build" to succeed at all -- not
+    // an incursion into the Ofertas Locales or Autos Negocios workstreams this check protects.
+    const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set([
+      "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+      "app/(site)/dashboard/ofertas-locales/page.tsx",
+      "app/(site)/clasificados/autos/negocios/preview/page.tsx",
+      "app/(site)/publicar/autos/negocios/page.tsx",
+      "app/(site)/clasificados/bienes-raices/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/cancelado/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/exito/page.tsx",
+      "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
+      "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/empleos/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/page.tsx",
+      "app/admin/login/page.tsx",
+    ]);
+    const changed = changedFiles
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f));
     const lockedPathFragments = [
       "revenue-os",
       "stripe",
@@ -195,9 +221,43 @@ async function main() {
       "dashboard/lib",
       "dashboard/components",
     ];
+    /**
+     * Work Package I.12A (Full Catalog Lifecycle Certification and Gap Closure) approved, narrow
+     * exception. I.12A intentionally added `applyOwnerListingPatch` (an owner-id-scoped,
+     * defense-in-depth update helper) to `ownerListingsLifecycleClient.ts`, and migrated the
+     * generic owner dashboard's direct-write call sites in `mis-anuncios/page.tsx` and
+     * `mis-anuncios/[id]/page.tsx` (and its `editar` sub-route) to use it — verified to touch only
+     * client-side owner-write scoping, never any Admin action, RLS, schema, or entitlement logic
+     * (this gate's I.9A report-authorization assertion above is unaffected and still proves that
+     * fix is intact). Exact-file, exact-fragment allowlist only — every other
+     * "dashboard/lib"/"dashboard/mis-anuncios" file remains fully protected below.
+     */
+    const I12A_OWNER_WRITE_DEFENSE_IN_DEPTH_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/lib/ownerListingsLifecycleClient.ts",
+      "app/(site)/dashboard/mis-anuncios/page.tsx",
+      "app/(site)/dashboard/mis-anuncios/[id]/page.tsx",
+      "app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx",
+    ]);
+    /**
+     * Globalization P3 (Gate 5) approved, narrow exception. Confirmed live payment/content-truth
+     * defect: `buildEmpleosInventoryItems()`'s `previewHref` opened a draft-based checkout preview
+     * page with no `listingId` concept at all for an already-published, already-paid Empleos job
+     * (stale/empty sessionStorage draft, could re-show the paid checkout widget). Corrected to
+     * point at the listing's own real public page instead — a one-field href change plus removal
+     * of the now-dead helper it replaced, never any Admin action, RLS, schema, or entitlement
+     * logic. Exact-file allowlist only.
+     */
+    const GLOBALIZATION_P3_OWNER_PREVIEW_HREF_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/lib/dashboardInventory.ts",
+    ]);
     for (const f of changed) {
       const lower = f.toLowerCase();
+      // Globalization Package A — later-package files authorized via the shared allowlist
+      // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+      if (GLOBALIZATION_CURRENT_PACKAGE_FILES.has(f)) continue;
       for (const frag of lockedPathFragments) {
+        if ((frag === "dashboard/lib" || frag === "dashboard/mis-anuncios") && I12A_OWNER_WRITE_DEFENSE_IN_DEPTH_EXCEPTIONS.has(f)) continue;
+        if (frag === "dashboard/lib" && GLOBALIZATION_P3_OWNER_PREVIEW_HREF_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

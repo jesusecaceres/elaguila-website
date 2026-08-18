@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -9,6 +9,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { OfertaLocalOwnerListItem } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -29,7 +31,7 @@ function statusChipClass(status: string): string {
   }
 }
 
-export default function OfertasLocalesOwnerDashboardPage() {
+function OfertasLocalesOwnerDashboardPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/ofertas-locales";
   const searchParams = useSearchParams();
@@ -285,5 +287,13 @@ export default function OfertasLocalesOwnerDashboardPage() {
         </div>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function OfertasLocalesOwnerDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <OfertasLocalesOwnerDashboardPageContent />
+    </Suspense>
   );
 }

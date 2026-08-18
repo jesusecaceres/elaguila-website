@@ -143,6 +143,22 @@ export async function POST(req: NextRequest) {
 
   try {
     if (existing?.slug) {
+      // Ownership: an authenticated request may never edit or republish another
+      // user's listing. Mirrors the Restaurantes publish route's proven
+      // ownership-mismatch guard (app/api/clasificados/restaurantes/publish/route.ts).
+      // Only enforced when the existing row actually recorded an owner — legacy
+      // ownerless rows keep their prior (pre-I.13A) behavior of being claimable.
+      const existingOwnerUserId =
+        typeof existing.owner_user_id === "string" ? existing.owner_user_id : null;
+      if (existingOwnerUserId) {
+        if (!ownerUserId) {
+          return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+        }
+        if (existingOwnerUserId !== ownerUserId) {
+          return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+        }
+      }
+
       const row = draftToComidaLocalPublicListingInsert(draft, existing.slug, {
         ownerUserId: ownerUserId ?? (existing.owner_user_id as string | null) ?? null,
         draftListingId,

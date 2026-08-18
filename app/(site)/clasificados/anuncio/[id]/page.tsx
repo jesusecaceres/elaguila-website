@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../../components/Navbar";
 import newLogo from "../../../../../public/logo.png";
@@ -35,6 +35,8 @@ import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/public
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
+import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   trackListingViewOpen,
   trackListingSaveToggleAuthed,
@@ -408,7 +410,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   return out;
 }
 
-export default function AnuncioDetallePage() {
+function AnuncioDetallePageContent() {
   const params = useParams<{ id: string }>();
 
   // ✅ Null-safe guard: some setups type useSearchParams() as possibly null
@@ -2578,14 +2580,38 @@ export default function AnuncioDetallePage() {
                   ownerUserId={(listing as any)?.owner_id ?? null}
                   onContact={
                     listing
-                      ? () => {
-                          void (async () => {
-                            const sb = createSupabaseBrowserClient();
-                            const {
-                              data: { user },
-                            } = await sb.auth.getUser();
-                            void trackEvent(listing.id, "message_sent", user?.id ?? null);
-                          })();
+                      ? (intent?: CtaSheetIntent) => {
+                          // Package D Build D2, Gate 6C — each CTA now tracks its actual click type
+                          // instead of every click being fabricated as a "message_sent" event.
+                          if (!intent) return;
+                          const kindAndProvider: { kind: ConnectionHubCtaKind; provider?: string } | null =
+                            intent.kind === "call"
+                              ? { kind: "phone" }
+                              : intent.kind === "send_message"
+                                ? intent.whatsappDigits
+                                  ? { kind: "whatsapp" }
+                                  : { kind: "phone", provider: "sms" }
+                                : intent.kind === "send_email"
+                                  ? { kind: "email" }
+                                  : intent.kind === "directions"
+                                    ? { kind: "directions" }
+                                    : intent.kind === "website" ||
+                                        intent.kind === "booking" ||
+                                        intent.kind === "menu" ||
+                                        intent.kind === "order" ||
+                                        intent.kind === "social_link" ||
+                                        intent.kind === "other"
+                                      ? { kind: "website" }
+                                      : null;
+                          if (!kindAndProvider) return;
+                          dispatchConnectionHubCta({
+                            kind: kindAndProvider.kind,
+                            provider: kindAndProvider.provider,
+                            category: listing.category ?? "listings",
+                            sourceTable: "listings",
+                            sourceId: listing.id,
+                            surface: "anuncio_detail",
+                          });
                         }
                       : undefined
                   }
@@ -2645,5 +2671,12 @@ export default function AnuncioDetallePage() {
         </div>
       ) : null}
     </div>
+  );
+}
+export default function AnuncioDetallePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AnuncioDetallePageContent />
+    </Suspense>
   );
 }

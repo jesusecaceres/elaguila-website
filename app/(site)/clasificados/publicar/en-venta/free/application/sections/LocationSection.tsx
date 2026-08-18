@@ -109,10 +109,12 @@ export function LocationSection<S extends EnVentaFreeApplicationState>({
             ))}
           </select>
         </label>
+        {/* Package F Build F2, Gate 9 (P1 accessibility fix) — htmlFor/id pairing added. */}
         <div>
-          <label className={labelClass}>{ovZip?.label ?? t.zip}</label>
+          <label htmlFor="en-venta-free-zip" className={labelClass}>{ovZip?.label ?? t.zip}</label>
           <p className="mt-1 text-xs text-[#111111]/60">{ovZip?.help ?? t.zipHint}</p>
           <input
+            id="en-venta-free-zip"
             className={`${inputClass} mt-2 ${zipInvalid ? "border-red-500 ring-1 ring-red-500/35" : ""}`}
             inputMode="numeric"
             autoComplete="postal-code"

@@ -29,6 +29,8 @@ import {
   AUTOS_PUBLISH_FINAL_STEP_INDEX,
 } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
 import type { AutosPrivadoDraftV1 } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftStorage";
+import { autosListingEditNamespace } from "@/app/lib/clasificados/autos/autosListingEditNamespace";
+import { withPrivadoLocationDefaults } from "@/app/clasificados/autos/privado/lib/autosPrivadoLocationReady";
 
 /** Privado: canonical public title always follows structured year / make / model / trim. */
 function applyPrivadoCanonicalTitle(listing: AutoDealerListing): AutoDealerListing {
@@ -45,14 +47,13 @@ function resumeQueryFlag(): boolean {
   return new URLSearchParams(window.location.search).get("resume") === "1";
 }
 
-export function useAutoPrivadoDraft() {
+export function useAutoPrivadoDraft(editListingId?: string) {
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [restoredFromSession, setRestoredFromSession] = useState(false);
-  const [listing, setListing] = useState<AutoDealerListing>(() => ({
-    ...createEmptyListing(),
-    autosLane: "privado",
-  }));
+  const [listing, setListing] = useState<AutoDealerListing>(() =>
+    withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" }),
+  );
 
   const namespaceRef = useRef<string | null>(null);
   const listingRef = useRef(listing);
@@ -76,7 +77,11 @@ export function useAutoPrivadoDraft() {
 
   const applyDraftPayload = useCallback(
     (d: AutosPrivadoDraftV1) => {
-      setListing(safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"));
+      setListing(
+        withPrivadoLocationDefaults(
+          safeNormalizeAutosDraftListing({ ...d.listing, autosLane: "privado" }, "privado"),
+        ),
+      );
       applyEditorProgress(d.editorStep ?? 0, d.editorMaxReached ?? d.editorStep ?? 0);
       setRestoredFromSession(true);
     },
@@ -88,14 +93,14 @@ export function useAutoPrivadoDraft() {
     if (d) {
       applyDraftPayload(d);
     } else {
-      setListing({ ...createEmptyListing(), autosLane: "privado" });
+      setListing(withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" }));
       applyEditorProgress(0, 0);
       setRestoredFromSession(false);
     }
   }, [applyDraftPayload, applyEditorProgress]);
 
   const emptyPrivado = useCallback(() => {
-    setListing({ ...createEmptyListing(), autosLane: "privado" });
+    setListing(withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" }));
     applyEditorProgress(0, 0);
     setRestoredFromSession(false);
   }, [applyEditorProgress]);
@@ -105,8 +110,9 @@ export function useAutoPrivadoDraft() {
     const supabase = createSupabaseBrowserClient();
 
     const bootstrap = async () => {
-      const ns = await resolveAutosPrivadoDraftNamespace();
+      const rawNs = await resolveAutosPrivadoDraftNamespace();
       if (cancelled) return;
+      const ns = autosListingEditNamespace(rawNs, editListingId);
       namespaceRef.current = ns;
 
       markAutosEditorSessionActive(AUTOS_PRIVADO_EDITOR_SESSION_KEY);
@@ -141,9 +147,12 @@ export function useAutoPrivadoDraft() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") return;
-      const nextNs = session?.user?.id
+      const rawNextNs = session?.user?.id
         ? autosPrivadoDraftNamespaceFromUserId(session.user.id)
         : autosPrivadoDraftNamespaceFromUserId(null);
+      // Fold listing-edit scoping in here too — a background auth event mid-edit must not
+      // revert to the raw namespace and wipe the in-progress edit draft.
+      const nextNs = autosListingEditNamespace(rawNextNs, editListingId);
       if (namespaceRef.current === nextNs) return;
       namespaceRef.current = nextNs;
       clearAutosDraftNamespaceHint("privado");
@@ -155,7 +164,7 @@ export function useAutoPrivadoDraft() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [pathname, hydrateFromNamespace, emptyPrivado, applyEditorProgress]);
+  }, [pathname, editListingId, hydrateFromNamespace, emptyPrivado, applyEditorProgress]);
 
   const setListingPatch = useCallback((patch: Partial<AutoDealerListing>) => {
     setListing((prev) => {
@@ -164,7 +173,7 @@ export function useAutoPrivadoDraft() {
         merged.dealerSocials = { ...prev.dealerSocials, ...patch.dealerSocials };
       }
       const withTitle = applyPrivadoCanonicalTitle(merged);
-      return normalizeLoadedListing(withTitle, { liveDraft: true });
+      return withPrivadoLocationDefaults(normalizeLoadedListing(withTitle, { liveDraft: true }));
     });
   }, []);
 
@@ -177,7 +186,7 @@ export function useAutoPrivadoDraft() {
       /* ignore */
     }
     if (ns) await clearAutosPrivadoDraft(ns);
-    const empty = { ...createEmptyListing(), autosLane: "privado" as const };
+    const empty = withPrivadoLocationDefaults({ ...createEmptyListing(), autosLane: "privado" as const });
     listingRef.current = empty;
     setListing(empty);
     applyEditorProgress(0, 0);
@@ -193,12 +202,16 @@ export function useAutoPrivadoDraft() {
     if (!ns) return;
     rememberAutosDraftNamespaceHint("privado", ns);
     if (opts?.listing) {
-      listingRef.current = normalizeLoadedListing({ ...opts.listing, autosLane: "privado" });
+      listingRef.current = withPrivadoLocationDefaults(
+        normalizeLoadedListing({ ...opts.listing, autosLane: "privado" }),
+      );
       setListing(listingRef.current);
     }
-    const merged = normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" });
+    const merged = withPrivadoLocationDefaults(
+      normalizeLoadedListing({ ...listingRef.current, autosLane: "privado" }),
+    );
     const withTitle = applyPrivadoCanonicalTitle(merged);
-    const normalized = normalizeLoadedListing(withTitle);
+    const normalized = withPrivadoLocationDefaults(normalizeLoadedListing(withTitle));
     const step =
       opts?.editorStep !== undefined ? clampAutosEditorStep(opts.editorStep) : editorStepRef.current;
     const max =

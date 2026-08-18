@@ -306,6 +306,7 @@ async function resolveFromTable(
         leonixColumn: true,
       });
       if (!row) return { ok: false, error: "listing_not_found" };
+      if (str(row.status) !== "approved") return { ok: false, error: "listing_not_found" };
       return resolveOfertasLocalesRow(row, sourceId);
     default:
       return { ok: false, error: "invalid_source_table" };

@@ -29,16 +29,7 @@ export type LanguageCode = SupportedLang | HeldRtlLang;
 
 export const DEFAULT_LANG: SupportedLang = "es";
 
-/**
- * Official Leonix launch UI languages — public selectors and routable ?lang=.
- *
- * Gate I.5.6 — `pt`/`tl` remain in this list (and fully routable via `?lang=pt`/`?lang=en` direct
- * URL access, and in every `Record<OfficialLaunchLang, ...>` dictionary) so no downstream type or
- * dictionary needs touching. They are removed only from `ADDITIONAL_LANGUAGES` below, the one
- * array every visible "More Languages" picker actually renders its options from — the launch
- * decision is ES/EN-only VISIBLE controls, not a narrower internal type. See that constant's
- * comment for the full reasoning.
- */
+/** Official Leonix launch UI languages — public selectors and routable ?lang=. */
 export const OFFICIAL_LAUNCH_LANGUAGES = ["es", "en", "pt", "tl"] as const satisfies readonly SupportedLang[];
 
 export type OfficialLaunchLang = (typeof OFFICIAL_LAUNCH_LANGUAGES)[number];
@@ -96,15 +87,9 @@ export function magazineRouteAdditionalLanguages(): readonly SupportedLang[] {
 }
 
 /**
- * Non-primary languages visible in the public "More Languages" dropdown.
- *
- * Gate I.5.6 — ES/EN-only launch: emptied from `["pt", "tl"]`. This is the single source every
- * visible language picker (`LeonixHeaderLanguageSelector`, `RootIntroLanguagePanel`) maps over to
- * render its selectable options, so emptying it here hides Portuguese and Tagalog/Filipino from
- * every one of those pickers at once — no picker component needed its own edit. `pt`/`tl` are
- * deliberately NOT deleted from `OFFICIAL_LAUNCH_LANGUAGES`, the registry, or any dictionary —
- * they remain a harmless, invisible, reactivatable foundation (flip this array back) once a
- * dedicated PT/TL launch gate is approved.
+ * Hotfix H.1 (2026-08) — ES/EN-only launch gateway: the approved launch scope is Español and
+ * English only. Emptied rather than removed so this list (and the gateway's own conditional
+ * rendering around it) can be repopulated later without further code changes.
  */
 export const ADDITIONAL_LANGUAGES: readonly SupportedLang[] = [];
 
@@ -643,17 +628,10 @@ export function languageAriaLabel(lang: SupportedLang): string {
 /** Universal dropdown trigger — never localized per QR-FRONTDOOR1. */
 export const UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER = "🌐 Languages";
 
-/**
- * Honest browser/Google fallback note — official launch scope only.
- *
- * Gate I.5.6 — `es`/`en` copy corrected to no longer claim Portuguese/Tagalog as official launch
- * languages, since neither is offered by any visible picker anymore. `pt`/`tl` entries are left
- * as-is (unreachable via any visible control, harmless to keep verbatim) rather than edited for
- * cosmetic-only consistency.
- */
+/** Honest browser/Google fallback note — official launch scope only. */
 export const OFFICIAL_LAUNCH_LANGUAGE_FALLBACK_NOTE: Record<OfficialLaunchLang, string> = {
-  es: "¿Necesitas otro idioma? Tu navegador puede ofrecer Google Translate y Google Lens puede ayudar con páginas impresas o visuales. Los idiomas oficiales de Leonix son Español y English.",
-  en: "Need another language? Your browser may offer Google Translate, and Google Lens can help translate printed or visual magazine pages. Leonix official launch languages are Spanish and English.",
+  es: "¿Necesitas otro idioma? Tu navegador puede ofrecer Google Translate y Google Lens puede ayudar con páginas impresas o visuales. Los idiomas oficiales de Leonix son Español, English, Português y Tagalog/Filipino.",
+  en: "Need another language? Your browser may offer Google Translate, and Google Lens can help translate printed or visual magazine pages. Leonix official launch languages are Spanish, English, Portuguese, and Tagalog/Filipino.",
   pt: "Precisa de outro idioma? Seu navegador pode oferecer o Google Translate e o Google Lens pode ajudar com páginas impressas ou visuais. Os idiomas oficiais de lançamento da Leonix são Espanhol, Inglês, Português e Tagalog/Filipino.",
   tl: "Kailangan ng ibang wika? Maaaring mag-alok ang iyong browser ng Google Translate, at makakatulong ang Google Lens sa naka-print o visual na mga pahina. Ang opisyal na launch languages ng Leonix ay Spanish, English, Portuguese, at Tagalog/Filipino.",
 };

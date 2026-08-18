@@ -6,7 +6,7 @@
  */
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
-export type BrLifecycleMutationKey = "pause" | "resume" | "archive" | "discontinue" | "republish";
+export type BrLifecycleMutationKey = "pause" | "resume" | "archive" | "discontinue" | "republish" | "activate_pending";
 
 export type BrLifecycleMutationClientResult =
   | { ok: true; status: string; isPublished: boolean }

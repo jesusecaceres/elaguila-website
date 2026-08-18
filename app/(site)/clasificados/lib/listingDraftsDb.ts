@@ -2,8 +2,12 @@
  * DB-backed draft layer for Clasificados publish flow.
  * Table: public.listing_drafts (id, user_id, category, title, status, draft_data, created_at, updated_at)
  *
- * Live publish path (BR / Rentas): merge draft → `listings` row with `Leonix:*` keys in `detail_pairs`
- * and lifecycle in `status` / `is_published` — see `leonixRealEstateListingContract.ts`. Preview routes stay separate.
+ * Gate I.12A — corrected: this is NOT a live publish path. Confirmed zero callers anywhere in the
+ * app for any category, including BR/Rentas (a repo-wide grep for `listingDraftsDb` matches only
+ * this file itself). Every real category's draft persistence goes through its own client-storage
+ * mechanism (sessionStorage/localStorage/IndexedDB, per-category) instead — see the I.12A ledger
+ * entry for the full inventory. This table/module exists and is functional but unwired; left in
+ * place, not deleted, pending a dedicated cleanup decision.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";

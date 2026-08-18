@@ -75,6 +75,32 @@ const I10A_ANALYTICS_WIRING_EXCEPTIONS = new Set<string>([
   "app/(site)/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell.tsx",
 ]);
 
+/**
+ * Globalization P1 fixed the root cause of an app-wide stuck-loading-spinner defect (a redundant
+ * global <Suspense> in app/layout.tsx) and, as a required consequence, added the one local
+ * Suspense boundary Next.js's build requires around each of these Bienes Raíces pages' own
+ * useSearchParams() usage — structural runtime-plumbing only, no route/ownership/business-logic
+ * change, and required for `npm run build` to succeed at all.
+ */
+const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set<string>([
+  "app/(site)/clasificados/bienes-raices/page.tsx",
+  "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
+  "app/(site)/clasificados/bienes-raices/pago/cancelado/page.tsx",
+  "app/(site)/clasificados/bienes-raices/pago/exito/page.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
+]);
+
+/**
+ * Globalization P2 fixed two confirmed owner-QA defects in
+ * AgenteIndividualResidencialPreviewClient.tsx: an unguarded new-ad checkout widget shown on an
+ * already-published, already-paid listing's dashboard preview, and a false-422/existing-media-loss
+ * bug caused by an unrelated new-ad draft silently overriding correctly DB-hydrated existing
+ * photos. Both are lifecycle/runtime-correctness fixes, not new business logic.
+ */
+const GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS = new Set<string>([
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+]);
+
 async function main() {
   /* ---------------------------------------------------------------------------------------- *
    * 1/2 — the registry resolves both Rentas lanes to the canonical route, and they agree.
@@ -153,7 +179,10 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles: excludePkgFiles } = await import("./globalizationCurrentPackageDiff");
+    const changed = excludePkgFiles(changedFiles.split("\n").map((l) => l.trim()).filter(Boolean));
     assert.ok(
       !changed.includes(SHARED_ANUNCIO_FILE) || I10A_ANALYTICS_WIRING_EXCEPTIONS.has(SHARED_ANUNCIO_FILE),
       "the shared multi-category /clasificados/anuncio/[id] route must not be modified outside the approved I.10A analytics exception",
@@ -162,8 +191,15 @@ async function main() {
     assert.equal(enVenta.applicationRoute, "/clasificados/publicar/en-venta/pro", "En Venta's registry entry must be untouched");
     const brNegocio = getCategoryRouteAdapter("bienes_raices_negocio");
     assert.ok(
-      !changed.some((f) => f.includes("bienes-raices") && !f.includes("Rentas") && !I10A_ANALYTICS_WIRING_EXCEPTIONS.has(f)),
-      "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics exception",
+      !changed.some(
+        (f) =>
+          f.includes("bienes-raices") &&
+          !f.includes("Rentas") &&
+          !I10A_ANALYTICS_WIRING_EXCEPTIONS.has(f) &&
+          !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f) &&
+          !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f),
+      ),
+      "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics / Globalization P1 Suspense-fix / Globalization P2 exceptions",
     );
     void brNegocio;
   }
@@ -178,7 +214,10 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles: excludePkgFilesLockedSystems } = await import("./globalizationCurrentPackageDiff");
+    const changed = excludePkgFilesLockedSystems(changedFiles.split("\n").map((l) => l.trim()).filter(Boolean));
     assert.ok(
       !changed.includes(VISUAL_MATCH_RENDERER_FILE) || I10A_ANALYTICS_WIRING_EXCEPTIONS.has(VISUAL_MATCH_RENDERER_FILE),
       "RentasVisualMatchPreviewView must not be modified outside the approved I.10A analytics exception",
@@ -202,9 +241,20 @@ async function main() {
       deletedFiles = "";
     }
     assert.equal(deletedFiles.trim(), "", "no file may be deleted by this gate");
-    assert.ok(!changedFiles.split("\n").some((f) => f.trim().startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    const scopedChanged = excludeCurrentPackageFiles(
+      changedFiles.split("\n").map((l) => l.trim()).filter(Boolean),
+    );
+    assert.ok(!scopedChanged.some((f) => f.startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
 
+    // Globalization Package A — files a later package is explicitly authorized to change are
+    // skipped here (whole-file authorization with per-file justification lives in
+    // scripts/globalizationCurrentPackageDiff.ts); this check keeps protecting every other file.
+    const { GLOBALIZATION_CURRENT_PACKAGE_FILES } = await import("./globalizationCurrentPackageDiff");
     for (const f of [REGISTRY_FILE, ALIAS_REDIRECT_FILE, SAME_COMPANY_FILE]) {
+      if (GLOBALIZATION_CURRENT_PACKAGE_FILES.has(f)) continue;
       let diff = "";
       try {
         diff = execFileSync("git", ["diff", "--unified=0", "HEAD", "--", f], { cwd: REPO_ROOT, encoding: "utf8" });

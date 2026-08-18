@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import type { PublishCheckpointCardData } from "../_lib/categoryPublishCheckpoints";
 import {
-  buildPaidCheckpointNewsletterHref,
   publishCheckpointCouponExclusions,
   publishCheckpointCouponLine,
   publishCheckpointCouponLineShort,
@@ -18,23 +16,19 @@ function hasPaidStyleCard(cards: PublishCheckpointCardData[]): boolean {
   );
 }
 
+/**
+ * The Launch 25 (25% off) campaign this banner advertised has been retired.
+ * Left as a no-op so its single call site in PublishEntryCheckpointLayout does
+ * not need to change; renders nothing.
+ */
 export function PublishEntryCheckpointLaunchBanner({
-  lang,
-  category,
+  lang: _lang,
+  category: _category,
 }: {
   lang: PublishCheckpointLang;
   category: string;
 }) {
-  const href = buildPaidCheckpointNewsletterHref(lang, category);
-  return (
-    <LeonixLaunchCouponCard
-      lang={lang}
-      variant="public"
-      href={href}
-      openInNewTab
-      finePrintMode="full"
-    />
-  );
+  return null;
 }
 
 type PaidPublishCheckpointCardProps = {

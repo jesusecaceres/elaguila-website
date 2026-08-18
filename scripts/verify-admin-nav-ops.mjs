@@ -66,7 +66,13 @@ for (const href of [
   "/admin/activity-log",
   "/admin/settings",
   "/admin/workspace/language-audit",
-  "/admin/payments",
+  // Package E Build E3, Gate 1 — the primary Payments/Revenue nav entry now points to the real
+  // payment ledger instead of the /admin/payments stub (that stub is left in place, unlinked,
+  // as a compatibility route, per the E3 build's explicit instruction not to delete it). This
+  // replaces the old "/admin/payments" pin, it does not weaken it — the intent of this check
+  // (a real, discoverable Payments/Revenue destination must exist in the nav) is preserved.
+  "/admin/workspace/payment-tracker",
+  "/admin/site-settings",
 ]) {
   assert(`sidebar href preserved ${href}`, globalNavSrc.includes(`href: "${href}"`), href);
 }

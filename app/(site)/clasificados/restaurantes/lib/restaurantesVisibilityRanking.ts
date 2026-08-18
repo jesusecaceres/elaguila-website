@@ -26,6 +26,24 @@ export function restaurantesBlueprintRowToEntitlementListing(
 }
 
 export function resolveRestaurantesListingRank(row: RestaurantesPublicBlueprintRow): VisibilityRankSummary {
+  // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight (pre-resolved,
+  // batched server-side) wins over the legacy row-field fallback below, per the locked "canonical
+  // entitlement wins over legacy compatibility signals" rule.
+  if (row.canonicalPlacementRankWeight != null) {
+    const w = row.canonicalPlacementRankWeight;
+    return {
+      category: "restaurantes",
+      bucket: "digital_featured",
+      rankWeight: w,
+      label: "Canonical placement entitlement",
+      reason: "Active leonix_placement_entitlements row for this listing.",
+      source: "leonix_placement_entitlements",
+      eligibleForResultsPriority: w >= 500,
+      eligibleForDestacadosModule: w >= 600,
+      searchFilterMustMatchFirst: true,
+      warnings: [],
+    };
+  }
   return resolveListingVisibilityRank({
     category: "restaurantes",
     listing: restaurantesBlueprintRowToEntitlementListing(row),

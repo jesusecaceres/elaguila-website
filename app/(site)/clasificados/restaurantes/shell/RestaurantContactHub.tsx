@@ -28,6 +28,8 @@ import {
 } from "../lib/restaurantesCtaTracking";
 import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
+import { buildSharedConnectionHubMapEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";
+import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import { RestaurantHubReviewLinkButton } from "./RestaurantHubReviewLinkButton";
 import {
   restaurantHubSocialBrandStyle,
@@ -92,12 +94,11 @@ function iconForButton(btn: RestaurantHubButton): IconType {
 function CopyChip({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value);
+    // Global Business Hub OS — surgical adoption of the shared clipboard helper.
+    const ok = await copyToClipboard(value);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* silent */
     }
   }, [value]);
   return (
@@ -435,7 +436,26 @@ export function RestaurantContactHub({
               ) : null}
               {(hub.location!.mapsHref || hub.location!.addressLine1) && (
                 <div className="mt-2 overflow-hidden rounded-lg border border-[#D4C4A8] shadow-sm ring-1 ring-[#C9A84A]/15">
-                  <RestaurantContactHubFauxMap />
+                  {/* Global Business Hub OS — real map embed only when the same
+                      shouldShowRestaurantStreetAddress() signal that already gates the address
+                      text also permits an exact address; otherwise the decorative faux map (never
+                      a real pinpoint for a location we're not showing publicly). */}
+                  {hub.location!.showExactAddress &&
+                  buildSharedConnectionHubMapEmbedSrc(
+                    [hub.location!.addressLine1, hub.location!.addressLine2].filter(Boolean).join(", "),
+                  ) ? (
+                    <iframe
+                      src={buildSharedConnectionHubMapEmbedSrc(
+                        [hub.location!.addressLine1, hub.location!.addressLine2].filter(Boolean).join(", "),
+                      )}
+                      className="h-40 w-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={hub.location!.addressLine1 || hub.businessName}
+                    />
+                  ) : (
+                    <RestaurantContactHubFauxMap />
+                  )}
                 </div>
               )}
               {hub.location!.mapsHref ? (

@@ -95,14 +95,19 @@ async function main() {
       assert.equal(publicHref, `/clasificados/anuncio/${CANONICAL_ID}`, `${pipeline}.publicRoute must use the canonical UUID`);
     }
 
-    // Mascotas: editRoute remains honestly null (no safe category-specific editor exists).
-    // publicRoute was null when this gate (I.6A) was written, documenting the then-unrepaired
-    // shared-shell mis-render bug; Gate I.6B fixed the root cause and this assertion was updated
-    // to match, rather than left stale.
+    // Mascotas: publicRoute was null when this gate (I.6A) was written, documenting the
+    // then-unrepaired shared-shell mis-render bug; Gate I.6B fixed the root cause and this
+    // assertion was updated to match, rather than left stale. Globalization Package A Gate 5
+    // then wired editRoute to the generic owner-verified editor with the safety proof I.6B
+    // required (same publisher/row shape as Clases/Comunidad; detail_pairs never touched) —
+    // this assertion updated again rather than left stale.
     const mascotas = getCategoryRouteAdapter("mascotas_y_perdidos");
     const mascotasIdentity = fakeIdentity({ pipeline: "mascotas_y_perdidos", category: "mascotas-y-perdidos", sourceId: CANONICAL_ID });
     assert.equal(mascotas.publicRoute(mascotasIdentity, { lang: "es" }), `/clasificados/anuncio/${CANONICAL_ID}`, "Mascotas publicRoute must now resolve by canonical UUID (Gate I.6B fix)");
-    assert.equal(mascotas.editRoute(mascotasIdentity, { lang: "es" }), null, "Mascotas editRoute remains unsupported (no category-specific editor exists)");
+    assert.ok(
+      mascotas.editRoute(mascotasIdentity, { lang: "es" })!.includes(`/dashboard/mis-anuncios/${CANONICAL_ID}/editar`),
+      "Mascotas editRoute must resolve to the generic owner-verified editor (Package A Gate 5)",
+    );
   }
 
   /* ============================================================================================
@@ -198,16 +203,13 @@ async function main() {
       assert.ok(!keys.includes("manageInventory"), `${pipeline} must never receive manageInventory (Business Hub action)`);
 
       // Gate I.6B fixed Mascotas' public route (was unsafely null when this gate — I.6A — was
-      // written); viewPublic now correctly appears for it too. Edit remains intentionally absent
-      // for Mascotas only — no safe category-specific editor exists.
+      // written); viewPublic now correctly appears for it too. Globalization Package A Gate 5
+      // then wired Mascotas edit to the generic owner-verified editor (safety-proven), so ALL
+      // five quick pipelines now expose edit uniformly.
       assert.ok(keys.includes("viewPublic"), `${pipeline} must expose viewPublic`);
-      if (pipeline === "mascotas_y_perdidos") {
-        assert.ok(!keys.includes("edit"), "Mascotas must not expose edit — no safe category-specific editor exists");
-      } else {
-        assert.ok(keys.includes("edit"), `${pipeline} must now expose edit (Gate I.6A regression guard)`);
-        const editAction = actions.find((a) => a.key === "edit")!;
-        assert.ok(editAction.href.includes(identity.sourceId), `${pipeline} edit action href must target the canonical sourceId`);
-      }
+      assert.ok(keys.includes("edit"), `${pipeline} must now expose edit (Gate I.6A / Package A Gate 5 regression guard)`);
+      const editAction = actions.find((a) => a.key === "edit")!;
+      assert.ok(editAction.href.includes(identity.sourceId), `${pipeline} edit action href must target the canonical sourceId`);
     }
   }
 

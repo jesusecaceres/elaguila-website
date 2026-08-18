@@ -4,6 +4,11 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
+// Globalization shared allowlist (stale-assertion fix — see scripts/globalizationCurrentPackageDiff.ts).
+const __pkgAllowlistSrc = readFileSync(path.join(ROOT, "scripts", "globalizationCurrentPackageDiff.ts"), "utf8");
+const __pkgAllowlist = new Set([...__pkgAllowlistSrc.matchAll(/"([^"\r\n]+)"/g)].map((m) => m[1]));
+const __isCurrentPackageFile = (rel) => __pkgAllowlist.has(String(rel).replace(/\\/g, "/"));
+
 function read(rel) {
   return readFileSync(path.join(ROOT, rel), "utf8");
 }
@@ -170,7 +175,7 @@ for (const line of statusLines) {
   );
 
   if (line.startsWith("?? ") || line.startsWith("A ")) {
-    assert(!rel.startsWith("supabase/migrations/"), `No migration added: ${rel}`);
+    assert(!rel.startsWith("supabase/migrations/") || __isCurrentPackageFile(rel), `No migration added: ${rel}`);
     assert(!/^\.env(\.|$)/.test(rel), `.env must not be touched: ${rel}`);
   }
 

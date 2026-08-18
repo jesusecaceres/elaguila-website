@@ -237,6 +237,9 @@ export default function RestauranteApplicationClient() {
     });
   }, [dashboardListingId, dashboardLeonixAdId, lang, returnPanel]);
 
+  // Package C Build 3 (C5/C6) — repurposed: coupons are included in the $399/mo base package, so
+  // this only verifies real capability server-side (no Stripe checkout, no redirect handled by
+  // Stripe return) and then navigates straight to coupon-edit mode for the same listing.
   const startDashboardAddonCheckout = useCallback(async () => {
     if (!dashboardListingId) {
       setDashboardContextErr(fc.dashboard.missingListingId);
@@ -245,24 +248,24 @@ export default function RestauranteApplicationClient() {
     setDashboardAddonCheckoutBusy(true);
     setDashboardContextErr(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
       const result = await redirectRestauranteDashboardCouponAddonCheckout({
         listingId: dashboardListingId,
         leonixAdId: dashboardLeonixAdId,
         lang,
-        customerEmail: auth.user?.email ?? null,
-        returnPath: dashboardCouponCheckoutReturnPath,
       });
       if (!result.ok) {
         setDashboardContextErr(result.userMessage);
         setDashboardAddonCheckoutBusy(false);
+        return;
+      }
+      if (dashboardCouponCheckoutReturnPath) {
+        router.push(dashboardCouponCheckoutReturnPath);
       }
     } catch {
       setDashboardContextErr(fc.dashboard.couponCheckoutFailed);
       setDashboardAddonCheckoutBusy(false);
     }
-  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath, fc]);
+  }, [dashboardListingId, dashboardLeonixAdId, lang, dashboardCouponCheckoutReturnPath, fc, router]);
 
   const saveExistingDashboardListing = useCallback(async () => {
     if (!isExistingDashboardListingMode || !dashboardListingId) return;

@@ -5,6 +5,10 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import {
   logQuickListingReuseFailure,
   quickListingExistingIdentityInvalidMessage,
+  clearSessionPublishAttemptKey,
+  fetchOwnListingIdByPublishAttemptKey,
+  getOrCreateSessionPublishAttemptKey,
+  isPublishAttemptKeyConflict,
   verifyQuickListingReusable,
 } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
@@ -494,11 +498,32 @@ export async function publishCommunityQuickToListings(input: {
     logQuickListingReuseFailure(`community:${kind}`, reuseCheck!.reason);
     return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
   } else {
+    // Globalization Package A Gate 3 — session-stable idempotency key closes the concurrent
+    // double-submit race (unique index listings_owner_publish_attempt_key_uidx; recovery
+    // below). Fail-open: null key (or an older DB — insertListingsRowResilient drops the
+    // unknown column) preserves pre-gate behavior.
+    const publishAttemptKey = getOrCreateSessionPublishAttemptKey(kind);
+    if (publishAttemptKey) insertPayload.publish_attempt_key = publishAttemptKey;
     const ins = await insertListingsRowResilient(supabase, insertPayload);
-    if (ins.error) {
+    if (ins.error && publishAttemptKey && isPublishAttemptKeyConflict(ins.error)) {
+      // This exact submission already created a row (racing click or lost response) —
+      // recover it, never insert a duplicate.
+      const recoveredId = await fetchOwnListingIdByPublishAttemptKey(supabase, {
+        ownerUserId: userId,
+        attemptKey: publishAttemptKey,
+        expectedCategory: kind,
+      });
+      if (recoveredId) {
+        listingId = recoveredId;
+      } else {
+        return { ok: false, error: ins.error.message };
+      }
+    } else if (ins.error) {
       return { ok: false, error: ins.error.message };
+    } else {
+      listingId = ins.data?.id;
     }
-    listingId = ins.data?.id;
+    if (listingId) clearSessionPublishAttemptKey(kind);
   }
   if (!listingId) {
     return { ok: false, error: err("No se recibió el ID del anuncio.", "No listing id returned.") };

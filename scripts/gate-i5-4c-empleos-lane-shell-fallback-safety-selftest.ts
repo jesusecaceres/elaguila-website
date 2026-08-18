@@ -172,7 +172,13 @@ async function main() {
       changedFiles = "";
     }
     const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
-    assert.ok(!changed.some((f) => f.startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
+    // Rewired onto the shared allowlist (see globalizationCurrentPackageDiff.ts) — this blanket
+    // "no migration in the diff" check predates that mechanism; a later package's own
+    // already-authorized migration (e.g. Package C Build 4/C9's capacity RPC migration) must not
+    // trip it. The lane-column migration itself stays a hard, non-exempt rule below.
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    const changedOutsideAllowlist = excludeCurrentPackageFiles(changed);
+    assert.ok(!changedOutsideAllowlist.some((f) => f.startsWith("supabase/migrations/")), "no UN-allowlisted migration file may be part of the current diff");
     assert.ok(!changed.includes(MIGRATION_FILE), "the original lane-column migration must not be modified");
 
     for (const f of [RESOLVER_FILE, DB_SERVER_FILE, PAGE_FILE]) {

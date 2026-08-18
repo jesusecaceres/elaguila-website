@@ -13,10 +13,27 @@ import {
 
 export const REVENUE_WEBHOOK_EVENT_CHECKOUT_COMPLETED = "checkout.session.completed";
 export const REVENUE_WEBHOOK_EVENT_CHECKOUT_EXPIRED = "checkout.session.expired";
+// Package C Build 1 (C3) — launch-required subscription lifecycle events + refund/dispute
+// foundations. Every entry has a REAL handler (revenueSubscriptionEvents.ts) — never a
+// string-only claim.
+export const REVENUE_WEBHOOK_EVENT_INVOICE_PAID = "invoice.paid";
+export const REVENUE_WEBHOOK_EVENT_INVOICE_PAYMENT_FAILED = "invoice.payment_failed";
+export const REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_UPDATED = "customer.subscription.updated";
+export const REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_DELETED = "customer.subscription.deleted";
+export const REVENUE_WEBHOOK_EVENT_CHARGE_REFUNDED = "charge.refunded";
+export const REVENUE_WEBHOOK_EVENT_DISPUTE_CREATED = "charge.dispute.created";
+export const REVENUE_WEBHOOK_EVENT_DISPUTE_CLOSED = "charge.dispute.closed";
 
 export const REVENUE_SUPPORTED_WEBHOOK_EVENTS = [
   REVENUE_WEBHOOK_EVENT_CHECKOUT_COMPLETED,
   REVENUE_WEBHOOK_EVENT_CHECKOUT_EXPIRED,
+  REVENUE_WEBHOOK_EVENT_INVOICE_PAID,
+  REVENUE_WEBHOOK_EVENT_INVOICE_PAYMENT_FAILED,
+  REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_UPDATED,
+  REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_DELETED,
+  REVENUE_WEBHOOK_EVENT_CHARGE_REFUNDED,
+  REVENUE_WEBHOOK_EVENT_DISPUTE_CREATED,
+  REVENUE_WEBHOOK_EVENT_DISPUTE_CLOSED,
 ] as const;
 
 export type RevenueOsCheckoutMetadata = {

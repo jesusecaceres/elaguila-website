@@ -16,7 +16,7 @@ export const BASE_BR_NEGOCIO_MONTHLY_PRICE = 399;
  * re-define its own independent property-count truth again.
  */
 export const BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = BR_BASE_INCLUDED_PROPERTIES;
-export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.99;
+export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.00;
 export const BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = BR_INVENTORY_PACK_MAX_CHILDREN;
 export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = BR_TOTAL_ACTIVE_PROPERTY_LIMIT;
 /** Base + upgrade monthly total (BR13D locked product). */
@@ -63,7 +63,7 @@ function trim(v: unknown): string {
 }
 
 /**
- * BR property inventory add-on (+5 @ $99.99/mo → 8 total).
+ * BR property inventory add-on (+3 @ $99.00/mo → 4 total).
  * Production truth: active entitlement only (C6 Stripe). Until then, dev/QA flags are non-production.
  */
 export function isBrInventoryUpgradeActive(opts?: { entitlementActive?: boolean }): boolean {

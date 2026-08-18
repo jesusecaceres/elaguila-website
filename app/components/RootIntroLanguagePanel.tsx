@@ -107,7 +107,7 @@ export function RootIntroLanguagePanel({ siteUnlocked }: RootIntroLanguagePanelP
           </button>
         ))}
 
-        {/* Gate I.5.6 — ES/EN-only launch: ADDITIONAL_LANGUAGES is empty, so this trigger would
+        {/* Hotfix H.1 — ES/EN-only launch: ADDITIONAL_LANGUAGES is empty, so this trigger would
             otherwise open an empty dropdown with nothing to select. Hidden entirely rather than
             shown broken; reappears automatically once ADDITIONAL_LANGUAGES is populated again. */}
         {ADDITIONAL_LANGUAGES.length > 0 ? (

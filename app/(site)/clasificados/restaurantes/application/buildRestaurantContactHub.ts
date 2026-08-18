@@ -68,6 +68,11 @@ export type RestaurantContactHubData = {
     supportingText?: string;
     mapsHref?: string;
     mapsLabel: string;
+    /** Global Business Hub OS — true only when `shouldShowRestaurantStreetAddress()` allows the
+     * exact address to be public. Was computed here but previously dropped after use; now exposed
+     * so the render layer can gate a real map embed on the same signal that already gates the
+     * address text, instead of always showing a decorative faux map. */
+    showExactAddress?: boolean;
   };
   hours?: RestaurantContactHubHours;
 };
@@ -385,6 +390,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       supportingText: pickupNote,
       mapsHref,
       mapsLabel: lang === "en" ? "Get directions" : "Cómo llegar",
+      showExactAddress: showStreet,
     };
   }
 

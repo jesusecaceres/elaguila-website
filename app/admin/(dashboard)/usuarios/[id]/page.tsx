@@ -13,6 +13,8 @@ import {
   fetchAdminUserAnalyticsRollup,
   fetchAdminUserEntitlementRollup,
 } from "../../../_lib/adminUserRollups";
+import { fetchAdminCustomerCommercialContext } from "../../../_lib/adminCustomerCommercialContext";
+import { fetchAdminAuditLogForTarget } from "../../../_lib/adminAuditLogServer";
 import { adminEditSupportStatusLabelEs, resolveAdminAdActions } from "../../../_lib/adminAdEditSupportMap";
 import { categoryAdPlanDisplayLabel, resolveCategoryAdPlanFromAdminAd } from "@/app/lib/listingPlans/categoryAdPlans";
 
@@ -438,10 +440,15 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   };
   const adsBundle = await fetchAdminUserAdsForUser(clientId, ownerHints);
   const allListingIds = adsBundle.groups.flatMap((g) => g.ads.map((a) => a.internalId)).filter(Boolean);
-  const [entitlementRollup, analyticsRollup] = await Promise.all([
+  const [entitlementRollup, analyticsRollup, commercialContext, auditHistory] = await Promise.all([
     fetchAdminUserEntitlementRollup(allListingIds),
     fetchAdminUserAnalyticsRollup(clientId),
+    fetchAdminCustomerCommercialContext(clientId, allListingIds),
+    fetchAdminAuditLogForTarget([clientId, ...allListingIds], 20),
   ]);
+  const leonixAdIdByListingId = new Map(
+    adsBundle.groups.flatMap((g) => g.ads.map((a) => [a.internalId, a.leonixAdId ?? a.displayId] as const)),
+  );
   const ownedIds =
     adsBundle.groups.find((g) => g.source === "generic")?.ads.map((a) => a.internalId).filter(Boolean) ?? [];
 
@@ -757,6 +764,205 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <p className="mt-3 text-xs">
           <Link href="/admin/workspace/package-entitlements" className="font-bold text-[#6B5B2E] underline">
             {t.entOpenTracker}
+          </Link>
+        </p>
+      </div>
+
+      {/* Package E Build E3, Gate 2 — unified commercial context. Every card below is sourced
+          from fetchAdminCustomerCommercialContext(), which composes the SAME canonical tables
+          paymentTrackerData.ts / packageEntitlementData.ts / commercialStateBadges.ts already
+          read elsewhere — nothing here is a second implementation, and each commercial dimension
+          (payment, package, placement, subscription/grace, promo/grant) stays in its own card. */}
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">Revenue / Payments</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Real payment records for this customer&apos;s owned listings.
+        </p>
+        {commercialContext.unavailable ? (
+          <p className="mt-3 text-sm text-amber-900">{commercialContext.unavailableNote}</p>
+        ) : commercialContext.payments.length === 0 ? (
+          <p className="mt-3 text-sm text-[#5C5346]">No payment records found for this customer&apos;s listings.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-xs">
+              <thead>
+                <tr className="text-[10px] font-bold uppercase text-[#7A7164]">
+                  <th className="pb-2 pr-3">Date</th>
+                  <th className="pb-2 pr-3">Category</th>
+                  <th className="pb-2 pr-3">Package</th>
+                  <th className="pb-2 pr-3">Amount</th>
+                  <th className="pb-2 pr-3">Status</th>
+                  <th className="pb-2 pr-3">Source</th>
+                  <th className="pb-2">Promo / Sales rep</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commercialContext.payments.map((p) => (
+                  <tr key={p.id} className="border-t border-[#E8DFD0]/70">
+                    <td className="py-2 pr-3 text-[#5C5346]">{formatDate(p.paidAt ?? p.createdAt)}</td>
+                    <td className="py-2 pr-3 text-[#1E1810]">{p.category ?? "—"}</td>
+                    <td className="py-2 pr-3 text-[#1E1810]">{p.packageTier ?? p.packageKey ?? "—"}</td>
+                    <td className="py-2 pr-3 font-semibold text-[#1E1810]">
+                      {p.amountTotalCents != null ? `$${(p.amountTotalCents / 100).toFixed(2)} ${p.currency.toUpperCase()}` : "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-[#5C5346]">{p.paymentStatus}</td>
+                    <td className="py-2 pr-3 text-[#5C5346]">{p.source}</td>
+                    <td className="py-2 text-[#5C5346]">{p.promoCode ?? p.salesRepName ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-3 text-xs">
+          <Link href="/admin/workspace/payment-tracker" className="font-bold text-[#6B5B2E] underline">
+            Open full payment tracker →
+          </Link>
+        </p>
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">Package &amp; Placement</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Package entitlement and placement entitlement are independent truths — a package never implies placement.
+        </p>
+        {commercialContext.unavailable ? (
+          <p className="mt-3 text-sm text-amber-900">{commercialContext.unavailableNote}</p>
+        ) : (
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase text-[#7A7164]">Package entitlements</p>
+              {commercialContext.entitlements.length === 0 ? (
+                <p className="mt-2 text-xs text-[#5C5346]">None.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {commercialContext.entitlements.map((e) => (
+                    <li key={e.id} className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-2 text-xs">
+                      <p className="font-semibold text-[#1E1810]">
+                        {e.category} — {e.packageTier}
+                        {e.listingId ? ` (${leonixAdIdByListingId.get(e.listingId) ?? e.listingId})` : ""}
+                      </p>
+                      <p className="mt-0.5 text-[#5C5346]">
+                        {e.effectiveStatus} · {formatDate(e.startsAt)}–{formatDate(e.endsAt)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase text-[#7A7164]">Placement entitlements</p>
+              {commercialContext.placements.length === 0 ? (
+                <p className="mt-2 text-xs text-[#5C5346]">None.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {commercialContext.placements.map((pl) => (
+                    <li key={pl.id} className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-2 text-xs">
+                      <p className="font-semibold text-[#1E1810]">
+                        {pl.category} — {pl.placementTier}
+                        {pl.listingId ? ` (${leonixAdIdByListingId.get(pl.listingId) ?? pl.listingId})` : ""}
+                      </p>
+                      <p className="mt-0.5 text-[#5C5346]">
+                        {pl.status}
+                        {pl.includedWithPrint ? " · included with print" : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">Subscription / Grace</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">Real subscription/billing state — independent of package and placement.</p>
+        {commercialContext.unavailable ? (
+          <p className="mt-3 text-sm text-amber-900">{commercialContext.unavailableNote}</p>
+        ) : commercialContext.subscriptions.length === 0 ? (
+          <p className="mt-3 text-sm text-[#5C5346]">No subscription records for this customer.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {commercialContext.subscriptions.map((s) => (
+              <li key={s.id} className="rounded-lg border border-[#E8DFD0] bg-white/70 px-3 py-2 text-xs">
+                <p className="font-semibold text-[#1E1810]">
+                  {s.category ?? "—"}
+                  {s.listingId ? ` (${leonixAdIdByListingId.get(s.listingId) ?? s.listingId})` : ""} — {s.packageKey ?? "—"}
+                </p>
+                {s.badges.length > 0 ? (
+                  <p className="mt-1 flex flex-wrap gap-1.5">
+                    {s.badges.map((b) => (
+                      <span key={b.key} className="rounded-full bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-semibold text-[#5C4E2E]">
+                        {b.labelEn}
+                      </span>
+                    ))}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[#5C5346]">{s.status}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">Promo / Grant Source</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Where an entitlement came from (Stripe payment, admin manual, print-included, comp, partner, manual cleared payment) — never inferred from status or tier.
+        </p>
+        {commercialContext.unavailable ? (
+          <p className="mt-3 text-sm text-amber-900">{commercialContext.unavailableNote}</p>
+        ) : commercialContext.entitlements.filter((e) => e.grantSource).length === 0 &&
+          commercialContext.payments.filter((p) => p.promoCode).length === 0 ? (
+          <p className="mt-3 text-sm text-[#5C5346]">No promo code or grant-source attribution found.</p>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {commercialContext.entitlements
+              .filter((e) => e.grantSource)
+              .map((e) => (
+                <span key={e.id} className="rounded-full bg-[#F0E8DA] px-2.5 py-1 text-xs font-semibold text-[#5C4E2E]">
+                  {e.category}: {e.grantSource}
+                </span>
+              ))}
+            {commercialContext.payments
+              .filter((p) => p.promoCode)
+              .map((p) => (
+                <span key={p.id} className="rounded-full bg-[#E8F0FA] px-2.5 py-1 text-xs font-semibold text-[#1E3A5F]">
+                  promo: {p.promoCode}
+                </span>
+              ))}
+          </div>
+        )}
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">Recent Admin Activity</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Only events truthfully linked by exact id (this profile or one of their real listing ids) — nothing fuzzy-matched.
+        </p>
+        {auditHistory.mode === "unavailable" ? (
+          <p className="mt-3 text-sm text-amber-900">{auditHistory.detail ?? "Activity log unavailable."}</p>
+        ) : auditHistory.rows.length === 0 ? (
+          <p className="mt-3 text-sm text-[#5C5346]">No linked admin activity found.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {auditHistory.rows.map((r) => (
+              <li key={r.id} className="rounded-lg border border-[#E8DFD0]/80 bg-white/70 px-2.5 py-1.5 text-xs">
+                <span className="font-semibold text-[#1E1810]">{r.action}</span>{" "}
+                <span className="text-[#7A7164]">
+                  ({r.target_type ?? "unknown"}
+                  {r.target_id ? `: ${leonixAdIdByListingId.get(r.target_id) ?? r.target_id}` : ""}) — {formatDate(r.created_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-3 text-xs">
+          <Link href="/admin/activity-log" className="font-bold text-[#6B5B2E] underline">
+            Open full activity log →
           </Link>
         </p>
       </div>

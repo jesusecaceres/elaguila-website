@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { BR_PUBLICAR_HUB, BR_RESULTS } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { LeonixDashboardShell } from "./components/LeonixDashboardShell";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { DashboardMetricLinkCard } from "./components/DashboardMetricLinkCard";
 import { DashboardCategoryLauncherCard } from "./components/DashboardCategoryLauncherCard";
 import { DashboardQuickActionCard } from "./components/DashboardQuickActionCard";
@@ -24,6 +23,8 @@ import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
 import { fetchDashboardAnalyticsSummary } from "./lib/fetchDashboardAnalyticsApi";
 
+export const dynamic = "force-dynamic";
+
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
 
@@ -38,7 +39,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard";
 
@@ -518,13 +519,25 @@ export default function DashboardPage() {
             ) : null}
           </header>
 
-          <div className="mt-6">
-            <LeonixLaunchCouponCard
-              lang={lang}
-              variant="dashboard"
-              href={`/newsletter?lang=${lang}&source=dashboard_launch_25&sourceCta=launch_25`}
-            />
-          </div>
+          {/* Package E Build E2, Gate 7 — real commercial-state alerts (payment issue, grace,
+              cancel-at-period-end), from the SAME derived-feed source as Notifications; no
+              second implementation, no fabricated alerts. */}
+          {derivedFeed.filter((f) => f.kind === "payment_attention").length > 0 ? (
+            <div className="mt-6 flex flex-col gap-2">
+              {derivedFeed
+                .filter((f) => f.kind === "payment_attention")
+                .map((f) => (
+                  <Link
+                    key={f.id}
+                    href={f.href}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900 hover:bg-red-100"
+                  >
+                    <span className="min-w-0 flex-1 break-words">{f.title}</span>
+                    <span aria-hidden className="shrink-0">→</span>
+                  </Link>
+                ))}
+            </div>
+          ) : null}
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <DashboardMetricLinkCard
@@ -613,5 +626,13 @@ export default function DashboardPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardPageContent />
+    </Suspense>
   );
 }

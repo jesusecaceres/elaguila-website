@@ -43,13 +43,13 @@ assert(copy.includes("Examples are suggestions, not limits."), "English city hel
 assert(copy.includes("NorCal appears as a suggestion"), "English city NorCal suggestion copy");
 assert(!app.includes("norcalOnly") && !app.includes("NORCAL_CITIES"), "No NorCal-only city gate in application UI");
 
-// Gate 3 — video links only, max 4
-assert(types.includes("SERVICIOS_MAX_VIDEO_URLS = 4"), "Max video URLs must be 4");
+// Gate 3 — video links only, max 8 (Global Business Hub OS — pilot-lane cap raised 4 -> 8)
+assert(types.includes("SERVICIOS_MAX_VIDEO_URLS = 8"), "Max video URLs must be 8");
 assert(app.includes("SERVICIOS_MAX_VIDEO_URLS"), "Application must use SERVICIOS_MAX_VIDEO_URLS");
 assert(!app.includes("addVideoFile"), "Direct video file upload path removed");
 assert(!app.includes('accept="video/*"'), "No video file picker in application");
-assert(copy.includes("hasta 4 enlaces de video"), "Spanish copy: 4 video links");
-assert(copy.includes("up to 4 video links"), "English copy: 4 video links");
+assert(copy.includes("hasta 8 enlaces de video"), "Spanish copy: 8 video links");
+assert(copy.includes("up to 8 video links"), "English copy: 8 video links");
 assert(!copy.includes("archivo o enlace"), "Old file-or-link copy removed (ES)");
 assert(!copy.includes("upload or URL"), "Old upload-or-URL copy removed (EN)");
 

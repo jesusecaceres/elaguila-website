@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import CityAutocomplete from "../../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../../data/locations/californiaLocationHelpers";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -44,7 +45,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/perfil";
@@ -458,16 +459,6 @@ export default function ProfilePage() {
             </div>
           ) : null}
 
-          {onboarding ? (
-            <div className="mt-6">
-              <LeonixLaunchCouponCard
-                lang={lang}
-                variant="compact"
-                href={`/newsletter?lang=${lang}&source=profile_onboarding_launch_25&sourceCta=launch_25`}
-              />
-            </div>
-          ) : null}
-
           <div className="relative mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-7">
             {showClose ? (
               <button
@@ -725,5 +716,13 @@ export default function ProfilePage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

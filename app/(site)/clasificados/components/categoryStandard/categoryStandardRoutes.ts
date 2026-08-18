@@ -3,15 +3,22 @@ import type { CategoryStandardKey } from "./categoryStandardTheme";
 
 /**
  * GATE I.5.1 NOTE — do not read this file's `categoryPublishPath()` as the platform's canonical
- * route contract. `app/lib/listingIdentity/categoryRouteRegistry.ts` is that contract as of
- * Gate I.5.1. This file's map is kept separately because it is LIVE-WIRED into real navigation
- * today (`CategoryStandardLandingPage.tsx`'s default `publishHref`, and
- * `EmpleosLandingPageClient.tsx`'s CTA) — Gate I.5.1 was explicitly barred from rewiring global
- * CTAs, so this map's values were NOT changed even where they disagree with the registry's
- * decisions (confirmed disagreements: servicios, empleos, bienes-raices — see the registry
- * file's header comment for the exact decisions and evidence). Reconciling this file with the
- * registry (either by having it consume the registry directly, or updating its values to match)
- * is Gate I.5.2's job, not this file's.
+ * route contract. `app/lib/listingIdentity/categoryRouteRegistry.ts` is that contract.
+ *
+ * Package F Build F2, Gate 12 (P1 route-authority reconciliation) — RECONCILED. The prior
+ * "LIVE-WIRED into real navigation" claim above was re-verified and found stale:
+ * `EmpleosLandingPageClient.tsx` was corrected in Gate I.7A to build its publish CTA directly
+ * from the registry-canonical hub, bypassing this map entirely (see that file's own comment).
+ * `categoryPublishPath()`'s only remaining caller repo-wide is
+ * `CategoryStandardLandingPage.tsx`'s default `publishHref` fallback — and that component itself
+ * has zero live callers (confirmed via repo-wide search); every category in `CAT_STD_ALL_SLUGS`
+ * renders its own bespoke landing page instead. So this map is dead code in production today, not
+ * a second live source of truth. Because of that, the two entries that disagreed with the
+ * registry (`servicios`, `empleos`) have been corrected to match it below — a zero-live-behavior-
+ * change edit, not a routing change, since nothing currently reads the old values. `bienes-raices`
+ * already matched the registry's `hubRoute` (corrected there in an earlier gate, I.5.3A) and was
+ * left as-is. If a future gate wires a real caller to this map again, wire it to consume
+ * `categoryRouteRegistry.ts` directly rather than re-diverging.
  */
 
 /** Marketplace categories in CAT-STD-ALL scope (excludes iglesias hub stub). */
@@ -68,17 +75,32 @@ export function buildCategoryResultsUrl(
 
 export function categoryPublishPath(slug: CatStdAllSlug): string {
   const map: Record<CatStdAllSlug, string> = {
-    "en-venta": "/clasificados/publicar/en-venta",
+    // Globalization Package A Gate 2 — the five lanes below previously sent live CTAs straight
+    // into their application (or a redirect shim to it) with no product checkpoint. They now
+    // enter through their truthful checkpoint card page (registry `checkpointRoute`); each
+    // application is unchanged one hop deeper, and the legacy /clasificados/publicar/* redirect
+    // shims are untouched for external inbound links.
+    "en-venta": "/publicar/en-venta",
     rentas: "/clasificados/publicar/rentas",
-    empleos: "/clasificados/publicar/empleos",
+    // Package F Build F2, Gate 12 — corrected from the legacy "/clasificados/publicar/empleos"
+    // to match categoryRouteRegistry.ts's EMPLEOS_ADAPTER.applicationRoute (already the value
+    // every live Empleos caller uses per Gate I.7A). Zero live callers of this map read empleos
+    // today (see file header), so this is a truth correction, not a navigation change.
+    empleos: "/publicar/empleos",
     // "autos": confirmed LIVE, not stale — app/(site)/clasificados/publicar/autos/page.tsx is a
     // real route (renders the same PublicarAutosBranchClient chooser as /publicar/autos), present
     // in the compiled route manifest, and has a confirmed live caller
     // (app/(site)/negocios-locales/_lib/negociosLocalesLanes.ts). Gate I.5.8 verified this before
     // acting and left it untouched — do not "fix" this entry without re-confirming both facts.
     autos: "/clasificados/publicar/autos",
+    // bienes-raices already matches categoryRouteRegistry.ts's BIENES_RAICES_NEGOCIO_ADAPTER /
+    // BIENES_RAICES_PRIVADO_ADAPTER hubRoute (corrected there in Gate I.5.3A) — no change needed.
     "bienes-raices": "/clasificados/publicar/bienes-raices",
-    servicios: "/clasificados/publicar/servicios/checkpoint",
+    // Package F Build F2, Gate 12 — corrected from the legacy "/clasificados/publicar/servicios/
+    // checkpoint" to match categoryRouteRegistry.ts's SERVICIOS_ADAPTER.applicationRoute. Zero
+    // live callers of this map read servicios today (see file header), so this is a truth
+    // correction, not a navigation change.
+    servicios: "/publicar/servicios",
     restaurantes: "/clasificados/restaurantes/publicar",
     // Gate I.5.8 — corrected. The prior value ("/clasificados/publicar/viajes") mapped to a route
     // folder confirmed NOT to exist (absent from the compiled Next.js route manifest) with zero
@@ -88,10 +110,10 @@ export function categoryPublishPath(slug: CatStdAllSlug): string {
     // route (categoryRouteRegistry.ts's VIAJES_ADAPTER.applicationRoute), which does exist in the
     // route manifest. Zero live behavior change, since nothing called the old value.
     viajes: "/publicar/viajes",
-    clases: "/clasificados/publicar/clases",
-    comunidad: "/clasificados/publicar/comunidad",
-    busco: "/publicar/busco/quick",
-    "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
+    clases: "/publicar/clases",
+    comunidad: "/publicar/comunidad",
+    busco: "/publicar/busco",
+    "mascotas-y-perdidos": "/publicar/mascotas-y-perdidos",
   };
   return map[slug];
 }

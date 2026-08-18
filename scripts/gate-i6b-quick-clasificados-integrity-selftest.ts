@@ -84,8 +84,11 @@ async function main() {
     assert.equal(adapter.publicRoute(identity, { lang: "es" }), `/clasificados/anuncio/${VALID_UUID}`);
     assert.equal(adapter.publicRoute(identity, { lang: "en" }), `/clasificados/anuncio/${VALID_UUID}`);
 
-    // Edit remains absent — public rendering fix does not by itself create a safe edit surface.
-    assert.equal(adapter.editRoute(identity, { lang: "es" }), null);
+    // I.6B itself created no edit surface. Globalization Package A Gate 5 later wired the
+    // generic owner-verified editor with the safety proof this gate's comment demanded (same
+    // publisher/row shape as Clases/Comunidad; detail_pairs untouched) — updated rather than
+    // left stale.
+    assert.ok(adapter.editRoute(identity, { lang: "es" })!.includes(`/dashboard/mis-anuncios/${VALID_UUID}/editar`));
 
     // Dashboard route remains absent — Objective D did not touch Mascotas dashboard discovery.
     assert.equal(adapter.dashboardRoute(identity, { lang: "es" }), null);
@@ -106,7 +109,7 @@ async function main() {
       actions.find((a) => a.key === "viewPublic")!.href.includes(VALID_UUID),
       "viewPublic href must carry the canonical UUID",
     );
-    assert.ok(!keys.includes("edit"), "Mascotas edit must remain hidden — no safe category-specific editor exists");
+    assert.ok(keys.includes("edit"), "Mascotas edit now appears via the generic owner-verified editor (Package A Gate 5)");
     assert.ok(!keys.includes("manageCoupons") && !keys.includes("manageOffers") && !keys.includes("manageInventory"));
 
     // Owner-unverified still fails closed.

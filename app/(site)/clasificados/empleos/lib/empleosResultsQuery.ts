@@ -7,6 +7,16 @@ import type { EmpleosJobRecord } from "../data/empleosJobTypes";
 import type { EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
 import { buildEmpleosLocationSearchText } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
+/**
+ * Package D Build D3, Gate 1 — local extension, not a change to the canonical `EmpleosJobRecord`
+ * type (`../data/empleosJobTypes.ts` is locked business-language customer data, protected by
+ * `gate-i5-6-es-en-launch-language-controls-selftest.ts`'s check #13 and deliberately not
+ * allowlist-exemptable). Carries the pre-resolved canonical `leonix_placement_entitlements`
+ * weight, batched server-side. Wins over `listingTier` in "relevance" only; never used by the
+ * strict `date_desc`/`salary_desc` sorts.
+ */
+export type EmpleosJobRecordWithPlacement = EmpleosJobRecord & { canonicalPlacementRankWeight?: number | null };
+
 /** @deprecated Prefer server-fed `serverNowMs` for “recent” windows on live results. */
 export const EMPLEOS_SAMPLE_NOW_MS = Date.parse("2026-04-10T18:00:00.000Z");
 
@@ -182,7 +192,7 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
   });
 }
 
-export function sortEmpleosJobs(jobs: EmpleosJobRecord[], sort: EmpleosSortKey): EmpleosJobRecord[] {
+export function sortEmpleosJobs<T extends EmpleosJobRecordWithPlacement>(jobs: T[], sort: EmpleosSortKey): T[] {
   const copy = [...jobs];
   if (sort === "date_desc") {
     copy.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
@@ -192,8 +202,13 @@ export function sortEmpleosJobs(jobs: EmpleosJobRecord[], sort: EmpleosSortKey):
     copy.sort((a, b) => b.salaryMax - a.salaryMax);
     return copy;
   }
+  // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight wins over the
+  // legacy local `listingTier` heuristic in "relevance" only; date_desc/salary_desc above are
+  // untouched strict sorts.
   const tierRank = (t: EmpleosJobRecord["listingTier"]) => (t === "promoted" ? 2 : t === "featured" ? 1 : 0);
   copy.sort((a, b) => {
+    const cw = (b.canonicalPlacementRankWeight ?? 0) - (a.canonicalPlacementRankWeight ?? 0);
+    if (cw !== 0) return cw;
     const tr = tierRank(b.listingTier) - tierRank(a.listingTier);
     if (tr !== 0) return tr;
     return b.publishedAt.localeCompare(a.publishedAt);

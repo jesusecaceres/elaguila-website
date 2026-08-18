@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -50,7 +53,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function DashboardViajesStagedPage() {
+function DashboardViajesStagedPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/viajes";
   const searchParams = useSearchParams();
@@ -130,7 +133,8 @@ export default function DashboardViajesStagedPage() {
       .eq("owner_user_id", uid)
       .order("submitted_at", { ascending: false });
     if (error) {
-      setErr(error.message);
+      console.error("[dashboard/viajes]", error.message);
+      setErr(dashboardSafeMutationErrorCopy(lang));
       setRows([]);
     } else {
       setErr(null);
@@ -400,5 +404,13 @@ export default function DashboardViajesStagedPage() {
         ) : null}
       </div>
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardViajesStagedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardViajesStagedPageContent />
+    </Suspense>
   );
 }

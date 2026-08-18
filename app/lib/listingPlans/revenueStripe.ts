@@ -31,6 +31,22 @@ export type CreateRevenueCheckoutSessionInput = {
   leonixAdId?: string | null;
   promoCodeId?: string | null;
   promoRedemptionId?: string | null;
+  /** Package C Build 1 — stable purchase-attempt identity; Stripe idempotencyKey =
+   * `${checkoutAttemptKey}:${attemptGeneration}` (transport retries can never mint a second
+   * payable session for the same attempt generation). */
+  checkoutAttemptKey?: string | null;
+  attemptGeneration?: number | null;
+  /** Package C Build 1 — recurring-billing consent evidence id (subscription mode only). */
+  consentRecordId?: string | null;
+  /**
+   * Package C Build 2 (C4) — verified-intro-15% Stripe coupon id, subscription mode only. When
+   * set, `unit_amount` in the line items stays FULL price and the discount is applied via
+   * Stripe's native `discounts` array with a `duration:"once"` coupon so renewal automatically
+   * reverts to full price with no Leonix-side recalculation. Never set together with a
+   * Leonix-side unit_amount reduction (one_time mode uses that mechanism instead, with this left
+   * null).
+   */
+  verifiedIntroDiscountStripeCouponId?: string | null;
 };
 
 export type CreateRevenueCheckoutSessionResult =
@@ -49,6 +65,29 @@ function getStripeClient(): Stripe | null {
   const secret = getStripeSecretKey();
   if (!secret) return null;
   return new Stripe(secret, { typescript: true });
+}
+
+/**
+ * Package C Build 1 — open-session reuse for the purchase-attempt identity. Returns the
+ * session's status + url so a duplicate click / second tab is handed the SAME payable session
+ * instead of a new one. Read-only.
+ */
+export async function retrieveRevenueCheckoutSessionState(
+  sessionId: string,
+): Promise<{ status: "open" | "complete" | "expired" | "unknown"; url: string | null }> {
+  const stripe = getStripeClient();
+  const id = String(sessionId ?? "").trim();
+  if (!stripe || !id) return { status: "unknown", url: null };
+  try {
+    const session = await stripe.checkout.sessions.retrieve(id);
+    const status =
+      session.status === "open" || session.status === "complete" || session.status === "expired"
+        ? session.status
+        : "unknown";
+    return { status, url: session.url ?? null };
+  } catch {
+    return { status: "unknown", url: null };
+  }
 }
 
 export async function createRevenueStripeCheckoutSession(
@@ -112,23 +151,46 @@ export async function createRevenueStripeCheckoutSession(
     },
   }));
 
+  // Package C Build 1 — explicit source namespace + consent linkage. Legacy webhooks reject any
+  // session carrying leonix_* keys; the canonical webhook requires leonix_payment_record_id.
+  const metadataPayload: Record<string, string> = {
+    ...metadataResult.payload,
+    leonix_source: "revenue_os",
+    ...(input.consentRecordId ? { leonix_consent_record_id: input.consentRecordId } : {}),
+  };
+
   const sessionParams = {
     mode: input.stripeMode,
     line_items: stripeLineItems,
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,
-    metadata: metadataResult.payload,
+    metadata: metadataPayload,
     client_reference_id: input.clientReferenceId,
     allow_promotion_codes: false,
+    // Package C Build 2 (C4) — verified-intro-15%, subscription mode only. A server-attached
+    // discounts array (never a customer-typed promotion_code — allow_promotion_codes stays
+    // false) applying a duration:"once" coupon so the subscription's line-item price remains
+    // full and renewal is automatically full price.
+    ...(input.verifiedIntroDiscountStripeCouponId
+      ? { discounts: [{ coupon: input.verifiedIntroDiscountStripeCouponId }] }
+      : {}),
     ...(input.customerEmail?.trim()
       ? { customer_email: input.customerEmail.trim() }
       : {}),
     ...(input.stripeMode === "payment"
-      ? { payment_intent_data: { metadata: metadataResult.payload } }
-      : { subscription_data: { metadata: metadataResult.payload } }),
+      ? { payment_intent_data: { metadata: metadataPayload } }
+      : { subscription_data: { metadata: metadataPayload } }),
   };
 
-  const session = await stripe.checkout.sessions.create(sessionParams);
+  // Stable purchase-attempt idempotency (never the per-click row id).
+  const attemptKey = input.checkoutAttemptKey?.trim();
+  const requestOptions = attemptKey
+    ? { idempotencyKey: `${attemptKey}:${Math.max(1, input.attemptGeneration ?? 1)}` }
+    : undefined;
+
+  const session = requestOptions
+    ? await stripe.checkout.sessions.create(sessionParams, requestOptions)
+    : await stripe.checkout.sessions.create(sessionParams);
 
   if (!session.url || !session.id) {
     return {

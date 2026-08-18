@@ -29,10 +29,13 @@ import { BrPropertyInventoryValueDrawerTrigger } from "./BrPropertyInventoryValu
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
   dashboardAddonStatusForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
+  type DashboardSubscriptionStateEntry,
 } from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
 import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
+import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 
 type Lang = "es" | "en";
 
@@ -98,6 +101,9 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
   const [entitlementStatusByParentId, setEntitlementStatusByParentId] = useState<
     Map<string, AddonLifecycleStatus>
   >(new Map());
+  /** Package E Build E2, Gate 1/3 — read-only parent subscription state, taken from the SAME
+   * batched response as the entitlement fetch below (no second network call). */
+  const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
   const parentIdsKey = useMemo(
     () =>
       [...new Set(groups.map((g) => g.mainId ?? g.rows[0]?.id).filter((id): id is string => Boolean(id)))].join(","),
@@ -119,7 +125,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
         if (!cancelled) setEntitlementStatusByParentId(new Map());
         return;
       }
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
+      const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(
         parentIds.map((id) => ({
           key: id,
           category: "bienes-raices",
@@ -135,6 +141,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
         map.set(id, dashboardAddonStatusForKey(badges, [id]));
       }
       setEntitlementStatusByParentId(map);
+      setSubscriptionStates(subs);
     })();
     return () => {
       cancelled = true;
@@ -206,6 +213,24 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
                 </span>
               ) : null}
             </p>
+            {(() => {
+              const subState = mainId ? dashboardSubscriptionStateForKey(subscriptionStates, [mainId]) : null;
+              if (!subState) return null;
+              const note = commercialStateBadgesToLifecycleNote(
+                resolveCommercialStateBadges({
+                  subscriptionStatus: subState.status,
+                  cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                  graceEndsAt: subState.graceEndsAt,
+                  suspensionReason: subState.suspensionReason,
+                  recoveredAt: subState.recoveredAt,
+                }),
+                lang,
+              );
+              if (!note) return null;
+              const toneClass =
+                note.tone === "urgent" ? "text-red-700" : note.tone === "warning" ? "text-amber-800" : "text-[#5C5346]";
+              return <p className={`mt-1 text-xs font-semibold ${toneClass}`}>{note.text}</p>;
+            })()}
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {addCtx ? (

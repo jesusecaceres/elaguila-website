@@ -7,7 +7,6 @@ import { resolvePublicarGatewayDestination } from "@/app/(site)/publicar/publica
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { ClasificadosFeaturedOfertasModule } from "./_components/ClasificadosFeaturedOfertasModule";
 import { ClasificadosHubCategoryCard } from "./_components/ClasificadosHubCategoryCard";
-import { ClasificadosLandingLaunchBanner } from "./_components/ClasificadosLandingLaunchBanner";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import {
   getPublicCategoryCardCopy,
@@ -127,11 +126,6 @@ function ClasificadosPageInner() {
             <CategoryVisibilityCta lang={navCopyLang(routeLang) as Lang} category="clasificados" surface="hub" compact />
           </div>
         </section>
-
-        {/* Launch 25 opportunity */}
-        <div className="mt-10 max-w-3xl">
-          <ClasificadosLandingLaunchBanner routeLang={routeLang} />
-        </div>
 
         {/* Featured Ofertas Locales */}
         <div className="mt-8">

@@ -50,6 +50,7 @@ import {
 } from "@/app/lib/listingIdentity";
 import { buildBienesRaicesEligibilityInput } from "@/app/lib/listingIdentity/bienesRaicesLifecycleAdapter";
 import type { DashboardEntitlementBadgePayload } from "../lib/dashboardPackageEntitlementBadges";
+import type { CommercialStateBadge } from "@/app/lib/listingPlans/commercialStateBadges";
 import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
 import type { ListingLifecycleResolved } from "@/app/lib/listingLifecycle/listingLifecycleTypes";
 import { ListingLifecycleStatusCard } from "./ListingLifecycleStatusCard";
@@ -208,6 +209,7 @@ export function LeonixRealEstateListingManageCard({
   parentLeonixAdIdByListingId = new Map<string, string>(),
   brNegocioInventoryRows,
   packageEntitlementBadge = null,
+  commercialStateBadges = null,
   lifecycle = null,
   renewalBusy = false,
   onRenew,
@@ -233,6 +235,10 @@ export function LeonixRealEstateListingManageCard({
   brNegocioInventoryRows?: readonly BrPropertyInventoryRowLike[];
   /** Active listing_package_entitlements badge for this exact listing UUID. */
   packageEntitlementBadge?: DashboardEntitlementBadgePayload | null;
+  /** Package C Build 4 (C8, Gate 6) — pre-resolved `leonix_subscription_records` state badges
+   * (grace/suspended/canceled/cancel-at-period-end), independent of plan/entitlement/placement.
+   * Null/empty renders nothing — never inferred from status/tone alone. */
+  commercialStateBadges?: CommercialStateBadge[] | null;
   lifecycle?: ListingLifecycleResolved | null;
   renewalBusy?: boolean;
   onRenew?: () => void;
@@ -450,6 +456,18 @@ export function LeonixRealEstateListingManageCard({
               <p className="mt-2 text-xs text-[#7A7164]">
                 <span className="font-semibold text-[#3D3428]">{planField}:</span> {planLine}
               </p>
+              {commercialStateBadges && commercialStateBadges.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {commercialStateBadges.map((b) => (
+                    <span
+                      key={b.key}
+                      className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-900"
+                    >
+                      {lang === "es" ? b.labelEs : b.labelEn}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               {packageEntitlementBadge &&
               (packageEntitlementBadge.grantsDestacado || packageEntitlementBadge.grantsResultsPriority) ? (
                 <div className="mt-2 rounded-xl border border-[#C9B46A]/40 bg-[#FFF8E8]/90 px-3 py-2 text-xs text-[#3D3428]">

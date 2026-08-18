@@ -42,16 +42,10 @@ const CHECKOUT_ADDON_ALLOWLIST: Record<
   string,
   { category: string; basePackageKey: string; allowedKeys: readonly string[] }
 > = {
-  restaurantes: {
-    category: "restaurantes",
-    basePackageKey: "restaurantes_base_monthly",
-    allowedKeys: [RESTAURANTES_COUPON_ADDON_PACKAGE_KEY],
-  },
-  servicios: {
-    category: "servicios",
-    basePackageKey: "servicios_base_monthly",
-    allowedKeys: [SERVICIOS_OFFERS_ADDON_PACKAGE_KEY],
-  },
+  // Package C Build 3 (C5/C6) — restaurantes/servicios offers add-ons are retired: coupons are
+  // now included in the $399 base package (owner-locked). No bundled-checkout add-on remains
+  // for either category; RESTAURANTES_COUPON_ADDON_PACKAGE_KEY / SERVICIOS_OFFERS_ADDON_PACKAGE_KEY
+  // stay defined (historical reads) but are no longer reachable from this allowlist.
   "bienes-raices": {
     category: "bienes-raices",
     basePackageKey: "br_agent_monthly",

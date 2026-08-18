@@ -93,6 +93,12 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     preview: "ready",
     publicResults: "ready",
     analytics: "ready",
+    // Package E Build E2, Gate 4 — real backend already exists
+    // (/api/clasificados/servicios/manage, owner-verified, slug-keyed, published <->
+    // paused_unpublished state machine), previously only wired on the separate
+    // /dashboard/servicios page. Now also available on the unified My Listings card.
+    pause: "ready",
+    reactivate: "ready",
   },
   "comida-local": { publicView: "ready", analytics: "unproven" },
   autos: { publicView: "ready", archive: "ready", analytics: "ready" },
@@ -102,6 +108,13 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     preview: "ready",
     publicResults: "ready",
     analytics: "ready",
+    // Package E Build E2, Gate 4 — real backend already exists
+    // (PATCH /api/clasificados/empleos/listings/{id}, owner-verified, accepts
+    // published|paused|archived|draft with no per-transition gating), previously only wired on
+    // the /dashboard/empleos/[listingId] detail page. Now also available on the unified card.
+    pause: "ready",
+    archive: "ready",
+    reactivate: "ready",
   },
   rentas: {
     publicView: "ready",
@@ -130,9 +143,11 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
   comunidad: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   busco: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
   // Work Package I.8B — View public and Archive use the same generic, already-safe mechanisms as
-  // Busco/Clases/Comunidad. Edit is deliberately absent (no key = hidden) — no safe Edit route
-  // exists yet (categoryRouteRegistry.ts MASCOTAS_Y_PERDIDOS_ADAPTER.editRoute() still returns
-  // null). Analytics stays "unproven" — no per-listing analytics route confirmed for Mascotas.
+  // Busco/Clases/Comunidad. Edit carries no key here for the same reason as Busco/Clases/
+  // Comunidad: the Edit action for the generic listings family is delivered by
+  // resolveDashboardActions from the registry editRoute — which Globalization Package A Gate 5
+  // wired to the generic owner-verified editor for Mascotas (safety-proven; see the registry's
+  // adapter comment). Analytics stays "unproven" — no per-listing analytics route confirmed.
   mascotas: { publicView: "ready", publicResults: "ready", analytics: "unproven", archive: "ready" },
 };
 
@@ -342,6 +357,13 @@ export function buildInventoryListingActions(
     offersEditLabelOverride?: string;
     /** Gate D.1 — page-level authenticated owner id; required to source resolver hrefs. */
     ownerUserId?: string | null;
+    /** Package E Build E2, Gate 4 — real pause/resume via /api/clasificados/servicios/manage. */
+    onServiciosManage?: (action: "pause" | "resume") => void;
+    serviciosManageBusy?: boolean;
+    /** Package E Build E2, Gate 4 — real pause/archive/resume via PATCH
+     * /api/clasificados/empleos/listings/{id}. */
+    onEmpleosLifecycle?: (next: "published" | "paused" | "archived") => void;
+    empleosLifecycleBusy?: boolean;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
@@ -430,6 +452,42 @@ export function buildInventoryListingActions(
     });
   }
 
+  if (
+    category === "servicios" &&
+    item.status === "published" &&
+    listingToolIsReady(category, "pause") &&
+    opts?.onServiciosManage
+  ) {
+    actions.push({
+      label: opts.serviciosManageBusy
+        ? lang === "es"
+          ? "Pausando…"
+          : "Pausing…"
+        : pauseListingLabel(lang),
+      onClick: () => opts.onServiciosManage!("pause"),
+      disabled: opts.serviciosManageBusy,
+      tone: "secondary",
+    });
+  }
+
+  if (
+    category === "servicios" &&
+    item.status === "paused_unpublished" &&
+    listingToolIsReady(category, "reactivate") &&
+    opts?.onServiciosManage
+  ) {
+    actions.push({
+      label: opts.serviciosManageBusy
+        ? lang === "es"
+          ? "Restaurando…"
+          : "Restoring…"
+        : resumeListingLabel(lang),
+      onClick: () => opts.onServiciosManage!("resume"),
+      disabled: opts.serviciosManageBusy,
+      tone: "secondary",
+    });
+  }
+
   if (category === "servicios" && item.actionContract?.manageUrl) {
     actions.push({
       href: item.actionContract.manageUrl,
@@ -442,6 +500,34 @@ export function buildInventoryListingActions(
       href: item.editHref,
       label: lang === "es" ? "Gestionar vacante" : "Manage listing",
     });
+  }
+
+  if (category === "empleos" && opts?.onEmpleosLifecycle) {
+    const busyLabel = lang === "es" ? "Actualizando…" : "Updating…";
+    if (item.status === "published" && listingToolIsReady(category, "pause")) {
+      actions.push({
+        label: opts.empleosLifecycleBusy ? busyLabel : pauseListingLabel(lang),
+        onClick: () => opts.onEmpleosLifecycle!("paused"),
+        disabled: opts.empleosLifecycleBusy,
+        tone: "secondary",
+      });
+    }
+    if (item.status === "paused" && listingToolIsReady(category, "reactivate")) {
+      actions.push({
+        label: opts.empleosLifecycleBusy ? busyLabel : resumeListingLabel(lang),
+        onClick: () => opts.onEmpleosLifecycle!("published"),
+        disabled: opts.empleosLifecycleBusy,
+        tone: "secondary",
+      });
+    }
+    if ((item.status === "published" || item.status === "paused") && listingToolIsReady(category, "archive")) {
+      actions.push({
+        label: opts.empleosLifecycleBusy ? busyLabel : archiveListingLabel(lang),
+        onClick: () => opts.onEmpleosLifecycle!("archived"),
+        disabled: opts.empleosLifecycleBusy,
+        tone: "subtle",
+      });
+    }
   }
 
   if (category === "viajes" && listingToolIsReady(category, "edit")) {

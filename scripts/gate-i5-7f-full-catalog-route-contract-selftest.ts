@@ -153,7 +153,7 @@ async function main() {
     },
     bienes_raices_privado: {
       application: "supported",
-      edit: "missing", // editRoute() => null, no confirmed distinct route
+      edit: "supported", // Package A Gate 5 — generic owner-verified editor (incl. its BR-Privado seller-photo support)
       preview: "supported",
       publicRoute: "supported",
       results: "supported", // shares /resultados with Negocio
@@ -223,7 +223,7 @@ async function main() {
     },
     comida_local: {
       application: "supported",
-      edit: "missing",
+      edit: "supported", // Package A closure — dedicated listing-bound editor (own-table adapter; same-row via draft_listing_id)
       preview: "supported",
       publicRoute: "category_specific",
       results: "stale", // resultsRoute duplicates entryRoute, no confirmed distinct page
@@ -273,7 +273,7 @@ async function main() {
     },
     mascotas_y_perdidos: {
       application: "supported",
-      edit: "missing", // no category-specific editor exists; generic edit page intentionally still withheld
+      edit: "supported", // Package A Gate 5 — generic editor, safety-proven (same publisher/row shape as Clases/Comunidad; detail_pairs untouched)
       preview: "supported",
       publicRoute: "supported", // Gate I.6B — shared shell's category allowlist fixed; real dedicated renderer wired
       results: "supported",
@@ -444,26 +444,35 @@ async function main() {
   }
 
   /* ============================================================================================
-   * 12/13 — Bienes and Autos parent/child action safety is NOT claimed to live inside the
-   * registry alone — prove the actual external protection exists in dashboardActionResolver.ts
-   * (the shared exclusion line covering BOTH pipelines), and that the registry's own adapter
-   * functions remain naive (would substitute the parent id if called directly and unguarded).
+   * 12/13 — Bienes and Autos parent/child action safety. Globalization Package A Gate 1 UPDATE:
+   * the registry's edit/preview resolvers are now GUARDED (identityListingIdForEdit fails
+   * closed for inventory-child identities), closing the "registry alone provides no
+   * child-safety" debt this section previously pinned as documentation. The external
+   * protection in dashboardActionResolver.ts remains in place (defense in depth, and it is
+   * still the layer that decides which actions exist at all); inventory-manage routes keep
+   * their intentional parent/group substitution via the separate inventoryManageTargetId
+   * helper.
    * ========================================================================================== */
   {
     const resolverSrc = readFileSync(
       path.join(REPO_ROOT, "app/lib/listingIdentity/dashboardActionResolver.ts"),
       "utf8",
     );
+    // Package B (Gates B4/B5) UPDATE — BOTH inventory pipelines now have real per-child edit
+    // entry points, so the resolver delegates edit resolution to the registry's guarded child
+    // routes (fail-closed shapes return null; push() drops nulls). The BR-child preview
+    // exclusion remains the one resolver-level child gate.
     assert.ok(
-      resolverSrc.includes('identity.pipeline === "bienes_raices_negocio" || identity.pipeline === "autos_negocios"') &&
-        resolverSrc.includes("child"),
-      "dashboardActionResolver.ts must still carry the single shared child-exclusion check covering both bienes_raices_negocio and autos_negocios — this is the actual, external, cross-pipeline safety mechanism, not something either route-registry adapter enforces on its own",
+      resolverSrc.includes('identity.pipeline === "bienes_raices_negocio" && child'),
+      "dashboardActionResolver.ts must keep the BR-child preview exclusion",
+    );
+    assert.ok(
+      !resolverSrc.includes("editSupported"),
+      "edit is now registry-delegated for every role — no resolver-level edit exclusion remains",
     );
 
-    // Prove the registry adapter itself has no independent role/child guard: calling editRoute
-    // directly with a childlike identity (parentSourceId set) still substitutes the PARENT id —
-    // exactly the class of behavior Gate I.5.7A.1 had to close off one layer above, in the
-    // dashboard card component, not here.
+    // Package A Gate 1 — the registry now fails closed on its own: calling editRoute/previewRoute
+    // directly with a child identity returns null instead of silently substituting the PARENT id.
     const negocio = getCategoryRouteAdapter("bienes_raices_negocio");
     const childIdentity = fakeIdentity({
       pipeline: "bienes_raices_negocio",
@@ -472,10 +481,49 @@ async function main() {
       parentSourceId: "parent-id-999",
       inventoryRole: "inventory_property",
     });
-    const unguardedEditHref = negocio.editRoute(childIdentity, { lang: "es" });
+    // Package B (Gate B4) UPDATE — BR child edit now resolves a REAL child-targeted route
+    // (parent inventory-edit context + openChildDraftId → the child's own isolated editor);
+    // it still never silently substitutes the parent as the EDIT TARGET (the parent id is the
+    // context, the child id is the target), and preview stays fail-closed.
+    const brChildEdit = negocio.editRoute(childIdentity, { lang: "es" })!;
     assert.ok(
-      unguardedEditHref!.includes("listingId=parent-id-999"),
-      "the registry adapter's editRoute, called directly and unguarded, still substitutes the PARENT id for a child identity — proving the registry alone provides no child-safety and the real protection is external (dashboardActionResolver.ts + LeonixRealEstateListingManageCard.tsx's isBrNegocioMainRow gate)",
+      brChildEdit.includes("openChildDraftId=br-db-child-child-id-111") && brChildEdit.includes("mode=inventory-edit"),
+      "Package B Gate B4: BR Negocio child editRoute must target THIS child's editor via openChildDraftId",
+    );
+    assert.equal(
+      negocio.previewRoute(childIdentity, { lang: "es" }),
+      null,
+      "Package A Gate 1: BR Negocio previewRoute must fail closed (null) for an inventory-child identity",
+    );
+    // Ambiguous child-shaped identity (parent id present, role unconfirmed) also fails closed.
+    const ambiguousIdentity = fakeIdentity({
+      pipeline: "bienes_raices_negocio",
+      category: "bienes-raices",
+      sourceId: "child-id-111",
+      parentSourceId: "parent-id-999",
+      inventoryRole: null,
+    });
+    assert.equal(
+      negocio.editRoute(ambiguousIdentity, { lang: "es" }),
+      null,
+      "Package A Gate 1: an identity with a parentSourceId but no confirmed inventory role must also fail closed",
+    );
+    // A normal parent identity still resolves to its own id — behavior preserved.
+    const parentIdentity = fakeIdentity({
+      pipeline: "bienes_raices_negocio",
+      category: "bienes-raices",
+      sourceId: "parent-id-999",
+      inventoryRole: "main",
+    });
+    assert.ok(
+      negocio.editRoute(parentIdentity, { lang: "es" })!.includes("listingId=parent-id-999"),
+      "Package A Gate 1: parent identities keep resolving to their own id — the guard changes only child/ambiguous shapes",
+    );
+    // Inventory-manage keeps its intentional parent/group substitution (there is no per-child
+    // manage URL by design — the drawer manages the whole group).
+    assert.ok(
+      negocio.secondaryManageRoute!(childIdentity, { lang: "es" })!.includes("listingId=parent-id-999"),
+      "inventory-manage (secondaryManageRoute) intentionally still targets the parent/group for child identities — separate, documented semantics via inventoryManageTargetId",
     );
 
     const autos = getCategoryRouteAdapter("autos_negocios");
@@ -486,16 +534,25 @@ async function main() {
       parentSourceId: "dealer-parent-999",
       inventoryRole: "inventory_vehicle",
     });
-    const unguardedAutosEditHref = autos.editRoute(autosChildIdentity, { lang: "es" });
+    // Package B (Gate B5) UPDATE — Autos child edit now resolves its real child-targeted
+    // route (parent inventory-edit context + editVehicleId); fail-closed still holds for a
+    // child without a confirmed parent id (pinned in gate-pkgA-catalog-freeze).
+    const autosChildEditHref = autos.editRoute(autosChildIdentity, { lang: "es" })!;
     assert.ok(
-      unguardedAutosEditHref!.includes("listingId=dealer-parent-999"),
-      "Autos Negocios editRoute is equally naive/unguarded when called directly — same external-protection-only pattern as Bienes",
+      autosChildEditHref.includes("editVehicleId=child-vehicle-111") &&
+        autosChildEditHref.includes("mode=inventory-edit"),
+      "Package B Gate B5: Autos child editRoute must target THIS vehicle's drawer editor via editVehicleId",
     );
-    // Autos Preview is the one confirmed exception — genuinely bound to the child's OWN id.
-    const unguardedAutosPreviewHref = autos.previewRoute(autosChildIdentity, { lang: "es" })!;
     assert.ok(
-      unguardedAutosPreviewHref.includes("listingId=child-vehicle-111"),
-      "Autos Negocios previewRoute is confirmed genuinely child-bound (uses the child's own sourceId, not the parent) — the one asymmetry vs. Edit",
+      autos.secondaryManageRoute!(autosChildIdentity, { lang: "es" })!.includes("listingId=dealer-parent-999"),
+      "Autos inventory-manage intentionally still targets the dealer parent for child identities",
+    );
+    // Autos Preview remains genuinely bound to the child's OWN id (does not use the guarded
+    // edit-target helper) — unchanged.
+    const autosPreviewHref = autos.previewRoute(autosChildIdentity, { lang: "es" })!;
+    assert.ok(
+      autosPreviewHref.includes("listingId=child-vehicle-111"),
+      "Autos Negocios previewRoute is confirmed genuinely child-bound (uses the child's own sourceId, not the parent) — unchanged by the Gate 1 guard",
     );
   }
 

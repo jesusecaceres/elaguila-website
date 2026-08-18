@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
   OWNER_LISTING_PAUSE_PATCH,
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   ownerListingResumeFromPausePatch,
+  applyOwnerListingPatch,
 } from "../../lib/ownerListingsLifecycleClient";
+import { isBrNegocioListing } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { callBrLifecycleMutation } from "../../lib/brDashboardLifecycleClient";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -44,6 +47,8 @@ import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCa
 import { misAnunciosDetailCopy } from "../../lib/dashboardI18n";
 import { EV_SELLER_DETAIL, evDetailClass } from "../enVentaSellerDetailTheme";
 
+export const dynamic = "force-dynamic";
+
 type Plan = "free" | "pro";
 type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "status";
 
@@ -68,6 +73,7 @@ type ListingRow = {
   original_price?: number | string | null;
   current_price?: number | string | null;
   price_last_updated?: string | null;
+  seller_type?: string | null;
 };
 
 type ListingMsgRow = {
@@ -89,6 +95,38 @@ function accountRefFromId(id: string): string {
 function normalizePlanFromMembershipTier(raw: unknown): Plan {
   void raw;
   return "free";
+}
+
+/**
+ * Package C Build 4 (C7, Gate 4) — compact bilingual mapping for the BR lifecycle route's error
+ * codes, mirroring `mis-anuncios/page.tsx`'s `brLifecycleErrorMessage` (kept local rather than
+ * shared to avoid touching that file's own scope).
+ */
+function brResumeErrorMessage(code: string, lang: Lang): string {
+  const es: Record<string, string> = {
+    br_lifecycle_auth_required: "Debes iniciar sesión de nuevo.",
+    br_lifecycle_listing_not_found: "No se encontró el anuncio.",
+    br_lifecycle_owner_mismatch: "Este anuncio no pertenece a tu cuenta.",
+    br_lifecycle_listing_not_eligible: "Esta acción no aplica a este anuncio.",
+    br_lifecycle_transition_not_allowed: "Esta acción no está disponible en el estado actual del anuncio.",
+    br_lifecycle_parent_invalid: "No se pudo verificar el anuncio principal.",
+    br_lifecycle_parent_inactive: "El anuncio principal debe estar activo para reanudar esta propiedad.",
+    br_active_property_limit_reached: "Alcanzaste el límite de propiedades activas para este plan.",
+    supabase_not_configured: "Servicio no disponible en este momento.",
+  };
+  const en: Record<string, string> = {
+    br_lifecycle_auth_required: "Please sign in again.",
+    br_lifecycle_listing_not_found: "Listing not found.",
+    br_lifecycle_owner_mismatch: "This listing does not belong to your account.",
+    br_lifecycle_listing_not_eligible: "This action does not apply to this listing.",
+    br_lifecycle_transition_not_allowed: "This action is not available in the listing's current state.",
+    br_lifecycle_parent_invalid: "The main listing could not be verified.",
+    br_lifecycle_parent_inactive: "The main listing must be active to resume this property.",
+    br_active_property_limit_reached: "You reached the active property limit for this plan.",
+    supabase_not_configured: "Service unavailable right now.",
+  };
+  const map = lang === "es" ? es : en;
+  return map[code] ?? (lang === "es" ? "No se pudo completar la acción." : "This action could not be completed.");
 }
 
 function formatPrice(v: ListingRow["price"], lang: Lang) {
@@ -120,7 +158,7 @@ function getFirstListingImageUrl(images: unknown): string | null {
   return null;
 }
 
-export default function ListingWorkspacePage() {
+function ListingWorkspacePageContent() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const router = useRouter();
@@ -160,6 +198,7 @@ export default function ListingWorkspacePage() {
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
   const [access, setAccess] = useState<"loading" | "ok" | "missing" | "forbidden">("loading");
   const [listingMessages, setListingMessages] = useState<ListingMsgRow[]>([]);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id || typeof id !== "string") {
@@ -175,7 +214,10 @@ export default function ListingWorkspacePage() {
       data: { user },
     } = await sb.auth.getUser();
     if (!user) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      // Gate I.13A — usePathname() alone drops ?lang=, unlike the sibling list/editar
+      // pages which already forward window.location.search here.
+      const redirectTarget = `${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`;
+      router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
       return;
     }
     setUserId(user.id);
@@ -443,7 +485,7 @@ export default function ListingWorkspacePage() {
       patch.status = "active";
     }
 
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) {
       setRow((r) =>
         r
@@ -466,7 +508,7 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status, ...(status === "active" ? { is_published: true } : {}) } : r));
     setBusy(false);
   }
@@ -478,7 +520,7 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status: "removed", is_published: false, updated_at: now } : r));
     setBusy(false);
   }
@@ -489,18 +531,35 @@ export default function ListingWorkspacePage() {
     setBusy(true);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status: "paused", is_published: false, updated_at: now } : r));
     setBusy(false);
   }
 
   async function resumeListing() {
     if (!row) return;
-    const sb = createSupabaseBrowserClient();
+    setResumeError(null);
     setBusy(true);
+    // Package C Build 4 (C7, Gate 4) — resuming a bienes-raices negocio main/inventory_property
+    // row is capacity-increasing; route it through the server-authorized RPC-backed lifecycle
+    // route instead of the legacy direct client-side write, mirroring the list page's
+    // `markResumeListing` (mis-anuncios/page.tsx).
+    if (isBrNegocioListing(row)) {
+      const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "resume" });
+      if (!result.ok) {
+        setResumeError(brResumeErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
+    const sb = createSupabaseBrowserClient();
     const now = new Date().toISOString();
     const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
-    const { error } = await sb.from("listings").update(patch).eq("id", row.id);
+    const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status: "active", is_published: true, updated_at: now } : r));
     setBusy(false);
   }
@@ -866,6 +925,9 @@ export default function ListingWorkspacePage() {
                 <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "mb-3 text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
                   {t.tabs.status}
                 </p>
+                {resumeError ? (
+                  <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{resumeError}</p>
+                ) : null}
                 <div className="flex flex-wrap gap-2.5">
                 <button
                   type="button"
@@ -925,5 +987,13 @@ export default function ListingWorkspacePage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function ListingWorkspacePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ListingWorkspacePageContent />
+    </Suspense>
   );
 }

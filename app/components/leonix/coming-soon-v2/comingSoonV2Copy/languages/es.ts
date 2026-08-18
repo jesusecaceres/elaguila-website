@@ -283,8 +283,8 @@ export function getEsCopy(lang: SupportedLang): ComingSoonV2Copy {
       area: "San José • Silicon Valley • Comunidad Latina",
     },
     newsletter: {
-      title: "Leonix Launch 25",
-      body: "Regístrate y recibe 25% de descuento en tu primer anuncio o paquete web elegible.",
+      title: "Únete a Leonix Media",
+      body: "Regístrate y te avisaremos cuando lancemos, además de novedades y beneficios para anunciantes.",
       placeholder: "Tu correo electrónico",
       button: "Notifícame",
       formAria: "Registro al boletín",

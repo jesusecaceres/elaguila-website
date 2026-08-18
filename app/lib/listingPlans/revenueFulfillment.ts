@@ -58,6 +58,10 @@ import {
   markPromoRedemptionRedeemedWithBusinessAttribution,
 } from "./revenuePromoRedemptions";
 import {
+  markVerifiedIntroDiscountRedemptionRedeemed,
+  markVerifiedIntroDiscountRedemptionExpiredOrCancelled,
+} from "./verifiedIntroDiscountRedemptions";
+import {
   isRevenueOsCheckoutSession,
   parseCheckoutSessionMetadata,
 } from "./revenueWebhook";
@@ -1401,6 +1405,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
     }
   }
 
+  // Package C Build 2 (C4) — parallel to the promo-redemption block above. Conditional,
+  // replay-safe 'reserved' -> 'redeemed' UPDATE; without this the reservation never leaves
+  // 'reserved' after a real successful payment.
+  const verifiedIntroDiscountRedemptionId = paymentRecord.verified_intro_discount_redemption_id;
+  if (verifiedIntroDiscountRedemptionId) {
+    const verifiedIntroResult = await markVerifiedIntroDiscountRedemptionRedeemed(verifiedIntroDiscountRedemptionId);
+    if (verifiedIntroResult.ok) {
+      await writeRevenueAuditLog({
+        action: "revenue_verified_intro_discount_redeemed",
+        targetType: "leonix_verified_intro_discount_redemptions",
+        targetId: verifiedIntroDiscountRedemptionId,
+        meta: {
+          payment_record_id: paymentRecord.id,
+          idempotent: verifiedIntroResult.idempotent === true,
+          stripe_event_id: eventId,
+        },
+      });
+    }
+  }
+
   const refreshed = (await loadPaymentRecordById(paymentRecord.id)) ?? paymentRecord;
   const entitlementResult = await activateEntitlementsForPayment({
     paymentRecord: refreshed,
@@ -1726,6 +1750,12 @@ export async function markCheckoutSessionExpired(input: {
       stripeCheckoutSessionId: session.id,
       webhookMeta,
     });
+  }
+
+  // Package C Build 2 (C4) — mirrors the promo-redemption expiry branch above.
+  const verifiedIntroDiscountRedemptionId = paymentRecord.verified_intro_discount_redemption_id;
+  if (verifiedIntroDiscountRedemptionId) {
+    await markVerifiedIntroDiscountRedemptionExpiredOrCancelled(verifiedIntroDiscountRedemptionId);
   }
 
   return {

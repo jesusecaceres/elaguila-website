@@ -145,6 +145,16 @@ export type CategoryRouteAdapter = {
    * resolution — only for "where does a brand-new, category-only-known publish action start."
    */
   hubRoute?: string;
+  /**
+   * Globalization Package A Gate 2 — optional checkpoint entry page shown BEFORE the
+   * application (the "Ver más" product-truth card page). Set only on pipelines whose
+   * checkpoint is a distinct route the publish gateway should prefer over
+   * `hubRoute`/`applicationRoute`. Absent on pipelines whose hub already renders the
+   * checkpoint cards (Autos, Bienes Raíces, Rentas, Restaurantes, Empleos hub) and on
+   * pipelines whose applicationRoute itself is the checkpoint hop (Servicios). Resolution
+   * order in the gateway: `checkpointRoute ?? hubRoute ?? applicationRoute`.
+   */
+  checkpointRoute?: string;
   /** Public category results/search page. */
   resultsRoute: string;
 
@@ -177,6 +187,61 @@ export type CategoryRouteAdapter = {
    * Populated only from prior, cited audit findings — never guessed.
    */
   knownLimitations: readonly string[];
+
+  /**
+   * Globalization Package A Gate 1 — explicit lane records for multi-lane pipelines whose
+   * lanes were previously modeled only in knownLimitations prose (Empleos quick/premium/feria,
+   * Viajes negocios/privado, En Venta pro/free/storefront). Absent on single-lane pipelines
+   * and on pipelines whose lane split is already modeled as two sibling pipelines (Autos,
+   * Bienes Raíces, Rentas). Registry data only — adding a lane record here wires no live
+   * behavior by itself.
+   */
+  lanes?: readonly CategoryLaneRecord[];
+};
+
+/**
+ * Globalization Package A Gate 1 — canonical lane keys for pipelines with an intra-pipeline
+ * lane split. Lanes modeled as sibling pipelines (autos_negocios/autos_privado etc.) do NOT
+ * get lane keys — the pipeline key already is the lane.
+ */
+export type CategoryLaneKey =
+  | "empleos_quick"
+  | "empleos_premium"
+  | "empleos_feria"
+  | "viajes_negocios"
+  | "viajes_privado"
+  | "en_venta_pro"
+  | "en_venta_free"
+  | "en_venta_storefront";
+
+/**
+ * One lane of a multi-lane pipeline, as repository truth. Every field is evidence-backed:
+ * `dbLaneValue` mirrors the backing table's actual lane discriminator (e.g.
+ * `empleos_public_listings.lane` CHECK ('quick','premium','feria'),
+ * `viajes_staged_listings.lane` CHECK ('business','private')), or null when the lane exists
+ * only at the route level with no stored discriminator (En Venta lanes on `listings`).
+ */
+export type CategoryLaneRecord = {
+  laneKey: CategoryLaneKey;
+  pipeline: CanonicalCategoryKey;
+  /** The lane value as stored in the backing table, or null for route-level-only lanes. */
+  dbLaneValue: string | null;
+  /** Whether publishing through this lane is a paid product (per revenuePricingMatrix). */
+  paid: boolean;
+  /** Lane exists in the repository but is deliberately not offered to users today. */
+  parked: boolean;
+  /** Where a brand-new application for this specific lane starts. */
+  applicationRoute: string;
+  /**
+   * Draft-based, new-publish-only preview route for this lane, or null. This is NEVER a
+   * listing-bound preview destination — pointing an existing listing at a draft-based lane
+   * preview is exactly the live Empleos defect Globalization P3 fixed (a stale sessionStorage
+   * draft rendered with a repeat checkout widget). Listing-bound preview stays the adapter
+   * `previewRoute()`'s job.
+   */
+  draftPreviewRoute: string | null;
+  /** Evidence-backed notes; never guessed. */
+  notes: readonly string[];
 };
 
 export type RouteResolveOpts = {

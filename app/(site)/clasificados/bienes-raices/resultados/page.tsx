@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { BienesRaicesResultsClient } from "./BienesRaicesResultsClient";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function BienesRaicesResultsPage() {
-  return <BienesRaicesResultsClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <BienesRaicesResultsClient />
+    </Suspense>
+  );
 }

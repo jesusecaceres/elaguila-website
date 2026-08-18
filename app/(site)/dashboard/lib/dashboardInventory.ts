@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import {
   autosDealerInventoryEditHref,
   autosDealerListingEditHref,
@@ -382,14 +381,6 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
   }
 }
 
-function empleosPreviewHrefForLane(lane: string, lang: Lang): string | null {
-  const raw = String(lane ?? "").trim().toLowerCase();
-  if (raw !== "quick" && raw !== "premium" && raw !== "feria") return null;
-  const basePath = EMPLEOS_PREVIEW_ROUTES[raw];
-  const withFrom = `${basePath}?from=publicar`;
-  return appendLangToPath(withFrom, lang);
-}
-
 function viajesStagedPreviewPath(lane: string): string {
   const raw = String(lane ?? "").trim().toLowerCase();
   if (raw === "private") return "/clasificados/viajes/preview/privado";
@@ -480,7 +471,16 @@ export function buildEmpleosInventoryItems(
     publicHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     /** Manage applications + lifecycle — route param is listing id, not slug. */
     editHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
-    previewHref: empleosPreviewHrefForLane(row.lane, L),
+    /* Globalization P3 (Gate 5) — CORRECTED. Was `empleosPreviewHrefForLane(row.lane, L)`, which
+       opens /clasificados/empleos/{lane}-preview?from=publicar with no listingId at all: that
+       page only ever renders whatever generic sessionStorage draft happens to be in this tab
+       (stale, empty, or a different in-progress job) and, when a draft IS present, shows the
+       paid checkout widget again for a listing that is already published and already paid.
+       No DB-hydration/listing-bound mode exists for this preview page today. Same safe pattern
+       already used for Restaurantes/Bienes Raíces Privado: an existing, identified listing's
+       "Vista previa" opens its own real public page (always the true published truth, and
+       structurally has no checkout widget) instead of the draft-based application preview. */
+    previewHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     resultsHref: `/clasificados/empleos/resultados?${q}`,
     analyticsHref: `/dashboard/empleos?${q}`,
     publishedAt: null,

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -9,6 +9,8 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { formatEmpleosLocationLine } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -33,7 +35,7 @@ type Row = {
   updated_at: string;
 };
 
-export default function EmpleosEmployerDashboardPage() {
+function EmpleosEmployerDashboardPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = "/dashboard/empleos";
@@ -91,21 +93,28 @@ export default function EmpleosEmployerDashboardPage() {
     let cancelled = false;
     const supabase = createSupabaseBrowserClient();
     void (async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        const redirect = encodeURIComponent(`${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`);
-        router.replace(`/login?redirect=${redirect}`);
-        return;
-      }
-      if (!cancelled) setOwnerId(userData.user.id);
-      const { data, error } = await supabase
-        .from("empleos_public_listings")
-        .select("id, slug, title, company_name, lifecycle_status, lane, city, state, postal_code, listing_snapshot, updated_at")
-        .eq("owner_user_id", userData.user.id)
-        .order("updated_at", { ascending: false });
-      if (!cancelled) {
-        setAuthLoading(false);
-        if (!error && data) setRows(data as Row[]);
+      // Gate I.13A — this load had no try/catch; a thrown error (network failure on either
+      // call) left the page stuck showing only the loading text forever.
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          const redirect = encodeURIComponent(`${pathname}${typeof window !== "undefined" ? window.location.search || "" : ""}`);
+          router.replace(`/login?redirect=${redirect}`);
+          return;
+        }
+        if (!cancelled) setOwnerId(userData.user.id);
+        const { data, error } = await supabase
+          .from("empleos_public_listings")
+          .select("id, slug, title, company_name, lifecycle_status, lane, city, state, postal_code, listing_snapshot, updated_at")
+          .eq("owner_user_id", userData.user.id)
+          .order("updated_at", { ascending: false });
+        if (!cancelled) {
+          if (!error && data) setRows(data as Row[]);
+        }
+      } catch (err) {
+        console.error("[dashboard/empleos] load failed", err);
+      } finally {
+        if (!cancelled) setAuthLoading(false);
       }
     })();
     return () => {
@@ -258,5 +267,13 @@ export default function EmpleosEmployerDashboardPage() {
         ← {lang === "es" ? "Volver al resumen" : "Back to overview"}
       </Link>
     </LeonixDashboardShell>
+  );
+}
+
+export default function EmpleosEmployerDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EmpleosEmployerDashboardPageContent />
+    </Suspense>
   );
 }

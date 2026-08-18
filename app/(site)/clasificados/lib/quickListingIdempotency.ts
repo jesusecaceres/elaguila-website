@@ -75,3 +75,85 @@ export type QuickListingReuseFailureReason = Extract<QuickListingReuseCheck, { s
 export function logQuickListingReuseFailure(context: string, reason: QuickListingReuseFailureReason): void {
   console.warn(`[${QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE}] ${context}: reuse verification failed (${reason})`);
 }
+
+/* ==============================================================================================
+ * Globalization Package A Gate 3 — server-side publish idempotency key.
+ *
+ * The I.6B mechanism above protects retry/refresh of an already-known row; it explicitly does
+ * NOT protect two truly concurrent submit clicks racing before either round-trips a row id
+ * (recorded in the ledger's Duplicate-Row Prevention Scope). These helpers close that race:
+ * each logical submission carries a session-stable attempt key
+ * (`listings.publish_attempt_key`, migration 20260804120000), the DB's partial unique index
+ * `listings_owner_publish_attempt_key_uidx` rejects the second racing INSERT with 23505, and
+ * the caller recovers its own already-created row by key instead of duplicating.
+ *
+ * Fail-open by design: when sessionStorage or crypto.randomUUID is unavailable (or the DB
+ * predates the migration — insertListingsRowResilient drops the unknown column), publishers
+ * behave exactly as before this gate.
+ * ============================================================================================ */
+
+const PUBLISH_ATTEMPT_KEY_STORAGE_PREFIX = "leonix:publish-attempt-key:";
+
+/**
+ * Session-stable attempt key for the current logical submission in this category. Created on
+ * first call, reused by every retry AND by a concurrently-racing second click (click handlers
+ * are serialized on the JS thread, so both invocations read the same persisted value). Cleared
+ * via clearSessionPublishAttemptKey() after a confirmed successful publish so the next new ad
+ * gets a fresh key.
+ */
+export function getOrCreateSessionPublishAttemptKey(category: string): string | null {
+  try {
+    if (typeof window === "undefined" || !window.sessionStorage || typeof crypto?.randomUUID !== "function") {
+      return null;
+    }
+    const storageKey = `${PUBLISH_ATTEMPT_KEY_STORAGE_PREFIX}${category}`;
+    const existing = (window.sessionStorage.getItem(storageKey) ?? "").trim();
+    if (existing) return existing;
+    const fresh = crypto.randomUUID();
+    window.sessionStorage.setItem(storageKey, fresh);
+    return fresh;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear after a confirmed successful publish (row id known) — never on failure, so retries
+ * of the same submission keep the same key. */
+export function clearSessionPublishAttemptKey(category: string): void {
+  try {
+    if (typeof window === "undefined" || !window.sessionStorage) return;
+    window.sessionStorage.removeItem(`${PUBLISH_ATTEMPT_KEY_STORAGE_PREFIX}${category}`);
+  } catch {
+    // best-effort only
+  }
+}
+
+/** True when an insert failed because THIS submission's row already exists (the racing/retry
+ * case the unique index exists to catch) — the caller must recover by key, never re-insert. */
+export function isPublishAttemptKeyConflict(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  const message = String(error.message ?? "").toLowerCase();
+  return code === "23505" && message.includes("publish_attempt_key");
+}
+
+/** Owner-scoped recovery lookup: the row this attempt key already created, or null. Category
+ * is verified so a cross-category storage mixup can never resurrect the wrong row. */
+export async function fetchOwnListingIdByPublishAttemptKey(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  input: { ownerUserId: string; attemptKey: string; expectedCategory: string },
+): Promise<string | null> {
+  const key = (input.attemptKey ?? "").trim();
+  if (!key) return null;
+  const { data, error } = await supabase
+    .from("listings")
+    .select("id, owner_id, category")
+    .eq("owner_id", input.ownerUserId)
+    .eq("publish_attempt_key", key)
+    .maybeSingle();
+  if (error || !data) return null;
+  if (String(data.category ?? "") !== input.expectedCategory) return null;
+  return typeof data.id === "string" && data.id.trim() ? data.id : null;
+}

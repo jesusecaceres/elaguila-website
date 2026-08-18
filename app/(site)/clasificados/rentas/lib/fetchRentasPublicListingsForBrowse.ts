@@ -13,6 +13,7 @@ import {
   packageEntitlementGrantsDestacado,
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import { resolveCanonicalPlacementRankWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 
 export async function fetchRentasPublicListingsForBrowse(lang: "es" | "en"): Promise<RentasPublicListing[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -60,6 +61,18 @@ export async function fetchRentasPublicListingsForBrowse(lang: "es" | "en"): Pro
 
     const m = mapListingRowToRentasPublicListing(enrichedRow, lang);
     if (m && m.browseActive !== false) out.push(m);
+  }
+
+  // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, batched.
+  const canonicalWeights = await resolveCanonicalPlacementRankWeights(out, {
+    category: "rentas",
+    surface: "category_results",
+  });
+  if (canonicalWeights.size > 0) {
+    return out.map((l) => {
+      const w = canonicalWeights.get(l.id);
+      return w != null ? { ...l, canonicalPlacementRankWeight: w } : l;
+    });
   }
   return out;
 }

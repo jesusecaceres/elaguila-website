@@ -24,6 +24,9 @@ export type ListingPackageEntitlementRow = {
   benefits: Record<string, boolean>;
   metadata: Record<string, unknown>;
   revoked_at: string | null;
+  /** Package C Build 4 (C8, Gate 7) — provenance (stripe_webhook/admin_manual/print_included/
+   * comp/partner/manual_cleared_payment). Never inferred from status/tier. */
+  grant_source: string | null;
 };
 
 export type PackageEntitlementDashboardSnapshot = {
@@ -83,6 +86,7 @@ function rowFromDb(raw: Record<string, unknown>): ListingPackageEntitlementRow {
     benefits,
     metadata,
     revoked_at: raw.revoked_at != null ? String(raw.revoked_at) : null,
+    grant_source: raw.grant_source != null ? String(raw.grant_source) : null,
   };
 }
 

@@ -1,5 +1,7 @@
 import { put } from "@vercel/blob";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
+import { anonUploadPathSegment, applyAnonUploadSessionCookie, resolveAnonUploadSessionId } from "@/app/api/clasificados/_lib/anonUploadSession";
 
 export const runtime = "nodejs";
 
@@ -8,11 +10,22 @@ const SLOTS = new Set(["gallery", "logo", "video"]);
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 90 * 1024 * 1024;
 
+// Package F Build F2, Gate 8 (P1 security fix) — the "video" slot already validated its content
+// type; "gallery"/"logo" (image slots) previously had no MIME check at all.
+const ACCEPTED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function ownerPathSegment(ownerUserId: string | null, anonSessionId: string): string {
+  if (ownerUserId) return ownerUserId.replace(/[^a-zA-Z0-9-]+/g, "").slice(0, 36);
+  return anonUploadPathSegment(anonSessionId);
+}
+
 /**
  * Upload one browser-held image (data URL → Blob or file) to public Blob storage.
  * Returns HTTPS `publicUrl` for Rentas publish (`leonixPublishRealEstateListingCore` then mirrors to Supabase).
+ * Path is scoped by the real authenticated owner when present, else by a server-issued anonymous
+ * session id (never the client-supplied draftId).
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {
     return NextResponse.json(
@@ -57,11 +70,23 @@ export async function POST(req: Request) {
     if (!okType) {
       return NextResponse.json({ ok: false, error: "unsupported_video_type", detail: ct || "empty" }, { status: 400 });
     }
+  } else {
+    const ct = (file.type || "image/jpeg").toLowerCase();
+    if (!ACCEPTED_IMAGE_MIME.has(ct)) {
+      return NextResponse.json(
+        { ok: false, error: "unsupported_type", detail: "Use JPEG, PNG, or WebP." },
+        { status: 400 },
+      );
+    }
   }
 
   const safeId = draftId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "draft";
   const ix = Number.isFinite(index) ? Math.max(0, Math.floor(index)) : 0;
-  const pathname = `clasificados/rentas/drafts/${safeId}/${slot}-${ix}-${Date.now()}`;
+
+  const ownerUserId = await getBearerUserId(req);
+  const anonSession = ownerUserId ? null : resolveAnonUploadSessionId(req);
+  const ownerSeg = ownerPathSegment(ownerUserId, anonSession?.id ?? "");
+  const pathname = `clasificados/rentas/drafts/${ownerSeg}/${safeId}/${slot}-${ix}-${Date.now()}`;
 
   const contentType =
     file.type ||
@@ -74,5 +99,7 @@ export async function POST(req: Request) {
     contentType,
   });
 
-  return NextResponse.json({ ok: true, publicUrl: uploaded.url });
+  const res = NextResponse.json({ ok: true, publicUrl: uploaded.url });
+  if (anonSession?.isNew) applyAnonUploadSessionCookie(res, anonSession.id);
+  return res;
 }

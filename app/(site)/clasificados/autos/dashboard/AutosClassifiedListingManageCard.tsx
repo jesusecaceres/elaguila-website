@@ -53,6 +53,11 @@ export function AutosClassifiedListingManageCard({
    * Optional so this stays backward compatible; when omitted, falls back to the previous
    * sold-vs-active-only display so no other caller of this shared component breaks. */
   uiStatus,
+  /** Package E Build E2, Gate 4 — real Autos Privado edit route (confirmed live:
+   * `/publicar/autos/privado?edit=1&source=dashboard&listingId={id}`), sourced by the caller
+   * from the same registry-backed href every other pipeline's edit action already uses.
+   * Optional so this stays backward compatible with any other caller. */
+  editHref = null,
 }: {
   row: {
     id: string;
@@ -74,6 +79,7 @@ export function AutosClassifiedListingManageCard({
   listingAdPlanLabel?: string | null;
   /** `listings` legacy row or paid table id — display only when present. */
   leonixAdId?: string | null;
+  editHref?: string | null;
 }) {
   const L =
     lang === "es"
@@ -82,6 +88,7 @@ export function AutosClassifiedListingManageCard({
           active: "Activo",
           sold: "Vendido",
           view: "Ver anuncio",
+          edit: "Editar",
           archive: "Archivar anuncio",
           views: "Vistas",
           uniq: "Únicas",
@@ -103,6 +110,7 @@ export function AutosClassifiedListingManageCard({
           active: "Active",
           sold: "Sold",
           view: "View listing",
+          edit: "Edit",
           archive: "Archive ad",
           views: "Views",
           uniq: "Unique",
@@ -195,6 +203,15 @@ export function AutosClassifiedListingManageCard({
             >
               {L.view} →
             </Link>
+            {editHref ? (
+              <Link
+                href={editHref}
+                prefetch={false}
+                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {L.edit}
+              </Link>
+            ) : null}
             <button
               type="button"
               disabled={busy}

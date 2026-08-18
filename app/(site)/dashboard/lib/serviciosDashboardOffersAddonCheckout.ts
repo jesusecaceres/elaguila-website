@@ -1,30 +1,25 @@
 /**
- * Dashboard Servicios offers/coupons add-on checkout — add-on-only ($99/mo), no base plan.
+ * Dashboard Servicios offers/coupons module — included with the $399/mo base package (Package C
+ * Build 3, C5/C6). Historically a standalone $79/mo Stripe add-on; now a capability check only,
+ * no separate purchase.
  * Gate SERVICIOS-P0C-DASHBOARD-ADDON-ONLY-STRIPE-AND-EDIT-ROUTE-PARITY
  *
- * Mirrors the proven Restaurante dashboard add-on pattern, Servicios-specific:
- * - Always uses category `servicios` + the offers add-on package key.
- * - Never includes the base monthly package (no $399 base charge from dashboard edit).
+ * Mirrors the proven Restaurante dashboard pattern, Servicios-specific:
+ * - Always uses category `servicios`.
  * - Existing-listing edit hrefs route to `/publicar/servicios` (direct app — Restaurante parity).
  * - `/clasificados/publicar/servicios` redirects to checkpoint and must not be used for dashboard edit.
  */
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import {
-  redirectToRevenueCategoryCheckout,
-  revenueCategoryCheckoutErrorMessage,
-  startRevenueCategoryCheckout,
-} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { enableIncludedCommercialCapability } from "@/app/lib/listingPlans/enableIncludedCapabilityClient";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 
 export { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY };
 
 type Lang = "es" | "en";
 
 export type ServiciosDashboardOffersAddonCheckoutResult =
-  | { ok: true; checkoutUrl: string }
+  | { ok: true }
   | { ok: false; userMessage: string };
 
 export function serviciosOffersInactiveDashboardHint(lang: Lang): string {
@@ -38,11 +33,11 @@ export function serviciosOffersEditSuccessLabel(lang: Lang): string {
 }
 
 export function serviciosOffersAddonUpgradeLabel(lang: Lang): string {
-  return lang === "es" ? "Destacar ofertas +$99/mes" : "Feature offers +$99/mo";
+  return lang === "es" ? "Activar módulo de ofertas" : "Enable offers module";
 }
 
 export function serviciosOffersAddonUpgradeBusyLabel(lang: Lang): string {
-  return lang === "es" ? "Iniciando pago…" : "Starting checkout…";
+  return lang === "es" ? "Activando…" : "Enabling…";
 }
 
 export function serviciosOffersEditLabel(lang: Lang): string {
@@ -151,6 +146,15 @@ export function serviciosBackToEditHrefFromPreview(input: ServiciosEditHrefInput
   return appendLangToPath(`${SERVICIOS_DASHBOARD_APPLICATION_BASE}?${params.toString()}`, input.lang);
 }
 
+/**
+ * Package C Build 3 (C5/C6) — repurposed from a $79/mo Stripe checkout starter into a
+ * server-verified capability check. The base $399/mo Servicios package already includes
+ * coupons/offers; there is no stored entitlement flag for Servicios (content presence is the
+ * only signal — see serviciosListingJsonOffersEnabled below), so this call's only job is to
+ * confirm the owner's base package is real and active before the editor opens. Never starts
+ * Stripe checkout. `leonixAdId`/`customerEmail`/`returnPath` are accepted for call-site
+ * compatibility but unused now that there is no checkout redirect.
+ */
 export async function startServiciosDashboardOffersAddonCheckout(input: {
   listingId: string;
   leonixAdId?: string | null;
@@ -169,36 +173,23 @@ export async function startServiciosDashboardOffersAddonCheckout(input: {
     };
   }
 
-  const returnPath =
-    input.returnPath?.trim() || buildDashboardMisAnunciosReturnPath(input.lang, "servicios");
-  const checkout = await startRevenueCategoryCheckout({
-    category: SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT.category,
-    packageKey: SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT.packageKey,
+  const result = await enableIncludedCommercialCapability({
+    category: "servicios",
     listingId,
-    leonixAdId: input.leonixAdId?.trim() || null,
-    returnPath,
-    locale: input.lang,
-    customerEmail: input.customerEmail,
+    capability: "coupons_offers",
+    lang: input.lang,
   });
-
-  if (!checkout.ok || !checkout.checkoutUrl?.trim()) {
-    return {
-      ok: false,
-      userMessage: checkout.ok ? revenueCategoryCheckoutErrorMessage(input.lang) : checkout.userMessage,
-    };
+  if (!result.ok) {
+    return { ok: false, userMessage: result.userMessage };
   }
-
-  return { ok: true, checkoutUrl: checkout.checkoutUrl.trim() };
+  return { ok: true };
 }
 
+/** Kept for existing call-site compatibility — there is no checkout URL to redirect to anymore. */
 export async function redirectServiciosDashboardOffersAddonCheckout(
   input: Parameters<typeof startServiciosDashboardOffersAddonCheckout>[0],
 ): Promise<ServiciosDashboardOffersAddonCheckoutResult> {
-  const result = await startServiciosDashboardOffersAddonCheckout(input);
-  if (result.ok) {
-    redirectToRevenueCategoryCheckout(result.checkoutUrl);
-  }
-  return result;
+  return startServiciosDashboardOffersAddonCheckout(input);
 }
 
 /**

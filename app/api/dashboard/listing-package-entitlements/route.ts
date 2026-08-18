@@ -12,7 +12,11 @@ import { fetchRevenueOsAdPlanProofsForListings } from "@/app/lib/listingPlans/re
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 import { resolveOwnedListingIdentityKeys } from "@/app/lib/listingPlans/listingEntitlementOwnership";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+
+/** Package C Build 3 (C5/C6) — categories with a data-driven capability model. */
+const CAPABILITY_CATEGORIES = new Set(["restaurantes", "servicios"]);
 
 type RequestItem = {
   category: string;
@@ -104,6 +108,10 @@ export async function POST(req: NextRequest) {
       revenuePackageKey?: string | null;
       /** Additive — set only when the request item included a `packageKey`. */
       addonStatus?: AddonLifecycleStatus;
+      /** Package C Build 3 (C5/C6) — additive, set only for capability-model categories
+       * (restaurantes/servicios). Resolved server-side via resolveBusinessToolsAccess(); never
+       * inferred from placement, account tier, or a client-supplied claim. */
+      capabilities?: string[];
     }
   > = {};
 
@@ -181,6 +189,52 @@ export async function POST(req: NextRequest) {
     revenueLookupItems.push(...result.revenueItems);
   }
 
+  // Package C Build 3 (C5/C6) — additive capability lookup for restaurantes/servicios only.
+  // Independent of the placement-tier and add-on-lifecycle stages above; merges onto badges[id].
+  // Each item is resolved independently so one failed resolution never affects another.
+  const capabilityItems = authorizedItems.filter((item) =>
+    CAPABILITY_CATEGORIES.has(String(item.category ?? "").trim().toLowerCase()),
+  );
+  if (capabilityItems.length > 0) {
+    const capabilityResults = await Promise.all(
+      capabilityItems.map(async (item) => {
+        const category = String(item.category ?? "").trim().toLowerCase();
+        const listingSource = String(item.listingSource ?? "").trim();
+        const id = String(item.listingId ?? item.slug ?? item.leonixAdId ?? "").trim();
+        if (!listingSource || !id) return null;
+        try {
+          const access = await resolveBusinessToolsAccess({
+            category,
+            listingSource,
+            listingId: id,
+            capability: "coupons_offers",
+          });
+          return { id, capabilities: access.plan.capabilities };
+        } catch (err) {
+          console.error("[listing-package-entitlements] capability lookup failed", {
+            category,
+            listingSource,
+            message: err instanceof Error ? err.message : String(err),
+          });
+          // Fail closed: no capability fabricated on error.
+          return { id, capabilities: [] as string[] };
+        }
+      }),
+    );
+    for (const result of capabilityResults) {
+      if (!result) continue;
+      badges[result.id] = {
+        ...(badges[result.id] ?? {
+          tier: "digital_only",
+          grantsDestacado: false,
+          grantsResultsPriority: false,
+          includesNuestrosNegocios: false,
+        }),
+        capabilities: result.capabilities,
+      };
+    }
+  }
+
   // Additive add-on lifecycle lookup — only for items that opted in with a `packageKey`.
   // Deliberately independent from the placement-tier loop above: does not alter or replace it.
   // Runs strictly after the placement stage resolves (it merges onto `badges[id]` set there).
@@ -255,5 +309,36 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ badges });
+  // Package C Build 1 (Gate 14) — truthful subscription/grace/suspension state per listing.
+  // Read from the canonical subscription records; independent of plan/entitlement/placement.
+  const subscriptionStates: Record<
+    string,
+    { status: string; cancelAtPeriodEnd: boolean; graceEndsAt: string | null; suspensionReason: string | null; recoveredAt: string | null }
+  > = {};
+  try {
+    const listingIds = revenueLookupItems.map((i) => i.listingId).filter(Boolean);
+    if (listingIds.length) {
+      const supabase = getAdminSupabase();
+      const { data: subs } = await supabase
+        .from("leonix_subscription_records")
+        .select("listing_id, status, cancel_at_period_end, grace_ends_at, suspension_reason, recovered_at, updated_at")
+        .in("listing_id", listingIds)
+        .order("updated_at", { ascending: false });
+      for (const row of subs ?? []) {
+        const key = String((row as { listing_id?: string }).listing_id ?? "");
+        if (!key || subscriptionStates[key]) continue;
+        subscriptionStates[key] = {
+          status: String((row as { status?: string }).status ?? ""),
+          cancelAtPeriodEnd: Boolean((row as { cancel_at_period_end?: boolean }).cancel_at_period_end),
+          graceEndsAt: ((row as { grace_ends_at?: string | null }).grace_ends_at ?? null) as string | null,
+          suspensionReason: ((row as { suspension_reason?: string | null }).suspension_reason ?? null) as string | null,
+          recoveredAt: ((row as { recovered_at?: string | null }).recovered_at ?? null) as string | null,
+        };
+      }
+    }
+  } catch {
+    // Fail closed to "no subscription state" — never fabricate commercial truth.
+  }
+
+  return NextResponse.json({ badges, subscriptionStates });
 }

@@ -188,7 +188,12 @@ export default function BienesRaicesNegocioPreviewClient() {
     [lang],
   );
 
-  const onCheckout = useCallback(async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+  const onCheckout = useCallback(async (ctx: {
+    newsletterOptIn: boolean;
+    promoCode: string | null;
+    recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    requestVerifiedIntroDiscount?: boolean;
+  }) => {
     const st = loadBienesRaicesNegocioPreviewDraft();
     if (!st) return;
     setPublishBusy(true);
@@ -270,6 +275,8 @@ export default function BienesRaicesNegocioPreviewClient() {
           leonixAdId: r.leonixAdId,
           locale: lang,
           promoCode: ctx.promoCode,
+          recurringConsent: ctx.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
           returnPath: appendLangToPath("/clasificados/bienes-raices/preview/negocio?checkout=cancelled", routeLang),
           ...(childCount > 0 ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] } : {}),
         });

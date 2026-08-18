@@ -42,8 +42,11 @@ function countPrefetchFalse(text: string): number {
  * ------------------------------------------------------------------------------------------ */
 
 assert.match(brInventoryActionsSrc, /import Link from "next\/link";/, "must still use next/link's <Link>");
-assert.equal(countLinks(brInventoryActionsSrc), 1, "must still render exactly 1 <Link> element");
-assert.equal(countPrefetchFalse(brInventoryActionsSrc), 1, "the single Link must now have prefetch={false}");
+// Globalization Package B Gate B4 added the per-child "Editar propiedad" and "Ver pública"
+// links (direct child dashboard actions) — the coverage rule stays: every action <Link> in
+// this file disables prefetch, so the two counts must remain equal.
+assert.equal(countLinks(brInventoryActionsSrc), 3, "must render exactly 3 <Link> elements (manage pack + child edit + child public)");
+assert.equal(countPrefetchFalse(brInventoryActionsSrc), 3, "every Link in this file must have prefetch={false}");
 
 assert.match(
   brInventoryActionsSrc,
@@ -75,7 +78,9 @@ assert.equal(countPrefetchFalse(actionBarSrc), 1, "the shared action bar's per-l
 const dedicatedCards: Array<[string[], number]> = [
   [["app", "(site)", "clasificados", "en-venta", "dashboard", "EnVentaListingManageCard.tsx"], 5],
   [["app", "(site)", "dashboard", "components", "LeonixRealEstateListingManageCard.tsx"], 3],
-  [["app", "(site)", "clasificados", "autos", "dashboard", "AutosClassifiedListingManageCard.tsx"], 1],
+  // Package E Build E2, Gate 4 — real Autos Privado Edit link added, prefetch-disabled like
+  // every other per-listing action; 1 -> 2.
+  [["app", "(site)", "clasificados", "autos", "dashboard", "AutosClassifiedListingManageCard.tsx"], 2],
   [["app", "(site)", "clasificados", "bienes-raices", "dashboard", "BrPropertyInventoryDashboardSection.tsx"], 1],
 ];
 for (const [pathParts, expected] of dedicatedCards) {
@@ -93,7 +98,8 @@ const misAnunciosSrc = src("app", "(site)", "dashboard", "mis-anuncios", "page.t
   const endIdx = misAnunciosSrc.indexOf("{t.archiveAd}", startIdx);
   assert.ok(endIdx > startIdx, "the generic inline card's archive-button marker must still be present");
   const block = misAnunciosSrc.slice(startIdx, endIdx + "{t.archiveAd}".length);
-  assert.equal(countPrefetchFalse(block), 6, "the generic inline card must still have all 6 links prefetch-disabled");
+  // Package E Build E2, Gate 4 — real Edit link added for Clases/Comunidad/Busco; 6 -> 7.
+  assert.equal(countPrefetchFalse(block), 7, "the generic inline card must still have all 7 links prefetch-disabled");
 }
 
 // No primary navigation link was touched by this gate.

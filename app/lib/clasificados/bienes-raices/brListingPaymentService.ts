@@ -11,6 +11,7 @@ import {
   BR_TOTAL_ACTIVE_PROPERTY_LIMIT,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 
 export type BrListingRowForPayment = {
   id: string;
@@ -173,6 +174,16 @@ export type TryActivateBrResult = {
 /**
  * Idempotent activation after Stripe paid. Only transitions rows with status=pending and unpublished.
  * When a Bienes inventory listing activates, pending siblings in the same group also activate (bundle checkout).
+ *
+ * Package C Build 4 (C7, Gate 4) — this function is shared across every `listings`-table category
+ * that still routes through the legacy Leonix Stripe integration (bienes-raices FSBO/negocio,
+ * rentas, en-venta, etc.), not bienes-raices alone — the pre-existing `category === "bienes-raices"`
+ * gates throughout this function are the real category boundary. The atomic
+ * `br_negocio_activate_listing` RPC only understands `category='bienes-raices'` rows, so it is
+ * used ONLY for that category's `main`/`inventory_property` roles (both now capacity+lifecycle
+ * checked — closing the pre-existing gap where main-parent (re)activation itself was never
+ * capacity-checked). Every other category keeps the original direct, unguarded update — unchanged,
+ * since it is not part of the parent/child capacity system this build closes.
  */
 export async function tryActivateBrListingAfterPayment(
   listingId: string,
@@ -188,46 +199,35 @@ export async function tryActivateBrListingAfterPayment(
     return { ok: false, transitioned: false };
   }
 
-  // Gate F.2.4.4 — only inventory_property children are capacity-gated; main parent activation
-  // (and reactivation of the main row) always follows its existing payment/publication rules.
-  if (existing.category === "bienes-raices" && existing.inventory_role === "inventory_property") {
-    const capacity = await checkBrChildActivationCapacity(existing, listingId);
-    if (!capacity.ok) {
-      return { ok: false, transitioned: false, error: capacity.error };
-    }
-  }
-
   const now = new Date().toISOString();
-
   const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("listings")
-    .update({
-      status: "active",
-      is_published: true,
-      published_at: existing.published_at ?? now,
-      updated_at: now,
-    })
-    .eq("id", listingId)
-    .eq("status", "pending")
-    .eq("is_published", false)
-    .select("id, inventory_role, br_inventory_group_id")
-    .maybeSingle();
+  const ownerId = String(existing.owner_id ?? "").trim();
 
-  if (error) {
-    console.error("tryActivateBrListingAfterPayment", error);
-    return { ok: false, transitioned: false };
-  }
-  if (data) {
-    if (existing.category === "bienes-raices" && data.inventory_role === "main") {
+  if (existing.category === "bienes-raices" && (existing.inventory_role === "main" || existing.inventory_role === "inventory_property")) {
+    const rpcResult = await activateBrNegocioListingAtomic({ listingId, ownerId, fromStatus: "pending" });
+    if (!rpcResult.ok) {
+      console.error("tryActivateBrListingAfterPayment RPC error", rpcResult.rpcError);
+      return { ok: false, transitioned: false };
+    }
+    if (!rpcResult.activated && !rpcResult.idempotent) {
+      const mappedError =
+        rpcResult.blockedReason === "capacity_reached" ? BR_ACTIVE_PROPERTY_LIMIT_ERROR : BR_INVENTORY_PARENT_INVALID_ERROR;
+      return { ok: false, transitioned: false, error: mappedError };
+    }
+    if (!rpcResult.activated) {
+      // Idempotent no-op — already active, nothing further to do.
+      return { ok: true, transitioned: false };
+    }
+
+    if (existing.inventory_role === "main") {
       const patch = mainListingInventoryPatchAfterInsert(listingId);
       await supabase.from("listings").update({ ...patch, updated_at: now }).eq("id", listingId);
     }
     const fanOut = opts?.activateInventorySiblings !== false;
-    if (fanOut && existing.category === "bienes-raices") {
+    if (fanOut) {
       const groupId =
-        String(data.br_inventory_group_id ?? "").trim() ||
-        (data.inventory_role === "main" ? listingId : "");
+        String(existing.br_inventory_group_id ?? "").trim() ||
+        (existing.inventory_role === "main" ? listingId : "");
       if (groupId) {
         const { data: siblings } = await supabase
           .from("listings")
@@ -250,6 +250,30 @@ export async function tryActivateBrListingAfterPayment(
         }
       }
     }
+    return { ok: true, transitioned: true };
+  }
+
+  // Every other category on the shared `listings` table — not capacity-relevant, unchanged
+  // direct path.
+  const { data, error } = await supabase
+    .from("listings")
+    .update({
+      status: "active",
+      is_published: true,
+      published_at: existing.published_at ?? now,
+      updated_at: now,
+    })
+    .eq("id", listingId)
+    .eq("status", "pending")
+    .eq("is_published", false)
+    .select("id, inventory_role, br_inventory_group_id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("tryActivateBrListingAfterPayment", error);
+    return { ok: false, transitioned: false };
+  }
+  if (data) {
     return { ok: true, transitioned: true };
   }
   const again = await getBrListingById(listingId);

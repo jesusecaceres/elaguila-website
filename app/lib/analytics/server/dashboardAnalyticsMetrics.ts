@@ -43,6 +43,8 @@ export type DashboardAnalyticsTotals = {
   shopping_list_adds: number;
   shopping_list_removes: number;
   coupon_opens: number;
+  flyer_viewer_opens: number;
+  offer_hub_opens: number;
   leads: number;
   applications: number;
   contact_clicks: number;
@@ -74,6 +76,8 @@ export const ZERO_DASHBOARD_ANALYTICS_TOTALS: DashboardAnalyticsTotals = {
   shopping_list_adds: 0,
   shopping_list_removes: 0,
   coupon_opens: 0,
+  flyer_viewer_opens: 0,
+  offer_hub_opens: 0,
   leads: 0,
   applications: 0,
   contact_clicks: 0,
@@ -223,6 +227,8 @@ export function bucketToDashboardListingMetrics(bucket: ListingAnalyticsBucket) 
     shopping_list_adds: 0,
     shopping_list_removes: 0,
     coupon_opens: 0,
+    flyer_viewer_opens: 0,
+    offer_hub_opens: 0,
     leads: bucket.leads,
     applications: bucket.applications,
     contact_clicks: 0,

@@ -28,6 +28,7 @@ import {
 import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/publicar/servicios/components/ServiciosJustPublishedSuccessBanner";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -182,8 +183,27 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       : undefined,
   } as const;
 
+  // Package F Build F2, Gate 15 (P1 SEO fix) — real LocalBusiness structured data; only emitted
+  // for published-live profiles (matches this page's own noindex classification elsewhere).
+  const jsonLd = isPublishedLive
+    ? serviciosJsonLd({
+        name: profile.identity.businessName,
+        description: profile.about?.text?.slice(0, 300) || undefined,
+        url: `/clasificados/servicios/${encodeURIComponent(slug)}`,
+        imageUrl: profile.hero.coverImageUrl,
+        telephone: profile.contact.phoneDisplay,
+        addressText: profile.contact.physicalAddressDisplay,
+        websiteUrl: profile.contact.websiteHref,
+        ratingAverage: profile.hero.rating,
+        ratingCount: profile.hero.reviewCount,
+      })
+    : null;
+
   return (
     <>
+      {jsonLd ? (
+        <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      ) : null}
       {/*
         Hidden SSR anchor for QA/smoke: ensures slug + business name appear as plain text in the HTML
         response even when the main profile shell is streamed behind Suspense boundaries.

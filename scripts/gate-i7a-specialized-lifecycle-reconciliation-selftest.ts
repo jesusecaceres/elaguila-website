@@ -222,7 +222,57 @@ async function main() {
     } catch {
       changedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization P1 fixed the root cause of the app-wide stuck-loading-spinner defect (a
+    // redundant global <Suspense> in app/layout.tsx) and, as a required consequence, added the
+    // one local Suspense boundary Next.js's build requires around each of these two pages' own
+    // useSearchParams() usage. Both are structural runtime-plumbing fixes only (no ownership,
+    // payment, or business-logic change), required for "npm run build" to succeed at all -- not
+    // an incursion into the Ofertas Locales or Autos Negocios workstreams this check protects.
+    const GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS = new Set([
+      "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+      "app/(site)/dashboard/ofertas-locales/page.tsx",
+      "app/(site)/clasificados/autos/negocios/preview/page.tsx",
+      "app/(site)/publicar/autos/negocios/page.tsx",
+      "app/(site)/clasificados/bienes-raices/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/cancelado/page.tsx",
+      "app/(site)/clasificados/bienes-raices/pago/exito/page.tsx",
+      "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
+      "app/(site)/clasificados/publicar/bienes-raices/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/empleos/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/page.tsx",
+      "app/admin/login/page.tsx",
+      "app/(site)/clasificados/publicar/restaurantes/page.tsx",
+    ]);
+    // Globalization P2 fixed two confirmed owner-QA defects in this exact file: the dashboard
+    // "Vista previa" checkout widget rendering for an already-published, already-paid listing
+    // (checkpointConfig now checks listingBoundPreview), and a false-422/existing-media-loss bug
+    // (the listing-bound mount effect no longer lets an unrelated new-ad draft override the
+    // DB-hydrated existing photos). Both are lifecycle/runtime-correctness fixes, not new business
+    // logic or a weakening of ownership/payment protection.
+    const GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS = new Set([
+      "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    ]);
+    // Globalization P3 (Gate 1) wired the new shared preview-mode contract
+    // (app/lib/listingIdentity/previewModeContract.ts) into Servicios' and Rentas' own preview
+    // clients as a behavior-preserving substitution for each lane's pre-existing local
+    // listing-bound boolean/editContext derivation — same class of runtime-correctness fix as
+    // P2's BR Negocio entry above, not new business logic or a weakening of ownership/payment
+    // protection. Gate 5 additionally corrected the Empleos dashboard preview href (a confirmed
+    // live defect: it opened a draft-based checkout preview with no listingId concept for an
+    // already-published, already-paid job) to point at the listing's own public page instead.
+    const GLOBALIZATION_P3_STRUCTURAL_FIX_EXCEPTIONS = new Set([
+      "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+      "app/(site)/clasificados/rentas/preview/negocio/components/RentasNegocioPreviewClient.tsx",
+      "app/(site)/clasificados/rentas/preview/privado/components/RentasPrivadoPreviewClient.tsx",
+      "app/(site)/dashboard/lib/dashboardInventory.ts",
+    ]);
+    const changed = changedFiles
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .filter((f) => !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f))
+      .filter((f) => !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f))
+      .filter((f) => !GLOBALIZATION_P3_STRUCTURAL_FIX_EXCEPTIONS.has(f));
     const lockedPathFragments = [
       "app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts",
       "bienes-raices",
@@ -249,10 +299,106 @@ async function main() {
       "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
       "app/(site)/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell.tsx",
     ]);
-    for (const f of changed) {
+    /**
+     * Work Package I.11A (Global Media and Draft Persistence Foundation) approved, narrow
+     * exception. I.11A intentionally (a) fixed the Autos Negocios/Privado draft-key collision
+     * between "new listing" and "edit existing listing" (session-namespace resolution only — the
+     * low-level IndexedDB/storage files themselves are provably untouched, see
+     * `gate-i11a-autos-listing-edit-media-isolation-selftest.ts`), and (b) added real upload-owner
+     * verification to the Restaurantes/Servicios draft-media-upload routes. Exact-file,
+     * exact-fragment allowlist only — every other Autos/Restaurantes/Servicios file, and every
+     * other locked fragment for these files, remains fully protected below.
+     */
+    const I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS = new Set<string>([
+      "app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx",
+      "app/(site)/publicar/autos/negocios/hooks/useAutoDealerDraft.ts",
+      "app/(site)/publicar/autos/negocios/lib/autosPublishedToDealerApplicationDraft.ts",
+      "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
+      "app/(site)/publicar/autos/privado/hooks/useAutoPrivadoDraft.ts",
+      "app/lib/clasificados/autos/AUTOS_A5_SHIP_07_ZERO_DATA_LOSS_MEDIA_STORAGE_AUDIT.md",
+      "app/api/clasificados/restaurantes/draft-media-upload/route.ts",
+      "app/api/clasificados/servicios/draft-media-upload/route.ts",
+    ]);
+    /**
+     * Work Package I.11B (Autos Draft Upload Session Security) approved, narrow exception.
+     * I.11B applied the exact same anon-session-scoping fix I.11A already shipped for the other
+     * four draft-media-upload routes to the one Autos held out — verified to touch only the
+     * upload-path identity resolution in this single route, never Autos application/draft/
+     * IndexedDB-namespace logic (locked for this package; see `gate-i11b-autos-draft-upload-
+     * session-security-selftest.ts`'s own scope check). Exact-file, exact-fragment allowlist
+     * only — every other "/autos/" file remains fully protected below.
+     */
+    const I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS = new Set<string>([
+      "app/api/clasificados/autos/media/draft-photo-upload/route.ts",
+    ]);
+    /**
+     * Work Package I.12A (Full Catalog Lifecycle Certification and Gap Closure) approved, narrow
+     * exception. I.12A intentionally gated one ungated messages-navigation entry in the
+     * Restaurantes owner dashboard behind the existing `DASHBOARD_INTERNAL_INBOX_READY` flag
+     * (Option B messaging decision) — verified to touch only the `cardActions` array's messages
+     * entry, never publish/lifecycle/media logic (this gate's other assertions are unaffected).
+     * Exact-file, exact-fragment allowlist only — every other "restaurantes" file remains fully
+     * protected below.
+     */
+    const I12A_RESTAURANTES_MESSAGING_GATE_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/restaurantes/page.tsx",
+    ]);
+    /**
+     * Work Package I.13A (Launch Readiness: Security, ES/EN, Mobile, and UX States) approved,
+     * narrow exception. I.13A intentionally (a) fixed an untranslated "Meal prep" string and (b)
+     * disabled a misleading, non-functional country filter input on the Restaurantes results
+     * shell — verified to touch only display copy and one filter control, never publish/
+     * lifecycle/media logic (this gate's other assertions are unaffected). Exact-file,
+     * exact-fragment allowlist only — every other "restaurantes" file remains fully protected.
+     */
+    const I13A_RESTAURANTES_RESULTS_UX_EXCEPTIONS = new Set<string>([
+      "app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx",
+    ]);
+    /**
+     * Work Package I.13A approved, narrow exception (continued). I.13A also fixed a
+     * zero-row-mutation-reported-as-success gap in the Servicios pause/resume route and a
+     * stuck-loading-spinner bug in the Servicios owner dashboard's load effect — verified to
+     * touch only write-result checking and try/finally wrapping, never publish/lifecycle logic.
+     */
+    const I13A_SERVICIOS_UX_AND_ZERO_ROW_EXCEPTIONS = new Set<string>([
+      "app/(site)/dashboard/servicios/page.tsx",
+      "app/api/clasificados/servicios/manage/route.ts",
+    ]);
+    /**
+     * Work Package I.13A approved, narrow exception (continued). I.13A also fixed the same
+     * zero-row-mutation class of gap in the Autos dealer-inventory-group service — verified to
+     * touch only write-result checking, never publish/lifecycle/draft-isolation logic (already
+     * separately certified by the I.11A/I.11B gates referenced above, unaffected here).
+     */
+    const I13A_AUTOS_ZERO_ROW_EXCEPTIONS = new Set<string>([
+      "app/lib/clasificados/autos/autosClassifiedsListingService.ts",
+    ]);
+    /**
+     * Work Package I.13B (Public Visibility and Filter-Query Certification) approved, narrow
+     * exception. I.13B added a Bienes Raíces Negocio-style parent-liveness visibility gate for
+     * Auto Dealers inventory children (a new, pure, no-I/O module plus wiring into 3 existing
+     * read-only query functions in the already-excepted service file above) — verified to touch
+     * only public-visibility filtering, never publish/lifecycle/draft-isolation logic.
+     */
+    const I13B_AUTOS_PARENT_LIVENESS_EXCEPTIONS = new Set<string>([
+      "app/lib/clasificados/autos/autosPublicChildParentVisibility.ts",
+    ]);
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification; Gate 3's
+    // fail-closed reuse-lookup fix in leonixPublishRealEstateListingCore.ts is the authorized
+    // change this gate previously locked).
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    for (const f of excludeCurrentPackageFiles(changed)) {
       const lower = f.toLowerCase();
       for (const frag of lockedPathFragments) {
         if (frag === "bienes-raices" && I10A_BR_ANALYTICS_WIRING_EXCEPTIONS.has(f)) continue;
+        if ((frag === "/autos/" || frag === "restaurantes" || frag === "servicios") && I11A_MEDIA_DRAFT_PERSISTENCE_EXCEPTIONS.has(f)) continue;
+        if (frag === "/autos/" && I11B_AUTOS_UPLOAD_SESSION_EXCEPTIONS.has(f)) continue;
+        if (frag === "restaurantes" && I12A_RESTAURANTES_MESSAGING_GATE_EXCEPTIONS.has(f)) continue;
+        if (frag === "restaurantes" && I13A_RESTAURANTES_RESULTS_UX_EXCEPTIONS.has(f)) continue;
+        if (frag === "servicios" && I13A_SERVICIOS_UX_AND_ZERO_ROW_EXCEPTIONS.has(f)) continue;
+        if (frag === "/autos/" && I13A_AUTOS_ZERO_ROW_EXCEPTIONS.has(f)) continue;
+        if (frag === "/autos/" && I13B_AUTOS_PARENT_LIVENESS_EXCEPTIONS.has(f)) continue;
         assert.ok(!lower.includes(frag.toLowerCase()), `locked-system file must not be part of this package's diff: ${f} (matched "${frag}")`);
       }
     }

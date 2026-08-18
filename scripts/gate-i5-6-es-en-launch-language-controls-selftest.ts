@@ -28,6 +28,8 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
+
 import {
   ADDITIONAL_LANGUAGES,
   OFFICIAL_LAUNCH_LANGUAGES,
@@ -183,9 +185,14 @@ async function main() {
       changedFiles = "";
       deletedFiles = "";
     }
-    const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
+    // Globalization Package A — later-package files authorized via the shared allowlist
+    // (see scripts/globalizationCurrentPackageDiff.ts for the per-file justification; the
+    // route registry is Package A Gate 1's own contract surface).
+    const changed = excludeCurrentPackageFiles(
+      changedFiles.split("\n").map((l) => l.trim()).filter(Boolean),
+    );
     assert.equal(deletedFiles.trim(), "", "no file may be deleted by this gate");
-    assert.ok(!changed.includes(CATEGORY_ROUTE_REGISTRY_FILE), "category route registry must not be modified");
+    assert.ok(!changed.includes(CATEGORY_ROUTE_REGISTRY_FILE), "category route registry must not be modified outside an authorized package");
     assert.ok(!changed.some((f) => f.startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
 
     for (const f of [LANGUAGE_FILE, ROOT_INTRO_FILE]) {

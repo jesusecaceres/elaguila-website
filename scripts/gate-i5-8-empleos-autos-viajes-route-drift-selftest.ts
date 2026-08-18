@@ -114,26 +114,36 @@ async function main() {
 
   /* ============================================================================================
    * No unrelated category map entry changed — spot-check the other 10 CAT_STD_ALL_SLUGS entries
-   * byte-identical to their known values.
+   * byte-identical to their known values. Globalization Package A Gate 2 UPDATE: five lanes
+   * (en-venta, clases, comunidad, busco, mascotas-y-perdidos) now deliberately route live CTAs
+   * through their new truthful checkpoint card pages (registry `checkpointRoute`) instead of
+   * straight into the application/shim — pinned below as the new expected values, still
+   * asserting nothing ELSE drifts.
    * ========================================================================================== */
   {
     const unrelatedExpected: Record<string, string> = {
-      "en-venta": "/clasificados/publicar/en-venta",
+      "en-venta": "/publicar/en-venta",
       rentas: "/clasificados/publicar/rentas",
-      empleos: "/clasificados/publicar/empleos",
+      // Package F Build F2, Gate 12 — corrected from the legacy "/clasificados/publicar/empleos"
+      // to "/publicar/empleos", matching categoryRouteRegistry.ts's canonical decision (confirmed
+      // zero live callers of categoryPublishPath() read empleos, so this is a truth correction,
+      // not a navigation change — see categoryStandardRoutes.ts's own header comment).
+      empleos: "/publicar/empleos",
       "bienes-raices": "/clasificados/publicar/bienes-raices",
-      servicios: "/clasificados/publicar/servicios/checkpoint",
+      // Package F Build F2, Gate 12 — corrected from the legacy checkpoint path to
+      // "/publicar/servicios", same reasoning as empleos above.
+      servicios: "/publicar/servicios",
       restaurantes: "/clasificados/restaurantes/publicar",
-      clases: "/clasificados/publicar/clases",
-      comunidad: "/clasificados/publicar/comunidad",
-      busco: "/publicar/busco/quick",
-      "mascotas-y-perdidos": "/clasificados/publicar/mascotas-y-perdidos",
+      clases: "/publicar/clases",
+      comunidad: "/publicar/comunidad",
+      busco: "/publicar/busco",
+      "mascotas-y-perdidos": "/publicar/mascotas-y-perdidos",
     };
     for (const [slug, expected] of Object.entries(unrelatedExpected)) {
       assert.equal(
         categoryPublishPath(slug as CatStdAllSlug),
         expected,
-        `unrelated legacy publish-map entry "${slug}" must be byte-identical to its pre-package value`,
+        `legacy publish-map entry "${slug}" must match its pinned value (Package A Gate 2 checkpoint-first values included)`,
       );
     }
   }

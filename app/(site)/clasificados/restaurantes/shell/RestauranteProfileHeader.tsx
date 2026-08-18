@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FiClock, FiMapPin, FiStar } from "react-icons/fi";
+import { FiClock, FiMapPin } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import {
@@ -138,16 +138,10 @@ export function RestauranteProfileHeader({
               {data.businessName}
             </h1>
 
-            {data.trustRating ? (
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <FiStar className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className="text-sm font-semibold">{data.trustRating.average.toFixed(1)}</span>
-                <span className="text-sm text-[#FFFCF7]/75">
-                  ({data.trustRating.count.toLocaleString(lang === "en" ? "en-US" : "es-US")}{" "}
-                  {lang === "en" ? "reviews" : "valoraciones"})
-                </span>
-              </div>
-            ) : null}
+            {/* Global Business Hub OS — REVIEWS MASTER RULE (Level A, link-only): removed. This
+                rendered owner-typed trustRating (historical externalRatingValue/externalReviewCount)
+                as a gold-star provider-style aggregate rating. No provider API exists; the DB
+                field is untouched, it simply no longer feeds this render path. */}
 
             {chips.length > 0 ? (
               <div className="mt-3 flex flex-wrap justify-center gap-1.5 sm:justify-start">

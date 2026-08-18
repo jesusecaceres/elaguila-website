@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -9,7 +9,9 @@ import {
   OWNER_LISTING_PAUSE_PATCH,
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   ownerListingResumeFromPausePatch,
+  applyOwnerListingPatch,
 } from "../lib/ownerListingsLifecycleClient";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
@@ -52,6 +54,7 @@ import {
   resolveMisAnunciosLoadPlan,
   type DedicatedCategoryCounts,
 } from "../lib/dashboardMisAnunciosCategoryLoadPlan";
+
 import {
   buildAutosClassifiedsInventoryItems,
   buildRestaurantInventoryItems,
@@ -81,10 +84,14 @@ import { listingPlanFromDetailPairs } from "../lib/dashboardListingMeta";
 import {
   dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
+  dashboardHasCapabilityForKey,
   dashboardRevenueAdPlanBadgeForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
+  type DashboardSubscriptionStateEntry,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 import {
   listingUiStatusChipClass,
   listingUiStatusLabel,
@@ -118,7 +125,7 @@ import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-loc
 import { mapComidaLocalRowToDashboardVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
-import { redirectRestauranteDashboardCouponAddonCheckout, hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
+import { hydrateRestauranteListingForCouponEdit, restauranteCouponEditHref } from "../lib/restaurantesDashboardCouponAddonCheckout";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
@@ -126,6 +133,9 @@ import {
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
+
+export const dynamic = "force-dynamic";
+
 type Plan = "free" | "pro";
 type Tab = "all" | "active" | "expired" | "moderation";
 
@@ -351,7 +361,7 @@ function listingPriceDropLabel(row: ListingRow, lang: Lang): string | null {
   return lang === "es" ? "Precio reducido" : "Reduced price";
 }
 
-export default function MyListingsPage() {
+function MyListingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/mis-anuncios";
@@ -372,6 +382,9 @@ export default function MyListingsPage() {
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
+  const [subscriptionStates, setSubscriptionStates] = useState<
+    Record<string, DashboardSubscriptionStateEntry>
+  >({});
 
   // Gate I.4.2 — raw rows only, per category; the lang-formatted display VM each category
   // renders is derived below via `useMemo`, so switching ES/EN never re-fetches this data. Every
@@ -385,6 +398,10 @@ export default function MyListingsPage() {
   const [serviciosRawRows, setServiciosRawRows] = useState<
     Awaited<ReturnType<typeof fetchOwnerServiciosListings>>
   >([]);
+  /** Package E Build E2, Gate 8 — Ofertas Locales dashboard boundary: real owner reader,
+   * summary-only, links out to the dedicated management surface. Never moved into the generic
+   * listing architecture. */
+  const [ofertasLocalesOwnerCount, setOfertasLocalesOwnerCount] = useState<number | null>(null);
   const [autosPaidRawRows, setAutosPaidRawRows] = useState<
     Awaited<ReturnType<typeof fetchOwnerAutosClassifiedsListings>>
   >([]);
@@ -395,10 +412,15 @@ export default function MyListingsPage() {
   const restaurantAddonStatusByListingId = useMemo(() => {
     if (restaurantRawRows.length === 0) return undefined;
     return new Map(
-      restaurantRawRows.map((row) => [
-        row.id,
-        dashboardAddonStatusForKey(entitlementBadges, [row.id, row.slug ?? "", row.leonix_ad_id ?? ""]),
-      ]),
+      restaurantRawRows.map((row) => {
+        const keys = [row.id, row.slug ?? "", row.leonix_ad_id ?? ""];
+        const addonStatus = dashboardAddonStatusForKey(entitlementBadges, keys);
+        // Package C Build 3 (C5/C6) — coupons are included in the $399/mo base package; a
+        // listing with no separate addon entitlement row can still have a real, server-verified
+        // active module via resolveBusinessToolsAccess. Never downgrade a real "active" status.
+        const hasCouponsCapability = dashboardHasCapabilityForKey(entitlementBadges, keys, "coupons_offers");
+        return [row.id, addonStatus === "not_purchased" && hasCouponsCapability ? "active" : addonStatus] as const;
+      }),
     );
   }, [restaurantRawRows, entitlementBadges]);
 
@@ -546,9 +568,10 @@ export default function MyListingsPage() {
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [couponCheckoutBusyId, setCouponCheckoutBusyId] = useState<string | null>(null);
   const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  const [serviciosManageBusySlug, setServiciosManageBusySlug] = useState<string | null>(null);
+  const [empleosLifecycleBusyId, setEmpleosLifecycleBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
 
@@ -601,7 +624,8 @@ export default function MyListingsPage() {
       if (!mounted) return;
 
       if (qErr) {
-        setError(qErr.message);
+        console.error("[mis-anuncios]", qErr.message);
+        setError(dashboardSafeMutationErrorCopy(lang));
         setListings([]);
         setListingsLoading(false);
         return;
@@ -632,6 +656,19 @@ export default function MyListingsPage() {
       setUnifiedActiveCount(activeAcross);
       setTotalManagedCount(managedTotal);
       setServiciosRawRows(serviciosRows);
+
+      // Package E Build E2, Gate 8 — real, existing owner reader; boundary-safe summary only.
+      if (token) {
+        try {
+          const ofertasRes = await fetch(`/api/ofertas-locales/owner?lang=${lang}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const ofertasJson = (await ofertasRes.json()) as { ok?: boolean; total?: number };
+          if (mounted) setOfertasLocalesOwnerCount(ofertasRes.ok && ofertasJson.ok ? (ofertasJson.total ?? 0) : null);
+        } catch {
+          if (mounted) setOfertasLocalesOwnerCount(null);
+        }
+      }
 
       setListingsLoading(false);
 
@@ -788,13 +825,17 @@ export default function MyListingsPage() {
 
     if (items.length === 0) {
       setEntitlementBadges({});
+      setSubscriptionStates({});
       return;
     }
 
     let cancelled = false;
     (async () => {
-      const badges = await fetchDashboardListingPackageEntitlementBadges(items, accessToken);
-      if (!cancelled) setEntitlementBadges(badges);
+      const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, accessToken);
+      if (!cancelled) {
+        setEntitlementBadges(badges);
+        setSubscriptionStates(subs);
+      }
     })();
 
     return () => {
@@ -829,10 +870,11 @@ export default function MyListingsPage() {
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -871,10 +913,11 @@ export default function MyListingsPage() {
     setError(null);
     const now = new Date().toISOString();
     const patch = { ...ownerListingResumeFromPausePatch(), updated_at: now };
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -883,32 +926,6 @@ export default function MyListingsPage() {
       prev.map((x) => (x.id === id ? { ...x, status: "active", is_published: true, updated_at: now } : x)),
     );
     setBusyId(null);
-  }
-
-  async function startRestauranteCouponAddonCheckout(item: DashboardInventoryItem) {
-    setCouponCheckoutBusyId(item.id);
-    setError(null);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const result = await redirectRestauranteDashboardCouponAddonCheckout({
-        listingId: item.id,
-        leonixAdId: item.leonixAdId,
-        lang,
-        customerEmail: auth.user?.email ?? null,
-      });
-      if (!result.ok) {
-        setError(result.userMessage);
-        setCouponCheckoutBusyId(null);
-      }
-    } catch {
-      setError(
-        lang === "es"
-          ? "No pudimos iniciar el pago del módulo de cupones. Intenta de nuevo."
-          : "We could not start coupon module checkout. Please try again.",
-      );
-      setCouponCheckoutBusyId(null);
-    }
   }
 
   async function openRestauranteCouponEdit(item: DashboardInventoryItem) {
@@ -933,6 +950,59 @@ export default function MyListingsPage() {
         lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
       );
       setCouponEditBusyId(null);
+    }
+  }
+
+  // Package E Build E2, Gate 4 — real pause/resume for Servicios, previously only wired on the
+  // separate /dashboard/servicios page. Reuses the existing owner-verified
+  // /api/clasificados/servicios/manage route; no new mutation API.
+  async function manageServiciosListing(slug: string, action: "pause" | "resume") {
+    if (!accessToken) return;
+    setServiciosManageBusySlug(slug);
+    setError(null);
+    try {
+      const res = await fetch("/api/clasificados/servicios/manage", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, action }),
+      });
+      if (!res.ok) {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+      const fresh = await fetchOwnerServiciosListings(accessToken);
+      setServiciosRawRows(fresh);
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+    } finally {
+      setServiciosManageBusySlug(null);
+    }
+  }
+
+  // Package E Build E2, Gate 4 — real pause/archive/resume for Empleos, previously only wired on
+  // the /dashboard/empleos/[listingId] detail page. Reuses the existing owner-verified PATCH
+  // route; no new mutation API.
+  async function updateEmpleosLifecycle(id: string, lifecycle_status: "published" | "paused" | "archived") {
+    if (!accessToken || !userId) return;
+    setEmpleosLifecycleBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/clasificados/empleos/listings/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ lifecycle_status }),
+      });
+      if (!res.ok) {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+      const supabase = createSupabaseBrowserClient();
+      const fresh = await fetchOwnerEmpleosListings(supabase, userId);
+      setEmpleosRawRows(fresh);
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+    } finally {
+      setEmpleosLifecycleBusyId(null);
     }
   }
 
@@ -968,10 +1038,11 @@ export default function MyListingsPage() {
     if (status === "active") patch.is_published = true;
     if (status === "sold") patch.is_published = false;
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1052,10 +1123,11 @@ export default function MyListingsPage() {
       patch.status = "active";
     }
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1132,10 +1204,11 @@ export default function MyListingsPage() {
       patch.status = "active";
     }
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", row.id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1187,10 +1260,11 @@ export default function MyListingsPage() {
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { error: uErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyId(null);
       return;
     }
@@ -1542,6 +1616,25 @@ export default function MyListingsPage() {
             soonLabel={lang === "es" ? "Próximamente" : "Coming soon"}
           />
 
+          {/* Package E Build E2, Gate 8 — Ofertas Locales lives on its own isolated dashboard
+              surface (real, separate data model). Represented here only as a summary card
+              linking out, never absorbed into the generic category list above. */}
+          {ofertasLocalesOwnerCount != null && ofertasLocalesOwnerCount > 0 ? (
+            <Link
+              href={`/dashboard/ofertas-locales?${q}`}
+              className={`mt-3 flex flex-wrap items-center justify-between gap-2 ${LX_DASH.panelCompact} hover:border-[#C9A84A]/45`}
+            >
+              <span className="min-w-0 flex-1 break-words text-sm font-semibold text-[#1F241C]">
+                {lang === "es"
+                  ? `Ofertas Locales (${ofertasLocalesOwnerCount})`
+                  : `Local Deals (${ofertasLocalesOwnerCount})`}
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-[#7A1E2C]">
+                {lang === "es" ? "Ver / gestionar →" : "View / manage →"}
+              </span>
+            </Link>
+          ) : null}
+
           <div className={`mt-3 min-w-0 overflow-visible ${LX_DASH.panelCompact}`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
@@ -1697,9 +1790,26 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
+                    lifecycleNote={(() => {
+                      const subState = dashboardSubscriptionStateForKey(subscriptionStates, [
+                        item.id,
+                        item.slug ?? "",
+                        item.leonixAdId ?? "",
+                      ]);
+                      if (!subState) return null;
+                      const badges = resolveCommercialStateBadges({
+                        subscriptionStatus: subState.status,
+                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                        graceEndsAt: subState.graceEndsAt,
+                        suspensionReason: subState.suspensionReason,
+                        recoveredAt: subState.recoveredAt,
+                      });
+                      return commercialStateBadgesToLifecycleNote(badges, lang);
+                    })()}
                     actions={buildInventoryListingActions("restaurantes", item, lang, q, {
-                      onCouponUpgrade: () => void startRestauranteCouponAddonCheckout(item),
-                      couponUpgradeBusy: couponCheckoutBusyId === item.id,
+                      // Package E Build E2, Gate 4 — the +$99/mes coupon-upgrade CTA is removed:
+                      // coupons are already included at $399/mo with no real paid add-on backend,
+                      // so the prior CTA misrepresented a free capability as a paid upsell.
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
                       ownerUserId: userId,
@@ -1729,7 +1839,10 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    actions={buildInventoryListingActions("empleos", item, lang, q)}
+                    actions={buildInventoryListingActions("empleos", item, lang, q, {
+                      onEmpleosLifecycle: (next) => void updateEmpleosLifecycle(item.id, next),
+                      empleosLifecycleBusy: empleosLifecycleBusyId === item.id,
+                    })}
                   />
                 ))
           ) : null}
@@ -1770,6 +1883,13 @@ export default function MyListingsPage() {
               lang={lang}
               items={comidaLocalDashboardItems}
               showEmpty={false}
+              // Package A Gate 5 — refresh owner rows after a pause/resume mutation.
+              onLifecycleChanged={async () => {
+                if (!userId) return;
+                const supabase = createSupabaseBrowserClient();
+                const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+                setComidaLocalRawRows(fetched);
+              }}
             />
           ) : null}
 
@@ -1807,6 +1927,22 @@ export default function MyListingsPage() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
+                    lifecycleNote={(() => {
+                      const subState = dashboardSubscriptionStateForKey(subscriptionStates, [
+                        item.id,
+                        item.slug ?? "",
+                        item.leonixAdId ?? "",
+                      ]);
+                      if (!subState) return null;
+                      const badges = resolveCommercialStateBadges({
+                        subscriptionStatus: subState.status,
+                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                        graceEndsAt: subState.graceEndsAt,
+                        suspensionReason: subState.suspensionReason,
+                        recoveredAt: subState.recoveredAt,
+                      });
+                      return commercialStateBadgesToLifecycleNote(badges, lang);
+                    })()}
                     actions={buildInventoryListingActions("servicios", item, lang, q, {
                       serviciosEditHref: serviciosListingEditHref({
                         lang,
@@ -1828,6 +1964,8 @@ export default function MyListingsPage() {
                       }),
                       offersEditLabelOverride: serviciosOffersEditLabel(lang),
                       ownerUserId: userId,
+                      onServiciosManage: (action) => void manageServiciosListing(item.slug ?? "", action),
+                      serviciosManageBusy: serviciosManageBusySlug === item.slug,
                     })}
                   />
                 ))
@@ -1925,6 +2063,7 @@ export default function MyListingsPage() {
                       }}
                       maxViews={maxViews}
                       listingAdPlanLabel={autosPlanLabel}
+                      editHref={`/publicar/autos/privado?${new URLSearchParams({ edit: "1", source: "dashboard", listingId: x.id }).toString()}&lang=${lang}`}
                       leonixAdId={x.leonix_ad_id ?? null}
                     />
                     </div>
@@ -2009,6 +2148,18 @@ export default function MyListingsPage() {
                         x.id,
                         x.leonix_ad_id ?? "",
                       ])}
+                      commercialStateBadges={(() => {
+                        const subState = dashboardSubscriptionStateForKey(subscriptionStates, [x.id]);
+                        return subState
+                          ? resolveCommercialStateBadges({
+                              subscriptionStatus: subState.status,
+                              cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                              graceEndsAt: subState.graceEndsAt,
+                              suspensionReason: subState.suspensionReason,
+                              recoveredAt: subState.recoveredAt,
+                            })
+                          : null;
+                      })()}
                       ownerUserId={userId}
                     />
                     </div>
@@ -2241,6 +2392,18 @@ export default function MyListingsPage() {
                         >
                           {t.manageListing}
                         </Link>
+                        {/* Package E Build E2, Gate 4 — Clases/Comunidad/Busco share the real
+                            generic listings-table editor. Mascotas intentionally has no safe
+                            edit route (by design, not a gap) and stays without this link. */}
+                        {catLower === "clases" || catLower === "comunidad" || catLower === "busco" ? (
+                          <Link
+                            href={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}
+                            prefetch={false}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {t.editListing}
+                          </Link>
+                        ) : null}
                         {listingAnalyticsIsProven(catLower) ? (
                           <Link
                             href={`/dashboard/mis-anuncios/${x.id}?${q}`}
@@ -2303,5 +2466,13 @@ export default function MyListingsPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function MyListingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <MyListingsPageContent />
+    </Suspense>
   );
 }

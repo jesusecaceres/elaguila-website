@@ -36,6 +36,10 @@ import {
 } from "@/app/lib/clasificados/en-venta/enVentaPublishDescription";
 import { EN_VENTA_CONTENT_STACK_COPY } from "@/app/clasificados/en-venta/shared/types/enVentaContentStack.types";
 import {
+  clearSessionPublishAttemptKey,
+  fetchOwnListingIdByPublishAttemptKey,
+  getOrCreateSessionPublishAttemptKey,
+  isPublishAttemptKeyConflict,
   logQuickListingReuseFailure,
   quickListingExistingIdentityInvalidMessage,
   verifyQuickListingReusable,
@@ -429,6 +433,13 @@ export async function publishEnVentaFromDraft(
     logQuickListingReuseFailure("en-venta", reuseCheck!.reason);
     return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
   } else {
+    // Globalization Package A Gate 3 — stamp this logical submission with its session-stable
+    // idempotency key so two racing submits can never both INSERT (partial unique index
+    // listings_owner_publish_attempt_key_uidx; recovery below). Fail-open: key null (or DB
+    // predating the migration — column-missing retry below) preserves pre-gate behavior.
+    const publishAttemptKey = getOrCreateSessionPublishAttemptKey("en-venta");
+    if (publishAttemptKey) insertPayload.publish_attempt_key = publishAttemptKey;
+
     // `listings.zip` is used by En Venta results filters; if an older DB lacks the column, retry without it.
     const firstIns = await supabase.from("listings").insert([insertPayload]).select("id").single();
     let row = firstIns.data as { id?: string } | null;
@@ -443,6 +454,30 @@ export async function publishEnVentaFromDraft(
         insErr = second.error;
       }
     }
+    // Older DB without the idempotency column: retry without it (same convention as zip above).
+    if (insErr && insertPayload.publish_attempt_key != null) {
+      const m = (insErr.message ?? "").toLowerCase();
+      if (m.includes("publish_attempt_key") && m.includes("column")) {
+        const retryPayload = { ...insertPayload };
+        delete retryPayload.publish_attempt_key;
+        const second = await supabase.from("listings").insert([retryPayload]).select("id").single();
+        row = second.data as { id?: string } | null;
+        insErr = second.error;
+      }
+    }
+    // Racing/retried submission: this exact key already created a row — recover it, never
+    // insert a duplicate.
+    if (insErr && publishAttemptKey && isPublishAttemptKeyConflict(insErr)) {
+      const recoveredId = await fetchOwnListingIdByPublishAttemptKey(supabase, {
+        ownerUserId: userId,
+        attemptKey: publishAttemptKey,
+        expectedCategory: "en-venta",
+      });
+      if (recoveredId) {
+        row = { id: recoveredId };
+        insErr = null;
+      }
+    }
 
     if (insErr) {
       const friendly = mapLeonixListingsDescriptionConstraintToUserMessage(insErr, lang);
@@ -450,6 +485,7 @@ export async function publishEnVentaFromDraft(
     }
 
     listingId = (row as { id?: string } | null)?.id;
+    if (listingId) clearSessionPublishAttemptKey("en-venta");
   }
 
   if (!listingId) {

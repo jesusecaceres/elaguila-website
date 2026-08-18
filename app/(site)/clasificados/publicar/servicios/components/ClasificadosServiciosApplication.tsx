@@ -20,7 +20,6 @@ import {
   getBusinessTypePreset,
 } from "../lib/businessTypePresets";
 import { getClasificadosServiciosCopy } from "../lib/clasificadosServiciosApplicationCopy";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { ServiciosPublishSortableGallery } from "./ServiciosPublishSortableGallery";
 import type {
   ChipDef,
@@ -52,11 +51,12 @@ import {
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
-  redirectServiciosDashboardOffersAddonCheckout,
+  startServiciosDashboardOffersAddonCheckout,
   serviciosListingPreviewHref,
   serviciosOffersAddonUpgradeLabel,
   serviciosOffersAddonUpgradeBusyLabel,
   serviciosOffersModuleHeading,
+  serviciosOffersEditHref,
 } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import {
   getServiciosApplicationStepLabels,
@@ -103,6 +103,7 @@ import {
   newVideoId,
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
+import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { ServiciosPublishModal } from "./ServiciosPublishModal";
 import {
   CUSTOM_PAYMENT_LABEL_MAX,
@@ -321,28 +322,36 @@ export function ClasificadosServiciosApplication() {
     setDashboardAddonCheckoutBusy(true);
     setDashboardContextErr(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: auth } = await supabase.auth.getUser();
-      const result = await redirectServiciosDashboardOffersAddonCheckout({
+      // Package C Build 3 (C5/C6) — repurposed: coupons/offers are included in the $399/mo base
+      // package, so this only verifies real capability server-side (no Stripe checkout) and then
+      // moves to the offers-edit mode for the same listing to reveal the editor.
+      const result = await startServiciosDashboardOffersAddonCheckout({
         listingId: editListingId,
         leonixAdId: editLeonixAdId || null,
         lang,
-        customerEmail: auth.user?.email ?? null,
-        returnPath: dashboardReturnHref,
       });
       if (!result.ok) {
         setDashboardContextErr(result.userMessage);
         setDashboardAddonCheckoutBusy(false);
+        return;
       }
+      router.replace(
+        serviciosOffersEditHref({
+          lang,
+          listingId: editListingId,
+          listingSlug: editListingSlug || null,
+          leonixAdId: editLeonixAdId || null,
+        }),
+      );
     } catch {
       setDashboardContextErr(
         lang === "en"
-          ? "We could not start offers module checkout."
-          : "No pudimos iniciar el pago del módulo de ofertas.",
+          ? "We could not enable the offers module."
+          : "No pudimos activar el módulo de ofertas.",
       );
       setDashboardAddonCheckoutBusy(false);
     }
-  }, [editListingId, editLeonixAdId, lang, dashboardReturnHref]);
+  }, [editListingId, editLeonixAdId, editListingSlug, lang, router]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -807,11 +816,15 @@ export function ClasificadosServiciosApplication() {
   const addVideoUrl = () => {
     const raw = videoUrlDraft.trim();
     if (!raw) return;
-    if (!isProbablyValidWebUrl(raw)) {
+    // Globalization Package B (Gate B3) — Servicios previously accepted any web URL for a
+    // video slot (the only paid lane with no video validator). Now gated by the shared strict
+    // validator (https-only, URL-parseable, never blob:/data:) — same semantics as Autos'.
+    const strictNormalized = normalizeStrictExternalVideoUrl(raw);
+    if (!strictNormalized || !isProbablyValidWebUrl(raw)) {
       setMediaFlash(copy.labels.invalidUrl);
       return;
     }
-    const normalizedUrl = normalizeHttpUrl(raw);
+    const normalizedUrl = normalizeHttpUrl(strictNormalized);
     setState((prev) => {
       if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
         queueMicrotask(() => setMediaFlash(copy.labels.videosLimitHint));
@@ -894,16 +907,6 @@ export function ClasificadosServiciosApplication() {
           >
             {isExistingDashboardListingMode ? (lang === "en" ? "← Back to dashboard" : "← Volver al panel") : copy.linkBack}
           </Link>
-
-          {!isExistingDashboardListingMode ? (
-            <div className="mt-5 max-w-md">
-              <LeonixLaunchCouponCard
-                lang={lang === "en" ? "en" : "es"}
-                variant="mini"
-                href={`/newsletter?lang=${lang === "en" ? "en" : "es"}&source=servicios_publish&sourceCta=launch_25`}
-              />
-            </div>
-          ) : null}
 
           {editHydration.status === "loading" ? (
             <div className="mt-4 rounded-xl border border-[#D8C79A]/70 bg-[#FBF7EF] px-3 py-2 text-sm font-semibold text-[#5D4A25]" role="status">

@@ -479,6 +479,275 @@ export function getEmpleosPaidCheckpointCard(
   };
 }
 
+/**
+ * Globalization Package A Gate 2 — free quick-lane checkpoint cards.
+ *
+ * Before this gate, the seven lanes below had NO checkpoint before their application (recorded
+ * as P3 Gate 6 "NOT YET BUILT"). Each card is truthful against `revenuePricingMatrix.ts`: the
+ * free lanes' matrix entries are genuinely $0 (`busco_free`, `clases_free`, `comunidad_free`,
+ * `mascotas_free`, `en_venta_free_v1`) or absent entirely (comida_local pipeline — no SKU, no
+ * payment wiring), and Viajes prices come from the matrix (`viajes_business_monthly`). The
+ * dormant `clases_paid_30d` SKU is deliberately NOT shown — no checkout path exists for it
+ * (owner decision D2: launch free-only).
+ */
+type FreeQuickCheckpointCopy = {
+  id: string;
+  eyebrow: { es: string; en: string };
+  title: { es: string; en: string };
+  shortDescription: { es: string; en: string };
+  ctaLabel: { es: string; en: string };
+  modalTitle: { es: string; en: string };
+  modalIntro: { es: string; en: string };
+  includedBullets: { es: readonly string[]; en: readonly string[] };
+};
+
+function buildFreeQuickCheckpointCard(
+  copy: FreeQuickCheckpointCopy,
+  lang: PublishCheckpointLang,
+  ctaHref: string,
+): PublishCheckpointCardData {
+  const es = lang === "es";
+  return {
+    id: copy.id,
+    variant: "free",
+    eyebrow: es ? copy.eyebrow.es : copy.eyebrow.en,
+    title: es ? copy.title.es : copy.title.en,
+    priceLabel: es ? "Gratis" : "Free",
+    shortDescription: es ? copy.shortDescription.es : copy.shortDescription.en,
+    ctaLabel: es ? copy.ctaLabel.es : copy.ctaLabel.en,
+    ctaHref,
+    moreLabel: es ? "Ver más" : "See more",
+    modalTitle: es ? copy.modalTitle.es : copy.modalTitle.en,
+    modalIntro: es ? copy.modalIntro.es : copy.modalIntro.en,
+    includedBullets: es ? copy.includedBullets.es : copy.includedBullets.en,
+    couponEligible: false,
+  };
+}
+
+export function getBuscoCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "busco_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar Busco / Se Busca", en: "Post a Busco / Wanted ad" },
+      shortDescription: {
+        es: "Publica gratis lo que buscas — artículos, servicios, vivienda o ayuda — y recibe respuestas de la comunidad.",
+        en: "Post what you're looking for — items, services, housing, or help — for free and get responses from the community.",
+      },
+      ctaLabel: { es: "Publicar gratis", en: "Post for free" },
+      modalTitle: { es: "Busco / Se Busca — Gratis", en: "Busco / Wanted — Free" },
+      modalIntro: {
+        es: "Publicación gratuita. Sin pago ni cupón. Vista previa antes de publicar, y puedes editar tu anuncio desde tu panel.",
+        en: "Free publication. No payment or coupon. Preview before publishing, and you can edit your ad from your dashboard.",
+      },
+      includedBullets: {
+        es: ["Anuncio de búsqueda con fotos", "Contacto directo", "Vista previa antes de publicar", "Edición desde tu panel"],
+        en: ["Wanted ad with photos", "Direct contact", "Preview before publishing", "Edit from your dashboard"],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getClasesCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "clases_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar una clase", en: "Post a class" },
+      shortDescription: {
+        es: "Comparte gratis tu clase, curso o taller — música, idiomas, tutoría, deporte y más.",
+        en: "Share your class, course, or workshop for free — music, languages, tutoring, sports, and more.",
+      },
+      ctaLabel: { es: "Publicar clase gratis", en: "Post class for free" },
+      modalTitle: { es: "Clases — Gratis", en: "Classes — Free" },
+      modalIntro: {
+        es: "Publicación gratuita para clases y talleres. Sin pago ni cupón. Vista previa antes de publicar.",
+        en: "Free publication for classes and workshops. No payment or coupon. Preview before publishing.",
+      },
+      includedBullets: {
+        es: ["Clase, curso o taller", "Fotos y contacto directo", "Vista previa antes de publicar", "Edición desde tu panel"],
+        en: ["Class, course, or workshop", "Photos and direct contact", "Preview before publishing", "Edit from your dashboard"],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getComunidadCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "comunidad_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar evento comunitario", en: "Post a community event" },
+      shortDescription: {
+        es: "Anuncia gratis eventos, celebraciones, reuniones y actividades de la comunidad.",
+        en: "Announce community events, celebrations, gatherings, and activities for free.",
+      },
+      ctaLabel: { es: "Publicar evento gratis", en: "Post event for free" },
+      modalTitle: { es: "Comunidad y Eventos — Gratis", en: "Community & Events — Free" },
+      modalIntro: {
+        es: "Publicación gratuita para eventos comunitarios. Sin pago ni cupón. Vista previa antes de publicar.",
+        en: "Free publication for community events. No payment or coupon. Preview before publishing.",
+      },
+      includedBullets: {
+        es: ["Evento o actividad comunitaria", "Fotos, fecha y lugar", "Vista previa antes de publicar", "Edición desde tu panel"],
+        en: ["Community event or activity", "Photos, date, and location", "Preview before publishing", "Edit from your dashboard"],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getMascotasCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "mascotas_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar mascota o aviso", en: "Post a pet or notice" },
+      shortDescription: {
+        es: "Publica gratis mascotas en adopción, perdidos y encontrados para tu comunidad.",
+        en: "Post pets for adoption and lost & found notices for your community, free.",
+      },
+      ctaLabel: { es: "Publicar aviso gratis", en: "Post notice for free" },
+      modalTitle: { es: "Mascotas y Perdidos — Gratis", en: "Pets & Lost — Free" },
+      modalIntro: {
+        es: "Publicación gratuita para avisos de mascotas. Sin pago ni cupón. Vista previa antes de publicar.",
+        en: "Free publication for pet notices. No payment or coupon. Preview before publishing.",
+      },
+      includedBullets: {
+        es: ["Adopción, perdido o encontrado", "Fotos y contacto directo", "Vista previa antes de publicar"],
+        en: ["Adoption, lost, or found", "Photos and direct contact", "Preview before publishing"],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getEnVentaCheckpointCard(lang: PublishCheckpointLang, proHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "en_venta_free",
+      eyebrow: { es: "En Venta / Varios", en: "For Sale / Misc" },
+      title: { es: "Publicar artículo en venta", en: "Post an item for sale" },
+      shortDescription: {
+        es: "Vende artículos, muebles, electrónicos y más — publicación gratuita con fotos y contacto directo.",
+        en: "Sell items, furniture, electronics, and more — free publication with photos and direct contact.",
+      },
+      ctaLabel: { es: "Publicar gratis", en: "Post for free" },
+      modalTitle: { es: "En Venta — Gratis", en: "For Sale — Free" },
+      modalIntro: {
+        es: "Publicación gratuita. Sin pago ni cupón. Vista previa antes de publicar, y tu anuncio se administra desde tu panel.",
+        en: "Free publication. No payment or coupon. Preview before publishing, and your ad is managed from your dashboard.",
+      },
+      includedBullets: {
+        es: ["Anuncio con galería de fotos", "Precio y contacto directo", "Vista previa antes de publicar", "Edición y republicación desde tu panel"],
+        en: ["Ad with photo gallery", "Price and direct contact", "Preview before publishing", "Edit and republish from your dashboard"],
+      },
+    },
+    lang,
+    proHref,
+  );
+}
+
+export function getComidaLocalCheckpointCard(lang: PublishCheckpointLang, applicationHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "comida_local_pipeline_free",
+      eyebrow: { es: "Comida Local", en: "Local Food" },
+      title: { es: "Publicar comida local", en: "Post local food" },
+      shortDescription: {
+        es: "Comparte tu puesto, comida casera o venta de fin de semana con la comunidad — publicación gratuita.",
+        en: "Share your stand, homemade food, or weekend sale with the community — free publication.",
+      },
+      ctaLabel: { es: "Publicar gratis", en: "Post for free" },
+      modalTitle: { es: "Comida Local — Gratis", en: "Local Food — Free" },
+      modalIntro: {
+        es: "Publicación gratuita para vendedores de comida local. Sin pago ni cupón. Vista previa antes de publicar.",
+        en: "Free publication for local food vendors. No payment or coupon. Preview before publishing.",
+      },
+      includedBullets: {
+        es: ["Puesto, pop-up o comida casera", "Fotos, horario y ubicación", "Contacto directo", "Vista previa antes de publicar"],
+        en: ["Stand, pop-up, or homemade food", "Photos, schedule, and location", "Direct contact", "Preview before publishing"],
+      },
+    },
+    lang,
+    applicationHref,
+  );
+}
+
+export function getViajesCheckpointCards(
+  lang: PublishCheckpointLang,
+  negociosHref: string,
+  privadoHref: string,
+): PublishCheckpointCardData[] {
+  const es = lang === "es";
+  const businessPrice = monthlyPrice("viajes_business_monthly", "viajes");
+  return [
+    {
+      id: "viajes_negocios",
+      variant: "paid",
+      eyebrow: es ? "Negocio de viajes" : "Travel business",
+      title: es ? "Publicar como negocio de viajes" : "Publish as a travel business",
+      priceLabel: businessPrice,
+      shortDescription: es
+        ? "Para agencias, operadores y negocios de viajes. Perfil con ofertas, galería, contacto y presencia en Leonix Viajes."
+        : "For agencies, operators, and travel businesses. Profile with offers, gallery, contact, and presence on Leonix Viajes.",
+      ctaLabel: es ? "Publicar como negocio" : "Publish as business",
+      ctaHref: negociosHref,
+      moreLabel: es ? "Ver más" : "See more",
+      modalTitle: es
+        ? `Qué incluye Negocio de viajes — ${businessPrice}`
+        : `What's included with Travel business — ${businessPrice}`,
+      modalIntro: es
+        ? "Publicación de negocio de viajes. Tu anuncio pasa por revisión antes de aparecer públicamente."
+        : "Travel business publication. Your listing goes through review before appearing publicly.",
+      includedBullets: es
+        ? [
+            "Perfil de negocio con ofertas de viaje",
+            "Fotos, contacto y enlaces",
+            `Precio mensual: ${businessPrice}`,
+            "Nota: la publicación se activa después de revisión.",
+          ]
+        : [
+            "Business profile with travel offers",
+            "Photos, contact, and links",
+            `Monthly price: ${businessPrice}`,
+            "Note: publication activates after review.",
+          ],
+      couponEligible: isPromoEligible("viajes_business_monthly"),
+      highlighted: true,
+    },
+    buildFreeQuickCheckpointCard(
+      {
+        id: "viajes_privado",
+        eyebrow: { es: "Particular", en: "Private" },
+        title: { es: "Publicar viaje como particular", en: "Publish a trip as a private seller" },
+        shortDescription: {
+          es: "Comparte un viaje, tour o experiencia como particular — publicación gratuita con revisión.",
+          en: "Share a trip, tour, or experience as a private seller — free publication with review.",
+        },
+        ctaLabel: { es: "Publicar como particular", en: "Publish as private" },
+        modalTitle: { es: "Viajes particular — Gratis", en: "Private travel — Free" },
+        modalIntro: {
+          es: "Publicación gratuita para particulares. Sin pago ni cupón. Tu anuncio pasa por revisión antes de aparecer públicamente.",
+          en: "Free publication for private sellers. No payment or coupon. Your listing goes through review before appearing publicly.",
+        },
+        includedBullets: {
+          es: ["Viaje, tour o experiencia", "Fotos y contacto", "Revisión antes de publicación pública"],
+          en: ["Trip, tour, or experience", "Photos and contact", "Review before public publication"],
+        },
+      },
+      lang,
+      privadoHref,
+    ),
+  ];
+}
+
 export function getEmpleosFreeCheckpointCard(
   lang: PublishCheckpointLang,
   feriaHref: string,

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getRecentlyViewedIds } from "../../../lib/recentlyViewed";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -46,7 +48,7 @@ function firstImage(images: unknown): string | null {
   return null;
 }
 
-export default function VistosRecientesPage() {
+function VistosRecientesPageContent() {
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
   const q = `lang=${lang}`;
@@ -264,5 +266,13 @@ export default function VistosRecientesPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function VistosRecientesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <VistosRecientesPageContent />
+    </Suspense>
   );
 }

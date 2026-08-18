@@ -237,6 +237,8 @@ function totalsToListingMetrics(totals: DashboardAnalyticsTotals) {
     shopping_list_adds: totals.shopping_list_adds,
     shopping_list_removes: totals.shopping_list_removes,
     coupon_opens: totals.coupon_opens,
+    flyer_viewer_opens: totals.flyer_viewer_opens,
+    offer_hub_opens: totals.offer_hub_opens,
     leads: totals.leads,
     applications: totals.applications,
     contact_clicks: totals.contact_clicks,

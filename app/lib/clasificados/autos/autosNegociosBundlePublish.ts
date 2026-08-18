@@ -7,9 +7,9 @@ import {
   activateAutosClassifiedsListing,
   createAutosClassifiedsListingWithInventoryParent,
   getAutosClassifiedsListingById,
-  getAutosDealerInventorySummaryForOwner,
   promoteNegociosMainInventoryListing,
 } from "./autosClassifiedsListingService";
+import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { getDealerInventoryGroupId } from "./autosDealerInventoryPolicy";
@@ -102,8 +102,19 @@ export async function publishNegociosBundleAdditionalVehicles(input: {
   const groupId = getDealerInventoryGroupId(mainLive) ?? mainLive.id;
 
   for (const childDraft of children) {
-    const dealerSummary = await getAutosDealerInventorySummaryForOwner(input.ownerUserId);
-    if (!dealerSummary.canAddActiveVehicle) {
+    // Package C Build 4 (C7, Gate 4) — group-scoped, boost-aware preflight (was: owner-wide,
+    // boost-unaware `getAutosDealerInventorySummaryForOwner`, the exact bug that silently
+    // overrode a boosted caller's own correct pre-check). This is UX-only — the real, final
+    // enforcement is inside `activateAutosClassifiedsListing`'s atomic RPC call below; this
+    // check exists only to avoid wasting a draft-row insert when capacity is clearly exhausted.
+    const preflight = await assertCommercialCapacityForWrite({
+      category: "autos",
+      parentListingId: mainId,
+      ownerUserId: input.ownerUserId,
+      operation: "child_create",
+      capacityDelta: 1,
+    });
+    if (!preflight.allowed) {
       return {
         ok: published.length > 1,
         mainListingId: mainId,
@@ -171,15 +182,11 @@ export async function publishNegociosBundleAdditionalVehicles(input: {
   };
 }
 
-export const AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY = "lx-autos-bundle-publish-result" as const;
-
-export type AutosBundlePublishSessionResult = {
-  mainListingId: string;
-  published: AutosBundlePublishedVehicle[];
-  totalPublished: number;
-  qaBypass: boolean;
-  inventoryIncluded: number;
-  inventoryLimit: number;
-};
+// Package C Build 4 (C7, Gate 9) — moved to their own client-safe file (see that file's doc
+// comment); re-exported here so no other server-side importer needs to change.
+export {
+  AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY,
+  type AutosBundlePublishSessionResult,
+} from "./autosNegociosBundlePublishSessionResult";
 
 export { AUTOS_INVENTORY_ANALYTICS_EVENTS };
