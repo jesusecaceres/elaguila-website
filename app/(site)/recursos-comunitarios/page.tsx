@@ -3,166 +3,20 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { PRIMARY_CATEGORIES } from "@/app/lib/recursos/categories";
+import { getRecursosPageCopy, type RecursosPageCopy } from "@/app/lib/recursos/copy";
+import {
+  LANE_COPY,
+  LANE_EXPLORE_PATH,
+  LANE_ORDER,
+  LANE_PUBLISH_PATH,
+  type ResourceLaneKey,
+} from "@/app/lib/recursos/lanes";
+import type { RecursosLang } from "@/app/lib/recursos/types";
+import { URGENCY_LEVELS } from "@/app/lib/recursos/urgency";
 
-type Lang = "es" | "en";
-
-type ResourceLaneKey =
-  | "comunidad"
-  | "clases"
-  | "iglesias"
-  | "busco"
-  | "mascotas-y-perdidos"
-  | "ayuda-comunitaria";
-
-const LANE_ORDER: readonly ResourceLaneKey[] = [
-  "comunidad",
-  "clases",
-  "iglesias",
-  "busco",
-  "mascotas-y-perdidos",
-  "ayuda-comunitaria",
-];
-
-const LANE_EXPLORE_PATH: Record<ResourceLaneKey, string> = {
-  comunidad: "/clasificados/comunidad",
-  clases: "/clasificados/clases",
-  iglesias: "/iglesias",
-  busco: "/clasificados/busco",
-  "mascotas-y-perdidos": "/clasificados/mascotas-y-perdidos",
-  "ayuda-comunitaria": "/clasificados/busco",
-};
-
-const LANE_PUBLISH_PATH: Record<ResourceLaneKey, string> = {
-  comunidad: "/publicar/comunidad/quick",
-  clases: "/publicar/clases/quick",
-  iglesias: "/publicar",
-  busco: "/publicar/busco/quick",
-  "mascotas-y-perdidos": "/publicar/mascotas-y-perdidos/quick",
-  "ayuda-comunitaria": "/publicar",
-};
-
-type LaneCopy = {
-  labelEs: string;
-  labelEn: string;
-  descEs: string;
-  descEn: string;
-  publishEs: string;
-  publishEn: string;
-};
-
-const LANE_COPY: Record<ResourceLaneKey, LaneCopy> = {
-  comunidad: {
-    labelEs: "Comunidad y Eventos",
-    labelEn: "Community & Events",
-    descEs: "Eventos, actividades, reuniones y conexiones locales para la comunidad.",
-    descEn: "Events, activities, gatherings, and local connections for the community.",
-    publishEs: "Publicar en Comunidad y Eventos",
-    publishEn: "Post in Community & Events",
-  },
-  clases: {
-    labelEs: "Clases",
-    labelEn: "Classes",
-    descEs: "Cursos, talleres y oportunidades de aprendizaje para todas las edades.",
-    descEn: "Courses, workshops, and learning opportunities for all ages.",
-    publishEs: "Publicar en Clases",
-    publishEn: "Post in Classes",
-  },
-  iglesias: {
-    labelEs: "Iglesias",
-    labelEn: "Churches",
-    descEs: "Espacios de fe, comunidad y conexión espiritual.",
-    descEn: "Spaces for faith, community, and spiritual connection.",
-    publishEs: "Publicar iglesia",
-    publishEn: "Post church",
-  },
-  busco: {
-    labelEs: "Busco / Se busca",
-    labelEn: "Wanted / Looking for",
-    descEs: "Peticiones, necesidades, oportunidades y búsquedas locales.",
-    descEn: "Requests, needs, opportunities, and local searches.",
-    publishEs: "Publicar solicitud",
-    publishEn: "Post request",
-  },
-  "mascotas-y-perdidos": {
-    labelEs: "Mascotas y Perdidos",
-    labelEn: "Pets & Lost",
-    descEs: "Mascotas, adopciones, objetos perdidos y apoyo comunitario.",
-    descEn: "Pets, adoptions, lost items, and community support.",
-    publishEs: "Publicar en Mascotas y Perdidos",
-    publishEn: "Post in Pets & Lost",
-  },
-  "ayuda-comunitaria": {
-    labelEs: "Ayuda comunitaria",
-    labelEn: "Community Help",
-    descEs: "Recursos gratuitos, apoyo local e información útil para familias y vecinos.",
-    descEn: "Free resources, local support, and useful information for families and neighbors.",
-    publishEs: "Publicar recurso",
-    publishEn: "Post resource",
-  },
-};
-
-const PAGE_COPY = {
-  es: {
-    eyebrow: "LEONIX RECURSOS COMUNITARIOS",
-    title: "Recursos Comunitarios",
-    subtitle: "Conecta con eventos, clases, iglesias y apoyo local para nuestra comunidad.",
-    description:
-      "Encuentra espacios comunitarios, actividades, aprendizaje, ayuda y conexiones locales en un solo lugar. Esta sección reúne recursos útiles para familias, organizaciones y vecinos.",
-    ctaExplore: "Explorar recursos",
-    ctaPost: "Publicar recurso",
-    sectionLanes: "Explorar por recurso",
-    explore: "EXPLORAR",
-    searchEyebrow: "BÚSQUEDA COMUNITARIA",
-    searchTitle: "Busca recursos por tema, ciudad o necesidad",
-    searchDescription:
-      "Muy pronto cada categoría tendrá una búsqueda clara con filtros consistentes para encontrar recursos, anuncios y oportunidades locales con menos pasos.",
-    searchPlaceholder: "Buscar recurso, evento, clase o ayuda...",
-    locationPlaceholder: "Ciudad o ZIP",
-    searchButton: "Buscar",
-    searchPreviewNote: "Vista previa visual — la búsqueda estará disponible pronto en cada categoría.",
-    filterEventos: "Eventos",
-    filterClases: "Clases",
-    filterIglesias: "Iglesias",
-    filterAyuda: "Ayuda",
-    filterMascotas: "Mascotas",
-    filterSolicitudes: "Solicitudes",
-    promoTitle: "¿Tienes un recurso para compartir?",
-    promoDescription:
-      "Publica eventos, clases, ayuda comunitaria o información útil para que más personas puedan encontrarla.",
-    promoButton: "Publicar recurso",
-  },
-  en: {
-    eyebrow: "LEONIX COMMUNITY RESOURCES",
-    title: "Community Resources",
-    subtitle: "Connect with events, classes, churches, and local support for our community.",
-    description:
-      "Find community spaces, activities, learning, support, and local connections in one place. This section brings together useful resources for families, organizations, and neighbors.",
-    ctaExplore: "Explore resources",
-    ctaPost: "Post resource",
-    sectionLanes: "Explore by resource",
-    explore: "EXPLORE",
-    searchEyebrow: "COMMUNITY SEARCH",
-    searchTitle: "Search resources by topic, city, or need",
-    searchDescription:
-      "Soon each category will use a clear search experience with consistent filters to find resources, listings, and local opportunities with fewer steps.",
-    searchPlaceholder: "Search resource, event, class, or help...",
-    locationPlaceholder: "City or ZIP",
-    searchButton: "Search",
-    searchPreviewNote: "Visual preview — search will be available soon in each category.",
-    filterEventos: "Events",
-    filterClases: "Classes",
-    filterIglesias: "Churches",
-    filterAyuda: "Help",
-    filterMascotas: "Pets",
-    filterSolicitudes: "Requests",
-    promoTitle: "Have a resource to share?",
-    promoDescription:
-      "Post events, classes, community help, or useful information so more people can find it.",
-    promoButton: "Post resource",
-  },
-} as const;
-
-type PageCopy = (typeof PAGE_COPY)[Lang];
+type Lang = RecursosLang;
+type PageCopy = RecursosPageCopy;
 
 function appendLangToPath(path: string, lang: Lang): string {
   const [base, hash] = path.split("#");
@@ -376,9 +230,81 @@ function SearchFilterPreview({
   );
 }
 
+function PrimaryCategoriesSection({ lang, t }: { lang: Lang; t: PageCopy }) {
+  return (
+    <section className="mt-14 sm:mt-16" aria-labelledby="recursos-categorias-title">
+      <h2
+        id="recursos-categorias-title"
+        className="font-serif text-2xl font-bold leading-snug text-[#2A4536] sm:text-[1.75rem]"
+      >
+        {t.brandEyebrow}
+      </h2>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.categoriesIntro}</p>
+
+      <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {PRIMARY_CATEGORIES.map((category) => (
+          <li key={category.slug}>
+            <article className="flex h-full flex-col rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.15)]">
+              <h3 className="text-sm font-bold text-[#1F241C]">
+                {lang === "en" ? category.labelEn : category.labelEs}
+              </h3>
+              <p className="mt-2 flex-1 text-xs leading-relaxed text-[#3D3428]">
+                {lang === "en" ? category.descriptionEn : category.descriptionEs}
+              </p>
+            </article>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-6 text-xs font-medium text-[#556B3E]/90">{t.categoriesComingSoonNote}</p>
+    </section>
+  );
+}
+
+const URGENCY_TREATMENT: Record<
+  (typeof URGENCY_LEVELS)[number]["level"],
+  { border: string; bg: string; text: string }
+> = {
+  "help-now": { border: "#C97A4A", bg: "#FBF1E8", text: "#7A3E1E" },
+  "i-need-help": { border: "#8FA467", bg: "#F4F7EC", text: "#3E5324" },
+  "want-to-connect": { border: "#7C93B0", bg: "#EEF3F8", text: "#2E4A66" },
+};
+
+function UrgencyLegend({ lang }: { lang: Lang }) {
+  return (
+    <section
+      className="mt-10 rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)] sm:p-6"
+      aria-labelledby="recursos-urgencia-title"
+    >
+      <h2 id="recursos-urgencia-title" className="font-serif text-xl font-bold text-[#2A4536] sm:text-2xl">
+        {lang === "en" ? "How urgency works" : "Cómo funciona la urgencia"}
+      </h2>
+      <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {URGENCY_LEVELS.map((u) => {
+          const treatment = URGENCY_TREATMENT[u.level];
+          return (
+            <li
+              key={u.level}
+              className="rounded-lg border p-4"
+              style={{ borderColor: treatment.border, backgroundColor: treatment.bg }}
+            >
+              <p className="text-sm font-bold" style={{ color: treatment.text }}>
+                {lang === "en" ? u.labelEn : u.labelEs}
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed" style={{ color: treatment.text }}>
+                {lang === "en" ? u.descriptionEn : u.descriptionEs}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function RecursosComunitariosInner() {
   const lang = (useSearchParams()?.get("lang") === "en" ? "en" : "es") as Lang;
-  const t = PAGE_COPY[lang];
+  const t = getRecursosPageCopy(lang);
   const postEntryHref = buildPostResourceEntryHref(lang);
 
   const filterLinks = [
@@ -406,16 +332,16 @@ function RecursosComunitariosInner() {
       />
 
       <div className="relative mx-auto max-w-6xl px-4 pt-24 sm:px-6 lg:px-8">
-        {/* 1 — Community hero */}
+        {/* 1 — LEONIX CERCA DE TI hero */}
         <section className="max-w-3xl" aria-labelledby="recursos-hero-title">
-          <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{t.eyebrow}</p>
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">{t.brandEyebrow}</p>
           <h1
             id="recursos-hero-title"
             className="mt-3 font-serif text-4xl font-bold leading-none tracking-tight text-[#2A4536] sm:text-5xl"
           >
-            {t.title}
+            {t.heroQuestion}
           </h1>
-          <p className="mt-4 text-lg font-semibold leading-snug text-[#1F241C] sm:text-xl">{t.subtitle}</p>
+          <p className="mt-4 text-lg font-semibold leading-snug text-[#1F241C] sm:text-xl">{t.heroSupport}</p>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{t.description}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -434,7 +360,13 @@ function RecursosComunitariosInner() {
           </div>
         </section>
 
-        {/* 2 — Resource category grid */}
+        {/* 2 — Permanent Recursos taxonomy (informational, no live records yet) */}
+        <PrimaryCategoriesSection lang={lang} t={t} />
+
+        {/* 3 — Urgency model legend */}
+        <UrgencyLegend lang={lang} />
+
+        {/* 4 — Resource category grid (existing classifieds-backed lanes) */}
         <section id="recursos" className="mt-14 sm:mt-16" aria-labelledby="recursos-lanes-title">
           <h2
             id="recursos-lanes-title"
