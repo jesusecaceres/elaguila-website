@@ -58,10 +58,21 @@ function PreparedBlock({ prepared }: { prepared: LeoPreparedAction }) {
 
 function AnswerResult({ answer }: { answer: LeoConversationAnswer }) {
   const isRed = answer.governance?.level === "RED";
+  const aiUsed = Boolean(answer.aiMeta?.aiUsed && answer.aiMeta.providerSucceeded);
+  const keyPoints = answer.keyPoints ?? [];
+  const challenges = answer.challengePoints ?? [];
+
   return (
     <div className="mt-4 min-w-0 space-y-3 rounded-xl border border-[color:var(--lx-border)]/70 bg-white/80 p-4">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Answer</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">LEO Answer</p>
+          {aiUsed ? (
+            <span className="rounded-md border border-[#2A4536]/25 bg-[#EEF4F0] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2A4536]">
+              Evidence-grounded reasoning
+            </span>
+          ) : null}
+        </div>
         <p className="mt-1 break-words text-sm font-semibold leading-relaxed text-[#1E1810]">
           {scrubOwnerFacingText(answer.summary)}
         </p>
@@ -74,6 +85,21 @@ function AnswerResult({ answer }: { answer: LeoConversationAnswer }) {
         <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-rose-900">
           CHUY APPROVAL REQUIRED — Execution remains unavailable.
         </p>
+      ) : null}
+
+      {keyPoints.length > 0 ? (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Key points</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {keyPoints.map((kp, i) => (
+              <li key={`kp-${i}`} className="break-words text-xs leading-relaxed text-[#5C5346]">
+                <span className="font-bold text-[#1E1810]">{kp.kind}</span>
+                {" — "}
+                {scrubOwnerFacingText(kp.text)}
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       {answer.preparedAction ? <PreparedBlock prepared={answer.preparedAction} /> : null}
@@ -101,6 +127,21 @@ function AnswerResult({ answer }: { answer: LeoConversationAnswer }) {
           )}
         </div>
       </details>
+
+      {challenges.length > 0 ? (
+        <details className="min-w-0">
+          <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#A67C52]">
+            Challenge / Decision notes
+          </summary>
+          <ul className="mt-2 space-y-1 border-t border-[color:var(--lx-border)]/50 pt-2">
+            {challenges.map((c, i) => (
+              <li key={`ch-${i}`} className="break-words text-xs text-[#5C5346]">
+                · {scrubOwnerFacingText(c)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       {(answer.unknowns.length > 0 || answer.limitations.length > 0) && (
         <details className="min-w-0">

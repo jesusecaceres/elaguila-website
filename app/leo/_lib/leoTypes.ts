@@ -640,6 +640,88 @@ export type LeoConversationAnswer = {
   preparedAction: LeoPreparedAction | null;
   generatedAt: string;
   notClaiming: readonly string[];
+  /** LEO-10: optional structured key points from constrained synthesis. */
+  keyPoints?: LeoAiKeyPoint[] | null;
+  /** LEO-10: optional challenge notes (decision support). */
+  challengePoints?: string[] | null;
+  /** LEO-10: operational metadata — never prompt bodies or secrets. */
+  aiMeta?: LeoAiAnswerMeta | null;
+};
+
+/* -------------------------------------------------------------------------- */
+/* LEO-10 Constrained executive synthesis — subordinate to evidence/governance */
+/* -------------------------------------------------------------------------- */
+
+export type LeoAiGroundingState =
+  | "GROUNDED"
+  | "PARTIALLY_GROUNDED"
+  | "INSUFFICIENT_EVIDENCE"
+  | "AI_UNAVAILABLE"
+  | "AI_REJECTED"
+  | "AI_SKIPPED";
+
+export type LeoAiKeyPointKind =
+  | "FACT"
+  | "SYNTHESIS"
+  | "CHALLENGE"
+  | "RECOMMENDATION"
+  | "UNKNOWN";
+
+export type LeoAiKeyPoint = {
+  kind: LeoAiKeyPointKind;
+  text: string;
+  evidenceIds: string[];
+};
+
+export type LeoAiAnswerMeta = {
+  aiUsed: boolean;
+  providerSucceeded: boolean;
+  fallbackUsed: boolean;
+  evidenceCount: number;
+  intent: LeoConversationIntent;
+  governanceLevel: LeoGovernanceLevel | null;
+  groundingState: LeoAiGroundingState;
+};
+
+export type LeoAiEvidenceItem = {
+  id: string;
+  sourceType: string;
+  statement: string;
+  provenanceLabel: string;
+  truthState: LeoTruthAvailability;
+  canonicalRef: string | null;
+  trustClass: "SYSTEM_POLICY" | "TRUSTED_INTERNAL" | "EXTERNAL_UNTRUSTED" | "OWNER_QUESTION";
+};
+
+export type LeoAiEvidenceBundle = {
+  correlationKey: string;
+  intent: LeoConversationIntent;
+  question: string;
+  facts: LeoAiEvidenceItem[];
+  unknowns: string[];
+  limitations: string[];
+  governanceLevel: LeoGovernanceLevel | null;
+  governanceSummary: string | null;
+  approvalRequired: boolean;
+  executionAllowed: false;
+  preparationAllowed: boolean;
+  listingReasonUnknown: boolean;
+  consequentialDecision: boolean;
+  preparedStatus: LeoPreparedActionStatus | null;
+  externalUntrustedNotes: string[];
+  policyNotes: readonly string[];
+};
+
+export type LeoAiReasonedAnswer = {
+  summary: string;
+  keyPoints: LeoAiKeyPoint[];
+  evidenceReferences: string[];
+  unknowns: string[];
+  limitations: string[];
+  challengePoints: string[];
+  governanceExplanation: string | null;
+  preparationDraft: string | null;
+  answerConfidenceState: "GROUNDED" | "PARTIALLY_GROUNDED" | "INSUFFICIENT_EVIDENCE";
 };
 
 /* -------------------------------------------------------------------------- */

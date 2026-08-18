@@ -1,7 +1,9 @@
 /**
  * LEO-7 Conversation Service — owner-only evidence retrieval orchestration.
+ * LEO-10: optional constrained synthesis after deterministic retrieval + governance.
  *
- * No LLM. No writes. No external execution. No automatic Living Book writes.
+ * No writes. No external execution. No automatic Living Book writes.
+ * Provider calls live in leoAi* modules — not inlined here.
  */
 import "server-only";
 
@@ -25,10 +27,9 @@ import { buildLeoDecisionBrief } from "@/app/leo/_lib/leoDecisionEngine";
 import { leoListActiveMemoryForSubject, leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
 import { getLeoListingReasonChain } from "@/app/leo/_lib/leoReasonChain";
 import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
-import {
-  isConsequentialActionRequest,
-} from "@/app/leo/_lib/leoPreparationEngine";
+import { isConsequentialActionRequest } from "@/app/leo/_lib/leoPreparationEngine";
 import { isLeoPreparationKind, runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
+import { enrichLeoConversationWithAi } from "@/app/leo/_lib/leoAiReasoningEngine";
 import type {
   LeoActionIntentKind,
   LeoConversationAnswer,
@@ -39,18 +40,20 @@ import type {
 
 export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
 
-const LEO_7_NOT_CLAIMING = [
+const LEO_CONVERSATION_NOT_CLAIMING = [
   "Not inventing customers, reasons, decisions, deadlines, or Production state",
   "Not executing consequential actions",
   "Not treating POST as RED owner approval",
   "Not writing Living Book / attention / leads / support from conversation",
-  "Not using AI/LLM classification or generation",
+  "Constrained synthesis when used is evidence-bound and cannot change governance or execute",
 ] as const;
 
 /**
- * Owner-admin conversation turn — retrieves from proven LEO subsystems only.
+ * Deterministic evidence retrieval — safety baseline and fallback.
  */
-export async function runLeoConversation(request: LeoConversationRequest): Promise<LeoConversationAnswer> {
+export async function runLeoConversationDeterministic(
+  request: LeoConversationRequest,
+): Promise<LeoConversationAnswer> {
   await requireLeoOwnerAccess();
 
   const nowMs = request.nowMs ?? Date.now();
@@ -63,7 +66,7 @@ export async function runLeoConversation(request: LeoConversationRequest): Promi
 
   const baseLimitations: string[] = [
     ...route.routeNotes.map((n) => `route: ${n}`),
-    "Conversation is evidence retrieval only — not autonomous chat.",
+    "Conversation is evidence retrieval first — synthesis is optional and constrained.",
   ];
   if (request.externalUntrustedNotes?.length) {
     baseLimitations.push(
@@ -82,7 +85,10 @@ export async function runLeoConversation(request: LeoConversationRequest): Promi
     suggestedNextRetrieval: null,
     preparedAction: null,
     generatedAt,
-    notClaiming: LEO_7_NOT_CLAIMING,
+    notClaiming: LEO_CONVERSATION_NOT_CLAIMING,
+    keyPoints: null,
+    challengePoints: null,
+    aiMeta: null,
     ...partial,
     limitations: [...baseLimitations, ...(partial.limitations ?? [])],
   });
@@ -183,7 +189,6 @@ export async function runLeoConversation(request: LeoConversationRequest): Promi
       const subject = request.memorySubject;
       const limit = Math.min(maxResults, LEO_CONVERSATION_BOUNDS.maxMemoryLookup);
       if (!subject?.subjectType?.trim() || !subject?.subjectKey?.trim()) {
-        // Bounded recent peek only when subject missing — still insufficient for subject-specific ask
         const recent = await leoListRecentMemory(Math.min(5, limit));
         return empty({
           intent: "MEMORY_LOOKUP",
@@ -295,11 +300,7 @@ export async function runLeoConversation(request: LeoConversationRequest): Promi
       const blocked = governance.level === "NEVER";
       return empty({
         intent: "CAPABILITY_GOVERNANCE",
-        answerState: blocked
-          ? "BLOCKED_BY_GOVERNANCE"
-          : governance.level === "RED"
-            ? "ANSWERED"
-            : "ANSWERED",
+        answerState: blocked ? "BLOCKED_BY_GOVERNANCE" : "ANSWERED",
         summary: composeGovernanceSummary(governance),
         evidence: governance.reasons.map((r) => ({
           sourceKind: "governance_rule",
@@ -427,4 +428,12 @@ export async function runLeoConversation(request: LeoConversationRequest): Promi
         governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
       });
   }
+}
+
+/**
+ * Owner-admin conversation turn — deterministic retrieval, then optional constrained synthesis.
+ */
+export async function runLeoConversation(request: LeoConversationRequest): Promise<LeoConversationAnswer> {
+  const deterministic = await runLeoConversationDeterministic(request);
+  return enrichLeoConversationWithAi({ request, deterministic });
 }
