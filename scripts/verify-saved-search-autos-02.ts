@@ -11,7 +11,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { strict as assert } from "node:assert";
 
-import { buildSavedSearchFingerprint, canonicalizeSavedSearch } from "../app/lib/saved-search/savedSearchCanonicalize";
+import { canonicalizeSavedSearch } from "../app/lib/saved-search/savedSearchCanonicalize";
+import { buildSavedSearchFingerprint } from "../app/lib/saved-search/savedSearchFingerprintServer";
 import type { SavedSearchNormalizedInput } from "../app/lib/saved-search/savedSearchTypes";
 import {
   autosFilterStateToSavedSearch,
