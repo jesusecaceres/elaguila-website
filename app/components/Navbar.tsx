@@ -7,16 +7,16 @@ import { useEffect, useMemo, useState, Suspense, useCallback, useRef } from "rea
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "../lib/supabase/browser";
 import {
   PUBLIC_NAV_ADVERTISE,
-  PUBLIC_NAV_COMPACT_OVERFLOW,
   PUBLIC_NAV_MOBILE,
-  PUBLIC_NAV_PRIMARY_AFTER_RECURSOS,
-  PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS,
-  PUBLIC_NAV_RECURSOS_DROPDOWN,
-  PUBLIC_NAV_RECURSOS_TRIGGER,
-  publicNavCompactOverflowLabel,
-  publicNavDropdownLabel,
-  publicNavItemLabel,
+  PUBLIC_NAV_OVERFLOW,
+  PUBLIC_NAV_PRIMARY,
+  PUBLIC_NAV_UTILITY_LINKS,
+  isPublicNavHrefActive,
+  publicNavDesktopItemClass,
   publicNavLabel,
+  publicNavMasItemClass,
+  publicNavMasLabel,
+  publicNavMasWrapperClass,
 } from "../lib/publicNavConfig";
 import { AdvertiseDropdown } from "./AdvertiseDropdown";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
@@ -24,6 +24,8 @@ import { getNavbarChromeCopy } from "@/app/lib/leonix/publicNavCopy";
 import { resolveRouteLang } from "@/app/lib/language";
 
 const HEADER_LOGO_SRC = "/logo.png";
+
+const ALL_NAV_HREFS = [...PUBLIC_NAV_PRIMARY, ...PUBLIC_NAV_UTILITY_LINKS].map((item) => item.href);
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -52,10 +54,9 @@ function NavbarContent() {
   const navLang = resolveRouteLang(searchParams?.get("lang"));
   const L = getNavbarChromeCopy(navLang);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [recursosOpen, setRecursosOpen] = useState(false);
-  const [compactOverflowOpen, setCompactOverflowOpen] = useState(false);
-  const recursosRef = useRef<HTMLDivElement>(null);
-  const compactOverflowRef = useRef<HTMLDivElement>(null);
+  const [masOpen, setMasOpen] = useState(false);
+  const masRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
 
   const [user, setUser] = useState<NavbarUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -81,8 +82,7 @@ function NavbarContent() {
   useEffect(() => {
     setMobileOpen(false);
     setAccountOpen(false);
-    setRecursosOpen(false);
-    setCompactOverflowOpen(false);
+    setMasOpen(false);
   }, [pathname, navLang, searchParams?.toString()]);
 
   useEffect(() => {
@@ -95,28 +95,31 @@ function NavbarContent() {
   }, [mobileOpen]);
 
   useEffect(() => {
-    if (!recursosOpen && !compactOverflowOpen) return;
+    if (!masOpen && !accountOpen) return;
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (recursosRef.current && !recursosRef.current.contains(t)) setRecursosOpen(false);
-      if (compactOverflowRef.current && !compactOverflowRef.current.contains(t)) setCompactOverflowOpen(false);
+      if (masRef.current && !masRef.current.contains(t)) setMasOpen(false);
+      if (accountRef.current && !accountRef.current.contains(t)) setAccountOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMasOpen(false);
+        setAccountOpen(false);
+      }
     };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [recursosOpen, compactOverflowOpen]);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [masOpen, accountOpen]);
 
   const buildLink = (href: string) => `${href.split("?")[0]}?lang=${navLang}`;
 
-  const isActive = (href: string) => {
-    const cleanHref = href.split("?")[0];
-    if (cleanHref === "/home") return pathname === "/home";
-    return pathname === cleanHref || pathname.startsWith(`${cleanHref}/`);
-  };
+  const isActive = (href: string) => isPublicNavHrefActive(pathname, href, ALL_NAV_HREFS);
 
-  const recursosDropdownActive = PUBLIC_NAV_RECURSOS_DROPDOWN.some((item) => isActive(item.href));
-  const recursosTriggerActive =
-    isActive(PUBLIC_NAV_RECURSOS_TRIGGER.href) || recursosDropdownActive;
-  const compactOverflowActive = PUBLIC_NAV_COMPACT_OVERFLOW.some((item) => isActive(item.href));
+  const masActive = PUBLIC_NAV_OVERFLOW.some((item) => isActive(item.href));
 
   const currentPathWithQuery = useMemo(() => {
     const q = searchParams?.toString() ?? "";
@@ -220,8 +223,8 @@ function NavbarContent() {
 
   const navLinkClass = (active: boolean) =>
     active
-      ? "whitespace-nowrap text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em]"
-      : "whitespace-nowrap text-[#3D3428] hover:text-[#7A1E2C]";
+      ? "whitespace-nowrap text-[#7A1E2C] underline decoration-[#7A1E2C] decoration-2 underline-offset-[0.3em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]"
+      : "whitespace-nowrap text-[#3D3428] hover:text-[#7A1E2C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]";
 
   const langToggle = () => <LeonixHeaderLanguageSelector variant="compact" />;
 
@@ -239,13 +242,20 @@ function NavbarContent() {
 
     if (user) {
       return (
-        <div className={cx("relative", variant === "desktop" ? "hidden shrink-0 lg:block" : "hidden")}>
+        <div
+          ref={variant === "desktop" ? accountRef : undefined}
+          className={cx("relative", variant === "desktop" ? "hidden shrink-0 lg:block" : "hidden")}
+        >
           <button
             type="button"
-            onClick={() => setAccountOpen((v) => !v)}
-            className="inline-flex max-w-[6.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:max-w-[7.5rem] sm:px-2.5 2xl:max-w-[8rem]"
+            onClick={() => {
+              setMasOpen(false);
+              setAccountOpen((v) => !v);
+            }}
+            className="inline-flex max-w-[6.5rem] min-h-[2rem] items-center gap-1.5 rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-2 py-1 transition-colors hover:bg-[#EDE6D6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:min-h-[2.125rem] sm:max-w-[7.5rem] sm:px-2.5 2xl:max-w-[8rem]"
             aria-label={L.myAccount}
             aria-expanded={accountOpen}
+            aria-haspopup="menu"
           >
             {user.avatarUrl ? (
               <img
@@ -277,14 +287,14 @@ function NavbarContent() {
               </div>
               <Link
                 href={`/dashboard?lang=${navLang}`}
-                className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
+                className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF] focus-visible:bg-[#FBF7EF] focus-visible:outline-none"
                 onClick={() => setAccountOpen(false)}
               >
                 {L.manageAccount}
               </Link>
               <Link
                 href={`/dashboard/mis-anuncios?lang=${navLang}`}
-                className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF]"
+                className="block px-4 py-3 text-sm text-[#1F241C] hover:bg-[#FBF7EF] focus-visible:bg-[#FBF7EF] focus-visible:outline-none"
                 onClick={() => setAccountOpen(false)}
               >
                 {L.myListings}
@@ -292,7 +302,7 @@ function NavbarContent() {
               <button
                 type="button"
                 onClick={signOut}
-                className="w-full border-t border-[#D6C7AD]/60 px-4 py-3 text-left text-sm text-[#3D3428] hover:bg-[#FBF7EF]"
+                className="w-full border-t border-[#D6C7AD]/60 px-4 py-3 text-left text-sm text-[#3D3428] hover:bg-[#FBF7EF] focus-visible:bg-[#FBF7EF] focus-visible:outline-none"
               >
                 {L.signOut}
               </button>
@@ -307,7 +317,7 @@ function NavbarContent() {
         type="button"
         onClick={goToLogin}
         className={cx(
-          "inline-flex shrink-0 min-h-[2rem] items-center justify-center rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-1 text-[0.7rem] font-semibold text-[#3D3428] transition-colors hover:bg-[#EDE6D6] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs",
+          "inline-flex shrink-0 min-h-[2rem] items-center justify-center rounded-full border border-[#D6C7AD] bg-[#FFFDF7] px-3 py-1 text-[0.7rem] font-semibold text-[#3D3428] transition-colors hover:bg-[#EDE6D6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs",
           variant === "desktop" ? "hidden lg:inline-flex" : "hidden"
         )}
       >
@@ -328,7 +338,7 @@ function NavbarContent() {
   );
 
   return (
-    <header className="fixed top-0 left-0 z-50 w-full" data-navbar-root>
+    <header className="fixed top-0 left-0 z-50 w-full overflow-visible" data-navbar-root>
       {showSignedOutToast && (
         <div
           className="fixed top-20 left-1/2 z-[1000] -translate-x-1/2 rounded-xl bg-green-600/95 px-4 py-2.5 text-sm font-medium text-white shadow-lg border border-green-500/30"
@@ -338,14 +348,14 @@ function NavbarContent() {
         </div>
       )}
 
-      <div className="border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
+      <div className="overflow-visible border-b border-[#D6C7AD] bg-[#FAF6EE]/95 shadow-[0_1px_0_0_rgba(201,168,74,0.35)] backdrop-blur-sm supports-[backdrop-filter]:bg-[#FAF6EE]/90">
         <div className="w-full px-3 sm:px-4 lg:px-4 xl:px-5">
-          <div className="flex flex-nowrap items-center justify-between gap-x-2 py-1.5 sm:gap-x-2.5 sm:py-2 lg:gap-x-3">
-            {/* ZONE 1 — brand (left) */}
-            <div className="flex shrink-0 items-center pe-2 sm:pe-3 lg:pe-3 xl:pe-4">
+          <div className="flex flex-nowrap items-center justify-between gap-x-2 py-1.5 sm:gap-x-2.5 sm:py-2 lg:gap-x-2 xl:gap-x-3">
+            {/* ZONE A — brand */}
+            <div className="flex shrink-0 items-center pe-2 sm:pe-3 lg:pe-2 xl:pe-3 2xl:pe-4">
               <Link
                 href={buildLink("/home")}
-                className="flex shrink-0 items-center gap-2.5 sm:gap-3"
+                className="flex shrink-0 items-center gap-2.5 sm:gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]"
                 aria-label={L.brandName}
               >
                 <span className="inline-flex h-[34px] w-[34px] shrink-0 overflow-hidden rounded-full bg-[#120f0c] ring-1 ring-[#C9A84A]/35 sm:h-9 sm:w-9 lg:h-10 lg:w-10">
@@ -359,156 +369,87 @@ function NavbarContent() {
                     aria-hidden
                   />
                 </span>
-                <span className="hidden font-serif text-base font-bold leading-none text-[#2A4536] lg:inline lg:whitespace-nowrap">
+                <span className="hidden font-serif text-base font-bold leading-none text-[#2A4536] 2xl:inline 2xl:whitespace-nowrap">
                   {L.brandName}
                 </span>
               </Link>
             </div>
 
-            {/* ZONE 2 — primary nav (lg+); one row, no clip, no generic Más on wide desktop */}
+            {/* ZONE B — primary nav (lg+); one row, collapse overflow into Más */}
             <nav
               className="hidden min-w-0 flex-1 items-center overflow-visible lg:flex"
               aria-label={L.navAria}
             >
-              <div className="flex w-full min-w-0 flex-nowrap items-center gap-x-2 text-[0.75rem] font-medium text-[#3D3428] lg:gap-x-2 lg:text-[0.8125rem] xl:gap-x-2.5 2xl:gap-x-3 2xl:text-[0.875rem] min-[1700px]:gap-x-3.5">
-                {PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS.map((item) => (
+              <div className="flex w-full min-w-0 flex-nowrap items-center gap-x-2 text-[0.8125rem] font-medium text-[#3D3428] xl:gap-x-2.5 2xl:gap-x-3 2xl:text-[0.875rem]">
+                {PUBLIC_NAV_PRIMARY.map((item) => (
                   <Link
                     key={item.id}
                     href={buildLink(item.href)}
-                    className={cx(navLinkClass(isActive(item.href)), "shrink-0")}
+                    className={cx(navLinkClass(isActive(item.href)), publicNavDesktopItemClass(item))}
                     aria-current={isActive(item.href) ? "page" : undefined}
                   >
                     {publicNavLabel(item, navLang)}
                   </Link>
                 ))}
 
-                <div className="relative shrink-0" ref={recursosRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCompactOverflowOpen(false);
-                      setRecursosOpen((v) => !v);
-                    }}
-                    className={cx(
-                      navLinkClass(recursosTriggerActive),
-                      "inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap"
-                    )}
-                    aria-expanded={recursosOpen}
-                    aria-haspopup="true"
-                    aria-label={L.recursosMenu}
-                  >
-                    {publicNavLabel(PUBLIC_NAV_RECURSOS_TRIGGER, navLang)}
-                    <span className="text-[0.6rem] leading-none" aria-hidden>
-                      {recursosOpen ? "▲" : "▼"}
-                    </span>
-                  </button>
-                  {recursosOpen ? (
-                    <div
-                      className="absolute left-0 top-full z-[60] mt-1 min-w-[14rem] overflow-visible rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
-                      role="menu"
+                {PUBLIC_NAV_OVERFLOW.length > 0 ? (
+                  <div className={publicNavMasWrapperClass(PUBLIC_NAV_OVERFLOW)} ref={masRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountOpen(false);
+                        setMasOpen((v) => !v);
+                      }}
+                      className={cx(
+                        navLinkClass(masActive),
+                        "inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap"
+                      )}
+                      aria-expanded={masOpen}
+                      aria-haspopup="menu"
                     >
-                      {PUBLIC_NAV_RECURSOS_DROPDOWN.map((item) => (
-                        <Link
-                          key={item.id}
-                          href={buildLink(item.href)}
-                          role="menuitem"
-                          className={cx(
-                            "block whitespace-nowrap px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C]",
-                            isActive(item.href) && "bg-[#7A1E2C]/8 font-semibold text-[#7A1E2C]"
-                          )}
-                          onClick={() => setRecursosOpen(false)}
-                        >
-                          {publicNavDropdownLabel(item, navLang)}
-                        </Link>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-
-                {PUBLIC_NAV_PRIMARY_AFTER_RECURSOS.map((item) => {
-                  if (item.id === "productos-promocionales") {
-                    return (
-                      <span key={item.id} className="hidden shrink-0 2xl:contents">
-                        <Link
-                          href={buildLink(item.href)}
-                          className={cx(navLinkClass(isActive(item.href)), "shrink-0 2xl:inline min-[1700px]:hidden")}
-                          aria-current={isActive(item.href) ? "page" : undefined}
-                        >
-                          {publicNavItemLabel(item, navLang, { short: true })}
-                        </Link>
-                        <Link
-                          href={buildLink(item.href)}
-                          className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 min-[1700px]:inline")}
-                          aria-current={isActive(item.href) ? "page" : undefined}
-                        >
-                          {publicNavLabel(item, navLang)}
-                        </Link>
+                      {publicNavMasLabel(navLang)}
+                      <span className="text-[0.6rem] leading-none" aria-hidden>
+                        {masOpen ? "▲" : "▼"}
                       </span>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={item.id}
-                      href={buildLink(item.href)}
-                      className={cx(navLinkClass(isActive(item.href)), "hidden shrink-0 2xl:inline")}
-                      aria-current={isActive(item.href) ? "page" : undefined}
-                    >
-                      {publicNavLabel(item, navLang)}
-                    </Link>
-                  );
-                })}
-
-                <div className="relative shrink-0 2xl:hidden" ref={compactOverflowRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRecursosOpen(false);
-                      setCompactOverflowOpen((v) => !v);
-                    }}
-                    className={cx(
-                      navLinkClass(compactOverflowActive),
-                      "inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap"
-                    )}
-                    aria-expanded={compactOverflowOpen}
-                    aria-haspopup="true"
-                  >
-                    {publicNavCompactOverflowLabel(navLang)}
-                    <span className="text-[0.6rem] leading-none" aria-hidden>
-                      {compactOverflowOpen ? "▲" : "▼"}
-                    </span>
-                  </button>
-                  {compactOverflowOpen ? (
-                    <div
-                      className="absolute left-0 top-full z-[60] mt-1 min-w-[12rem] rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
-                      role="menu"
-                    >
-                      {PUBLIC_NAV_COMPACT_OVERFLOW.map((item) => (
-                        <Link
-                          key={`compact-${item.id}`}
-                          href={buildLink(item.href)}
-                          role="menuitem"
-                          className="block whitespace-nowrap px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C]"
-                          onClick={() => setCompactOverflowOpen(false)}
-                        >
-                          {publicNavItemLabel(item, navLang, { short: true })}
-                        </Link>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                    </button>
+                    {masOpen ? (
+                      <div
+                        className="absolute left-0 top-full z-[60] mt-1 min-w-[12rem] overflow-visible rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
+                        role="menu"
+                      >
+                        {PUBLIC_NAV_OVERFLOW.map((item) => (
+                          <Link
+                            key={`mas-${item.id}`}
+                            href={buildLink(item.href)}
+                            role="menuitem"
+                            className={cx(
+                              "block whitespace-nowrap px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C] focus-visible:bg-[#FBF7EF] focus-visible:outline-none",
+                              publicNavMasItemClass(item),
+                              isActive(item.href) && "bg-[#7A1E2C]/8 font-semibold text-[#7A1E2C]"
+                            )}
+                            onClick={() => setMasOpen(false)}
+                          >
+                            {publicNavLabel(item, navLang)}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </nav>
 
-            {/* ZONE 3 — right controls */}
+            {/* ZONE C/D/E — language, account, Anúnciate */}
             <div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 ps-1.5 sm:gap-2 lg:gap-2 lg:ps-2 xl:gap-2.5">
               {langToggle()}
               {accountControl("desktop")}
               {advertiseCta}
               <button
                 type="button"
-                className="inline-flex min-h-[2rem] min-w-[2rem] shrink-0 items-center justify-center text-lg text-[#3D3428] lg:hidden"
+                className="inline-flex min-h-[2rem] min-w-[2rem] shrink-0 items-center justify-center text-lg text-[#3D3428] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] lg:hidden"
                 onClick={() => setMobileOpen(true)}
                 aria-label={L.openMenu}
+                aria-expanded={mobileOpen}
               >
                 ☰
               </button>
@@ -550,11 +491,12 @@ function NavbarContent() {
                     href={buildLink(item.href)}
                     onClick={() => setMobileOpen(false)}
                     className={cx(
-                      "rounded-xl px-2 py-2.5 text-[15px] font-semibold transition",
+                      "rounded-xl px-2 py-2.5 text-[15px] font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]",
                       isActive(item.href)
                         ? "bg-[#7A1E2C]/10 text-[#7A1E2C]"
                         : "text-[#1F241C] hover:bg-[#FBF7EF]"
                     )}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                   >
                     {publicNavLabel(item, navLang)}
                   </Link>
