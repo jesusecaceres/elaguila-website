@@ -99,8 +99,6 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
     telephone: shellData.contact?.phoneDisplay,
     addressText: [shellData.contact?.addressLine1, shellData.contact?.addressLine2].filter(Boolean).join(", ") || undefined,
     websiteUrl: shellData.contact?.websiteHref,
-    ratingAverage: shellData.trustRating?.average,
-    ratingCount: shellData.trustRating?.count,
   });
 
   return (
