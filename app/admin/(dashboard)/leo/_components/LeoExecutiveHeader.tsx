@@ -2,24 +2,28 @@ import Image from "next/image";
 
 export function LeoExecutiveHeader() {
   return (
-    <header className="min-w-0 border-b border-[color:var(--lx-border)]/60 pb-5">
-      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+    <header className="min-w-0 border-b border-[color:var(--lx-border)]/50 pb-3 sm:pb-4">
+      <div className="flex min-w-0 items-center gap-3">
         <Image
           src="/logo-clean.png"
           alt="Leonix Media"
-          width={48}
-          height={48}
-          className="mt-0.5 h-11 w-11 shrink-0 object-contain sm:h-12 sm:w-12"
+          width={40}
+          height={40}
+          className="h-9 w-9 shrink-0 object-contain sm:h-10 sm:w-10"
           priority
         />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#A67C52]">Leonix Media</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#1E1810] sm:text-4xl">LEO</h1>
-          <p className="mt-1 text-sm font-semibold text-[#5C5346] sm:text-base">
-            Leonix Executive Operating Intelligence
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">LEO</h1>
+            <p className="text-xs font-semibold text-[#5C5346] sm:text-sm">
+              Leonix Executive Operating Intelligence
+            </p>
+          </div>
+          <p className="mt-1 max-w-2xl text-sm leading-snug text-[#5C5346]">
+            Your executive view of what needs attention across Leonix.
           </p>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/90">
-            Executive view of current Leonix operational truth. Evidence-first. Not autonomous monitoring.
+          <p className="mt-0.5 text-[11px] leading-snug text-[#5C5346]/80">
+            Built from available Leonix evidence. No background monitoring yet.
           </p>
         </div>
       </div>

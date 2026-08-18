@@ -1,6 +1,7 @@
 /**
  * LEO-9 Owner Executive Console — /admin/leo
  * Owner_admin only. Evidence-first. No AI theater. No execution.
+ * LEO-9B: Ask LEO first, compact priorities, owner language.
  */
 import { redirect } from "next/navigation";
 
@@ -9,7 +10,7 @@ import { getLeoAttentionBrief } from "@/app/leo/_lib/leoAttentionService";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
 import type { LeoAttentionBrief, LeoClientCareWatchResult, LeoMemoryRecord } from "@/app/leo/_lib/leoTypes";
-import { adminContentArea } from "@/app/admin/_components/adminTheme";
+import { adminCardBase, adminContentArea } from "@/app/admin/_components/adminTheme";
 
 import { LeoAttentionPanel } from "./_components/LeoAttentionPanel";
 import { LeoCapabilityStrip } from "./_components/LeoCapabilityStrip";
@@ -82,21 +83,24 @@ export default async function LeoExecutiveConsolePage() {
 
   return (
     <div className={adminContentArea}>
-      <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-col gap-6 sm:gap-8">
+      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-4 sm:gap-5">
         <LeoExecutiveHeader />
 
-        <LeoAttentionPanel load={attention} />
-
         <LeoConversationPanel />
+
+        <LeoAttentionPanel load={attention} />
 
         <LeoClientCarePanel load={care} />
 
         <LeoMemoryPanel load={memory} />
 
-        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <section className={`${adminCardBase} min-w-0 space-y-4 p-3 sm:p-4`} aria-labelledby="leo-controls-heading">
+          <h2 id="leo-controls-heading" className="text-sm font-bold text-[#1E1810]">
+            LEO Controls &amp; Capabilities
+          </h2>
           <LeoGovernanceLegend />
           <LeoCapabilityStrip />
-        </div>
+        </section>
       </div>
     </div>
   );

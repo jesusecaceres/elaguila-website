@@ -106,7 +106,10 @@ function main() {
     /UNSUPPORTED_INTENT|limitation|Could not retrieve/i.test(convPanel),
     "15. unsupported responses display limitation",
   );
-  check(/evidence/i.test(convPanel) && /Why LEO says this/.test(convPanel), "16. evidence can be displayed");
+  check(
+    /evidence/i.test(convPanel) && /Why (LEO says this|\/ Evidence)/i.test(convPanel),
+    "16. evidence can be displayed",
+  );
   check(/unknowns/i.test(convPanel), "17. unknowns can be displayed");
   check(/governance/i.test(convPanel), "18. governance can be displayed");
 
@@ -121,7 +124,7 @@ function main() {
   );
   check(
     !/invented memory|sample memory|placeholder memory|fake memory/i.test(leoUi) &&
-      /No memories were invented|leoListRecentMemory/.test(leoUi),
+      /never\s+invents\s+memory|No memories were invented|leoListRecentMemory/i.test(leoUi),
     "21. no invented memory fallback",
   );
 
@@ -146,7 +149,7 @@ function main() {
   );
 
   check(
-    /min-w-0|max-w-|sm:|flex-col|overflow-x-hidden|min-h-\[44px\]|min-h-\[40px\]/.test(leoUi),
+    /min-w-0|max-w-|sm:|flex-col|overflow-x-hidden|min-h-\[44px\]|min-h-\[40px\]|min-h-\[48px\]/.test(leoUi),
     "30. mobile responsive structure exists",
   );
 
@@ -191,17 +194,10 @@ function main() {
     "37. no secrets",
   );
 
-  // Admin nav: only allowed change is a single nav definition file — we intentionally omitted.
-  const adminNavFiles = [
-    "app/admin/_lib/adminGlobalNav.ts",
-    "app/admin/_lib/adminAccessControl.ts",
-    "app/admin/_lib/adminStrings.ts",
-  ];
-  // Cannot easily detect git dirty for those without git — assert LEO-9 source does not import/edit them.
+  // LEO-9B may add Admin nav outside LEO UI; LEO UI must not embed Admin nav wiring.
   check(
-    !adminNavFiles.some((f) => leoUi.includes(f)) &&
-      !/ADMIN_GLOBAL_NAV|getAllowedGlobalNavHrefs/.test(leoUi),
-    "38. only approved Admin nav file changed if nav was added (nav omitted)",
+    !/ADMIN_GLOBAL_NAV|getAllowedGlobalNavHrefs/.test(leoUi),
+    "38. LEO UI does not embed Admin nav wiring (nav may exist separately)",
   );
 
   // Void unused

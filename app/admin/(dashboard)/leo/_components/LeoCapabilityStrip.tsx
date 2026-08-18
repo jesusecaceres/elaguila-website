@@ -1,22 +1,20 @@
-import { adminCardBase } from "@/app/admin/_components/adminTheme";
-
 const AVAILABLE = [
   "Truth",
   "Reason Chains",
   "Attention",
   "Client Care",
-  "Memory foundation",
+  "Memory",
   "Governance",
   "Decision support",
-  "On-demand watchers",
+  "Watchers",
   "Preparation",
 ] as const;
 
-const NOT_ACTIVE = [
+const COMING_LATER = [
   "AI reasoning",
   "Background monitoring",
   "Notifications",
-  "Business Concierge connection",
+  "Concierge connection",
   "GitHub/Vercel intelligence",
   "Voice",
   "Autonomous execution",
@@ -24,32 +22,20 @@ const NOT_ACTIVE = [
 
 export function LeoCapabilityStrip() {
   return (
-    <section className={`${adminCardBase} min-w-0 p-4 sm:p-5`} aria-labelledby="leo-cap-heading">
-      <h2 id="leo-cap-heading" className="text-base font-bold text-[#1E1810]">
-        Current capability
-      </h2>
-      <div className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
+    <div className="min-w-0" aria-labelledby="leo-cap-heading">
+      <h3 id="leo-cap-heading" className="text-xs font-bold uppercase tracking-wide text-[#5C5346]">
+        Capability
+      </h3>
+      <div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">Available now</p>
-          <ul className="mt-1.5 space-y-1">
-            {AVAILABLE.map((item) => (
-              <li key={item} className="break-words text-xs text-[#5C5346]">
-                · {item}
-              </li>
-            ))}
-          </ul>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">Available</p>
+          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{AVAILABLE.join(" · ")}</p>
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Not active yet</p>
-          <ul className="mt-1.5 space-y-1">
-            {NOT_ACTIVE.map((item) => (
-              <li key={item} className="break-words text-xs text-[#5C5346]">
-                · {item}
-              </li>
-            ))}
-          </ul>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Coming later</p>
+          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{COMING_LATER.join(" · ")}</p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

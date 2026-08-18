@@ -1,12 +1,3 @@
-import { adminCardBase } from "@/app/admin/_components/adminTheme";
-
-const LEVELS = [
-  { level: "GREEN", meaning: "Read / analyze — safe interpretation of existing truth." },
-  { level: "YELLOW", meaning: "Prepare only — drafts and plans; no external execution." },
-  { level: "RED", meaning: "Chuy approval required — execution unavailable in LEO v0." },
-  { level: "NEVER", meaning: "Blocked — authority abuse, concealment, or bypass attempts." },
-] as const;
-
 function levelClass(level: string): string {
   switch (level) {
     case "GREEN":
@@ -20,25 +11,29 @@ function levelClass(level: string): string {
   }
 }
 
+const LEVELS = [
+  { level: "GREEN", meaning: "Read & analyze" },
+  { level: "YELLOW", meaning: "Prepare only" },
+  { level: "RED", meaning: "Chuy approval" },
+  { level: "NEVER", meaning: "Blocked" },
+] as const;
+
 export function LeoGovernanceLegend() {
   return (
-    <section className={`${adminCardBase} min-w-0 p-4 sm:p-5`} aria-labelledby="leo-gov-heading">
-      <h2 id="leo-gov-heading" className="text-base font-bold text-[#1E1810]">
+    <div className="min-w-0" aria-labelledby="leo-gov-heading">
+      <h3 id="leo-gov-heading" className="text-xs font-bold uppercase tracking-wide text-[#5C5346]">
         Governance
-      </h2>
-      <p className="mt-1 text-xs text-[#5C5346]">Authority classes from LEO-6. Conversation cannot change them.</p>
-      <ul className="mt-3 space-y-2">
+      </h3>
+      <ul className="mt-2 flex min-w-0 flex-wrap gap-2">
         {LEVELS.map((row) => (
-          <li key={row.level} className="flex min-w-0 gap-2">
-            <span
-              className={`mt-0.5 inline-flex h-fit shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold ${levelClass(row.level)}`}
-            >
+          <li key={row.level} className="inline-flex min-w-0 items-center gap-1.5">
+            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${levelClass(row.level)}`}>
               {row.level}
             </span>
-            <span className="break-words text-xs leading-relaxed text-[#5C5346]">{row.meaning}</span>
+            <span className="text-xs text-[#5C5346]">{row.meaning}</span>
           </li>
         ))}
       </ul>
-    </section>
+    </div>
   );
 }
