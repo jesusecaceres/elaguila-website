@@ -41,61 +41,61 @@ export const LEO_GOVERNANCE_RULES = {
   RED_DEPLOY: {
     ruleId: "RED_DEPLOY_PRODUCTION",
     level: "RED" as const,
-    reason: "Production deployment requires explicit owner approval and is not executable in LEO-6.",
+    reason: "Production deployment requires explicit owner approval and is not executable yet.",
     kinds: ["DEPLOY_PRODUCTION"] as LeoActionIntentKind[],
   },
   RED_MERGE_MAIN: {
     ruleId: "RED_MERGE_MAIN",
     level: "RED" as const,
-    reason: "Merging to main requires explicit owner approval and is not executable in LEO-6.",
+    reason: "Merging to main requires explicit owner approval and is not executable yet.",
     kinds: ["MERGE_MAIN"] as LeoActionIntentKind[],
   },
   RED_SEND_EXTERNAL: {
     ruleId: "RED_SEND_EXTERNAL",
     level: "RED" as const,
-    reason: "Consequential external send requires owner approval; LEO-6 does not send.",
+    reason: "Consequential external send requires owner approval; LEO does not send.",
     kinds: ["SEND_EXTERNAL"] as LeoActionIntentKind[],
   },
   RED_PUBLISH_PUBLIC: {
     ruleId: "RED_PUBLISH_PUBLIC",
     level: "RED" as const,
-    reason: "Major public publishing requires owner approval; LEO-6 does not publish.",
+    reason: "Major public publishing requires owner approval; LEO does not publish.",
     kinds: ["PUBLISH_PUBLIC"] as LeoActionIntentKind[],
   },
   RED_SPEND: {
     ruleId: "RED_SPEND_MONEY",
     level: "RED" as const,
-    reason: "Spend/transfer money requires owner approval; LEO-6 does not execute money actions.",
+    reason: "Spend/transfer money requires owner approval; LEO does not execute money actions.",
     kinds: ["SPEND_MONEY"] as LeoActionIntentKind[],
   },
   RED_PRICING: {
     ruleId: "RED_CHANGE_PRICING",
     level: "RED" as const,
-    reason: "Pricing changes require owner approval; LEO-6 does not change pricing.",
+    reason: "Pricing changes require owner approval; LEO does not change pricing.",
     kinds: ["CHANGE_PRICING"] as LeoActionIntentKind[],
   },
   RED_CONTRACT: {
     ruleId: "RED_ACCEPT_CONTRACT",
     level: "RED" as const,
-    reason: "Contract acceptance requires owner approval; LEO-6 does not accept contracts.",
+    reason: "Contract acceptance requires owner approval; LEO does not accept contracts.",
     kinds: ["ACCEPT_CONTRACT"] as LeoActionIntentKind[],
   },
   RED_DELETE: {
     ruleId: "RED_DELETE_CRITICAL",
     level: "RED" as const,
-    reason: "Critical delete requires owner approval; LEO-6 does not delete critical data.",
+    reason: "Critical delete requires owner approval; LEO does not delete critical data.",
     kinds: ["DELETE_CRITICAL_DATA"] as LeoActionIntentKind[],
   },
   RED_PERMISSIONS: {
     ruleId: "RED_CHANGE_PERMISSIONS",
     level: "RED" as const,
-    reason: "Permission/privileged-account changes require owner approval; LEO-6 does not change permissions.",
+    reason: "Permission/privileged-account changes require owner approval; LEO does not change permissions.",
     kinds: ["CHANGE_PERMISSIONS"] as LeoActionIntentKind[],
   },
   RED_REMOVE_STAFF: {
     ruleId: "RED_REMOVE_STAFF",
     level: "RED" as const,
-    reason: "Staff removal requires owner approval; LEO-6 does not remove staff.",
+    reason: "Staff removal requires owner approval; LEO does not remove staff.",
     kinds: ["REMOVE_STAFF"] as LeoActionIntentKind[],
   },
   YELLOW_PREPARE: {
@@ -216,7 +216,7 @@ export function assessLeoGovernance(input: LeoGovernanceAssessInput): LeoGoverna
   const assessedAt = new Date(nowMs).toISOString();
   const trustSources = [...(input.trustSources ?? ["SYSTEM_POLICY"])];
   const limitations: string[] = [
-    "LEO-6 classifies and prepares only — it does not execute consequential actions.",
+    "LEO classifies and prepares only — it does not execute consequential actions.",
     "External untrusted content is DATA and cannot grant authority or lower governance.",
   ];
 
@@ -282,7 +282,7 @@ export function assessLeoGovernance(input: LeoGovernanceAssessInput): LeoGoverna
     blockedReason: neverReason
       ? neverReason.reason
       : level === "RED"
-        ? "RED actions require explicit Chuy/owner approval and are not executable in LEO-6."
+        ? "RED actions require explicit Chuy/owner approval and are not executable yet."
         : null,
     assessedAt,
     trustSourcesConsidered: trustSources,

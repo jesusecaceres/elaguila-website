@@ -65,6 +65,12 @@ export function presentCareSourceLabel(raw: string | null | undefined): string {
 /** Strip common internal tokens from owner-visible prose without inventing facts. */
 export function scrubOwnerFacingText(text: string): string {
   return text
+    .replace(/\bLEO-[0-9]+[A-Z]?\b/g, "LEO")
+    .replace(/\bTop-N\b/gi, "priority")
+    .replace(/\bclient-care signal\(s\)\b/gi, "client-care items")
+    .replace(/\bclient-care signals?\b/gi, "client-care items")
+    .replace(/\bexecutionAllowed\s*=\s*\w+/gi, "")
+    .replace(/\bpreparationAllowed\s*=\s*\w+/gi, "")
     .replace(/\blisting_reports\b/gi, "listing reports")
     .replace(/\breview_queue_preview\b/gi, "review queue")
     .replace(/\breview-queue preview\b/gi, "review queue")
@@ -75,7 +81,9 @@ export function scrubOwnerFacingText(text: string): string {
     .replace(/\bfollow_up_at\b/gi, "follow-up date")
     .replace(/\blast_contacted_at\b/gi, "last contact")
     .replace(/\bcreated_at\b/gi, "created date")
-    .replace(/\bstatus pending\b/gi, "pending status");
+    .replace(/\bstatus pending\b/gi, "pending status")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 export function presentAttentionTitle(raw: string): string {

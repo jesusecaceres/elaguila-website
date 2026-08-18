@@ -6,15 +6,15 @@ const AVAILABLE = [
   "Memory",
   "Governance",
   "Decision support",
-  "Watchers",
+  "On-demand watchers",
   "Preparation",
+  "Evidence-grounded AI reasoning",
 ] as const;
 
 const COMING_LATER = [
-  "AI reasoning",
   "Background monitoring",
   "Notifications",
-  "Concierge connection",
+  "Business Concierge connection",
   "GitHub/Vercel intelligence",
   "Voice",
   "Autonomous execution",
@@ -32,7 +32,7 @@ export function LeoCapabilityStrip() {
           <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{AVAILABLE.join(" · ")}</p>
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Coming later</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Not connected yet</p>
           <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{COMING_LATER.join(" · ")}</p>
         </div>
       </div>

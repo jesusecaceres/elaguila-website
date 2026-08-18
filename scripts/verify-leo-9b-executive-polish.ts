@@ -110,7 +110,12 @@ function main() {
     !/>\s*Send\s*<|>\s*Deploy\s*<|>\s*Publish\s*<|>\s*Schedule\s*<|>\s*Pay\s*</i.test(leoUi),
     "19. no execution controls",
   );
-  check(/Coming later|Not active/i.test(cap) && /AI reasoning/.test(cap), "20. capability unavailable features marked coming later");
+  check(
+    /Evidence-grounded AI reasoning/.test(cap) &&
+      /Not connected yet|Coming later/i.test(cap) &&
+      !/Coming later[\s\S]*AI reasoning|Not connected yet[\s\S]*AI reasoning/i.test(cap),
+    "20. capability unavailable features marked not connected; AI reasoning available",
+  );
 
   check(/href:\s*["']\/admin\/leo["']/.test(nav), "21. Admin navigation contains /admin/leo");
   check(

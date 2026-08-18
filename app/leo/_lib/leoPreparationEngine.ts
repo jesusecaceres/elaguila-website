@@ -69,7 +69,7 @@ function defaultSteps(kind: LeoPreparationKind, findings: LeoWatcherFinding[]): 
         "Group client-care findings by kind.",
         "Prioritize explicit overdue follow-ups before heuristic stale.",
         "Assign operational next steps from evidence labels only.",
-        "No outreach execution in LEO-8.",
+        "No outreach execution.",
         ...refs.map((r) => `Evidence: ${r}`),
       ];
     case "INTERNAL_TASK_DRAFT":
@@ -168,8 +168,8 @@ export function buildLeoPreparedAction(input: LeoPreparationEngineInput): LeoPre
   let limitations = [
     ...governance.limitations,
     ...(input.watcherResult?.limitations ?? []),
-    "Ephemeral artifact — not persisted in LEO-8.",
-    "YELLOW preparation only — executionAllowed=false.",
+    "Ephemeral artifact — not persisted automatically.",
+    "YELLOW preparation only — not executed.",
   ];
 
   if (kind === "DECISION_BRIEF") {

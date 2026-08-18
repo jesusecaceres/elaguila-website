@@ -557,6 +557,7 @@ export type LeoConversationIntent =
   | "LISTING_REASON"
   | "MEMORY_LOOKUP"
   | "DECISION_SUPPORT"
+  | "CAPABILITY_OVERVIEW"
   | "CAPABILITY_GOVERNANCE"
   | "PREPARATION"
   | "UNKNOWN";
@@ -644,6 +645,8 @@ export type LeoConversationAnswer = {
   keyPoints?: LeoAiKeyPoint[] | null;
   /** LEO-10: optional challenge notes (decision support). */
   challengePoints?: string[] | null;
+  /** LEO-10A: safe next questions (no execution). */
+  suggestedQuestions?: string[] | null;
   /** LEO-10: operational metadata — never prompt bodies or secrets. */
   aiMeta?: LeoAiAnswerMeta | null;
 };
@@ -673,10 +676,24 @@ export type LeoAiKeyPoint = {
   evidenceIds: string[];
 };
 
+export type LeoAiFallbackReason =
+  | "PROVIDER_NOT_CONFIGURED"
+  | "PROVIDER_TIMEOUT"
+  | "PROVIDER_ERROR"
+  | "INVALID_MODEL_OUTPUT"
+  | "GROUNDING_VALIDATION_FAILED"
+  | "INTENT_NOT_AI_ELIGIBLE"
+  | "INSUFFICIENT_EVIDENCE";
+
+export type LeoAiReasoningMode = "AI" | "DETERMINISTIC";
+
 export type LeoAiAnswerMeta = {
+  reasoningMode: LeoAiReasoningMode;
   aiUsed: boolean;
+  providerAvailable: boolean;
   providerSucceeded: boolean;
   fallbackUsed: boolean;
+  fallbackReason: LeoAiFallbackReason | null;
   evidenceCount: number;
   intent: LeoConversationIntent;
   governanceLevel: LeoGovernanceLevel | null;

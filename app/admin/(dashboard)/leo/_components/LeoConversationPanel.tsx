@@ -56,11 +56,24 @@ function PreparedBlock({ prepared }: { prepared: LeoPreparedAction }) {
   );
 }
 
-function AnswerResult({ answer }: { answer: LeoConversationAnswer }) {
+function AnswerResult({
+  answer,
+  onAsk,
+  pending,
+}: {
+  answer: LeoConversationAnswer;
+  onAsk: (q: string) => void;
+  pending: boolean;
+}) {
   const isRed = answer.governance?.level === "RED";
-  const aiUsed = Boolean(answer.aiMeta?.aiUsed && answer.aiMeta.providerSucceeded);
+  const isNever = answer.governance?.level === "NEVER";
+  const aiUsed = Boolean(answer.aiMeta?.aiUsed);
+  const fallbackQuiet =
+    Boolean(answer.aiMeta?.fallbackUsed) &&
+    answer.limitations.some((l) => /answered directly from Leonix evidence/i.test(l));
   const keyPoints = answer.keyPoints ?? [];
   const challenges = answer.challengePoints ?? [];
+  const suggestions = (answer.suggestedQuestions ?? []).slice(0, 3);
 
   return (
     <div className="mt-4 min-w-0 space-y-3 rounded-xl border border-[color:var(--lx-border)]/70 bg-white/80 p-4">
@@ -71,15 +84,28 @@ function AnswerResult({ answer }: { answer: LeoConversationAnswer }) {
             <span className="rounded-md border border-[#2A4536]/25 bg-[#EEF4F0] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2A4536]">
               Evidence-grounded reasoning
             </span>
-          ) : null}
+          ) : (
+            <span className="rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C5346]">
+              Deterministic evidence
+            </span>
+          )}
         </div>
-        <p className="mt-1 break-words text-sm font-semibold leading-relaxed text-[#1E1810]">
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-relaxed text-[#1E1810]">
           {scrubOwnerFacingText(answer.summary)}
         </p>
+        {fallbackQuiet ? (
+          <p className="mt-1 text-[11px] text-[#5C5346]/85">LEO answered directly from Leonix evidence.</p>
+        ) : null}
         <p className="mt-1 text-[11px] text-[#5C5346]">
           {answer.intent.replace(/_/g, " ")} · {answer.answerState.replace(/_/g, " ")}
         </p>
       </div>
+
+      {isNever ? (
+        <p className="rounded-lg border border-[#1E1810]/20 bg-[#F4F1EA] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#1E1810]">
+          BLOCKED — Governance override is never allowed.
+        </p>
+      ) : null}
 
       {isRed ? (
         <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-rose-900">
@@ -174,6 +200,25 @@ function AnswerResult({ answer }: { answer: LeoConversationAnswer }) {
               ? ` — ${scrubOwnerFacingText(answer.governance.blockedReason)}`
               : ""}
           </p>
+        </div>
+      ) : null}
+
+      {suggestions.length > 0 ? (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Ask next</p>
+          <div className="mt-2 flex min-w-0 flex-wrap gap-2">
+            {suggestions.map((q) => (
+              <button
+                key={q}
+                type="button"
+                disabled={pending}
+                className="inline-flex min-h-[40px] max-w-full items-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-3 py-2 text-left text-xs font-semibold text-[#1E1810] transition hover:bg-white disabled:opacity-60"
+                onClick={() => onAsk(q)}
+              >
+                <span className="break-words">{q}</span>
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
     </div>
@@ -298,7 +343,17 @@ export function LeoConversationPanel() {
           </p>
         ) : null}
 
-        {answer ? <AnswerResult answer={answer} /> : null}
+        {answer ? (
+          <AnswerResult
+            answer={answer}
+            pending={pending}
+            onAsk={(q) => {
+              setQuestion(q);
+              lastSubmitted.current = null;
+              submit(q);
+            }}
+          />
+        ) : null}
       </div>
     </section>
   );

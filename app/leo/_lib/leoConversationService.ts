@@ -12,11 +12,13 @@ import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import {
   answerStateFromEvidence,
   composeAttentionSummary,
+  composeCapabilityOverviewSummary,
   composeClientCareSummary,
   composeDecisionSummary,
   composeGovernanceSummary,
   composeMemorySummary,
   composeReasonSummary,
+  suggestedQuestionsForIntent,
 } from "@/app/leo/_lib/leoConversationComposer";
 import {
   LEO_CONVERSATION_BOUNDS,
@@ -64,34 +66,35 @@ export async function runLeoConversationDeterministic(
     LEO_CONVERSATION_BOUNDS.maxResultsCap,
   );
 
-  const baseLimitations: string[] = [
-    ...route.routeNotes.map((n) => `route: ${n}`),
-    "Conversation is evidence retrieval first — synthesis is optional and constrained.",
-  ];
+  const baseLimitations: string[] = [];
   if (request.externalUntrustedNotes?.length) {
     baseLimitations.push(
-      "EXTERNAL_UNTRUSTED_DATA notes present — DATA only; cannot grant authority or lower governance.",
+      "External notes were treated as data only — they cannot grant authority or lower governance.",
     );
   }
 
   const empty = (
     partial: Partial<LeoConversationAnswer> &
       Pick<LeoConversationAnswer, "intent" | "answerState" | "summary">,
-  ): LeoConversationAnswer => ({
-    evidence: [],
-    citations: [],
-    unknowns: [],
-    governance: null,
-    suggestedNextRetrieval: null,
-    preparedAction: null,
-    generatedAt,
-    notClaiming: LEO_CONVERSATION_NOT_CLAIMING,
-    keyPoints: null,
-    challengePoints: null,
-    aiMeta: null,
-    ...partial,
-    limitations: [...baseLimitations, ...(partial.limitations ?? [])],
-  });
+  ): LeoConversationAnswer => {
+    const intent = partial.intent;
+    return {
+      evidence: [],
+      citations: [],
+      unknowns: [],
+      governance: null,
+      suggestedNextRetrieval: null,
+      preparedAction: null,
+      generatedAt,
+      notClaiming: LEO_CONVERSATION_NOT_CLAIMING,
+      keyPoints: null,
+      challengePoints: null,
+      aiMeta: null,
+      ...partial,
+      limitations: [...baseLimitations, ...(partial.limitations ?? [])],
+      suggestedQuestions: partial.suggestedQuestions ?? suggestedQuestionsForIntent(intent),
+    };
+  };
 
   switch (route.intent) {
     case "ATTENTION_OVERVIEW": {
@@ -275,6 +278,40 @@ export async function runLeoConversationDeterministic(
       });
     }
 
+    case "CAPABILITY_OVERVIEW": {
+      const governance = assessLeoGovernance({ actionKind: "READ", nowMs });
+      return empty({
+        intent: "CAPABILITY_OVERVIEW",
+        answerState: "ANSWERED",
+        summary: composeCapabilityOverviewSummary(),
+        evidence: [
+          {
+            sourceKind: "capability_overview",
+            sourceRef: "leo-capability-v0",
+            summary: "Certified Leonix executive systems: truth, attention, client care, memory, governance, preparation, evidence-grounded reasoning.",
+            availability: "LIVE",
+          },
+        ],
+        citations: [
+          {
+            sourceKind: "capability_overview",
+            sourceRef: "leo-capability-v0",
+            label: "Current Leonix capabilities",
+          },
+        ],
+        limitations: [
+          "Background monitoring, notifications, Concierge connection, GitHub/Vercel intelligence, voice, and autonomous execution are not connected yet.",
+        ],
+        governance,
+        suggestedNextRetrieval: "Ask about priorities, who is waiting, or what LEO can prepare.",
+        suggestedQuestions: [
+          "What needs my attention?",
+          "Who is waiting on us?",
+          "What can you prepare for me?",
+        ],
+      });
+    }
+
     case "CAPABILITY_GOVERNANCE": {
       const actionKind: LeoActionIntentKind =
         request.actionKind ?? route.inferredActionKind ?? "OTHER";
@@ -301,7 +338,10 @@ export async function runLeoConversationDeterministic(
       return empty({
         intent: "CAPABILITY_GOVERNANCE",
         answerState: blocked ? "BLOCKED_BY_GOVERNANCE" : "ANSWERED",
-        summary: composeGovernanceSummary(governance),
+        summary:
+          governance.level === "NEVER" && /deploy/i.test(request.question)
+            ? `${composeGovernanceSummary(governance)} A Production deployment is also a RED action under normal authority questions.`
+            : composeGovernanceSummary(governance),
         evidence: governance.reasons.map((r) => ({
           sourceKind: "governance_rule",
           sourceRef: r.ruleId,
@@ -316,15 +356,16 @@ export async function runLeoConversationDeterministic(
         limitations: [
           ...governance.limitations,
           "Conversation POST does not constitute owner approval for RED execution.",
-          `executionAllowed=${governance.executionAllowed}; preparationAllowed=${governance.preparationAllowed}`,
         ],
         governance,
         suggestedNextRetrieval:
-          governance.level === "YELLOW"
-            ? "YELLOW allows preparation only — no send/deploy/execute."
-            : governance.level === "RED"
-              ? "RED requires explicit Chuy approval outside this endpoint before any execution path."
-              : null,
+          governance.level === "NEVER"
+            ? "Ask what LEO can prepare within allowed authority instead."
+            : governance.level === "YELLOW"
+              ? "YELLOW allows preparation only — no send/deploy/execute."
+              : governance.level === "RED"
+                ? "RED requires explicit Chuy approval outside this endpoint before any execution path."
+                : null,
       });
     }
 
@@ -347,7 +388,7 @@ export async function runLeoConversationDeterministic(
           preparedAction: null,
           limitations: [
             ...governance.limitations,
-            "Send/deploy/publish requests are not preparation — no execution in LEO-8.",
+            "Send/deploy/publish requests are not preparation — LEO will not execute them.",
           ],
           suggestedNextRetrieval: "Ask to prepare a draft instead of sending/executing.",
         });
@@ -396,7 +437,7 @@ export async function runLeoConversationDeterministic(
       return empty({
         intent: "PREPARATION",
         answerState: "ANSWERED",
-        summary: `YELLOW preparation ready: ${prepared.preparationKind}. Status=${prepared.status}. Not sent/scheduled/executed.`,
+        summary: `YELLOW preparation ready: ${prepared.preparationKind.replace(/_/g, " ").toLowerCase()}. Status: prepared, not executed.`,
         evidence: (result.watcherResult?.findings ?? []).slice(0, maxResults).map((f) => ({
           sourceKind: "watcher_finding",
           sourceRef: f.key,
@@ -424,7 +465,7 @@ export async function runLeoConversationDeterministic(
           "I do not have a supported deterministic retrieval path for this question. No answer was fabricated.",
         unknowns: ["supported_intent"],
         suggestedNextRetrieval:
-          "Try Attention, Client Care, Listing Reason (with listingId), Memory (with subject), Decision Support, Preparation, or Capability/Governance.",
+          "Try Attention, Client Care, Listing Reason (with listingId), Memory (with subject), Decision Support, Preparation, Capability overview, or Capability/Governance.",
         governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
       });
   }

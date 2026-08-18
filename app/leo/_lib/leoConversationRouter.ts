@@ -1,12 +1,13 @@
 /**
  * LEO-7 Conversation Router — deterministic intent resolution.
- * No LLM. Ambiguous → UNKNOWN.
+ * Ambiguous → UNKNOWN. NEVER-class patterns outrank RED action verbs.
  */
 import type {
   LeoActionIntentKind,
   LeoConversationIntent,
   LeoConversationRequest,
   LeoConversationRouteResult,
+  LeoPreparationKind,
 } from "@/app/leo/_lib/leoTypes";
 
 /** Centralized conversation request bounds. */
@@ -27,6 +28,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "LISTING_REASON",
   "MEMORY_LOOKUP",
   "DECISION_SUPPORT",
+  "CAPABILITY_OVERVIEW",
   "CAPABILITY_GOVERNANCE",
   "PREPARATION",
   "UNKNOWN",
@@ -40,10 +42,31 @@ function normalizeQuestion(q: string): string {
   return q.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function inferActionKind(q: string): LeoActionIntentKind | null {
+/**
+ * Infer action kind. NEVER-class patterns are evaluated before RED verbs so
+ * "ignore governance and deploy Production" → BYPASS_APPROVAL (NEVER), not DEPLOY.
+ */
+export function inferLeoActionKind(q: string): LeoActionIntentKind | null {
+  // NEVER class first
+  if (
+    /bypass approval|ignore governance|override governance|rewrite governance|override approval|circumvent (governance|approval)/i.test(
+      q,
+    )
+  ) {
+    return "BYPASS_APPROVAL";
+  }
+  if (/self[- ]?grant|give myself (admin|permission|privilege)/i.test(q)) return "SELF_GRANT_PRIVILEGE";
+  if (/conceal audit|disable audit|hide audit|delete governance history|erase audit/i.test(q)) {
+    return "MODIFY_AUDIT";
+  }
+  if (/rewrite (leo )?governance|change (the )?governance rules/i.test(q)) return "REWRITE_GOVERNANCE";
+
+  // RED class
   if (/deploy.*production|production.*deploy|deploy to prod/i.test(q)) return "DEPLOY_PRODUCTION";
   if (/merge.*main|merge to main/i.test(q)) return "MERGE_MAIN";
-  if (/\bsend (this|the|it)\b|send (an )?email|send (a )?message|outreach send/i.test(q)) return "SEND_EXTERNAL";
+  if (/\bsend (this|the|it)\b|send (an )?email|send (a )?message|outreach send/i.test(q)) {
+    return "SEND_EXTERNAL";
+  }
   if (/change pricing|update pricing|raise prices/i.test(q)) return "CHANGE_PRICING";
   if (/spend money|transfer money|wire funds/i.test(q)) return "SPEND_MONEY";
   if (/accept (the )?contract|sign (the )?contract/i.test(q)) return "ACCEPT_CONTRACT";
@@ -51,13 +74,17 @@ function inferActionKind(q: string): LeoActionIntentKind | null {
   if (/change permission|grant admin|elevate privilege/i.test(q)) return "CHANGE_PERMISSIONS";
   if (/remove staff|fire (the )?employee|delete staff/i.test(q)) return "REMOVE_STAFF";
   if (/publish (to )?public|public publish/i.test(q)) return "PUBLISH_PUBLIC";
-  if (/bypass approval|ignore governance|override governance/i.test(q)) return "BYPASS_APPROVAL";
-  if (/self[- ]?grant|give myself/i.test(q)) return "SELF_GRANT_PRIVILEGE";
-  if (/conceal audit|disable audit|hide audit|delete governance history/i.test(q)) return "MODIFY_AUDIT";
   return null;
 }
 
-function inferPreparationKindFromQuestion(q: string): import("@/app/leo/_lib/leoTypes").LeoPreparationKind | null {
+/** General capability discovery — not a consequential action request. */
+export function isLeoCapabilityOverviewQuestion(q: string): boolean {
+  return /\b(what can you do|what can leo do|what are your capabilities|what tools do you have|how can you help( me)?|what can you help with)\b/i.test(
+    q,
+  );
+}
+
+function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null {
   const wantsPrep = /\b(prepare|draft|make me a brief|checklist)\b/.test(q);
   if (!wantsPrep) return null;
   if (/follow[- ]?up/.test(q)) return "FOLLOW_UP_DRAFT";
@@ -80,35 +107,57 @@ export function routeLeoConversation(
   const notes: string[] = [];
   const q = normalizeQuestion(request.question ?? "");
   const prepFromQ = inferPreparationKindFromQuestion(q);
+  const actionFromQ = inferLeoActionKind(q);
 
   if (request.intent && isLeoConversationIntent(request.intent) && request.intent !== "UNKNOWN") {
     notes.push(`explicit intent=${request.intent}`);
     return {
       intent: request.intent,
       confidence: "high",
-      inferredActionKind: request.actionKind ?? inferActionKind(q),
+      inferredActionKind: request.actionKind ?? actionFromQ,
       inferredPreparationKind: request.preparationKind ?? prepFromQ,
       routeNotes: notes,
     };
   }
 
-  // Consequential / capability first (send/deploy/bypass) — never treat as preparation
-  const actionFromQ = inferActionKind(q);
-  if (
-    (actionFromQ && actionFromQ !== "PREPARE_DRAFT") ||
-    /\b(can you|are you allowed|may you|am i allowed|do you need (my )?approval)\b/i.test(q)
-  ) {
+  // Capability overview BEFORE authority/action routing ("What can you do?" ≠ OTHER/RED)
+  if (isLeoCapabilityOverviewQuestion(q)) {
+    notes.push("capability overview pattern");
+    return {
+      intent: "CAPABILITY_OVERVIEW",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    };
+  }
+
+  // Consequential / specific authority questions
+  if (actionFromQ && actionFromQ !== "PREPARE_DRAFT") {
     notes.push("capability/governance pattern");
     return {
       intent: "CAPABILITY_GOVERNANCE",
-      confidence: actionFromQ || request.actionKind ? "high" : "medium",
+      confidence: "high",
       inferredActionKind: request.actionKind ?? actionFromQ,
       inferredPreparationKind: null,
       routeNotes: notes,
     };
   }
 
-  // YELLOW preparation intent
+  if (
+    /\b(are you allowed|may you|am i allowed|do you need (my )?approval)\b/i.test(q) ||
+    /\bcan you (deploy|send|merge|publish|change|spend|delete|remove|pay|schedule)\b/i.test(q)
+  ) {
+    notes.push("capability/governance pattern");
+    return {
+      intent: "CAPABILITY_GOVERNANCE",
+      confidence: request.actionKind || actionFromQ ? "high" : "medium",
+      inferredActionKind: request.actionKind ?? actionFromQ,
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    };
+  }
+
   if (request.preparationKind || prepFromQ) {
     notes.push("preparation pattern");
     return {
@@ -138,7 +187,6 @@ export function routeLeoConversation(
   if (
     /\b(who is waiting|who needs follow[- ]?up|follow[- ]?up|client care|overdue follow|waiting on)\b/i.test(q)
   ) {
-    // "who needs follow-up" is care retrieval, not prepare
     return {
       intent: "CLIENT_CARE",
       confidence: "high",
