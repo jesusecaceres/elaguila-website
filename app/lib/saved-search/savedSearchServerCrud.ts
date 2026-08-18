@@ -49,6 +49,33 @@ function rowFromDb(row: SavedSearchDbRow): SavedSearchRow {
   };
 }
 
+/** A saved search row plus its owner id — for server-side match orchestration only (Saved Search
+ * 04+). Never exposed to a browser client; `SavedSearchRow` (the owner-facing shape) deliberately
+ * omits ownerUserId since an owner viewing their own dashboard doesn't need it echoed back. */
+export type ActiveSavedSearchForMatching = SavedSearchRow & { ownerUserId: string };
+
+/**
+ * All owners' active saved searches for one category. Server-only (admin client) — this is the
+ * one place this repo reads across owners rather than scoping to a single `ownerId`, because a
+ * match orchestrator must find every owner an activated listing could be relevant to, not one
+ * owner's own list. Never called from a route a browser can reach directly.
+ */
+export async function listActiveSavedSearchesForCategory(
+  sb: SupabaseClient,
+  category: string,
+): Promise<ActiveSavedSearchForMatching[]> {
+  const { data, error } = await sb
+    .from(TABLE)
+    .select("id, user_id, category, city, min_price, max_price, filter_payload, fingerprint, is_active, created_at, updated_at")
+    .eq("category", category)
+    .eq("is_active", true);
+  if (error || !data) return [];
+  return (data as (SavedSearchDbRow & { user_id: string })[]).map((row) => ({
+    ...rowFromDb(row),
+    ownerUserId: row.user_id,
+  }));
+}
+
 /** Owner's own saved searches, optionally narrowed to one category. Newest first. */
 export async function listSavedSearchesForOwner(
   sb: SupabaseClient,
