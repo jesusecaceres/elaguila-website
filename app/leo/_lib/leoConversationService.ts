@@ -1,0 +1,430 @@
+/**
+ * LEO-7 Conversation Service — owner-only evidence retrieval orchestration.
+ *
+ * No LLM. No writes. No external execution. No automatic Living Book writes.
+ */
+import "server-only";
+
+import { getLeoAttentionBrief } from "@/app/leo/_lib/leoAttentionService";
+import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
+import {
+  answerStateFromEvidence,
+  composeAttentionSummary,
+  composeClientCareSummary,
+  composeDecisionSummary,
+  composeGovernanceSummary,
+  composeMemorySummary,
+  composeReasonSummary,
+} from "@/app/leo/_lib/leoConversationComposer";
+import {
+  LEO_CONVERSATION_BOUNDS,
+  routeLeoConversation,
+} from "@/app/leo/_lib/leoConversationRouter";
+import { assessLeoGovernance } from "@/app/leo/_lib/leoGovernanceEngine";
+import { buildLeoDecisionBrief } from "@/app/leo/_lib/leoDecisionEngine";
+import { leoListActiveMemoryForSubject, leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
+import { getLeoListingReasonChain } from "@/app/leo/_lib/leoReasonChain";
+import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
+import {
+  isConsequentialActionRequest,
+} from "@/app/leo/_lib/leoPreparationEngine";
+import { isLeoPreparationKind, runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
+import type {
+  LeoActionIntentKind,
+  LeoConversationAnswer,
+  LeoConversationEvidence,
+  LeoConversationRequest,
+  LeoPreparationKind,
+} from "@/app/leo/_lib/leoTypes";
+
+export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
+
+const LEO_7_NOT_CLAIMING = [
+  "Not inventing customers, reasons, decisions, deadlines, or Production state",
+  "Not executing consequential actions",
+  "Not treating POST as RED owner approval",
+  "Not writing Living Book / attention / leads / support from conversation",
+  "Not using AI/LLM classification or generation",
+] as const;
+
+/**
+ * Owner-admin conversation turn — retrieves from proven LEO subsystems only.
+ */
+export async function runLeoConversation(request: LeoConversationRequest): Promise<LeoConversationAnswer> {
+  await requireLeoOwnerAccess();
+
+  const nowMs = request.nowMs ?? Date.now();
+  const generatedAt = new Date(nowMs).toISOString();
+  const route = routeLeoConversation(request);
+  const maxResults = Math.min(
+    request.maxResults ?? LEO_CONVERSATION_BOUNDS.maxResultsDefault,
+    LEO_CONVERSATION_BOUNDS.maxResultsCap,
+  );
+
+  const baseLimitations: string[] = [
+    ...route.routeNotes.map((n) => `route: ${n}`),
+    "Conversation is evidence retrieval only — not autonomous chat.",
+  ];
+  if (request.externalUntrustedNotes?.length) {
+    baseLimitations.push(
+      "EXTERNAL_UNTRUSTED_DATA notes present — DATA only; cannot grant authority or lower governance.",
+    );
+  }
+
+  const empty = (
+    partial: Partial<LeoConversationAnswer> &
+      Pick<LeoConversationAnswer, "intent" | "answerState" | "summary">,
+  ): LeoConversationAnswer => ({
+    evidence: [],
+    citations: [],
+    unknowns: [],
+    governance: null,
+    suggestedNextRetrieval: null,
+    preparedAction: null,
+    generatedAt,
+    notClaiming: LEO_7_NOT_CLAIMING,
+    ...partial,
+    limitations: [...baseLimitations, ...(partial.limitations ?? [])],
+  });
+
+  switch (route.intent) {
+    case "ATTENTION_OVERVIEW": {
+      const brief = await getLeoAttentionBrief({ topN: Math.min(maxResults, 3), nowMs });
+      const evidence: LeoConversationEvidence[] = brief.items.slice(0, maxResults).map((item) => ({
+        sourceKind: "attention_item",
+        sourceRef: item.id,
+        summary: `${item.level} score=${item.score}: ${item.title}`,
+        availability: "LIVE",
+        limitationNote: item.limitationNote,
+      }));
+      return empty({
+        intent: "ATTENTION_OVERVIEW",
+        answerState: answerStateFromEvidence(evidence.length > 0 || brief.actionableCount === 0, false, false, false),
+        summary: composeAttentionSummary(brief),
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: [],
+        limitations: [...brief.limitations],
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        suggestedNextRetrieval: evidence.length
+          ? "Drill into a specific attention item or Client Care signals."
+          : null,
+      });
+    }
+
+    case "CLIENT_CARE": {
+      const watch = await getLeoClientCareWatch({ nowMs });
+      const signals = watch.signals.slice(0, maxResults);
+      const evidence: LeoConversationEvidence[] = signals.map((s) => ({
+        sourceKind: "client_care_signal",
+        sourceRef: s.key,
+        summary: `${s.kind}: ${s.title}`,
+        availability: s.provenance.availability,
+        provenance: s.provenance,
+        limitationNote: s.limitationNote,
+      }));
+      return empty({
+        intent: "CLIENT_CARE",
+        answerState: "ANSWERED",
+        summary: composeClientCareSummary(watch),
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        limitations: [...watch.limitations],
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        suggestedNextRetrieval: "Open Launch Leads or support queues for operational follow-through.",
+      });
+    }
+
+    case "LISTING_REASON": {
+      const listingId = request.listingId?.trim() ?? "";
+      if (!listingId) {
+        return empty({
+          intent: "LISTING_REASON",
+          answerState: "INSUFFICIENT_EVIDENCE",
+          summary: "A listing id is required for reason-chain retrieval. No entity was guessed.",
+          unknowns: ["listingId"],
+          suggestedNextRetrieval: "Retry with explicit listingId.",
+          governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
+        });
+      }
+      const chain = await getLeoListingReasonChain(listingId);
+      const evidence: LeoConversationEvidence[] = chain.evidence.slice(0, maxResults).map((e, i) => ({
+        sourceKind: "listing_reason",
+        sourceRef: e.sourceId ?? `${chain.entityId}:${i}`,
+        summary: `${e.sourceType} quality=${e.quality}${e.humanReadableReason ? `: ${e.humanReadableReason.slice(0, 160)}` : ""}`,
+        availability: e.quality === "MISSING" ? "UNAVAILABLE" : e.quality === "DERIVED" ? "PARTIAL" : "LIVE",
+        limitationNote: chain.limitationNote,
+      }));
+      return empty({
+        intent: "LISTING_REASON",
+        answerState: chain.primaryReason ? "ANSWERED" : "PARTIALLY_ANSWERED",
+        summary: composeReasonSummary(chain),
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: chain.primaryReason ? [] : ["primary persisted reason"],
+        limitations: [chain.limitationNote, ...chain.notClaiming].filter(Boolean) as string[],
+        governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
+      });
+    }
+
+    case "MEMORY_LOOKUP": {
+      const subject = request.memorySubject;
+      const limit = Math.min(maxResults, LEO_CONVERSATION_BOUNDS.maxMemoryLookup);
+      if (!subject?.subjectType?.trim() || !subject?.subjectKey?.trim()) {
+        // Bounded recent peek only when subject missing — still insufficient for subject-specific ask
+        const recent = await leoListRecentMemory(Math.min(5, limit));
+        return empty({
+          intent: "MEMORY_LOOKUP",
+          answerState: "INSUFFICIENT_EVIDENCE",
+          summary:
+            recent.length > 0
+              ? `Memory subjectType/subjectKey required for targeted lookup. ${recent.length} recent record(s) exist globally (ids only, not dumped).`
+              : "Memory subjectType/subjectKey required for targeted lookup. No subject was guessed from prose.",
+          unknowns: ["memorySubject.subjectType", "memorySubject.subjectKey"],
+          evidence: recent.slice(0, limit).map((r) => ({
+            sourceKind: "leo_memory",
+            sourceRef: r.id,
+            summary: `${r.epistemicType} status=${r.status} subject=${r.subject.subjectType}:${r.subject.subjectKey}`,
+            availability: "LIVE",
+          })),
+          suggestedNextRetrieval: "Retry with memorySubject { subjectType, subjectKey }.",
+          governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        });
+      }
+      const records = await leoListActiveMemoryForSubject(subject.subjectType, subject.subjectKey, limit);
+      const label = `${subject.subjectType}:${subject.subjectKey}`;
+      const evidence: LeoConversationEvidence[] = records.map((r) => ({
+        sourceKind: "leo_memory",
+        sourceRef: r.id,
+        summary: `${r.epistemicType}: ${r.statement.slice(0, 200)}`,
+        availability: "LIVE",
+      }));
+      return empty({
+        intent: "MEMORY_LOOKUP",
+        answerState: "ANSWERED",
+        summary: composeMemorySummary(records, label),
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+      });
+    }
+
+    case "DECISION_SUPPORT": {
+      if (!request.decisionContext) {
+        return empty({
+          intent: "DECISION_SUPPORT",
+          answerState: "INSUFFICIENT_EVIDENCE",
+          summary: "Explicit decisionContext is required for decision support. No decision was invented.",
+          unknowns: ["decisionContext"],
+          suggestedNextRetrieval: "Provide structured decisionContext (question, options, facts).",
+          governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
+        });
+      }
+      const brief = buildLeoDecisionBrief({ ...request.decisionContext, nowMs });
+      const blocked = brief.governance.level === "NEVER";
+      return empty({
+        intent: "DECISION_SUPPORT",
+        answerState: blocked
+          ? "BLOCKED_BY_GOVERNANCE"
+          : brief.recommendationState === "INSUFFICIENT_EVIDENCE"
+            ? "INSUFFICIENT_EVIDENCE"
+            : "ANSWERED",
+        summary: composeDecisionSummary(brief),
+        evidence: [
+          {
+            sourceKind: "decision_brief",
+            sourceRef: brief.decisionKey,
+            summary: `state=${brief.recommendationState}; challenges=${brief.challenges.length}`,
+            availability: "LIVE",
+          },
+        ],
+        citations: [
+          {
+            sourceKind: "decision_brief",
+            sourceRef: brief.decisionKey,
+            label: brief.question.slice(0, 120),
+          },
+        ],
+        unknowns: [...brief.unknowns],
+        limitations: [...brief.limitations],
+        governance: brief.governance,
+        suggestedNextRetrieval: brief.ownerDecisionRequired
+          ? "Owner judgment required — POST is not RED approval."
+          : null,
+      });
+    }
+
+    case "CAPABILITY_GOVERNANCE": {
+      const actionKind: LeoActionIntentKind =
+        request.actionKind ?? route.inferredActionKind ?? "OTHER";
+      const externalClaimsApproval = Boolean(
+        request.externalUntrustedNotes?.some((n) =>
+          /ignore governance|approve|you are allowed|bypass/i.test(n),
+        ),
+      );
+      const externalClaimsDowngrade = Boolean(
+        request.externalUntrustedNotes?.some((n) =>
+          /this is green|lower to green|not red|ignore red/i.test(n),
+        ),
+      );
+      const governance = assessLeoGovernance({
+        actionKind,
+        trustSources: request.externalUntrustedNotes?.length
+          ? ["SYSTEM_POLICY", "EXTERNAL_UNTRUSTED_DATA"]
+          : ["SYSTEM_POLICY", "OWNER_INSTRUCTION"],
+        externalClaimsApproval,
+        externalClaimsDowngrade,
+        nowMs,
+      });
+      const blocked = governance.level === "NEVER";
+      return empty({
+        intent: "CAPABILITY_GOVERNANCE",
+        answerState: blocked
+          ? "BLOCKED_BY_GOVERNANCE"
+          : governance.level === "RED"
+            ? "ANSWERED"
+            : "ANSWERED",
+        summary: composeGovernanceSummary(governance),
+        evidence: governance.reasons.map((r) => ({
+          sourceKind: "governance_rule",
+          sourceRef: r.ruleId,
+          summary: `${r.level}: ${r.reason}`,
+          availability: "LIVE",
+        })),
+        citations: governance.auditPrep.ruleIds.map((id) => ({
+          sourceKind: "governance_rule",
+          sourceRef: id,
+          label: id,
+        })),
+        limitations: [
+          ...governance.limitations,
+          "Conversation POST does not constitute owner approval for RED execution.",
+          `executionAllowed=${governance.executionAllowed}; preparationAllowed=${governance.preparationAllowed}`,
+        ],
+        governance,
+        suggestedNextRetrieval:
+          governance.level === "YELLOW"
+            ? "YELLOW allows preparation only — no send/deploy/execute."
+            : governance.level === "RED"
+              ? "RED requires explicit Chuy approval outside this endpoint before any execution path."
+              : null,
+      });
+    }
+
+    case "PREPARATION": {
+      const consequential =
+        request.actionKind &&
+        request.actionKind !== "PREPARE_DRAFT" &&
+        request.actionKind !== "READ" &&
+        request.actionKind !== "ANALYZE"
+          ? request.actionKind
+          : isConsequentialActionRequest(request.question);
+
+      if (consequential) {
+        const governance = assessLeoGovernance({ actionKind: consequential, nowMs });
+        return empty({
+          intent: "CAPABILITY_GOVERNANCE",
+          answerState: governance.level === "NEVER" ? "BLOCKED_BY_GOVERNANCE" : "ANSWERED",
+          summary: `Requested action ${consequential} is ${governance.level}. LEO will not execute. POST is not owner approval.`,
+          governance,
+          preparedAction: null,
+          limitations: [
+            ...governance.limitations,
+            "Send/deploy/publish requests are not preparation — no execution in LEO-8.",
+          ],
+          suggestedNextRetrieval: "Ask to prepare a draft instead of sending/executing.",
+        });
+      }
+
+      const prepKind: LeoPreparationKind =
+        request.preparationKind && isLeoPreparationKind(request.preparationKind)
+          ? request.preparationKind
+          : route.inferredPreparationKind && isLeoPreparationKind(route.inferredPreparationKind)
+            ? route.inferredPreparationKind
+            : "INTERNAL_TASK_DRAFT";
+
+      const watcherKind =
+        request.watcherKind ??
+        (prepKind === "FOLLOW_UP_DRAFT" || prepKind === "CLIENT_CARE_PLAN"
+          ? "FOLLOW_UP"
+          : prepKind === "REVIEW_PLAN"
+            ? "ATTENTION"
+            : prepKind === "DECISION_BRIEF"
+              ? "DECISION_REVIEW"
+              : "CLIENT_CARE");
+
+      const result = await runLeoPreparation({
+        preparationKind: prepKind,
+        watcherKind: prepKind === "DECISION_BRIEF" && !request.decisionContext ? null : watcherKind,
+        entityId: request.entityId,
+        decisionContext: request.decisionContext,
+        requestedActionKind: null,
+        maxFindings: maxResults,
+        nowMs,
+        question: request.question,
+      });
+
+      if (!result.preparation.ok || !result.preparation.prepared) {
+        return empty({
+          intent: "PREPARATION",
+          answerState: "BLOCKED_BY_GOVERNANCE",
+          summary: result.preparation.message,
+          governance: result.preparation.governance,
+          preparedAction: null,
+          limitations: result.preparation.governance.limitations,
+        });
+      }
+
+      const prepared = result.preparation.prepared;
+      return empty({
+        intent: "PREPARATION",
+        answerState: "ANSWERED",
+        summary: `YELLOW preparation ready: ${prepared.preparationKind}. Status=${prepared.status}. Not sent/scheduled/executed.`,
+        evidence: (result.watcherResult?.findings ?? []).slice(0, maxResults).map((f) => ({
+          sourceKind: "watcher_finding",
+          sourceRef: f.key,
+          summary: f.summary,
+          availability: "LIVE" as const,
+        })),
+        citations: prepared.sourceEvidenceRefs.slice(0, 10).map((ref) => ({
+          sourceKind: "preparation_evidence",
+          sourceRef: ref,
+          label: ref.slice(0, 120),
+        })),
+        unknowns: prepared.unknowns,
+        limitations: prepared.limitations,
+        governance: prepared.governance,
+        preparedAction: prepared,
+        suggestedNextRetrieval: "Review draftSteps. Any send/deploy remains a separate RED approval path.",
+      });
+    }
+
+    default:
+      return empty({
+        intent: "UNKNOWN",
+        answerState: "UNSUPPORTED_INTENT",
+        summary:
+          "I do not have a supported deterministic retrieval path for this question. No answer was fabricated.",
+        unknowns: ["supported_intent"],
+        suggestedNextRetrieval:
+          "Try Attention, Client Care, Listing Reason (with listingId), Memory (with subject), Decision Support, Preparation, or Capability/Governance.",
+        governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
+      });
+  }
+}
