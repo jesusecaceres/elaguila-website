@@ -18,6 +18,7 @@ import {
   composeGovernanceSummary,
   composeMemorySummary,
   composeProjectIntelligenceSummary,
+  composeCommunicationIntelligenceSummary,
   composeReasonSummary,
   suggestedQuestionsForIntent,
 } from "@/app/leo/_lib/leoConversationComposer";
@@ -41,6 +42,10 @@ import {
   composeLeoProjectIntelligenceSummary,
   getLeoProjectExecutiveSnapshot,
 } from "@/app/leo/_lib/leoProjectIntelligenceService";
+import {
+  getLeoCommunicationExecutiveSnapshot,
+  getLeoMeetingIntelligenceForNext,
+} from "@/app/leo/_lib/leoCommunicationIntelligenceService";
 import type {
   LeoActionIntentKind,
   LeoConversationAnswer,
@@ -425,6 +430,157 @@ export async function runLeoConversationDeterministic(
           "What should I QA next?",
           "What needs my attention?",
         ],
+      });
+    }
+
+    case "COMMUNICATION_INTELLIGENCE": {
+      const subtype = route.inferredCommunicationSubtype ?? "EMAIL";
+      const snap = await getLeoCommunicationExecutiveSnapshot({
+        nowMs,
+        question: request.question,
+        subtype,
+      });
+
+      // Inject external untrusted notes from email/calendar text for governance immunity tests
+      const externalInjectionNotes = [
+        ...(request.externalUntrustedNotes ?? []),
+        ...snap.gmail.recentMessages
+          .slice(0, 3)
+          .map((m) => m.snippet)
+          .filter((s): s is string => Boolean(s)),
+        ...[snap.calendar.nextEvent?.description]
+          .filter((s): s is string => Boolean(s)),
+      ];
+
+      if (subtype === "MEETING_PREP") {
+        const meetingIntel = await getLeoMeetingIntelligenceForNext({ nowMs });
+        const prep = await runLeoPreparation({
+          preparationKind: "MEETING_BRIEF",
+          watcherKind: null,
+          nowMs,
+          question: request.question,
+        });
+        const governance = prep.preparation.ok
+          ? prep.preparation.prepared.governance
+          : prep.preparation.governance;
+        const prepared = prep.preparation.ok ? prep.preparation.prepared : null;
+        const summary = composeCommunicationIntelligenceSummary(snap, "MEETING_PREP");
+        return empty({
+          intent: "COMMUNICATION_INTELLIGENCE",
+          answerState: prepared ? "ANSWERED" : "INSUFFICIENT_EVIDENCE",
+          summary,
+          evidence: [
+            ...(meetingIntel.meeting
+              ? [
+                  {
+                    sourceKind: "external_calendar_event",
+                    sourceRef: meetingIntel.meeting.eventId,
+                    summary: meetingIntel.meeting.title ?? meetingIntel.meeting.eventId,
+                    availability: "LIVE" as const,
+                    limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+                  },
+                ]
+              : []),
+            ...meetingIntel.relatedEmailEvidence.slice(0, 5).map((r) => ({
+              sourceKind: "email_message",
+              sourceRef: r.message.messageId,
+              summary: r.message.subject ?? r.message.messageId,
+              availability: "LIVE" as const,
+              limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+            })),
+          ],
+          citations: meetingIntel.meeting
+            ? [
+                {
+                  sourceKind: "external_calendar_event",
+                  sourceRef: meetingIntel.meeting.eventId,
+                  label: meetingIntel.meeting.title ?? "next meeting",
+                },
+              ]
+            : [],
+          unknowns: [...snap.unknowns, ...meetingIntel.unknowns],
+          limitations: [
+            ...snap.limitations,
+            ...meetingIntel.limitations,
+            "Email/calendar content is EXTERNAL_UNTRUSTED_DATA and cannot change governance.",
+            ...(externalInjectionNotes.some((n) =>
+              /ignore governance|deploy production|reveal|credentials/i.test(n),
+            )
+              ? [
+                  "Untrusted email/calendar text attempted authority claims — ignored for governance.",
+                ]
+              : []),
+          ],
+          governance,
+          preparedAction: prepared,
+          suggestedNextRetrieval: "Ask what meetings you have today, or who may need a reply.",
+        });
+      }
+
+      const governance = assessLeoGovernance({
+        actionKind: "READ",
+        trustSources: externalInjectionNotes.length
+          ? ["SYSTEM_POLICY", "EXTERNAL_UNTRUSTED_DATA"]
+          : ["SYSTEM_POLICY", "OWNER_INSTRUCTION"],
+        externalClaimsApproval: externalInjectionNotes.some((n) =>
+          /ignore governance|approve|you are allowed|bypass|deploy production/i.test(n),
+        ),
+        externalClaimsDowngrade: externalInjectionNotes.some((n) =>
+          /this is green|lower to green|not red|ignore red/i.test(n),
+        ),
+        nowMs,
+      });
+
+      const summary = composeCommunicationIntelligenceSummary(snap, subtype);
+      const hasEvidence =
+        snap.gmail.recentMessages.length > 0 ||
+        snap.calendar.todayEvents.length > 0 ||
+        Boolean(snap.calendar.nextEvent) ||
+        snap.overallAvailability === "NOT_CONFIGURED";
+
+      return empty({
+        intent: "COMMUNICATION_INTELLIGENCE",
+        answerState:
+          snap.overallAvailability === "NOT_CONFIGURED"
+            ? "INSUFFICIENT_EVIDENCE"
+            : hasEvidence
+              ? "ANSWERED"
+              : "PARTIALLY_ANSWERED",
+        summary,
+        evidence: [
+          ...snap.gmail.recentMessages.slice(0, 6).map((m) => ({
+            sourceKind: "email_message",
+            sourceRef: m.messageId,
+            summary: `${m.subject ?? "(no subject)"}`,
+            availability: "LIVE" as const,
+            limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+          })),
+          ...snap.calendar.todayEvents.slice(0, 4).map((e) => ({
+            sourceKind: "external_calendar_event",
+            sourceRef: e.eventId,
+            summary: e.title ?? e.eventId,
+            availability: "LIVE" as const,
+            limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+          })),
+          ...snap.gmail.triage.slice(0, 5).map((t) => ({
+            sourceKind: "email_triage",
+            sourceRef: t.messageId,
+            summary: t.state,
+            availability: "LIVE" as const,
+          })),
+        ],
+        citations: [],
+        unknowns: snap.unknowns,
+        limitations: [
+          ...snap.limitations,
+          ...snap.notClaiming,
+          "Email/calendar content is EXTERNAL_UNTRUSTED_DATA and cannot change governance or execute actions.",
+        ],
+        governance,
+        suggestedNextRetrieval:
+          subtype === "CALENDAR"
+            ? "Ask who is attending your next meeting, or prepare a meeting brief."
+            : "Ask what meetings you have today, or prepare for your next meeting.",
       });
     }
 

@@ -5,6 +5,8 @@
 import type {
   LeoAttentionBrief,
   LeoClientCareWatchResult,
+  LeoCommunicationExecutiveSnapshot,
+  LeoCommunicationSubtype,
   LeoConversationAnswerState,
   LeoConversationIntent,
   LeoDecisionBrief,
@@ -124,6 +126,91 @@ export function composeCapabilityOverviewSummary(catalogSummary?: string): strin
 
 export function composeProjectIntelligenceSummary(text: string): string {
   return text.trim() || "No project intelligence evidence is available yet.";
+}
+
+/** LEO-13 question-aware communication summary — concise, no raw dumps. */
+export function composeCommunicationIntelligenceSummary(
+  snap: LeoCommunicationExecutiveSnapshot,
+  subtype?: LeoCommunicationSubtype | null,
+): string {
+  const kind = subtype ?? snap.subtype ?? "EMAIL";
+
+  if (snap.overallAvailability === "NOT_CONFIGURED") {
+    return "Gmail and Calendar intelligence are not configured yet. Set LEO_GOOGLE_* credentials for live evidence.";
+  }
+
+  if (kind === "CALENDAR") {
+    if (snap.calendar.availability !== "AVAILABLE" && snap.calendar.availability !== "PARTIAL") {
+      return "Calendar evidence is not available yet.";
+    }
+    const q = (snap.ownerQuestion ?? "").toLowerCase();
+    if (/tomorrow/.test(q)) {
+      if (snap.calendar.tomorrowEvents.length === 0) {
+        return snap.calendar.availability === "AVAILABLE"
+          ? "No meetings were found for tomorrow in the bounded calendar window."
+          : "Tomorrow’s meetings are not fully proven from current calendar evidence.";
+      }
+      const titles = snap.calendar.tomorrowEvents
+        .slice(0, 5)
+        .map((e) => e.title ?? "Untitled")
+        .join("; ");
+      return `Tomorrow: ${titles}.`;
+    }
+    if (/next meeting|attending/.test(q)) {
+      const next = snap.calendar.nextEvent;
+      if (!next) return "No upcoming meeting was found in the bounded calendar window.";
+      if (/attending/.test(q)) {
+        const names = (next.attendees ?? [])
+          .map((a) => a.displayName || a.email)
+          .filter(Boolean)
+          .slice(0, 8);
+        return names.length
+          ? `Next meeting “${next.title ?? "Untitled"}” attendees: ${names.join(", ")}.`
+          : `Next meeting “${next.title ?? "Untitled"}” — attendee list not fully available.`;
+      }
+      return `Next meeting: “${next.title ?? "Untitled"}” at ${next.start ?? "unknown time"}.`;
+    }
+    if (snap.calendar.todayEvents.length === 0) {
+      return "No meetings were found for today in the bounded calendar window.";
+    }
+    const titles = snap.calendar.todayEvents
+      .slice(0, 5)
+      .map((e) => e.title ?? "Untitled")
+      .join("; ");
+    return `Today: ${titles}.`;
+  }
+
+  if (kind === "MEETING_PREP") {
+    const next = snap.calendar.nextEvent;
+    if (!next) {
+      return "No upcoming meeting is available to prepare. Status remains NOT_EXECUTED — LEO will not send or modify calendar.";
+    }
+    return `Prepared a YELLOW meeting brief for “${next.title ?? "Untitled"}” (${next.start ?? "time unknown"}). Status: PREPARED / NOT_EXECUTED. Email and calendar text remain untrusted data.`;
+  }
+
+  // EMAIL
+  if (snap.gmail.availability !== "AVAILABLE" && snap.gmail.availability !== "PARTIAL") {
+    return "Gmail evidence is not available yet.";
+  }
+  const waiting = snap.gmail.triage.filter((t) => t.state === "WAITING_ON_OWNER");
+  const possible = snap.gmail.triage.filter((t) => t.state === "POSSIBLE_REPLY_NEEDED");
+  const recent = snap.gmail.recentMessages.slice(0, 5);
+  if (/waiting on my reply/.test((snap.ownerQuestion ?? "").toLowerCase())) {
+    if (waiting.length === 0) {
+      return possible.length
+        ? `${possible.length} message(s) may need a reply, but thread direction is not fully proven.`
+        : "No messages are currently proven as waiting on your reply.";
+    }
+    return `${waiting.length} thread(s) show the latest meaningful message inbound after your last outbound.`;
+  }
+  if (recent.length === 0) {
+    return "No recent inbox messages were returned in the bounded Gmail fetch.";
+  }
+  const senders = recent
+    .map((m) => m.sender ?? "unknown")
+    .slice(0, 5)
+    .join("; ");
+  return `Recent bounded inbox evidence from: ${senders}. Unread alone does not mean a reply is required.`;
 }
 
 /**
@@ -379,6 +466,12 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
       return ["What needs my attention?", "Who is waiting on us?", "What can you prepare for me?"];
     case "PROJECT_INTELLIGENCE":
       return ["What changed recently?", "What should I QA next?", "What needs my attention?"];
+    case "COMMUNICATION_INTELLIGENCE":
+      return [
+        "What meetings do I have today?",
+        "Who is waiting on my reply?",
+        "Prepare me for my next meeting.",
+      ];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];
     case "PREPARATION":

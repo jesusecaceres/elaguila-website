@@ -15,8 +15,15 @@ import {
   composeLeoProjectIntelligenceSummary,
   getLeoProjectExecutiveSnapshot,
 } from "@/app/leo/_lib/leoProjectIntelligenceService";
-import { getLeoListingReasonChain } from "@/app/leo/_lib/leoReasonChain";
+import {
+  getLeoCommunicationExecutiveSnapshot,
+  getLeoGmailThreadForTool,
+  getLeoMeetingIntelligenceForNext,
+} from "@/app/leo/_lib/leoCommunicationIntelligenceService";
+import { readLeoGmailInbox } from "@/app/leo/_lib/leoGmailAdapter";
+import { readLeoCalendarEvents } from "@/app/leo/_lib/leoCalendarAdapter";
 import { runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
+import { getLeoListingReasonChain } from "@/app/leo/_lib/leoReasonChain";
 import { getLeoToolCatalog } from "@/app/leo/_lib/leoToolCatalog";
 import { readLeoGithubRepository } from "@/app/leo/_lib/leoGithubProjectAdapter";
 import { readLeoVercelDeployments } from "@/app/leo/_lib/leoVercelProjectAdapter";
@@ -415,6 +422,206 @@ export async function invokeLeoToolAdapter(args: {
         data: exec,
         unknowns: [],
         limitations: exec.limitations,
+      };
+    }
+
+    case "leo.email.inbox.read": {
+      const inbox = await readLeoGmailInbox({
+        maxResults:
+          typeof parameters.maxResults === "number" ? parameters.maxResults : undefined,
+      });
+      if (inbox.availability !== "AVAILABLE" && inbox.availability !== "PARTIAL") {
+        return {
+          ok: false,
+          errorCode: inbox.errorCode ?? "GMAIL_UNAVAILABLE",
+          summary:
+            inbox.availability === "NOT_CONFIGURED"
+              ? "Gmail is not configured."
+              : "Gmail inbox unavailable.",
+          limitations: inbox.limitations,
+        };
+      }
+      return {
+        ok: true,
+        summary: `Bounded Gmail inbox: ${inbox.messages.length} recent message(s).`,
+        evidence: inbox.messages.slice(0, 8).map((m) => ({
+          sourceKind: "email_message",
+          sourceRef: m.messageId,
+          summary: `${m.subject ?? "(no subject)"} — ${m.sender ?? "unknown sender"}`,
+          availability: "LIVE" as const,
+          limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+        })),
+        data: inbox,
+        unknowns: [],
+        limitations: inbox.limitations,
+      };
+    }
+
+    case "leo.email.thread.read": {
+      const threadId = asString(parameters.threadId);
+      if (!threadId) {
+        return {
+          ok: false,
+          errorCode: "THREAD_ID_REQUIRED",
+          summary: "threadId is required.",
+          limitations: [],
+        };
+      }
+      const thread = await getLeoGmailThreadForTool(threadId);
+      if (thread.availability !== "AVAILABLE" && thread.availability !== "PARTIAL") {
+        return {
+          ok: false,
+          errorCode: thread.errorCode ?? "GMAIL_THREAD_UNAVAILABLE",
+          summary:
+            thread.availability === "NOT_CONFIGURED"
+              ? "Gmail is not configured."
+              : "Gmail thread unavailable.",
+          limitations: thread.limitations,
+        };
+      }
+      return {
+        ok: true,
+        summary: `Bounded Gmail thread: ${thread.messages.length} message(s).`,
+        evidence: thread.messages.slice(0, 8).map((m) => ({
+          sourceKind: "email_message",
+          sourceRef: m.messageId,
+          summary: `${m.subject ?? "(no subject)"} — ${m.sender ?? "unknown"}`,
+          availability: "LIVE" as const,
+          limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+        })),
+        data: thread,
+        unknowns: [],
+        limitations: thread.limitations,
+      };
+    }
+
+    case "leo.calendar.events.read": {
+      const cal = await readLeoCalendarEvents({
+        nowMs,
+        maxResults:
+          typeof parameters.maxResults === "number" ? parameters.maxResults : undefined,
+        timeMinIso: asString(parameters.timeMinIso),
+        timeMaxIso: asString(parameters.timeMaxIso),
+      });
+      if (cal.availability !== "AVAILABLE" && cal.availability !== "PARTIAL") {
+        return {
+          ok: false,
+          errorCode: cal.errorCode ?? "CALENDAR_UNAVAILABLE",
+          summary:
+            cal.availability === "NOT_CONFIGURED"
+              ? "Calendar is not configured."
+              : "Calendar events unavailable.",
+          limitations: cal.limitations,
+        };
+      }
+      return {
+        ok: true,
+        summary: `Bounded calendar window: ${cal.events.length} event(s).`,
+        evidence: cal.events.slice(0, 8).map((e) => ({
+          sourceKind: "external_calendar_event",
+          sourceRef: e.eventId,
+          summary: `${e.title ?? "(untitled)"} @ ${e.start ?? "unknown time"}`,
+          availability: "LIVE" as const,
+          limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+        })),
+        data: cal,
+        unknowns: [],
+        limitations: cal.limitations,
+      };
+    }
+
+    case "leo.communication.snapshot.read": {
+      const snap = await getLeoCommunicationExecutiveSnapshot({
+        nowMs,
+        question: asString(parameters.question),
+      });
+      if (snap.overallAvailability === "NOT_CONFIGURED") {
+        return {
+          ok: false,
+          errorCode: "GOOGLE_NOT_CONFIGURED",
+          summary: "Google Workspace communication intelligence is not configured.",
+          limitations: snap.limitations,
+        };
+      }
+      return {
+        ok: true,
+        summary: `Communication snapshot availability=${snap.overallAvailability}; gmail=${snap.gmail.recentMessages.length}; calendar upcoming=${snap.calendar.upcomingEvents.length}.`,
+        evidence: [
+          ...snap.gmail.recentMessages.slice(0, 5).map((m) => ({
+            sourceKind: "email_message",
+            sourceRef: m.messageId,
+            summary: m.subject ?? m.messageId,
+            availability: "LIVE" as const,
+            limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+          })),
+          ...snap.calendar.upcomingEvents.slice(0, 5).map((e) => ({
+            sourceKind: "external_calendar_event",
+            sourceRef: e.eventId,
+            summary: e.title ?? e.eventId,
+            availability: "LIVE" as const,
+            limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+          })),
+        ],
+        data: snap,
+        unknowns: snap.unknowns,
+        limitations: snap.limitations,
+      };
+    }
+
+    case "leo.meeting.prepare": {
+      if (operation !== "PREPARE") {
+        return {
+          ok: false,
+          errorCode: "OPERATION_MISMATCH",
+          summary: "meeting.prepare requires PREPARE operation.",
+          limitations: [],
+        };
+      }
+      const meetingIntel = await getLeoMeetingIntelligenceForNext({ nowMs });
+      const prep = await runLeoPreparation({
+        preparationKind: "MEETING_BRIEF",
+        watcherKind: null,
+        nowMs,
+        question: asString(parameters.question) ?? "Prepare me for my next meeting.",
+      });
+      if (!prep.preparation.ok || !prep.preparation.prepared) {
+        return {
+          ok: false,
+          errorCode: "MEETING_PREP_BLOCKED",
+          summary: prep.preparation.message,
+          limitations: [
+            ...prep.preparation.governance.limitations,
+            ...meetingIntel.limitations,
+          ],
+        };
+      }
+      const prepared = prep.preparation.prepared;
+      return {
+        ok: true,
+        summary: `YELLOW meeting preparation ready. Status: PREPARED, NOT_EXECUTED. Related emails: ${meetingIntel.relatedEmailEvidence.length}.`,
+        evidence: [
+          ...(meetingIntel.meeting
+            ? [
+                {
+                  sourceKind: "external_calendar_event",
+                  sourceRef: meetingIntel.meeting.eventId,
+                  summary: meetingIntel.meeting.title ?? meetingIntel.meeting.eventId,
+                  availability: "LIVE" as const,
+                  limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+                },
+              ]
+            : []),
+          ...meetingIntel.relatedEmailEvidence.slice(0, 5).map((r) => ({
+            sourceKind: "email_message",
+            sourceRef: r.message.messageId,
+            summary: r.message.subject ?? r.message.messageId,
+            availability: "LIVE" as const,
+            limitationNote: "EXTERNAL_UNTRUSTED_DATA",
+          })),
+        ],
+        data: { prepared, meetingIntel },
+        unknowns: [...prepared.unknowns, ...meetingIntel.unknowns],
+        limitations: [...prepared.limitations, ...meetingIntel.limitations],
       };
     }
 

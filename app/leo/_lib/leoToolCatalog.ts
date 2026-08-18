@@ -1,9 +1,10 @@
 /**
- * LEO-11 tool catalog — runtime availability resolution over static registry.
+ * LEO-11/13 tool catalog — runtime availability resolution over static registry.
  * No client registration. No AI registration.
  */
 import "server-only";
 
+import { isLeoGoogleWorkspaceConfigured } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
 import { isLeoGithubConfigured, isLeoVercelConfigured } from "@/app/leo/_lib/leoProjectConfig";
 import { listLeoToolDefinitions } from "@/app/leo/_lib/leoToolRegistry";
 import type {
@@ -25,14 +26,42 @@ function projectToolsRuntimeAvailability(): {
   return { github, vercel, snapshot };
 }
 
+function googleToolsRuntimeAvailability(): {
+  gmail: LeoToolAvailability;
+  calendar: LeoToolAvailability;
+  communication: LeoToolAvailability;
+  meeting: LeoToolAvailability;
+} {
+  if (!isLeoGoogleWorkspaceConfigured()) {
+    return {
+      gmail: "NOT_CONFIGURED",
+      calendar: "NOT_CONFIGURED",
+      communication: "NOT_CONFIGURED",
+      meeting: "NOT_CONFIGURED",
+    };
+  }
+  // Credentials present — adapters may still degrade to UNAVAILABLE at invoke time.
+  return {
+    gmail: "AVAILABLE",
+    calendar: "AVAILABLE",
+    communication: "AVAILABLE",
+    meeting: "AVAILABLE",
+  };
+}
+
 function refineAvailability(
   toolId: LeoToolId,
   declared: LeoToolAvailability,
   project: ReturnType<typeof projectToolsRuntimeAvailability>,
+  google: ReturnType<typeof googleToolsRuntimeAvailability>,
 ): LeoToolAvailability {
   if (toolId === "leo.project.github.read") return project.github;
   if (toolId === "leo.project.vercel.read") return project.vercel;
   if (toolId === "leo.project.snapshot.read") return project.snapshot;
+  if (toolId === "leo.email.inbox.read" || toolId === "leo.email.thread.read") return google.gmail;
+  if (toolId === "leo.calendar.events.read") return google.calendar;
+  if (toolId === "leo.communication.snapshot.read") return google.communication;
+  if (toolId === "leo.meeting.prepare") return google.meeting;
   return declared;
 }
 
@@ -42,9 +71,10 @@ function refineAvailability(
 export function getLeoToolCatalog(nowMs?: number): LeoToolCatalog {
   const generatedAt = new Date(nowMs ?? Date.now()).toISOString();
   const project = projectToolsRuntimeAvailability();
+  const google = googleToolsRuntimeAvailability();
   const tools: LeoToolCatalogEntry[] = listLeoToolDefinitions().map((d) => ({
     ...d,
-    runtimeAvailability: refineAvailability(d.id, d.availability, project),
+    runtimeAvailability: refineAvailability(d.id, d.availability, project, google),
   }));
 
   const available = tools.filter((t) => t.runtimeAvailability === "AVAILABLE");
@@ -108,6 +138,21 @@ export function getLeoToolCatalog(nowMs?: number): LeoToolCatalog {
       toolIds: ["leo.project.snapshot.read"],
       status: project.snapshot === "AVAILABLE" ? "available" : "not_configured",
     },
+    {
+      label: "Gmail communication intelligence",
+      toolIds: ["leo.email.inbox.read", "leo.email.thread.read", "leo.communication.snapshot.read"],
+      status: google.gmail === "AVAILABLE" ? "available" : "not_configured",
+    },
+    {
+      label: "Calendar intelligence",
+      toolIds: ["leo.calendar.events.read"],
+      status: google.calendar === "AVAILABLE" ? "available" : "not_configured",
+    },
+    {
+      label: "Meeting preparation",
+      toolIds: ["leo.meeting.prepare"],
+      status: google.meeting === "AVAILABLE" ? "available" : "not_configured",
+    },
   ];
 
   return {
@@ -136,9 +181,7 @@ export function composeToolCatalogCapabilitySummary(catalog: LeoToolCatalog): st
   ];
 
   if (catalog.partial.length > 0) {
-    lines.push(
-      `Partial: ${catalog.partial.map((t) => t.name).join(" · ")}.`,
-    );
+    lines.push(`Partial: ${catalog.partial.map((t) => t.name).join(" · ")}.`);
   }
 
   if (notConfiguredLabels.length > 0) {

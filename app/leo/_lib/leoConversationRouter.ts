@@ -4,6 +4,7 @@
  */
 import type {
   LeoActionIntentKind,
+  LeoCommunicationSubtype,
   LeoConversationIntent,
   LeoConversationRequest,
   LeoConversationRouteResult,
@@ -32,6 +33,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "CAPABILITY_GOVERNANCE",
   "PREPARATION",
   "PROJECT_INTELLIGENCE",
+  "COMMUNICATION_INTELLIGENCE",
   "UNKNOWN",
 ] as const;
 
@@ -101,6 +103,36 @@ export function isLeoProjectIntelligenceQuestion(q: string): boolean {
   );
 }
 
+/** LEO-13: bounded Gmail / Calendar / meeting-prep routing. */
+export function inferLeoCommunicationSubtype(q: string): LeoCommunicationSubtype | null {
+  if (
+    /\bprepare (me )?for (my )?next meeting\b|\bmeeting prep\b|\bprepare (a )?meeting brief\b|\bwhat emails relate to (my )?next meeting\b/i.test(
+      q,
+    )
+  ) {
+    return "MEETING_PREP";
+  }
+  if (
+    /\bwhat meetings do i have today\b|\bwhat is my next meeting\b|\bwhat do i have tomorrow\b|\bwho is attending (my )?next meeting\b|\b(my )?calendar today\b|\bmeetings tomorrow\b/i.test(
+      q,
+    )
+  ) {
+    return "CALENDAR";
+  }
+  if (
+    /\bwho emailed me\b|\bwhat emails need (my )?attention\b|\bwho may need a reply\b|\bwho is waiting on my reply\b|\bunread (emails|mail)\b|\binbox (status|attention)\b/i.test(
+      q,
+    )
+  ) {
+    return "EMAIL";
+  }
+  return null;
+}
+
+export function isLeoCommunicationIntelligenceQuestion(q: string): boolean {
+  return inferLeoCommunicationSubtype(q) != null;
+}
+
 function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null {
   const wantsPrep = /\b(prepare|draft|make me a brief|checklist)\b/.test(q);
   if (!wantsPrep) return null;
@@ -110,6 +142,17 @@ function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null 
   if (/review/.test(q)) return "REVIEW_PLAN";
   if (/client care|care plan/.test(q)) return "CLIENT_CARE_PLAN";
   return "INTERNAL_TASK_DRAFT";
+}
+
+function routeResult(
+  partial: Omit<LeoConversationRouteResult, "inferredCommunicationSubtype"> & {
+    inferredCommunicationSubtype?: LeoCommunicationSubtype | null;
+  },
+): LeoConversationRouteResult {
+  return {
+    ...partial,
+    inferredCommunicationSubtype: partial.inferredCommunicationSubtype ?? null,
+  };
 }
 
 /**
@@ -125,52 +168,69 @@ export function routeLeoConversation(
   const q = normalizeQuestion(request.question ?? "");
   const prepFromQ = inferPreparationKindFromQuestion(q);
   const actionFromQ = inferLeoActionKind(q);
+  const communicationSubtype = inferLeoCommunicationSubtype(q);
 
   if (request.intent && isLeoConversationIntent(request.intent) && request.intent !== "UNKNOWN") {
     notes.push(`explicit intent=${request.intent}`);
-    return {
+    return routeResult({
       intent: request.intent,
       confidence: "high",
       inferredActionKind: request.actionKind ?? actionFromQ,
       inferredPreparationKind: request.preparationKind ?? prepFromQ,
+      inferredCommunicationSubtype:
+        request.intent === "COMMUNICATION_INTELLIGENCE" ? communicationSubtype : null,
       routeNotes: notes,
-    };
+    });
   }
 
   // Capability overview BEFORE authority/action routing ("What can you do?" ≠ OTHER/RED)
   if (isLeoCapabilityOverviewQuestion(q)) {
     notes.push("capability overview pattern");
-    return {
+    return routeResult({
       intent: "CAPABILITY_OVERVIEW",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,
       routeNotes: notes,
-    };
+    });
   }
 
   // Project intelligence — evidence-first (GitHub/Vercel reads)
   if (isLeoProjectIntelligenceQuestion(q)) {
     notes.push("project intelligence pattern");
-    return {
+    return routeResult({
       intent: "PROJECT_INTELLIGENCE",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,
       routeNotes: notes,
-    };
+    });
+  }
+
+  // Communication intelligence — before general preparation / client-care "waiting on"
+  if (communicationSubtype) {
+    notes.push(`communication intelligence pattern subtype=${communicationSubtype}`);
+    return routeResult({
+      intent: "COMMUNICATION_INTELLIGENCE",
+      confidence: "high",
+      inferredActionKind: communicationSubtype === "MEETING_PREP" ? "PREPARE_DRAFT" : "READ",
+      inferredPreparationKind:
+        communicationSubtype === "MEETING_PREP" ? "MEETING_BRIEF" : null,
+      inferredCommunicationSubtype: communicationSubtype,
+      routeNotes: notes,
+    });
   }
 
   // Consequential / specific authority questions
   if (actionFromQ && actionFromQ !== "PREPARE_DRAFT") {
     notes.push("capability/governance pattern");
-    return {
+    return routeResult({
       intent: "CAPABILITY_GOVERNANCE",
       confidence: "high",
       inferredActionKind: request.actionKind ?? actionFromQ,
       inferredPreparationKind: null,
       routeNotes: notes,
-    };
+    });
   }
 
   if (
@@ -178,24 +238,24 @@ export function routeLeoConversation(
     /\bcan you (deploy|send|merge|publish|change|spend|delete|remove|pay|schedule)\b/i.test(q)
   ) {
     notes.push("capability/governance pattern");
-    return {
+    return routeResult({
       intent: "CAPABILITY_GOVERNANCE",
       confidence: request.actionKind || actionFromQ ? "high" : "medium",
       inferredActionKind: request.actionKind ?? actionFromQ,
       inferredPreparationKind: null,
       routeNotes: notes,
-    };
+    });
   }
 
   if (request.preparationKind || prepFromQ) {
     notes.push("preparation pattern");
-    return {
+    return routeResult({
       intent: "PREPARATION",
       confidence: "high",
       inferredActionKind: "PREPARE_DRAFT",
       inferredPreparationKind: request.preparationKind ?? prepFromQ,
       routeNotes: notes,
-    };
+    });
   }
 
   if (
@@ -204,70 +264,70 @@ export function routeLeoConversation(
     ) ||
     (/\battention\b/i.test(q) && /\b(what|needs|today|executive)\b/i.test(q))
   ) {
-    return {
+    return routeResult({
       intent: "ATTENTION_OVERVIEW",
       confidence: "high",
       inferredActionKind: null,
       inferredPreparationKind: null,
       routeNotes: ["attention pattern"],
-    };
+    });
   }
 
   if (
     /\b(who is waiting|who needs follow[- ]?up|follow[- ]?up|client care|overdue follow|waiting on)\b/i.test(q)
   ) {
-    return {
+    return routeResult({
       intent: "CLIENT_CARE",
       confidence: "high",
       inferredActionKind: null,
       inferredPreparationKind: null,
       routeNotes: ["client care pattern"],
-    };
+    });
   }
 
   if (/\b(why is (this |the )?listing|listing (flagged|reason)|reason chain)\b/i.test(q)) {
-    return {
+    return routeResult({
       intent: "LISTING_REASON",
       confidence: request.listingId ? "high" : "medium",
       inferredActionKind: null,
       inferredPreparationKind: null,
       routeNotes: ["listing reason pattern"],
-    };
+    });
   }
 
   if (
     request.decisionContext ||
     /\b(should we|challenge (this )?decision|decision support|what are my options)\b/i.test(q)
   ) {
-    return {
+    return routeResult({
       intent: "DECISION_SUPPORT",
       confidence: request.decisionContext ? "high" : "medium",
       inferredActionKind: request.actionKind ?? actionFromQ,
       inferredPreparationKind: null,
       routeNotes: ["decision support pattern"],
-    };
+    });
   }
 
   if (
     request.memorySubject ||
     /\b(what did we decide|remember|living book|memory|prior decision|recent decisions)\b/i.test(q)
   ) {
-    return {
+    return routeResult({
       intent: "MEMORY_LOOKUP",
       confidence: request.memorySubject ? "high" : "medium",
       inferredActionKind: null,
       inferredPreparationKind: null,
       routeNotes: ["memory lookup pattern"],
-    };
+    });
   }
 
-  return {
+  return routeResult({
     intent: "UNKNOWN",
     confidence: "low",
     inferredActionKind: null,
     inferredPreparationKind: null,
     routeNotes: ["no clear deterministic pattern"],
-  };
+  });
 }
 
 export type LeoConversationValidationError = {

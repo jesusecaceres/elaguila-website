@@ -561,7 +561,11 @@ export type LeoConversationIntent =
   | "CAPABILITY_GOVERNANCE"
   | "PREPARATION"
   | "PROJECT_INTELLIGENCE"
+  | "COMMUNICATION_INTELLIGENCE"
   | "UNKNOWN";
+
+/** LEO-13 deterministic communication question subtype. */
+export type LeoCommunicationSubtype = "EMAIL" | "CALENDAR" | "MEETING_PREP";
 
 export type LeoConversationAnswerState =
   | "ANSWERED"
@@ -625,6 +629,8 @@ export type LeoConversationRouteResult = {
   confidence: "high" | "medium" | "low";
   inferredActionKind: LeoActionIntentKind | null;
   inferredPreparationKind: LeoPreparationKind | null;
+  /** LEO-13: EMAIL | CALENDAR | MEETING_PREP when intent is COMMUNICATION_INTELLIGENCE. */
+  inferredCommunicationSubtype: LeoCommunicationSubtype | null;
   routeNotes: string[];
 };
 
@@ -854,7 +860,12 @@ export type LeoToolId =
   | "leo.adminCapabilities.read"
   | "leo.project.github.read"
   | "leo.project.vercel.read"
-  | "leo.project.snapshot.read";
+  | "leo.project.snapshot.read"
+  | "leo.email.inbox.read"
+  | "leo.email.thread.read"
+  | "leo.calendar.events.read"
+  | "leo.communication.snapshot.read"
+  | "leo.meeting.prepare";
 
 export type LeoToolCategory =
   | "EXECUTIVE_INTELLIGENCE"
@@ -898,7 +909,7 @@ export type LeoToolDefinition = {
   requiredGovernanceAction: LeoActionIntentKind;
   readScopes: readonly string[];
   writeScopes: readonly string[];
-  externalSystem: "NONE" | "GITHUB" | "VERCEL" | "ADMIN_OS" | null;
+  externalSystem: "NONE" | "GITHUB" | "VERCEL" | "ADMIN_OS" | "GOOGLE" | null;
   supportsPreparation: boolean;
   supportsExecution: false;
   evidenceRequirements: readonly string[];
@@ -1173,6 +1184,174 @@ export type LeoProjectExecutiveSnapshot = {
   ownerQuestion: string | null;
   /** Legacy-compatible nested snapshot for tool adapters. */
   raw: LeoProjectSnapshot;
+  limitations: string[];
+  notClaiming: readonly string[];
+};
+
+/* -------------------------------------------------------------------------- */
+/* LEO-13 Gmail + Calendar executive intelligence (read-only foundation)      */
+/* -------------------------------------------------------------------------- */
+
+export type LeoGoogleOAuthAvailability =
+  | "AVAILABLE"
+  | "NOT_CONFIGURED"
+  | "UNAVAILABLE"
+  | "FAILED";
+
+/** Server-caller OAuth result — accessToken must never be returned to UI. */
+export type LeoGoogleOAuthResult = {
+  availability: LeoGoogleOAuthAvailability;
+  accessToken: string | null;
+  expiresIn: number | null;
+  errorCode: string | null;
+};
+
+export type LeoEmailReadState = "READ" | "UNREAD" | "UNKNOWN";
+
+export type LeoEmailMessageEvidence = {
+  messageId: string;
+  threadId: string | null;
+  sender: string | null;
+  recipients: string[];
+  to?: string[];
+  cc?: string[];
+  subject: string | null;
+  receivedAt: string | null;
+  snippet: string | null;
+  labelIds: string[];
+  readState: LeoEmailReadState;
+};
+
+export type LeoEmailThreadEvidence = {
+  threadId: string;
+  messages: LeoEmailMessageEvidence[];
+};
+
+export type LeoEmailTriageState =
+  | "UNREAD"
+  | "RECENT"
+  | "POSSIBLE_REPLY_NEEDED"
+  | "WAITING_ON_OWNER"
+  | "WAITING_ON_OTHER"
+  | "OWNER_REPLIED"
+  | "INFORMATIONAL"
+  | "UNKNOWN";
+
+export type LeoEmailTriageResult = {
+  messageId: string;
+  threadId: string | null;
+  state: LeoEmailTriageState;
+  unread: boolean;
+  directionProven: boolean;
+  limitations: string[];
+  unknowns: string[];
+};
+
+export type LeoGmailReadResult = {
+  availability: LeoToolAvailability;
+  messages: LeoEmailMessageEvidence[];
+  ownerEmailConfigured: boolean;
+  limitations: string[];
+  errorCode: string | null;
+};
+
+export type LeoCalendarAttendee = {
+  email: string;
+  displayName: string | null;
+  responseStatus: string | null;
+};
+
+export type LeoCalendarEventEvidence = {
+  eventId: string;
+  title: string | null;
+  start: string | null;
+  end: string | null;
+  timezone: string | null;
+  attendees: LeoCalendarAttendee[];
+  organizer: string | null;
+  location: string | null;
+  meetingUrl: string | null;
+  description: string | null;
+  responseStatus: string | null;
+};
+
+export type LeoCalendarEventClassification =
+  | "TODAY"
+  | "UPCOMING"
+  | "NEXT_MEETING"
+  | "IN_PROGRESS"
+  | "RECENTLY_ENDED"
+  | "UNKNOWN_TIME";
+
+export type LeoCalendarReadResult = {
+  availability: LeoToolAvailability;
+  events: LeoCalendarEventEvidence[];
+  timeMin: string;
+  timeMax: string;
+  windowReadSuccessfully: boolean;
+  limitations: string[];
+  errorCode: string | null;
+};
+
+export type LeoCalendarIntelligenceResult = {
+  nowMs: number;
+  todayEvents: LeoCalendarEventEvidence[];
+  tomorrowEvents: LeoCalendarEventEvidence[];
+  nextEvent: LeoCalendarEventEvidence | null;
+  upcomingEvents: LeoCalendarEventEvidence[];
+  classified: {
+    event: LeoCalendarEventEvidence;
+    classification: LeoCalendarEventClassification;
+    limitations: string[];
+  }[];
+  limitations: string[];
+  unknowns: string[];
+};
+
+export type LeoMeetingRelatedEmail = {
+  message: LeoEmailMessageEvidence;
+  matchReason:
+    | "EXACT_ATTENDEE_EMAIL"
+    | "EXACT_ORGANIZER_EMAIL"
+    | "STRONG_TITLE_PLUS_CORROBORATION";
+  matchedEmails: string[];
+};
+
+export type LeoMeetingIntelligenceResult = {
+  meeting: LeoCalendarEventEvidence | null;
+  attendees: LeoCalendarAttendee[];
+  relatedEmailEvidence: LeoMeetingRelatedEmail[];
+  unknowns: string[];
+  limitations: string[];
+};
+
+export type LeoCommunicationExecutiveSnapshot = {
+  observedAt: string;
+  overallAvailability: LeoToolAvailability;
+  ownerQuestion: string | null;
+  subtype: LeoCommunicationSubtype | null;
+  gmail: {
+    availability: LeoToolAvailability;
+    recentMessages: LeoEmailMessageEvidence[];
+    triage: LeoEmailTriageResult[];
+  };
+  calendar: {
+    availability: LeoToolAvailability;
+    todayEvents: LeoCalendarEventEvidence[];
+    tomorrowEvents: LeoCalendarEventEvidence[];
+    nextEvent: LeoCalendarEventEvidence | null;
+    upcomingEvents: LeoCalendarEventEvidence[];
+  };
+  configurationState: {
+    configured: boolean;
+    clientIdConfigured: boolean;
+    clientSecretConfigured: boolean;
+    refreshTokenConfigured: boolean;
+    ownerEmailConfigured: boolean;
+    gmailExpectedScope: boolean;
+    calendarExpectedScope: boolean;
+  };
+  unknowns: string[];
   limitations: string[];
   notClaiming: readonly string[];
 };
