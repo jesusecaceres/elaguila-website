@@ -402,8 +402,18 @@ async function main() {
   const adminDiff = execSync("git diff --name-only HEAD -- app/admin", {
     cwd: ROOT,
     encoding: "utf8",
-  }).trim();
-  check(adminDiff === "", "no Admin modification");
+  })
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((f) => f.replace(/\\/g, "/"));
+  check(
+    adminDiff.length === 0 ||
+      adminDiff.every(
+        (f) => f === "app/admin/(dashboard)/leo/_components/LeoCapabilityStrip.tsx",
+      ),
+    "no Admin modification outside LeoCapabilityStrip",
+  );
 
   const changed = execSync("git diff --name-only HEAD", { cwd: ROOT, encoding: "utf8" })
     .trim()
@@ -435,6 +445,11 @@ async function main() {
     "app/leo/_lib/leoCommunicationIntelligenceService.ts",
     "app/leo/_lib/leoMeetingIntelligenceService.ts",
     "scripts/verify-leo-13-gmail-calendar-intelligence.ts",
+    // LEO-13A follow-on (authorized)
+    "app/admin/(dashboard)/leo/_components/LeoCapabilityStrip.tsx",
+    "scripts/leo-google-oauth-offline.mjs",
+    "scripts/LEO_GOOGLE_OAUTH_SETUP.md",
+    "scripts/verify-leo-13a-google-live-connection.ts",
   ]);
 
   const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f));

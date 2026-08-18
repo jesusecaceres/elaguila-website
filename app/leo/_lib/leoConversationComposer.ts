@@ -136,12 +136,15 @@ export function composeCommunicationIntelligenceSummary(
   const kind = subtype ?? snap.subtype ?? "EMAIL";
 
   if (snap.overallAvailability === "NOT_CONFIGURED") {
-    return "Gmail and Calendar intelligence are not configured yet. Set LEO_GOOGLE_* credentials for live evidence.";
+    return "Google Workspace is not configured for LEO yet.";
   }
 
   if (kind === "CALENDAR") {
+    if (snap.calendar.availability === "NOT_CONFIGURED") {
+      return "Google Workspace is not configured for LEO yet.";
+    }
     if (snap.calendar.availability !== "AVAILABLE" && snap.calendar.availability !== "PARTIAL") {
-      return "Calendar evidence is not available yet.";
+      return "LEO could not read Calendar right now.";
     }
     const q = (snap.ownerQuestion ?? "").toLowerCase();
     if (/tomorrow/.test(q)) {
@@ -189,8 +192,11 @@ export function composeCommunicationIntelligenceSummary(
   }
 
   // EMAIL
+  if (snap.gmail.availability === "NOT_CONFIGURED") {
+    return "Google Workspace is not configured for LEO yet.";
+  }
   if (snap.gmail.availability !== "AVAILABLE" && snap.gmail.availability !== "PARTIAL") {
-    return "Gmail evidence is not available yet.";
+    return "LEO could not read Gmail right now.";
   }
   const waiting = snap.gmail.triage.filter((t) => t.state === "WAITING_ON_OWNER");
   const possible = snap.gmail.triage.filter((t) => t.state === "POSSIBLE_REPLY_NEEDED");

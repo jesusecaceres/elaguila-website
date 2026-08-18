@@ -195,5 +195,12 @@ export function composeToolCatalogCapabilitySummary(catalog: LeoToolCatalog): st
     "Not connected yet: background monitoring, notifications, Business Concierge connection, voice, and autonomous execution.",
   );
 
+  const googleGroups = catalog.humanGroups.filter((g) =>
+    /gmail|calendar|meeting preparation/i.test(g.label),
+  );
+  if (googleGroups.some((g) => g.status === "not_configured")) {
+    lines.push("", "Google Workspace is not configured for LEO yet.");
+  }
+
   return lines.join("\n");
 }

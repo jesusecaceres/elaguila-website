@@ -87,3 +87,32 @@ export function getLeoGoogleWorkspaceConfigDiagnostic(): LeoGoogleWorkspaceConfi
     calendarExpectedScope: true,
   };
 }
+
+/** Owner-facing status labels — Configured / Not configured only (no secrets). */
+export type LeoGoogleOwnerStatusLabel = "Configured" | "Not configured";
+
+export type LeoGoogleOwnerFacingStatuses = {
+  workspace: LeoGoogleOwnerStatusLabel;
+  gmail: LeoGoogleOwnerStatusLabel;
+  calendar: LeoGoogleOwnerStatusLabel;
+  ownerAccount: LeoGoogleOwnerStatusLabel;
+};
+
+/**
+ * Maps safe diagnostics to owner labels.
+ * Gmail/Calendar share one OAuth grant — both Configured only when workspace credentials exist.
+ * Does not claim live API success.
+ */
+export function getLeoGoogleOwnerFacingStatuses(
+  diagnostic: LeoGoogleWorkspaceConfigDiagnostic = getLeoGoogleWorkspaceConfigDiagnostic(),
+): LeoGoogleOwnerFacingStatuses {
+  const workspace: LeoGoogleOwnerStatusLabel = diagnostic.configured
+    ? "Configured"
+    : "Not configured";
+  return {
+    workspace,
+    gmail: workspace,
+    calendar: workspace,
+    ownerAccount: diagnostic.ownerEmailConfigured ? "Configured" : "Not configured",
+  };
+}
