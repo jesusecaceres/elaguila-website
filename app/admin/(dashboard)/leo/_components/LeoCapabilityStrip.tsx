@@ -10,11 +10,8 @@ const AVAILABLE = [
   "Preparation",
   "Evidence-grounded AI reasoning",
   "Admin action capability read",
+  "Project change intelligence",
 ] as const;
-
-function projectConnectionLabel(configured: boolean, name: string): string {
-  return configured ? `${name} (connected)` : `${name} (not configured)`;
-}
 
 export function LeoCapabilityStrip() {
   const githubConfigured = Boolean(process.env.LEO_GITHUB_TOKEN?.trim());
@@ -22,7 +19,13 @@ export function LeoCapabilityStrip() {
     process.env.LEO_VERCEL_TOKEN?.trim() || process.env.VERCEL_TOKEN?.trim(),
   );
 
-  const connected: string[] = [];
+  const projectStatus =
+    githubConfigured && vercelConfigured
+      ? "Project intelligence connected"
+      : githubConfigured || vercelConfigured
+        ? "Project intelligence partial"
+        : "Project intelligence not configured";
+
   const notConnected: string[] = [
     "Background monitoring",
     "Notifications",
@@ -30,12 +33,6 @@ export function LeoCapabilityStrip() {
     "Voice",
     "Autonomous execution",
   ];
-
-  if (githubConfigured) connected.push(projectConnectionLabel(true, "GitHub"));
-  else notConnected.unshift(projectConnectionLabel(false, "GitHub"));
-
-  if (vercelConfigured) connected.push(projectConnectionLabel(true, "Vercel"));
-  else notConnected.unshift(projectConnectionLabel(false, "Vercel"));
 
   return (
     <div className="min-w-0" aria-labelledby="leo-cap-heading">
@@ -46,12 +43,13 @@ export function LeoCapabilityStrip() {
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">Available</p>
           <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{AVAILABLE.join(" · ")}</p>
-          {connected.length > 0 ? (
-            <>
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">Connected</p>
-              <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{connected.join(" · ")}</p>
-            </>
-          ) : null}
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">
+            Project connections
+          </p>
+          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">
+            GitHub — {githubConfigured ? "Connected" : "Not configured"} · Vercel —{" "}
+            {vercelConfigured ? "Connected" : "Not configured"} · {projectStatus}
+          </p>
         </div>
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Not connected yet</p>

@@ -39,7 +39,7 @@ import {
 } from "@/app/leo/_lib/leoToolCatalog";
 import {
   composeLeoProjectIntelligenceSummary,
-  getLeoProjectSnapshot,
+  getLeoProjectExecutiveSnapshot,
 } from "@/app/leo/_lib/leoProjectIntelligenceService";
 import type {
   LeoActionIntentKind,
@@ -322,54 +322,111 @@ export async function runLeoConversationDeterministic(
     }
 
     case "PROJECT_INTELLIGENCE": {
-      const snapshot = await getLeoProjectSnapshot({ nowMs });
+      const exec = await getLeoProjectExecutiveSnapshot({
+        nowMs,
+        question: request.question,
+      });
       const governance = assessLeoGovernance({ actionKind: "READ", nowMs });
       const summary = composeProjectIntelligenceSummary(
-        composeLeoProjectIntelligenceSummary(snapshot),
+        composeLeoProjectIntelligenceSummary(exec),
       );
       const hasEvidence = Boolean(
-        snapshot.github?.headSha || (snapshot.vercel?.deployments.length ?? 0) > 0,
+        exec.leoHead.sha ||
+          exec.latestLeoPreview ||
+          exec.latestProduction ||
+          exec.recentChanges.length > 0,
       );
+      const wantsQa = /\bqa\b|what should i/i.test(request.question);
+      const finalSummary = wantsQa
+        ? `${exec.qaAdvice.summary} ${exec.qaAdvice.nextStep}`.trim()
+        : summary;
       return empty({
         intent: "PROJECT_INTELLIGENCE",
         answerState: hasEvidence ? "ANSWERED" : "INSUFFICIENT_EVIDENCE",
-        summary,
+        summary: finalSummary,
         evidence: [
-          ...(snapshot.github?.headSha
+          ...(exec.leoHead.sha
             ? [
                 {
                   sourceKind: "github_head",
-                  sourceRef: snapshot.github.headSha,
-                  summary: `${snapshot.github.branch} @ ${snapshot.github.headSha.slice(0, 7)}`,
+                  sourceRef: exec.leoHead.sha,
+                  summary: `${exec.leoBranch} @ ${exec.leoHead.sha.slice(0, 7)}${
+                    exec.leoHead.message ? ` — ${exec.leoHead.message}` : ""
+                  }`,
                   availability: "LIVE" as const,
                 },
               ]
             : []),
-          ...(snapshot.vercel?.deployments ?? []).slice(0, 5).map((d) => ({
-            sourceKind: "vercel_deployment",
-            sourceRef: d.deploymentId,
-            summary: `target=${d.target}; readyState=${d.readyState}; sha=${d.gitCommitSha}`,
+          ...(exec.mainHead.sha
+            ? [
+                {
+                  sourceKind: "github_main_head",
+                  sourceRef: exec.mainHead.sha,
+                  summary: `main @ ${exec.mainHead.sha.slice(0, 7)}`,
+                  availability: "LIVE" as const,
+                },
+              ]
+            : []),
+          ...exec.recentChanges.slice(0, 5).map((c) => ({
+            sourceKind: "github_commit",
+            sourceRef: c.sha,
+            summary: `${c.classification}: ${c.message}`,
             availability: "LIVE" as const,
-            limitationNote:
-              "READY means platform deployment state — not full application or system health.",
           })),
+          ...(exec.latestLeoPreview
+            ? [
+                {
+                  sourceKind: "vercel_preview",
+                  sourceRef: exec.latestLeoPreview.deploymentId,
+                  summary: `Preview readyState=${exec.latestLeoPreview.readyState}; sha=${exec.latestLeoPreview.gitCommitSha}`,
+                  availability: "LIVE" as const,
+                  limitationNote:
+                    "READY means Vercel deployment state READY — not system health.",
+                },
+              ]
+            : []),
+          ...(exec.latestProduction
+            ? [
+                {
+                  sourceKind: "vercel_production",
+                  sourceRef: exec.latestProduction.deploymentId,
+                  summary: `Production readyState=${exec.latestProduction.readyState}; sha=${exec.latestProduction.gitCommitSha}`,
+                  availability: "LIVE" as const,
+                  limitationNote:
+                    "READY means Vercel deployment state READY — not system health.",
+                },
+              ]
+            : []),
+          ...exec.correlation.states.slice(0, 6).map((s) => ({
+            sourceKind: "project_correlation",
+            sourceRef: s,
+            summary: s.replace(/_/g, " "),
+            availability: "LIVE" as const,
+          })),
+          {
+            sourceKind: "project_qa_advice",
+            sourceRef: exec.qaAdvice.state,
+            summary: exec.qaAdvice.summary,
+            availability: "LIVE" as const,
+          },
         ],
-        citations: snapshot.correlations.slice(0, 5).map((c) => ({
-          sourceKind: "sha_correlation",
-          sourceRef: c.sha,
-          label: c.sha.slice(0, 12),
+        citations: exec.timeline.slice(0, 8).map((t) => ({
+          sourceKind: t.type.toLowerCase(),
+          sourceRef: t.id,
+          label: t.label.slice(0, 80),
         })),
         unknowns: hasEvidence ? [] : ["project_credentials_or_evidence"],
         limitations: [
-          ...snapshot.limitations,
-          ...snapshot.notClaiming,
+          ...exec.limitations,
+          ...exec.notClaiming,
+          ...exec.qaAdvice.limitations.filter((l) => /does not recommend deploying/i.test(l)),
         ],
         governance,
-        suggestedNextRetrieval: "Ask what tools are available, or what needs attention.",
+        suggestedNextRetrieval: "Ask what changed recently, or what needs attention outside project status.",
         suggestedQuestions: [
-          "What can you do?",
+          "What changed recently?",
+          "What should I QA next?",
           "What needs my attention?",
-          "Is the LEO preview ready?",
         ],
       });
     }

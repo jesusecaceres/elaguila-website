@@ -86,7 +86,7 @@ export function isLeoCapabilityOverviewQuestion(q: string): boolean {
 }
 
 export function isLeoProjectIntelligenceQuestion(q: string): boolean {
-  return /\b(what branch is leo on|latest (leo )?commit|leo preview ready|is the (leo )?preview ready|what is deployed|what deployment|what changed in the repo|deployment (tied|linked) to (this )?commit|github (repo|branch|commit)|vercel (deployment|preview|production))\b/i.test(
+  return /\b(what branch is leo on|what branch are we on|latest (leo )?commit|what is the latest commit|leo preview ready|is the (leo )?preview ready|is preview ready|what is deployed|what deployment|what changed (today|recently)|what changed in the repo|what did we (build|finish)|what happened with leo|what should i qa|did the deployment fail|is production (on this|behind)|production on this commit|deployment (tied|linked) to (this )?commit|github (repo|branch|commit)|vercel (deployment|preview|production)|project (status|intelligence))\b/i.test(
     q,
   );
 }

@@ -1,6 +1,6 @@
 /**
- * LEO-11 Vercel project adapter — server-only, read-only, allowlisted project.
- * Missing token → NOT_CONFIGURED. Never exposes token or raw error bodies.
+ * LEO-12 Vercel project adapter — server-only, read-only, allowlisted project.
+ * Derives latest Preview / Production. READY ≠ system healthy.
  */
 import "server-only";
 
@@ -10,7 +10,12 @@ import {
   getLeoVercelToken,
 } from "@/app/leo/_lib/leoProjectConfig";
 import {
+  pickLatestPreview,
+  pickLatestProduction,
+} from "@/app/leo/_lib/leoProjectCorrelationEngine";
+import {
   LEO_PROJECT_BOUNDS,
+  LEO_PROJECT_DEFAULT_BRANCH,
   LEO_VERCEL_ALLOWED_PROJECT,
 } from "@/app/leo/_lib/leoToolRegistry";
 import type { LeoDeploymentSnapshot, LeoToolAvailability } from "@/app/leo/_lib/leoTypes";
@@ -20,6 +25,8 @@ export type LeoVercelProjectReadResult =
       ok: true;
       projectName: string | null;
       deployments: LeoDeploymentSnapshot[];
+      latestPreview: LeoDeploymentSnapshot | null;
+      latestProduction: LeoDeploymentSnapshot | null;
       availability: LeoToolAvailability;
       limitations: string[];
     }
@@ -57,11 +64,17 @@ function qs(params: Record<string, string | null | undefined>): string {
   return s ? `?${s}` : "";
 }
 
+function sanitizeMessage(msg: string): string {
+  return msg.replace(/\s+/g, " ").trim().slice(0, 160);
+}
+
 /**
  * Read recent deployments for allowlisted leonix-media project.
  * GET only — never POST deploy/redeploy/promote.
  */
-export async function readLeoVercelDeployments(): Promise<LeoVercelProjectReadResult> {
+export async function readLeoVercelDeployments(options?: {
+  leoBranch?: string | null;
+}): Promise<LeoVercelProjectReadResult> {
   const token = getLeoVercelToken();
   if (!token) {
     return {
@@ -75,10 +88,12 @@ export async function readLeoVercelDeployments(): Promise<LeoVercelProjectReadRe
   const limitations: string[] = [
     `Allowlisted project: ${LEO_VERCEL_ALLOWED_PROJECT.name}.`,
     "Read-only — no deploy/redeploy/promote/rollback/env writes.",
-    "Deployment READY means platform/build state READY — not full application or system health.",
+    "Vercel deployment state READY means platform/build state READY — not full application or system health.",
+    `Bounded to ${LEO_PROJECT_BOUNDS.maxRecentDeployments} recent deployments.`,
   ];
   const teamId = getLeoVercelTeamId();
   const projectId = getLeoVercelProjectId();
+  const leoBranch = options?.leoBranch?.trim() || LEO_PROJECT_DEFAULT_BRANCH;
 
   try {
     let projectName: string | null = LEO_VERCEL_ALLOWED_PROJECT.name;
@@ -127,7 +142,10 @@ export async function readLeoVercelDeployments(): Promise<LeoVercelProjectReadRe
         return {
           ok: false,
           availability: "UNAVAILABLE",
-          limitations: [...limitations, "Allowlisted Vercel project not found with current credentials."],
+          limitations: [
+            ...limitations,
+            "Allowlisted Vercel project not found with current credentials.",
+          ],
           errorCode: "VERCEL_PROJECT_NOT_FOUND",
         };
       }
@@ -178,7 +196,11 @@ export async function readLeoVercelDeployments(): Promise<LeoVercelProjectReadRe
         state?: string;
         readyState?: string;
         target?: string | null;
-        meta?: { githubCommitSha?: string; githubCommitRef?: string };
+        meta?: {
+          githubCommitSha?: string;
+          githubCommitRef?: string;
+          githubCommitMessage?: string;
+        };
         createdAt?: number;
         created?: number;
       }>;
@@ -198,10 +220,13 @@ export async function readLeoVercelDeployments(): Promise<LeoVercelProjectReadRe
           target: d.target ?? null,
           gitBranch: d.meta?.githubCommitRef ?? null,
           gitCommitSha: d.meta?.githubCommitSha ?? null,
+          commitMessage: d.meta?.githubCommitMessage
+            ? sanitizeMessage(d.meta.githubCommitMessage)
+            : null,
           createdAt: createdMs ? new Date(createdMs).toISOString() : null,
           readyState: d.readyState ?? d.state ?? null,
           limitations: [
-            "READY/readyState is platform deployment state only — not a claim that the site or database is healthy.",
+            "Vercel deployment state READY means platform deployment state READY — not system health.",
           ],
         };
       });
@@ -210,6 +235,8 @@ export async function readLeoVercelDeployments(): Promise<LeoVercelProjectReadRe
       ok: true,
       projectName,
       deployments,
+      latestPreview: pickLatestPreview(deployments, leoBranch),
+      latestProduction: pickLatestProduction(deployments),
       availability: deployments.length > 0 ? "AVAILABLE" : "PARTIAL",
       limitations,
     };

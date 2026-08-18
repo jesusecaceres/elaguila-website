@@ -986,10 +986,21 @@ export type LeoRepositorySnapshot = {
   headSha: string | null;
   headMessage: string | null;
   headCommittedAt: string | null;
+  /** Safe author label when API provides it — never email. */
+  headAuthor: string | null;
+  mainHeadSha: string | null;
+  mainHeadMessage: string | null;
+  /** Ahead/behind vs main when compare API succeeds — null if unknown. */
+  compareToMain: {
+    aheadBy: number | null;
+    behindBy: number | null;
+    status: string | null;
+  } | null;
   recentCommits: {
     sha: string;
     message: string;
     committedAt: string | null;
+    author: string | null;
   }[];
   availability: LeoToolAvailability;
   limitations: string[];
@@ -1005,16 +1016,101 @@ export type LeoDeploymentSnapshot = {
   target: string | null;
   gitBranch: string | null;
   gitCommitSha: string | null;
+  commitMessage: string | null;
   createdAt: string | null;
   readyState: string | null;
   limitations: string[];
 };
 
+export type LeoProjectChangeClassification =
+  | "FEATURE"
+  | "FIX"
+  | "MERGE"
+  | "POLISH"
+  | "ARCHITECTURE"
+  | "DATA"
+  | "SECURITY"
+  | "UNKNOWN";
+
 export type LeoProjectChange = {
   sha: string;
   message: string;
   committedAt: string | null;
+  branch: string | null;
+  classification: LeoProjectChangeClassification;
   provider: "GITHUB";
+};
+
+export type LeoProjectCorrelationState =
+  | "BRANCH_HEAD_HAS_PREVIEW"
+  | "BRANCH_HEAD_PREVIEW_READY"
+  | "BRANCH_HEAD_PREVIEW_BUILDING"
+  | "BRANCH_HEAD_PREVIEW_FAILED"
+  | "BRANCH_HEAD_NO_PREVIEW"
+  | "PRODUCTION_MATCHES_BRANCH_HEAD"
+  | "PRODUCTION_DIFFERS_FROM_BRANCH_HEAD"
+  | "PRODUCTION_BEHIND_BRANCH"
+  | "PRODUCTION_AHEAD_OR_DIVERGED"
+  | "UNKNOWN_RELATIONSHIP";
+
+export type LeoProjectCorrelationResult = {
+  states: LeoProjectCorrelationState[];
+  branchHeadSha: string | null;
+  latestPreview: LeoDeploymentSnapshot | null;
+  latestProduction: LeoDeploymentSnapshot | null;
+  previewForHead: LeoDeploymentSnapshot | null;
+  productionMatchesHead: boolean | null;
+  /** Only true when GitHub compare proves ahead/behind. */
+  productionBehindBranch: boolean | null;
+  interpretation: string;
+  limitations: string[];
+};
+
+export type LeoProjectQaAdviceState =
+  | "WAIT_FOR_BUILD"
+  | "QA_PREVIEW"
+  | "INVESTIGATE_BUILD_FAILURE"
+  | "REVIEW_CHANGES"
+  | "NO_PROJECT_ACTION"
+  | "UNKNOWN";
+
+export type LeoProjectQaAdvice = {
+  state: LeoProjectQaAdviceState;
+  summary: string;
+  /** Never recommends deploy/promote/Production mutation. */
+  nextStep: string;
+  limitations: string[];
+};
+
+export type LeoProjectTimelineItemType =
+  | "COMMIT"
+  | "PREVIEW_DEPLOYMENT"
+  | "PRODUCTION_DEPLOYMENT";
+
+export type LeoProjectTimelineItem = {
+  id: string;
+  type: LeoProjectTimelineItemType;
+  at: string | null;
+  label: string;
+  sha: string | null;
+  readyState: string | null;
+};
+
+export type LeoProjectConfigDiagnostic = {
+  github: {
+    configured: boolean;
+    repositoryAllowlisted: true;
+    allowlistedRepo: string;
+  };
+  vercel: {
+    configured: boolean;
+    teamIdAvailable: boolean;
+    projectIdAvailable: boolean;
+    projectAllowlisted: true;
+    allowlistedProject: string;
+  };
+  /** Never includes token values or prefixes. */
+  requiredEnvNames: readonly string[];
 };
 
 export type LeoProjectHealthSignal = {
@@ -1031,6 +1127,8 @@ export type LeoProjectSnapshot = {
   vercel: {
     projectName: string | null;
     deployments: LeoDeploymentSnapshot[];
+    latestPreview: LeoDeploymentSnapshot | null;
+    latestProduction: LeoDeploymentSnapshot | null;
     availability: LeoToolAvailability;
     limitations: string[];
   } | null;
@@ -1044,6 +1142,35 @@ export type LeoProjectSnapshot = {
     }[];
   }[];
   healthSignals: LeoProjectHealthSignal[];
+  limitations: string[];
+  notClaiming: readonly string[];
+};
+
+/** LEO-12 executive project brain snapshot — bounded ephemeral evidence. */
+export type LeoProjectExecutiveSnapshot = {
+  observedAt: string;
+  repository: string;
+  leoBranch: string;
+  mainBranch: string | null;
+  leoHead: {
+    sha: string | null;
+    message: string | null;
+    committedAt: string | null;
+    author: string | null;
+  };
+  mainHead: {
+    sha: string | null;
+    message: string | null;
+  };
+  latestLeoPreview: LeoDeploymentSnapshot | null;
+  latestProduction: LeoDeploymentSnapshot | null;
+  correlation: LeoProjectCorrelationResult;
+  recentChanges: LeoProjectChange[];
+  timeline: LeoProjectTimelineItem[];
+  qaAdvice: LeoProjectQaAdvice;
+  configurationState: LeoProjectConfigDiagnostic;
+  /** Legacy-compatible nested snapshot for tool adapters. */
+  raw: LeoProjectSnapshot;
   limitations: string[];
   notClaiming: readonly string[];
 };

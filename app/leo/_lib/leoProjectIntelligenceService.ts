@@ -1,14 +1,30 @@
 /**
- * LEO-11 Project Intelligence Service — combine GitHub + Vercel evidence safely.
- * Exact SHA correlation when available. Never claims full system health.
+ * LEO-12 Connected Project Brain — executive snapshot from GitHub + Vercel evidence.
+ * Exact SHA correlation. Never claims full system health. No writes.
  */
 import "server-only";
 
 import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
-import { readLeoGithubRepository } from "@/app/leo/_lib/leoGithubProjectAdapter";
-import { isLeoGithubConfigured, isLeoVercelConfigured } from "@/app/leo/_lib/leoProjectConfig";
+import {
+  emptyLeoGithubSnapshotForFailure,
+  readLeoGithubRepository,
+} from "@/app/leo/_lib/leoGithubProjectAdapter";
+import {
+  buildLeoProjectRecentChanges,
+  buildLeoProjectTimeline,
+  detectArbitraryRepoRequest,
+} from "@/app/leo/_lib/leoProjectChangeIntelligence";
+import { correlateLeoProjectState } from "@/app/leo/_lib/leoProjectCorrelationEngine";
+import {
+  getLeoProjectConfigDiagnostic,
+  isLeoGithubConfigured,
+  isLeoVercelConfigured,
+} from "@/app/leo/_lib/leoProjectConfig";
+import { adviseLeoProjectQa } from "@/app/leo/_lib/leoProjectQaAdvisor";
+import { LEO_PROJECT_DEFAULT_BRANCH } from "@/app/leo/_lib/leoToolRegistry";
 import { readLeoVercelDeployments } from "@/app/leo/_lib/leoVercelProjectAdapter";
 import type {
+  LeoProjectExecutiveSnapshot,
   LeoProjectSnapshot,
 } from "@/app/leo/_lib/leoTypes";
 
@@ -17,104 +33,46 @@ const NOT_CLAIMING = [
   "Not claiming database healthy",
   "Not claiming all systems healthy",
   "Deployment READY is platform/build state only",
+  "Not recommending deploy or Production promotion",
 ] as const;
 
 export type LeoProjectIntelligenceOptions = {
   branch?: string | null;
   nowMs?: number;
+  question?: string | null;
 };
 
-export async function getLeoProjectSnapshot(
-  options: LeoProjectIntelligenceOptions = {},
-): Promise<LeoProjectSnapshot> {
-  await requireLeoOwnerAccess();
-  const generatedAt = new Date(options.nowMs ?? Date.now()).toISOString();
-  const limitations: string[] = [];
-
-  let github: LeoProjectSnapshot["github"] = null;
-  let vercel: LeoProjectSnapshot["vercel"] = null;
-
-  if (!isLeoGithubConfigured() && !isLeoVercelConfigured()) {
-    limitations.push(
-      "Neither GitHub nor Vercel project intelligence is configured (LEO_GITHUB_TOKEN / LEO_VERCEL_TOKEN).",
-    );
-  }
-
-  if (isLeoGithubConfigured()) {
-    const g = await readLeoGithubRepository({ branch: options.branch });
-    if (g.ok) {
-      github = g.snapshot;
-      limitations.push(...g.snapshot.limitations);
-    } else {
-      limitations.push(...g.limitations);
-      github = {
-        provider: "GITHUB",
-        owner: "jesusecaceres",
-        name: "elaguila-website",
-        fullName: "jesusecaceres/elaguila-website",
-        defaultBranch: null,
-        branch: options.branch ?? null,
-        headSha: null,
-        headMessage: null,
-        headCommittedAt: null,
-        recentCommits: [],
-        availability: g.availability,
-        limitations: g.limitations,
-      };
-    }
-  } else {
-    limitations.push("GitHub: NOT_CONFIGURED.");
-  }
-
-  if (isLeoVercelConfigured()) {
-    const v = await readLeoVercelDeployments();
-    if (v.ok) {
-      vercel = {
-        projectName: v.projectName,
-        deployments: v.deployments,
-        availability: v.availability,
-        limitations: v.limitations,
-      };
-      limitations.push(...v.limitations);
-    } else {
-      limitations.push(...v.limitations);
-      vercel = {
-        projectName: "leonix-media",
-        deployments: [],
-        availability: v.availability,
-        limitations: v.limitations,
-      };
-    }
-  } else {
-    limitations.push("Vercel: NOT_CONFIGURED.");
-  }
-
+function buildLegacySnapshot(args: {
+  generatedAt: string;
+  github: LeoProjectSnapshot["github"];
+  vercel: LeoProjectSnapshot["vercel"];
+  limitations: string[];
+}): LeoProjectSnapshot {
   const correlations: LeoProjectSnapshot["correlations"] = [];
   const shaSet = new Set<string>();
-  if (github?.headSha) shaSet.add(github.headSha);
-  for (const c of github?.recentCommits ?? []) shaSet.add(c.sha);
-  for (const d of vercel?.deployments ?? []) {
+  if (args.github?.headSha) shaSet.add(args.github.headSha);
+  for (const c of args.github?.recentCommits ?? []) shaSet.add(c.sha);
+  for (const d of args.vercel?.deployments ?? []) {
     if (d.gitCommitSha) shaSet.add(d.gitCommitSha);
   }
-
   for (const sha of shaSet) {
-    const vercelDeployments = (vercel?.deployments ?? [])
+    const vercelDeployments = (args.vercel?.deployments ?? [])
       .filter((d) => d.gitCommitSha === sha)
       .map((d) => ({
         deploymentId: d.deploymentId,
         target: d.target,
         readyState: d.readyState,
       }));
-    if (vercelDeployments.length === 0 && github?.headSha !== sha) continue;
+    if (vercelDeployments.length === 0 && args.github?.headSha !== sha) continue;
     correlations.push({
       sha,
-      githubBranch: github?.branch ?? null,
+      githubBranch: args.github?.branch ?? null,
       vercelDeployments,
     });
   }
 
   const healthSignals: LeoProjectSnapshot["healthSignals"] = [];
-  for (const d of (vercel?.deployments ?? []).slice(0, 3)) {
+  for (const d of (args.vercel?.deployments ?? []).slice(0, 3)) {
     if (!d.readyState) continue;
     healthSignals.push({
       kind: "DEPLOYMENT_PLATFORM_STATE",
@@ -126,60 +84,222 @@ export async function getLeoProjectSnapshot(
   }
 
   return {
-    generatedAt,
-    github,
-    vercel,
+    generatedAt: args.generatedAt,
+    github: args.github,
+    vercel: args.vercel,
     correlations,
     healthSignals,
+    limitations: [...new Set(args.limitations)],
+    notClaiming: NOT_CLAIMING,
+  };
+}
+
+/**
+ * Owner-admin executive project brain snapshot.
+ */
+export async function getLeoProjectExecutiveSnapshot(
+  options: LeoProjectIntelligenceOptions = {},
+): Promise<LeoProjectExecutiveSnapshot> {
+  await requireLeoOwnerAccess();
+  const nowMs = options.nowMs ?? Date.now();
+  const observedAt = new Date(nowMs).toISOString();
+  const leoBranch = options.branch?.trim() || LEO_PROJECT_DEFAULT_BRANCH;
+  const configurationState = getLeoProjectConfigDiagnostic();
+  const limitations: string[] = [];
+
+  if (options.question && detectArbitraryRepoRequest(options.question)) {
+    limitations.push(
+      "Arbitrary repositories are rejected. LEO only reads allowlisted jesusecaceres/elaguila-website.",
+    );
+  }
+
+  let github: LeoProjectSnapshot["github"] = null;
+  let vercel: LeoProjectSnapshot["vercel"] = null;
+
+  if (!isLeoGithubConfigured() && !isLeoVercelConfigured()) {
+    limitations.push(
+      "Neither GitHub nor Vercel project intelligence is configured (LEO_GITHUB_TOKEN / LEO_VERCEL_TOKEN).",
+    );
+  }
+
+  if (isLeoGithubConfigured()) {
+    const g = await readLeoGithubRepository({ branch: leoBranch });
+    if (g.ok) {
+      github = g.snapshot;
+      limitations.push(...g.snapshot.limitations);
+    } else {
+      limitations.push(...g.limitations);
+      github = emptyLeoGithubSnapshotForFailure(g.availability, g.limitations, leoBranch);
+    }
+  } else {
+    limitations.push("GitHub: NOT_CONFIGURED.");
+    github = emptyLeoGithubSnapshotForFailure("NOT_CONFIGURED", ["GitHub: NOT_CONFIGURED."], leoBranch);
+  }
+
+  if (isLeoVercelConfigured()) {
+    const v = await readLeoVercelDeployments({ leoBranch });
+    if (v.ok) {
+      vercel = {
+        projectName: v.projectName,
+        deployments: v.deployments,
+        latestPreview: v.latestPreview,
+        latestProduction: v.latestProduction,
+        availability: v.availability,
+        limitations: v.limitations,
+      };
+      limitations.push(...v.limitations);
+    } else {
+      limitations.push(...v.limitations);
+      vercel = {
+        projectName: "leonix-media",
+        deployments: [],
+        latestPreview: null,
+        latestProduction: null,
+        availability: v.availability,
+        limitations: v.limitations,
+      };
+    }
+  } else {
+    limitations.push("Vercel: NOT_CONFIGURED.");
+    vercel = {
+      projectName: "leonix-media",
+      deployments: [],
+      latestPreview: null,
+      latestProduction: null,
+      availability: "NOT_CONFIGURED",
+      limitations: ["Vercel: NOT_CONFIGURED."],
+    };
+  }
+
+  const correlation = correlateLeoProjectState({
+    github,
+    deployments: vercel?.deployments ?? [],
+    aheadBy: github?.compareToMain?.aheadBy ?? null,
+    behindBy: github?.compareToMain?.behindBy ?? null,
+  });
+  limitations.push(...correlation.limitations);
+
+  const recentChanges = buildLeoProjectRecentChanges({ github });
+  const timeline = buildLeoProjectTimeline({
+    github,
+    deployments: vercel?.deployments ?? [],
+  });
+  const qaAdvice = adviseLeoProjectQa(correlation);
+
+  const raw = buildLegacySnapshot({
+    generatedAt: observedAt,
+    github,
+    vercel,
+    limitations,
+  });
+
+  return {
+    observedAt,
+    repository: github?.fullName ?? "jesusecaceres/elaguila-website",
+    leoBranch: github?.branch ?? leoBranch,
+    mainBranch: github?.defaultBranch ?? null,
+    leoHead: {
+      sha: github?.headSha ?? null,
+      message: github?.headMessage ?? null,
+      committedAt: github?.headCommittedAt ?? null,
+      author: github?.headAuthor ?? null,
+    },
+    mainHead: {
+      sha: github?.mainHeadSha ?? null,
+      message: github?.mainHeadMessage ?? null,
+    },
+    latestLeoPreview: correlation.previewForHead ?? correlation.latestPreview,
+    latestProduction: correlation.latestProduction,
+    correlation,
+    recentChanges,
+    timeline,
+    qaAdvice,
+    configurationState,
+    raw,
     limitations: [...new Set(limitations)],
     notClaiming: NOT_CLAIMING,
   };
 }
 
-export function composeLeoProjectIntelligenceSummary(snapshot: LeoProjectSnapshot): string {
-  const parts: string[] = [];
+/** Backward-compatible wrapper used by LEO-11 tool adapters / conversation. */
+export async function getLeoProjectSnapshot(
+  options: LeoProjectIntelligenceOptions = {},
+): Promise<LeoProjectSnapshot> {
+  const exec = await getLeoProjectExecutiveSnapshot(options);
+  return exec.raw;
+}
 
+export function composeLeoProjectIntelligenceSummary(
+  snapshot: LeoProjectSnapshot | LeoProjectExecutiveSnapshot,
+): string {
+  if ("leoHead" in snapshot && "correlation" in snapshot) {
+    return composeExecutiveProjectSummary(snapshot);
+  }
+  return composeLegacyProjectSummary(snapshot);
+}
+
+function composeLegacyProjectSummary(snapshot: LeoProjectSnapshot): string {
+  const parts: string[] = [];
   if (snapshot.github?.headSha) {
-    const short = snapshot.github.headSha.slice(0, 7);
     parts.push(
-      `GitHub ${snapshot.github.fullName} branch ${snapshot.github.branch ?? "unknown"} head ${short}${
+      `GitHub ${snapshot.github.fullName} branch ${snapshot.github.branch ?? "unknown"} head ${snapshot.github.headSha.slice(0, 7)}${
         snapshot.github.headMessage ? ` — ${snapshot.github.headMessage}` : ""
       }.`,
     );
   } else if (snapshot.github?.availability === "NOT_CONFIGURED") {
     parts.push("GitHub project intelligence is not configured.");
-  } else if (snapshot.github) {
-    parts.push("GitHub metadata is partial or unavailable.");
   }
-
   const deps = snapshot.vercel?.deployments ?? [];
   if (deps.length > 0) {
     const latest = deps[0];
-    const shaNote = latest.gitCommitSha
-      ? ` commit ${latest.gitCommitSha.slice(0, 7)}`
-      : "";
-    const ready = latest.readyState ?? latest.state ?? "unknown";
     parts.push(
       `Latest Vercel deployment ${latest.deploymentId.slice(0, 8)} target ${
         latest.target ?? "unknown"
-      } is platform-state ${ready}${shaNote}. This is deployment readiness, not system health.`,
+      } is platform-state ${latest.readyState ?? "unknown"}. This is deployment readiness, not system health.`,
     );
   } else if (snapshot.vercel?.availability === "NOT_CONFIGURED") {
     parts.push("Vercel project intelligence is not configured.");
   }
+  return parts.join(" ") || "No project intelligence evidence is available yet.";
+}
 
-  const matched = snapshot.correlations.find((c) => c.vercelDeployments.length > 0);
-  if (matched) {
-    const d = matched.vercelDeployments[0];
+export function composeExecutiveProjectSummary(exec: LeoProjectExecutiveSnapshot): string {
+  const parts: string[] = [];
+
+  if (exec.leoHead.sha) {
     parts.push(
-      `Commit ${matched.sha.slice(0, 7)} correlates to Vercel deployment ${d.deploymentId.slice(0, 8)} (${
-        d.target ?? "unknown"
-      }, ${d.readyState ?? "unknown"}).`,
+      `LEO is on branch ${exec.leoBranch} at commit ${exec.leoHead.sha.slice(0, 7)}${
+        exec.leoHead.message ? ` — ${exec.leoHead.message}` : ""
+      }.`,
+    );
+  } else if (!exec.configurationState.github.configured) {
+    parts.push("GitHub project intelligence is not configured.");
+  }
+
+  if (exec.recentChanges.length > 0) {
+    const n = exec.recentChanges.length;
+    const latest = exec.recentChanges[0];
+    parts.push(
+      `${n} recent commit${n === 1 ? "" : "s"} on the branch. Latest: ${latest.message.slice(0, 100)} (${latest.classification.toLowerCase()}).`,
     );
   }
 
-  if (parts.length === 0) {
-    return "No project intelligence evidence is available yet. Configure LEO_GITHUB_TOKEN and/or LEO_VERCEL_TOKEN for read-only project evidence.";
+  if (exec.correlation.interpretation) {
+    parts.push(exec.correlation.interpretation);
   }
-  return parts.join(" ");
+
+  if (exec.qaAdvice.state !== "NO_PROJECT_ACTION" && exec.qaAdvice.state !== "UNKNOWN") {
+    parts.push(exec.qaAdvice.nextStep);
+  }
+
+  if (
+    !exec.configurationState.github.configured &&
+    !exec.configurationState.vercel.configured
+  ) {
+    parts.push(
+      "Configure LEO_GITHUB_TOKEN and/or LEO_VERCEL_TOKEN for live project evidence.",
+    );
+  }
+
+  return parts.join(" ") || "No project intelligence evidence is available yet.";
 }

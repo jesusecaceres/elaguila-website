@@ -337,7 +337,7 @@ function main() {
   );
   check(
     /Not connected yet/.test(strip) &&
-      (/GitHub \(not configured\)/.test(strip) || /GitHub\/Vercel/.test(strip) || /GitHub/.test(strip)) &&
+      (/GitHub — Not configured/.test(strip) || /GitHub \(not configured\)/.test(strip) || /GitHub/.test(strip)) &&
       !listContains("AVAILABLE", "GitHub"),
     "38. no claim GitHub/Vercel intelligence exists as Available unless connected",
   );

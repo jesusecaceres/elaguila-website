@@ -13,13 +13,14 @@ import {
 } from "@/app/leo/_lib/leoLivingBookService";
 import {
   composeLeoProjectIntelligenceSummary,
-  getLeoProjectSnapshot,
+  getLeoProjectExecutiveSnapshot,
 } from "@/app/leo/_lib/leoProjectIntelligenceService";
 import { getLeoListingReasonChain } from "@/app/leo/_lib/leoReasonChain";
 import { runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
 import { getLeoToolCatalog } from "@/app/leo/_lib/leoToolCatalog";
 import { readLeoGithubRepository } from "@/app/leo/_lib/leoGithubProjectAdapter";
 import { readLeoVercelDeployments } from "@/app/leo/_lib/leoVercelProjectAdapter";
+import { LEO_PROJECT_DEFAULT_BRANCH } from "@/app/leo/_lib/leoToolRegistry";
 import { evaluateLeoWatcherRequest } from "@/app/leo/_lib/leoWatcherEngine";
 import { isLeoWatcherKind } from "@/app/leo/_lib/leoWatcherRegistry";
 import type {
@@ -345,7 +346,9 @@ export async function invokeLeoToolAdapter(args: {
     }
 
     case "leo.project.vercel.read": {
-      const v = await readLeoVercelDeployments();
+      const v = await readLeoVercelDeployments({
+        leoBranch: asString(parameters.branch) ?? LEO_PROJECT_DEFAULT_BRANCH,
+      });
       if (!v.ok) {
         return {
           ok: false,
@@ -354,13 +357,13 @@ export async function invokeLeoToolAdapter(args: {
           limitations: v.limitations,
         };
       }
-      const latest = v.deployments[0];
+      const latest = v.latestPreview ?? v.deployments[0];
       return {
         ok: true,
         summary: latest
           ? `Vercel ${v.projectName}: latest deployment ${latest.deploymentId.slice(0, 8)} platform-state ${
               latest.readyState ?? "unknown"
-            } (not system health).`
+            } (Vercel deployment state — not system health).`
           : `Vercel ${v.projectName}: no recent deployments returned.`,
         evidence: v.deployments.slice(0, 8).map((d) => ({
           sourceKind: "vercel_deployment",
@@ -368,7 +371,7 @@ export async function invokeLeoToolAdapter(args: {
           summary: `target=${d.target}; readyState=${d.readyState}; sha=${d.gitCommitSha}`,
           availability: "LIVE" as const,
           limitationNote:
-            "READY means platform deployment state — not full application health.",
+            "READY means Vercel deployment state READY — not system health.",
         })),
         data: v,
         unknowns: [],
@@ -377,34 +380,41 @@ export async function invokeLeoToolAdapter(args: {
     }
 
     case "leo.project.snapshot.read": {
-      const snapshot = await getLeoProjectSnapshot({
+      const exec = await getLeoProjectExecutiveSnapshot({
         branch: asString(parameters.branch),
         nowMs,
+        question: asString(parameters.question),
       });
       return {
         ok: true,
-        summary: composeLeoProjectIntelligenceSummary(snapshot),
+        summary: composeLeoProjectIntelligenceSummary(exec),
         evidence: [
-          ...(snapshot.github?.headSha
+          ...(exec.leoHead.sha
             ? [
                 {
                   sourceKind: "github_head",
-                  sourceRef: snapshot.github.headSha,
-                  summary: `branch ${snapshot.github.branch} @ ${snapshot.github.headSha.slice(0, 7)}`,
+                  sourceRef: exec.leoHead.sha,
+                  summary: `branch ${exec.leoBranch} @ ${exec.leoHead.sha.slice(0, 7)}`,
                   availability: "LIVE" as const,
                 },
               ]
             : []),
-          ...snapshot.correlations.slice(0, 5).map((c) => ({
-            sourceKind: "sha_correlation",
-            sourceRef: c.sha,
-            summary: `sha ${c.sha.slice(0, 7)} → ${c.vercelDeployments.length} Vercel deployment(s)`,
+          ...exec.correlation.states.slice(0, 5).map((s) => ({
+            sourceKind: "project_correlation",
+            sourceRef: s,
+            summary: s.replace(/_/g, " "),
             availability: "LIVE" as const,
           })),
+          {
+            sourceKind: "project_qa_advice",
+            sourceRef: exec.qaAdvice.state,
+            summary: exec.qaAdvice.summary,
+            availability: "LIVE" as const,
+          },
         ],
-        data: snapshot,
+        data: exec,
         unknowns: [],
-        limitations: snapshot.limitations,
+        limitations: exec.limitations,
       };
     }
 

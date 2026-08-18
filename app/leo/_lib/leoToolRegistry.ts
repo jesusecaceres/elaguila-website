@@ -25,8 +25,13 @@ export const LEO_VERCEL_ALLOWED_PROJECT = {
 export const LEO_PROJECT_BOUNDS = {
   maxRecentCommits: 10,
   maxRecentDeployments: 10,
+  maxTimelineItems: 20,
   fetchTimeoutMs: 12_000,
 } as const;
+
+/** Certified LEO construction branch for project intelligence defaults. */
+export const LEO_PROJECT_DEFAULT_BRANCH =
+  "integration/leo-executive-operating-intelligence-2026-08" as const;
 
 const INTERNAL_LIMITATIONS = [
   "Read/analyze/prepare only in LEO-11 — no consequential writes or external effects.",

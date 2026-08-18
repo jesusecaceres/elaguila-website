@@ -186,11 +186,15 @@ function main() {
     "39. tool catalog drives capability overview",
   );
   check(
-    conversation.includes("PROJECT_INTELLIGENCE") && conversation.includes("getLeoProjectSnapshot"),
+    conversation.includes("PROJECT_INTELLIGENCE") &&
+      (conversation.includes("getLeoProjectSnapshot") ||
+        conversation.includes("getLeoProjectExecutiveSnapshot")),
     "40. project intelligence intent uses evidence first",
   );
   check(
-    !engine.includes("invokeLeoTool") && conversation.includes("getLeoProjectSnapshot"),
+    !engine.includes("invokeLeoTool") &&
+      (conversation.includes("getLeoProjectSnapshot") ||
+        conversation.includes("getLeoProjectExecutiveSnapshot")),
     "41. AI receives evidence after tool retrieval, not arbitrary tool authority",
   );
   check(

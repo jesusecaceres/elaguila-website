@@ -134,7 +134,7 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
     case "CAPABILITY_OVERVIEW":
       return ["What needs my attention?", "Who is waiting on us?", "What can you prepare for me?"];
     case "PROJECT_INTELLIGENCE":
-      return ["What can you do?", "What needs my attention?", "Is the LEO preview ready?"];
+      return ["What changed recently?", "What should I QA next?", "What needs my attention?"];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];
     case "PREPARATION":
