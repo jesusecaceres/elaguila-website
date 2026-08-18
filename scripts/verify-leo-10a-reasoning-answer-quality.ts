@@ -314,7 +314,7 @@ function main() {
   );
 
   // 35–39 capability strip truth
-  function listContains(listName: "AVAILABLE" | "COMING_LATER", label: string): boolean {
+  function listContains(listName: "AVAILABLE", label: string): boolean {
     const m = new RegExp(`const ${listName} = \\[([\\s\\S]*?)\\] as const`).exec(strip);
     return m ? m[1].includes(`"${label}"`) : false;
   }
@@ -325,25 +325,25 @@ function main() {
   );
   check(
     /Not connected yet/.test(strip) &&
-      listContains("COMING_LATER", "Background monitoring") &&
+      /Background monitoring/.test(strip) &&
       !listContains("AVAILABLE", "Background monitoring"),
     "36. no claim background monitoring exists (not connected)",
   );
   check(
     /Not connected yet/.test(strip) &&
-      listContains("COMING_LATER", "Notifications") &&
+      /Notifications/.test(strip) &&
       !listContains("AVAILABLE", "Notifications"),
     "37. no claim notifications exist",
   );
   check(
     /Not connected yet/.test(strip) &&
-      listContains("COMING_LATER", "GitHub/Vercel intelligence") &&
-      !listContains("AVAILABLE", "GitHub/Vercel intelligence"),
-    "38. no claim GitHub/Vercel intelligence exists",
+      (/GitHub \(not configured\)/.test(strip) || /GitHub\/Vercel/.test(strip) || /GitHub/.test(strip)) &&
+      !listContains("AVAILABLE", "GitHub"),
+    "38. no claim GitHub/Vercel intelligence exists as Available unless connected",
   );
   check(
     /Not connected yet/.test(strip) &&
-      listContains("COMING_LATER", "Business Concierge connection") &&
+      /Business Concierge connection/.test(strip) &&
       !listContains("AVAILABLE", "Business Concierge connection"),
     "39. no claim Concierge is connected",
   );

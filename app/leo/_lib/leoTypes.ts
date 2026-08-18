@@ -560,6 +560,7 @@ export type LeoConversationIntent =
   | "CAPABILITY_OVERVIEW"
   | "CAPABILITY_GOVERNANCE"
   | "PREPARATION"
+  | "PROJECT_INTELLIGENCE"
   | "UNKNOWN";
 
 export type LeoConversationAnswerState =
@@ -835,4 +836,214 @@ export type LeoPreparationRequest = {
   maxFindings?: number;
   nowMs?: number;
   question?: string | null;
+};
+
+/* -------------------------------------------------------------------------- */
+/* LEO-11 Universal Tool Bus — governed capability contracts                  */
+/* -------------------------------------------------------------------------- */
+
+export type LeoToolId =
+  | "leo.attention.read"
+  | "leo.clientCare.read"
+  | "leo.reasonChain.read"
+  | "leo.memory.read"
+  | "leo.decision.analyze"
+  | "leo.watcher.run"
+  | "leo.preparation.prepare"
+  | "leo.capabilities.read"
+  | "leo.adminCapabilities.read"
+  | "leo.project.github.read"
+  | "leo.project.vercel.read"
+  | "leo.project.snapshot.read";
+
+export type LeoToolCategory =
+  | "EXECUTIVE_INTELLIGENCE"
+  | "CUSTOMER_CARE"
+  | "MEMORY"
+  | "DECISION"
+  | "PREPARATION"
+  | "ADMIN_OPERATIONS"
+  | "DATA"
+  | "PROJECT_INTELLIGENCE"
+  | "COMMUNICATION"
+  | "CALENDAR"
+  | "FINANCE"
+  | "MARKETING"
+  | "RESEARCH"
+  | "CREATIVE"
+  | "SYSTEM_HEALTH"
+  | "CUSTOM";
+
+export type LeoToolAvailability =
+  | "AVAILABLE"
+  | "PARTIAL"
+  | "UNAVAILABLE"
+  | "NOT_CONFIGURED"
+  | "NOT_VERIFIED"
+  | "DISABLED";
+
+export type LeoToolOperationMode = "READ" | "ANALYZE" | "PREPARE" | "WRITE" | "EXECUTE";
+
+export type LeoToolDefinition = {
+  id: LeoToolId;
+  name: string;
+  description: string;
+  category: LeoToolCategory;
+  operationModes: readonly LeoToolOperationMode[];
+  /** Static declared availability; runtime catalog may refine (e.g. NOT_CONFIGURED). */
+  availability: LeoToolAvailability;
+  ownerOnly: true;
+  serverOnly: true;
+  /** Default governance action kind for this tool's primary mode. */
+  requiredGovernanceAction: LeoActionIntentKind;
+  readScopes: readonly string[];
+  writeScopes: readonly string[];
+  externalSystem: "NONE" | "GITHUB" | "VERCEL" | "ADMIN_OS" | null;
+  supportsPreparation: boolean;
+  supportsExecution: false;
+  evidenceRequirements: readonly string[];
+  limitations: readonly string[];
+  verified: boolean;
+  version: string;
+};
+
+export type LeoToolInvocationRequest = {
+  toolId: string;
+  operation: LeoToolOperationMode;
+  parameters?: Record<string, unknown>;
+  nowMs?: number;
+};
+
+export type LeoToolReceiptStatus =
+  | "SUCCEEDED"
+  | "PARTIAL"
+  | "BLOCKED"
+  | "UNAVAILABLE"
+  | "FAILED";
+
+export type LeoToolReceipt = {
+  receiptId: string;
+  toolId: string;
+  requestedOperation: LeoToolOperationMode;
+  governanceLevel: LeoGovernanceLevel;
+  startedAt: string;
+  completedAt: string;
+  status: LeoToolReceiptStatus;
+  evidenceCount: number;
+  /** Always false in LEO-11 v0. */
+  writePerformed: false;
+  /** Always false in LEO-11 v0. */
+  externalEffectPerformed: false;
+  limitations: string[];
+  errorCode?: string | null;
+};
+
+export type LeoToolResult = {
+  ok: boolean;
+  toolId: string;
+  operation: LeoToolOperationMode;
+  availability: LeoToolAvailability;
+  governance: LeoGovernanceAssessment;
+  receipt: LeoToolReceipt;
+  summary: string;
+  evidence: LeoConversationEvidence[];
+  data: unknown;
+  unknowns: string[];
+  limitations: string[];
+};
+
+export type LeoToolCatalogEntry = LeoToolDefinition & {
+  runtimeAvailability: LeoToolAvailability;
+};
+
+export type LeoToolCatalog = {
+  generatedAt: string;
+  tools: LeoToolCatalogEntry[];
+  available: LeoToolCatalogEntry[];
+  partial: LeoToolCatalogEntry[];
+  notConfigured: LeoToolCatalogEntry[];
+  other: LeoToolCatalogEntry[];
+  humanGroups: {
+    label: string;
+    toolIds: LeoToolId[];
+    status: "available" | "partial" | "not_configured" | "unavailable";
+  }[];
+};
+
+/* -------------------------------------------------------------------------- */
+/* LEO-11 Project Intelligence — GitHub / Vercel evidence (read-only)         */
+/* -------------------------------------------------------------------------- */
+
+export type LeoProjectProvider = "GITHUB" | "VERCEL";
+
+export type LeoRepositorySnapshot = {
+  provider: "GITHUB";
+  owner: string;
+  name: string;
+  fullName: string;
+  defaultBranch: string | null;
+  branch: string | null;
+  headSha: string | null;
+  headMessage: string | null;
+  headCommittedAt: string | null;
+  recentCommits: {
+    sha: string;
+    message: string;
+    committedAt: string | null;
+  }[];
+  availability: LeoToolAvailability;
+  limitations: string[];
+};
+
+export type LeoDeploymentSnapshot = {
+  provider: "VERCEL";
+  projectName: string | null;
+  deploymentId: string;
+  url: string | null;
+  state: string | null;
+  /** preview | production | null when unknown */
+  target: string | null;
+  gitBranch: string | null;
+  gitCommitSha: string | null;
+  createdAt: string | null;
+  readyState: string | null;
+  limitations: string[];
+};
+
+export type LeoProjectChange = {
+  sha: string;
+  message: string;
+  committedAt: string | null;
+  provider: "GITHUB";
+};
+
+export type LeoProjectHealthSignal = {
+  kind: "DEPLOYMENT_PLATFORM_STATE";
+  label: string;
+  /** Platform/build state only — never "system healthy". */
+  value: string;
+  limitationNote: string;
+};
+
+export type LeoProjectSnapshot = {
+  generatedAt: string;
+  github: LeoRepositorySnapshot | null;
+  vercel: {
+    projectName: string | null;
+    deployments: LeoDeploymentSnapshot[];
+    availability: LeoToolAvailability;
+    limitations: string[];
+  } | null;
+  correlations: {
+    sha: string;
+    githubBranch: string | null;
+    vercelDeployments: {
+      deploymentId: string;
+      target: string | null;
+      readyState: string | null;
+    }[];
+  }[];
+  healthSignals: LeoProjectHealthSignal[];
+  limitations: string[];
+  notClaiming: readonly string[];
 };

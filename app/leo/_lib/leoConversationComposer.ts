@@ -105,20 +105,23 @@ export function composeDecisionSummary(brief: LeoDecisionBrief): string {
   return `Decision support: ${brief.recommendationState.replace(/_/g, " ").toLowerCase()}; governance ${brief.governance.level}; ${brief.challenges.length} challenge note(s).${owner}`;
 }
 
-export function composeCapabilityOverviewSummary(): string {
+export function composeCapabilityOverviewSummary(catalogSummary?: string): string {
+  if (catalogSummary?.trim()) return catalogSummary.trim();
   return [
     "LEO can help you operate Leonix as an executive cockpit — without inventing facts or executing consequential actions.",
     "",
-    "Executive intelligence: identify top priorities, explain available operational evidence, show who is waiting, reason over supported evidence, and challenge structured decisions.",
-    "",
-    "Memory: read explicitly recorded Living Leonix Book records and preserve corrections — LEO never invents memory.",
-    "",
-    "Preparation: prepare follow-up drafts, meeting briefs, decision briefs, client-care plans, review plans, and internal task drafts. Prepared work stays not executed.",
+    "Available tools: Executive intelligence · Client Care · Memory · Decision support · Preparation · Admin capabilities (read).",
     "",
     "Governance: GREEN read/analyze · YELLOW prepare only · RED requires Chuy approval · NEVER blocked.",
     "",
-    "Not connected yet: background monitoring, notifications, Business Concierge connection, GitHub/Vercel intelligence, voice, and autonomous execution.",
+    "Not configured yet: GitHub project intelligence · Vercel project intelligence (when tokens are absent).",
+    "",
+    "Not connected yet: background monitoring, notifications, Business Concierge connection, voice, and autonomous execution.",
   ].join("\n");
+}
+
+export function composeProjectIntelligenceSummary(text: string): string {
+  return text.trim() || "No project intelligence evidence is available yet.";
 }
 
 /** Safe follow-up chips — no execution implications. */
@@ -130,6 +133,8 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
       return ["Prepare a follow-up plan.", "What needs my attention?", "What can you do?"];
     case "CAPABILITY_OVERVIEW":
       return ["What needs my attention?", "Who is waiting on us?", "What can you prepare for me?"];
+    case "PROJECT_INTELLIGENCE":
+      return ["What can you do?", "What needs my attention?", "Is the LEO preview ready?"];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];
     case "PREPARATION":

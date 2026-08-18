@@ -223,7 +223,8 @@ export async function enrichLeoConversationWithAi(args: {
   if (
     bundle.facts.length === 0 &&
     deterministic.intent !== "CAPABILITY_GOVERNANCE" &&
-    deterministic.intent !== "CAPABILITY_OVERVIEW"
+    deterministic.intent !== "CAPABILITY_OVERVIEW" &&
+    deterministic.intent !== "PROJECT_INTELLIGENCE"
   ) {
     return withMeta(
       deterministic,

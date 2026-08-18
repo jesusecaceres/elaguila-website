@@ -17,6 +17,7 @@ import {
   composeDecisionSummary,
   composeGovernanceSummary,
   composeMemorySummary,
+  composeProjectIntelligenceSummary,
   composeReasonSummary,
   suggestedQuestionsForIntent,
 } from "@/app/leo/_lib/leoConversationComposer";
@@ -32,6 +33,14 @@ import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
 import { isConsequentialActionRequest } from "@/app/leo/_lib/leoPreparationEngine";
 import { isLeoPreparationKind, runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
 import { enrichLeoConversationWithAi } from "@/app/leo/_lib/leoAiReasoningEngine";
+import {
+  composeToolCatalogCapabilitySummary,
+  getLeoToolCatalog,
+} from "@/app/leo/_lib/leoToolCatalog";
+import {
+  composeLeoProjectIntelligenceSummary,
+  getLeoProjectSnapshot,
+} from "@/app/leo/_lib/leoProjectIntelligenceService";
 import type {
   LeoActionIntentKind,
   LeoConversationAnswer,
@@ -279,35 +288,88 @@ export async function runLeoConversationDeterministic(
     }
 
     case "CAPABILITY_OVERVIEW": {
+      const catalog = getLeoToolCatalog(nowMs);
       const governance = assessLeoGovernance({ actionKind: "READ", nowMs });
       return empty({
         intent: "CAPABILITY_OVERVIEW",
         answerState: "ANSWERED",
-        summary: composeCapabilityOverviewSummary(),
-        evidence: [
-          {
-            sourceKind: "capability_overview",
-            sourceRef: "leo-capability-v0",
-            summary: "Certified Leonix executive systems: truth, attention, client care, memory, governance, preparation, evidence-grounded reasoning.",
-            availability: "LIVE",
-          },
-        ],
+        summary: composeCapabilityOverviewSummary(composeToolCatalogCapabilitySummary(catalog)),
+        evidence: catalog.humanGroups.map((g) => ({
+          sourceKind: "tool_catalog_group",
+          sourceRef: g.label,
+          summary: `${g.label} — ${g.status}`,
+          availability: g.status === "available" ? ("LIVE" as const) : ("UNAVAILABLE" as const),
+        })),
         citations: [
           {
-            sourceKind: "capability_overview",
-            sourceRef: "leo-capability-v0",
-            label: "Current Leonix capabilities",
+            sourceKind: "tool_catalog",
+            sourceRef: "leo-tool-registry",
+            label: "LEO tool catalog",
           },
         ],
         limitations: [
-          "Background monitoring, notifications, Concierge connection, GitHub/Vercel intelligence, voice, and autonomous execution are not connected yet.",
+          ...catalog.notConfigured.map((t) => `${t.name}: not configured`),
+          "Background monitoring, notifications, Concierge connection, voice, and autonomous execution are not connected yet.",
         ],
         governance,
-        suggestedNextRetrieval: "Ask about priorities, who is waiting, or what LEO can prepare.",
+        suggestedNextRetrieval: "Ask about priorities, who is waiting, project status, or what LEO can prepare.",
         suggestedQuestions: [
           "What needs my attention?",
           "Who is waiting on us?",
-          "What can you prepare for me?",
+          "What branch is LEO on?",
+        ],
+      });
+    }
+
+    case "PROJECT_INTELLIGENCE": {
+      const snapshot = await getLeoProjectSnapshot({ nowMs });
+      const governance = assessLeoGovernance({ actionKind: "READ", nowMs });
+      const summary = composeProjectIntelligenceSummary(
+        composeLeoProjectIntelligenceSummary(snapshot),
+      );
+      const hasEvidence = Boolean(
+        snapshot.github?.headSha || (snapshot.vercel?.deployments.length ?? 0) > 0,
+      );
+      return empty({
+        intent: "PROJECT_INTELLIGENCE",
+        answerState: hasEvidence ? "ANSWERED" : "INSUFFICIENT_EVIDENCE",
+        summary,
+        evidence: [
+          ...(snapshot.github?.headSha
+            ? [
+                {
+                  sourceKind: "github_head",
+                  sourceRef: snapshot.github.headSha,
+                  summary: `${snapshot.github.branch} @ ${snapshot.github.headSha.slice(0, 7)}`,
+                  availability: "LIVE" as const,
+                },
+              ]
+            : []),
+          ...(snapshot.vercel?.deployments ?? []).slice(0, 5).map((d) => ({
+            sourceKind: "vercel_deployment",
+            sourceRef: d.deploymentId,
+            summary: `target=${d.target}; readyState=${d.readyState}; sha=${d.gitCommitSha}`,
+            availability: "LIVE" as const,
+            limitationNote:
+              "READY means platform deployment state — not full application or system health.",
+          })),
+        ],
+        citations: snapshot.correlations.slice(0, 5).map((c) => ({
+          sourceKind: "sha_correlation",
+          sourceRef: c.sha,
+          label: c.sha.slice(0, 12),
+        })),
+        unknowns: hasEvidence ? [] : ["project_credentials_or_evidence"],
+        limitations: [
+          ...snapshot.limitations,
+          ...snapshot.notClaiming,
+        ],
+        governance,
+        suggestedNextRetrieval: "Ask what tools are available, or what needs attention.",
+        suggestedQuestions: [
+          "What can you do?",
+          "What needs my attention?",
+          "Is the LEO preview ready?",
         ],
       });
     }

@@ -31,6 +31,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "CAPABILITY_OVERVIEW",
   "CAPABILITY_GOVERNANCE",
   "PREPARATION",
+  "PROJECT_INTELLIGENCE",
   "UNKNOWN",
 ] as const;
 
@@ -79,7 +80,13 @@ export function inferLeoActionKind(q: string): LeoActionIntentKind | null {
 
 /** General capability discovery — not a consequential action request. */
 export function isLeoCapabilityOverviewQuestion(q: string): boolean {
-  return /\b(what can you do|what can leo do|what are your capabilities|what tools do you have|how can you help( me)?|what can you help with)\b/i.test(
+  return /\b(what can you do|what can leo do|what are your capabilities|what tools do you have|what project tools|what can you read|what can you prepare|how can you help( me)?|what can you help with)\b/i.test(
+    q,
+  );
+}
+
+export function isLeoProjectIntelligenceQuestion(q: string): boolean {
+  return /\b(what branch is leo on|latest (leo )?commit|leo preview ready|is the (leo )?preview ready|what is deployed|what deployment|what changed in the repo|deployment (tied|linked) to (this )?commit|github (repo|branch|commit)|vercel (deployment|preview|production))\b/i.test(
     q,
   );
 }
@@ -125,6 +132,18 @@ export function routeLeoConversation(
     notes.push("capability overview pattern");
     return {
       intent: "CAPABILITY_OVERVIEW",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    };
+  }
+
+  // Project intelligence — evidence-first (GitHub/Vercel reads)
+  if (isLeoProjectIntelligenceQuestion(q)) {
+    notes.push("project intelligence pattern");
+    return {
+      intent: "PROJECT_INTELLIGENCE",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,
