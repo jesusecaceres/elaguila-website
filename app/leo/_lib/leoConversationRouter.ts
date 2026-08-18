@@ -86,7 +86,17 @@ export function isLeoCapabilityOverviewQuestion(q: string): boolean {
 }
 
 export function isLeoProjectIntelligenceQuestion(q: string): boolean {
-  return /\b(what branch is leo on|what branch are we on|latest (leo )?commit|what is the latest commit|leo preview ready|is the (leo )?preview ready|is preview ready|what is deployed|what deployment|what changed (today|recently)|what changed in the repo|what did we (build|finish)|what happened with leo|what should i qa|did the deployment fail|is production (on this|behind)|production on this commit|deployment (tied|linked) to (this )?commit|github (repo|branch|commit)|vercel (deployment|preview|production)|project (status|intelligence))\b/i.test(
+  // Exclude deploy/governance action phrasing — those stay CAPABILITY_GOVERNANCE.
+  if (
+    /\b(deploy|redeploy|promote|rollback)\b.*\bproduction\b|\bproduction\b.*\b(deploy|redeploy|promote|rollback)\b/i.test(
+      q,
+    ) ||
+    /\bcan you deploy\b|\bignore governance\b|\bbypass approval\b/i.test(q)
+  ) {
+    return false;
+  }
+
+  return /\b(what branch is leo on|what branch are we on|latest (leo )?commit|what is the latest (leo )?commit|leo preview ready|is the (leo )?preview ready|is preview ready|what is deployed|what deployment|what changed (today|recently)|what changed in the repo|what did we (build|finish)|what happened with leo|what should i qa|did the deployment fail|is production (on this|behind)|production on this commit|is production on the same (commit|version)|is production running this commit|does production match this commit|is production on the (latest )?leo commit|is production caught up with leo|deployment (tied|linked) to (this )?commit|github (repo|branch|commit)|vercel (deployment|preview|production)|project (status|intelligence)|what is the leo project status)\b/i.test(
     q,
   );
 }

@@ -336,23 +336,17 @@ export async function runLeoConversationDeterministic(
           exec.latestProduction ||
           exec.recentChanges.length > 0,
       );
-      const wantsQa = /\bqa\b|what should i/i.test(request.question);
-      const finalSummary = wantsQa
-        ? `${exec.qaAdvice.summary} ${exec.qaAdvice.nextStep}`.trim()
-        : summary;
       return empty({
         intent: "PROJECT_INTELLIGENCE",
         answerState: hasEvidence ? "ANSWERED" : "INSUFFICIENT_EVIDENCE",
-        summary: finalSummary,
+        summary,
         evidence: [
           ...(exec.leoHead.sha
             ? [
                 {
                   sourceKind: "github_head",
                   sourceRef: exec.leoHead.sha,
-                  summary: `${exec.leoBranch} @ ${exec.leoHead.sha.slice(0, 7)}${
-                    exec.leoHead.message ? ` — ${exec.leoHead.message}` : ""
-                  }`,
+                  summary: `${exec.leoBranch} @ ${exec.leoHead.sha.slice(0, 7)}`,
                   availability: "LIVE" as const,
                 },
               ]
@@ -370,7 +364,10 @@ export async function runLeoConversationDeterministic(
           ...exec.recentChanges.slice(0, 5).map((c) => ({
             sourceKind: "github_commit",
             sourceRef: c.sha,
-            summary: `${c.classification}: ${c.message}`,
+            summary: `${c.classification}: ${c.message.split("\n")[0] ?? ""}`.replace(
+              /\bco-authored-by:.*$/i,
+              "",
+            ).trim(),
             availability: "LIVE" as const,
           })),
           ...(exec.latestLeoPreview

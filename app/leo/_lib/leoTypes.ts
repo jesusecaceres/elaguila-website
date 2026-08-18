@@ -1169,6 +1169,8 @@ export type LeoProjectExecutiveSnapshot = {
   timeline: LeoProjectTimelineItem[];
   qaAdvice: LeoProjectQaAdvice;
   configurationState: LeoProjectConfigDiagnostic;
+  /** Owner question used for concise question-aware summaries. */
+  ownerQuestion: string | null;
   /** Legacy-compatible nested snapshot for tool adapters. */
   raw: LeoProjectSnapshot;
   limitations: string[];
