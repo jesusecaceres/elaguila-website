@@ -18,8 +18,15 @@ import {
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
+  OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+  OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import {
+  markOfertaLocalCheckoutStarted,
+  validateOfertasLocalesCheckoutOwnership,
+} from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
+import type { OfertaLocalCommercialProduct } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
 import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
   attachStripeSessionToPaymentRecord,
@@ -108,6 +115,10 @@ export async function POST(request: NextRequest) {
     categoryEarly === "bienes-raices" && packageKeyEarly === BR_INVENTORY_PACK_PACKAGE_KEY;
   const isServiciosOffersAddonOnlyEarly =
     categoryEarly === "servicios" && packageKeyEarly === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
+  const isOfertasLocalesCheckoutEarly =
+    categoryEarly === "ofertas-locales" &&
+    (packageKeyEarly === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY ||
+      packageKeyEarly === OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY);
 
   // Package C Build 3 (C5/C6) — cheap, no-DB-call defense-in-depth: the retired restaurantes/
   // servicios offers add-ons can no longer be purchased standalone. The central guard
@@ -183,6 +194,26 @@ export async function POST(request: NextRequest) {
   let serverVerifiedCurrentExpiresAt: string | null = null;
   let serverVerifiedLeonixAdId: string | null = null;
   let serverVerifiedOwnerUserId: string | null = null;
+  let serverVerifiedOfertasProduct: OfertaLocalCommercialProduct | null = null;
+  if (isOfertasLocalesCheckoutEarly) {
+    const ownerGate = await validateOfertasLocalesCheckoutOwnership({
+      supabase: getAdminSupabase(),
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+      packageKey: packageKeyEarly,
+      operation: operationEarly,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt ?? null;
+    serverVerifiedOfertasProduct = ownerGate.product;
+  }
   if (isRentasRenewalEarly) {
     const ownerGate = await validateRentasRenewalCheckoutOwnership({
       listingId: String(body.listingId ?? "").trim(),
@@ -199,7 +230,7 @@ export async function POST(request: NextRequest) {
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
@@ -458,6 +489,8 @@ export async function POST(request: NextRequest) {
     ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : isRentasRenewal
     ? buildDashboardMisAnunciosReturnPath(locale, "rentas")
+    : packageDef.category === "ofertas-locales"
+    ? `/dashboard/ofertas-locales/${encodeURIComponent(listingRef)}?lang=${locale}`
     : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
   const safeReturnPath = sanitizeRevenueOsReturnPath(body.returnPath, returnFallback);
 
@@ -586,9 +619,10 @@ export async function POST(request: NextRequest) {
     promoWebsiteCheckoutOnly: promoWebsiteCheckoutOnly ?? false,
     promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly || isServiciosOffersAddonOnly,
-    operation: isRentasRenewal ? "renew_listing" : null,
+    operation: body.operation === "renew_listing" ? "renew_listing" : null,
     sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
-    currentExpiresAt: isRentasRenewal ? serverVerifiedCurrentExpiresAt : body.currentExpiresAt,
+    currentExpiresAt: isRentasRenewal || categoryEarly === "ofertas-locales" ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt : body.currentExpiresAt,
+    renewalAttemptId: categoryEarly === "ofertas-locales" ? body.renewalAttemptId : null,
     returnContext: isRentasRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
     checkoutAttemptKey,
     attemptGeneration,
@@ -746,6 +780,28 @@ export async function POST(request: NextRequest) {
       redemptionId: promoRedemptionId,
       stripeCheckoutSessionId: stripeResult.sessionId,
     });
+  }
+
+  if (serverVerifiedOfertasProduct && ownerUserId) {
+    const parentMarked = await markOfertaLocalCheckoutStarted({
+      supabase: getAdminSupabase(),
+      listingId: listingRef,
+      ownerId: ownerUserId,
+      product: serverVerifiedOfertasProduct,
+      leonixAdId: serverVerifiedLeonixAdId ?? "",
+      paymentRecordId: paymentInsert.paymentRecordId,
+      stripeCheckoutSessionId: stripeResult.sessionId,
+    });
+    if (!parentMarked) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "ofertas_parent_checkout_summary_failed",
+          message: "Checkout was created but the Ofertas listing could not be marked pending payment.",
+        },
+        { status: 500 },
+      );
+    }
   }
 
   if (verifiedIntroDiscountRedemptionId) {

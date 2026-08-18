@@ -209,6 +209,7 @@ export type RevenueCheckoutRequest = {
   addOns?: RevenueCheckoutAddOnInput[] | null;
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
+  renewalAttemptId?: string | null;
   returnContext?: string | null;
 };
 

@@ -13,13 +13,19 @@ import {
   readDraftSnapshotMembershipFields,
   type OfertaLocalDraftSnapshot,
 } from "./ofertasLocalesDbSchema";
-import { isOfertaLocalExpired } from "./ofertasLocalesFormatting";
+import { isOfertaLocalPublicTermExpired } from "./ofertasLocalesFormatting";
 import { buildOfertaLocalWhatsAppHref } from "./ofertasLocalesPreviewHelpers";
 import {
   isOfertaLocalPublicOfferRowEligible,
   mapOfertaLocalPublicOfferRowToCard,
   type OfertaLocalPublicOfferRow,
 } from "./ofertasLocalesPublicOfferHelpers";
+import {
+  fetchOfertaLocalActivePartnerAssignment,
+  fetchOfertaLocalPartnerPickupLocations,
+  resolveOfertaLocalPartnerPublicVm,
+  type OfertaLocalPartnerPublicVm,
+} from "./ofertasLocalesPartnerOperations";
 import {
   isOfertaLocalPublicSearchRowEligible,
   mapOfertaLocalPublicDetailHubItemFromRow,
@@ -86,11 +92,12 @@ function resolvePublicBusinessLogoFromSnapshot(snapshot: OfertaLocalDraftSnapsho
 
 export function mapOfertaLocalPublicDetailRowToDetail(
   row: OfertaLocalPublicDetailRow,
-  now: Date = new Date()
+  now: Date = new Date(),
+  partner?: OfertaLocalPartnerPublicVm,
 ): OfertaLocalPublicOfferDetail | null {
   if (!isOfertaLocalPublicOfferRowEligible(row, now)) return null;
 
-  const card = mapOfertaLocalPublicOfferRowToCard(row);
+  const card = mapOfertaLocalPublicOfferRowToCard(row, partner);
   const meta = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const socialLinks = parseOfertaLocalPublishedSocialLinksFromInternalNotes(row.internal_notes);
   const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot));
@@ -116,9 +123,20 @@ export function mapOfertaLocalPublicDetailRowToDetail(
     digitalCouponNote: sanitizeText(row.digital_coupon_note, 500) || null,
     socialLinks,
     wantsAiSearchableSpecials: meta.wantsAiSearchableSpecials,
-    isExpired: isOfertaLocalExpired(row.valid_until, now),
+    isExpired: isOfertaLocalPublicTermExpired(row.expires_at, now),
     businessLogoHref,
     phoneDisplay: phone,
+    pickupLocations: (partner?.pickupLocations ?? []).map((location) => ({
+      id: location.id,
+      displayName: sanitizeText(location.display_name, 160),
+      address: sanitizeText(location.address, 240),
+      city: sanitizeText(location.city, 80),
+      state: sanitizeText(location.state, 40),
+      zipCode: sanitizeText(location.zip_code, 20),
+      hours: sanitizeText(location.hours, 500),
+      contact: sanitizeText(location.contact, 160),
+      mapUrl: getSafeOfertaLocalSourceAssetHref(location.map_url),
+    })),
   };
 }
 
@@ -128,15 +146,26 @@ export async function fetchPublicOfertaLocalDetailById(
 ): Promise<OfertaLocalPublicOfferDetail | null> {
   const offerId = id.trim();
   if (!offerId) return null;
+  const now = new Date().toISOString();
 
   const { data, error } = await sb
     .from("ofertas_locales")
     .select(OFERTAS_LOCALES_PUBLIC_DETAIL_SELECT)
     .eq("id", offerId)
+    .eq("status", "approved")
+    .not("published_at", "is", null)
+    .not("expires_at", "is", null)
+    .gt("expires_at", now)
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapOfertaLocalPublicDetailRowToDetail(data as OfertaLocalPublicDetailRow);
+  const assignment = await fetchOfertaLocalActivePartnerAssignment(sb, offerId);
+  const pickupLocations =
+    assignment?.partner_organization_id && assignment.pickup_visibility_enabled
+      ? await fetchOfertaLocalPartnerPickupLocations(sb, assignment.partner_organization_id)
+      : [];
+  const partner = resolveOfertaLocalPartnerPublicVm({ assignment, pickupLocations });
+  return mapOfertaLocalPublicDetailRowToDetail(data as OfertaLocalPublicDetailRow, new Date(), partner);
 }
 
 export async function fetchPublicOfertaLocalItemsForOfferId(
@@ -146,6 +175,7 @@ export async function fetchPublicOfertaLocalItemsForOfferId(
 ): Promise<OfertaLocalPublicDetailHubItem[]> {
   const id = offerId.trim();
   if (!id) return [];
+  const now = new Date().toISOString();
 
   const { data, error } = await sb
     .from("oferta_local_items")
@@ -154,13 +184,18 @@ export async function fetchPublicOfertaLocalItemsForOfferId(
     .eq("review_status", "approved")
     .eq("is_active", true)
     .eq("ofertas_locales.status", "approved")
+    .not("ofertas_locales.published_at", "is", null)
+    .not("ofertas_locales.expires_at", "is", null)
+    .gt("ofertas_locales.expires_at", now)
     .order("updated_at", { ascending: false });
 
   if (error || !data) return [];
 
+  const assignment = await fetchOfertaLocalActivePartnerAssignment(sb, id);
+  const partner = resolveOfertaLocalPartnerPublicVm({ assignment });
   return (data as OfertaLocalPublicSearchJoinedRow[])
     .filter((row) => isOfertaLocalPublicSearchRowEligible(row))
-    .map((row) => mapOfertaLocalPublicDetailHubItemFromRow(row, lang));
+    .map((row) => mapOfertaLocalPublicDetailHubItemFromRow(row, lang, partner));
 }
 
 export function ofertaLocalPublicDetailPath(id: string, lang: "es" | "en"): string {

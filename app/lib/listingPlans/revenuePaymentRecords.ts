@@ -41,6 +41,7 @@ export type CreatePendingPaymentRecordInput = {
   addonOnly?: boolean;
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
+  renewalAttemptId?: string | null;
   returnContext?: string | null;
   /** Package C Build 1 — stable purchase-attempt identity (see computeCheckoutAttemptKey). */
   checkoutAttemptKey?: string | null;
@@ -149,6 +150,7 @@ export async function createPendingPaymentRecord(
         ...(input.operation ? { operation: input.operation } : {}),
         ...(input.sourceTable?.trim() ? { source_table: input.sourceTable.trim() } : {}),
         ...(input.currentExpiresAt?.trim() ? { current_expires_at: input.currentExpiresAt.trim() } : {}),
+        ...(input.renewalAttemptId?.trim() ? { renewal_attempt_id: input.renewalAttemptId.trim() } : {}),
         ...(input.returnContext?.trim() ? { return_context: input.returnContext.trim() } : {}),
         package_label: input.packageDef.label,
         destructive: false,

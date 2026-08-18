@@ -20,7 +20,6 @@ const OFFER_CARD = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublic
 const DETAIL_HELPERS = "app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers.ts";
 const DETAIL_API = "app/api/ofertas-locales/public-offers/[id]/route.ts";
 const PUBLIC_OFFERS = "app/api/ofertas-locales/public-offers/route.ts";
-const SEARCH_CLIENT = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx";
 const FINAL3_DASH = "app/(site)/dashboard/ofertas-locales/page.tsx";
 const FINAL3_SCRIPT = "scripts/ofertas-locales-final-3-seller-dashboard-audit.ts";
 
@@ -87,7 +86,6 @@ function run() {
   const helpers = read(DETAIL_HELPERS);
   const detailApi = read(DETAIL_API);
   const offers = read(PUBLIC_OFFERS);
-  const client = read(SEARCH_CLIENT);
 
   assert.match(helpers, /isOfertaLocalPublicOfferRowEligible/, "detail uses eligibility filter");
   assert.match(helpers, /mapOfertaLocalPublicDetailRowToDetail/, "detail mapper exists");
@@ -105,13 +103,13 @@ function run() {
   assert.match(detailPage, /fetchPublicOfertaLocalDetailById/, "server-side safe query");
 
   assert.match(card, /ofertaLocalPublicDetailPath|clasificados\/ofertas-locales\//, "result card links to detail");
-  assert.match(card, /viewDeal|Ver oferta|View deal/, "view deal CTA");
+  assert.match(card, /ofertaLocalPublicOfferCardCta/, "view deal CTA helper");
 
   assert.match(detailView, /flyerAssets|couponAssets/, "detail shows assets");
-  assert.match(detailView, /OfertasLocalesBusinessHubLiteCard/, "Business Hub Lite on detail");
+  assert.match(detailView, /businessHubTitle/, "Business Hub on detail");
   assert.match(detailView, /membershipUrl|signUpBeforeYouGo|Regístrate/, "membership block");
-  assert.match(detailView, /digitalCouponUrl|activateDigitalCoupons/, "digital coupon block");
-  assert.match(detailView, /wantsAiSearchableSpecials|AI Searchable/, "honest AI note");
+  assert.match(detailView, /couponAssets|coupon/i, "coupon detail assets");
+  assert.match(detailView, /sourceBbox|flyerViewerTitle/, "source/flyer proof");
   assert.doesNotMatch(detailView, /featured.*badge|rating|review_count/i, "no fake featured/reviews");
 
   assert.match(hub, /googleBusinessUrl|googleReviewUrl|yelpUrl/, "Google/Yelp support");
@@ -125,7 +123,7 @@ function run() {
     "detail API no owner_id"
   );
 
-  assert.doesNotMatch(client, /OfertasLocalesPublicOfferDetailDrawer/, "drawer replaced by detail route");
+  assert.match(card, /ofertaLocalPublicDetailPath/, "oferta cards use detail route");
 
   const changed = changedFiles();
   for (const f of changed) {

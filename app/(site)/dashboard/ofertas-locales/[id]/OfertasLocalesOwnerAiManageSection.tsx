@@ -17,6 +17,12 @@ type Props = {
   offerStatus: string;
 };
 
+const SCANNABLE_OWNER_STATUSES: ReadonlySet<string> = new Set([
+  "draft",
+  "submitted",
+  "pending_review",
+]);
+
 function firstScannableAsset(
   flyerAssets: OfertaLocalPublishedAssetMetadata[],
   couponAssets: OfertaLocalPublishedAssetMetadata[]
@@ -47,7 +53,7 @@ function firstScannableAsset(
 export function OfertasLocalesOwnerAiManageSection({
   lang,
   offerId,
-  wantsAiSearchableSpecials,
+  wantsAiSearchableSpecials: _legacyWantsAiSearchableSpecials,
   flyerAssets,
   couponAssets,
   offerStatus,
@@ -62,10 +68,8 @@ export function OfertasLocalesOwnerAiManageSection({
   );
 
   const canScan =
-    wantsAiSearchableSpecials &&
-    scannable &&
-    offerStatus !== "rejected" &&
-    offerStatus !== "archived";
+    Boolean(scannable) &&
+    SCANNABLE_OWNER_STATUSES.has(offerStatus);
 
   const handleScan = useCallback(async () => {
     if (!canScan || !scannable) return;
@@ -88,21 +92,23 @@ export function OfertasLocalesOwnerAiManageSection({
     setScanMessage(result.message ?? (lang === "es" ? "Escaneo completado." : "Scan completed."));
   }, [canScan, scannable, offerId, lang]);
 
-  if (!wantsAiSearchableSpecials) return null;
+  if (!scannable) return null;
 
   const t =
     lang === "es"
       ? {
-          title: "Revisión de artículos AI",
-          scan: "Escanear volante/cupón",
-          scanning: "Escaneando…",
-          scanHint: "Los artículos extraídos requieren aprobación antes de ser públicos.",
+          title: "Revisión de análisis con IA",
+          scan: "Analizar volante/cupón",
+          scanning: "Analizando…",
+          scanHint: "El análisis con IA está incluido. Los artículos sugeridos requieren aprobación antes de ser públicos.",
+          unavailable: "El análisis nuevo solo está disponible antes de la aprobación final.",
         }
       : {
-          title: "AI item review",
-          scan: "Scan flyer/coupon",
-          scanning: "Scanning…",
-          scanHint: "Extracted items require approval before they become public.",
+          title: "AI analysis review",
+          scan: "Analyze flyer/coupon",
+          scanning: "Analyzing…",
+          scanHint: "AI analysis is included. Suggested items require approval before they become public.",
+          unavailable: "New analysis is only available before final approval.",
         };
 
   return (
@@ -123,7 +129,9 @@ export function OfertasLocalesOwnerAiManageSection({
           </button>
           {scanMessage ? <p className="text-xs text-[#5C5346]">{scanMessage}</p> : null}
         </div>
-      ) : null}
+      ) : (
+        <p className="text-xs text-[#7A7164]">{t.unavailable}</p>
+      )}
       <OfertasLocalesAiItemReviewPanel lang={lang} ofertaLocalId={offerId} scanJobId={scanJobId} />
     </section>
   );

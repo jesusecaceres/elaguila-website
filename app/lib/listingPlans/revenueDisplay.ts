@@ -73,6 +73,7 @@ export function resolveRevenueCategoryLabel(category: string | null | undefined,
     "bienes-raices": { en: "Bienes Raíces", es: "Bienes Raíces" },
     restaurantes: { en: "Restaurantes", es: "Restaurantes" },
     servicios: { en: "Servicios", es: "Servicios" },
+    "ofertas-locales": { en: "Ofertas Locales", es: "Ofertas Locales" },
     viajes: { en: "Viajes", es: "Viajes" },
     clases: { en: "Clases", es: "Clases" },
     comunidad: { en: "Comunidad", es: "Comunidad" },
@@ -96,7 +97,11 @@ export function revenueAdPlanBadgeLabel(input: {
   const lang = input.lang;
 
   let planLabel: string | null = null;
-  if (key.includes("job_post") || key === "empleos_job_post_paid") {
+  if (key === "ofertas_locales_flyer_30d") {
+    planLabel = lang === "es" ? "Volante Leonix pagado" : "Paid Leonix flyer";
+  } else if (key === "ofertas_locales_coupons_30d") {
+    planLabel = lang === "es" ? "Cupón Leonix pagado" : "Paid Leonix coupon";
+  } else if (key.includes("job_post") || key === "empleos_job_post_paid") {
     planLabel = lang === "es" ? "Empleo pagado" : "Paid job";
   } else if (key.includes("restaurantes")) {
     planLabel = lang === "es" ? "Restaurante pagado" : "Paid restaurant";

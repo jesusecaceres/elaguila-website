@@ -9,6 +9,9 @@ export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 /** Publicar feria de empleos — always free (no Stripe, no promo). */
 export const EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY = "empleos_job_fair_free";
 
+export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+
 export type RevenueBillingMode =
   | "one_time"
   | "monthly_subscription"
@@ -289,6 +292,40 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     placementTierKey: "paid_private",
+    unresolvedOwnerDecision: null,
+  },
+  {
+    category: "ofertas-locales",
+    packageKey: OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+    customerType: "service_business",
+    pipeline: "interactive_flyer",
+    label: "Ofertas Locales interactive flyer 30-day",
+    priceCents: 39900,
+    billingMode: "one_time",
+    durationDays: 30,
+    includedInventory: "1 interactive flyer listing; AI extraction/review, searchable products, flyer page, product cards, and shopping list included",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+  },
+  {
+    category: "ofertas-locales",
+    packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+    customerType: "service_business",
+    pipeline: "coupons",
+    label: "Cupones Leonix 30-day",
+    priceCents: 19900,
+    billingMode: "one_time",
+    durationDays: 30,
+    includedInventory: "1 coupon or promotion listing; AI extraction/review and public coupon result/detail included",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
     unresolvedOwnerDecision: null,
   },
   {

@@ -27,6 +27,14 @@ export const ANONYMOUS_SAFE_ANALYTICS_EVENTS = new Set<ListingAnalyticsEventType
   "lead_created",
   "apply_started",
   "apply_submitted",
+  "flyer_page_view",
+  "product_impression",
+  "product_open",
+  "product_search",
+  "product_search_result_click",
+  "shopping_list_add",
+  "shopping_list_remove",
+  "coupon_open",
 ]);
 
 export const AUTH_REQUIRED_ANALYTICS_EVENTS = new Set<ListingAnalyticsEventType>([

@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadOfertaLocalAiScanSession } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
+import {
+  loadOfertaLocalSubmissionSession,
+  saveOfertaLocalSubmissionSession,
+} from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import { hasOfertaLocalDraftContent } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
-import { useOfertasLocalesAppLang, useOfertasLocalesPublishLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { useOfertasLocalesPublishLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { OfertasLocalesPreviewCard } from "./OfertasLocalesPreviewCard";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
@@ -18,7 +22,7 @@ const BTN_PRIMARY =
   "inline-flex items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926]";
 
 export default function OfertasLocalesPreviewClient() {
-  const { draft, hasLoadedDraft } = useOfertasLocalesDraft();
+  const { draft, hasLoadedDraft } = useOfertasLocalesDraft({ forceContinue: true });
   const { routeLang, copyLang: lang } = useOfertasLocalesPublishLang();
   const [aiItems, setAiItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
   const [aiReviewLoading, setAiReviewLoading] = useState(false);
@@ -34,6 +38,12 @@ export default function OfertasLocalesPreviewClient() {
   useEffect(() => {
     setAiSession(loadOfertaLocalAiScanSession());
   }, []);
+
+  useEffect(() => {
+    if (!hasLoadedDraft) return;
+    const stored = loadOfertaLocalSubmissionSession(draft.applicationSessionId);
+    if (stored) setPublishSuccess({ id: stored.id, status: stored.status });
+  }, [draft.applicationSessionId, hasLoadedDraft]);
 
   useEffect(() => {
     if (!aiSession.ofertaLocalId) return;
@@ -96,6 +106,11 @@ export default function OfertasLocalesPreviewClient() {
       return;
     }
     setPublishSuccess({ id: result.id, status: result.status });
+    saveOfertaLocalSubmissionSession({
+      applicationSessionId: draft.applicationSessionId,
+      id: result.id,
+      status: result.status,
+    });
   }, [aiSession.lastScanJobId, aiSession.ofertaLocalId, draft, lang, needsReviewCount]);
 
   if (!hasLoadedDraft) {

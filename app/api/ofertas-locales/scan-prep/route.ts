@@ -19,6 +19,7 @@ import {
   probeOfertasLocalesAiTables,
   schemaProbeFailureResponse,
 } from "@/app/lib/ofertas-locales/ofertasLocalesSupabaseSchema";
+import { ensureOfertaLocalLeonixAdId } from "@/app/lib/ofertas-locales/ofertasLocalesLeonixAdId";
 import type { OfertaLocalDraft, OfertaLocalPublishStatus } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -241,11 +242,14 @@ export async function POST(req: NextRequest) {
       return writeFailure("scan_prep_update_failed", error ?? { message: "unknown" }, supabaseUrl);
     }
 
+    const leonix = await ensureOfertaLocalLeonixAdId({ supabase, ofertaLocalId: data.id, ownerId });
+
     return NextResponse.json({
       ok: true,
       id: data.id,
       status: data.status,
       created: false,
+      leonixAdId: leonix.ok ? leonix.leonixAdId : null,
       updatedAt: now,
       submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
       routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
@@ -282,11 +286,14 @@ export async function POST(req: NextRequest) {
     return writeFailure("scan_prep_insert_failed", error ?? { message: "unknown" }, supabaseUrl);
   }
 
+  const leonix = await ensureOfertaLocalLeonixAdId({ supabase, ofertaLocalId: data.id, ownerId });
+
   return NextResponse.json({
     ok: true,
     id: data.id,
     status: data.status,
     created: true,
+    leonixAdId: leonix.ok ? leonix.leonixAdId : null,
     submittedAt: pickScanPrepSubmittedAt(data as Record<string, unknown>, now),
     routeVersion: OFERTAS_LOCALES_AI_SCAN_PREP_ROUTE_VERSION,
   });

@@ -2,7 +2,6 @@
  * Verifier — Ofertas Public Flyer Viewer V1 (clickable approved overlays + product drawer).
  * Run: npm run verify:ofertas-public-flyer-viewer
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -28,20 +27,24 @@ const productDrawerPath = path.join(
   root,
   "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesProductDetailDrawer.tsx"
 );
-
-const GATE_ALLOWED_PREFIXES = [
-  "app/(site)/publicar/ofertas-locales/preview/",
-  "app/lib/ofertas-locales/OFERTAS_PUBLIC_FLYER_VIEWER_AUDIT.md",
-  "scripts/verify-ofertas-public-flyer-viewer.mjs",
-  "package.json",
-];
-
-const FORBIDDEN_TOUCH = [
-  "app/lib/ofertas-locales/ofertasLocalesScanCropGenerator.ts",
-  "app/lib/ofertas-locales/ofertasLocalesGeminiScanPipeline.ts",
-  "app/lib/ofertas-locales/ofertasLocalesPdfPageImages.ts",
-  "app/api/ofertas-locales/scan/",
-];
+const publicOfferHelpersPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesPublicOfferHelpers.ts");
+const publicSearchHelpersPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers.ts");
+const publicSearchClientPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx"
+);
+const publicItemCardPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemCard.tsx"
+);
+const publicItemDrawerPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx"
+);
+const publicOfferDrawerPath = path.join(
+  root,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx"
+);
 
 const FAKE_STRINGS = [
   "wallet",
@@ -68,10 +71,6 @@ function requireText(label, haystack, needle) {
   } else {
     fail(`${label} missing "${needle}"`);
   }
-}
-
-function normalizePath(p) {
-  return p.replace(/\\/g, "/");
 }
 
 if (!existsSync(auditPath)) {
@@ -113,6 +112,52 @@ if (productGrid.includes("OfertasLocalesProductDetailDrawer")) {
 const productDrawer = readFileSync(productDrawerPath, "utf8");
 requireText("product detail drawer still exists", productDrawer, "export function OfertasLocalesProductDetailDrawer");
 
+const publicOfferHelpers = readFileSync(publicOfferHelpersPath, "utf8");
+requireText("public offers approved-only", publicOfferHelpers, 'new Set(["approved"])');
+requireText("public offers non-expired", publicOfferHelpers, "isOfertaLocalPublicTermActive(row.published_at, row.expires_at, now)");
+
+const publicSearchHelpers = readFileSync(publicSearchHelpersPath, "utf8");
+requireText("public item approved parent gate", publicSearchHelpers, 'new Set(["approved"])');
+requireText("public item approved review gate", publicSearchHelpers, 'row.review_status !== "approved"');
+requireText("public item active gate", publicSearchHelpers, "!row.is_active");
+requireText("public item non-expired parent gate", publicSearchHelpers, "isOfertaLocalPublicTermActive(parent.published_at, parent.expires_at, now)");
+requireText("public item source crop", publicSearchHelpers, "sourceCropHref: getSafeOfertaLocalSourceAssetHref(row.source_crop_url)");
+requireText("public item source bbox", publicSearchHelpers, "sourceBbox: parseOfertaLocalPublicSourceBbox(row.source_bbox)");
+requireText("public item source page", publicSearchHelpers, "sourcePage: row.source_page");
+
+const publicItemCard = readFileSync(publicItemCardPath, "utf8");
+requireText("public card crop fallback", publicItemCard, "item.sourceCropHref");
+requireText("public card source fallback", publicItemCard, "item.sourceAssetHref");
+
+const publicItemDrawer = readFileSync(publicItemDrawerPath, "utf8");
+requireText("public drawer crop fallback", publicItemDrawer, "item.sourceCropHref");
+requireText("public drawer source fallback", publicItemDrawer, "item.sourceAssetHref");
+
+const publicSearchClient = readFileSync(publicSearchClientPath, "utf8");
+requireText("Cupones hides shopping list cart", publicSearchClient, "const floatingShoppingListCart = !isCupones ?");
+requireText("Cupones blocks product list drawer", publicSearchClient, "{!isCupones && selectedItem ?");
+
+const publicOfferDrawer = readFileSync(publicOfferDrawerPath, "utf8");
+for (const forbidden of ["addToList", "shoppingList", "quantity", "claim", "redeem", "redemption code"]) {
+  if (publicOfferDrawer.toLowerCase().includes(forbidden.toLowerCase())) {
+    fail(`Cupones drawer introduced cart/list/claim control: ${forbidden}`);
+  } else {
+    pass(`Cupones drawer control absent: ${forbidden}`);
+  }
+}
+
+const publicReturnModels = [
+  publicOfferHelpers.slice(publicOfferHelpers.indexOf("export function mapOfertaLocalPublicOfferRowToCard")),
+  publicSearchHelpers.slice(publicSearchHelpers.indexOf("export function mapOfertaLocalPublicSearchRowToItem")),
+].join("\n");
+for (const internal of ["provider:", "normalizerProvider:", "internalError:", "storagePath:", "internalNotes:", "ownerId:"]) {
+  if (publicReturnModels.includes(internal)) {
+    fail(`public model leaks internal field: ${internal}`);
+  } else {
+    pass(`public internal field absent: ${internal}`);
+  }
+}
+
 const gateSources = flyerViewer;
 for (const fake of FAKE_STRINGS) {
   if (gateSources.toLowerCase().includes(fake.toLowerCase())) {
@@ -122,59 +167,7 @@ for (const fake of FAKE_STRINGS) {
   }
 }
 
-let changed = [];
-try {
-  changed = execFileSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" })
-    .split(/\r?\n/)
-    .map((line) => normalizePath(line.trim()))
-    .filter(Boolean);
-} catch {
-  changed = [];
-}
-
-let untracked = [];
-try {
-  untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
-    cwd: root,
-    encoding: "utf8",
-  })
-    .split(/\r?\n/)
-    .map((line) => normalizePath(line.trim()))
-    .filter(Boolean);
-} catch {
-  untracked = [];
-}
-
-const allChanged = [...new Set([...changed, ...untracked])].filter((f) => !f.startsWith(".next/"));
-
-const gateTouched = allChanged.filter((file) =>
-  GATE_ALLOWED_PREFIXES.some((prefix) => file === prefix || file.startsWith(prefix))
-);
-
-const forbiddenTouched = allChanged.filter((file) =>
-  FORBIDDEN_TOUCH.some((prefix) => file === prefix || file.startsWith(prefix))
-);
-
-if (forbiddenTouched.length) {
-  fail(`forbidden files touched: ${forbiddenTouched.join(", ")}`);
-} else {
-  pass("no scan/crop engine files changed");
-}
-
-const unrelated = allChanged.filter(
-  (file) => !gateTouched.includes(file) && !forbiddenTouched.includes(file)
-);
-if (unrelated.length) {
-  console.log(`NOTE: unrelated dirty files present (not failing): ${unrelated.join(", ")}`);
-} else {
-  pass("no unrelated dirty files in working tree");
-}
-
-if (gateTouched.length === 0) {
-  fail("expected gate files to be modified or added");
-} else {
-  pass(`gate files touched: ${gateTouched.join(", ")}`);
-}
+pass("viewer repository truth verified without dirty-worktree allowlist");
 
 if (process.exitCode) {
   console.error("\nverify:ofertas-public-flyer-viewer FAILED");

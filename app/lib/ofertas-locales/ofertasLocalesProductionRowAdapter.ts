@@ -8,6 +8,7 @@ import {
   parseOfertaLocalDraftSnapshot,
   type OfertaLocalDraftSnapshot,
 } from "./ofertasLocalesDbSchema";
+import { getOfertaLocalCommercialProductForDraft } from "./ofertasLocalesCommercial";
 import { inferPrimaryAdFormatFromDraft } from "./ofertasLocalesTwoLaneProductModel";
 import { normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
 import { normalizeOfertaLocalCountryDisplay } from "./ofertasLocalesLocationHelpers";
@@ -51,6 +52,7 @@ export function buildOfertasLocalesProductionInsertRow(
   const now = new Date().toISOString();
   const canonical = mapOfertaLocalDraftToInsertPayload(draft, ownerId);
   const primaryAdFormat = inferPrimaryAdFormatFromDraft(draft);
+  const product = getOfertaLocalCommercialProductForDraft(draft);
 
   const row: Record<string, unknown> = {
     ...canonical,
@@ -71,6 +73,11 @@ export function buildOfertasLocalesProductionInsertRow(
     google_review_url: optionalUrl(draft.googleReviewUrl),
     yelp_url: optionalUrl(draft.yelpUrl),
     draft_snapshot: buildDraftSnapshotFromDraft(draft, existingSnapshot),
+    commercial_product_key: product?.packageKey ?? null,
+    commercial_amount_cents: product?.amountCents ?? null,
+    commercial_currency: product?.currency ?? null,
+    commercial_duration_days: product?.durationDays ?? null,
+    commercial_ai_included: product?.aiIncluded ?? null,
     updated_at: now,
   };
 

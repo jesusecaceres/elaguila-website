@@ -17,6 +17,8 @@ export const OFERTAS_LOCALES_SHOPPING_LIST_MAX_NOTE = 140;
 
 export type OfertaLocalShoppingListItem = {
   itemId: string;
+  ofertaLocalId: string;
+  leonixAdId: string;
   itemName: string;
   priceText: string;
   priceAmount: number | null;
@@ -31,6 +33,7 @@ export type OfertaLocalShoppingListItem = {
   websiteHref: string | null;
   directionsHref: string | null;
   sourceAssetHref: string | null;
+  sourceAssetVersionId: string | null;
   validFrom: string | null;
   validUntil: string | null;
   quantity: number;
@@ -91,6 +94,8 @@ export function createShoppingListItemFromPublicItem(
   const zipCode = sanitizeText(item.zipCode, 10);
   return {
     itemId: sanitizeText(item.id, 64),
+    ofertaLocalId: sanitizeText(item.ofertaLocalId, 64),
+    leonixAdId: sanitizeText(item.leonixAdId, 64),
     itemName: sanitizeText(item.itemName, 200),
     priceText: sanitizeText(item.priceText, 64),
     priceAmount: item.priceAmount,
@@ -105,6 +110,7 @@ export function createShoppingListItemFromPublicItem(
     websiteHref: item.websiteHref,
     directionsHref: item.directionsHref,
     sourceAssetHref: item.sourceAssetHref,
+    sourceAssetVersionId: item.sourceAssetVersionId,
     validFrom: item.validFrom,
     validUntil: item.validUntil,
     quantity: OFERTAS_LOCALES_SHOPPING_LIST_MIN_QTY,
@@ -233,6 +239,8 @@ export function serializeOfertaLocalShoppingList(list: OfertaLocalShoppingListSt
     updatedAt: list.updatedAt,
     items: list.items.map((item) => ({
       itemId: item.itemId,
+      ofertaLocalId: item.ofertaLocalId,
+      leonixAdId: item.leonixAdId,
       itemName: item.itemName,
       priceText: item.priceText,
       priceAmount: item.priceAmount,
@@ -247,6 +255,7 @@ export function serializeOfertaLocalShoppingList(list: OfertaLocalShoppingListSt
       websiteHref: item.websiteHref,
       directionsHref: item.directionsHref,
       sourceAssetHref: item.sourceAssetHref,
+      sourceAssetVersionId: item.sourceAssetVersionId,
       validFrom: item.validFrom,
       validUntil: item.validUntil,
       quantity: clampQuantity(item.quantity),
@@ -275,6 +284,8 @@ export function parseOfertaLocalShoppingList(value: string | null | undefined): 
       const zipCode = sanitizeText(String(o.zipCode ?? ""), 10);
       items.push({
         itemId,
+        ofertaLocalId: sanitizeText(String(o.ofertaLocalId ?? ""), 64),
+        leonixAdId: sanitizeText(String(o.leonixAdId ?? ""), 64),
         itemName,
         priceText: sanitizeText(String(o.priceText ?? ""), 64),
         priceAmount:
@@ -292,6 +303,7 @@ export function parseOfertaLocalShoppingList(value: string | null | undefined): 
         websiteHref: o.websiteHref ? sanitizeText(String(o.websiteHref), 500) : null,
         directionsHref: o.directionsHref ? sanitizeText(String(o.directionsHref), 500) : null,
         sourceAssetHref: o.sourceAssetHref ? sanitizeText(String(o.sourceAssetHref), 500) : null,
+        sourceAssetVersionId: o.sourceAssetVersionId ? sanitizeText(String(o.sourceAssetVersionId), 64) : null,
         validFrom: o.validFrom ? sanitizeText(String(o.validFrom), 32) : null,
         validUntil: o.validUntil ? sanitizeText(String(o.validUntil), 32) : null,
         quantity: clampQuantity(Number(o.quantity)),

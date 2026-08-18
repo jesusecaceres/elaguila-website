@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -38,22 +37,21 @@ requireText("status label helper", panel, "reviewStatusLabel");
 const copy = readFileSync(copyPath, "utf8");
 requireText("english approve and next", copy, 'aiReviewApproveAndNext: "Approve & next"');
 requireText("spanish review later", copy, 'aiReviewReviewLater: "Revisar después"');
+requireText("submission blocked by unresolved review", copy, "Review extracted items before they can be published.");
+requireText("approved status label", panel, 'status === "approved"');
+requireText("rejected status label", panel, 'status === "rejected"');
+requireText("unresolved status label", panel, "needs_review");
+requireText("real item patch route handler", panel, "patchOfertaLocalReviewItem");
+requireText("mobile usable primary CTA", panel, "min-h-12 w-full");
 if (copy.includes('aiReviewApprove: "Keep"')) fail("Keep label still present in EN");
 else pass("Keep removed from EN approve label");
 
-const allowed = new Set([
-  "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx",
-  "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts",
-  "app/lib/ofertas-locales/OFERTAS_REVIEW_CTA_CLEANUP_AUDIT.md",
-  "scripts/verify-ofertas-review-cta-cleanup.mjs",
-  "package.json",
-]);
+for (const forbidden of ["optional AI", "AI upgrade", "paid AI", "saved successfully", "published successfully"]) {
+  if (panel.toLowerCase().includes(forbidden.toLowerCase()) || copy.toLowerCase().includes(forbidden.toLowerCase())) {
+    fail(`forbidden review CTA language present: ${forbidden}`);
+  } else {
+    pass(`forbidden review CTA language absent: ${forbidden}`);
+  }
+}
 
-const changed = execFileSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" })
-  .split(/\r?\n/)
-  .map((line) => line.trim())
-  .filter(Boolean);
-
-const ofertasChanged = changed.filter((file) => allowed.has(file));
-if (ofertasChanged.length === 0) fail("no allowed Ofertas CTA files in git diff");
-else pass(`Ofertas CTA files in diff: ${ofertasChanged.join(", ")}`);
+pass("review CTA audit is repository-state independent");

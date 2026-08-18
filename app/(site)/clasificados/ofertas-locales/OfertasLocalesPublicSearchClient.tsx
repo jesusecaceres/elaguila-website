@@ -40,6 +40,10 @@ import {
   OFERTA_LOCAL_DEFAULT_COUNTRY,
   readOfertaLocalPostalFromSearchParams,
 } from "@/app/lib/ofertas-locales/ofertasLocalesLocationHelpers";
+import {
+  trackOfertaLocalEvent,
+  trackOfertaLocalProductOpen,
+} from "@/app/lib/ofertas-locales/ofertasLocalesPublicAnalytics";
 
 const OFERTAS_LOCALES_LANDING_PATH = "/clasificados/ofertas-locales";
 const OFERTAS_LOCALES_RESULTS_PATH = "/clasificados/ofertas-locales/results";
@@ -158,10 +162,11 @@ export function OfertasLocalesPublicSearchClient({
     searchParams ? readOfertaLocalPostalFromSearchParams(searchParams) : ""
   );
   const [country, setCountry] = useState(() => searchParams?.get("country") ?? "");
+  const [business, setBusiness] = useState(() => searchParams?.get("business") ?? "");
   const [category, setCategory] = useState(() => searchParams?.get("category") ?? "");
   const [marketType, setMarketType] = useState(() => searchParams?.get("marketType") ?? "");
   const [offerType, setOfferType] = useState(() => searchParams?.get("offerType") ?? "");
-  const [sort, setSort] = useState(() => searchParams?.get("sort") ?? "newest");
+  const [sort, setSort] = useState(() => searchParams?.get("sort") ?? "relevance");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [offers, setOffers] = useState<OfertaLocalPublicOfferCard[]>([]);
@@ -232,12 +237,13 @@ export function OfertasLocalesPublicSearchClient({
     setState(searchParams?.get("state") ?? "");
     setZip(searchParams?.get("zip") ?? "");
     setCountry(searchParams?.get("country") ?? "");
+    setBusiness(searchParams?.get("business") ?? "");
     setCategory(searchParams?.get("category") ?? "");
     setMarketType(searchParams?.get("marketType") ?? "");
     const nextOfferType = searchParams?.get("offerType") ?? "";
     setOfferType(isCupones && nextOfferType && !CUPON_SURFACE_OFFER_TYPE_SET.has(nextOfferType) ? "" : nextOfferType);
-    const nextSort = searchParams?.get("sort") ?? "newest";
-    setSort(isCupones && nextSort === "price_low" ? "newest" : nextSort);
+    const nextSort = searchParams?.get("sort") ?? "relevance";
+    setSort(isCupones && nextSort === "price_low" ? "relevance" : nextSort);
   }, [searchParams, isCupones]);
 
   useEffect(() => {
@@ -260,6 +266,7 @@ export function OfertasLocalesPublicSearchClient({
       state: string;
       zip: string;
       country: string;
+      business: string;
       category: string;
       marketType: string;
       offerType: string;
@@ -273,6 +280,7 @@ export function OfertasLocalesPublicSearchClient({
         state: overrides?.state ?? state,
         zip: overrides?.zip ?? zip,
         country: overrides?.country ?? country,
+        business: overrides?.business ?? business,
         category: overrides?.category ?? category,
         marketType: overrides?.marketType ?? marketType,
         offerType: overrides?.offerType ?? offerType,
@@ -283,17 +291,18 @@ export function OfertasLocalesPublicSearchClient({
       if (next.state.trim()) params.set("state", next.state.trim());
       if (next.zip.trim()) params.set("zip", next.zip.trim());
       if (next.country.trim()) params.set("country", next.country.trim());
+      if (next.business.trim()) params.set("business", next.business.trim());
       if (next.category.trim()) params.set("category", next.category.trim());
       if (next.marketType.trim()) params.set("marketType", next.marketType.trim());
       if (next.offerType.trim() && (!isCupones || CUPON_SURFACE_OFFER_TYPE_SET.has(next.offerType.trim()))) {
         params.set("offerType", next.offerType.trim());
       }
-      if (next.sort && next.sort !== "newest" && (!isCupones || next.sort !== "price_low")) params.set("sort", next.sort);
+      if (next.sort && next.sort !== "relevance" && (!isCupones || next.sort !== "price_low")) params.set("sort", next.sort);
       const mode = searchParams?.get("mode")?.trim();
       if (mode) params.set("mode", mode);
       router.push(`${resultsPath}?${params.toString()}`);
     },
-    [router, lang, q, city, state, zip, country, category, marketType, offerType, sort, isCupones, resultsPath, searchParams]
+    [router, lang, q, city, state, zip, country, business, category, marketType, offerType, sort, isCupones, resultsPath, searchParams]
   );
 
   const browseAllHref = `${browsePath}?lang=${lang}`;
@@ -328,7 +337,7 @@ export function OfertasLocalesPublicSearchClient({
   const publishHref = isCupones
     ? `/publicar/ofertas-locales?lang=${lang}&product=coupon_promotion`
     : `/publicar/ofertas-locales?lang=${lang}`;
-  const hasFilters = Boolean(q || city || state || zip || country || category || marketType || offerType || (sort && sort !== "newest"));
+  const hasFilters = Boolean(q || city || state || zip || country || business || category || marketType || offerType || (sort && sort !== "relevance"));
   const shopperMode = !isCupones
     ? resolveOfertasLocalesShopperMode({
         modeParam: searchParams?.get("mode"),
@@ -363,6 +372,7 @@ export function OfertasLocalesPublicSearchClient({
     ...(state ? [{ id: "state", label: state, onClear: () => pushSearch({ state: "" }) }] : []),
     ...(zip ? [{ id: "zip", label: zip, onClear: () => pushSearch({ zip: "" }) }] : []),
     ...(country ? [{ id: "country", label: country, onClear: () => pushSearch({ country: "" }) }] : []),
+    ...(business ? [{ id: "business", label: business, onClear: () => pushSearch({ business: "" }) }] : []),
     ...(category ? [{ id: "category", label: category, onClear: () => pushSearch({ category: "" }) }] : []),
     ...(marketType ? [{ id: "marketType", label: marketType, onClear: () => pushSearch({ marketType: "" }) }] : []),
     ...(offerType ? [{ id: "offerType", label: offerType, onClear: () => pushSearch({ offerType: "" }) }] : []),
@@ -375,12 +385,97 @@ export function OfertasLocalesPublicSearchClient({
     setState("");
     setZip("");
     setCountry("");
+    setBusiness("");
     setCategory("");
     setMarketType("");
     setOfferType("");
-    setSort("newest");
+    setSort("relevance");
     router.push(`${clearPath}?lang=${lang}`);
   };
+
+  useEffect(() => {
+    if (loading) return;
+    const representative = filteredItems[0] ?? null;
+    if (!representative || !q.trim()) return;
+    trackOfertaLocalEvent(
+      { ofertaLocalId: representative.ofertaLocalId, leonixAdId: representative.leonixAdId },
+      "product_search",
+      {
+        surface: isCupones ? "cupones_results" : "ofertas_results",
+        query: q.trim().slice(0, 120),
+        resultCount,
+        city,
+        state,
+        zip,
+        country,
+        business,
+        category,
+        marketType,
+        offerType,
+      },
+    );
+  }, [business, category, city, country, filteredItems, isCupones, loading, marketType, offerType, q, resultCount, state, zip]);
+
+  useEffect(() => {
+    if (loading || isCupones) return;
+    filteredItems.slice(0, 60).forEach((item, index) => {
+      trackOfertaLocalEvent(
+        { ofertaLocalId: item.ofertaLocalId, leonixAdId: item.leonixAdId },
+        "product_impression",
+        {
+          surface: "ofertas_results",
+          productId: item.id,
+          resultPosition: index + 1,
+          partnerStatus: item.partner.isVerifiedPartner ? "verified_partner" : "standard",
+        },
+      );
+    });
+  }, [filteredItems, isCupones, loading]);
+
+  const handleOpenItem = useCallback((item: OfertaLocalPublicSearchItem, position?: number) => {
+    trackOfertaLocalProductOpen({ ofertaLocalId: item.ofertaLocalId, leonixAdId: item.leonixAdId }, item, "ofertas_results");
+    trackOfertaLocalEvent({ ofertaLocalId: item.ofertaLocalId, leonixAdId: item.leonixAdId }, "product_search_result_click", {
+      productId: item.id,
+      resultPosition: position ?? null,
+      partnerStatus: item.partner.isVerifiedPartner ? "verified_partner" : "standard",
+    });
+    setSelectedItem(item);
+  }, []);
+
+  const handleAddItem = useCallback((item: OfertaLocalPublicSearchItem) => {
+    if (item.offerType === "weekly_flyer") {
+      trackOfertaLocalEvent({ ofertaLocalId: item.ofertaLocalId, leonixAdId: item.leonixAdId }, "shopping_list_add", {
+        productId: item.id,
+        partnerStatus: item.partner.isVerifiedPartner ? "verified_partner" : "standard",
+      });
+    }
+    shoppingList.addFromPublicItem(item);
+  }, [shoppingList]);
+
+  const handleRemoveItem = useCallback((itemId: string) => {
+    const item = filteredItems.find((candidate) => candidate.id === itemId);
+    if (item) {
+      trackOfertaLocalEvent(
+        { ofertaLocalId: item.ofertaLocalId, leonixAdId: item.leonixAdId },
+        "shopping_list_remove",
+        { productId: itemId },
+      );
+    }
+    shoppingList.removeItem(itemId);
+  }, [filteredItems, shoppingList]);
+
+  const handleOpenOffer = useCallback((offer: OfertaLocalPublicOfferCard) => {
+    trackOfertaLocalEvent({ ofertaLocalId: offer.id, leonixAdId: offer.leonixAdId }, "listing_open", {
+      surface: surface === "cupones" ? "cupones_results" : "ofertas_results",
+      partnerStatus: offer.partner.isVerifiedPartner ? "verified_partner" : "standard",
+    });
+    if (surface === "cupones") {
+      trackOfertaLocalEvent({ ofertaLocalId: offer.id, leonixAdId: offer.leonixAdId }, "coupon_open", {
+        surface: "cupones_results",
+        partnerStatus: offer.partner.isVerifiedPartner ? "verified_partner" : "standard",
+      });
+    }
+  }, [surface]);
 
   const applyDrawerFilters = () => {
     setFiltersOpen(false);
@@ -439,6 +534,7 @@ export function OfertasLocalesPublicSearchClient({
                 offer={offer}
                 surface={surface}
                 onSelect={isCupones ? setSelectedCouponOffer : undefined}
+                onOpen={handleOpenOffer}
               />
             </li>
           ))}
@@ -451,15 +547,15 @@ export function OfertasLocalesPublicSearchClient({
       <section>
         <h2 className="mb-3 font-serif text-base font-bold text-[#2A4536] sm:mb-4 sm:text-lg">{sectionTitle}</h2>
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item, index) => (
             <li key={item.id}>
               <OfertasLocalesPublicItemCard
                 lang={lang}
                 item={item}
                 isAdded={shoppingList.isAdded(item.id)}
-                onSelect={setSelectedItem}
-                onAdd={shoppingList.addFromPublicItem}
-                onRemove={shoppingList.removeItem}
+                onSelect={() => handleOpenItem(item, index + 1)}
+                onAdd={handleAddItem}
+                onRemove={handleRemoveItem}
                 onOpenList={() => setListOpen(true)}
               />
             </li>
@@ -582,6 +678,7 @@ export function OfertasLocalesPublicSearchClient({
                   pushSearch({ sort: value });
                 }}
                 sortOptions={[
+                  { value: "relevance", label: lang === "es" ? "Relevancia" : "Relevance" },
                   { value: "newest", label: lang === "es" ? "Más recientes" : "Newest" },
                   { value: "expiring_soon", label: lang === "es" ? "Terminan pronto" : "Expiring soon" },
                   ...(isCupones
@@ -754,6 +851,7 @@ export function OfertasLocalesPublicSearchClient({
         state={state}
         zip={zip}
         country={country}
+        business={business}
         category={category}
         marketType={marketType}
         offerType={offerType}
@@ -762,6 +860,7 @@ export function OfertasLocalesPublicSearchClient({
         onStateChange={setState}
         onZipChange={setZip}
         onCountryChange={setCountry}
+        onBusinessChange={setBusiness}
         onCategoryChange={setCategory}
         onMarketTypeChange={setMarketType}
         onOfferTypeChange={setOfferType}
@@ -778,8 +877,8 @@ export function OfertasLocalesPublicSearchClient({
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
           isAdded={shoppingList.isAdded(selectedItem.id)}
-          onAdd={shoppingList.addFromPublicItem}
-          onRemove={shoppingList.removeItem}
+          onAdd={handleAddItem}
+          onRemove={handleRemoveItem}
           onOpenList={() => {
             setSelectedItem(null);
             setListOpen(true);
@@ -803,7 +902,7 @@ export function OfertasLocalesPublicSearchClient({
           storeCount={shoppingList.counts.storeCount}
           itemCount={shoppingList.counts.itemCount}
           onClose={() => setListOpen(false)}
-          onRemove={shoppingList.removeItem}
+          onRemove={handleRemoveItem}
           onUpdateQuantity={shoppingList.updateQuantity}
           onUpdateNote={shoppingList.updateNote}
           onClear={shoppingList.clearList}

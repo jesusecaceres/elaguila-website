@@ -3,14 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  getOfertaLocalApplicationDisplayPrice,
-  getOfertaLocalProductDisplayLabel,
   hasOfertaLocalAddressAccepted,
   hasOfertaLocalUrlAccepted,
   isOfertaLocalAiIncludedInPackage,
-  isOfertaLocalCouponPromotionFlow,
   isOfertaLocalEmailFormatValid,
-  isOfertaLocalWeeklyFlyerFlow,
   normalizeOfertaLocalEmailInput,
   resolveOfertaLocalContactEmail,
 } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
@@ -50,7 +46,12 @@ import {
   getSubtypeLabelForBusinessCategory,
   getSubtypeOptionsForBusinessCategory,
 } from "@/app/lib/ofertas-locales/ofertasLocalesBusinessCategoryUx";
-import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
+import {
+  loadOfertaLocalSubmissionSession,
+  loadOfertaLocalWizardStep,
+  saveOfertaLocalDraftToStorage,
+  saveOfertaLocalWizardStep,
+} from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import { uploadOfertaLocalDraftAsset } from "@/app/lib/ofertas-locales/ofertasLocalesAssetUpload";
 import { validateOfertaLocalClientAssetFile } from "@/app/lib/ofertas-locales/ofertasLocalesClientUploadValidation";
 import { getOfertaLocalBusinessLogoUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
@@ -60,7 +61,6 @@ import {
   saveOfertaLocalAiScanSession,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
-import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type {
   OfertaLocalBusinessCategory,
@@ -87,12 +87,9 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OfertasLocalesAiScanReviewWorkspace } from "./OfertasLocalesAiScanReviewWorkspace";
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
-import { OfertasLocalesClickableItemPreviewPanel } from "./OfertasLocalesClickableItemPreviewPanel";
+import { OfertasLocalesCommercialSummary } from "./OfertasLocalesCommercialSummary";
 import { OfertasLocalesDraftAssetSection } from "./OfertasLocalesDraftAssetSection";
-import {
-  OFERTAS_LOCALES_SHELL_COPY,
-  ofertasLocalesAppCopy,
-} from "./ofertasLocalesApplicationCopy";
+import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 import { OfertasLocalesValidationPanel } from "./OfertasLocalesValidationPanel";
 import {
   ofertaLocalDraftHasUnuploadedAssetMetadata,
@@ -260,6 +257,12 @@ function formatSavedAt(ts: number | null, lang: "es" | "en"): string | null {
 
 export default function OfertasLocalesApplicationClient() {
   const searchParams = useSearchParams();
+  const requestedInitialStep = searchParams?.get("step") ?? "";
+  const requestedProduct = searchParams?.get("product") ?? "";
+  const requestedIntent = searchParams?.get("intent") ?? "";
+  const requestedFresh = searchParams?.get("fresh") ?? "";
+  const requestedReview = searchParams?.get("review") ?? "";
+  const requestedListingId = searchParams?.get("listing") ?? searchParams?.get("id") ?? "";
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = useOfertasLocalesAppLang();
   const c = ofertasLocalesAppCopy(lang);
@@ -269,12 +272,19 @@ export default function OfertasLocalesApplicationClient() {
     sourceCta: "more_exposure_contact",
     inquiryType: "advertising",
   });
-  const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft();
+  const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft({
+    signals: {
+      intent: requestedIntent,
+      fresh: requestedFresh,
+      step: requestedInitialStep,
+      listingId: requestedListingId,
+      review: requestedReview,
+    },
+  });
   const [step, setStep] = useState<OfertasLocalesWizardStepId>(1);
   const [step5PendingFileCount, setStep5PendingFileCount] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
+  const stepRestoredRef = useRef(false);
   const [aiScanRecordId, setAiScanRecordId] = useState<string | null>(
     () => loadOfertaLocalAiScanSession().ofertaLocalId
   );
@@ -304,6 +314,8 @@ export default function OfertasLocalesApplicationClient() {
     leonixRules: false,
   });
   const [signedIn, setSignedIn] = useState(true);
+  const initialStepAppliedRef = useRef(false);
+  const initialProductAppliedRef = useRef(false);
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
   const aiIncludedInPackage = isOfertaLocalAiIncludedInPackage(draft);
@@ -312,6 +324,83 @@ export default function OfertasLocalesApplicationClient() {
   const hasExistingAiScan =
     aiIncludedInPackage &&
     Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
+
+  useEffect(() => {
+    if (!hasLoadedDraft || initialStepAppliedRef.current) return;
+    initialStepAppliedRef.current = true;
+    const requested = Number.parseInt(requestedInitialStep, 10);
+    if (Number.isFinite(requested)) {
+      setStep(clampWizardStep(requested));
+      return;
+    }
+    const storedStep = loadOfertaLocalWizardStep(draft.applicationSessionId);
+    if (storedStep) setStep(clampWizardStep(storedStep));
+  }, [draft.applicationSessionId, hasLoadedDraft, requestedInitialStep]);
+
+  useEffect(() => {
+    if (!hasLoadedDraft) return;
+    saveOfertaLocalWizardStep(draft.applicationSessionId, step);
+  }, [draft.applicationSessionId, hasLoadedDraft, step]);
+
+  useEffect(() => {
+    if (!hasLoadedDraft || stepRestoredRef.current) return;
+    stepRestoredRef.current = true;
+    const storedSubmission = loadOfertaLocalSubmissionSession(draft.applicationSessionId);
+    if (storedSubmission) {
+      setSubmitSuccess({ id: storedSubmission.id, status: storedSubmission.status });
+      setAiScanRecordId(storedSubmission.id);
+    }
+  }, [draft.applicationSessionId, hasLoadedDraft]);
+
+  useEffect(() => {
+    if (!hasLoadedDraft) return;
+    if (requestedReview === "1" || requestedReview === "true") {
+      setStep(5);
+      setStep5ManualCheckpoint("review");
+      window.setTimeout(() => {
+        reviewWorkbenchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+    }
+  }, [hasLoadedDraft, requestedReview]);
+
+  useEffect(() => {
+    if (!hasLoadedDraft || initialProductAppliedRef.current) return;
+    const normalizedProduct = requestedProduct.trim().toLowerCase();
+    const requestedLane =
+      normalizedProduct === "coupon_promotion" ||
+      normalizedProduct === "coupons" ||
+      normalizedProduct === "local_coupons"
+        ? "local_coupons"
+        : normalizedProduct === "weekly_flyer" ||
+            normalizedProduct === "interactive_flyer" ||
+            normalizedProduct === "shopping_specials"
+          ? "shopping_specials"
+          : "";
+    if (!requestedLane) return;
+    initialProductAppliedRef.current = true;
+    const currentLane = inferPrimaryAdFormatFromDraft(draft);
+    if (currentLane === requestedLane) return;
+    const hasDraftContent = Boolean(
+      draft.businessName.trim() ||
+        draft.title.trim() ||
+        draft.description.trim() ||
+        draft.couponText.trim() ||
+        draft.flyerAssets.some((asset) => asset.status !== "removed") ||
+        draft.couponAssets.some((asset) => asset.status !== "removed")
+    );
+    if (hasDraftContent) {
+      const ok = window.confirm(
+        lang === "en"
+          ? "Switch this application to the selected product lane? Some flyer/coupon wording may change."
+          : "¿Cambiar esta solicitud al producto seleccionado? Algunos textos de volante/cupón pueden cambiar."
+      );
+      if (!ok) return;
+    }
+    updateDraft({
+      ...buildPrimaryAdFormatChangePatch(draft, requestedLane),
+      wantsAiSearchableSpecials: true,
+    });
+  }, [draft, hasLoadedDraft, lang, requestedProduct, updateDraft]);
 
   useEffect(() => {
     saveOfertaLocalAiScanSession({
@@ -362,7 +451,6 @@ export default function OfertasLocalesApplicationClient() {
     clearOfertaLocalAiScanSession();
     resetDraft();
     setSubmitSuccess(null);
-    setSubmitError(null);
     setAiScanRecordId(null);
     setLastScanJobId(null);
     setScanPollingActive(false);
@@ -401,8 +489,6 @@ export default function OfertasLocalesApplicationClient() {
   const previewReady = previewIssues.length === 0;
   const publishFieldsReady = serverPublishIssues.every((i) => i.severity !== "error");
 
-  const isFlyer = isOfertaLocalWeeklyFlyerFlow(draft.offerType);
-  const isCouponPromo = isOfertaLocalCouponPromotionFlow(draft.offerType);
   const isShoppingLane = isOfertaLocalShoppingSpecialsLane(draft);
   const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
 
@@ -494,7 +580,6 @@ export default function OfertasLocalesApplicationClient() {
   }, [step]);
 
   const primaryFormat = inferPrimaryAdFormatFromDraft(draft);
-  const packageDisplayPrice = getOfertaLocalApplicationDisplayPrice(draft);
   const emailMalformed =
     draft.email.trim().length > 0 && !isOfertaLocalEmailFormatValid(draft.email);
   const step7ConfirmationsComplete = useMemo(() => {
@@ -600,33 +685,6 @@ export default function OfertasLocalesApplicationClient() {
     saveOfertaLocalDraftToStorage(draft);
   }, [draft]);
 
-  const handleSubmitForReview = useCallback(async () => {
-    setSubmitError(null);
-    setSubmitting(true);
-    try {
-      saveOfertaLocalDraftToStorage(draft);
-      const result = await submitOfertaLocalDraftForReview(draft, {
-        ofertaLocalId: aiReviewGate.activeSourceAssetId ? effectiveOfertaLocalId ?? null : null,
-        scanJobId: aiReviewGate.activeScanJobId,
-      });
-      if (!result.ok) {
-        const msg =
-          result.issues?.map((i) => i.message).join(" ") ||
-          result.detail ||
-          result.error ||
-          c.submitFailed;
-        setSubmitError(msg);
-        return;
-      }
-      setSubmitSuccess({ id: result.id, status: result.status });
-      setAiScanRecordId(result.id);
-    } catch {
-      setSubmitError(c.submitFailed);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [aiReviewGate.activeScanJobId, aiReviewGate.activeSourceAssetId, c.submitFailed, draft, effectiveOfertaLocalId]);
-
   const goNext = useCallback(() => {
     if (step === 5) {
       if (!step5UploadComplete) return;
@@ -688,7 +746,15 @@ export default function OfertasLocalesApplicationClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales/preview", routeLang);
+  const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales/preview", routeLang, {
+    intent: "continue",
+  });
+
+  const goToStep6 = useCallback(() => {
+    setStep5ManualCheckpoint(null);
+    setStep(6);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   if (!hasLoadedDraft) {
     return (
@@ -725,6 +791,7 @@ export default function OfertasLocalesApplicationClient() {
                   ? OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.interactive_flyer
                   : OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.coupons;
                 const title = isFlyerLane ? c.step1InteractiveFlyerTitle : c.step1CouponsTitle;
+                const cta = isFlyerLane ? c.step1InteractiveFlyerCta : c.step1CouponsCta;
                 const description = isFlyerLane
                   ? c.step1InteractiveFlyerDescription
                   : c.step1CouponsDescription;
@@ -760,6 +827,9 @@ export default function OfertasLocalesApplicationClient() {
                         <li key={item}>· {item}</li>
                       ))}
                     </ul>
+                    <span className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white">
+                      {cta}
+                    </span>
                   </button>
                 );
               })}
@@ -919,7 +989,6 @@ export default function OfertasLocalesApplicationClient() {
                 ) : null}
                 {resolvedBusinessLogoUrl ? (
                   <div className="flex items-center gap-3 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/80 p-2.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolvedBusinessLogoUrl}
                       alt={lang === "en" ? "Business logo preview" : "Vista previa del logo"}
@@ -1178,8 +1247,8 @@ export default function OfertasLocalesApplicationClient() {
                 sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
                 sectionHelper={
                   lang === "en"
-                    ? "Upload your full weekly flyer. AI product extraction is available when you select the AI add-on."
-                    : "Sube tu volante semanal completo. La extracción AI de productos está disponible si seleccionas el complemento AI."
+                    ? "Upload your full weekly flyer. AI analysis is included and prepares product suggestions for review."
+                    : "Sube tu volante semanal completo. El análisis con IA está incluido y prepara sugerencias para revisión."
                 }
                 primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
                 showAiScanFormatsHint={aiIncludedInPackage}
@@ -1218,6 +1287,21 @@ export default function OfertasLocalesApplicationClient() {
 
         return (
           <div className="space-y-3">
+            {step5ReviewComplete && step5UploadComplete ? (
+              <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                <p className="text-base font-semibold text-emerald-950">{c.step5CheckpointReviewComplete}</p>
+                {aiReviewGate.totalItems > 0 ? (
+                  <p className="mt-1 text-sm text-emerald-900">
+                    {formatOfertaLocalCopyTemplate(c.step5ReviewCompleteCount, {
+                      count: aiReviewGate.totalItems,
+                    })}
+                  </p>
+                ) : null}
+                <button type="button" className={`${BTN_PRIMARY} mt-4 min-h-11`} onClick={goToStep6}>
+                  {c.step5ContinueToNextStep}
+                </button>
+              </div>
+            ) : null}
             {!primaryFormat ? (
               <p className="text-sm text-[#1E1814]/55">
                 {lang === "en"
@@ -1398,19 +1482,17 @@ export default function OfertasLocalesApplicationClient() {
               </>
             )}
 
-            <div className="rounded-xl border border-red-200/70 bg-red-50/30 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-red-900/70">
-                {lang === "en" ? "Need to start over?" : "¿Necesitas empezar de nuevo?"}
+            <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
+                {c.startOverNeedQuestion}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-red-900/75">{c.startOverDeviceWarning}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
               <button
                 type="button"
-                className="mt-3 w-full rounded-xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
+                className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
                 onClick={handleStartFresh}
               >
-                {lang === "en"
-                  ? "Delete this application and start over"
-                  : "Borrar esta solicitud y empezar de nuevo"}
+                {c.startOverDeleteCta}
               </button>
             </div>
           </div>
@@ -1440,9 +1522,8 @@ export default function OfertasLocalesApplicationClient() {
                   className={INPUT}
                   type="email"
                   value={draft.email}
-                  onChange={(e) =>
-                    updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })
-                  }
+                  onChange={(e) => updateDraft({ email: e.target.value })}
+                  onBlur={(e) => updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })}
                   placeholder={lang === "en" ? "hello@business.com" : "hola@negocio.com"}
                   inputMode="email"
                   autoComplete="email"
@@ -1558,7 +1639,8 @@ export default function OfertasLocalesApplicationClient() {
               </div>
             ) : null}
 
-            {false ? (
+            {/* Featured placement remains gated off until that product is live. */}
+            {false ? ( // eslint-disable-line no-constant-condition
             <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
               <p className="text-sm font-medium text-[#1E1814]">{c.featuredSectionTitle}</p>
               <p className={HELPER}>{c.featuredQuestion}</p>
@@ -1618,43 +1700,25 @@ export default function OfertasLocalesApplicationClient() {
                 <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{c.submitNotPublicUntilReview}</p>
               )}
             </div>
-            {submitError ? (
-              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
-                {submitError}
-              </p>
-            ) : null}
 
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1E1814]/70">
-                {c.pricingSectionTitle}
-              </h3>
-              <div className="mt-3 space-y-2">
-                {packageDisplayPrice != null && draft.offerType ? (
-                  <div className="rounded-xl border border-[#7A1E2C]/30 bg-white px-4 py-3 text-sm">
-                    <p className="font-medium text-[#1E1814]">
-                      {getOfertaLocalProductDisplayLabel(draft, lang)}
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
-                      {formatUsd(packageDisplayPrice)}
-                      {c.perDuration}
-                    </p>
-                    <p className="mt-1 text-xs text-[#1E1814]/75">{c.step7AiIncludedNote}</p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#1E1814]/55">
-                    {lang === "en" ? "Select a product in Step 1." : "Elige un producto en el Paso 1."}
-                  </p>
-                )}
-              </div>
-              <p className="mt-3 text-xs text-[#1E1814]/55">{c.flatPricingCopy}</p>
-              <p className="mt-2 text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
-            </div>
+            <OfertasLocalesCommercialSummary draft={draft} lang={lang} />
+            <p className="text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
+            {effectiveOfertaLocalId ? (
+              <Link
+                href={`/dashboard/ofertas-locales/${encodeURIComponent(effectiveOfertaLocalId)}?lang=${lang}`}
+                className={`${BTN_SECONDARY} inline-flex`}
+              >
+                {c.continueSecureCheckout}
+              </Link>
+            ) : (
+              <p className="text-xs font-medium text-amber-900">{c.checkoutParentRequired}</p>
+            )}
 
             {aiIncludedInPackage && hasExistingAiScan ? (
-              <div className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-[#7A1E2C]">
+              <details className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[#7A1E2C]">
                   {c.step7ScanSummaryTitle}
-                </h3>
+                </summary>
                 <ul className="mt-3 space-y-1.5 text-sm text-[#1E1814]">
                   <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryTotal, { total: aiReviewGate.totalItems })}</li>
                   <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryApproved, { approved: aiReviewGate.approvedCount })}</li>
@@ -1671,65 +1735,24 @@ export default function OfertasLocalesApplicationClient() {
                   </li>
                 </ul>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" className={BTN_PRIMARY} onClick={() => setStep(5)}>
+                  <button type="button" className={BTN_SECONDARY} onClick={() => setStep(5)}>
                     {c.step7ContinueReviewing}
                   </button>
-                  {aiReviewGate.needsReviewCount > 0 ? (
-                    <button type="button" className={BTN_SECONDARY} onClick={() => setStep(5)}>
-                      {c.step7ReviewLaterItems}
-                    </button>
-                  ) : null}
-                  {aiReviewGate.rejectedCount > 0 ? (
-                    <button type="button" className={BTN_SECONDARY} onClick={() => setStep(5)}>
-                      {c.step7ReviewRejectedItems}
-                    </button>
-                  ) : null}
                 </div>
-              </div>
+              </details>
             ) : null}
 
-            {aiIncludedInPackage ? (
-              hasExistingAiScan ? (
-                <details className="rounded-xl border border-amber-200/80 bg-amber-50/40 px-4 py-3">
-                  <summary className="cursor-pointer text-sm font-semibold text-amber-950">
-                    {c.step7RescanSectionTitle}
-                  </summary>
-                  <p className="mt-2 text-xs leading-relaxed text-amber-950/80">{c.step7RescanWarning}</p>
-                  <div className="mt-4">
-                    <OfertasLocalesAiScanPanel
-                      draft={draft}
-                      lang={lang}
-                      ofertaLocalId={effectiveOfertaLocalId}
-                      signedIn={signedIn}
-                      onScanStarted={handleScanStarted}
-                      onScanComplete={handleScanComplete}
-                      onScanFinished={handleScanFinished}
-                      onOfertaLocalIdChange={handleAiScanRecordId}
-                    />
-                  </div>
-                </details>
-              ) : (
-                <>
-                  <OfertasLocalesAiScanPanel
-                    draft={draft}
-                    lang={lang}
-                    ofertaLocalId={effectiveOfertaLocalId}
-                    signedIn={signedIn}
-                    onScanStarted={handleScanStarted}
-                    onScanComplete={handleScanComplete}
-                    onScanFinished={handleScanFinished}
-                    onOfertaLocalIdChange={handleAiScanRecordId}
-                  />
-                  {!showFullWidthReviewDesk ? (
-                    <OfertasLocalesClickableItemPreviewPanel
-                      lang={lang}
-                      ofertaLocalId={effectiveOfertaLocalId}
-                      scanJobId={lastScanJobId}
-                      draft={draft}
-                    />
-                  ) : null}
-                </>
-              )
+            {aiIncludedInPackage && !hasExistingAiScan ? (
+              <OfertasLocalesAiScanPanel
+                draft={draft}
+                lang={lang}
+                ofertaLocalId={effectiveOfertaLocalId}
+                signedIn={signedIn}
+                onScanStarted={handleScanStarted}
+                onScanComplete={handleScanComplete}
+                onScanFinished={handleScanFinished}
+                onOfertaLocalIdChange={handleAiScanRecordId}
+              />
             ) : null}
 
             <OfertasLocalesValidationPanel
@@ -1741,9 +1764,7 @@ export default function OfertasLocalesApplicationClient() {
             />
 
             <div className="space-y-3 rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-4">
-              <p className="text-sm font-semibold text-[#1E1814]">
-                {lang === "en" ? "Confirm before preview" : "Confirma antes de la vista previa"}
-              </p>
+              <p className="text-sm font-semibold text-[#1E1814]">{c.step7ConfirmBeforePreview}</p>
               <label className="flex items-start gap-3 text-sm text-[#1E1814]">
                 <input
                   type="checkbox"
@@ -1803,43 +1824,31 @@ export default function OfertasLocalesApplicationClient() {
                 {c.saveDraft}
               </button>
               {step7ConfirmationsComplete ? (
-                <Link href={previewHref} className={BTN_PRIMARY}>
-                  {c.previewLink}
+                <Link href={previewHref} className={`${BTN_PRIMARY} min-h-11`}>
+                  {c.step7ViewPreview}
                 </Link>
               ) : (
                 <span
-                  className={cx(BTN_PRIMARY, "cursor-not-allowed opacity-45")}
+                  className={cx(BTN_PRIMARY, "min-h-11 cursor-not-allowed opacity-45")}
                   aria-disabled="true"
                   title={c.step7PreviewGatedHelper}
                 >
-                  {c.previewLink}
+                  {c.step7ViewPreview}
                 </span>
               )}
-              <button
-                type="button"
-                className={BTN_PRIMARY}
-                disabled={
-                  !publishFieldsReady ||
-                  submitting ||
-                  (aiIncludedInPackage && aiReviewGate.needsReviewCount > 0)
-                }
-                onClick={() => void handleSubmitForReview()}
-              >
-                {submitting ? c.submittingForReview : c.submitForReview}
-              </button>
             </div>
 
-            <div className="rounded-xl border border-red-200/80 bg-red-50/40 px-4 py-4">
-              <p className="text-sm font-semibold text-red-900">{c.step7DeleteStartOverTitle}</p>
-              <p className="mt-2 text-xs leading-relaxed text-red-900/80">{c.startOverDeviceWarning}</p>
+            <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
+                {c.startOverNeedQuestion}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
               <button
                 type="button"
-                className="mt-3 w-full rounded-xl border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50 sm:w-auto"
+                className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
                 onClick={handleStartFresh}
               >
-                {lang === "en"
-                  ? "Delete this application and start over"
-                  : "Borrar esta solicitud y empezar de nuevo"}
+                {c.startOverDeleteCta}
               </button>
             </div>
           </div>
@@ -1961,6 +1970,7 @@ export default function OfertasLocalesApplicationClient() {
               scanRefreshToken={scanRefreshToken}
               reviewMode={isCouponsLane ? "coupon" : "weekly"}
               onReviewGateChange={handleAiReviewGateChange}
+              onContinueToNextStep={goToStep6}
             />
           </div>
         </section>

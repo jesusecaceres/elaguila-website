@@ -54,7 +54,10 @@ function OfertasLocalesOwnerDashboardPageContent() {
             colCategory: "Categoría",
             colLocation: "Ciudad / ZIP",
             colDates: "Vigencia",
+            colCommercial: "Pago",
+            colPublicTerm: "Término público",
             colStatus: "Estado",
+            colNext: "Siguiente",
             colAssets: "Archivos",
             colAi: "AI",
             colFeatured: "Destacada",
@@ -62,6 +65,12 @@ function OfertasLocalesOwnerDashboardPageContent() {
             colActions: "Acciones",
             publicLink: "Ver en resultados",
             rejection: "Motivo",
+            blockers: "Bloqueos",
+            notStarted: "No iniciado",
+            activeTerm: "Activo",
+            expiredTerm: "Expirado",
+            incompleteTerm: "Incompleto",
+            daysRemaining: "días restantes",
           }
         : {
             title: "My Local Deals",
@@ -76,7 +85,10 @@ function OfertasLocalesOwnerDashboardPageContent() {
             colCategory: "Category",
             colLocation: "City / ZIP",
             colDates: "Valid dates",
+            colCommercial: "Payment",
+            colPublicTerm: "Public term",
             colStatus: "Status",
+            colNext: "Next",
             colAssets: "Assets",
             colAi: "AI",
             colFeatured: "Featured",
@@ -84,6 +96,12 @@ function OfertasLocalesOwnerDashboardPageContent() {
             colActions: "Actions",
             publicLink: "View in results",
             rejection: "Reason",
+            blockers: "Blockers",
+            notStarted: "Not started",
+            activeTerm: "Active",
+            expiredTerm: "Expired",
+            incompleteTerm: "Incomplete",
+            daysRemaining: "days remaining",
           },
     [lang]
   );
@@ -162,7 +180,10 @@ function OfertasLocalesOwnerDashboardPageContent() {
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colCategory}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colLocation}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colDates}</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colCommercial}</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colPublicTerm}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colStatus}</th>
+                <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colNext}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAssets}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colAi}</th>
                 <th className="border-b border-[#E8DFD0] px-3 py-2">{t.colFeatured}</th>
@@ -185,6 +206,35 @@ function OfertasLocalesOwnerDashboardPageContent() {
                     {item.validFrom}
                     <br />→ {item.validUntil}
                   </td>
+                  <td className="px-3 py-2 text-[10px]">
+                    <div className="font-mono text-[#7A7164]">{item.leonixAdId || "Sin ID Leonix"}</div>
+                    <div className="font-semibold">{item.commercialAmount || "Sin pago"}</div>
+                    <div>
+                      {item.paymentStatus} · {item.entitlementStatus}
+                    </div>
+                    <div className="text-[#7A7164]">{item.commercialEligibilitySource}</div>
+                    {item.partnerAssignmentId ? (
+                      <div className="font-mono text-[10px] text-[#7A7164]">partner {item.partnerAssignmentId.slice(0, 8)}</div>
+                    ) : null}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-[10px]">
+                    <span className="font-semibold">
+                      {item.publicTermStatus === "active"
+                        ? t.activeTerm
+                        : item.publicTermStatus === "expired"
+                          ? t.expiredTerm
+                          : item.publicTermStatus === "incomplete"
+                            ? t.incompleteTerm
+                            : t.notStarted}
+                    </span>
+                    {item.publishedAt ? <div className="font-mono">{item.publishedAt.slice(0, 10)}</div> : null}
+                    {item.expiresAt ? <div className="font-mono">→ {item.expiresAt.slice(0, 10)}</div> : null}
+                    {item.publicTermStatus === "active" && item.publicTermDaysRemaining != null ? (
+                      <div className="text-[#5C5346]">
+                        {item.publicTermDaysRemaining} {t.daysRemaining}
+                      </div>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusChipClass(item.status)}`}>
                       {item.displayStatus}
@@ -193,6 +243,16 @@ function OfertasLocalesOwnerDashboardPageContent() {
                       <p className="mt-1 text-[10px] text-rose-900" title={item.rejectionNote}>
                         {t.rejection}: {item.rejectionNote.slice(0, 80)}
                         {item.rejectionNote.length > 80 ? "…" : ""}
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="max-w-[180px] px-3 py-2 text-[10px]">
+                    <p className="font-semibold text-[#1E1810]">
+                      {lang === "es" ? item.operationalStatus.ownerNextActionEs : item.operationalStatus.ownerNextActionEn}
+                    </p>
+                    {item.operationalStatus.blockingReasons.length > 0 ? (
+                      <p className="mt-1 font-mono text-[10px] text-[#7A1E2C]">
+                        {t.blockers}: {item.operationalStatus.blockingReasons.join(", ")}
                       </p>
                     ) : null}
                   </td>

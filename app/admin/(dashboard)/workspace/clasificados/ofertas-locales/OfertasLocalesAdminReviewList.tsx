@@ -33,6 +33,32 @@ function statusBadgeClass(status: string): string {
   }
 }
 
+function operationalToneClass(tone: string): string {
+  switch (tone) {
+    case "success":
+      return "bg-emerald-100 text-emerald-950";
+    case "danger":
+      return "bg-rose-100 text-rose-950";
+    case "warning":
+      return "bg-amber-100 text-amber-950";
+    case "info":
+      return "bg-blue-100 text-blue-950";
+    default:
+      return "bg-[#F0E8DA] text-[#5C5346]";
+  }
+}
+
+function publicTermLabel(item: Pick<OfertaLocalAdminListVm, "publicTermStatus" | "publicTermDaysRemaining">): string {
+  if (item.publicTermStatus === "active") {
+    return item.publicTermDaysRemaining == null
+      ? "Activo"
+      : `Activo · ${item.publicTermDaysRemaining} días`;
+  }
+  if (item.publicTermStatus === "expired") return "Expirado";
+  if (item.publicTermStatus === "incomplete") return "Activación incompleta";
+  return "No iniciado";
+}
+
 function AssetList({ label, assets }: { label: string; assets: OfertaLocalPublishedAssetMetadata[] }) {
   if (assets.length === 0) return null;
   return (
@@ -83,13 +109,18 @@ function SocialLink({ label, href }: { label: string; href?: string | null }) {
 
 function InspectDetail({
   item,
+  basePath,
+  scope,
   reviewEnabled,
 }: {
   item: OfertaLocalAdminDetailVm;
+  basePath: string;
+  scope: "queue" | "live";
   reviewEnabled: boolean;
 }) {
   const { socialLinks, wantsAiSearchableSpecials, featuredPlacementScope, userNote, adminReviewNotes } =
     item.metadata;
+  const returnTo = `${basePath}?id=${encodeURIComponent(item.id)}${scope === "live" ? "&scope=live" : ""}`;
 
   return (
     <div className="space-y-4 rounded-2xl border border-[#C9B46A]/50 bg-[#FFFCF7] p-5">
@@ -102,11 +133,62 @@ function InspectDetail({
           {item.status}
         </span>
       </div>
+      <section className="rounded-xl border border-[#C9B46A]/50 bg-white p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-lg px-2 py-1 text-xs font-bold uppercase ${operationalToneClass(item.operationalStatus.tone)}`}>
+            {item.operationalStatus.adminLabelEs}
+          </span>
+          <span className="font-mono text-[10px] text-[#7A7164]">{item.operationalStatus.adminKey}</span>
+        </div>
+        <p className="mt-2 text-[#5C5346]">{item.operationalStatus.adminNextActionEs}</p>
+        {item.operationalStatus.blockingReasons.length > 0 ? (
+          <p className="mt-2 font-mono text-xs text-[#7A1E2C]">
+            Bloqueos: {item.operationalStatus.blockingReasons.join(", ")}
+          </p>
+        ) : null}
+      </section>
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">ID Leonix</dt>
+          <dd className="font-mono">{item.leonixAdId || "Pendiente"}</dd>
+          <dd className="font-mono text-[10px] text-[#7A7164]">UUID {item.id}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Pago / entitlement</dt>
+          <dd>
+            <span className="font-semibold">{item.paymentStatus}</span>
+            <span className="text-[#5C5346]"> · {item.entitlementStatus}</span>
+          </dd>
+          <dd className="text-xs text-[#5C5346]">
+            {item.commercialProductKey || "sin paquete"} · {item.commercialAmount || "sin pago"}
+          </dd>
+          <dd className="text-[10px] text-[#7A7164]">
+            Stripe ref: {item.stripeReferencePresent ? "presente" : "ausente"}
+          </dd>
+          <dd className="text-[10px] text-[#7A7164]">
+            Fuente: {item.commercialEligibilitySource}
+            {item.partnerAssignmentId ? ` · partner ${item.partnerAssignmentId}` : ""}
+          </dd>
+          {item.commercialDiscrepancyWarning ? (
+            <dd className="mt-1 rounded bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-900">
+              {item.commercialDiscrepancyWarning}
+            </dd>
+          ) : null}
+        </div>
+        <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Tipo de oferta</dt>
           <dd>{item.offerType}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Asset lifecycle</dt>
+          <dd>{item.assetLifecycleStatus}</dd>
+          <dd className="font-mono text-[10px] text-[#7A7164]">
+            active {item.activeSourceAssetId || "legacy"} · public {item.publicSourceAssetId || "legacy"}
+          </dd>
+          {item.assetReplacementRequiredReview ? (
+            <dd className="text-xs font-semibold text-amber-900">Reemplazo pendiente de revisión</dd>
+          ) : null}
         </div>
         <div>
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Categoría</dt>
@@ -120,6 +202,14 @@ function InspectDetail({
           <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Vigencia</dt>
           <dd>
             {item.validFrom} → {item.validUntil}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-bold uppercase text-[#7A7164]">Término público</dt>
+          <dd>
+            <span className="font-semibold">{publicTermLabel(item)}</span>
+            {item.publishedAt ? <span className="block font-mono text-xs">{item.publishedAt}</span> : null}
+            {item.expiresAt ? <span className="block font-mono text-xs">→ {item.expiresAt}</span> : null}
           </dd>
         </div>
         <div className="sm:col-span-2">
@@ -240,12 +330,12 @@ function InspectDetail({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm">
-          <h4 className="text-xs font-bold uppercase text-[#7A7164]">AI Searchable Specials</h4>
+          <h4 className="text-xs font-bold uppercase text-[#7A7164]">Análisis con IA incluido</h4>
           <p className="mt-1">
             {wantsAiSearchableSpecials ? (
-              <span className="font-semibold text-emerald-900">Solicitado — pendiente de revisión de ítems</span>
+              <span className="font-semibold text-emerald-900">Incluido — revisar ítems sugeridos</span>
             ) : (
-              <span className="text-[#7A7164]">No solicitado</span>
+              <span className="text-[#7A7164]">Incluido — sin ítems pendientes</span>
             )}
           </p>
         </div>
@@ -305,8 +395,16 @@ function InspectDetail({
           <h4 className="text-sm font-bold text-[#1E1810]">Moderación</h4>
           <form action={reviewOfertaLocalAdminAction} className="space-y-2">
             <input type="hidden" name="offer_id" value={item.id} />
+            <input type="hidden" name="return_to" value={returnTo} />
+            <input type="hidden" name="target_label" value={item.businessName} />
+            <label className="flex items-start gap-2 rounded-xl border border-[#E8DFD0] bg-white p-2 text-xs text-[#5C5346]">
+              <input type="checkbox" name="confirmed" value="true" required className="mt-0.5" />
+              <span>
+                Confirmo que revisé identidad, fuente, escaneo, revisión, comercial, término público y blockers antes de ejecutar la acción.
+              </span>
+            </label>
             <label className="block text-xs font-semibold text-[#5C5346]">
-              Nota interna (opcional)
+              Nota interna (requerida para rechazo)
               <textarea
                 name="admin_note"
                 rows={2}
@@ -323,7 +421,13 @@ function InspectDetail({
                     type="submit"
                     name="action"
                     value="approve"
-                    className="rounded-xl border border-emerald-600/40 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900"
+                    disabled={!item.operationalStatus.adminApprovalAllowed}
+                    title={
+                      item.operationalStatus.adminApprovalAllowed
+                        ? "Aprobación disponible"
+                        : `Aprobación bloqueada: ${item.operationalStatus.blockingReasons.join(", ")}`
+                    }
+                    className="rounded-xl border border-emerald-600/40 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Aprobar
                   </button>
@@ -386,7 +490,14 @@ export function OfertasLocalesAdminReviewList({
         </p>
       </div>
 
-      {inspectItem ? <InspectDetail item={inspectItem} reviewEnabled={reviewEnabled} /> : null}
+      {inspectItem ? (
+        <InspectDetail
+          item={inspectItem}
+          basePath={basePath}
+          scope={scope}
+          reviewEnabled={reviewEnabled}
+        />
+      ) : null}
 
       <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-white">
         <table className="w-full min-w-[1100px] border-collapse text-left text-xs text-[#1E1810]">
@@ -394,13 +505,15 @@ export function OfertasLocalesAdminReviewList({
             <tr>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Negocio</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Oferta</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">Comercial</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Tipo</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Categoría</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Ciudad / ZIP</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Vigencia</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">Término público</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Assets</th>
-              <th className="border-b border-[#E8DFD0] px-3 py-2">AI</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">IA incluida</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Featured</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Enviado</th>
@@ -410,8 +523,27 @@ export function OfertasLocalesAdminReviewList({
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b border-[#F0E8DA] align-top hover:bg-[#FFFCF7]">
-                <td className="max-w-[140px] px-3 py-2 font-semibold">{item.businessName}</td>
+                <td className="max-w-[140px] px-3 py-2 font-semibold">
+                  {item.businessName}
+                  <div className="font-mono text-[10px] font-normal text-[#7A7164]">
+                    {item.leonixAdId || "Sin ID Leonix"}
+                  </div>
+                </td>
                 <td className="max-w-[160px] px-3 py-2">{item.title}</td>
+                <td className="px-3 py-2 text-[10px]">
+                  <div className="font-semibold">{item.commercialProductKey || "sin paquete"}</div>
+                  <div>{item.commercialAmount || "sin pago"}</div>
+                  <div>{item.paymentStatus} · {item.entitlementStatus}</div>
+                  <div className="text-[#7A7164]">{item.commercialEligibilitySource}</div>
+                  {item.partnerAssignmentId ? (
+                    <div className="font-mono text-[10px] text-[#7A7164]">partner {item.partnerAssignmentId.slice(0, 8)}</div>
+                  ) : null}
+                  {item.commercialDiscrepancyWarning ? (
+                    <div className="mt-1 rounded bg-rose-50 px-1 py-0.5 font-semibold text-rose-900">
+                      {item.commercialDiscrepancyWarning}
+                    </div>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2">{item.offerType}</td>
                 <td className="px-3 py-2">{item.businessCategory}</td>
                 <td className="px-3 py-2">
@@ -422,13 +554,23 @@ export function OfertasLocalesAdminReviewList({
                   {item.validFrom}
                   <br />→ {item.validUntil}
                 </td>
+                <td className="whitespace-nowrap px-3 py-2 text-[10px]">
+                  <span className="font-semibold">{publicTermLabel(item)}</span>
+                  {item.publishedAt ? <div className="font-mono">{item.publishedAt.slice(0, 10)}</div> : null}
+                  {item.expiresAt ? <div className="font-mono">→ {item.expiresAt.slice(0, 10)}</div> : null}
+                </td>
                 <td className="px-3 py-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusBadgeClass(item.status)}`}>
-                    {item.status}
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${operationalToneClass(item.operationalStatus.tone)}`}>
+                    {item.operationalStatus.adminLabelEs}
                   </span>
+                  {item.operationalStatus.blockingReasons.length > 0 ? (
+                    <div className="mt-1 font-mono text-[10px] text-[#7A1E2C]">
+                      {item.operationalStatus.blockingReasons.slice(0, 3).join(", ")}
+                    </div>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2 text-center">{item.assetCount}</td>
-                <td className="px-3 py-2">{item.wantsAiSearchableSpecials ? "Sí" : "—"}</td>
+                <td className="px-3 py-2">{item.wantsAiSearchableSpecials ? "Con revisión" : "Incluida"}</td>
                 <td className="px-3 py-2">
                   {item.featuredRequested ? (
                     <span title={item.featuredPlacementScope ?? ""}>Sí</span>

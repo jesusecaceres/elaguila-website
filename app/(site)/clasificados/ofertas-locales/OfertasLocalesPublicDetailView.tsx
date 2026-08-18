@@ -12,6 +12,13 @@ import type {
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { mapOfertaLocalSourceBboxToDisplayRect } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import {
+  trackOfertaLocalCta,
+  trackOfertaLocalEvent,
+  trackOfertaLocalListingOpen,
+  trackOfertaLocalProductOpen,
+  trackOfertaLocalShare,
+} from "@/app/lib/ofertas-locales/ofertasLocalesPublicAnalytics";
 
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
@@ -117,17 +124,19 @@ function OfertasFloatingShoppingListCart({
 }
 
 function PublicFlyerViewer({
-  lang,
+  lang: _lang,
   assets,
   items,
   onOpenProduct,
   c,
+  onFlyerPageView,
 }: {
   lang: OfertasLocalesAppLang;
   assets: OfertaLocalPublicDetailAsset[];
   items: OfertaLocalPublicDetailHubItem[];
   onOpenProduct: (item: OfertaLocalPublicSearchItem) => void;
   c: ReturnType<typeof ofertasLocalesPublicDetailCopy>;
+  onFlyerPageView: (page: number, assetId: string | null) => void;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -139,6 +148,10 @@ function PublicFlyerViewer({
   const href = asset?.href ?? null;
   const isPdf = href ? isPdfAssetHref(href) : false;
   const currentPageNumber = pageIndex + 1;
+
+  useEffect(() => {
+    if (asset) onFlyerPageView(currentPageNumber, asset.id);
+  }, [asset, currentPageNumber, onFlyerPageView]);
 
   const overlayItems = useMemo(
     () =>
@@ -275,16 +288,18 @@ function PublicFlyerViewer({
 }
 
 function ContactHub({
-  lang,
+  lang: _lang,
   offer,
   c,
   onShare,
+  onCta,
   shareCopied,
 }: {
   lang: OfertasLocalesAppLang;
   offer: OfertaLocalPublicOfferDetail;
   c: ReturnType<typeof ofertasLocalesPublicDetailCopy>;
   onShare: () => void;
+  onCta: (cta: "phone" | "sms" | "whatsapp" | "website" | "directions") => void;
   shareCopied: boolean;
 }) {
   const social = offer.socialLinks ?? {};
@@ -339,12 +354,26 @@ function ContactHub({
       {hasContact ? (
         <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {offer.phoneHref ? (
-            <a href={offer.phoneHref} className={BTN_PRIMARY} onClick={() => track("phone")}>
+            <a
+              href={offer.phoneHref}
+              className={BTN_PRIMARY}
+              onClick={() => {
+                onCta("phone");
+                track("phone");
+              }}
+            >
               {c.call}
             </a>
           ) : null}
           {smsHref && offer.phoneDisplay ? (
-            <a href={smsHref} className={BTN} onClick={() => track("phone", "sms")}>
+            <a
+              href={smsHref}
+              className={BTN}
+              onClick={() => {
+                onCta("sms");
+                track("phone", "sms");
+              }}
+            >
               {c.sms}
             </a>
           ) : null}
@@ -354,7 +383,10 @@ function ContactHub({
               target="_blank"
               rel="noopener noreferrer"
               className={BTN_PRIMARY}
-              onClick={() => track("whatsapp")}
+              onClick={() => {
+                onCta("whatsapp");
+                track("whatsapp");
+              }}
             >
               {c.whatsapp}
             </a>
@@ -365,7 +397,10 @@ function ContactHub({
               target="_blank"
               rel="noopener noreferrer"
               className={BTN}
-              onClick={() => track("website")}
+              onClick={() => {
+                onCta("website");
+                track("website");
+              }}
             >
               {c.website}
             </a>
@@ -376,7 +411,10 @@ function ContactHub({
               target="_blank"
               rel="noopener noreferrer"
               className={BTN}
-              onClick={() => track("directions")}
+              onClick={() => {
+                onCta("directions");
+                track("directions");
+              }}
             >
               {c.directions}
             </a>
@@ -512,6 +550,55 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
   const typeLabel = ofertaLocalPublicOfferTypeLabel(lang, offer.offerType);
   const viewerAssets = useMemo(() => viewerAssetsFromOffer(offer), [offer]);
   const initial = businessInitial(offer.businessName);
+  const analyticsIdentity = useMemo(
+    () => ({ ofertaLocalId: offer.id, leonixAdId: offer.leonixAdId }),
+    [offer.id, offer.leonixAdId],
+  );
+
+  useEffect(() => {
+    trackOfertaLocalListingOpen(analyticsIdentity, "public_detail");
+  }, [analyticsIdentity]);
+
+  useEffect(() => {
+    for (const item of items.slice(0, 60)) {
+      trackOfertaLocalEvent(analyticsIdentity, "product_impression", {
+        surface: "public_detail",
+        productId: item.id,
+        productType: item.offerType,
+        partnerStatus: item.partner.isVerifiedPartner ? "verified_partner" : "standard",
+      });
+    }
+  }, [analyticsIdentity, items]);
+
+  const handleOpenProduct = useCallback(
+    (item: OfertaLocalPublicSearchItem) => {
+      trackOfertaLocalProductOpen(analyticsIdentity, item, "public_detail");
+      setSelectedItem(item);
+    },
+    [analyticsIdentity],
+  );
+
+  const handleAddItem = useCallback(
+    (item: OfertaLocalPublicSearchItem) => {
+      if (item.offerType === "weekly_flyer") {
+        trackOfertaLocalEvent(analyticsIdentity, "shopping_list_add", {
+          productId: item.id,
+          productType: item.offerType,
+          partnerStatus: item.partner.isVerifiedPartner ? "verified_partner" : "standard",
+        });
+      }
+      shoppingList.addFromPublicItem(item);
+    },
+    [analyticsIdentity, shoppingList],
+  );
+
+  const handleRemoveItem = useCallback(
+    (itemId: string) => {
+      trackOfertaLocalEvent(analyticsIdentity, "shopping_list_remove", { productId: itemId });
+      shoppingList.removeItem(itemId);
+    },
+    [analyticsIdentity, shoppingList],
+  );
 
   const handleShare = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -519,17 +606,19 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
     try {
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({ title: offer.title || offer.businessName, url });
+        trackOfertaLocalShare(analyticsIdentity, "native", "public_detail");
         return;
       }
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
+        trackOfertaLocalShare(analyticsIdentity, "clipboard", "public_detail");
         setShareCopied(true);
         window.setTimeout(() => setShareCopied(false), 2000);
       }
     } catch {
       /* user cancelled */
     }
-  }, [offer.title, offer.businessName]);
+  }, [analyticsIdentity, offer.title, offer.businessName]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7]">
@@ -563,6 +652,9 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={TRUST_BADGE}>{c.publicApprovedBadge}</span>
                   <span className={BADGE}>{typeLabel}</span>
+                  {offer.partner.isVerifiedPartner && offer.partner.badgeLabel ? (
+                    <span className={TRUST_BADGE}>{offer.partner.badgeLabel}</span>
+                  ) : null}
                 </div>
                 <p className="mt-2 font-serif text-xl font-bold text-[#1E1814] sm:text-2xl">{offer.businessName}</p>
                 <h1 className="mt-1 font-serif text-lg font-bold leading-snug text-[#2A4536] sm:text-xl">
@@ -579,6 +671,12 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
                   </p>
                 ) : null}
                 {location ? <p className="mt-1 text-sm text-[#1E1814]/65">{location}</p> : null}
+                {offer.leonixAdId ? (
+                  <p className="mt-1 font-mono text-[11px] text-[#7A7164]">ID Leonix {offer.leonixAdId}</p>
+                ) : null}
+                {offer.partner.partnerName ? (
+                  <p className="mt-1 text-xs font-semibold text-[#2A4536]">{offer.partner.partnerName}</p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -589,10 +687,25 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
             lang={lang}
             assets={viewerAssets}
             items={items}
-            onOpenProduct={setSelectedItem}
+            onOpenProduct={handleOpenProduct}
             c={c}
+            onFlyerPageView={(page, assetId) =>
+              trackOfertaLocalEvent(analyticsIdentity, "flyer_page_view", {
+                surface: "public_detail",
+                page,
+                sourceAssetId: assetId,
+                partnerStatus: offer.partner.isVerifiedPartner ? "verified_partner" : "standard",
+              })
+            }
           />
-          <ContactHub lang={lang} offer={offer} c={c} onShare={handleShare} shareCopied={shareCopied} />
+          <ContactHub
+            lang={lang}
+            offer={offer}
+            c={c}
+            onShare={handleShare}
+            onCta={(cta) => trackOfertaLocalCta(analyticsIdentity, cta, "public_detail")}
+            shareCopied={shareCopied}
+          />
         </div>
 
         <section className="mt-8" data-testid="ofertas-public-detail-products">
@@ -605,9 +718,9 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
                     lang={lang}
                     item={item}
                     isAdded={shoppingList.isAdded(item.id)}
-                    onSelect={setSelectedItem}
-                    onAdd={shoppingList.addFromPublicItem}
-                    onRemove={shoppingList.removeItem}
+                    onSelect={handleOpenProduct}
+                    onAdd={handleAddItem}
+                    onRemove={handleRemoveItem}
                     onOpenList={() => setListOpen(true)}
                   />
                 </li>
@@ -647,6 +760,29 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
             ) : null}
           </section>
         )}
+        {offer.pickupLocations.length > 0 ? (
+          <section className="mt-6 rounded-2xl border border-[#2A4536]/20 bg-[#F3F8F4] p-5">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-[#2A4536]">
+              {lang === "en" ? "Magazine pickup locations" : "Puntos de entrega de la revista"}
+            </h2>
+            <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+              {offer.pickupLocations.map((location) => (
+                <li key={location.id} className="rounded-xl border border-[#2A4536]/15 bg-white px-4 py-3 text-sm">
+                  <p className="font-semibold text-[#1E1814]">{location.displayName}</p>
+                  <p className="mt-1 text-[#1E1814]/75">
+                    {[location.address, location.city, location.state, location.zipCode].filter(Boolean).join(", ")}
+                  </p>
+                  {location.hours ? <p className="mt-1 text-xs text-[#1E1814]/60">{location.hours}</p> : null}
+                  {location.mapUrl ? (
+                    <a href={location.mapUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">
+                      {lang === "en" ? "Open map" : "Abrir mapa"}
+                    </a>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
 
       {selectedItem ? (
@@ -655,8 +791,8 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
           isAdded={shoppingList.isAdded(selectedItem.id)}
-          onAdd={shoppingList.addFromPublicItem}
-          onRemove={shoppingList.removeItem}
+          onAdd={handleAddItem}
+          onRemove={handleRemoveItem}
           onOpenList={() => {
             setSelectedItem(null);
             setListOpen(true);

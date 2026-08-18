@@ -23,9 +23,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       listing_count: 0,
-      // Package F Build F2, Gate 11 — Ofertas Package 11 Globalization dependency handoff
-      // (Dependency 2): use the shared zero-total constant instead of a hand-written partial
-      // literal, so this fallback always satisfies the full DashboardAnalyticsTotals contract.
       totals: { ...ZERO_DASHBOARD_ANALYTICS_TOTALS },
       by_category: {},
       by_listing: {},

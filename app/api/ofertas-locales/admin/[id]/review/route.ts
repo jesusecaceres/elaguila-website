@@ -52,7 +52,15 @@ export async function POST(
   const result = await mutateOfertaLocalAdminReview(supabase, id, action, note);
 
   if (!result.ok) {
-    const status = result.error === "not_found" ? 404 : result.error === "invalid_transition" ? 409 : 500;
+    const status =
+      result.error === "not_found"
+        ? 404
+        : result.error === "invalid_transition"
+          ? 409
+          : result.error === "rejection_reason_required" ||
+              result.error === "unresolved_review_items"
+            ? 422
+            : 500;
     return NextResponse.json({ ok: false, error: result.error }, { status });
   }
 

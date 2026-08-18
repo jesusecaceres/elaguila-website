@@ -37,9 +37,15 @@ export const REVENUE_SUPPORTED_WEBHOOK_EVENTS = [
 ] as const;
 
 export type RevenueOsCheckoutMetadata = {
+  schema: string | null;
   category: string;
   packageKey: string;
   billingMode: string;
+  amountCents: number | null;
+  currency: string | null;
+  durationDays: number | null;
+  aiIncluded: boolean | null;
+  workflow: string | null;
   paymentRecordId: string | null;
   ownerUserId: string | null;
   listingId: string | null;
@@ -63,6 +69,13 @@ function readMetadataValue(
 ): string | null {
   const value = String(metadata?.[key] ?? "").trim();
   return value || null;
+}
+
+function readMetadataInteger(metadata: Stripe.Metadata | null | undefined, key: string): number | null {
+  const raw = readMetadataValue(metadata, key);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isInteger(n) ? n : null;
 }
 
 export function parseCheckoutSessionMetadata(
@@ -130,9 +143,18 @@ export function parseCheckoutSessionMetadata(
   return {
     ok: true,
     metadata: {
+      schema: readMetadataValue(metadata, "leonix_metadata_schema"),
       category,
       packageKey,
       billingMode,
+      amountCents: readMetadataInteger(metadata, "leonix_amount_cents"),
+      currency: readMetadataValue(metadata, "leonix_currency")?.toLowerCase() ?? null,
+      durationDays: readMetadataInteger(metadata, "leonix_duration_days"),
+      aiIncluded:
+        readMetadataValue(metadata, "leonix_ai_included") == null
+          ? null
+          : readMetadataValue(metadata, "leonix_ai_included") === "true",
+      workflow: readMetadataValue(metadata, "leonix_workflow"),
       paymentRecordId,
       ownerUserId: readMetadataValue(metadata, "leonix_owner_user_id"),
       listingId: readMetadataValue(metadata, "leonix_listing_id"),

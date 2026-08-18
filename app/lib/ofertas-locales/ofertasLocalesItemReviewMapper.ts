@@ -3,7 +3,9 @@
  */
 
 import { normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import { normalizeOfertaLocalSourceBbox } from "./ofertasLocalesBoundingBoxes";
 import { resolveOfertaLocalItemIsActiveOnReviewPatch } from "./ofertasLocalesItemReviewActivation";
+import { normalizeOfertaLocalPrice } from "./ofertasLocalesPriceNormalization";
 import { EMPTY_OFERTA_LOCAL_ITEM_COMMERCE_METADATA } from "./ofertasLocalesTypes";
 import type {
   OfertaLocalItemDbRow,
@@ -262,6 +264,9 @@ export function mapOfertaLocalItemReviewRowToViewModel(row: OfertaLocalItemDbRow
     subcategory: row.subcategory ?? "",
     priceText: row.price_text ?? "",
     priceAmount: row.price_amount,
+    priceAmountCents: row.price_amount_cents ?? null,
+    originalPriceText: row.original_price_text ?? row.price_text ?? "",
+    priceParseStatus: row.price_parse_status ?? "unknown",
     regularPriceText: row.regular_price_text ?? "",
     unit: row.unit ?? "",
     dealType: row.deal_type ?? "",
@@ -278,6 +283,10 @@ export function mapOfertaLocalItemReviewRowToViewModel(row: OfertaLocalItemDbRow
     sourceAssetUrl: row.source_asset_url ?? "",
     sourceFileName: row.source_file_name ?? "",
     sourcePage: row.source_page,
+    scanPageId: row.scan_page_id ?? null,
+    sourceAssetVersionId: row.source_asset_version_id ?? null,
+    sourcePageWidth: row.source_page_width ?? null,
+    sourcePageHeight: row.source_page_height ?? null,
     sourceContext: row.source_context ?? "",
     sourceBbox: parseSourceBbox(row.source_bbox),
     sourceCropUrl: row.source_crop_url ?? "",
@@ -342,6 +351,16 @@ export function validateOfertaLocalItemReviewPatch(
     }
   }
 
+  if (o.priceAmountCents !== undefined) {
+    if (o.priceAmountCents === null || o.priceAmountCents === "") {
+      patch.priceAmountCents = null;
+    } else {
+      const n = Number(o.priceAmountCents);
+      if (!Number.isInteger(n) || n < 0) return { ok: false, error: "invalid_price_amount_cents" };
+      patch.priceAmountCents = n;
+    }
+  }
+
   if (o.searchTags !== undefined) {
     if (!Array.isArray(o.searchTags)) return { ok: false, error: "invalid_search_tags" };
     patch.searchTags = sanitizeTags(o.searchTags.map(String));
@@ -398,7 +417,21 @@ export function mapOfertaLocalItemReviewPatchToDbUpdate(
   if (patch.offerText !== undefined) out.offer_text = patch.offerText || null;
   if (patch.terms !== undefined) out.terms = patch.terms || null;
   if (patch.priceText !== undefined) out.price_text = patch.priceText || null;
-  if (patch.priceAmount !== undefined) out.price_amount = patch.priceAmount;
+  if (patch.priceText !== undefined || patch.priceAmount !== undefined || patch.priceAmountCents !== undefined) {
+    const normalized = normalizeOfertaLocalPrice({
+      priceText: patch.priceText,
+      priceAmount:
+        patch.priceAmountCents !== undefined && patch.priceAmountCents !== null
+          ? patch.priceAmountCents / 100
+          : patch.priceAmount,
+      manual: true,
+    });
+    out.price_text = normalized.displayText || patch.priceText || null;
+    out.price_amount = normalized.amount;
+    out.price_amount_cents = normalized.amountCents;
+    out.original_price_text = normalized.originalText || patch.priceText || null;
+    out.price_parse_status = normalized.parseStatus;
+  }
   if (patch.unit !== undefined) out.unit = patch.unit || null;
   if (patch.dealType !== undefined) out.deal_type = patch.dealType || null;
   if (patch.quantity !== undefined) out.quantity = patch.quantity || null;
@@ -444,13 +477,7 @@ export function summarizeOfertaLocalItemReviewCounts(
 }
 
 function parseSourceBbox(raw: Record<string, unknown> | null): OfertaLocalSourceBoundingBox | null {
-  if (!raw) return null;
-  const xMin = Number(raw.xMin);
-  const yMin = Number(raw.yMin);
-  const xMax = Number(raw.xMax);
-  const yMax = Number(raw.yMax);
-  if (![xMin, yMin, xMax, yMax].every((n) => Number.isFinite(n))) return null;
-  return { xMin, yMin, xMax, yMax };
+  return normalizeOfertaLocalSourceBbox(raw);
 }
 
 /** HTTPS-only crop URL safe for preview img src. */
