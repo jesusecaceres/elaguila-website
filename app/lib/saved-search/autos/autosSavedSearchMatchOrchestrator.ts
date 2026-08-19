@@ -17,8 +17,8 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import {
   getAutosClassifiedsListingById,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import type { AutosPublicParentCandidate } from "@/app/lib/clasificados/autos/autosPublicChildParentVisibility";
 import { certifyAutosPublicEligibleListing } from "./autosPublicEligibleListing";
+import { loadParentsById } from "./autosSavedSearchEligibilitySupport";
 import { matchesAutosSavedSearch } from "./savedSearchAutosMatcher";
 import { SAVED_SEARCH_AUTOS_CATEGORY } from "./savedSearchAutosAdapter";
 import {
@@ -26,6 +26,7 @@ import {
   type ActiveSavedSearchForMatching,
 } from "../savedSearchServerCrud";
 import type { SavedSearchNormalizedInput } from "../savedSearchTypes";
+import { attemptSavedSearchEmailDeliveryBestEffort } from "../delivery/savedSearchEmailDelivery";
 
 const MATCH_EVENTS_TABLE = "saved_search_match_events";
 const FAILURES_TABLE = "saved_search_processing_failures";
@@ -39,6 +40,10 @@ export type AutosSavedSearchMatchOrchestrationResult = {
   matchedCount: number;
   insertedCount: number;
   skippedDuplicateCount: number;
+  /** ids of the match-event rows actually inserted by THIS run (never previously-existing/deduped
+   * rows) — Saved Search 05 uses this to bound delivery to exactly this activation's new events,
+   * never a global outbox scan. */
+  insertedIds: string[];
   errors: string[];
 };
 
@@ -70,32 +75,6 @@ async function recordProcessingFailure(input: {
   }
 }
 
-/** Builds the minimal parent map `certifyAutosPublicEligibleListing` needs — only fetches the
- * ONE specific parent row for a dealer-inventory child; non-child rows need no parent lookup at
- * all. Reuses the existing single-row loader, no new query shape invented. */
-async function loadParentsById(row: {
-  inventory_role?: string | null;
-  dealer_inventory_parent_listing_id?: string | null;
-}): Promise<ReadonlyMap<string, AutosPublicParentCandidate>> {
-  if (row.inventory_role !== "inventory_vehicle") return new Map();
-  const parentId = (row.dealer_inventory_parent_listing_id ?? "").trim();
-  if (!parentId) return new Map();
-  const parent = await getAutosClassifiedsListingById(parentId);
-  if (!parent) return new Map();
-  return new Map([
-    [
-      parent.id,
-      {
-        id: parent.id,
-        lane: parent.lane,
-        inventory_role: parent.inventory_role ?? null,
-        owner_user_id: parent.owner_user_id,
-        status: parent.status,
-      },
-    ],
-  ]);
-}
-
 /**
  * Runs the full match pipeline for one already-activated Autos listing. Returns a structured
  * result for logging/inspection rather than throwing — callers that need a hard guarantee this
@@ -113,6 +92,7 @@ export async function runAutosSavedSearchMatchOrchestration(
     matchedCount: 0,
     insertedCount: 0,
     skippedDuplicateCount: 0,
+    insertedIds: [],
     errors,
     ...overrides,
   });
@@ -140,7 +120,7 @@ export async function runAutosSavedSearchMatchOrchestration(
   if (!certified) {
     // Genuinely not eligible right now (e.g. a dealer-inventory child whose parent isn't live in
     // this same instant) — not an error, nothing to record as a failure.
-    return { ok: true, eligible: false, activeSearchesScanned: 0, matchedCount: 0, insertedCount: 0, skippedDuplicateCount: 0, errors: [] };
+    return { ok: true, eligible: false, activeSearchesScanned: 0, matchedCount: 0, insertedCount: 0, skippedDuplicateCount: 0, insertedIds: [], errors: [] };
   }
 
   let activeSearches: ActiveSavedSearchForMatching[];
@@ -168,7 +148,7 @@ export async function runAutosSavedSearchMatchOrchestration(
   }
 
   if (matches.length === 0) {
-    return { ok: true, eligible: true, activeSearchesScanned: activeSearches.length, matchedCount: 0, insertedCount: 0, skippedDuplicateCount: 0, errors };
+    return { ok: true, eligible: true, activeSearchesScanned: activeSearches.length, matchedCount: 0, insertedCount: 0, skippedDuplicateCount: 0, insertedIds: [], errors };
   }
 
   const eventRows = matches.map((search) => ({
@@ -196,7 +176,8 @@ export async function runAutosSavedSearchMatchOrchestration(
       .upsert(eventRows, { onConflict: "saved_search_id,listing_id,event_type", ignoreDuplicates: true })
       .select("id");
     if (error) throw error;
-    const insertedCount = data?.length ?? 0;
+    const insertedIds = (data ?? []).map((r) => (r as { id: string }).id);
+    const insertedCount = insertedIds.length;
     return {
       ok: true,
       eligible: true,
@@ -204,6 +185,7 @@ export async function runAutosSavedSearchMatchOrchestration(
       matchedCount: matches.length,
       insertedCount,
       skippedDuplicateCount: matches.length - insertedCount,
+      insertedIds,
       errors,
     };
   } catch (e) {
@@ -215,6 +197,7 @@ export async function runAutosSavedSearchMatchOrchestration(
       matchedCount: matches.length,
       insertedCount: 0,
       skippedDuplicateCount: 0,
+      insertedIds: [],
       errors: [...errors, "write_events_failed"],
     };
   }
@@ -229,7 +212,14 @@ export async function runAutosSavedSearchMatchOrchestration(
  */
 export async function triggerAutosSavedSearchMatchBestEffort(listingId: string, sourceEvent?: string): Promise<void> {
   try {
-    await runAutosSavedSearchMatchOrchestration(listingId, sourceEvent);
+    const result = await runAutosSavedSearchMatchOrchestration(listingId, sourceEvent);
+    // Saved Search 05 — attempt delivery only for the events THIS run actually inserted (bounded,
+    // Gate 11), only after the durable row already exists (Gate 10). Never awaited in a way that
+    // can fail this function's own success: attemptSavedSearchEmailDeliveryBestEffort never
+    // throws, and matching has already durably committed by this point either way.
+    if (result.ok && result.insertedIds.length > 0) {
+      await attemptSavedSearchEmailDeliveryBestEffort(result.insertedIds);
+    }
   } catch (e) {
     // Absolute last-resort guard: runAutosSavedSearchMatchOrchestration already catches
     // everything it can attribute to a stage, but this ensures even an unexpected bug in the
