@@ -5,6 +5,7 @@
 import "server-only";
 
 import { refreshLeoGoogleAccessToken } from "@/app/leo/_lib/leoGoogleOAuthClient";
+import { classifyLeoGmailHttpStatus } from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
 import {
   getLeoGoogleAccountEmail,
   isLeoGoogleWorkspaceConfigured,
@@ -147,7 +148,7 @@ export async function readLeoGmailInbox(options?: {
         messages: [],
         ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
         limitations: [...limitations, "Gmail list request failed."],
-        errorCode: "GMAIL_LIST_FAILED",
+        errorCode: classifyLeoGmailHttpStatus(listRes.status),
       };
     }
 
@@ -183,7 +184,7 @@ export async function readLeoGmailInbox(options?: {
       messages: [],
       ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
       limitations: [...limitations, "Gmail network/timeout failure."],
-      errorCode: "GMAIL_NETWORK_OR_TIMEOUT",
+      errorCode: "GMAIL_API_NETWORK_OR_TIMEOUT",
     };
   }
 }

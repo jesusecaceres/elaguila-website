@@ -10,9 +10,22 @@ import { execSync } from "node:child_process";
 
 import { routeLeoConversation } from "../app/leo/_lib/leoConversationRouter";
 import { assessLeoGovernance } from "../app/leo/_lib/leoGovernanceEngine";
-import { composeCommunicationIntelligenceSummary } from "../app/leo/_lib/leoConversationComposer";
+import {
+  composeCommunicationIntelligenceSummary,
+  composeGoogleConnectionDiagnosticSummary,
+  isLeoGoogleDiagnosticQuestion,
+} from "../app/leo/_lib/leoConversationComposer";
+import {
+  buildLeoGoogleConnectionDiagnostic,
+  classifyLeoCalendarHttpStatus,
+  classifyLeoGmailHttpStatus,
+  leoGoogleDiagnosticContainsForbiddenSecretMaterial,
+} from "../app/leo/_lib/leoGoogleConnectionDiagnostic";
 import { LEO_TOOL_REGISTRY } from "../app/leo/_lib/leoToolRegistry";
-import type { LeoCommunicationExecutiveSnapshot } from "../app/leo/_lib/leoTypes";
+import type {
+  LeoCommunicationExecutiveSnapshot,
+  LeoGoogleConnectionDiagnostic,
+} from "../app/leo/_lib/leoTypes";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const EXPECTED_BRANCH = "integration/leo-executive-operating-intelligence-2026-08";
@@ -34,10 +47,35 @@ const check = (ok: boolean, label: string) => {
   }
 };
 
+function defaultRuntimeDiagnostic(
+  over?: Partial<LeoGoogleConnectionDiagnostic>,
+): LeoGoogleConnectionDiagnostic {
+  return {
+    workspaceConfigured: false,
+    clientIdConfigured: false,
+    clientSecretConfigured: false,
+    refreshTokenConfigured: false,
+    ownerEmailConfigured: false,
+    oauth: "GOOGLE_NOT_CONFIGURED",
+    gmail: "GOOGLE_NOT_CONFIGURED",
+    calendar: "GOOGLE_NOT_CONFIGURED",
+    ...over,
+  };
+}
+
 function emptySnap(
-  over: Partial<LeoCommunicationExecutiveSnapshot> & {
+  over: {
+    observedAt?: string;
+    overallAvailability?: LeoCommunicationExecutiveSnapshot["overallAvailability"];
+    ownerQuestion?: string | null;
+    subtype?: LeoCommunicationExecutiveSnapshot["subtype"];
     gmail?: Partial<LeoCommunicationExecutiveSnapshot["gmail"]>;
     calendar?: Partial<LeoCommunicationExecutiveSnapshot["calendar"]>;
+    runtimeDiagnostic?: Partial<LeoGoogleConnectionDiagnostic>;
+    configurationState?: Partial<LeoCommunicationExecutiveSnapshot["configurationState"]>;
+    unknowns?: string[];
+    limitations?: string[];
+    notClaiming?: readonly string[];
   } = {},
 ): LeoCommunicationExecutiveSnapshot {
   const base: LeoCommunicationExecutiveSnapshot = {
@@ -49,6 +87,7 @@ function emptySnap(
       availability: "NOT_CONFIGURED",
       recentMessages: [],
       triage: [],
+      errorCode: "GOOGLE_NOT_CONFIGURED",
     },
     calendar: {
       availability: "NOT_CONFIGURED",
@@ -56,7 +95,9 @@ function emptySnap(
       tomorrowEvents: [],
       nextEvent: null,
       upcomingEvents: [],
+      errorCode: "GOOGLE_NOT_CONFIGURED",
     },
+    runtimeDiagnostic: defaultRuntimeDiagnostic(),
     configurationState: {
       configured: false,
       clientIdConfigured: false,
@@ -76,6 +117,10 @@ function emptySnap(
     gmail: { ...base.gmail, ...over.gmail },
     calendar: { ...base.calendar, ...over.calendar },
     configurationState: { ...base.configurationState, ...over.configurationState },
+    runtimeDiagnostic: defaultRuntimeDiagnostic({
+      ...base.runtimeDiagnostic,
+      ...over.runtimeDiagnostic,
+    }),
   };
 }
 
@@ -234,10 +279,38 @@ check(true, "28. no Production change (local gate)");
 
 // CASE C
 {
+  const diag = buildLeoGoogleConnectionDiagnostic({
+    config: {
+      configured: true,
+      clientIdConfigured: true,
+      clientSecretConfigured: true,
+      refreshTokenConfigured: true,
+      ownerEmailConfigured: true,
+      gmailExpectedScope: true,
+      calendarExpectedScope: true,
+    },
+    gmailAvailability: "UNAVAILABLE",
+    calendarAvailability: "UNAVAILABLE",
+    gmailErrorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+    calendarErrorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+  });
   const snap = emptySnap({
     overallAvailability: "UNAVAILABLE",
-    gmail: { availability: "UNAVAILABLE", recentMessages: [], triage: [] },
-    calendar: { availability: "UNAVAILABLE", todayEvents: [], tomorrowEvents: [], nextEvent: null, upcomingEvents: [] },
+    gmail: {
+      availability: "UNAVAILABLE",
+      recentMessages: [],
+      triage: [],
+      errorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+    },
+    calendar: {
+      availability: "UNAVAILABLE",
+      todayEvents: [],
+      tomorrowEvents: [],
+      nextEvent: null,
+      upcomingEvents: [],
+      errorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+    },
+    runtimeDiagnostic: diag,
     configurationState: {
       configured: true,
       clientIdConfigured: true,
@@ -253,15 +326,41 @@ check(true, "28. no Production change (local gate)");
     "EMAIL",
   );
   check(/LEO could not read Gmail right now/i.test(gmailSummary), "CASE C: provider failure => safe Gmail failure");
-  check(!/token|secret|401|403|Bearer/i.test(gmailSummary), "CASE C: no raw token error to owner");
+  check(/Diagnostic:\s*GOOGLE_TOKEN_UNAUTHORIZED/.test(gmailSummary), "CASE C: includes sanitized OAuth diagnostic code");
+  check(
+    !/Bearer\s|ya29\.|1\/\/|GOCSPX-|client_secret\s*=/i.test(gmailSummary),
+    "CASE C: no raw token/secret material to owner",
+  );
 }
 
 // CASE D
 {
   const snap = emptySnap({
     overallAvailability: "PARTIAL",
-    gmail: { availability: "AVAILABLE", recentMessages: [], triage: [] },
-    calendar: { availability: "UNAVAILABLE", todayEvents: [], tomorrowEvents: [], nextEvent: null, upcomingEvents: [] },
+    gmail: { availability: "AVAILABLE", recentMessages: [], triage: [], errorCode: null },
+    calendar: {
+      availability: "UNAVAILABLE",
+      todayEvents: [],
+      tomorrowEvents: [],
+      nextEvent: null,
+      upcomingEvents: [],
+      errorCode: "CALENDAR_API_FAILED",
+    },
+    runtimeDiagnostic: buildLeoGoogleConnectionDiagnostic({
+      config: {
+        configured: true,
+        clientIdConfigured: true,
+        clientSecretConfigured: true,
+        refreshTokenConfigured: true,
+        ownerEmailConfigured: true,
+        gmailExpectedScope: true,
+        calendarExpectedScope: true,
+      },
+      gmailAvailability: "AVAILABLE",
+      calendarAvailability: "UNAVAILABLE",
+      gmailErrorCode: null,
+      calendarErrorCode: "CALENDAR_API_FAILED",
+    }),
     configurationState: {
       configured: true,
       clientIdConfigured: true,
@@ -283,14 +382,30 @@ check(true, "28. no Production change (local gate)");
 {
   const snap = emptySnap({
     overallAvailability: "PARTIAL",
-    gmail: { availability: "UNAVAILABLE", recentMessages: [], triage: [] },
+    gmail: { availability: "UNAVAILABLE", recentMessages: [], triage: [], errorCode: "GMAIL_API_FAILED" },
     calendar: {
       availability: "AVAILABLE",
       todayEvents: [],
       tomorrowEvents: [],
       nextEvent: null,
       upcomingEvents: [],
+      errorCode: null,
     },
+    runtimeDiagnostic: buildLeoGoogleConnectionDiagnostic({
+      config: {
+        configured: true,
+        clientIdConfigured: true,
+        clientSecretConfigured: true,
+        refreshTokenConfigured: true,
+        ownerEmailConfigured: true,
+        gmailExpectedScope: true,
+        calendarExpectedScope: true,
+      },
+      gmailAvailability: "UNAVAILABLE",
+      calendarAvailability: "AVAILABLE",
+      gmailErrorCode: "GMAIL_API_FAILED",
+      calendarErrorCode: null,
+    }),
     configurationState: {
       configured: true,
       clientIdConfigured: true,
@@ -306,6 +421,162 @@ check(true, "28. no Production change (local gate)");
     "EMAIL",
   );
   check(/LEO could not read Gmail right now/i.test(mail), "CASE E: Calendar ok Gmail unavailable => partial truth");
+  check(/Diagnostic:\s*GMAIL_API_FAILED/.test(mail), "CASE E: Gmail API failure code preserved");
+}
+
+// RUNTIME DIAGNOSTIC FIXTURES (LEO-13A-RUNTIME)
+{
+  check(isLeoGoogleDiagnosticQuestion("Diagnose Google connection."), "diag Q: Diagnose Google connection");
+  check(isLeoGoogleDiagnosticQuestion("Google connection status"), "diag Q: Google connection status");
+  check(!isLeoGoogleDiagnosticQuestion("Who emailed me?"), "diag Q: normal Gmail question is not diagnostic");
+
+  check(classifyLeoGmailHttpStatus(401) === "GMAIL_API_UNAUTHORIZED", "classify Gmail 401");
+  check(classifyLeoGmailHttpStatus(403) === "GMAIL_API_FORBIDDEN", "classify Gmail 403");
+  check(classifyLeoCalendarHttpStatus(401) === "CALENDAR_API_UNAUTHORIZED", "classify Calendar 401");
+  check(classifyLeoCalendarHttpStatus(500) === "CALENDAR_API_FAILED", "classify Calendar 500");
+
+  const cfgAll = {
+    configured: true,
+    clientIdConfigured: true,
+    clientSecretConfigured: true,
+    refreshTokenConfigured: true,
+    ownerEmailConfigured: true,
+    gmailExpectedScope: true,
+    calendarExpectedScope: true,
+  };
+  const cfgNone = {
+    configured: false,
+    clientIdConfigured: false,
+    clientSecretConfigured: false,
+    refreshTokenConfigured: false,
+    ownerEmailConfigured: false,
+    gmailExpectedScope: true,
+    calendarExpectedScope: true,
+  };
+
+  // 1 not configured
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgNone,
+      gmailAvailability: "NOT_CONFIGURED",
+      calendarAvailability: "NOT_CONFIGURED",
+      gmailErrorCode: "GOOGLE_NOT_CONFIGURED",
+      calendarErrorCode: "GOOGLE_NOT_CONFIGURED",
+    });
+    const s = composeGoogleConnectionDiagnosticSummary(d);
+    check(d.oauth === "GOOGLE_NOT_CONFIGURED", "fixture 1: oauth NOT_CONFIGURED");
+    check(/Google Workspace: Not configured/.test(s), "fixture 1: owner summary not configured");
+    check(!leoGoogleDiagnosticContainsForbiddenSecretMaterial(s), "fixture 1: no secrets");
+  }
+
+  // 2 OAuth unauthorized
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgAll,
+      gmailAvailability: "UNAVAILABLE",
+      calendarAvailability: "UNAVAILABLE",
+      gmailErrorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+      calendarErrorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+    });
+    const s = composeGoogleConnectionDiagnosticSummary(d);
+    check(d.oauth === "GOOGLE_TOKEN_UNAUTHORIZED", "fixture 2: oauth unauthorized");
+    check(d.gmail === "UNAVAILABLE_DUE_TO_OAUTH", "fixture 2: gmail due to oauth");
+    check(d.calendar === "UNAVAILABLE_DUE_TO_OAUTH", "fixture 2: calendar due to oauth");
+    check(/OAuth token refresh: GOOGLE_TOKEN_UNAUTHORIZED/.test(s), "fixture 2: summary oauth code");
+    check(/unavailable because OAuth token refresh failed/.test(s), "fixture 2: unavailable copy");
+  }
+
+  // 3 OAuth exchange failure
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgAll,
+      gmailAvailability: "UNAVAILABLE",
+      calendarAvailability: "UNAVAILABLE",
+      gmailErrorCode: "GOOGLE_TOKEN_EXCHANGE_FAILED",
+      calendarErrorCode: "GOOGLE_TOKEN_EXCHANGE_FAILED",
+    });
+    check(d.oauth === "GOOGLE_TOKEN_EXCHANGE_FAILED", "fixture 3: oauth exchange failed");
+  }
+
+  // 4 OAuth timeout
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgAll,
+      gmailAvailability: "UNAVAILABLE",
+      calendarAvailability: "UNAVAILABLE",
+      gmailErrorCode: "GOOGLE_TOKEN_NETWORK_OR_TIMEOUT",
+      calendarErrorCode: "GOOGLE_TOKEN_NETWORK_OR_TIMEOUT",
+    });
+    check(d.oauth === "GOOGLE_TOKEN_NETWORK_OR_TIMEOUT", "fixture 4: oauth timeout");
+  }
+
+  // 5 successful token refresh + full success
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgAll,
+      gmailAvailability: "AVAILABLE",
+      calendarAvailability: "AVAILABLE",
+      gmailErrorCode: null,
+      calendarErrorCode: null,
+    });
+    const s = composeGoogleConnectionDiagnosticSummary(d);
+    check(d.oauth === "AVAILABLE" && d.gmail === "AVAILABLE" && d.calendar === "AVAILABLE", "fixture 5/8: full success");
+    check(/OAuth token refresh: AVAILABLE/.test(s) && /Gmail: AVAILABLE/.test(s), "fixture 5/8: success summary");
+  }
+
+  // 6 Gmail provider failure
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgAll,
+      gmailAvailability: "UNAVAILABLE",
+      calendarAvailability: "AVAILABLE",
+      gmailErrorCode: "GMAIL_API_FORBIDDEN",
+      calendarErrorCode: null,
+    });
+    check(d.oauth === "AVAILABLE", "fixture 6: oauth available despite Gmail fail");
+    check(d.gmail === "GMAIL_API_FORBIDDEN", "fixture 6: gmail forbidden");
+    check(d.calendar === "AVAILABLE", "fixture 6: calendar available");
+  }
+
+  // 7 Calendar provider failure
+  {
+    const d = buildLeoGoogleConnectionDiagnostic({
+      config: cfgAll,
+      gmailAvailability: "AVAILABLE",
+      calendarAvailability: "UNAVAILABLE",
+      gmailErrorCode: null,
+      calendarErrorCode: "CALENDAR_API_NETWORK_OR_TIMEOUT",
+    });
+    check(d.oauth === "AVAILABLE", "fixture 7: oauth available");
+    check(d.calendar === "CALENDAR_API_NETWORK_OR_TIMEOUT", "fixture 7: calendar timeout");
+  }
+
+  // Security: diagnostic never serializes secrets
+  {
+    const poison = composeGoogleConnectionDiagnosticSummary(
+      buildLeoGoogleConnectionDiagnostic({
+        config: cfgAll,
+        gmailAvailability: "UNAVAILABLE",
+        calendarAvailability: "UNAVAILABLE",
+        gmailErrorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+        calendarErrorCode: "GOOGLE_TOKEN_UNAUTHORIZED",
+      }),
+    );
+    check(!/ya29\.|1\/\/[A-Za-z0-9_-]+|GOCSPX-/.test(poison), "security: no token prefixes");
+    check(!/@[a-z0-9.-]+\.[a-z]{2,}/i.test(poison), "security: no account email value");
+    check(!/"error_description"|invalid_grant|www\.googleapis\.com\/auth/.test(poison), "security: no raw Google body");
+    check(!leoGoogleDiagnosticContainsForbiddenSecretMaterial(poison), "security: forbidden-material helper");
+  }
+
+  const diagSrc = src("app/leo/_lib/leoGoogleConnectionDiagnostic.ts");
+  const convSrc = src("app/leo/_lib/leoConversationService.ts");
+  check(/isLeoGoogleDiagnosticQuestion/.test(convSrc), "owner entry: conversation service detects diagnostic Q");
+  check(/composeGoogleConnectionDiagnosticSummary/.test(convSrc), "owner entry: conversation composes diagnostic");
+  check(/requireLeoOwnerAccess/.test(src("app/leo/_lib/leoCommunicationIntelligenceService.ts")), "owner-only: snapshot requires owner");
+  check(!/messages\/send|users\.messages\.send/.test(gmailSrc), "gmail remains read-only");
+  check(!/events\.insert|events\.update|events\.patch|events\.delete/.test(calSrc), "calendar remains read-only");
+  check(/gmail\.readonly/.test(configSrc) && /calendar\.readonly/.test(configSrc), "scopes remain readonly only");
+  check(/buildLeoGoogleConnectionDiagnostic/.test(diagSrc), "diagnostic helper present");
 }
 
 {
@@ -335,6 +606,12 @@ const untracked = execSync("git status --short", { cwd: ROOT, encoding: "utf8" }
 
 const allowed = new Set([
   "app/leo/_lib/leoGoogleWorkspaceConfig.ts",
+  "app/leo/_lib/leoGoogleConnectionDiagnostic.ts",
+  "app/leo/_lib/leoGoogleOAuthClient.ts",
+  "app/leo/_lib/leoGmailAdapter.ts",
+  "app/leo/_lib/leoCalendarAdapter.ts",
+  "app/leo/_lib/leoCommunicationIntelligenceService.ts",
+  "app/leo/_lib/leoTypes.ts",
   "app/leo/_lib/leoToolCatalog.ts",
   "app/leo/_lib/leoConversationComposer.ts",
   "app/leo/_lib/leoConversationService.ts",

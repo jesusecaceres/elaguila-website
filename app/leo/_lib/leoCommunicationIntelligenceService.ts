@@ -13,6 +13,7 @@ import {
   getLeoGoogleWorkspaceConfigDiagnostic,
   isLeoGoogleWorkspaceConfigured,
 } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
+import { buildLeoGoogleConnectionDiagnostic } from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
 import { readLeoGmailInbox, readLeoGmailThread } from "@/app/leo/_lib/leoGmailAdapter";
 import { buildLeoMeetingIntelligence } from "@/app/leo/_lib/leoMeetingIntelligenceService";
 import type {
@@ -57,6 +58,13 @@ export async function getLeoCommunicationExecutiveSnapshot(options?: {
   const unknowns: string[] = [];
 
   if (!isLeoGoogleWorkspaceConfigured()) {
+    const runtimeDiagnostic = buildLeoGoogleConnectionDiagnostic({
+      config,
+      gmailAvailability: "NOT_CONFIGURED",
+      calendarAvailability: "NOT_CONFIGURED",
+      gmailErrorCode: "GOOGLE_NOT_CONFIGURED",
+      calendarErrorCode: "GOOGLE_NOT_CONFIGURED",
+    });
     return {
       observedAt,
       overallAvailability: "NOT_CONFIGURED",
@@ -66,6 +74,7 @@ export async function getLeoCommunicationExecutiveSnapshot(options?: {
         availability: "NOT_CONFIGURED",
         recentMessages: [],
         triage: [],
+        errorCode: "GOOGLE_NOT_CONFIGURED",
       },
       calendar: {
         availability: "NOT_CONFIGURED",
@@ -73,7 +82,9 @@ export async function getLeoCommunicationExecutiveSnapshot(options?: {
         tomorrowEvents: [],
         nextEvent: null,
         upcomingEvents: [],
+        errorCode: "GOOGLE_NOT_CONFIGURED",
       },
+      runtimeDiagnostic,
       configurationState: config,
       unknowns: ["google_workspace_not_configured"],
       limitations: [...limitations, "Google Workspace credentials are not configured."],
@@ -112,6 +123,14 @@ export async function getLeoCommunicationExecutiveSnapshot(options?: {
   if (!ownerEmail) unknowns.push("owner_email_not_configured");
   unknowns.push(...calIntel.unknowns);
 
+  const runtimeDiagnostic = buildLeoGoogleConnectionDiagnostic({
+    config,
+    gmailAvailability: gmailResult.availability,
+    calendarAvailability: calendarResult.availability,
+    gmailErrorCode: gmailResult.errorCode,
+    calendarErrorCode: calendarResult.errorCode,
+  });
+
   return {
     observedAt,
     overallAvailability: combineAvailability(
@@ -124,6 +143,7 @@ export async function getLeoCommunicationExecutiveSnapshot(options?: {
       availability: gmailResult.availability,
       recentMessages: gmailResult.messages,
       triage,
+      errorCode: gmailResult.errorCode,
     },
     calendar: {
       availability: calendarResult.availability,
@@ -131,7 +151,9 @@ export async function getLeoCommunicationExecutiveSnapshot(options?: {
       tomorrowEvents: calIntel.tomorrowEvents,
       nextEvent: calIntel.nextEvent,
       upcomingEvents: calIntel.upcomingEvents,
+      errorCode: calendarResult.errorCode,
     },
+    runtimeDiagnostic,
     configurationState: config,
     unknowns,
     limitations: [...new Set(limitations)],

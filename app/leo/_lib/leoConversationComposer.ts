@@ -16,6 +16,12 @@ import type {
   LeoProjectExecutiveSnapshot,
   LeoProjectSnapshot,
 } from "@/app/leo/_lib/leoTypes";
+import { composeGoogleFailureDiagnosticLine } from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
+
+export {
+  composeGoogleConnectionDiagnosticSummary,
+  isLeoGoogleDiagnosticQuestion,
+} from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
 
 export function composeAttentionSummary(brief: LeoAttentionBrief): string {
   const n = brief.items.length;
@@ -144,7 +150,10 @@ export function composeCommunicationIntelligenceSummary(
       return "Google Workspace is not configured for LEO yet.";
     }
     if (snap.calendar.availability !== "AVAILABLE" && snap.calendar.availability !== "PARTIAL") {
-      return "LEO could not read Calendar right now.";
+      const line = composeGoogleFailureDiagnosticLine("calendar", snap.runtimeDiagnostic);
+      return line
+        ? `LEO could not read Calendar right now.\n${line}`
+        : "LEO could not read Calendar right now.";
     }
     const q = (snap.ownerQuestion ?? "").toLowerCase();
     if (/tomorrow/.test(q)) {
@@ -196,7 +205,10 @@ export function composeCommunicationIntelligenceSummary(
     return "Google Workspace is not configured for LEO yet.";
   }
   if (snap.gmail.availability !== "AVAILABLE" && snap.gmail.availability !== "PARTIAL") {
-    return "LEO could not read Gmail right now.";
+    const line = composeGoogleFailureDiagnosticLine("gmail", snap.runtimeDiagnostic);
+    return line
+      ? `LEO could not read Gmail right now.\n${line}`
+      : "LEO could not read Gmail right now.";
   }
   const waiting = snap.gmail.triage.filter((t) => t.state === "WAITING_ON_OWNER");
   const possible = snap.gmail.triage.filter((t) => t.state === "POSSIBLE_REPLY_NEEDED");

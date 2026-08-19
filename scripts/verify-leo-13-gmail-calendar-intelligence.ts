@@ -438,6 +438,7 @@ async function main() {
     "app/leo/_lib/leoAiReasoningEngine.ts",
     "app/leo/_lib/leoGoogleWorkspaceConfig.ts",
     "app/leo/_lib/leoGoogleOAuthClient.ts",
+    "app/leo/_lib/leoGoogleConnectionDiagnostic.ts",
     "app/leo/_lib/leoGmailAdapter.ts",
     "app/leo/_lib/leoEmailTriageEngine.ts",
     "app/leo/_lib/leoCalendarAdapter.ts",

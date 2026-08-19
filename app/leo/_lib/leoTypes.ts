@@ -1206,6 +1206,45 @@ export type LeoGoogleOAuthResult = {
   errorCode: string | null;
 };
 
+/** LEO-13A-RUNTIME — sanitized OAuth diagnostic codes (never secrets). */
+export type LeoGoogleOAuthDiagnosticCode =
+  | "AVAILABLE"
+  | "GOOGLE_NOT_CONFIGURED"
+  | "GOOGLE_TOKEN_UNAUTHORIZED"
+  | "GOOGLE_TOKEN_EXCHANGE_FAILED"
+  | "GOOGLE_TOKEN_MISSING"
+  | "GOOGLE_TOKEN_NETWORK_OR_TIMEOUT";
+
+export type LeoGmailDiagnosticCode =
+  | "AVAILABLE"
+  | "GOOGLE_NOT_CONFIGURED"
+  | "UNAVAILABLE_DUE_TO_OAUTH"
+  | "GMAIL_API_UNAUTHORIZED"
+  | "GMAIL_API_FORBIDDEN"
+  | "GMAIL_API_FAILED"
+  | "GMAIL_API_NETWORK_OR_TIMEOUT";
+
+export type LeoCalendarDiagnosticCode =
+  | "AVAILABLE"
+  | "GOOGLE_NOT_CONFIGURED"
+  | "UNAVAILABLE_DUE_TO_OAUTH"
+  | "CALENDAR_API_UNAUTHORIZED"
+  | "CALENDAR_API_FORBIDDEN"
+  | "CALENDAR_API_FAILED"
+  | "CALENDAR_API_NETWORK_OR_TIMEOUT";
+
+/** Owner-safe Google connection diagnosis — booleans + error class codes only. */
+export type LeoGoogleConnectionDiagnostic = {
+  workspaceConfigured: boolean;
+  clientIdConfigured: boolean;
+  clientSecretConfigured: boolean;
+  refreshTokenConfigured: boolean;
+  ownerEmailConfigured: boolean;
+  oauth: LeoGoogleOAuthDiagnosticCode;
+  gmail: LeoGmailDiagnosticCode;
+  calendar: LeoCalendarDiagnosticCode;
+};
+
 export type LeoEmailReadState = "READ" | "UNREAD" | "UNKNOWN";
 
 export type LeoEmailMessageEvidence = {
@@ -1334,6 +1373,8 @@ export type LeoCommunicationExecutiveSnapshot = {
     availability: LeoToolAvailability;
     recentMessages: LeoEmailMessageEvidence[];
     triage: LeoEmailTriageResult[];
+    /** Sanitized adapter error class — never a provider body or secret. */
+    errorCode: string | null;
   };
   calendar: {
     availability: LeoToolAvailability;
@@ -1341,7 +1382,11 @@ export type LeoCommunicationExecutiveSnapshot = {
     tomorrowEvents: LeoCalendarEventEvidence[];
     nextEvent: LeoCalendarEventEvidence | null;
     upcomingEvents: LeoCalendarEventEvidence[];
+    /** Sanitized adapter error class — never a provider body or secret. */
+    errorCode: string | null;
   };
+  /** Owner-safe runtime diagnosis for Google Workspace connection. */
+  runtimeDiagnostic: LeoGoogleConnectionDiagnostic;
   configurationState: {
     configured: boolean;
     clientIdConfigured: boolean;

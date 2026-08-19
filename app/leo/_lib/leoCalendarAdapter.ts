@@ -5,6 +5,7 @@
 import "server-only";
 
 import { refreshLeoGoogleAccessToken } from "@/app/leo/_lib/leoGoogleOAuthClient";
+import { classifyLeoCalendarHttpStatus } from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
 import {
   isLeoGoogleWorkspaceConfigured,
   LEO_GOOGLE_BOUNDS,
@@ -191,7 +192,7 @@ export async function readLeoCalendarEvents(options?: {
         timeMax,
         windowReadSuccessfully: false,
         limitations: [...limitations, "Calendar events request failed."],
-        errorCode: "CALENDAR_LIST_FAILED",
+        errorCode: classifyLeoCalendarHttpStatus(res.status),
       };
     }
 
@@ -218,7 +219,7 @@ export async function readLeoCalendarEvents(options?: {
       timeMax,
       windowReadSuccessfully: false,
       limitations: [...limitations, "Calendar network/timeout failure."],
-      errorCode: "CALENDAR_NETWORK_OR_TIMEOUT",
+      errorCode: "CALENDAR_API_NETWORK_OR_TIMEOUT",
     };
   }
 }

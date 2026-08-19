@@ -19,7 +19,9 @@ import {
   composeMemorySummary,
   composeProjectIntelligenceSummary,
   composeCommunicationIntelligenceSummary,
+  composeGoogleConnectionDiagnosticSummary,
   composeReasonSummary,
+  isLeoGoogleDiagnosticQuestion,
   suggestedQuestionsForIntent,
 } from "@/app/leo/_lib/leoConversationComposer";
 import {
@@ -109,6 +111,31 @@ export async function runLeoConversationDeterministic(
       suggestedQuestions: partial.suggestedQuestions ?? suggestedQuestionsForIntent(intent),
     };
   };
+
+  // Owner-only Google connection diagnostic — does not require COMMUNICATION_INTELLIGENCE route.
+  if (isLeoGoogleDiagnosticQuestion(request.question)) {
+    const snap = await getLeoCommunicationExecutiveSnapshot({
+      nowMs,
+      question: request.question,
+      subtype: "EMAIL",
+    });
+    const summary = composeGoogleConnectionDiagnosticSummary(snap.runtimeDiagnostic);
+    return empty({
+      intent: "COMMUNICATION_INTELLIGENCE",
+      answerState: "ANSWERED",
+      summary,
+      limitations: [
+        ...snap.limitations,
+        "Diagnostic reports sanitized status codes only — no secrets or provider payloads.",
+      ],
+      unknowns: snap.unknowns,
+      suggestedQuestions: [
+        "Who emailed me?",
+        "What meetings do I have today?",
+        "Diagnose Google connection.",
+      ],
+    });
+  }
 
   switch (route.intent) {
     case "ATTENTION_OVERVIEW": {
