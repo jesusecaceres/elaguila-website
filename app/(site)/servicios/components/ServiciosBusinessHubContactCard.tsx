@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { FaStar, FaWhatsapp } from "react-icons/fa";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
@@ -593,6 +594,18 @@ export function ServiciosBusinessHubContactCard({
                 </section>
               ) : null}
             </div>
+
+            {(listingSourceId ?? "").trim() ? (
+              <div className="mt-4 border-t pt-4" style={{ borderColor: SCH_LX.divider }}>
+                <LeonixCommunityTrust
+                  category="servicios"
+                  targetId={listingSourceId as string}
+                  ownerUserId={engagementOwnerUserId}
+                  lang={lang}
+                  surface="servicios_hub"
+                />
+              </div>
+            ) : null}
 
             {showSecondary ? (
               <div className={SCH_SECONDARY_GRID}>
