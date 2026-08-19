@@ -1,5 +1,10 @@
 import type { SupportedLang } from "@/app/lib/language";
-import type { PublicNavCopyBundle, PublicNavCopyRegistry, PublicNavItemLabels } from "./types";
+import type {
+  PublicNavCopyBundle,
+  PublicNavCopyRegistry,
+  PublicNavItemLabels,
+  PublicNavLabelOpts,
+} from "./types";
 
 const CHROME_ES = {
   brandName: "Leonix Media",
@@ -39,6 +44,7 @@ const CHROME_EN = {
 
 const ITEMS_ES: PublicNavItemLabels = {
   inicio: "Inicio",
+  noticias: "Noticias",
   revista: "La Revista",
   clasificados: "Clasificados",
   "negocios-locales": "Negocios Locales",
@@ -51,7 +57,7 @@ const ITEMS_ES: PublicNavItemLabels = {
   viajes: "Viajes",
   "productos-promocionales": "Productos Promocionales",
   "productos-promocionalesShort": "Productos Promo",
-  "compact-overflow": "Viajes y promo",
+  more: "Más",
   anunciate: "Anúnciate",
   "about-us": "Sobre nosotros",
   "contact-us": "Contacto",
@@ -59,6 +65,7 @@ const ITEMS_ES: PublicNavItemLabels = {
 
 const ITEMS_EN: PublicNavItemLabels = {
   inicio: "Home",
+  noticias: "News",
   revista: "The Magazine",
   clasificados: "Classifieds",
   "negocios-locales": "Local Businesses",
@@ -71,10 +78,28 @@ const ITEMS_EN: PublicNavItemLabels = {
   viajes: "Travel",
   "productos-promocionales": "Promotional Products",
   "productos-promocionalesShort": "Promo Products",
-  "compact-overflow": "Travel & promo",
+  more: "More",
   anunciate: "Advertise",
   "about-us": "About us",
   "contact-us": "Contact us",
+};
+
+/** Header-only short labels. Footer / Anúnciate keep ITEMS_* product names. */
+const HEADER_ITEM_LABELS: Partial<Record<SupportedLang, Partial<PublicNavItemLabels>>> = {
+  es: {
+    revista: "Revista",
+    "negocios-locales": "Negocios",
+    "recursos-comunitarios": "Recursos",
+    "productos-promocionales": "Promocionales",
+    more: "Más",
+  },
+  en: {
+    revista: "Magazine",
+    "negocios-locales": "Businesses",
+    "recursos-comunitarios": "Resources",
+    "productos-promocionales": "Promotional Products",
+    more: "More",
+  },
 };
 
 function bundle(items: PublicNavItemLabels, chrome: PublicNavCopyBundle["chrome"]): PublicNavCopyBundle {
@@ -107,7 +132,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       viajes: "Du lịch",
       "productos-promocionales": "Sản phẩm khuyến mãi",
       "productos-promocionalesShort": "Sản phẩm promo",
-      "compact-overflow": "Du lịch & promo",
+      noticias: "Tin tức",
+      more: "Thêm",
       anunciate: "Quảng cáo",
       "about-us": "Giới thiệu",
       "contact-us": "Liên hệ",
@@ -144,7 +170,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       viajes: "Viagens",
       "productos-promocionales": "Produtos promocionais",
       "productos-promocionalesShort": "Produtos promo",
-      "compact-overflow": "Viagens e promo",
+      noticias: "Notícias",
+      more: "Mais",
       anunciate: "Anuncie",
       "about-us": "Sobre nós",
       "contact-us": "Contato",
@@ -180,7 +207,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       viajes: "Travel",
       "productos-promocionales": "Promotional products",
       "productos-promocionalesShort": "Promo products",
-      "compact-overflow": "Travel at promo",
+      noticias: "News",
+      more: "More",
       anunciate: "Mag-advertise",
     }),
     fromEnChrome({
@@ -214,7 +242,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "ayuda-comunitaria": "ជំនួយសហគមន៍",
       viajes: "ការធ្វើដំណើរ",
       "productos-promocionales": "ផលិតផលផ្សព្វផ្សាយ",
-      "compact-overflow": "ដំណើរ និង promo",
+      noticias: "ព័ត៌មាន",
+      more: "បន្ថែម",
       anunciate: "ផ្សាយពាណិជ្ជកម្ម",
       "about-us": "About us",
       "contact-us": "Contact us",
@@ -250,7 +279,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       viajes: "旅行",
       "productos-promocionales": "促销产品",
       "productos-promocionalesShort": "促销产品",
-      "compact-overflow": "旅行与促销",
+      noticias: "新闻",
+      more: "更多",
       anunciate: "投放广告",
     }),
     fromEnChrome({
@@ -284,7 +314,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       viajes: "旅行",
       "productos-promocionales": "プロモーション商品",
       "productos-promocionalesShort": "プロモ商品",
-      "compact-overflow": "旅行とプロモ",
+      noticias: "ニュース",
+      more: "その他",
       anunciate: "広告掲載",
     }),
     fromEnChrome({
@@ -317,7 +348,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "ayuda-comunitaria": "커뮤니티 도움",
       viajes: "여행",
       "productos-promocionales": "프로모션 제품",
-      "compact-overflow": "여행 및 프로모",
+      noticias: "뉴스",
+      more: "더보기",
       anunciate: "광고하기",
     }),
     fromEnChrome({
@@ -350,7 +382,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "ayuda-comunitaria": "सामुदायिक सहायता",
       viajes: "यात्रा",
       "productos-promocionales": "प्रचार उत्पाद",
-      "compact-overflow": "यात्रा और प्रोमो",
+      noticias: "समाचार",
+      more: "और",
       anunciate: "विज्ञापन दें",
     }),
     fromEnChrome({
@@ -383,7 +416,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "ayuda-comunitaria": "Համայնքային օգնություն",
       viajes: "Ճանապարհորդություն",
       "productos-promocionales": "Գովազդային ապրանքներ",
-      "compact-overflow": "Ճանապարհորդություն և promo",
+      noticias: "Լուրեր",
+      more: "Ավելին",
       anunciate: "Գովազդել",
     }),
     fromEnChrome({
@@ -416,7 +450,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "ayuda-comunitaria": "Помощь сообществу",
       viajes: "Путешествия",
       "productos-promocionales": "Рекламная продукция",
-      "compact-overflow": "Путешествия и promo",
+      noticias: "Новости",
+      more: "Ещё",
       anunciate: "Рекламировать",
     }),
     fromEnChrome({
@@ -449,7 +484,8 @@ export const PUBLIC_NAV_COPY: PublicNavCopyRegistry = {
       "ayuda-comunitaria": "ਕਮਿਊਨਿਟੀ ਮਦਦ",
       viajes: "ਯਾਤਰਾ",
       "productos-promocionales": "ਪ੍ਰਚਾਰ ਉਤਪਾਦ",
-      "compact-overflow": "ਯਾਤਰਾ ਅਤੇ promo",
+      noticias: "ਖਬਰਾਂ",
+      more: "ਹੋਰ",
       anunciate: "ਇਸ਼ਤਿਹਾਰ ਦਿਓ",
     }),
     fromEnChrome({
@@ -478,14 +514,26 @@ export function getPublicNavCopy(lang: SupportedLang): PublicNavCopyBundle {
 export function getPublicNavItemLabel(
   itemId: string,
   lang: SupportedLang,
-  opts?: { short?: boolean },
+  opts?: PublicNavLabelOpts,
 ): string {
+  const resolvedId = itemId === "compact-overflow" ? "more" : itemId;
   const copy = getPublicNavCopy(lang);
   const items = copy.items;
-  if (opts?.short && itemId === "productos-promocionales" && items["productos-promocionalesShort"]) {
-    return items["productos-promocionalesShort"];
+
+  if (opts?.surface === "header") {
+    if (
+      opts.short &&
+      resolvedId === "productos-promocionales" &&
+      lang === "en" &&
+      items["productos-promocionalesShort"]
+    ) {
+      return items["productos-promocionalesShort"];
+    }
+    const headerOverride = HEADER_ITEM_LABELS[lang]?.[resolvedId as keyof PublicNavItemLabels];
+    if (typeof headerOverride === "string" && headerOverride) return headerOverride;
   }
-  const key = itemId as keyof PublicNavItemLabels;
+
+  const key = resolvedId as keyof PublicNavItemLabels;
   if (key in items && typeof items[key] === "string") return items[key] as string;
   return lang === "es" ? ITEMS_ES.inicio : ITEMS_EN.inicio;
 }
