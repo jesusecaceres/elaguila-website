@@ -1,12 +1,15 @@
 "use client";
 
 /**
- * Saved Search 03 — owner "Búsquedas guardadas / Saved searches" management surface.
- * Autos only for V1. Reuses the existing dashboard shell (`LeonixDashboardShell`) and the Saved
- * Search 02 Bearer-token API (`app/api/saved-search/**`) — never a direct Supabase table query,
- * since that table's application-layer contract is the API, not RLS-only browser access (see
- * `savedSearchServerCrud.ts`'s header comment on why this table follows a different convention
- * than `saved_listings`).
+ * Saved Search 03/06 — owner "Búsquedas guardadas / Saved searches" management surface.
+ * Autos, Bienes Raíces, and Rentas as of Saved Search 06. Reuses the existing dashboard shell
+ * (`LeonixDashboardShell`) and the Saved Search 02 Bearer-token API (`app/api/saved-search/**`) —
+ * never a direct Supabase table query, since that table's application-layer contract is the API,
+ * not RLS-only browser access (see `savedSearchServerCrud.ts`'s header comment on why this table
+ * follows a different convention than `saved_listings`).
+ *
+ * Saved Search 06 — one dashboard, not one per category (Gate 20): `CATEGORY_REGISTRY` is the
+ * single place a category plugs in its label/facet-summary/results-URL builder.
  */
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -22,7 +25,39 @@ import {
 } from "@/app/lib/saved-search/savedSearchClient";
 import { describeAutosSavedSearchFacets } from "@/app/lib/saved-search/autos/savedSearchAutosAdapter";
 import { buildAutosSavedSearchResultsUrl } from "@/app/lib/saved-search/autos/autosSavedSearchResultsUrl";
-import type { SavedSearchRow } from "@/app/lib/saved-search/savedSearchTypes";
+import { describeBienesRaicesSavedSearchFacets } from "@/app/lib/saved-search/bienes-raices/savedSearchBienesRaicesAdapter";
+import { buildBienesRaicesSavedSearchResultsUrl } from "@/app/lib/saved-search/bienes-raices/bienesRaicesSavedSearchResultsUrl";
+import { describeRentasSavedSearchFacets } from "@/app/lib/saved-search/rentas/savedSearchRentasAdapter";
+import { buildRentasSavedSearchResultsUrl } from "@/app/lib/saved-search/rentas/rentasSavedSearchResultsUrl";
+import type { SavedSearchNormalizedInput, SavedSearchRow } from "@/app/lib/saved-search/savedSearchTypes";
+
+type SavedSearchCategoryEntry = {
+  label: { es: string; en: string };
+  browsePath: string;
+  describeFacets: (saved: SavedSearchNormalizedInput, lang: "es" | "en") => string[];
+  buildResultsUrl: (saved: SavedSearchNormalizedInput, routeLang: "es" | "en") => string;
+};
+
+const CATEGORY_REGISTRY: Record<string, SavedSearchCategoryEntry> = {
+  autos: {
+    label: { es: "Autos", en: "Autos" },
+    browsePath: "/clasificados/autos/resultados",
+    describeFacets: describeAutosSavedSearchFacets,
+    buildResultsUrl: buildAutosSavedSearchResultsUrl,
+  },
+  "bienes-raices": {
+    label: { es: "Bienes Raíces", en: "Real Estate" },
+    browsePath: "/clasificados/bienes-raices/resultados",
+    describeFacets: describeBienesRaicesSavedSearchFacets,
+    buildResultsUrl: buildBienesRaicesSavedSearchResultsUrl,
+  },
+  rentas: {
+    label: { es: "Rentas", en: "Rentals" },
+    browsePath: "/clasificados/rentas/results",
+    describeFacets: describeRentasSavedSearchFacets,
+    buildResultsUrl: buildRentasSavedSearchResultsUrl,
+  },
+};
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -44,13 +79,14 @@ function BusquedasGuardadasPageContent() {
       lang === "es"
         ? {
             title: "Búsquedas guardadas",
-            subtitle: "Vuelve fácilmente a tus búsquedas de Autos guardadas.",
+            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces y Rentas.",
             back: "Volver al resumen",
             browse: "Explorar Autos",
+            browseBr: "Explorar Bienes Raíces",
+            browseRentas: "Explorar Rentas",
             loading: "Cargando…",
             empty: "No tienes búsquedas guardadas todavía.",
-            emptyHint: "Guarda una búsqueda desde los resultados de Autos para verla aquí.",
-            category: "Autos",
+            emptyHint: "Guarda una búsqueda desde cualquier página de resultados para verla aquí.",
             active: "Activa",
             paused: "Pausada",
             pause: "Pausar",
@@ -65,13 +101,14 @@ function BusquedasGuardadasPageContent() {
           }
         : {
             title: "Saved searches",
-            subtitle: "Quickly return to your saved Autos searches.",
+            subtitle: "Quickly return to your saved Autos, Real Estate, and Rentals searches.",
             back: "Back to overview",
             browse: "Browse Autos",
+            browseBr: "Browse Real Estate",
+            browseRentas: "Browse Rentals",
             loading: "Loading…",
             empty: "You don't have any saved searches yet.",
-            emptyHint: "Save a search from the Autos results page to see it here.",
-            category: "Autos",
+            emptyHint: "Save a search from any results page to see it here.",
             active: "Active",
             paused: "Paused",
             pause: "Pause",
@@ -117,7 +154,7 @@ function BusquedasGuardadasPageContent() {
         null,
     );
 
-    const res = await listSavedSearchesClient({ category: "autos" });
+    const res = await listSavedSearchesClient();
     if (!res.ok) {
       setRows([]);
       setLoadError(true);
@@ -198,6 +235,12 @@ function BusquedasGuardadasPageContent() {
                 <Link href={`/clasificados/autos/resultados?${q}`} className={LX_DASH.btnPrimary}>
                   {t.browse}
                 </Link>
+                <Link href={`/clasificados/bienes-raices/resultados?${q}`} className={LX_DASH.btnSecondary}>
+                  {t.browseBr}
+                </Link>
+                <Link href={`/clasificados/rentas/results?${q}`} className={LX_DASH.btnSecondary}>
+                  {t.browseRentas}
+                </Link>
                 <Link href={`/dashboard?${q}`} className={LX_DASH.btnSecondary}>
                   {t.back}
                 </Link>
@@ -205,24 +248,30 @@ function BusquedasGuardadasPageContent() {
             </div>
           ) : !loadError ? (
             <ul className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {rows.map((row) => {
-                const facets = describeAutosSavedSearchFacets(row, lang);
+              {rows.flatMap((row) => {
+                const entry = CATEGORY_REGISTRY[row.category];
+                if (!entry) return [];
+                const normalized: SavedSearchNormalizedInput = {
+                  category: row.category,
+                  city: row.city,
+                  minPrice: row.minPrice,
+                  maxPrice: row.maxPrice,
+                  filterPayload: row.filterPayload,
+                };
+                const facets = entry.describeFacets(normalized, lang);
                 const priceRange =
                   row.minPrice != null || row.maxPrice != null
                     ? `${row.minPrice != null ? formatListingPrice(row.minPrice, { lang }) : "—"} – ${
                         row.maxPrice != null ? formatListingPrice(row.maxPrice, { lang }) : "—"
                       }`
                     : null;
-                const resultsHref = buildAutosSavedSearchResultsUrl(
-                  { category: row.category, city: row.city, minPrice: row.minPrice, maxPrice: row.maxPrice, filterPayload: row.filterPayload },
-                  lang,
-                );
+                const resultsHref = entry.buildResultsUrl(normalized, lang);
                 const busy = busyId === row.id;
-                return (
+                return [(
                   <li key={row.id} className={`${LX_DASH.panelCompact} flex min-w-0 flex-col gap-3`}>
                     <div className="flex items-start justify-between gap-2">
                       <span className="inline-flex rounded-full border border-[#C9A84A]/35 bg-[#FBF7EF] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8A6B1F]">
-                        {t.category}
+                        {entry.label[lang]}
                       </span>
                       <span
                         className={
@@ -261,7 +310,7 @@ function BusquedasGuardadasPageContent() {
                       </button>
                     </div>
                   </li>
-                );
+                )];
               })}
             </ul>
           ) : null}

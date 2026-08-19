@@ -4,6 +4,8 @@
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { mainListingInventoryPatchAfterInsert } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { triggerBienesRaicesSavedSearchMatchBestEffort } from "@/app/lib/saved-search/bienes-raices/bienesRaicesSavedSearchMatchOrchestrator";
+import { triggerRentasSavedSearchMatchBestEffort } from "@/app/lib/saved-search/rentas/rentasSavedSearchMatchOrchestrator";
 import {
   BR_BASE_INCLUDED_PROPERTIES,
   BR_INVENTORY_PACK_MAX_CHILDREN,
@@ -250,6 +252,10 @@ export async function tryActivateBrListingAfterPayment(
         }
       }
     }
+    // Saved Search 06 — durable, best-effort side effect only. Never awaited in a way that can
+    // fail this function's own success: triggerBienesRaicesSavedSearchMatchBestEffort never
+    // throws, and this call happens strictly after the real activation has already committed.
+    await triggerBienesRaicesSavedSearchMatchBestEffort(listingId, "bienes_raices_publish_activation");
     return { ok: true, transitioned: true };
   }
 
@@ -274,6 +280,16 @@ export async function tryActivateBrListingAfterPayment(
     return { ok: false, transitioned: false };
   }
   if (data) {
+    // Saved Search 06 — this generic branch is shared by BR FSBO/privado, Rentas, and other
+    // categories on the shared `listings` table; dispatch strictly by the real activated row's own
+    // category so only Saved Search 06's two in-scope categories ever trigger matching. Both
+    // triggers are durable, best-effort, never-throwing side effects (see the negocio-RPC branch
+    // above for the same failure-boundary rationale).
+    if (existing.category === "bienes-raices") {
+      await triggerBienesRaicesSavedSearchMatchBestEffort(listingId, "bienes_raices_publish_activation");
+    } else if (existing.category === "rentas") {
+      await triggerRentasSavedSearchMatchBestEffort(listingId, "rentas_publish_activation");
+    }
     return { ok: true, transitioned: true };
   }
   const again = await getBrListingById(listingId);

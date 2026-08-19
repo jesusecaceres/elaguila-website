@@ -67,6 +67,8 @@ import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
 import { RentasResultsGatewayPanel } from "./components/RentasResultsGatewayPanel";
+import { SavedSearchButton } from "@/app/clasificados/components/savedSearch/SavedSearchButton";
+import { rentasFilterStateToSavedSearch } from "@/app/lib/saved-search/rentas/savedSearchRentasAdapter";
 
 export type RentasResultsClientProps = {
   /** Server-fetched live catalog (`listings`); never demo. */
@@ -113,6 +115,7 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const parsed = useMemo(() => parseRentasBrowseParams(searchParams), [searchParams]);
+  const savedSearchNormalized = useMemo(() => rentasFilterStateToSavedSearch(parsed), [parsed]);
 
   useEffect(() => {
     const p = parseRentasBrowseParams(searchParams);
@@ -408,6 +411,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             onView={setView}
             integrated
           />
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <SavedSearchButton normalized={savedSearchNormalized} lang={lang === "en" ? "en" : "es"} />
         </div>
       </section>
 
