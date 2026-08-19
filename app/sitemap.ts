@@ -41,6 +41,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/magazine",
     "/magazine/2026",
     "/negocios-locales",
+    "/recursos-comunitarios",
   ];
   return [
     ...main.map((path) => ({
