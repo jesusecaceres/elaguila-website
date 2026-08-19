@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { PrayerPublicCard } from "@/app/lib/iglesias/prayerTypes";
-import type { PrayerUiCopy } from "@/app/lib/iglesias/prayerCopy";
+import { getPrayerUiCopy } from "@/app/lib/iglesias/prayerCopy";
 import { prayerCategoryLabel } from "@/app/lib/iglesias/prayerTaxonomy";
 
 function formatWhen(iso: string, lang: "es" | "en"): string {
@@ -16,13 +16,12 @@ function formatWhen(iso: string, lang: "es" | "en"): string {
 
 export function IglesiasPrayerCard({
   prayer,
-  copy,
   lang,
 }: {
   prayer: PrayerPublicCard;
-  copy: PrayerUiCopy;
   lang: "es" | "en";
 }) {
+  const copy = useMemo(() => getPrayerUiCopy(lang), [lang]);
   const [count, setCount] = useState(prayer.acknowledgementCount);
   const [acked, setAcked] = useState(prayer.acknowledgedByViewer);
   const [reportOpen, setReportOpen] = useState(false);

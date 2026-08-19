@@ -239,7 +239,7 @@ export default async function IglesiasChurchPage(props: Props) {
               <h2 id="iglesias-private-prayer-title" className="sr-only">
                 {prayerCopy.privateCta}
               </h2>
-              <IglesiasPrayerForm copy={prayerCopy} lang={lang} targetChurchId={church.id} targetChurchName={church.name} />
+              <IglesiasPrayerForm lang={lang} targetChurchId={church.id} targetChurchName={church.name} />
             </section>
           ) : null}
 

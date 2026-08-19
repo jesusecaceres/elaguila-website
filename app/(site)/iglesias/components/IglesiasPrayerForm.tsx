@@ -1,22 +1,20 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
-import type { PrayerUiCopy } from "@/app/lib/iglesias/prayerCopy";
-import { prayerCategoryOptions } from "@/app/lib/iglesias/prayerCopy";
+import { getPrayerUiCopy, prayerCategoryOptions } from "@/app/lib/iglesias/prayerCopy";
 import type { PrayerSubmitOutcome } from "@/app/lib/iglesias/prayerTypes";
 import type { PrayerVisibility } from "@/app/lib/iglesias/prayerTaxonomy";
 
 export function IglesiasPrayerForm({
-  copy,
   lang,
   targetChurchId,
   targetChurchName,
 }: {
-  copy: PrayerUiCopy;
   lang: "es" | "en";
   targetChurchId?: string | null;
   targetChurchName?: string | null;
 }) {
+  const copy = useMemo(() => getPrayerUiCopy(lang), [lang]);
   const formId = useId();
   const warnId = `${formId}-warn`;
   const bodyHelpId = `${formId}-body-help`;

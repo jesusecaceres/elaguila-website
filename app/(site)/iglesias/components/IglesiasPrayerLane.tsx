@@ -31,7 +31,7 @@ export function IglesiasPrayerLane({
       </div>
 
       <div className="grid gap-4 p-4 sm:p-6">
-        <IglesiasPrayerForm copy={prayerCopy} lang={lang} />
+        <IglesiasPrayerForm lang={lang} />
 
         <div>
           <h3 className="font-serif text-xl font-bold text-[#1F241C]">{prayerCopy.wallLiveEyebrow}</h3>
@@ -43,7 +43,7 @@ export function IglesiasPrayerLane({
             <ul className="mt-3 grid gap-3">
               {prayers.map((prayer) => (
                 <li key={prayer.id}>
-                  <IglesiasPrayerCard prayer={prayer} copy={prayerCopy} lang={lang} />
+                  <IglesiasPrayerCard prayer={prayer} lang={lang} />
                 </li>
               ))}
             </ul>
