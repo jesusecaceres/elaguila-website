@@ -2393,8 +2393,12 @@ function MyListingsPageContent() {
                           {t.manageListing}
                         </Link>
                         {/* Package E Build E2, Gate 4 — Clases/Comunidad/Busco share the real
-                            generic listings-table editor. Mascotas intentionally has no safe
-                            edit route (by design, not a gap) and stays without this link. */}
+                            generic listings-table editor and get this row-level shortcut link.
+                            Mascotas does not get the shortcut here, but it is NOT edit-route-less:
+                            the "Manage listing" button above still leads to the same generic
+                            editar page via its own Edit tab (Globalization Build 04 audit —
+                            corrected, this comment previously claimed Mascotas had no edit route
+                            at all, which direct inspection disproved). */}
                         {catLower === "clases" || catLower === "comunidad" || catLower === "busco" ? (
                           <Link
                             href={`/dashboard/mis-anuncios/${x.id}/editar?${q}`}

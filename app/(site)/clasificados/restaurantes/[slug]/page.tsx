@@ -13,6 +13,7 @@ import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/R
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { restauranteJsonLd } from "../seo/restauranteJsonLd";
+import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
 
 type Lang = "es" | "en";
 
@@ -101,9 +102,19 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
     websiteUrl: shellData.contact?.websiteHref,
   });
 
+  // Globalization Build 04, Gate 16 — mirrors the visible breadcrumb nav in RestaurantesShellChrome
+  // (Clasificados / Restaurantes / this business) as real structured data; no step this page
+  // doesn't already show.
+  const breadcrumb = breadcrumbJsonLd([
+    { name: lang === "en" ? "Classifieds" : "Clasificados", path: `/clasificados?lang=${lang}` },
+    { name: lang === "en" ? "Restaurants" : "Restaurantes", path: `/clasificados/restaurantes?lang=${lang}` },
+    { name: shellData.businessName, path: `/clasificados/restaurantes/${encodeURIComponent(slug)}?lang=${lang}` },
+  ]);
+
   return (
     <RestaurantesShellChrome lang={lang}>
       <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <div className="mx-auto max-w-[1280px] space-y-3 px-4 pt-4 md:px-5 lg:px-6">
         <p className="text-xs text-[color:var(--lx-muted)]">
           {lang === "en" ? "Listed on Leonix Classifieds" : "Listado publicado en Leonix Clasificados"} ·{" "}

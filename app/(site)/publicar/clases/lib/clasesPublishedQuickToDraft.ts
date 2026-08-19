@@ -67,6 +67,7 @@ export function clasesPublishedQuickToDraft(
   const d = emptyClasesQuickDraft();
   d.title = (listing.title[lang] ?? listing.title.es ?? "").trim();
   d.organizer = (pairs["Leonix:organizer"] ?? "").trim();
+  d.organizerLogoUrl = (pairs["Leonix:organizerLogoUrl"] ?? "").trim();
   let cat = (pairs["Leonix:classCategory"] ?? "").trim();
   if (CLASES_CATEGORY_LEGACY_MAP[cat]) cat = CLASES_CATEGORY_LEGACY_MAP[cat]!;
   d.category = cat;
