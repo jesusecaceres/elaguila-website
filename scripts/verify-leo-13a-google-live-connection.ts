@@ -660,6 +660,12 @@ const allowed = new Set([
   "app/leo/_lib/leoConversationComposer.ts",
   "app/leo/_lib/leoConversationService.ts",
   "scripts/verify-leo-14-3-gmail-executive-triage.ts",
+  // LEO-14.4 commitment intelligence
+  "app/leo/_lib/leoCommitmentIntelligence.ts",
+  "app/leo/_lib/leoCommitmentRepository.ts",
+  "app/leo/_lib/leoCommitmentService.ts",
+  "app/leo/_lib/leoConversationRouter.ts",
+  "scripts/verify-leo-14-4-commitment-intelligence.ts",
 ]);
 
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f));

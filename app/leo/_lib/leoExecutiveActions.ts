@@ -490,6 +490,17 @@ export function createDismissAction(opts: {
   });
 }
 
+export function createRemindLaterAction(opts: {
+  sourceKind: string;
+  sourceKey: string;
+}): LeoExecutiveAction {
+  return createLeoExecutiveAction({
+    type: "REMIND_LATER",
+    targetRef: target("LEO", opts.sourceKind, opts.sourceKey),
+    actionIdSuffix: opts.sourceKey,
+  });
+}
+
 export function createShowEvidenceAction(opts: {
   system: LeoResultSourceSystem;
   entityType: string;

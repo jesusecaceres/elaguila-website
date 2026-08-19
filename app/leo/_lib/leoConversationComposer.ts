@@ -478,6 +478,13 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
         "Who is waiting on my reply?",
         "Prepare me for my next meeting.",
       ];
+    case "COMMITMENT_INTELLIGENCE":
+      return [
+        "What is overdue?",
+        "What is due soon?",
+        "What commitments have no due date?",
+        "What did I complete?",
+      ];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];
     case "PREPARATION":

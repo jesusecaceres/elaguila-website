@@ -12,10 +12,12 @@ import {
   createOpenGithubAction,
   createOpenVercelAction,
   createPrepareDraftAction,
+  createRemindLaterAction,
   createShowEvidenceAction,
   createSummarizeAction,
   buildTrustedGmailThreadUrl,
 } from "@/app/leo/_lib/leoExecutiveActions";
+import { LEO_COMMITMENT_DUE_SOON_MS } from "@/app/leo/_lib/leoPersistenceSemantics";
 import type {
   LeoAttentionLevel,
   LeoCalendarEventEvidence,
@@ -39,7 +41,7 @@ import type {
 } from "@/app/leo/_lib/leoTypes";
 
 const SPOKEN_MAX = 220;
-const DUE_SOON_MS = 48 * 60 * 60 * 1000;
+const DUE_SOON_MS = LEO_COMMITMENT_DUE_SOON_MS;
 
 export function boundSpokenSummary(text: string): string {
   const t = text.replace(/\s+/g, " ").trim();
@@ -312,48 +314,82 @@ export function mapCommitmentToResultCard(input: {
 }): LeoCommitmentResultCard {
   const c = input.commitment;
   const derivedDueState = deriveCommitmentCardDueState(c.dueAt, input.nowMs, c.status);
-  const spoken =
-    derivedDueState === "OVERDUE"
-      ? `Overdue commitment: ${c.title}.`
-      : derivedDueState === "DUE_TODAY"
-        ? `Due today: ${c.title}.`
-        : derivedDueState === "DUE_SOON"
-          ? `Coming due soon: ${c.title}.`
-          : `Commitment: ${c.title}.`;
+  const isCandidate = c.kind === "EXTRACTED_CANDIDATE";
+  const isExternal = c.kind === "EXTERNAL_PARTY";
 
-  const certainty: LeoCertainty =
-    c.kind === "EXTRACTED_CANDIDATE"
-      ? c.confidence === "high"
-        ? "LIKELY"
-        : "POSSIBLE"
-      : c.kind === "EXPLICIT_OWNER"
-        ? "PROVEN"
-        : "LIKELY";
+  let spoken: string;
+  if (isCandidate) {
+    spoken =
+      derivedDueState === "OVERDUE"
+        ? `Possible commitment needing confirmation: ${c.title}.`
+        : `Possible commitment: ${c.title}. Needs confirmation.`;
+  } else if (isExternal) {
+    spoken = `External-party commitment: ${c.title}.`;
+  } else if (derivedDueState === "OVERDUE") {
+    spoken = `Overdue commitment: ${c.title}.`;
+  } else if (derivedDueState === "DUE_TODAY") {
+    spoken = `Due today: ${c.title}.`;
+  } else if (derivedDueState === "DUE_SOON") {
+    spoken = `Coming due soon: ${c.title}.`;
+  } else {
+    spoken = `Your commitment: ${c.title}.`;
+  }
+
+  const certainty: LeoCertainty = isCandidate
+    ? c.confidence === "high"
+      ? "LIKELY"
+      : "POSSIBLE"
+    : isExternal
+      ? "PROVEN"
+      : "PROVEN";
+
+  const actions = [
+    createShowEvidenceAction({ system: "LEO", entityType: "commitment", id: c.id }),
+    createInspectAction({ system: "LEO", entityType: "commitment", id: c.id }),
+    createAcknowledgeAction({ sourceKind: "commitment", sourceKey: c.id }),
+  ];
+  if (c.status === "OPEN" && !isCandidate) {
+    actions.push(
+      createRemindLaterAction({
+        sourceKind: "commitment",
+        sourceKey: c.id,
+      }),
+    );
+  }
+  if (isCandidate && c.status === "OPEN") {
+    actions.push(
+      createCreateCommitmentAction({
+        system: "LEO",
+        entityType: "commitment_candidate",
+        id: c.id,
+      }),
+    );
+  }
 
   return {
     cardId: `commitment:${c.id}`,
     kind: "COMMITMENT",
     priority: c.priority,
     certainty,
-    title: c.title,
+    title: isCandidate ? `Possible: ${c.title}` : isExternal ? `External: ${c.title}` : c.title,
     subtitle: c.counterparty,
-    whyItMatters:
-      derivedDueState === "OVERDUE"
+    whyItMatters: isCandidate
+      ? "Candidate commitment — needs owner confirmation before treating as a promise."
+      : derivedDueState === "OVERDUE"
         ? "This commitment is overdue."
         : derivedDueState === "DUE_TODAY" || derivedDueState === "DUE_SOON"
           ? "This commitment is approaching."
-          : null,
-    reason:
-      c.kind === "EXTRACTED_CANDIDATE"
-        ? "Extracted candidate — not an explicit owner obligation until confirmed."
-        : "Persisted commitment record.",
+          : isExternal
+            ? "External-party commitment record — not an owner promise."
+            : null,
+    reason: isCandidate
+      ? "Extracted candidate — not an explicit owner obligation until confirmed."
+      : isExternal
+        ? "Persisted external-party commitment — not phrased as an owner promise."
+        : "Persisted explicit owner commitment record.",
     evidenceRefs: [`leo:commitment:${c.id}`],
     sourceSystem: "LEO",
-    actions: [
-      createAcknowledgeAction({ sourceKind: "commitment", sourceKey: c.id }),
-      createShowEvidenceAction({ system: "LEO", entityType: "commitment", id: c.id }),
-      createInspectAction({ system: "LEO", entityType: "commitment", id: c.id }),
-    ],
+    actions,
     spokenSummary: boundSpokenSummary(spoken),
     commitmentId: c.id,
     commitmentKind: c.kind,

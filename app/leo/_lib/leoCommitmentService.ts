@@ -14,6 +14,7 @@ import {
   getLeoCommitmentForOwner,
   listLeoCommitmentsForOwner,
   supersedeLeoCommitment,
+  type LeoCommitmentListReadResult,
   type LeoCreateCommitmentInput,
 } from "@/app/leo/_lib/leoCommitmentRepository";
 import type {
@@ -22,6 +23,7 @@ import type {
 import { deriveLeoCommitmentDueState } from "@/app/leo/_lib/leoPersistenceSemantics";
 
 export { deriveLeoCommitmentDueState } from "@/app/leo/_lib/leoPersistenceSemantics";
+export type { LeoCommitmentListReadResult } from "@/app/leo/_lib/leoCommitmentRepository";
 
 async function requireOwnerId(): Promise<string> {
   const access = await requireLeoOwnerAccess();
@@ -78,7 +80,7 @@ export async function leoListCommitments(options?: {
   status?: LeoCommitment["status"];
   kind?: LeoCommitment["kind"];
   limit?: number;
-}): Promise<LeoCommitment[]> {
+}): Promise<LeoCommitmentListReadResult> {
   const ownerAuthUserId = await requireOwnerId();
   return listLeoCommitmentsForOwner(ownerAuthUserId, options);
 }

@@ -34,6 +34,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "PREPARATION",
   "PROJECT_INTELLIGENCE",
   "COMMUNICATION_INTELLIGENCE",
+  "COMMITMENT_INTELLIGENCE",
   "UNKNOWN",
 ] as const;
 
@@ -133,6 +134,40 @@ export function isLeoCommunicationIntelligenceQuestion(q: string): boolean {
   return inferLeoCommunicationSubtype(q) != null;
 }
 
+/** LEO-14.4: bounded commitment intelligence routing — avoids listing/calendar collisions. */
+export function isLeoCommitmentIntelligenceQuestion(q: string): boolean {
+  const n = normalizeQuestion(q);
+  if (
+    /\b(listing|listings|calendar|meeting|inbox|email|gmail|deploy|production|preview)\b/.test(n)
+  ) {
+    // Allow "due" only when clearly commitment-scoped; block calendar/listing collisions.
+    if (!/\bcommitment|promise|promised\b/.test(n) && !/\bwhat am i forgetting\b/.test(n)) {
+      return false;
+    }
+  }
+  return (
+    /\bwhat did i promise\b/.test(n) ||
+    /\bwhat have i promised\b/.test(n) ||
+    /\bmy commitments?\b/.test(n) ||
+    /\bopen commitments?\b/.test(n) ||
+    /\bwhat commitments do i have\b/.test(n) ||
+    /\bwhat is overdue\b/.test(n) ||
+    /\bwhat's overdue\b/.test(n) ||
+    /\bwhat commitments are overdue\b/.test(n) ||
+    /\bcommitments? (that are )?overdue\b/.test(n) ||
+    /\bwhat is due today\b/.test(n) ||
+    /\bwhat's due today\b/.test(n) ||
+    /\bwhat is due soon\b/.test(n) ||
+    /\bwhat's due soon\b/.test(n) ||
+    /\bcommitments? due soon\b/.test(n) ||
+    /\bcompleted commitments?\b/.test(n) ||
+    /\bwhat did i complete\b/.test(n) ||
+    /\bcommitments? with no due date\b/.test(n) ||
+    /\bwhat am i forgetting\b/.test(n) ||
+    /\bwhat can wait\b/.test(n)
+  );
+}
+
 function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null {
   const wantsPrep = /\b(prepare|draft|make me a brief|checklist)\b/.test(q);
   if (!wantsPrep) return null;
@@ -217,6 +252,18 @@ export function routeLeoConversation(
       inferredPreparationKind:
         communicationSubtype === "MEETING_PREP" ? "MEETING_BRIEF" : null,
       inferredCommunicationSubtype: communicationSubtype,
+      routeNotes: notes,
+    });
+  }
+
+  // Commitment intelligence — before client-care / memory / attention collisions
+  if (isLeoCommitmentIntelligenceQuestion(q)) {
+    notes.push("commitment intelligence pattern");
+    return routeResult({
+      intent: "COMMITMENT_INTELLIGENCE",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
       routeNotes: notes,
     });
   }

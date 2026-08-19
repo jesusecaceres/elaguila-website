@@ -562,6 +562,7 @@ export type LeoConversationIntent =
   | "PREPARATION"
   | "PROJECT_INTELLIGENCE"
   | "COMMUNICATION_INTELLIGENCE"
+  | "COMMITMENT_INTELLIGENCE"
   | "UNKNOWN";
 
 /** LEO-13 deterministic communication question subtype. */
@@ -1488,6 +1489,22 @@ export type LeoCommitmentStatus = "OPEN" | "COMPLETED" | "CANCELLED" | "SUPERSED
 
 /** Derived only — never persisted as canonical status. */
 export type LeoCommitmentDerivedDueState = "NONE" | "DUE_SOON" | "OVERDUE";
+
+/** LEO-14.4 conversation query categories — not persisted. */
+export type LeoCommitmentQueryKind =
+  | "OPEN"
+  | "OVERDUE"
+  | "DUE_TODAY"
+  | "DUE_SOON"
+  | "NO_DUE_DATE"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "ALL"
+  | "BY_COUNTERPARTY"
+  | "BY_SOURCE"
+  | "PROMISED"
+  | "FORGETTING"
+  | "CAN_WAIT";
 
 export type LeoCommitmentCreationMethod =
   | "OWNER_UTTERANCE"

@@ -204,28 +204,68 @@ export async function getLeoCommitmentForOwner(
   return mapRow(data as Row);
 }
 
+export type LeoCommitmentListAvailability = "AVAILABLE" | "EMPTY" | "UNAVAILABLE";
+
+export type LeoCommitmentListReadResult = {
+  availability: LeoCommitmentListAvailability;
+  commitments: LeoCommitment[];
+  /** Sanitized error class — never a provider body. */
+  errorCode: string | null;
+};
+
+/**
+ * Bounded owner list. Distinguishes empty vs unavailable so missing tables
+ * never become a false "zero commitments" claim.
+ */
 export async function listLeoCommitmentsForOwner(
   ownerAuthUserId: string,
   options?: { status?: LeoCommitmentStatus; kind?: LeoCommitmentKind; limit?: number },
-): Promise<LeoCommitment[]> {
+): Promise<LeoCommitmentListReadResult> {
   const owner = nonEmpty(ownerAuthUserId);
-  if (!owner) return [];
+  if (!owner) {
+    return { availability: "UNAVAILABLE", commitments: [], errorCode: "OWNER_REQUIRED" };
+  }
   const capped = Math.min(
     Math.max(1, Math.floor(options?.limit ?? LEO_COMMITMENT_LIST_MAX)),
     LEO_COMMITMENT_LIST_MAX,
   );
-  const supabase = getAdminSupabase();
-  let q = supabase
-    .from("leo_commitments")
-    .select(COLS)
-    .eq("owner_auth_user_id", owner)
-    .order("due_at", { ascending: true, nullsFirst: false })
-    .limit(capped);
-  if (options?.status) q = q.eq("status", options.status);
-  if (options?.kind) q = q.eq("kind", options.kind);
-  const { data, error } = await q;
-  if (error || !data) return [];
-  return (data as Row[]).map(mapRow);
+  try {
+    const supabase = getAdminSupabase();
+    let q = supabase
+      .from("leo_commitments")
+      .select(COLS)
+      .eq("owner_auth_user_id", owner)
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(capped);
+    if (options?.status) q = q.eq("status", options.status);
+    if (options?.kind) q = q.eq("kind", options.kind);
+    const { data, error } = await q;
+    if (error) {
+      const code = String(error.code ?? error.message ?? "query_failed").slice(0, 80);
+      const lower = code.toLowerCase();
+      const missing =
+        lower.includes("does not exist") ||
+        lower.includes("42p01") ||
+        lower.includes("relation") ||
+        lower.includes("undefined_table");
+      return {
+        availability: "UNAVAILABLE",
+        commitments: [],
+        errorCode: missing ? "COMMITMENT_TABLE_UNAVAILABLE" : "COMMITMENT_QUERY_FAILED",
+      };
+    }
+    const commitments = ((data as Row[]) ?? []).map(mapRow);
+    if (commitments.length === 0) {
+      return { availability: "EMPTY", commitments: [], errorCode: null };
+    }
+    return { availability: "AVAILABLE", commitments, errorCode: null };
+  } catch {
+    return {
+      availability: "UNAVAILABLE",
+      commitments: [],
+      errorCode: "COMMITMENT_QUERY_FAILED",
+    };
+  }
 }
 
 /**

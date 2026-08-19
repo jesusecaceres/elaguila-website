@@ -12,6 +12,9 @@ export const LEO_TURN_TEXT_MAX = 4000;
 
 const DUE_SOON_MS = 48 * 60 * 60 * 1000;
 
+/** Exact DUE_SOON horizon used by deriveLeoCommitmentDueState (48 hours). */
+export const LEO_COMMITMENT_DUE_SOON_MS = DUE_SOON_MS;
+
 /** Derived only — never a persisted canonical status. */
 export function deriveLeoCommitmentDueState(
   commitment: Pick<LeoCommitment, "status" | "dueAt">,

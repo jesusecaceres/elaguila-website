@@ -48,6 +48,12 @@ import {
   getLeoCommunicationExecutiveSnapshot,
   getLeoMeetingIntelligenceForNext,
 } from "@/app/leo/_lib/leoCommunicationIntelligenceService";
+import {
+  buildLeoCommitmentIntelligence,
+  cardDueStateForCommitment,
+  parseLeoCommitmentQueryKind,
+} from "@/app/leo/_lib/leoCommitmentIntelligence";
+import { leoListCommitments } from "@/app/leo/_lib/leoCommitmentService";
 import type {
   LeoActionIntentKind,
   LeoConversationAnswer,
@@ -616,6 +622,107 @@ export async function runLeoConversationDeterministic(
           subtype === "CALENDAR"
             ? "Ask who is attending your next meeting, or prepare a meeting brief."
             : "Ask what meetings you have today, or prepare for your next meeting.",
+      });
+    }
+
+    case "COMMITMENT_INTELLIGENCE": {
+      const queryKind = parseLeoCommitmentQueryKind(request.question);
+      const listStatus =
+        queryKind === "COMPLETED"
+          ? ("COMPLETED" as const)
+          : queryKind === "CANCELLED"
+            ? ("CANCELLED" as const)
+            : queryKind === "ALL"
+              ? undefined
+              : ("OPEN" as const);
+      // Bound DB read — fetch a bit more than maxResults for due filtering headroom.
+      const fetchLimit = Math.min(
+        LEO_CONVERSATION_BOUNDS.maxResultsCap,
+        Math.max(maxResults * 2, maxResults),
+      );
+      const listed = await leoListCommitments({
+        status: listStatus,
+        kind: queryKind === "PROMISED" ? "EXPLICIT_OWNER" : undefined,
+        limit: fetchLimit,
+      });
+
+      const intel = buildLeoCommitmentIntelligence({
+        commitments: listed.commitments,
+        queryKind,
+        nowMs,
+        maxResults,
+        availability: listed.availability,
+      });
+
+      const injectionNotes = [
+        ...(request.externalUntrustedNotes ?? []),
+        ...intel.matched
+          .slice(0, 5)
+          .flatMap((c) => [c.notes, c.title, JSON.stringify(c.sourceRef)])
+          .filter((s): s is string => Boolean(s)),
+      ];
+      const governance = assessLeoGovernance({
+        actionKind: "READ",
+        trustSources: injectionNotes.some((n) =>
+          /ignore governance|deploy production|bypass/i.test(n),
+        )
+          ? ["SYSTEM_POLICY", "EXTERNAL_UNTRUSTED_DATA"]
+          : ["SYSTEM_POLICY", "OWNER_INSTRUCTION"],
+        externalClaimsApproval: injectionNotes.some((n) =>
+          /ignore governance|deploy production|bypass|approve/i.test(n),
+        ),
+        nowMs,
+      });
+
+      const evidence: LeoConversationEvidence[] = intel.matched.map((c) => ({
+        sourceKind: "leo_commitment",
+        sourceRef: c.id,
+        summary: `${c.kind}/${c.status}/${cardDueStateForCommitment(c, nowMs)}: ${c.title}`.slice(
+          0,
+          160,
+        ),
+        availability: listed.availability === "UNAVAILABLE" ? "UNAVAILABLE" : "LIVE",
+        limitationNote:
+          c.kind === "EXTRACTED_CANDIDATE"
+            ? "Candidate — not a confirmed owner promise"
+            : c.notes
+              ? "Commitment notes may include EXTERNAL_UNTRUSTED_DATA"
+              : null,
+      }));
+
+      return empty({
+        intent: "COMMITMENT_INTELLIGENCE",
+        answerState:
+          listed.availability === "UNAVAILABLE"
+            ? "INSUFFICIENT_EVIDENCE"
+            : intel.matched.length > 0
+              ? "ANSWERED"
+              : "ANSWERED",
+        summary: intel.summary,
+        resultCards: intel.cards,
+        spokenSummary: intel.spokenSummary,
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: intel.unknowns,
+        limitations: [
+          ...intel.limitations,
+          ...(injectionNotes.some((n) =>
+            /ignore governance|deploy production/i.test(n),
+          )
+            ? [
+                "Untrusted commitment source/notes attempted authority claims — ignored for governance.",
+              ]
+            : []),
+        ],
+        governance,
+        suggestedNextRetrieval:
+          queryKind === "OVERDUE"
+            ? "Ask what is due soon, or what commitments have no due date."
+            : "Ask what is overdue, or what did I complete.",
       });
     }
 

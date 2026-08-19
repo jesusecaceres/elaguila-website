@@ -470,6 +470,12 @@ async function main() {
     // LEO-14.3 Gmail executive triage
     "app/leo/_lib/leoGmailTriageUpgrade.ts",
     "scripts/verify-leo-14-3-gmail-executive-triage.ts",
+    // LEO-14.4 commitment intelligence
+    "app/leo/_lib/leoCommitmentIntelligence.ts",
+    "app/leo/_lib/leoCommitmentRepository.ts",
+    "app/leo/_lib/leoCommitmentService.ts",
+    "app/leo/_lib/leoPersistenceSemantics.ts",
+    "scripts/verify-leo-14-4-commitment-intelligence.ts",
   ]);
 
   const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f));
