@@ -86,7 +86,7 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
       </div>
 
       <div className={`${CL_CONTAINER_NARROW} py-6 sm:py-8`}>
-        <ComidaLocalPublicDetailClient vm={vm} />
+        <ComidaLocalPublicDetailClient vm={vm} lang={lang === "en" ? "en" : "es"} />
       </div>
     </div>
   );
