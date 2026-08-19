@@ -39,6 +39,7 @@ const PERM_LABELS: Record<AdminPermissionKey, string> = {
   can_manage_team: "Manage team",
   can_view_activity_logs: "Activity logs",
   can_use_replica_mode: "Replica mode",
+  can_manage_recursos: "Manage Recursos",
 };
 
 const ERROR_LABELS: Record<string, string> = {

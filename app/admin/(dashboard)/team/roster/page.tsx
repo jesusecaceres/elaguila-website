@@ -45,6 +45,7 @@ const PERM_SHORT: Record<AdminPermissionKey, string> = {
   can_manage_team: "Team",
   can_view_activity_logs: "Activity",
   can_use_replica_mode: "Replica mode",
+  can_manage_recursos: "Recursos",
 };
 
 type InviteRow = {
