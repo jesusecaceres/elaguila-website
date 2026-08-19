@@ -123,5 +123,44 @@ export async function runLeoPreparation(
     watcherResult,
   });
 
+  // LEO-14.5: bridge NEW preparations into durable receipts (REQUESTED → PREPARED → NOT_EXECUTED).
+  // Does not invent historical receipts for pre-existing preparations.
+  if (preparation.ok && preparation.prepared) {
+    try {
+      const {
+        leoCreateToolReceiptRequest,
+        leoMarkReceiptPrepared,
+        leoMarkReceiptNotExecuted,
+        leoMarkReceiptAwaitingApproval,
+      } = await import("@/app/leo/_lib/leoToolReceiptService");
+      const created = await leoCreateToolReceiptRequest({
+        correlationId: `leo-prep:${preparation.prepared.id}`,
+        toolId: "leo.preparation.prepare",
+        actionType: "PREPARE_DRAFT",
+        governanceLevel: preparation.prepared.governance.level,
+        requestedPayloadSummary: `Prepare ${preparation.prepared.preparationKind}: ${preparation.prepared.title}`.slice(
+          0,
+          500,
+        ),
+        preparationRef: preparation.prepared.id,
+        sourceRefs: preparation.prepared.sourceEvidenceRefs.slice(0, 10).map((ref) => ({
+          system: "LEO",
+          kind: "evidence",
+          id: ref,
+        })),
+      });
+      if (created.ok) {
+        await leoMarkReceiptPrepared(created.receipt.id, preparation.prepared.id);
+        if (preparation.prepared.governance.level === "YELLOW") {
+          await leoMarkReceiptAwaitingApproval(created.receipt.id);
+        } else {
+          await leoMarkReceiptNotExecuted(created.receipt.id, null);
+        }
+      }
+    } catch {
+      // Receipt bridge is best-effort; preparation artifact remains valid.
+    }
+  }
+
   return { watcherResult, preparation };
 }

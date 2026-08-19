@@ -563,6 +563,7 @@ export type LeoConversationIntent =
   | "PROJECT_INTELLIGENCE"
   | "COMMUNICATION_INTELLIGENCE"
   | "COMMITMENT_INTELLIGENCE"
+  | "RECEIPT_INTELLIGENCE"
   | "UNKNOWN";
 
 /** LEO-13 deterministic communication question subtype. */
@@ -1737,6 +1738,11 @@ export type LeoResultCardBase = {
   actions: LeoExecutiveAction[];
   /** Voice-safe concise line — not a dump of visual fields. */
   spokenSummary: string;
+  /**
+   * LEO-14.5 owner attention disposition for suppressible cards.
+   * ACTIVE when no suppressing ACK/DISMISS/SNOOZE applies.
+   */
+  ownerAttentionDisposition?: "ACTIVE" | LeoAttentionAckDisposition | null;
 };
 
 export type LeoEmailResultCard = LeoResultCardBase & {

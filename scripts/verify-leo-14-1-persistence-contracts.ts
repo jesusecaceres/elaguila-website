@@ -294,8 +294,20 @@ const allowed = new Set([
   "app/leo/_lib/leoCommitmentService.ts",
   "app/leo/_lib/leoPersistenceSemantics.ts",
   "app/leo/_lib/leoConversationRouter.ts",
+  "app/leo/_lib/leoConversationService.ts",
+  "app/leo/_lib/leoConversationComposer.ts",
   "app/leo/_lib/leoExecutiveActions.ts",
   "scripts/verify-leo-14-4-commitment-intelligence.ts",
+  // LEO-14.5 receipts + attention runtime
+  "app/leo/_lib/leoReceiptIntelligence.ts",
+  "app/leo/_lib/leoAttentionRuntime.ts",
+  "app/leo/_lib/leoToolReceiptRepository.ts",
+  "app/leo/_lib/leoToolReceiptService.ts",
+  "app/leo/_lib/leoAttentionAckRepository.ts",
+  "app/leo/_lib/leoAttentionAckService.ts",
+  "app/leo/_lib/leoAttentionService.ts",
+  "app/leo/_lib/leoPreparationService.ts",
+  "scripts/verify-leo-14-5-receipts-attention-runtime.ts",
 ]);
 
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));

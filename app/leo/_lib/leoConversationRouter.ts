@@ -35,6 +35,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "PROJECT_INTELLIGENCE",
   "COMMUNICATION_INTELLIGENCE",
   "COMMITMENT_INTELLIGENCE",
+  "RECEIPT_INTELLIGENCE",
   "UNKNOWN",
 ] as const;
 
@@ -168,6 +169,25 @@ export function isLeoCommitmentIntelligenceQuestion(q: string): boolean {
   );
 }
 
+/** LEO-14.5: durable receipt / action-history routing. */
+export function isLeoReceiptIntelligenceQuestion(q: string): boolean {
+  const n = normalizeQuestion(q);
+  return (
+    /\bwhat did you do\b/.test(n) ||
+    /\bwhat have you done\b/.test(n) ||
+    /\bwhat did you prepare\b/.test(n) ||
+    /\bwhat have you prepared\b/.test(n) ||
+    /\bdid you execute that\b/.test(n) ||
+    /\bdid that execute\b/.test(n) ||
+    /\bdid that actually run\b/.test(n) ||
+    /\bwhat failed\b/.test(n) ||
+    /\bwhat did not execute\b/.test(n) ||
+    /\bwhat is waiting for my approval\b/.test(n) ||
+    /\bshow recent leo actions\b/.test(n) ||
+    /\bshow recent leo receipts\b/.test(n)
+  );
+}
+
 function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null {
   const wantsPrep = /\b(prepare|draft|make me a brief|checklist)\b/.test(q);
   if (!wantsPrep) return null;
@@ -261,6 +281,18 @@ export function routeLeoConversation(
     notes.push("commitment intelligence pattern");
     return routeResult({
       intent: "COMMITMENT_INTELLIGENCE",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    });
+  }
+
+  // Receipt / action history — durable receipts, not prose memory
+  if (isLeoReceiptIntelligenceQuestion(q)) {
+    notes.push("receipt intelligence pattern");
+    return routeResult({
+      intent: "RECEIPT_INTELLIGENCE",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,

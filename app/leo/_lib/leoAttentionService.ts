@@ -1,7 +1,8 @@
 /**
- * LEO-4 Attention service — owner-only orchestration over current LEO truth.
+ * LEO-4 / LEO-14.5 Attention service — owner-only orchestration over current LEO truth.
  *
- * Fetches executive snapshot + Client Care signals → Attention Engine.
+ * Fetches executive snapshot + Client Care signals → Attention Engine → owner dispositions.
+ * ACK filtering happens AFTER canonical generation. Fail-open if ACK DB unavailable.
  * No memory writes. No AI. No outreach.
  */
 import "server-only";
@@ -12,26 +13,33 @@ import {
   buildLeoAttentionBrief,
   LEO_ATTENTION_DEFAULT_TOP_N,
 } from "@/app/leo/_lib/leoAttentionEngine";
+import { leoListOwnerAttentionAcks } from "@/app/leo/_lib/leoAttentionAckService";
+import {
+  applyOwnerDispositionsToAttentionBrief,
+  type LeoAttentionRuntimeBrief,
+} from "@/app/leo/_lib/leoAttentionRuntime";
 import { fetchLeoClientCareSourceRecords } from "@/app/leo/_lib/leoClientCareAdapter";
 import {
   buildLeoClientCareSignals,
   leoClientCareSignalsToObservations,
 } from "@/app/leo/_lib/leoClientCareWatcher";
-import type { LeoAttentionBrief } from "@/app/leo/_lib/leoTypes";
 
 export type LeoAttentionServiceOptions = {
   topN?: number;
   nowMs?: number;
   /** When false, skip Client Care merge (LEO-4-only path). Default true. */
   includeClientCare?: boolean;
+  /** When true, include owner-acknowledged/dismissed/snoozed items in visible set. */
+  includeAcknowledged?: boolean;
 };
 
 /**
  * Owner-admin only. Computed current-state brief — not persisted.
+ * Returns runtime brief with visibleItems after disposition application.
  */
 export async function getLeoAttentionBrief(
   options: LeoAttentionServiceOptions = {},
-): Promise<LeoAttentionBrief> {
+): Promise<LeoAttentionRuntimeBrief> {
   await requireLeoOwnerAccess();
   const nowMs = options.nowMs ?? Date.now();
   const snapshot = await getLeoExecutiveTruthSnapshot();
@@ -50,8 +58,17 @@ export async function getLeoAttentionBrief(
     observations.push(...leoClientCareSignalsToObservations(care.signals));
   }
 
-  return buildLeoAttentionBrief(observations, {
+  const brief = buildLeoAttentionBrief(observations, {
     topN: options.topN ?? LEO_ATTENTION_DEFAULT_TOP_N,
     nowMs,
+  });
+
+  const listed = await leoListOwnerAttentionAcks();
+  return applyOwnerDispositionsToAttentionBrief({
+    brief,
+    acks: listed.acks,
+    dispositionAvailability: listed.availability,
+    nowMs,
+    includeAcknowledged: options.includeAcknowledged === true,
   });
 }

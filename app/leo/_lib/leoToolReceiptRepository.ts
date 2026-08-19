@@ -197,20 +197,55 @@ export async function getLeoDurableToolReceiptByCorrelation(
 export async function listLeoDurableToolReceiptsForActor(
   actorAuthUserId: string,
   limit = LEO_RECEIPT_LIST_MAX,
-): Promise<LeoDurableToolReceipt[]> {
+): Promise<LeoReceiptListReadResult> {
   const actor = nonEmpty(actorAuthUserId);
-  if (!actor) return [];
+  if (!actor) {
+    return { availability: "UNAVAILABLE", receipts: [], errorCode: "ACTOR_REQUIRED" };
+  }
   const capped = Math.min(Math.max(1, Math.floor(limit)), LEO_RECEIPT_LIST_MAX);
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leo_tool_receipts")
-    .select(COLS)
-    .eq("actor_auth_user_id", actor)
-    .order("created_at", { ascending: false })
-    .limit(capped);
-  if (error || !data) return [];
-  return (data as Row[]).map(mapRow);
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leo_tool_receipts")
+      .select(COLS)
+      .eq("actor_auth_user_id", actor)
+      .order("created_at", { ascending: false })
+      .limit(capped);
+    if (error) {
+      const code = String(error.code ?? error.message ?? "query_failed").slice(0, 80);
+      const lower = code.toLowerCase();
+      const missing =
+        lower.includes("does not exist") ||
+        lower.includes("42p01") ||
+        lower.includes("relation") ||
+        lower.includes("undefined_table");
+      return {
+        availability: "UNAVAILABLE",
+        receipts: [],
+        errorCode: missing ? "RECEIPT_TABLE_UNAVAILABLE" : "RECEIPT_QUERY_FAILED",
+      };
+    }
+    const receipts = ((data as Row[]) ?? []).map(mapRow);
+    if (receipts.length === 0) {
+      return { availability: "EMPTY", receipts: [], errorCode: null };
+    }
+    return { availability: "AVAILABLE", receipts, errorCode: null };
+  } catch {
+    return {
+      availability: "UNAVAILABLE",
+      receipts: [],
+      errorCode: "RECEIPT_QUERY_FAILED",
+    };
+  }
 }
+
+export type LeoReceiptListAvailability = "AVAILABLE" | "EMPTY" | "UNAVAILABLE";
+
+export type LeoReceiptListReadResult = {
+  availability: LeoReceiptListAvailability;
+  receipts: LeoDurableToolReceipt[];
+  errorCode: string | null;
+};
 
 type TransitionPatch = {
   lifecycle_state: LeoToolReceiptLifecycleState;

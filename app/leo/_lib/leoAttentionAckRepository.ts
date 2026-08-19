@@ -120,20 +120,55 @@ export async function getLeoAttentionAckForSource(
 export async function listLeoAttentionAcksForOwner(
   ownerAuthUserId: string,
   limit = LEO_ACK_LIST_MAX,
-): Promise<LeoAttentionAck[]> {
+): Promise<LeoAckListReadResult> {
   const owner = nonEmpty(ownerAuthUserId);
-  if (!owner) return [];
+  if (!owner) {
+    return { availability: "UNAVAILABLE", acks: [], errorCode: "OWNER_REQUIRED" };
+  }
   const capped = Math.min(Math.max(1, Math.floor(limit)), LEO_ACK_LIST_MAX);
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leo_attention_acks")
-    .select(COLS)
-    .eq("owner_auth_user_id", owner)
-    .order("updated_at", { ascending: false })
-    .limit(capped);
-  if (error || !data) return [];
-  return (data as Row[]).map(mapRow);
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leo_attention_acks")
+      .select(COLS)
+      .eq("owner_auth_user_id", owner)
+      .order("updated_at", { ascending: false })
+      .limit(capped);
+    if (error) {
+      const code = String(error.code ?? error.message ?? "query_failed").slice(0, 80);
+      const lower = code.toLowerCase();
+      const missing =
+        lower.includes("does not exist") ||
+        lower.includes("42p01") ||
+        lower.includes("relation") ||
+        lower.includes("undefined_table");
+      return {
+        availability: "UNAVAILABLE",
+        acks: [],
+        errorCode: missing ? "ACK_TABLE_UNAVAILABLE" : "ACK_QUERY_FAILED",
+      };
+    }
+    const acks = ((data as Row[]) ?? []).map(mapRow);
+    if (acks.length === 0) {
+      return { availability: "EMPTY", acks: [], errorCode: null };
+    }
+    return { availability: "AVAILABLE", acks, errorCode: null };
+  } catch {
+    return {
+      availability: "UNAVAILABLE",
+      acks: [],
+      errorCode: "ACK_QUERY_FAILED",
+    };
+  }
 }
+
+export type LeoAckListAvailability = "AVAILABLE" | "EMPTY" | "UNAVAILABLE";
+
+export type LeoAckListReadResult = {
+  availability: LeoAckListAvailability;
+  acks: LeoAttentionAck[];
+  errorCode: string | null;
+};
 
 /**
  * Soft-clear: remove ack row so source may surface again.

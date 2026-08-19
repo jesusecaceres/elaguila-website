@@ -54,6 +54,16 @@ import {
   parseLeoCommitmentQueryKind,
 } from "@/app/leo/_lib/leoCommitmentIntelligence";
 import { leoListCommitments } from "@/app/leo/_lib/leoCommitmentService";
+import { leoListOwnerAttentionAcks } from "@/app/leo/_lib/leoAttentionAckService";
+import {
+  decorateCommitmentCardsWithDispositions,
+  decorateEmailCardsWithDispositions,
+} from "@/app/leo/_lib/leoAttentionRuntime";
+import {
+  buildLeoReceiptIntelligence,
+  parseLeoReceiptQueryKind,
+} from "@/app/leo/_lib/leoReceiptIntelligence";
+import { leoListRecentToolReceipts } from "@/app/leo/_lib/leoToolReceiptService";
 import type {
   LeoActionIntentKind,
   LeoConversationAnswer,
@@ -146,7 +156,8 @@ export async function runLeoConversationDeterministic(
   switch (route.intent) {
     case "ATTENTION_OVERVIEW": {
       const brief = await getLeoAttentionBrief({ topN: Math.min(maxResults, 3), nowMs });
-      const evidence: LeoConversationEvidence[] = brief.items.slice(0, maxResults).map((item) => ({
+      const visible = brief.visibleItems ?? brief.items;
+      const evidence: LeoConversationEvidence[] = visible.slice(0, maxResults).map((item) => ({
         sourceKind: "attention_item",
         sourceRef: item.id,
         summary: `${item.level} score=${item.score}: ${item.title}`,
@@ -155,7 +166,12 @@ export async function runLeoConversationDeterministic(
       }));
       return empty({
         intent: "ATTENTION_OVERVIEW",
-        answerState: answerStateFromEvidence(evidence.length > 0 || brief.actionableCount === 0, false, false, false),
+        answerState: answerStateFromEvidence(
+          evidence.length > 0 || brief.actionableCount === 0,
+          false,
+          false,
+          false,
+        ),
         summary: composeAttentionSummary(brief),
         evidence,
         citations: evidence.map((e) => ({
@@ -571,6 +587,18 @@ export async function runLeoConversationDeterministic(
         Boolean(snap.calendar.nextEvent) ||
         snap.overallAvailability === "NOT_CONFIGURED";
 
+      // Bulk ACK decorate — one list, no N+1.
+      let emailCards = snap.gmail.emailCards;
+      if (subtype !== "CALENDAR" && emailCards.length > 0) {
+        const ackListed = await leoListOwnerAttentionAcks();
+        emailCards = decorateEmailCardsWithDispositions({
+          cards: emailCards,
+          acks: ackListed.acks,
+          dispositionAvailability: ackListed.availability,
+          nowMs,
+        });
+      }
+
       return empty({
         intent: "COMMUNICATION_INTELLIGENCE",
         answerState:
@@ -582,10 +610,10 @@ export async function runLeoConversationDeterministic(
         summary,
         resultCards:
           subtype === "EMAIL" || !subtype
-            ? snap.gmail.emailCards
+            ? emailCards
             : subtype === "CALENDAR"
               ? null
-              : snap.gmail.emailCards,
+              : emailCards,
         spokenSummary:
           subtype === "CALENDAR" ? null : snap.gmail.spokenSummary,
         evidence: [
@@ -690,6 +718,14 @@ export async function runLeoConversationDeterministic(
               : null,
       }));
 
+      const ackListed = await leoListOwnerAttentionAcks();
+      const decoratedCards = decorateCommitmentCardsWithDispositions({
+        cards: intel.cards,
+        acks: ackListed.acks,
+        dispositionAvailability: ackListed.availability,
+        nowMs,
+      });
+
       return empty({
         intent: "COMMITMENT_INTELLIGENCE",
         answerState:
@@ -699,7 +735,7 @@ export async function runLeoConversationDeterministic(
               ? "ANSWERED"
               : "ANSWERED",
         summary: intel.summary,
-        resultCards: intel.cards,
+        resultCards: decoratedCards,
         spokenSummary: intel.spokenSummary,
         evidence,
         citations: evidence.map((e) => ({
@@ -723,6 +759,71 @@ export async function runLeoConversationDeterministic(
           queryKind === "OVERDUE"
             ? "Ask what is due soon, or what commitments have no due date."
             : "Ask what is overdue, or what did I complete.",
+      });
+    }
+
+    case "RECEIPT_INTELLIGENCE": {
+      const queryKind = parseLeoReceiptQueryKind(request.question);
+      const listed = await leoListRecentToolReceipts(
+        Math.min(LEO_CONVERSATION_BOUNDS.maxResultsCap, Math.max(maxResults * 2, maxResults)),
+      );
+      const intel = buildLeoReceiptIntelligence({
+        receipts: listed.receipts,
+        queryKind,
+        nowMs,
+        maxResults,
+        availability: listed.availability,
+      });
+      const injectionNotes = [
+        ...(request.externalUntrustedNotes ?? []),
+        ...intel.matched
+          .slice(0, 5)
+          .map((r) => r.requestedPayloadSummary)
+          .filter(Boolean),
+      ];
+      const governance = assessLeoGovernance({
+        actionKind: "READ",
+        trustSources: injectionNotes.some((n) =>
+          /ignore governance|deploy production|bypass/i.test(n),
+        )
+          ? ["SYSTEM_POLICY", "EXTERNAL_UNTRUSTED_DATA"]
+          : ["SYSTEM_POLICY", "OWNER_INSTRUCTION"],
+        externalClaimsApproval: injectionNotes.some((n) =>
+          /ignore governance|deploy production|bypass|approve/i.test(n),
+        ),
+        nowMs,
+      });
+      const evidence: LeoConversationEvidence[] = intel.matched.map((r) => ({
+        sourceKind: "leo_tool_receipt",
+        sourceRef: r.id,
+        summary: `${r.actionType}/${r.lifecycleState}`.slice(0, 160),
+        availability: listed.availability === "UNAVAILABLE" ? "UNAVAILABLE" : "LIVE",
+        limitationNote: "Durable receipt — no raw payloads exposed",
+      }));
+      return empty({
+        intent: "RECEIPT_INTELLIGENCE",
+        answerState:
+          listed.availability === "UNAVAILABLE" ? "INSUFFICIENT_EVIDENCE" : "ANSWERED",
+        summary: intel.summary,
+        resultCards: intel.cards,
+        spokenSummary: intel.spokenSummary,
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: intel.unknowns,
+        limitations: [
+          ...intel.limitations,
+          ...(injectionNotes.some((n) => /ignore governance|deploy production/i.test(n))
+            ? [
+                "Untrusted receipt/source text attempted authority claims — ignored for governance.",
+              ]
+            : []),
+        ],
+        governance,
+        suggestedNextRetrieval: "Ask what did you prepare, or what is waiting for my approval.",
       });
     }
 

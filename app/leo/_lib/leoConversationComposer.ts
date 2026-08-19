@@ -25,7 +25,12 @@ export {
 } from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
 
 export function composeAttentionSummary(brief: LeoAttentionBrief): string {
-  const n = brief.items.length;
+  const runtime = brief as LeoAttentionBrief & {
+    visibleItems?: LeoAttentionBrief["items"];
+    dispositionAvailability?: string;
+  };
+  const items = runtime.visibleItems ?? brief.items;
+  const n = items.length;
   const actionable = brief.actionableCount;
   if (n === 0) {
     return "No priorities currently qualify for executive attention from available Leonix evidence.";
@@ -484,6 +489,13 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
         "What is due soon?",
         "What commitments have no due date?",
         "What did I complete?",
+      ];
+    case "RECEIPT_INTELLIGENCE":
+      return [
+        "What did you prepare?",
+        "What failed?",
+        "What is waiting for my approval?",
+        "Show recent leo actions.",
       ];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];

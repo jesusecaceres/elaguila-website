@@ -13,8 +13,11 @@ import {
   listLeoDurableToolReceiptsForActor,
   transitionLeoDurableToolReceipt,
   type LeoCreateDurableReceiptInput,
+  type LeoReceiptListReadResult,
 } from "@/app/leo/_lib/leoToolReceiptRepository";
 import type { LeoDurableToolReceipt } from "@/app/leo/_lib/leoTypes";
+
+export type { LeoReceiptListReadResult } from "@/app/leo/_lib/leoToolReceiptRepository";
 
 async function requireActorId(): Promise<string> {
   const access = await requireLeoOwnerAccess();
@@ -44,7 +47,7 @@ export async function leoGetToolReceiptByCorrelation(
 
 export async function leoListRecentToolReceipts(
   limit?: number,
-): Promise<LeoDurableToolReceipt[]> {
+): Promise<LeoReceiptListReadResult> {
   const actorAuthUserId = await requireActorId();
   return listLeoDurableToolReceiptsForActor(actorAuthUserId, limit);
 }
