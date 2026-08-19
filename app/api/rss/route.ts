@@ -51,8 +51,9 @@ const SOURCES_ES: Record<string, string[]> = {
     "https://news.google.com/rss/search?q=cultura+latina&hl=es&gl=US&ceid=US:es",
   ],
   local: [
-    "https://news.google.com/rss/search?q=Pennsylvania+Philadelphia+Latino+community+news&hl=es&gl=US&ceid=US:es",
-    "https://news.google.com/rss/search?q=Lancaster+Reading+Allentown+Latino+news&hl=es&gl=US&ceid=US:es",
+    "https://news.google.com/rss/search?q=San+Jos%C3%A9+Santa+Clara+noticias&hl=es&gl=US&ceid=US:es",
+    "https://news.google.com/rss/search?q=%C3%81rea+de+la+Bah%C3%ADa+Silicon+Valley+noticias&hl=es&gl=US&ceid=US:es",
+    "https://localnewsmatters.org/feed/",
   ],
   ultimas: [
     "https://news.google.com/rss/search?q=noticias+latinoamerica&hl=es&gl=US&ceid=US:es",
@@ -86,8 +87,10 @@ const SOURCES_EN: Record<string, string[]> = {
     "https://www.nbcnews.com/latino/latino-news/rss.xml",
   ],
   local: [
-    "https://news.google.com/rss/search?q=Pennsylvania+Philadelphia+Latino+community+news&hl=en&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=Lancaster+Reading+Allentown+Latino+news&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=San+Jose+Santa+Clara+County+news&hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/search?q=Bay+Area+Silicon+Valley+news&hl=en&gl=US&ceid=US:en",
+    "https://localnewsmatters.org/feed/",
+    "https://www.nbcbayarea.com/news/local/feed/",
   ],
   ultimas: [
     "https://news.google.com/rss/search?q=latino+news&hl=en&gl=US&ceid=US:en",
@@ -243,51 +246,67 @@ function buildSearchQuery(category: string, subcategory: string, lang: Lang): st
 
   if (category === "local") {
     const local: Record<string, { es: string; en: string }> = {
-      pensilvania: {
-        es: "Pensilvania Lancaster Reading Allentown noticias comunidad latina",
-        en: "Pennsylvania Lancaster Reading Allentown Latino community news",
+      "san jose": {
+        es: "San José Santa Clara noticias comunidad latina",
+        en: "San Jose Santa Clara County Latino community news",
       },
-      pennsylvania: {
-        es: "Pensilvania Lancaster Reading Allentown noticias comunidad latina",
-        en: "Pennsylvania Lancaster Reading Allentown Latino community news",
+      "san josé": {
+        es: "San José Santa Clara noticias comunidad latina",
+        en: "San Jose Santa Clara County Latino community news",
       },
-      filadelfia: {
-        es: "Filadelfia Philadelphia noticias comunidad latina hispana",
-        en: "Philadelphia Latino Hispanic community local news",
+      "santa clara": {
+        es: "Santa Clara County San José noticias comunidad latina",
+        en: "Santa Clara County San Jose local news",
       },
-      philadelphia: {
-        es: "Filadelfia Philadelphia noticias comunidad latina hispana",
-        en: "Philadelphia Latino Hispanic community local news",
+      "santa clara county": {
+        es: "Santa Clara County San José noticias comunidad latina",
+        en: "Santa Clara County San Jose local news",
+      },
+      "silicon valley": {
+        es: "Silicon Valley San José Sunnyvale Cupertino noticias",
+        en: "Silicon Valley San Jose Sunnyvale Cupertino news",
+      },
+      "area de la bahia": {
+        es: "Área de la Bahía San José noticias comunidad latina",
+        en: "San Francisco Bay Area San Jose Latino community news",
+      },
+      "área de la bahía": {
+        es: "Área de la Bahía San José noticias comunidad latina",
+        en: "San Francisco Bay Area San Jose Latino community news",
+      },
+      "bay area": {
+        es: "Área de la Bahía San José noticias comunidad latina",
+        en: "San Francisco Bay Area San Jose Latino community news",
       },
       "negocios locales": {
-        es: "pequeños negocios locales Pensilvania Filadelfia emprendedores latinos",
-        en: "local small business Pennsylvania Philadelphia Latino entrepreneurs",
+        es: "pequeños negocios locales San José Santa Clara Silicon Valley",
+        en: "local small business San Jose Santa Clara County Silicon Valley",
       },
       "local business": {
-        es: "pequeños negocios locales Pensilvania Filadelfia emprendedores latinos",
-        en: "local small business Pennsylvania Philadelphia Latino entrepreneurs",
+        es: "pequeños negocios locales San José Santa Clara Silicon Valley",
+        en: "local small business San Jose Santa Clara County Silicon Valley",
       },
       eventos: {
-        es: "eventos comunidad latina Pensilvania Filadelfia",
-        en: "events Latino community Pennsylvania Philadelphia",
+        es: "eventos comunidad latina San José Santa Clara Área de la Bahía",
+        en: "events Latino community San Jose Santa Clara Bay Area",
       },
       events: {
-        es: "eventos comunidad latina Pensilvania Filadelfia",
-        en: "events Latino community Pennsylvania Philadelphia",
+        es: "eventos comunidad latina San José Santa Clara Área de la Bahía",
+        en: "events Latino community San Jose Santa Clara Bay Area",
       },
       comunidad: {
-        es: "comunidad latina hispana Pensilvania Filadelfia Lancaster Reading",
-        en: "Latino Hispanic community Pennsylvania Philadelphia Lancaster Reading",
+        es: "comunidad latina hispana San José Santa Clara Área de la Bahía",
+        en: "Latino Hispanic community San Jose Santa Clara County Bay Area",
       },
       community: {
-        es: "comunidad latina hispana Pensilvania Filadelfia Lancaster Reading",
-        en: "Latino Hispanic community Pennsylvania Philadelphia Lancaster Reading",
+        es: "comunidad latina hispana San José Santa Clara Área de la Bahía",
+        en: "Latino Hispanic community San Jose Santa Clara County Bay Area",
       },
     };
     if (local[sub]) return local[sub][lang];
     return lang === "es"
-      ? `${subcategory} Pensilvania Filadelfia Lancaster Reading Allentown ${latino}`
-      : `${subcategory} Pennsylvania Philadelphia Lancaster Reading Allentown ${latino}`;
+      ? `${subcategory} San José Santa Clara Área de la Bahía Silicon Valley ${latino}`
+      : `${subcategory} San Jose Santa Clara County Bay Area Silicon Valley ${latino}`;
   }
 
   if (category === "cultura") {
@@ -556,7 +575,7 @@ export async function GET(req: Request) {
             title: typeof item.title === "string" ? item.title : "",
             link: typeof item.link === "string" ? item.link : "",
             img: extractArticleImage(item, content),
-            date: item.isoDate || item.pubDate || new Date().toISOString(),
+            date: item.isoDate || item.pubDate || undefined,
             desc: item.contentSnippet || "",
           } satisfies RssArticle;
         });
