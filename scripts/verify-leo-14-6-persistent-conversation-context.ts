@@ -437,16 +437,22 @@ const allowed = new Set([
   "app/admin/(dashboard)/leo/_components/leoOwnerPresentation.ts",
   "app/admin/(dashboard)/leo/page.tsx",
   "scripts/verify-leo-14-7-conversation-ui.ts",
+  // LEO-14.8 PWA shell
+  "public/sw.js",
+  "public/manifest.webmanifest",
+  "app/leo/_lib/leoPwaCapabilities.ts",
+  "app/admin/(dashboard)/leo/_components/LeoPwaShell.tsx",
+  "scripts/verify-leo-14-8-pwa-shell.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);
 
 check(
-  execSync("git diff --name-only HEAD -- public/sw.js package.json supabase/migrations", {
+  execSync("git diff --name-only HEAD -- package.json supabase/migrations", {
     cwd: ROOT,
     encoding: "utf8",
   }).trim() === "",
-  "PWA / package / migrations untouched",
+  "package / migrations untouched",
 );
 
 if (failures > 0) {

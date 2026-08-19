@@ -19,6 +19,7 @@ import { LeoConversationPanel } from "./_components/LeoConversationPanel";
 import { LeoExecutiveHeader } from "./_components/LeoExecutiveHeader";
 import { LeoGovernanceLegend } from "./_components/LeoGovernanceLegend";
 import { LeoMemoryPanel } from "./_components/LeoMemoryPanel";
+import { LeoPwaShell } from "./_components/LeoPwaShell";
 
 export const dynamic = "force-dynamic";
 
@@ -82,30 +83,32 @@ export default async function LeoExecutiveConsolePage() {
   const [attention, care, memory] = await Promise.all([loadAttention(), loadClientCare(), loadMemory()]);
 
   return (
-    <div className={adminContentArea}>
-      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-4 sm:gap-5">
-        <LeoExecutiveHeader />
+    <div className={`${adminContentArea} pt-[max(0px,env(safe-area-inset-top))]`}>
+      <LeoPwaShell>
+        <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-4 sm:gap-5">
+          <LeoExecutiveHeader />
 
-        <div className="min-w-0 lg:max-w-none">
-          <LeoConversationPanel />
+          <div className="min-w-0 lg:max-w-none">
+            <LeoConversationPanel />
+          </div>
+
+          <div className="grid min-w-0 gap-4 sm:gap-5">
+            <LeoAttentionPanel load={attention} />
+
+            <LeoClientCarePanel load={care} />
+
+            <LeoMemoryPanel load={memory} />
+          </div>
+
+          <section className={`${adminCardBase} min-w-0 space-y-4 p-3 sm:p-4`} aria-labelledby="leo-controls-heading">
+            <h2 id="leo-controls-heading" className="text-sm font-bold text-[#1E1810]">
+              LEO Controls &amp; Capabilities
+            </h2>
+            <LeoGovernanceLegend />
+            <LeoCapabilityStrip />
+          </section>
         </div>
-
-        <div className="grid min-w-0 gap-4 sm:gap-5">
-          <LeoAttentionPanel load={attention} />
-
-          <LeoClientCarePanel load={care} />
-
-          <LeoMemoryPanel load={memory} />
-        </div>
-
-        <section className={`${adminCardBase} min-w-0 space-y-4 p-3 sm:p-4`} aria-labelledby="leo-controls-heading">
-          <h2 id="leo-controls-heading" className="text-sm font-bold text-[#1E1810]">
-            LEO Controls &amp; Capabilities
-          </h2>
-          <LeoGovernanceLegend />
-          <LeoCapabilityStrip />
-        </section>
-      </div>
+      </LeoPwaShell>
     </div>
   );
 }

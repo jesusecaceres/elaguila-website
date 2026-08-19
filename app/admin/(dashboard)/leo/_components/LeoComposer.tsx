@@ -10,18 +10,21 @@ export function LeoComposer({
   onSubmit,
   pending,
   disabled,
+  offline,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
   pending: boolean;
   disabled?: boolean;
+  offline?: boolean;
 }) {
   const inputId = useId();
 
   return (
     <form
-      className="sticky bottom-0 z-20 -mx-4 border-t border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm sm:-mx-5 sm:px-5"
+      className="sticky bottom-0 z-20 -mx-4 border-t border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)]/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:-mx-5 sm:px-5"
+      data-leo-composer
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit();
@@ -37,29 +40,32 @@ export function LeoComposer({
             name="question"
             rows={2}
             autoComplete="off"
-            disabled={pending || disabled}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSubmit();
-              }
-            }}
-            placeholder="Ask LEO…"
-            className={`${adminInputClass} min-h-[52px] resize-y text-base leading-relaxed`}
-          />
+          disabled={pending}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (!offline) onSubmit();
+              else onSubmit(); // submit path still truthfully blocks when offline
+            }
+          }}
+          placeholder={offline ? "Draft saved offline…" : "Ask LEO…"}
+          className={`${adminInputClass} min-h-[52px] resize-y text-base leading-relaxed`}
+        />
         </div>
         <button
           type="submit"
-          disabled={pending || disabled || !value.trim()}
+          disabled={pending || !value.trim()}
           className={`${adminBtnPrimary} min-h-[48px] w-full shrink-0 px-6 disabled:cursor-not-allowed disabled:opacity-60 sm:mb-0.5 sm:w-auto`}
         >
-          {pending ? "Asking…" : "Ask LEO"}
+          {pending ? "Asking…" : offline ? "Saved offline" : "Ask LEO"}
         </button>
       </div>
       <p className="mt-1.5 text-[10px] text-[#5C5346]/80">
-        Enter to send · Shift+Enter for a new line
+        {offline
+          ? "You’re offline — draft stays on this device. Live Gmail/Calendar/project checks need a connection."
+          : "Enter to send · Shift+Enter for a new line"}
       </p>
     </form>
   );

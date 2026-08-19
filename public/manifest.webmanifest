@@ -1,7 +1,7 @@
 {
   "name": "Leonix Media",
   "short_name": "Leonix",
-  "description": "Leonix Media Virtual Front Desk and business platform",
+  "description": "Leonix Media Virtual Front Desk, LEO executive assistant, and business platform",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -49,8 +49,14 @@ check(exists("app/admin/(dashboard)/leo/_components/LeoActionBar.tsx"), "action 
 check(exists("app/admin/(dashboard)/leo/_components/LeoComposer.tsx"), "composer");
 check(exists("app/admin/(dashboard)/leo/_components/LeoSessionStatus.tsx"), "session status");
 
-check(/leonix:leo:last-session-id/.test(panel), "session pointer key");
-check(/leonix:leo:composer-draft/.test(panel), "draft key only");
+check(
+  /leonix:leo:last-session-id|LEO_PWA_SESSION_POINTER_KEY/.test(panel),
+  "session pointer key",
+);
+check(
+  /leonix:leo:composer-draft|LEO_PWA_DRAFT_STORAGE_KEY/.test(panel),
+  "draft key only",
+);
 check(!/localStorage\.setItem\([^)]*boundedText|localStorage\.setItem\([^)]*resultCards|localStorage\.setItem\([^)]*snippet/.test(panel), "no conversation content in localStorage");
 check(/\/api\/leo\/conversation\/session/.test(panel), "session history GET used");
 check(/sessionId/.test(panel) && /clientRequestId/.test(panel), "sessionId + clientRequestId sent");
@@ -119,16 +125,22 @@ const allowed = new Set([
   "scripts/verify-leo-14-3-gmail-executive-triage.ts",
   "scripts/verify-leo-14-2-result-action-contracts.ts",
   "scripts/verify-leo-14-1-persistence-contracts.ts",
+  // LEO-14.8 PWA shell
+  "public/sw.js",
+  "public/manifest.webmanifest",
+  "app/leo/_lib/leoPwaCapabilities.ts",
+  "app/admin/(dashboard)/leo/_components/LeoPwaShell.tsx",
+  "scripts/verify-leo-14-8-pwa-shell.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);
 
 check(
-  execSync("git diff --name-only HEAD -- public/sw.js package.json supabase/migrations app/leo/_lib/leoGmailAdapter.ts", {
+  execSync("git diff --name-only HEAD -- package.json supabase/migrations app/leo/_lib/leoGmailAdapter.ts", {
     cwd: ROOT,
     encoding: "utf8",
   }).trim() === "",
-  "PWA / package / migrations / Gmail adapter untouched",
+  "package / migrations / Gmail adapter untouched",
 );
 
 if (failures > 0) {

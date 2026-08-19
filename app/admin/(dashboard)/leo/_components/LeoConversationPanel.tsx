@@ -15,9 +15,14 @@ import { LeoComposer, LeoNewConversationButton } from "./LeoComposer";
 import { LeoConversationStream } from "./LeoConversationStream";
 import type { LeoStreamTurn } from "./LeoConversationTurn";
 import { LeoSessionStatus } from "./LeoSessionStatus";
+import {
+  LEO_OFFLINE_SUBMIT_MESSAGE,
+  LEO_PWA_DRAFT_STORAGE_KEY,
+  LEO_PWA_SESSION_POINTER_KEY,
+} from "@/app/leo/_lib/leoPwaCapabilities";
 
-const SESSION_KEY = "leonix:leo:last-session-id";
-const DRAFT_KEY = "leonix:leo:composer-draft";
+const SESSION_KEY = LEO_PWA_SESSION_POINTER_KEY;
+const DRAFT_KEY = LEO_PWA_DRAFT_STORAGE_KEY;
 
 const STARTER_PROMPTS = [
   "What needs my attention?",
@@ -126,8 +131,21 @@ export function LeoConversationPanel() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedEntityRef, setSelectedEntityRef] = useState<LeoConversationEntityRef | null>(null);
   const [pending, startTransition] = useTransition();
+  const [online, setOnline] = useState(true);
   const bootstrapped = useRef(false);
   const composerFocusRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => setOnline(navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
 
   useEffect(() => {
     if (bootstrapped.current) return;
@@ -189,6 +207,14 @@ export function LeoConversationPanel() {
     (raw: string, opts?: { retryLocalId?: string }) => {
       const trimmed = raw.trim();
       if (!trimmed || pending) return;
+
+      // Offline: preserve draft, do not invent intelligence or fire a doomed request.
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        writeDraft(trimmed);
+        setQuestion(trimmed);
+        setError(LEO_OFFLINE_SUBMIT_MESSAGE);
+        return;
+      }
 
       const clientRequestId = newClientRequestId();
       const localUserId = opts?.retryLocalId ?? `local-user-${clientRequestId}`;
@@ -402,7 +428,11 @@ export function LeoConversationPanel() {
 
         {error ? (
           <p
-            className="mb-3 break-words rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900"
+            className={`mb-3 break-words rounded-lg border px-3 py-2 text-sm ${
+              /offline/i.test(error)
+                ? "border-amber-200 bg-amber-50 text-amber-950"
+                : "border-rose-200 bg-rose-50 text-rose-900"
+            }`}
             role="alert"
           >
             {error}
@@ -414,6 +444,7 @@ export function LeoConversationPanel() {
           onChange={setQuestion}
           onSubmit={() => submit(question)}
           pending={pending || restoring}
+          offline={!online}
         />
       </div>
     </section>
