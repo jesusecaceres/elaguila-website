@@ -278,6 +278,10 @@ const allowed = new Set([
   "scripts/verify-leo-14-1-persistence-contracts.ts",
   "scripts/verify-leo-13-gmail-calendar-intelligence.ts",
   "scripts/verify-leo-13a-google-live-connection.ts",
+  // LEO-14.2 result/action contracts
+  "app/leo/_lib/leoResultCards.ts",
+  "app/leo/_lib/leoExecutiveActions.ts",
+  "scripts/verify-leo-14-2-result-action-contracts.ts",
 ]);
 
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));

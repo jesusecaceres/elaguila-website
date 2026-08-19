@@ -463,6 +463,10 @@ async function main() {
     "app/leo/_lib/leoAttentionAckService.ts",
     "app/leo/_lib/leoPersistenceSemantics.ts",
     "scripts/verify-leo-14-1-persistence-contracts.ts",
+    // LEO-14.2 result/action contracts
+    "app/leo/_lib/leoResultCards.ts",
+    "app/leo/_lib/leoExecutiveActions.ts",
+    "scripts/verify-leo-14-2-result-action-contracts.ts",
   ]);
 
   const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f));
