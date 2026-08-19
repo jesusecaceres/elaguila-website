@@ -95,8 +95,8 @@ const WORKSPACE_CARDS = [
   {
     href: "/admin/workspace/iglesias",
     title: "Iglesias",
-    body: "Landing `/iglesias`: transitional copy in `iglesias_page` until directory with rows in database.",
-    teach: "Editor at /workspace/iglesias/content.",
+    body: "Landing `/iglesias` plus church queue. Public rows: approved + active + published. Copy in `iglesias_page`.",
+    teach: "Queue at /workspace/iglesias. Copy editor at /workspace/iglesias/content.",
   },
   {
     href: "/admin/workspace/cupones",
