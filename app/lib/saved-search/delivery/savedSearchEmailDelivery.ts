@@ -1,34 +1,44 @@
 /**
- * Saved Search 05 — durable Autos match-event -> email delivery engine. Reuses, never duplicates:
+ * Saved Search 05/06 — durable match-event -> email delivery engine, shared by every category.
+ * Reuses, never duplicates:
  *   - `sendLeonixResendEmailWithConfig` (the one shared Leonix Resend sender)
  *   - `getAdminSupabase` + `auth.admin.getUserById` (established server-side owner-email
  *     resolution pattern, mirrored from `resolveServiciosLeadBusinessNotifyEmail`)
- *   - `autosLiveVehiclePath` + `getAutosSiteOrigin` (the canonical Autos public listing URL)
- *   - `certifyAutosPublicEligibleListing` + `loadParentsById` (Saved Search 04's eligibility gate;
- *     `loadParentsById` comes from the neutral `autosSavedSearchEligibilitySupport` helper, NOT
- *     from the match orchestrator — this module must never import the orchestrator, which would
- *     create an orchestrator <-> delivery circular dependency)
  *   - `getSavedSearchForOwner` (Saved Search 02's owner-scoped CRUD read)
  *
- * `attemptSavedSearchEmailDeliveryBestEffort` is the ONLY function the match orchestrator should
- * call. It never throws, matching the Saved Search 04/05 failure-boundary contract: listing
+ * Saved Search 06 (Gate 14) — the only genuinely category-specific pieces of delivery (listing
+ * revalidation, canonical public URL) are pushed into small per-category resolvers
+ * (`SavedSearchDeliveryCategoryResolver`) rather than cloning this whole engine per category. This
+ * module must never import a category orchestrator directly (Autos/BR both learned that lesson the
+ * hard way — see `autosSavedSearchEligibilitySupport.ts`'s and
+ * `bienesRaicesSavedSearchEligibilitySupport.ts`'s own header comments) — resolvers import neutral
+ * support files instead, never the orchestrator files that import THIS module.
+ *
+ * `attemptSavedSearchEmailDeliveryBestEffort` is the ONLY function a match orchestrator should
+ * call. It never throws, matching the Saved Search 04/05/06 failure-boundary contract: listing
  * publication is primary, delivery is a secondary, best-effort durable side effect. This module is
  * event-driven only — there is no cron/worker here. Each match event gets exactly one delivery
- * attempt in this build, made synchronously right after Saved Search 04 durably creates it; a
+ * attempt in this build, made synchronously right after the durable event is created; a
  * failed/exhausted row stays durable for a future manual/admin retry surface, not built here.
  */
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { getAutosClassifiedsListingById } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import { getAutosSiteOrigin } from "@/app/lib/clasificados/autos/autosSiteOrigin";
-import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { sendLeonixResendEmailWithConfig } from "@/app/lib/email/sendLeonixResendEmail";
-import { certifyAutosPublicEligibleListing } from "../autos/autosPublicEligibleListing";
-import { loadParentsById } from "../autos/autosSavedSearchEligibilitySupport";
-import { SAVED_SEARCH_AUTOS_CATEGORY } from "../autos/savedSearchAutosAdapter";
 import { getSavedSearchForOwner } from "../savedSearchServerCrud";
 import { buildSavedSearchMatchEmail } from "./savedSearchMatchEmail";
+import type { SavedSearchDeliveryCategoryResolver } from "./savedSearchDeliveryCategoryResolver";
+import { autosSavedSearchDeliveryResolver } from "../autos/autosSavedSearchDeliveryResolver";
+import { bienesRaicesSavedSearchDeliveryResolver } from "../bienes-raices/bienesRaicesSavedSearchDeliveryResolver";
+import { rentasSavedSearchDeliveryResolver } from "../rentas/rentasSavedSearchDeliveryResolver";
+
+/** Category registry — the one place delivery dispatches to a category's resolver. Adding a
+ * category means adding one entry here, never cloning this file. */
+const CATEGORY_RESOLVERS: Record<string, SavedSearchDeliveryCategoryResolver> = {
+  autos: autosSavedSearchDeliveryResolver,
+  "bienes-raices": bienesRaicesSavedSearchDeliveryResolver,
+  rentas: rentasSavedSearchDeliveryResolver,
+};
 
 const MATCH_EVENTS_TABLE = "saved_search_match_events";
 const CLAIM_RPC = "claim_saved_search_match_event";
@@ -107,21 +117,22 @@ async function deliverClaimedEvent(supabase: SupabaseClient, claimed: ClaimedMat
     await settle(supabase, claimed.id, { status: "failed", last_error: normalizeErrorMessage(e) });
     return;
   }
-  if (!search || !search.isActive || search.category !== SAVED_SEARCH_AUTOS_CATEGORY) {
+  if (!search || !search.isActive || search.category !== claimed.category) {
     await settle(supabase, claimed.id, { status: "skipped", last_error: "saved_search_inactive_or_missing" });
     return;
   }
 
+  const resolver = CATEGORY_RESOLVERS[claimed.category];
+  if (!resolver) {
+    await settle(supabase, claimed.id, { status: "skipped", last_error: "unsupported_category" });
+    return;
+  }
+
   // Gate 6 — revalidate the listing still exists and is still publicly eligible right now, reusing
-  // the exact same eligibility gate and parent-lookup helper Saved Search 04 uses at match time —
-  // no parallel eligibility logic.
+  // the category's exact same eligibility gate — no parallel eligibility logic.
   let stillEligible = false;
   try {
-    const row = await getAutosClassifiedsListingById(claimed.listing_id);
-    if (row) {
-      const parentsById = await loadParentsById(row);
-      stillEligible = certifyAutosPublicEligibleListing(row, parentsById) !== null;
-    }
+    stillEligible = await resolver.revalidateListingStillEligible(claimed.listing_id);
   } catch {
     stillEligible = false;
   }
@@ -144,10 +155,11 @@ async function deliverClaimedEvent(supabase: SupabaseClient, claimed: ClaimedMat
     return;
   }
 
-  const detailUrl = `${getAutosSiteOrigin()}${autosLiveVehiclePath(claimed.listing_id)}?lang=es`;
-  const manageUrl = `${getAutosSiteOrigin()}/dashboard/busquedas-guardadas`;
+  const detailUrl = resolver.buildDetailUrl(claimed.listing_id);
+  const manageUrl = `${new URL(detailUrl).origin}/dashboard/busquedas-guardadas`;
 
   const { subject, text, html } = buildSavedSearchMatchEmail({
+    category: claimed.category,
     listingTitle: claimed.listing_title,
     listingPrice: claimed.listing_price,
     listingCity: claimed.listing_city,

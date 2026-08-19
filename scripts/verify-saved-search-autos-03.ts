@@ -168,7 +168,16 @@ await check("owner scoping preserved — dashboard page never sends another user
 
 await check("no raw JSON dumped to the user — filter_payload is only ever passed through describeAutosSavedSearchFacets, never JSON.stringify'd for display", () => {
   assert.ok(!/JSON\.stringify\(\s*row\.filterPayload/.test(dashboardPageSrc));
-  assert.ok(dashboardPageSrc.includes("describeAutosSavedSearchFacets("));
+  // Saved Search 06 generalized the dashboard to a per-category registry (Gate 20) — Autos facets
+  // now render via `entry.describeFacets(...)` dispatch rather than a hardcoded direct call, but
+  // `describeAutosSavedSearchFacets` remains the exact function wired in for Autos rows (imported
+  // and registered), never bypassed for a raw JSON dump. Accept either call form.
+  const directCall = dashboardPageSrc.includes("describeAutosSavedSearchFacets(");
+  const registryDispatch =
+    dashboardPageSrc.includes("import { describeAutosSavedSearchFacets }") &&
+    dashboardPageSrc.includes("describeFacets: describeAutosSavedSearchFacets") &&
+    dashboardPageSrc.includes("entry.describeFacets(");
+  assert.ok(directCall || registryDispatch, "describeAutosSavedSearchFacets must be genuinely wired in, directly or via the category registry");
 });
 
 await check("dashboard reuses the existing LeonixDashboardShell — no parallel dashboard chrome", () => {

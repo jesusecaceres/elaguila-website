@@ -1,6 +1,7 @@
 import { escapeHtml } from "@/app/lib/email/escapeHtml";
 
 export type SavedSearchMatchEmailFields = {
+  category: string;
   listingTitle: string;
   listingPrice: number | null;
   listingCity: string | null;
@@ -8,6 +9,29 @@ export type SavedSearchMatchEmailFields = {
   detailUrl: string;
   manageUrl: string;
 };
+
+/** Saved Search 06 — the one thing that genuinely varies per category in this email: the noun
+ * describing what matched, used in the subject and body sentence. Everything else (layout,
+ * structure, CTA, disclosure line, bilingual order) stays a single shared template — not three
+ * separate email files. */
+const CATEGORY_COPY: Record<string, { es: { noun: string; subject: string }; en: { noun: string; subject: string } }> = {
+  autos: {
+    es: { noun: "un auto", subject: "Leonix: Encontramos un auto que coincide con tu búsqueda" },
+    en: { noun: "a vehicle", subject: "Leonix: We found a vehicle that matches your search" },
+  },
+  "bienes-raices": {
+    es: { noun: "una propiedad", subject: "Leonix: Encontramos una propiedad que coincide con tu búsqueda" },
+    en: { noun: "a property", subject: "Leonix: We found a property that matches your search" },
+  },
+  rentas: {
+    es: { noun: "una renta", subject: "Leonix: Encontramos una renta que coincide con tu búsqueda" },
+    en: { noun: "a rental", subject: "Leonix: We found a rental that matches your search" },
+  },
+};
+
+function copyForCategory(category: string) {
+  return CATEGORY_COPY[category] ?? CATEGORY_COPY.autos;
+}
 
 function formatPrice(price: number | null): string | null {
   if (price === null || !Number.isFinite(price) || price <= 0) return null;
@@ -22,25 +46,26 @@ function formatLocation(city: string | null, state: string | null): string | nul
 }
 
 /**
- * Saved Search 05 — truthful Autos match-alert email. Saved searches don't store a language
- * preference (nothing to reuse, nothing invented here) — V1 always sends Spanish first, English
- * second, in one email, mirroring the fixed-order convention already used elsewhere in Leonix
- * bilingual email (see `buildNewsletterPromoCodeEmail`).
+ * Saved Search 05/06 — truthful match-alert email, shared across every category. Saved searches
+ * don't store a language preference (nothing to reuse, nothing invented here) — V1 always sends
+ * Spanish first, English second, in one email, mirroring the fixed-order convention already used
+ * elsewhere in Leonix bilingual email (see `buildNewsletterPromoCodeEmail`).
  */
 export function buildSavedSearchMatchEmail(fields: SavedSearchMatchEmailFields): {
   subject: string;
   text: string;
   html: string;
 } {
+  const copy = copyForCategory(fields.category);
   const title = fields.listingTitle.trim();
   const price = formatPrice(fields.listingPrice);
   const location = formatLocation(fields.listingCity, fields.listingState);
-  const subject = "Leonix: Encontramos un auto que coincide con tu búsqueda";
+  const subject = copy.es.subject;
 
   const textEs = [
     "Hola,",
     "",
-    `Un anuncio activo de Autos en Leonix ahora coincide con una de tus búsquedas guardadas: "${title}".`,
+    `Encontramos ${copy.es.noun} activo en Leonix que coincide con una de tus búsquedas guardadas: "${title}".`,
     price ? `Precio: ${price}.` : null,
     location ? `Ubicación: ${location}.` : null,
     "",
@@ -53,7 +78,7 @@ export function buildSavedSearchMatchEmail(fields: SavedSearchMatchEmailFields):
   const textEn = [
     "Hi,",
     "",
-    `An active Autos listing on Leonix now matches one of your saved searches: "${title}".`,
+    `We found ${copy.en.noun} on Leonix that matches one of your saved searches: "${title}".`,
     price ? `Price: ${price}.` : null,
     location ? `Location: ${location}.` : null,
     "",
@@ -70,8 +95,8 @@ export function buildSavedSearchMatchEmail(fields: SavedSearchMatchEmailFields):
     <p style="margin:0 0 12px;">${isEn ? "Hi," : "Hola,"}</p>
     <p style="margin:0 0 6px;">${
       isEn
-        ? `An active Autos listing on Leonix now matches one of your saved searches: <strong>${escapeHtml(title)}</strong>.`
-        : `Un anuncio activo de Autos en Leonix ahora coincide con una de tus búsquedas guardadas: <strong>${escapeHtml(title)}</strong>.`
+        ? `We found ${copy.en.noun} on Leonix that matches one of your saved searches: <strong>${escapeHtml(title)}</strong>.`
+        : `Encontramos ${copy.es.noun} activo en Leonix que coincide con una de tus búsquedas guardadas: <strong>${escapeHtml(title)}</strong>.`
     }</p>
     ${price ? `<p style="margin:0 0 6px;"><strong>${isEn ? "Price" : "Precio"}: ${escapeHtml(price)}</strong></p>` : ""}
     ${location ? `<p style="margin:0 0 12px;">${isEn ? "Location" : "Ubicación"}: ${escapeHtml(location)}</p>` : ""}

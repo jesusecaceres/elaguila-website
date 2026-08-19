@@ -155,7 +155,15 @@ check("provider rejection or throw settles to status='failed' with a bounded san
 
 check("skipped is used only for the provable stale/invalid conditions named in Gate 6, never as a generic catch-all for send failure", () => {
   const skipReasons = [...deliverySrc.matchAll(/status:\s*"skipped",\s*last_error:\s*"([a-z_]+)"/g)].map((m) => m[1]);
-  const allowed = new Set(["saved_search_inactive_or_missing", "listing_no_longer_public_eligible", "owner_email_unavailable"]);
+  // "unsupported_category" was added by Saved Search 06's resolver-registry generalization
+  // (Gate 14) — provable in the exact same sense as the others: the claimed event's category
+  // genuinely has no registered delivery resolver, never a generic catch-all for send failure.
+  const allowed = new Set([
+    "saved_search_inactive_or_missing",
+    "listing_no_longer_public_eligible",
+    "owner_email_unavailable",
+    "unsupported_category",
+  ]);
   assert.ok(skipReasons.length >= 3, `expected at least 3 skip reasons, found ${skipReasons.length}`);
   for (const r of skipReasons) assert.ok(allowed.has(r), `unexpected skip reason "${r}" not in the provable-condition allowlist`);
 });
@@ -198,9 +206,16 @@ check("saved search is re-read and must still be active and still this owner's b
 });
 
 check("listing eligibility is re-certified via the exact same Saved Search 04 gate, not a new check", () => {
-  assert.ok(deliverySrc.includes('import { certifyAutosPublicEligibleListing } from "../autos/autosPublicEligibleListing"'));
-  assert.ok(deliverySrc.includes('import { loadParentsById } from "../autos/autosSavedSearchEligibilitySupport"'));
-  assert.ok(deliverySrc.includes("certifyAutosPublicEligibleListing(row, parentsById) !== null"));
+  // Saved Search 06 (Gate 14) moved category-specific revalidation behind
+  // `autosSavedSearchDeliveryResolver.ts`, reached via the CATEGORY_RESOLVERS registry — the
+  // delivery engine itself no longer imports Autos eligibility directly. Verify the reuse holds
+  // through the resolver, which is exactly where it now lives.
+  assert.ok(deliverySrc.includes("CATEGORY_RESOLVERS"));
+  assert.ok(deliverySrc.includes('from "../autos/autosSavedSearchDeliveryResolver"'));
+  const resolverSrc = read("app/lib/saved-search/autos/autosSavedSearchDeliveryResolver.ts");
+  assert.ok(resolverSrc.includes('import { certifyAutosPublicEligibleListing } from "./autosPublicEligibleListing"'));
+  assert.ok(resolverSrc.includes('import { loadParentsById } from "./autosSavedSearchEligibilitySupport"'));
+  assert.ok(resolverSrc.includes("certifyAutosPublicEligibleListing(row, parentsById) !== null"));
 });
 
 check("shared eligibility-support helper exists, exports loadParentsById, and both orchestrator and delivery reuse it — not duplicated", () => {
@@ -250,10 +265,15 @@ check("price and location are optional/truthful — only rendered when present, 
 });
 
 check("CTA uses the canonical Autos public listing URL helper, not an invented URL format", () => {
-  assert.ok(deliverySrc.includes('import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract"'));
-  assert.ok(deliverySrc.includes("autosLiveVehiclePath(claimed.listing_id)"));
-  assert.ok(deliverySrc.includes('import { getAutosSiteOrigin } from "@/app/lib/clasificados/autos/autosSiteOrigin"'));
-  assert.ok(!/localhost/i.test(deliveryCode), "must never hardcode localhost — absolute URL must come from getAutosSiteOrigin()");
+  // Saved Search 06 (Gate 14) moved URL-building behind the resolver too — the engine now calls
+  // `resolver.buildDetailUrl(claimed.listing_id)` generically; the Autos-specific helpers live in
+  // autosSavedSearchDeliveryResolver.ts.
+  assert.ok(deliverySrc.includes("resolver.buildDetailUrl(claimed.listing_id)"));
+  const resolverSrc = read("app/lib/saved-search/autos/autosSavedSearchDeliveryResolver.ts");
+  assert.ok(resolverSrc.includes('import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract"'));
+  assert.ok(resolverSrc.includes("autosLiveVehiclePath(listingId)"));
+  assert.ok(resolverSrc.includes('import { getAutosSiteOrigin } from "@/app/lib/clasificados/autos/autosSiteOrigin"'));
+  assert.ok(!/localhost/i.test(stripJsComments(resolverSrc)), "must never hardcode localhost — absolute URL must come from getAutosSiteOrigin()");
 });
 
 check("manage-saved-searches CTA points at the real existing dashboard route", () => {
