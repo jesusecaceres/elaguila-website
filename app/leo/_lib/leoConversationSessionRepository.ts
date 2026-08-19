@@ -22,6 +22,32 @@ export { LEO_TURN_RETENTION_DAYS, LEO_TURN_TEXT_MAX } from "@/app/leo/_lib/leoPe
 
 export const LEO_SESSION_LIST_MAX = 50;
 export const LEO_TURN_LIST_MAX = 100;
+/** LEO-14.6 active conversational window — smaller than archive list cap. */
+export const LEO_ACTIVE_TURN_CONTEXT_MAX = 12;
+
+export type LeoConversationPersistenceAvailability = "AVAILABLE" | "EMPTY" | "UNAVAILABLE";
+
+export function isLeoConversationPersistenceMissingError(
+  error: { code?: string; message?: string } | null | undefined,
+): boolean {
+  const raw = `${error?.code ?? ""} ${error?.message ?? ""}`.toLowerCase();
+  return (
+    raw.includes("does not exist") ||
+    raw.includes("42p01") ||
+    raw.includes("pgrst205") ||
+    raw.includes("relation") ||
+    raw.includes("undefined_table") ||
+    raw.includes("schema cache")
+  );
+}
+
+function safePersistenceError(
+  error: { code?: string; message?: string } | null | undefined,
+  fallback: string,
+): string {
+  if (isLeoConversationPersistenceMissingError(error)) return "SESSION_TABLE_UNAVAILABLE";
+  return fallback;
+}
 
 type SessionRow = {
   id: string;
@@ -153,48 +179,90 @@ export type LeoAppendTurnInput = {
 
 export async function createLeoConversationSession(
   input: LeoCreateSessionInput,
-): Promise<{ ok: true; session: LeoConversationSession } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; session: LeoConversationSession; availability: "AVAILABLE" }
+  | { ok: false; error: string; availability: LeoConversationPersistenceAvailability }
+> {
   const owner = nonEmpty(input.ownerAuthUserId);
-  if (!owner) return { ok: false, error: "owner_auth_user_id_required" };
+  if (!owner) return { ok: false, error: "owner_auth_user_id_required", availability: "UNAVAILABLE" };
 
-  const now = new Date().toISOString();
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leo_conversation_sessions")
-    .insert({
-      owner_auth_user_id: owner,
-      title: nonEmpty(input.title ?? null),
-      ui_language: input.uiLanguage ?? "en",
-      speech_language: input.speechLanguage ?? "auto",
-      response_language: input.responseLanguage ?? "auto",
-      mode: input.mode ?? "TEXT",
-      last_active_at: now,
-      created_at: now,
-      updated_at: now,
-      archived_at: null,
-    })
-    .select(SESSION_COLS)
-    .single();
+  try {
+    const now = new Date().toISOString();
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leo_conversation_sessions")
+      .insert({
+        owner_auth_user_id: owner,
+        title: nonEmpty(input.title ?? null),
+        ui_language: input.uiLanguage ?? "en",
+        speech_language: input.speechLanguage ?? "auto",
+        response_language: input.responseLanguage ?? "auto",
+        mode: input.mode ?? "TEXT",
+        last_active_at: now,
+        created_at: now,
+        updated_at: now,
+        archived_at: null,
+      })
+      .select(SESSION_COLS)
+      .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
-  return { ok: true, session: mapSession(data as SessionRow) };
+    if (error || !data) {
+      return {
+        ok: false,
+        error: safePersistenceError(error, "insert_failed"),
+        availability: isLeoConversationPersistenceMissingError(error) ? "UNAVAILABLE" : "UNAVAILABLE",
+      };
+    }
+    return { ok: true, session: mapSession(data as SessionRow), availability: "AVAILABLE" };
+  } catch {
+    return { ok: false, error: "SESSION_TABLE_UNAVAILABLE", availability: "UNAVAILABLE" };
+  }
+}
+
+export type LeoSessionLookupResult =
+  | { status: "FOUND"; session: LeoConversationSession; availability: "AVAILABLE" }
+  | { status: "ARCHIVED"; session: LeoConversationSession; availability: "AVAILABLE" }
+  | { status: "NOT_FOUND"; availability: "AVAILABLE" }
+  | { status: "UNAVAILABLE"; availability: "UNAVAILABLE"; error: string };
+
+export async function lookupLeoConversationSessionForOwner(
+  sessionId: string,
+  ownerAuthUserId: string,
+): Promise<LeoSessionLookupResult> {
+  const owner = nonEmpty(ownerAuthUserId);
+  if (!owner || !nonEmpty(sessionId)) {
+    return { status: "NOT_FOUND", availability: "AVAILABLE" };
+  }
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leo_conversation_sessions")
+      .select(SESSION_COLS)
+      .eq("id", sessionId)
+      .eq("owner_auth_user_id", owner)
+      .maybeSingle();
+    if (error) {
+      if (isLeoConversationPersistenceMissingError(error)) {
+        return { status: "UNAVAILABLE", availability: "UNAVAILABLE", error: "SESSION_TABLE_UNAVAILABLE" };
+      }
+      return { status: "UNAVAILABLE", availability: "UNAVAILABLE", error: "SESSION_QUERY_FAILED" };
+    }
+    if (!data) return { status: "NOT_FOUND", availability: "AVAILABLE" };
+    const session = mapSession(data as SessionRow);
+    if (session.archivedAt) return { status: "ARCHIVED", session, availability: "AVAILABLE" };
+    return { status: "FOUND", session, availability: "AVAILABLE" };
+  } catch {
+    return { status: "UNAVAILABLE", availability: "UNAVAILABLE", error: "SESSION_TABLE_UNAVAILABLE" };
+  }
 }
 
 export async function getLeoConversationSessionForOwner(
   sessionId: string,
   ownerAuthUserId: string,
 ): Promise<LeoConversationSession | null> {
-  const owner = nonEmpty(ownerAuthUserId);
-  if (!owner || !nonEmpty(sessionId)) return null;
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leo_conversation_sessions")
-    .select(SESSION_COLS)
-    .eq("id", sessionId)
-    .eq("owner_auth_user_id", owner)
-    .maybeSingle();
-  if (error || !data) return null;
-  return mapSession(data as SessionRow);
+  const looked = await lookupLeoConversationSessionForOwner(sessionId, ownerAuthUserId);
+  if (looked.status === "FOUND" || looked.status === "ARCHIVED") return looked.session;
+  return null;
 }
 
 export async function listRecentLeoConversationSessionsForOwner(
@@ -280,68 +348,138 @@ export async function updateLeoConversationSessionMode(
 
 export async function appendLeoConversationTurn(
   input: LeoAppendTurnInput,
-): Promise<{ ok: true; turn: LeoConversationTurn } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; turn: LeoConversationTurn; availability: "AVAILABLE" }
+  | { ok: false; error: string; availability: LeoConversationPersistenceAvailability }
+> {
   const owner = nonEmpty(input.ownerAuthUserId);
   const sessionId = nonEmpty(input.sessionId);
-  if (!owner) return { ok: false, error: "owner_auth_user_id_required" };
-  if (!sessionId) return { ok: false, error: "session_id_required" };
+  if (!owner) return { ok: false, error: "owner_auth_user_id_required", availability: "UNAVAILABLE" };
+  if (!sessionId) return { ok: false, error: "session_id_required", availability: "UNAVAILABLE" };
 
   const text = input.boundedText?.trim() ?? "";
-  if (!text) return { ok: false, error: "bounded_text_required" };
+  if (!text) return { ok: false, error: "bounded_text_required", availability: "AVAILABLE" };
   if (text.length > LEO_TURN_TEXT_MAX) {
-    return { ok: false, error: `bounded_text_exceeds_${LEO_TURN_TEXT_MAX}` };
+    return {
+      ok: false,
+      error: `bounded_text_exceeds_${LEO_TURN_TEXT_MAX}`,
+      availability: "AVAILABLE",
+    };
   }
 
-  const session = await getLeoConversationSessionForOwner(sessionId, owner);
-  if (!session) return { ok: false, error: "session_not_found_or_not_owned" };
-  if (session.archivedAt) return { ok: false, error: "session_archived" };
+  try {
+    const session = await getLeoConversationSessionForOwner(sessionId, owner);
+    if (!session) return { ok: false, error: "session_not_found_or_not_owned", availability: "AVAILABLE" };
+    if (session.archivedAt) return { ok: false, error: "session_archived", availability: "AVAILABLE" };
 
-  const expiresAt =
-    nonEmpty(input.expiresAt ?? null) ??
-    new Date(Date.now() + LEO_TURN_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt =
+      nonEmpty(input.expiresAt ?? null) ??
+      new Date(Date.now() + LEO_TURN_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leo_conversation_turns")
-    .insert({
-      session_id: sessionId,
-      owner_auth_user_id: owner,
-      role: input.role,
-      bounded_text: text,
-      intent: nonEmpty(input.intent ?? null)?.slice(0, 80) ?? null,
-      result_card_refs: (input.resultCardRefs ?? []).slice(0, 100),
-      selected_entity_refs: (input.selectedEntityRefs ?? []).slice(0, 50),
-      receipt_ids: (input.receiptIds ?? []).slice(0, 100),
-      context_refs: input.contextRefs ?? {},
-      expires_at: expiresAt,
-      archived_at: null,
-    })
-    .select(TURN_COLS)
-    .single();
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leo_conversation_turns")
+      .insert({
+        session_id: sessionId,
+        owner_auth_user_id: owner,
+        role: input.role,
+        bounded_text: text,
+        intent: nonEmpty(input.intent ?? null)?.slice(0, 80) ?? null,
+        result_card_refs: (input.resultCardRefs ?? []).slice(0, 100),
+        selected_entity_refs: (input.selectedEntityRefs ?? []).slice(0, 50),
+        receipt_ids: (input.receiptIds ?? []).slice(0, 100),
+        context_refs: input.contextRefs ?? {},
+        expires_at: expiresAt,
+        archived_at: null,
+      })
+      .select(TURN_COLS)
+      .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
+    if (error || !data) {
+      return {
+        ok: false,
+        error: safePersistenceError(error, "insert_failed"),
+        availability: isLeoConversationPersistenceMissingError(error) ? "UNAVAILABLE" : "UNAVAILABLE",
+      };
+    }
 
-  await touchLeoConversationSession(sessionId, owner);
-  return { ok: true, turn: mapTurn(data as TurnRow) };
+    await touchLeoConversationSession(sessionId, owner);
+    return { ok: true, turn: mapTurn(data as TurnRow), availability: "AVAILABLE" };
+  } catch {
+    return { ok: false, error: "SESSION_TABLE_UNAVAILABLE", availability: "UNAVAILABLE" };
+  }
 }
+
+export type LeoTurnListReadResult = {
+  availability: LeoConversationPersistenceAvailability;
+  turns: LeoConversationTurn[];
+  errorCode: string | null;
+};
 
 export async function listLeoConversationTurnsForSession(
   sessionId: string,
   ownerAuthUserId: string,
   limit = LEO_TURN_LIST_MAX,
+  options?: { activeOnly?: boolean; nowMs?: number },
 ): Promise<LeoConversationTurn[]> {
+  const listed = await listLeoConversationTurnsForSessionDetailed(
+    sessionId,
+    ownerAuthUserId,
+    limit,
+    options,
+  );
+  return listed.turns;
+}
+
+/**
+ * LEO-14.6: list unexpired, non-archived turns (newest-first fetch, chronological return).
+ */
+export async function listLeoConversationTurnsForSessionDetailed(
+  sessionId: string,
+  ownerAuthUserId: string,
+  limit = LEO_TURN_LIST_MAX,
+  options?: { activeOnly?: boolean; nowMs?: number },
+): Promise<LeoTurnListReadResult> {
   const owner = nonEmpty(ownerAuthUserId);
-  if (!owner || !nonEmpty(sessionId)) return [];
-  const capped = Math.min(Math.max(1, Math.floor(limit)), LEO_TURN_LIST_MAX);
-  const supabase = getAdminSupabase();
-  const { data, error } = await supabase
-    .from("leo_conversation_turns")
-    .select(TURN_COLS)
-    .eq("session_id", sessionId)
-    .eq("owner_auth_user_id", owner)
-    .is("archived_at", null)
-    .order("created_at", { ascending: true })
-    .limit(capped);
-  if (error || !data) return [];
-  return (data as TurnRow[]).map(mapTurn);
+  if (!owner || !nonEmpty(sessionId)) {
+    return { availability: "UNAVAILABLE", turns: [], errorCode: "OWNER_OR_SESSION_REQUIRED" };
+  }
+  const capped = Math.min(
+    Math.max(1, Math.floor(limit)),
+    options?.activeOnly ? LEO_ACTIVE_TURN_CONTEXT_MAX : LEO_TURN_LIST_MAX,
+  );
+  const nowIso = new Date(options?.nowMs ?? Date.now()).toISOString();
+  try {
+    const supabase = getAdminSupabase();
+    let query = supabase
+      .from("leo_conversation_turns")
+      .select(TURN_COLS)
+      .eq("session_id", sessionId)
+      .eq("owner_auth_user_id", owner)
+      .is("archived_at", null)
+      .gt("expires_at", nowIso)
+      .order("created_at", { ascending: false })
+      .limit(capped);
+
+    // activeOnly uses same filters; kept for API clarity.
+    void options?.activeOnly;
+
+    const { data, error } = await query;
+    if (error) {
+      return {
+        availability: "UNAVAILABLE",
+        turns: [],
+        errorCode: isLeoConversationPersistenceMissingError(error)
+          ? "TURN_TABLE_UNAVAILABLE"
+          : "TURN_QUERY_FAILED",
+      };
+    }
+    const turns = ((data as TurnRow[]) ?? []).map(mapTurn).reverse();
+    if (turns.length === 0) {
+      return { availability: "EMPTY", turns: [], errorCode: null };
+    }
+    return { availability: "AVAILABLE", turns, errorCode: null };
+  } catch {
+    return { availability: "UNAVAILABLE", turns: [], errorCode: "TURN_QUERY_FAILED" };
+  }
 }

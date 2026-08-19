@@ -5,6 +5,8 @@
 import type {
   LeoActionIntentKind,
   LeoCommunicationSubtype,
+  LeoConversationClientContext,
+  LeoConversationEntityRef,
   LeoConversationIntent,
   LeoConversationRequest,
   LeoConversationRouteResult,
@@ -21,6 +23,11 @@ export const LEO_CONVERSATION_BOUNDS = {
   maxExternalNotes: 5,
   maxExternalNoteLength: 500,
   maxBodyBytes: 32_768,
+  /** LEO-14.6 */
+  maxSessionIdLength: 80,
+  maxClientRequestIdLength: 120,
+  maxVisibleCardIds: 40,
+  maxVisibleCardIdLength: 120,
 } as const;
 
 const VALID_INTENTS: readonly LeoConversationIntent[] = [
@@ -433,6 +440,14 @@ export function validateLeoConversationRequest(
     "executionAllowed",
     "lowerGovernance",
     "grantPermission",
+    "ownerAuthUserId",
+    "ownerId",
+    "actorId",
+    "actorAuthUserId",
+    "priorTurns",
+    "conversationHistory",
+    "rawGmail",
+    "providerPayload",
   ];
   for (const key of forbidden) {
     if (key in body) {
@@ -457,6 +472,98 @@ export function validateLeoConversationRequest(
       error: "question_too_long",
       message: `question exceeds ${LEO_CONVERSATION_BOUNDS.maxQuestionLength} characters.`,
     };
+  }
+
+  let sessionId: string | undefined;
+  if (body.sessionId !== undefined && body.sessionId !== null) {
+    if (typeof body.sessionId !== "string") {
+      return { ok: false, error: "invalid_request", message: "sessionId must be a string." };
+    }
+    const sid = body.sessionId.trim();
+    if (!sid) {
+      return { ok: false, error: "invalid_request", message: "sessionId must be non-empty when provided." };
+    }
+    if (sid.length > LEO_CONVERSATION_BOUNDS.maxSessionIdLength) {
+      return { ok: false, error: "invalid_request", message: "sessionId exceeds max length." };
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(sid)) {
+      return { ok: false, error: "invalid_request", message: "sessionId has invalid shape." };
+    }
+    sessionId = sid;
+  }
+
+  let clientRequestId: string | undefined;
+  if (body.clientRequestId !== undefined && body.clientRequestId !== null) {
+    if (typeof body.clientRequestId !== "string") {
+      return { ok: false, error: "invalid_request", message: "clientRequestId must be a string." };
+    }
+    const cid = body.clientRequestId.trim();
+    if (cid.length > LEO_CONVERSATION_BOUNDS.maxClientRequestIdLength) {
+      return { ok: false, error: "invalid_request", message: "clientRequestId exceeds max length." };
+    }
+    if (cid) clientRequestId = cid.slice(0, LEO_CONVERSATION_BOUNDS.maxClientRequestIdLength);
+  }
+
+  let clientContext: LeoConversationClientContext | undefined;
+  if (body.clientContext !== undefined && body.clientContext !== null) {
+    if (typeof body.clientContext !== "object" || Array.isArray(body.clientContext)) {
+      return { ok: false, error: "invalid_request", message: "clientContext must be an object." };
+    }
+    const cc = body.clientContext as Record<string, unknown>;
+    const out: LeoConversationClientContext = {};
+    if (cc.selectedCardId !== undefined) {
+      if (cc.selectedCardId !== null && typeof cc.selectedCardId !== "string") {
+        return { ok: false, error: "invalid_request", message: "selectedCardId must be a string or null." };
+      }
+      out.selectedCardId =
+        typeof cc.selectedCardId === "string"
+          ? cc.selectedCardId.trim().slice(0, LEO_CONVERSATION_BOUNDS.maxVisibleCardIdLength) || null
+          : null;
+    }
+    if (cc.selectedEntityRef !== undefined) {
+      if (cc.selectedEntityRef === null) {
+        out.selectedEntityRef = null;
+      } else if (typeof cc.selectedEntityRef === "object" && !Array.isArray(cc.selectedEntityRef)) {
+        const er = cc.selectedEntityRef as Record<string, unknown>;
+        const system = typeof er.system === "string" ? er.system.trim().slice(0, 64) : "";
+        const kind = typeof er.kind === "string" ? er.kind.trim().slice(0, 64) : "";
+        const id = typeof er.id === "string" ? er.id.trim().slice(0, 200) : "";
+        if (!system || !kind || !id) {
+          return {
+            ok: false,
+            error: "invalid_request",
+            message: "selectedEntityRef requires system, kind, and id.",
+          };
+        }
+        const ref: LeoConversationEntityRef = {
+          system,
+          kind,
+          id,
+          label:
+            er.label != null ? String(er.label).slice(0, 120) : undefined,
+        };
+        out.selectedEntityRef = ref;
+      } else {
+        return { ok: false, error: "invalid_request", message: "selectedEntityRef must be an object or null." };
+      }
+    }
+    if (cc.visibleCardIds !== undefined) {
+      if (!Array.isArray(cc.visibleCardIds)) {
+        return { ok: false, error: "invalid_request", message: "visibleCardIds must be an array." };
+      }
+      if (cc.visibleCardIds.length > LEO_CONVERSATION_BOUNDS.maxVisibleCardIds) {
+        return {
+          ok: false,
+          error: "invalid_request",
+          message: `visibleCardIds exceeds ${LEO_CONVERSATION_BOUNDS.maxVisibleCardIds}.`,
+        };
+      }
+      out.visibleCardIds = cc.visibleCardIds
+        .map((id) => (typeof id === "string" ? id.trim().slice(0, LEO_CONVERSATION_BOUNDS.maxVisibleCardIdLength) : ""))
+        .filter(Boolean)
+        .slice(0, LEO_CONVERSATION_BOUNDS.maxVisibleCardIds);
+    }
+    clientContext = out;
   }
 
   let maxResults: number = LEO_CONVERSATION_BOUNDS.maxResultsDefault;
@@ -513,6 +620,9 @@ export function validateLeoConversationRequest(
     watcherKind: (body.watcherKind as LeoConversationRequest["watcherKind"]) ?? undefined,
     entityId: typeof body.entityId === "string" ? body.entityId : body.entityId === null ? null : undefined,
     nowMs: typeof body.nowMs === "number" ? body.nowMs : undefined,
+    sessionId,
+    clientRequestId,
+    clientContext,
   };
 
   if (body.intent !== undefined) {

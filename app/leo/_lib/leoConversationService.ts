@@ -37,6 +37,36 @@ import { isConsequentialActionRequest } from "@/app/leo/_lib/leoPreparationEngin
 import { isLeoPreparationKind, runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
 import { enrichLeoConversationWithAi } from "@/app/leo/_lib/leoAiReasoningEngine";
 import {
+  buildLeoActiveConversationContext,
+  buildTurnContextRefs,
+  extractEntityRefsFromCards,
+  extractReceiptIdsFromAnswer,
+  extractRefsFromResultCard,
+  extractResultCardRefsFromAnswer,
+  LEO_ACTIVE_CONTEXT_TURN_WINDOW,
+} from "@/app/leo/_lib/leoConversationContext";
+import {
+  referentBlocksMutation,
+  resolveLeoConversationReferent,
+} from "@/app/leo/_lib/leoConversationReferents";
+import {
+  leoAppendConversationTurn,
+  leoAppendUserTurnIdempotent,
+  leoEnsureConversationSession,
+  leoListActiveConversationContextTurns,
+} from "@/app/leo/_lib/leoConversationSessionService";
+import type {
+  LeoActiveConversationContext,
+  LeoActionIntentKind,
+  LeoConversationAnswer,
+  LeoConversationEvidence,
+  LeoConversationPersistenceState,
+  LeoConversationRequest,
+  LeoConversationTurn,
+  LeoPreparationKind,
+  LeoResultCard,
+} from "@/app/leo/_lib/leoTypes";
+import {
   composeToolCatalogCapabilitySummary,
   getLeoToolCatalog,
 } from "@/app/leo/_lib/leoToolCatalog";
@@ -64,13 +94,6 @@ import {
   parseLeoReceiptQueryKind,
 } from "@/app/leo/_lib/leoReceiptIntelligence";
 import { leoListRecentToolReceipts } from "@/app/leo/_lib/leoToolReceiptService";
-import type {
-  LeoActionIntentKind,
-  LeoConversationAnswer,
-  LeoConversationEvidence,
-  LeoConversationRequest,
-  LeoPreparationKind,
-} from "@/app/leo/_lib/leoTypes";
 
 export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
 
@@ -992,4 +1015,388 @@ export async function runLeoConversationDeterministic(
 export async function runLeoConversation(request: LeoConversationRequest): Promise<LeoConversationAnswer> {
   const deterministic = await runLeoConversationDeterministic(request);
   return enrichLeoConversationWithAi({ request, deterministic });
+}
+
+const PERSISTENCE_LIMITATION =
+  "Conversation history persistence is currently unavailable.";
+
+export type LeoPersistentConversationResult =
+  | {
+      ok: true;
+      answer: LeoConversationAnswer;
+    }
+  | {
+      ok: false;
+      error:
+        | "session_not_found"
+        | "session_archived"
+        | "session_unavailable"
+        | "create_failed";
+      message: string;
+      newSessionRequired?: boolean;
+    };
+
+function clarificationAnswer(input: {
+  summary: string;
+  intent: LeoConversationAnswer["intent"];
+  nowMs: number;
+  sessionId: string | null;
+  persistenceState: LeoConversationPersistenceState;
+  conversationContext: LeoActiveConversationContext | null;
+  limitations?: string[];
+}): LeoConversationAnswer {
+  return {
+    intent: input.intent,
+    answerState: "PARTIALLY_ANSWERED",
+    summary: input.summary,
+    evidence: [],
+    citations: [],
+    unknowns: ["referent_ambiguous"],
+    limitations: [
+      ...(input.limitations ?? []),
+      "No action was prepared or executed while the referent is ambiguous.",
+    ],
+    governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs: input.nowMs }),
+    suggestedNextRetrieval: "Name the item, or say the first/second/third one.",
+    preparedAction: null,
+    generatedAt: new Date(input.nowMs).toISOString(),
+    notClaiming: LEO_CONVERSATION_NOT_CLAIMING,
+    resultCards: null,
+    spokenSummary: input.summary.slice(0, 220),
+    sessionId: input.sessionId,
+    turnId: null,
+    userTurnId: null,
+    persistenceState: input.persistenceState,
+    conversationContext: input.conversationContext,
+    suggestedQuestions: ["The first one", "The second one", "Never mind"],
+  };
+}
+
+function applyResolvedReferentToRequest(
+  request: LeoConversationRequest,
+  resolution: Extract<ReturnType<typeof resolveLeoConversationReferent>, { status: "RESOLVED" }>,
+): LeoConversationRequest {
+  const next: LeoConversationRequest = { ...request };
+  if (resolution.suggestedIntent && !request.intent) {
+    next.intent = resolution.suggestedIntent;
+  }
+  if (resolution.commitmentId) {
+    next.entityId = resolution.commitmentId;
+  } else if (resolution.messageId) {
+    next.entityId = resolution.messageId;
+  } else if (resolution.threadId) {
+    next.entityId = resolution.threadId;
+  } else if (resolution.eventId) {
+    next.entityId = resolution.eventId;
+  } else if (resolution.receiptId) {
+    next.entityId = resolution.receiptId;
+  } else if (resolution.entityRef?.id) {
+    next.entityId = resolution.entityRef.id;
+  }
+  return next;
+}
+
+function focusFromAnswerCards(cards: LeoResultCard[] | null | undefined): {
+  focusCardId: string | null;
+  entityRefs: ReturnType<typeof extractEntityRefsFromCards>;
+  cardRefs: string[];
+  receiptIds: string[];
+  contextExtras: Record<string, unknown>;
+} {
+  const cardRefs = extractResultCardRefsFromAnswer(cards);
+  const entityRefs = extractEntityRefsFromCards(cards);
+  const contextExtras: Record<string, unknown> = {};
+  let focusCardId: string | null = null;
+  if (cards?.length === 1) {
+    const refs = extractRefsFromResultCard(cards[0]);
+    focusCardId = cards[0].cardId;
+    if (refs.threadId) contextExtras.threadId = refs.threadId;
+    if (refs.messageId) contextExtras.messageId = refs.messageId;
+    if (refs.eventId) contextExtras.eventId = refs.eventId;
+    if (refs.commitmentId) contextExtras.commitmentId = refs.commitmentId;
+    if (refs.receiptId) contextExtras.receiptId = refs.receiptId;
+    contextExtras.focusCardId = focusCardId;
+  } else if (cards && cards.length > 1) {
+    contextExtras.focusCardId = cards[0]?.cardId;
+    focusCardId = cards[0]?.cardId ?? null;
+  }
+  return {
+    focusCardId,
+    entityRefs,
+    cardRefs,
+    receiptIds: extractReceiptIdsFromAnswer({ cards }),
+    contextExtras,
+  };
+}
+
+/**
+ * LEO-14.6: durable session create/resume + turn persistence + referent context.
+ * Persistence failure never blocks core conversation answers.
+ */
+export async function runLeoPersistentConversation(
+  request: LeoConversationRequest,
+): Promise<LeoPersistentConversationResult> {
+  const nowMs = request.nowMs ?? Date.now();
+  const persistenceLimitations: string[] = [];
+  let persistenceState: LeoConversationPersistenceState = "SKIPPED";
+  let sessionId: string | null = null;
+  let recentTurns: LeoConversationTurn[] = [];
+
+  const ensured = await leoEnsureConversationSession({
+    sessionId: request.sessionId,
+    firstQuestion: request.question,
+  });
+
+  if (!ensured.ok) {
+    if (
+      ensured.error === "session_not_found" ||
+      ensured.error === "session_archived" ||
+      ensured.error === "create_failed"
+    ) {
+      // Invalid continuity must not silently invent a new session.
+      if (request.sessionId) {
+        return {
+          ok: false,
+          error: ensured.error === "create_failed" ? "session_unavailable" : ensured.error,
+          message:
+            ensured.error === "session_archived"
+              ? "That conversation was archived. Start a new session."
+              : ensured.error === "session_not_found"
+                ? "That conversation session is unavailable. Start a new session."
+                : "Could not create a conversation session.",
+          newSessionRequired: ensured.newSessionRequired,
+        };
+      }
+    }
+    if (ensured.error === "persistence_unavailable" || ensured.error === "create_failed") {
+      persistenceState = "NOT_PERSISTED_UNAVAILABLE";
+      persistenceLimitations.push(PERSISTENCE_LIMITATION);
+    }
+  } else {
+    sessionId = ensured.session.id;
+    persistenceState = "PERSISTED";
+    const listed = await leoListActiveConversationContextTurns(
+      sessionId,
+      LEO_ACTIVE_CONTEXT_TURN_WINDOW,
+    );
+    if (listed.availability === "UNAVAILABLE") {
+      persistenceState = "NOT_PERSISTED_UNAVAILABLE";
+      persistenceLimitations.push(PERSISTENCE_LIMITATION);
+      recentTurns = [];
+    } else {
+      recentTurns = listed.turns;
+    }
+  }
+
+  let activeContext = buildLeoActiveConversationContext({
+    sessionId,
+    turns: recentTurns,
+    clientContext: request.clientContext,
+    nowMs,
+  });
+
+  const resolution = resolveLeoConversationReferent({
+    question: request.question,
+    context: activeContext,
+    cards: null,
+  });
+
+  // Ambiguous referent with mutation intent — clarify, do not prepare/execute.
+  if (resolution.status === "AMBIGUOUS" && (referentBlocksMutation(resolution) || resolution.blocksMutation)) {
+    const answer = clarificationAnswer({
+      summary: resolution.clarification,
+      intent: resolution.suggestedIntent ?? "UNKNOWN",
+      nowMs,
+      sessionId,
+      persistenceState,
+      conversationContext: activeContext,
+      limitations: persistenceLimitations,
+    });
+
+    if (sessionId && persistenceState === "PERSISTED") {
+      const userTurn = await leoAppendUserTurnIdempotent({
+        sessionId,
+        boundedText: request.question,
+        intent: answer.intent,
+        selectedEntityRefs: request.clientContext?.selectedEntityRef
+          ? [request.clientContext.selectedEntityRef]
+          : [],
+        contextRefs: buildTurnContextRefs({
+          clientRequestId: request.clientRequestId,
+          active: activeContext,
+        }),
+        clientRequestId: request.clientRequestId,
+        recentTurns,
+      });
+      if (userTurn.ok) {
+        answer.userTurnId = userTurn.turn.id;
+        const leoTurn = await leoAppendConversationTurn({
+          sessionId,
+          role: "LEO",
+          boundedText: answer.summary,
+          intent: answer.intent,
+          resultCardRefs: [],
+          contextRefs: buildTurnContextRefs({ active: activeContext }),
+        });
+        if (leoTurn.ok) {
+          answer.turnId = leoTurn.turn.id;
+          persistenceState = "PERSISTED";
+        } else if (leoTurn.availability === "UNAVAILABLE") {
+          persistenceState = "NOT_PERSISTED_UNAVAILABLE";
+          answer.limitations = [...answer.limitations, PERSISTENCE_LIMITATION];
+        } else {
+          persistenceState = "FAILED";
+        }
+      } else if (userTurn.availability === "UNAVAILABLE") {
+        persistenceState = "NOT_PERSISTED_UNAVAILABLE";
+        answer.limitations = [...answer.limitations, PERSISTENCE_LIMITATION];
+      }
+    }
+
+    answer.sessionId = sessionId;
+    answer.persistenceState = persistenceState;
+    return { ok: true, answer };
+  }
+
+  let workingRequest = request;
+  if (resolution.status === "RESOLVED") {
+    workingRequest = applyResolvedReferentToRequest(request, resolution);
+    activeContext = {
+      ...activeContext,
+      focusCardId: resolution.cardId ?? activeContext.focusCardId,
+      focusEntityRef: resolution.entityRef ?? activeContext.focusEntityRef,
+      focusThreadId: resolution.threadId ?? activeContext.focusThreadId,
+      focusMessageId: resolution.messageId ?? activeContext.focusMessageId,
+      focusEventId: resolution.eventId ?? activeContext.focusEventId,
+      focusCommitmentId: resolution.commitmentId ?? activeContext.focusCommitmentId,
+      focusReceiptId: resolution.receiptId ?? activeContext.focusReceiptId,
+      focus: {
+        cardId: resolution.cardId ?? undefined,
+        entityRef: resolution.entityRef ?? undefined,
+        threadId: resolution.threadId ?? undefined,
+        messageId: resolution.messageId ?? undefined,
+        eventId: resolution.eventId ?? undefined,
+        commitmentId: resolution.commitmentId ?? undefined,
+        receiptId: resolution.receiptId ?? undefined,
+      },
+    };
+  }
+
+  let userTurnId: string | null = null;
+  if (sessionId && persistenceState === "PERSISTED") {
+    const userTurn = await leoAppendUserTurnIdempotent({
+      sessionId,
+      boundedText: request.question,
+      intent: workingRequest.intent ?? null,
+      selectedEntityRefs: [
+        ...(request.clientContext?.selectedEntityRef
+          ? [request.clientContext.selectedEntityRef]
+          : []),
+        ...(resolution.status === "RESOLVED" && resolution.entityRef
+          ? [resolution.entityRef]
+          : []),
+      ].slice(0, 5),
+      contextRefs: buildTurnContextRefs({
+        clientRequestId: request.clientRequestId,
+        active: activeContext,
+      }),
+      clientRequestId: request.clientRequestId,
+      recentTurns,
+    });
+    if (userTurn.ok) {
+      userTurnId = userTurn.turn.id;
+    } else if (userTurn.availability === "UNAVAILABLE") {
+      persistenceState = "NOT_PERSISTED_UNAVAILABLE";
+      persistenceLimitations.push(PERSISTENCE_LIMITATION);
+      sessionId = sessionId; // keep known session id only if created earlier; still valid
+    } else {
+      persistenceState = "FAILED";
+    }
+  }
+
+  // Core intelligence — unchanged authority path.
+  const answer = await runLeoConversation(workingRequest);
+
+  const extracted = focusFromAnswerCards(answer.resultCards);
+  const postContext = buildLeoActiveConversationContext({
+    sessionId,
+    turns: recentTurns,
+    latestCards: answer.resultCards,
+    clientContext: request.clientContext,
+    nowMs,
+  });
+
+  let leoTurnId: string | null = null;
+  if (sessionId && (persistenceState === "PERSISTED" || persistenceState === "FAILED")) {
+    // Only append LEO turn when we still believe persistence is up (or retry after user fail).
+    if (persistenceState === "PERSISTED" || userTurnId) {
+      const leoTurn = await leoAppendConversationTurn({
+        sessionId,
+        role: "LEO",
+        boundedText: (answer.spokenSummary || answer.summary).slice(0, 4000),
+        intent: answer.intent,
+        resultCardRefs: extracted.cardRefs,
+        selectedEntityRefs: extracted.entityRefs,
+        receiptIds: extracted.receiptIds,
+        contextRefs: buildTurnContextRefs({
+          active: postContext,
+          focus: {
+            cardId: extracted.focusCardId ?? undefined,
+            entityRef: extracted.entityRefs[0],
+            threadId:
+              typeof extracted.contextExtras.threadId === "string"
+                ? extracted.contextExtras.threadId
+                : undefined,
+            messageId:
+              typeof extracted.contextExtras.messageId === "string"
+                ? extracted.contextExtras.messageId
+                : undefined,
+            eventId:
+              typeof extracted.contextExtras.eventId === "string"
+                ? extracted.contextExtras.eventId
+                : undefined,
+            commitmentId:
+              typeof extracted.contextExtras.commitmentId === "string"
+                ? extracted.contextExtras.commitmentId
+                : undefined,
+            receiptId:
+              typeof extracted.contextExtras.receiptId === "string"
+                ? extracted.contextExtras.receiptId
+                : undefined,
+          },
+        }),
+      });
+      if (leoTurn.ok) {
+        leoTurnId = leoTurn.turn.id;
+        persistenceState = "PERSISTED";
+      } else if (leoTurn.availability === "UNAVAILABLE") {
+        persistenceState = "NOT_PERSISTED_UNAVAILABLE";
+        persistenceLimitations.push(PERSISTENCE_LIMITATION);
+      } else {
+        persistenceState = "FAILED";
+      }
+    }
+  }
+
+  const finalContext = buildLeoActiveConversationContext({
+    sessionId,
+    turns: recentTurns,
+    latestCards: answer.resultCards,
+    clientContext: request.clientContext,
+    nowMs,
+  });
+
+  return {
+    ok: true,
+    answer: {
+      ...answer,
+      sessionId:
+        persistenceState === "NOT_PERSISTED_UNAVAILABLE" && !ensured.ok ? null : sessionId,
+      turnId: leoTurnId,
+      userTurnId,
+      persistenceState,
+      conversationContext: finalContext,
+      limitations: [...answer.limitations, ...persistenceLimitations],
+    },
+  };
 }

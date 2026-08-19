@@ -308,6 +308,12 @@ const allowed = new Set([
   "app/leo/_lib/leoAttentionService.ts",
   "app/leo/_lib/leoPreparationService.ts",
   "scripts/verify-leo-14-5-receipts-attention-runtime.ts",
+  // LEO-14.6 persistent conversation context
+  "app/leo/_lib/leoConversationContext.ts",
+  "app/leo/_lib/leoConversationReferents.ts",
+  "app/api/leo/conversation/route.ts",
+  "app/api/leo/conversation/session/route.ts",
+  "scripts/verify-leo-14-6-persistent-conversation-context.ts",
 ]);
 
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));

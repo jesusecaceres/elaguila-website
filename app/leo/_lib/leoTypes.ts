@@ -600,6 +600,49 @@ export type LeoConversationMemorySubject = {
  * Owner conversation request — no authority escalation fields allowed.
  * Client cannot submit approvalGranted / bypassGovernance / roleOverride.
  */
+/** LEO-14.6: bounded client UI selection — never authority or owner identity. */
+export type LeoConversationClientContext = {
+  selectedCardId?: string | null;
+  selectedEntityRef?: LeoConversationEntityRef | null;
+  visibleCardIds?: string[];
+};
+
+/** LEO-14.6: safe focus refs returned to client (no owner ids / raw payloads). */
+export type LeoConversationFocus = {
+  cardId?: string;
+  entityRef?: LeoConversationEntityRef;
+  threadId?: string;
+  messageId?: string;
+  eventId?: string;
+  commitmentId?: string;
+  receiptId?: string;
+};
+
+/**
+ * LEO-14.6 active conversation context — references only.
+ * Built server-side; never accepts client-supplied authority.
+ */
+export type LeoActiveConversationContext = {
+  sessionId: string | null;
+  lastTurnId: string | null;
+  lastIntent: string | null;
+  focusCardId: string | null;
+  focusEntityRef: LeoConversationEntityRef | null;
+  focusThreadId: string | null;
+  focusMessageId: string | null;
+  focusEventId: string | null;
+  focusCommitmentId: string | null;
+  focusReceiptId: string | null;
+  lastCardIds: string[];
+  focus?: LeoConversationFocus;
+};
+
+export type LeoConversationPersistenceState =
+  | "PERSISTED"
+  | "NOT_PERSISTED_UNAVAILABLE"
+  | "FAILED"
+  | "SKIPPED";
+
 export type LeoConversationRequest = {
   question: string;
   /** Optional explicit intent; validated against enum only. */
@@ -623,6 +666,12 @@ export type LeoConversationRequest = {
   /** Canonical entity id when preparing follow-up for a known lead/signal. */
   entityId?: string | null;
   nowMs?: number;
+  /** LEO-14.6: optional durable session to resume (server-owned). */
+  sessionId?: string;
+  /** LEO-14.6: optional client retry key — stored in contextRefs, not a DB column. */
+  clientRequestId?: string;
+  /** LEO-14.6: bounded UI selection hints — never authority. */
+  clientContext?: LeoConversationClientContext;
 };
 
 export type LeoConversationRouteResult = {
@@ -668,6 +717,16 @@ export type LeoConversationAnswer = {
    * Distinct from visual card detail and from prose `summary`.
    */
   spokenSummary?: string | null;
+  /** LEO-14.6: durable session id when persistence succeeded; never fabricated. */
+  sessionId?: string | null;
+  /** LEO-14.6: LEO turn id when assistant turn persisted. */
+  turnId?: string | null;
+  /** LEO-14.6: USER turn id when user turn persisted. */
+  userTurnId?: string | null;
+  /** LEO-14.6: whether history was saved this turn. */
+  persistenceState?: LeoConversationPersistenceState;
+  /** LEO-14.6: active referent/focus context for UI continuity. */
+  conversationContext?: LeoActiveConversationContext | null;
 };
 
 /* -------------------------------------------------------------------------- */

@@ -1,12 +1,13 @@
 /**
- * LEO-7 owner-only conversation retrieval API.
+ * LEO-7 / LEO-14.6 owner-only conversation retrieval API.
  *
- * POST only. Evidence-first. No LLM. No consequential execution.
+ * POST: persistent conversation (session create/resume + turns when available).
+ * Evidence-first. No consequential execution from this route alone.
  */
 import { NextResponse } from "next/server";
 
 import { LEO_CONVERSATION_BOUNDS, validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
-import { runLeoConversation } from "@/app/leo/_lib/leoConversationService";
+import { runLeoPersistentConversation } from "@/app/leo/_lib/leoConversationService";
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 
 export const runtime = "nodejs";
@@ -84,11 +85,33 @@ export async function POST(req: Request) {
       );
     }
 
-    const answer = await runLeoConversation(validated.request);
+    const result = await runLeoPersistentConversation(validated.request);
+    if (!result.ok) {
+      const status =
+        result.error === "session_not_found" || result.error === "session_archived"
+          ? 404
+          : 409;
+      return NextResponse.json(
+        {
+          ok: false,
+          error: result.error,
+          message: result.message,
+          newSessionRequired: result.newSessionRequired ?? true,
+        },
+        { status, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    const { answer } = result;
     return NextResponse.json(
       {
         ok: true,
         answer,
+        sessionId: answer.sessionId ?? null,
+        turnId: answer.turnId ?? null,
+        userTurnId: answer.userTurnId ?? null,
+        persistenceState: answer.persistenceState ?? null,
+        conversationContext: answer.conversationContext ?? null,
       },
       { status: 200, headers: { "Cache-Control": "no-store" } },
     );
