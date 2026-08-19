@@ -1,21 +1,37 @@
 import "server-only";
 
 /**
- * Recursos Data OS — PUBLIC read surface (Build 02, Gate 3/4).
+ * Recursos Data OS — PUBLIC read surface (Build 02, Gate 3/4; hardened Build 03A-V, Gate 7).
  *
  * This is the ONLY module future public pages/components (Build 03) should import from to read
  * community resources. Every function here:
- *   1. Filters to `active = true` at the query level (RLS also enforces this as defense-in-depth).
- *   2. Returns `PublicResourceRecord` via `toPublicResource()` — `internal.*` (partner status,
+ *   1. Filters to `active = true and verification_status = 'verified'` at the query level (RLS
+ *      also enforces `active = true and verification_status <> 'inactive'` as defense-in-depth —
+ *      this module is intentionally STRICTER than RLS, since "not inactive" still includes
+ *      needs_review/stale, which must never reach the public surface).
+ *   2. Re-checks freshness in application code via `isEffectivelyVerified()` (the existing,
+ *      unmodified `verificationStatus.ts` truth function) — a row can say `verification_status =
+ *      'verified'` in the DB while its `next_verification_at` has already passed, and only that
+ *      function knows how to resolve that correctly. No competing freshness logic is invented here.
+ *   3. Returns `PublicResourceRecord` via `toPublicResource()` — `internal.*` (partner status,
  *      featured, print eligibility, internal notes) is stripped before this data ever reaches a
  *      caller, let alone a client component.
+ *
+ * Truth table this module guarantees: active+verified+fresh → eligible. active+needs_review →
+ * excluded. active+stale (incl. expired next_verification_at) → excluded. inactive → excluded.
  *
  * Do NOT import `communityResourcesDb.ts` admin functions from public-facing code — use this
  * module instead so the admin/public boundary stays enforced in one place.
  */
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { toPublicResource, type PrimaryCategorySlug, type PublicResourceRecord, type UrgencyLevel } from "@/app/lib/recursos/types";
+import { toPublicResource, type PrimaryCategorySlug, type PublicResourceRecord, type ResourceRecord, type UrgencyLevel } from "@/app/lib/recursos/types";
+import { isEffectivelyVerified } from "@/app/lib/recursos/verificationStatus";
 import { rowToResourceRecord, slugifyResource, type CommunityResourceRow } from "./communityResourcesDb";
+
+/** Query-level narrowing PLUS the effective-freshness re-check — the single safety chokepoint every public read goes through. */
+function isCurrentlyPublicEligible(record: ResourceRecord): boolean {
+  return record.verification.active && isEffectivelyVerified(record.verification);
+}
 
 const TABLE = "community_resources";
 
@@ -93,7 +109,7 @@ export async function listPublicCommunityResources(
       .from(TABLE)
       .select(PUBLIC_SELECT_COLUMNS)
       .eq("active", true)
-      .neq("verification_status", "inactive")
+      .eq("verification_status", "verified")
       .order("updated_at", { ascending: false });
 
     if (query.category) q = q.eq("primary_category", query.category);
@@ -102,7 +118,8 @@ export async function listPublicCommunityResources(
 
     const { data, error } = await q;
     if (error) return { resources: [], unavailable: true };
-    const resources = (data ?? []).map((r) => toPublicResource(rowToResourceRecord(r as unknown as CommunityResourceRow)));
+    const records = (data ?? []).map((r) => rowToResourceRecord(r as unknown as CommunityResourceRow));
+    const resources = records.filter(isCurrentlyPublicEligible).map(toPublicResource);
     return { resources, unavailable: false };
   } catch {
     return { resources: [], unavailable: true };
@@ -119,10 +136,12 @@ export async function getPublicCommunityResourceBySlug(slug: string): Promise<Pu
       .select(PUBLIC_SELECT_COLUMNS)
       .eq("slug", slugifyResource(slug))
       .eq("active", true)
-      .neq("verification_status", "inactive")
+      .eq("verification_status", "verified")
       .maybeSingle();
     if (error || !data) return null;
-    return toPublicResource(rowToResourceRecord(data as unknown as CommunityResourceRow));
+    const record = rowToResourceRecord(data as unknown as CommunityResourceRow);
+    if (!isCurrentlyPublicEligible(record)) return null;
+    return toPublicResource(record);
   } catch {
     return null;
   }

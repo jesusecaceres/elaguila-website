@@ -1,0 +1,42 @@
+{
+  "sourceDocument": "scc-community-resource-guide-2023",
+  "sourceTitle": "Santa Clara County Community Resource Guide",
+  "sourcePublisher": "Santa Clara County Social Services Agency",
+  "sourceYear": 2023,
+  "sourceVersion": "V. 07.2023",
+  "sourceFileName": "SCC_Community_Resource_Guide_2.pdf",
+  "extractionMethod": "pdftotext -layout, read in full, structured manually. PDF page-render tool (pdftoppm) was unavailable in this environment; pdftotext text-layer extraction was used instead — same source text either way.",
+  "physicalPdfPageCount": 58,
+  "printedPageMarkers": {
+    "min": 2,
+    "max": 57,
+    "note": "Derived programmatically from '//NN' page markers embedded in the extracted text (regex scan of the full extracted text, not hardcoded). Page 1 (front cover) carries no printed marker.",
+    "validSourcePageRange": [1, 57]
+  },
+  "sourceDisclaimer": "The Santa Clara County Social Services Agency is providing this information as a public service; reference to any service or organization does not constitute an endorsement or recommendation. Due to frequent updates, information is only available online.",
+  "knownSourceDefects": [
+    {
+      "page": 45,
+      "issue": "Unfilled production placeholder text left in the published PDF: \"NEED TO ATTACH OVERFLOW TEXT\". Content on this page is incomplete in the source itself, not an extraction error."
+    },
+    {
+      "page": 50,
+      "issue": "Same unfilled production placeholder text: \"NEED TO ATTACH OVERFLOW TEXT\". Content on this page is incomplete in the source itself."
+    },
+    {
+      "page": 56,
+      "issue": "Same unfilled production placeholder text: \"NEED TO ATTACH OVERFLOW TEXT\". Content on this page is incomplete in the source itself."
+    }
+  ],
+  "structuralMap": [
+    { "pages": [1, 3], "content": "Front cover, contact/welcome/disclaimer, vision/mission" },
+    { "pages": [4, 21], "content": "Table of Contents across the county's 13 legacy categories, each with cross-reference page numbers" },
+    { "pages": [22, 22], "content": "COVID-19 vaccine/testing info" },
+    { "pages": [23, 38], "content": "Full-page or 4-up-grid profiles of Santa Clara County's own departments/programs (DEBS, Medi-Cal, CalFresh, CalWORKs and its sub-programs, DFCS, DAAS, Behavioral Health, Housing Authority, Immigrant Relations, Parks, Public Health programs, Reentry, TAP, MCAH, Victim Services)" },
+    { "pages": [39, 40], "content": "Decorative alphabet-tab divider pages — no extractable content" },
+    { "pages": [41, 56], "content": "Alphabetical community-based-organization directory, 4-column grid format" },
+    { "pages": [57, 57], "content": "Back cover / social media links" }
+  ],
+  "extractionDate": "2026-08-19",
+  "verificationPolicy": "This is a 2023 discovery source. No record derived from this document may be marked verified based on this extraction alone. All candidates default to verificationStatus=\"needs_review\" with verifiedAt=null."
+}

@@ -22,6 +22,11 @@ import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 import { resolveEffectiveVerificationStatus, verificationStatusLabel } from "@/app/lib/recursos/verificationStatus";
 import type { ResourceRecord } from "@/app/lib/recursos/types";
+import { dbListCandidateReviews } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
+import type { CandidateResourceRecord } from "@/app/lib/recursos/sourceIngestion";
+import candidatesData from "@/data/recursos/candidates/scc-community-resource-guide-2023.json";
+
+const CANDIDATES = candidatesData as unknown as CandidateResourceRecord[];
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +121,13 @@ export default async function RecursosAdminListPage(props: {
 }) {
   const sp = props.searchParams ? await props.searchParams : {};
   const { rows: all, unavailable } = await dbListCommunityResources();
+  const { rows: candidateReviews } = await dbListCandidateReviews();
+  const promotedCandidateIds = new Set(candidateReviews.filter((r) => r.disposition === "promoted").map((r) => r.candidateId));
+  const candidateCounts = {
+    total: CANDIDATES.length,
+    priority1Remaining: CANDIDATES.filter((c) => c.verificationPriority === 1 && !promotedCandidateIds.has(c.candidateId)).length,
+    promotedAwaitingVerification: candidateReviews.filter((r) => r.disposition === "promoted").length,
+  };
 
   const q = (sp.q ?? "").trim().toLowerCase();
   const categoryFilter = (sp.category ?? "").trim();
@@ -170,6 +182,18 @@ export default async function RecursosAdminListPage(props: {
         nextGate="Build 03 wires a public search/directory experience against this same table via app/lib/recursos/server/communityResourcesPublicQueries.ts."
         warningNote="Partner status and Featured are editorial/relationship metadata only — they never affect public ranking. Ranking is always urgency/relevance/geography/eligibility/verification/active-status based."
       />
+
+      <Link
+        href="/admin/recursos/candidatos"
+        className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] px-4 py-3 text-sm hover:border-[#6B5B2E]"
+      >
+        <span className="font-bold text-[#1E1810]">2023 PDF candidate resources →</span>
+        <span className="text-[#5C5346]">{candidateCounts.total} candidates</span>
+        <span className={candidateCounts.priority1Remaining > 0 ? "font-bold text-rose-800" : "text-[#5C5346]"}>
+          {candidateCounts.priority1Remaining} Priority-1 remaining
+        </span>
+        <span className="text-[#5C5346]">{candidateCounts.promotedAwaitingVerification} promoted, awaiting final verification</span>
+      </Link>
 
       {unavailable ? (
         <p className={`${adminActionProofErr} mb-6`}>

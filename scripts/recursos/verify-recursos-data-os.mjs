@@ -79,9 +79,18 @@ for (const fn of [
 
 const publicSrc = read("app/lib/recursos/server/communityResourcesPublicQueries.ts");
 assert("public queries filter active = true", /\.eq\("active", true\)/.test(publicSrc));
-assert("public queries exclude inactive verification_status", /\.neq\("verification_status", "inactive"\)/.test(publicSrc));
+// Build 03A-V, Gate 7: query-level filtering was tightened from `neq inactive` (which still let
+// needs_review/stale through) to `eq verified`, PLUS an application-layer freshness re-check via
+// the existing isEffectivelyVerified() truth function — a DB row can say "verified" while its
+// next_verification_at has already passed, and only that function resolves that correctly.
+assert("public queries filter verification_status to \"verified\" at the query level (stricter than the old neq-inactive filter)", /\.eq\("verification_status", "verified"\)/.test(publicSrc));
+assert("public queries re-check freshness via the existing isEffectivelyVerified() before returning anything", /isEffectivelyVerified\(/.test(publicSrc));
 assert("public queries return via toPublicResource()", /toPublicResource\(/.test(publicSrc));
-assert("public queries never select internal_notes as a returned raw field", /toPublicResource\(rowToResourceRecord/.test(publicSrc));
+assert("public queries convert every row through rowToResourceRecord before it can reach toPublicResource", /rowToResourceRecord\(/.test(publicSrc));
+assert(
+  "public queries never return the raw Supabase result directly to callers, bypassing toPublicResource",
+  !/return\s*\{\s*resources:\s*data\b/.test(publicSrc) && !/return\s+data\b/.test(publicSrc),
+);
 
 // --- Security / permission gating --------------------------------------------
 const teamTypesSrc = read("app/admin/_lib/teamTypes.ts");
