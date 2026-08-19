@@ -48,6 +48,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
       applicantName: String(fd.get("applicantName") ?? ""),
       applicantEmail: String(fd.get("applicantEmail") ?? ""),
       applicantPhone: String(fd.get("applicantPhone") ?? ""),
+      prayerTeamIntent: String(fd.get("prayerTeamIntent") ?? ""),
       website_extra: String(fd.get("website_extra") ?? ""),
       services: services.filter((s) => s.startsAt),
       ministries,
@@ -285,6 +286,25 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
               <span className={label}>{lang === "en" ? "Hero image URL" : "URL de imagen principal"}</span>
               <input name="heroUrl" type="url" className={field} placeholder="https://" />
             </label>
+          </fieldset>
+
+          <fieldset id="oracion-equipo" className="scroll-mt-24">
+            <legend className="mb-2 font-serif text-xl font-bold text-[#1F241C]">{copy.applyPrayerTeamLegend}</legend>
+            <p className="mb-3 text-sm leading-relaxed text-[#3D3428]">{copy.applyPrayerTeamHelp}</p>
+            <div className="grid gap-2">
+              {(
+                [
+                  ["YES", copy.applyPrayerTeamYes],
+                  ["NO", copy.applyPrayerTeamNo],
+                  ["INTERESTED", copy.applyPrayerTeamInterested],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm">
+                  <input type="radio" name="prayerTeamIntent" value={value} />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
           </fieldset>
 
           <fieldset className="grid gap-3 sm:grid-cols-2">

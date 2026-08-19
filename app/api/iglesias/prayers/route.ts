@@ -75,6 +75,8 @@ export async function POST(req: Request) {
     ok: true,
     id: result.id,
     outcome: result.outcome,
+    deliveredTeams: result.deliveredTeams,
+    routingReason: result.routingReason,
   });
   res.cookies.set(PRAYER_OWNER_COOKIE, owner.token, prayerOwnerCookieOptions);
   return res;

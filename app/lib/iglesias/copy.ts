@@ -75,6 +75,11 @@ export type IglesiasCopy = {
   applyTitle: string;
   applySupport: string;
   applyPendingNote: string;
+  applyPrayerTeamLegend: string;
+  applyPrayerTeamHelp: string;
+  applyPrayerTeamYes: string;
+  applyPrayerTeamNo: string;
+  applyPrayerTeamInterested: string;
   applySubmit: string;
   applySuccessTitle: string;
   applySuccessBody: string;
@@ -169,6 +174,11 @@ const ES: IglesiasCopy = {
   applyTitle: "Registrar una iglesia",
   applySupport: "Tu solicitud queda en revisión. No se publica automáticamente.",
   applyPendingNote: "Estado al enviar: pendiente de revisión.",
+  applyPrayerTeamLegend: "¿Tu iglesia tiene un equipo o ministerio de oración?",
+  applyPrayerTeamHelp: "Esto es solo intención. No activa la Red de Oración. Un administrador revisa cada solicitud.",
+  applyPrayerTeamYes: "Sí",
+  applyPrayerTeamNo: "No",
+  applyPrayerTeamInterested: "Nos interesa",
   applySubmit: "Enviar solicitud",
   applySuccessTitle: "Solicitud recibida",
   applySuccessBody: "Gracias. El equipo de Leonix revisará los datos antes de publicar el perfil.",
@@ -262,6 +272,11 @@ const EN: IglesiasCopy = {
   applyTitle: "Register a church",
   applySupport: "Your application stays in review. It is not published automatically.",
   applyPendingNote: "On submit, status is pending review.",
+  applyPrayerTeamLegend: "Does your church have a prayer team or prayer ministry?",
+  applyPrayerTeamHelp: "This is intent only. It does not enable the Prayer Network. Every application still needs admin review.",
+  applyPrayerTeamYes: "Yes",
+  applyPrayerTeamNo: "No",
+  applyPrayerTeamInterested: "Interested",
   applySubmit: "Submit application",
   applySuccessTitle: "Application received",
   applySuccessBody: "Thank you. The Leonix team will review the details before publishing the profile.",

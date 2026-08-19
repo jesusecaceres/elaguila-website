@@ -1,7 +1,6 @@
 import type { IglesiasCopy } from "@/app/lib/iglesias/copy";
 import type { PrayerPublicCard } from "@/app/lib/iglesias/prayerTypes";
 import { getPrayerUiCopy } from "@/app/lib/iglesias/prayerCopy";
-import { IglesiasComingSoonBadge } from "./IglesiasPageShell";
 import { IglesiasPrayerForm } from "./IglesiasPrayerForm";
 import { IglesiasPrayerCard } from "./IglesiasPrayerCard";
 
@@ -52,11 +51,14 @@ export function IglesiasPrayerLane({
         </div>
 
         <aside className="rounded-2xl border border-[#D6C7AD]/80 bg-[#FAF6EE] p-4">
-          <div className="mb-2">
-            <IglesiasComingSoonBadge label={copy.comingSoon} />
-          </div>
           <h3 className="font-serif text-lg font-bold text-[#1F241C]">{prayerCopy.networkTitle}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-[#3D3428]">{prayerCopy.networkBody}</p>
+          <a
+            href={`/iglesias/registrar?lang=${lang}#oracion-equipo`}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#7A1E2C] px-4 text-sm font-semibold text-white hover:bg-[#6B1A26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]"
+          >
+            {prayerCopy.networkJoin}
+          </a>
         </aside>
       </div>
     </section>

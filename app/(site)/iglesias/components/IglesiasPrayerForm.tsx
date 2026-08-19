@@ -6,12 +6,22 @@ import { prayerCategoryOptions } from "@/app/lib/iglesias/prayerCopy";
 import type { PrayerSubmitOutcome } from "@/app/lib/iglesias/prayerTypes";
 import type { PrayerVisibility } from "@/app/lib/iglesias/prayerTaxonomy";
 
-export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "es" | "en" }) {
+export function IglesiasPrayerForm({
+  copy,
+  lang,
+  targetChurchId,
+  targetChurchName,
+}: {
+  copy: PrayerUiCopy;
+  lang: "es" | "en";
+  targetChurchId?: string | null;
+  targetChurchName?: string | null;
+}) {
   const formId = useId();
   const warnId = `${formId}-warn`;
   const bodyHelpId = `${formId}-body-help`;
   const bodyErrId = `${formId}-body-err`;
-  const [visibility, setVisibility] = useState<PrayerVisibility>("PUBLIC_ANONYMOUS");
+  const [visibility, setVisibility] = useState<PrayerVisibility>(targetChurchId ? "PRIVATE_PRAYER_TEAM" : "PUBLIC_ANONYMOUS");
   const [body, setBody] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [city, setCity] = useState("");
@@ -25,6 +35,8 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [outcome, setOutcome] = useState<PrayerSubmitOutcome | null>(null);
+  const [deliveredTeams, setDeliveredTeams] = useState<number | null>(null);
+  const [routingReason, setRoutingReason] = useState<string | null>(null);
   const outcomeRef = useRef<HTMLDivElement>(null);
   const categories = useMemo(() => prayerCategoryOptions(lang), [lang]);
 
@@ -42,7 +54,7 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           body,
-          visibility,
+          visibility: targetChurchId ? "PRIVATE_PRAYER_TEAM" : visibility,
           language,
           displayName,
           city,
@@ -52,9 +64,16 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
           contactEmail,
           contactPhone,
           contactWhatsapp,
+          targetChurchId: targetChurchId || undefined,
         }),
       });
-      const json = (await res.json()) as { ok?: boolean; error?: string; outcome?: PrayerSubmitOutcome };
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        outcome?: PrayerSubmitOutcome;
+        deliveredTeams?: number;
+        routingReason?: string;
+      };
       if (!res.ok || !json.ok) {
         if (json.error === "body") setError(copy.errorBody);
         else if (json.error === "rate") setError(copy.errorRate);
@@ -63,6 +82,8 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
         return;
       }
       setOutcome(json.outcome ?? "HUMAN_REVIEW");
+      setDeliveredTeams(typeof json.deliveredTeams === "number" ? json.deliveredTeams : null);
+      setRoutingReason(json.routingReason ?? null);
       setBody("");
     } catch {
       setError(copy.errorGeneric);
@@ -74,15 +95,21 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
   const outcomeCopy =
     outcome === "PUBLISHED"
       ? copy.outcomePublished
-      : outcome === "PRIVATE_RECEIVED"
-        ? copy.outcomePrivate
-        : outcome === "CRISIS"
-          ? copy.outcomeCrisis
-          : outcome === "DISALLOWED_HOLD"
-            ? copy.outcomeHold
-            : outcome === "HUMAN_REVIEW"
-              ? copy.outcomeReview
-              : null;
+      : outcome === "PRIVATE_RECEIVED" && routingReason === "TARGET_INELIGIBLE"
+        ? copy.outcomeTargetIneligible
+        : outcome === "PRIVATE_RECEIVED" && (deliveredTeams ?? 0) > 0
+          ? copy.outcomePrivateRouted(deliveredTeams ?? 0)
+          : outcome === "PRIVATE_RECEIVED" && routingReason === "NONE_ELIGIBLE"
+            ? copy.outcomePrivateZero
+            : outcome === "PRIVATE_RECEIVED"
+              ? copy.outcomePrivate
+              : outcome === "CRISIS"
+                ? copy.outcomeCrisis
+                : outcome === "DISALLOWED_HOLD"
+                  ? copy.outcomeHold
+                  : outcome === "HUMAN_REVIEW"
+                    ? copy.outcomeReview
+                    : null;
 
   return (
     <form
@@ -91,9 +118,15 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
       aria-labelledby={`${formId}-title`}
     >
       <h3 id={`${formId}-title`} className="font-serif text-xl font-bold text-[#1F241C]">
-        {copy.submitTitle}
+        {targetChurchId ? copy.privateCta : copy.submitTitle}
       </h3>
       <p className="mt-1 text-sm leading-relaxed text-[#3D3428]">{copy.submitSupport}</p>
+      {targetChurchId ? (
+        <p className="mt-2 text-sm leading-relaxed text-[#3D3428]" role="note">
+          {targetChurchName ? `${targetChurchName}. ` : ""}
+          {copy.targetedHint}
+        </p>
+      ) : null}
 
       <div className="mt-4">
         <label htmlFor={`${formId}-body`} className="block text-sm font-semibold text-[#1F241C]">
@@ -126,11 +159,13 @@ export function IglesiasPrayerForm({ copy, lang }: { copy: PrayerUiCopy; lang: "
         <legend className="text-sm font-semibold text-[#1F241C]">{copy.visibilityLegend}</legend>
         <div className="mt-2 grid gap-2">
           {(
-            [
-              ["PUBLIC_NAMED", copy.visNamed, copy.visNamedHelp],
-              ["PUBLIC_ANONYMOUS", copy.visAnonymous, copy.visAnonymousHelp],
-              ["PRIVATE_PRAYER_TEAM", copy.visPrivate, copy.visPrivateHelp],
-            ] as const
+            (targetChurchId
+              ? ([["PRIVATE_PRAYER_TEAM", copy.visPrivate, copy.visPrivateHelp]] as const)
+              : ([
+                  ["PUBLIC_NAMED", copy.visNamed, copy.visNamedHelp],
+                  ["PUBLIC_ANONYMOUS", copy.visAnonymous, copy.visAnonymousHelp],
+                  ["PRIVATE_PRAYER_TEAM", copy.visPrivate, copy.visPrivateHelp],
+                ] as const))
           ).map(([value, label, help]) => (
             <label
               key={value}

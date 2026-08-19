@@ -69,6 +69,7 @@ export async function submitChurchApplication(
     applicant_name: input.applicantName || null,
     applicant_email: input.applicantEmail,
     applicant_phone: input.applicantPhone || null,
+    prayer_team_intent: input.prayerTeamIntent || null,
   });
 
   if (input.services?.length) {

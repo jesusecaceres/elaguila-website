@@ -5,9 +5,11 @@ import { normalizeLang } from "@/app/lib/language";
 import { LEONIX_MEDIA_SITE_NAME, LEONIX_SITE_ORIGIN, leonixPageTitle } from "@/app/lib/leonixBrand";
 import { getPublicChurchBySlug } from "@/app/lib/iglesias/churchQueries";
 import { getIglesiasCopy, formatIglesiasServiceSummary, googleDirectionsHref, telHref, iglesiasLanguageLabel } from "@/app/lib/iglesias/copy";
+import { getPrayerUiCopy } from "@/app/lib/iglesias/prayerCopy";
 import { iglesiasNeedLabel } from "@/app/lib/iglesias/taxonomy";
 import { IglesiasPageShell } from "../components/IglesiasPageShell";
 import { IglesiasSafeImage } from "../components/IglesiasSafeImage";
+import { IglesiasPrayerForm } from "../components/IglesiasPrayerForm";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,7 @@ export default async function IglesiasChurchPage(props: Props) {
   if (!church) notFound();
 
   const copy = getIglesiasCopy(lang);
+  const prayerCopy = getPrayerUiCopy(lang);
   const heroSrc = church.heroUrl || church.logoUrl;
   const actions: Array<{ href: string; label: string; external?: boolean }> = [];
   if (church.publicLocation && church.addressLine1) {
@@ -96,6 +99,11 @@ export default async function IglesiasChurchPage(props: Props) {
             {lang === "en" ? "Church" : "Iglesia"}
           </p>
           <h1 className="mt-2 font-serif text-[clamp(1.8rem,4vw+0.4rem,3rem)] font-bold leading-tight text-[#1F241C]">{church.name}</h1>
+          {church.prayerNetworkParticipant ? (
+            <p className="mt-3 inline-flex items-center rounded-full border border-[#C9A84A]/70 bg-[#FFF8E8] px-3 py-1 text-xs font-semibold text-[#1F241C]">
+              {prayerCopy.badgePrayerNetwork}
+            </p>
+          ) : null}
           <p className="mt-2 text-sm text-[#5C5346]">
             {[church.denomination || church.churchType, church.city, church.languages.map((l) => iglesiasLanguageLabel(l, lang)).join(" · ")]
               .filter(Boolean)
@@ -109,6 +117,17 @@ export default async function IglesiasChurchPage(props: Props) {
                 </li>
               ))}
             </ul>
+          ) : null}
+
+          {church.prayerNetworkParticipant ? (
+            <div className="mt-4">
+              <a
+                href="#peticion-privada"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-semibold text-white hover:bg-[#6B1A26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] sm:w-auto"
+              >
+                {prayerCopy.privateCta}
+              </a>
+            </div>
           ) : null}
 
           {actions.length ? (
@@ -214,6 +233,15 @@ export default async function IglesiasChurchPage(props: Props) {
               </div>
             ) : null}
           </section>
+
+          {church.prayerNetworkParticipant ? (
+            <section id="peticion-privada" className="mt-6 scroll-mt-24 overflow-hidden rounded-[1.5rem] border border-[#C9A84A]/35 bg-[#FFFDF7] px-4 py-5 sm:px-7 sm:py-6" aria-labelledby="iglesias-private-prayer-title">
+              <h2 id="iglesias-private-prayer-title" className="sr-only">
+                {prayerCopy.privateCta}
+              </h2>
+              <IglesiasPrayerForm copy={prayerCopy} lang={lang} targetChurchId={church.id} targetChurchName={church.name} />
+            </section>
+          ) : null}
 
           <p className="mt-12">
             <Link href={`/iglesias?lang=${lang}`} className="text-sm font-semibold text-[#7A1E2C] underline-offset-2 hover:underline">

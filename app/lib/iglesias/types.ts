@@ -107,6 +107,7 @@ export type PublicChurchProfile = PublicChurchCard & {
   services: ChurchServiceRow[];
   ministries: ChurchMinistryRow[];
   gallery: ChurchMediaRow[];
+  prayerNetworkParticipant: boolean;
 };
 
 export type IglesiasBrowseState = {

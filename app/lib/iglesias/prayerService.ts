@@ -6,6 +6,7 @@ import { routePrayerSafetyDecision } from "./prayerSafetyRouting";
 import { normalizePrayerBody, type PrayerSubmitInput } from "./prayerValidation";
 import { isPrayerReportReason, type PrayerReportReason } from "./prayerTaxonomy";
 import type { PrayerSubmitOutcome } from "./prayerTypes";
+import { orchestratePrivatePrayerRouting } from "./prayerNetworkOrchestrate";
 
 const DUP_WINDOW_MS = 6 * 60 * 60 * 1000;
 
@@ -39,7 +40,7 @@ export async function submitPrayerRequest(args: {
   sessionHash: string;
   userId: string | null;
   ipHash: string | null;
-}): Promise<{ ok: true; id: string; outcome: PrayerSubmitOutcome } | { ok: false; error: string }> {
+}): Promise<{ ok: true; id: string; outcome: PrayerSubmitOutcome; deliveredTeams: number; routingReason: string } | { ok: false; error: string }> {
   if (!isSupabaseAdminConfigured()) return { ok: false, error: "unavailable" };
   const dup = await findRecentDuplicate({
     bodyNormalized: prayerBodyNormalized(args.input.body),
@@ -81,6 +82,7 @@ export async function submitPrayerRequest(args: {
     contact_email: args.input.contactEmail,
     contact_phone: args.input.contactPhone,
     contact_whatsapp: args.input.contactWhatsapp,
+    target_church_id: args.input.targetChurchId,
     published_at: route.publish ? now : null,
     updated_at: now,
   };
@@ -96,7 +98,15 @@ export async function submitPrayerRequest(args: {
     note: safety.reason_codes.join(",") || safety.source,
   });
 
-  return { ok: true, id: data.id, outcome: route.outcome };
+  let deliveredTeams = 0;
+  let routingReason = "not_routed";
+  if (args.input.visibility === "PRIVATE_PRAYER_TEAM" && route.moderation_status === "CLEARLY_SAFE") {
+    const routed = await orchestratePrivatePrayerRouting(data.id);
+    deliveredTeams = routed.deliveredTeams;
+    routingReason = routed.reason;
+  }
+
+  return { ok: true, id: data.id, outcome: route.outcome, deliveredTeams, routingReason };
 }
 
 export async function acknowledgePrayer(args: {

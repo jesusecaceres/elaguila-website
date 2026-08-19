@@ -65,6 +65,10 @@ export async function approvePrayerAction(formData: FormData) {
   if (error) throw new Error(error.message);
   await writeEvent({ prayerId: id, action: "APPROVE", reasonCode: str(formData, "reason_code") || "APPROVE" });
   auditAdminWrite("iglesias_prayer_approved", "prayer_request", id, {});
+  if (row?.visibility === "PRIVATE_PRAYER_TEAM") {
+    const { orchestratePrivatePrayerRouting } = await import("@/app/lib/iglesias/prayerNetworkOrchestrate");
+    await orchestratePrivatePrayerRouting(id);
+  }
   backTo(id, "approved");
 }
 
@@ -137,6 +141,10 @@ export async function redactAndApprovePrayerAction(formData: FormData) {
     note: "Original body stored in body_original_internal; public body redacted.",
   });
   auditAdminWrite("iglesias_prayer_redacted_approved", "prayer_request", id, {});
+  if (row.visibility === "PRIVATE_PRAYER_TEAM") {
+    const { orchestratePrivatePrayerRouting } = await import("@/app/lib/iglesias/prayerNetworkOrchestrate");
+    await orchestratePrivatePrayerRouting(id);
+  }
   backTo(id, "approved");
 }
 
@@ -171,4 +179,14 @@ export async function markPrayerReviewedAction(formData: FormData) {
   });
   auditAdminWrite("iglesias_prayer_reviewed", "prayer_request", id, {});
   backTo(id, "review");
+}
+
+export async function retryPrayerEmailDeliveryAction(formData: FormData) {
+  await assertPrayerAdmin();
+  const id = str(formData, "prayer_id");
+  if (!id) throw new Error("Missing prayer");
+  const { orchestratePrivatePrayerRouting } = await import("@/app/lib/iglesias/prayerNetworkOrchestrate");
+  await orchestratePrivatePrayerRouting(id);
+  auditAdminWrite("iglesias_prayer_delivery_retry", "prayer_request", id, {});
+  backTo(id, "approved");
 }

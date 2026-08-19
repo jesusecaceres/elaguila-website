@@ -24,6 +24,7 @@ export type PrayerSubmitInput = {
   contactEmail: string | null;
   contactPhone: string | null;
   contactWhatsapp: string | null;
+  targetChurchId: string | null;
 };
 
 export type PrayerParseError =
@@ -95,6 +96,12 @@ export function parsePrayerSubmission(
     if (preferredContactMethod === "whatsapp" && !contactWhatsapp) return { ok: false, error: "contact" };
   }
 
+  const targetRaw = clean(o.targetChurchId, 40);
+  const targetChurchId =
+    visibilityRaw === "PRIVATE_PRAYER_TEAM" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetRaw)
+      ? targetRaw
+      : null;
+
   return {
     ok: true,
     data: {
@@ -109,6 +116,7 @@ export function parsePrayerSubmission(
       contactEmail: visibilityRaw === "PRIVATE_PRAYER_TEAM" && contactConsent ? contactEmail : null,
       contactPhone: visibilityRaw === "PRIVATE_PRAYER_TEAM" && contactConsent ? contactPhone : null,
       contactWhatsapp: visibilityRaw === "PRIVATE_PRAYER_TEAM" && contactConsent ? contactWhatsapp : null,
+      targetChurchId,
     },
   };
 }

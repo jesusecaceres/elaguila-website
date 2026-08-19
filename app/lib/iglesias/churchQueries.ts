@@ -2,6 +2,7 @@ import "server-only";
 
 import { getServerSupabaseAnon } from "@/app/lib/supabase/server";
 import { PUBLIC_CHURCH_COLUMNS, isPublicChurchEligible } from "./eligibility";
+import { isPublicPrayerNetworkParticipant } from "./prayerNetworkRouting";
 import { formatIglesiasServiceSummary } from "./copy";
 import type { IglesiasNeedKey, IglesiasServiceLanguage, IglesiasUiLang } from "./taxonomy";
 import type {
@@ -194,10 +195,15 @@ export async function getPublicChurchBySlug(slug: string, uiLang: IglesiasUiLang
   const church = mapChurchRow(data as Record<string, unknown>);
   if (!isPublicChurchEligible(church)) return null;
 
-  const [{ data: ministryRows }, { data: serviceRows }, { data: mediaRows }] = await Promise.all([
+  const [{ data: ministryRows }, { data: serviceRows }, { data: mediaRows }, { data: teamRow }] = await Promise.all([
     supabase.from("church_ministries").select("id, church_id, need_key, display_note, is_active, sort_order").eq("church_id", church.id),
     supabase.from("church_services").select("id, church_id, day_of_week, starts_at, label, language, mode, is_active, sort_order").eq("church_id", church.id),
     supabase.from("church_media").select("id, church_id, role, url, alt_text, sort_order, is_active").eq("church_id", church.id),
+    supabase
+      .from("church_prayer_teams")
+      .select("church_id, enabled, status, accepts_private_requests")
+      .eq("church_id", church.id)
+      .maybeSingle(),
   ]);
 
   const ministries = ((ministryRows ?? []) as ChurchMinistryRow[]).filter((m) => m.is_active).sort((a, b) => a.sort_order - b.sort_order);
@@ -234,6 +240,14 @@ export async function getPublicChurchBySlug(slug: string, uiLang: IglesiasUiLang
     services,
     ministries,
     gallery: media.filter((m) => m.role === "gallery"),
+    prayerNetworkParticipant: isPublicPrayerNetworkParticipant({
+      churchApproved: church.approval_status === "approved",
+      churchActive: church.is_active,
+      published: Boolean(church.published_at),
+      teamEnabled: teamRow?.enabled === true,
+      teamStatus: String(teamRow?.status ?? ""),
+      acceptsPrivate: teamRow?.accepts_private_requests === true,
+    }),
   };
 }
 

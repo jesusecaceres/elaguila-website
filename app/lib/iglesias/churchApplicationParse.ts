@@ -34,6 +34,7 @@ export type ChurchApplicationInput = {
     label?: string;
   }>;
   ministries?: string[];
+  prayerTeamIntent?: "YES" | "NO" | "INTERESTED";
 };
 
 function clean(v: unknown, max = 240): string {
@@ -65,6 +66,10 @@ export function parseChurchApplication(body: unknown): { ok: true; data: ChurchA
   const languages = languagesRaw.map((x) => String(x)).filter(isIglesiasServiceLanguage);
   const ministriesRaw = Array.isArray(o.ministries) ? o.ministries : [];
   const ministries = ministriesRaw.map((x) => String(x).toUpperCase()).filter(isIglesiasNeedKey);
+
+  const intentRaw = clean(o.prayerTeamIntent, 16).toUpperCase();
+  const prayerTeamIntent =
+    intentRaw === "YES" || intentRaw === "NO" || intentRaw === "INTERESTED" ? intentRaw : undefined;
 
   const servicesRaw = Array.isArray(o.services) ? o.services.slice(0, 12) : [];
   const services: ChurchApplicationInput["services"] = [];
@@ -117,6 +122,7 @@ export function parseChurchApplication(body: unknown): { ok: true; data: ChurchA
       applicantPhone: clean(o.applicantPhone, 40) || undefined,
       services,
       ministries: ministries as IglesiasNeedKey[],
+      prayerTeamIntent,
     },
   };
 }
