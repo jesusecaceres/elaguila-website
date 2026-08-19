@@ -1400,3 +1400,165 @@ export type LeoCommunicationExecutiveSnapshot = {
   limitations: string[];
   notClaiming: readonly string[];
 };
+
+/* -------------------------------------------------------------------------- */
+/* LEO-14.1 Operational persistence — sessions, commitments, receipts, acks  */
+/* -------------------------------------------------------------------------- */
+
+export type LeoConversationMode = "TEXT" | "HANDS_FREE" | "LOW_ATTENTION";
+
+export type LeoConversationLanguage = "en" | "es" | "auto";
+
+export type LeoConversationRole = "USER" | "LEO" | "SYSTEM";
+
+export type LeoConversationSession = {
+  id: string;
+  ownerAuthUserId: string;
+  title: string | null;
+  uiLanguage: LeoConversationLanguage;
+  speechLanguage: LeoConversationLanguage;
+  responseLanguage: LeoConversationLanguage;
+  mode: LeoConversationMode;
+  lastActiveAt: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+};
+
+export type LeoConversationEntityRef = {
+  system: string;
+  kind: string;
+  id: string;
+  label?: string;
+};
+
+export type LeoConversationTurn = {
+  id: string;
+  sessionId: string;
+  ownerAuthUserId: string;
+  role: LeoConversationRole;
+  /** Bounded conversational text — never full Gmail bodies or secrets. */
+  boundedText: string;
+  intent: string | null;
+  resultCardRefs: string[];
+  selectedEntityRefs: LeoConversationEntityRef[];
+  receiptIds: string[];
+  contextRefs: Record<string, unknown>;
+  createdAt: string;
+  expiresAt: string;
+  archivedAt: string | null;
+};
+
+export type LeoCommitmentKind =
+  | "EXPLICIT_OWNER"
+  | "EXTRACTED_CANDIDATE"
+  | "EXTERNAL_PARTY";
+
+export type LeoCommitmentStatus = "OPEN" | "COMPLETED" | "CANCELLED" | "SUPERSEDED";
+
+/** Derived only — never persisted as canonical status. */
+export type LeoCommitmentDerivedDueState = "NONE" | "DUE_SOON" | "OVERDUE";
+
+export type LeoCommitmentCreationMethod =
+  | "OWNER_UTTERANCE"
+  | "OWNER_CONFIRM"
+  | "EXTRACTED"
+  | "SYSTEM";
+
+export type LeoCommitmentCreatedBy = "owner" | "leo" | "system";
+
+/** Reuses LeoAttentionLevel for priority consistency. */
+export type LeoCommitmentPriority = LeoAttentionLevel;
+
+export type LeoCommitment = {
+  id: string;
+  ownerAuthUserId: string;
+  title: string;
+  normalizedText: string;
+  kind: LeoCommitmentKind;
+  status: LeoCommitmentStatus;
+  dueAt: string | null;
+  timezone: string | null;
+  counterparty: string | null;
+  sourceType: string;
+  sourceRef: Record<string, unknown>;
+  provenance: Record<string, unknown>;
+  evidenceAt: string | null;
+  createdBy: LeoCommitmentCreatedBy;
+  creationMethod: LeoCommitmentCreationMethod;
+  priority: LeoCommitmentPriority;
+  category: string | null;
+  acknowledgedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  supersededBy: string | null;
+  confidence: LeoMemoryConfidence | null;
+  notes: string | null;
+  relatedRefs: LeoConversationEntityRef[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LeoToolReceiptLifecycleState =
+  | "REQUESTED"
+  | "AUTHORIZED"
+  | "PREPARED"
+  | "AWAITING_APPROVAL"
+  | "EXECUTED"
+  | "VERIFIED"
+  | "FAILED"
+  | "NOT_EXECUTED"
+  | "CANCELLED";
+
+export type LeoToolReceiptApprovalState = "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+export type LeoToolReceiptExecutionState = "NONE" | "NOT_EXECUTED" | "EXECUTED" | "FAILED";
+
+export type LeoToolReceiptVerificationState = "NONE" | "VERIFIED" | "FAILED";
+
+/**
+ * Durable persisted receipt (leo_tool_receipts).
+ * Distinct from ephemeral LeoToolReceipt on the in-memory tool bus.
+ */
+export type LeoDurableToolReceipt = {
+  id: string;
+  correlationId: string;
+  toolId: string;
+  actionType: string;
+  actorAuthUserId: string;
+  governanceLevel: LeoGovernanceLevel;
+  requestedPayloadSummary: string;
+  preparationRef: string | null;
+  lifecycleState: LeoToolReceiptLifecycleState;
+  approvalState: LeoToolReceiptApprovalState;
+  executionState: LeoToolReceiptExecutionState;
+  verificationState: LeoToolReceiptVerificationState;
+  safeErrorClass: string | null;
+  sourceRefs: LeoConversationEntityRef[];
+  sessionId: string | null;
+  turnId: string | null;
+  requestedAt: string;
+  authorizedAt: string | null;
+  preparedAt: string | null;
+  executedAt: string | null;
+  verifiedAt: string | null;
+  failedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** ACK/DISMISS/SNOOZE — distinct from LeoAttentionDisposition (OWNER_ATTENTION etc.). */
+export type LeoAttentionAckDisposition = "ACKNOWLEDGED" | "DISMISSED" | "SNOOZED";
+
+export type LeoAttentionAck = {
+  id: string;
+  ownerAuthUserId: string;
+  sourceKind: string;
+  sourceKey: string;
+  disposition: LeoAttentionAckDisposition;
+  snoozeUntil: string | null;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string | null;
+};

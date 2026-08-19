@@ -451,6 +451,18 @@ async function main() {
     "scripts/leo-google-oauth-offline.mjs",
     "scripts/LEO_GOOGLE_OAUTH_SETUP.md",
     "scripts/verify-leo-13a-google-live-connection.ts",
+    // LEO-14.1 persistence foundation (authorized)
+    "supabase/migrations/20260819120000_leo14_executive_action_os.sql",
+    "app/leo/_lib/leoConversationSessionRepository.ts",
+    "app/leo/_lib/leoConversationSessionService.ts",
+    "app/leo/_lib/leoCommitmentRepository.ts",
+    "app/leo/_lib/leoCommitmentService.ts",
+    "app/leo/_lib/leoToolReceiptRepository.ts",
+    "app/leo/_lib/leoToolReceiptService.ts",
+    "app/leo/_lib/leoAttentionAckRepository.ts",
+    "app/leo/_lib/leoAttentionAckService.ts",
+    "app/leo/_lib/leoPersistenceSemantics.ts",
+    "scripts/verify-leo-14-1-persistence-contracts.ts",
   ]);
 
   const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f));
