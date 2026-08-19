@@ -156,7 +156,7 @@ export type NoticiasPagePayload = {
   breakingLabel?: Partial<BilingualText>;
 };
 
-/** `/iglesias` — placeholder page until a real directory ships. */
+/** `/iglesias` landing chrome — title/subtitle/note overlay trust copy; church rows live in Postgres. */
 export type IglesiasPagePayload = {
   title?: Partial<BilingualText>;
   subtitle?: Partial<BilingualText>;

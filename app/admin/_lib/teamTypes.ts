@@ -23,6 +23,7 @@ export type AdminPermissionKey =
   | "can_manage_categories"
   | "can_manage_magazine"
   | "can_manage_website_content"
+  | "can_manage_prayer_wall"
   | "can_view_payments"
   | "can_manage_team"
   | "can_view_activity_logs"
@@ -38,6 +39,7 @@ export const ALL_ADMIN_PERMISSION_KEYS: readonly AdminPermissionKey[] = [
   "can_manage_categories",
   "can_manage_magazine",
   "can_manage_website_content",
+  "can_manage_prayer_wall",
   "can_view_payments",
   "can_manage_team",
   "can_view_activity_logs",

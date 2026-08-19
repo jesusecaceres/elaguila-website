@@ -1,57 +1,108 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
-import { adminBtnSecondary, adminCardBase, adminPartialBadgeClass, adminStubBadgeClass } from "../../../_components/adminTheme";
+import { adminBtnSecondary, adminCardBase, adminPartialBadgeClass } from "../../../_components/adminTheme";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { hasLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminWorkspaceIglesiasPage() {
+export default async function AdminWorkspaceIglesiasPage() {
+  const churches = isSupabaseAdminConfigured()
+    ? (
+        await getAdminSupabase()
+          .from("churches")
+          .select("id, name, slug, city, approval_status, is_active, published_at, created_at")
+          .order("created_at", { ascending: false })
+          .limit(80)
+      ).data ?? []
+    : [];
+
+  const pending = churches.filter((c) => c.approval_status === "pending").length;
+  const canPrayer = await hasLeonixAdminPermission("can_manage_prayer_wall");
+
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-          Persisted copy
+          Church queue
         </span>
-        <span className={adminStubBadgeClass}>Directory · backlog</span>
-        <span className={adminPartialBadgeClass}>No church rows yet</span>
+        <span className={adminPartialBadgeClass}>{pending} pending</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Iglesias"
         title="Iglesias"
-        subtitle="Public landing `/iglesias` with editable transitional message. When a directory exists, listings will come from the database + migrations."
-        helperText="Public contact for early submissions remains on the site Contact page."
+        subtitle="Public landing `/iglesias` plus church applications. Approved+active+published rows are the only public inventory."
+        helperText="No fake churches. Prayer Wall moderation is a separate permissioned queue."
       />
 
       <AdminSectionOwnershipCallout
         sectionTitle="Iglesias"
         publicPath="/iglesias"
-        sourceOfTruth="Transitional copy: `site_section_content.iglesias_page`. Directory: not modeled in Postgres yet."
+        sourceOfTruth="Postgres `churches` (+ services/ministries/media). Landing chrome: `site_section_content.iglesias_page`."
         siteSectionKey="iglesias_page"
         adminEditors={[
           { label: "Copy editor", href: "/admin/workspace/iglesias/content" },
-          { label: "Contact (public support details)", href: "/admin/workspace/contacto/content" },
-          { label: "Customer ops", href: "/admin/ops" },
+          { label: "Public landing", href: "/iglesias" },
         ]}
         notYet={[
-          "Congregations table, geodata, moderation, and submission flow.",
-          "Admin search and filters linked to profiles or accounts.",
-          "Suggested minimal migration: `churches` (id, name, city, slug, published_at, optional geom) + public read RLS + service-role write only.",
+          "Prayer Network routing to church teams (BUILD 03).",
+          "Verified badge workflow — column exists, not displayed.",
         ]}
       />
 
-      <div className={`${adminCardBase} p-6`}>
-        <Link href="/iglesias" className="font-bold text-[#6B5B2E] underline" target="_blank" rel="noreferrer">
-          Open /iglesias
-        </Link>
-        <p className="mt-3 text-xs text-[#7A7164]">
-          <Link href="/admin/workspace/iglesias/content" className="font-bold text-[#6B5B2E] underline">
-            Go to editor →
-          </Link>
-        </p>
+      <div className={`${adminCardBase} overflow-x-auto p-0`}>
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-[11px] uppercase tracking-wide text-[#7A7164]">
+            <tr>
+              <th className="px-4 py-3">Church</th>
+              <th className="px-4 py-3">City</th>
+              <th className="px-4 py-3">Approval</th>
+              <th className="px-4 py-3">Active</th>
+              <th className="px-4 py-3">Public</th>
+              <th className="px-4 py-3"> </th>
+            </tr>
+          </thead>
+          <tbody>
+            {churches.length === 0 ? (
+              <tr>
+                <td className="px-4 py-6 text-[#7A7164]" colSpan={6}>
+                  No church rows yet. Public landing stays complete with zero inventory.
+                </td>
+              </tr>
+            ) : (
+              churches.map((c) => (
+                <tr key={c.id} className="border-b border-[#F0E8D8]">
+                  <td className="px-4 py-3 font-semibold text-[#1F241C]">{c.name}</td>
+                  <td className="px-4 py-3 text-[#5C5346]">{c.city || "—"}</td>
+                  <td className="px-4 py-3">{c.approval_status}</td>
+                  <td className="px-4 py-3">{c.is_active ? "yes" : "no"}</td>
+                  <td className="px-4 py-3">{c.approval_status === "approved" && c.is_active && c.published_at ? "yes" : "no"}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/admin/workspace/iglesias/${c.id}`} className="font-bold text-[#6B5B2E] underline">
+                      Review
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
-      <Link href="/admin/workspace" className={`${adminBtnSecondary} inline-flex`} title="Back to section map">
-        ← Workspace overview
-      </Link>
+
+      <div className="flex flex-wrap gap-3">
+        {canPrayer ? (
+          <Link href="/admin/workspace/iglesias/prayers" className={adminBtnSecondary}>
+            Prayer queue
+          </Link>
+        ) : null}
+        <Link href="/admin/workspace/iglesias/content" className={adminBtnSecondary}>
+          Landing copy
+        </Link>
+        <Link href="/admin/workspace" className={adminBtnSecondary}>
+          ← Workspace overview
+        </Link>
+      </div>
     </div>
   );
 }
