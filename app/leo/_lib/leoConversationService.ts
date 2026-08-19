@@ -574,6 +574,14 @@ export async function runLeoConversationDeterministic(
               ? "ANSWERED"
               : "PARTIALLY_ANSWERED",
         summary,
+        resultCards:
+          subtype === "EMAIL" || !subtype
+            ? snap.gmail.emailCards
+            : subtype === "CALENDAR"
+              ? null
+              : snap.gmail.emailCards,
+        spokenSummary:
+          subtype === "CALENDAR" ? null : snap.gmail.spokenSummary,
         evidence: [
           ...snap.gmail.recentMessages.slice(0, 6).map((m) => ({
             sourceKind: "email_message",

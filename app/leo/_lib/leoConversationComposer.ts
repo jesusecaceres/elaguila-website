@@ -17,6 +17,7 @@ import type {
   LeoProjectSnapshot,
 } from "@/app/leo/_lib/leoTypes";
 import { composeGoogleFailureDiagnosticLine } from "@/app/leo/_lib/leoGoogleConnectionDiagnostic";
+import { composeLeoGmailExecutiveSummary } from "@/app/leo/_lib/leoGmailTriageUpgrade";
 
 export {
   composeGoogleConnectionDiagnosticSummary,
@@ -210,25 +211,12 @@ export function composeCommunicationIntelligenceSummary(
       ? `LEO could not read Gmail right now.\n${line}`
       : "LEO could not read Gmail right now.";
   }
-  const waiting = snap.gmail.triage.filter((t) => t.state === "WAITING_ON_OWNER");
-  const possible = snap.gmail.triage.filter((t) => t.state === "POSSIBLE_REPLY_NEEDED");
-  const recent = snap.gmail.recentMessages.slice(0, 5);
-  if (/waiting on my reply/.test((snap.ownerQuestion ?? "").toLowerCase())) {
-    if (waiting.length === 0) {
-      return possible.length
-        ? `${possible.length} message(s) may need a reply, but thread direction is not fully proven.`
-        : "No messages are currently proven as waiting on your reply.";
-    }
-    return `${waiting.length} thread(s) show the latest meaningful message inbound after your last outbound.`;
-  }
-  if (recent.length === 0) {
-    return "No recent inbox messages were returned in the bounded Gmail fetch.";
-  }
-  const senders = recent
-    .map((m) => m.sender ?? "unknown")
-    .slice(0, 5)
-    .join("; ");
-  return `Recent bounded inbox evidence from: ${senders}. Unread alone does not mean a reply is required.`;
+  return composeLeoGmailExecutiveSummary({
+    counts: snap.gmail.executiveCounts,
+    cards: snap.gmail.emailCards,
+    ownerQuestion: snap.ownerQuestion,
+    gmailAvailable: true,
+  });
 }
 
 /**

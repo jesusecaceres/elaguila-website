@@ -421,6 +421,12 @@ const allowed = new Set([
   "scripts/verify-leo-14-1-persistence-contracts.ts",
   "scripts/verify-leo-13-gmail-calendar-intelligence.ts",
   "scripts/verify-leo-13a-google-live-connection.ts",
+  // LEO-14.3 Gmail executive triage
+  "app/leo/_lib/leoGmailTriageUpgrade.ts",
+  "app/leo/_lib/leoCommunicationIntelligenceService.ts",
+  "app/leo/_lib/leoConversationComposer.ts",
+  "app/leo/_lib/leoConversationService.ts",
+  "scripts/verify-leo-14-3-gmail-executive-triage.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);

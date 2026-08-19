@@ -1385,6 +1385,26 @@ export type LeoCommunicationExecutiveSnapshot = {
     triage: LeoEmailTriageResult[];
     /** Sanitized adapter error class — never a provider body or secret. */
     errorCode: string | null;
+    /** LEO-14.3: deduplicated executive conversation cards. */
+    emailCards: LeoEmailResultCard[];
+    executiveCounts: {
+      conversations: number;
+      waitingOnUs: number;
+      likelyReply: number;
+      needsReview: number;
+      automated: number;
+      informational: number;
+      unknown: number;
+    };
+    /** Voice-safe Gmail answer summary. */
+    spokenSummary: string | null;
+    threadEnrichment: {
+      requested: number;
+      succeeded: number;
+      failed: number;
+      maxUniqueThreads: number;
+      maxConcurrency: number;
+    };
   };
   calendar: {
     availability: LeoToolAvailability;

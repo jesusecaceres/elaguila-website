@@ -282,6 +282,12 @@ const allowed = new Set([
   "app/leo/_lib/leoResultCards.ts",
   "app/leo/_lib/leoExecutiveActions.ts",
   "scripts/verify-leo-14-2-result-action-contracts.ts",
+  // LEO-14.3 Gmail executive triage
+  "app/leo/_lib/leoGmailTriageUpgrade.ts",
+  "app/leo/_lib/leoCommunicationIntelligenceService.ts",
+  "app/leo/_lib/leoConversationComposer.ts",
+  "app/leo/_lib/leoConversationService.ts",
+  "scripts/verify-leo-14-3-gmail-executive-triage.ts",
 ]);
 
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
