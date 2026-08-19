@@ -1,359 +1,420 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import { adminBtnPrimary, adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
-import type { LeoConversationAnswer, LeoPreparedAction } from "@/app/leo/_lib/leoTypes";
+import { adminCardBase } from "@/app/admin/_components/adminTheme";
+import type {
+  LeoConversationAnswer,
+  LeoConversationClientContext,
+  LeoConversationEntityRef,
+  LeoConversationPersistenceState,
+  LeoResultCard,
+} from "@/app/leo/_lib/leoTypes";
 
-import { scrubOwnerFacingText } from "./leoOwnerPresentation";
+import { LeoComposer, LeoNewConversationButton } from "./LeoComposer";
+import { LeoConversationStream } from "./LeoConversationStream";
+import type { LeoStreamTurn } from "./LeoConversationTurn";
+import { LeoSessionStatus } from "./LeoSessionStatus";
 
-const QUICK_QUESTIONS = [
+const SESSION_KEY = "leonix:leo:last-session-id";
+const DRAFT_KEY = "leonix:leo:composer-draft";
+
+const STARTER_PROMPTS = [
   "What needs my attention?",
-  "Who is waiting on us?",
-  "What can you do?",
-  "Can you deploy Production?",
+  "Who is waiting on my reply?",
+  "What commitments are overdue?",
+  "What changed in LEO?",
+  "What did you prepare?",
 ] as const;
 
-type ApiOk = { ok: true; answer: LeoConversationAnswer };
-type ApiErr = { ok: false; error?: string; message?: string; reason?: string };
+type ApiOk = {
+  ok: true;
+  answer: LeoConversationAnswer;
+  sessionId?: string | null;
+  persistenceState?: LeoConversationPersistenceState | null;
+};
 
-function PreparedBlock({ prepared }: { prepared: LeoPreparedAction }) {
-  return (
-    <div className="mt-3 rounded-xl border border-[#C9B46A]/50 bg-[#FFFCF7] p-3">
-      <div className="flex min-w-0 flex-wrap gap-2">
-        <span className="rounded-md border border-[#2A4536]/30 bg-[#EEF4F0] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2A4536]">
-          PREPARED
-        </span>
-        <span className="rounded-md border border-[#C9B46A]/60 bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
-          NOT_EXECUTED
-        </span>
-      </div>
-      <p className="mt-2 break-words text-sm font-semibold text-[#1E1810]">{prepared.title}</p>
-      <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{prepared.purpose}</p>
-      {prepared.governance.level === "YELLOW" ? (
-        <p className="mt-2 text-xs font-semibold text-[#5C4E2E]">Preparation allowed — not executed</p>
-      ) : null}
-      {prepared.governance.level === "RED" ? (
-        <p className="mt-2 text-xs font-bold uppercase tracking-wide text-rose-900">
-          CHUY APPROVAL REQUIRED — Execution remains unavailable.
-        </p>
-      ) : null}
-      {prepared.draftSteps.length > 0 ? (
-        <details className="mt-2">
-          <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#A67C52]">
-            Draft outline
-          </summary>
-          <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-[#5C5346]">
-            {prepared.draftSteps.slice(0, 8).map((step, i) => (
-              <li key={`${prepared.id}-step-${i}`} className="break-words">
-                {step}
-              </li>
-            ))}
-          </ol>
-        </details>
-      ) : null}
-    </div>
-  );
+type ApiErr = {
+  ok: false;
+  error?: string;
+  message?: string;
+  reason?: string;
+  newSessionRequired?: boolean;
+};
+
+type HistoryOk = {
+  ok: true;
+  session: { id: string };
+  turns: Array<{
+    id: string;
+    role: "USER" | "LEO" | "SYSTEM";
+    boundedText: string;
+    intent: string | null;
+    resultCardRefs: string[];
+    createdAt: string;
+  }>;
+};
+
+function newClientRequestId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `leo-req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function AnswerResult({
-  answer,
-  onAsk,
-  pending,
-}: {
-  answer: LeoConversationAnswer;
-  onAsk: (q: string) => void;
-  pending: boolean;
-}) {
-  const isRed = answer.governance?.level === "RED";
-  const isNever = answer.governance?.level === "NEVER";
-  const aiUsed = Boolean(answer.aiMeta?.aiUsed);
-  const fallbackQuiet =
-    Boolean(answer.aiMeta?.fallbackUsed) &&
-    answer.limitations.some((l) => /answered directly from Leonix evidence/i.test(l));
-  const keyPoints = answer.keyPoints ?? [];
-  const challenges = answer.challengePoints ?? [];
-  const suggestions = (answer.suggestedQuestions ?? []).slice(0, 3);
+function readSessionPointer(): string | null {
+  try {
+    const v = localStorage.getItem(SESSION_KEY)?.trim();
+    return v || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionPointer(sessionId: string | null) {
+  try {
+    if (!sessionId) localStorage.removeItem(SESSION_KEY);
+    else localStorage.setItem(SESSION_KEY, sessionId);
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function readDraft(): string {
+  try {
+    return localStorage.getItem(DRAFT_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeDraft(text: string) {
+  try {
+    if (!text.trim()) localStorage.removeItem(DRAFT_KEY);
+    else localStorage.setItem(DRAFT_KEY, text.slice(0, 2000));
+  } catch {
+    /* ignore */
+  }
+}
+
+function historyToStream(turns: HistoryOk["turns"]): LeoStreamTurn[] {
+  return turns
+    .filter((t) => t.role === "USER" || t.role === "LEO")
+    .slice()
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+    .map((t) => ({
+      localId: t.id,
+      turnId: t.id,
+      role: t.role as "USER" | "LEO",
+      boundedText: t.boundedText,
+      createdAt: t.createdAt,
+      persisted: true,
+      intent: t.intent,
+      resultCardRefs: t.resultCardRefs ?? [],
+      answer: null,
+    }));
+}
+
+export function LeoConversationPanel() {
+  const [question, setQuestion] = useState("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [turns, setTurns] = useState<LeoStreamTurn[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [persistenceState, setPersistenceState] = useState<LeoConversationPersistenceState | null>(null);
+  const [historyWarning, setHistoryWarning] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(true);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedEntityRef, setSelectedEntityRef] = useState<LeoConversationEntityRef | null>(null);
+  const [pending, startTransition] = useTransition();
+  const bootstrapped = useRef(false);
+  const composerFocusRef = useRef(false);
+
+  useEffect(() => {
+    if (bootstrapped.current) return;
+    bootstrapped.current = true;
+    const draft = readDraft();
+    if (draft) setQuestion(draft);
+
+    const pointer = readSessionPointer();
+    if (!pointer) {
+      setRestoring(false);
+      return;
+    }
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/leo/conversation/session?sessionId=${encodeURIComponent(pointer)}`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        const data = (await res.json()) as HistoryOk | ApiErr;
+        if (!res.ok || !data.ok || !("session" in data)) {
+          writeSessionPointer(null);
+          if ((data as ApiErr).error === "persistence_unavailable") {
+            setHistoryWarning("Conversation history isn’t being saved right now.");
+          } else {
+            setHistoryWarning("Previous conversation couldn’t be restored. Starting fresh.");
+          }
+          setRestoring(false);
+          return;
+        }
+        setSessionId(data.session.id);
+        setTurns(historyToStream(data.turns));
+        setPersistenceState("PERSISTED");
+      } catch {
+        writeSessionPointer(null);
+        setHistoryWarning("Previous conversation couldn’t be restored. Starting fresh.");
+      } finally {
+        setRestoring(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    writeDraft(question);
+  }, [question]);
+
+  const startNewConversation = useCallback(() => {
+    setSessionId(null);
+    writeSessionPointer(null);
+    setTurns([]);
+    setError(null);
+    setPersistenceState(null);
+    setHistoryWarning(null);
+    setSelectedCardId(null);
+    setSelectedEntityRef(null);
+  }, []);
+
+  const submit = useCallback(
+    (raw: string, opts?: { retryLocalId?: string }) => {
+      const trimmed = raw.trim();
+      if (!trimmed || pending) return;
+
+      const clientRequestId = newClientRequestId();
+      const localUserId = opts?.retryLocalId ?? `local-user-${clientRequestId}`;
+      const createdAt = new Date().toISOString();
+
+      setError(null);
+
+      setTurns((prev) => {
+        const withoutFailed = opts?.retryLocalId
+          ? prev.filter((t) => t.localId !== opts.retryLocalId)
+          : prev;
+        // Dedupe optimistic duplicate for same text+pending
+        const cleaned = withoutFailed.filter(
+          (t) => !(t.role === "USER" && t.pending && t.boundedText === trimmed),
+        );
+        return [
+          ...cleaned,
+          {
+            localId: localUserId,
+            clientRequestId,
+            role: "USER",
+            boundedText: trimmed,
+            createdAt,
+            pending: true,
+            persisted: false,
+          },
+        ];
+      });
+
+      const clientContext: LeoConversationClientContext = {
+        selectedCardId,
+        selectedEntityRef,
+        visibleCardIds: turns
+          .flatMap((t) => t.answer?.resultCards?.map((c) => c.cardId) ?? t.resultCardRefs ?? [])
+          .filter(Boolean)
+          .slice(-40),
+      };
+
+      startTransition(async () => {
+        try {
+          const body: Record<string, unknown> = {
+            question: trimmed,
+            clientRequestId,
+            clientContext,
+          };
+          if (sessionId) body.sessionId = sessionId;
+
+          const res = await fetch("/api/leo/conversation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify(body),
+          });
+          const data = (await res.json()) as ApiOk | ApiErr;
+
+          if (!res.ok || !data.ok || !("answer" in data)) {
+            const errCode = data && "error" in data ? data.error : null;
+            if (errCode === "session_not_found" || errCode === "session_archived") {
+              writeSessionPointer(null);
+              setSessionId(null);
+              setError(
+                (data as ApiErr).message ??
+                  "That conversation is no longer available. Start a new one.",
+              );
+            } else {
+              setError(
+                (data as ApiErr).message ??
+                  "Could not retrieve an answer from available Leonix evidence.",
+              );
+            }
+            setTurns((prev) =>
+              prev.map((t) =>
+                t.localId === localUserId
+                  ? {
+                      ...t,
+                      pending: false,
+                      error: "Couldn’t send. You can retry.",
+                    }
+                  : t,
+              ),
+            );
+            return;
+          }
+
+          const answer = data.answer;
+          const nextSessionId = data.sessionId ?? answer.sessionId ?? sessionId;
+          if (nextSessionId) {
+            setSessionId(nextSessionId);
+            writeSessionPointer(nextSessionId);
+          } else if (data.persistenceState === "NOT_PERSISTED_UNAVAILABLE") {
+            // keep null — do not fabricate
+          }
+
+          setPersistenceState(data.persistenceState ?? answer.persistenceState ?? null);
+          setQuestion("");
+          writeDraft("");
+
+          setTurns((prev) => {
+            const withoutOptimistic = prev.filter((t) => t.localId !== localUserId);
+            // Drop server duplicate USER if history-style id matches clientRequestId already present
+            const deduped = withoutOptimistic.filter((t) => {
+              if (t.role !== "USER") return true;
+              if (answer.userTurnId && t.turnId === answer.userTurnId) return false;
+              return true;
+            });
+            const userTurn: LeoStreamTurn = {
+              localId: answer.userTurnId ?? localUserId,
+              turnId: answer.userTurnId ?? null,
+              clientRequestId,
+              role: "USER",
+              boundedText: trimmed,
+              createdAt,
+              pending: false,
+              persisted: Boolean(answer.userTurnId),
+            };
+            const leoTurn: LeoStreamTurn = {
+              localId: answer.turnId ?? `local-leo-${clientRequestId}`,
+              turnId: answer.turnId ?? null,
+              role: "LEO",
+              boundedText: answer.summary,
+              createdAt: answer.generatedAt ?? new Date().toISOString(),
+              persisted: Boolean(answer.turnId),
+              intent: answer.intent,
+              resultCardRefs: (answer.resultCards ?? []).map((c) => c.cardId),
+              answer,
+            };
+            return [...deduped, userTurn, leoTurn];
+          });
+          composerFocusRef.current = true;
+        } catch {
+          setError("Could not reach LEO conversation. Try again.");
+          setTurns((prev) =>
+            prev.map((t) =>
+              t.localId === localUserId
+                ? { ...t, pending: false, error: "Network error. You can retry." }
+                : t,
+            ),
+          );
+        }
+      });
+    },
+    [pending, selectedCardId, selectedEntityRef, sessionId, turns],
+  );
+
+  const onSelectCard = useCallback((card: LeoResultCard, entityRef: LeoConversationEntityRef) => {
+    setSelectedCardId(card.cardId);
+    setSelectedEntityRef(entityRef);
+  }, []);
+
+  const hasConversation = turns.length > 0;
 
   return (
-    <div className="mt-4 min-w-0 space-y-3 rounded-xl border border-[color:var(--lx-border)]/70 bg-white/80 p-4">
-      <div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">LEO Answer</p>
-          {aiUsed ? (
-            <span className="rounded-md border border-[#2A4536]/25 bg-[#EEF4F0] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2A4536]">
-              Evidence-grounded reasoning
-            </span>
-          ) : (
-            <span className="rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#5C5346]">
-              Deterministic evidence
-            </span>
-          )}
-        </div>
-        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-relaxed text-[#1E1810]">
-          {scrubOwnerFacingText(answer.summary)}
-        </p>
-        {fallbackQuiet ? (
-          <p className="mt-1 text-[11px] text-[#5C5346]/85">LEO answered directly from Leonix evidence.</p>
-        ) : null}
-        <p className="mt-1 text-[11px] text-[#5C5346]">
-          {answer.intent.replace(/_/g, " ")} · {answer.answerState.replace(/_/g, " ")}
-        </p>
-      </div>
-
-      {isNever ? (
-        <p className="rounded-lg border border-[#1E1810]/20 bg-[#F4F1EA] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[#1E1810]">
-          BLOCKED — Governance override is never allowed.
-        </p>
-      ) : null}
-
-      {isRed ? (
-        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-rose-900">
-          CHUY APPROVAL REQUIRED — Execution remains unavailable.
-        </p>
-      ) : null}
-
-      {keyPoints.length > 0 ? (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Key points</p>
-          <ul className="mt-1.5 space-y-1.5">
-            {keyPoints.map((kp, i) => (
-              <li key={`kp-${i}`} className="break-words text-xs leading-relaxed text-[#5C5346]">
-                <span className="font-bold text-[#1E1810]">{kp.kind}</span>
-                {" — "}
-                {scrubOwnerFacingText(kp.text)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {answer.preparedAction ? <PreparedBlock prepared={answer.preparedAction} /> : null}
-
-      <details className="min-w-0">
-        <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#A67C52]">
-          Why / Evidence
-        </summary>
-        <div className="mt-2 space-y-2 border-t border-[color:var(--lx-border)]/50 pt-2">
-          {answer.evidence.length > 0 ? (
-            <ul className="space-y-1.5">
-              {answer.evidence.map((e, i) => (
-                <li key={`${e.sourceKind}-${e.sourceRef}-${i}`} className="break-words text-xs text-[#5C5346]">
-                  {scrubOwnerFacingText(e.summary)}
-                  {e.limitationNote ? (
-                    <span className="mt-0.5 block text-[11px] text-amber-900">
-                      Limitation: {scrubOwnerFacingText(e.limitationNote)}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-[#5C5346]">No evidence rows returned for this answer.</p>
-          )}
-        </div>
-      </details>
-
-      {challenges.length > 0 ? (
-        <details className="min-w-0">
-          <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#A67C52]">
-            Challenge / Decision notes
-          </summary>
-          <ul className="mt-2 space-y-1 border-t border-[color:var(--lx-border)]/50 pt-2">
-            {challenges.map((c, i) => (
-              <li key={`ch-${i}`} className="break-words text-xs text-[#5C5346]">
-                · {scrubOwnerFacingText(c)}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-
-      {(answer.unknowns.length > 0 || answer.limitations.length > 0) && (
-        <details className="min-w-0">
-          <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#A67C52]">
-            Unknown / Limitations
-          </summary>
-          <div className="mt-2 space-y-2 border-t border-[color:var(--lx-border)]/50 pt-2">
-            {answer.unknowns.map((u, i) => (
-              <p key={`unk-${i}`} className="break-words text-xs text-[#5C5346]">
-                · {scrubOwnerFacingText(u)}
-              </p>
-            ))}
-            {answer.limitations.map((l, i) => (
-              <p key={`lim-${i}`} className="break-words text-xs text-[#5C5346]">
-                · {scrubOwnerFacingText(l)}
-              </p>
-            ))}
+    <section className="min-w-0" aria-labelledby="leo-ask-heading">
+      <div
+        className={`${adminCardBase} relative min-w-0 overflow-hidden border-[#7A1E2C]/15 p-4 shadow-[0_12px_40px_-16px_rgba(122,30,44,0.18)] sm:p-5`}
+      >
+        <div className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="leo-ask-heading" className="text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">
+              Ask LEO
+            </h2>
+            <p className="mt-1 text-sm text-[#5C5346]">
+              Your executive conversation — priorities, commitments, and clear next moves.
+            </p>
+            <div className="mt-1.5">
+              <LeoSessionStatus
+                persistenceState={persistenceState}
+                restoring={restoring}
+                historyWarning={historyWarning}
+              />
+            </div>
           </div>
-        </details>
-      )}
-
-      {answer.governance ? (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Governance</p>
-          <p className="mt-1 break-words text-xs text-[#5C5346]">
-            {answer.governance.level}
-            {answer.governance.approvalRequired ? " · Chuy approval required" : ""}
-            {answer.governance.level === "YELLOW" ? " · Preparation allowed — not executed" : ""}
-            {answer.governance.blockedReason
-              ? ` — ${scrubOwnerFacingText(answer.governance.blockedReason)}`
-              : ""}
-          </p>
+          <LeoNewConversationButton onClick={startNewConversation} disabled={pending || restoring} />
         </div>
-      ) : null}
 
-      {suggestions.length > 0 ? (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Ask next</p>
-          <div className="mt-2 flex min-w-0 flex-wrap gap-2">
-            {suggestions.map((q) => (
+        {!hasConversation && !restoring ? (
+          <div className="mb-4 flex min-w-0 flex-wrap gap-2" aria-label="Starter prompts">
+            {STARTER_PROMPTS.map((q) => (
               <button
                 key={q}
                 type="button"
                 disabled={pending}
-                className="inline-flex min-h-[40px] max-w-full items-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-3 py-2 text-left text-xs font-semibold text-[#1E1810] transition hover:bg-white disabled:opacity-60"
-                onClick={() => onAsk(q)}
+                className="inline-flex min-h-[44px] max-w-full items-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-3 py-2 text-left text-xs font-semibold text-[#1E1810] transition hover:bg-white disabled:opacity-60"
+                onClick={() => {
+                  setQuestion(q);
+                  submit(q);
+                }}
               >
                 <span className="break-words">{q}</span>
               </button>
             ))}
           </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-export function LeoConversationPanel() {
-  const inputId = useId();
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<LeoConversationAnswer | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const lastSubmitted = useRef<string | null>(null);
-
-  function submit(q: string) {
-    const trimmed = q.trim();
-    if (!trimmed || pending) return;
-    if (lastSubmitted.current === trimmed && answer) return;
-
-    setError(null);
-    startTransition(async () => {
-      try {
-        const res = await fetch("/api/leo/conversation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          body: JSON.stringify({ question: trimmed }),
-        });
-        const data = (await res.json()) as ApiOk | ApiErr;
-        if (!res.ok || !data.ok || !("answer" in data)) {
-          const msg =
-            data && "message" in data && data.message
-              ? data.message
-              : "Could not retrieve an answer from available Leonix evidence.";
-          setError(msg);
-          return;
-        }
-        lastSubmitted.current = trimmed;
-        setAnswer(data.answer);
-      } catch {
-        setError("Could not reach LEO conversation. Try again.");
-      }
-    });
-  }
-
-  return (
-    <section className="min-w-0" aria-labelledby="leo-ask-heading">
-      <div className={`${adminCardBase} min-w-0 border-[#7A1E2C]/15 p-4 shadow-[0_12px_40px_-16px_rgba(122,30,44,0.18)] sm:p-5`}>
-        <div className="mb-3">
-          <h2 id="leo-ask-heading" className="text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">
-            Ask LEO
-          </h2>
-          <p className="mt-1 text-sm text-[#5C5346]">
-            Ask about priorities, follow-ups, decisions, or what LEO can do.
-          </p>
-          <p className="mt-0.5 text-[11px] text-[#5C5346]/80">Answers come from current Leonix evidence.</p>
-        </div>
-
-        <form
-          className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-stretch"
-          onSubmit={(e) => {
-            e.preventDefault();
-            lastSubmitted.current = null;
-            submit(question);
-          }}
-        >
-          <div className="min-w-0 flex-1">
-            <label htmlFor={inputId} className="sr-only">
-              Ask LEO
-            </label>
-            <input
-              id={inputId}
-              name="question"
-              type="text"
-              autoComplete="off"
-              disabled={pending}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="What needs my attention?"
-              className={`${adminInputClass} min-h-[48px] text-base`}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={pending || !question.trim()}
-            className={`${adminBtnPrimary} min-h-[48px] w-full shrink-0 px-6 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
-          >
-            Ask LEO
-          </button>
-        </form>
-
-        <div className="mt-3 flex min-w-0 flex-wrap gap-2" aria-label="Quick questions">
-          {QUICK_QUESTIONS.map((q) => (
-            <button
-              key={q}
-              type="button"
-              disabled={pending}
-              className="inline-flex min-h-[40px] max-w-full items-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-3 py-2 text-left text-xs font-semibold text-[#1E1810] transition hover:bg-white disabled:opacity-60"
-              onClick={() => {
-                setQuestion(q);
-                lastSubmitted.current = null;
-                submit(q);
-              }}
-            >
-              <span className="break-words">{q}</span>
-            </button>
-          ))}
-        </div>
-
-        {pending ? (
-          <p className="mt-3 text-sm font-medium text-[#5C5346]" aria-live="polite">
-            Checking Leonix evidence…
-          </p>
         ) : null}
+
+        <div className="mb-3 max-h-[min(62vh,720px)] min-h-[120px] overflow-y-auto overscroll-contain pr-1">
+          <LeoConversationStream
+            turns={turns}
+            pending={pending}
+            selectedCardId={selectedCardId}
+            onAsk={(q) => {
+              setQuestion(q);
+              submit(q);
+            }}
+            onSelectCard={onSelectCard}
+            onRetryUser={(localId) => {
+              const t = turns.find((x) => x.localId === localId);
+              if (t) submit(t.boundedText, { retryLocalId: localId });
+            }}
+          />
+        </div>
 
         {error ? (
           <p
-            className="mt-3 break-words rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900"
+            className="mb-3 break-words rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900"
             role="alert"
           >
             {error}
           </p>
         ) : null}
 
-        {answer ? (
-          <AnswerResult
-            answer={answer}
-            pending={pending}
-            onAsk={(q) => {
-              setQuestion(q);
-              lastSubmitted.current = null;
-              submit(q);
-            }}
-          />
-        ) : null}
+        <LeoComposer
+          value={question}
+          onChange={setQuestion}
+          onSubmit={() => submit(question)}
+          pending={pending || restoring}
+        />
       </div>
     </section>
   );

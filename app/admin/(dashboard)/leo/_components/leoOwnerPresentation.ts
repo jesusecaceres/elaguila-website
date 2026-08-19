@@ -236,3 +236,114 @@ export function sortCareSignalsForOwner(signals: LeoClientCareSignal[]): LeoClie
     return a.key.localeCompare(b.key);
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/* LEO-14.7 owner-facing card / action labels                                 */
+/* -------------------------------------------------------------------------- */
+
+export function presentEmailAttentionLabel(raw: string | null | undefined): string {
+  switch (raw) {
+    case "WAITING_ON_US":
+      return "Waiting on you";
+    case "NEEDS_REVIEW":
+      return "Needs review";
+    case "LIKELY_REPLY_NEEDED":
+      return "Likely reply needed";
+    case "INFORMATIONAL":
+      return "Informational";
+    case "AUTOMATED":
+      return "Automated";
+    case "RECEIPT":
+      return "Receipt";
+    case "SYSTEM":
+      return "System";
+    default:
+      return raw ? humanizeInternalLabel(raw) : "Email";
+  }
+}
+
+export function presentCommitmentKindLabel(kind: string | null | undefined): string {
+  switch (kind) {
+    case "EXTRACTED_CANDIDATE":
+      return "Possible commitment — needs confirmation";
+    case "EXPLICIT_OWNER":
+      return "Your commitment";
+    case "EXTERNAL_PARTY":
+      return "External-party commitment";
+    default:
+      return kind ? humanizeInternalLabel(kind) : "Commitment";
+  }
+}
+
+export function presentCommitmentDueState(state: string | null | undefined): string {
+  switch (state) {
+    case "OVERDUE":
+      return "Overdue";
+    case "DUE_TODAY":
+      return "Due today";
+    case "DUE_SOON":
+      return "Due soon";
+    case "FUTURE":
+      return "Upcoming";
+    case "NO_DUE_DATE":
+      return "No due date";
+    default:
+      return state ? humanizeInternalLabel(state) : "";
+  }
+}
+
+export function presentPreparedLifecycleLabel(status: string | null | undefined): {
+  primary: string;
+  secondary: string | null;
+  tone: "prepared" | "executed" | "verified" | "failed" | "neutral";
+} {
+  switch (status) {
+    case "PREPARED":
+      return { primary: "Prepared", secondary: "Not executed", tone: "prepared" };
+    case "EXECUTED":
+      return { primary: "Executed", secondary: "Verification pending", tone: "executed" };
+    case "VERIFIED":
+      return { primary: "Executed & verified", secondary: null, tone: "verified" };
+    case "FAILED":
+      return { primary: "Failed", secondary: null, tone: "failed" };
+    case "NOT_EXECUTED":
+      return { primary: "Not executed", secondary: null, tone: "neutral" };
+    default:
+      return {
+        primary: status ? humanizeInternalLabel(status) : "Prepared action",
+        secondary: null,
+        tone: "neutral",
+      };
+  }
+}
+
+export function presentGovernanceBanner(
+  level: string | null | undefined,
+): { show: boolean; text: string; tone: "yellow" | "red" | "never" } | null {
+  if (level === "YELLOW") {
+    return { show: true, text: "Prepared only — not executed", tone: "yellow" };
+  }
+  if (level === "RED") {
+    return { show: true, text: "Approval required", tone: "red" };
+  }
+  if (level === "NEVER") {
+    return { show: true, text: "Blocked by governance", tone: "never" };
+  }
+  return null;
+}
+
+export function formatOwnerDateTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  try {
+    return new Date(t).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return null;
+  }
+}

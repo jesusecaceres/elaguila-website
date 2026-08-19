@@ -86,13 +86,17 @@ export default async function LeoExecutiveConsolePage() {
       <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-4 sm:gap-5">
         <LeoExecutiveHeader />
 
-        <LeoConversationPanel />
+        <div className="min-w-0 lg:max-w-none">
+          <LeoConversationPanel />
+        </div>
 
-        <LeoAttentionPanel load={attention} />
+        <div className="grid min-w-0 gap-4 sm:gap-5">
+          <LeoAttentionPanel load={attention} />
 
-        <LeoClientCarePanel load={care} />
+          <LeoClientCarePanel load={care} />
 
-        <LeoMemoryPanel load={memory} />
+          <LeoMemoryPanel load={memory} />
+        </div>
 
         <section className={`${adminCardBase} min-w-0 space-y-4 p-3 sm:p-4`} aria-labelledby="leo-controls-heading">
           <h2 id="leo-controls-heading" className="text-sm font-bold text-[#1E1810]">
