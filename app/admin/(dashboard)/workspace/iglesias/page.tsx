@@ -3,6 +3,7 @@ import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
 import { adminBtnSecondary, adminCardBase, adminPartialBadgeClass } from "../../../_components/adminTheme";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { hasLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function AdminWorkspaceIglesiasPage() {
     : [];
 
   const pending = churches.filter((c) => c.approval_status === "pending").length;
+  const canPrayer = await hasLeonixAdminPermission("can_manage_prayer_wall");
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -31,7 +33,7 @@ export default async function AdminWorkspaceIglesiasPage() {
         eyebrow="Workspace · Iglesias"
         title="Iglesias"
         subtitle="Public landing `/iglesias` plus church applications. Approved+active+published rows are the only public inventory."
-        helperText="No fake churches. Prayer Wall is BUILD 02."
+        helperText="No fake churches. Prayer Wall moderation is a separate permissioned queue."
       />
 
       <AdminSectionOwnershipCallout
@@ -44,7 +46,7 @@ export default async function AdminWorkspaceIglesiasPage() {
           { label: "Public landing", href: "/iglesias" },
         ]}
         notYet={[
-          "Prayer Wall, acknowledgements, and Prayer Network routing (BUILD 02/03).",
+          "Prayer Network routing to church teams (BUILD 03).",
           "Verified badge workflow — column exists, not displayed.",
         ]}
       />
@@ -89,6 +91,11 @@ export default async function AdminWorkspaceIglesiasPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        {canPrayer ? (
+          <Link href="/admin/workspace/iglesias/prayers" className={adminBtnSecondary}>
+            Prayer queue
+          </Link>
+        ) : null}
         <Link href="/admin/workspace/iglesias/content" className={adminBtnSecondary}>
           Landing copy
         </Link>

@@ -1,4 +1,5 @@
 import type { PublicChurchCard } from "@/app/lib/iglesias/types";
+import type { PrayerPublicCard } from "@/app/lib/iglesias/prayerTypes";
 import type { IglesiasBrowseState } from "@/app/lib/iglesias/queryParams";
 import { getIglesiasCopy } from "@/app/lib/iglesias/copy";
 import { iglesiasHasActiveFilters } from "@/app/lib/iglesias/queryParams";
@@ -15,10 +16,12 @@ export function IglesiasLandingView({
   lang,
   browse,
   churches,
+  prayers,
 }: {
   lang: "es" | "en";
   browse: IglesiasBrowseState;
   churches: PublicChurchCard[];
+  prayers: PrayerPublicCard[];
 }) {
   const copy = getIglesiasCopy(lang);
   const churchHref = `/iglesias/registrar?lang=${lang}`;
@@ -41,7 +44,7 @@ export function IglesiasLandingView({
         </section>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
-          <IglesiasPrayerLane copy={copy} />
+          <IglesiasPrayerLane copy={copy} lang={lang} prayers={prayers} />
           <aside
             className="overflow-hidden rounded-[1.5rem] border border-[#D6C7AD]/80 bg-[#FAF6EE] p-6 shadow-[0_20px_50px_-36px_rgba(31,36,28,0.35)] sm:p-7"
             aria-labelledby="iglesias-lane-church-title"

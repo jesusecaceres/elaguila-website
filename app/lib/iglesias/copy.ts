@@ -104,14 +104,14 @@ const ES: IglesiasCopy = {
   lanePrayerEyebrow: "Oración y apoyo",
   lanePrayerTitle: "Pide oración. Recibe apoyo.",
   lanePrayerSupport:
-    "Estamos preparando un espacio seguro y respetuoso para pedir oración en público o en privado. Todavía no está activo. Nadie tiene que fingir fe para pertenecer aquí.",
+    "Este es un espacio seguro y respetuoso para pedir oración en público o en privado. Nadie tiene que fingir fe para pertenecer aquí.",
   lanePrayerInvite:
     "Sea cual sea tu historia, tu cultura o el lugar donde estás, la oración no pide permiso a un mapa.",
   comingSoon: "Próximamente",
   prayerCardWallTitle: "Muro de oración",
-  prayerCardWallBody: "Un lugar para compartir peticiones con respeto. Aún no acepta publicaciones.",
+  prayerCardWallBody: "Un lugar para compartir peticiones con respeto.",
   prayerCardRequestTitle: "Pedir oración",
-  prayerCardRequestBody: "Pronto podrás pedir oración de forma pública o privada. Hoy no hay formulario activo.",
+  prayerCardRequestBody: "Puedes pedir oración de forma pública o privada, también de manera anónima.",
   prayerCardNetworkTitle: "Red de oración",
   prayerCardNetworkBody: "Iglesias podrán unirse para orar con quienes lo pidan. La red todavía no está abierta.",
   laneChurchEyebrow: "Encuentra una iglesia",
@@ -136,7 +136,7 @@ const ES: IglesiasCopy = {
   needNavNote: "Imágenes editoriales de orientación. No son iglesias listadas.",
   prayerComingTitle: "Oración",
   prayerComingBody:
-    "Muy pronto podrás pedir oración aquí, en público o en privado. Esta página todavía no acepta peticiones.",
+    "Puedes pedir oración aquí, en público o en privado. La Red de Oración con iglesias llega en un siguiente paso.",
   discoveryTitle: "Iglesias cerca de ti",
   discoveryEmpty: "Aún estamos incorporando iglesias de nuestra comunidad.",
   discoveryEmptySupport:
@@ -198,13 +198,13 @@ const EN: IglesiasCopy = {
   lanePrayerEyebrow: "Prayer and support",
   lanePrayerTitle: "Ask for prayer. Receive support.",
   lanePrayerSupport:
-    "We are preparing a safe, respectful place to ask for prayer in public or in private. It is not live yet. You do not have to pretend faith to belong here.",
+    "This is a safe, respectful place to ask for prayer in public or in private. You do not have to pretend faith to belong here.",
   lanePrayerInvite: "Whatever your story, culture, or place on the map, prayer does not wait for proximity.",
   comingSoon: "Coming soon",
   prayerCardWallTitle: "Prayer wall",
-  prayerCardWallBody: "A respectful place to share requests. It does not accept posts yet.",
+  prayerCardWallBody: "A respectful place to share requests.",
   prayerCardRequestTitle: "Request prayer",
-  prayerCardRequestBody: "Soon you will be able to ask for prayer publicly or privately. There is no active form today.",
+  prayerCardRequestBody: "You can ask for prayer publicly or privately, including anonymously.",
   prayerCardNetworkTitle: "Prayer network",
   prayerCardNetworkBody: "Churches will be able to pray with those who ask. The network is not open yet.",
   laneChurchEyebrow: "Find a church",
@@ -229,7 +229,7 @@ const EN: IglesiasCopy = {
   needNavNote: "Editorial navigation imagery. These are not listed churches.",
   prayerComingTitle: "Prayer",
   prayerComingBody:
-    "Soon you will be able to ask for prayer here, in public or in private. This page does not accept prayer requests yet.",
+    "You can ask for prayer here, in public or in private. Church Prayer Network delivery comes in a later step.",
   discoveryTitle: "Churches near you",
   discoveryEmpty: "We are still welcoming churches from our community.",
   discoveryEmptySupport:

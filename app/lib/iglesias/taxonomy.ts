@@ -44,8 +44,8 @@ export const IGLESIAS_NEED_CATALOG: readonly IglesiasNeedCopy[] = [
     key: "PRAYER",
     labelEs: "Necesito oración",
     labelEn: "I need prayer",
-    helpEs: "Pide oración. El muro de oración llega en el siguiente paso.",
-    helpEn: "Ask for prayer. The prayer wall arrives in the next step.",
+    helpEs: "Pide oración en el muro, en público o en privado.",
+    helpEn: "Ask for prayer on the wall, in public or in private.",
     landingTile: true,
   },
   {

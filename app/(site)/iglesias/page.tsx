@@ -5,6 +5,8 @@ import { normalizeLang } from "@/app/lib/language";
 import { buildPublicPillarMetadata } from "@/app/lib/leonix/publicPillarSeo";
 import { parseIglesiasBrowseState } from "@/app/lib/iglesias/queryParams";
 import { listPublicChurches } from "@/app/lib/iglesias/churchQueries";
+import { listPublicPrayers } from "@/app/lib/iglesias/prayerQueries";
+import { readPrayerOwnerFromCookies } from "@/app/lib/iglesias/prayerRequestContext";
 import { IglesiasLandingView } from "./IglesiasLandingView";
 
 export const dynamic = "force-dynamic";
@@ -29,11 +31,13 @@ export default async function Page(props: { searchParams?: Promise<Record<string
   // so stale site_section_content cannot dump unstyled directory text over the page.
   await getSiteSectionPayload("iglesias_page");
   const churches = await listPublicChurches(browse, uiLang);
+  const owner = await readPrayerOwnerFromCookies();
+  const prayers = await listPublicPrayers({ sessionHash: owner.sessionHash, userId: null });
 
   return (
     <>
       <PublicPillarJsonLd id="iglesias" lang={uiLang} />
-      <IglesiasLandingView lang={uiLang} browse={browse} churches={churches} />
+      <IglesiasLandingView lang={uiLang} browse={browse} churches={churches} prayers={prayers} />
     </>
   );
 }
