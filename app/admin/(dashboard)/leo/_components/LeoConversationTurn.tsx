@@ -7,6 +7,7 @@ import type {
 } from "@/app/leo/_lib/leoTypes";
 
 import { LeoResultCardView } from "./LeoResultCard";
+import { LeoSpeechResponseControls } from "./LeoVoiceControls";
 import {
   formatOwnerDateTime,
   presentGovernanceBanner,
@@ -194,6 +195,8 @@ export function LeoConversationTurnView({
             </div>
           </details>
         ) : null}
+
+        {isLatestLeo && answer ? <LeoSpeechResponseControls answer={answer} /> : null}
 
         {suggestions.length > 0 ? (
           <div>

@@ -2,7 +2,11 @@
 
 import { useId } from "react";
 
+import type { LeoConversationLanguage } from "@/app/leo/_lib/leoTypes";
+
 import { adminBtnPrimary, adminBtnSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
+
+import { LeoVoiceDictationControl } from "./LeoVoiceControls";
 
 export function LeoComposer({
   value,
@@ -11,6 +15,7 @@ export function LeoComposer({
   pending,
   disabled,
   offline,
+  speechLanguage,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -18,6 +23,7 @@ export function LeoComposer({
   pending: boolean;
   disabled?: boolean;
   offline?: boolean;
+  speechLanguage?: LeoConversationLanguage;
 }) {
   const inputId = useId();
 
@@ -54,13 +60,21 @@ export function LeoComposer({
           className={`${adminInputClass} min-h-[52px] resize-y text-base leading-relaxed`}
         />
         </div>
-        <button
-          type="submit"
-          disabled={pending || !value.trim()}
-          className={`${adminBtnPrimary} min-h-[48px] w-full shrink-0 px-6 disabled:cursor-not-allowed disabled:opacity-60 sm:mb-0.5 sm:w-auto`}
-        >
-          {pending ? "Asking…" : offline ? "Saved offline" : "Ask LEO"}
-        </button>
+        <div className="flex shrink-0 items-end gap-2 sm:mb-0.5">
+          <LeoVoiceDictationControl
+            composerValue={value}
+            onComposerChange={onChange}
+            pending={pending || disabled}
+            speechLanguage={speechLanguage}
+          />
+          <button
+            type="submit"
+            disabled={pending || !value.trim()}
+            className={`${adminBtnPrimary} min-h-[48px] min-w-[44px] w-full shrink-0 px-6 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto`}
+          >
+            {pending ? "Asking…" : offline ? "Saved offline" : "Ask LEO"}
+          </button>
+        </div>
       </div>
       <p className="mt-1.5 text-[10px] text-[#5C5346]/80">
         {offline

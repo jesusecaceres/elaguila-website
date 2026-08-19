@@ -443,6 +443,11 @@ const allowed = new Set([
   "app/leo/_lib/leoPwaCapabilities.ts",
   "app/admin/(dashboard)/leo/_components/LeoPwaShell.tsx",
   "scripts/verify-leo-14-8-pwa-shell.ts",
+  // LEO-14.9 voice
+  "app/leo/_lib/leoSpeechRecognition.ts",
+  "app/leo/_lib/leoSpeechSynthesis.ts",
+  "app/admin/(dashboard)/leo/_components/LeoVoiceControls.tsx",
+  "scripts/verify-leo-14-9-voice.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);
