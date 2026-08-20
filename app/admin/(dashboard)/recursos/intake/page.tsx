@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
-import { adminCardBase, adminBtnPrimary, adminStubBadgeClass } from "@/app/admin/_components/adminTheme";
+import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass } from "@/app/admin/_components/adminTheme";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
+import { analyzeUrlIntakeAction } from "@/app/admin/recursosUrlIntakeAction";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,13 @@ function IntakeChoiceCard({
   description,
   status,
   action,
+  children,
 }: {
   title: string;
   description: string;
   status: "real" | "pending";
   action: { label: string; href: string } | null;
+  children?: React.ReactNode;
 }) {
   return (
     <div className={`${adminCardBase} flex flex-col gap-3 p-5`}>
@@ -24,19 +27,21 @@ function IntakeChoiceCard({
         {status === "pending" ? <span className={adminStubBadgeClass}>Próximamente</span> : null}
       </div>
       <p className="text-sm leading-relaxed text-[#5C5346]">{description}</p>
+      {children}
       {action ? (
         <Link href={action.href} className={`${adminBtnPrimary} mt-auto w-fit`}>
           {action.label}
         </Link>
-      ) : (
+      ) : !children ? (
         <p className="mt-auto text-xs font-semibold text-[#8B7E70]">Aún no disponible en esta puerta (Gate) del sistema.</p>
-      )}
+      ) : null}
     </div>
   );
 }
 
-export default async function RecursosIntakePage() {
+export default async function RecursosIntakePage(props: { searchParams?: Promise<{ error?: string; jobId?: string }> }) {
   await requireLeonixAdminPermission("can_manage_recursos");
+  const sp = props.searchParams ? await props.searchParams : {};
 
   return (
     <div>
@@ -52,13 +57,20 @@ export default async function RecursosIntakePage() {
       />
 
       <AdminPagePurposeCard
-        title="Intake Center — Gate 2"
-        purpose="Punto de entrada único para los cuatro tipos de intake aprobados. En este Gate, solo la entrada manual está completamente activa; PDF y URL muestran su estado honesto en lugar de simular un procesamiento que aún no existe."
-        dataSource="No lee ni escribe ninguna tabla nueva por sí misma — cada opción enruta a su propio flujo real o muestra su estado pendiente."
+        title="Intake Center — Gate 3"
+        purpose="Punto de entrada único para los cuatro tipos de intake aprobados. Intake por URL está activo: Leonix obtiene la página oficial de forma segura, propone campos (determinísticamente y, cuando está disponible, con asistencia de IA) y crea un candidato revisable. Nada se verifica ni se publica automáticamente."
+        dataSource="URL: fetch server-side seguro + Vercel AI Gateway (si está configurado) -> public.source_documents + public.resource_intake_jobs + public.community_resource_candidate_reviews."
         status="real"
-        safeActions={["Elegir un tipo de intake", "Ir a la entrada manual existente", "Ver la cola de solicitudes de socios"]}
-        nextGate="Gate 3 activa el intake por URL. Gate 4 activa el intake por PDF (almacenamiento + extracción)."
+        safeActions={["Analizar una URL oficial", "Ir a la entrada manual existente", "Ver la cola de solicitudes de socios"]}
+        nextGate="Gate 4 activa el intake por PDF (almacenamiento + extracción)."
+        warningNote="La IA solo propone — nunca verifica ni publica. Cada candidato queda en estado 'researching', sin verificar, esperando revisión humana."
       />
+
+      {sp.error ? (
+        <p className="mb-6 rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+          No se pudo analizar la URL: {sp.error}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <IntakeChoiceCard
@@ -67,12 +79,21 @@ export default async function RecursosIntakePage() {
           status="pending"
           action={null}
         />
-        <IntakeChoiceCard
-          title="Sitio web / URL"
-          description="Pega la URL de una organización y el sistema prepara un candidato para revisión, con investigación asistida."
-          status="pending"
-          action={null}
-        />
+
+        <IntakeChoiceCard title="Sitio web / URL" description="Pega la URL oficial de una organización o programa. Leonix preparará un candidato — el resultado sigue requiriendo verificación humana. Nada se publica automáticamente." status="real" action={null}>
+          <form action={analyzeUrlIntakeAction} className="mt-1 flex flex-col gap-3">
+            <div>
+              <label htmlFor="url" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+                URL oficial
+              </label>
+              <input id="url" name="url" type="url" required placeholder="https://organizacion.org/programa" className={adminInputClass} />
+            </div>
+            <button type="submit" className={`${adminBtnPrimary} w-fit`}>
+              Analizar sitio
+            </button>
+          </form>
+        </IntakeChoiceCard>
+
         <IntakeChoiceCard
           title="Entrada manual"
           description="Escribe directamente los datos de un recurso — el flujo existente, sin necesidad de código."

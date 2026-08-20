@@ -54,6 +54,87 @@ export async function dbCountActiveResourceIntakeJobs(): Promise<{ count: number
   }
 }
 
+export type CreateResourceIntakeJobInput = {
+  sourceType: "pdf" | "url" | "manual" | "partner_referral";
+  sourceDocumentId?: string | null;
+  createdBy: string | null;
+};
+
+export type ResourceIntakeJobDbResult = { ok: true; id: string } | { ok: false; error: string };
+
+/** Creates a job row with status='processing' and started_at=now(). Gate 3 writes only 'url' jobs. */
+export async function dbCreateResourceIntakeJob(input: CreateResourceIntakeJobInput): Promise<ResourceIntakeJobDbResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "Supabase is not configured." };
+  try {
+    const supabase = getAdminSupabase();
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert({
+        source_type: input.sourceType,
+        source_document_id: input.sourceDocumentId ?? null,
+        status: "processing",
+        created_by: input.createdBy,
+        started_at: now,
+      })
+      .select("id")
+      .maybeSingle();
+    if (error) return { ok: false, error: error.message };
+    if (!data) return { ok: false, error: "Job creation failed — no row returned." };
+    return { ok: true, id: String((data as { id: string }).id) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Job creation failed." };
+  }
+}
+
+export type UpdateResourceIntakeJobInput = {
+  status?: "processing" | "needs_review" | "completed" | "failed" | "cancelled";
+  provider?: string | null;
+  pagesProcessed?: number;
+  candidatesCreatedCount?: number;
+  matchesFoundCount?: number;
+  errorMessage?: string | null;
+  completed?: boolean;
+};
+
+export async function dbUpdateResourceIntakeJob(id: string, input: UpdateResourceIntakeJobInput): Promise<ResourceIntakeJobDbResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "Supabase is not configured." };
+  try {
+    const supabase = getAdminSupabase();
+    const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (input.status !== undefined) row.status = input.status;
+    if (input.provider !== undefined) row.provider = input.provider;
+    if (input.pagesProcessed !== undefined) row.pages_processed = input.pagesProcessed;
+    if (input.candidatesCreatedCount !== undefined) row.candidates_created_count = input.candidatesCreatedCount;
+    if (input.matchesFoundCount !== undefined) row.matches_found_count = input.matchesFoundCount;
+    if (input.errorMessage !== undefined) row.error_message = input.errorMessage;
+    if (input.completed) row.completed_at = new Date().toISOString();
+
+    const { data, error } = await supabase.from(TABLE).update(row).eq("id", id).select("id").maybeSingle();
+    if (error) return { ok: false, error: error.message };
+    if (!data) return { ok: false, error: "Job not found." };
+    return { ok: true, id: String((data as { id: string }).id) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Job update failed." };
+  }
+}
+
+export async function dbGetResourceIntakeJob(id: string): Promise<ResourceIntakeJobRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("id, source_type, status, provider, pages_processed, candidates_created_count, matches_found_count, error_message, created_at, updated_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    return rowFromDb(data as Record<string, unknown>);
+  } catch {
+    return null;
+  }
+}
+
 export async function dbListRecentResourceIntakeJobs(limit = 20): Promise<{ rows: ResourceIntakeJobRow[]; unavailable: boolean }> {
   if (!isSupabaseAdminConfigured()) return { rows: [], unavailable: true };
   try {

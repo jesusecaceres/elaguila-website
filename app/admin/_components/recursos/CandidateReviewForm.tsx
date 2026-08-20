@@ -40,11 +40,20 @@ function Field({
   );
 }
 
-export function CandidateReviewForm({ candidateId, review }: { candidateId: string; review: CandidateReview | null }) {
+export function CandidateReviewForm({
+  candidateId,
+  review,
+  action = saveCandidateReviewAction,
+}: {
+  candidateId: string;
+  review: CandidateReview | null;
+  /** Defaults to the JSON-candidate save action; URL-sourced candidates pass their own action. */
+  action?: (formData: FormData) => void | Promise<void>;
+}) {
   const confirmedSet = new Set(review?.fieldsConfirmed ?? []);
 
   return (
-    <form action={saveCandidateReviewAction} className={`${adminCardBase} flex flex-col gap-4 p-4 sm:p-5`}>
+    <form action={action} className={`${adminCardBase} flex flex-col gap-4 p-4 sm:p-5`}>
       <input type="hidden" name="candidateId" value={candidateId} />
 
       <h3 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Current official verification evidence</h3>

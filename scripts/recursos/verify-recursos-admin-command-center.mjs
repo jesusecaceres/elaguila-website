@@ -122,10 +122,10 @@ if (exists(INTAKE_PATH)) {
   assert("intake page does not import or call any PDF processing function", !/pdfExtraction|processDocument|DocumentProcessorServiceClient/.test(src));
   assert("intake page does not import or call any URL AI extraction function", !/urlExtraction|extractFromUrl|geminiExtract/.test(src));
   assert(
-    "intake page marks PDF and URL as pending (status=\"pending\" renders Próximamente)",
-    /title="PDF"[\s\S]*?status="pending"/.test(src) && /title="Sitio web \/ URL"[\s\S]*?status="pending"/.test(src) && /Próximamente/.test(src),
+    "intake page marks PDF as pending (status=\"pending\" renders Próximamente) — URL went live in Gate 3",
+    /title="PDF"[\s\S]*?status="pending"/.test(src) && /Próximamente/.test(src),
   );
-  assert("intake page shows manual entry as the one real, actionable path", /\/admin\/recursos\/nuevo/.test(src));
+  assert("intake page still links to the manual-entry route", /\/admin\/recursos\/nuevo/.test(src));
 }
 
 // --- researching disposition supported in candidate UI -----------------------------------------

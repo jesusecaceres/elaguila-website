@@ -30,8 +30,11 @@ export type CandidateResourceRecord = {
   candidateId: string;
 
   // SOURCE IDENTITY
-  sourceDocument: "scc-community-resource-guide-2023";
-  sourceYear: 2023;
+  // Gate 3 (URL intake) extends this beyond the original single PDF literal — "url-intake"
+  // marks a candidate discovered by fetching an official URL rather than the 2023 PDF guide.
+  // Existing PDF candidates are unaffected: they always carry the original literal value.
+  sourceDocument: "scc-community-resource-guide-2023" | "url-intake";
+  sourceYear: 2023 | null;
   sourcePages: number[];
   sourceSections: string[];
   sourceRawCategory?: string | null;

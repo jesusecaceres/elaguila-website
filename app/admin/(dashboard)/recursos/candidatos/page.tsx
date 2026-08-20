@@ -9,6 +9,19 @@ import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 import type { CandidateResourceRecord } from "@/app/lib/recursos/sourceIngestion";
 import candidatesData from "@/data/recursos/candidates/scc-community-resource-guide-2023.json";
+import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
+
+const MATCH_BADGE: Record<string, string> = {
+  NEW: "border border-emerald-200 bg-emerald-50 text-emerald-950",
+  LIKELY_MATCH: "border border-amber-200 bg-amber-50 text-amber-950",
+  POSSIBLE_DUPLICATE: "border border-rose-200 bg-rose-50 text-rose-900",
+  EXISTING_RESOURCE_UPDATE: "border border-sky-200 bg-sky-50 text-sky-950",
+};
+
+function extractMatchClassification(notes: string | null): string {
+  const m = /Clasificación de coincidencia:\s*([A-Z_]+)/.exec(notes ?? "");
+  return m?.[1] ?? "NEW";
+}
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +41,13 @@ export default async function RecursosCandidatesAdminPage(props: { searchParams?
 
   const { rows: reviews, unavailable } = await dbListCandidateReviews();
   const reviewByCandidateId = new Map(reviews.map((r) => [r.candidateId, r]));
+
+  // Gate 3 — URL-sourced candidates live only in the DB (no static JSON entry exists for them),
+  // so they are listed separately here rather than joined into the PDF candidate table above.
+  const urlCandidates = reviews
+    .filter((r) => r.candidateId.startsWith("url-"))
+    .map((review) => ({ review, proposal: decodeProposalFromDiscrepancies(review.discrepanciesFromPdf) }))
+    .sort((a, b) => new Date(b.review.updatedAt).getTime() - new Date(a.review.updatedAt).getTime());
 
   const joined = CANDIDATES.map((candidate) => ({
     candidate,
@@ -166,6 +186,77 @@ export default async function RecursosCandidatesAdminPage(props: { searchParams?
           </div>
         ))}
       </div>
+
+      {urlCandidates.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Candidatos de intake por URL ({urlCandidates.length})</h2>
+          <div className={`${adminDesktopTableOnly} ${adminTableWrap}`}>
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-[color:var(--lx-border)]/70 text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                  <th className="px-4 py-3">Organización</th>
+                  <th className="px-4 py-3">Fuente</th>
+                  <th className="px-4 py-3">Coincidencia</th>
+                  <th className="px-4 py-3">Disposición</th>
+                  <th className="px-4 py-3">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {urlCandidates.map(({ review, proposal }) => {
+                  const classification = extractMatchClassification(review.verificationNotes);
+                  return (
+                    <tr key={review.candidateId} className={adminTableZebraRow}>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-[#1E1810]">{proposal.organizationName || review.candidateId}</p>
+                        {review.currentSourceUrl ? <p className="text-xs text-[#7A7164]">{review.currentSourceUrl}</p> : null}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[#7A7164]">URL</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${MATCH_BADGE[classification] ?? ""}`}>
+                          {classification}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${DISPOSITION_BADGE[review.disposition] ?? ""}`}>
+                          {candidateReviewDispositionLabel(review.disposition)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/admin/recursos/candidatos/url/${encodeURIComponent(review.candidateId)}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                          Revisar
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className={adminMobileCardList}>
+            {urlCandidates.map(({ review, proposal }) => {
+              const classification = extractMatchClassification(review.verificationNotes);
+              return (
+                <div key={review.candidateId} className="rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-[#1E1810]">{proposal.organizationName || review.candidateId}</p>
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${DISPOSITION_BADGE[review.disposition] ?? ""}`}>
+                      {candidateReviewDispositionLabel(review.disposition)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[#7A7164]">
+                    <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${MATCH_BADGE[classification] ?? ""}`}>{classification}</span>
+                  </p>
+                  <div className="mt-3">
+                    <Link href={`/admin/recursos/candidatos/url/${encodeURIComponent(review.candidateId)}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                      Revisar
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
