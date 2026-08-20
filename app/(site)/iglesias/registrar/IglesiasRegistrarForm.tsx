@@ -5,6 +5,7 @@ import Link from "next/link";
 import { IGLESIAS_NEED_CATALOG } from "@/app/lib/iglesias/taxonomy";
 import { getIglesiasCopy } from "@/app/lib/iglesias/copy";
 import { IglesiasPageShell } from "../components/IglesiasPageShell";
+import { IglesiasLogoUploadField } from "./IglesiasLogoUploadField";
 
 const DAYS_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const DAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -13,6 +14,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
   const copy = getIglesiasCopy(lang);
   const days = lang === "en" ? DAYS_EN : DAYS_ES;
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
+  const [logoUrl, setLogoUrl] = useState("");
   const [services, setServices] = useState([{ dayOfWeek: 0, startsAt: "10:00", language: "es", mode: "in_person", label: "" }]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -43,7 +45,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
       facebook: String(fd.get("facebook") ?? ""),
       instagram: String(fd.get("instagram") ?? ""),
       youtube: String(fd.get("youtube") ?? ""),
-      logoUrl: String(fd.get("logoUrl") ?? ""),
+      logoUrl,
       heroUrl: String(fd.get("heroUrl") ?? ""),
       applicantName: String(fd.get("applicantName") ?? ""),
       applicantEmail: String(fd.get("applicantEmail") ?? ""),
@@ -278,10 +280,13 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
               <span className={label}>YouTube</span>
               <input name="youtube" type="url" className={field} />
             </label>
-            <label>
-              <span className={label}>{lang === "en" ? "Logo image URL" : "URL del logo"}</span>
-              <input name="logoUrl" type="url" className={field} placeholder="https://" />
-            </label>
+            <IglesiasLogoUploadField
+              lang={lang}
+              logoUrl={logoUrl}
+              onLogoUrlChange={setLogoUrl}
+              fieldClass={field}
+              labelClass={label}
+            />
             <label>
               <span className={label}>{lang === "en" ? "Hero image URL" : "URL de imagen principal"}</span>
               <input name="heroUrl" type="url" className={field} placeholder="https://" />

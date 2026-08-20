@@ -278,10 +278,21 @@ export default async function AdminIglesiasChurchPage(props: {
           {(ministries ?? []).length ? (ministries ?? []).map((m) => <li key={m.id}>{m.need_key}</li>) : <li>None</li>}
         </ul>
         <h2 className="mt-4 font-bold">Media</h2>
-        <ul className="mt-2 list-disc pl-5">
+        <ul className="mt-2 space-y-3">
           {(media ?? []).length ? (media ?? []).map((m) => (
-            <li key={m.id}>
-              {m.role}: {m.url}
+            <li key={m.id} className="rounded-lg border border-[#E8DFD0] p-3">
+              <p className="font-semibold capitalize">{String(m.role)}</p>
+              {String(m.role) === "logo" || String(m.role) === "hero" ? (
+                <div className="mt-2 flex items-start gap-3">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-[#E8DFD0] bg-white p-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={String(m.url)} alt="" className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <p className="min-w-0 break-all text-xs text-[#5C5346]">{String(m.url)}</p>
+                </div>
+              ) : (
+                <p className="mt-1 break-all text-xs">{String(m.url)}</p>
+              )}
             </li>
           )) : <li>None</li>}
         </ul>
