@@ -112,7 +112,7 @@ export type LeoSpeechRecognitionCallbacks = {
   onInterim?: (text: string) => void;
   onFinal: (text: string) => void;
   onListeningChange?: (listening: boolean) => void;
-  onError?: (message: string) => void;
+  onError?: (message: string, code?: string) => void;
 };
 
 export type LeoSpeechRecognitionSession = {
@@ -160,7 +160,7 @@ export function createLeoSpeechRecognitionSession(
 
       recognition.onerror = (event) => {
         if (event.error === "aborted") return;
-        callbacks.onError?.(mapLeoSpeechRecognitionError(event.error));
+        callbacks.onError?.(mapLeoSpeechRecognitionError(event.error), event.error);
       };
 
       recognition.onresult = (event) => {
@@ -183,6 +183,7 @@ export function createLeoSpeechRecognitionSession(
   return {
     start() {
       if (disposed) return;
+      if (active) return;
       const rec = ensure();
       if (!rec) return;
       try {

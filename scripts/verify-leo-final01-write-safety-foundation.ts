@@ -7,7 +7,7 @@
  *  4. concurrent/duplicate claim cannot produce two execution claims (atomic CAS)
  *  5. provider failure lifecycle cannot become VERIFIED success
  *  6. WRITE/EXECUTE remains externally disabled in this build
- * Run: npx tsx scripts/verify-leo-15-write-safety-foundation.ts
+ * Run: npx tsx scripts/verify-leo-final01-write-safety-foundation.ts
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -122,7 +122,7 @@ check(branch === EXPECTED_BRANCH, "correct LEO final-closeout branch");
   check(/sanitizeLeoReceiptSourceRefs\(input\.sourceRefs\)/.test(repoSrc), "createLeoDurableToolReceipt routes sourceRefs through sanitizer");
   check(/sanitizeLeoReceiptText\(patch\.safe_error_class\)/.test(repoSrc), "transitionLeoDurableToolReceipt routes safe_error_class through sanitizer");
 
-  const migration = src("supabase/migrations/20260819222000_leo15_action_execution_idempotency.sql");
+  const migration = src("supabase/migrations/20260819222000_leo_final01_action_execution_idempotency.sql");
   check(/source_refs_bounded/.test(migration), "DB-level source_refs length bound present");
 }
 
@@ -149,7 +149,7 @@ check(branch === EXPECTED_BRANCH, "correct LEO final-closeout branch");
   );
   check(/error\?\.code === "23505"/.test(repoSrc), "createLeoDurableToolReceipt handles the unique-constraint race as a replay, not a failure");
 
-  const migration = src("supabase/migrations/20260819222000_leo15_action_execution_idempotency.sql");
+  const migration = src("supabase/migrations/20260819222000_leo_final01_action_execution_idempotency.sql");
   check(
     /leo_tool_receipts_actor_correlation_unique/.test(migration) && /UNIQUE \(actor_auth_user_id, correlation_id\)/.test(migration),
     "DB unique constraint on (actor_auth_user_id, correlation_id) present",

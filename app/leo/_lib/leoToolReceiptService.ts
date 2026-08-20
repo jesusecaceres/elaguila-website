@@ -29,7 +29,7 @@ async function requireActorId(): Promise<string> {
 }
 
 /**
- * LEO-15: idempotent by (actor, correlationId) — see
+ * LEO FINAL-01: idempotent by (actor, correlationId) — see
  * createLeoDurableToolReceipt. Callers that care whether this returned a
  * fresh REQUESTED receipt vs. replayed an existing one MUST check
  * `idempotentReplay` before proceeding, since a replayed receipt may already

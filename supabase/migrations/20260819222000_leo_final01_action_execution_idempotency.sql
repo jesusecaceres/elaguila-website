@@ -1,4 +1,4 @@
--- LEO-15 action execution idempotency foundation.
+-- LEO FINAL-01 action execution idempotency foundation.
 -- Additive only. No existing LEO table is redefined or dropped.
 -- Enforces at most one durable receipt per (actor, correlation_id) at the
 -- database layer, closing the gap where correlation IDs could otherwise be
@@ -12,7 +12,7 @@ ALTER TABLE public.leo_tool_receipts
   UNIQUE (actor_auth_user_id, correlation_id);
 
 COMMENT ON CONSTRAINT leo_tool_receipts_actor_correlation_unique ON public.leo_tool_receipts IS
-  'LEO-15: one durable receipt per actor per correlation_id. Callers must derive a '
+  'LEO FINAL-01: one durable receipt per actor per correlation_id. Callers must derive a '
   'deterministic (non-timestamp) correlation_id from stable action identity so retries '
   'collide into the same row instead of creating a duplicate execution.';
 

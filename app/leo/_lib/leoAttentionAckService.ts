@@ -183,7 +183,7 @@ export async function leoExecuteInternalAttentionAction(input: {
   if (!sourceKind || !sourceKey) return { ok: false, error: "source_required" };
 
   const governanceLevel = leoGovernanceForExecutiveAction(actionType);
-  // LEO-15: deterministic (no timestamp) so a duplicate click / retry for the
+  // LEO FINAL-01: deterministic (no timestamp) so a duplicate click / retry for the
   // exact same action+source collides into the same receipt row instead of
   // creating a second execution. Genuinely distinct occurrences must already
   // carry a distinct sourceKey.

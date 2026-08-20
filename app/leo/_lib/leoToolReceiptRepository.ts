@@ -118,14 +118,14 @@ export type LeoCreateDurableReceiptResult =
   | { ok: false; error: string };
 
 /**
- * LEO-15: idempotent by (actor, correlation_id). Callers MUST derive
+ * LEO FINAL-01: idempotent by (actor, correlation_id). Callers MUST derive
  * correlationId deterministically from stable action identity (never from
  * Date.now()/a per-call nonce) — that is what makes this a true idempotency
  * key rather than a random label. A retry with the same correlationId
  * returns the existing receipt (idempotentReplay: true) instead of creating
  * a second execution record. DB unique constraint
  * leo_tool_receipts_actor_correlation_unique (migration
- * 20260819222000_leo15_action_execution_idempotency.sql) is the authoritative
+ * 20260819222000_leo_final01_action_execution_idempotency.sql) is the authoritative
  * backstop for the race between the pre-check below and the insert.
  */
 export async function createLeoDurableToolReceipt(
@@ -298,7 +298,7 @@ type TransitionPatch = {
  * Apply a lifecycle transition. Never clears executed_at / verified_at once set.
  * Never rewrites tool_id, actor, governance, or requested_payload_summary.
  *
- * LEO-15: the UPDATE is guarded by `.eq("lifecycle_state", existing.lifecycleState)`
+ * LEO FINAL-01: the UPDATE is guarded by `.eq("lifecycle_state", existing.lifecycleState)`
  * (read-then-CAS). If a concurrent transition already moved the row off the
  * state this call read, the WHERE clause matches zero rows and this returns
  * "concurrent_state_conflict" instead of silently overwriting whatever the

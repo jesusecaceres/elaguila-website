@@ -1,5 +1,5 @@
 /**
- * LEO-15: central receipt-evidence sanitization boundary (fixture-safe, no I/O,
+ * LEO FINAL-01: central receipt-evidence sanitization boundary (fixture-safe, no I/O,
  * deliberately NOT server-only so it is directly unit-testable). Every call
  * site that writes into leo_tool_receipts (create or transition) must route
  * free-text/evidence fields through here first, via leoToolReceiptRepository.ts.

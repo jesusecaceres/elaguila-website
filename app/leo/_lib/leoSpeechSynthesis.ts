@@ -76,6 +76,9 @@ export function resolveLeoSpeechSynthesisLang(
 
 export type LeoSpeechSynthesisCallbacks = {
   onStateChange?: (state: LeoSpeechPlaybackState) => void;
+  /** Fires on actual utterance completion — not a guessed timeout. */
+  onEnd?: () => void;
+  onError?: () => void;
 };
 
 export type LeoSpeechSynthesisController = {
@@ -103,6 +106,7 @@ export function createLeoSpeechSynthesisController(
   let currentUtterance: SpeechSynthesisUtterance | null = null;
   let lastText = "";
   let disposed = false;
+  let ignoreEnd = false;
 
   const setState = (next: LeoSpeechPlaybackState) => {
     state = next;
@@ -110,6 +114,7 @@ export function createLeoSpeechSynthesisController(
   };
 
   const cancelOwned = () => {
+    ignoreEnd = true;
     try {
       synth.cancel();
     } catch {
@@ -131,18 +136,29 @@ export function createLeoSpeechSynthesisController(
     utterance.lang = lang;
     currentUtterance = utterance;
 
-    utterance.onstart = () => setState("SPEAKING");
+    utterance.onstart = () => {
+      ignoreEnd = false;
+      setState("SPEAKING");
+    };
     utterance.onend = () => {
-      if (currentUtterance === utterance) {
-        currentUtterance = null;
-        setState("IDLE");
+      if (currentUtterance !== utterance) return;
+      currentUtterance = null;
+      setState("IDLE");
+      if (ignoreEnd) {
+        ignoreEnd = false;
+        return;
       }
+      callbacks.onEnd?.();
     };
     utterance.onerror = () => {
-      if (currentUtterance === utterance) {
-        currentUtterance = null;
-        setState("IDLE");
+      if (currentUtterance !== utterance) return;
+      currentUtterance = null;
+      setState("IDLE");
+      if (ignoreEnd) {
+        ignoreEnd = false;
+        return;
       }
+      callbacks.onError?.();
     };
 
     synth.speak(utterance);

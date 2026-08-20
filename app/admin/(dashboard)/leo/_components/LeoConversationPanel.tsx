@@ -7,6 +7,7 @@ import type {
   LeoConversationAnswer,
   LeoConversationClientContext,
   LeoConversationEntityRef,
+  LeoConversationMode,
   LeoConversationPersistenceState,
   LeoResultCard,
 } from "@/app/leo/_lib/leoTypes";
@@ -14,6 +15,7 @@ import type {
 import { LeoComposer, LeoNewConversationButton } from "./LeoComposer";
 import { LeoConversationStream } from "./LeoConversationStream";
 import type { LeoStreamTurn } from "./LeoConversationTurn";
+import { LeoHandsFreeMode } from "./LeoHandsFreeMode";
 import { LeoSessionStatus } from "./LeoSessionStatus";
 import {
   LEO_OFFLINE_SUBMIT_MESSAGE,
@@ -49,7 +51,7 @@ type ApiErr = {
 
 type HistoryOk = {
   ok: true;
-  session: { id: string };
+  session: { id: string; mode?: string };
   turns: Array<{
     id: string;
     role: "USER" | "LEO" | "SYSTEM";
@@ -132,6 +134,9 @@ export function LeoConversationPanel() {
   const [selectedEntityRef, setSelectedEntityRef] = useState<LeoConversationEntityRef | null>(null);
   const [pending, startTransition] = useTransition();
   const [online, setOnline] = useState(true);
+  const [handsFree, setHandsFree] = useState(false);
+  const [showFullConversation, setShowFullConversation] = useState(false);
+  const [handsFreePersistWarning, setHandsFreePersistWarning] = useState<string | null>(null);
   const bootstrapped = useRef(false);
   const composerFocusRef = useRef(false);
 
@@ -179,6 +184,7 @@ export function LeoConversationPanel() {
         setSessionId(data.session.id);
         setTurns(historyToStream(data.turns));
         setPersistenceState("PERSISTED");
+        // Never auto-start Hands-Free from restored session.mode.
       } catch {
         writeSessionPointer(null);
         setHistoryWarning("Previous conversation couldn’t be restored. Starting fresh.");
@@ -192,6 +198,57 @@ export function LeoConversationPanel() {
     writeDraft(question);
   }, [question]);
 
+  const persistConversationMode = useCallback(async (mode: LeoConversationMode) => {
+    if (!sessionId) {
+      setHandsFreePersistWarning(
+        "Hands-Free is on this page only — conversation mode wasn’t saved.",
+      );
+      return;
+    }
+    try {
+      const res = await fetch("/api/leo/conversation/session", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ sessionId, mode }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setHandsFreePersistWarning(
+          "Hands-Free is on this page only — conversation mode wasn’t saved.",
+        );
+        return;
+      }
+      setHandsFreePersistWarning(null);
+    } catch {
+      setHandsFreePersistWarning(
+        "Hands-Free is on this page only — conversation mode wasn’t saved.",
+      );
+    }
+  }, [sessionId]);
+
+  const startHandsFree = useCallback(() => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setError("LEO needs a connection for live company intelligence.");
+      return;
+    }
+    setError(null);
+    setHandsFree(true);
+    setShowFullConversation(false);
+    void persistConversationMode("HANDS_FREE");
+  }, [persistConversationMode]);
+
+  const endHandsFree = useCallback(() => {
+    setHandsFree(false);
+    setShowFullConversation(false);
+    void persistConversationMode("TEXT");
+  }, [persistConversationMode]);
+
+  useEffect(() => {
+    if (!handsFree || !sessionId) return;
+    void persistConversationMode("HANDS_FREE");
+  }, [handsFree, persistConversationMode, sessionId]);
+
   const startNewConversation = useCallback(() => {
     setSessionId(null);
     writeSessionPointer(null);
@@ -201,6 +258,9 @@ export function LeoConversationPanel() {
     setHistoryWarning(null);
     setSelectedCardId(null);
     setSelectedEntityRef(null);
+    setHandsFree(false);
+    setShowFullConversation(false);
+    setHandsFreePersistWarning(null);
   }, []);
 
   const submit = useCallback(
@@ -384,13 +444,14 @@ export function LeoConversationPanel() {
                 persistenceState={persistenceState}
                 restoring={restoring}
                 historyWarning={historyWarning}
+                handsFreeLocalOnly={Boolean(handsFree && handsFreePersistWarning)}
               />
             </div>
           </div>
           <LeoNewConversationButton onClick={startNewConversation} disabled={pending || restoring} />
         </div>
 
-        {!hasConversation && !restoring ? (
+        {!hasConversation && !restoring && !handsFree ? (
           <div className="mb-4 flex min-w-0 flex-wrap gap-2" aria-label="Starter prompts">
             {STARTER_PROMPTS.map((q) => (
               <button
@@ -409,10 +470,27 @@ export function LeoConversationPanel() {
           </div>
         ) : null}
 
+        {handsFree ? (
+          <LeoHandsFreeMode
+            active={handsFree}
+            pending={pending || restoring}
+            online={online}
+            latestAnswer={[...turns].reverse().find((t) => t.role === "LEO")?.answer ?? null}
+            lastUserTranscript={[...turns].reverse().find((t) => t.role === "USER")?.boundedText ?? ""}
+            submitError={error}
+            persistWarning={handsFreePersistWarning}
+            showFullConversation={showFullConversation}
+            onToggleFullConversation={() => setShowFullConversation((v) => !v)}
+            onSubmit={(text) => submit(text)}
+            onEnded={endHandsFree}
+          />
+        ) : null}
+
+        {(!handsFree || showFullConversation) ? (
         <div className="mb-3 max-h-[min(62vh,720px)] min-h-[120px] overflow-y-auto overscroll-contain pr-1">
           <LeoConversationStream
             turns={turns}
-            pending={pending}
+            pending={pending || handsFree}
             selectedCardId={selectedCardId}
             onAsk={(q) => {
               setQuestion(q);
@@ -425,8 +503,9 @@ export function LeoConversationPanel() {
             }}
           />
         </div>
+        ) : null}
 
-        {error ? (
+        {error && !handsFree ? (
           <p
             className={`mb-3 break-words rounded-lg border px-3 py-2 text-sm ${
               /offline/i.test(error)
@@ -439,13 +518,16 @@ export function LeoConversationPanel() {
           </p>
         ) : null}
 
+        {!handsFree ? (
         <LeoComposer
           value={question}
           onChange={setQuestion}
           onSubmit={() => submit(question)}
           pending={pending || restoring}
           offline={!online}
+          onStartHandsFree={startHandsFree}
         />
+        ) : null}
       </div>
     </section>
   );
