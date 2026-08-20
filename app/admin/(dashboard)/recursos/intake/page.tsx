@@ -4,6 +4,7 @@ import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCa
 import { adminCardBase, adminBtnPrimary, adminInputClass, adminStubBadgeClass } from "@/app/admin/_components/adminTheme";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { analyzeUrlIntakeAction } from "@/app/admin/recursosUrlIntakeAction";
+import { PdfUploadForm } from "@/app/admin/_components/recursos/PdfUploadForm";
 
 export const dynamic = "force-dynamic";
 
@@ -57,12 +58,12 @@ export default async function RecursosIntakePage(props: { searchParams?: Promise
       />
 
       <AdminPagePurposeCard
-        title="Intake Center — Gate 3"
-        purpose="Punto de entrada único para los cuatro tipos de intake aprobados. Intake por URL está activo: Leonix obtiene la página oficial de forma segura, propone campos (determinísticamente y, cuando está disponible, con asistencia de IA) y crea un candidato revisable. Nada se verifica ni se publica automáticamente."
-        dataSource="URL: fetch server-side seguro + Vercel AI Gateway (si está configurado) -> public.source_documents + public.resource_intake_jobs + public.community_resource_candidate_reviews."
+        title="Intake Center — Gate 4"
+        purpose="Punto de entrada único para los cuatro tipos de intake aprobados. URL y PDF están activos: Leonix obtiene/analiza la fuente oficial de forma segura, propone campos (determinísticamente y, cuando está disponible, con asistencia de IA) y crea uno o más candidatos revisables. Nada se verifica ni se publica automáticamente."
+        dataSource="URL: fetch server-side seguro. PDF: almacenamiento privado + Google Document AI + Vercel AI Gateway (si están configurados). Ambos -> public.source_documents + public.resource_intake_jobs + public.community_resource_candidate_reviews."
         status="real"
-        safeActions={["Analizar una URL oficial", "Ir a la entrada manual existente", "Ver la cola de solicitudes de socios"]}
-        nextGate="Gate 4 activa el intake por PDF (almacenamiento + extracción)."
+        safeActions={["Analizar una URL oficial", "Subir un PDF de guía de recursos", "Ir a la entrada manual existente", "Ver la cola de solicitudes de socios"]}
+        nextGate="Gate 5 activa coincidencia difusa (fuzzy) y detección de cambios de campo."
         warningNote="La IA solo propone — nunca verifica ni publica. Cada candidato queda en estado 'researching', sin verificar, esperando revisión humana."
       />
 
@@ -75,10 +76,12 @@ export default async function RecursosIntakePage(props: { searchParams?: Promise
       <div className="grid gap-4 sm:grid-cols-2">
         <IntakeChoiceCard
           title="PDF"
-          description="Sube una guía o documento con múltiples organizaciones y genera candidatos automáticamente, con evidencia de página conservada."
-          status="pending"
+          description="Sube una guía o documento con múltiples organizaciones. Leonix la analiza de forma privada y genera un candidato revisable por cada organización encontrada, con la(s) página(s) de origen conservadas como evidencia. Nada se publica automáticamente."
+          status="real"
           action={null}
-        />
+        >
+          <PdfUploadForm />
+        </IntakeChoiceCard>
 
         <IntakeChoiceCard title="Sitio web / URL" description="Pega la URL oficial de una organización o programa. Leonix preparará un candidato — el resultado sigue requiriendo verificación humana. Nada se publica automáticamente." status="real" action={null}>
           <form action={analyzeUrlIntakeAction} className="mt-1 flex flex-col gap-3">

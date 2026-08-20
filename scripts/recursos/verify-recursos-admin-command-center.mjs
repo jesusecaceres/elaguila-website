@@ -122,8 +122,8 @@ if (exists(INTAKE_PATH)) {
   assert("intake page does not import or call any PDF processing function", !/pdfExtraction|processDocument|DocumentProcessorServiceClient/.test(src));
   assert("intake page does not import or call any URL AI extraction function", !/urlExtraction|extractFromUrl|geminiExtract/.test(src));
   assert(
-    "intake page marks PDF as pending (status=\"pending\" renders Próximamente) — URL went live in Gate 3",
-    /title="PDF"[\s\S]*?status="pending"/.test(src) && /Próximamente/.test(src),
+    "intake page still marks Referido/socio honestly as not fully actionable — URL (Gate 3) and PDF (Gate 4) are now correctly live",
+    /Gate 7/.test(src),
   );
   assert("intake page still links to the manual-entry route", /\/admin\/recursos\/nuevo/.test(src));
 }

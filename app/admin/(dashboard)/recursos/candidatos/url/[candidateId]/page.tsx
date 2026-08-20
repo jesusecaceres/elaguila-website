@@ -22,7 +22,7 @@ export default async function RecursosUrlCandidateDetailPage(props: {
 
   const { candidateId } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
-  if (!candidateId.startsWith("url-")) notFound();
+  if (!candidateId.startsWith("url-") && !candidateId.startsWith("pdf-")) notFound();
 
   const review = await dbGetCandidateReview(candidateId);
   if (!review) notFound();

@@ -14,6 +14,7 @@ const ACTIVE_STATUSES = ["pending", "processing", "needs_review"] as const;
 export type ResourceIntakeJobRow = {
   id: string;
   sourceType: string;
+  sourceDocumentId: string | null;
   status: string;
   provider: string | null;
   pagesProcessed: number;
@@ -24,10 +25,13 @@ export type ResourceIntakeJobRow = {
   updatedAt: string;
 };
 
+const SELECT_COLUMNS = "id, source_type, source_document_id, status, provider, pages_processed, candidates_created_count, matches_found_count, error_message, created_at, updated_at";
+
 function rowFromDb(row: Record<string, unknown>): ResourceIntakeJobRow {
   return {
     id: String(row.id),
     sourceType: String(row.source_type),
+    sourceDocumentId: (row.source_document_id as string | null) ?? null,
     status: String(row.status),
     provider: (row.provider as string | null) ?? null,
     pagesProcessed: Number(row.pages_processed ?? 0),
@@ -125,7 +129,7 @@ export async function dbGetResourceIntakeJob(id: string): Promise<ResourceIntake
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from(TABLE)
-      .select("id, source_type, status, provider, pages_processed, candidates_created_count, matches_found_count, error_message, created_at, updated_at")
+      .select(SELECT_COLUMNS)
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -141,7 +145,7 @@ export async function dbListRecentResourceIntakeJobs(limit = 20): Promise<{ rows
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from(TABLE)
-      .select("id, source_type, status, provider, pages_processed, candidates_created_count, matches_found_count, error_message, created_at, updated_at")
+      .select(SELECT_COLUMNS)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) return { rows: [], unavailable: true };

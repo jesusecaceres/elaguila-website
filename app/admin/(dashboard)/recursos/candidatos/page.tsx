@@ -42,11 +42,11 @@ export default async function RecursosCandidatesAdminPage(props: { searchParams?
   const { rows: reviews, unavailable } = await dbListCandidateReviews();
   const reviewByCandidateId = new Map(reviews.map((r) => [r.candidateId, r]));
 
-  // Gate 3 — URL-sourced candidates live only in the DB (no static JSON entry exists for them),
-  // so they are listed separately here rather than joined into the PDF candidate table above.
+  // Gate 3/4 — URL- and PDF-sourced candidates live only in the DB (no static JSON entry exists
+  // for them), so they are listed separately here rather than joined into the PDF-guide table above.
   const urlCandidates = reviews
-    .filter((r) => r.candidateId.startsWith("url-"))
-    .map((review) => ({ review, proposal: decodeProposalFromDiscrepancies(review.discrepanciesFromPdf) }))
+    .filter((r) => r.candidateId.startsWith("url-") || r.candidateId.startsWith("pdf-"))
+    .map((review) => ({ review, proposal: decodeProposalFromDiscrepancies(review.discrepanciesFromPdf), source: review.candidateId.startsWith("pdf-") ? "PDF" : "URL" }))
     .sort((a, b) => new Date(b.review.updatedAt).getTime() - new Date(a.review.updatedAt).getTime());
 
   const joined = CANDIDATES.map((candidate) => ({
@@ -189,7 +189,7 @@ export default async function RecursosCandidatesAdminPage(props: { searchParams?
 
       {urlCandidates.length > 0 ? (
         <section className="mt-10">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Candidatos de intake por URL ({urlCandidates.length})</h2>
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Candidatos de intake automatizado — URL / PDF ({urlCandidates.length})</h2>
           <div className={`${adminDesktopTableOnly} ${adminTableWrap}`}>
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead>
@@ -202,7 +202,7 @@ export default async function RecursosCandidatesAdminPage(props: { searchParams?
                 </tr>
               </thead>
               <tbody>
-                {urlCandidates.map(({ review, proposal }) => {
+                {urlCandidates.map(({ review, proposal, source }) => {
                   const classification = extractMatchClassification(review.verificationNotes);
                   return (
                     <tr key={review.candidateId} className={adminTableZebraRow}>
@@ -210,7 +210,7 @@ export default async function RecursosCandidatesAdminPage(props: { searchParams?
                         <p className="font-semibold text-[#1E1810]">{proposal.organizationName || review.candidateId}</p>
                         {review.currentSourceUrl ? <p className="text-xs text-[#7A7164]">{review.currentSourceUrl}</p> : null}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#7A7164]">URL</td>
+                      <td className="px-4 py-3 text-xs text-[#7A7164]">{source}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${MATCH_BADGE[classification] ?? ""}`}>
                           {classification}

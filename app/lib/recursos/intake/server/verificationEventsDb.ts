@@ -22,6 +22,23 @@ export type InsertVerificationEventInput = {
   notes?: string | null;
 };
 
+/** Distinct candidate_ids created by a given intake job, derived from the append-only event log. */
+export async function dbListCandidateIdsCreatedByJob(sourceIntakeJobId: string): Promise<string[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("candidate_id")
+      .eq("source_intake_job_id", sourceIntakeJobId)
+      .eq("event_type", "candidate_created");
+    if (error || !data) return [];
+    return [...new Set((data as { candidate_id: string | null }[]).map((r) => r.candidate_id).filter((x): x is string => Boolean(x)))];
+  } catch {
+    return [];
+  }
+}
+
 /** Fire-and-forget insert — never throws, matches auditAdminWrite()'s shape. Failure here must never block the primary action. */
 export async function insertVerificationEvent(input: InsertVerificationEventInput): Promise<void> {
   if (!isSupabaseAdminConfigured()) return;

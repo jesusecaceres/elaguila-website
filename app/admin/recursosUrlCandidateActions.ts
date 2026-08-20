@@ -48,7 +48,10 @@ function checked(f: FormData, k: string): boolean {
 const DISPOSITIONS: CandidateReviewDisposition[] = ["pending", "researching", "ready_for_promotion", "promoted", "dropped"];
 
 function isUrlCandidateId(candidateId: string): boolean {
-  return candidateId.startsWith("url-");
+  // Widened in Gate 4: this action set now serves every DB-only candidate source (URL + PDF),
+  // not just URL — both store content the same way (discrepanciesFromPdf-encoded proposal, no
+  // static JSON entry), so the same actions/detail-page correctly serve both.
+  return candidateId.startsWith("url-") || candidateId.startsWith("pdf-");
 }
 
 export async function saveUrlCandidateReviewAction(formData: FormData): Promise<void> {
