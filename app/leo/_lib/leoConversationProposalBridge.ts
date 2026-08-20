@@ -22,6 +22,11 @@ import {
   type LeoEntityKnownPerson,
   type LeoEntityResolutionResult,
 } from "@/app/leo/_lib/leoEntityResolution";
+import {
+  isLeoExecutiveContextProposalCompatible,
+  leoExecutiveContextSnapshot,
+  type LeoExecutiveContextPackage,
+} from "@/app/leo/_lib/leoExecutiveContext";
 
 export const LEO_17B_BRIDGE_NOT_CLAIMING = [
   "Not SENT",
@@ -240,6 +245,7 @@ function referentSnapshotFrom(
   resolution: LeoReferentResolution | null | undefined,
   context: LeoActiveConversationContext | null | undefined,
   entityResolution?: LeoEntityResolutionResult | null,
+  executiveContext?: LeoExecutiveContextPackage | null,
 ): Record<string, unknown> {
   const snap: Record<string, unknown> = {};
   if (resolution?.status === "RESOLVED") {
@@ -261,17 +267,30 @@ function referentSnapshotFrom(
   if (entityResolution) {
     snap.entityResolution = leoEntityResolutionSnapshot(entityResolution);
   }
+  if (executiveContext) {
+    snap.executiveContext = leoExecutiveContextSnapshot(executiveContext);
+  } else {
+    // Absence must not invent confidence.
+    snap.executiveContext = {
+      absent: true,
+      confidence: "NONE",
+      proposalCompatible: false,
+      note: "Executive context not supplied — absence does not create confidence.",
+    };
+  }
   return snap;
 }
 
 /**
- * Gate PROPOSABLE on entity resolution confidence.
+ * Gate PROPOSABLE on entity resolution + optional executive context.
  * Ambiguity → CLARIFICATION_NEEDED; missing proof → NEEDS_INFORMATION.
+ * Context absence cannot invent proposal readiness.
  */
 function gateByEntityResolution(input: {
   family: LeoConnectedActionFamily;
   governanceActionKind: LeoActionIntentKind;
   entity: LeoEntityResolutionResult;
+  executiveContext?: LeoExecutiveContextPackage | null;
   missing: string[];
   displayName: string | null;
   normalizedTarget: Record<string, unknown>;
@@ -282,6 +301,14 @@ function gateByEntityResolution(input: {
   const snap = {
     ...input.referentSnapshot,
     entityResolution: leoEntityResolutionSnapshot(input.entity),
+    executiveContext: input.executiveContext
+      ? leoExecutiveContextSnapshot(input.executiveContext)
+      : {
+          absent: true,
+          confidence: "NONE",
+          proposalCompatible: false,
+          note: "Executive context not supplied — absence does not create confidence.",
+        },
   };
 
   if (input.entity.state === "AMBIGUOUS" || input.entity.ambiguity) {
@@ -317,6 +344,27 @@ function gateByEntityResolution(input: {
     };
   }
 
+  // LEO-18B: when context is supplied, it must be proposal-compatible.
+  // When absent, do not invent confidence — still allow entity-proven PROPOSABLE
+  // only if caller did not require context; mark snapshot accordingly.
+  if (
+    input.executiveContext != null &&
+    !isLeoExecutiveContextProposalCompatible(input.executiveContext)
+  ) {
+    const missing = [...input.missing, "executive_context_confidence"];
+    return {
+      status: "NEEDS_INFORMATION",
+      actionFamily: input.family,
+      governanceActionKind: input.governanceActionKind,
+      missing,
+      normalizedTarget: input.normalizedTarget,
+      structuredPayload: input.structuredPayload,
+      referentSnapshot: snap,
+      truthLabel: "Needs information",
+      summary: composeNeedsInformationSummary(input.family, missing, input.displayName),
+    };
+  }
+
   if (input.missing.length > 0) {
     return {
       status: "NEEDS_INFORMATION",
@@ -348,6 +396,7 @@ function gateByEntityResolution(input: {
  * Build a proposal candidate from conversation + optional referent resolution.
  * Never invents recipient emails or event ids.
  * LEO-18A: requires trusted entity resolution before PROPOSABLE.
+ * LEO-18B: can attach executive context; absence does not invent confidence.
  */
 export function buildLeoConversationProposalCandidate(input: {
   question: string;
@@ -358,6 +407,8 @@ export function buildLeoConversationProposalCandidate(input: {
   knownPersons?: readonly LeoEntityKnownPerson[];
   knownBusinesses?: readonly LeoEntityKnownBusiness[];
   knownEmails?: readonly string[];
+  /** LEO-18B bounded executive context — optional; absence ≠ confidence. */
+  executiveContext?: LeoExecutiveContextPackage | null;
 }): LeoConversationProposalCandidate {
   const family = inferLeoConnectedActionFamily(input.question);
   if (!family) return { status: "NOT_CONNECTED_ACTION" };
@@ -373,6 +424,7 @@ export function buildLeoConversationProposalCandidate(input: {
 
   const governanceActionKind = governanceActionKindForConnectedFamily(family);
   const resolved = input.referent?.status === "RESOLVED" ? input.referent : null;
+  const execCtx = input.executiveContext ?? null;
   const missing: string[] = [];
 
   if (family === "GMAIL_SEND") {
@@ -399,7 +451,12 @@ export function buildLeoConversationProposalCandidate(input: {
         knownBusinesses: input.knownBusinesses,
       }),
     );
-    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
+    const referentSnapshot = referentSnapshotFrom(
+      input.referent,
+      input.context,
+      entity,
+      execCtx,
+    );
 
     const structuredPayload = {
       recipient: exactEmail,
@@ -419,6 +476,7 @@ export function buildLeoConversationProposalCandidate(input: {
       family,
       governanceActionKind,
       entity,
+      executiveContext: execCtx,
       missing,
       displayName,
       normalizedTarget,
@@ -491,7 +549,12 @@ export function buildLeoConversationProposalCandidate(input: {
             ? "NONE"
             : "STRONG",
     };
-    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
+    const referentSnapshot = referentSnapshotFrom(
+      input.referent,
+      input.context,
+      entity,
+      execCtx,
+    );
 
     const structuredPayload = {
       recipient,
@@ -510,6 +573,7 @@ export function buildLeoConversationProposalCandidate(input: {
       family,
       governanceActionKind,
       entity,
+      executiveContext: execCtx,
       missing,
       displayName: null,
       normalizedTarget,
@@ -536,7 +600,12 @@ export function buildLeoConversationProposalCandidate(input: {
       knownPersons: input.knownPersons,
       knownEmails: input.knownEmails,
     });
-    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
+    const referentSnapshot = referentSnapshotFrom(
+      input.referent,
+      input.context,
+      entity,
+      execCtx,
+    );
 
     const structuredPayload = {
       title: title ?? (dayHint ? `Meeting (${dayHint})` : null),
@@ -593,7 +662,12 @@ export function buildLeoConversationProposalCandidate(input: {
         kind: resolved?.kind ?? "CALENDAR",
       }),
     );
-    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
+    const referentSnapshot = referentSnapshotFrom(
+      input.referent,
+      input.context,
+      entity,
+      execCtx,
+    );
 
     const structuredPayload = {
       eventId,
@@ -606,6 +680,7 @@ export function buildLeoConversationProposalCandidate(input: {
       family,
       governanceActionKind,
       entity,
+      executiveContext: execCtx,
       missing,
       displayName: null,
       normalizedTarget,
@@ -653,6 +728,8 @@ function composeNeedsInformationSummary(
           return "proven entity identifier";
         case "unambiguous_entity":
           return "unambiguous entity";
+        case "executive_context_confidence":
+          return "acceptable executive context confidence";
         default:
           return m.replace(/_/g, " ");
       }

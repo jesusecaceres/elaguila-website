@@ -116,6 +116,15 @@ import {
   parseLeoReceiptQueryKind,
 } from "@/app/leo/_lib/leoReceiptIntelligence";
 import { leoListRecentToolReceipts } from "@/app/leo/_lib/leoToolReceiptService";
+import {
+  leoAssembleExecutiveContext,
+  leoExecutiveContextSnapshot,
+} from "@/app/leo/_lib/leoExecutiveContextService";
+import type { LeoExecutiveContextPackage } from "@/app/leo/_lib/leoExecutiveContext";
+import {
+  entityQueryFromReferentFields,
+  resolveLeoEntity,
+} from "@/app/leo/_lib/leoEntityResolution";
 
 export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
 
@@ -1065,13 +1074,50 @@ export async function runLeoConversationDeterministic(
       const blocked = governance.level === "NEVER";
 
       // LEO-17B: when this is a connected action family, bridge to governed proposal truth.
+      // LEO-18B: attach bounded executive context before proposal candidacy.
       const connectedFamily = inferLeoConnectedActionFamily(request.question);
       if (connectedFamily && !blocked) {
         const referent = referentHintFromConversationRequest(request, connectedFamily);
+
+        let executiveContext: LeoExecutiveContextPackage | null =
+          (request.executiveContextPackage as LeoExecutiveContextPackage | null | undefined) ??
+          null;
+        if (!executiveContext) {
+          try {
+            const entityHint = resolveLeoEntity(
+              entityQueryFromReferentFields({
+                rawText: request.question,
+                referentStatus: referent?.status ?? null,
+                threadId:
+                  referent?.status === "RESOLVED" ? referent.threadId : request.conversationContext?.focusThreadId,
+                eventId:
+                  referent?.status === "RESOLVED" ? referent.eventId : request.conversationContext?.focusEventId,
+                messageId:
+                  referent?.status === "RESOLVED"
+                    ? referent.messageId
+                    : request.conversationContext?.focusMessageId,
+                label: referent?.status === "RESOLVED" ? referent.label : null,
+                kind: referent?.status === "RESOLVED" ? referent.kind : null,
+              }),
+            );
+            executiveContext = await leoAssembleExecutiveContext({
+              question: request.question,
+              sessionId: request.sessionId ?? null,
+              activeContext: request.conversationContext ?? null,
+              entityResolution: entityHint,
+              fetchStores: true,
+            });
+          } catch {
+            executiveContext = null;
+          }
+        }
+
         const candidate = buildLeoConversationProposalCandidate({
           question: request.question,
           referent,
+          context: request.conversationContext ?? null,
           entityId: request.entityId ?? null,
+          executiveContext,
         });
 
         if (candidate.status === "CLARIFICATION_NEEDED") {
@@ -1175,6 +1221,14 @@ export async function runLeoConversationDeterministic(
               ...governance.limitations,
               "Conversation POST does not constitute owner approval for RED execution.",
               "Provider execution is not enabled in this gate.",
+              ...(executiveContext
+                ? [
+                    `Executive context confidence: ${executiveContext.confidence}.`,
+                    "INFERRED attention/context signals are not facts.",
+                  ]
+                : [
+                    "Executive context was unavailable — absence does not create confidence.",
+                  ]),
               ...LEO_17B_BRIDGE_NOT_CLAIMING,
             ],
             suggestedNextRetrieval:
@@ -1182,6 +1236,13 @@ export async function runLeoConversationDeterministic(
                 ? "Provide exact recipient email / thread / event details — LEO will not invent them."
                 : "Approve the proposal via the owner approval path when ready. Approval is not execution.",
             spokenSummary: summary.slice(0, 220),
+            executiveContext: executiveContext
+              ? leoExecutiveContextSnapshot(executiveContext)
+              : {
+                  absent: true,
+                  confidence: "NONE",
+                  proposalCompatible: false,
+                },
             resultCards: [
               {
                 cardId: `proposal:${proposalId ?? candidate.actionFamily}`,
@@ -1708,6 +1769,46 @@ export async function runLeoPersistentConversation(
     };
   }
 
+  // LEO-18B: assemble bounded executive context before answer/proposal.
+  let executiveContextPkg: LeoExecutiveContextPackage | null = null;
+  try {
+    const entityHint = resolveLeoEntity(
+      entityQueryFromReferentFields({
+        rawText: workingRequest.question,
+        referentStatus: resolution.status,
+        threadId:
+          resolution.status === "RESOLVED"
+            ? resolution.threadId
+            : activeContext.focusThreadId,
+        eventId:
+          resolution.status === "RESOLVED" ? resolution.eventId : activeContext.focusEventId,
+        messageId:
+          resolution.status === "RESOLVED"
+            ? resolution.messageId
+            : activeContext.focusMessageId,
+        label: resolution.status === "RESOLVED" ? resolution.label : null,
+        kind: resolution.status === "RESOLVED" ? resolution.kind : null,
+      }),
+    );
+    executiveContextPkg = await leoAssembleExecutiveContext({
+      question: workingRequest.question,
+      sessionId,
+      activeContext,
+      entityResolution: entityHint,
+      recentTurns,
+      fetchStores: true,
+      limitations: persistenceLimitations,
+    });
+    workingRequest = {
+      ...workingRequest,
+      sessionId: sessionId ?? workingRequest.sessionId,
+      conversationContext: activeContext,
+      executiveContextPackage: executiveContextPkg,
+    };
+  } catch {
+    executiveContextPkg = null;
+  }
+
   let userTurnId: string | null = null;
   if (sessionId && persistenceState === "PERSISTED") {
     const userTurn = await leoAppendUserTurnIdempotent({
@@ -1822,7 +1923,22 @@ export async function runLeoPersistentConversation(
       userTurnId,
       persistenceState,
       conversationContext: finalContext,
-      limitations: [...answer.limitations, ...persistenceLimitations],
+      executiveContext: answer.executiveContext
+        ?? (executiveContextPkg ? leoExecutiveContextSnapshot(executiveContextPkg) : {
+            absent: true,
+            confidence: "NONE",
+            proposalCompatible: false,
+          }),
+      limitations: [
+        ...answer.limitations,
+        ...persistenceLimitations,
+        ...(executiveContextPkg && !answer.executiveContext
+          ? [
+              `Executive context confidence: ${executiveContextPkg.confidence}.`,
+              "INFERRED context signals are not facts.",
+            ]
+          : []),
+      ],
     },
   };
 }

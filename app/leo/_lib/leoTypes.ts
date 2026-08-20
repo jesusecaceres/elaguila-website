@@ -677,6 +677,13 @@ export type LeoConversationRequest = {
   clientRequestId?: string;
   /** LEO-14.6: bounded UI selection hints — never authority. */
   clientContext?: LeoConversationClientContext;
+  /**
+   * LEO-18B: optional preassembled executive context package (opaque).
+   * Assembled upstream in persistent conversation; never invents confidence.
+   */
+  executiveContextPackage?: unknown | null;
+  /** LEO-18B: optional active conversation context for proposal/context assembly. */
+  conversationContext?: LeoActiveConversationContext | null;
 };
 
 export type LeoConversationRouteResult = {
@@ -732,6 +739,11 @@ export type LeoConversationAnswer = {
   persistenceState?: LeoConversationPersistenceState;
   /** LEO-14.6: active referent/focus context for UI continuity. */
   conversationContext?: LeoActiveConversationContext | null;
+  /**
+   * LEO-18B: bounded executive context snapshot (refs + epistemic labels only).
+   * Never secrets, tokens, or raw provider bodies.
+   */
+  executiveContext?: Record<string, unknown> | null;
 };
 
 /* -------------------------------------------------------------------------- */
