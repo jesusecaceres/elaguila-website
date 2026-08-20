@@ -15,6 +15,7 @@ import { adminCardBase, adminContentArea } from "@/app/admin/_components/adminTh
 import { LeoAttentionPanel } from "./_components/LeoAttentionPanel";
 import { LeoCapabilityStrip } from "./_components/LeoCapabilityStrip";
 import { LeoClientCarePanel } from "./_components/LeoClientCarePanel";
+import { LeoMorningBriefPanel } from "./_components/LeoMorningBrief";
 import { LeoConversationPanel } from "./_components/LeoConversationPanel";
 import { LeoExecutiveHeader } from "./_components/LeoExecutiveHeader";
 import { LeoGovernanceLegend } from "./_components/LeoGovernanceLegend";
@@ -87,6 +88,8 @@ export default async function LeoExecutiveConsolePage() {
       <LeoPwaShell>
         <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-4 sm:gap-5">
           <LeoExecutiveHeader />
+
+          <LeoMorningBriefPanel />
 
           <div className="min-w-0 lg:max-w-none">
             <LeoConversationPanel />

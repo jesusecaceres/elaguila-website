@@ -497,6 +497,14 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
         "What is waiting for my approval?",
         "Show recent leo actions.",
       ];
+    case "MORNING_BRIEF":
+      return [
+        "Who is waiting on me?",
+        "Show overdue commitments.",
+        "What can wait?",
+        "Prepare me for my next meeting.",
+        "What did LEO prepare?",
+      ];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];
     case "PREPARATION":

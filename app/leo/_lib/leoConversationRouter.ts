@@ -43,6 +43,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "COMMUNICATION_INTELLIGENCE",
   "COMMITMENT_INTELLIGENCE",
   "RECEIPT_INTELLIGENCE",
+  "MORNING_BRIEF",
   "UNKNOWN",
 ] as const;
 
@@ -195,6 +196,20 @@ export function isLeoReceiptIntelligenceQuestion(q: string): boolean {
   );
 }
 
+/** LEO-14.11: Morning CEO Brief routing — distinct from ATTENTION_OVERVIEW. */
+export function isLeoMorningBriefQuestion(q: string): boolean {
+  const n = normalizeQuestion(q);
+  return (
+    /\bgive me my morning brief\b/.test(n) ||
+    /\bmorning brief\b/.test(n) ||
+    /\bbrief me\b/.test(n) ||
+    /\bwhat do i need to know today\b/.test(n) ||
+    /\bstart my day\b/.test(n) ||
+    /\bwhat should i focus on today\b/.test(n) ||
+    /\bwhat needs me today\b/.test(n)
+  );
+}
+
 function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null {
   const wantsPrep = /\b(prepare|draft|make me a brief|checklist)\b/.test(q);
   if (!wantsPrep) return null;
@@ -300,6 +315,17 @@ export function routeLeoConversation(
     notes.push("receipt intelligence pattern");
     return routeResult({
       intent: "RECEIPT_INTELLIGENCE",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    });
+  }
+
+  if (isLeoMorningBriefQuestion(q)) {
+    notes.push("morning brief pattern");
+    return routeResult({
+      intent: "MORNING_BRIEF",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,

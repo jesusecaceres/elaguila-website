@@ -78,6 +78,7 @@ import {
   getLeoCommunicationExecutiveSnapshot,
   getLeoMeetingIntelligenceForNext,
 } from "@/app/leo/_lib/leoCommunicationIntelligenceService";
+import { getLeoMorningBrief } from "@/app/leo/_lib/leoMorningBriefService";
 import {
   buildLeoCommitmentIntelligence,
   cardDueStateForCommitment,
@@ -177,6 +178,47 @@ export async function runLeoConversationDeterministic(
   }
 
   switch (route.intent) {
+    case "MORNING_BRIEF": {
+      const brief = await getLeoMorningBrief({ nowMs });
+      const cards = brief.sections.flatMap((s) => s.cards).slice(0, maxResults);
+      const evidence: LeoConversationEvidence[] = brief.topPriorities.map((p) => ({
+        sourceKind: "morning_brief_priority",
+        sourceRef: p.evidenceRef ?? p.cardId ?? `priority-${p.rank}`,
+        summary: `${p.what}: ${p.why}`.slice(0, 160),
+        availability: "LIVE",
+        limitationNote: null,
+      }));
+      return empty({
+        intent: "MORNING_BRIEF",
+        answerState: brief.overallState === "UNAVAILABLE" ? "INSUFFICIENT_EVIDENCE" : "ANSWERED",
+        summary: brief.headline,
+        spokenSummary: brief.spokenSummary,
+        keyPoints: brief.topPriorities.map((p) => ({
+          kind: "FACT" as const,
+          text: `${p.what} — ${p.why}${p.dueOrTime ? ` (${p.dueOrTime})` : ""}`,
+          evidenceIds: [],
+        })),
+        resultCards: cards,
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: brief.unknowns,
+        limitations: brief.limitations,
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        suggestedQuestions: [
+          "Who is waiting on me?",
+          "Show overdue commitments.",
+          "What can wait?",
+          "Prepare me for my next meeting.",
+          "What did LEO prepare?",
+        ],
+        suggestedNextRetrieval: "Ask about a specific section or drill into commitments or email.",
+      });
+    }
+
     case "ATTENTION_OVERVIEW": {
       const brief = await getLeoAttentionBrief({ topN: Math.min(maxResults, 3), nowMs });
       const visible = brief.visibleItems ?? brief.items;

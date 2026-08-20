@@ -564,6 +564,7 @@ export type LeoConversationIntent =
   | "COMMUNICATION_INTELLIGENCE"
   | "COMMITMENT_INTELLIGENCE"
   | "RECEIPT_INTELLIGENCE"
+  | "MORNING_BRIEF"
   | "UNKNOWN";
 
 /** LEO-13 deterministic communication question subtype. */
@@ -1490,6 +1491,88 @@ export type LeoCommunicationExecutiveSnapshot = {
   unknowns: string[];
   limitations: string[];
   notClaiming: readonly string[];
+};
+
+/* -------------------------------------------------------------------------- */
+/* LEO-14.11 Morning CEO Brief — orchestrated executive start-of-day intelligence */
+/* -------------------------------------------------------------------------- */
+
+export type LeoMorningBriefPriority = "DO_NOW" | "DO_TODAY" | "WATCH" | "CAN_WAIT" | "UNKNOWN";
+
+export type LeoMorningBriefSectionKind =
+  | "ATTENTION"
+  | "CLIENT_CARE"
+  | "EMAIL"
+  | "CALENDAR"
+  | "COMMITMENTS"
+  | "PREPARED_ACTIONS"
+  | "PROJECTS"
+  | "SYSTEM";
+
+export type LeoMorningBriefAvailability =
+  | "AVAILABLE"
+  | "PARTIAL"
+  | "EMPTY"
+  | "UNAVAILABLE"
+  | "NOT_CONFIGURED";
+
+export type LeoMorningBriefOverallState =
+  | "NEEDS_ATTENTION"
+  | "LIGHT_DAY"
+  | "PARTIAL_DATA"
+  | "UNAVAILABLE";
+
+export type LeoMorningBriefSection = {
+  kind: LeoMorningBriefSectionKind;
+  title: string;
+  priority: LeoMorningBriefPriority;
+  summary: string;
+  count: number;
+  cards: LeoResultCard[];
+  evidenceRefs: string[];
+  availability: LeoMorningBriefAvailability;
+  limitation?: string | null;
+};
+
+export type LeoMorningBriefTopPriority = {
+  rank: number;
+  priority: LeoMorningBriefPriority;
+  what: string;
+  why: string;
+  dueOrTime: string | null;
+  source: string;
+  safeNextAction: string | null;
+  cardId: string | null;
+  evidenceRef: string | null;
+};
+
+export type LeoMorningBriefCounts = {
+  topPriorities: number;
+  attention: number;
+  clientCare: number;
+  emailHighPriority: number;
+  calendarToday: number;
+  confirmedOverdue: number;
+  confirmedDueToday: number;
+  confirmedDueSoon: number;
+  candidates: number;
+  awaitingApproval: number;
+  failed: number;
+  prepared: number;
+};
+
+export type LeoMorningBrief = {
+  generatedAt: string;
+  timezone: string;
+  overallState: LeoMorningBriefOverallState;
+  headline: string;
+  sections: LeoMorningBriefSection[];
+  counts: LeoMorningBriefCounts;
+  topPriorities: LeoMorningBriefTopPriority[];
+  canWait: LeoMorningBriefTopPriority[];
+  unknowns: string[];
+  limitations: string[];
+  spokenSummary: string;
 };
 
 /* -------------------------------------------------------------------------- */

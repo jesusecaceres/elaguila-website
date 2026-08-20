@@ -154,6 +154,19 @@ const allowed = new Set([
   "scripts/verify-leo-14-3-gmail-executive-triage.ts",
   "scripts/verify-leo-14-2-result-action-contracts.ts",
   "scripts/verify-leo-14-1-persistence-contracts.ts",
+  // LEO-14.11 morning brief
+  "app/leo/_lib/leoTypes.ts",
+  "app/leo/_lib/leoMorningBrief.ts",
+  "app/leo/_lib/leoMorningBriefService.ts",
+  "app/leo/_lib/leoConversationRouter.ts",
+  "app/leo/_lib/leoConversationService.ts",
+  "app/leo/_lib/leoConversationComposer.ts",
+  "app/admin/(dashboard)/leo/_components/LeoMorningBrief.tsx",
+  "app/admin/(dashboard)/leo/page.tsx",
+  "scripts/verify-leo-14-11-morning-ceo-brief.ts",
+  "scripts/verify-leo-14-7-conversation-ui.ts",
+  "scripts/verify-leo-14-8-pwa-shell.ts",
+  "scripts/verify-leo-14-9-voice.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);
