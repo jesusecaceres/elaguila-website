@@ -1,6 +1,7 @@
 /**
  * LEO-14.6 — pure deterministic conversational referent resolver.
  * Resolves only when unambiguous. Never infers authorization.
+ * LEO-18A — bridges resolved referents into entity resolution (reuse, don't duplicate).
  */
 import type {
   LeoActiveConversationContext,
@@ -10,6 +11,15 @@ import type {
   LeoResultCardKind,
 } from "@/app/leo/_lib/leoTypes";
 import { extractRefsFromResultCard } from "@/app/leo/_lib/leoConversationContext";
+import {
+  entityQueryFromReferentFields,
+  LEO_18A_ENTITY_NOT_CLAIMING,
+  resolveLeoEntity,
+  type LeoEntityCategory,
+  type LeoEntityKnownBusiness,
+  type LeoEntityKnownPerson,
+  type LeoEntityResolutionResult,
+} from "@/app/leo/_lib/leoEntityResolution";
 
 export type LeoReferentKind =
   | "EMAIL"
@@ -498,4 +508,79 @@ export function resolveLeoConversationReferent(input: {
 /** True when consequential/internal mutation must wait for clarification. */
 export function referentBlocksMutation(resolution: LeoReferentResolution): boolean {
   return resolution.status === "AMBIGUOUS" && resolution.blocksMutation;
+}
+
+/**
+ * LEO-18A — Map a resolved (or focus) referent into entity resolution evidence.
+ * Reuses this referent system; does not invent a second one.
+ * Supports phrases like "that email", "that meeting" via proven ids only.
+ */
+export function resolveEntityFromConversationReferent(input: {
+  rawText: string;
+  referent: LeoReferentResolution | null | undefined;
+  context?: LeoActiveConversationContext | null;
+  knownPersons?: readonly LeoEntityKnownPerson[];
+  knownBusinesses?: readonly LeoEntityKnownBusiness[];
+  knownEmails?: readonly string[];
+  expectedCategories?: readonly LeoEntityCategory[];
+}): LeoEntityResolutionResult {
+  const resolved = input.referent?.status === "RESOLVED" ? input.referent : null;
+  const ambiguous = input.referent?.status === "AMBIGUOUS";
+
+  if (ambiguous) {
+    return {
+      query: { rawText: input.rawText },
+      state: "AMBIGUOUS",
+      confidence: "NONE",
+      candidates: (input.referent && input.referent.status === "AMBIGUOUS"
+        ? input.referent.candidates
+        : []
+      ).map((c, i) => ({
+        candidateId: `REFERENT_AMBIGUOUS:${c.cardId ?? i}`,
+        category:
+          c.kind === "EMAIL"
+            ? ("CONVERSATION_THREAD" as const)
+            : c.kind === "CALENDAR"
+              ? ("CALENDAR_EVENT" as const)
+              : c.kind === "CLIENT"
+                ? ("PERSON" as const)
+                : ("LEONIX_ENTITY" as const),
+        displayLabel: c.label,
+        provenIdentifier: null,
+        confidence: "WEAK" as const,
+        evidence: [
+          {
+            matchedOn: c.label,
+            reason: "Ambiguous conversation referent — clarification required.",
+            source: "CONVERSATION_REFERENT" as const,
+            sourceRef: c.cardId,
+          },
+        ],
+      })),
+      ambiguity: true,
+      clarificationRequired: true,
+      clarification:
+        input.referent && input.referent.status === "AMBIGUOUS"
+          ? input.referent.clarification
+          : "Which item do you mean?",
+      proposalSafe: false,
+      notClaiming: LEO_18A_ENTITY_NOT_CLAIMING,
+    };
+  }
+
+  return resolveLeoEntity(
+    entityQueryFromReferentFields({
+      rawText: input.rawText,
+      expectedCategories: input.expectedCategories,
+      referentStatus: input.referent?.status ?? null,
+      threadId: resolved?.threadId ?? input.context?.focusThreadId ?? null,
+      eventId: resolved?.eventId ?? input.context?.focusEventId ?? null,
+      messageId: resolved?.messageId ?? input.context?.focusMessageId ?? null,
+      label: resolved?.label ?? null,
+      kind: resolved?.kind ?? null,
+      knownEmails: input.knownEmails,
+      knownPersons: input.knownPersons,
+      knownBusinesses: input.knownBusinesses,
+    }),
+  );
 }

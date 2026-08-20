@@ -1,9 +1,10 @@
 /**
- * LEO-17B — Conversation → governed action proposal bridge (pure).
+ * LEO-17B / LEO-18A — Conversation → governed action proposal bridge (pure).
  *
  * Converts recognized consequential conversation intents into proposal candidates.
  * Does NOT send email, mutate calendar, or execute providers.
  * Ambiguous referents and incomplete targets fail closed.
+ * LEO-18A: entity resolution must be proposal-safe before PROPOSABLE.
  */
 import type { LeoActionProposalActionFamily } from "@/app/leo/_lib/leoActionProposalTypes";
 import type {
@@ -12,6 +13,15 @@ import type {
   LeoGovernanceAssessment,
 } from "@/app/leo/_lib/leoTypes";
 import type { LeoReferentResolution } from "@/app/leo/_lib/leoConversationReferents";
+import {
+  entityQueryFromReferentFields,
+  isLeoEntityResolutionProposalSafe,
+  leoEntityResolutionSnapshot,
+  resolveLeoEntity,
+  type LeoEntityKnownBusiness,
+  type LeoEntityKnownPerson,
+  type LeoEntityResolutionResult,
+} from "@/app/leo/_lib/leoEntityResolution";
 
 export const LEO_17B_BRIDGE_NOT_CLAIMING = [
   "Not SENT",
@@ -229,6 +239,7 @@ function extractDayHint(question: string): string | null {
 function referentSnapshotFrom(
   resolution: LeoReferentResolution | null | undefined,
   context: LeoActiveConversationContext | null | undefined,
+  entityResolution?: LeoEntityResolutionResult | null,
 ): Record<string, unknown> {
   const snap: Record<string, unknown> = {};
   if (resolution?.status === "RESOLVED") {
@@ -247,18 +258,106 @@ function referentSnapshotFrom(
   if (context?.focusThreadId) snap.focusThreadId = context.focusThreadId;
   if (context?.focusMessageId) snap.focusMessageId = context.focusMessageId;
   if (context?.focusEventId) snap.focusEventId = context.focusEventId;
+  if (entityResolution) {
+    snap.entityResolution = leoEntityResolutionSnapshot(entityResolution);
+  }
   return snap;
+}
+
+/**
+ * Gate PROPOSABLE on entity resolution confidence.
+ * Ambiguity → CLARIFICATION_NEEDED; missing proof → NEEDS_INFORMATION.
+ */
+function gateByEntityResolution(input: {
+  family: LeoConnectedActionFamily;
+  governanceActionKind: LeoActionIntentKind;
+  entity: LeoEntityResolutionResult;
+  missing: string[];
+  displayName: string | null;
+  normalizedTarget: Record<string, unknown>;
+  structuredPayload: Record<string, unknown>;
+  referentSnapshot: Record<string, unknown>;
+  proposableSummary: string;
+}): LeoConversationProposalCandidate {
+  const snap = {
+    ...input.referentSnapshot,
+    entityResolution: leoEntityResolutionSnapshot(input.entity),
+  };
+
+  if (input.entity.state === "AMBIGUOUS" || input.entity.ambiguity) {
+    return {
+      status: "CLARIFICATION_NEEDED",
+      actionFamily: input.family,
+      clarification:
+        input.entity.clarification ??
+        "That entity reference is ambiguous. Which one do you mean? LEO will not guess.",
+      missing: ["unambiguous_entity", ...input.missing],
+    };
+  }
+
+  if (!isLeoEntityResolutionProposalSafe(input.entity)) {
+    const missing = [...input.missing];
+    if (!missing.includes("entity_confidence")) missing.push("entity_confidence");
+    if (!missing.includes("proven_entity_identifier")) missing.push("proven_entity_identifier");
+    const base = composeNeedsInformationSummary(input.family, missing, input.displayName);
+    const clarification =
+      input.entity.clarification && !base.includes(input.entity.clarification)
+        ? `${input.entity.clarification} ${base}`
+        : base;
+    return {
+      status: "NEEDS_INFORMATION",
+      actionFamily: input.family,
+      governanceActionKind: input.governanceActionKind,
+      missing,
+      normalizedTarget: input.normalizedTarget,
+      structuredPayload: input.structuredPayload,
+      referentSnapshot: snap,
+      truthLabel: "Needs information",
+      summary: clarification,
+    };
+  }
+
+  if (input.missing.length > 0) {
+    return {
+      status: "NEEDS_INFORMATION",
+      actionFamily: input.family,
+      governanceActionKind: input.governanceActionKind,
+      missing: input.missing,
+      normalizedTarget: input.normalizedTarget,
+      structuredPayload: input.structuredPayload,
+      referentSnapshot: snap,
+      truthLabel: "Needs information",
+      summary: composeNeedsInformationSummary(input.family, input.missing, input.displayName),
+    };
+  }
+
+  return {
+    status: "PROPOSABLE",
+    actionFamily: input.family,
+    governanceActionKind: input.governanceActionKind,
+    normalizedTarget: input.normalizedTarget,
+    structuredPayload: input.structuredPayload,
+    referentSnapshot: snap,
+    truthLabel: "Needs approval",
+    summary: input.proposableSummary,
+    awaitingApproval: true,
+  };
 }
 
 /**
  * Build a proposal candidate from conversation + optional referent resolution.
  * Never invents recipient emails or event ids.
+ * LEO-18A: requires trusted entity resolution before PROPOSABLE.
  */
 export function buildLeoConversationProposalCandidate(input: {
   question: string;
   referent?: LeoReferentResolution | null;
   context?: LeoActiveConversationContext | null;
   entityId?: string | null;
+  /** Optional owner-supplied evidence bag — never invents missing identities. */
+  knownPersons?: readonly LeoEntityKnownPerson[];
+  knownBusinesses?: readonly LeoEntityKnownBusiness[];
+  knownEmails?: readonly string[];
 }): LeoConversationProposalCandidate {
   const family = inferLeoConnectedActionFamily(input.question);
   if (!family) return { status: "NOT_CONNECTED_ACTION" };
@@ -273,7 +372,6 @@ export function buildLeoConversationProposalCandidate(input: {
   }
 
   const governanceActionKind = governanceActionKindForConnectedFamily(family);
-  const referentSnapshot = referentSnapshotFrom(input.referent, input.context);
   const resolved = input.referent?.status === "RESOLVED" ? input.referent : null;
   const missing: string[] = [];
 
@@ -284,6 +382,24 @@ export function buildLeoConversationProposalCandidate(input: {
     const body = extractBodyHint(input.question);
     if (!exactEmail) missing.push("exact_recipient_email");
     if (!subject && !body) missing.push("message_content");
+
+    const entity = resolveLeoEntity(
+      entityQueryFromReferentFields({
+        rawText: exactEmail ?? displayName ?? input.question,
+        expectedCategories: ["EMAIL_ADDRESS", "PERSON"],
+        referentStatus: input.referent?.status ?? null,
+        threadId: resolved?.threadId,
+        messageId: resolved?.messageId,
+        label: resolved?.label,
+        kind: resolved?.kind,
+        knownEmails: exactEmail
+          ? [exactEmail, ...(input.knownEmails ?? [])]
+          : input.knownEmails,
+        knownPersons: input.knownPersons,
+        knownBusinesses: input.knownBusinesses,
+      }),
+    );
+    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
 
     const structuredPayload = {
       recipient: exactEmail,
@@ -299,32 +415,17 @@ export function buildLeoConversationProposalCandidate(input: {
       recipientDisplayName: displayName,
     };
 
-    if (missing.length > 0) {
-      return {
-        status: "NEEDS_INFORMATION",
-        actionFamily: family,
-        governanceActionKind,
-        missing,
-        normalizedTarget,
-        structuredPayload,
-        referentSnapshot,
-        truthLabel: "Needs information",
-        summary: composeNeedsInformationSummary(family, missing, displayName),
-      };
-    }
-
-    return {
-      status: "PROPOSABLE",
-      actionFamily: family,
+    return gateByEntityResolution({
+      family,
       governanceActionKind,
+      entity,
+      missing,
+      displayName,
       normalizedTarget,
       structuredPayload,
       referentSnapshot,
-      truthLabel: "Needs approval",
-      summary:
-        `Prepared Gmail send proposal to ${exactEmail}. Needs your approval. Not sent.`,
-      awaitingApproval: true,
-    };
+      proposableSummary: `Prepared Gmail send proposal to ${exactEmail}. Needs your approval. Not sent.`,
+    });
   }
 
   if (family === "GMAIL_REPLY") {
@@ -344,6 +445,54 @@ export function buildLeoConversationProposalCandidate(input: {
     if (!recipient) missing.push("exact_recipient_email");
     if (!body) missing.push("reply_body");
 
+    // Resolve thread and recipient separately — both are required; do not treat
+    // two required proven identities as ambiguity.
+    const threadEntity = resolveLeoEntity(
+      entityQueryFromReferentFields({
+        rawText: "that email",
+        expectedCategories: ["CONVERSATION_THREAD"],
+        referentStatus: input.referent?.status ?? null,
+        threadId,
+        messageId: resolved?.messageId ?? input.context?.focusMessageId,
+        label: resolved?.label,
+        kind: resolved?.kind ?? "EMAIL",
+      }),
+    );
+    const recipientEntity = resolveLeoEntity(
+      entityQueryFromReferentFields({
+        rawText: recipient ?? "recipient",
+        expectedCategories: ["EMAIL_ADDRESS"],
+        knownEmails: recipient ? [recipient] : input.knownEmails,
+      }),
+    );
+    const entity: LeoEntityResolutionResult = {
+      ...threadEntity,
+      candidates: [...threadEntity.candidates, ...recipientEntity.candidates],
+      proposalSafe:
+        isLeoEntityResolutionProposalSafe(threadEntity) &&
+        isLeoEntityResolutionProposalSafe(recipientEntity),
+      state:
+        threadEntity.state === "AMBIGUOUS" || recipientEntity.state === "AMBIGUOUS"
+          ? "AMBIGUOUS"
+          : threadEntity.proposalSafe && recipientEntity.proposalSafe
+            ? "RESOLVED"
+            : threadEntity.state === "UNRESOLVED" || recipientEntity.state === "UNRESOLVED"
+              ? "UNRESOLVED"
+              : "LIKELY",
+      ambiguity: threadEntity.ambiguity || recipientEntity.ambiguity,
+      clarificationRequired:
+        threadEntity.clarificationRequired || recipientEntity.clarificationRequired,
+      clarification:
+        threadEntity.clarification ?? recipientEntity.clarification ?? null,
+      confidence:
+        threadEntity.confidence === "EXACT" && recipientEntity.confidence === "EXACT"
+          ? "EXACT"
+          : threadEntity.confidence === "NONE" || recipientEntity.confidence === "NONE"
+            ? "NONE"
+            : "STRONG",
+    };
+    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
+
     const structuredPayload = {
       recipient,
       threadId,
@@ -357,31 +506,17 @@ export function buildLeoConversationProposalCandidate(input: {
       messageId: resolved?.messageId ?? input.context?.focusMessageId ?? null,
     };
 
-    if (missing.length > 0) {
-      return {
-        status: "NEEDS_INFORMATION",
-        actionFamily: family,
-        governanceActionKind,
-        missing,
-        normalizedTarget,
-        structuredPayload,
-        referentSnapshot,
-        truthLabel: "Needs information",
-        summary: composeNeedsInformationSummary(family, missing, null),
-      };
-    }
-
-    return {
-      status: "PROPOSABLE",
-      actionFamily: family,
+    return gateByEntityResolution({
+      family,
       governanceActionKind,
+      entity,
+      missing,
+      displayName: null,
       normalizedTarget,
       structuredPayload,
       referentSnapshot,
-      truthLabel: "Needs approval",
-      summary: `Prepared Gmail reply proposal for thread ${threadId}. Needs your approval. Not sent.`,
-      awaitingApproval: true,
-    };
+      proposableSummary: `Prepared Gmail reply proposal for thread ${threadId}. Needs your approval. Not sent.`,
+    });
   }
 
   if (family === "CALENDAR_CREATE") {
@@ -393,6 +528,15 @@ export function buildLeoConversationProposalCandidate(input: {
     missing.push("timezone");
     if (!title) missing.push("title");
     missing.push("attendee_emails");
+
+    // Create has no existing event identity — fail closed for inventing attendees/events.
+    const entity = resolveLeoEntity({
+      rawText: title ?? dayHint ?? input.question,
+      expectedCategories: ["CALENDAR_EVENT", "PERSON", "EMAIL_ADDRESS"],
+      knownPersons: input.knownPersons,
+      knownEmails: input.knownEmails,
+    });
+    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
 
     const structuredPayload = {
       title: title ?? (dayHint ? `Meeting (${dayHint})` : null),
@@ -409,11 +553,18 @@ export function buildLeoConversationProposalCandidate(input: {
       title: structuredPayload.title,
     };
 
+    // Calendar create is never PROPOSABLE without proven schedule fields;
+    // entity gate reinforces attendee/event non-invention.
     return {
       status: "NEEDS_INFORMATION",
       actionFamily: family,
       governanceActionKind,
-      missing,
+      missing: [
+        ...missing,
+        ...(isLeoEntityResolutionProposalSafe(entity)
+          ? []
+          : ["entity_confidence", "proven_entity_identifier"]),
+      ],
       normalizedTarget,
       structuredPayload,
       referentSnapshot,
@@ -432,6 +583,18 @@ export function buildLeoConversationProposalCandidate(input: {
     // Patch content is not proven from NL alone in this gate.
     missing.push("proven_patch_fields");
 
+    const entity = resolveLeoEntity(
+      entityQueryFromReferentFields({
+        rawText: "that meeting",
+        expectedCategories: ["CALENDAR_EVENT"],
+        referentStatus: input.referent?.status ?? null,
+        eventId,
+        label: resolved?.label,
+        kind: resolved?.kind ?? "CALENDAR",
+      }),
+    );
+    const referentSnapshot = referentSnapshotFrom(input.referent, input.context, entity);
+
     const structuredPayload = {
       eventId,
       patch: {},
@@ -439,17 +602,17 @@ export function buildLeoConversationProposalCandidate(input: {
     };
     const normalizedTarget = { eventId };
 
-    return {
-      status: "NEEDS_INFORMATION",
-      actionFamily: family,
+    return gateByEntityResolution({
+      family,
       governanceActionKind,
+      entity,
       missing,
+      displayName: null,
       normalizedTarget,
       structuredPayload,
       referentSnapshot,
-      truthLabel: "Needs information",
-      summary: composeNeedsInformationSummary(family, missing, null),
-    };
+      proposableSummary: `Prepared calendar update proposal for event ${eventId}. Needs your approval. Not scheduled.`,
+    });
   }
 }
 
@@ -484,6 +647,12 @@ function composeNeedsInformationSummary(
           return "which meeting to update";
         case "proven_patch_fields":
           return "exact fields to change";
+        case "entity_confidence":
+          return "acceptable entity confidence";
+        case "proven_entity_identifier":
+          return "proven entity identifier";
+        case "unambiguous_entity":
+          return "unambiguous entity";
         default:
           return m.replace(/_/g, " ");
       }
