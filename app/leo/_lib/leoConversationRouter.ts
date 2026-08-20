@@ -45,6 +45,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "RECEIPT_INTELLIGENCE",
   "MORNING_BRIEF",
   "BUSINESS_CONCIERGE_CONTEXT",
+  "EXECUTIVE_REPORTING",
   "UNKNOWN",
 ] as const;
 
@@ -211,6 +212,29 @@ export function isLeoMorningBriefQuestion(q: string): boolean {
   );
 }
 
+/** EXEC-REPORTS-01: company-wide admin reporting — does not steal Morning Brief or Client Care. */
+export function isLeoExecutiveReportingQuestion(q: string): boolean {
+  const n = normalizeQuestion(q);
+  if (isLeoMorningBriefQuestion(n)) return false;
+  if (/\bwhat needs my attention\b/.test(n) || /\bwho is waiting on\b/.test(n)) return false;
+  if (/\bclient care\b/.test(n)) return false;
+  return (
+    /\bcompany report\b/.test(n) ||
+    /\badmin report\b/.test(n) ||
+    /\ball reports\b/.test(n) ||
+    /\bwhat is happening across leonix\b/.test(n) ||
+    /\bshow me everything important\b/.test(n) ||
+    /\bhow is the business doing\b/.test(n) ||
+    /\bwhat do all my admin areas show\b/.test(n) ||
+    /\bhow are newsletters? doing\b/.test(n) ||
+    /\bshow sales and payment issues\b/.test(n) ||
+    /\bwhat is happening in iglesias\b/.test(n) ||
+    /\bwhich admin areas have unresolved queues\b/.test(n) ||
+    /\bexecutive reports?\b/.test(n) ||
+    /\bgive me all admin reports\b/.test(n)
+  );
+}
+
 /** LEO-15: Business Concierge read context — distinct from generic CLIENT_CARE. */
 export function isLeoBusinessConciergeContextQuestion(q: string): boolean {
   const n = normalizeQuestion(q);
@@ -344,6 +368,17 @@ export function routeLeoConversation(
     notes.push("morning brief pattern");
     return routeResult({
       intent: "MORNING_BRIEF",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    });
+  }
+
+  if (isLeoExecutiveReportingQuestion(q)) {
+    notes.push("executive reporting pattern");
+    return routeResult({
+      intent: "EXECUTIVE_REPORTING",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,

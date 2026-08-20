@@ -80,6 +80,12 @@ import {
 } from "@/app/leo/_lib/leoCommunicationIntelligenceService";
 import { getLeoMorningBrief } from "@/app/leo/_lib/leoMorningBriefService";
 import {
+  composeLeoExecutiveReportingSummary,
+  executiveSignalsToResultCards,
+  filterExecutiveSnapshotByQuestion,
+  getLeoExecutiveReportingSnapshot,
+} from "@/app/leo/_lib/leoExecutiveReportingService";
+import {
   composeLeoBusinessConciergeExecutiveSummary,
 } from "@/app/leo/_lib/leoBusinessConciergeBridge";
 import { getLeoBusinessConciergeContextFromRefs } from "@/app/leo/_lib/leoBusinessConciergeBridgeService";
@@ -221,6 +227,51 @@ export async function runLeoConversationDeterministic(
           "What did LEO prepare?",
         ],
         suggestedNextRetrieval: "Ask about a specific section or drill into commitments or email.",
+      });
+    }
+
+    case "EXECUTIVE_REPORTING": {
+      const full = await getLeoExecutiveReportingSnapshot({ nowMs, limit: 8 });
+      const snap = filterExecutiveSnapshotByQuestion(full, request.question ?? "");
+      const cards = executiveSignalsToResultCards(
+        [...snap.attention, ...snap.signals.filter((s) => !s.ownerAttentionRequired)].slice(0, maxResults),
+      );
+      const evidence: LeoConversationEvidence[] = snap.signals.slice(0, 12).map((s) => ({
+        sourceKind: `exec_${s.domain.toLowerCase()}`,
+        sourceRef: s.signalId,
+        summary: s.title.slice(0, 160),
+        availability: s.availability === "AVAILABLE" || s.availability === "EMPTY" ? "LIVE" : "PARTIAL",
+        limitationNote: s.availability === "UNAVAILABLE" ? "Source unavailable." : null,
+      }));
+      return empty({
+        intent: "EXECUTIVE_REPORTING",
+        answerState: snap.overallAvailability === "UNAVAILABLE" ? "INSUFFICIENT_EVIDENCE" : "ANSWERED",
+        summary: composeLeoExecutiveReportingSummary(snap),
+        spokenSummary: composeLeoExecutiveReportingSummary(snap),
+        keyPoints: snap.attention.slice(0, 5).map((s) => ({
+          kind: "FACT" as const,
+          text: s.title,
+          evidenceIds: [],
+        })),
+        resultCards: cards,
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: snap.adapterHealth
+          .filter((h) => h.availability === "UNAVAILABLE" || h.availability === "NOT_IMPLEMENTED")
+          .map((h) => h.domain.toLowerCase()),
+        limitations: snap.limitations,
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        suggestedQuestions: [
+          "How are newsletters doing?",
+          "Show sales and payment issues.",
+          "What is happening in Iglesias?",
+          "What needs my attention?",
+        ],
+        suggestedNextRetrieval: "Open a specific admin queue or ask about one domain.",
       });
     }
 

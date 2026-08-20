@@ -18,6 +18,7 @@ import {
 } from "@/app/leo/_lib/leoMorningBrief";
 import { businessRefFromClientCareEntity } from "@/app/leo/_lib/leoBusinessConciergeBridge";
 import { fetchLeoBusinessConciergeEnrichmentForRefs } from "@/app/leo/_lib/leoBusinessConciergeBridgeService";
+import { collectLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
 import type { LeoBusinessConciergeBusinessRef, LeoMorningBrief, LeoMorningBriefAvailability } from "@/app/leo/_lib/leoTypes";
 
 export type LeoMorningBriefServiceOptions = {
@@ -41,7 +42,7 @@ export async function getLeoMorningBrief(
   const nowMs = options.nowMs ?? Date.now();
   const timezone = resolveLeoMorningBriefTimezone(options.timezone);
 
-  const [attentionRes, careRes, commRes, commitRes, receiptRes, projectRes] =
+  const [attentionRes, careRes, commRes, commitRes, receiptRes, projectRes, execRes] =
     await Promise.allSettled([
       getLeoAttentionBrief({ topN: 8, nowMs }),
       getLeoClientCareWatch({ nowMs }),
@@ -54,6 +55,7 @@ export async function getLeoMorningBrief(
       leoListCommitments({ status: "OPEN", limit: 40 }),
       leoListRecentToolReceipts(20),
       getLeoProjectExecutiveSnapshot({ nowMs }),
+      collectLeoExecutiveReportingSnapshot({ nowMs, limit: 6 }),
     ]);
 
   const buildInput: LeoMorningBriefBuildInput = {
@@ -158,6 +160,40 @@ export async function getLeoMorningBrief(
             availability: toBriefAvailability(false),
             snapshot: null,
             limitation: "Project intelligence unavailable.",
+          },
+    executiveReporting:
+      execRes.status === "fulfilled"
+        ? {
+            availability:
+              execRes.value.overallAvailability === "UNAVAILABLE"
+                ? "UNAVAILABLE"
+                : execRes.value.overallAvailability === "NOT_IMPLEMENTED"
+                  ? "NOT_CONFIGURED"
+                  : execRes.value.overallAvailability === "EMPTY"
+                    ? "EMPTY"
+                    : execRes.value.overallAvailability === "PARTIAL"
+                      ? "PARTIAL"
+                      : "AVAILABLE",
+            attention: execRes.value.attention
+              .filter((s) => !["LEADS", "CLIENTS", "CONTACTS", "NEWSLETTER"].includes(s.domain))
+              .slice(0, 4)
+              .map((s) => ({
+                title: s.title,
+                summary: s.summary,
+                domain: s.domain,
+                severity: s.severity,
+                evidenceRef: s.signalId,
+                deepLink: s.deepLink ?? null,
+              })),
+            limitation:
+              execRes.value.overallAvailability === "UNAVAILABLE"
+                ? "Company-wide admin reporting unavailable."
+                : null,
+          }
+        : {
+            availability: "UNAVAILABLE",
+            attention: [],
+            limitation: "Company-wide admin reporting unavailable.",
           },
   };
 

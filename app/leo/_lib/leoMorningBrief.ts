@@ -103,6 +103,19 @@ export type LeoMorningBriefBuildInput = {
   };
   /** LEO-15: optional bounded Concierge enrichment keyed by kind:id */
   conciergeByRef?: Record<string, LeoBusinessConciergeContext>;
+  /** EXEC-REPORTS-01: umbrella admin signals — skip leads/contacts already in Client Care. */
+  executiveReporting?: {
+    availability: LeoMorningBriefAvailability;
+    attention: Array<{
+      title: string;
+      summary: string;
+      domain: string;
+      severity: string;
+      evidenceRef: string;
+      deepLink: string | null;
+    }>;
+    limitation?: string | null;
+  };
 };
 
 export function resolveLeoMorningBriefTimezone(input?: string | null): string {
@@ -171,6 +184,14 @@ function priorityCandidates(input: {
   commitments: LeoCommitment[];
   receipts: LeoDurableToolReceipt[];
   project: LeoProjectExecutiveSnapshot | null;
+  executiveAttention?: Array<{
+    title: string;
+    summary: string;
+    domain: string;
+    severity: string;
+    evidenceRef: string;
+    deepLink: string | null;
+  }>;
 }): Array<Omit<LeoMorningBriefTopPriority, "rank">> {
   const out: Array<Omit<LeoMorningBriefTopPriority, "rank">> = [];
   const today = ymdInTimezone(input.nowMs, input.timezone);
@@ -329,6 +350,23 @@ function priorityCandidates(input: {
       safeNextAction: item.recommendedNextStep,
       cardId: `attention:${item.id}`,
       evidenceRef: item.id,
+    });
+  }
+
+  const umbrellaDomains = new Set(["PAYMENTS", "REVENUE", "MODERATION", "LISTINGS", "LEO", "SYSTEM"]);
+  for (const item of input.executiveAttention ?? []) {
+    if (!umbrellaDomains.has(item.domain)) continue;
+    const priority: LeoMorningBriefPriority =
+      item.severity === "CRITICAL" ? "DO_NOW" : item.severity === "HIGH" ? "DO_TODAY" : "WATCH";
+    out.push({
+      priority,
+      what: item.title,
+      why: item.summary,
+      dueOrTime: null,
+      source: "Company reports",
+      safeNextAction: item.deepLink ? "Open the admin workspace." : "Review Command Center Executive Reports.",
+      cardId: `exec:${item.evidenceRef}`,
+      evidenceRef: item.evidenceRef,
     });
   }
 
@@ -676,6 +714,57 @@ export function buildLeoMorningBrief(input: LeoMorningBriefBuildInput): LeoMorni
     ),
   );
 
+  const execCards: LeoResultCard[] = (input.executiveReporting?.attention ?? []).slice(0, 4).map((item) => ({
+    cardId: `exec:${item.evidenceRef}`,
+    kind: "BRIEF_SECTION" as const,
+    priority: item.severity === "CRITICAL" ? "CRITICAL" : item.severity === "HIGH" ? "HIGH" : "NORMAL",
+    certainty: "PROVEN" as const,
+    title: item.title,
+    subtitle: item.domain,
+    whyItMatters: item.summary,
+    reason: null,
+    evidenceRefs: [item.evidenceRef],
+    sourceSystem: "LEONIX" as const,
+    actions: item.deepLink
+      ? [
+          {
+            actionId: `open:${item.evidenceRef}`,
+            type: "OPEN_INTERNAL" as const,
+            label: "Open admin",
+            iconSemantic: "open",
+            targetRef: { system: "LEONIX" as const, entityType: "admin_route", id: item.evidenceRef, url: item.deepLink },
+            governanceLevel: "GREEN" as const,
+            executionType: "NAVIGATE" as const,
+            toolId: null,
+            enabled: true,
+            disabledReason: null,
+            requiresConfirmation: false,
+            receiptBehavior: "NONE" as const,
+          },
+        ]
+      : [],
+    spokenSummary: item.title,
+    sectionKey: "EXECUTIVE_REPORTING",
+    itemCount: 1,
+  }));
+  if (input.executiveReporting) {
+    sections.push(
+      buildSection(
+        "EXECUTIVE_REPORTING",
+        "Company reports",
+        execCards.length > 0 ? "DO_TODAY" : "WATCH",
+        input.executiveReporting.availability === "UNAVAILABLE"
+          ? "Company-wide admin reporting was unavailable."
+          : execCards.length > 0
+            ? `${execCards.length} company signal${execCards.length === 1 ? "" : "s"} beyond Client Care.`
+            : "No extra company queues beyond Client Care, commitments, and email.",
+        execCards,
+        input.executiveReporting.availability,
+        input.executiveReporting.limitation,
+      ),
+    );
+  }
+
   if (sourceFailures > 0) {
     const degraded: string[] = [];
     if (input.communication?.availability === "UNAVAILABLE") degraded.push("Gmail/Calendar unavailable");
@@ -704,6 +793,7 @@ export function buildLeoMorningBrief(input: LeoMorningBriefBuildInput): LeoMorni
     commitments: openCommitments,
     receipts,
     project,
+    executiveAttention: input.executiveReporting?.attention,
   });
   const topPriorities = dedupePriorities(ranked).map((p) => {
     if (p.source !== "Client Care") return p;

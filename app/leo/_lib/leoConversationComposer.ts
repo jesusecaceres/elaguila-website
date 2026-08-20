@@ -505,6 +505,13 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
         "Prepare me for my next meeting.",
         "What did LEO prepare?",
       ];
+    case "EXECUTIVE_REPORTING":
+      return [
+        "How are newsletters doing?",
+        "Show sales and payment issues.",
+        "What is happening in Iglesias?",
+        "Which admin areas have unresolved queues?",
+      ];
     case "BUSINESS_CONCIERGE_CONTEXT":
       return [
         "What tools can help this client?",

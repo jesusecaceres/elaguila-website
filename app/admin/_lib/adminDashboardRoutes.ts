@@ -28,6 +28,8 @@ export const ADMIN_DASHBOARD_ROUTES = {
   users: "/admin/usuarios",
   customerOps: "/admin/ops",
   payments: "/admin/payments",
+  paymentTracker: "/admin/workspace/payment-tracker",
+  iglesias: "/admin/workspace/iglesias",
   support: "/admin/support",
   promoCodes: "/admin/workspace/promo-codes",
 } as const;

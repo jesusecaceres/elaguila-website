@@ -566,6 +566,7 @@ export type LeoConversationIntent =
   | "RECEIPT_INTELLIGENCE"
   | "MORNING_BRIEF"
   | "BUSINESS_CONCIERGE_CONTEXT"
+  | "EXECUTIVE_REPORTING"
   | "UNKNOWN";
 
 /** LEO-13 deterministic communication question subtype. */
@@ -1508,7 +1509,8 @@ export type LeoMorningBriefSectionKind =
   | "COMMITMENTS"
   | "PREPARED_ACTIONS"
   | "PROJECTS"
-  | "SYSTEM";
+  | "SYSTEM"
+  | "EXECUTIVE_REPORTING";
 
 export type LeoMorningBriefAvailability =
   | "AVAILABLE"

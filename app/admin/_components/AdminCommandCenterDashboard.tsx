@@ -3,6 +3,7 @@ import { AdminCommandCenterClient, type AdminCommandCenterSection } from "./Admi
 import { AdminDashboardCta, AdminDashboardCtaGrid } from "./AdminDashboardCta";
 import { AdminDashboardReviewCardActions } from "./AdminDashboardReviewCardActions";
 import { AdminMonetizationLinksCard } from "./AdminMonetizationLinksCard";
+import { AdminExecutiveReportsPanel } from "./AdminExecutiveReportsPanel";
 import { AdminPagePurposeCard } from "./AdminPagePurposeCard";
 import { AdminSectionCard } from "./AdminSectionCard";
 import {
@@ -24,6 +25,7 @@ import {
 import { classifyDashboardReviewRowFlagTruth } from "../_lib/adminReviewFlagTruth";
 import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
 import type { adminMessages } from "../_lib/adminI18n";
+import type { LeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingTypes";
 
 type Msg = ReturnType<typeof adminMessages>;
 
@@ -266,6 +268,7 @@ export function AdminCommandCenterDashboard({
   paySnap,
   catalogStats,
   showPaymentTracker,
+  executiveReports,
 }: {
   m: Msg;
   locale: string;
@@ -277,6 +280,7 @@ export function AdminCommandCenterDashboard({
   paySnap: { unavailable: boolean; pendingCount: number };
   catalogStats: { total: number; live: number; error: string | null };
   showPaymentTracker: boolean;
+  executiveReports: LeoExecutiveReportingSnapshot | null;
 }) {
   const { expiringSoon, expired } = splitAdminDashboardExpiringQueue(snap.expiringQueueItems);
   const reviewPreview = snap.pendingReviewQueueItems.slice(0, REVIEW_PREVIEW_LIMIT);
@@ -843,6 +847,11 @@ export function AdminCommandCenterDashboard({
 
   const sections: AdminCommandCenterSection[] = [
     { id: "today", label: "Today", content: todaysCommandSection },
+    {
+      id: "reports",
+      label: "Executive Reports",
+      content: <AdminExecutiveReportsPanel snapshot={executiveReports} />,
+    },
     { id: "revenue", label: "Revenue Pulse", content: revenuePipelineSection },
     { id: "marketplace", label: "Marketplace", content: marketplaceSection },
     { id: "website", label: "Website", content: websiteSection },
