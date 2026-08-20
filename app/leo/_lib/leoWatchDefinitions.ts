@@ -101,6 +101,16 @@ export const LEO_WATCH_DEFINITIONS: Record<LeoWatchKind, LeoWatchDefinition> = {
     severityThreshold: "CRITICAL",
     canonicalService: "leoSystemHealth",
   },
+  EXECUTIVE_REPORTING: {
+    kind: "EXECUTIVE_REPORTING",
+    label: "Company reports",
+    defaultCadenceMs: HOUR_MS,
+    minimumCadenceMs: HOUR_MS,
+    notificationEligible: true,
+    quietHoursBehavior: "defer",
+    severityThreshold: "HIGH",
+    canonicalService: "leoExecutiveReportingService",
+  },
 };
 
 export const LEO_WATCH_KINDS = Object.keys(LEO_WATCH_DEFINITIONS) as LeoWatchKind[];

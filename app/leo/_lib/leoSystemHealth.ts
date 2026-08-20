@@ -27,6 +27,12 @@ export type LeoSystemHealthInput = {
   githubConfigured?: boolean;
   vercelConfigured?: boolean;
   webPushConfigured?: boolean;
+  /** EXEC-REPORTS-02 — reporting adapter health. NOT_IMPLEMENTED is not a failure. */
+  reportingAdapters?: Array<{
+    domain: string;
+    label: string;
+    availability: string;
+  }>;
 };
 
 function mapToolAvailability(a: LeoToolAvailability | undefined): LeoSystemHealthState {
@@ -145,6 +151,26 @@ export function buildLeoSystemHealthSnapshot(input: LeoSystemHealthInput = {}): 
     state: pushAvailable ? "HEALTHY" : input.webPushConfigured === false ? "NOT_CONFIGURED" : "UNKNOWN",
     ownerMessage: pushAvailable ? null : "Push alerts are not configured on the server.",
   });
+
+  for (const adapter of input.reportingAdapters ?? []) {
+    if (adapter.availability === "NOT_IMPLEMENTED" || adapter.availability === "EMPTY") continue;
+    let state: LeoSystemHealthState = "UNKNOWN";
+    if (adapter.availability === "AVAILABLE") state = "HEALTHY";
+    else if (adapter.availability === "PARTIAL") state = "DEGRADED";
+    else if (adapter.availability === "UNAVAILABLE") state = "UNAVAILABLE";
+    else continue;
+    components.push({
+      key: `reporting:${adapter.domain}`,
+      label: `${adapter.label} reporting`,
+      state,
+      ownerMessage:
+        state === "UNAVAILABLE"
+          ? `${adapter.label} reporting is unavailable — not treated as healthy or zero.`
+          : state === "DEGRADED"
+            ? `${adapter.label} reporting is partial.`
+            : null,
+    });
+  }
 
   const limitations: string[] = [];
   const degraded = components.filter((c) => c.state === "DEGRADED" || c.state === "UNAVAILABLE");

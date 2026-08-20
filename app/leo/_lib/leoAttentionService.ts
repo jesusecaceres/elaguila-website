@@ -23,6 +23,8 @@ import {
   buildLeoClientCareSignals,
   leoClientCareSignalsToObservations,
 } from "@/app/leo/_lib/leoClientCareWatcher";
+import { collectLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
+import { mapExecutiveSignalsToAttentionObservations } from "@/app/leo/_lib/leoExecutiveReportingWatchPolicy";
 
 export type LeoAttentionServiceOptions = {
   topN?: number;
@@ -56,6 +58,13 @@ export async function getLeoAttentionBrief(
       supportAvailability: bundle.supportAvailability,
     });
     observations.push(...leoClientCareSignalsToObservations(care.signals));
+  }
+
+  try {
+    const reporting = await collectLeoExecutiveReportingSnapshot({ nowMs });
+    observations.push(...mapExecutiveSignalsToAttentionObservations(reporting.signals));
+  } catch {
+    // Fail-soft — company reporting must not take down Attention.
   }
 
   const brief = buildLeoAttentionBrief(observations, {

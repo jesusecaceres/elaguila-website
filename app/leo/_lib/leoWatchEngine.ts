@@ -11,6 +11,7 @@ import { isLeoAttentionAckSuppressing } from "@/app/leo/_lib/leoPersistenceSeman
 import { leoSystemHealthFingerprint } from "@/app/leo/_lib/leoSystemHealth";
 import { stableWatchFingerprint } from "@/app/leo/_lib/leoNotificationPolicy";
 import { LEO_MORNING_BRIEF_WINDOW } from "@/app/leo/_lib/leoWatchDefinitions";
+import { mapExecutiveReportingToWatchCandidates } from "@/app/leo/_lib/leoExecutiveReportingWatchPolicy";
 import type {
   LeoWatchEngineInput,
   LeoWatchEngineOutput,
@@ -49,17 +50,26 @@ function hourInTimezone(nowMs: number, timezone: string): number {
 }
 
 function baseResult(
-  partial: Omit<LeoWatchResult, "generatedAt" | "changed" | "shouldNotify" | "deepLink" | "suppressionReason">,
+  partial: Omit<LeoWatchResult, "generatedAt" | "changed" | "shouldNotify" | "deepLink" | "suppressionReason"> & {
+    deepLink?: string;
+  },
   input: LeoWatchEngineInput,
 ): LeoWatchResult {
   const prior = input.priorFingerprints[partial.fingerprint];
   const changed = prior == null || prior !== partial.fingerprint;
+  const deepLink =
+    partial.deepLink &&
+    partial.deepLink.startsWith("/admin") &&
+    !partial.deepLink.startsWith("//") &&
+    !partial.deepLink.includes("://")
+      ? partial.deepLink.split("#")[0].slice(0, 200)
+      : DEEP_LINK;
   return {
     ...partial,
     generatedAt: new Date(input.nowMs).toISOString(),
     changed,
     shouldNotify: changed && partial.severity !== "INFORMATIONAL",
-    deepLink: DEEP_LINK,
+    deepLink,
     suppressionReason: null,
   };
 }
@@ -381,6 +391,7 @@ function evaluateAttention(input: LeoWatchEngineInput): LeoWatchResult[] {
     if (item.level === "INFORMATIONAL") continue;
     const sourceKey = `attention:${item.id}`;
     if (suppressed(input, sourceKey)) continue;
+    if (item.id.startsWith("executive_signal:")) continue;
 
     const severity: LeoWatchSeverity =
       item.level === "CRITICAL" ? "CRITICAL" : item.level === "HIGH" ? "HIGH" : "NORMAL";
@@ -495,6 +506,66 @@ function evaluateSystemHealth(input: LeoWatchEngineInput): LeoWatchResult[] {
   ];
 }
 
+function evaluateExecutiveReporting(input: LeoWatchEngineInput): LeoWatchResult[] {
+  const snap = input.executiveReporting;
+  if (!snap) return [];
+
+  const candidates = mapExecutiveReportingToWatchCandidates(snap);
+  const out: LeoWatchResult[] = [];
+
+  for (const cand of candidates) {
+    if (suppressed(input, cand.sourceKey) || suppressed(input, cand.signalId)) continue;
+    out.push(
+      baseResult(
+        {
+          kind: "EXECUTIVE_REPORTING",
+          status: cand.status,
+          severity: cand.severity,
+          fingerprint: cand.fingerprint,
+          headline: cand.headline,
+          summary: cand.summary,
+          evidenceRefs: cand.evidenceRefs,
+          limitations: [],
+          notificationCategory: cand.severity === "CRITICAL" ? "critical" : "needs_you",
+          eligibleOutsideQuietHours: cand.eligibleOutsideQuietHours,
+          deepLink: cand.deepLink,
+        },
+        input,
+      ),
+    );
+  }
+
+  return out.map((result) => {
+    const cand = candidates.find((c) => c.fingerprint === result.fingerprint);
+    if (cand && !cand.pushEligible) {
+      return { ...result, shouldNotify: false, suppressionReason: "report_only" };
+    }
+    return result;
+  });
+}
+
+function suppressExecutiveReportingCoveredByMorningBrief(
+  results: LeoWatchResult[],
+  input: LeoWatchEngineInput,
+): LeoWatchResult[] {
+  const morning = results.find((r) => r.kind === "MORNING_BRIEF");
+  if (!morning?.shouldNotify) return results;
+  const covered = new Set(
+    (input.morningBrief?.topPriorities ?? [])
+      .map((p) => p.evidenceRef)
+      .filter((v): v is string => Boolean(v)),
+  );
+  if (covered.size === 0) return results;
+  return results.map((result) => {
+    if (result.kind !== "EXECUTIVE_REPORTING") return result;
+    const signalId = result.evidenceRefs[0];
+    if (signalId && covered.has(signalId)) {
+      return { ...result, shouldNotify: false, suppressionReason: "covered_by_morning_brief" };
+    }
+    return result;
+  });
+}
+
 /** Pure watch evaluation — all kinds, fail-soft per source. */
 export function runLeoWatchEngine(input: LeoWatchEngineInput): LeoWatchEngineOutput {
   const limitations: string[] = [
@@ -502,16 +573,20 @@ export function runLeoWatchEngine(input: LeoWatchEngineInput): LeoWatchEngineOut
     "Notifications inform — delivery to push provider is not proof the owner saw them.",
   ];
 
-  const results: LeoWatchResult[] = [
-    ...evaluateMorningBrief(input),
-    ...evaluateClientCare(input),
-    ...evaluateCommunication(input),
-    ...evaluateCommitments(input),
-    ...evaluateReceipts(input),
-    ...evaluateAttention(input),
-    ...evaluateProjectHealth(input),
-    ...evaluateSystemHealth(input),
-  ];
+  const results: LeoWatchResult[] = suppressExecutiveReportingCoveredByMorningBrief(
+    [
+      ...evaluateMorningBrief(input),
+      ...evaluateClientCare(input),
+      ...evaluateCommunication(input),
+      ...evaluateCommitments(input),
+      ...evaluateReceipts(input),
+      ...evaluateAttention(input),
+      ...evaluateProjectHealth(input),
+      ...evaluateSystemHealth(input),
+      ...evaluateExecutiveReporting(input),
+    ],
+    input,
+  );
 
   return { results, limitations };
 }

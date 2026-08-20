@@ -39,7 +39,6 @@ export function AdminExecutiveReportsPanel({
     );
   }
 
-  const { adapterCounts } = snapshot;
   const attention = snapshot.attention.slice(0, 6);
   const operations = snapshot.operations.slice(0, 4);
   const performance = snapshot.performance.slice(0, 4);
@@ -48,14 +47,21 @@ export function AdminExecutiveReportsPanel({
   return (
     <AdminSectionCard
       title="Executive Reports"
-      subtitle="Company signals rolling up from admin sources. Click through to the real workspace."
+      subtitle="Reports show the company. Alerts surface changes that need you."
     >
+      <p className="mb-2 text-xs font-medium text-[#5C5346]">
+        Executive Reports is the company-wide picture. LEO alerts are the smaller proactive subset — not every report becomes an alert.
+      </p>
       <p className="mb-3 text-xs text-[#7A7164]" data-testid="admin-exec-report-sources">
-        Reporting sources: {adapterCounts.available} available
-        {adapterCounts.partial ? ` · ${adapterCounts.partial} partial` : ""}
-        {adapterCounts.unavailable ? ` · ${adapterCounts.unavailable} unavailable` : ""}
-        {adapterCounts.notImplemented ? ` · ${adapterCounts.notImplemented} not built yet` : ""}
-        {adapterCounts.empty ? ` · ${adapterCounts.empty} empty` : ""}
+        Reporting sources: {snapshot.coverage.totalRegisteredDomains} registered domains
+        {" · "}
+        {snapshot.coverage.available} available
+        {snapshot.coverage.partial ? ` · ${snapshot.coverage.partial} partial` : ""}
+        {snapshot.coverage.unavailable ? ` · ${snapshot.coverage.unavailable} unavailable` : ""}
+        {snapshot.coverage.notImplemented ? ` · ${snapshot.coverage.notImplemented} not built yet` : ""}
+        {snapshot.coverage.empty ? ` · ${snapshot.coverage.empty} empty` : ""}
+        {" · "}
+        {snapshot.coverage.watchEnabledDomains} watch-enabled
       </p>
       <details className="mb-4 rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 px-3 py-2 text-xs text-[#5C5346]">
         <summary className="cursor-pointer font-semibold text-[#1E1810]">Source detail</summary>

@@ -49,6 +49,8 @@ import {
   runLeoWatchEngine,
 } from "@/app/leo/_lib/leoWatchEngine";
 import { LEO_WATCH_KINDS } from "@/app/leo/_lib/leoWatchDefinitions";
+import { collectLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
+import { mapExecutiveSignalsToAttentionObservations } from "@/app/leo/_lib/leoExecutiveReportingWatchPolicy";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type {
   LeoCommunicationExecutiveSnapshot,
@@ -164,7 +166,7 @@ async function loadPriorFingerprints(ownerAuthUserId: string): Promise<Record<st
 async function persistWatchRun(ownerAuthUserId: string, result: LeoWatchResult, startedAt: string): Promise<void> {
   if (!isSupabaseAdminConfigured()) return;
   const supabase = getAdminSupabase();
-  await supabase.from("leo_watch_runs").insert({
+  const { error } = await supabase.from("leo_watch_runs").insert({
     owner_auth_user_id: ownerAuthUserId,
     watch_kind: result.kind,
     started_at: startedAt,
@@ -179,6 +181,7 @@ async function persistWatchRun(ownerAuthUserId: string, result: LeoWatchResult, 
     deep_link: result.deepLink.slice(0, 200),
     error_class: result.status === "UNAVAILABLE" ? "source_unavailable" : null,
   });
+  void error;
 }
 
 export async function runLeoScheduledWatches(options?: {
@@ -214,6 +217,7 @@ export async function runLeoScheduledWatches(options?: {
     acksRes,
     communication,
     project,
+    reportingRes,
   ] = await Promise.allSettled([
     fetchLeoClientCareSourceRecords(),
     listLeoCommitmentsForOwner(ownerAuthUserId, { status: "OPEN", limit: 40 }),
@@ -221,6 +225,7 @@ export async function runLeoScheduledWatches(options?: {
     listLeoAttentionAcksForOwner(ownerAuthUserId),
     loadCommunicationForWatch(nowMs),
     loadProjectForWatch(nowMs),
+    collectLeoExecutiveReportingSnapshot({ nowMs }),
   ]);
 
   let clientCare = null;
@@ -237,12 +242,18 @@ export async function runLeoScheduledWatches(options?: {
     errors.push("client_care_failed");
   }
 
+  const reportingSnap = reportingRes.status === "fulfilled" ? reportingRes.value : null;
+  if (reportingRes.status === "rejected") errors.push("executive_reporting_failed");
+
   let attention = null;
   try {
     const snapshot = await getLeoExecutiveTruthSnapshot();
     const observations = [...snapshot.observations];
     if (clientCare) {
       observations.push(...leoClientCareSignalsToObservations(clientCare.signals));
+    }
+    if (reportingSnap) {
+      observations.push(...mapExecutiveSignalsToAttentionObservations(reportingSnap.signals));
     }
     const brief = buildLeoAttentionBrief(observations, { topN: 8, nowMs });
     const acks =
@@ -282,6 +293,11 @@ export async function runLeoScheduledWatches(options?: {
         ? "HEALTHY"
         : "UNAVAILABLE",
     watchPersistence: isSupabaseAdminConfigured() ? "HEALTHY" : "NOT_CONFIGURED",
+    reportingAdapters: reportingSnap?.adapterHealth.map((h) => ({
+      domain: h.domain,
+      label: h.label,
+      availability: h.availability,
+    })),
   });
 
   const morningBrief = buildLeoMorningBrief({
@@ -307,6 +323,39 @@ export async function runLeoScheduledWatches(options?: {
     project: projectSnap
       ? { availability: "AVAILABLE", snapshot: projectSnap }
       : { availability: "UNAVAILABLE", snapshot: null, limitation: "Project intelligence unavailable." },
+    executiveReporting: reportingSnap
+      ? {
+          availability:
+            reportingSnap.overallAvailability === "UNAVAILABLE"
+              ? "UNAVAILABLE"
+              : reportingSnap.overallAvailability === "NOT_IMPLEMENTED"
+                ? "NOT_CONFIGURED"
+                : reportingSnap.overallAvailability === "EMPTY"
+                  ? "EMPTY"
+                  : reportingSnap.overallAvailability === "PARTIAL"
+                    ? "PARTIAL"
+                    : "AVAILABLE",
+          attention: reportingSnap.attention
+            .filter((s) => !["LEADS", "CLIENTS", "CONTACTS", "NEWSLETTER"].includes(s.domain))
+            .slice(0, 4)
+            .map((s) => ({
+              title: s.title,
+              summary: s.summary,
+              domain: s.domain,
+              severity: s.severity,
+              evidenceRef: s.signalId,
+              deepLink: s.deepLink ?? null,
+            })),
+          limitation:
+            reportingSnap.overallAvailability === "UNAVAILABLE"
+              ? "Company-wide admin reporting unavailable."
+              : null,
+        }
+      : {
+          availability: "UNAVAILABLE",
+          attention: [],
+          limitation: "Company-wide admin reporting unavailable.",
+        },
   });
 
   const acks = acksRes.status === "fulfilled" ? acksRes.value.acks : [];
@@ -335,6 +384,9 @@ export async function runLeoScheduledWatches(options?: {
     attention,
     project: projectSnap,
     systemHealth,
+    executiveReporting: reportingSnap
+      ? { signals: reportingSnap.signals, adapterHealth: reportingSnap.adapterHealth }
+      : null,
   });
 
   const subs = await listActiveLeoNotificationSubscriptions(ownerAuthUserId);

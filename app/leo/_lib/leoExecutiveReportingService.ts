@@ -22,6 +22,10 @@ import type {
   LeoExecutiveWatchCompatibleSignal,
 } from "@/app/leo/_lib/leoExecutiveReportingTypes";
 import type { LeoBriefSectionResultCard, LeoResultCard } from "@/app/leo/_lib/leoTypes";
+import {
+  buildLeoExecutiveReportingCoverage,
+  isExecutiveSignalWatchCompatible,
+} from "@/app/leo/_lib/leoExecutiveReportingWatchPolicy";
 
 export const LEO_EXECUTIVE_REPORTING_MAX_TOTAL_SIGNALS = 48;
 
@@ -64,7 +68,8 @@ function rankSignals(a: LeoExecutiveSignal, b: LeoExecutiveSignal): number {
   return a.title.localeCompare(b.title);
 }
 
-function toWatchCompatible(s: LeoExecutiveSignal): LeoExecutiveWatchCompatibleSignal {
+function toWatchCompatible(s: LeoExecutiveSignal): LeoExecutiveWatchCompatibleSignal | null {
+  if (!isExecutiveSignalWatchCompatible(s)) return null;
   return {
     domain: s.domain,
     fingerprint: s.fingerprint,
@@ -220,7 +225,15 @@ export async function collectLeoExecutiveReportingSnapshot(options?: {
     adapterHealth,
     adapterCounts: bucketCounts(adapterHealth),
     limitations: [...new Set(limitations)].slice(0, 20),
-    watchCompatible: signals.map(toWatchCompatible),
+    watchCompatible: signals.map(toWatchCompatible).filter((s): s is LeoExecutiveWatchCompatibleSignal => s != null),
+    coverage: buildLeoExecutiveReportingCoverage(
+      {
+        adapterHealth,
+        adapterCounts: bucketCounts(adapterHealth),
+        domainSummaries,
+      },
+      LEO_EXECUTIVE_DOMAIN_REGISTRY.length,
+    ),
   };
 }
 
@@ -257,6 +270,7 @@ export function filterExecutiveSnapshotByQuestion(
     operations: snap.operations.filter((s) => domains!.has(s.domain)),
     performance: snap.performance.filter((s) => domains!.has(s.domain)),
     systemHealth: snap.systemHealth.filter((s) => domains!.has(s.domain)),
+    watchCompatible: snap.watchCompatible.filter((s) => domains!.has(s.domain)),
   };
 }
 

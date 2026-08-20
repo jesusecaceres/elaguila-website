@@ -108,7 +108,8 @@ const cronRoute = src("app/api/leo/watch/run/route.ts");
 check(/isLeoCronAuthorized/.test(cronRoute), "cron authenticated");
 check(!/searchParams.*owner|query.*ownerAuthUserId/i.test(cronRoute), "no client owner id");
 
-check(LEO_WATCH_KINDS.length === 8, "eight watch kinds");
+check(LEO_WATCH_KINDS.length === 9, "nine watch kinds");
+check(LEO_WATCH_KINDS.includes("EXECUTIVE_REPORTING"), "EXECUTIVE_REPORTING watch kind");
 for (const kind of LEO_WATCH_KINDS) {
   check(Boolean(LEO_WATCH_DEFINITIONS[kind]), `definition ${kind}`);
 }
@@ -538,6 +539,20 @@ const allowed = new Set([
   "app/admin/(dashboard)/leo/_components/LeoSystemHealthCard.tsx",
   "supabase/migrations/20260819180000_leo_scheduled_watches_notifications.sql",
   "scripts/verify-leo-16-scheduled-watches-notifications.ts",
+  "app/leo/_lib/leoExecutiveReportingWatchPolicy.ts",
+  "app/leo/_lib/leoExecutiveReportingTypes.ts",
+  "app/leo/_lib/leoExecutiveReportingService.ts",
+  "app/leo/_lib/leoExecutiveReportingAdapter.ts",
+  "app/leo/_lib/leoAttentionService.ts",
+  "app/leo/_lib/leoAttentionEngine.ts",
+  "app/leo/_lib/leoNotificationService.ts",
+  "app/admin/_components/AdminExecutiveReportsPanel.tsx",
+  "scripts/verify-exec-reports-02-whole-company-watch-integration.ts",
+  "scripts/verify-exec-reports-01-global-reporting-fabric.ts",
+  "scripts/verify-access-01-command-center-concierge-pwa.ts",
+  "scripts/verify-leo-15-business-concierge-read-bridge.ts",
+  "scripts/verify-leo-14-11-morning-ceo-brief.ts",
+  "scripts/verify-leo-14-10-hands-free.ts",
 ]);
 const changed = execSync("git diff --name-only HEAD", { cwd: ROOT, encoding: "utf8" })
   .trim()

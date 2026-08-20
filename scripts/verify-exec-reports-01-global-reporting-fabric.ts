@@ -150,6 +150,17 @@ const broken: LeoExecutiveReportingSnapshot = {
   adapterCounts: { available: 1, partial: 0, empty: 0, unavailable: 1, notImplemented: 0, unknown: 0 },
   limitations: ["Newsletter adapter failed."],
   watchCompatible: [],
+  coverage: {
+    totalRegisteredDomains: 2,
+    liveAdapterCount: 2,
+    available: 1,
+    partial: 0,
+    empty: 0,
+    unavailable: 1,
+    notImplemented: 0,
+    unknown: 0,
+    watchEnabledDomains: 2,
+  },
 };
 const summary = composeLeoExecutiveReportingSummary(broken);
 check(/unavailable/i.test(summary) && !/all-clear|all clear|healthy/i.test(summary), "broken adapter does not claim all-clear");

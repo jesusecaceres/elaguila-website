@@ -1,5 +1,11 @@
 /**
  * EXEC-REPORTS-01 adapter helpers — read-only, bounded, no mutation.
+ *
+ * Future Admin systems that produce queues, flags, metrics, AI results, payment
+ * or moderation signals, automation results, system health, or customer status
+ * must expose a LeoExecutiveReportingAdapter. Operationally important signals
+ * must set watch-compatible fingerprints so LEO-16 can observe them without a
+ * second alert architecture. Do not force trivial admin pages to push-alert.
  */
 import { createHash } from "node:crypto";
 

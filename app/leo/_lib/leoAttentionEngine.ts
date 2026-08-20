@@ -82,6 +82,9 @@ function rootCauseKeyFor(obs: LeoObservation): string {
   if (obs.kind.startsWith("client_care_")) {
     return obs.kind;
   }
+  if (obs.kind === "executive_reporting") {
+    return obs.key;
+  }
   return obs.kind;
 }
 
@@ -153,6 +156,8 @@ function recommendedStep(kinds: LeoObservationKind[]): string | null {
     case "snapshot_limitation":
     case "client_care_limitation":
       return "Do not treat as an emergency — source is outside AdminDashboardSnapshot.";
+    case "executive_reporting":
+      return "Open Executive Reports in Command Center, then the canonical admin route.";
     default:
       return null;
   }

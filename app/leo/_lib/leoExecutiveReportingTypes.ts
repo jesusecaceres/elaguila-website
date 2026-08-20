@@ -9,6 +9,10 @@
  *   A. provide a LeoExecutiveReportingAdapter, or
  *   B. explicitly document why it has no executive reporting value.
  *
+ * When that feature is operationally important (queue, flag, payment failure, moderation,
+ * automation/AI result needing review, system health, customer/client risk), the adapter
+ * MUST emit watchCompatible executive signals. Trivial admin pages must not spam alerts.
+ *
  * GREEN READ only. Report output != authority.
  */
 
@@ -171,6 +175,20 @@ export type LeoExecutiveReportingSnapshot = {
   limitations: string[];
   /** Watch-ready projection — no extra fetch required. */
   watchCompatible: LeoExecutiveWatchCompatibleSignal[];
+  /** Bounded coverage — how much of Admin actually reports upward. Not a 100% claim. */
+  coverage: LeoExecutiveReportingCoverage;
+};
+
+export type LeoExecutiveReportingCoverage = {
+  totalRegisteredDomains: number;
+  liveAdapterCount: number;
+  available: number;
+  partial: number;
+  empty: number;
+  unavailable: number;
+  notImplemented: number;
+  unknown: number;
+  watchEnabledDomains: number;
 };
 
 export type LeoExecutiveWatchCompatibleSignal = {

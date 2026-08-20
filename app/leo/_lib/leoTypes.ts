@@ -72,7 +72,9 @@ export type LeoObservationKind =
   | "client_care_waiting_on_customer"
   | "client_care_open_support"
   | "client_care_stale_active_lead"
-  | "client_care_limitation";
+  | "client_care_limitation"
+  /** EXEC-REPORTS-02 — company reporting signals not already represented by Client Care / listings. */
+  | "executive_reporting";
 
 export type LeoObservation = {
   /** Stable key within a snapshot (e.g. leads_needing_reply). */
@@ -2085,7 +2087,8 @@ export type LeoWatchKind =
   | "ACTION_RECEIPTS"
   | "ATTENTION"
   | "PROJECT_HEALTH"
-  | "SYSTEM_HEALTH";
+  | "SYSTEM_HEALTH"
+  | "EXECUTIVE_REPORTING";
 
 export type LeoWatchRunStatus = "OK" | "UNAVAILABLE" | "DEGRADED" | "SKIPPED";
 
@@ -2132,6 +2135,11 @@ export type LeoWatchEngineInput = {
   attention?: LeoAttentionBrief | null;
   project?: LeoProjectExecutiveSnapshot | null;
   systemHealth?: LeoSystemHealthSnapshot | null;
+  /** EXEC-REPORTS-02 — company reporting snapshot; do not re-query source adapters here. */
+  executiveReporting?: {
+    signals: import("@/app/leo/_lib/leoExecutiveReportingTypes").LeoExecutiveSignal[];
+    adapterHealth: import("@/app/leo/_lib/leoExecutiveReportingTypes").LeoExecutiveAdapterHealth[];
+  } | null;
 };
 
 export type LeoWatchEngineOutput = {

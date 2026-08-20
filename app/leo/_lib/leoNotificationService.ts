@@ -209,6 +209,7 @@ export async function recordLeoNotificationDelivery(input: {
     subscription_id: input.subscriptionId ?? null,
     error_class: input.errorClass?.slice(0, 120) ?? null,
   });
+  // Fail-soft if watch_kind CHECK does not yet include EXECUTIVE_REPORTING.
 }
 
 export async function dispatchLeoAlertPush(input: {
