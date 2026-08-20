@@ -744,6 +744,11 @@ export type LeoConversationAnswer = {
    * Never secrets, tokens, or raw provider bodies.
    */
   executiveContext?: Record<string, unknown> | null;
+  /**
+   * LEO-19A: intelligence capability route snapshot (model-agnostic).
+   * Classifies capability only — never grants permission or calls providers.
+   */
+  intelligenceRoute?: Record<string, unknown> | null;
 };
 
 /* -------------------------------------------------------------------------- */

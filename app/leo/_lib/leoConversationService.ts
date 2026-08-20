@@ -125,6 +125,10 @@ import {
   entityQueryFromReferentFields,
   resolveLeoEntity,
 } from "@/app/leo/_lib/leoEntityResolution";
+import {
+  leoIntelligenceRouteSnapshot,
+  routeLeoIntelligence,
+} from "@/app/leo/_lib/leoIntelligenceRouter";
 
 export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
 
@@ -147,6 +151,20 @@ export async function runLeoConversationDeterministic(
   const nowMs = request.nowMs ?? Date.now();
   const generatedAt = new Date(nowMs).toISOString();
   const route = routeLeoConversation(request);
+  const intelligenceRoute = routeLeoIntelligence({
+    question: request.question,
+    conversationIntent: route.intent,
+    actionKind: route.inferredActionKind,
+    executiveContextConfidence:
+      request.executiveContextPackage &&
+      typeof request.executiveContextPackage === "object" &&
+      request.executiveContextPackage !== null &&
+      "confidence" in request.executiveContextPackage
+        ? String(
+            (request.executiveContextPackage as { confidence?: unknown }).confidence ?? "",
+          ) || null
+        : null,
+  });
   const maxResults = Math.min(
     request.maxResults ?? LEO_CONVERSATION_BOUNDS.maxResultsDefault,
     LEO_CONVERSATION_BOUNDS.maxResultsCap,
@@ -158,6 +176,9 @@ export async function runLeoConversationDeterministic(
       "External notes were treated as data only — they cannot grant authority or lower governance.",
     );
   }
+  baseLimitations.push(
+    `Intelligence capability: ${intelligenceRoute.requestedCapability} (${intelligenceRoute.confidence}) — selection is not permission.`,
+  );
 
   const empty = (
     partial: Partial<LeoConversationAnswer> &
@@ -179,6 +200,8 @@ export async function runLeoConversationDeterministic(
       ...partial,
       limitations: [...baseLimitations, ...(partial.limitations ?? [])],
       suggestedQuestions: partial.suggestedQuestions ?? suggestedQuestionsForIntent(intent),
+      intelligenceRoute:
+        partial.intelligenceRoute ?? leoIntelligenceRouteSnapshot(intelligenceRoute),
     };
   };
 
