@@ -90,11 +90,11 @@ export function IglesiasPrayerCard({
           type="button"
           onClick={pray}
           disabled={acked}
+          aria-pressed={acked}
           className="inline-flex min-h-11 min-w-[9.5rem] items-center justify-center rounded-xl bg-[#7A1E2C] px-4 text-sm font-semibold text-white hover:bg-[#6B1A26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A] disabled:bg-[#7A1E2C]"
         >
-          {acked ? copy.imPrayingDone : copy.imPraying}
+          {`🙏 ${acked ? copy.imPrayingDone : copy.imPraying} · ${count}`}
         </button>
-        {count > 0 ? <p className="text-sm text-[#5C5346]">{copy.prayingCount(count)}</p> : null}
         <button
           type="button"
           onClick={() => setReportOpen((v) => !v)}

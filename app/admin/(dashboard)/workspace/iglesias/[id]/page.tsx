@@ -60,7 +60,25 @@ export default async function AdminIglesiasChurchPage(props: {
 
       {submission ? (
         <div className={`${adminCardBase} p-5 text-sm`}>
-          <h2 className="font-bold">Applicant (private)</h2>
+          <h2 className="font-bold">Intake</h2>
+          <p className="mt-2">
+            {String(submission.intake_decision || "—")}
+            {typeof submission.intake_confidence === "number"
+              ? ` · confidence ${Math.round(Number(submission.intake_confidence) * 100)}%`
+              : ""}
+          </p>
+          <p className="mt-1 text-xs text-[#5C5346]">
+            {(Array.isArray(submission.intake_reasons) ? submission.intake_reasons : []).join(" · ") || "No intake reasons stored."}
+          </p>
+          {(Array.isArray(submission.intake_risk_signals) ? submission.intake_risk_signals : []).length ? (
+            <p className="mt-1 text-xs text-[#7A1E2C]">
+              Risk: {(submission.intake_risk_signals as string[]).join(" · ")}
+            </p>
+          ) : null}
+          {(Array.isArray(submission.intake_attention_fields) ? submission.intake_attention_fields : []).length ? (
+            <p className="mt-1 text-xs">Fields: {(submission.intake_attention_fields as string[]).join(", ")}</p>
+          ) : null}
+          <h3 className="mt-4 font-bold">Applicant (private)</h3>
           <p className="mt-2">{submission.applicant_name || "—"}</p>
           <p>{submission.applicant_email || "—"}</p>
           <p>{submission.applicant_phone || "—"}</p>

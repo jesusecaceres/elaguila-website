@@ -21,5 +21,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, intake: result.intake });
 }

@@ -83,6 +83,12 @@ export type IglesiasCopy = {
   applySubmit: string;
   applySuccessTitle: string;
   applySuccessBody: string;
+  applySuccessPublishedTitle: string;
+  applySuccessPublishedBody: string;
+  applySuccessReviewTitle: string;
+  applySuccessReviewBody: string;
+  applySuccessBlockedTitle: string;
+  applySuccessBlockedBody: string;
   applyError: string;
   dayNames: readonly string[];
   modeInPerson: string;
@@ -172,8 +178,8 @@ const ES: IglesiasCopy = {
   profileNotFoundBody: "Puede estar en revisión o ya no estar publicada.",
   profileBack: "Volver a Iglesias",
   applyTitle: "Registrar una iglesia",
-  applySupport: "Tu solicitud queda en revisión. No se publica automáticamente.",
-  applyPendingNote: "Estado al enviar: pendiente de revisión.",
+  applySupport: "Las solicitudes claras se publican automáticamente. Solo las excepciones se revisan.",
+  applyPendingNote: "Si hace falta revisión, te lo confirmamos al enviar.",
   applyPrayerTeamLegend: "¿Tu iglesia tiene un equipo o ministerio de oración?",
   applyPrayerTeamHelp: "Esto es solo intención. No activa la Red de Oración. Un administrador revisa cada solicitud.",
   applyPrayerTeamYes: "Sí",
@@ -181,7 +187,13 @@ const ES: IglesiasCopy = {
   applyPrayerTeamInterested: "Nos interesa",
   applySubmit: "Enviar solicitud",
   applySuccessTitle: "Solicitud recibida",
-  applySuccessBody: "Gracias. El equipo de Leonix revisará los datos antes de publicar el perfil.",
+  applySuccessBody: "Recibimos tu solicitud. Necesitamos revisar algunos detalles antes de publicarla.",
+  applySuccessPublishedTitle: "Iglesia publicada",
+  applySuccessPublishedBody: "Tu iglesia fue recibida y publicada correctamente.",
+  applySuccessReviewTitle: "Solicitud recibida",
+  applySuccessReviewBody: "Recibimos tu solicitud. Necesitamos revisar algunos detalles antes de publicarla.",
+  applySuccessBlockedTitle: "Solicitud recibida",
+  applySuccessBlockedBody: "Recibimos tu solicitud. No podemos publicarla en este momento.",
   applyError: "No pudimos enviar la solicitud. Inténtalo de nuevo.",
   dayNames: ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
   modeInPerson: "En persona",
@@ -270,8 +282,8 @@ const EN: IglesiasCopy = {
   profileNotFoundBody: "It may still be in review or is no longer published.",
   profileBack: "Back to Churches",
   applyTitle: "Register a church",
-  applySupport: "Your application stays in review. It is not published automatically.",
-  applyPendingNote: "On submit, status is pending review.",
+  applySupport: "Clear applications are published automatically. Only exceptions are reviewed.",
+  applyPendingNote: "If a review is needed, we will confirm that when you submit.",
   applyPrayerTeamLegend: "Does your church have a prayer team or prayer ministry?",
   applyPrayerTeamHelp: "This is intent only. It does not enable the Prayer Network. Every application still needs admin review.",
   applyPrayerTeamYes: "Yes",
@@ -279,7 +291,13 @@ const EN: IglesiasCopy = {
   applyPrayerTeamInterested: "Interested",
   applySubmit: "Submit application",
   applySuccessTitle: "Application received",
-  applySuccessBody: "Thank you. The Leonix team will review the details before publishing the profile.",
+  applySuccessBody: "We received your application. We need to review a few details before publishing it.",
+  applySuccessPublishedTitle: "Church published",
+  applySuccessPublishedBody: "Your church was received and published successfully.",
+  applySuccessReviewTitle: "Application received",
+  applySuccessReviewBody: "We received your application. We need to review a few details before publishing it.",
+  applySuccessBlockedTitle: "Application received",
+  applySuccessBlockedBody: "We received your application. We cannot publish it at this time.",
   applyError: "We could not send the application. Please try again.",
   dayNames: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
   modeInPerson: "In person",

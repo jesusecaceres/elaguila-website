@@ -244,8 +244,9 @@ function main() {
   assert.ok(wall.includes("IglesiasPrayerForm"));
   assert.ok(!/trending|most prayed|leaderboard|paid boost/i.test(wall));
   const card = src("app/(site)/iglesias/components/IglesiasPrayerCard.tsx");
-  assert.ok(card.includes("Estoy orando") === false);
   assert.ok(card.includes("imPraying"));
+  assert.ok(card.includes("🙏"));
+  assert.ok(!card.includes("count > 0"));
   assert.ok(!card.includes("heart"));
   assert.ok(card.includes("<article"));
   assert.ok(card.includes('type="button"'));

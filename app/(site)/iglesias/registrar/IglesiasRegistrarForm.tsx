@@ -14,6 +14,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
   const copy = getIglesiasCopy(lang);
   const days = lang === "en" ? DAYS_EN : DAYS_ES;
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
+  const [intake, setIntake] = useState<"AUTO_PUBLISH" | "HUMAN_REVIEW" | "BLOCK" | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
   const [services, setServices] = useState([{ dayOfWeek: 0, startsAt: "10:00", language: "es", mode: "in_person", label: "" }]);
 
@@ -61,7 +62,8 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const json = (await res.json()) as { ok?: boolean };
+      const json = (await res.json()) as { ok?: boolean; intake?: "AUTO_PUBLISH" | "HUMAN_REVIEW" | "BLOCK" };
+      setIntake(json.intake ?? "HUMAN_REVIEW");
       setStatus(json.ok ? "ok" : "error");
     } catch {
       setStatus("error");
@@ -69,12 +71,24 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
   }
 
   if (status === "ok") {
+    const published = intake === "AUTO_PUBLISH";
+    const blocked = intake === "BLOCK";
+    const title = published
+      ? copy.applySuccessPublishedTitle
+      : blocked
+        ? copy.applySuccessBlockedTitle
+        : copy.applySuccessReviewTitle;
+    const body = published
+      ? copy.applySuccessPublishedBody
+      : blocked
+        ? copy.applySuccessBlockedBody
+        : copy.applySuccessReviewBody;
     return (
       <IglesiasPageShell>
         <div className="mx-auto max-w-2xl overflow-x-hidden px-4 py-16">
           <div className="rounded-[1.5rem] border border-[#C9A84A]/35 bg-[#FFFDF7] px-6 py-10 shadow-[0_20px_50px_-36px_rgba(31,36,28,0.4)]">
-            <h1 className="font-serif text-3xl font-bold text-[#1F241C]">{copy.applySuccessTitle}</h1>
-            <p className="mt-3 text-sm leading-relaxed text-[#3D3428]">{copy.applySuccessBody}</p>
+            <h1 className="font-serif text-3xl font-bold text-[#1F241C]">{title}</h1>
+            <p className="mt-3 text-sm leading-relaxed text-[#3D3428]">{body}</p>
             <Link href={`/iglesias?lang=${lang}`} className="mt-6 inline-flex min-h-11 items-center text-sm font-semibold text-[#7A1E2C] underline-offset-2 hover:underline">
               {copy.profileBack}
             </Link>

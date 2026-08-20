@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { approveAndPublishChurch, rejectAndUnpublishChurch } from "@/app/lib/iglesias/churchApproval";
 
 async function assertIglesiasAdmin() {
   await requireLeonixAdminPermission("can_manage_website_content");
@@ -20,17 +21,8 @@ export async function approveChurchAction(formData: FormData) {
   const id = str(formData, "church_id");
   if (!id) throw new Error("Missing church");
   const admin = getAdminSupabase();
-  const { error } = await admin
-    .from("churches")
-    .update({
-      approval_status: "approved",
-      is_active: true,
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  await admin.from("church_submissions").update({ reviewed_at: new Date().toISOString(), reject_reason: null }).eq("church_id", id);
+  const published = await approveAndPublishChurch(admin, id, { reviewedBy: "admin" });
+  if (!published.ok) throw new Error(published.error);
   auditAdminWrite("iglesias_church_approved", "church", id, {});
   revalidatePath("/iglesias");
   revalidatePath(`/admin/workspace/iglesias/${id}`);
@@ -59,20 +51,11 @@ export async function rejectChurchAction(formData: FormData) {
   const reason = str(formData, "reject_reason");
   if (!id) throw new Error("Missing church");
   const admin = getAdminSupabase();
-  const { error } = await admin
-    .from("churches")
-    .update({
-      approval_status: "rejected",
-      is_active: false,
-      published_at: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  await admin
-    .from("church_submissions")
-    .update({ reviewed_at: new Date().toISOString(), reject_reason: reason || "rejected" })
-    .eq("church_id", id);
+  const blocked = await rejectAndUnpublishChurch(admin, id, {
+    rejectReason: reason || "rejected",
+    reviewedBy: "admin",
+  });
+  if (!blocked.ok) throw new Error(blocked.error);
   auditAdminWrite("iglesias_church_rejected", "church", id, {});
   revalidatePath("/iglesias");
   redirect(`/admin/workspace/iglesias/${id}?saved=1`);

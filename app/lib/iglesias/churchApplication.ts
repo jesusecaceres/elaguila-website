@@ -4,6 +4,9 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import type { IglesiasNeedKey } from "./taxonomy";
 import { slugifyIglesiasName } from "./slug";
 import { type ChurchApplicationInput } from "./churchApplicationParse";
+import { approveAndPublishChurch, rejectAndUnpublishChurch } from "./churchApproval";
+import { decideChurchIntake } from "./churchIntakeDecide";
+import type { ChurchIntakeDecision } from "./churchIntakeTypes";
 
 export type { ChurchApplicationInput } from "./churchApplicationParse";
 export { parseChurchApplication } from "./churchApplicationParse";
@@ -20,7 +23,7 @@ async function uniqueSlug(admin: ReturnType<typeof getAdminSupabase>, name: stri
 
 export async function submitChurchApplication(
   input: ChurchApplicationInput,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string; intake: ChurchIntakeDecision } | { ok: false; error: string }> {
   if (!isSupabaseAdminConfigured()) return { ok: false, error: "not_configured" };
   const admin = getAdminSupabase();
   const slug = await uniqueSlug(admin, input.name, input.city);
@@ -103,5 +106,39 @@ export async function submitChurchApplication(
   if (input.heroUrl) media.push({ church_id: churchId, role: "hero", url: input.heroUrl, alt_text: input.name, sort_order: 0 });
   if (media.length) await admin.from("church_media").insert(media);
 
-  return { ok: true, id: churchId };
+  const { data: existing } = await admin
+    .from("churches")
+    .select("id, name, city, state, country, zip, approval_status")
+    .neq("id", churchId)
+    .limit(400);
+
+  const intake = await decideChurchIntake(input, existing ?? []);
+  await admin
+    .from("church_submissions")
+    .update({
+      intake_decision: intake.decision,
+      intake_confidence: intake.confidence,
+      identity_confidence: intake.identityConfidence,
+      safety_confidence: intake.safetyConfidence,
+      intake_reasons: intake.reasons,
+      intake_risk_signals: intake.riskSignals,
+      intake_attention_fields: intake.attentionFields,
+      intake_source: intake.source,
+      intake_decided_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("church_id", churchId);
+
+  if (intake.decision === "AUTO_PUBLISH") {
+    const published = await approveAndPublishChurch(admin, churchId, { reviewedBy: "iglesias_intake" });
+    if (!published.ok) return { ok: false, error: published.error };
+  } else if (intake.decision === "BLOCK") {
+    const blocked = await rejectAndUnpublishChurch(admin, churchId, {
+      rejectReason: "not_publishable",
+      reviewedBy: "iglesias_intake",
+    });
+    if (!blocked.ok) return { ok: false, error: blocked.error };
+  }
+
+  return { ok: true, id: churchId, intake: intake.decision };
 }
