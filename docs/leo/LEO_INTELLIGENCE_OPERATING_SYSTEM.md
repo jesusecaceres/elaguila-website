@@ -219,6 +219,8 @@ Principles:
 
 **LEO-19B foundation:** a provider *type* registry and selection policy map capability → eligible types → preferred order → fail-closed fallback (`NONE`). Registry entries are offline declarations (not live connections). Selection never grants execution authority.
 
+**LEO-19C foundation:** a universal adapter runtime contract normalizes invocation request/result so future provider implementations plug in without leaking vendor code into conversation/router core. Offline/null adapter only in this gate. Models are workers; LEO remains the operator; minimum necessary context; provider output does not grant authority.
+
 ---
 
 ## 8. Memory Philosophy

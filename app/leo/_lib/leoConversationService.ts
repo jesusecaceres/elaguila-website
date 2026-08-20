@@ -133,6 +133,7 @@ import {
   leoIntelligenceSelectionSnapshot,
   selectProviderForIntelligenceRoute,
 } from "@/app/leo/_lib/leoIntelligenceSelectionPolicy";
+import { leoIntelligenceInvocationReadinessSnapshot } from "@/app/leo/_lib/leoIntelligenceInvocationService";
 
 export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
 
@@ -173,6 +174,9 @@ export async function runLeoConversationDeterministic(
   const intelligenceRouteSnap = {
     ...leoIntelligenceRouteSnapshot(intelligenceRoute),
     providerSelection: leoIntelligenceSelectionSnapshot(intelligenceSelection),
+    invocationReadiness: leoIntelligenceInvocationReadinessSnapshot({
+      selection: intelligenceSelection,
+    }),
   };
   const maxResults = Math.min(
     request.maxResults ?? LEO_CONVERSATION_BOUNDS.maxResultsDefault,

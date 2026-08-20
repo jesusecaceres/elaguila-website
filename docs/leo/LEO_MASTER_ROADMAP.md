@@ -94,8 +94,11 @@ No application code changes.
 
 - LEO-19A: capability classification (executive / engineering / creative / research / data / unknown)
 - LEO-19B: provider registry + selection policy (provider types only; offline; no live invocation)
+- LEO-19C: provider adapter runtime contract (normalized invoke/result seam; offline/null adapter only)
 
-No single-provider dependency. CAPABILITY ≠ AUTHORITY. Selection ≠ execution.
+Chain: Router → Registry → Selection Policy → Adapter Runtime → future provider implementations.
+
+Models are workers. LEO remains the operator. Provider output does not grant authority. Minimum necessary context. CAPABILITY ≠ AUTHORITY. Selection ≠ execution.
 
 ---
 
