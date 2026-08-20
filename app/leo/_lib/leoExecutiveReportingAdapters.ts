@@ -693,6 +693,108 @@ export const leoSystemReportingAdapter: LeoExecutiveReportingAdapter = {
       }),
     ];
 
+    // LEO-17A connected action persistence foundation — bounded proposal counts.
+    // No payload or per-owner details are exposed through Executive Reports.
+    if (supabaseOk) {
+      try {
+        const supabase = getAdminSupabase();
+
+        const awaiting = await supabase
+          .from("leo_action_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("proposal_state", "AWAITING_APPROVAL")
+          .eq("approval_state", "PENDING");
+
+        const failed = await supabase
+          .from("leo_action_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("proposal_state", "FAILED");
+
+        const expired = await supabase
+          .from("leo_action_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("proposal_state", "EXPIRED");
+
+        const awaitingCount = typeof awaiting.count === "number" ? awaiting.count : 0;
+        const failedCount = typeof failed.count === "number" ? failed.count : 0;
+        const expiredCount = typeof expired.count === "number" ? expired.count : 0;
+
+        if (awaitingCount > 0) {
+          signals.push(
+            buildLeoExecutiveSignal({
+              domain: "LEO",
+              sourceKind: "leo_action_proposals",
+              sourceRef: "awaiting_approval",
+              nowMs,
+              title: "Action proposals awaiting owner approval",
+              summary: `${awaitingCount} governed proposal${awaitingCount === 1 ? "" : "s"} need your approval.`,
+              signalType: "APPROVAL",
+              severity: "HIGH",
+              status: "NEEDS_ATTENTION",
+              count: awaitingCount,
+              ownerAttentionRequired: true,
+              actionable: true,
+              deepLink: "/admin/leo",
+              evidenceRefs: ["leo_action_proposals:awaiting_approval"],
+              availability: "AVAILABLE",
+              priorityRank: 1,
+            }),
+          );
+        }
+
+        if (failedCount > 0) {
+          signals.push(
+            buildLeoExecutiveSignal({
+              domain: "LEO",
+              sourceKind: "leo_action_proposals",
+              sourceRef: "failed",
+              nowMs,
+              title: "Action proposals failed (human attention required)",
+              summary: `${failedCount} governed proposal${failedCount === 1 ? "" : "s"} failed before execution.`,
+              signalType: "FAILURE",
+              severity: "CRITICAL",
+              status: "DEGRADED",
+              count: failedCount,
+              ownerAttentionRequired: true,
+              actionable: true,
+              deepLink: "/admin/leo",
+              evidenceRefs: ["leo_action_proposals:failed"],
+              availability: "AVAILABLE",
+              priorityRank: 2,
+            }),
+          );
+        }
+
+        if (expiredCount > 0) {
+          signals.push(
+            buildLeoExecutiveSignal({
+              domain: "LEO",
+              sourceKind: "leo_action_proposals",
+              sourceRef: "expired",
+              nowMs,
+              title: "Governed action proposals expired",
+              summary: `${expiredCount} governed proposal${expiredCount === 1 ? "" : "s"} expired without approval/claim.`,
+              signalType: "SYSTEM_HEALTH",
+              severity: "INFORMATIONAL",
+              status: "INFORMATIONAL",
+              count: expiredCount,
+              ownerAttentionRequired: false,
+              actionable: false,
+              deepLink: "/admin/leo",
+              evidenceRefs: ["leo_action_proposals:expired"],
+              availability: "AVAILABLE",
+              priorityRank: 7,
+            }),
+          );
+        }
+      } catch (e) {
+        // Fail-soft: missing migration/table must not break Executive Reports.
+        const msg = (e as Error)?.message ?? String(e);
+        // eslint-disable-next-line no-console
+        console.warn("leo_action_proposals signals unavailable:", msg);
+      }
+    }
+
     return {
       domain: "LEO",
       availability: supabaseOk ? "AVAILABLE" : "PARTIAL",
