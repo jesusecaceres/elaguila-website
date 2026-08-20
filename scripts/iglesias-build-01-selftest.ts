@@ -91,8 +91,8 @@ function main() {
   assert.ok(!/people are praying|personas orando ahora|instant prayer team/i.test(landingView));
 
   const prayerLane = src("app/(site)/iglesias/components/IglesiasPrayerLane.tsx");
-  assert.ok(prayerLane.includes("comingSoon"));
-  assert.ok(!/<form[\s>]/i.test(prayerLane));
+  assert.ok(prayerLane.includes("IglesiasPrayerForm"));
+  assert.ok(!prayerLane.includes("comingSoon"));
 
   const copySrc = src("app/lib/iglesias/copy.ts");
   assert.ok(copySrc.includes("You are not alone"));
@@ -145,14 +145,16 @@ function main() {
 
   const landingKeys = IGLESIAS_NEED_CATALOG.filter((n) => n.landingTile).map((n) => n.key);
   const assigned = landingKeys.map((key) => iglesiasVisibleNeedImageSrc(key)).filter((src): src is string => Boolean(src));
+  assert.equal(assigned.length, landingKeys.length);
   assert.equal(new Set(assigned).size, assigned.length);
   assert.equal(iglesiasVisibleNeedImageSrc("PRAYER"), "/iglesias/editorial/need-prayer.jpg");
-  assert.equal(iglesiasVisibleNeedImageSrc("MARRIAGE"), null);
-  assert.equal(iglesiasVisibleNeedImageSrc("GRIEF"), null);
-  assert.equal(iglesiasVisibleNeedImageSrc("SPANISH_SERVICE"), null);
-  assert.equal(iglesiasVisibleNeedImageSrc("RECOVERY"), null);
-  for (const missing of IGLESIAS_NEED_TILES_WITHOUT_UNIQUE_PHOTO) {
-    assert.equal(iglesiasVisibleNeedImageSrc(missing), null);
+  assert.equal(iglesiasVisibleNeedImageSrc("MARRIAGE"), "/iglesias/editorial/need-marriage.jpg");
+  assert.equal(iglesiasVisibleNeedImageSrc("GRIEF"), "/iglesias/editorial/need-grief.jpg");
+  assert.equal(iglesiasVisibleNeedImageSrc("SPANISH_SERVICE"), "/iglesias/editorial/need-spanish-service.jpg");
+  assert.equal(iglesiasVisibleNeedImageSrc("RECOVERY"), "/iglesias/editorial/need-recovery.jpg");
+  assert.equal(IGLESIAS_NEED_TILES_WITHOUT_UNIQUE_PHOTO.length, 0);
+  for (const src of assigned) {
+    assert.ok(existsSync(path.join(ROOT, "public", src.replace(/^\//, ""))), src);
   }
 
   const seo = src("app/lib/leonix/publicPillarSeo.ts");

@@ -17,27 +17,24 @@ export const IGLESIAS_EDITORIAL_COLLAGE = [
 ] as const;
 
 /**
- * Visible Find-by-Need tiles only. Each assigned src is unique.
- * Needs without a semantically honest unique local asset return null
- * and must not reuse another need's photograph.
+ * Visible Find-by-Need tiles. Each assigned src is a unique local file.
  */
 export const IGLESIAS_NEED_TILE_IMAGES: Record<string, string> = {
   PRAYER: "/iglesias/editorial/need-prayer.jpg",
   FAMILIES: "/iglesias/editorial/need-families.jpg",
   CHILDREN: "/iglesias/editorial/need-children.jpg",
   YOUTH: "/iglesias/editorial/need-youth.jpg",
+  MARRIAGE: "/iglesias/editorial/need-marriage.jpg",
+  GRIEF: "/iglesias/editorial/need-grief.jpg",
   FOOD_SUPPORT: "/iglesias/editorial/need-community.jpg",
   COMMUNITY_SUPPORT: "/iglesias/editorial/hero-community.jpg",
   BIBLE_STUDY: "/iglesias/editorial/need-study.jpg",
+  SPANISH_SERVICE: "/iglesias/editorial/need-spanish-service.jpg",
   BILINGUAL_SERVICE: "/iglesias/editorial/need-spanish.jpg",
+  RECOVERY: "/iglesias/editorial/need-recovery.jpg",
 };
 
-export const IGLESIAS_NEED_TILES_WITHOUT_UNIQUE_PHOTO = [
-  "MARRIAGE",
-  "GRIEF",
-  "SPANISH_SERVICE",
-  "RECOVERY",
-] as const;
+export const IGLESIAS_NEED_TILES_WITHOUT_UNIQUE_PHOTO = [] as const;
 
 export function iglesiasVisibleNeedImageSrc(needKey: string): string | null {
   const src = IGLESIAS_NEED_TILE_IMAGES[needKey];
