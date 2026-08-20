@@ -90,14 +90,12 @@ No application code changes.
 
 ## LEO-19 — LEO Tool Intelligence Router
 
-**Goal:** Route tasks to the right intelligence.
+**Goal:** Route tasks to the right intelligence capability, then select a provider *type* by policy.
 
-- OpenAI and other reasoning engines
-- specialized models
-- agents
-- tools
+- LEO-19A: capability classification (executive / engineering / creative / research / data / unknown)
+- LEO-19B: provider registry + selection policy (provider types only; offline; no live invocation)
 
-No single-provider dependency.
+No single-provider dependency. CAPABILITY ≠ AUTHORITY. Selection ≠ execution.
 
 ---
 

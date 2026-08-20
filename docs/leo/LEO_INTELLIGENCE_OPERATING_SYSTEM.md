@@ -217,6 +217,8 @@ Principles:
 - Prefer the smallest capable intelligence
 - Keep governance above every model choice
 
+**LEO-19B foundation:** a provider *type* registry and selection policy map capability → eligible types → preferred order → fail-closed fallback (`NONE`). Registry entries are offline declarations (not live connections). Selection never grants execution authority.
+
 ---
 
 ## 8. Memory Philosophy

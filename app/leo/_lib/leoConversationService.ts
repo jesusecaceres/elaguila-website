@@ -129,6 +129,10 @@ import {
   leoIntelligenceRouteSnapshot,
   routeLeoIntelligence,
 } from "@/app/leo/_lib/leoIntelligenceRouter";
+import {
+  leoIntelligenceSelectionSnapshot,
+  selectProviderForIntelligenceRoute,
+} from "@/app/leo/_lib/leoIntelligenceSelectionPolicy";
 
 export { validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
 
@@ -165,6 +169,11 @@ export async function runLeoConversationDeterministic(
           ) || null
         : null,
   });
+  const intelligenceSelection = selectProviderForIntelligenceRoute(intelligenceRoute);
+  const intelligenceRouteSnap = {
+    ...leoIntelligenceRouteSnapshot(intelligenceRoute),
+    providerSelection: leoIntelligenceSelectionSnapshot(intelligenceSelection),
+  };
   const maxResults = Math.min(
     request.maxResults ?? LEO_CONVERSATION_BOUNDS.maxResultsDefault,
     LEO_CONVERSATION_BOUNDS.maxResultsCap,
@@ -179,6 +188,12 @@ export async function runLeoConversationDeterministic(
   baseLimitations.push(
     `Intelligence capability: ${intelligenceRoute.requestedCapability} (${intelligenceRoute.confidence}) — selection is not permission.`,
   );
+  // Bounded, non-UI-heavy note — no vendor details.
+  if (intelligenceSelection.selectedProviderType !== "NONE") {
+    baseLimitations.push(
+      `Provider plan: ${intelligenceSelection.selectedProviderType} (offline plan only; not invoked; CAPABILITY != AUTHORITY).`,
+    );
+  }
 
   const empty = (
     partial: Partial<LeoConversationAnswer> &
@@ -200,8 +215,7 @@ export async function runLeoConversationDeterministic(
       ...partial,
       limitations: [...baseLimitations, ...(partial.limitations ?? [])],
       suggestedQuestions: partial.suggestedQuestions ?? suggestedQuestionsForIntent(intent),
-      intelligenceRoute:
-        partial.intelligenceRoute ?? leoIntelligenceRouteSnapshot(intelligenceRoute),
+      intelligenceRoute: partial.intelligenceRoute ?? intelligenceRouteSnap,
     };
   };
 
