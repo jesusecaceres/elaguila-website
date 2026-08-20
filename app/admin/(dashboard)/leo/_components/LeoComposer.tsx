@@ -16,6 +16,7 @@ export function LeoComposer({
   disabled,
   offline,
   speechLanguage,
+  onStartHandsFree,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -24,6 +25,7 @@ export function LeoComposer({
   disabled?: boolean;
   offline?: boolean;
   speechLanguage?: LeoConversationLanguage;
+  onStartHandsFree?: () => void;
 }) {
   const inputId = useId();
 
@@ -81,6 +83,17 @@ export function LeoComposer({
           ? "You’re offline — draft stays on this device. Live Gmail/Calendar/project checks need a connection."
           : "Enter to send · Shift+Enter for a new line"}
       </p>
+      {onStartHandsFree ? (
+        <button
+          type="button"
+          disabled={pending || disabled}
+          onClick={onStartHandsFree}
+          className={`${adminBtnSecondary} mt-2 min-h-[48px] w-full px-4 text-sm sm:w-auto`}
+          aria-label="Start hands-free"
+        >
+          Start Hands-Free
+        </button>
+      ) : null}
     </form>
   );
 }

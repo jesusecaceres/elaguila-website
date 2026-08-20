@@ -72,7 +72,7 @@ check(/LEO_OFFLINE_SUBMIT_MESSAGE|You’re offline|You're offline|offline/.test(
 check(LEO_PWA_DRAFT_STORAGE_KEY === "leonix:leo:composer-draft", "draft-only localStorage key");
 check(/writeDraft\(""\)|DRAFT_KEY/.test(panel), "draft cleared after success path");
 check(!/localStorage\.setItem\([^)]*resultCards|localStorage\.setItem\([^)]*snippet/.test(panel), "no conversation content in localStorage");
-check(!/webkitSpeechRecognition|SpeechSynthesis|hands.?free/i.test(shell + panel + caps), "no voice yet");
+check(!/webkitSpeechRecognition|SpeechSynthesis/i.test(shell + caps), "PWA shell has no voice engine");
 check(/Offline|Back online/.test(shell), "network state UX");
 
 check(resolveLeoAlertNavigationPath("https://evil.example") === "/admin/leo", "reject external push path");
@@ -124,6 +124,13 @@ const allowed = new Set([
   "app/admin/(dashboard)/leo/_components/LeoVoiceControls.tsx",
   "app/admin/(dashboard)/leo/_components/LeoConversationTurn.tsx",
   "scripts/verify-leo-14-9-voice.ts",
+  // LEO-14.10 hands-free
+  "app/leo/_lib/leoHandsFreeState.ts",
+  "app/admin/(dashboard)/leo/_components/LeoHandsFreeMode.tsx",
+  "app/admin/(dashboard)/leo/_components/LeoSessionStatus.tsx",
+  "app/api/leo/conversation/session/route.ts",
+  "app/leo/_lib/leoConversationSessionService.ts",
+  "scripts/verify-leo-14-10-hands-free.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);

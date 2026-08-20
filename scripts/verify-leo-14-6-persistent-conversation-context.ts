@@ -322,8 +322,13 @@ check(/clientRequestId/.test(sessionSvc) && /duplicated/.test(sessionSvc), "CASE
 
 // CASE 19 — history endpoint
 check(/leoGetOwnedConversationSessionHistory/.test(sessionRoute), "CASE19 history endpoint");
-check(/ownerAuthUserId/.test(sessionRoute) === false || /publicSession/.test(sessionRoute), "CASE19 no owner leak shape");
-check(!/ownerAuthUserId/.test(sessionRoute), "CASE19 strips ownerAuthUserId");
+check(/function publicSession/.test(sessionRoute), "CASE19 no owner leak shape");
+{
+  const start = sessionRoute.indexOf("function publicSession");
+  const end = sessionRoute.indexOf("function publicTurn");
+  const publicSessionFn = start >= 0 && end > start ? sessionRoute.slice(start, end) : sessionRoute;
+  check(!/ownerAuthUserId/.test(publicSessionFn), "CASE19 strips ownerAuthUserId");
+}
 
 // CASE 20 — live rich cards still on answer path
 check(/resultCards/.test(convSvc) && /runLeoConversation\(workingRequest\)/.test(convSvc), "CASE20 live cards path");
@@ -448,6 +453,10 @@ const allowed = new Set([
   "app/leo/_lib/leoSpeechSynthesis.ts",
   "app/admin/(dashboard)/leo/_components/LeoVoiceControls.tsx",
   "scripts/verify-leo-14-9-voice.ts",
+  // LEO-14.10 hands-free
+  "app/leo/_lib/leoHandsFreeState.ts",
+  "app/admin/(dashboard)/leo/_components/LeoHandsFreeMode.tsx",
+  "scripts/verify-leo-14-10-hands-free.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);

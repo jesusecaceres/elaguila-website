@@ -330,9 +330,27 @@ export async function leoGetOwnedConversationSessionHistory(sessionId: string): 
 export async function leoSetConversationMode(
   sessionId: string,
   mode: LeoConversationMode,
-): Promise<LeoConversationSession | null> {
+): Promise<
+  | { ok: true; session: LeoConversationSession }
+  | {
+      ok: false;
+      error: "session_not_found" | "session_archived" | "persistence_unavailable" | "invalid_mode";
+    }
+> {
+  if (!["TEXT", "HANDS_FREE", "LOW_ATTENTION"].includes(mode)) {
+    return { ok: false, error: "invalid_mode" };
+  }
   const ownerAuthUserId = await requireOwnerId();
-  return updateLeoConversationSessionMode(sessionId, ownerAuthUserId, mode);
+  const looked = await lookupLeoConversationSessionForOwner(sessionId, ownerAuthUserId);
+  if (looked.status === "UNAVAILABLE") {
+    return { ok: false, error: "persistence_unavailable" };
+  }
+  if (looked.status === "NOT_FOUND") return { ok: false, error: "session_not_found" };
+  if (looked.status === "ARCHIVED") return { ok: false, error: "session_archived" };
+
+  const updated = await updateLeoConversationSessionMode(sessionId, ownerAuthUserId, mode);
+  if (!updated) return { ok: false, error: "persistence_unavailable" };
+  return { ok: true, session: updated };
 }
 
 export const LEO_CONVERSATION_RETENTION = {

@@ -6,10 +6,12 @@ export function LeoSessionStatus({
   persistenceState,
   restoring,
   historyWarning,
+  handsFreeLocalOnly,
 }: {
   persistenceState: LeoConversationPersistenceState | null;
   restoring?: boolean;
   historyWarning?: string | null;
+  handsFreeLocalOnly?: boolean;
 }) {
   if (restoring) {
     return (
@@ -23,6 +25,14 @@ export function LeoSessionStatus({
     return (
       <p className="text-[11px] text-amber-900" role="status">
         {historyWarning}
+      </p>
+    );
+  }
+
+  if (handsFreeLocalOnly) {
+    return (
+      <p className="text-[11px] text-amber-900" role="status">
+        Hands-Free is on this page only — mode wasn’t saved.
       </p>
     );
   }
