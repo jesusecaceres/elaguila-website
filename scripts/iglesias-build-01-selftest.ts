@@ -79,9 +79,11 @@ function main() {
 
   assert.ok(existsSync(path.join(ROOT, "public/iglesias/editorial/hero-community.jpg")));
   assert.ok(existsSync(path.join(ROOT, "public/iglesias/fallbacks/community-neutral.jpg")));
+  assert.ok(existsSync(path.join(ROOT, "app/api/iglesias/logo-upload/route.ts")));
 
-  const registrar = src("app/(site)/iglesias/registrar/page.tsx");
-  assert.ok(registrar.includes("IglesiasRegistrarForm"));
+  const registrar = src("app/(site)/iglesias/registrar/IglesiasRegistrarForm.tsx");
+  assert.ok(registrar.includes("IglesiasLogoUploadField"));
+  assert.ok(!registrar.includes("Logo image URL"));
 
   const landingView = src("app/(site)/iglesias/IglesiasLandingView.tsx");
   assert.ok(!landingView.includes("cms.subtitle"));
