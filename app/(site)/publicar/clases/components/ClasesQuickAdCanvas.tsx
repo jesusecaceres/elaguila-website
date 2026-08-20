@@ -193,6 +193,7 @@ export function ClasesQuickAdCanvas({
           title={draft.title}
           organizerLabel={t.organizer}
           organizerName={draft.organizer}
+          organizerLogoUrl={draft.organizerLogoUrl}
           chips={chips}
         />
 

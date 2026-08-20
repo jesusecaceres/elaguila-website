@@ -27,6 +27,7 @@ import { ofertaLocalPublicOfferTypeLabel } from "./ofertasLocalesPublicSearchCop
 import { ofertasLocalesPublicDetailCopy } from "./ofertasLocalesPublicDetailCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
+import { useOfertasLocalesPublicTranslation } from "./lib/useOfertasLocalesPublicTranslation";
 
 const BTN =
   "inline-flex min-h-11 items-center justify-center rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-semibold text-[#1E1814] hover:border-[#7A1E2C]/40";
@@ -554,6 +555,11 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
     () => ({ ofertaLocalId: offer.id, leonixAdId: offer.leonixAdId }),
     [offer.id, offer.leonixAdId],
   );
+  const { displayOffer, translateControl } = useOfertasLocalesPublicTranslation(
+    offer,
+    lang,
+    offer.leonixAdId ?? offer.id,
+  );
 
   useEffect(() => {
     trackOfertaLocalListingOpen(analyticsIdentity, "public_detail");
@@ -736,8 +742,11 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
 
         {offer.description ? (
           <section className="mt-8 rounded-2xl border border-[#D4C4A8]/60 bg-white p-5">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-[#7A7164]">{c.description}</h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-[#1E1814]">{offer.description}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-[#7A7164]">{c.description}</h2>
+              {translateControl}
+            </div>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-[#1E1814]">{displayOffer.description}</p>
           </section>
         ) : null}
 
@@ -747,7 +756,7 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
             {offer.requiresMembershipForDeals ? (
               <p className="mt-2 text-sm text-amber-900">{c.membershipRequired}</p>
             ) : null}
-            {offer.membershipNote ? <p className="mt-2 text-sm text-[#1E1814]/75">{offer.membershipNote}</p> : null}
+            {displayOffer.membershipNote ? <p className="mt-2 text-sm text-[#1E1814]/75">{displayOffer.membershipNote}</p> : null}
             {offer.membershipUrl ? (
               <a
                 href={offer.membershipUrl}

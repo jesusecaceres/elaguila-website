@@ -3,12 +3,12 @@ import type { NoticiasPagePayload } from "./payloadTypes";
 const BASE = {
   es: {
     pageTitle: "Noticias",
-    subtitle: "Titulares, cultura y comunidad — actualizado al momento para nuestra gente.",
+    subtitle: "Noticias locales, comunidad, cultura y actualidad para nuestra gente.",
     breakingLabel: "Última Hora",
   },
   en: {
     pageTitle: "News",
-    subtitle: "Headlines, culture, and community — updated in real time for our people.",
+    subtitle: "Local news, community, culture and current stories for our community.",
     breakingLabel: "Breaking",
   },
 };

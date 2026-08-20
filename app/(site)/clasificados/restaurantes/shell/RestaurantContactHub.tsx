@@ -31,6 +31,7 @@ import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 import { buildSharedConnectionHubMapEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";
 import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import { RestaurantHubReviewLinkButton } from "./RestaurantHubReviewLinkButton";
+import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 import {
   restaurantHubSocialBrandStyle,
   RestaurantHubSocialBrandIcon,
@@ -511,6 +512,18 @@ export function RestaurantContactHub({
             </section>
           ) : null}
         </div>
+
+        {(listingSourceId ?? "").trim() ? (
+          <div className="mt-4 border-t pt-4" style={{ borderColor: RCH_LX.divider }}>
+            <LeonixCommunityTrust
+              category="restaurantes"
+              targetId={listingSourceId as string}
+              ownerUserId={ownerUserId}
+              lang={lang}
+              surface="restaurantes_hub"
+            />
+          </div>
+        ) : null}
 
         {/* Secondary row: reviews, social, find-us — compact below hub */}
         {showSecondary ? (

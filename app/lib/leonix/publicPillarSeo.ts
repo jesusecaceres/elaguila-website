@@ -75,9 +75,9 @@ const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
     schemaName: "Viajes",
   },
   iglesias: {
-    title: "Iglesias y comunidades de fe en San José",
+    title: "Iglesias, oración y comunidad de fe en San José",
     description:
-      "Directorio gratuito y neutral de iglesias y comunidades de fe en San José. Leonix no vende rankings ni respalda congregaciones.",
+      "La oración es para todos. Encuentra apoyo, comunidad de fe o una iglesia cerca en San José. Leonix no vende rankings y no respalda una teología.",
     schemaName: "Iglesias",
   },
   "productos-promocion": {
@@ -104,7 +104,7 @@ const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
   magazine: {
     title: "The Magazine: community, culture, and business",
     description:
-      "Leonix Media's bilingual magazine covering community, culture, and business. Browse the current edition and the digital and print archive.",
+      "Leonix Media’s bilingual magazine covering community, culture, and business. Browse the current edition and the digital and print archive.",
     schemaName: "The Magazine",
   },
   clasificados: {
@@ -132,9 +132,9 @@ const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
     schemaName: "Travel",
   },
   iglesias: {
-    title: "Churches and faith communities in San Jose",
+    title: "Churches, prayer, and faith community in San Jose",
     description:
-      "A free, neutral directory of churches and faith communities in San Jose. Leonix does not sell rankings or endorse congregations.",
+      "Prayer is for everyone. Find support, faith community, or a church nearby in San Jose. Leonix does not sell rankings and does not endorse a theology.",
     schemaName: "Churches",
   },
   "productos-promocion": {

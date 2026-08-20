@@ -10,7 +10,7 @@ import { listPublicCommunityResources } from "@/app/lib/recursos/server/communit
  * Every path below is a confirmed-real, publicly indexable `page.tsx` on this branch. Per-listing
  * detail URLs are intentionally NOT generated here — safely enumerating only published/active rows
  * (excluding draft/preview/pending/rejected/suspended/archived) needs a dedicated DB-backed
- * sitemap generator, deferred to post-launch per this gate's scope.
+ * sitemap generator. Iglesias `/iglesias/[slug]` church URLs are deferred on the same basis.
  */
 const CLASIFICADOS_CATEGORY_HUBS = [
   "/clasificados/en-venta",
@@ -70,6 +70,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/magazine/2026",
     "/negocios-locales",
     "/recursos-comunitarios",
+    "/iglesias",
+    "/iglesias/registrar",
+    "/productos-promocion",
+    "/media-kit",
   ];
   return [
     ...main.map((path) => ({

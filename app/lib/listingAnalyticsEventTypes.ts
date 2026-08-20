@@ -37,6 +37,9 @@ export const LISTING_ANALYTICS_EVENT_TYPES = [
   "shopping_list_add",
   "shopping_list_remove",
   "coupon_open",
+  /** Globalization Build 03 — Leonix Community Trust endorsement votes */
+  "leonix_endorsement_add",
+  "leonix_endorsement_remove",
 ] as const;
 
 export type ListingAnalyticsEventType = (typeof LISTING_ANALYTICS_EVENT_TYPES)[number];
