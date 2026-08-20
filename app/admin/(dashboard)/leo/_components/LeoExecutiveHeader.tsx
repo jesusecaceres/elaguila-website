@@ -1,8 +1,11 @@
 import Image from "next/image";
 
+import { LeoAdminWayfinding } from "./LeoAdminWayfinding";
+
 export function LeoExecutiveHeader() {
   return (
     <header className="min-w-0 border-b border-[color:var(--lx-border)]/50 pb-3 sm:pb-4">
+      <LeoAdminWayfinding />
       <div className="flex min-w-0 items-center gap-3">
         <Image
           src="/logo-clean.png"
