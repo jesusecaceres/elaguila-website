@@ -23,6 +23,7 @@ import {
   getOfertaProductFilterLabel,
   normalizeOfertaProductCategory,
 } from "@/app/lib/ofertas-locales/ofertasLocalesProductTaxonomy";
+import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
@@ -349,7 +350,7 @@ export function OfertasLocalesPreviewProductGrid({
   const heroImageHref = heroAsset?.isImage ? (heroAsset.href ?? null) : null;
   const heroPdfHref = heroAsset?.isPdf ? (heroAsset.href ?? null) : null;
 
-  if (!draft.wantsAiSearchableSpecials) return null;
+  if (!isOfertaLocalAiIncludedInPackage(draft)) return null;
 
   return (
     <section

@@ -242,11 +242,17 @@ function ClasesQuickApplication({ lang, routeLang, sharedCopy, router }: SubProp
         /* sessionStorage optional */
       }
       clearCommunityStagedPublish("clases");
+      // Gate 4 (Globalization Build 04) — the draft itself must also be cleared on success, not
+      // just the in-flight/staged-publish keys, or navigating Back to this form re-hydrates the
+      // already-published draft and a resubmit creates a genuine duplicate listing row. Mirrors
+      // the same clear-on-success behavior Busco/Mascotas already had (their own draft key is
+      // removed directly in their publish bars).
+      reset();
       router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }
-  }, [publishDisabled, publishing, state, lang, routeLang, router]);
+  }, [publishDisabled, publishing, state, lang, routeLang, router, reset]);
 
   const onSaveDraft = useCallback(() => {
     const envelope = buildClasesQuickPublishEnvelope(state, lang);
@@ -739,11 +745,14 @@ function ComunidadQuickApplication({ lang, routeLang, sharedCopy, router }: SubP
         /* sessionStorage optional */
       }
       clearCommunityStagedPublish("comunidad");
+      // Gate 4 (Globalization Build 04) — clear the draft itself on success, not just the
+      // in-flight/staged-publish keys (see matching comment in the Clases publish handler above).
+      reset();
       router.push(withClasificadosPublishLang(`/clasificados/anuncio/${r.listingId}`, routeLang));
     } finally {
       setPublishing(false);
     }
-  }, [publishDisabled, publishing, state, lang, routeLang, router]);
+  }, [publishDisabled, publishing, state, lang, routeLang, router, reset]);
 
   const onSaveDraft = useCallback(() => {
     const envelope = buildComunidadQuickPublishEnvelope(state, lang);

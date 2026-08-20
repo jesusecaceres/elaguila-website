@@ -75,9 +75,10 @@ const copyEn = read(
   "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialCopy.en.ts",
 );
 check("Country field copy (EN)", copyEn.includes('direccionPais: "Country"'), "brAgenteResidencialCopy.en.ts");
+// Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
 check(
-  "Video URL hint — public link only, up to 4",
-  copyEn.includes("Add up to 4 video URLs") && copyEn.includes("Public link only"),
+  "Video URL hint — public link only, up to 8",
+  copyEn.includes("Add up to 8 video URLs") && copyEn.includes("Public link only"),
   "brAgenteResidencialCopy.en.ts",
 );
 
@@ -95,7 +96,8 @@ check(
 const formState = read(
   "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState.ts",
 );
-check("AGENTE_RES_MAX_VIDEO_URLS = 4", formState.includes("AGENTE_RES_MAX_VIDEO_URLS = 4"), "formState");
+// Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+check("AGENTE_RES_MAX_VIDEO_URLS = 8", formState.includes("AGENTE_RES_MAX_VIDEO_URLS = 8"), "formState");
 
 const childApp = read(
   "app/(site)/clasificados/publicar/bienes-raices/negocio/application/sections/shared/BrNegocioChildInventoryFullApplication.tsx",

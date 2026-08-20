@@ -1184,9 +1184,17 @@ const CLASES_ADAPTER: CategoryRouteAdapter = {
       "(confirmed still true). A generic, non-category-gated per-listing workspace is reachable " +
       "once the owner has the listing's UUID (see editRoute).",
     "Gate I.6A — editRoute() now resolves to the generic /dashboard/mis-anuncios/{id}/editar " +
-      "page. publishCommunityQuickToListings always INSERTs a fresh row on every publish click " +
-      "(no update-if-exists check, no dedup against a prior successful publish of the same " +
-      "session draft) — a real, structural duplicate-row risk on double-submit, not repaired here.",
+      "page, which only exposes title/price/description/photos post-publish — the rest of a " +
+      "Clases listing's fields (schedule, venue, contact, links, etc., in detail_pairs) have no " +
+      "edit surface after publish (Globalization Build 04 audit, not repaired here — would " +
+      "require a real category-specific editor, out of this build's scope).",
+    "Gate I.6B/I.6C (verified) + Build 04 Gate 4 fix — publishCommunityQuickToListings reuses the " +
+      "same row via a session in-flight id when retrying an in-progress submission, and a DB-level " +
+      "publish_attempt_key unique index closes the concurrent-double-click race; it never falls " +
+      "back to a silent INSERT. Build 04 additionally closed a real, separate gap: the draft itself " +
+      "was not cleared on a *successful* publish, so navigating Back afterward and resubmitting " +
+      "could create a genuine duplicate row — both quick-publish entry points now clear the draft " +
+      "on success, matching the pattern Busco/Mascotas already had.",
   ],
 };
 
@@ -1215,8 +1223,14 @@ const COMUNIDAD_ADAPTER: CategoryRouteAdapter = {
       "(confirmed still true). A generic, non-category-gated per-listing workspace is reachable " +
       "once the owner has the listing's UUID (see editRoute).",
     "Gate I.6A — editRoute() now resolves to the generic /dashboard/mis-anuncios/{id}/editar " +
-      "page. Same fresh-INSERT-on-every-publish duplicate-row risk as Clases (shared publish " +
-      "implementation), not repaired here.",
+      "page, which only exposes title/price/description/photos post-publish — the rest of a " +
+      "Comunidad listing's fields have no edit surface after publish (Globalization Build 04 " +
+      "audit, not repaired here). The description field shown there is also the composite " +
+      "publish-time blob, not the owner's original free-text field, so editing it can desync " +
+      "from the detail_pairs the public page actually renders from (Build 04 finding, not " +
+      "repaired here — would require the editor to write back to detail_pairs, not just description).",
+    "Same duplicate-row analysis and Build 04 Gate 4 fix as Clases above (shared publish " +
+      "implementation) — see that entry for detail.",
     "Gate I.6A — corrected: the previously-flagged \"separate /publicar/community/ tree, not " +
       "confirmed whether same product\" concern was unfounded. Direct inspection confirms there " +
       "is no standalone routable page under app/(site)/publicar/community/ at all — it is purely " +

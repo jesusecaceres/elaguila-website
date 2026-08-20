@@ -154,14 +154,20 @@ function resolveAutosRow(row: Row, sourceId: string): ResolveListingAnalyticsIde
   };
 }
 
-/** Package D Build D2, Gate 6B — `ofertas_locales` uses `owner_id` (not `owner_user_id`) and has no
- * slug-primary addressing; mirrors `resolveAutosRow`'s id-keyed shape. */
 function resolveOfertasLocalesRow(row: Row, sourceId: string): ResolveListingAnalyticsIdentityResult {
   const owner = str(row.owner_id);
   if (!owner) return { ok: false, error: "listing_not_found" };
 
+  const status = str(row.status);
+  if (status === "archived") return { ok: false, error: "listing_not_found" };
+
   const id = str(row.id) || sourceId;
-  const canonicalAdId = buildCanonicalAdId({ sourceTable: "ofertas_locales", sourceId: id });
+  const leonixAdId = str(row.leonix_ad_id) || undefined;
+  const canonicalAdId = buildCanonicalAdId({
+    sourceTable: "ofertas_locales",
+    sourceId: id,
+    leonixAdId,
+  });
 
   return {
     ok: true,
@@ -171,8 +177,9 @@ function resolveOfertasLocalesRow(row: Row, sourceId: string): ResolveListingAna
       sourceId: id,
       category: "ofertas-locales",
       ownerUserId: owner,
-      title: str(row.business_name) || undefined,
-      status: str(row.status) || undefined,
+      title: str(row.title) || str(row.business_name) || undefined,
+      status: status || undefined,
+      leonixAdId,
       legacyListingId: canonicalAdId,
     },
   };
@@ -294,7 +301,10 @@ async function resolveFromTable(
       if (!row) return { ok: false, error: "listing_not_found" };
       return resolveSlugPrimaryRow(row, sourceId, "viajes_staged_listings", "viajes", ["title"], "lifecycle_status");
     case "ofertas_locales":
-      row = await fetchRowByIdOrSlug(sb, "ofertas_locales", sourceId, { slugColumn: false });
+      row = await fetchRowByIdOrSlug(sb, "ofertas_locales", sourceId, {
+        slugColumn: false,
+        leonixColumn: true,
+      });
       if (!row) return { ok: false, error: "listing_not_found" };
       if (str(row.status) !== "approved") return { ok: false, error: "listing_not_found" };
       return resolveOfertasLocalesRow(row, sourceId);

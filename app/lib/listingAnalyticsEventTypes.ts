@@ -28,6 +28,18 @@ export const LISTING_ANALYTICS_EVENT_TYPES = [
   "result_card_click",
   "email_click",
   "message_click",
+  /** Package 6 — Ofertas/Cupones product and flyer engagement */
+  "flyer_page_view",
+  "product_impression",
+  "product_open",
+  "product_search",
+  "product_search_result_click",
+  "shopping_list_add",
+  "shopping_list_remove",
+  "coupon_open",
+  /** Globalization Build 03 — Leonix Community Trust endorsement votes */
+  "leonix_endorsement_add",
+  "leonix_endorsement_remove",
 ] as const;
 
 export type ListingAnalyticsEventType = (typeof LISTING_ANALYTICS_EVENT_TYPES)[number];

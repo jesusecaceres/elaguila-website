@@ -39,13 +39,9 @@ export const metadata: Metadata = {
     "small business",
   ],
   robots: { index: true, follow: true },
-  alternates: {
-    canonical: LEONIX_SITE_ORIGIN,
-  },
   openGraph: {
     title: `${LEONIX_MEDIA_SITE_NAME} — ${LEONIX_MEDIA_SLOGAN}`,
     description: LEONIX_ROOT_META_DESCRIPTION_EN,
-    url: LEONIX_SITE_ORIGIN,
     siteName: LEONIX_MEDIA_SITE_NAME,
     type: "website",
     locale: "en_US",

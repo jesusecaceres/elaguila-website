@@ -18,13 +18,26 @@ import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { getPublicChromeCopy } from "@/app/lib/leonix/publicChromeCopy";
 
 const EXPLORE_LINKS = [
+  { id: "noticias", href: "/noticias" },
+  { id: "revista", href: "/magazine" },
   { id: "clasificados", href: "/clasificados" },
   { id: "negocios-locales", href: "/negocios-locales" },
-  { id: "revista", href: "/magazine" },
-  { id: "viajes", href: "/clasificados/viajes" },
-  { id: "productos-promocionales", href: "/productos-promocion" },
   { id: "recursos-comunitarios", href: "/recursos-comunitarios" },
+  { id: "viajes", href: "/clasificados/viajes" },
+  { id: "iglesias", href: "/iglesias" },
+  { id: "productos-promocionales", href: "/productos-promocion" },
 ] as const;
+
+const COMMUNITY_LINKS = [
+  { id: "comunidad-eventos", href: "/clasificados/comunidad" },
+  { id: "clases", href: "/clasificados/clases" },
+] as const;
+
+const FOOTER_LINK_CLASS =
+  "inline-block min-h-[44px] py-2 text-sm font-medium leading-snug text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 transition hover:text-[#7A1E2C]";
+
+const FOOTER_COMPANY_LINK_CLASS =
+  "inline-block min-h-[44px] py-2 text-sm font-medium leading-snug text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#5e1721]";
 
 function FooterInner() {
   const searchParams = useSearchParams();
@@ -44,60 +57,27 @@ function FooterInner() {
           <p className="mt-3 text-sm leading-relaxed text-[#3D3428]">{f.companySummary}</p>
           <ul className="mt-4 space-y-2">
             <li>
-              <Link
-                href={withLang("/about")}
-                className="text-sm font-medium text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#5e1721]"
-              >
+              <Link href={withLang("/about")} className={FOOTER_COMPANY_LINK_CLASS}>
                 {f.aboutUs}
               </Link>
             </li>
             <li>
-              <Link
-                href={withLang("/contacto")}
-                className="text-sm font-medium text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#5e1721]"
-              >
+              <Link href={withLang("/contacto")} className={FOOTER_COMPANY_LINK_CLASS}>
                 {f.contactUs}
               </Link>
             </li>
             <li>
-              <Link
-                href={withLang("/media-kit")}
-                className="text-sm font-medium text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#5e1721]"
-              >
+              <Link href={withLang("/media-kit")} className={FOOTER_COMPANY_LINK_CLASS}>
                 {f.mediaKit}
               </Link>
             </li>
             <li>
-              <Link
-                href={withLang("/contacto")}
-                className="text-sm font-medium text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#5e1721]"
-              >
+              <Link href={withLang("/contacto")} className={FOOTER_COMPANY_LINK_CLASS}>
                 {f.advertise}
               </Link>
             </li>
           </ul>
-        </div>
-
-        {/* Column 2 — Explore */}
-        <div>
-          <h3 className="font-serif text-lg font-bold text-[#2A4536]">{f.explore}</h3>
-          <ul className="mt-4 space-y-2">
-            {EXPLORE_LINKS.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={withLang(item.href)}
-                  className="text-sm font-medium text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 transition hover:text-[#7A1E2C]"
-                >
-                  {getPublicNavItemLabel(item.id, routeLang)}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Column 3 — Contact */}
-        <div>
-          <h3 className="font-serif text-lg font-bold text-[#2A4536]">{f.contactColumn}</h3>
+          <h3 className="mt-8 font-serif text-lg font-bold text-[#2A4536]">{f.contactColumn}</h3>
           <ul className="mt-4 space-y-3 text-sm text-[#3D3428]">
             <li>
               <span className="block text-xs font-bold uppercase tracking-wide text-[#556B3E]">{f.emailLabel}</span>
@@ -126,20 +106,48 @@ function FooterInner() {
           </ul>
         </div>
 
+        {/* Column 2 — Explore */}
+        <div>
+          <h3 className="font-serif text-lg font-bold text-[#2A4536]">{f.explore}</h3>
+          <ul className="mt-4 space-y-2">
+            {EXPLORE_LINKS.map((item) => (
+              <li key={item.id}>
+                <Link href={withLang(item.href)} className={FOOTER_LINK_CLASS}>
+                  {getPublicNavItemLabel(item.id, routeLang)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Column 3 — Community utility */}
+        <div>
+          <h3 className="font-serif text-lg font-bold text-[#2A4536]">{f.community}</h3>
+          <ul className="mt-4 space-y-2">
+            {COMMUNITY_LINKS.map((item) => (
+              <li key={item.id}>
+                <Link href={withLang(item.href)} className={FOOTER_LINK_CLASS}>
+                  {getPublicNavItemLabel(item.id, routeLang)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
         {/* Column 4 — Legal / Trust */}
         <div>
           <h3 className="font-serif text-lg font-bold text-[#2A4536]">{f.legalTrust}</h3>
-          <nav className="mt-4 flex flex-col gap-2" aria-label={chrome.legalNavAria}>
-            <Link href={withLang("/legal")} className="text-sm font-medium text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#7A1E2C]">
+          <nav className="mt-4 flex flex-col" aria-label={chrome.legalNavAria}>
+            <Link href={withLang("/legal")} className={FOOTER_LINK_CLASS}>
               {chrome.legal}
             </Link>
-            <Link href={withLang("/privacy")} className="text-sm font-medium text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#7A1E2C]">
+            <Link href={withLang("/privacy")} className={FOOTER_LINK_CLASS}>
               {chrome.privacy}
             </Link>
-            <Link href={withLang("/terms")} className="text-sm font-medium text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#7A1E2C]">
+            <Link href={withLang("/terms")} className={FOOTER_LINK_CLASS}>
               {chrome.terms}
             </Link>
-            <Link href={withLang("/data-deletion")} className="text-sm font-medium text-[#3D3428] underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#7A1E2C]">
+            <Link href={withLang("/data-deletion")} className={FOOTER_LINK_CLASS}>
               {chrome.dataDeletion}
             </Link>
             <CookiePreferencesTrigger label={chrome.cookiePrefs} />

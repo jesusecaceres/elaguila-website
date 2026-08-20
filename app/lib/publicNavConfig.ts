@@ -1,6 +1,7 @@
 /**
- * Gate HEADER-3 — Global header: primary tabs + Recursos Comunitarios dropdown.
- * About/Contact in mobile drawer + footer (not crowded desktop main nav).
+ * Gate 01 — Global public header IA.
+ * Header uses surface-specific short labels. Footer / Anúnciate keep full product names.
+ * About/Contact stay in the mobile drawer + footer (not desktop primary tabs).
  */
 
 import type { SupportedLang } from "@/app/lib/language";
@@ -9,11 +10,15 @@ import { getPublicNavItemLabel } from "@/app/lib/leonix/publicNavCopy";
 /** @deprecated Use SupportedLang — retained for legacy imports. */
 export type PublicNavLang = "es" | "en";
 
+/** Desktop: item is inline from this breakpoint up; below it, it lives in Más. */
+export type PublicNavDesktopFrom = "lg" | "xl" | "2xl";
+
 export type PublicNavItem = {
   id: string;
   href: string;
   labelEs: string;
   labelEn: string;
+  desktopFrom?: PublicNavDesktopFrom;
   /** Compact desktop inline label when space is tight */
   labelEsShort?: string;
   labelEnShort?: string;
@@ -26,91 +31,52 @@ export type PublicNavDropdownItem = {
   labelEn: string;
 };
 
-/** Primary inline tabs before Recursos dropdown */
-export const PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS: PublicNavItem[] = [
+/**
+ * Provisional compact-desktop mix (lg 1024–1279):
+ * seven direct items + Más (Iglesias, Promocionales).
+ * Prove fit at 1024/1180/1280/1366; if seven do not fit, raise Revista and/or Negocios to `xl`.
+ */
+export const PUBLIC_NAV_PRIMARY: PublicNavItem[] = [
   { id: "inicio", href: "/home", labelEs: "Inicio", labelEn: "Home" },
-  { id: "revista", href: "/magazine", labelEs: "La Revista", labelEn: "The Magazine" },
+  { id: "noticias", href: "/noticias", labelEs: "Noticias", labelEn: "News" },
+  { id: "revista", href: "/magazine", labelEs: "Revista", labelEn: "Magazine" },
   { id: "clasificados", href: "/clasificados", labelEs: "Clasificados", labelEn: "Classifieds" },
   {
     id: "negocios-locales",
     href: "/negocios-locales",
-    labelEs: "Negocios Locales",
-    labelEn: "Local Businesses",
+    labelEs: "Negocios",
+    labelEn: "Businesses",
   },
-];
-
-/** Recursos Comunitarios top-level trigger (dropdown on desktop) */
-export const PUBLIC_NAV_RECURSOS_TRIGGER: PublicNavItem = {
-  id: "recursos-comunitarios",
-  href: "/recursos-comunitarios",
-  labelEs: "Recursos Comunitarios",
-  labelEn: "Community Resources",
-};
-
-/** Recursos Comunitarios dropdown — existing routes only */
-export const PUBLIC_NAV_RECURSOS_DROPDOWN: PublicNavDropdownItem[] = [
   {
-    id: "recursos-all",
+    id: "recursos-comunitarios",
     href: "/recursos-comunitarios",
-    labelEs: "Ver todos los recursos",
-    labelEn: "View all resources",
+    labelEs: "Recursos",
+    labelEn: "Resources",
   },
-  {
-    id: "comunidad-eventos",
-    href: "/clasificados/comunidad",
-    labelEs: "Comunidad y Eventos",
-    labelEn: "Community & Events",
-  },
-  { id: "clases", href: "/clasificados/clases", labelEs: "Clases", labelEn: "Classes" },
-  { id: "iglesias", href: "/iglesias", labelEs: "Iglesias", labelEn: "Churches" },
-  {
-    id: "ayuda-comunitaria",
-    href: "/clasificados/busco",
-    labelEs: "Ayuda comunitaria",
-    labelEn: "Community Help",
-  },
-];
-
-/** Revenue tabs after Recursos — inline from xl+; compact overflow on lg only */
-export const PUBLIC_NAV_PRIMARY_AFTER_RECURSOS: PublicNavItem[] = [
   { id: "viajes", href: "/clasificados/viajes", labelEs: "Viajes", labelEn: "Travel" },
+  { id: "iglesias", href: "/iglesias", labelEs: "Iglesias", labelEn: "Churches", desktopFrom: "xl" },
   {
     id: "productos-promocionales",
     href: "/productos-promocion",
-    labelEs: "Productos Promocionales",
+    labelEs: "Promocionales",
     labelEn: "Promotional Products",
-    labelEsShort: "Productos Promo",
+    labelEsShort: "Promocionales",
     labelEnShort: "Promo Products",
+    desktopFrom: "xl",
   },
 ];
 
-/** lg-only overflow (Viajes + Productos) — not generic Más */
-export const PUBLIC_NAV_COMPACT_OVERFLOW_LABEL = {
-  labelEs: "Viajes y promo",
-  labelEn: "Travel & promo",
-} as const;
+export const PUBLIC_NAV_OVERFLOW: PublicNavItem[] = PUBLIC_NAV_PRIMARY.filter(
+  (item) => (item.desktopFrom ?? "lg") !== "lg",
+);
 
-export const PUBLIC_NAV_COMPACT_OVERFLOW: PublicNavItem[] = [...PUBLIC_NAV_PRIMARY_AFTER_RECURSOS];
-
-/** About + Contact — desktop xl+ inline; always in mobile drawer */
+/** About + Contact — mobile drawer + footer only */
 export const PUBLIC_NAV_UTILITY_LINKS: PublicNavItem[] = [
   { id: "about-us", href: "/about", labelEs: "Sobre nosotros", labelEn: "About us" },
   { id: "contact-us", href: "/contacto", labelEs: "Contacto", labelEn: "Contact us" },
 ];
 
-/** Mobile drawer — approved links only (no Cupones, Noticias) */
-export const PUBLIC_NAV_MOBILE: PublicNavItem[] = [
-  ...PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS,
-  PUBLIC_NAV_RECURSOS_TRIGGER,
-  ...PUBLIC_NAV_RECURSOS_DROPDOWN.map((d) => ({
-    id: d.id,
-    href: d.href,
-    labelEs: d.labelEs,
-    labelEn: d.labelEn,
-  })),
-  ...PUBLIC_NAV_PRIMARY_AFTER_RECURSOS,
-  ...PUBLIC_NAV_UTILITY_LINKS,
-];
+export const PUBLIC_NAV_MOBILE: PublicNavItem[] = [...PUBLIC_NAV_PRIMARY, ...PUBLIC_NAV_UTILITY_LINKS];
 
 export const PUBLIC_NAV_ADVERTISE = {
   id: "anunciate",
@@ -118,28 +84,69 @@ export const PUBLIC_NAV_ADVERTISE = {
   labelEn: "Advertise",
 } as const;
 
+/** @deprecated Gate 01 — use PUBLIC_NAV_PRIMARY */
+export const PUBLIC_NAV_DESKTOP: PublicNavItem[] = PUBLIC_NAV_PRIMARY;
+
+export function publicNavDesktopItemClass(item: PublicNavItem): string {
+  switch (item.desktopFrom ?? "lg") {
+    case "2xl":
+      return "hidden shrink-0 2xl:inline";
+    case "xl":
+      return "hidden shrink-0 xl:inline";
+    default:
+      return "shrink-0";
+  }
+}
+
+export function publicNavMasItemClass(item: PublicNavItem): string {
+  switch (item.desktopFrom ?? "lg") {
+    case "2xl":
+      return "2xl:hidden";
+    case "xl":
+      return "xl:hidden";
+    default:
+      return "hidden";
+  }
+}
+
+export function publicNavMasWrapperClass(items: PublicNavItem[]): string {
+  const froms = items.map((item) => item.desktopFrom ?? "lg");
+  if (froms.includes("2xl")) return "relative shrink-0 2xl:hidden";
+  if (froms.includes("xl")) return "relative shrink-0 xl:hidden";
+  return "relative shrink-0 lg:hidden";
+}
+
 export function publicNavLabel(
   item: Pick<PublicNavItem, "labelEs" | "labelEn" | "id">,
   lang: SupportedLang,
 ): string {
-  return getPublicNavItemLabel(item.id, lang);
+  return getPublicNavItemLabel(item.id, lang, { surface: "header" });
 }
 
-export function publicNavItemLabel(item: PublicNavItem, lang: SupportedLang, opts?: { short?: boolean }): string {
-  return getPublicNavItemLabel(item.id, lang, opts);
+export function publicNavItemLabel(
+  item: PublicNavItem,
+  lang: SupportedLang,
+  opts?: { short?: boolean },
+): string {
+  return getPublicNavItemLabel(item.id, lang, { ...opts, surface: "header" });
 }
 
-export function publicNavDropdownLabel(item: PublicNavDropdownItem, lang: SupportedLang): string {
-  return getPublicNavItemLabel(item.id, lang);
+export function publicNavMasLabel(lang: SupportedLang): string {
+  return getPublicNavItemLabel("more", lang, { surface: "header" });
 }
 
-export function publicNavCompactOverflowLabel(lang: SupportedLang): string {
-  return getPublicNavItemLabel("compact-overflow", lang);
+export function isPublicNavHrefActive(pathname: string, href: string, allHrefs: string[]): boolean {
+  const cleanHref = href.split("?")[0];
+  const matches = (candidate: string) => {
+    const clean = candidate.split("?")[0];
+    if (clean === "/home") return pathname === "/home";
+    return pathname === clean || pathname.startsWith(`${clean}/`);
+  };
+  if (!matches(href)) return false;
+  const matching = allHrefs.filter(matches);
+  if (matching.length === 0) return false;
+  const longest = matching.reduce((best, current) =>
+    current.split("?")[0].length > best.split("?")[0].length ? current : best,
+  );
+  return longest.split("?")[0] === cleanHref;
 }
-
-/** @deprecated HEADER-3 — use PRIMARY_BEFORE + RECURSOS + PRIMARY_AFTER */
-export const PUBLIC_NAV_DESKTOP: PublicNavItem[] = [
-  ...PUBLIC_NAV_PRIMARY_BEFORE_RECURSOS,
-  PUBLIC_NAV_RECURSOS_TRIGGER,
-  ...PUBLIC_NAV_PRIMARY_AFTER_RECURSOS,
-];

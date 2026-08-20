@@ -19,8 +19,8 @@ export default async function AdminIglesiasContentPage(props: { searchParams?: P
     <div className="max-w-3xl space-y-6">
       <AdminPageHeader
         eyebrow="Workspace · Iglesias"
-        title="`/iglesias` page — transitional copy"
-        subtitle="Until a directory exists with database rows, this copy replaces the landing text. No editable listings here."
+        title="`/iglesias` landing chrome"
+        subtitle="Hero and Find-by-Need stay in code. Subtitle and note overlay trust/church-invitation copy. Church rows are managed in the queue."
         helperText="site_section_content → iglesias_page. Empty fields = code defaults."
         rightSlot={
           <Link href="/admin/workspace/iglesias" className={adminBtnSecondary}>
@@ -66,11 +66,11 @@ export default async function AdminIglesiasContentPage(props: { searchParams?: P
           <Field label="Back button text ES" name="back_es" defaultValue={patch.backCta?.es ?? ""} placeholder={m.es.backCta} />
           <Field label="Back button EN" name="back_en" defaultValue={patch.backCta?.en ?? ""} placeholder={m.en.backCta} />
         </div>
-        <AdminCtaRoutingCallout title="Button — destination (fixed in code)">
+        <AdminCtaRoutingCallout title="Public mapping (fixed in code)">
           <p>
-            You only edit the button label. On the public site the link is always{" "}
-            <code className="rounded bg-white/80 px-1">/clasificados?lang=…</code> (
-            <code className="rounded bg-white/80 px-1">IglesiasPageClient</code>) — there is no URL field in this editor.
+            Título is not the public H1. Subtítulo maps to the trust section. Note maps to the church registration
+            invitation. Church applications go to <code className="rounded bg-white/80 px-1">/iglesias/registrar</code>.
+            There is no Clasificados back-link on the public landing.
           </p>
         </AdminCtaRoutingCallout>
         <button type="submit" className={adminBtnPrimary}>

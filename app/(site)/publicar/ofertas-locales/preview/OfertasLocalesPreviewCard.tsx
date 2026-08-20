@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiAward, FiCopy, FiGlobe, FiInfo, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiAward, FiCopy, FiGlobe, FiInfo, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -19,6 +19,7 @@ import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalSocialLink, OfertaLocalSocialLinkKey } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
   buildOfertaLocalMailtoHref,
@@ -525,6 +526,7 @@ function OwnerPreviewControls({
   editReviewHref,
   publishing,
   aiNeedsReviewCount,
+  publishSuccess,
   onSubmitForReview,
 }: {
   lang: OfertasLocalesAppLang;
@@ -532,6 +534,7 @@ function OwnerPreviewControls({
   editReviewHref: string;
   publishing: boolean;
   aiNeedsReviewCount: number;
+  publishSuccess?: { id: string; status: string } | null;
   onSubmitForReview?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
@@ -547,27 +550,33 @@ function OwnerPreviewControls({
         <Link href={editReviewHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
           {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
         </Link>
-        <button
-          type="button"
-          className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
-          disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
-          onClick={onSubmitForReview}
-          title={
-            aiNeedsReviewCount > 0
+        {publishSuccess ? (
+          <p className="w-full text-xs font-semibold text-emerald-900">
+            {lang === "en" ? c.submitSuccessEn : c.submitSuccessEs}
+          </p>
+        ) : (
+          <button
+            type="button"
+            className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
+            disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
+            onClick={onSubmitForReview}
+            title={
+              aiNeedsReviewCount > 0
+                ? lang === "en"
+                  ? c.submitBlockedEn
+                  : c.submitBlockedEs
+                : undefined
+            }
+          >
+            {publishing
               ? lang === "en"
-                ? c.submitBlockedEn
-                : c.submitBlockedEs
-              : undefined
-          }
-        >
-          {publishing
-            ? lang === "en"
-              ? c.submittingEn
-              : c.submittingEs
-            : lang === "en"
-              ? c.submitForReviewEn
-              : c.submitForReviewEs}
-        </button>
+                ? c.submittingEn
+                : c.submittingEs
+              : lang === "en"
+                ? c.submitForReviewEn
+                : c.submitForReviewEs}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -602,8 +611,15 @@ export function OfertasLocalesPreviewCard({
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const resolvedRouteLang = routeLang ?? lang;
-  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang);
-  const editReviewHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, { step: 7 });
+  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
+    step: 7,
+    intent: "continue",
+  });
+  const editReviewHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
+    step: 5,
+    review: 1,
+    intent: "continue",
+  });
   const offerLabel = labelForOfferType(draft.offerType, lang);
   const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
   const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
@@ -630,7 +646,8 @@ export function OfertasLocalesPreviewCard({
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
   const membershipInstructions = draft.membershipNote.trim();
   const digitalCouponInstructions = draft.digitalCouponNote.trim();
-  const hasAiProducts = draft.wantsAiSearchableSpecials && approvedAiItems.length > 0;
+  const aiIncluded = isOfertaLocalAiIncludedInPackage(draft);
+  const hasAiProducts = aiIncluded && approvedAiItems.length > 0;
 
   const [shareCopied, setShareCopied] = useState(false);
   const [flyerViewerOpen, setFlyerViewerOpen] = useState(false);
@@ -710,7 +727,7 @@ export function OfertasLocalesPreviewCard({
     { id: "oferta", label: lang === "en" ? c.sectionOfferEn : c.sectionOfferEs },
     { id: "volante", label: lang === "en" ? c.sectionFlyerEn : c.sectionFlyerEs },
   ];
-  if (draft.wantsAiSearchableSpecials) {
+  if (aiIncluded) {
     sectionNavItems.push({
       id: "productos",
       label: lang === "en" ? c.sectionProductsEn : c.sectionProductsEs,
@@ -734,10 +751,6 @@ export function OfertasLocalesPreviewCard({
       label: lang === "en" ? c.sectionSocialEn : c.sectionSocialEs,
     });
   }
-  sectionNavItems.push({
-    id: "proximamente",
-    label: lang === "en" ? c.sectionComingSoonEn : c.sectionComingSoonEs,
-  });
 
   const flyerStickyLabel =
     heroAsset?.kind === "coupon"
@@ -772,6 +785,7 @@ export function OfertasLocalesPreviewCard({
           editReviewHref={editReviewHref}
           publishing={publishing}
           aiNeedsReviewCount={aiNeedsReviewCount}
+          publishSuccess={publishSuccess}
           onSubmitForReview={onSubmitForReview}
         />
 
@@ -796,7 +810,6 @@ export function OfertasLocalesPreviewCard({
               <div className="shrink-0">
                 {businessLogoUrl && !logoFailed ? (
                   <div className={cx(LOGO_FRAME, LOGO_SIZE)}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={businessLogoUrl}
                       alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
@@ -824,7 +837,7 @@ export function OfertasLocalesPreviewCard({
                   {offerLabel && offerLabel !== primaryFormatLabel ? (
                     <span className={PILL_MUTED}>{offerLabel}</span>
                   ) : null}
-                  {draft.wantsAiSearchableSpecials ? (
+                  {aiIncluded ? (
                     <span className={PILL_TRUST}>{lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}</span>
                   ) : null}
                 </div>
@@ -1098,27 +1111,6 @@ export function OfertasLocalesPreviewCard({
           onCloseDetail={closeProductDetail}
         />
 
-        {/* Future modules */}
-        <section
-          id="proximamente"
-          className={`${SECTION_ANCHOR} mt-8`}
-          aria-label={lang === "en" ? c.futureModulesEn : c.futureModulesEs}
-        >
-          <h2 className="font-serif text-base font-semibold text-[#1E1814]/80">
-            {lang === "en" ? c.futureModulesEn : c.futureModulesEs}
-          </h2>
-          <p className="mt-1 text-xs text-[#1E1814]/50">
-            {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
-          </p>
-          {/* Neutralized future roadmap — one non-interactive info card (no live-looking buttons). */}
-          <div className="mt-3 rounded-xl border border-dashed border-[#D4C4A8]/70 bg-[#FDF8F0]/50 p-4">
-            <p className="flex items-start gap-2 text-xs font-medium leading-relaxed text-[#1E1814]/60">
-              <FiLock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
-              {lang === "en" ? c.comingSoonListsRoutesEn : c.comingSoonListsRoutesEs}
-            </p>
-          </div>
-        </section>
-
         {draft.wantsFeaturedPlacement ? (
           <p className="mt-6 rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-center text-xs text-[#1E1814]/60">
             {lang === "en" ? c.featuredInterestEn : c.featuredInterestEs}
@@ -1156,27 +1148,29 @@ export function OfertasLocalesPreviewCard({
             <Link href={editReviewHref} className={BTN_OUTLINE}>
               {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
             </Link>
-            <button
-              type="button"
-              className={BTN_PRIMARY}
-              disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
-              onClick={onSubmitForReview}
-              title={
-                aiNeedsReviewCount > 0
+            {publishSuccess ? null : (
+              <button
+                type="button"
+                className={BTN_PRIMARY}
+                disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
+                onClick={onSubmitForReview}
+                title={
+                  aiNeedsReviewCount > 0
+                    ? lang === "en"
+                      ? c.submitBlockedEn
+                      : c.submitBlockedEs
+                    : undefined
+                }
+              >
+                {publishing
                   ? lang === "en"
-                    ? c.submitBlockedEn
-                    : c.submitBlockedEs
-                  : undefined
-              }
-            >
-              {publishing
-                ? lang === "en"
-                  ? c.submittingEn
-                  : c.submittingEs
-                : lang === "en"
-                  ? c.submitForReviewEn
-                  : c.submitForReviewEs}
-            </button>
+                    ? c.submittingEn
+                    : c.submittingEs
+                  : lang === "en"
+                    ? c.submitForReviewEn
+                    : c.submitForReviewEs}
+              </button>
+            )}
           </div>
         </section>
       </LeonixResponsiveShell>

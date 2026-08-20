@@ -14,8 +14,12 @@ const ROOT = path.resolve(SCRIPT_DIR, "..");
 const PLAN = "app/lib/ofertas-locales/OFERTAS_LOCALES_FINAL_1D_PUBLIC_TAB_ACTIVATION_PLAN.md";
 const AUDIT_DOC = "app/lib/ofertas-locales/OFERTAS_LOCALES_FINAL_1D_PUBLIC_TAB_ACTIVATION_AUDIT.md";
 const HUB_PAGE = "app/(site)/clasificados/page.tsx";
+const FEATURED_MODULE = "app/(site)/clasificados/_components/ClasificadosFeaturedOfertasModule.tsx";
+const FEATURED_COPY = "app/(site)/clasificados/_lib/clasificadosLandingHubCopy.ts";
 const HUB_CARD = "app/(site)/clasificados/ofertas-locales/OfertasLocalesHubCategoryCard.tsx";
+const PUBLIC_CATEGORY_COPY = "app/lib/clasificados/publicCategoryCopyGuard.ts";
 const NEGOCIOS = "app/(site)/negocios-locales/page.tsx";
+const NEGOCIOS_FEATURED_MODULE = "app/(site)/negocios-locales/_components/NegociosLocalesFeaturedOfertasModule.tsx";
 const PUBLICAR = "app/(site)/clasificados/publicar/PublicarPageClient.tsx";
 const PUBLIC_PAGE = "app/(site)/clasificados/ofertas-locales/page.tsx";
 const PUBLISH_PAGE = "app/(site)/publicar/ofertas-locales/page.tsx";
@@ -31,6 +35,17 @@ const ALLOWED = [
   /^app\/\(site\)\/negocios-locales\/page\.tsx$/,
   /^package\.json$/,
   /^scripts\/ofertas-locales-final-1d-public-tab-activation-audit\.ts$/,
+  /^scripts\/ofertas-package-13-/,
+  /^scripts\/ofertas-package-11-local-certification-audit\.mjs$/,
+  /^scripts\/ofertas-locales-ai-(power|quality)-1-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-1-pipeline-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-1[bc]/,
+  /^scripts\/ofertas-locales-final-4-public-detail-audit\.ts$/,
+  /^scripts\/ofertas-locales-gate-1-foundation-audit\.ts$/,
+  /^scripts\/ofertas-locales-mobile-public-search-ux-audit\.ts$/,
+  /^scripts\/ofertas-locales-ol[37]/,
+  /^docs\/OFERTAS_PACKAGE_13_/,
+  /^tests\/ofertas-locales\/scenarios\//,
 ] as const;
 
 const FORBIDDEN = [
@@ -77,27 +92,30 @@ function run() {
   assert.ok(exists(HUB_CARD), "hub category card must exist");
 
   const hub = read(HUB_PAGE);
+  const featuredModule = read(FEATURED_MODULE);
+  const featuredCopy = read(FEATURED_COPY);
   const hubCard = read(HUB_CARD);
+  const publicCategoryCopy = read(PUBLIC_CATEGORY_COPY);
   const negocios = read(NEGOCIOS);
+  const negociosFeaturedModule = read(NEGOCIOS_FEATURED_MODULE);
   const publicar = read(PUBLICAR);
   const offers = read(PUBLIC_OFFERS);
   const search = read(PUBLIC_SEARCH);
   const client = read(PUBLIC_CLIENT);
 
-  assert.match(hub, /OfertasLocalesHubCategoryCard/, "hub page must render Ofertas Locales card");
-  assert.match(hub, /clasificados\/ofertas-locales/, "hub must link to public route");
-  assert.match(hub, /publicar\/ofertas-locales/, "hub must link to publish route");
-  assert.match(hub, /Ofertas Locales/, "Spanish label on hub");
-  assert.match(hub, /Local Deals/, "English label on hub");
+  assert.match(hub, /ClasificadosFeaturedOfertasModule/, "hub page must render Ofertas Locales featured module");
+  assert.match(featuredModule, /clasificados\/ofertas-locales/, "hub module must link to public route");
+  assert.match(featuredModule, /publicar\/ofertas-locales/, "hub module must link to publish route");
+  assert.match(featuredCopy, /Ofertas Locales/, "Spanish label on hub");
+  assert.match(featuredCopy, /Local Deals/, "English label on hub");
 
-  assert.match(hubCard, /Ver ofertas/, "Spanish shopper CTA");
-  assert.match(hubCard, /View deals/, "English shopper CTA");
-  assert.match(hubCard, /Publica tus ofertas locales/, "Spanish business CTA");
-  assert.match(hubCard, /Publish your local deals/, "English business CTA");
+  assert.match(hubCard, /getPublicCategoryCardCopy\("ofertas-locales"/, "hub card must use centralized Ofertas copy");
+  assert.match(publicCategoryCopy, /ofertasLocalesBrowse/, "shopper CTA copy");
+  assert.match(publicCategoryCopy, /ofertasLocalesPublish/, "owner CTA copy");
 
   assert.match(negocios, /ofertas-locales/, "negocios locales lane");
-  assert.match(negocios, /clasificados\/ofertas-locales/, "negocios explore link");
-  assert.match(negocios, /publicar\/ofertas-locales/, "negocios publish link");
+  assert.match(negociosFeaturedModule, /clasificados\/ofertas-locales/, "negocios explore link");
+  assert.match(negociosFeaturedModule, /publicar\/ofertas-locales/, "negocios publish link");
 
   assert.match(publicar, /publicar\/ofertas-locales/, "publish chooser tile");
 

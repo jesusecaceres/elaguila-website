@@ -7,6 +7,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import {
   getOfertaLocalActiveScanCopy,
+  formatOfertaLocalPersistedScanProgress,
   inferScanningAssetId,
   isOfertaLocalActiveReviewStatus,
   isOfertaLocalScanJobActive,
@@ -23,6 +24,7 @@ import {
   resolveItemCropListStatus,
   summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
+import { normalizeOfertaLocalPrice } from "@/app/lib/ofertas-locales/ofertasLocalesPriceNormalization";
 import type { ClipReviewViewerItem } from "./OfertasClipReviewViewer";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
@@ -116,6 +118,7 @@ type Props = {
   }) => void;
   onAssetTabStatuses?: (statuses: Record<string, string>) => void;
   onViewerBridge?: (bridge: OfertaLocalReviewViewerBridge) => void;
+  onContinueToNextStep?: () => void;
   clipInspectorSlot?: ReactNode;
 };
 
@@ -223,10 +226,16 @@ function sourceRoleText(role: OfertaLocalSourceFileRole | null, lang: OfertasLoc
 }
 
 function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
+  const normalizedPrice = normalizeOfertaLocalPrice({
+    priceText: draft.priceText,
+    priceAmount: draft.priceAmount.trim() ? draft.priceAmount : null,
+    manual: true,
+  });
   return {
     itemName: draft.itemName,
     priceText: draft.priceText,
-    priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
+    priceAmount: normalizedPrice.amount,
+    priceAmountCents: normalizedPrice.amountCents,
     regularPriceText: draft.regularPriceText,
     unit: draft.unit,
     category: draft.category,
@@ -585,6 +594,7 @@ export function OfertasLocalesAiItemReviewPanel({
   onScopeChange,
   onAssetTabStatuses,
   onViewerBridge,
+  onContinueToNextStep,
   clipInspectorSlot,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
@@ -819,6 +829,7 @@ export function OfertasLocalesAiItemReviewPanel({
   const scanJobStillActive = highlightedScanJob
     ? isOfertaLocalScanJobActive(highlightedScanJob.status)
     : false;
+  const persistedProgressLabel = formatOfertaLocalPersistedScanProgress(highlightedScanJob, lang);
 
   const scanActiveForAsset = Boolean(
     selectedSourceAssetId &&
@@ -1218,8 +1229,6 @@ export function OfertasLocalesAiItemReviewPanel({
     }
   }, [currentPageSummary?.needsReview, currentPageSummary?.page]);
 
-  const focusedPageItems = useMemo(() => queueItems, [queueItems]);
-
   const selectedAssetFileLabel = useMemo(() => {
     if (!selectedSourceAssetId || !draft) return "";
     const asset = [...draft.flyerAssets, ...draft.couponAssets].find(
@@ -1440,6 +1449,18 @@ export function OfertasLocalesAiItemReviewPanel({
               <li key={job.id}>
                 {lang === "en" ? "Scan" : "Escaneo"} {job.status} · {job.itemsExtractedCount}{" "}
                 {lang === "en" ? "items" : "artículos"}
+                {job.totalPages > 0 ? (
+                  <>
+                    {" "}
+                    · {job.completedPages}/{job.totalPages} {lang === "en" ? "pages completed" : "páginas completas"}
+                  </>
+                ) : null}
+                {job.failedPages > 0 ? (
+                  <>
+                    {" "}
+                    · {job.failedPages} {lang === "en" ? "failed page" : "página fallida"}
+                  </>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -1456,6 +1477,11 @@ export function OfertasLocalesAiItemReviewPanel({
           {scanCopy.currentScan}: {isWorkspace ? allCurrentScanItems.length : displayItems.length}
           {previousScanItems.length > 0 ? ` · ${scanCopy.previousScans}: ${previousScanItems.length}` : ""}
         </p>
+        {persistedProgressLabel ? (
+          <p className="text-xs font-medium text-[#7A1E2C]" aria-live="polite">
+            {persistedProgressLabel}
+          </p>
+        ) : null}
         <button
           type="button"
           className={BTN_SECONDARY}
@@ -1473,7 +1499,7 @@ export function OfertasLocalesAiItemReviewPanel({
     <div
       className={
         isWorkspace
-          ? "flex min-h-0 flex-col rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm xl:h-full xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden"
+          ? "flex min-h-0 flex-col rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm"
           : "space-y-4 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4"
       }
     >
@@ -1588,9 +1614,7 @@ export function OfertasLocalesAiItemReviewPanel({
                   </p>
                   <p className="mt-1 text-xs text-[#1E1814]/65">
                     {currentPageSummary.needsReview > 0
-                      ? lang === "en"
-                        ? `You still have ${currentPageSummary.needsReview} product(s) to review on this page.`
-                        : `Todavía tienes ${currentPageSummary.needsReview} producto(s) por revisar en esta página.`
+                      ? c.aiReviewPageInstruction
                       : lang === "en"
                         ? "This page is complete."
                         : "Esta página está completa."}
@@ -1601,27 +1625,32 @@ export function OfertasLocalesAiItemReviewPanel({
                     </p>
                   ) : null}
                   {allPagesComplete ? (
-                    <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
-                      {c.aiReviewAllPagesComplete}
-                    </p>
-                  ) : null}
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="button"
-                      className={BTN_PRIMARY}
-                      disabled={currentPageSummary.needsReview > 0 || !nextPageSummary}
-                      onClick={proceedToNextPage}
-                    >
-                      {nextPageSummary
-                        ? formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })
-                        : c.aiReviewAllPagesComplete}
-                    </button>
-                    {currentPageSummary.needsReview > 0 ? (
-                      <p className="text-xs font-medium text-red-800">
-                        {lang === "en"
-                          ? "Approve or reject every item on this page to continue."
-                          : "Aprueba o rechaza cada producto de esta página para continuar."}
+                    <div className="mt-3 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                      <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                      <p className="mt-1 text-sm text-emerald-900">
+                        {formatReviewCopy(c.aiReviewCompleteCount, { count: allCurrentScanItems.length })}
                       </p>
+                      <button
+                        type="button"
+                        className={`${BTN_PRIMARY_LG} mt-4`}
+                        onClick={() => onContinueToNextStep?.()}
+                      >
+                        {c.aiReviewContinueToNextStep}
+                      </button>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 flex flex-col gap-2">
+                    {currentPageSummary.needsReview === 0 && nextPageSummary ? (
+                      <button
+                        type="button"
+                        className={BTN_PRIMARY_LG}
+                        onClick={proceedToNextPage}
+                      >
+                        {formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })}
+                      </button>
+                    ) : null}
+                    {currentPageSummary.needsReview > 0 ? (
+                      <p className="text-xs font-medium text-[#1E1814]/70">{c.aiReviewPageInstruction}</p>
                     ) : null}
                   </div>
                 </div>
@@ -1779,11 +1808,23 @@ export function OfertasLocalesAiItemReviewPanel({
                       {formatReviewCopy(c.aiReviewPageComplete, { page: currentPageSummary.page })}
                     </p>
                     {allPagesComplete ? (
-                      <p className="mt-2 text-xs font-medium text-emerald-900/90">{c.aiReviewAllPagesComplete}</p>
+                      <div className="mt-3 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                        <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                        <p className="mt-1 text-sm text-emerald-900">
+                          {formatReviewCopy(c.aiReviewCompleteCount, { count: allCurrentScanItems.length })}
+                        </p>
+                        <button
+                          type="button"
+                          className={`${BTN_PRIMARY_LG} mt-4`}
+                          onClick={() => onContinueToNextStep?.()}
+                        >
+                          {c.aiReviewContinueToNextStep}
+                        </button>
+                      </div>
                     ) : nextPageSummary ? (
                       <button
                         type="button"
-                        className={`${BTN_PRIMARY} mt-3 w-full sm:w-auto`}
+                        className={`${BTN_PRIMARY_LG} mt-3 w-full`}
                         onClick={proceedToNextPage}
                       >
                         {formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })}
@@ -1791,9 +1832,7 @@ export function OfertasLocalesAiItemReviewPanel({
                     ) : null}
                   </>
                 ) : (
-                  <p className="text-xs text-[#1E1814]/70">
-                    {formatReviewCopy(c.aiReviewItemsLeftOnPage, { count: currentPageSummary.needsReview })}
-                  </p>
+                  <p className="text-xs text-[#1E1814]/70">{c.aiReviewPageInstruction}</p>
                 )}
                 {pageBlockMessage ? (
                   <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
@@ -1842,7 +1881,6 @@ export function OfertasLocalesAiItemReviewPanel({
                     }`}
                   >
                     {cropStatus === "crop" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.sourceCropUrl}
                         alt=""
@@ -1918,7 +1956,7 @@ export function OfertasLocalesAiItemReviewPanel({
       </div>
 
       {isWorkspace && displayItems.length > 0 ? (
-        <div className="px-3 pb-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
+        <div className="px-3 pb-3">
           {activeScanJobId && previousScanItems.length > 0 ? (
             <div className="border-t border-[#D4C4A8]/50 pt-3">
               <button

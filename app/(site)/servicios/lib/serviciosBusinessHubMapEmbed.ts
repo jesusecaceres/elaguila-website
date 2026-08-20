@@ -1,9 +1,6 @@
 /**
- * Safe Google Maps embed src from a structured address — no API key, no user iframe HTML.
- * Pattern: https://www.google.com/maps?q=<address>&output=embed
+ * Global Business Hub OS — surgical adoption: this formula moved to the shared helper
+ * (`sharedConnectionHubLocationHelpers.ts`), which was originally extracted verbatim from this
+ * file. Re-exported under the original name so no call site here needs to change.
  */
-export function buildServiciosGoogleMapsEmbedSrc(address: string): string | undefined {
-  const q = address.trim().replace(/\s+/g, " ");
-  if (!q || q.length < 4) return undefined;
-  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
-}
+export { buildSharedConnectionHubMapEmbedSrc as buildServiciosGoogleMapsEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";

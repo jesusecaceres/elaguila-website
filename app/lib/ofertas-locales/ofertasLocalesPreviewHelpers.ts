@@ -74,23 +74,33 @@ export function formatOfertaLocalDateRange(validFrom: string, validUntil: string
 }
 
 export function buildOfertaLocalTelHref(phone: string): string {
-  const digits = normalizeOfertaLocalPhoneInput(phone);
-  if (digits.length === 10) return `tel:+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `tel:+${digits}`;
-  const t = phone.trim();
-  return t ? `tel:${t}` : "";
+  const raw = String(phone ?? "").trim();
+  const digits = raw.replace(/\D/g, "");
+  const extension = raw.match(/\b(?:ext|extension|x)\s*\.?\s*(\d{1,8})\b/i)?.[1] ?? "";
+  if (digits.length === 10) return extension ? `tel:+1${digits};ext=${extension}` : `tel:+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return extension ? `tel:+${digits};ext=${extension}` : `tel:+${digits}`;
+  }
+  if (raw.startsWith("+") && digits.length >= 8 && digits.length <= 15) return `tel:+${digits}`;
+  if (digits.length >= 8 && digits.length <= 15) {
+    return extension ? `tel:${digits};ext=${extension}` : `tel:${digits}`;
+  }
+  return "";
 }
 
 export function buildOfertaLocalWhatsAppHref(phone: string, businessName?: string): string {
-  const digits = normalizeOfertaLocalPhoneInput(phone).replace(/\D/g, "");
+  const raw = String(phone ?? "").trim();
+  const digits = raw.replace(/\D/g, "");
   if (digits.length < 8) return "";
+  const dialDigits = digits.length === 10 ? `1${digits}` : digits;
+  if (dialDigits.length > 15) return "";
   const name = (businessName ?? "").trim();
   const text = encodeURIComponent(
     name
       ? `Hola, vi la oferta de ${name} en Leonix. Me gustaría más información.`
       : "Hola, vi una oferta en Leonix. Me gustaría más información."
   );
-  return `https://wa.me/${digits}?text=${text}`;
+  return `https://wa.me/${dialDigits}?text=${text}`;
 }
 
 export function resolveOfertaLocalWebsiteHref(url: string): string {

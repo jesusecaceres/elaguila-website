@@ -126,6 +126,28 @@ function resolveCopy(
   }
 
   if (proof.paymentState === "confirmed" && proof.entitlementState === "active") {
+    if ((proof.category ?? category) === "ofertas-locales") {
+      return {
+        title: lang === "es" ? "Pago recibido" : "Payment received",
+        subtitle: lang === "es" ? "Listo para revisión de Leonix" : "Ready for Leonix review",
+        body:
+          lang === "es"
+            ? "Stripe confirmó tu pago. Tu oferta todavía no está pública: completa o envía la publicación para revisión del equipo Leonix."
+            : "Stripe confirmed your payment. Your listing is not public yet: complete or submit it for Leonix team review.",
+        detailLines,
+        note:
+          lang === "es"
+            ? "El término público de 30 días empieza solo cuando Leonix aprueba y activa la oferta, no cuando pagas."
+            : "The 30-day public term starts only when Leonix approves and activates the listing, not when you pay.",
+        primaryHref: safeReturnTo ?? dashboardHref,
+        primaryLabel: lang === "es" ? "Volver a mi oferta" : "Back to my listing",
+        secondaryHref: dashboardHref,
+        secondaryLabel: lang === "es" ? "Mis anuncios" : "My listings",
+        supportHref,
+        supportLabel: lang === "es" ? "Ayuda" : "Help",
+        tone: "success",
+      };
+    }
     const autosDraftReturn =
       autosInventoryPackPresentation?.source === "draft" ? autosInventoryPackPresentation : null;
     return {
@@ -177,6 +199,28 @@ function resolveCopy(
   }
 
   if (proof.paymentState === "confirmed" && proof.entitlementState !== "active") {
+    if ((proof.category ?? category) === "ofertas-locales") {
+      return {
+        title: lang === "es" ? "Pago recibido" : "Payment received",
+        subtitle: lang === "es" ? "Confirmando entitlement…" : "Confirming entitlement…",
+        body:
+          lang === "es"
+            ? "Stripe confirmó el pago, pero Leonix aún está confirmando el entitlement interno. Tu oferta no está pública."
+            : "Stripe confirmed payment, but Leonix is still confirming the internal entitlement. Your listing is not public.",
+        detailLines,
+        note:
+          lang === "es"
+            ? "Actualiza en unos segundos. La revisión y aprobación siguen siendo requeridas."
+            : "Refresh in a few seconds. Review and approval are still required.",
+        primaryHref: safeReturnTo ?? dashboardHref,
+        primaryLabel: lang === "es" ? "Volver a mi oferta" : "Back to my listing",
+        secondaryHref: dashboardHref,
+        secondaryLabel: lang === "es" ? "Mis anuncios" : "My listings",
+        supportHref,
+        supportLabel: lang === "es" ? "Contactar soporte" : "Contact support",
+        tone: "warn",
+      };
+    }
     const autosDraftReturn =
       autosInventoryPackPresentation?.source === "draft" ? autosInventoryPackPresentation : null;
     return {
@@ -233,6 +277,28 @@ function resolveCopy(
   }
 
   if (proof.paymentState === "processing") {
+    if ((proof.category ?? category) === "ofertas-locales") {
+      return {
+        title: lang === "es" ? "Pago recibido" : "Payment received",
+        subtitle: lang === "es" ? "Esperando confirmación de Stripe" : "Waiting for Stripe confirmation",
+        body:
+          lang === "es"
+            ? "Estamos esperando el webhook verificado de Stripe. Tu oferta no está pública y el término de 30 días no ha empezado."
+            : "We are waiting for Stripe's verified webhook. Your listing is not public and the 30-day term has not started.",
+        detailLines,
+        note:
+          lang === "es"
+            ? "No marcamos nada como pagado por parámetros de URL."
+            : "We do not mark anything paid from URL parameters.",
+        primaryHref: safeReturnTo ?? dashboardHref,
+        primaryLabel: lang === "es" ? "Volver a mi oferta" : "Back to my listing",
+        secondaryHref: dashboardHref,
+        secondaryLabel: lang === "es" ? "Mis anuncios" : "My listings",
+        supportHref,
+        supportLabel: lang === "es" ? "Contactar soporte" : "Contact support",
+        tone: "warn",
+      };
+    }
     return {
       title: lang === "es" ? "Pago recibido" : "Payment received",
       subtitle: lang === "es" ? "Esperando confirmación de Stripe" : "Waiting for Stripe confirmation",

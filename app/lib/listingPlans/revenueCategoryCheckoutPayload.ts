@@ -12,6 +12,8 @@ import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
+  OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+  OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import { buildDashboardMisAnunciosReturnPath } from "./revenueOsReturnPath";
 
@@ -98,6 +100,18 @@ export const AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
   returnPath: buildDashboardMisAnunciosReturnPath("es", "autos"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+export const OFERTAS_LOCALES_FLYER_CHECKOUT = {
+  category: "ofertas-locales",
+  packageKey: OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+  returnPath: "/dashboard/ofertas-locales",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+export const OFERTAS_LOCALES_COUPONS_CHECKOUT = {
+  category: "ofertas-locales",
+  packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+  returnPath: "/dashboard/ofertas-locales",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 export type RevenueCheckoutAddOnPayload = {
   key: string;
   quantity?: number;
@@ -120,6 +134,7 @@ export type RevenueCategoryCheckoutPayload = {
   addOns?: RevenueCheckoutAddOnPayload[];
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
+  renewalAttemptId?: string | null;
   returnContext?: string | null;
   /** Package C Build 1 — affirmative recurring-billing consent (subscription packages only).
    * The server hard-rejects subscription-mode checkout without it (Agreement v1.2 §17). */
@@ -155,6 +170,7 @@ export function buildRevenueCategoryCheckoutBody(
       : {}),
     ...(input.sourceTable?.trim() ? { sourceTable: input.sourceTable.trim() } : {}),
     ...(input.currentExpiresAt?.trim() ? { currentExpiresAt: input.currentExpiresAt.trim() } : {}),
+    ...(input.renewalAttemptId?.trim() ? { renewalAttemptId: input.renewalAttemptId.trim() } : {}),
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
     ...(input.recurringConsent ? { recurringConsent: input.recurringConsent } : {}),
     ...(input.requestVerifiedIntroDiscount ? { requestVerifiedIntroDiscount: true } : {}),

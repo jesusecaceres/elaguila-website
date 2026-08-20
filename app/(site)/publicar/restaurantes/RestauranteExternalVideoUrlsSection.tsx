@@ -160,7 +160,7 @@ export function RestauranteExternalVideoUrlsSection({ draft, setDraftPatch, lang
         </div>
       ) : (
         <p className="mt-4 text-xs font-medium text-[color:var(--lx-muted)]">
-          {tr(lang, "Límite de 4 videos alcanzado.", "Limit of 4 videos reached.")}
+          {tr(lang, "Límite de 8 videos alcanzado.", "Limit of 8 videos reached.")}
         </p>
       )}
     </div>

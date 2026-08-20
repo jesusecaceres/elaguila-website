@@ -6,10 +6,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
+  getOfertaLocalPublicTermDaysRemaining,
+  isOfertaLocalPublicTermActive,
+  isOfertaLocalPublicTermExpired,
+} from "./ofertasLocalesFormatting";
+import {
   OFERTAS_LOCALES_ADMIN_SELECT,
   parseOfertaLocalDraftSnapshot,
   readDraftSnapshotMembershipFields,
 } from "./ofertasLocalesDbSchema";
+import {
+  formatOfertaLocalCommercialAmount,
+  getOfertaLocalCommercialProductByPackageKey,
+} from "./ofertasLocalesCommercial";
+import {
+  deriveOfertaLocalOperationalStatus,
+  type OfertaLocalOperationalStatus,
+} from "./ofertasLocalesOperationalStatus";
 import { parseOfertaLocalPublishedSocialLinksFromInternalNotes } from "./ofertasLocalesPublicSearchHelpers";
 import type {
   OfertaLocalFeaturedPlacementScope,
@@ -24,6 +37,7 @@ export { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
 
 export type OfertaLocalAdminRow = {
   id: string;
+  leonix_ad_id?: string | null;
   owner_id: string;
   status: OfertaLocalPublishStatus;
   offer_type: string;
@@ -71,10 +85,37 @@ export type OfertaLocalAdminRow = {
   is_featured_requested: boolean;
   language_tags: string[];
   internal_notes: string | null;
+  published_at: string | null;
+  expires_at: string | null;
+  commercial_product_key?: string | null;
+  commercial_amount_cents?: number | null;
+  commercial_currency?: string | null;
+  commercial_duration_days?: number | null;
+  commercial_ai_included?: boolean | null;
+  payment_status?: string | null;
+  paid_at?: string | null;
+  stripe_checkout_session_id?: string | null;
+  stripe_payment_intent_id?: string | null;
+  payment_record_id?: string | null;
+  package_entitlement_id?: string | null;
+  entitlement_status?: string | null;
+  entitlement_granted_at?: string | null;
+  entitlement_ends_at?: string | null;
+  partner_assignment_id?: string | null;
+  commercial_eligibility_source?: string | null;
+  active_source_asset_id?: string | null;
+  public_source_asset_id?: string | null;
+  asset_lifecycle_status?: string | null;
+  asset_replacement_required_review?: boolean | null;
+  ai_scan_status?: string | null;
+  ai_last_scan_job_id?: string | null;
+  last_scan_error?: string | null;
   submitted_at: string;
   created_at: string;
   updated_at: string;
 };
+
+export type OfertaLocalPublicTermStatus = "not_started" | "active" | "expired" | "incomplete";
 
 export type OfertaLocalAdminMetadata = {
   socialLinks: ReturnType<typeof parseOfertaLocalPublishedSocialLinksFromInternalNotes>;
@@ -86,6 +127,7 @@ export type OfertaLocalAdminMetadata = {
 
 export type OfertaLocalAdminListVm = {
   id: string;
+  leonixAdId: string | null;
   businessName: string;
   title: string;
   offerType: string;
@@ -95,6 +137,35 @@ export type OfertaLocalAdminListVm = {
   status: OfertaLocalPublishStatus;
   validFrom: string;
   validUntil: string;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  publicTermStatus: OfertaLocalPublicTermStatus;
+  publicTermDaysRemaining: number | null;
+  commercialProductKey: string | null;
+  commercialProductLabel: string | null;
+  commercialAmount: string | null;
+  commercialCurrency: string | null;
+  commercialDurationDays: number | null;
+  commercialAiIncluded: boolean;
+  paymentStatus: string;
+  paidAt: string | null;
+  entitlementStatus: string;
+  entitlementGrantedAt: string | null;
+  entitlementEndsAt: string | null;
+  stripeReferencePresent: boolean;
+  paymentRecordId: string | null;
+  packageEntitlementId: string | null;
+  partnerAssignmentId: string | null;
+  commercialEligibilitySource: string;
+  activeSourceAssetId: string | null;
+  publicSourceAssetId: string | null;
+  assetLifecycleStatus: string;
+  assetReplacementRequiredReview: boolean;
+  aiScanStatus: string | null;
+  aiLastScanJobId: string | null;
+  lastScanError: string | null;
+  operationalStatus: OfertaLocalOperationalStatus;
+  commercialDiscrepancyWarning: string | null;
   submittedAt: string;
   assetCount: number;
   wantsAiSearchableSpecials: boolean;
@@ -260,6 +331,32 @@ export function appendOfertaLocalAdminReviewNote(
   return `${base}\n\n${adminChunk}`.slice(0, 8000);
 }
 
+export function parseLastOfertaLocalAdminReviewNote(
+  internalNotes: string | null | undefined,
+  action: "approve" | "reject" | "archive"
+): string | null {
+  const text = String(internalNotes ?? "");
+  const notes: string[] = [];
+  let searchFrom = 0;
+  while (true) {
+    const idx = text.indexOf(ADMIN_REVIEW_PREFIX, searchFrom);
+    if (idx < 0) break;
+    const chunk = text.slice(idx + ADMIN_REVIEW_PREFIX.length).trim();
+    const end = chunk.search(/\n\n|\[ofertas_locales_metadata\]|\[admin_review\]/);
+    const jsonPart = end >= 0 ? chunk.slice(0, end).trim() : chunk;
+    try {
+      const parsed = JSON.parse(jsonPart) as { action?: string; note?: string };
+      if (parsed.action === action && typeof parsed.note === "string" && parsed.note.trim()) {
+        notes.push(parsed.note.trim().slice(0, 2000));
+      }
+    } catch {
+      /* ignore malformed admin review notes */
+    }
+    searchFrom = idx + ADMIN_REVIEW_PREFIX.length + jsonPart.length;
+  }
+  return notes[notes.length - 1] ?? null;
+}
+
 function shortOwnerId(ownerId: string): string {
   const t = ownerId.trim();
   if (t.length <= 12) return t;
@@ -270,9 +367,62 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
   const flyerAssets = parseAssetArray(row.flyer_assets);
   const couponAssets = parseAssetArray(row.coupon_assets);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
+  const commercialProduct = getOfertaLocalCommercialProductByPackageKey(row.commercial_product_key);
+  const expectedProduct =
+    row.offer_type === "weekly_flyer"
+      ? getOfertaLocalCommercialProductByPackageKey("ofertas_locales_flyer_30d")
+      : getOfertaLocalCommercialProductByPackageKey("ofertas_locales_coupons_30d");
+  const commercialDiscrepancyWarning =
+    commercialProduct && expectedProduct && commercialProduct.packageKey !== expectedProduct.packageKey
+      ? "Product key does not match listing lane."
+      : commercialProduct && row.commercial_amount_cents != null && row.commercial_amount_cents !== commercialProduct.amountCents
+        ? "Paid amount does not match expected product price."
+        : null;
+  const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
+  const termExpired = isOfertaLocalPublicTermExpired(row.expires_at);
+  const publicTermStatus: OfertaLocalPublicTermStatus =
+    row.status !== "approved"
+      ? "not_started"
+      : termActive
+        ? "active"
+        : termExpired
+          ? "expired"
+          : "incomplete";
+  const assetCount = flyerAssets.length + couponAssets.length;
+  const rejectionNote = parseLastOfertaLocalAdminReviewNote(row.internal_notes, "reject");
+  const operationalStatus = deriveOfertaLocalOperationalStatus({
+    status: row.status,
+    offerType: row.offer_type,
+    leonixAdId: row.leonix_ad_id ?? null,
+    commercialProductKey: row.commercial_product_key ?? null,
+    commercialAmountCents: row.commercial_amount_cents ?? null,
+    commercialAiIncluded: row.commercial_ai_included ?? null,
+    paymentStatus: row.payment_status ?? null,
+    entitlementStatus: row.entitlement_status ?? null,
+    paymentRecordId: row.payment_record_id ?? null,
+    packageEntitlementId: row.package_entitlement_id ?? null,
+    commercialEligibilitySource: row.commercial_eligibility_source ?? null,
+    commercialDiscrepancyWarning,
+    activeSourceAssetId: row.active_source_asset_id ?? null,
+    publicSourceAssetId: row.public_source_asset_id ?? null,
+    assetLifecycleStatus: row.asset_lifecycle_status ?? null,
+    assetReplacementRequiredReview: row.asset_replacement_required_review ?? null,
+    assetCount,
+    aiScanStatus: row.ai_scan_status ?? null,
+    aiLastScanJobId: row.ai_last_scan_job_id ?? null,
+    lastScanError: row.last_scan_error ?? null,
+    wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials ?? metadata.wantsAiSearchableSpecials),
+    rejectionNote,
+    publicTermStatus,
+    publicTermDaysRemaining:
+      row.status === "approved" && row.expires_at
+        ? getOfertaLocalPublicTermDaysRemaining(row.expires_at)
+        : null,
+  });
 
   return {
     id: row.id,
+    leonixAdId: row.leonix_ad_id ?? null,
     businessName: row.business_name,
     title: row.title,
     offerType: row.offer_type,
@@ -282,8 +432,43 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
     status: row.status,
     validFrom: row.valid_from,
     validUntil: row.valid_until,
+    publishedAt: row.published_at,
+    expiresAt: row.expires_at,
+    publicTermStatus,
+    publicTermDaysRemaining:
+      row.status === "approved" && row.expires_at
+        ? getOfertaLocalPublicTermDaysRemaining(row.expires_at)
+        : null,
+    commercialProductKey: row.commercial_product_key ?? null,
+    commercialProductLabel: commercialProduct?.labelEs ?? null,
+    commercialAmount:
+      row.commercial_amount_cents == null
+        ? null
+        : formatOfertaLocalCommercialAmount(row.commercial_amount_cents, row.commercial_currency),
+    commercialCurrency: row.commercial_currency ?? null,
+    commercialDurationDays: row.commercial_duration_days ?? null,
+    commercialAiIncluded: row.commercial_ai_included === true,
+    paymentStatus: row.payment_status ?? "unpaid",
+    paidAt: row.paid_at ?? null,
+    entitlementStatus: row.entitlement_status ?? "none",
+    entitlementGrantedAt: row.entitlement_granted_at ?? null,
+    entitlementEndsAt: row.entitlement_ends_at ?? null,
+    stripeReferencePresent: Boolean(row.stripe_checkout_session_id || row.stripe_payment_intent_id),
+    paymentRecordId: row.payment_record_id ?? null,
+    packageEntitlementId: row.package_entitlement_id ?? null,
+    partnerAssignmentId: row.partner_assignment_id ?? null,
+    commercialEligibilitySource: row.commercial_eligibility_source ?? "paid",
+    activeSourceAssetId: row.active_source_asset_id ?? null,
+    publicSourceAssetId: row.public_source_asset_id ?? null,
+    assetLifecycleStatus: row.asset_lifecycle_status ?? "legacy",
+    assetReplacementRequiredReview: row.asset_replacement_required_review === true,
+    aiScanStatus: row.ai_scan_status ?? null,
+    aiLastScanJobId: row.ai_last_scan_job_id ?? null,
+    lastScanError: row.last_scan_error ?? null,
+    operationalStatus,
+    commercialDiscrepancyWarning,
     submittedAt: row.submitted_at,
-    assetCount: flyerAssets.length + couponAssets.length,
+    assetCount,
     wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials ?? metadata.wantsAiSearchableSpecials),
     featuredRequested: row.is_featured_requested,
     featuredPlacementScope:
@@ -367,6 +552,7 @@ export async function listOfertasLocalesAdminRows(
         `title.ilike.${like}`,
         `city.ilike.${like}`,
         `zip_code.ilike.${like}`,
+        `leonix_ad_id.ilike.${like}`,
         `id.eq.${search}`,
       ].join(",")
     );

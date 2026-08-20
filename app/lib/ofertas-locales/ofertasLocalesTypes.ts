@@ -278,6 +278,8 @@ export type OfertaLocalValidationIssue = {
 };
 
 export type OfertaLocalDraft = {
+  /** Browser application-session id — not a database listing id. */
+  applicationSessionId: string;
   /** Primary ad format lane — drives copy, upload sections, and AI wording. */
   primaryAdFormat: OfertaLocalPrimaryAdFormat | "";
   offerType: OfertaLocalOfferType | "";
@@ -376,6 +378,29 @@ export type OfertaLocalSourceBoundingBox = {
   xMax: number;
   yMax: number;
 };
+
+export type OfertaLocalScanPageStatus = "queued" | "processing" | "completed" | "failed" | "skipped";
+export type OfertaLocalScanPageStage =
+  | "queued"
+  | "rasterizing"
+  | "scanning"
+  | "extracting"
+  | "creating_crops"
+  | "completed"
+  | "failed"
+  | "skipped";
+export type OfertaLocalScanJobStage =
+  | "uploading"
+  | "preparing"
+  | "rasterizing"
+  | "scanning"
+  | "extracting"
+  | "creating_crops"
+  | "awaiting_review"
+  | "failed"
+  | "complete";
+export type OfertaLocalPriceParseStatus = "unknown" | "parsed" | "deal_text" | "manual" | "invalid";
+export type OfertaLocalCleanupStatus = "pending" | "processing" | "failed" | "completed" | "cancelled";
 
 /** V1 commerce lookup metadata — stored in extracted_json.commerceMetadata (Gate 4B). */
 export type OfertaLocalItemOnlineAvailability = "unknown" | "online" | "in_store" | "both";
@@ -511,6 +536,12 @@ export type OfertaLocalScanJobRecordDraft = {
   pagesProcessed: number | null;
   itemsExtractedCount: number | null;
   confidenceAverage: number | null;
+  totalPages?: number | null;
+  completedPages?: number | null;
+  failedPages?: number | null;
+  currentPage?: number | null;
+  currentStage?: OfertaLocalScanJobStage | null;
+  sourceAssetVersionId?: string | null;
 };
 
 /** Shopping list item — V1 session/local only (Stack 10 planning). */
@@ -592,6 +623,15 @@ export type OfertaLocalScanJobDbRow = {
   source_storage_path?: string | null;
   source_mime_type?: string | null;
   source_asset_kind?: string | null;
+  source_asset_version_id?: string | null;
+  total_pages?: number | null;
+  completed_pages?: number | null;
+  failed_pages?: number | null;
+  current_page?: number | null;
+  current_stage?: OfertaLocalScanJobStage | null;
+  retry_count?: number | null;
+  failure_summary?: string | null;
+  last_activity_at?: string | null;
   draft_session_id?: string | null;
   raw_ocr_summary?: Record<string, unknown> | null;
   created_at: string;
@@ -635,13 +675,23 @@ export type OfertaLocalItemDbRow = {
   valid_until: string | null;
   source_asset_id: string | null;
   source_asset_url: string | null;
+  source_asset_version_id?: string | null;
+  source_lifecycle_status?: string | null;
+  scan_page_id?: string | null;
   source_page: number | null;
   source_crop_url: string | null;
   source_file_name: string | null;
   source_context: string | null;
   source_bbox: Record<string, unknown> | null;
+  source_page_width?: number | null;
+  source_page_height?: number | null;
+  source_bbox_format?: "normalized_0_1" | null;
   candidate_type: OfertaLocalCandidateType;
   regular_price_text: string | null;
+  price_amount_cents?: number | null;
+  regular_price_amount_cents?: number | null;
+  original_price_text?: string | null;
+  price_parse_status?: OfertaLocalPriceParseStatus | null;
   coupon_title: string | null;
   offer_text: string | null;
   terms: string | null;
@@ -669,6 +719,7 @@ export type OfertaLocalItemDbInsert = Omit<
 export type OfertaLocalScanApiRequest = {
   ofertaLocalId: string;
   assetId: string;
+  sourceAssetVersionId?: string | null;
   assetKind: "flyer" | "coupon";
   assetUrl: string;
   storagePath: string;
@@ -680,6 +731,12 @@ export type OfertaLocalScanApiResponse = {
   scanJobId?: string;
   status?: OfertaLocalScanJobStatus;
   pagesProcessed?: number;
+  totalPages?: number;
+  completedPages?: number;
+  failedPages?: number;
+  currentPage?: number | null;
+  currentStage?: OfertaLocalScanJobStage;
+  pageErrors?: string[];
   itemsExtractedCount?: number;
   message?: string;
   configurationMissing?: boolean;
@@ -700,6 +757,9 @@ export type OfertaLocalItemReviewViewModel = {
   subcategory: string;
   priceText: string;
   priceAmount: number | null;
+  priceAmountCents: number | null;
+  originalPriceText: string;
+  priceParseStatus: OfertaLocalPriceParseStatus;
   unit: string;
   dealType: string;
   quantity: string;
@@ -717,6 +777,10 @@ export type OfertaLocalItemReviewViewModel = {
   sourceAssetUrl: string;
   sourceFileName: string;
   sourcePage: number | null;
+  scanPageId: string | null;
+  sourceAssetVersionId: string | null;
+  sourcePageWidth: number | null;
+  sourcePageHeight: number | null;
   sourceContext: string;
   sourceBbox: OfertaLocalSourceBoundingBox | null;
   sourceCropUrl: string;
@@ -739,6 +803,7 @@ export type OfertaLocalItemReviewPatch = {
   subcategory?: string;
   priceText?: string;
   priceAmount?: number | null;
+  priceAmountCents?: number | null;
   unit?: string;
   dealType?: string;
   quantity?: string;
@@ -757,6 +822,11 @@ export type OfertaLocalScanJobSummary = {
   status: OfertaLocalScanJobStatus;
   itemsExtractedCount: number;
   pagesProcessed: number;
+  totalPages: number;
+  completedPages: number;
+  failedPages: number;
+  currentPage: number | null;
+  currentStage: OfertaLocalScanJobStage;
   completedAt: string | null;
 };
 
@@ -798,6 +868,8 @@ export type OfertaLocalItemPatchApiResponse = {
 /** Public shopper search item — Stack D (no private fields). */
 export type OfertaLocalPublicSearchItem = {
   id: string;
+  ofertaLocalId: string;
+  leonixAdId: string;
   itemName: string;
   normalizedItemName: string;
   priceText: string;
@@ -807,8 +879,11 @@ export type OfertaLocalPublicSearchItem = {
   subcategory: string;
   searchTags: string[];
   sourcePage: number | null;
+  sourceCropHref: string | null;
   sourceAssetLabel: string;
   sourceAssetHref: string | null;
+  sourceAssetVersionId: string | null;
+  sourceLifecycleStatus: string;
   validFrom: string | null;
   validUntil: string | null;
   businessName: string;
@@ -830,6 +905,13 @@ export type OfertaLocalPublicSearchItem = {
   offerType: string;
   marketType: string;
   businessCategory: string;
+  partner: {
+    isVerifiedPartner: boolean;
+    badgeLabel: string | null;
+    partnerName: string | null;
+    highlightedPlacement: boolean;
+    placementPriority: number;
+  };
   socialLinks: {
     facebookUrl?: string;
     instagramUrl?: string;
@@ -847,7 +929,7 @@ export type OfertaLocalPublicSearchItem = {
   updatedAt: string;
 };
 
-export type OfertaLocalPublicSearchSort = "newest" | "price_low" | "expiring_soon";
+export type OfertaLocalPublicSearchSort = "relevance" | "newest" | "price_low" | "expiring_soon";
 
 export type OfertaLocalPublicSearchApiResponse = {
   ok: boolean;
@@ -861,8 +943,11 @@ export type OfertaLocalPublicSearchApiResponse = {
 /** Public approved offer card — FINAL-1 (no private fields). */
 export type OfertaLocalPublicOfferCard = {
   id: string;
+  leonixAdId: string;
   businessName: string;
   title: string;
+  description: string;
+  couponText: string;
   offerType: string;
   businessCategory: string;
   marketType: string;
@@ -873,6 +958,15 @@ export type OfertaLocalPublicOfferCard = {
   address: string;
   validFrom: string;
   validUntil: string;
+  publishedAt: string;
+  expiresAt: string;
+  partner: {
+    isVerifiedPartner: boolean;
+    badgeLabel: string | null;
+    partnerName: string | null;
+    highlightedPlacement: boolean;
+    placementPriority: number;
+  };
   phoneHref: string | null;
   websiteHref: string | null;
   directionsHref: string | null;
@@ -932,6 +1026,17 @@ export type OfertaLocalPublicOfferDetail = OfertaLocalPublicOfferCard & {
   isExpired: boolean;
   businessLogoHref: string | null;
   phoneDisplay: string;
+  pickupLocations: Array<{
+    id: string;
+    displayName: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    hours: string;
+    contact: string;
+    mapUrl: string | null;
+  }>;
 };
 
 /** Public detail hub item — approved search item plus optional bbox for flyer overlay (detail page only). */

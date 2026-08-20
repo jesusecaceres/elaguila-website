@@ -35,6 +35,7 @@ const PERM_LABELS: Record<AdminPermissionKey, string> = {
   can_manage_categories: "Manage categories",
   can_manage_magazine: "Manage magazine",
   can_manage_website_content: "Site content",
+  can_manage_prayer_wall: "Prayer wall",
   can_view_payments: "View payments",
   can_manage_team: "Manage team",
   can_view_activity_logs: "Activity logs",

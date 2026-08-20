@@ -153,13 +153,14 @@ check(
 /* ============================= CONNECTION HUB ============================= */
 
 {
-  const empty = buildSharedConnectionHubContact({ lang: "es" });
+  const empty = buildSharedConnectionHubContact({ lang: "es", mode: "full_hub" });
   check(!sharedConnectionHubHasVisibleContent(empty), "HUB: fully empty source data hides the whole card");
   check(empty.social.length === 0 && empty.reviews.length === 0 && empty.moreLinks.length === 0, "HUB: no data means no CTAs at all");
 }
 {
   const real = buildSharedConnectionHubContact({
     lang: "es",
+    mode: "full_hub",
     phoneTelHref: "tel:+15551234567",
     websiteHref: "https://example.com",
     social: { facebook: "https://facebook.com/example", instagram: "" },
@@ -185,7 +186,7 @@ check(!isSafeExternalHref("javascript:alert(1)"), "HUB: a dangerous javascript: 
 check(!isSafeExternalHref("not a url"), "HUB: a malformed href is never treated as safe");
 check(isSafeExternalHref("https://example.com"), "HUB: a genuine https url is treated as safe");
 {
-  const dangerous = buildSharedConnectionHubContact({ lang: "es", websiteHref: "javascript:alert(1)" });
+  const dangerous = buildSharedConnectionHubContact({ lang: "es", mode: "full_hub", websiteHref: "javascript:alert(1)" });
   check(dangerous.contact.websiteHref === undefined, "HUB: an unsafe website href never renders a CTA");
 }
 

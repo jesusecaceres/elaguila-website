@@ -22,6 +22,7 @@ import {
 import { AutosPublicFilterRail, type AutosPublicFilterOptions } from "./AutosPublicFilterRail";
 import { AutosPublicResultsActiveFilters } from "./AutosPublicResultsActiveFilters";
 import { AutosGeolocationButton } from "./AutosGeolocationButton";
+import { AutosSaveSearchButton } from "./AutosSaveSearchButton";
 import { AutosPublicInventoryNotice } from "./AutosPublicInventoryNotice";
 import { AutosMarketPeerCrossLink } from "./AutosMarketPeerCrossLink";
 import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
@@ -402,6 +403,7 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
             >
               {copy.resultsResetShort}
             </button>
+            <AutosSaveSearchButton filters={applied.filters} searchQ={applied.q} lang={lang} />
           </div>
           </div>
         </section>

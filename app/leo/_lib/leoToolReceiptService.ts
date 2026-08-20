@@ -13,11 +13,13 @@ import {
   listLeoDurableToolReceiptsForActor,
   transitionLeoDurableToolReceipt,
   type LeoCreateDurableReceiptInput,
+  type LeoCreateDurableReceiptResult,
   type LeoReceiptListReadResult,
 } from "@/app/leo/_lib/leoToolReceiptRepository";
 import type { LeoDurableToolReceipt } from "@/app/leo/_lib/leoTypes";
 
 export type { LeoReceiptListReadResult } from "@/app/leo/_lib/leoToolReceiptRepository";
+export type { LeoCreateDurableReceiptResult } from "@/app/leo/_lib/leoToolReceiptRepository";
 
 async function requireActorId(): Promise<string> {
   const access = await requireLeoOwnerAccess();
@@ -26,9 +28,17 @@ async function requireActorId(): Promise<string> {
   return id;
 }
 
+/**
+ * LEO-15: idempotent by (actor, correlationId) — see
+ * createLeoDurableToolReceipt. Callers that care whether this returned a
+ * fresh REQUESTED receipt vs. replayed an existing one MUST check
+ * `idempotentReplay` before proceeding, since a replayed receipt may already
+ * be in a terminal state (EXECUTED/VERIFIED/FAILED/NOT_EXECUTED/CANCELLED)
+ * and must not be re-authorized or re-executed.
+ */
 export async function leoCreateToolReceiptRequest(
   input: Omit<LeoCreateDurableReceiptInput, "actorAuthUserId">,
-): Promise<{ ok: true; receipt: LeoDurableToolReceipt } | { ok: false; error: string }> {
+): Promise<LeoCreateDurableReceiptResult> {
   const actorAuthUserId = await requireActorId();
   return createLeoDurableToolReceipt({ ...input, actorAuthUserId });
 }

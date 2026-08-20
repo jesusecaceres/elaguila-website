@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiClock, FiStar } from "react-icons/fi";
+import { FiExternalLink, FiMail, FiMapPin, FiPhone, FiInstagram, FiFacebook, FiYoutube, FiClock } from "react-icons/fi";
 import { FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
@@ -143,7 +143,9 @@ export function RestauranteAdStoryPreview({
   const hasMenuHighlights = proseData.menuHighlights && proseData.menuHighlights.length > 0;
   const hasGallery = data.venueGallery || data.gallery;
   const showStandaloneHours = Boolean(data.hoursPreview) && !hubHasHours;
-  const hasTrustInfo = data.trustRating || data.trustLight;
+  // Global Business Hub OS — trustRating no longer renders (REVIEWS MASTER RULE); this gate now
+  // reflects only what's actually shown (trustLight).
+  const hasTrustInfo = Boolean(data.trustLight);
   const hasStackSections = proseData.stackSections && proseData.stackSections.length > 0;
   const hasMoreInfo = hasTrustInfo || hasStackSections;
 
@@ -459,26 +461,10 @@ export function RestauranteAdStoryPreview({
             {hasTrustInfo ? (
               <div>
                 <h3 className={SUBSECTION_TITLE}>{lang === "en" ? "External proof" : "Prueba Externa"}</h3>
-                {data.trustRating ? (
-                  <div className="mb-3 rounded-xl border border-[#D8C2A0] bg-white p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-0.5">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <FiStar
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(data.trustRating!.average) ? "fill-current text-yellow-400" : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#1F1A17]">{data.trustRating.average.toFixed(1)} de 5</p>
-                        <p className="text-xs text-[#5A5148]">{data.trustRating.count} reseñas</p>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
+                {/* Global Business Hub OS — REVIEWS MASTER RULE (Level A, link-only): removed the
+                    owner-typed 5-star trustRating renderer. No provider API exists; the DB field
+                    is untouched. data.trustLight below (a truthful, softer "reference" summary
+                    line — never a fabricated star/count) is unaffected. */}
                 {data.trustLight ? (
                   <div className="rounded-xl border border-[#D8C2A0] bg-white p-3">
                     <p className="text-sm leading-relaxed text-[#1F1A17]">

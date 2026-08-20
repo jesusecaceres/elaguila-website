@@ -183,7 +183,11 @@ export async function leoExecuteInternalAttentionAction(input: {
   if (!sourceKind || !sourceKey) return { ok: false, error: "source_required" };
 
   const governanceLevel = leoGovernanceForExecutiveAction(actionType);
-  const correlationId = `leo-internal:${actionType}:${sourceKind}:${sourceKey}:${input.nowMs ?? Date.now()}`;
+  // LEO-15: deterministic (no timestamp) so a duplicate click / retry for the
+  // exact same action+source collides into the same receipt row instead of
+  // creating a second execution. Genuinely distinct occurrences must already
+  // carry a distinct sourceKey.
+  const correlationId = `leo-internal:${actionType}:${sourceKind}:${sourceKey}`;
 
   const created = await leoCreateToolReceiptRequest({
     correlationId,
@@ -194,6 +198,26 @@ export async function leoExecuteInternalAttentionAction(input: {
     sourceRefs: [{ system: "LEO", kind: sourceKind, id: sourceKey }],
   });
   if (!created.ok) return { ok: false, error: created.error };
+
+  const LEO_RECEIPT_TERMINAL_STATES = new Set([
+    "EXECUTED",
+    "VERIFIED",
+    "FAILED",
+    "NOT_EXECUTED",
+    "CANCELLED",
+  ]);
+  if (created.idempotentReplay && LEO_RECEIPT_TERMINAL_STATES.has(created.receipt.lifecycleState)) {
+    // Duplicate retry of an already-settled action: return the prior result,
+    // never re-run the mutation.
+    if (created.receipt.lifecycleState === "EXECUTED" || created.receipt.lifecycleState === "VERIFIED") {
+      const nowMs = input.nowMs ?? Date.now();
+      const readBack = await leoGetAttentionDisposition(sourceKind, sourceKey, nowMs);
+      if (readBack.ack) {
+        return { ok: true, actionType, ack: readBack.ack, receipt: created.receipt };
+      }
+    }
+    return { ok: false, error: created.receipt.safeErrorClass ?? "already_settled", receipt: created.receipt };
+  }
 
   let receipt = created.receipt;
   const auth = await leoMarkReceiptAuthorized(receipt.id);

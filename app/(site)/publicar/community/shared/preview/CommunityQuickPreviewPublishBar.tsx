@@ -7,7 +7,11 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { SupportedLang } from "@/app/lib/language";
 
-import { COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS, type CommunityKind } from "../constants/communitySessionKeys";
+import {
+  COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS,
+  COMMUNITY_SESSION_KEYS,
+  type CommunityKind,
+} from "../constants/communitySessionKeys";
 import { COMMUNITY_PUBLISH_COPY } from "../copy/communityPublishCopy";
 import { publishCommunityQuickToListings } from "../publish/publishCommunityQuickToListings";
 import { clearCommunityStagedPublish } from "../publish/communityPublishStaging";
@@ -102,6 +106,10 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
       try {
         window.sessionStorage.setItem(`leonix-community-publish-success:${r.listingId}`, "1");
         window.sessionStorage.removeItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS[kind]);
+        // Gate 4 (Globalization Build 04) — clear the draft itself too, not just the in-flight
+        // id, or navigating Back to the quick-publish form re-hydrates the already-published
+        // draft and a resubmit creates a genuine duplicate listing row.
+        window.sessionStorage.removeItem(COMMUNITY_SESSION_KEYS[kind]);
       } catch {
         /* sessionStorage can be unavailable; redirect still provides completion feedback by URL. */
       }

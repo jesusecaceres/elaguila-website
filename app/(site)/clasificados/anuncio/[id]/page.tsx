@@ -1252,9 +1252,6 @@ function AnuncioDetallePageContent() {
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [communityFlyerZoomUrl, setCommunityFlyerZoomUrl] = useState<string | null>(null);
 
-  // v2 placeholder: wired later to real auth
-  const [isAuthed] = useState<boolean>(false);
-
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -1540,9 +1537,7 @@ function AnuncioDetallePageContent() {
   }
 
   const isCommunityCategory = listing.category === "clases" || listing.category === "comunidad";
-  const isCommunityOwner =
-    Boolean(viewerUserId && listing.owner_id && String(listing.owner_id) === String(viewerUserId)) &&
-    isCommunityCategory;
+  const isRealListingOwner = Boolean(viewerUserId && listing.owner_id && String(listing.owner_id) === String(viewerUserId));
   const communityMetaHighlight =
     isCommunityCategory && communityQuickPairMap
       ? listing.category === "clases"
@@ -2271,48 +2266,7 @@ function AnuncioDetallePageContent() {
                   </p>
                 ) : null}
 
-                {!isCommunityCategory ? (
-                  <>
-                    <button
-                      disabled={!isAuthed}
-                      title={!isAuthed ? t.locked : ""}
-                      className={cx(
-                        "w-full px-5 py-3 rounded-full font-semibold transition",
-                        !isAuthed
-                          ? "bg-[#F5F5F5] text-[#111111] border border-black/10 cursor-not-allowed"
-                          : "bg-[#111111] text-[#F5F5F5] hover:opacity-95",
-                      )}
-                    >
-                      {t.markSold}
-                    </button>
-
-                    <button
-                      disabled={!isAuthed}
-                      title={!isAuthed ? t.locked : ""}
-                      className={cx(
-                        "w-full px-5 py-3 rounded-full font-semibold transition border",
-                        !isAuthed
-                          ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
-                          : "bg-[#D9D9D9]/30 text-[#111111] border-black/10 hover:bg-[#D9D9D9]/45",
-                      )}
-                    >
-                      {t.edit}
-                    </button>
-
-                    <button
-                      disabled={!isAuthed}
-                      title={!isAuthed ? t.locked : ""}
-                      className={cx(
-                        "w-full px-5 py-3 rounded-full font-semibold transition border",
-                        !isAuthed
-                          ? "bg-[#F5F5F5] text-[#111111] border-black/10 cursor-not-allowed"
-                          : "bg-red-500/15 text-red-200 border-red-400/25 hover:bg-red-500/20",
-                      )}
-                    >
-                      {t.delete}
-                    </button>
-                  </>
-                ) : isCommunityOwner ? (
+                {isRealListingOwner ? (
                   <Link
                     href={`/dashboard/mis-anuncios?lang=${lang}`}
                     className="flex w-full items-center justify-center rounded-full border border-[#A98C2A]/55 bg-[#FFFCF7] px-5 py-3 text-center text-sm font-semibold text-[#2A2626] transition hover:bg-[#F4EBD8]"
@@ -2320,14 +2274,6 @@ function AnuncioDetallePageContent() {
                     {lang === "es" ? "Gestionar anuncio" : "Manage listing"}
                   </Link>
                 ) : null}
-
-                {!isCommunityCategory && !isAuthed && (
-                  <div className="text-xs text-[#111111] pt-2">
-                    {lang === "es"
-                      ? "Nota: en v2 estas acciones se habilitan cuando conectemos autenticación real."
-                      : "Note: in v2 these actions will enable when we wire real authentication."}
-                  </div>
-                )}
               </div>
             </div>
 

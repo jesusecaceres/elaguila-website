@@ -35,6 +35,7 @@ const CATEGORY_DEFAULT_RETURN_PATHS: Record<string, string> = {
   restaurantes: "/clasificados/restaurantes",
   servicios: "/clasificados/servicios",
   "bienes-raices": "/clasificados/bienes-raices",
+  "ofertas-locales": "/dashboard/ofertas-locales",
 };
 
 export function resolveRevenueCategoryDefaultReturnPath(

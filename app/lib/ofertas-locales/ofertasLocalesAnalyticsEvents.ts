@@ -1,51 +1,30 @@
 /**
- * Ofertas Locales — planned analytics event names only (Gate 1).
- * No tracking implementation, API calls, or storage in this gate.
+ * Ofertas Locales — canonical events recorded through POST /api/analytics/events.
+ * Storage remains the shared `listing_analytics` table; this module is a typed event catalog only.
  */
 
-export const OFERTAS_LOCALES_ANALYTICS_VERSION_1_EVENTS = [
-  "offer_view",
-  "result_card_click",
-  "flyer_open",
-  "pdf_click",
-  "coupon_click",
+export const OFERTAS_LOCALES_CANONICAL_ANALYTICS_EVENTS = [
+  "listing_impression",
+  "listing_open",
+  "flyer_page_view",
+  "product_impression",
+  "product_open",
+  "product_search",
+  "product_search_result_click",
+  "shopping_list_add",
+  "shopping_list_remove",
+  "listing_share",
+  "website_click",
   "phone_click",
+  "message_click",
   "whatsapp_click",
   "email_click",
-  "website_click",
   "directions_click",
-  "share_click",
-  "save_click",
-  "like_click",
-  "qr_source_click",
-  "newsletter_source_click",
-  "membership_signup_click",
-  "digital_coupon_activation_click",
-  "magazine_pickup_info_click",
+  "coupon_open",
 ] as const;
-
-export const OFERTAS_LOCALES_ANALYTICS_VERSION_2_EVENTS = [
-  "item_search",
-  "item_result_click",
-  "item_to_flyer_open",
-  "filter_apply",
-  "scan_started",
-  "scan_completed",
-  "scan_failed",
-  "scan_review_edited",
-  "scan_review_approved",
-  "approved_item_published",
-] as const;
-
-export type OfertaLocalAnalyticsV1Event =
-  (typeof OFERTAS_LOCALES_ANALYTICS_VERSION_1_EVENTS)[number];
-
-export type OfertaLocalAnalyticsV2Event =
-  (typeof OFERTAS_LOCALES_ANALYTICS_VERSION_2_EVENTS)[number];
 
 export type OfertaLocalAnalyticsEvent =
-  | OfertaLocalAnalyticsV1Event
-  | OfertaLocalAnalyticsV2Event;
+  (typeof OFERTAS_LOCALES_CANONICAL_ANALYTICS_EVENTS)[number];
 
 /** Product namespace for future analytics payloads. */
 export const OFERTAS_LOCALES_ANALYTICS_NAMESPACE = "ofertas_locales" as const;

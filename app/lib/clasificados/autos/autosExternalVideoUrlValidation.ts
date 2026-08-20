@@ -1,4 +1,5 @@
-export const AUTOS_MAX_EXTERNAL_VIDEO_URLS = 4;
+// Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+export const AUTOS_MAX_EXTERNAL_VIDEO_URLS = 8;
 
 export function normalizeAutosExternalVideoUrl(raw: string): string | null {
   const t = raw.trim();

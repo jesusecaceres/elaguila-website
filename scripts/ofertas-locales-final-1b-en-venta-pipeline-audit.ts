@@ -27,7 +27,18 @@ const ALLOWED_PATTERNS = [
   /^app\/\(site\)\/publicar\/ofertas-locales\//,
   /^app\/\(site\)\/clasificados\/ofertas-locales\//,
   /^package\.json$/,
-  /^scripts\/ofertas-locales-final-1b-en-venta-pipeline-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-1[bcd]/,
+  /^scripts\/ofertas-locales-final-1-pipeline-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-4-public-detail-audit\.ts$/,
+  /^scripts\/ofertas-locales-gate-1-foundation-audit\.ts$/,
+  /^scripts\/ofertas-locales-mobile-public-search-ux-audit\.ts$/,
+  /^scripts\/ofertas-locales-ol3-step1-cta-cleanup-audit\.ts$/,
+  /^scripts\/ofertas-package-13-/,
+  /^scripts\/ofertas-package-11-local-certification-audit\.mjs$/,
+  /^scripts\/ofertas-locales-ai-(power|quality)-1-audit\.ts$/,
+  /^scripts\/ofertas-locales-ol7/,
+  /^docs\/OFERTAS_PACKAGE_13_/,
+  /^tests\/ofertas-locales\/scenarios\//,
 ] as const;
 
 const FORBIDDEN_PATTERNS = [

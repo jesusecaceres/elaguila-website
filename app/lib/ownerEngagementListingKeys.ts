@@ -71,12 +71,23 @@ export async function collectOwnerListingKeysForAnalytics(sb: SupabaseClient, ow
     if (ad) keys.add(ad);
   }
 
+  const { data: ofertas } = await sb
+    .from("ofertas_locales")
+    .select("id, leonix_ad_id")
+    .eq("owner_id", ownerId);
+  for (const r of ofertas ?? []) {
+    const row = r as { id?: string; leonix_ad_id?: string | null };
+    if (row.id) keys.add(String(row.id));
+    const ad = row.leonix_ad_id?.trim();
+    if (ad) keys.add(ad);
+  }
+
   return [...keys].filter(Boolean);
 }
 
 /** Row counts across tables for dashboard “how many listings” copy (not analytics key cardinality). */
 export async function countOwnerInventoryListings(sb: SupabaseClient, ownerId: string): Promise<number> {
-  const [{ count: nList }, { count: nServ }, { count: nEmp }, { count: nAuto }, { count: nRest }, { count: nVia }, { count: nLocal }] =
+  const [{ count: nList }, { count: nServ }, { count: nEmp }, { count: nAuto }, { count: nRest }, { count: nVia }, { count: nLocal }, { count: nOfertas }] =
     await Promise.all([
       sb.from("listings").select("id", { count: "exact", head: true }).eq("owner_id", ownerId),
       sb.from("servicios_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
@@ -91,8 +102,12 @@ export async function countOwnerInventoryListings(sb: SupabaseClient, ownerId: s
         .from("comida_local_public_listings")
         .select("id", { count: "exact", head: true })
         .eq("owner_user_id", ownerId),
+      sb
+        .from("ofertas_locales")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", ownerId),
     ]);
-  return (nList ?? 0) + (nServ ?? 0) + (nEmp ?? 0) + (nAuto ?? 0) + (nRest ?? 0) + (nVia ?? 0) + (nLocal ?? 0);
+  return (nList ?? 0) + (nServ ?? 0) + (nEmp ?? 0) + (nAuto ?? 0) + (nRest ?? 0) + (nVia ?? 0) + (nLocal ?? 0) + (nOfertas ?? 0);
 }
 
 /**

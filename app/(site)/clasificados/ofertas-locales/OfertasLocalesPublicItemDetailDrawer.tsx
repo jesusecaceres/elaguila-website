@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import type { OfertaLocalPublicSearchItem } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import {
   formatOfertaLocalPublicItemLocation,
@@ -57,14 +58,51 @@ export function OfertasLocalesPublicItemDetailDrawer({
   const dates = formatOfertaLocalPublicItemValidDates(item, lang);
   const tags = item.searchTags.join(", ");
   const showListActions = Boolean(onAdd || onRemove || onOpenList);
+  const [failedImageHref, setFailedImageHref] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const previewHref =
+    item.sourceCropHref && failedImageHref !== item.sourceCropHref
+      ? item.sourceCropHref
+      : item.sourceAssetHref && failedImageHref !== item.sourceAssetHref
+        ? item.sourceAssetHref
+        : null;
+  const smsHref = item.phoneHref ? item.phoneHref.replace(/^tel:/, "sms:") : null;
+
+  const handleShare = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("item", item.id);
+    url.searchParams.set("offer", item.ofertaLocalId);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({ title: item.itemName || item.businessName, url: url.toString() });
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url.toString());
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 2000);
+      }
+    } catch {
+      /* user cancelled share or clipboard blocked */
+    }
+  }, [item.businessName, item.id, item.itemName, item.ofertaLocalId]);
 
   return (
-    <div className={OVERLAY} role="dialog" aria-modal="true" onClick={onClose}>
+    <div
+      className={OVERLAY}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ofertas-public-item-detail-title"
+      onClick={onClose}
+    >
       <div className={DRAWER} onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 z-10 border-b border-[#D4C4A8]/60 bg-[#FAF6F0]/95 px-4 py-3 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-base font-semibold text-[#1E1814]">{c.detailTitle}</p>
+              <p id="ofertas-public-item-detail-title" className="text-base font-semibold text-[#1E1814]">
+                {c.detailTitle}
+              </p>
               <p className="mt-1 text-lg font-bold text-[#7A1E2C]">{item.itemName}</p>
             </div>
             <button type="button" className={BTN_OUTLINE} onClick={onClose}>
@@ -74,6 +112,20 @@ export function OfertasLocalesPublicItemDetailDrawer({
         </div>
 
         <div className="space-y-4 px-4 py-4">
+          {previewHref ? (
+            <div className="overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewHref}
+                alt={item.itemName}
+                className="mx-auto max-h-[min(42vh,320px)] w-full object-contain object-center"
+                loading="lazy"
+                decoding="async"
+                onError={() => setFailedImageHref(previewHref)}
+              />
+            </div>
+          ) : null}
+
           <div className="rounded-xl border border-[#D4C4A8]/60 bg-white px-4 py-3">
             <p className="text-2xl font-bold text-[#7A1E2C]">{price}</p>
             {item.unit?.trim() ? <p className="text-sm text-[#1E1814]/70">{item.unit}</p> : null}
@@ -110,48 +162,60 @@ export function OfertasLocalesPublicItemDetailDrawer({
           <div className="grid gap-3 sm:grid-cols-2">
             <DetailRow label={c.pageTitle} value={item.businessName} />
             <DetailRow label={c.cityLabel} value={location} />
-            {item.address ? <DetailRow label="Address" value={item.address} /> : null}
+            {item.address ? <DetailRow label={c.addressLabel} value={item.address} /> : null}
             <DetailRow label={c.validDates} value={dates} />
             {item.category ? <DetailRow label={c.categoryLabel} value={item.category} /> : null}
-            {item.subcategory ? <DetailRow label="Subcategory" value={item.subcategory} /> : null}
-            {tags ? <DetailRow label="Tags" value={tags} /> : null}
+            {item.subcategory ? <DetailRow label={c.subcategoryLabel} value={item.subcategory} /> : null}
+            {tags ? <DetailRow label={c.tagsLabel} value={tags} /> : null}
             {item.sourcePage != null && item.sourcePage > 0 ? (
               <DetailRow label={c.sourcePage} value={String(item.sourcePage)} />
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {item.phoneHref ? (
-              <a href={item.phoneHref} className={BTN}>
-                {c.call}
-              </a>
-            ) : null}
-            {item.websiteHref ? (
-              <a href={item.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
-                {c.website}
-              </a>
-            ) : null}
-            {item.directionsHref ? (
-              <a
-                href={item.directionsHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={BTN_OUTLINE}
-              >
-                {c.directions}
-              </a>
-            ) : null}
-            {item.whatsappHref ? (
-              <a
-                href={item.whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={BTN_OUTLINE}
-              >
-                WhatsApp
-              </a>
-            ) : null}
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-white px-3 py-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2A4536]">{c.businessHubTitle}</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={BTN_OUTLINE} onClick={() => void handleShare()}>
+                {c.shareProduct}
+              </button>
+              {item.phoneHref ? (
+                <a href={item.phoneHref} className={BTN}>
+                  {c.call}
+                </a>
+              ) : null}
+              {smsHref ? (
+                <a href={smsHref} className={BTN_OUTLINE}>
+                  {c.sms}
+                </a>
+              ) : null}
+              {item.websiteHref ? (
+                <a href={item.websiteHref} target="_blank" rel="noopener noreferrer" className={BTN_OUTLINE}>
+                  {c.website}
+                </a>
+              ) : null}
+              {item.directionsHref ? (
+                <a
+                  href={item.directionsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_OUTLINE}
+                >
+                  {c.directions}
+                </a>
+              ) : null}
+              {item.whatsappHref ? (
+                <a
+                  href={item.whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_OUTLINE}
+                >
+                  WhatsApp
+                </a>
+              ) : null}
+            </div>
           </div>
+          {shareCopied ? <p className="text-xs font-medium text-[#2A4536]">{c.linkCopied}</p> : null}
 
           {item.requiresMembership || item.membershipUrl || item.membershipNote ? (
             <div className="rounded-xl border border-[#7A1E2C]/20 bg-[#7A1E2C]/5 px-4 py-3 text-sm">
@@ -208,6 +272,7 @@ export function OfertasLocalesPublicItemDetailDrawer({
             ) : (
               <p className="mt-2 text-sm text-[#1E1814]/70">{c.sourceUnavailable}</p>
             )}
+            <p className="mt-3 text-xs leading-relaxed text-[#1E1814]/60">{c.exactSourceHelper}</p>
             <p className="mt-3 text-xs text-[#1E1814]/55">{item.boundingBoxNote}</p>
           </div>
 

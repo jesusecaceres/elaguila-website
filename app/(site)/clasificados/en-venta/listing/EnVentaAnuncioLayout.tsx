@@ -45,6 +45,7 @@ import { EnVentaSellerPublicStats } from "./EnVentaSellerPublicStats";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
+import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
 import { BrLiveDetailAnalyticsMount } from "@/app/clasificados/bienes-raices/listing/BrLiveDetailAnalyticsMount";
@@ -600,6 +601,16 @@ export function EnVentaAnuncioLayout({
     city: listing.city,
   });
 
+  // Globalization Build 04, Gate 16 — mirrors the visible BR breadcrumb nav below (only rendered
+  // when premiumBr is true); no step this page doesn't already show.
+  const breadcrumb = premiumBr
+    ? breadcrumbJsonLd([
+        { name: lang === "es" ? "Clasificados" : "Classifieds", path: appendLangToPath("/clasificados", lang) },
+        { name: lang === "es" ? "Bienes Raíces" : "Real estate", path: appendLangToPath(BR_CATEGORY_HOME, lang) },
+        { name: listing.title[lang], path: `/clasificados/anuncio/${listing.id}` },
+      ])
+    : null;
+
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
   const contactPrefs = enVentaLiveContactPrefs(contactChannel);
   const phoneTel = resolvedContact.phoneForTel ? normalizePhoneForTel(String(resolvedContact.phoneForTel)) : "";
@@ -763,6 +774,9 @@ export function EnVentaAnuncioLayout({
       {premiumBr ? <BrLiveDetailAnalyticsMount {...brAnalyticsCtx} /> : null}
       <Navbar />
       <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {breadcrumb ? (
+        <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      ) : null}
 
       <section
         className={

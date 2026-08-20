@@ -30,7 +30,7 @@ function run() {
   assert.match(normalizer, /collectContextLinesForPrice/, "price block grouping");
   assert.match(normalizer, /rejectReasonForCandidate/, "post filters");
   assert.match(normalizer, /candidateDedupeKey/, "dedupe");
-  assert.match(scanHandler, /scan normalization summary/, "scan debug logs");
+  assert.match(scanHandler, /scan (normalization|extraction) summary/, "scan debug logs");
 
   assert.equal(debugIsJunkOfertaLocalAiLine("CARDENAS"), true);
   assert.equal(debugIsJunkOfertaLocalAiLine("MARKETS"), true);

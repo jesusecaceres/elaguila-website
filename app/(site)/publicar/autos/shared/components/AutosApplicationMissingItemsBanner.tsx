@@ -53,7 +53,7 @@ export function AutosApplicationMissingItemsBanner({
       <p className="font-semibold text-[color:var(--lx-text)]">{h.previewCompletenessIntro}</p>
       <ul className="mt-2 list-none space-y-2">
         {issues.map((issue) => {
-          const stepIndex = mapAutosPreviewIssueToStep(issue);
+          const stepIndex = mapAutosPreviewIssueToStep(issue, lane);
           const stepNum = stepIndex + 1;
           return (
             <li key={issue} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-0.5">

@@ -53,6 +53,7 @@ export type SharedConnectionHubContactActions = {
   emailMailto?: string;
   emailDisplay?: string;
   websiteHref?: string;
+  bookingHref?: string;
 };
 
 export type SharedConnectionHubLocation = {
@@ -60,15 +61,46 @@ export type SharedConnectionHubLocation = {
   mapsHref?: string;
   mapEmbedSrc?: string;
   mapImageUrl?: string;
+  /** True when `addressDisplay` is a coarse (city/state/zip) line rather than a street-level
+   * address — set by the category adapter's own privacy decision, never derived here. Drives an
+   * "General area"/"Zona aproximada" label instead of implying an exact pin. */
+  isApproximate?: boolean;
 };
+
+export type SharedConnectionHubHoursRow = {
+  dayLabel: string;
+  line: string;
+  isToday?: boolean;
+};
+
+export type SharedConnectionHubHours = {
+  openNowLabel?: string;
+  todayHoursLine?: string;
+  weeklyRows?: SharedConnectionHubHoursRow[];
+  specialNote?: string;
+};
+
+export type SharedConnectionHubTrustCue = {
+  kind: "featured" | "verified";
+  label: string;
+};
+
+/** Which Business Hub product mode this view model was built for. The renderer trusts this flag
+ * rather than re-deriving it from field presence — Listing Contact Card (Mode B) renderers never
+ * render a social/reviews/moreLinks section, even if an adapter's underlying source data happens
+ * to carry those fields (e.g. a private-seller draft type reused from a business listing type). */
+export type SharedConnectionHubMode = "full_hub" | "listing_card";
 
 export type SharedConnectionHubContactViewModel = {
   lang: "es" | "en";
+  mode: SharedConnectionHubMode;
   contact: SharedConnectionHubContactActions;
   social: SharedConnectionHubSocialLink[];
   reviews: SharedConnectionHubReviewLink[];
   moreLinks: SharedConnectionHubCustomLink[];
   location?: SharedConnectionHubLocation;
+  hours?: SharedConnectionHubHours;
+  trustCues?: SharedConnectionHubTrustCue[];
 };
 
 export function sharedConnectionHubHasVisibleContent(vm: SharedConnectionHubContactViewModel): boolean {

@@ -1,6 +1,7 @@
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   AUTOS_DEFAULT_COUNTRY,
+  AUTOS_DEFAULT_STATE,
   normalizeAutosCountry,
   normalizeAutosPostalCode,
   normalizeAutosStateCode,
@@ -70,7 +71,13 @@ export function buildDealerDisplayAddress(L: Pick<AutoDealerListing, keyof Deale
   return line1 || line2 || legacy;
 }
 
-/** Preview-only Google Maps embed URL from a real address line (no API key). */
+/**
+ * Preview-only Google Maps embed URL from a real address line (no API key).
+ * Global Business Hub OS — surgical adoption: delegates to the shared formula
+ * (`sharedConnectionHubLocationHelpers.ts`) while preserving this function's original signature
+ * exactly (`string` return, empty string for no address, no minimum-length guard) so every
+ * existing caller is unaffected.
+ */
 export function buildAutosDealerMapEmbedUrl(locationLine: string): string {
   const q = locationLine.trim();
   if (!q) return "";
@@ -98,7 +105,9 @@ export function syncDealerAddressFromStructured(L: AutoDealerListing): AutoDeale
   const next: AutoDealerListing = {
     ...L,
     dealerAddressZip: zip,
-    dealerAddressState: normalizeAutosStateCode(L.dealerAddressState) ?? L.dealerAddressState,
+    dealerAddressState:
+      normalizeAutosStateCode(L.dealerAddressState) ??
+      (hasStructuredDealerAddressFields({ ...L, dealerAddressZip: zip }) ? AUTOS_DEFAULT_STATE : L.dealerAddressState),
     dealerAddressCountry: normalizeAutosCountry(L.dealerAddressCountry),
   };
   if (!hasStructuredDealerAddressFields(next)) return next;

@@ -1,0 +1,61 @@
+# Ofertas Package 3 Master Checklist Truth
+
+Status values: `DONE`, `PARTIAL`, `MISSING`, `BLOCKED`, `STALE/OBSOLETE`.
+
+- C1: DONE - customer draft, scan prep, publish, review, owner/admin/public surfaces are mapped in category code.
+- C2: DONE - pending/rejected/expired public privacy is enforced by category public filters.
+- C3: DONE - approved public visibility exists and Package 5 adds persisted canonical Leonix Ad ID foundation.
+- D1: DONE - parent/child status relationship is enforced for public search and admin activation.
+- D2: BLOCKED - Gemini DB compatibility requires the shared provider constraint migration; Package 3 only prepared the handoff.
+- D3: DONE - pending/rejected children remain private.
+- D5: DONE - source crop/bbox/page are preserved and Package 6 adds versioned source asset linkage for replacement safety.
+- E1: DONE - owner sees truthful status and rejection reason when stored.
+- E2: DONE - owner correction/resubmit keeps same parent, and Package 6 adds a source-version replacement registration path that preserves identity/payment/term.
+- F1: DONE - admin review can approve/reject/archive category records.
+- F2: DONE - rejection now requires a reason and keeps children private.
+- F3: PARTIAL - admin evidence is category-local; reviewed_by/reviewed_at storage remains shared/schema-blocked.
+- G1: DONE - Ofertas public parent is approved-only and non-expired.
+- G2: DONE - Ofertas public items are approved, active, same approved parent, and non-expired.
+- G3: DONE - Package 5 adds server-generated `LNX-XXXXXXXX` persistence and uniqueness; migration remains unapplied.
+- H1: DONE - public expiration exclusion uses the canonical `expires_at` public term, with coupon/item validity remaining a separate earlier-ending gate.
+- H2: DONE - Package 4B starts the 30-day public term on first approval/public activation and keeps submission/rejection private.
+- H3: PARTIAL - Package 5 prepares payment/entitlement metadata, but no renewal/republish CTA or policy is exposed.
+- H4: DONE - owner/admin dashboards show activation, expiration, active/expired/incomplete term state, and no fake renewal action.
+- I1: BLOCKED - Gemini provider schema migration handoff is ready but not applied.
+- I2: DONE - runtime provider/schema compatibility risk is documented exactly.
+- I3: BLOCKED - real Gemini QA requires migrated QA database.
+- J1: PARTIAL - Package 5 wires the `$399` Ofertas product into Revenue OS; Stripe Dashboard/env/live testing remain unapplied.
+- J2: PARTIAL - Package 5 wires the `$199` Cupones product into Revenue OS; Stripe Dashboard/env/live testing remain unapplied.
+- J3: DONE - Package 5 separates paid entitlement fulfillment from Package 4B approval/public term start.
+- K1: PARTIAL - checkout route and metadata contract exist for both products; live Stripe configuration remains environment work.
+- K2: DONE - Package 5 extends shared payment fulfillment and entitlement activation for Ofertas/Cupones without duplicate parents.
+- L1: DONE - Package 6 adds verified partner organization and assignment source-of-truth tables plus server-side admin mutation primitives.
+- L2: DONE - Package 6 public badge/priority uses persisted active verified partner assignment truth and preserves explicit sort truth.
+- L3: DONE - Package 6 adds active courtesy term validation as an alternate submission/approval eligibility source without marking courtesy paid.
+- M1: DONE - Package 6 reuses shared `listing_analytics` storage, adds Ofertas identity/event support, and wires public events plus owner metrics.
+- M2: DONE - category event contract is canonicalized through `/api/analytics/events`; dashboards avoid fake counts and show unavailable/zero truth.
+- N1: BLOCKED - environment/schema readiness requires migrated QA database and configured external services.
+- N2: BLOCKED - real flyer QA remains blocked until migrations are applied and Stripe/Gemini staging environment is configured.
+- N3: BLOCKED - real coupon QA remains blocked until migrations are applied and Stripe staging environment is configured.
+- N4: PARTIAL - browser QA was intentionally not run; static audit coverage is present but live browser verification remains.
+- O1: DONE - Package 7 adds owner-scoped source-version scan jobs, page-progress schema, and server-controlled Gemini-compatible scan progress hooks.
+- O2: DONE - Package 7 adds Ofertas-local decimal price normalization with cents storage, original price text, and review correction persistence.
+- O3: DONE - Package 7 defines a normalized 0-1 bbox contract and rejects invalid/zero-area boxes before review/public mapping.
+- O4: DONE - Package 7 hardens submission/admin approval gates for source version, scan failures, unresolved review, approved source items, and public active source activation.
+- O5: DONE - Package 7 completes a truthful cleanup queue contract; physical storage deletion remains deferred and unclaimed.
+- O6: BLOCKED - real Gemini staging scan, migration application, cleanup worker execution, and browser QA remain environment work.
+- P1: DONE - Package 8 adds same-parent renewal attempts with stable Leonix ID, server-side eligibility, duplicate-open-attempt protection, and 14-day active-term eligibility.
+- P2: DONE - Package 8 adds renewal checkout metadata and webhook authorization hooks while preserving the rule that checkout/webhook/submission do not start or extend the public term.
+- P3: DONE - Package 8 adds immutable public-term history and a no-day-loss scheduled activation RPC; repeated activation is idempotency-protected by renewal-attempt uniqueness.
+- P4: DONE - Package 8 adds owner renewal action center and owner renewal routes for create/reuse, source selection, submission, and unpaid/unsubmitted cancellation.
+- P5: DONE - Package 8 adds admin renewal inspection/actions, due scheduled activation execution foundation, stuck-work detection, cleanup claim/lease execution contract, and notification outbox contract.
+- P6: BLOCKED - Package 8 runtime requires unapplied migrations, Stripe staging validation, scheduled activation worker configuration, cleanup storage adapter execution, notification delivery adapter, and focused browser QA.
+- Q1: DONE - Package 9 reconciles the historical checklist against current Package 4A-8 repository truth without treating old blocked/partial statuses as current.
+- Q2: DONE - Package 9 adds a static migration manifest, migration-chain audit, and runtime/schema compatibility map; migration application remains unknown/unapplied by this session.
+- Q3: DONE - Package 9 adds an Ofertas-local environment contract, server-only readiness validator, authorized readiness endpoint, and release-gate evaluator that disclose no secret values.
+- Q4: DONE - Package 9 hardens scheduled activation and cleanup execution routes with admin-or-internal-worker authorization, bounded batch sizes, and dry-run responses that perform no mutations or external calls.
+- Q5: DONE - Package 9 adds staging fixture specifications, disabled-by-default staging harness scripts, and migration/staging/incident runbooks; controlled staging, browser QA, external validation, deployment, commit, and push remain deferred.
+- Q6: DONE - Package 9-R modernizes eight stale historical Ofertas audits so core regressions validate current repository truth instead of historical dirty-file gates; migration application, external validation, staging certification, browser QA, merge, and deployment remain pending.
+- Q7: DONE - Package 10 connects the repository-side advertiser-to-shopper Ofertas/Cupones product journey across product checkpoint, lane persistence, application, upload/scan/review, preview, checkout handoff, public discovery, filters, product/coupon drawers, Offer Hub, Business Hub, flyer shopping list, mobile/tablet, ES/EN, accessibility, and identity parity; migration application, external validation, staging certification, browser QA, merge, and deployment remain pending.
+- Q8: PARTIAL - Package 11/11-R installed dependencies from the committed lockfile, preserved Ofertas-local TypeScript/lint repairs, extracted shared dashboard/Revenue OS diffs to a Globalization handoff, started the local dev server, and preserved localhost browser QA for public/auth-boundary Ofertas and Cupones surfaces across mobile/tablet/desktop; full TypeScript and build remain blocked by Globalization-owned dashboard/Revenue OS typing plus unrelated Autos/Community blockers, repository lint remains blocked by unrelated Autos lint scope, and authenticated/live database, Stripe, Gemini, storage, worker, notification, Preview, Production, staging, merge, deployment, commit, and push certification remain pending.
+- Q9: PARTIAL - Package 12 adds an Ofertas-owned owner/Admin operational status model, owner next-action/blocker presentation, Admin operational filters, approval blocker visibility, confirmed moderation actions, source/scan/commercial/public-term action eligibility, Package 12 audits, and repository documentation; database-backed owner/Admin QA, real upload/scan/review/rejection/resubmission/publication/renewal validation, migration application, staging certification, Preview, Production, merge, commit, push, and deployment remain pending.

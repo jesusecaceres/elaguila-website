@@ -37,6 +37,9 @@ export type RunGeminiMultimodalScanParams = {
   businessZipCode: string;
   validFrom?: string;
   validUntil?: string;
+  onPagesPrepared?: (pages: OfertaLocalPageImage[], totalPageCount: number) => Promise<void> | void;
+  onPageStarted?: (page: OfertaLocalPageImage) => Promise<void> | void;
+  onPageFinished?: (result: { pageNumber: number; ok: boolean; candidatesCount: number; error?: string }) => Promise<void> | void;
 };
 
 export type GeminiMultimodalScanResult = {
@@ -79,6 +82,7 @@ export async function runGeminiMultimodalOfertaLocalScan(
     fileBuffer: params.fileBuffer,
     mimeType: params.mimeType,
   });
+  await params.onPagesPrepared?.(prepared.pages, prepared.totalPageCount);
   logAiStage("METADATA_DISCOVERED", {
     scanJobId: params.scanJobId,
     totalPages: prepared.totalPageCount,
@@ -88,16 +92,24 @@ export async function runGeminiMultimodalOfertaLocalScan(
   const modelUsed = selectGeminiModelForPageCount(prepared.pages.length);
   const concurrency = getOfertaLocalGeminiScanPageConcurrency();
 
-  const pageResults = await mapPool(prepared.pages, concurrency, (page) =>
-    extractOfertasPageWithGemini({
+  const pageResults = await mapPool(prepared.pages, concurrency, async (page) => {
+    await params.onPageStarted?.(page);
+    const result = await extractOfertasPageWithGemini({
       imageBytes: page.imageBytes,
       mimeType: page.mimeType,
       pageNumber: page.pageNumber,
       sourceFileName: params.sourceFileName,
       sourceStoragePath: params.sourceStoragePath,
       modelName: modelUsed,
-    })
-  );
+    });
+    await params.onPageFinished?.({
+      pageNumber: result.pageNumber,
+      ok: result.ok,
+      candidatesCount: result.candidates.length,
+      error: result.error,
+    });
+    return result;
+  });
 
   const pageErrors: string[] = [...prepared.renderWarnings];
   const rejectedReasonCounts: Record<string, number> = {};

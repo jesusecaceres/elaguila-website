@@ -12,6 +12,7 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import { RENTAS_LIFECYCLE_DURATION_DAYS } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
 import { computeFixedDayRenewalExpiresAt } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
 import { paymentRecordIsRenewal } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
+import { triggerRentasSavedSearchMatchBestEffort } from "@/app/lib/saved-search/rentas/rentasSavedSearchMatchOrchestrator";
 
 export const RENTAS_30D_PACKAGE_KEY = "rentas_30d" as const;
 
@@ -187,6 +188,13 @@ export async function activatePaidRentasListingFromRevenueOs(input: {
     });
   }
 
+  // Saved Search 06 — durable, best-effort side effect only, strictly after the real activation
+  // write above has already committed. Fires for both a first-time activation and a renewal —
+  // both are genuine transitions of this listing into public visibility (a renewal moves it out
+  // of an expired/inactive state), so both are real "listing_activated_match" truth, not a
+  // fabricated relisted/price_drop event. Never awaited in a way that can fail this function's own
+  // success: triggerRentasSavedSearchMatchBestEffort never throws.
+  await triggerRentasSavedSearchMatchBestEffort(listingId, renewal ? "rentas_renewal_activation" : "rentas_publish_activation");
   return { ok: true, outcome: renewal ? "renewed" : "activated", listingId };
 }
 

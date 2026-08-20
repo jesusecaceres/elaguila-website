@@ -6,6 +6,7 @@
 import "server-only";
 
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { sanitizeLeoReceiptSourceRefs, sanitizeLeoReceiptText } from "@/app/leo/_lib/leoReceiptSanitization";
 import type {
   LeoConversationEntityRef,
   LeoDurableToolReceipt,
@@ -18,6 +19,7 @@ import type {
 
 export const LEO_RECEIPT_LIST_MAX = 100;
 export const LEO_RECEIPT_SUMMARY_MAX = 2000;
+export { LEO_SOURCE_REFS_MAX, LEO_SOURCE_REF_FIELD_MAX } from "@/app/leo/_lib/leoReceiptSanitization";
 
 type Row = {
   id: string;
@@ -111,9 +113,24 @@ export type LeoCreateDurableReceiptInput = {
   turnId?: string | null;
 };
 
+export type LeoCreateDurableReceiptResult =
+  | { ok: true; receipt: LeoDurableToolReceipt; idempotentReplay: boolean }
+  | { ok: false; error: string };
+
+/**
+ * LEO-15: idempotent by (actor, correlation_id). Callers MUST derive
+ * correlationId deterministically from stable action identity (never from
+ * Date.now()/a per-call nonce) — that is what makes this a true idempotency
+ * key rather than a random label. A retry with the same correlationId
+ * returns the existing receipt (idempotentReplay: true) instead of creating
+ * a second execution record. DB unique constraint
+ * leo_tool_receipts_actor_correlation_unique (migration
+ * 20260819222000_leo15_action_execution_idempotency.sql) is the authoritative
+ * backstop for the race between the pre-check below and the insert.
+ */
 export async function createLeoDurableToolReceipt(
   input: LeoCreateDurableReceiptInput,
-): Promise<{ ok: true; receipt: LeoDurableToolReceipt } | { ok: false; error: string }> {
+): Promise<LeoCreateDurableReceiptResult> {
   const actor = nonEmpty(input.actorAuthUserId);
   const toolId = nonEmpty(input.toolId);
   const actionType = nonEmpty(input.actionType);
@@ -126,6 +143,13 @@ export async function createLeoDurableToolReceipt(
   if (!summary || summary.length > LEO_RECEIPT_SUMMARY_MAX) {
     return { ok: false, error: "payload_summary_invalid" };
   }
+  const summaryCheck = sanitizeLeoReceiptText(summary);
+  if (!summaryCheck.ok) return summaryCheck;
+  const refsCheck = sanitizeLeoReceiptSourceRefs(input.sourceRefs);
+  if (!refsCheck.ok) return refsCheck;
+
+  const existing = await getLeoDurableToolReceiptByCorrelation(correlationId, actor);
+  if (existing) return { ok: true, receipt: existing, idempotentReplay: true };
 
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
@@ -143,7 +167,7 @@ export async function createLeoDurableToolReceipt(
       approval_state: "NONE",
       execution_state: "NONE",
       verification_state: "NONE",
-      source_refs: input.sourceRefs ?? [],
+      source_refs: refsCheck.refs,
       session_id: nonEmpty(input.sessionId ?? null),
       turn_id: nonEmpty(input.turnId ?? null),
       requested_at: now,
@@ -153,8 +177,17 @@ export async function createLeoDurableToolReceipt(
     .select(COLS)
     .single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
-  return { ok: true, receipt: mapRow(data as Row) };
+  if (error || !data) {
+    // 23505 = unique_violation: another concurrent request won the race
+    // against the pre-check above and inserted this (actor, correlationId)
+    // first. Treat as a replay, not a failure.
+    if (error?.code === "23505") {
+      const raced = await getLeoDurableToolReceiptByCorrelation(correlationId, actor);
+      if (raced) return { ok: true, receipt: raced, idempotentReplay: true };
+    }
+    return { ok: false, error: error?.message ?? "insert_failed" };
+  }
+  return { ok: true, receipt: mapRow(data as Row), idempotentReplay: false };
 }
 
 export async function getLeoDurableToolReceiptForActor(
@@ -264,6 +297,13 @@ type TransitionPatch = {
 /**
  * Apply a lifecycle transition. Never clears executed_at / verified_at once set.
  * Never rewrites tool_id, actor, governance, or requested_payload_summary.
+ *
+ * LEO-15: the UPDATE is guarded by `.eq("lifecycle_state", existing.lifecycleState)`
+ * (read-then-CAS). If a concurrent transition already moved the row off the
+ * state this call read, the WHERE clause matches zero rows and this returns
+ * "concurrent_state_conflict" instead of silently overwriting whatever the
+ * other writer did — this is what makes "at most one execution claim" true
+ * under concurrent/duplicate requests, not just under sequential ones.
  */
 export async function transitionLeoDurableToolReceipt(
   id: string,
@@ -272,6 +312,11 @@ export async function transitionLeoDurableToolReceipt(
 ): Promise<{ ok: true; receipt: LeoDurableToolReceipt } | { ok: false; error: string }> {
   const existing = await getLeoDurableToolReceiptForActor(id, actorAuthUserId);
   if (!existing) return { ok: false, error: "not_found" };
+
+  if (patch.safe_error_class) {
+    const errClassCheck = sanitizeLeoReceiptText(patch.safe_error_class);
+    if (!errClassCheck.ok) return errClassCheck;
+  }
 
   const now = new Date().toISOString();
   const update: Record<string, unknown> = {
@@ -317,9 +362,15 @@ export async function transitionLeoDurableToolReceipt(
     .update(update)
     .eq("id", id)
     .eq("actor_auth_user_id", actorAuthUserId.trim())
+    .eq("lifecycle_state", existing.lifecycleState)
     .select(COLS)
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "transition_failed" };
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    // Row existed at the read above but the CAS predicate matched nothing:
+    // another concurrent transition already claimed/moved it.
+    return { ok: false, error: "concurrent_state_conflict" };
+  }
   return { ok: true, receipt: mapRow(data as Row) };
 }

@@ -4,16 +4,16 @@
  */
 
 /**
- * Lock is ON by default on Vercel Production so a missing env var cannot leak the site.
- * Opt out locally/staging: PUBLIC_LAUNCH_LOCK=false
- * Force on anywhere: PUBLIC_LAUNCH_LOCK=true or NEXT_PUBLIC_COMING_SOON_LOCK=true
+ * Public launch lock is OFF by default so certified public routes are reachable.
+ * Emergency re-lock: PUBLIC_LAUNCH_LOCK=true or NEXT_PUBLIC_COMING_SOON_LOCK=true
+ * Explicit off: PUBLIC_LAUNCH_LOCK=false or NEXT_PUBLIC_COMING_SOON_LOCK=false
  */
 export function isPublicLaunchLockEnabled(): boolean {
   if (process.env.PUBLIC_LAUNCH_LOCK === "false") return false;
   if (process.env.NEXT_PUBLIC_COMING_SOON_LOCK === "false") return false;
   if (process.env.PUBLIC_LAUNCH_LOCK === "true") return true;
   if (process.env.NEXT_PUBLIC_COMING_SOON_LOCK === "true") return true;
-  return process.env.VERCEL_ENV === "production";
+  return false;
 }
 
 const ALLOWED_PUBLIC_PREFIXES = [

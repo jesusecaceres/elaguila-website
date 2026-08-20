@@ -454,7 +454,7 @@ const es: ClasificadosServiciosCopy = {
     moveFeaturedLeft: "Mover antes",
     moveFeaturedRight: "Mover después",
     videosHint:
-      "Puedes agregar hasta 4 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado.",
+      "Puedes agregar hasta 8 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado.",
     videosHelper:
       "Recomendado: usa enlaces externos de YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible para evitar cargas pesadas.",
     videoUrlLabel: "Enlace de video",
@@ -764,7 +764,7 @@ const en: ClasificadosServiciosCopy = {
     moveFeaturedLeft: "Move earlier",
     moveFeaturedRight: "Move later",
     videosHint:
-      "You can add up to 4 video links. Videos will appear in preview and on the published listing.",
+      "You can add up to 8 video links. Videos will appear in preview and on the published listing.",
     videosHelper:
       "Recommended: use external links from YouTube, TikTok, Instagram, Vimeo, or another compatible platform to avoid heavy uploads.",
     videoUrlLabel: "Video link",

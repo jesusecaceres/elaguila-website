@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { OfertaLocalPublicSearchItem } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import {
   formatOfertaLocalPublicItemLocation,
@@ -40,9 +41,16 @@ export function OfertasLocalesPublicItemCard({
   onOpenList,
 }: Props) {
   const c = ofertasLocalesPublicSearchCopy(lang);
+  const [failedImageHref, setFailedImageHref] = useState<string | null>(null);
   const price = formatOfertaLocalPublicItemPriceDisplay(item);
   const location = formatOfertaLocalPublicItemLocation(item);
   const dates = formatOfertaLocalPublicItemValidDates(item, lang);
+  const previewHref =
+    item.sourceCropHref && failedImageHref !== item.sourceCropHref
+      ? item.sourceCropHref
+      : item.sourceAssetHref && failedImageHref !== item.sourceAssetHref
+        ? item.sourceAssetHref
+        : null;
   const tag =
     item.category?.trim() ||
     item.searchTags.slice(0, 2).join(", ") ||
@@ -53,14 +61,15 @@ export function OfertasLocalesPublicItemCard({
     <article className={CARD} data-testid="ofertas-public-item-card">
       <button type="button" className="block w-full text-left" onClick={() => onSelect(item)}>
         <div className={IMAGE_FRAME} data-testid="ofertas-item-card-preview">
-          {item.sourceAssetHref ? (
+          {previewHref ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={item.sourceAssetHref}
+              src={previewHref}
               alt={item.itemName}
               className="h-full w-full object-contain object-center"
               loading="lazy"
               decoding="async"
+              onError={() => setFailedImageHref(previewHref)}
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#D4C4A8]/80 bg-[#FAF6F0]/80 px-4 text-center">

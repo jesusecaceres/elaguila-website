@@ -47,6 +47,7 @@ const AI_SCAN_READY_MIMES = new Set([
   "image/jpeg",
   "image/jpg",
   "image/png",
+  "image/webp",
 ]);
 
 function eligibleAssetFromDraft(
@@ -110,8 +111,8 @@ export function getOfertaLocalAiScanReadiness(
   if (eligibleAssets.length === 0) {
     missing.push(
       lang === "en"
-        ? "Upload a PDF, JPG, or PNG to activate AI scanning."
-        : "Sube un PDF, JPG o PNG para activar el escaneo AI."
+        ? "Upload a PDF, JPG, PNG, or WebP to activate AI scanning."
+        : "Sube un PDF, JPG, PNG o WebP para activar el escaneo AI."
     );
   }
 
@@ -144,8 +145,8 @@ export function getOfertaLocalAiScanReadiness(
       ? "Scanning may take a few moments. Afterward, you can review and edit suggestions before publishing."
       : "El escaneo puede tardar unos momentos. Después podrás revisar y editar las sugerencias antes de publicarlas.",
     lang === "en"
-      ? "Only uploaded PDF, JPG, or PNG files are AI scan-ready. External links are reference-only."
-      : "Solo archivos subidos PDF, JPG o PNG están listos para escaneo AI. Los enlaces externos son solo referencia.",
+      ? "Only uploaded PDF, JPG, PNG, or WebP files are AI scan-ready. External links are reference-only."
+      : "Solo archivos subidos PDF, JPG, PNG o WebP están listos para escaneo AI. Los enlaces externos son solo referencia.",
     ...(eligibleAssets.length > 1
       ? [
           lang === "en"

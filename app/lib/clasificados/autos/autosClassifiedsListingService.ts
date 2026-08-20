@@ -31,6 +31,7 @@ import { resolveDealerInventoryGroupIdForParent } from "./autosDealerInventoryAd
 import { filterAutosRowsByActiveParent, isAutosChildParentGateSatisfied } from "./autosPublicChildParentVisibility";
 import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
+import { triggerAutosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/autos/autosSavedSearchMatchOrchestrator";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -671,6 +672,10 @@ export async function tryActivateAutosListingAfterPayment(
         .update({ stripe_checkout_session_id: null, ...(pi ? { stripe_payment_intent_id: pi } : {}) })
         .eq("id", listingId);
       await ensureNegociosInventoryGroupingOnActivate(listingId);
+      // Saved Search 04 — durable, best-effort side effect only. Never awaited in a way that can
+      // fail this function's own success: triggerAutosSavedSearchMatchBestEffort never throws,
+      // and this call happens strictly after the real activation has already committed.
+      await triggerAutosSavedSearchMatchBestEffort(listingId, "autos_publish_activation");
     }
     return { ok: true, transitioned: result.activated === true };
   }
@@ -697,7 +702,11 @@ export async function tryActivateAutosListingAfterPayment(
     console.error("tryActivateAutosListingAfterPayment", error);
     return { ok: false, transitioned: false };
   }
-  if (data) return { ok: true, transitioned: true };
+  if (data) {
+    // Saved Search 04 — see the negocios branch above for the failure-boundary rationale.
+    await triggerAutosSavedSearchMatchBestEffort(listingId, "autos_publish_activation");
+    return { ok: true, transitioned: true };
+  }
   const again = await getAutosClassifiedsListingById(listingId);
   if (again?.status === "active") return { ok: true, transitioned: false };
   return { ok: false, transitioned: false };

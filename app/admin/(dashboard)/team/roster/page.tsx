@@ -41,6 +41,7 @@ const PERM_SHORT: Record<AdminPermissionKey, string> = {
   can_manage_categories: "Categories",
   can_manage_magazine: "Magazine",
   can_manage_website_content: "Site content",
+  can_manage_prayer_wall: "Prayer wall",
   can_view_payments: "Payments (view)",
   can_manage_team: "Team",
   can_view_activity_logs: "Activity",

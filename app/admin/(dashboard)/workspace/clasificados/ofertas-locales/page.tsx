@@ -47,7 +47,21 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
   const basePath = "/admin/workspace/clasificados/ofertas-locales";
   const queueHref = appendPreservedSearchParams(basePath, sp, null);
   const liveHref = appendPreservedSearchParams(basePath, sp, "live");
-  const hasFilters = !!(firstParam(sp.q) || firstParam(sp.id) || firstParam(sp.owner_id));
+  const statusGroup = firstParam(sp.status_group) ?? "";
+  const lane = firstParam(sp.lane) ?? "";
+  const commercial = firstParam(sp.commercial) ?? "";
+  const scanReview = firstParam(sp.scan_review) ?? "";
+  const term = firstParam(sp.term) ?? "";
+  const hasFilters = !!(
+    firstParam(sp.q) ||
+    firstParam(sp.id) ||
+    firstParam(sp.owner_id) ||
+    statusGroup ||
+    lane ||
+    commercial ||
+    scanReview ||
+    term
+  );
   const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
   const inspectId = firstParam(sp.id) ?? null;
 
@@ -61,7 +75,21 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
       })
     : [];
 
-  const items = mapOfertasLocalesAdminRowsToListVms(rowsRaw);
+  const itemsUnfiltered = mapOfertasLocalesAdminRowsToListVms(rowsRaw);
+  const items = itemsUnfiltered.filter((item) => {
+    if (statusGroup && item.operationalStatus.adminKey !== statusGroup) return false;
+    if (lane === "flyer" && item.offerType !== "weekly_flyer") return false;
+    if (lane === "coupon" && item.offerType === "weekly_flyer") return false;
+    if (commercial === "ready" && !item.operationalStatus.adminApprovalAllowed && item.operationalStatus.adminKey === "commercially_ineligible") return false;
+    if (commercial === "blocked" && item.operationalStatus.adminKey !== "commercially_ineligible") return false;
+    if (scanReview === "blocked" && !["scan_unresolved", "review_unresolved", "operational_recovery"].includes(item.operationalStatus.adminKey)) return false;
+    if (scanReview === "ready" && ["scan_unresolved", "review_unresolved", "operational_recovery"].includes(item.operationalStatus.adminKey)) return false;
+    if (term === "active" && item.publicTermStatus !== "active") return false;
+    if (term === "expired" && item.publicTermStatus !== "expired") return false;
+    if (term === "expiring" && item.operationalStatus.adminKey !== "expiring") return false;
+    if (term === "renewal" && !["renewal_review", "renewal_scheduled"].includes(item.operationalStatus.adminKey)) return false;
+    return true;
+  });
   const inspectRow = inspectId ? rowsRaw.find((r) => r.id === inspectId) ?? null : null;
   const inspectItem = inspectRow ? mapOfertaLocalAdminRowToDetailVm(inspectRow) : null;
 
@@ -128,6 +156,60 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
                 className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
                 autoComplete="off"
               />
+            </label>
+            <label className="flex min-w-[10rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">status group</span>
+              <select name="status_group" defaultValue={statusGroup} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
+                <option value="">Todos</option>
+                <option value="approval_ready">Approval ready</option>
+                <option value="approval_blocked">Approval blocked</option>
+                <option value="commercially_ineligible">Commercial blocked</option>
+                <option value="source_missing">Source missing</option>
+                <option value="scan_unresolved">Scan unresolved</option>
+                <option value="review_unresolved">Review unresolved</option>
+                <option value="changes_requested">Changes requested</option>
+                <option value="resubmitted">Resubmitted</option>
+                <option value="active">Active</option>
+                <option value="expiring">Expiring</option>
+                <option value="expired">Expired</option>
+                <option value="renewal_review">Renewal review</option>
+                <option value="renewal_scheduled">Renewal scheduled</option>
+                <option value="operational_recovery">Operational recovery</option>
+              </select>
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">lane</span>
+              <select name="lane" defaultValue={lane} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
+                <option value="">Todos</option>
+                <option value="flyer">Flyer</option>
+                <option value="coupon">Coupon</option>
+              </select>
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">commercial</span>
+              <select name="commercial" defaultValue={commercial} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
+                <option value="">Todos</option>
+                <option value="ready">Ready</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">scan/review</span>
+              <select name="scan_review" defaultValue={scanReview} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
+                <option value="">Todos</option>
+                <option value="ready">Ready</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </label>
+            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">term</span>
+              <select name="term" defaultValue={term} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
+                <option value="">Todos</option>
+                <option value="active">Active</option>
+                <option value="expiring">Expiring</option>
+                <option value="expired">Expired</option>
+                <option value="renewal">Renewal</option>
+              </select>
             </label>
             <button type="submit" className={adminBtnSecondary}>
               {m("listingsCategoryOps.searchSubmit")}

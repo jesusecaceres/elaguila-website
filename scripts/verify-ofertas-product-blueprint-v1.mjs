@@ -18,6 +18,9 @@ const GRID = "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewP
 const SHOPPING = "app/(site)/publicar/ofertas-locales/preview/OfertasFutureShoppingListCard.tsx";
 const ROUTE = "app/(site)/publicar/ofertas-locales/preview/OfertasFutureRoutePlannerCard.tsx";
 const WALLET = "app/(site)/publicar/ofertas-locales/preview/OfertasFutureCouponWalletCard.tsx";
+const PUBLIC_SEARCH = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx";
+const PUBLIC_DRAWER = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx";
+const PUBLIC_SHOPPING_PANEL = "app/(site)/clasificados/ofertas-locales/OfertasLocalesShoppingListPanel.tsx";
 const VERIFIER = "scripts/verify-ofertas-product-blueprint-v1.mjs";
 
 const GATE_ALLOWED = new Set([
@@ -115,9 +118,9 @@ function run() {
   const copy = read(PREVIEW_COPY);
   const hero = read(HERO);
   const grid = read(GRID);
-  const shopping = read(SHOPPING);
-  const route = read(ROUTE);
-  const wallet = read(WALLET);
+  const publicSearch = read(PUBLIC_SEARCH);
+  const publicDrawer = read(PUBLIC_DRAWER);
+  const publicShoppingPanel = read(PUBLIC_SHOPPING_PANEL);
 
   assert.ok(audit.includes("SCOPED LAUNCH POLISH BUILD"), "Audit classification");
   assert.ok(audit.includes("TRUE/FALSE"), "Audit TRUE/FALSE table");
@@ -126,24 +129,24 @@ function run() {
   assert.ok(audit.includes("Mobile/PWA"), "Audit mobile section");
   assert.ok(audit.includes("language globe"), "Audit globe compatibility");
 
-  assert.ok(card.includes("max-w-7xl"), "Wide premium canvas");
+  assert.ok(card.includes("LeonixResponsiveShell") && card.includes('maxWidth="preview"'), "Wide premium preview shell");
   assert.ok(card.includes("PreviewBusinessHub"), "Business Hub section");
   assert.ok(card.includes("SiFacebook") || card.includes("SocialBrandIcon"), "Branded social icons");
-  assert.ok(card.includes("OfertasFutureShoppingListCard"), "Future shopping list wired");
+  assert.ok(publicSearch.includes("OfertasLocalesShoppingListPanel"), "Flyer shopping list is live on public search");
+  assert.ok(publicDrawer.includes("onAdd") && publicDrawer.includes("showListActions"), "Flyer drawer can add real approved items to shopping list");
+  assert.ok(publicShoppingPanel.includes("groupOfertaLocalShoppingListByBusiness") && publicSearch.includes("shoppingList.list"), "Shopping list persists through Ofertas-local hook");
   assert.ok(card.includes("aiNeedsReviewCount > 0"), "Submit gating preserved");
-  assert.ok(!card.includes("max-w-lg"), "No narrow receipt wrapper");
+  assert.ok(card.includes("LeonixResponsiveShell") && !card.includes("rounded-lg border border-[#D4C4A8]/70 bg-white px-8 py-10"), "No narrow receipt wrapper");
 
-  assert.ok(hero.includes("PdfFlyerPanel"), "Premium PDF panel");
+  assert.ok(hero.includes("OfertasLocalesPdfFlyerPreview"), "Premium PDF panel");
   assert.ok(!hero.includes("📄"), "No cartoon emoji PDF anchor");
 
-  assert.ok(grid.includes("sourceCropUrl"), "Crop URL usage");
-  assert.ok(grid.includes("noImageEn") || grid.includes("noImageEs"), "No-image copy keys");
+  assert.ok(grid.includes("resolveOfertaLocalItemCropDisplayUrl"), "Crop URL usage");
+  assert.ok(grid.includes("cropPreparingEn") && grid.includes("cropNotFoundYetEn"), "No-image/crop fallback copy keys");
 
-  for (const file of [shopping, route, wallet]) {
-    assert.ok(file.includes("FUTURE WIRING"), "FUTURE WIRING comment");
-    assert.ok(file.includes("aria-disabled") || file.includes("disabled"), "Disabled future state");
-    assert.ok(file.includes("comingSoon"), "Coming soon label");
-  }
+  assert.ok(card.includes("comingSoonListsRoutes"), "Coupon wallet and smart route remain future-only");
+  assert.ok(!publicDrawer.includes("wallet") && !publicSearch.includes("wallet"), "Coupon wallet is not live");
+  assert.ok(publicSearch.includes("!isCupones && selectedItem") && publicSearch.includes("!isCupones && listOpen"), "Coupon lane keeps shopping list absent");
 
   const requiredCopy = [
     "Ofertas Locales en Leonix",
@@ -152,8 +155,6 @@ function run() {
     "businessHubEn",
     "Próximamente",
     "Coming soon",
-    "Mi lista",
-    "My list",
     "Ruta inteligente",
     "Smart route",
     "Productos del volante",
@@ -165,7 +166,7 @@ function run() {
     assert.ok(copy.includes(snippet), `Missing copy: ${snippet}`);
   }
 
-  const gateSources = [card, hero, grid, shopping, route, wallet].join("\n");
+  const gateSources = [card, hero, grid, publicSearch, publicDrawer, publicShoppingPanel].join("\n");
   for (const fake of FAKE_STRINGS) {
     assert.ok(!gateSources.toLowerCase().includes(fake.toLowerCase()), `Fake string detected: ${fake}`);
   }

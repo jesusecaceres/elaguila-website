@@ -110,7 +110,10 @@ function run() {
   assert.match(previewCopy, /Volver a editar/, "Spanish back-to-edit copy required");
   assert.match(previewCopy, /Back to edit/, "English back-to-edit copy required");
   assert.match(previewCard, /backToEditEn|Back to edit/, "preview card must use English back-to-edit");
-  assert.match(previewCard, /\/publicar\/ofertas-locales\?lang=/, "back-to-edit must route to application");
+  assert.match(previewCard, /\/publicar\/ofertas-locales/, "back-to-edit must route to application");
+  assert.match(previewCard, /step:\s*7/, "back-to-edit must return to Step 7");
+  assert.match(previewCard, /intent:\s*"continue"/, "back-to-edit must continue the same application");
+  assert.match(previewCard, /withClasificadosPublishLang/, "back-to-edit must preserve lang");
   assert.match(previewClient, /useOfertasLocalesDraft/, "preview must read same draft hook");
 
   assert.doesNotMatch(

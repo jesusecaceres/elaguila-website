@@ -574,12 +574,9 @@ function ResultCard({
                 </span>
               ))}
             </div>
-            {row.externalRatingValue != null && row.externalReviewCount != null ? (
-              <p className="text-[11px] text-[color:var(--lx-muted)]">
-                ★ {row.externalRatingValue.toFixed(1)} · {row.externalReviewCount}{" "}
-                {lang === "es" ? "reseñas (ref.)" : "reviews (ref.)"}
-              </p>
-            ) : null}
+            {/* Global Business Hub OS — REVIEWS MASTER RULE (Level A, link-only): removed. Even
+                with a "(ref.)" disclaimer, a star + owner-typed number reads as a provider rating.
+                No provider API exists; the DB field is untouched. */}
           </div>
         </Link>
         <button

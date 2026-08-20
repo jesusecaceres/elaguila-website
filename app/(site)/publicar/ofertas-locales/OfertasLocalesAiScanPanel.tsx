@@ -8,11 +8,18 @@ import {
   type OfertaLocalScanEligibleAsset,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanReadiness";
 import { submitOfertaLocalAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanSubmit";
+import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
+import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import {
+  formatOfertaLocalPersistedScanProgress,
   formatScanElapsed,
   getOfertaLocalScanPhaseMessage,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
-import type { OfertaLocalDraft } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import type {
+  OfertaLocalDraft,
+  OfertaLocalScanApiResponse,
+  OfertaLocalScanJobSummary,
+} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { ofertasLocalesAppCopy } from "./ofertasLocalesApplicationCopy";
 
@@ -43,6 +50,26 @@ function statusLabel(status: OfertaLocalAiScanReadinessStatus, lang: OfertasLoca
 function assetKindLabel(kind: "flyer" | "coupon", lang: OfertasLocalesAppLang): string {
   if (kind === "flyer") return lang === "en" ? "Main flyer" : "Volante principal";
   return lang === "en" ? "Coupon file" : "Archivo de cupón";
+}
+
+function scanPageProgressMessage(result: OfertaLocalScanApiResponse, lang: OfertasLocalesAppLang): string | null {
+  const totalPages = typeof result.totalPages === "number" && result.totalPages > 0 ? result.totalPages : null;
+  const currentPage = typeof result.currentPage === "number" && result.currentPage > 0 ? result.currentPage : null;
+  const completedPages =
+    typeof result.completedPages === "number" && result.completedPages >= 0 ? result.completedPages : null;
+  const failedPages = typeof result.failedPages === "number" && result.failedPages > 0 ? result.failedPages : null;
+  if (currentPage && totalPages) {
+    return lang === "en" ? `Scanning page ${currentPage} of ${totalPages}` : `Escaneando página ${currentPage} de ${totalPages}`;
+  }
+  if (completedPages != null && totalPages) {
+    return lang === "en"
+      ? `${completedPages} of ${totalPages} pages completed`
+      : `${completedPages} de ${totalPages} páginas completadas`;
+  }
+  if (failedPages) {
+    return lang === "en" ? `${failedPages} page failed` : `${failedPages} página falló`;
+  }
+  return null;
 }
 
 type Props = {
@@ -79,8 +106,12 @@ export function OfertasLocalesAiScanPanel({
   const [scanPhase, setScanPhase] = useState<"idle" | "prep" | "scan">("idle");
   const [scanningAssetId, setScanningAssetId] = useState<string | null>(null);
   const [lastCompletedMessage, setLastCompletedMessage] = useState<string | null>(null);
+  const [lastPageProgressMessage, setLastPageProgressMessage] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [liveJob, setLiveJob] = useState<OfertaLocalScanJobSummary | null>(null);
+  const [liveItemCount, setLiveItemCount] = useState(0);
   const scanStartedAtRef = useRef<number | null>(null);
+  const liveRecordIdRef = useRef<string | null>(ofertaLocalId ?? null);
 
   const readiness = useMemo(
     () =>
@@ -101,7 +132,12 @@ export function OfertasLocalesAiScanPanel({
     setScanStatus("not_ready");
     setScanMessage(null);
     setLastCompletedMessage(null);
+    setLastPageProgressMessage(null);
   }, [readiness.eligibleAssets.length, scanning]);
+
+  useEffect(() => {
+    liveRecordIdRef.current = ofertaLocalId?.trim() || liveRecordIdRef.current;
+  }, [ofertaLocalId]);
 
   useEffect(() => {
     if (!scanning) {
@@ -115,6 +151,29 @@ export function OfertasLocalesAiScanPanel({
       setElapsedSeconds(Math.floor((Date.now() - started) / 1000));
     }, 1000);
     return () => window.clearInterval(id);
+  }, [scanning]);
+
+  useEffect(() => {
+    if (!scanning) return;
+    let cancelled = false;
+    const poll = async () => {
+      const recordId = liveRecordIdRef.current;
+      if (!recordId) return;
+      const result = await fetchOfertaLocalReviewItems(recordId);
+      if (cancelled || !result.ok) return;
+      const jobs = result.scanJobs ?? [];
+      const latest = jobs[0] ?? null;
+      setLiveJob(latest);
+      setLiveItemCount(result.items?.length ?? latest?.itemsExtractedCount ?? 0);
+    };
+    void poll();
+    const id = window.setInterval(() => {
+      void poll();
+    }, 3500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, [scanning]);
 
   const phaseCopy = useMemo(() => {
@@ -154,6 +213,7 @@ export function OfertasLocalesAiScanPanel({
       setScanPhase("prep");
       setScanMessage(null);
       setLastCompletedMessage(null);
+      setLastPageProgressMessage(null);
       setServerConfigurationMissing(false);
       setScanStatus("processing");
       scanStartedAtRef.current = Date.now();
@@ -176,6 +236,7 @@ export function OfertasLocalesAiScanPanel({
           return;
         }
         recordId = persist.id;
+        liveRecordIdRef.current = recordId;
         onOfertaLocalIdChange?.(recordId);
       } else {
         setScanMessage(prepLabel);
@@ -219,6 +280,7 @@ export function OfertasLocalesAiScanPanel({
 
       if (!result.ok) {
         setScanStatus("failed");
+        setLastPageProgressMessage(scanPageProgressMessage(result, lang));
         setScanMessage(result.message ?? result.detail ?? c.aiScanFailed);
         onScanFinished?.({ ok: false, scanJobId: result.scanJobId });
         return;
@@ -227,6 +289,7 @@ export function OfertasLocalesAiScanPanel({
       const completedMsg = c.aiScanCompleted;
       setScanStatus("needs_review");
       setLastCompletedMessage(completedMsg);
+      setLastPageProgressMessage(scanPageProgressMessage(result, lang));
       setScanMessage(result.message ?? completedMsg);
       if (result.scanJobId) {
         onScanComplete?.(result.scanJobId);
@@ -249,7 +312,7 @@ export function OfertasLocalesAiScanPanel({
     ]
   );
 
-  if (!draft.wantsAiSearchableSpecials) return null;
+  if (!isOfertaLocalAiIncludedInPackage(draft)) return null;
 
   if (showCompletedSummary) {
     return (
@@ -297,12 +360,34 @@ export function OfertasLocalesAiScanPanel({
           <p className="font-semibold text-[#7A1E2C]">
             {scanningAssetLabel
               ? `${lang === "en" ? "Scanning" : "Escaneando"} ${scanningAssetLabel}`
-              : phaseCopy.message}
+              : c.aiScanProcessing}
           </p>
-          {scanningAssetLabel ? <p className="mt-1 text-[#1E1814]/65">{phaseCopy.message}</p> : null}
+          {liveJob ? (
+            <p className="mt-1 text-[#1E1814]/75">{formatOfertaLocalPersistedScanProgress(liveJob, lang)}</p>
+          ) : null}
+          {liveJob?.currentPage && liveJob.totalPages ? (
+            <p className="mt-1 text-[#1E1814]/75">
+              {formatOfertaLocalCopyTemplate(c.aiScanPageOf, {
+                current: liveJob.currentPage,
+                total: liveJob.totalPages,
+              })}
+            </p>
+          ) : null}
+          {liveItemCount > 0 ? (
+            <p className="mt-1 text-[#1E1814]/75">
+              {formatOfertaLocalCopyTemplate(c.aiScanProductsFoundSoFar, { count: liveItemCount })}
+            </p>
+          ) : null}
           <p className="mt-1 text-[#1E1814]/55">
             {c.aiScanElapsed}: {formatScanElapsed(elapsedSeconds, lang)}
           </p>
+          {phaseCopy.longWait ? (
+            <p className="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-xs text-amber-950">
+              {c.aiScanSlowWait}
+            </p>
+          ) : (
+            <p className="mt-1 text-[#1E1814]/65">{phaseCopy.message}</p>
+          )}
         </div>
       ) : null}
 
@@ -362,6 +447,12 @@ export function OfertasLocalesAiScanPanel({
       {scanMessage && !scanning ? (
         <p className="rounded-lg border border-[#D4C4A8]/60 bg-white px-3 py-2 text-xs text-[#1E1814]/75">
           {scanMessage}
+        </p>
+      ) : null}
+
+      {lastPageProgressMessage && !scanning ? (
+        <p className="rounded-lg border border-[#7A1E2C]/20 bg-white px-3 py-2 text-xs font-medium text-[#7A1E2C]">
+          {lastPageProgressMessage}
         </p>
       ) : null}
 

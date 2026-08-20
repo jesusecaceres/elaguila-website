@@ -9,11 +9,19 @@ import { buildProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import {
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
   applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
 import { dashboardSafeMutationErrorCopy } from "../../../lib/dashboardSafeErrorCopy";
+import {
+  getCategoryLifecycleAdapter,
+  isCompositeDescriptionCategory,
+  rebuildCompositeDescription,
+  splitCompositeDescription,
+  type CategoryLifecycleAdapter,
+} from "./categoryLifecycleAdapters";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +149,18 @@ function EditListingPageContent() {
   const [title, setTitle] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  // Gate 5 (Globalization Build 04) — legacy rows can carry an internal [LEONIX_IMAGES] gallery
+  // marker appended to description (see leonixListingGalleryMarker.ts). The textarea must never
+  // show/edit that raw marker text; this preserves it so save() can reattach it unmodified rather
+  // than risk the owner mangling it into a permanent, confusing remnant in the public description.
+  const [descriptionGalleryTail, setDescriptionGalleryTail] = useState<string>("");
+  // Gate 6 (Globalization Build 04 Final Lifecycle Closure) — Clases/Comunidad store a composite
+  // description (user prose + several auto-generated labeled lines, e.g. "Organizador: ...").
+  // The public canvas only ever displays the first segment (the real user text) — see
+  // categoryLifecycleAdapters.ts. This holds the auto-generated tail so it can be preserved
+  // verbatim on save; the visible `description` textarea shows only the genuine user text.
+  const [compositeDescriptionTail, setCompositeDescriptionTail] = useState<string>("");
+  const [categoryFieldValues, setCategoryFieldValues] = useState<Record<string, string>>({});
 
 
 const [userId, setUserId] = useState<string | null>(null);
@@ -208,8 +228,22 @@ const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
       setListing(row);
       setTitle(String(row.title ?? ""));
       setPrice(row.price === null || row.price === undefined ? "" : String(row.price));
-      setDescription(String((row as any).description ?? ""));
+      const rawDescription = String((row as any).description ?? "");
+      const galleryMarkerMatch = /\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]/i.exec(rawDescription);
+      setDescriptionGalleryTail(galleryMarkerMatch ? galleryMarkerMatch[0] : "");
+      const markerFreeDescription = stripLeonixPublishedDescriptionBody(rawDescription);
+      if (isCompositeDescriptionCategory(row.category)) {
+        const { userText, tail } = splitCompositeDescription(markerFreeDescription);
+        setDescription(userText);
+        setCompositeDescriptionTail(tail);
+      } else {
+        setDescription(markerFreeDescription);
+        setCompositeDescriptionTail("");
+      }
       setSellerPhotoUrl(readLeonixDetailPairValue((row as any).detail_pairs, SELLER_PHOTO_DETAIL_LABEL) ?? "");
+
+      const adapter = getCategoryLifecycleAdapter(row.category);
+      setCategoryFieldValues(adapter ? adapter.hydrate(row as Record<string, unknown>) : {});
 
       setLoading(false);
     }
@@ -227,6 +261,11 @@ const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
   const isBrPrivadoListing =
     String(listing?.category ?? "").toLowerCase() === "bienes-raices" &&
     String(listing?.seller_type ?? "").toLowerCase() === "personal";
+  const categoryAdapter: CategoryLifecycleAdapter | null = getCategoryLifecycleAdapter(listing?.category);
+
+  function setCategoryField(key: string, value: string) {
+    setCategoryFieldValues((prev) => ({ ...prev, [key]: value }));
+  }
 
 
 async function uploadImages() {
@@ -505,9 +544,43 @@ async function removeSellerPhoto() {
       price: price.trim() === "" ? null : price.trim(),
     };
 
+    // Gate 5 (Globalization Build 04) — En Venta is the only category on this shared editor where
+    // price/is_free are both real, owner-facing pricing state (Clases/Comunidad/Busco/Mascotas are
+    // free-only categories where this "Price" field is a meaningless dead input, and BR/Autos are
+    // out of this build's scope). Editing price without also updating is_free left every free-price
+    // renderer (which checks is_free first) silently ignoring the new number.
+    if (listing && String(listing.category ?? "").toLowerCase() === "en-venta") {
+      const numericPrice = Number(price.trim());
+      const hasRealPrice = price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > 0;
+      payload.is_free = !hasRealPrice;
+    }
+
     // Only include description if it exists in the row object (avoids guessing schema).
     if (listing && "description" in listing) {
-      payload.description = description.trim() || null;
+      const editedProse = description.trim();
+      // Gate 6 (Globalization Build 04 Final Lifecycle Closure) — Clases/Comunidad rebuild the
+      // full composite blob (edited user text + the untouched auto-generated tail) so the saved
+      // description stays the real "user text + structured summary" shape the publish pipeline
+      // originally wrote, never flattening structured lines into freeform editable prose.
+      const proseWithComposite =
+        listing && isCompositeDescriptionCategory(listing.category)
+          ? rebuildCompositeDescription(editedProse, compositeDescriptionTail)
+          : editedProse;
+      // Gate 5 (Globalization Build 04) — reattach the legacy gallery marker verbatim (it was
+      // stripped for display, never shown/editable in the textarea) so a save can never corrupt
+      // or drop it.
+      const nextDescription = descriptionGalleryTail
+        ? `${proseWithComposite}\n\n${descriptionGalleryTail}`
+        : proseWithComposite;
+      payload.description = nextDescription || null;
+    }
+
+    // Gate 2/8 (Globalization Build 04 Final Lifecycle Closure) — merge in this category's real
+    // owner-editable fields. The adapter's serialize() always returns a full replacement
+    // `detail_pairs` array (built from the current row's real pairs via upsert, not a partial
+    // patch), so assigning it directly here is correct and never silently drops an unrelated pair.
+    if (categoryAdapter && listing) {
+      Object.assign(payload, categoryAdapter.serialize(listing as Record<string, unknown>, categoryFieldValues));
     }
 
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
@@ -666,6 +739,82 @@ async function removeSellerPhoto() {
                       className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
                     />
                   </label>
+                ) : null}
+
+                {categoryAdapter ? (
+                  <div className="mt-2 rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="text-sm font-semibold text-white/90">
+                      {lang === "es" ? "Detalles del anuncio" : "Listing details"}
+                    </div>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      {categoryAdapter.fields.map((field) => {
+                        const value = categoryFieldValues[field.key] ?? "";
+                        const fieldLabel = lang === "es" ? field.labelEs : field.labelEn;
+                        if (field.kind === "select") {
+                          return (
+                            <label key={field.key} className="grid gap-2">
+                              <span className="text-sm text-white/70 break-words">{fieldLabel}</span>
+                              <select
+                                value={value}
+                                onChange={(e) => setCategoryField(field.key, e.target.value)}
+                                disabled={!isEditable || saving}
+                                className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
+                              >
+                                {(field.options ?? []).map((opt) => (
+                                  <option key={opt.value} value={opt.value} className="bg-black">
+                                    {lang === "es" ? opt.labelEs : opt.labelEn}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          );
+                        }
+                        if (field.kind === "textarea") {
+                          return (
+                            <label key={field.key} className="grid gap-2 sm:col-span-2">
+                              <span className="text-sm text-white/70 break-words">{fieldLabel}</span>
+                              <textarea
+                                value={value}
+                                onChange={(e) => setCategoryField(field.key, e.target.value)}
+                                disabled={!isEditable || saving}
+                                rows={3}
+                                className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
+                              />
+                            </label>
+                          );
+                        }
+                        return (
+                          <label key={field.key} className="grid gap-2">
+                            <span className="text-sm text-white/70 break-words">{fieldLabel}</span>
+                            <input
+                              type={field.kind === "tel" ? "tel" : field.kind === "email" ? "email" : "text"}
+                              inputMode={field.kind === "tel" ? "tel" : undefined}
+                              value={value}
+                              onChange={(e) => setCategoryField(field.key, e.target.value)}
+                              disabled={!isEditable || saving}
+                              className="w-full min-w-0 rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {categoryAdapter.frozenFields.length > 0 ? (
+                      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                          {lang === "es" ? "No editable aquí todavía" : "Not editable here yet"}
+                        </div>
+                        <ul className="mt-2 grid gap-2">
+                          {categoryAdapter.frozenFields.map((f) => (
+                            <li key={f.labelEs} className="text-xs text-white/60">
+                              <span className="font-semibold text-white/80">{lang === "es" ? f.labelEs : f.labelEn}:</span>{" "}
+                              {lang === "es" ? f.reasonEs : f.reasonEn}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
 
 <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">

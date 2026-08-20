@@ -24,6 +24,8 @@ import {
   paginateListings,
 } from "./lib/brResultsFilters";
 import { mergeBrResultsHref, parseBrResultsUrl } from "./lib/brResultsUrlState";
+import { SavedSearchButton } from "@/app/clasificados/components/savedSearch/SavedSearchButton";
+import { bienesRaicesFilterStateToSavedSearch } from "@/app/lib/saved-search/bienes-raices/savedSearchBienesRaicesAdapter";
 
 const BR_RESULTS_DEV_LOG = process.env.NODE_ENV === "development";
 
@@ -148,6 +150,8 @@ export function BienesRaicesResultsClient() {
   const showingFrom = mainTotal === 0 ? 0 : (pageNum - 1) * PAGE_SIZE + 1;
   const showingTo = mainTotal === 0 ? 0 : Math.min(pageNum * PAGE_SIZE, mainTotal);
 
+  const savedSearchNormalized = useMemo(() => bienesRaicesFilterStateToSavedSearch(parsed), [parsed]);
+
   const maxPage = Math.max(1, Math.ceil(mainTotal / PAGE_SIZE) || 1);
   const filtersLabel = lang === "es" ? "Filtros" : "Filters";
   const searchLabel = lang === "es" ? "Buscar" : "Search";
@@ -215,6 +219,10 @@ export function BienesRaicesResultsClient() {
           lang={lang}
           showMapToggle={false}
         />
+
+        <div className="flex justify-end">
+          <SavedSearchButton normalized={savedSearchNormalized} lang={lang} />
+        </div>
       </div>
 
       <section className="mt-4" aria-labelledby="br-more-heading">

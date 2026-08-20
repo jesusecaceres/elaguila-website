@@ -95,8 +95,8 @@ const WORKSPACE_CARDS = [
   {
     href: "/admin/workspace/iglesias",
     title: "Iglesias",
-    body: "Landing `/iglesias`: transitional copy in `iglesias_page` until directory with rows in database.",
-    teach: "Editor at /workspace/iglesias/content.",
+    body: "Landing `/iglesias` plus church queue and prayer wall moderation. Public churches: approved + active + published.",
+    teach: "Churches at /workspace/iglesias. Prayer queue at /workspace/iglesias/prayers (can_manage_prayer_wall).",
   },
   {
     href: "/admin/workspace/cupones",

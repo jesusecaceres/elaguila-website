@@ -2,10 +2,12 @@ import type { SupportedLang } from "@/app/lib/language";
 
 export type PublicNavItemLabels = {
   inicio: string;
+  noticias: string;
   revista: string;
   clasificados: string;
   "negocios-locales": string;
   "recursos-comunitarios": string;
+  /** @deprecated HEADER-3 dropdown copy — kept so footer/product strings stay stable */
   "recursos-all": string;
   "comunidad-eventos": string;
   clases: string;
@@ -14,7 +16,7 @@ export type PublicNavItemLabels = {
   viajes: string;
   "productos-promocionales": string;
   "productos-promocionalesShort"?: string;
-  "compact-overflow": string;
+  more: string;
   anunciate: string;
   "about-us": string;
   "contact-us": string;
@@ -44,3 +46,10 @@ export type PublicNavCopyBundle = {
 };
 
 export type PublicNavCopyRegistry = Record<SupportedLang, PublicNavCopyBundle>;
+
+export type PublicNavLabelOpts = {
+  /** Compact inline variant (header only). Does not affect footer / Anúnciate lanes. */
+  short?: boolean;
+  /** Header chrome only. Omit for product/footer/advertise copy. */
+  surface?: "header";
+};

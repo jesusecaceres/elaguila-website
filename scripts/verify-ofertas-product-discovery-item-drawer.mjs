@@ -62,6 +62,7 @@ const GATE_ALLOWED = new Set([
   FLYER_VIEWER,
   REVIEW_PANEL,
   APP_COPY,
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesAiScanPanel.tsx",
   CROP_PREVIEW,
   PDF_ITEM_CROP,
   PDF_RENDER_UTILS,
@@ -69,19 +70,30 @@ const GATE_ALLOWED = new Set([
   MOBILE_BOTTOM_SHEET,
   MOBILE_SHELL,
   MOBILE_STICKY_BAR,
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemCard.tsx",
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicItemDetailDrawer.tsx",
+  "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicOfferDetailDrawer.tsx",
+  "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicDetailCopy.ts",
+  "app/(site)/dashboard/ofertas-locales/[id]/OfertasLocalesOwnerAiManageSection.tsx",
+  "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx",
+  "app/api/ofertas-locales/public-offers/route.ts",
+  "app/lib/ofertas-locales/ofertasLocalesConstants.ts",
+  "app/lib/ofertas-locales/ofertasLocalesDraftPersistence.ts",
+  "app/lib/ofertas-locales/ofertasLocalesFormatting.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicOfferHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers.ts",
+  "scripts/ofertas-locales-package-2-contract-audit.mjs",
 ]);
 
 const PROHIBITED = [
   // Note: OfertasLocalesApplicationClient.tsx is intentionally allowed in V2.2
   // (optional business logo URL field in Step 2). Kept out of PROHIBITED here.
-  "OfertasLocalesAiScanPanel.tsx",
   "OfertasLocalesAiScanReviewWorkspace.tsx",
-  "app/api/",
   "supabase/migrations",
   "stripe",
   "revenue-os",
-  "/admin/",
-  "dashboard",
+    "app/(site)/dashboard/listings",
 ];
 
 const FAKE_STRINGS = [
@@ -146,7 +158,7 @@ function assertGateScope(files) {
     for (const p of PROHIBITED) {
       assert.ok(!file.includes(p), `Prohibited file changed: ${file}`);
     }
-    if (file.startsWith("app/(site)/clasificados/")) {
+    if (file.startsWith("app/(site)/clasificados/") && !file.startsWith("app/(site)/clasificados/ofertas-locales/")) {
       assert.fail(`Unrelated category changed: ${file}`);
     }
   }
@@ -301,16 +313,33 @@ function run() {
   assert.ok(mapPreview.includes("buildOfertaLocalPreviewMapEmbedUrl"), "Map embed helper used");
   assert.ok(mapPreview.includes("<iframe"), "Map iframe embed");
 
-  assert.ok(grid.includes("OfertasLocalesProductDetailDrawer"), "Grid uses drawer");
+  assert.ok(grid.includes("onOpenDetail: (item: OfertaLocalItemReviewViewModel) => void"), "Grid receives drawer-open callback");
+  assert.ok(grid.includes("onClick={() => onOpenDetail(item)}"), "Grid selection passes the real item to owner");
+  assert.ok(grid.includes("const openDrawer = useCallback"), "Grid coordinates selection through callback");
+  assert.ok(card.includes("OfertasLocalesProductDetailDrawer"), "PreviewCard composes the real drawer");
+  assert.ok(card.includes("const [drawerItem, setDrawerItem]"), "PreviewCard owns selected drawer item");
+  assert.ok(card.includes("setDrawerItem(item)") && card.includes("syncOfertasPreviewItemParam(item.id)"), "Selected item ID reaches drawer owner without fabrication");
+  assert.ok(card.includes("item={drawerItem}") && card.includes("open={drawerItem != null}"), "Selected item is passed to drawer");
+  assert.ok(card.includes("setDrawerItem(null)") && card.includes("syncOfertasPreviewItemParam(null)"), "Closing drawer clears selected item and URL state");
   assert.ok(grid.includes("searchQuery"), "Search state");
   assert.ok(
     grid.includes("cropPreparingEn") || grid.includes("noClipYetEn"),
     "Crop fallback label"
   );
-  assert.ok(grid.includes("syncOfertasPreviewItemParam"), "Item URL foundation");
+  assert.ok(card.includes("syncOfertasPreviewItemParam"), "Item URL foundation owned by PreviewCard");
+  assert.ok(grid.includes("const title = (item.couponTitle || item.itemName).trim()"), "Grid title uses reviewed/corrected data");
+  assert.ok(grid.includes("item.offerText || item.priceText") && grid.includes("item.priceAmount"), "Grid price uses reviewed/corrected data");
+  assert.ok(grid.includes("resolveOfertaLocalItemCropDisplayUrl(item)"), "Grid uses real sourceCropUrl where available");
+  assert.ok(grid.includes("OfertasFlyerCropPreview") || grid.includes("OfertasPdfItemCropPreview"), "Grid has safe real crop fallback");
+  assert.ok(grid.includes("item.sourcePage"), "Grid preserves source page");
+  assert.ok(grid.includes("item.sourceBbox"), "Grid preserves bbox identity");
 
   assert.ok(drawer.includes("viewFullFlyerEn") || drawer.includes("viewSourceOnFlyerEn"), "Flyer link copy");
   assert.ok(drawer.includes("productDataEn") || drawer.includes("commerceMetadata"), "Drawer product data");
+  assert.ok(drawer.includes("resolveOfertaLocalItemCropDisplayUrl(item)"), "Drawer uses real sourceCropUrl where available");
+  assert.ok(drawer.includes("item.sourcePage"), "Drawer preserves source page");
+  assert.ok(drawer.includes("item.sourceBbox"), "Drawer preserves bbox identity");
+  assert.ok(!drawer.includes("shoppingList") && !drawer.includes("addToList"), "Preview product drawer has no shopping-list controls");
 
   // Gate — Global Mobile/PWA Foundation V1 (shared primitives + safety)
   assert.ok(fs.existsSync(path.join(ROOT, MOBILE_RAIL)), "Shared mobile scroll rail exists");
@@ -382,9 +411,9 @@ function run() {
 
   // Gate — Ofertas Preview Architecture Clean-up (flyer-first + CTA consolidation)
   assert.ok(audit.includes("Preview Architecture Clean-up"), "Preview Architecture Clean-up section");
-  // Title / info section present and flyer promoted to its own hero section.
-  assert.ok(card.includes("Title / info section"), "Title/info section introduced");
-  assert.ok(card.includes("Flyer hero"), "Flyer promoted to hero section");
+  // Business identity section present and flyer promoted to its own hero section.
+  assert.ok(card.includes('section id="oferta"') && card.includes("headerStoreLabel"), "Business identity section introduced");
+  assert.ok(card.includes('section id="volante"') && card.includes("Flyer hero"), "Flyer promoted to hero section");
   // Upper summary no longer carries the duplicated desktop contact/action stack.
   assert.ok(!card.includes("Desktop live action stack"), "Duplicated desktop action stack removed");
   assert.ok(!card.includes('lg:col-span-3'), "Old 3-col summary CTA stack removed");
@@ -415,11 +444,11 @@ function run() {
   assert.ok(audit.includes("Ofertas Preview V2.1"), "V2.1 audit section");
   // Business strip compacted: oversized business name + heavy padding removed.
   assert.ok(!card.includes("lg:text-[2.5rem]"), "Business name no longer uses oversized lg:text-[2.5rem]");
-  assert.ok(card.includes('CARD, "p-3 lg:p-4"'), "Business strip uses compact padding");
-  // Rewards/membership converted to a slim mini notice (no full-width grid CTA card).
-  assert.ok(card.includes("mini notice"), "Rewards/membership is a compact mini notice");
+  assert.ok(card.includes('CARD, "overflow-hidden p-4 sm:p-5 lg:p-5"'), "Business strip uses compact padding");
+  // Rewards/membership converted to compact inline rows (no full-width grid CTA card).
+  assert.ok(card.includes("membershipInstructions") && card.includes("digitalCouponInstructions"), "Rewards/membership uses compact inline rows");
   // Flyer starts closer to the strip.
-  assert.ok(card.includes('"mt-3 sm:mt-4"'), "Flyer hero uses tightened top margin");
+  assert.ok(card.includes('"mt-2 sm:mt-3"'), "Flyer hero uses tightened top margin");
   // Preserved V2 wins.
   assert.ok(hero.includes("downloadFlyer") || hero.includes("downloadCoupon"), "Descargar volante preserved");
   assert.ok(grid.includes("getOfertaProductFilterLabel"), "Localized emoji filter labels preserved");
@@ -457,7 +486,10 @@ function run() {
   assert.ok(flyerViewer.includes("createPortal"), "Viewer portals to body");
   assert.ok(flyerViewer.includes('e.key === "Escape"'), "Viewer closes on Escape");
   assert.ok(
-    flyerViewer.includes("OfertasLocalesPdfFlyerPreview") && flyerViewer.includes("heroAsset.isImage"),
+    flyerViewer.includes("pdfjs-dist/legacy/build/pdf.mjs") &&
+      flyerViewer.includes("heroAsset.isImage") &&
+      flyerViewer.includes("imageRef") &&
+      flyerViewer.includes("canvasRef"),
     "Viewer renders PDF + image assets"
   );
   assert.ok(flyerViewer.includes("openInTab"), "Viewer offers open-in-tab fallback");

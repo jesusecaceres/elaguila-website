@@ -7,6 +7,7 @@ import {
   isOfertaLocalActiveByDates,
   normalizeOfertaLocalSearchText,
 } from "./ofertasLocalesFormatting";
+import { normalizeOfertaLocalPrice } from "./ofertasLocalesPriceNormalization";
 import type {
   OfertaLocalItemDbInsert,
   OfertaLocalItemPublicEligibilityInput,
@@ -144,6 +145,10 @@ export function mapOfertaLocalSearchableItemDraftToDbInsert(
   const itemName = sanitizeText(item.itemName, MAX_NAME);
   const normalizedName =
     normalizeOfertaLocalSearchText(item.normalizedItemName || item.itemName) || itemName;
+  const price = normalizeOfertaLocalPrice({
+    priceText: item.priceText,
+    priceAmount: item.priceAmount,
+  });
 
   return {
     oferta_local_id: ofertaId,
@@ -159,8 +164,11 @@ export function mapOfertaLocalSearchableItemDraftToDbInsert(
     item_name: itemName,
     normalized_item_name: normalizedName,
     description: sanitizeOptionalText(item.description),
-    price_text: sanitizeOptionalText(item.priceText, 64),
-    price_amount: parseOptionalNumber(item.priceAmount),
+    price_text: sanitizeOptionalText(price.displayText || item.priceText, 64),
+    price_amount: price.amount,
+    price_amount_cents: price.amountCents,
+    original_price_text: sanitizeOptionalText(price.originalText || item.priceText, 64),
+    price_parse_status: price.parseStatus,
     unit: sanitizeOptionalText(item.unit, 64),
     deal_type: sanitizeOptionalText(item.dealType, 64),
     quantity: sanitizeOptionalText(item.quantity, 64),

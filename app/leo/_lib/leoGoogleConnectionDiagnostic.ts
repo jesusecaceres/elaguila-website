@@ -1,6 +1,10 @@
 /**
  * LEO-13A-RUNTIME — safe Google connection diagnostic (fixture-safe, no secrets).
  * Classifies OAuth / Gmail / Calendar failures without exposing provider payloads.
+ * Deliberately NOT server-only: pure code/enum transforms with no I/O and no
+ * secret material, imported directly by fixture-safe verify-leo-*.ts scripts
+ * (10a/11/12a/13a). The actual credential boundary is enforced upstream, in
+ * the server-only adapters that call refreshLeoGoogleAccessToken().
  */
 import type { LeoGoogleWorkspaceConfigDiagnostic } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
 import type {
@@ -175,12 +179,14 @@ function calendarOwnerLine(code: LeoCalendarDiagnosticCode): string {
   return `Calendar: ${code}`;
 }
 
+const LEO_DIAGNOSTIC_REDACTED_FALLBACK = "Diagnostic unavailable: redacted for safety.";
+
 /** Concise owner-facing diagnostic — codes only, no secrets. */
 export function composeGoogleConnectionDiagnosticSummary(
   diag: LeoGoogleConnectionDiagnostic,
 ): string {
   const workspace = diag.workspaceConfigured ? "Configured" : "Not configured";
-  return [
+  const composed = [
     `Google Workspace: ${workspace}`,
     `Client ID: ${diag.clientIdConfigured ? "Configured" : "Not configured"}`,
     `Client secret: ${diag.clientSecretConfigured ? "Configured" : "Not configured"}`,
@@ -190,6 +196,14 @@ export function composeGoogleConnectionDiagnosticSummary(
     gmailOwnerLine(diag.gmail),
     calendarOwnerLine(diag.calendar),
   ].join("\n");
+  // Fail closed: this diagnostic is composed entirely from closed enum
+  // codes/booleans today and should never match, but any future field added
+  // to LeoGoogleConnectionDiagnostic that carries free text is caught here
+  // before it can reach the owner-facing answer.
+  if (leoGoogleDiagnosticContainsForbiddenSecretMaterial(composed)) {
+    return LEO_DIAGNOSTIC_REDACTED_FALLBACK;
+  }
+  return composed;
 }
 
 /** One-line safe diagnostic for natural Gmail/Calendar failure answers. */
@@ -200,10 +214,11 @@ export function composeGoogleFailureDiagnosticLine(
   if (!diag) return null;
   const code = side === "gmail" ? diag.gmail : diag.calendar;
   if (code === "AVAILABLE") return null;
-  if (code === "UNAVAILABLE_DUE_TO_OAUTH") {
-    return `Diagnostic: ${diag.oauth}`;
+  const line = code === "UNAVAILABLE_DUE_TO_OAUTH" ? `Diagnostic: ${diag.oauth}` : `Diagnostic: ${code}`;
+  if (leoGoogleDiagnosticContainsForbiddenSecretMaterial(line)) {
+    return LEO_DIAGNOSTIC_REDACTED_FALLBACK;
   }
-  return `Diagnostic: ${code}`;
+  return line;
 }
 
 /** Security: reject any diagnostic object that accidentally carries secret-like strings. */

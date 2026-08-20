@@ -10,6 +10,7 @@ import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
 import {
   DASHBOARD_INTERNAL_INBOX_READY,
   DASHBOARD_SAVED_LISTINGS_READY,
+  DASHBOARD_SAVED_SEARCHES_READY,
 } from "../lib/dashboardProductTruth";
 
 import {
@@ -29,6 +30,7 @@ export type LeonixDashboardActiveNav =
   | "messages"
   | "drafts"
   | "saved"
+  | "savedSearches"
   | "analytics"
   | "profile"
   | "security"
@@ -270,6 +272,9 @@ export function LeonixDashboardShell({
                 : null}
               {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
               {DASHBOARD_SAVED_LISTINGS_READY ? navItem("saved", `/dashboard/guardados?${q}`, L.saved) : null}
+              {DASHBOARD_SAVED_SEARCHES_READY
+                ? navItem("savedSearches", `/dashboard/busquedas-guardadas?${q}`, L.savedSearches)
+                : null}
               {navItem("analytics", `/dashboard/analytics?${q}`, L.analytics)}
               {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
               {navItem("security", `/dashboard/seguridad?${q}`, L.security)}

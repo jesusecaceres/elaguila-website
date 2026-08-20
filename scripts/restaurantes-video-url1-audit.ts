@@ -88,7 +88,8 @@ function run() {
   assert.match(videoSection, /Video opcional/, "form must have Video opcional section");
   assert.match(videoSection, /Añadir video/, "form must have Añadir video");
   assert.match(videoSection, /videoUrls/, "form must reference videoUrls");
-  assert.match(utils, /RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS = 4/, "max 4 videos");
+  // Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+  assert.match(utils, /RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS = 8/, "max 8 videos");
   assert.match(utils, /isValidRestauranteExternalVideoUrl/, "validation helper exists");
   assert.doesNotMatch(buckets, /Subir video/, "buckets must not offer Subir video");
   assert.doesNotMatch(buckets, /accept="video\/\*"/, "buckets must not accept video files");

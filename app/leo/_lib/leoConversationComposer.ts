@@ -1,6 +1,8 @@
 /**
  * LEO conversation composer — deterministic evidence-backed owner summaries.
  * Executive language only — no construction-gate / Top-N / signal jargon.
+ * Deliberately NOT server-only: pure formatting with no I/O, imported directly
+ * by fixture-safe verify-leo-*.ts scripts (7/10a/11/12a/13a).
  */
 import type {
   LeoAttentionBrief,

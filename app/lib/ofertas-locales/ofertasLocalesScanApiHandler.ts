@@ -13,8 +13,18 @@ import {
   mapOfertaLocalScanJobRecordDraftToDbInsert,
 } from "./ofertasLocalesAiDbMapper";
 import {
+  createOfertaLocalSourceVersion,
+  OFERTAS_LOCALES_SOURCE_ASSET_SELECT,
+  type OfertaLocalSourceAssetRow,
+} from "./ofertasLocalesAssetLifecycle";
+import { normalizeOfertaLocalPrice } from "./ofertasLocalesPriceNormalization";
+import {
+  seedOfertaLocalScanPages,
+  updateOfertaLocalScanJobProgress,
+  updateOfertaLocalScanPageProgress,
+} from "./ofertasLocalesScanProgress";
+import {
   assertOfertaLocalAiScanSizeWithinLimit,
-  getOfertaLocalAiScanMaxBytes,
   OfertaLocalAiScanSizeExceededError,
 } from "./ofertasLocalesAiScanSizeLimits";
 import {
@@ -31,7 +41,9 @@ import {
   ofertasLocalesAiSchemaMissingDetail,
 } from "./ofertasLocalesSupabaseSchema";
 import type {
+  OfertaLocalDraftAssetType,
   OfertaLocalItemDbRow,
+  OfertaLocalPublishedAssetMetadata,
   OfertaLocalPublishStatus,
   OfertaLocalScanApiRequest,
   OfertaLocalScanApiResponse,
@@ -50,6 +62,13 @@ const SCAN_BLOCKED_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new 
   "archived",
 ]);
 
+function resolveScanSourceAssetType(assetKind: "flyer" | "coupon", mimeType: string): OfertaLocalDraftAssetType {
+  const type = mimeType.toLowerCase();
+  if (type === "application/pdf") return assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf";
+  if (type.startsWith("image/")) return assetKind === "flyer" ? "flyer_image" : "coupon_image";
+  return assetKind === "flyer" ? "flyer_image" : "coupon_image";
+}
+
 function logAiStage(stage: string, payload: Record<string, unknown>, level: "info" | "warn" = "info") {
   const logger = level === "warn" ? console.warn : console.info;
   logger(`[ofertas-locales-ai] ${stage}`, payload);
@@ -61,6 +80,7 @@ function isScanRequest(v: unknown): v is OfertaLocalScanApiRequest {
   return (
     typeof o.ofertaLocalId === "string" &&
     typeof o.assetId === "string" &&
+    (o.sourceAssetVersionId === undefined || o.sourceAssetVersionId === null || typeof o.sourceAssetVersionId === "string") &&
     (o.assetKind === "flyer" || o.assetKind === "coupon") &&
     typeof o.assetUrl === "string" &&
     typeof o.storagePath === "string" &&
@@ -76,9 +96,6 @@ async function fetchAssetBytes(
   if (!url.startsWith("https://")) {
     throw new Error("Asset URL must be a secure HTTPS URL.");
   }
-
-  const maxBytes = getOfertaLocalAiScanMaxBytes(context.mimeType);
-
   const res = await fetch(url, { method: "GET", cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Could not download asset (HTTP ${res.status}).`);
@@ -402,6 +419,69 @@ async function handleOfertaLocalCropBackfillPost(
   }
 }
 
+async function resolveOrCreateScanSourceVersion(input: {
+  supabase: ReturnType<typeof getAdminSupabase>;
+  ofertaLocalId: string;
+  ownerId: string;
+  body: OfertaLocalScanApiRequest;
+}): Promise<{ ok: true; sourceAssetVersionId: string; sourceAsset: OfertaLocalSourceAssetRow | null } | { ok: false; status: number; error: string; detail?: string }> {
+  const requested = input.body.sourceAssetVersionId?.trim();
+  if (requested) {
+    const { data, error } = await input.supabase
+      .from("ofertas_local_source_assets")
+      .select(OFERTAS_LOCALES_SOURCE_ASSET_SELECT)
+      .eq("id", requested)
+      .eq("oferta_local_id", input.ofertaLocalId)
+      .eq("owner_id", input.ownerId)
+      .maybeSingle();
+    if (error) return { ok: false, status: 500, error: "source_asset_lookup_failed", detail: error.message };
+    if (!data) return { ok: false, status: 422, error: "source_asset_version_mismatch" };
+    return { ok: true, sourceAssetVersionId: requested, sourceAsset: data as OfertaLocalSourceAssetRow };
+  }
+
+  const asset: OfertaLocalPublishedAssetMetadata = {
+    id: input.body.assetId,
+    title: input.body.assetKind === "flyer" ? "Flyer source" : "Coupon source",
+    note: "",
+    fileName: input.body.storagePath.split("/").pop() || input.body.assetId,
+    mimeType: input.body.mimeType,
+    url: input.body.assetUrl,
+    storagePath: input.body.storagePath,
+    sizeBytes: null,
+    pageNumber: null,
+    sortOrder: 0,
+    assetType: input.body.assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf",
+  };
+  const created = await createOfertaLocalSourceVersion({
+    supabase: input.supabase,
+    ofertaLocalId: input.ofertaLocalId,
+    ownerId: input.ownerId,
+    assetKind: input.body.assetKind,
+    asset,
+    uploadedBy: input.ownerId,
+    reason: "Initial scan source version",
+  });
+  if (!created.ok) {
+    return { ok: false, status: 500, error: created.error, detail: created.detail };
+  }
+  return { ok: true, sourceAssetVersionId: created.sourceAsset.id, sourceAsset: created.sourceAsset };
+}
+
+function enrichItemRowWithPriceTruth(row: Record<string, unknown>): Record<string, unknown> {
+  const price = normalizeOfertaLocalPrice({
+    priceText: String(row.price_text ?? ""),
+    priceAmount: row.price_amount as number | null | undefined,
+  });
+  return {
+    ...row,
+    price_text: price.displayText || row.price_text || null,
+    price_amount: price.amount,
+    price_amount_cents: price.amountCents,
+    original_price_text: price.originalText || row.price_text || null,
+    price_parse_status: price.parseStatus,
+  };
+}
+
 export async function handleOfertaLocalScanPost(
   req: NextRequest,
   pathOfertaLocalId?: string
@@ -577,10 +657,29 @@ export async function handleOfertaLocalScanPost(
   }
 
   const ownerId = parentOffer.owner_id as string;
+  const sourceVersion = await resolveOrCreateScanSourceVersion({
+    supabase,
+    ofertaLocalId: body.ofertaLocalId,
+    ownerId,
+    body,
+  });
+  if (!sourceVersion.ok) {
+    return NextResponse.json<OfertaLocalScanApiResponse>(
+      {
+        ok: false,
+        error: sourceVersion.error,
+        detail: sourceVersion.detail,
+        configurationMissing: false,
+      },
+      { status: sourceVersion.status }
+    );
+  }
+  const sourceAssetVersionId = sourceVersion.sourceAssetVersionId;
   const resolvedProvider = resolveOfertasAiExtractionProvider();
   const scanProvider =
     resolvedProvider === "gemini_multimodal" ? "gemini_multimodal" : "google_document_ai";
   const normalizerProvider = resolvedProvider === "gemini_multimodal" ? "gemini" : "leonix_normalizer";
+  const sourceAssetType = resolveScanSourceAssetType(body.assetKind, mimeType);
 
   const scanInsert = mapOfertaLocalScanJobRecordDraftToDbInsert(
     {
@@ -588,7 +687,7 @@ export async function handleOfertaLocalScanPost(
       ofertaLocalId: body.ofertaLocalId,
       ownerId,
       sourceAssetId: body.assetId,
-      sourceAssetType: body.assetKind === "flyer" ? "flyer_pdf" : "coupon_pdf",
+      sourceAssetType,
       sourceAssetUrl: body.assetUrl,
       provider: scanProvider,
       normalizerProvider,
@@ -610,8 +709,9 @@ export async function handleOfertaLocalScanPost(
     .from("oferta_local_scan_jobs")
     .insert({
       ...scanInsert,
+      source_asset_version_id: sourceAssetVersionId,
       source_asset_url: body.assetUrl,
-      source_asset_type: body.assetKind,
+      source_asset_type: sourceAssetType,
       source_storage_path: storagePath,
       source_mime_type: mimeType,
       source_asset_kind: body.assetKind,
@@ -647,7 +747,25 @@ export async function handleOfertaLocalScanPost(
   }
 
   const scanJobId = scanJob.id as string;
+  await supabase
+    .from("ofertas_local_source_assets")
+    .update({ scan_job_id: scanJobId, updated_at: now })
+    .eq("id", sourceAssetVersionId)
+    .eq("oferta_local_id", body.ofertaLocalId);
+  await supabase
+    .from("ofertas_locales")
+    .update({
+      ai_scan_status: "processing",
+      ai_last_scan_job_id: scanJobId,
+      last_scan_error: null,
+      updated_at: now,
+    })
+    .eq("id", body.ofertaLocalId)
+    .eq("owner_id", ownerId);
   const scanStartedMs = Date.now();
+  let totalPages = 0;
+  let completedPages = 0;
+  let failedPages = 0;
 
   try {
     const fileBuffer = await fetchAssetBytes(body.assetUrl, {
@@ -674,6 +792,75 @@ export async function handleOfertaLocalScanPost(
       businessZipCode: parentOffer.zip_code ?? "",
       validFrom: parentOffer.valid_from ?? undefined,
       validUntil: parentOffer.valid_until ?? undefined,
+      onPagesPrepared: async (pages, totalPageCount) => {
+        totalPages = totalPageCount;
+        await seedOfertaLocalScanPages({
+          supabase,
+          ofertaLocalId: body.ofertaLocalId,
+          scanJobId,
+          ownerId,
+          sourceAssetVersionId,
+          pages: pages.map((page) => ({
+            pageNumber: page.pageNumber,
+            width: page.width ?? null,
+            height: page.height ?? null,
+            renderMethod: page.renderMethod,
+          })),
+        });
+        await updateOfertaLocalScanJobProgress({
+          supabase,
+          scanJobId,
+          totalPages: totalPageCount,
+          completedPages: 0,
+          failedPages: 0,
+          currentPage: pages[0]?.pageNumber ?? null,
+          currentStage: "rasterizing",
+          status: "processing",
+        });
+      },
+      onPageStarted: async (page) => {
+        await updateOfertaLocalScanJobProgress({
+          supabase,
+          scanJobId,
+          totalPages,
+          completedPages,
+          failedPages,
+          currentPage: page.pageNumber,
+          currentStage: "scanning",
+          status: "processing",
+        });
+        await updateOfertaLocalScanPageProgress({
+          supabase,
+          scanJobId,
+          pageNumber: page.pageNumber,
+          pageStatus: "processing",
+          stage: "scanning",
+        });
+      },
+      onPageFinished: async (result) => {
+        if (result.ok) completedPages += 1;
+        else failedPages += 1;
+        await updateOfertaLocalScanPageProgress({
+          supabase,
+          scanJobId,
+          pageNumber: result.pageNumber,
+          pageStatus: result.ok ? "completed" : "failed",
+          stage: result.ok ? "completed" : "failed",
+          candidateCount: result.candidatesCount,
+          errorMessage: result.error ?? null,
+        });
+        await updateOfertaLocalScanJobProgress({
+          supabase,
+          scanJobId,
+          totalPages,
+          completedPages,
+          failedPages,
+          currentPage: result.pageNumber,
+          currentStage: "extracting",
+          status: "processing",
+          failureSummary: result.error ?? null,
+        });
+      },
     });
 
     if (scanResult.pageErrors.length > 0) {
@@ -696,7 +883,12 @@ export async function handleOfertaLocalScanPost(
     });
 
     const itemRows = scanResult.items.map((item) =>
-      mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId)
+      enrichItemRowWithPriceTruth({
+        ...mapOfertaLocalSearchableItemDraftToDbInsert(item, ownerId, body.ofertaLocalId, scanJobId),
+        source_asset_version_id: sourceAssetVersionId,
+        source_lifecycle_status: "active",
+        source_bbox_format: "normalized_0_1",
+      })
     );
     itemRows.forEach((row, itemIndex) => {
       logAiStage("DB_MAPPING_PREPARED", {
@@ -724,7 +916,10 @@ export async function handleOfertaLocalScanPost(
         throw new Error(itemsError.message);
       }
 
-      const persistedCropRows = itemRows.filter((row) => row.source_crop_url?.trim());
+      const persistedCropRows = itemRows.filter(
+        (row): row is typeof row & { source_crop_url: string } =>
+          typeof row.source_crop_url === "string" && row.source_crop_url.trim().length > 0
+      );
       for (const row of persistedCropRows) {
         console.info("[ofertas-locales crop] source_crop_url persisted", {
           scanJobId,
@@ -755,6 +950,11 @@ export async function handleOfertaLocalScanPost(
         status: "needs_review",
         completed_at: completedAt,
         pages_processed: scanResult.pagesProcessed,
+        total_pages: totalPages || scanResult.pagesProcessed,
+        completed_pages: completedPages || scanResult.pagesProcessed,
+        failed_pages: failedPages,
+        current_page: null,
+        current_stage: scanResult.pageErrors.length > 0 ? "failed" : "awaiting_review",
         items_extracted_count: itemRows.length,
         confidence_average: scanResult.confidenceAverage,
         provider: scanResult.providerUsed === "gemini_multimodal" ? "gemini_multimodal" : "google_document_ai",
@@ -769,9 +969,21 @@ export async function handleOfertaLocalScanPost(
           pageErrors: scanResult.pageErrors.slice(0, 20),
         },
         error_message: scanResult.pageErrors.length > 0 ? scanResult.pageErrors.join(" | ").slice(0, 2000) : null,
+        failure_summary: scanResult.pageErrors.length > 0 ? scanResult.pageErrors.join(" | ").slice(0, 2000) : null,
+        last_activity_at: completedAt,
         updated_at: completedAt,
       })
       .eq("id", scanJobId);
+    await supabase
+      .from("ofertas_locales")
+      .update({
+        ai_scan_status: "needs_review",
+        ai_last_scan_job_id: scanJobId,
+        last_scan_error: scanResult.pageErrors.length > 0 ? scanResult.pageErrors.join(" | ").slice(0, 1000) : null,
+        updated_at: completedAt,
+      })
+      .eq("id", body.ofertaLocalId)
+      .eq("owner_id", ownerId);
 
     console.info("[ofertas-locales scan] duration ms", {
       scanJobId,
@@ -785,6 +997,12 @@ export async function handleOfertaLocalScanPost(
       scanJobId,
       status: "needs_review",
       pagesProcessed: scanResult.pagesProcessed,
+      totalPages: totalPages || scanResult.pagesProcessed,
+      completedPages: completedPages || scanResult.pagesProcessed,
+      failedPages,
+      currentPage: null,
+      currentStage: scanResult.pageErrors.length > 0 ? "failed" : "awaiting_review",
+      pageErrors: scanResult.pageErrors.slice(0, 20),
       itemsExtractedCount: itemRows.length,
       message: scanResult.note,
       configurationMissing: false,
@@ -801,9 +1019,23 @@ export async function handleOfertaLocalScanPost(
         status: "failed",
         completed_at: completedAt,
         error_message: message.slice(0, 2000),
+        failure_summary: message.slice(0, 2000),
+        current_stage: "failed",
+        failed_pages: failedPages || (totalPages ? Math.max(1, totalPages - completedPages) : 1),
+        last_activity_at: completedAt,
         updated_at: completedAt,
       })
       .eq("id", scanJobId);
+    await supabase
+      .from("ofertas_locales")
+      .update({
+        ai_scan_status: "failed",
+        ai_last_scan_job_id: scanJobId,
+        last_scan_error: message.slice(0, 1000),
+        updated_at: completedAt,
+      })
+      .eq("id", body.ofertaLocalId)
+      .eq("owner_id", ownerId);
 
     return NextResponse.json<OfertaLocalScanApiResponse>(
       {
