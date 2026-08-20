@@ -38,15 +38,24 @@ export function buildResourceCallIntent(resource: PublicResourceRecord): Extract
   return buildCallIntent({ phone, contactShareExtras: resourceShareExtras(resource) });
 }
 
-/** TEXT — only when SMS is populated. Does not fall back to a bare phone number. */
+/**
+ * TEXT — only when SMS is populated. `contact.sms` is frequently a human-readable instruction
+ * ("Text HOME to 741741", "Text your ZIP code to 898211"), not a bare phone number — blindly
+ * stripping non-digits from that text would concatenate every digit run it contains into a
+ * garbled destination (e.g. two "741741" mentions collapsing into "741741741741"). Extract the
+ * destination number only when the instruction contains exactly one distinct digit run, and
+ * always surface the full instruction as the message so the user knows what to actually send.
+ */
 export function buildResourceTextIntent(
   resource: PublicResourceRecord,
 ): Extract<CtaSheetIntent, { kind: "send_message" }> | null {
   const sms = trim(resource.contact.sms);
   if (!sms) return null;
+  const digitGroups = [...new Set(sms.match(/\d{4,}/g) ?? [])];
+  const phone = digitGroups.length === 1 ? digitGroups[0] : null;
   return buildSendMessageIntent({
-    message: "",
-    phone: sms,
+    message: sms,
+    phone,
     contactShareExtras: resourceShareExtras(resource),
   });
 }

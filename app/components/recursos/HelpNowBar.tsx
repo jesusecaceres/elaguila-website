@@ -52,7 +52,7 @@ export function HelpNowBar({ resources, lang }: { resources: PublicResourceRecor
                 href={smsHref}
                 className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-[#C97A4A]/60 bg-[#FFFDF7] px-3 text-xs font-bold text-[#7A3E1E] transition hover:bg-[#FBF1E8]"
               >
-                {t.text}
+                {t.text} · {resource.organizationName}
               </a>
             ) : null}
           </span>
