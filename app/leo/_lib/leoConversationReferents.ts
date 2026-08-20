@@ -100,7 +100,9 @@ function detectFollowUp(q: string): {
   const n = normalize(q);
   const wantsMutation =
     /\b(acknowledge|ack|dismiss|remind later|snooze|create (a )?commitment)\b/.test(n) ||
-    /\b(mark (it|that) (done|acknowledged|dismissed))\b/.test(n);
+    /\b(mark (it|that) (done|acknowledged|dismissed))\b/.test(n) ||
+    // LEO-17B: consequential connected-action verbs on referents require unambiguous targets.
+    /\b(send|reply|schedule|reschedule|move|update)\b/.test(n);
 
   if (wantsMutation) {
     return { action: "MUTATE", suggestedIntent: null, wantsMutation: true };

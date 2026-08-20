@@ -12,6 +12,11 @@ import type {
   LeoConversationRouteResult,
   LeoPreparationKind,
 } from "@/app/leo/_lib/leoTypes";
+import {
+  governanceActionKindForConnectedFamily,
+  inferLeoConnectedActionFamily,
+  isLeoConnectedActionQuestion,
+} from "@/app/leo/_lib/leoConversationProposalBridge";
 
 /** Centralized conversation request bounds. */
 export const LEO_CONVERSATION_BOUNDS = {
@@ -79,7 +84,12 @@ export function inferLeoActionKind(q: string): LeoActionIntentKind | null {
   // RED class
   if (/deploy.*production|production.*deploy|deploy to prod/i.test(q)) return "DEPLOY_PRODUCTION";
   if (/merge.*main|merge to main/i.test(q)) return "MERGE_MAIN";
-  if (/\bsend (this|the|it)\b|send (an )?email|send (a )?message|outreach send/i.test(q)) {
+  if (
+    /\bsend (this|the|it)\b|send (an )?email|send \S+ (an )?email|send (a )?message|outreach send/i.test(q) ||
+    /\breply to (that|this|the|it)\b|\breply to (that|this|the) (email|message|thread)\b|\bsend (a )?reply\b/i.test(
+      q,
+    )
+  ) {
     return "SEND_EXTERNAL";
   }
   if (/change pricing|update pricing|raise prices/i.test(q)) return "CHANGE_PRICING";
@@ -404,6 +414,26 @@ export function routeLeoConversation(
       intent: "CAPABILITY_GOVERNANCE",
       confidence: "high",
       inferredActionKind: request.actionKind ?? actionFromQ,
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    });
+  }
+
+  // LEO-17B: connected action families (schedule/move/etc.) → governance + proposal bridge.
+  // Excludes draft/summarize (handled by preparation / communication read paths).
+  if (isLeoConnectedActionQuestion(q)) {
+    const family = inferLeoConnectedActionFamily(q);
+    notes.push(
+      family
+        ? `connected action proposal bridge family=${family}`
+        : "connected action proposal bridge",
+    );
+    return routeResult({
+      intent: "CAPABILITY_GOVERNANCE",
+      confidence: "high",
+      inferredActionKind: family
+        ? governanceActionKindForConnectedFamily(family)
+        : request.actionKind ?? "OTHER",
       inferredPreparationKind: null,
       routeNotes: notes,
     });

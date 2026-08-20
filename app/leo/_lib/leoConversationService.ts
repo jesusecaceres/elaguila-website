@@ -48,7 +48,17 @@ import {
 import {
   referentBlocksMutation,
   resolveLeoConversationReferent,
+  type LeoReferentResolution,
 } from "@/app/leo/_lib/leoConversationReferents";
+import {
+  buildLeoConversationProposalCandidate,
+  composeConnectedProposalAnswerSummary,
+  inferLeoConnectedActionFamily,
+  LEO_17B_BRIDGE_NOT_CLAIMING,
+  leoProposalTruthLabelForState,
+} from "@/app/leo/_lib/leoConversationProposalBridge";
+import { leoCreateGovernedActionProposal } from "@/app/leo/_lib/leoActionProposalService";
+import type { LeoActionProposalStructuredPayload } from "@/app/leo/_lib/leoActionProposalTypes";
 import {
   leoAppendConversationTurn,
   leoAppendUserTurnIdempotent,
@@ -1053,6 +1063,160 @@ export async function runLeoConversationDeterministic(
         nowMs,
       });
       const blocked = governance.level === "NEVER";
+
+      // LEO-17B: when this is a connected action family, bridge to governed proposal truth.
+      const connectedFamily = inferLeoConnectedActionFamily(request.question);
+      if (connectedFamily && !blocked) {
+        const referent = referentHintFromConversationRequest(request, connectedFamily);
+        const candidate = buildLeoConversationProposalCandidate({
+          question: request.question,
+          referent,
+          entityId: request.entityId ?? null,
+        });
+
+        if (candidate.status === "CLARIFICATION_NEEDED") {
+          return empty({
+            intent: "CAPABILITY_GOVERNANCE",
+            answerState: "PARTIALLY_ANSWERED",
+            summary: candidate.clarification,
+            unknowns: candidate.missing,
+            governance,
+            limitations: [
+              ...governance.limitations,
+              "Ambiguous referent blocked — no proposal created, no execution.",
+              ...LEO_17B_BRIDGE_NOT_CLAIMING,
+            ],
+            suggestedNextRetrieval: "Name the email or meeting, or say the first/second one.",
+            spokenSummary: candidate.clarification.slice(0, 220),
+            resultCards: [
+              {
+                cardId: `proposal-clarify:${connectedFamily}`,
+                kind: "GENERIC",
+                priority: "HIGH",
+                certainty: "UNKNOWN",
+                title: "Needs information",
+                subtitle: "Ambiguous referent · not executed",
+                whyItMatters: "LEO will not guess which item you mean for a RED action.",
+                reason: candidate.clarification,
+                evidenceRefs: [],
+                sourceSystem: "LEO",
+                actions: [],
+                spokenSummary: candidate.clarification.slice(0, 220),
+              },
+            ],
+          });
+        }
+
+        if (candidate.status === "NEEDS_INFORMATION" || candidate.status === "PROPOSABLE") {
+          let proposalId: string | null = null;
+          let proposalState: string | null = null;
+
+          if (candidate.status === "PROPOSABLE") {
+            try {
+              const created = await leoCreateGovernedActionProposal({
+                sourceSessionId: request.sessionId ?? null,
+                actionFamily: candidate.actionFamily,
+                normalizedTarget: candidate.normalizedTarget,
+                structuredPayload:
+                  candidate.structuredPayload as unknown as LeoActionProposalStructuredPayload,
+                referentSnapshot: candidate.referentSnapshot,
+              });
+              if (created.ok) {
+                proposalId = created.proposal.proposalId;
+                proposalState = created.proposal.proposalState;
+              }
+            } catch {
+              // Fail soft — conversation still answers with governance truth.
+            }
+          }
+
+          const truthLabel = leoProposalTruthLabelForState(
+            proposalState,
+            candidate.status === "NEEDS_INFORMATION",
+          );
+          const summary = composeConnectedProposalAnswerSummary({
+            candidate,
+            governance,
+            proposalState,
+            proposalId,
+          });
+
+          return empty({
+            intent: "CAPABILITY_GOVERNANCE",
+            answerState:
+              candidate.status === "NEEDS_INFORMATION" ? "PARTIALLY_ANSWERED" : "ANSWERED",
+            summary,
+            unknowns: candidate.status === "NEEDS_INFORMATION" ? candidate.missing : [],
+            evidence: [
+              {
+                sourceKind: "governance_rule",
+                sourceRef: governance.auditPrep.ruleIds[0] ?? "RED_CONNECTED_ACTION",
+                summary: `${governance.level}: connected action family ${candidate.actionFamily}`,
+                availability: "LIVE",
+              },
+              ...(proposalId
+                ? [
+                    {
+                      sourceKind: "leo_action_proposal",
+                      sourceRef: proposalId,
+                      summary: `proposal_state=${proposalState ?? "unknown"}`,
+                      availability: "LIVE" as const,
+                    },
+                  ]
+                : []),
+            ],
+            citations: governance.auditPrep.ruleIds.map((id) => ({
+              sourceKind: "governance_rule",
+              sourceRef: id,
+              label: id,
+            })),
+            governance,
+            limitations: [
+              ...governance.limitations,
+              "Conversation POST does not constitute owner approval for RED execution.",
+              "Provider execution is not enabled in this gate.",
+              ...LEO_17B_BRIDGE_NOT_CLAIMING,
+            ],
+            suggestedNextRetrieval:
+              candidate.status === "NEEDS_INFORMATION"
+                ? "Provide exact recipient email / thread / event details — LEO will not invent them."
+                : "Approve the proposal via the owner approval path when ready. Approval is not execution.",
+            spokenSummary: summary.slice(0, 220),
+            resultCards: [
+              {
+                cardId: `proposal:${proposalId ?? candidate.actionFamily}`,
+                kind: "GENERIC",
+                priority: "HIGH",
+                certainty: candidate.status === "PROPOSABLE" ? "PROVEN" : "UNKNOWN",
+                title: truthLabel,
+                subtitle: `${candidate.actionFamily.replace(/_/g, " ")} · ${governance.level} · not executed`,
+                whyItMatters:
+                  candidate.status === "NEEDS_INFORMATION"
+                    ? "Required targets are incomplete — cannot approve yet."
+                    : "Governed proposal is ready for explicit owner approval. Not sent. Not scheduled.",
+                reason: summary.slice(0, 400),
+                evidenceRefs: proposalId ? [`leo_action_proposal:${proposalId}`] : [],
+                sourceSystem: "LEO",
+                actions: [],
+                spokenSummary: `${truthLabel}. Not executed.`.slice(0, 220),
+              },
+            ],
+            suggestedQuestions:
+              candidate.status === "NEEDS_INFORMATION"
+                ? [
+                    "Use the exact email address",
+                    "Reply to that email with a specific body",
+                    "What can you prepare instead?",
+                  ]
+                : [
+                    "What is waiting for my approval?",
+                    "Show recent leo receipts",
+                    "What can you prepare instead?",
+                  ],
+          });
+        }
+      }
+
       return empty({
         intent: "CAPABILITY_GOVERNANCE",
         answerState: blocked ? "BLOCKED_BY_GOVERNANCE" : "ANSWERED",
@@ -1200,6 +1364,64 @@ export async function runLeoConversation(request: LeoConversationRequest): Promi
 const PERSISTENCE_LIMITATION =
   "Conversation history persistence is currently unavailable.";
 
+/**
+ * LEO-17B: rebuild a minimal referent hint from request selection / entityId.
+ * Never invents emails or event ids — only reuses already-proven refs.
+ */
+function referentHintFromConversationRequest(
+  request: LeoConversationRequest,
+  family: NonNullable<ReturnType<typeof inferLeoConnectedActionFamily>>,
+): LeoReferentResolution {
+  const sel = request.clientContext?.selectedEntityRef ?? null;
+  const entityId = request.entityId?.trim() || null;
+
+  if (family === "GMAIL_REPLY" || family === "GMAIL_SEND") {
+    const threadOrMessageId =
+      (sel?.kind === "EMAIL" ? sel.id : null) ||
+      (family === "GMAIL_REPLY" ? entityId : null);
+    if (threadOrMessageId) {
+      return {
+        status: "RESOLVED",
+        kind: "EMAIL",
+        cardId: request.clientContext?.selectedCardId ?? null,
+        entityRef: sel,
+        threadId: threadOrMessageId,
+        messageId: null,
+        eventId: null,
+        commitmentId: null,
+        receiptId: null,
+        ordinalIndex: null,
+        label: sel?.label ?? null,
+        suggestedIntent: "CAPABILITY_GOVERNANCE",
+        followUpAction: "MUTATE",
+      };
+    }
+  }
+
+  if (family === "CALENDAR_UPDATE" || family === "CALENDAR_CREATE") {
+    const eventId = (sel?.kind === "CALENDAR" ? sel.id : null) || entityId;
+    if (eventId && family === "CALENDAR_UPDATE") {
+      return {
+        status: "RESOLVED",
+        kind: "CALENDAR",
+        cardId: request.clientContext?.selectedCardId ?? null,
+        entityRef: sel,
+        threadId: null,
+        messageId: null,
+        eventId,
+        commitmentId: null,
+        receiptId: null,
+        ordinalIndex: null,
+        label: sel?.label ?? null,
+        suggestedIntent: "CAPABILITY_GOVERNANCE",
+        followUpAction: "MUTATE",
+      };
+    }
+  }
+
+  return { status: "NONE" };
+}
+
 export type LeoPersistentConversationResult =
   | {
       ok: true;
@@ -1262,10 +1484,11 @@ function applyResolvedReferentToRequest(
   }
   if (resolution.commitmentId) {
     next.entityId = resolution.commitmentId;
+  } else if (resolution.threadId) {
+    // Prefer thread id for email so LEO-17B reply proposals can prove thread identity.
+    next.entityId = resolution.threadId;
   } else if (resolution.messageId) {
     next.entityId = resolution.messageId;
-  } else if (resolution.threadId) {
-    next.entityId = resolution.threadId;
   } else if (resolution.eventId) {
     next.entityId = resolution.eventId;
   } else if (resolution.receiptId) {
@@ -1278,6 +1501,22 @@ function applyResolvedReferentToRequest(
       ...request.clientContext,
       selectedEntityRef: resolution.entityRef,
       selectedCardId: resolution.cardId ?? request.clientContext?.selectedCardId ?? null,
+    };
+  } else if (resolution.threadId || resolution.eventId || resolution.messageId) {
+    next.clientContext = {
+      ...request.clientContext,
+      selectedCardId: resolution.cardId ?? request.clientContext?.selectedCardId ?? null,
+      selectedEntityRef: {
+        system:
+          resolution.kind === "CALENDAR"
+            ? "GOOGLE_CALENDAR"
+            : resolution.kind === "EMAIL"
+              ? "GOOGLE_GMAIL"
+              : "LEO",
+        kind: resolution.kind === "CALENDAR" ? "CALENDAR" : resolution.kind === "EMAIL" ? "EMAIL" : "OTHER",
+        id: resolution.eventId ?? resolution.threadId ?? resolution.messageId ?? resolution.cardId ?? "unknown",
+        label: resolution.label ?? undefined,
+      },
     };
   }
   return next;
