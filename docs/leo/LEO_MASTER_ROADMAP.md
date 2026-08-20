@@ -108,13 +108,11 @@ Models are workers. LEO remains the operator. Provider output does not grant aut
 
 **Goal:** Leonix evaluates itself.
 
-- SEO
-- UX
-- operations
-- products
-- growth
+- LEO-20A: Self-Intelligence V1 foundation (dynamic Internal Intelligence Profile; OPERATIONS / REVENUE_MONETIZATION_HEALTH / TECHNOLOGY_READINESS / PRODUCT_OPERATIONAL_HEALTH; deferred dimensions stay NOT_MEASURED)
 
 Report and recommend. Do not silently mutate.
+
+Self-Intelligence consumes Executive Reporting and System Health — it does not replace them. Innovation Radar remains future outward-looking intelligence.
 
 ---
 

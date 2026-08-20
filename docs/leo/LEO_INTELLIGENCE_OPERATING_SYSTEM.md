@@ -248,22 +248,20 @@ Memory is bounded, attributable, and useful for future judgment.
 
 ## 9. LEO Self Intelligence
 
-Future capability:
+LEO evaluates Leonix itself (inward-looking).
 
-LEO evaluates Leonix itself.
+**Boundary:**
 
-Areas:
+- Executive Reporting = WHAT IS HAPPENING
+- System Health = ARE DEPENDENCIES WORKING
+- Self-Intelligence = WHAT DOES IT MEAN / WHAT IS WEAK / WHAT NEXT / WHAT CAN'T WE SEE
+- Innovation Radar (future) = outward-looking opportunity research
 
-- SEO
-- Customer experience
-- Product health
-- Technology health
-- Business health
-- Innovation opportunities
+**LEO-20A V1 dimensions:** OPERATIONS, REVENUE_MONETIZATION_HEALTH, TECHNOLOGY_READINESS, PRODUCT_OPERATIONAL_HEALTH.
 
-Self intelligence reports and recommends.
+**Deferred (NOT_MEASURED until real sensors exist):** BUSINESS_FOUNDATION, CUSTOMER_JOURNEY, DISCOVERY_SEO, TRUST_REPUTATION, MARKETING_CREATIVE, COMMUNITY_IMPACT.
 
-It does not silently rewrite Leonix.
+Self intelligence reports and recommends. It does not silently rewrite Leonix. No fake aggregate health score.
 
 ---
 

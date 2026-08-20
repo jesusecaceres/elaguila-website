@@ -257,18 +257,23 @@ function classifyCapability(question: string, intent?: LeoConversationIntent | n
     ) ||
     intent === "DECISION_SUPPORT" ||
     intent === "BUSINESS_CONCIERGE_CONTEXT" ||
+    intent === "SELF_INTELLIGENCE" ||
     intent === "PROJECT_INTELLIGENCE"
   ) {
     return {
       capability: "EXECUTIVE_REASONING",
       confidence:
-        intent === "DECISION_SUPPORT" || /\b(strategy|pricing|tradeoff)\b/.test(n)
+        intent === "DECISION_SUPPORT" ||
+        intent === "SELF_INTELLIGENCE" ||
+        /\b(strategy|pricing|tradeoff)\b/.test(n)
           ? "HIGH"
           : "MEDIUM",
       reason:
-        intent === "DECISION_SUPPORT"
-          ? "Decision support / business strategy intent."
-          : "Business strategy, pricing, or leadership tradeoff.",
+        intent === "SELF_INTELLIGENCE"
+          ? "Leonix Self-Intelligence interpretation request."
+          : intent === "DECISION_SUPPORT"
+            ? "Decision support / business strategy intent."
+            : "Business strategy, pricing, or leadership tradeoff.",
     };
   }
 

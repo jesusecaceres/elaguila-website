@@ -512,6 +512,13 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
         "What is happening in Iglesias?",
         "Which admin areas have unresolved queues?",
       ];
+    case "SELF_INTELLIGENCE":
+      return [
+        "What is our weakest area?",
+        "Which parts of Leonix are not measurable?",
+        "What should I work on next?",
+        "How healthy are our operations?",
+      ];
     case "BUSINESS_CONCIERGE_CONTEXT":
       return [
         "What tools can help this client?",

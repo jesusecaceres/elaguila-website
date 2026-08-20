@@ -51,6 +51,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "MORNING_BRIEF",
   "BUSINESS_CONCIERGE_CONTEXT",
   "EXECUTIVE_REPORTING",
+  "SELF_INTELLIGENCE",
   "UNKNOWN",
 ] as const;
 
@@ -228,6 +229,7 @@ export function isLeoExecutiveReportingQuestion(q: string): boolean {
   if (isLeoMorningBriefQuestion(n)) return false;
   if (/\bwhat needs my attention\b/.test(n) || /\bwho is waiting on\b/.test(n)) return false;
   if (/\bclient care\b/.test(n)) return false;
+  if (isLeoSelfIntelligenceQuestion(n)) return false;
   return (
     /\bcompany report\b/.test(n) ||
     /\badmin report\b/.test(n) ||
@@ -242,6 +244,34 @@ export function isLeoExecutiveReportingQuestion(q: string): boolean {
     /\bwhich admin areas have unresolved queues\b/.test(n) ||
     /\bexecutive reports?\b/.test(n) ||
     /\bgive me all admin reports\b/.test(n)
+  );
+}
+
+/** LEO-20A: Self-Intelligence — interpretation, not raw executive reporting. */
+export function isLeoSelfIntelligenceQuestion(q: string): boolean {
+  const n = normalizeQuestion(q);
+  if (isLeoMorningBriefQuestion(n)) return false;
+  if (/\bwhat needs my attention\b/.test(n) || /\bwho is waiting on\b/.test(n)) return false;
+  if (/\bclient care\b/.test(n) || /\bconcierge\b/.test(n)) return false;
+  if (/\bcompany report\b/.test(n) || /\badmin report\b/.test(n) || /\bexecutive reports?\b/.test(n)) {
+    return false;
+  }
+  return (
+    /\bhow is leonix doing\b/.test(n) ||
+    /\bhow(?:'s| is) leonix\b/.test(n) ||
+    /\bwhat is our weakest area\b/.test(n) ||
+    /\bwhat(?:'s| is) our weakest\b/.test(n) ||
+    /\bwhat am i missing\b/.test(n) ||
+    /\bwhat should i work on next\b/.test(n) ||
+    /\bwhat is the most important thing i should work on( today)?\b/.test(n) ||
+    /\bwhich parts of leonix are not measurable\b/.test(n) ||
+    /\bwhat (can|do) we not (currently )?measure\b/.test(n) ||
+    /\bhow healthy are our operations\b/.test(n) ||
+    /\bhow healthy is our technology\b/.test(n) ||
+    /\bwhere are we having (revenue|payment) problems\b/.test(n) ||
+    /\bself[- ]?intelligence\b/.test(n) ||
+    /\bleonix (self[- ]?health|health map|blind spots?)\b/.test(n) ||
+    /\bnext right move\b/.test(n)
   );
 }
 
@@ -378,6 +408,17 @@ export function routeLeoConversation(
     notes.push("morning brief pattern");
     return routeResult({
       intent: "MORNING_BRIEF",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    });
+  }
+
+  if (isLeoSelfIntelligenceQuestion(q)) {
+    notes.push("self intelligence pattern");
+    return routeResult({
+      intent: "SELF_INTELLIGENCE",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,

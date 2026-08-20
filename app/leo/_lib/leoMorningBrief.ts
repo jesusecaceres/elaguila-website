@@ -118,6 +118,12 @@ export type LeoMorningBriefBuildInput = {
   };
   /** LEO-19E — exception-state intelligence worker warning only (never "AI healthy"). */
   intelligenceRuntimeWarning?: string | null;
+  /** LEO-20A — exception-only Self-Intelligence (no daily filler / no fake healthy). */
+  selfIntelligence?: {
+    materialIssue: string | null;
+    importantBlindSpot: string | null;
+    topNextMove: string | null;
+  } | null;
 };
 
 export function resolveLeoMorningBriefTimezone(input?: string | null): string {
@@ -535,6 +541,15 @@ export function buildLeoMorningBrief(input: LeoMorningBriefBuildInput): LeoMorni
   if (input.receipts?.limitation) limitations.push(input.receipts.limitation);
   if (input.project?.limitation) limitations.push(input.project.limitation);
   if (input.intelligenceRuntimeWarning) limitations.push(input.intelligenceRuntimeWarning);
+  if (input.selfIntelligence?.materialIssue) {
+    limitations.push(`Self-Intelligence: ${input.selfIntelligence.materialIssue}`);
+  }
+  if (input.selfIntelligence?.importantBlindSpot) {
+    limitations.push(`Blind spot: ${input.selfIntelligence.importantBlindSpot}`);
+  }
+  if (input.selfIntelligence?.topNextMove) {
+    limitations.push(`Next right move: ${input.selfIntelligence.topNextMove}`);
+  }
 
   const visibleAttention = attentionBrief?.visibleItems ?? attentionBrief?.items ?? [];
   const attentionCards: LeoResultCard[] = visibleAttention.slice(0, 4).map((item) => ({

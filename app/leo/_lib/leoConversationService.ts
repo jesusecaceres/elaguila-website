@@ -89,6 +89,7 @@ import {
   getLeoMeetingIntelligenceForNext,
 } from "@/app/leo/_lib/leoCommunicationIntelligenceService";
 import { getLeoMorningBrief } from "@/app/leo/_lib/leoMorningBriefService";
+import { getLeoSelfIntelligence } from "@/app/leo/_lib/leoSelfIntelligenceService";
 import {
   composeLeoExecutiveReportingSummary,
   executiveSignalsToResultCards,
@@ -332,6 +333,82 @@ export async function runLeoConversationDeterministic(
           "What needs my attention?",
         ],
         suggestedNextRetrieval: "Open a specific admin queue or ask about one domain.",
+      });
+    }
+
+    case "SELF_INTELLIGENCE": {
+      const si = await getLeoSelfIntelligence({ nowMs });
+      const profile = si.profile;
+      const evidence: LeoConversationEvidence[] = [
+        ...profile.healthMap.slice(0, 6).map((d) => ({
+          sourceKind: "self_intelligence_dimension",
+          sourceRef: d.dimension,
+          summary: `${d.dimension}: ${d.state} — ${d.reason}`.slice(0, 160),
+          availability: d.coverage === "NONE" ? ("UNAVAILABLE" as const) : ("LIVE" as const),
+          limitationNote: d.limitations[0] ?? null,
+        })),
+        ...profile.blindSpots.slice(0, 4).map((b) => ({
+          sourceKind: "self_intelligence_blind_spot",
+          sourceRef: b.dimension,
+          summary: `${b.dimension}: ${b.state} — ${b.reason}`.slice(0, 160),
+          availability: "UNAVAILABLE" as const,
+          limitationNote: b.whatEvidenceIsMissing,
+        })),
+      ];
+      const keyPoints = [
+        ...profile.healthMap
+          .filter((d) => d.state === "CRITICAL" || d.state === "NEEDS_ATTENTION" || d.state === "WATCH")
+          .slice(0, 4)
+          .map((d) => ({
+            kind: "FACT" as const,
+            text: `${d.dimension.replace(/_/g, " ")}: ${d.state.replace(/_/g, " ")}`,
+            evidenceIds: [] as string[],
+          })),
+        ...profile.blindSpots
+          .filter((b) =>
+            ["DISCOVERY_SEO", "CUSTOMER_JOURNEY"].includes(b.dimension),
+          )
+          .slice(0, 2)
+          .map((b) => ({
+            kind: "UNKNOWN" as const,
+            text: `I don't currently have a trustworthy ${b.dimension.replace(/_/g, " ").toLowerCase()} measurement source.`,
+            evidenceIds: [] as string[],
+          })),
+      ];
+      if (profile.topNextMove) {
+        keyPoints.push({
+          kind: "FACT" as const,
+          text: `Next right move (recommendation only): ${profile.topNextMove.title}`,
+          evidenceIds: [] as string[],
+        });
+      }
+      return empty({
+        intent: "SELF_INTELLIGENCE",
+        answerState: "ANSWERED",
+        summary: si.conversationSummary,
+        spokenSummary: profile.overallInterpretation,
+        keyPoints,
+        resultCards: [],
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: profile.blindSpots.map((b) => b.dimension.toLowerCase()),
+        limitations: [
+          ...profile.limitations,
+          "Self-Intelligence recommendations do not grant execution authority.",
+        ],
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        suggestedQuestions: [
+          "What is our weakest area?",
+          "Which parts of Leonix are not measurable?",
+          "What should I work on next?",
+          "How healthy are our operations?",
+        ],
+        suggestedNextRetrieval:
+          "Ask about a specific dimension, blind spot, or Next Right Move.",
       });
     }
 

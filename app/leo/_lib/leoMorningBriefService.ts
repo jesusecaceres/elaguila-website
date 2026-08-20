@@ -20,6 +20,18 @@ import { businessRefFromClientCareEntity } from "@/app/leo/_lib/leoBusinessConci
 import { fetchLeoBusinessConciergeEnrichmentForRefs } from "@/app/leo/_lib/leoBusinessConciergeBridgeService";
 import { collectLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
 import { leoIntelligenceRuntimeMorningBriefWarning } from "@/app/leo/_lib/leoIntelligenceRuntimeHealth";
+import { isLeoAiCredentialPresent } from "@/app/leo/_lib/leoAiConfigPresence";
+import {
+  buildLeoIntelligenceRuntimeObservation,
+  intelligenceRuntimeConfigSystemHealthState,
+  mapIntelligenceRuntimeToSystemHealthComponent,
+} from "@/app/leo/_lib/leoIntelligenceRuntimeHealth";
+import { assembleLeonixInternalIntelligenceProfile } from "@/app/leo/_lib/leoSelfIntelligenceProfile";
+import { buildLeoSystemHealthSnapshot } from "@/app/leo/_lib/leoSystemHealth";
+import { isLeoGithubConfigured, isLeoVercelConfigured } from "@/app/leo/_lib/leoProjectConfig";
+import { isLeoGoogleWorkspaceConfigured } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
+import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
+import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { LeoBusinessConciergeBusinessRef, LeoMorningBrief, LeoMorningBriefAvailability } from "@/app/leo/_lib/leoTypes";
 
 export type LeoMorningBriefServiceOptions = {
@@ -58,6 +70,87 @@ export async function getLeoMorningBrief(
       getLeoProjectExecutiveSnapshot({ nowMs }),
       collectLeoExecutiveReportingSnapshot({ nowMs, limit: 6 }),
     ]);
+
+  // Exception-only Self-Intelligence from already-fetched snapshots (no second reporting fetch).
+  let selfIntelligence: {
+    materialIssue: string | null;
+    importantBlindSpot: string | null;
+    topNextMove: string | null;
+  } | null = null;
+  try {
+    const reporting = execRes.status === "fulfilled" ? execRes.value : null;
+    const clientCare = careRes.status === "fulfilled" ? careRes.value : null;
+    const project = projectRes.status === "fulfilled" ? projectRes.value : null;
+    const configPresent = isLeoAiCredentialPresent();
+    const intelligenceRuntime = buildLeoIntelligenceRuntimeObservation({
+      configPresent,
+      callAttempted: false,
+      callSucceeded: false,
+      validationSucceeded: false,
+      validationRejected: false,
+      fallbackUsed: false,
+      failureClass: configPresent ? "NONE" : "NOT_CONNECTED",
+      reasoningMode: "DETERMINISTIC",
+      nowMs,
+    });
+    const intelComponent = mapIntelligenceRuntimeToSystemHealthComponent(
+      intelligenceRuntime,
+      configPresent,
+    );
+    const systemHealth = buildLeoSystemHealthSnapshot({
+      nowMs,
+      supabaseConfigured: isSupabaseAdminConfigured(),
+      supabasePersistence: isSupabaseAdminConfigured() ? "HEALTHY" : "NOT_CONFIGURED",
+      googleWorkspaceConfigured: isLeoGoogleWorkspaceConfigured(),
+      githubConfigured: isLeoGithubConfigured(),
+      vercelConfigured: isLeoVercelConfigured(),
+      webPushConfigured: isWebPushConfigured(),
+      intelligenceReasoning:
+        intelComponent.state !== "UNKNOWN"
+          ? intelComponent.state
+          : intelligenceRuntimeConfigSystemHealthState(),
+      intelligenceReasoningMessage: intelComponent.ownerMessage,
+      reportingAdapters: reporting?.adapterHealth.map((h) => ({
+        domain: h.domain,
+        label: h.label,
+        availability: h.availability,
+      })),
+    });
+    const profile = assembleLeonixInternalIntelligenceProfile({
+      nowMs,
+      reporting,
+      attention: null,
+      clientCare,
+      systemHealth,
+      project,
+      intelligenceRuntime,
+      intelligenceConfigPresent: configPresent,
+    });
+    const materialDim = profile.healthMap.find(
+      (d) => d.state === "CRITICAL" || d.state === "NEEDS_ATTENTION",
+    );
+    const importantBlind = profile.blindSpots.find(
+      (b) => b.dimension === "CUSTOMER_JOURNEY" || b.dimension === "DISCOVERY_SEO",
+    );
+    const topMove =
+      profile.topNextMove &&
+      (profile.topNextMove.severity === "CRITICAL" || profile.topNextMove.severity === "HIGH")
+        ? profile.topNextMove
+        : null;
+    if (materialDim || importantBlind || topMove) {
+      selfIntelligence = {
+        materialIssue: materialDim
+          ? `${materialDim.dimension.replace(/_/g, " ")} is ${materialDim.state.replace(/_/g, " ")} — ${materialDim.reason}`
+          : null,
+        importantBlindSpot: importantBlind
+          ? `${importantBlind.dimension.replace(/_/g, " ")} is not currently measurable.`
+          : null,
+        topNextMove: topMove ? topMove.title : null,
+      };
+    }
+  } catch {
+    selfIntelligence = null;
+  }
 
   const buildInput: LeoMorningBriefBuildInput = {
     nowMs,
@@ -197,6 +290,7 @@ export async function getLeoMorningBrief(
             limitation: "Company-wide admin reporting unavailable.",
           },
     intelligenceRuntimeWarning: leoIntelligenceRuntimeMorningBriefWarning({}),
+    selfIntelligence,
   };
 
   const careWatch =

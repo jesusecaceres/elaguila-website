@@ -569,6 +569,7 @@ export type LeoConversationIntent =
   | "MORNING_BRIEF"
   | "BUSINESS_CONCIERGE_CONTEXT"
   | "EXECUTIVE_REPORTING"
+  | "SELF_INTELLIGENCE"
   | "UNKNOWN";
 
 /** LEO-13 deterministic communication question subtype. */
