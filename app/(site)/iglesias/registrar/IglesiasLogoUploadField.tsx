@@ -47,6 +47,7 @@ export function IglesiasLogoUploadField({
   labelClass: string;
 }) {
   const inputId = useId();
+  const urlFallbackPanelId = `${inputId}-url-fallback`;
   const errId = `${inputId}-err`;
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewSrc, setPreviewSrc] = useState("");
@@ -125,6 +126,19 @@ export function IglesiasLogoUploadField({
     }
   }
 
+  function expandUrlFallback() {
+    setShowUrlFallback(true);
+    setUrlDraft((current) => {
+      if (current.trim()) return current;
+      if (fileName || !logoUrl.trim() || !isHttpsUrl(logoUrl)) return current;
+      return logoUrl.trim();
+    });
+  }
+
+  function collapseUrlFallback() {
+    setShowUrlFallback(false);
+  }
+
   function applyUrlFallback() {
     setError("");
     const trimmed = urlDraft.trim();
@@ -137,7 +151,6 @@ export function IglesiasLogoUploadField({
     setPreviewSrc(trimmed);
     setFileName("");
     onLogoUrlChange(trimmed);
-    setUrlDraft("");
     setShowUrlFallback(false);
   }
 
@@ -147,6 +160,7 @@ export function IglesiasLogoUploadField({
   const replaceLabel = lang === "en" ? "Replace logo" : "Reemplazar logo";
   const removeLabel = lang === "en" ? "Remove logo" : "Quitar logo";
   const urlToggle = lang === "en" ? "Use a link instead" : "Usar enlace en su lugar";
+  const urlCollapse = lang === "en" ? "Hide link" : "Ocultar enlace";
   const addUrlLabel = lang === "en" ? "Use link" : "Usar enlace";
 
   return (
@@ -224,35 +238,48 @@ export function IglesiasLogoUploadField({
         </p>
       ) : null}
 
-      {!showUrlFallback ? (
-        <button
-          type="button"
-          className="mt-2 min-h-11 text-xs font-semibold text-[#5C5346] underline-offset-2 hover:underline"
-          onClick={() => setShowUrlFallback(true)}
-        >
-          {urlToggle}
-        </button>
-      ) : (
-        <div className="mt-3 space-y-2">
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-            <input
-              type="url"
-              value={urlDraft}
-              onChange={(e) => setUrlDraft(e.target.value)}
-              className={`${fieldClass} min-w-0 sm:flex-1`}
-              placeholder="https://"
-              aria-label={lang === "en" ? "Logo image URL" : "URL del logo"}
-            />
+      <div className="mt-2">
+        {!showUrlFallback ? (
+          <button
+            type="button"
+            aria-expanded={false}
+            aria-controls={urlFallbackPanelId}
+            className="min-h-11 text-xs font-medium text-[#5C5346] underline-offset-2 hover:text-[#7A1E2C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C] focus-visible:ring-offset-2"
+            onClick={expandUrlFallback}
+          >
+            {urlToggle}
+          </button>
+        ) : (
+          <div id={urlFallbackPanelId} className="space-y-2">
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+              <input
+                type="url"
+                value={urlDraft}
+                onChange={(e) => setUrlDraft(e.target.value)}
+                className={`${fieldClass} min-w-0 w-full sm:flex-1`}
+                placeholder="https://"
+                aria-label={lang === "en" ? "Logo image URL" : "URL del logo"}
+              />
+              <button
+                type="button"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-semibold text-white hover:bg-[#6B1A26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C] focus-visible:ring-offset-2"
+                onClick={applyUrlFallback}
+              >
+                {addUrlLabel}
+              </button>
+            </div>
             <button
               type="button"
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[#7A1E2C] px-4 text-sm font-semibold text-white hover:bg-[#6B1A26]"
-              onClick={applyUrlFallback}
+              aria-expanded={true}
+              aria-controls={urlFallbackPanelId}
+              className="min-h-11 text-xs font-medium text-[#5C5346] underline-offset-2 hover:text-[#7A1E2C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C] focus-visible:ring-offset-2"
+              onClick={collapseUrlFallback}
             >
-              {addUrlLabel}
+              {urlCollapse}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
