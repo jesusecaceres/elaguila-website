@@ -43,6 +43,13 @@ export const RECURSOS_PAGE_COPY = {
     promoDescription:
       "Publica eventos, clases, ayuda comunitaria o información útil para que más personas puedan encontrarla.",
     promoButton: "Publicar recurso",
+
+    // Verified directory — hero trust copy + category grid heading
+    heroTrustLine: "Cada recurso se revisa contra su fuente oficial actual antes de publicarse.",
+    directoryHeading: "Encuentra ayuda por tema",
+    trustStripTitle: "Información verificada y siempre actualizada",
+    trustStripBody:
+      "Este directorio se revisa de forma continua. Si llegaste desde una revista impresa o un código QR, escanéalo de nuevo cuando quieras para ver la información más reciente.",
   },
   en: {
     brandEyebrow: "LEONIX NEAR YOU",
@@ -78,6 +85,12 @@ export const RECURSOS_PAGE_COPY = {
     promoDescription:
       "Post events, classes, community help, or useful information so more people can find it.",
     promoButton: "Post resource",
+
+    heroTrustLine: "Every resource is checked against its current official source before it's published.",
+    directoryHeading: "Find help by topic",
+    trustStripTitle: "Verified information, always kept current",
+    trustStripBody:
+      "This directory is reviewed on an ongoing basis. If you got here from a printed magazine or a QR code, scan it again anytime to see the latest information.",
   },
 } as const;
 
