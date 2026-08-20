@@ -9,8 +9,12 @@ import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 import { getLeoAttentionBrief } from "@/app/leo/_lib/leoAttentionService";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
+import { buildLeoSystemHealthSnapshot } from "@/app/leo/_lib/leoSystemHealth";
 import type { LeoAttentionBrief, LeoClientCareWatchResult, LeoMemoryRecord } from "@/app/leo/_lib/leoTypes";
 import { adminCardBase, adminContentArea } from "@/app/admin/_components/adminTheme";
+import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
+import { isLeoGoogleWorkspaceConfigured } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
 
 import { LeoAttentionPanel } from "./_components/LeoAttentionPanel";
 import { LeoCapabilityStrip } from "./_components/LeoCapabilityStrip";
@@ -20,7 +24,9 @@ import { LeoConversationPanel } from "./_components/LeoConversationPanel";
 import { LeoExecutiveHeader } from "./_components/LeoExecutiveHeader";
 import { LeoGovernanceLegend } from "./_components/LeoGovernanceLegend";
 import { LeoMemoryPanel } from "./_components/LeoMemoryPanel";
+import { LeoNotificationSettings } from "./_components/LeoNotificationSettings";
 import { LeoPwaShell } from "./_components/LeoPwaShell";
+import { LeoSystemHealthCard } from "./_components/LeoSystemHealthCard";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +89,13 @@ export default async function LeoExecutiveConsolePage() {
 
   const [attention, care, memory] = await Promise.all([loadAttention(), loadClientCare(), loadMemory()]);
 
+  const systemHealth = buildLeoSystemHealthSnapshot({
+    supabasePersistence: isSupabaseAdminConfigured() ? "HEALTHY" : "NOT_CONFIGURED",
+    supabaseConfigured: isSupabaseAdminConfigured(),
+    googleWorkspaceConfigured: isLeoGoogleWorkspaceConfigured(),
+    webPushConfigured: isWebPushConfigured(),
+  });
+
   return (
     <div className={`${adminContentArea} pt-[max(0px,env(safe-area-inset-top))]`}>
       <LeoPwaShell>
@@ -107,6 +120,8 @@ export default async function LeoExecutiveConsolePage() {
             <h2 id="leo-controls-heading" className="text-sm font-bold text-[#1E1810]">
               LEO Controls &amp; Capabilities
             </h2>
+            <LeoSystemHealthCard health={systemHealth} />
+            <LeoNotificationSettings />
             <LeoGovernanceLegend />
             <LeoCapabilityStrip />
           </section>

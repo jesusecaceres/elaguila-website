@@ -2069,3 +2069,119 @@ export type LeoResultCard =
   | LeoPreparedActionResultCard
   | LeoBriefSectionResultCard
   | LeoGenericResultCard;
+
+// ---------------------------------------------------------------------------
+// LEO-16 Scheduled watches + owner notifications
+// ---------------------------------------------------------------------------
+
+/** Canonical scheduled watch kinds — no free-form names. */
+export type LeoWatchKind =
+  | "MORNING_BRIEF"
+  | "CLIENT_CARE"
+  | "COMMUNICATION"
+  | "COMMITMENTS"
+  | "ACTION_RECEIPTS"
+  | "ATTENTION"
+  | "PROJECT_HEALTH"
+  | "SYSTEM_HEALTH";
+
+export type LeoWatchRunStatus = "OK" | "UNAVAILABLE" | "DEGRADED" | "SKIPPED";
+
+export type LeoWatchSeverity = "CRITICAL" | "HIGH" | "NORMAL" | "INFORMATIONAL";
+
+export type LeoWatchAlertCategory =
+  | "critical"
+  | "needs_you"
+  | "watch"
+  | "morning_brief";
+
+export type LeoWatchResult = {
+  kind: LeoWatchKind;
+  generatedAt: string;
+  status: LeoWatchRunStatus;
+  severity: LeoWatchSeverity;
+  /** Stable identity — excludes generatedAt and random ids. */
+  fingerprint: string;
+  changed: boolean;
+  shouldNotify: boolean;
+  headline: string;
+  summary: string;
+  deepLink: string;
+  evidenceRefs: string[];
+  limitations: string[];
+  notificationCategory: LeoWatchAlertCategory;
+  /** When true, policy may deliver outside quiet hours. */
+  eligibleOutsideQuietHours?: boolean;
+  suppressionReason?: string | null;
+};
+
+export type LeoWatchEngineInput = {
+  nowMs: number;
+  timezone: string;
+  /** Prior fingerprint per watch source key for change detection. */
+  priorFingerprints: Record<string, string>;
+  /** Source identity keys suppressed by ACK/DISMISS/SNOOZE. */
+  suppressedSourceKeys: Set<string>;
+  morningBrief?: LeoMorningBrief | null;
+  clientCare?: LeoClientCareWatchResult | null;
+  communication?: LeoCommunicationExecutiveSnapshot | null;
+  commitments?: LeoCommitment[];
+  receipts?: LeoDurableToolReceipt[];
+  attention?: LeoAttentionBrief | null;
+  project?: LeoProjectExecutiveSnapshot | null;
+  systemHealth?: LeoSystemHealthSnapshot | null;
+};
+
+export type LeoWatchEngineOutput = {
+  results: LeoWatchResult[];
+  limitations: string[];
+};
+
+export type LeoSystemHealthState =
+  | "HEALTHY"
+  | "DEGRADED"
+  | "UNAVAILABLE"
+  | "NOT_CONFIGURED"
+  | "UNKNOWN";
+
+export type LeoSystemHealthComponent = {
+  key: string;
+  label: string;
+  state: LeoSystemHealthState;
+  ownerMessage: string | null;
+};
+
+export type LeoSystemHealthSnapshot = {
+  generatedAt: string;
+  overall: LeoSystemHealthState;
+  components: LeoSystemHealthComponent[];
+  limitations: string[];
+};
+
+export type LeoNotificationDeliveryState =
+  | "PREPARED"
+  | "ATTEMPTED"
+  | "DELIVERED_TO_PUSH_PROVIDER"
+  | "FAILED";
+
+export type LeoNotificationSubscriptionStatus = {
+  enabled: boolean;
+  pushConfigured: boolean;
+  subscriptionCount: number;
+  permissionHint: "unsupported" | "default" | "granted" | "denied" | "unknown";
+  lastDeliveryState: LeoNotificationDeliveryState | null;
+  lastDeliveryAt: string | null;
+  lastFailureAt: string | null;
+};
+
+export type LeoWatchCronRunSummary = {
+  ranAt: string;
+  ownerAuthUserId: string;
+  watchesEvaluated: number;
+  notificationsPrepared: number;
+  notificationsAttempted: number;
+  notificationsDelivered: number;
+  notificationsFailed: number;
+  notificationsSuppressed: number;
+  errors: string[];
+};

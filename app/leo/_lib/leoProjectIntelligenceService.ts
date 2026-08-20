@@ -108,6 +108,19 @@ export async function getLeoProjectExecutiveSnapshot(
   options: LeoProjectIntelligenceOptions = {},
 ): Promise<LeoProjectExecutiveSnapshot> {
   await requireLeoOwnerAccess();
+  return loadLeoProjectExecutiveSnapshotInternal(options);
+}
+
+/** LEO-16 cron/system loader — caller must enforce owner boundary. */
+export async function loadLeoProjectExecutiveSnapshotForScheduledWatch(
+  options: LeoProjectIntelligenceOptions = {},
+): Promise<LeoProjectExecutiveSnapshot> {
+  return loadLeoProjectExecutiveSnapshotInternal(options);
+}
+
+async function loadLeoProjectExecutiveSnapshotInternal(
+  options: LeoProjectIntelligenceOptions = {},
+): Promise<LeoProjectExecutiveSnapshot> {
   const nowMs = options.nowMs ?? Date.now();
   const observedAt = new Date(nowMs).toISOString();
   const leoBranch = options.branch?.trim() || LEO_PROJECT_DEFAULT_BRANCH;
