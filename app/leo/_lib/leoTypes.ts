@@ -798,6 +798,45 @@ export type LeoAiAnswerMeta = {
   intent: LeoConversationIntent;
   governanceLevel: LeoGovernanceLevel | null;
   groundingState: LeoAiGroundingState;
+  /** LEO-19E safe runtime observation — never prompts/secrets/raw bodies. */
+  runtimeObservation?: LeoIntelligenceRuntimeObservation | null;
+};
+
+/** LEO-19E — operational intelligence-worker observation (safe metadata only). */
+export type LeoIntelligenceRuntimeFailureClass =
+  | "NOT_CONNECTED"
+  | "PROVIDER_UNAVAILABLE"
+  | "TIMEOUT"
+  | "PROVIDER_ERROR"
+  | "INVALID_MODEL_OUTPUT"
+  | "VALIDATION_REJECTED"
+  | "INSUFFICIENT_EVIDENCE"
+  | "INTENT_NOT_AI_ELIGIBLE"
+  | "NONE";
+
+export type LeoIntelligenceRuntimeObservation = {
+  generatedAt: string;
+  correlationId: string | null;
+  providerType: string;
+  capability: string | null;
+  typeRegistered: true;
+  adapterImplemented: boolean;
+  configPresent: boolean;
+  runtimeAvailable: boolean;
+  callAttempted: boolean;
+  callSucceeded: boolean;
+  callFailed: boolean;
+  validationSucceeded: boolean;
+  validationRejected: boolean;
+  fallbackUsed: boolean;
+  failureClass: LeoIntelligenceRuntimeFailureClass;
+  reasoningMode: LeoAiReasoningMode;
+  latencyMs: number | null;
+  workerDegraded: boolean;
+  leoOperational: true;
+  governanceLevel: LeoGovernanceLevel | null;
+  governanceUnchangedByHealth: true;
+  notRecording: readonly string[];
 };
 
 export type LeoAiEvidenceItem = {

@@ -19,6 +19,7 @@ import {
 import { businessRefFromClientCareEntity } from "@/app/leo/_lib/leoBusinessConciergeBridge";
 import { fetchLeoBusinessConciergeEnrichmentForRefs } from "@/app/leo/_lib/leoBusinessConciergeBridgeService";
 import { collectLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
+import { leoIntelligenceRuntimeMorningBriefWarning } from "@/app/leo/_lib/leoIntelligenceRuntimeHealth";
 import type { LeoBusinessConciergeBusinessRef, LeoMorningBrief, LeoMorningBriefAvailability } from "@/app/leo/_lib/leoTypes";
 
 export type LeoMorningBriefServiceOptions = {
@@ -195,6 +196,7 @@ export async function getLeoMorningBrief(
             attention: [],
             limitation: "Company-wide admin reporting unavailable.",
           },
+    intelligenceRuntimeWarning: leoIntelligenceRuntimeMorningBriefWarning({}),
   };
 
   const careWatch =

@@ -45,6 +45,12 @@ import { isLeoGithubConfigured, isLeoVercelConfigured } from "@/app/leo/_lib/leo
 import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
 import { buildLeoSystemHealthSnapshot } from "@/app/leo/_lib/leoSystemHealth";
 import {
+  intelligenceRuntimeConfigSystemHealthState,
+  leoIntelligenceRuntimeMorningBriefWarning,
+  mapIntelligenceRuntimeToSystemHealthComponent,
+} from "@/app/leo/_lib/leoIntelligenceRuntimeHealth";
+import { isLeoAiCredentialPresent } from "@/app/leo/_lib/leoAiConfigPresence";
+import {
   buildSuppressedSourceKeysFromAcks,
   runLeoWatchEngine,
 } from "@/app/leo/_lib/leoWatchEngine";
@@ -274,6 +280,11 @@ export async function runLeoScheduledWatches(options?: {
   const commSnap = communication.status === "fulfilled" ? communication.value : null;
   const projectSnap = project.status === "fulfilled" ? project.value : null;
 
+  const intelligenceComponent = mapIntelligenceRuntimeToSystemHealthComponent(
+    null,
+    isLeoAiCredentialPresent(),
+  );
+
   const systemHealth = buildLeoSystemHealthSnapshot({
     nowMs,
     gmail: commSnap?.gmail.availability,
@@ -293,6 +304,11 @@ export async function runLeoScheduledWatches(options?: {
         ? "HEALTHY"
         : "UNAVAILABLE",
     watchPersistence: isSupabaseAdminConfigured() ? "HEALTHY" : "NOT_CONFIGURED",
+    intelligenceReasoning:
+      intelligenceComponent.state !== "UNKNOWN"
+        ? intelligenceComponent.state
+        : intelligenceRuntimeConfigSystemHealthState(),
+    intelligenceReasoningMessage: intelligenceComponent.ownerMessage,
     reportingAdapters: reportingSnap?.adapterHealth.map((h) => ({
       domain: h.domain,
       label: h.label,
@@ -356,6 +372,7 @@ export async function runLeoScheduledWatches(options?: {
           attention: [],
           limitation: "Company-wide admin reporting unavailable.",
         },
+    intelligenceRuntimeWarning: leoIntelligenceRuntimeMorningBriefWarning({}),
   });
 
   const acks = acksRes.status === "fulfilled" ? acksRes.value.acks : [];

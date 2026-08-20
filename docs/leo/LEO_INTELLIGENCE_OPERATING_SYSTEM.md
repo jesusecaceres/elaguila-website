@@ -223,6 +223,8 @@ Principles:
 
 **LEO-19D reconciliation:** the proven LEO-10 reasoning worker sits behind the LEO-19 orchestration layer via a provider-neutral reasoning envelope and a transport-only `REASONING_MODEL` adapter that reuses existing `callLeoAiProvider`. Conversation keeps one AI entry (`enrichLeoConversationWithAi`). `leoAiReasoningEngine` remains orchestrator (evidence / validation / fallback). Adapter owns transport translation only. CAPABILITY ≠ AUTHORITY.
 
+**LEO-19E observability:** runtime truth stages are separate facts — TYPE REGISTERED → ADAPTER IMPLEMENTED → CONFIG PRESENT → RUNTIME AVAILABLE → CALL RESULT → VALIDATION RESULT → FALLBACK RESULT. Config presence ≠ call success; call success ≠ validation success. Worker failure must never be hidden, and must not falsely imply LEO is down when deterministic Leonix truth remains operational. No raw prompts/responses/secrets in observability. No second receipt/reporting/health system.
+
 ---
 
 ## 8. Memory Philosophy

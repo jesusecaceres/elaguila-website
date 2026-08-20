@@ -27,6 +27,9 @@ export type LeoSystemHealthInput = {
   githubConfigured?: boolean;
   vercelConfigured?: boolean;
   webPushConfigured?: boolean;
+  /** LEO-19E — intelligence reasoning worker (config / last-call observation). */
+  intelligenceReasoning?: LeoSystemHealthState;
+  intelligenceReasoningMessage?: string | null;
   /** EXEC-REPORTS-02 — reporting adapter health. NOT_IMPLEMENTED is not a failure. */
   reportingAdapters?: Array<{
     domain: string;
@@ -143,6 +146,16 @@ export function buildLeoSystemHealthSnapshot(input: LeoSystemHealthInput = {}): 
     state: input.watchPersistence ?? supabaseState,
     ownerMessage: null,
   });
+
+  // LEO-19E — intelligence worker. NOT_CONFIGURED / DEGRADED ≠ LEO down.
+  if (input.intelligenceReasoning != null) {
+    components.push({
+      key: "intelligence_reasoning",
+      label: "Intelligence reasoning worker",
+      state: input.intelligenceReasoning,
+      ownerMessage: input.intelligenceReasoningMessage ?? null,
+    });
+  }
 
   const pushAvailable = input.pushSubscriptionAvailable ?? input.webPushConfigured === true;
   components.push({

@@ -116,6 +116,8 @@ export type LeoMorningBriefBuildInput = {
     }>;
     limitation?: string | null;
   };
+  /** LEO-19E — exception-state intelligence worker warning only (never "AI healthy"). */
+  intelligenceRuntimeWarning?: string | null;
 };
 
 export function resolveLeoMorningBriefTimezone(input?: string | null): string {
@@ -532,6 +534,7 @@ export function buildLeoMorningBrief(input: LeoMorningBriefBuildInput): LeoMorni
   if (input.commitments?.limitation) limitations.push(input.commitments.limitation);
   if (input.receipts?.limitation) limitations.push(input.receipts.limitation);
   if (input.project?.limitation) limitations.push(input.project.limitation);
+  if (input.intelligenceRuntimeWarning) limitations.push(input.intelligenceRuntimeWarning);
 
   const visibleAttention = attentionBrief?.visibleItems ?? attentionBrief?.items ?? [];
   const attentionCards: LeoResultCard[] = visibleAttention.slice(0, 4).map((item) => ({

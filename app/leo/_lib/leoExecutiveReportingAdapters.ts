@@ -17,6 +17,9 @@ import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionC
 import { isLeoGoogleWorkspaceConfigured } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
 import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
 import {
+  buildLeoIntelligenceRuntimeExecutiveSignals,
+} from "@/app/leo/_lib/leoIntelligenceRuntimeHealth";
+import {
   buildLeoExecutiveSignal,
   clampAdapterLimit,
   emptyAdapterResult,
@@ -691,6 +694,8 @@ export const leoSystemReportingAdapter: LeoExecutiveReportingAdapter = {
         availability: pushOk ? "AVAILABLE" : "NOT_IMPLEMENTED",
         priorityRank: 8,
       }),
+      // LEO-19E — current-state intelligence worker config only (no success noise).
+      ...buildLeoIntelligenceRuntimeExecutiveSignals({ nowMs }),
     ];
 
     // LEO-17A connected action persistence foundation — bounded proposal counts.
