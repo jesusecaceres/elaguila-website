@@ -39,7 +39,12 @@ import type {
   LeoProjectExecutiveSnapshot,
   LeoResultCard,
   LeoToolAvailability,
+  LeoBusinessConciergeContext,
 } from "@/app/leo/_lib/leoTypes";
+import {
+  enrichMorningBriefPriorityWithConcierge,
+  businessRefFromClientCareEntity,
+} from "@/app/leo/_lib/leoBusinessConciergeBridge";
 
 export const LEO_MORNING_BRIEF_MAX_TOP_PRIORITIES = 5;
 export const LEO_MORNING_BRIEF_MAX_EMAIL_CARDS = 5;
@@ -96,6 +101,8 @@ export type LeoMorningBriefBuildInput = {
     snapshot: LeoProjectExecutiveSnapshot | null;
     limitation?: string | null;
   };
+  /** LEO-15: optional bounded Concierge enrichment keyed by kind:id */
+  conciergeByRef?: Record<string, LeoBusinessConciergeContext>;
 };
 
 export function resolveLeoMorningBriefTimezone(input?: string | null): string {
@@ -698,7 +705,17 @@ export function buildLeoMorningBrief(input: LeoMorningBriefBuildInput): LeoMorni
     receipts,
     project,
   });
-  const topPriorities = dedupePriorities(ranked);
+  const topPriorities = dedupePriorities(ranked).map((p) => {
+    if (p.source !== "Client Care") return p;
+    const signalKey = p.evidenceRef ?? p.cardId;
+    const signal = careSignals.find((s) => s.key === signalKey || `client:${s.key}` === p.cardId);
+    const ref = signal
+      ? businessRefFromClientCareEntity(signal.entityRef.entityType, signal.entityRef.id)
+      : null;
+    if (!ref) return p;
+    const ctx = input.conciergeByRef?.[`${ref.kind}:${ref.id}`];
+    return enrichMorningBriefPriorityWithConcierge(p, ctx);
+  });
   const canWait = ranked
     .filter((p) => p.priority === "CAN_WAIT")
     .slice(0, 4)

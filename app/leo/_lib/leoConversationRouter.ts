@@ -44,6 +44,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "COMMITMENT_INTELLIGENCE",
   "RECEIPT_INTELLIGENCE",
   "MORNING_BRIEF",
+  "BUSINESS_CONCIERGE_CONTEXT",
   "UNKNOWN",
 ] as const;
 
@@ -210,6 +211,23 @@ export function isLeoMorningBriefQuestion(q: string): boolean {
   );
 }
 
+/** LEO-15: Business Concierge read context — distinct from generic CLIENT_CARE. */
+export function isLeoBusinessConciergeContextQuestion(q: string): boolean {
+  const n = normalizeQuestion(q);
+  if (/\bclient care plan\b/.test(n) || /\bwho is waiting on\b/.test(n)) return false;
+  return (
+    /\bwhat can concierge do\b/.test(n) ||
+    /\bconcierge context\b/.test(n) ||
+    /\bshow concierge\b/.test(n) ||
+    /\bwhat tools can help this client\b/.test(n) ||
+    /\bwhat do we know about this business\b/.test(n) ||
+    /\bbusiness concierge\b/.test(n) ||
+    /\bbefore i (call|talk to) this (client|business)\b/.test(n) ||
+    (/\bwhat does this (client|business) need\b/.test(n) &&
+      /\b(concierge|tools|business profile|business context)\b/.test(n))
+  );
+}
+
 function inferPreparationKindFromQuestion(q: string): LeoPreparationKind | null {
   const wantsPrep = /\b(prepare|draft|make me a brief|checklist)\b/.test(q);
   if (!wantsPrep) return null;
@@ -326,6 +344,17 @@ export function routeLeoConversation(
     notes.push("morning brief pattern");
     return routeResult({
       intent: "MORNING_BRIEF",
+      confidence: "high",
+      inferredActionKind: "READ",
+      inferredPreparationKind: null,
+      routeNotes: notes,
+    });
+  }
+
+  if (isLeoBusinessConciergeContextQuestion(q)) {
+    notes.push("business concierge context pattern");
+    return routeResult({
+      intent: "BUSINESS_CONCIERGE_CONTEXT",
       confidence: "high",
       inferredActionKind: "READ",
       inferredPreparationKind: null,

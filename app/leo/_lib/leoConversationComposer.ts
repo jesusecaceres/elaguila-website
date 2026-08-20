@@ -505,6 +505,13 @@ export function suggestedQuestionsForIntent(intent: LeoConversationIntent): stri
         "Prepare me for my next meeting.",
         "What did LEO prepare?",
       ];
+    case "BUSINESS_CONCIERGE_CONTEXT":
+      return [
+        "What tools can help this client?",
+        "What is missing from this business profile?",
+        "Who is waiting on me?",
+        "What can concierge do for this business?",
+      ];
     case "CAPABILITY_GOVERNANCE":
       return ["What can you prepare instead?", "What can you do?", "What needs my attention?"];
     case "PREPARATION":

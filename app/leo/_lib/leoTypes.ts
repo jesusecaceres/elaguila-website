@@ -565,6 +565,7 @@ export type LeoConversationIntent =
   | "COMMITMENT_INTELLIGENCE"
   | "RECEIPT_INTELLIGENCE"
   | "MORNING_BRIEF"
+  | "BUSINESS_CONCIERGE_CONTEXT"
   | "UNKNOWN";
 
 /** LEO-13 deterministic communication question subtype. */
@@ -1572,6 +1573,77 @@ export type LeoMorningBrief = {
   canWait: LeoMorningBriefTopPriority[];
   unknowns: string[];
   limitations: string[];
+  spokenSummary: string;
+};
+
+/* -------------------------------------------------------------------------- */
+/* LEO-15 Business Concierge read bridge — bounded client/business context     */
+/* -------------------------------------------------------------------------- */
+
+export type LeoBusinessConciergeAvailability =
+  | "AVAILABLE"
+  | "PARTIAL"
+  | "EMPTY"
+  | "UNAVAILABLE"
+  | "NOT_IMPLEMENTED";
+
+export type LeoBusinessConciergeCapabilityStatus = "AVAILABLE_NOW" | "COMING_SOON" | "UNKNOWN";
+
+export type LeoBusinessConciergeCapability = {
+  key: string;
+  label: string;
+  summary: string;
+  status: LeoBusinessConciergeCapabilityStatus;
+  /** Marketing/catalog only — not proof of customer execution. */
+  catalogOnly: boolean;
+};
+
+export type LeoBusinessConciergeBusinessRef = {
+  system: "leonix";
+  kind: "lead" | "support_ticket";
+  id: string;
+};
+
+export type LeoBusinessConciergeLeadSnapshot = {
+  id: string;
+  businessName: string | null;
+  businessCategory: string | null;
+  inquiryType: string | null;
+  status: string;
+  cityArea: string | null;
+  websiteOrSocial: string | null;
+};
+
+export type LeoBusinessConciergeSupportSnapshot = {
+  id: string;
+  status: string;
+  subjectLabel: string | null;
+};
+
+export type LeoBusinessConciergeRecentOutput = {
+  kind: string;
+  summary: string;
+  observedAt: string | null;
+  /** PROVEN only when backed by persisted Concierge output — none exist today. */
+  provenance: "PROVEN" | "DISPLAY_ONLY";
+};
+
+export type LeoBusinessConciergeContext = {
+  generatedAt: string;
+  availability: LeoBusinessConciergeAvailability;
+  businessRef: LeoBusinessConciergeBusinessRef;
+  businessName: string | null;
+  businessCategory: string | null;
+  ownerRef: null;
+  profileSummary: string | null;
+  focusAreas: string[];
+  availableCapabilities: LeoBusinessConciergeCapability[];
+  knownGoals: string[];
+  recentOutputs: LeoBusinessConciergeRecentOutput[];
+  openNeeds: string[];
+  limitations: string[];
+  unknowns: string[];
+  evidenceRefs: string[];
   spokenSummary: string;
 };
 

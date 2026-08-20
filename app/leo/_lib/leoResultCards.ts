@@ -15,6 +15,7 @@ import {
   createRemindLaterAction,
   createShowEvidenceAction,
   createSummarizeAction,
+  createLeoExecutiveAction,
   buildTrustedGmailThreadUrl,
 } from "@/app/leo/_lib/leoExecutiveActions";
 import { LEO_COMMITMENT_DUE_SOON_MS } from "@/app/leo/_lib/leoPersistenceSemantics";
@@ -38,6 +39,7 @@ import type {
   LeoProjectExecutiveSnapshot,
   LeoProjectResultCard,
   LeoResultCard,
+  LeoBusinessConciergeContext,
 } from "@/app/leo/_lib/leoTypes";
 
 const SPOKEN_MAX = 220;
@@ -446,6 +448,66 @@ export function mapClientCareSignalToResultCard(
     lastInteractionAt: signal.lastContactedAt,
     followUpAt: signal.followUpAt,
     source: signal.source,
+  };
+}
+
+export function mapConciergeContextToResultCard(
+  ctx: LeoBusinessConciergeContext,
+): LeoClientResultCard {
+  const title = ctx.businessName?.trim() || "Business context";
+  const spoken = ctx.spokenSummary;
+  const entityType = ctx.businessRef.kind === "lead" ? "lead" : "support_ticket";
+  const adminHref =
+    ctx.businessRef.kind === "lead"
+      ? "/admin/leads/inbox"
+      : "/admin/support";
+
+  return {
+    cardId: `concierge:${ctx.businessRef.kind}:${ctx.businessRef.id}`,
+    kind: "CLIENT",
+    priority: ctx.openNeeds.length > 0 ? "HIGH" : "NORMAL",
+    certainty: ctx.availability === "PARTIAL" ? "PROVEN" : "POSSIBLE",
+    title,
+    subtitle: ctx.businessCategory ?? ctx.availability.replace(/_/g, " "),
+    whyItMatters: ctx.profileSummary,
+    reason: ctx.openNeeds[0] ?? "Concierge read context — catalog only, no execution history.",
+    evidenceRefs: ctx.evidenceRefs.slice(0, 8),
+    sourceSystem: "LEONIX",
+    actions: [
+      createLeoExecutiveAction({
+        type: "OPEN_INTERNAL",
+        label: ctx.businessRef.kind === "lead" ? "Open Launch Leads" : "Open support",
+        targetRef: {
+          system: "LEONIX",
+          entityType,
+          id: ctx.businessRef.id,
+          url: adminHref,
+        },
+      }),
+      createInspectAction({
+        system: "LEONIX",
+        entityType,
+        id: ctx.businessRef.id,
+      }),
+      createShowEvidenceAction({
+        system: "LEONIX",
+        entityType: "business_concierge",
+        id: ctx.businessRef.id,
+      }),
+    ],
+    spokenSummary: boundSpokenSummary(spoken),
+    entityRef: {
+      entityType: entityType === "lead" ? "lead" : "support_ticket",
+      id: ctx.businessRef.id,
+      categorySource: "business_concierge",
+    },
+    displayName: title,
+    businessName: ctx.businessName,
+    status: ctx.availability,
+    waitingParty: null,
+    lastInteractionAt: null,
+    followUpAt: null,
+    source: "LEAD",
   };
 }
 

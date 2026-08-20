@@ -16,7 +16,9 @@ import {
   resolveLeoMorningBriefTimezone,
   type LeoMorningBriefBuildInput,
 } from "@/app/leo/_lib/leoMorningBrief";
-import type { LeoMorningBrief, LeoMorningBriefAvailability } from "@/app/leo/_lib/leoTypes";
+import { businessRefFromClientCareEntity } from "@/app/leo/_lib/leoBusinessConciergeBridge";
+import { fetchLeoBusinessConciergeEnrichmentForRefs } from "@/app/leo/_lib/leoBusinessConciergeBridgeService";
+import type { LeoBusinessConciergeBusinessRef, LeoMorningBrief, LeoMorningBriefAvailability } from "@/app/leo/_lib/leoTypes";
 
 export type LeoMorningBriefServiceOptions = {
   nowMs?: number;
@@ -158,6 +160,27 @@ export async function getLeoMorningBrief(
             limitation: "Project intelligence unavailable.",
           },
   };
+
+  const careWatch =
+    careRes.status === "fulfilled" ? careRes.value : null;
+  const conciergeRefs: LeoBusinessConciergeBusinessRef[] = [];
+  if (careWatch) {
+    for (const signal of careWatch.signals) {
+      if (!signal.attentionEligible) continue;
+      const ref = businessRefFromClientCareEntity(
+        signal.entityRef.entityType,
+        signal.entityRef.id,
+      );
+      if (ref && ref.kind === "lead") {
+        conciergeRefs.push(ref);
+      }
+      if (conciergeRefs.length >= 2) break;
+    }
+  }
+  if (conciergeRefs.length > 0) {
+    const enrichment = await fetchLeoBusinessConciergeEnrichmentForRefs(conciergeRefs, nowMs);
+    buildInput.conciergeByRef = Object.fromEntries(enrichment.entries());
+  }
 
   return buildLeoMorningBrief(buildInput);
 }

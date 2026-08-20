@@ -88,7 +88,7 @@ export function extractRefsFromResultCard(card: LeoResultCard): {
       return {
         entityRef: {
           system: "LEONIX",
-          kind: "CLIENT",
+          kind: card.entityRef.entityType === "lead" ? "lead" : "CLIENT",
           id: card.entityRef.id ?? card.cardId,
           label: card.displayName.slice(0, 120),
         },

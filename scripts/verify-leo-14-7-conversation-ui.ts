@@ -151,6 +151,12 @@ const allowed = new Set([
   "app/leo/_lib/leoConversationComposer.ts",
   "app/admin/(dashboard)/leo/_components/LeoMorningBrief.tsx",
   "scripts/verify-leo-14-11-morning-ceo-brief.ts",
+  // LEO-15 business concierge read bridge
+  "app/leo/_lib/leoBusinessConciergeBridge.ts",
+  "app/leo/_lib/leoBusinessConciergeBridgeService.ts",
+  "app/leo/_lib/leoConversationContext.ts",
+  "app/leo/_lib/leoResultCards.ts",
+  "scripts/verify-leo-15-business-concierge-read-bridge.ts",
 ]);
 const illegal = [...changed, ...untracked].filter((f) => !allowed.has(f) && !f.endsWith("/"));
 check(illegal.length === 0, `scope only allowlisted${illegal.length ? ": " + illegal.join(", ") : ""}`);

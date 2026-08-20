@@ -80,6 +80,11 @@ import {
 } from "@/app/leo/_lib/leoCommunicationIntelligenceService";
 import { getLeoMorningBrief } from "@/app/leo/_lib/leoMorningBriefService";
 import {
+  composeLeoBusinessConciergeExecutiveSummary,
+} from "@/app/leo/_lib/leoBusinessConciergeBridge";
+import { getLeoBusinessConciergeContextFromRefs } from "@/app/leo/_lib/leoBusinessConciergeBridgeService";
+import { mapConciergeContextToResultCard } from "@/app/leo/_lib/leoResultCards";
+import {
   buildLeoCommitmentIntelligence,
   cardDueStateForCommitment,
   parseLeoCommitmentQueryKind,
@@ -216,6 +221,88 @@ export async function runLeoConversationDeterministic(
           "What did LEO prepare?",
         ],
         suggestedNextRetrieval: "Ask about a specific section or drill into commitments or email.",
+      });
+    }
+
+    case "BUSINESS_CONCIERGE_CONTEXT": {
+      const result = await getLeoBusinessConciergeContextFromRefs({
+        nowMs,
+        selectedEntityRef: request.clientContext?.selectedEntityRef,
+        focusEntityRef: request.clientContext?.selectedEntityRef,
+        requiresBusinessTarget: true,
+      });
+
+      if (result.status === "AMBIGUOUS") {
+        return empty({
+          intent: "BUSINESS_CONCIERGE_CONTEXT",
+          answerState: "INSUFFICIENT_EVIDENCE",
+          summary: result.clarification,
+          unknowns: ["business_ref_ambiguous"],
+          suggestedNextRetrieval: "Select one client or lead card, then ask again.",
+          governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        });
+      }
+
+      if (result.status === "NONE") {
+        return empty({
+          intent: "BUSINESS_CONCIERGE_CONTEXT",
+          answerState: "INSUFFICIENT_EVIDENCE",
+          summary: result.summary,
+          unknowns: ["business_ref_unresolved"],
+          limitations: [
+            "Business Concierge bridge requires a canonical business identity — LEO will not guess from display name alone.",
+          ],
+          suggestedNextRetrieval: "Select a client-care card or specify a lead from Launch Leads.",
+          governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+          suggestedQuestions: [
+            "Who is waiting on me?",
+            "What can concierge do for this business?",
+          ],
+        });
+      }
+
+      const ctx = result.context;
+      const card = mapConciergeContextToResultCard(ctx);
+      const evidence: LeoConversationEvidence[] = ctx.evidenceRefs.slice(0, maxResults).map((ref) => ({
+        sourceKind: "business_concierge",
+        sourceRef: ref,
+        summary: ref.slice(0, 120),
+        availability: ctx.availability === "UNAVAILABLE" ? "UNAVAILABLE" : "LIVE",
+        limitationNote: null,
+      }));
+
+      return empty({
+        intent: "BUSINESS_CONCIERGE_CONTEXT",
+        answerState:
+          ctx.availability === "UNAVAILABLE" ? "INSUFFICIENT_EVIDENCE" : "ANSWERED",
+        summary: composeLeoBusinessConciergeExecutiveSummary(ctx),
+        spokenSummary: ctx.spokenSummary,
+        keyPoints: [
+          ...(ctx.profileSummary
+            ? [{ kind: "FACT" as const, text: ctx.profileSummary, evidenceIds: [] }]
+            : []),
+          ...ctx.openNeeds.slice(0, 3).map((n) => ({
+            kind: "UNKNOWN" as const,
+            text: n,
+            evidenceIds: [] as string[],
+          })),
+        ],
+        resultCards: [card],
+        evidence,
+        citations: evidence.map((e) => ({
+          sourceKind: e.sourceKind,
+          sourceRef: e.sourceRef,
+          label: e.summary.slice(0, 120),
+        })),
+        unknowns: ctx.unknowns,
+        limitations: ctx.limitations,
+        governance: assessLeoGovernance({ actionKind: "READ", nowMs }),
+        suggestedQuestions: [
+          "Who is waiting on me?",
+          "What tools can help this client?",
+          "What is missing from this business profile?",
+        ],
+        suggestedNextRetrieval: "Open Launch Leads for operational follow-through — LEO does not run Concierge.",
       });
     }
 
@@ -1134,6 +1221,13 @@ function applyResolvedReferentToRequest(
     next.entityId = resolution.receiptId;
   } else if (resolution.entityRef?.id) {
     next.entityId = resolution.entityRef.id;
+  }
+  if (resolution.entityRef) {
+    next.clientContext = {
+      ...request.clientContext,
+      selectedEntityRef: resolution.entityRef,
+      selectedCardId: resolution.cardId ?? request.clientContext?.selectedCardId ?? null,
+    };
   }
   return next;
 }
