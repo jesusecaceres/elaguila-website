@@ -132,7 +132,8 @@ export function CandidateReviewForm({ candidateId, review }: { candidateId: stri
           Disposition
         </label>
         <select id="disposition" name="disposition" defaultValue={review?.disposition ?? "pending"} className={adminInputClass}>
-          <option value="pending">Pending — still researching</option>
+          <option value="pending">Pending — not yet started</option>
+          <option value="researching">Researching — evidence in progress</option>
           <option value="ready_for_promotion">Ready for promotion</option>
           <option value="dropped">Dropped — obsolete/no longer exists</option>
         </select>

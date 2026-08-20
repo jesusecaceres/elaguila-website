@@ -56,7 +56,7 @@ function findCandidate(candidateId: string): CandidateResourceRecord | undefined
   return CANDIDATES.find((c) => c.candidateId === candidateId);
 }
 
-const DISPOSITIONS: CandidateReviewDisposition[] = ["pending", "ready_for_promotion", "promoted", "dropped"];
+const DISPOSITIONS: CandidateReviewDisposition[] = ["pending", "researching", "ready_for_promotion", "promoted", "dropped"];
 
 export async function saveCandidateReviewAction(formData: FormData): Promise<void> {
   await assertRecursosAdmin();

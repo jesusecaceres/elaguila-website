@@ -13,6 +13,11 @@ import {
   adminTableZebraRow,
   adminActionProofOk,
   adminActionProofErr,
+  adminCardBase,
+  adminDashboardCtaPrimary,
+  adminDashboardCtaView,
+  adminDashboardCtaWarning,
+  adminDashboardCtaNeutral,
 } from "@/app/admin/_components/adminTheme";
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { RecursosFilterBar } from "@/app/admin/_components/recursos/RecursosFilterBar";
@@ -25,6 +30,10 @@ import type { ResourceRecord } from "@/app/lib/recursos/types";
 import { dbListCandidateReviews } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import type { CandidateResourceRecord } from "@/app/lib/recursos/sourceIngestion";
 import candidatesData from "@/data/recursos/candidates/scc-community-resource-guide-2023.json";
+import { buildReverificationQueue } from "@/app/lib/recursos/intake/reverificationQueue";
+import { dbCountActiveResourceIntakeJobs } from "@/app/lib/recursos/intake/server/resourceIntakeJobsDb";
+import { dbCountPendingResourceChangeProposals } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { dbCountPendingPartnerUpdateRequests } from "@/app/lib/recursos/intake/server/partnerUpdateRequestsDb";
 
 const CANDIDATES = candidatesData as unknown as CandidateResourceRecord[];
 
@@ -122,6 +131,16 @@ export default async function RecursosAdminListPage(props: {
   const sp = props.searchParams ? await props.searchParams : {};
   const { rows: all, unavailable } = await dbListCommunityResources();
   const { rows: candidateReviews } = await dbListCandidateReviews();
+
+  // Gate 2 — Recursos Command Center metrics. Reuses `all` (no extra query) for reverification;
+  // three genuinely new counts come from the Gate 1 Intake OS tables. Any query that fails shows
+  // an honest "no disponible" rather than a fabricated zero (see `commandCenterUnavailable` below).
+  const reverificationQueue = buildReverificationQueue(all);
+  const [intakeJobsCount, changeProposalsCount, partnerRequestsCount] = await Promise.all([
+    dbCountActiveResourceIntakeJobs(),
+    dbCountPendingResourceChangeProposals(),
+    dbCountPendingPartnerUpdateRequests(),
+  ]);
   const promotedCandidateIds = new Set(candidateReviews.filter((r) => r.disposition === "promoted").map((r) => r.candidateId));
   const candidateCounts = {
     total: CANDIDATES.length,
@@ -182,6 +201,70 @@ export default async function RecursosAdminListPage(props: {
         nextGate="Build 03 wires a public search/directory experience against this same table via app/lib/recursos/server/communityResourcesPublicQueries.ts."
         warningNote="Partner status and Featured are editorial/relationship metadata only — they never affect public ranking. Ranking is always urgency/relevance/geography/eligibility/verification/active-status based."
       />
+
+      <section className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Centro de comando de Recursos</h2>
+        <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">
+          Métricas reales — cada número se lee directamente de Supabase en el momento de cargar esta página. Ningún valor se
+          inventa: si una consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
+        </p>
+
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-9">
+          <AdminStatCard title="Publicados / Activos" value={unavailable ? "—" : counts.active} />
+          <AdminStatCard title="Verificados" value={unavailable ? "—" : counts.verified} />
+          <AdminStatCard title="Revisión pendiente" value={unavailable ? "—" : counts.needsReview} accent={!unavailable && counts.needsReview > 0 ? "amber" : "default"} />
+          <AdminStatCard title="Vencidos / Stale" value={unavailable ? "—" : counts.stale} accent={!unavailable && counts.stale > 0 ? "amber" : "default"} />
+          <AdminStatCard
+            title="Reverificación próxima"
+            value={unavailable ? "—" : reverificationQueue.due_soon.length + reverificationQueue.overdue.length}
+            accent={!unavailable && reverificationQueue.overdue.length > 0 ? "rose" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/reverificacion"
+          />
+          <AdminStatCard title="Candidatos" value={CANDIDATES.length} actionLabel="Revisar" actionHref="/admin/recursos/candidatos" />
+          <AdminStatCard
+            title="Intakes activos"
+            value={intakeJobsCount.unavailable ? "no disponible" : intakeJobsCount.count}
+            actionLabel="Nuevo intake"
+            actionHref="/admin/recursos/intake"
+          />
+          <AdminStatCard
+            title="Cambios pendientes"
+            value={changeProposalsCount.unavailable ? "no disponible" : changeProposalsCount.count}
+            accent={!changeProposalsCount.unavailable && changeProposalsCount.count > 0 ? "amber" : "default"}
+            actionLabel="Ver cambios"
+            actionHref="/admin/recursos/cambios"
+          />
+          <AdminStatCard
+            title="Solicitudes pendientes"
+            value={partnerRequestsCount.unavailable ? "no disponible" : partnerRequestsCount.count}
+            accent={!partnerRequestsCount.unavailable && partnerRequestsCount.count > 0 ? "amber" : "default"}
+            actionLabel="Ver solicitudes"
+            actionHref="/admin/recursos/solicitudes"
+          />
+        </div>
+
+        <div className="mt-5 grid gap-2.5 grid-cols-2 lg:grid-cols-3">
+          <Link href="/admin/recursos/nuevo" className={adminDashboardCtaPrimary}>
+            Agregar recurso manualmente
+          </Link>
+          <Link href="/admin/recursos/intake" className={adminDashboardCtaView}>
+            Nuevo intake
+          </Link>
+          <Link href="/admin/recursos/candidatos" className={adminDashboardCtaWarning}>
+            Revisar candidatos
+          </Link>
+          <Link href="/admin/recursos/cambios" className={adminDashboardCtaNeutral}>
+            Revisar cambios
+          </Link>
+          <Link href="/admin/recursos/solicitudes" className={adminDashboardCtaNeutral}>
+            Solicitudes de socios
+          </Link>
+          <Link href="/admin/recursos/reverificacion" className={adminDashboardCtaNeutral}>
+            Reverificación
+          </Link>
+        </div>
+      </section>
 
       <Link
         href="/admin/recursos/candidatos"
