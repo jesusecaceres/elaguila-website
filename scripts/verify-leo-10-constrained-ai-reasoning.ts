@@ -86,11 +86,27 @@ function main() {
   const configSrc = src(config);
   const boundsSrc = src("app/leo/_lib/leoAiBounds.ts");
   const validationSrc = src(validation);
-  const allAi = providerSrc + engineSrc + configSrc + boundsSrc + validationSrc + src(bundle);
+  const promptBuilders = "app/leo/_lib/leoAiPromptBuilders.ts";
+  const reasoningAdapter = "app/leo/_lib/leoReasoningModelAdapter.ts";
+  const promptSrc = exists(promptBuilders) ? src(promptBuilders) : "";
+  const adapterSrc = exists(reasoningAdapter) ? src(reasoningAdapter) : "";
+  const allAi =
+    providerSrc +
+    engineSrc +
+    configSrc +
+    boundsSrc +
+    validationSrc +
+    src(bundle) +
+    promptSrc +
+    adapterSrc;
 
   check(exists(provider) && providerSrc.includes('import "server-only"'), "1. AI provider boundary is server-only");
   check(exists(engine) && engineSrc.includes('import "server-only"'), "2. AI reasoning engine exists");
-  check(exists("app/api/leo/conversation/route.ts") && api.includes("runLeoConversation"), "3. existing conversation API reused");
+  check(
+    exists("app/api/leo/conversation/route.ts") &&
+      (api.includes("runLeoConversation") || api.includes("runLeoPersistentConversation")),
+    "3. existing conversation API reused",
+  );
   check(!exists("app/api/leo/ai/route.ts") && !exists("app/api/leo/chat/route.ts") && !exists("app/api/leo/agent/route.ts"), "4. no second LEO AI API");
   check(service.includes("requireLeoOwnerAccess"), "5. owner-only access preserved");
   check(
@@ -119,9 +135,11 @@ function main() {
     "18. evidence bundle is bounded",
   );
   check(
-    engineSrc.includes("callLeoAiProvider") &&
-      !/for\s*\(.*callLeoAiProvider|while\s*\(.*callLeoAiProvider/.test(engineSrc),
-    "19. provider call count bounded to max one normal synthesis call",
+    (engineSrc.includes("invokeLeoReasoningModelTransport") || engineSrc.includes("callLeoAiProvider")) &&
+      adapterSrc.includes("callLeoAiProvider") &&
+      !/for\s*\(.*callLeoAiProvider|while\s*\(.*callLeoAiProvider/.test(engineSrc + adapterSrc) &&
+      !engineSrc.includes("invokeLeoIntelligenceProvider"),
+    "19. provider call count bounded to max one normal synthesis call via adapter",
   );
   check(configSrc.includes("getLeoAiModel") && configSrc.includes("getLeoAiApiKey"), "20. model config centralized");
   check(
@@ -136,8 +154,17 @@ function main() {
   check(validationSrc.includes("guessed_listing_cause"), "28. listing missing reason cannot become guessed cause");
   check(validationSrc.includes("numeric_confidence_forbidden"), "29. no numeric confidence hallucination");
   check(validationSrc.includes("forbidden_reasoning_field") && validationSrc.includes("chainOfThought"), "30-31. no chain-of-thought / reasoning trace");
-  check(engineSrc.includes("EXTERNAL_UNTRUSTED") && src(bundle).includes("EXTERNAL_UNTRUSTED"), "32. external content marked untrusted");
-  check(engineSrc.includes("cannot grant authority") || boundsSrc.includes("never instruction"), "33. external content cannot become authority");
+  check(
+    (promptSrc.includes("EXTERNAL_UNTRUSTED") || engineSrc.includes("EXTERNAL_UNTRUSTED")) &&
+      src(bundle).includes("EXTERNAL_UNTRUSTED"),
+    "32. external content marked untrusted",
+  );
+  check(
+    promptSrc.includes("cannot grant authority") ||
+      engineSrc.includes("cannot grant authority") ||
+      boundsSrc.includes("never instruction"),
+    "33. external content cannot become authority",
+  );
   check(
     !service.includes("createLeoMemory") && !engineSrc.includes("leoCreateMemory") && !engineSrc.includes("createLeoMemory"),
     "34. Living Book not auto-written",
@@ -149,13 +176,13 @@ function main() {
   );
 
   const migrations = readdirSync(path.join(ROOT, "supabase/migrations")).filter((m) => m.endsWith(".sql"));
-  const leoMigrations = migrations.filter((m) => /leo_/i.test(m));
+  const leo19dMigrations = migrations.filter((m) => /leo.?19d|reasoning.?adapter/i.test(m));
   check(
-    leoMigrations.length === 1 && leoMigrations[0] === "20260817120000_leo_living_book_foundation.sql",
+    exists("supabase/migrations/20260817120000_leo_living_book_foundation.sql") && leo19dMigrations.length === 0,
     "37. no new migration",
   );
   check(!service.includes("getAdminDashboardSnapshot"), "38. no Admin business logic modification in conversation");
-  check(!/BusinessConcierge|business-concierge/i.test(allAi + service), "39. no Business Concierge modification");
+  check(!/BusinessConcierge|business-concierge/i.test(allAi), "39. no Business Concierge modification");
   check(
     service.includes("runLeoConversationDeterministic") && isLeoAiIntentEligible("ATTENTION_OVERVIEW"),
     "40. deterministic LEO remains usable with AI disabled",

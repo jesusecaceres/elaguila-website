@@ -95,6 +95,7 @@ No application code changes.
 - LEO-19A: capability classification (executive / engineering / creative / research / data / unknown)
 - LEO-19B: provider registry + selection policy (provider types only; offline; no live invocation)
 - LEO-19C: provider adapter runtime contract (normalized invoke/result seam; offline/null adapter only)
+- LEO-19D: reconciles the proven LEO-10 reasoning worker behind the LEO-19 provider-neutral orchestration layer (transport-only REASONING_MODEL adapter; one AI entry path)
 
 Chain: Router → Registry → Selection Policy → Adapter Runtime → future provider implementations.
 

@@ -221,6 +221,8 @@ Principles:
 
 **LEO-19C foundation:** a universal adapter runtime contract normalizes invocation request/result so future provider implementations plug in without leaking vendor code into conversation/router core. Offline/null adapter only in this gate. Models are workers; LEO remains the operator; minimum necessary context; provider output does not grant authority.
 
+**LEO-19D reconciliation:** the proven LEO-10 reasoning worker sits behind the LEO-19 orchestration layer via a provider-neutral reasoning envelope and a transport-only `REASONING_MODEL` adapter that reuses existing `callLeoAiProvider`. Conversation keeps one AI entry (`enrichLeoConversationWithAi`). `leoAiReasoningEngine` remains orchestrator (evidence / validation / fallback). Adapter owns transport translation only. CAPABILITY ≠ AUTHORITY.
+
 ---
 
 ## 8. Memory Philosophy

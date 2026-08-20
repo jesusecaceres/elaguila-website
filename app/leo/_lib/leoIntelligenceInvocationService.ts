@@ -1,10 +1,14 @@
 /**
- * LEO-19C — Intelligence Invocation Coordinator (offline).
+ * LEO-19C/19D — Intelligence Invocation Coordinator.
  *
  * Receives router + selection → builds bounded request → locates adapter →
- * enforces type/governance → invokes offline/null adapter only in this gate.
+ * enforces type/governance → invokes adapter.
  *
- * No live providers. No receipts created. Fail closed.
+ * LEO-19D: REASONING_MODEL resolves to leoReasoningModelAdapter when config present.
+ * Conversation AI entry remains enrichLeoConversationWithAi (architecture C) —
+ * this service does not create a second synthesis path for conversation.
+ *
+ * No fake receipts. Fail closed.
  */
 import type { LeoGovernanceLevel } from "@/app/leo/_lib/leoTypes";
 import type {
@@ -14,6 +18,7 @@ import type {
 } from "@/app/leo/_lib/leoIntelligenceRouter";
 import type { LeoIntelligenceSelectionResult } from "@/app/leo/_lib/leoIntelligenceSelectionPolicy";
 import type { LeoIntelligenceProviderType } from "@/app/leo/_lib/leoIntelligenceProviderRegistry";
+import type { LeoIntelligenceReasoningEnvelope } from "@/app/leo/_lib/leoIntelligenceReasoningEnvelope";
 import {
   buildFailClosedInvocationResult,
   LEO_19C_ADAPTER_NOT_CLAIMING,
@@ -29,6 +34,7 @@ import {
   createLeoNullIntelligenceProviderAdapter,
   leoNullIntelligenceProviderAdapter,
 } from "@/app/leo/_lib/leoNullIntelligenceProviderAdapter";
+import { isLeoAiCredentialPresent } from "@/app/leo/_lib/leoAiConfigPresence";
 
 export type LeoIntelligenceInvocationServiceInput = {
   question: string;
@@ -38,7 +44,9 @@ export type LeoIntelligenceInvocationServiceInput = {
   boundedExecutiveContextSummary?: string | null;
   requestId?: string | null;
   correlationId?: string | null;
-  /** Future: inject connected adapters. This gate only registers null adapters. */
+  /** Optional reasoning envelope for REASONING_MODEL. */
+  reasoningEnvelope?: LeoIntelligenceReasoningEnvelope | null;
+  /** Inject adapters; defaults include REASONING_MODEL + null. */
   adapters?: readonly LeoIntelligenceProviderAdapter[];
   exposureOverrides?: Partial<LeoIntelligenceProviderExposure>;
 };
@@ -82,6 +90,16 @@ function boundSummary(s: string | null | undefined, max = 800): string | null {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 
+/** Config truth without importing the live adapter (keeps offline verifiers free of server-only). */
+function reasoningModelConfigPresent(): boolean {
+  return isLeoAiCredentialPresent();
+}
+
+async function loadLeoReasoningModelAdapter(): Promise<LeoIntelligenceProviderAdapter> {
+  const mod = await import("@/app/leo/_lib/leoReasoningModelAdapter");
+  return mod.leoReasoningModelAdapter;
+}
+
 /**
  * Build normalized invocation request from router + selection.
  * Enforces minimum-necessary context exposure.
@@ -93,6 +111,7 @@ export function buildLeoIntelligenceInvocationRequest(input: {
   boundedExecutiveContextSummary?: string | null;
   requestId?: string | null;
   correlationId?: string | null;
+  reasoningEnvelope?: LeoIntelligenceReasoningEnvelope | null;
   exposureOverrides?: Partial<LeoIntelligenceProviderExposure>;
 }): LeoIntelligenceInvocationRequest {
   const exposure: LeoIntelligenceProviderExposure = {
@@ -139,8 +158,22 @@ export function buildLeoIntelligenceInvocationRequest(input: {
     ],
     exposure,
     timeoutHintMs: null,
+    reasoningEnvelope: input.reasoningEnvelope ?? null,
     notClaiming: LEO_19C_ADAPTER_NOT_CLAIMING,
   };
+}
+
+function defaultAdaptersFor(
+  selected: LeoIntelligenceProviderType,
+): LeoIntelligenceProviderAdapter[] {
+  // Live REASONING_MODEL adapter is resolved asynchronously in invoke when envelope+config present.
+  if (selected === "REASONING_MODEL") {
+    return [createLeoNullIntelligenceProviderAdapter("REASONING_MODEL")];
+  }
+  if (selected === "NONE") {
+    return [leoNullIntelligenceProviderAdapter];
+  }
+  return [createLeoNullIntelligenceProviderAdapter(selected)];
 }
 
 function resolveAdapter(
@@ -155,7 +188,6 @@ function resolveAdapter(
   const offlineForType = adapters.find((a) => a.providerType === selected && !a.isConnected);
   if (offlineForType) return offlineForType;
 
-  // Default: null adapter for the selected type (or NONE).
   if (selected === "NONE") return leoNullIntelligenceProviderAdapter;
   return createLeoNullIntelligenceProviderAdapter(selected);
 }
@@ -211,14 +243,15 @@ function enforceGovernanceFirewall(
 
 /**
  * Invoke intelligence provider through the universal adapter seam.
- * In LEO-19C only the offline/null adapter path runs.
+ * REASONING_MODEL uses live transport adapter when config present; otherwise null.
+ * Conversation synthesis still enters only via enrichLeoConversationWithAi.
  */
 export async function invokeLeoIntelligenceProvider(
   input: LeoIntelligenceInvocationServiceInput,
 ): Promise<{
   request: LeoIntelligenceInvocationRequest;
   result: LeoIntelligenceInvocationResult;
-  adapterUsed: { providerType: LeoIntelligenceProviderType; isConnected: false };
+  adapterUsed: { providerType: LeoIntelligenceProviderType; isConnected: boolean };
 }> {
   const request = buildLeoIntelligenceInvocationRequest(input);
 
@@ -238,11 +271,6 @@ export async function invokeLeoIntelligenceProvider(
     };
   }
 
-  // Selection said execution never allowed — preserve.
-  if (input.selection.executionAllowed !== false) {
-    // Type system forces false; defensive.
-  }
-
   // Capability mismatch vs selection
   if (input.selection.requestedCapability !== input.route.requestedCapability) {
     const result = buildFailClosedInvocationResult({
@@ -259,11 +287,54 @@ export async function invokeLeoIntelligenceProvider(
     };
   }
 
+  // Live REASONING_MODEL requires envelope + config. Without either → offline/null.
+  if (
+    request.selectedProviderType === "REASONING_MODEL" &&
+    request.reasoningEnvelope &&
+    reasoningModelConfigPresent()
+  ) {
+    const reasoningAdapter =
+      input.adapters?.find((a) => a.providerType === "REASONING_MODEL" && a.isConnected) ??
+      (await loadLeoReasoningModelAdapter());
+
+    if (!reasoningAdapter.canHandle(request)) {
+      const result = buildFailClosedInvocationResult({
+        status: "INVALID_REQUEST",
+        providerType: request.selectedProviderType,
+        capability: request.requestedCapability,
+        correlationId: request.correlationId,
+        summary: "REASONING_MODEL adapter rejected request (envelope/schema).",
+      });
+      return {
+        request,
+        result,
+        adapterUsed: {
+          providerType: reasoningAdapter.providerType,
+          isConnected: reasoningAdapter.isConnected,
+        },
+      };
+    }
+
+    const raw = await reasoningAdapter.invoke(request);
+    const result = enforceGovernanceFirewall(request, raw);
+    return {
+      request,
+      result,
+      adapterUsed: {
+        providerType: reasoningAdapter.providerType,
+        isConnected: reasoningAdapter.isConnected,
+      },
+    };
+  }
+
   const adapters = input.adapters?.length
     ? input.adapters
-    : [createLeoNullIntelligenceProviderAdapter(request.selectedProviderType)];
+    : defaultAdaptersFor(request.selectedProviderType);
 
-  const adapter = resolveAdapter(request.selectedProviderType, adapters);
+  const adapter =
+    request.selectedProviderType === "REASONING_MODEL"
+      ? createLeoNullIntelligenceProviderAdapter("REASONING_MODEL")
+      : resolveAdapter(request.selectedProviderType, adapters);
 
   // Type compatibility
   if (
@@ -281,34 +352,39 @@ export async function invokeLeoIntelligenceProvider(
     return {
       request,
       result,
-      adapterUsed: { providerType: adapter.providerType, isConnected: false },
+      adapterUsed: { providerType: adapter.providerType, isConnected: adapter.isConnected },
     };
   }
 
   if (!adapter.canHandle(request)) {
     const result = buildFailClosedInvocationResult({
-      status: "PROVIDER_UNAVAILABLE",
+      status:
+        request.selectedProviderType === "REASONING_MODEL" && !request.reasoningEnvelope
+          ? "INVALID_REQUEST"
+          : "PROVIDER_UNAVAILABLE",
       providerType: request.selectedProviderType,
       capability: request.requestedCapability,
       correlationId: request.correlationId,
-      summary: "No compatible adapter canHandle this request.",
+      summary:
+        request.selectedProviderType === "REASONING_MODEL" && !request.reasoningEnvelope
+          ? "REASONING_MODEL requires reasoningEnvelope."
+          : "No compatible adapter canHandle this request.",
     });
     return {
       request,
       result,
-      adapterUsed: { providerType: adapter.providerType, isConnected: false },
+      adapterUsed: { providerType: adapter.providerType, isConnected: adapter.isConnected },
     };
   }
 
-  // Connected adapters are not available in this gate — force fail-closed if somehow connected.
-  if (adapter.isConnected) {
+  // Non-reasoning connected adapters remain disabled (only REASONING_MODEL is live in 19D).
+  if (adapter.isConnected && adapter.providerType !== "REASONING_MODEL") {
     const result = buildFailClosedInvocationResult({
       status: "PROVIDER_UNAVAILABLE",
       providerType: request.selectedProviderType,
       capability: request.requestedCapability,
       correlationId: request.correlationId,
-      summary: "Connected adapters are not enabled in LEO-19C.",
-      limitations: ["Live provider invocation is disabled in this gate."],
+      summary: "Only REASONING_MODEL live transport is enabled in LEO-19D.",
     });
     return {
       request,
@@ -323,29 +399,52 @@ export async function invokeLeoIntelligenceProvider(
   return {
     request,
     result,
-    adapterUsed: { providerType: adapter.providerType, isConnected: false },
+    adapterUsed: { providerType: adapter.providerType, isConnected: adapter.isConnected },
   };
 }
 
-/** Bounded readiness snapshot for conversation metadata — no fake AI response. */
+/** Bounded readiness snapshot for conversation metadata — no second AI invocation. */
 export function leoIntelligenceInvocationReadinessSnapshot(input: {
   selection: LeoIntelligenceSelectionResult;
   result?: LeoIntelligenceInvocationResult | null;
 }): Record<string, unknown> {
   const selected = input.selection.selectedProviderType;
-  const connected = false;
-  const invocationPossible = false;
+  const configPresent = selected === "REASONING_MODEL" ? reasoningModelConfigPresent() : false;
+  const adapterImplemented =
+    selected === "REASONING_MODEL" || selected === "NONE" ? true : false;
+  const runtimeAvailable = selected === "REASONING_MODEL" ? configPresent : false;
+  const callAttempted = input.result != null;
+  const callSuccess = input.result?.status === "OK";
+  const validationSuccess = false; // validation owned by engine; not claimed here
+
   return {
     selectedProviderType: selected,
-    connected,
-    invocationPossible,
-    status: input.result?.status ?? (selected === "NONE" ? "NO_PROVIDER" : "NOT_CONNECTED"),
+    typeRegistered: true,
+    adapterImplemented,
+    configPresent,
+    runtimeAvailable,
+    connected: runtimeAvailable,
+    invocationPossible: runtimeAvailable && selected === "REASONING_MODEL",
+    callAttempted,
+    callSuccess,
+    validationSuccess,
+    status:
+      input.result?.status ??
+      (selected === "NONE"
+        ? "NO_PROVIDER"
+        : runtimeAvailable
+          ? "RUNTIME_AVAILABLE"
+          : "NOT_CONNECTED"),
     executionAllowed: false,
     externalSideEffects: false,
     limitation:
       selected === "NONE"
         ? "No provider selected — invocation not possible."
-        : "Provider type selected as plan only — NOT_CONNECTED; not invoked.",
+        : selected === "REASONING_MODEL"
+          ? runtimeAvailable
+            ? "REASONING_MODEL runtime available — conversation AI enters only via enrichLeoConversationWithAi."
+            : "REASONING_MODEL adapter implemented but config not present — NOT_CONNECTED."
+          : "Provider type selected as plan only — no live adapter in this gate.",
     receiptCreated: false,
     notClaiming: [...LEO_19C_ADAPTER_NOT_CLAIMING],
   };

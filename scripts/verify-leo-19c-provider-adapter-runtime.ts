@@ -180,13 +180,17 @@ async function main(): Promise<void> {
     check(nullAdapter.supportedCapabilities.length > 0, "null adapter declares capabilities");
   }
 
-  // --- Readiness snapshot (conversation-safe) ---
+  // --- Readiness snapshot (conversation-safe; LEO-19D connection truth) ---
   {
     const route = routeLeoIntelligence({ question: "Market research on competitors." });
     const selection = selectProviderForIntelligenceRoute(route);
     const snap = leoIntelligenceInvocationReadinessSnapshot({ selection });
-    check(snap.invocationPossible === false, "invocationPossible false offline");
-    check(snap.connected === false, "connected false offline");
+    check(typeof snap.typeRegistered === "boolean", "readiness typeRegistered present");
+    check(typeof snap.adapterImplemented === "boolean", "readiness adapterImplemented present");
+    check(typeof snap.configPresent === "boolean", "readiness configPresent present");
+    check(typeof snap.runtimeAvailable === "boolean", "readiness runtimeAvailable present");
+    check(snap.connected === snap.runtimeAvailable, "connected mirrors runtimeAvailable");
+    check(snap.invocationPossible === (snap.runtimeAvailable && selection.selectedProviderType === "REASONING_MODEL"), "invocationPossible follows config truth");
     check(snap.executionAllowed === false, "readiness executionAllowed false");
   }
 

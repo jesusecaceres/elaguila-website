@@ -15,6 +15,7 @@ import type {
   LeoIntelligenceCapability,
 } from "@/app/leo/_lib/leoIntelligenceRouter";
 import type { LeoIntelligenceProviderType } from "@/app/leo/_lib/leoIntelligenceProviderRegistry";
+import type { LeoIntelligenceReasoningEnvelope } from "@/app/leo/_lib/leoIntelligenceReasoningEnvelope";
 
 export const LEO_INTELLIGENCE_INVOCATION_STATUSES = [
   "OK",
@@ -125,6 +126,12 @@ export type LeoIntelligenceInvocationRequest = {
   exposure: LeoIntelligenceProviderExposure;
   /** Soft timeout hint (ms) — adapters may ignore offline. */
   timeoutHintMs: number | null;
+  /**
+   * LEO-19D: optional provider-neutral reasoning envelope.
+   * Required for REASONING_MODEL; absent for other provider types.
+   * Never raw systemPrompt / HTTP payloads.
+   */
+  reasoningEnvelope?: LeoIntelligenceReasoningEnvelope | null;
   /** Explicit doctrine stamps. */
   notClaiming: readonly string[];
 };
