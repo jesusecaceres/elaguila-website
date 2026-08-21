@@ -78,7 +78,7 @@ if (exists(PDF_AI_ADAPTER)) {
   assert("system prompt has the same 3-way language-conditional Spanish rule", /If the batch is SPANISH/.test(src) && /If the batch is BILINGUAL/.test(src) && /If the batch is ENGLISH/.test(src));
   assert("computes detected language once per batch via detectSourceLanguageFromText (no <html lang> available for PDF text)", /detectSourceLanguageFromText\(combinedText\)/.test(src));
   assert("parseOneOrganization applies the same defense-in-depth Es gating as the URL adapter", /sourceMayHaveSpanish = detectedLanguage === "es" \|\| detectedLanguage === "bilingual"/.test(src));
-  assert("PdfOrganizationProposal inherits the new fields via the UrlCandidateProposal intersection type (no duplicate type)", /export type PdfOrganizationProposal = UrlCandidateProposal & \{ sourcePages: number\[\] \}/.test(src));
+  assert("PdfOrganizationProposal inherits the new fields via the UrlCandidateProposal intersection type (no duplicate type)", /export type PdfOrganizationProposal = UrlCandidateProposal & \{/.test(src));
 }
 
 // --- ES-5F: promotion no longer hardcodes Spanish blank, preserves when present ----------------------

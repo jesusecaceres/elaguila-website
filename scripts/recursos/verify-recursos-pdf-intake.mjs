@@ -132,8 +132,12 @@ assert("no functional pg_trgm usage introduced by Gate 4", (() => {
 })());
 
 // --- candidate review system reused, no second candidate table ----------------------------------
+// Gate ES-7D: the per-proposal candidate-creation loop that used to live inline in the
+// orchestrator was extracted into entityCandidateCreation.ts (shared with the new URL
+// multi-entity path) — these checks now look at both files together, same behavior either way.
+const ENTITY_CREATION = "app/lib/recursos/intake/entityCandidateCreation.ts";
 if (exists(ORCHESTRATOR)) {
-  const src = read(ORCHESTRATOR);
+  const src = read(ORCHESTRATOR) + (exists(ENTITY_CREATION) ? read(ENTITY_CREATION) : "");
   assert("orchestrator uses the EXISTING candidate review system (dbSaveCandidateReview)", /dbSaveCandidateReview/.test(src));
   assert("orchestrator sets disposition='researching' (never auto-ready/auto-promoted)", /disposition: "researching"/.test(src));
   assert("orchestrator never writes to community_resources directly", !/dbCreateCommunityResource/.test(src));
@@ -142,10 +146,10 @@ if (exists(ORCHESTRATOR)) {
 
 // --- verification_events used, append only --------------------------------------------------------
 if (exists(ORCHESTRATOR)) {
-  const src = read(ORCHESTRATOR);
+  const src = read(ORCHESTRATOR) + (exists(ENTITY_CREATION) ? read(ENTITY_CREATION) : "");
   assert("orchestrator inserts a candidate_created verification event per candidate", /eventType: "candidate_created"/.test(src));
   assert("orchestrator inserts an ai_proposal_generated event only when AI was used", /if \(aiUsedAtLeastOnce\)/.test(src));
-  assert("orchestrator calls auditAdminWrite on job completion", /auditAdminWrite\("recurso_pdf_intake_completed"/.test(src));
+  assert("orchestrator calls auditAdminWrite on job completion", /auditAdminWrite\("recurso_pdf_intake_completed"/.test(read(ORCHESTRATOR)));
 }
 
 // --- no public query changes -----------------------------------------------------------------------

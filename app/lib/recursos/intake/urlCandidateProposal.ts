@@ -15,6 +15,7 @@
 import type { FieldDiscrepancy } from "@/app/lib/recursos/verificationEvidence";
 import type { CostModel, OrganizationType, PrimaryCategorySlug, UrgencyLevel } from "@/app/lib/recursos/types";
 import type { DetectedLanguage } from "./htmlExtraction";
+import { type EntityType, ENTITY_TYPE_VALUES } from "./entityType";
 
 export type UrlCandidateProposal = {
   organizationName: string;
@@ -55,6 +56,14 @@ export type UrlCandidateProposal = {
   detectedSourceLanguage: DetectedLanguage;
   /** True only when shortDescriptionEs/etc above were extracted directly from an es/bilingual source — never true for AI-translated content. */
   spanishIsOfficialSource: boolean;
+
+  // Multi-entity source extraction (Gate ES-7A). Single-entity URL intake always sets
+  // entityType="PRIMARY_RESOURCE" with no parent — unchanged behavior for a simple page.
+  entityType: EntityType;
+  /** Set only for PROGRAM/LOCATION/REFERRAL_LINK entities that belong under a named parent organization found in the same source. */
+  parentOrganizationName: string | null;
+  /** Set only when the entity belongs under a specific named parent PROGRAM (rarer — most parents are organizations). */
+  parentProgramName: string | null;
 };
 
 const FIELD_KEYS: (keyof UrlCandidateProposal)[] = [
@@ -88,6 +97,9 @@ const FIELD_KEYS: (keyof UrlCandidateProposal)[] = [
   "hoursNoteEs",
   "detectedSourceLanguage",
   "spanishIsOfficialSource",
+  "entityType",
+  "parentOrganizationName",
+  "parentProgramName",
 ];
 
 function valueToString(v: unknown): string {
@@ -171,5 +183,11 @@ export function decodeProposalFromDiscrepancies(discrepancies: FieldDiscrepancy[
       return v && DETECTED_LANGUAGE_VALUES.has(v as DetectedLanguage) ? (v as DetectedLanguage) : "unknown";
     })(),
     spanishIsOfficialSource: get("spanishIsOfficialSource") === "true",
+    entityType: (() => {
+      const v = get("entityType");
+      return v && ENTITY_TYPE_VALUES.has(v as EntityType) ? (v as EntityType) : "PRIMARY_RESOURCE";
+    })(),
+    parentOrganizationName: get("parentOrganizationName"),
+    parentProgramName: get("parentProgramName"),
   };
 }

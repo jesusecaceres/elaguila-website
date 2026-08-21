@@ -68,6 +68,9 @@ function buildDeterministicOnlyProposal(signals: ReturnType<typeof extractDeterm
     hoursNoteEs: null,
     detectedSourceLanguage: signals.detectedLanguage,
     spanishIsOfficialSource: false,
+    entityType: "PRIMARY_RESOURCE",
+    parentOrganizationName: null,
+    parentProgramName: null,
   };
 }
 

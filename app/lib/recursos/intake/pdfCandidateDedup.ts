@@ -19,8 +19,10 @@ function normalizeName(s: string | null | undefined): string {
 
 function dedupKey(p: PdfOrganizationProposal): string {
   // Same organization AND same program (or both blank) is treated as a repeat, never distinct
-  // programs under the same org — those are kept as separate candidates.
-  return `${normalizeName(p.organizationName)}|${normalizeName(p.programName)}`;
+  // programs under the same org — those are kept as separate candidates. Gate ES-7J: entityType
+  // is folded in too — a PARTNER_ORGANIZATION entry sharing a name with its parent
+  // PRIMARY_RESOURCE (a real, common shape in county guides) must never merge into one row.
+  return `${p.entityType}|${normalizeName(p.organizationName)}|${normalizeName(p.programName)}`;
 }
 
 export type DedupedProposal = PdfOrganizationProposal & { mergedFromPageCount: number };

@@ -92,6 +92,24 @@ export async function dbListVerificationEventsForResource(resourceId: string): P
   }
 }
 
+/**
+ * All events scoped to one intake job — Gate ES-7K. Used to surface LOCATION/REFERRAL_LINK
+ * entities on the job result page: these entity types never create a candidate row (ES-7N), so
+ * dbListCandidateIdsCreatedByJob() alone cannot show them — their only durable record is the
+ * evidence_recorded event this query reads.
+ */
+export async function dbListVerificationEventsForJob(sourceIntakeJobId: string): Promise<VerificationEventRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select(EVENT_SELECT_COLUMNS).eq("source_intake_job_id", sourceIntakeJobId).order("created_at", { ascending: true });
+    if (error || !data) return [];
+    return data.map((r) => eventRowFromDb(r as Record<string, unknown>));
+  } catch {
+    return [];
+  }
+}
+
 /** Chronological (oldest first) timeline for one candidate — Gate 6L. Server-only, never exposed publicly. */
 export async function dbListVerificationEventsForCandidate(candidateId: string): Promise<VerificationEventRow[]> {
   if (!isSupabaseAdminConfigured()) return [];

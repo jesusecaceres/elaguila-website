@@ -5,10 +5,11 @@ import { adminBtnPrimary, adminCardBase, adminCtaChip, adminCtaChipCompact, admi
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { dbGetResourceIntakeJob } from "@/app/lib/recursos/intake/server/resourceIntakeJobsDb";
 import { dbGetSourceDocument } from "@/app/lib/recursos/intake/server/sourceDocumentsDb";
-import { dbListCandidateIdsCreatedByJob } from "@/app/lib/recursos/intake/server/verificationEventsDb";
+import { dbListCandidateIdsCreatedByJob, dbListVerificationEventsForJob } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { dbGetCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
 import { buildSupersessionSummary } from "@/app/lib/recursos/intake/server/buildSupersessionSummary";
+import { ENTITY_TYPES, ENTITY_TYPE_LABEL, type EntityType } from "@/app/lib/recursos/intake/entityType";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,10 @@ export default async function RecursosPdfIntakeJobPage(props: { params: Promise<
   const job = await dbGetResourceIntakeJob(jobId);
   if (!job) notFound();
 
-  const [sourceDocument, candidateIds] = await Promise.all([
+  const [sourceDocument, candidateIds, jobEvents] = await Promise.all([
     job.sourceDocumentId ? dbGetSourceDocument(job.sourceDocumentId) : Promise.resolve(null),
     dbListCandidateIdsCreatedByJob(jobId),
+    dbListVerificationEventsForJob(jobId),
   ]);
 
   const candidateReviews = await Promise.all(candidateIds.map((id) => dbGetCandidateReview(id)));
@@ -57,6 +59,23 @@ export default async function RecursosPdfIntakeJobPage(props: { params: Promise<
     POSSIBLE_DUPLICATE: candidates.filter((c) => c.classification === "POSSIBLE_DUPLICATE").length,
     EXISTING_RESOURCE_UPDATE: candidates.filter((c) => c.classification === "EXISTING_RESOURCE_UPDATE").length,
   };
+
+  // Gate ES-7K: group by entity type — every candidate carries its own entityType (decoded above
+  // via decodeProposalFromDiscrepancies, defaulting to PRIMARY_RESOURCE for pre-ES-7 candidates).
+  const candidatesByEntityType = new Map<EntityType, typeof candidates>();
+  for (const t of ENTITY_TYPES) candidatesByEntityType.set(t, []);
+  for (const c of candidates) {
+    const list = candidatesByEntityType.get(c.proposal.entityType) ?? [];
+    list.push(c);
+    candidatesByEntityType.set(c.proposal.entityType, list);
+  }
+
+  // PARTNER_ORGANIZATION entities matched to an already-existing resource never create a
+  // candidate row (ES-7D) — their only durable record is this resource-scoped evidence_recorded
+  // event. LOCATION/REFERRAL_LINK entities (ES-7N: never a candidate, ever) are the same shape —
+  // distinguished by the literal note prefix entityCandidateCreation.ts always writes.
+  const matchedPartnerEvents = jobEvents.filter((e) => e.eventType === "evidence_recorded" && e.resourceId && e.notes?.startsWith("PARTNER_ORGANIZATION"));
+  const nonCandidateEvents = jobEvents.filter((e) => e.eventType === "evidence_recorded" && (e.notes?.startsWith("LOCATION") || e.notes?.startsWith("REFERRAL_LINK")));
 
   const supersessionSummary = sourceDocument?.supersedesDocumentId
     ? await buildSupersessionSummary(sourceDocument.supersedesDocumentId, candidates.map((c) => c.proposal.organizationName))
@@ -155,14 +174,14 @@ export default async function RecursosPdfIntakeJobPage(props: { params: Promise<
         </div>
       ) : null}
 
-      {candidates.length === 0 ? (
+      {candidates.length === 0 && matchedPartnerEvents.length === 0 && nonCandidateEvents.length === 0 ? (
         <div className={`${adminCardBase} p-5`}>
           <p className="text-sm text-[#5C5346]">
             {job.status === "failed"
               ? "El análisis falló — no se creó ningún candidato."
               : job.status === "processing"
                 ? "El procesamiento sigue en curso — recarga esta página en unos momentos."
-                : "No se encontraron organizaciones/programas en este documento."}
+                : "No se encontraron entidades en este documento."}
           </p>
         </div>
       ) : (
@@ -176,23 +195,101 @@ export default async function RecursosPdfIntakeJobPage(props: { params: Promise<
             ))}
           </div>
 
-          <div className="space-y-3">
-            {candidates.map(({ review, proposal, classification }) => (
-              <div key={review.candidateId} className={`${adminCardBase} flex flex-wrap items-center justify-between gap-3 p-4`}>
-                <div className="min-w-0">
-                  <p className="font-semibold text-[#1E1810]">{proposal.organizationName}</p>
-                  {proposal.programName ? <p className="text-xs text-[#7A7164]">{proposal.programName}</p> : null}
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${MATCH_BADGE[classification] ?? ""}`}>
-                    {MATCH_LABEL[classification] ?? classification}
-                  </span>
-                  <Link href={`/admin/recursos/candidatos/url/${encodeURIComponent(review.candidateId)}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-                    Revisar
-                  </Link>
-                </div>
-              </div>
-            ))}
+          {/* Gate ES-7K: grouped by entity type — makes it obvious which entities did/did not create a candidate. */}
+          <div className="space-y-6">
+            {ENTITY_TYPES.map((entityType) => {
+              const group = candidatesByEntityType.get(entityType) ?? [];
+              if (entityType !== "LOCATION" && entityType !== "REFERRAL_LINK" && group.length === 0) return null;
+              return (
+                <section key={entityType}>
+                  <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">
+                    {ENTITY_TYPE_LABEL[entityType]} ({entityType === "LOCATION" || entityType === "REFERRAL_LINK" ? 0 : group.length})
+                  </h2>
+
+                  {(entityType === "LOCATION" || entityType === "REFERRAL_LINK") ? (
+                    <>
+                      <p className="mb-2 text-xs text-[#7A7164]">
+                        Estas entidades NUNCA crean un candidato automáticamente — se preservan como evidencia adjunta a su
+                        entidad principal (o al trabajo de intake si no se pudo resolver un padre).
+                      </p>
+                      {nonCandidateEvents.filter((e) => e.notes?.startsWith(entityType)).length === 0 ? (
+                        <p className="text-xs text-[#8B7E70]">Ninguna encontrada en este trabajo.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {nonCandidateEvents
+                            .filter((e) => e.notes?.startsWith(entityType))
+                            .map((e) => (
+                              <div key={e.id} className={`${adminCardBase} p-3 text-sm text-[#5C5346]`}>
+                                <p>{e.notes}</p>
+                                <p className="mt-1 text-[10px] uppercase tracking-wide text-[#8B7E70]">
+                                  {e.candidateId ? `Adjunta a la entidad ${e.candidateId}` : "Sin entidad principal resuelta — revisión manual"}
+                                </p>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </>
+                  ) : entityType === "PARTNER_ORGANIZATION" && matchedPartnerEvents.length > 0 ? (
+                    <>
+                      <div className="mb-3 space-y-2">
+                        {matchedPartnerEvents.map((e) => (
+                          <div key={e.id} className={`${adminCardBase} flex flex-wrap items-center justify-between gap-2 p-3`}>
+                            <p className="text-sm text-[#5C5346]">{e.notes}</p>
+                            {e.resourceId ? (
+                              <Link href={`/admin/recursos/${e.resourceId}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                                Ver recurso existente
+                              </Link>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                      {group.length === 0 ? null : (
+                        <div className="space-y-3">
+                          {group.map(({ review, proposal, classification }) => (
+                            <div key={review.candidateId} className={`${adminCardBase} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-[#1E1810]">{proposal.organizationName}</p>
+                                {proposal.programName ? <p className="text-xs text-[#7A7164]">{proposal.programName}</p> : null}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${MATCH_BADGE[classification] ?? ""}`}>
+                                  {MATCH_LABEL[classification] ?? classification}
+                                </span>
+                                <Link href={`/admin/recursos/candidatos/url/${encodeURIComponent(review.candidateId)}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                                  Revisar
+                                </Link>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      {group.map(({ review, proposal, classification }) => (
+                        <div key={review.candidateId} className={`${adminCardBase} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[#1E1810]">{proposal.organizationName}</p>
+                            {proposal.programName ? <p className="text-xs text-[#7A7164]">{proposal.programName}</p> : null}
+                            {proposal.parentOrganizationName ? (
+                              <p className="text-xs text-[#8B7E70]">Bajo: {proposal.parentOrganizationName}</p>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${MATCH_BADGE[classification] ?? ""}`}>
+                              {MATCH_LABEL[classification] ?? classification}
+                            </span>
+                            <Link href={`/admin/recursos/candidatos/url/${encodeURIComponent(review.candidateId)}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                              Revisar
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
           </div>
         </>
       )}

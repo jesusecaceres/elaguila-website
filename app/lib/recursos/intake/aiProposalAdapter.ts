@@ -145,6 +145,12 @@ export function parseAiProposalJson(raw: string, officialSourceUrl: string, dete
     hoursNoteEs,
     detectedSourceLanguage: detectedLanguage,
     spanishIsOfficialSource,
+    // Gate ES-7C: single-URL intake always treats the whole page as one standalone entity — a
+    // simple page never needs multi-entity classification. Multi-entity URL extraction is a
+    // separate, explicit path (see urlMultiEntityIntakeOrchestrator.ts), not this function.
+    entityType: "PRIMARY_RESOURCE",
+    parentOrganizationName: null,
+    parentProgramName: null,
   };
 }
 

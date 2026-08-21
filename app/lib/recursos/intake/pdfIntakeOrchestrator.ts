@@ -17,28 +17,14 @@ import "server-only";
 import { extractPdfPagesWithDocumentAi, isPdfOcrConfigured, type PdfPageText } from "./pdfExtractionAdapter";
 import { proposeOrganizationsFromPages, type PdfOrganizationProposal } from "./pdfOrganizationAiAdapter";
 import { dedupeProposalsWithinJob } from "./pdfCandidateDedup";
-import { encodeProposalAsDiscrepancies } from "./urlCandidateProposal";
-import { matchCandidateToExistingResource, type MatchResult } from "./matchCandidateToExistingResource";
-import { encodeMatchMetadata } from "./candidateMatchMetadata";
-import { generateChangeProposalsForMatch } from "./generateChangeProposalsForMatch";
+import { createCandidatesFromEntityProposals, type MatchedPartnerSummary, type NonCandidateEntitySummary } from "./entityCandidateCreation";
+import type { MatchResult } from "./matchCandidateToExistingResource";
 import { dbCreateResourceIntakeJob, dbUpdateResourceIntakeJob } from "./server/resourceIntakeJobsDb";
-import { insertVerificationEvent } from "./server/verificationEventsDb";
-import { dbSaveCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { dbListCommunityResources } from "@/app/lib/recursos/server/communityResourcesDb";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 
 const PAGE_BATCH_SIZE = 6;
 const MAX_PAGES_PROCESSED_BY_AI = 60; // cost/runtime cap for the AI-proposal stage per job
-
-function slugifyForCandidateId(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
 
 function batchPages(pages: PdfPageText[], size: number): PdfPageText[][] {
   const out: PdfPageText[][] = [];
@@ -56,7 +42,15 @@ export type PdfIntakeCandidateSummary = {
 };
 
 export type PdfIntakeResult =
-  | { ok: true; jobId: string; candidates: PdfIntakeCandidateSummary[]; pagesProcessed: number; aiUsed: boolean }
+  | {
+      ok: true;
+      jobId: string;
+      candidates: PdfIntakeCandidateSummary[];
+      matchedPartners: MatchedPartnerSummary[];
+      nonCandidateEntities: NonCandidateEntitySummary[];
+      pagesProcessed: number;
+      aiUsed: boolean;
+    }
   | { ok: false; jobId: string; reason: string };
 
 export async function processPdfIntake(params: {
@@ -110,77 +104,42 @@ export async function processPdfIntake(params: {
   const deduped = dedupeProposalsWithinJob(allProposals);
 
   const { rows: existingResources } = await dbListCommunityResources();
-  const candidates: PdfIntakeCandidateSummary[] = [];
 
-  for (const proposal of deduped) {
-    const match = matchCandidateToExistingResource(
-      {
-        organizationName: proposal.organizationName,
-        programName: proposal.programName,
-        websiteUrl: proposal.websiteUrl,
-        phone: proposal.phone,
-        crisisPhone: proposal.crisisPhone,
-        addressLine1: proposal.addressLine1,
-        addressZip: proposal.addressZip,
-      },
-      existingResources,
-    );
+  // Gate ES-7D: routing (PRIMARY_RESOURCE/PROGRAM -> candidate flow, PARTNER_ORGANIZATION ->
+  // matched-first, LOCATION/REFERRAL_LINK -> evidence only, never a candidate) is centralized in
+  // entityCandidateCreation.ts — the exact same function the URL multi-entity path uses, so PDF
+  // and URL multi-entity intake can never drift into two different policies.
+  const { candidates: entityCandidates, matchedPartners, nonCandidateEntities } = await createCandidatesFromEntityProposals({
+    proposals: deduped,
+    jobId,
+    actorEmail: params.actorEmail,
+    sourceType: "pdf",
+    candidateIdPrefix: "pdf",
+    existingResources,
+    matchedProposalSource: "pdf_reextraction",
+    aiUsedAtLeastOnce,
+    candidateCreatedEventNotes: (proposal, match) =>
+      [
+        `Creado por intake de PDF (${params.documentTitle}).`,
+        `Tipo de entidad: ${proposal.entityType}.`,
+        proposal.parentOrganizationName ? `Organización principal: ${proposal.parentOrganizationName}.` : null,
+        `Páginas fuente: ${proposal.sourcePages.join(", ") || "no disponible"}.`,
+        proposal.mergedFromPageCount && proposal.mergedFromPageCount > 1 ? `Combinado desde ${proposal.mergedFromPageCount} menciones dentro del mismo documento.` : null,
+        `Clasificación de coincidencia: ${match.classification}${match.matchedResourceName ? ` (${match.matchedResourceName})` : ""}.`,
+        proposal.addressWithheldForSafety ? "Posible dirección confidencial detectada — dirección omitida." : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+  });
 
-    const candidateId = `pdf-${slugifyForCandidateId(proposal.organizationName) || "organizacion"}-${Math.random().toString(36).slice(2, 8)}`;
-
-    const notesParts = [
-      `Creado por intake de PDF (${params.documentTitle}).`,
-      `Páginas fuente: ${proposal.sourcePages.join(", ") || "no disponible"}.`,
-      proposal.mergedFromPageCount > 1 ? `Combinado desde ${proposal.mergedFromPageCount} menciones dentro del mismo documento.` : null,
-      `Clasificación de coincidencia: ${match.classification}${match.matchedResourceName ? ` (${match.matchedResourceName})` : ""}.`,
-      proposal.addressWithheldForSafety ? "Posible dirección confidencial detectada — dirección omitida." : null,
-    ].filter(Boolean);
-
-    const saveResult = await dbSaveCandidateReview({
-      candidateId,
-      disposition: "researching",
-      reviewedBy: null,
-      reviewedAt: null,
-      currentSourceUrl: null,
-      currentSourceType: null,
-      organizationConfirmedActive: null,
-      fieldsConfirmed: [],
-      discrepanciesFromPdf: [...encodeProposalAsDiscrepancies(proposal), ...encodeMatchMetadata(match)],
-      is24HoursConfirmedExplicit: false,
-      addressHandling: proposal.addressWithheldForSafety ? "withheld_for_safety" : null,
-      verificationNotes: notesParts.join(" "),
-    });
-    if (!saveResult.ok) continue; // one candidate failing to save must not abort the whole job
-
-    await insertVerificationEvent({
-      candidateId,
-      sourceIntakeJobId: jobId,
-      eventType: "candidate_created",
-      actorEmail: params.actorEmail,
-      sourceType: "pdf",
-      notes: `Match: ${match.classification}; pages: ${proposal.sourcePages.join(",")}`,
-    });
-    if (aiUsedAtLeastOnce) {
-      await insertVerificationEvent({ candidateId, sourceIntakeJobId: jobId, eventType: "ai_proposal_generated", actorEmail: params.actorEmail, sourceType: "pdf" });
-    }
-
-    let changeCount = 0;
-    if (match.classification === "EXISTING_RESOURCE_UPDATE" && match.matchedResourceId) {
-      const matchedResource = existingResources.find((r) => r.id === match.matchedResourceId);
-      if (matchedResource) {
-        const { changeCount: c } = await generateChangeProposalsForMatch({
-          proposal,
-          matchedResource,
-          sourceIntakeJobId: jobId,
-          proposalSource: "pdf_reextraction",
-          actorEmail: params.actorEmail,
-        });
-        changeCount = c;
-      }
-    }
-
-    candidates.push({ candidateId, organizationName: proposal.organizationName, classification: match.classification, matchedResourceName: match.matchedResourceName, sourcePages: proposal.sourcePages, changeCount });
-  }
+  const candidates: PdfIntakeCandidateSummary[] = entityCandidates.map((c) => ({
+    candidateId: c.candidateId,
+    organizationName: c.organizationName,
+    classification: c.classification,
+    matchedResourceName: c.matchedResourceName,
+    sourcePages: c.sourcePages,
+    changeCount: c.changeCount,
+  }));
 
   await dbUpdateResourceIntakeJob(jobId, {
     status: "needs_review",
@@ -194,8 +153,10 @@ export async function processPdfIntake(params: {
     actorEmail: params.actorEmail,
     documentTitle: params.documentTitle,
     candidatesCreated: candidates.length,
+    matchedPartners: matchedPartners.length,
+    nonCandidateEntities: nonCandidateEntities.length,
     pagesProcessed: pagesToProcess.length,
   });
 
-  return { ok: true, jobId, candidates, pagesProcessed: pagesToProcess.length, aiUsed: aiUsedAtLeastOnce };
+  return { ok: true, jobId, candidates, matchedPartners, nonCandidateEntities, pagesProcessed: pagesToProcess.length, aiUsed: aiUsedAtLeastOnce };
 }

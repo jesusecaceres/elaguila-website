@@ -89,6 +89,9 @@ function baseProposal(overrides: Partial<UrlCandidateProposal> = {}): UrlCandida
     hoursNoteEs: null,
     detectedSourceLanguage: "en",
     spanishIsOfficialSource: false,
+    entityType: "PRIMARY_RESOURCE",
+    parentOrganizationName: null,
+    parentProgramName: null,
     ...overrides,
   };
 }

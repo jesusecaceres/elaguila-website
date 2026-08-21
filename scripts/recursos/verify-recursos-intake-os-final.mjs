@@ -61,10 +61,17 @@ const directConsumers = ["app/lib/recursos/intake/generateChangeProposalsForMatc
 for (const c of directConsumers) {
   assert(`${c} reuses the ONE resourceChangeDetection engine directly (no per-source diff logic)`, exists(c) && /from ["'].\/resourceChangeDetection["']/.test(read(c)));
 }
-const indirectConsumers = ["app/lib/recursos/intake/urlIntakeOrchestrator.ts", "app/lib/recursos/intake/pdfIntakeOrchestrator.ts"];
+const indirectConsumers = ["app/lib/recursos/intake/urlIntakeOrchestrator.ts"];
 for (const c of indirectConsumers) {
   assert(`${c} reaches the shared engine via generateChangeProposalsForMatch.ts (no separate diff logic)`, exists(c) && /from ["'].\/generateChangeProposalsForMatch["']/.test(read(c)));
 }
+// Gate ES-7D: pdfIntakeOrchestrator.ts's per-candidate change-proposal call moved one hop into the
+// shared entityCandidateCreation.ts (also used by the new URL multi-entity path) — still reaches
+// the same single engine, just via the shared routing module instead of directly.
+assert(
+  "app/lib/recursos/intake/pdfIntakeOrchestrator.ts reaches the shared engine via generateChangeProposalsForMatch.ts (no separate diff logic)",
+  exists("app/lib/recursos/intake/entityCandidateCreation.ts") && /from ["'].\/generateChangeProposalsForMatch["']/.test(read("app/lib/recursos/intake/entityCandidateCreation.ts")),
+);
 assert("only one detectResourceFieldChanges implementation exists in the whole intake tree", (() => {
   const dir = path.join(root, "app", "lib", "recursos", "intake");
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));

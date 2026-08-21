@@ -140,7 +140,18 @@ assert("PDF job result page surfaces the supersession summary", (() => {
 // --- partner_request / reverification compatible, one global comparison contract -------------------
 assert("resourceChangeDetection.ts ProposalSource type includes partner_request", exists(CHANGE_DETECTION) && /"partner_request"/.test(read(CHANGE_DETECTION)));
 assert("resourceChangeDetection.ts ProposalSource type includes url_recheck (reverification-compatible)", exists(CHANGE_DETECTION) && /"url_recheck"/.test(read(CHANGE_DETECTION)));
-assert("generateChangeProposalsForMatch.ts is the ONE shared entry point both orchestrators call (no second diff engine)", exists(GENERATE_PROPOSALS) && exists(URL_ORCHESTRATOR) && exists(PDF_ORCHESTRATOR) && /generateChangeProposalsForMatch/.test(read(URL_ORCHESTRATOR)) && /generateChangeProposalsForMatch/.test(read(PDF_ORCHESTRATOR)));
+// Gate ES-7D: the PDF orchestrator's per-candidate change-proposal call was extracted into the
+// shared entityCandidateCreation.ts (also used by the new URL multi-entity path) — still the ONE
+// call site both entity-routing paths reach, just one hop further than before.
+const ENTITY_CREATION_PATH = "app/lib/recursos/intake/entityCandidateCreation.ts";
+assert(
+  "generateChangeProposalsForMatch.ts is the ONE shared entry point both orchestrators call (no second diff engine)",
+  exists(GENERATE_PROPOSALS) &&
+    exists(URL_ORCHESTRATOR) &&
+    exists(PDF_ORCHESTRATOR) &&
+    /generateChangeProposalsForMatch/.test(read(URL_ORCHESTRATOR)) &&
+    (/generateChangeProposalsForMatch/.test(read(PDF_ORCHESTRATOR)) || (exists(ENTITY_CREATION_PATH) && /generateChangeProposalsForMatch/.test(read(ENTITY_CREATION_PATH)))),
+);
 
 // --- public queries unchanged -------------------------------------------------------------------------
 assert("communityResourcesPublicQueries.ts untouched by Gate 5", exists(PUBLIC_QUERIES_PATH));
