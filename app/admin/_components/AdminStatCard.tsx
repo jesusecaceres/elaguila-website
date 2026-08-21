@@ -40,7 +40,7 @@ export function AdminStatCard({
       {actionLabel && actionHref ? (
         <Link
           href={actionHref}
-          className={`${adminCtaChip} mt-4 w-full text-xs sm:w-auto`}
+          className={`${adminCtaChip} mt-4 w-full whitespace-nowrap text-xs sm:w-auto`}
           title={actionTitle}
         >
           {actionLabel} →

@@ -122,8 +122,8 @@ if (exists(INTAKE_PATH)) {
   assert("intake page does not import or call any PDF processing function", !/pdfExtraction|processDocument|DocumentProcessorServiceClient/.test(src));
   assert("intake page does not import or call any URL AI extraction function", !/urlExtraction|extractFromUrl|geminiExtract/.test(src));
   assert(
-    "intake page still marks Referido/socio honestly as not fully actionable — URL (Gate 3) and PDF (Gate 4) are now correctly live",
-    /Gate 7/.test(src),
+    "intake page's Referido/socio card is marked real and links to the live solicitudes registration flow (Gate 7 shipped — no stale future-gate wording remains)",
+    /title="Referido \/ socio"[\s\S]{0,400}status="real"/.test(src) && !/Gate 7/.test(src),
   );
   assert("intake page still links to the manual-entry route", /\/admin\/recursos\/nuevo/.test(src));
 }

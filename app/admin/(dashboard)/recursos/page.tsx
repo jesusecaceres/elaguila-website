@@ -190,15 +190,16 @@ export default async function RecursosAdminListPage(props: {
       <AdminPagePurposeCard
         title="Recursos — Data OS"
         purpose="Manage verified community-help organizations and programs (identity, bilingual content, category/urgency, contact CTAs, verification freshness, and editorial status) without code changes."
-        dataSource="Supabase `public.community_resources` table (supabase/migrations/20260818150000_community_resources.sql). No public search page reads this table yet — that is Build 03."
+        dataSource="Supabase `public.community_resources` table (supabase/migrations/20260818150000_community_resources.sql). The public search/directory at /recursos-comunitarios reads this same table live via app/lib/recursos/server/communityResourcesPublicQueries.ts."
         status="real"
         safeActions={[
           "Search / filter by category, urgency, verification, active",
           "Create/edit resource records",
           "Mark verified / needs review / stale / deactivate",
           "Activate / deactivate",
+          "Ver público — open a resource's live public detail page",
         ]}
-        nextGate="Build 03 wires a public search/directory experience against this same table via app/lib/recursos/server/communityResourcesPublicQueries.ts."
+        nextGate="Ninguno planeado — la Data OS y el directorio público ya están en producción."
         warningNote="Partner status and Featured are editorial/relationship metadata only — they never affect public ranking. Ranking is always urgency/relevance/geography/eligibility/verification/active-status based."
       />
 
@@ -209,7 +210,7 @@ export default async function RecursosAdminListPage(props: {
           inventa: si una consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
         </p>
 
-        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-9">
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-9">
           <AdminStatCard title="Publicados / Activos" value={unavailable ? "—" : counts.active} />
           <AdminStatCard title="Verificados" value={unavailable ? "—" : counts.verified} />
           <AdminStatCard title="Revisión pendiente" value={unavailable ? "—" : counts.needsReview} accent={!unavailable && counts.needsReview > 0 ? "amber" : "default"} />
@@ -339,9 +340,14 @@ export default async function RecursosAdminListPage(props: {
                     <td className="px-4 py-3">
                       <p className="font-semibold text-[#1E1810]">{r.organizationName}</p>
                       {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
-                      <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
-                        Edit →
-                      </Link>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                        <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
+                          Editar →
+                        </Link>
+                        <Link href={`/recursos-comunitarios/recurso/${r.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#6B5B2E] underline">
+                          Ver público →
+                        </Link>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-[#5C5346]">{getPrimaryCategoryLabel(r.primaryCategory, "en")}</td>
                     <td className="px-4 py-3">
@@ -368,9 +374,14 @@ export default async function RecursosAdminListPage(props: {
                     </td>
                     <td className="px-4 py-3 text-xs text-[#5C5346]">{r.serviceArea ?? "—"}</td>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-                        Edit
-                      </Link>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                          Editar
+                        </Link>
+                        <Link href={`/recursos-comunitarios/recurso/${r.slug}`} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                          Ver público
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -414,7 +425,10 @@ export default async function RecursosAdminListPage(props: {
                 </dl>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-                    Edit
+                    Editar
+                  </Link>
+                  <Link href={`/recursos-comunitarios/recurso/${r.slug}`} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                    Ver público
                   </Link>
                   <ActiveToggle id={r.id} active={r.verification.active} />
                 </div>

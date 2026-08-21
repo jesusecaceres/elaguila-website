@@ -39,7 +39,7 @@ if (exists(INTAKE_PAGE)) {
   const src = read(INTAKE_PAGE);
   assert("intake page renders a live URL form (analyzeUrlIntakeAction wired)", /analyzeUrlIntakeAction/.test(src));
   assert("intake page's URL card is marked real (status=\"real\")", /title="Sitio web \/ URL"[\s\S]*?status="real"/.test(src));
-  assert("intake page's PDF card remains pending (Gate 4)", /title="PDF"[\s\S]*?status="pending"/.test(src));
+  assert("intake page's PDF card is marked real (PDF intake is live, Gate 4)", /title="PDF"[\s\S]{0,400}status="real"/.test(src));
 }
 
 // --- server-side can_manage_recursos gate ------------------------------------------------------

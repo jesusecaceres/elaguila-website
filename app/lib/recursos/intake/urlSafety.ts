@@ -48,6 +48,21 @@ function isBlockedIpv6(host: string): boolean {
 
 const BLOCKED_HOSTNAME_RE = /^(localhost|.*\.local|.*\.internal|metadata\.google\.internal)$/i;
 
+/**
+ * Owner UX polish: accepts a friendly bare-domain admin input (e.g. "sanjosecleanenergy.org" or
+ * "www.sanjosecleanenergy.org") and prepends "https://" so it reaches validateIntakeUrl() as a
+ * well-formed URL, instead of the browser's native URL-input validator rejecting it outright.
+ * Pure normalization ONLY — an input that already has any scheme://  is left untouched, and every
+ * output still passes through validateIntakeUrl()'s unmodified protocol/SSRF/host checks
+ * immediately afterward. This function never makes a URL more permissive than it already was.
+ */
+export function normalizeFriendlyUrlInput(raw: string): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return trimmed;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed; // already has an explicit scheme
+  return `https://${trimmed}`;
+}
+
 export type UrlSafetyResult = { ok: true; url: URL } | { ok: false; reason: string };
 
 /**

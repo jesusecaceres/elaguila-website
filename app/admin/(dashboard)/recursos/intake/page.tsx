@@ -58,13 +58,13 @@ export default async function RecursosIntakePage(props: { searchParams?: Promise
       />
 
       <AdminPagePurposeCard
-        title="Intake Center — Gate 4"
-        purpose="Punto de entrada único para los cuatro tipos de intake aprobados. URL y PDF están activos: Leonix obtiene/analiza la fuente oficial de forma segura, propone campos (determinísticamente y, cuando está disponible, con asistencia de IA) y crea uno o más candidatos revisables. Nada se verifica ni se publica automáticamente."
-        dataSource="URL: fetch server-side seguro. PDF: almacenamiento privado + Google Document AI + Vercel AI Gateway (si están configurados). Ambos -> public.source_documents + public.resource_intake_jobs + public.community_resource_candidate_reviews."
+        title="Intake Center"
+        purpose="Punto de entrada único para los tipos de intake aprobados. URL y PDF están activos: Leonix obtiene/analiza la fuente oficial de forma segura, propone campos (determinísticamente y, cuando está disponible, con asistencia de IA), los compara contra recursos existentes, y crea uno o más candidatos/cambios revisables. Nada se verifica ni se publica automáticamente."
+        dataSource="URL: fetch server-side seguro. PDF: almacenamiento privado + Google Document AI + Vercel AI Gateway (si están configurados). Ambos -> public.source_documents + public.resource_intake_jobs + public.community_resource_candidate_reviews / public.resource_change_proposals."
         status="real"
-        safeActions={["Analizar una URL oficial", "Subir un PDF de guía de recursos", "Ir a la entrada manual existente", "Ver la cola de solicitudes de socios"]}
-        nextGate="Gate 5 activa coincidencia difusa (fuzzy) y detección de cambios de campo."
-        warningNote="La IA solo propone — nunca verifica ni publica. Cada candidato queda en estado 'researching', sin verificar, esperando revisión humana."
+        safeActions={["Analizar una URL oficial", "Subir un PDF de guía de recursos", "Ir a la entrada manual existente", "Registrar o ver solicitudes de socios"]}
+        nextGate="Ninguno planeado — el sistema de intake ya cubre URL, PDF, entrada manual y solicitudes de socio."
+        warningNote="La IA solo propone — nunca verifica ni publica. Cada candidato queda sin verificar, esperando revisión humana."
       />
 
       {sp.error ? (
@@ -89,7 +89,10 @@ export default async function RecursosIntakePage(props: { searchParams?: Promise
               <label htmlFor="url" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
                 URL oficial
               </label>
-              <input id="url" name="url" type="url" required placeholder="https://organizacion.org/programa" className={adminInputClass} />
+              <input id="url" name="url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" required placeholder="organizacion.org o https://organizacion.org/programa" className={adminInputClass} />
+              <p className="mt-1 text-[11px] leading-snug text-[#8B7E70]">
+                No hace falta escribir "https://" — se agrega automáticamente si no lo incluyes.
+              </p>
             </div>
             <button type="submit" className={`${adminBtnPrimary} w-fit`}>
               Analizar sitio
@@ -105,9 +108,9 @@ export default async function RecursosIntakePage(props: { searchParams?: Promise
         />
         <IntakeChoiceCard
           title="Referido / socio"
-          description="Una organización contactó a Leonix directamente. El registro directo de solicitudes de socio llega en Gate 7 — por ahora puedes ver la cola de solicitudes existentes."
-          status="pending"
-          action={{ label: "Ver solicitudes →", href: "/admin/recursos/solicitudes" }}
+          description="Una organización contactó a Leonix directamente por teléfono, correo o en persona. Registra lo que reportaron — nunca cambia un recurso publicado directamente, siempre pasa por revisión campo por campo."
+          status="real"
+          action={{ label: "Registrar solicitud →", href: "/admin/recursos/solicitudes/nueva" }}
         />
       </div>
     </div>

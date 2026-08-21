@@ -7,7 +7,7 @@ import "server-only";
  * matching V1 -> community_resource_candidate_reviews row (disposition='researching', never
  * verified/promoted) -> verification_events -> job completion. Never writes community_resources.
  */
-import { validateIntakeUrl } from "./urlSafety";
+import { validateIntakeUrl, normalizeFriendlyUrlInput } from "./urlSafety";
 import { fetchUrlSafely } from "./urlFetch";
 import { extractDeterministicSignals, looksConfidential } from "./htmlExtraction";
 import { proposeCandidateFieldsWithAi } from "./aiProposalAdapter";
@@ -91,7 +91,9 @@ export type UrlIntakeResult =
   | { ok: false; reason: string; jobId: string | null };
 
 export async function runUrlIntake(rawUrl: string, actorEmail: string | null): Promise<UrlIntakeResult> {
-  const validated = validateIntakeUrl(rawUrl);
+  // Friendly-input normalization happens BEFORE validation, never in place of it — every URL
+  // still passes through validateIntakeUrl()'s unmodified protocol/SSRF/host checks below.
+  const validated = validateIntakeUrl(normalizeFriendlyUrlInput(rawUrl));
   if (!validated.ok) {
     // No DB writes at all for a rejected URL — nothing to clean up, nothing created.
     return { ok: false, reason: validated.reason, jobId: null };
