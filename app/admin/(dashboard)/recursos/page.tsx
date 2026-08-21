@@ -36,6 +36,7 @@ import { buildReverificationQueue } from "@/app/lib/recursos/intake/reverificati
 import { dbCountActiveResourceIntakeJobs } from "@/app/lib/recursos/intake/server/resourceIntakeJobsDb";
 import { dbCountPendingResourceChangeProposals } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
 import { dbCountPendingPartnerUpdateRequests } from "@/app/lib/recursos/intake/server/partnerUpdateRequestsDb";
+import { loadSpanishReconciliationSnapshot } from "@/app/lib/recursos/intake/spanishReconciliationQueue";
 
 const CANDIDATES = candidatesData as unknown as CandidateResourceRecord[];
 
@@ -138,11 +139,19 @@ export default async function RecursosAdminListPage(props: {
   // three genuinely new counts come from the Gate 1 Intake OS tables. Any query that fails shows
   // an honest "no disponible" rather than a fabricated zero (see `commandCenterUnavailable` below).
   const reverificationQueue = buildReverificationQueue(all);
-  const [intakeJobsCount, changeProposalsCount, partnerRequestsCount] = await Promise.all([
+  const [intakeJobsCount, changeProposalsCount, partnerRequestsCount, spanishSnapshot] = await Promise.all([
     dbCountActiveResourceIntakeJobs(),
     dbCountPendingResourceChangeProposals(),
     dbCountPendingPartnerUpdateRequests(),
+    loadSpanishReconciliationSnapshot(),
   ]);
+  const spanishCounts = {
+    official: spanishSnapshot.entries.filter((e) => e.classification === "SPANISH_READY_OFFICIAL").length,
+    translation: spanishSnapshot.entries.filter((e) => e.classification === "SPANISH_READY_VERIFIED_TRANSLATION").length,
+    needsTranslation: spanishSnapshot.entries.filter((e) => e.classification === "NEEDS_SPANISH_TRANSLATION").length,
+    needsReview: spanishSnapshot.entries.filter((e) => e.classification === "NEEDS_TRANSLATION_REVIEW").length,
+    reverify: spanishSnapshot.entries.filter((e) => e.classification === "SOURCE_REVERIFICATION_REQUIRED").length,
+  };
   const promotedCandidateIds = new Set(candidateReviews.filter((r) => r.disposition === "promoted").map((r) => r.candidateId));
   const candidateCounts = {
     total: CANDIDATES.length,
@@ -265,6 +274,46 @@ export default async function RecursosAdminListPage(props: {
           </Link>
           <Link href="/admin/recursos/reverificacion" className={adminDashboardCtaSlate}>
             Reverificación
+          </Link>
+        </div>
+      </section>
+
+      <section className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Puente al español — reconciliación</h2>
+        <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">
+          Clasificación en vivo de disponibilidad de español para los 65 recursos verificados. Ningún valor se inventa: si una
+          consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
+        </p>
+
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <AdminStatCard title="ES oficial listo" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.official} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=oficial" />
+          <AdminStatCard title="Traducción verificada lista" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.translation} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=traduccion" />
+          <AdminStatCard
+            title="Necesita traducción"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.needsTranslation}
+            accent={!spanishSnapshot.unavailable && spanishCounts.needsTranslation > 0 ? "amber" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/espanol?tab=necesita_traduccion"
+          />
+          <AdminStatCard
+            title="Necesita revisión de español"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.needsReview}
+            accent={!spanishSnapshot.unavailable && spanishCounts.needsReview > 0 ? "amber" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/espanol?tab=necesita_revision"
+          />
+          <AdminStatCard
+            title="Fuente necesita reverificación"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.reverify}
+            accent={!spanishSnapshot.unavailable && spanishCounts.reverify > 0 ? "rose" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/espanol?tab=reverificar"
+          />
+        </div>
+
+        <div className="mt-5">
+          <Link href="/admin/recursos/espanol" className={adminDashboardCtaOlive}>
+            Reconciliación de español
           </Link>
         </div>
       </section>

@@ -37,6 +37,33 @@ export async function dbGetCommunityResourceSpanishStatus(resourceId: string): P
   }
 }
 
+/**
+ * Spanish Bridge (Gate ES-6A/B) — bulk read for the reconciliation queue and command-center
+ * counts. community_resources.spanish_status/spanish_source_type are not exposed on
+ * ResourceRecord (see rowToResourceRecord in communityResourcesDb.ts) precisely so this module
+ * stays the single place that reads/writes them; a bulk queue needs all 65+ rows in one query
+ * rather than one dbGetCommunityResourceSpanishStatus() call per resource. Read-only, no join —
+ * callers cross-reference by `id` against their own dbListCommunityResources() result.
+ */
+export async function dbListAllCommunityResourceSpanishStatuses(): Promise<{ rows: ResourceSpanishStatusRow[]; unavailable: boolean }> {
+  if (!isSupabaseAdminConfigured()) return { rows: [], unavailable: true };
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select("id, spanish_status, spanish_source_type");
+    if (error) return { rows: [], unavailable: true };
+    return {
+      rows: (data ?? []).map((row) => ({
+        id: String((row as { id: string }).id),
+        spanishStatus: (row as { spanish_status: SpanishStatus }).spanish_status,
+        spanishSourceType: (row as { spanish_source_type: SpanishSourceType | null }).spanish_source_type ?? null,
+      })),
+      unavailable: false,
+    };
+  } catch {
+    return { rows: [], unavailable: true };
+  }
+}
+
 export type SetSpanishStatusResult = { ok: true } | { ok: false; error: string };
 
 /**

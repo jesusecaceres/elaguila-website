@@ -98,6 +98,26 @@ export async function dbListPendingResourceChangeProposalsForResource(resourceId
   }
 }
 
+/**
+ * Spanish Bridge (Gate ES-6I) — bulk pending-only read across ALL resources, unlike
+ * dbListResourceChangeProposals() (all statuses, capped at `limit`, used by the Cambios page's
+ * own client-side pending/decided split) or dbListPendingResourceChangeProposalsForResource()
+ * (single resource). The bulk reconciliation queue needs a complete, uncapped pending set to
+ * correctly exclude every resource with an unresolved proposal — a truncated list would silently
+ * let an excluded resource slip back into "eligible for bulk generation".
+ */
+export async function dbListAllPendingResourceChangeProposals(): Promise<{ rows: ResourceChangeProposalRow[]; unavailable: boolean }> {
+  if (!isSupabaseAdminConfigured()) return { rows: [], unavailable: true };
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS).eq("status", "pending").order("created_at", { ascending: false });
+    if (error) return { rows: [], unavailable: true };
+    return { rows: (data ?? []).map((r) => rowFromDb(r as unknown as Record<string, unknown>)), unavailable: false };
+  } catch {
+    return { rows: [], unavailable: true };
+  }
+}
+
 export async function dbGetResourceChangeProposal(id: string): Promise<ResourceChangeProposalRow | null> {
   if (!isSupabaseAdminConfigured()) return null;
   try {
