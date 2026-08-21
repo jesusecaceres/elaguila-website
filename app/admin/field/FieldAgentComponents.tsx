@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useInstallPrompt } from "@/app/lib/pwa/useInstallPrompt";
 
 /**
  * Program 7, Gate 7G — Mobile Staff Field Agent shell.
@@ -14,6 +15,10 @@ import { useEffect, useRef, useState } from "react";
  * - Dictation transcribes client-side via Web Speech API when available; raw audio is never
  *   sent to or stored on the server. If unsupported, the feature is hidden — not faked.
  * - Meeting recording and transcription remain unavailable (Program 5 doctrine, unchanged).
+ *
+ * Package C — the install-prompt hook now lives in app/lib/pwa/useInstallPrompt.ts and is
+ * shared with the main Business Concierge / Sales Workspace install surface. Behavior here is
+ * unchanged.
  */
 
 type NetworkState = "online" | "offline";
@@ -33,25 +38,6 @@ function useNetworkState(): NetworkState {
     };
   }, []);
   return state;
-}
-
-function useInstallPrompt() {
-  const [installEvent, setInstallEvent] = useState<Event | null>(null);
-  useEffect(() => {
-    function handler(e: Event) {
-      e.preventDefault();
-      setInstallEvent(e);
-    }
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-  return {
-    canInstall: Boolean(installEvent),
-    promptInstall: async () => {
-      if (!installEvent) return;
-      await (installEvent as any).prompt();
-    },
-  };
 }
 
 function useDictationSupport(): boolean {

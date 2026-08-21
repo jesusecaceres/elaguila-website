@@ -6,6 +6,7 @@ import { listBusinessesForWorkspace } from "../../_lib/businessWorkspaceData";
 import { BUSINESS_SALES_STATUSES, labelFrom, type BusinessSalesStatus } from "../../_lib/salesWorkspaceLogic";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
+import { BusinessConciergeInstallBanner } from "./BusinessConciergeInstallBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
         eyebrow="Sales workspace"
         subtitle="Confirmed Business Identity records — find a business, see what's missing, and prepare for contact."
         helperText="This is the Sales Team Business Workspace. It shows the same trusted Business Identity record the entrepreneur completed — never a second, conflicting source of truth."
+        rightSlot={<BusinessConciergeInstallBanner />}
       />
 
       {/* Filters — plain GET form so every view is a shareable/refreshable URL. */}

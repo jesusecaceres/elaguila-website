@@ -245,6 +245,44 @@ function verifySourceArchitecture(): VerifyCheck[] {
     detail: "Service worker must never cache API responses",
   });
 
+  // Package C — Staff Studio Install Surface
+  const installHookFile = readSourceFile("app/lib/pwa/useInstallPrompt.ts");
+  checks.push({
+    name: "Install hook: shared useInstallPrompt exported",
+    passed: installHookFile.includes("export function useInstallPrompt"),
+    detail: "Install-prompt logic must live in one shared hook, not be duplicated per surface",
+  });
+
+  const fieldAgentFile = readSourceFile("app/admin/field/FieldAgentComponents.tsx");
+  checks.push({
+    name: "Field Agent shell: consumes shared install hook",
+    passed: fieldAgentFile.includes('from "@/app/lib/pwa/useInstallPrompt"'),
+    detail: "Field Agent shell must reuse the shared hook, not define its own",
+  });
+  checks.push({
+    name: "Field Agent shell: no duplicated beforeinstallprompt handler",
+    passed: !fieldAgentFile.includes("beforeinstallprompt"),
+    detail: "beforeinstallprompt wiring must only exist in the shared hook",
+  });
+
+  const businessesListPage = readSourceFile("app/admin/(dashboard)/businesses/page.tsx");
+  checks.push({
+    name: "Main Business Concierge workspace: exposes install banner",
+    passed: businessesListPage.includes("BusinessConciergeInstallBanner"),
+    detail: "Staff must not need to visit /admin/field to discover installation",
+  });
+
+  const installBannerFile = readSourceFile("app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner.tsx");
+  checks.push({
+    name: "Install banner: no fake download link",
+    passed: !installBannerFile.includes("download=") && !installBannerFile.includes(".apk") && !installBannerFile.includes(".exe"),
+    detail: "Install must only ever use the real browser install prompt, never a fake download",
+  });
+  checks.push({
+    name: "Install banner: uses shared hook, not a private beforeinstallprompt handler",
+    passed: installBannerFile.includes('from "@/app/lib/pwa/useInstallPrompt"') && !installBannerFile.includes("addEventListener(\"beforeinstallprompt\""),
+  });
+
   return checks;
 }
 
