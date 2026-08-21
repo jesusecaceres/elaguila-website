@@ -17,7 +17,9 @@ import {
   adminDashboardCtaPrimary,
   adminDashboardCtaView,
   adminDashboardCtaWarning,
-  adminDashboardCtaNeutral,
+  adminDashboardCtaOlive,
+  adminDashboardCtaTeal,
+  adminDashboardCtaSlate,
 } from "@/app/admin/_components/adminTheme";
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { RecursosFilterBar } from "@/app/admin/_components/recursos/RecursosFilterBar";
@@ -255,13 +257,13 @@ export default async function RecursosAdminListPage(props: {
           <Link href="/admin/recursos/candidatos" className={adminDashboardCtaWarning}>
             Revisar candidatos
           </Link>
-          <Link href="/admin/recursos/cambios" className={adminDashboardCtaNeutral}>
+          <Link href="/admin/recursos/cambios" className={adminDashboardCtaOlive}>
             Revisar cambios
           </Link>
-          <Link href="/admin/recursos/solicitudes" className={adminDashboardCtaNeutral}>
+          <Link href="/admin/recursos/solicitudes" className={adminDashboardCtaTeal}>
             Solicitudes de socios
           </Link>
-          <Link href="/admin/recursos/reverificacion" className={adminDashboardCtaNeutral}>
+          <Link href="/admin/recursos/reverificacion" className={adminDashboardCtaSlate}>
             Reverificación
           </Link>
         </div>
@@ -340,14 +342,6 @@ export default async function RecursosAdminListPage(props: {
                     <td className="px-4 py-3">
                       <p className="font-semibold text-[#1E1810]">{r.organizationName}</p>
                       {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                        <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
-                          Editar →
-                        </Link>
-                        <Link href={`/recursos-comunitarios/recurso/${r.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-[#6B5B2E] underline">
-                          Ver público →
-                        </Link>
-                      </div>
                     </td>
                     <td className="px-4 py-3 text-[#5C5346]">{getPrimaryCategoryLabel(r.primaryCategory, "en")}</td>
                     <td className="px-4 py-3">

@@ -91,7 +91,7 @@ export default async function RecursosIntakePage(props: { searchParams?: Promise
               </label>
               <input id="url" name="url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" required placeholder="organizacion.org o https://organizacion.org/programa" className={adminInputClass} />
               <p className="mt-1 text-[11px] leading-snug text-[#8B7E70]">
-                No hace falta escribir "https://" — se agrega automáticamente si no lo incluyes.
+                No necesitas escribir https:// — Leonix lo agrega automáticamente.
               </p>
             </div>
             <button type="submit" className={`${adminBtnPrimary} w-fit`}>

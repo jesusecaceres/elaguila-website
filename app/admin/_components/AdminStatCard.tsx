@@ -30,7 +30,7 @@ export function AdminStatCard({
         : "";
 
   return (
-    <div className={`${adminCardBase} p-5 ${accentRing}`}>
+    <div className={`${adminCardBase} flex h-full flex-col p-5 ${accentRing}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{title}</p>
         {icon ? <span className="text-xl opacity-90">{icon}</span> : null}
@@ -38,13 +38,15 @@ export function AdminStatCard({
       <p className="mt-3 text-3xl font-bold tabular-nums text-[#1E1810]">{value}</p>
       {hint ? <p className="mt-1 text-xs text-[#5C5346]/85">{hint}</p> : null}
       {actionLabel && actionHref ? (
-        <Link
-          href={actionHref}
-          className={`${adminCtaChip} mt-4 w-full whitespace-nowrap text-xs sm:w-auto`}
-          title={actionTitle}
-        >
-          {actionLabel} →
-        </Link>
+        <div className="mt-auto pt-4">
+          <Link
+            href={actionHref}
+            className={`${adminCtaChip} w-full whitespace-nowrap text-xs sm:w-auto`}
+            title={actionTitle}
+          >
+            {actionLabel} →
+          </Link>
+        </div>
       ) : null}
     </div>
   );
