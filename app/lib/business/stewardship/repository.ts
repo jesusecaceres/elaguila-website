@@ -142,7 +142,8 @@ export async function checkReadinessGate(businessId: string): Promise<ReadinessG
   };
 }
 
-async function ownerGoalIsKnown(businessId: string): Promise<boolean> {
+/** Exported for Package B's opportunity readiness adapter, which reuses this exact evaluation rather than re-deriving it. */
+export async function ownerGoalIsKnown(businessId: string): Promise<boolean> {
   const facts = await listFactsForBusiness(businessId, false);
   return facts.some(
     (f) => f.factCategory === "business_and_owner_goals" && (f.confirmationState === "owner_confirmed" || f.confirmationState === "staff_confirmed"),

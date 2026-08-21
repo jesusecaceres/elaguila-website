@@ -107,7 +107,15 @@ export type SalesWorkspaceCapability =
   | "generate_creative_draft"
   | "review_creative"
   | "approve_creative_final"
-  | "export_creative_production_pack";
+  | "export_creative_production_pack"
+  // Package B — Contextual Opportunity / Sponsorship Bridge capabilities. Kept in this same
+  // matrix, matching every prior program's precedent. sales_rep may view opportunities (same
+  // tier as view_recommendations) but may never review/approve/dismiss one or create a creative
+  // request from it — those are manager+ actions, matching the approve_recommendation and
+  // create_creative_job precedent exactly.
+  | "view_opportunities"
+  | "review_opportunity"
+  | "create_opportunity_creative_request";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -169,6 +177,9 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "review_creative",
   "approve_creative_final",
   "export_creative_production_pack",
+  "view_opportunities",
+  "review_opportunity",
+  "create_opportunity_creative_request",
 ];
 
 /**
@@ -251,6 +262,9 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "review_creative",
     "approve_creative_final",
     "export_creative_production_pack",
+    "view_opportunities",
+    "review_opportunity",
+    "create_opportunity_creative_request",
   ],
   sales_manager: [
     "view_business_list",
@@ -310,6 +324,9 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "review_creative",
     "approve_creative_final",
     "export_creative_production_pack",
+    "view_opportunities",
+    "review_opportunity",
+    "create_opportunity_creative_request",
   ],
   sales_rep: [
     "view_business_list",
@@ -341,6 +358,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_own_commitments",
     "view_creative_studio",
     "upload_creative_assets",
+    "view_opportunities",
   ],
 };
 

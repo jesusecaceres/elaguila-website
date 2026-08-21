@@ -38,6 +38,8 @@ export interface CreativeJob {
   businessId: string;
   sourceRecommendationId: string | null;
   sourceProposalId: string | null;
+  /** Package B — set when this job was created via "Create Creative Request" from an approved opportunity. */
+  sourceOpportunityId: string | null;
   assetType: CreativeAssetType;
   language: CreativeLanguage;
   format: PrintFormatKey;

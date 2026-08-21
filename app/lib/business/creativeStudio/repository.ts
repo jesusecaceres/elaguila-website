@@ -26,7 +26,7 @@ function actorRosterId(actor: CreativeActor): string | null {
 }
 
 const JOB_COLUMNS =
-  "id, business_id, source_recommendation_id, source_proposal_id, asset_type, language, format, archetype, layout_variant, status, input_snapshot_id, doctrine_version, template_version, provider_key, model_key, creative_lane, risk_class, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, approved_actor_type, approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, created_at, updated_at";
+  "id, business_id, source_recommendation_id, source_proposal_id, source_opportunity_id, asset_type, language, format, archetype, layout_variant, status, input_snapshot_id, doctrine_version, template_version, provider_key, model_key, creative_lane, risk_class, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, approved_actor_type, approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, created_at, updated_at";
 
 function mapJobRow(row: Record<string, unknown>): CreativeJob {
   return {
@@ -34,6 +34,7 @@ function mapJobRow(row: Record<string, unknown>): CreativeJob {
     businessId: String(row.business_id),
     sourceRecommendationId: (row.source_recommendation_id as string | null) ?? null,
     sourceProposalId: (row.source_proposal_id as string | null) ?? null,
+    sourceOpportunityId: (row.source_opportunity_id as string | null) ?? null,
     assetType: row.asset_type as CreativeJob["assetType"],
     language: row.language as CreativeJob["language"],
     format: row.format as CreativeJob["format"],
@@ -98,6 +99,7 @@ export async function createJob(
       business_id: businessId,
       source_recommendation_id: input.sourceRecommendationId,
       source_proposal_id: input.sourceProposalId,
+      source_opportunity_id: input.sourceOpportunityId,
       asset_type: input.assetType,
       language: input.language,
       format: input.format,

@@ -40,6 +40,9 @@ import { CreativeStudioPanel } from "./CreativeStudioActions";
 import { listBusinessOutcomes } from "@/app/lib/business/outcomes/repository";
 import { isOutcomesEnabled } from "@/app/lib/business/outcomes/featureFlag";
 import { OutcomesPanel } from "./OutcomesPanel";
+import { listOpportunitiesForBusiness } from "@/app/lib/business/opportunity/repository";
+import { isOpportunityEnabled } from "@/app/lib/business/opportunity/featureFlag";
+import { OpportunitiesPanel } from "./OpportunityActions";
 import { listAllSignals } from "@/app/lib/business/advisor/repository";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
 import { AdvisorPanel } from "./AdvisorPanel";
@@ -233,6 +236,13 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
     : [];
   // Package A — truthful provider availability for staff (never claims an unconfigured provider is live).
   const creativeProviderAvailability = canViewCreativeStudio ? await getConfiguredCreativeProviders() : { gemini: false, openai: false };
+
+  // Package B — Contextual Opportunity / Sponsorship Bridge
+  const canViewOpportunities = actorHasCapability(access.actor, "view_opportunities");
+  const opportunityEnabled = canViewOpportunities ? await isOpportunityEnabled() : false;
+  const opportunities = (canViewOpportunities && opportunityEnabled) ? await listOpportunitiesForBusiness(business.id) : [];
+  const canReviewOpportunity = actorHasCapability(access.actor, "review_opportunity");
+  const canCreateOpportunityCreativeRequest = actorHasCapability(access.actor, "create_opportunity_creative_request");
 
   // Program 7 — Outcomes + Advisor + Assistant
   const outcomesEnabled = await isOutcomesEnabled();
@@ -910,6 +920,32 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 businessId={business.id}
                 jobs={creativeJobs.map((j) => ({ id: j.id, assetType: j.assetType, language: j.language, format: j.format, archetype: j.archetype, status: j.status, riskClass: j.riskClass, createdAt: j.createdAt }))}
                 providerAvailability={creativeProviderAvailability}
+              />
+            </section>
+          ) : null}
+
+          {/* Package B — Contextual Opportunity / Sponsorship Bridge */}
+          {canViewOpportunities && opportunityEnabled ? (
+            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="text-sm font-bold text-[#1E1810]">Opportunities</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Human-reviewed contextual editorial/sponsorship matches. Approving one never confirms sponsorship or sends anything automatically.</p>
+              <OpportunitiesPanel
+                businessId={business.id}
+                opportunities={opportunities.map((o) => ({
+                  id: o.id,
+                  opportunityType: o.opportunityType,
+                  titleEn: o.titleEn,
+                  titleEs: o.titleEs,
+                  summaryEn: o.summaryEn,
+                  matchReasons: o.matchReasons,
+                  confidence: o.confidence,
+                  readinessRecommended: o.readinessRecommended,
+                  readinessExplanationEn: o.readinessExplanationEn,
+                  sourceTitle: o.sourceTitle,
+                  lifecycleState: o.lifecycleState,
+                }))}
+                canReview={canReviewOpportunity}
+                canCreateCreativeRequest={canCreateOpportunityCreativeRequest}
               />
             </section>
           ) : null}
