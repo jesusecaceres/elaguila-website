@@ -215,8 +215,8 @@ export default async function RecursosAdminListPage(props: {
           <AdminStatCard title="Revisión pendiente" value={unavailable ? "—" : counts.needsReview} accent={!unavailable && counts.needsReview > 0 ? "amber" : "default"} />
           <AdminStatCard title="Vencidos / Stale" value={unavailable ? "—" : counts.stale} accent={!unavailable && counts.stale > 0 ? "amber" : "default"} />
           <AdminStatCard
-            title="Reverificación próxima"
-            value={unavailable ? "—" : reverificationQueue.due_soon.length + reverificationQueue.overdue.length}
+            title="Reverificación vencida"
+            value={unavailable ? "—" : reverificationQueue.overdue.length}
             accent={!unavailable && reverificationQueue.overdue.length > 0 ? "rose" : "default"}
             actionLabel="Ver cola"
             actionHref="/admin/recursos/reverificacion"

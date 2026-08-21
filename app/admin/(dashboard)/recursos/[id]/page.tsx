@@ -70,7 +70,11 @@ export default async function EditRecursoPage(props: {
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="verificationStatus" value="verified" />
           <ExecutiveHubConfirmSubmitButton
-            confirmMessage="¿Marcar la reverificación como completada? Esto confirma que el recurso sigue siendo válido — no requiere que haya cambios pendientes."
+            confirmMessage={
+              pendingChanges.length > 0
+                ? `Atención: hay ${pendingChanges.length} cambio(s) pendiente(s) sin revisar para este recurso. ¿Marcar la reverificación como completada de todos modos? Esto NO revisa ni descarta esos cambios — seguirán esperando en la cola de Cambios.`
+                : "¿Marcar la reverificación como completada? Esto confirma que el recurso sigue siendo válido — no requiere que haya cambios pendientes."
+            }
             className={adminBtnPrimary}
           >
             Marcar reverificación completada

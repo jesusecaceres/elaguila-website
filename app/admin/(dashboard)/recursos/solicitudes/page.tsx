@@ -32,21 +32,26 @@ export default async function RecursosSolicitudesPage() {
       <AdminPageHeader
         eyebrow="Recursos"
         title="Solicitudes de socios"
-        subtitle="Correcciones y actualizaciones que una organización comunicó a Leonix (por teléfono, correo o en persona). En Gate 2 es una vista de solo lectura — el registro directo por el equipo llega en Gate 7."
+        subtitle="Correcciones y actualizaciones que una organización comunicó a Leonix (por teléfono, correo o en persona)."
         rightSlot={
-          <Link href="/admin/recursos" className={adminBtnPrimary}>
-            ← Volver al panel
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/recursos/solicitudes/nueva" className={adminBtnPrimary}>
+              + Nueva solicitud
+            </Link>
+            <Link href="/admin/recursos" className={adminBtnPrimary}>
+              ← Volver al panel
+            </Link>
+          </div>
         }
       />
 
       <AdminPagePurposeCard
-        title="Cola de solicitudes — Gate 2 (solo lectura)"
-        purpose="Vista de solo lectura de public.partner_update_requests. V1 es exclusivamente de entrada por el equipo de Leonix — no existe ni existirá en este build un formulario público de envío ni un portal de socios."
+        title="Cola de solicitudes — real"
+        purpose="Registro admin-only de lo que una organización reportó, y su conversión en cambios revisables. V1 es exclusivamente de entrada por el equipo de Leonix — no existe ni existirá en este build un formulario público de envío ni un portal de socios."
         dataSource="Supabase `public.partner_update_requests` (supabase/migrations/20260820120000_recursos_intake_os_schema.sql). Tabla privada — service_role únicamente. La información de contacto se trata como interna, nunca pública."
         status="real"
-        safeActions={["Ver solicitudes de socios existentes con su estado actual"]}
-        nextGate="Gate 7 activa el registro directo por el equipo y su conversión en propuestas de cambio revisables."
+        safeActions={["Registrar una nueva solicitud", "Revisar y convertir solicitudes en cambios propuestos", "Marcar en revisión, resolver o rechazar"]}
+        nextGate="Ninguno planeado — V1 permanece admin-only. Un formulario público de sugerencias sería una fase futura separada, no parte de este build."
         warningNote="Ninguna solicitud de socio modifica un recurso publicado directamente — siempre pasa primero por la cola de Cambios propuestos para revisión campo por campo."
       />
 
@@ -57,7 +62,7 @@ export default async function RecursosSolicitudesPage() {
       ) : rows.length === 0 ? (
         <AdminEmptyState
           title="Sin solicitudes de socios todavía"
-          description="Esta cola se llenará cuando el equipo registre correcciones reportadas por organizaciones (Gate 7) o, más adelante, si se habilita un formulario público de sugerencias. Por ahora no hay ninguna solicitud pendiente."
+          description="Esta cola se llena cuando el equipo registra correcciones reportadas por organizaciones. Usa 'Nueva solicitud' arriba para registrar la primera."
         />
       ) : (
         <>
@@ -70,19 +75,14 @@ export default async function RecursosSolicitudesPage() {
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Contacto</th>
                   <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3">Acción</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((req) => (
                   <tr key={req.id} className={adminTableZebraRow}>
                     <td className="px-4 py-3">
-                      {req.resourceId ? (
-                        <Link href={`/admin/recursos/${req.resourceId}`} className="font-semibold text-[#6B5B2E] underline">
-                          {req.resourceOrganizationName ?? req.organizationName ?? req.resourceId}
-                        </Link>
-                      ) : (
-                        <span className="font-semibold text-[#1E1810]">{req.organizationName ?? "—"}</span>
-                      )}
+                      <span className="font-semibold text-[#1E1810]">{req.resourceOrganizationName ?? req.organizationName ?? "—"}</span>
                     </td>
                     <td className="px-4 py-3 text-[#5C5346]">{req.requestType}</td>
                     <td className="px-4 py-3">
@@ -92,6 +92,11 @@ export default async function RecursosSolicitudesPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-[#7A7164]">{req.submittedContactName ?? req.submittedContactEmail ?? "—"}</td>
                     <td className="px-4 py-3 text-xs text-[#7A7164]">{new Date(req.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/recursos/solicitudes/${req.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
+                        Revisar →
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -117,6 +122,9 @@ export default async function RecursosSolicitudesPage() {
                     <dd className="truncate">{req.submittedContactName ?? req.submittedContactEmail ?? "—"}</dd>
                   </div>
                 </dl>
+                <Link href={`/admin/recursos/solicitudes/${req.id}`} className="mt-3 inline-block text-xs font-bold text-[#6B5B2E] underline">
+                  Revisar →
+                </Link>
               </div>
             ))}
           </div>
