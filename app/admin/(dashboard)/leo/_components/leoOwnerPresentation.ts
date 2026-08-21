@@ -347,3 +347,48 @@ export function formatOwnerDateTime(iso: string | null | undefined): string | nu
     return null;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* LEO-20B Self-Intelligence owner labels (presentation only)                 */
+/* -------------------------------------------------------------------------- */
+
+const SI_DIMENSION_LABELS: Record<string, string> = {
+  OPERATIONS: "Operations",
+  REVENUE_MONETIZATION_HEALTH: "Revenue & Monetization",
+  TECHNOLOGY_READINESS: "Technology Readiness",
+  PRODUCT_OPERATIONAL_HEALTH: "Product Operations",
+  BUSINESS_FOUNDATION: "Business Foundation",
+  CUSTOMER_JOURNEY: "Customer Journey",
+  DISCOVERY_SEO: "SEO / Discovery",
+  TRUST_REPUTATION: "Trust & Reputation",
+  MARKETING_CREATIVE: "Marketing & Creative",
+  COMMUNITY_IMPACT: "Community Impact",
+};
+
+const SI_HEALTH_LABELS: Record<string, string> = {
+  HEALTHY: "Healthy",
+  WATCH: "Watch",
+  NEEDS_ATTENTION: "Needs attention",
+  CRITICAL: "Critical",
+  UNKNOWN: "Unknown",
+  NOT_MEASURED: "Not measured",
+};
+
+const SI_FRESHNESS_LABELS: Record<string, string> = {
+  CURRENT: "Current",
+  AGING: "Aging",
+  STALE: "Stale",
+  UNKNOWN: "Freshness unknown",
+};
+
+export function presentSelfIntelligenceDimension(dimension: string): string {
+  return SI_DIMENSION_LABELS[dimension] ?? humanizeInternalLabel(dimension);
+}
+
+export function presentSelfIntelligenceHealthState(state: string): string {
+  return SI_HEALTH_LABELS[state] ?? humanizeInternalLabel(state);
+}
+
+export function presentSelfIntelligenceFreshness(freshness: string): string {
+  return SI_FRESHNESS_LABELS[freshness] ?? humanizeInternalLabel(freshness);
+}

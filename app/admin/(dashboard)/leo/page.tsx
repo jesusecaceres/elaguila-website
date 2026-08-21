@@ -9,6 +9,7 @@ import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 import { getLeoAttentionBrief } from "@/app/leo/_lib/leoAttentionService";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
+import { getLeoSelfIntelligence } from "@/app/leo/_lib/leoSelfIntelligenceService";
 import { buildLeoSystemHealthSnapshot } from "@/app/leo/_lib/leoSystemHealth";
 import type { LeoAttentionBrief, LeoClientCareWatchResult, LeoMemoryRecord } from "@/app/leo/_lib/leoTypes";
 import { adminCardBase, adminContentArea } from "@/app/admin/_components/adminTheme";
@@ -26,6 +27,10 @@ import { LeoGovernanceLegend } from "./_components/LeoGovernanceLegend";
 import { LeoMemoryPanel } from "./_components/LeoMemoryPanel";
 import { LeoNotificationSettings } from "./_components/LeoNotificationSettings";
 import { LeoPwaShell } from "./_components/LeoPwaShell";
+import {
+  LeoSelfIntelligencePanel,
+  type LeoSelfIntelligenceLoad,
+} from "./_components/LeoSelfIntelligencePanel";
 import { LeoSystemHealthCard } from "./_components/LeoSystemHealthCard";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +46,19 @@ type CareLoad =
 type MemoryLoad =
   | { ok: true; records: LeoMemoryRecord[] }
   | { ok: false; limitation: string };
+
+async function loadSelfIntelligence(): Promise<LeoSelfIntelligenceLoad> {
+  try {
+    const result = await getLeoSelfIntelligence();
+    return { ok: true, profile: result.profile };
+  } catch {
+    return {
+      ok: false,
+      limitation:
+        "Self-Intelligence is temporarily unavailable. Core LEO functions remain available.",
+    };
+  }
+}
 
 async function loadAttention(): Promise<AttentionLoad> {
   try {
@@ -87,7 +105,12 @@ export default async function LeoExecutiveConsolePage() {
     redirect("/admin?leo_access_denied=1");
   }
 
-  const [attention, care, memory] = await Promise.all([loadAttention(), loadClientCare(), loadMemory()]);
+  const [attention, care, memory, selfIntelligence] = await Promise.all([
+    loadAttention(),
+    loadClientCare(),
+    loadMemory(),
+    loadSelfIntelligence(),
+  ]);
 
   const systemHealth = buildLeoSystemHealthSnapshot({
     supabasePersistence: isSupabaseAdminConfigured() ? "HEALTHY" : "NOT_CONFIGURED",
@@ -103,6 +126,8 @@ export default async function LeoExecutiveConsolePage() {
           <LeoExecutiveHeader />
 
           <LeoMorningBriefPanel />
+
+          <LeoSelfIntelligencePanel load={selfIntelligence} />
 
           <div className="min-w-0 lg:max-w-none">
             <LeoConversationPanel />
