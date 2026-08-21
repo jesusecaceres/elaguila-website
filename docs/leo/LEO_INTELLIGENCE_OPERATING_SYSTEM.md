@@ -292,6 +292,8 @@ Provider-neutral runtime for future RED connected actions.
 
 **LEO-21B — Owner approval cockpit:** `/admin/leo` Governed Actions lists canonical proposals for inspect / approve / cancel. Approval requires `proposalId` + `expectedFingerprint` and an explicit confirmation. Approval does not execute. No Execute / Send / Schedule surface. Real provider writes require a separate future gate.
 
+**LEO-21C — Gmail Reply adapter (write-disabled):** `leoGmailReplyConnectedActionAdapter` handles `GMAIL_REPLY` only. `gmail.send` is declared but **not** in the live expected grant. `execute` returns `SCOPE_INSUFFICIENT` / `NOT_CONNECTED` with no `messages.send`. Verify is read-only; full body VERIFIED is PARTIAL until a later safe body-read gate. Sequence for live send: code ready → PM authorization → new owner consent (union of read scopes + `gmail.send`) → token replacement → staging verification → controlled live test.
+
 ---
 
 ## 10. Autonomy Ladder

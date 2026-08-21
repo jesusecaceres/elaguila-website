@@ -120,6 +120,16 @@ Owner cockpit on `/admin/leo` for inspect / approve / cancel of canonical `leo_a
 - no Execute / Send / Schedule controls
 - provider writes remain disabled
 
+### LEO-21C — Gmail Reply Adapter (Write-Disabled / Scope-Aware)
+
+Gmail Reply provider adapter wired for `GMAIL_REPLY` only.
+
+- `gmail.send` declared as future required write scope
+- current OAuth grant expectation remains `gmail.readonly` + `calendar.readonly`
+- `execute` fail-closed: `SCOPE_INSUFFICIENT` / `NOT_CONNECTED` — no `messages.send`
+- verify-only is read-only; body verification PARTIAL (metadata has no plain body)
+- no live email; OAuth consent upgrade is a separate RED gate
+
 ---
 
 ## LEO-22+ — Innovation Radar
@@ -159,10 +169,10 @@ Each gate must preserve:
 
 **Active family:** LEO-21 — Governed Connected Actions
 
-**Current gate:** LEO-21B — Owner Governed Action Approval Cockpit (complete when this build lands)
+**Current gate:** LEO-21C — Gmail Reply Adapter (write-disabled / scope-aware)
 
-Next provider write gate requires separate certification. Provider writes remain disabled.
+Next: explicit PM authorization before any `gmail.send` consent / live reply test. Provider writes remain disabled.
 
-Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; LEO-21A provider-neutral runtime; staging persistence for `leo_action_proposals` / `leo_tool_receipts` present (PM-certified).
+Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; LEO-21A provider-neutral runtime; LEO-21B approval cockpit; staging persistence present (PM-certified).
 
 Provider writes remain disabled.

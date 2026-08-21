@@ -8,7 +8,7 @@
  *
  * No adapter invoke without successful claim (or already-claimed continue).
  * No blind resend after UNKNOWN_EXTERNAL_OUTCOME.
- * CAPABILITY ≠ AUTHORITY — LEO-21A resolves only the null adapter (no writes).
+ * CAPABILITY ≠ AUTHORITY — GMAIL_REPLY uses write-disabled adapter; other families null.
  */
 
 import "server-only";
@@ -25,6 +25,7 @@ import {
 } from "@/app/leo/_lib/leoActionProposalService";
 import type { LeoActionProposal } from "@/app/leo/_lib/leoActionProposalTypes";
 import type { LeoConnectedActionProviderAdapter } from "@/app/leo/_lib/leoConnectedActionProviderAdapter";
+import { leoGmailReplyConnectedActionAdapter } from "@/app/leo/_lib/leoGmailReplyConnectedActionAdapter";
 import { leoNullConnectedActionProviderAdapter } from "@/app/leo/_lib/leoNullConnectedActionProviderAdapter";
 import {
   computeLeoConnectedActionAttemptId,
@@ -44,7 +45,7 @@ export type LeoExecuteGovernedConnectedActionInput = {
   expectedFingerprint: string;
   /**
    * verify_only: never call execute; reconcile/verify after unknown or accepted-unverified.
-   * execute: normal path (null adapter in LEO-21A — no external side effect).
+   * execute: claim then adapter (GMAIL_REPLY is write-disabled in LEO-21C).
    */
   mode?: "execute" | "verify_only";
 };
@@ -87,7 +88,7 @@ function failureResult(input: {
     externalSideEffectConfirmed: input.externalSideEffectConfirmed ?? false,
     warnings: input.warnings ?? [meta.safeOwnerMessage],
     safeMetadata: {
-      gate: "LEO-21A",
+      gate: "LEO-21C",
       providerWriteEnabled: false,
     },
     attemptId: input.attemptId,
@@ -124,9 +125,11 @@ export function buildLeoConnectedActionExecutionRequest(
 }
 
 function resolveAdapter(
-  _actionFamily: LeoActionProposal["actionFamily"],
+  actionFamily: LeoActionProposal["actionFamily"],
 ): LeoConnectedActionProviderAdapter {
-  // LEO-21A: null adapter only. Real Gmail/Calendar write adapters are forbidden here.
+  if (leoGmailReplyConnectedActionAdapter.canHandle(actionFamily)) {
+    return leoGmailReplyConnectedActionAdapter;
+  }
   return leoNullConnectedActionProviderAdapter;
 }
 

@@ -49,6 +49,24 @@ function splitAddresses(raw: string | null): string[] {
     .slice(0, 20);
 }
 
+/** Metadata headers for inbox/thread/message reads — includes RFC reply headers (LEO-21C). */
+export const LEO_GMAIL_METADATA_HEADERS = [
+  "From",
+  "To",
+  "Cc",
+  "Subject",
+  "Date",
+  "Message-ID",
+  "References",
+  "In-Reply-To",
+] as const;
+
+function metadataHeadersQuery(): string {
+  return LEO_GMAIL_METADATA_HEADERS.map(
+    (h) => `metadataHeaders=${encodeURIComponent(h)}`,
+  ).join("&");
+}
+
 async function gmailGet(path: string, accessToken: string): Promise<Response> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), LEO_GOOGLE_BOUNDS.fetchTimeoutMs);
@@ -88,6 +106,9 @@ function mapMessage(raw: Record<string, unknown>): LeoEmailMessageEvidence {
     snippet: boundText(raw.snippet, LEO_GOOGLE_BOUNDS.maxSnippetChars),
     labelIds,
     readState: unread ? "UNREAD" : "READ",
+    rfcMessageId: boundText(headers["message-id"], 320),
+    referencesHeader: boundText(headers.references, 2000),
+    inReplyToHeader: boundText(headers["in-reply-to"], 320),
   };
 }
 
@@ -162,7 +183,7 @@ export async function readLeoGmailInbox(options?: {
     for (const id of ids) {
       // metadata format — no full body, no attachments
       const msgRes = await gmailGet(
-        `/users/me/messages/${encodeURIComponent(id)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`,
+        `/users/me/messages/${encodeURIComponent(id)}?format=metadata&${metadataHeadersQuery()}`,
         accessToken,
       );
       if (!msgRes.ok) continue;
@@ -231,7 +252,7 @@ export async function readLeoGmailThread(threadId: string): Promise<LeoGmailRead
 
   try {
     const res = await gmailGet(
-      `/users/me/threads/${encodeURIComponent(threadId.trim())}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`,
+      `/users/me/threads/${encodeURIComponent(threadId.trim())}?format=metadata&${metadataHeadersQuery()}`,
       tokenResult.accessToken,
     );
     if (!res.ok) {
@@ -266,6 +287,84 @@ export async function readLeoGmailThread(threadId: string): Promise<LeoGmailRead
       ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
       limitations: [...limitations, "Gmail thread network/timeout failure."],
       errorCode: "GMAIL_THREAD_NETWORK_OR_TIMEOUT",
+    };
+  }
+}
+
+/**
+ * LEO-21C — Bounded single-message metadata read for reply verification.
+ * Read-only. No body/MIME dump. Reuses same gmailGet path.
+ */
+export async function readLeoGmailMessageById(
+  messageId: string,
+): Promise<LeoGmailReadResult> {
+  const limitations: string[] = [
+    "Gmail message read-only — metadata only.",
+    "No attachment or raw MIME body fetch.",
+    "Body comparison for VERIFIED is PARTIAL until a future safe body-read gate.",
+  ];
+
+  if (!messageId.trim()) {
+    return {
+      availability: "UNAVAILABLE",
+      messages: [],
+      ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
+      limitations: [...limitations, "messageId required."],
+      errorCode: "GMAIL_MESSAGE_ID_REQUIRED",
+    };
+  }
+
+  if (!isLeoGoogleWorkspaceConfigured()) {
+    return {
+      availability: "NOT_CONFIGURED",
+      messages: [],
+      ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
+      limitations: [...limitations, "Google Workspace is not configured."],
+      errorCode: "GOOGLE_NOT_CONFIGURED",
+    };
+  }
+
+  const tokenResult = await refreshLeoGoogleAccessToken();
+  if (tokenResult.availability !== "AVAILABLE" || !tokenResult.accessToken) {
+    return {
+      availability: "UNAVAILABLE",
+      messages: [],
+      ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
+      limitations: [...limitations, "Gmail access token unavailable."],
+      errorCode: tokenResult.errorCode ?? "GOOGLE_TOKEN_UNAVAILABLE",
+    };
+  }
+
+  try {
+    const res = await gmailGet(
+      `/users/me/messages/${encodeURIComponent(messageId.trim())}?format=metadata&${metadataHeadersQuery()}`,
+      tokenResult.accessToken,
+    );
+    if (!res.ok) {
+      return {
+        availability: "UNAVAILABLE",
+        messages: [],
+        ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
+        limitations: [...limitations, "Gmail message request failed."],
+        errorCode: classifyLeoGmailHttpStatus(res.status),
+      };
+    }
+    const raw = (await res.json()) as Record<string, unknown>;
+    const mapped = mapMessage(raw);
+    return {
+      availability: "AVAILABLE",
+      messages: mapped.messageId ? [mapped] : [],
+      ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
+      limitations,
+      errorCode: null,
+    };
+  } catch {
+    return {
+      availability: "UNAVAILABLE",
+      messages: [],
+      ownerEmailConfigured: Boolean(getLeoGoogleAccountEmail()),
+      limitations: [...limitations, "Gmail message network/timeout failure."],
+      errorCode: "GMAIL_MESSAGE_NETWORK_OR_TIMEOUT",
     };
   }
 }

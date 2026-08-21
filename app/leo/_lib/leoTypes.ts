@@ -1392,6 +1392,12 @@ export type LeoEmailMessageEvidence = {
   snippet: string | null;
   labelIds: string[];
   readState: LeoEmailReadState;
+  /** RFC Message-ID header when requested via metadata (LEO-21C). */
+  rfcMessageId?: string | null;
+  /** RFC References header when requested via metadata (LEO-21C). */
+  referencesHeader?: string | null;
+  /** RFC In-Reply-To header when requested via metadata (LEO-21C). */
+  inReplyToHeader?: string | null;
 };
 
 export type LeoEmailThreadEvidence = {

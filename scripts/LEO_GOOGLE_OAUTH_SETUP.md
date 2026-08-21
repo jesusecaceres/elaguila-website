@@ -15,12 +15,32 @@ node scripts/leo-google-oauth-offline.mjs
 - `LEO_GOOGLE_CLIENT_ID`
 - `LEO_GOOGLE_CLIENT_SECRET`
 
-## Scopes (read-only)
+## Scopes (read-only — CURRENT GRANT)
 
 - `https://www.googleapis.com/auth/gmail.readonly`
 - `https://www.googleapis.com/auth/calendar.readonly`
 
-No send/modify/write scopes.
+No send/modify/write scopes are enabled in the current grant.
+
+## Future write scope (NOT ENABLED)
+
+Declared for a later RED PM gate only:
+
+- `https://www.googleapis.com/auth/gmail.send` — required for GMAIL_REPLY live send
+
+**Do not regenerate the refresh token in LEO-21C.** Code is write-disabled until explicitly authorized.
+
+Later sequence (separate gates):
+
+1. Code ready (LEO-21C) — adapter fail-closed
+2. Explicit PM authorization
+3. New owner consent requesting **union**: existing read scopes **plus** `gmail.send` (so Gmail/Calendar reads do not regress)
+4. Replace `LEO_GOOGLE_REFRESH_TOKEN` in Preview env
+5. Staging connection verification
+6. Single controlled live reply test
+7. Production = separate later decision
+
+No secrets in docs. Never commit tokens.
 
 ## After success
 

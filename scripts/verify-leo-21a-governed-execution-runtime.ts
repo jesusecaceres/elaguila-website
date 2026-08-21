@@ -200,12 +200,26 @@ check(
   oauth.includes("gmail.readonly") && oauth.includes("calendar.readonly"),
   "gmail.readonly + calendar.readonly preserved",
 );
-check(
-  !oauth.includes("gmail.send") &&
-    !oauth.includes("gmail.compose") &&
-    !oauth.includes("calendar.events"),
-  "no new OAuth write scopes",
-);
+{
+  const expectedLine = oauth
+    .split(/\r?\n/)
+    .find((l) => l.includes("LEO_GOOGLE_EXPECTED_SCOPES ="));
+  const readStart = oauth.indexOf("LEO_GOOGLE_CURRENT_READ_SCOPES = [");
+  const readBlock =
+    readStart >= 0
+      ? oauth.slice(readStart, oauth.indexOf("] as const", readStart) + "] as const".length)
+      : "";
+  check(
+    Boolean(expectedLine?.includes("LEO_GOOGLE_CURRENT_READ_SCOPES")) &&
+      oauth.includes("LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED") &&
+      /LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED[^=]*= false/.test(oauth) &&
+      readBlock.includes("LEO_GMAIL_READONLY_SCOPE") &&
+      readBlock.includes("LEO_CALENDAR_READONLY_SCOPE") &&
+      !readBlock.includes("gmail.send") &&
+      !readBlock.includes("LEO_GMAIL_SEND_SCOPE"),
+    "no new OAuth write scopes enabled in active grant",
+  );
+}
 
 check(
   leoProposalTruthLabelForState("EXECUTION_CLAIMED", false) === "Executing",

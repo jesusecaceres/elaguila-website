@@ -150,8 +150,9 @@ check(!/events\.insert|events\.patch/i.test(cal), "Calendar readonly");
 check(
   oauth.includes("gmail.readonly") &&
     oauth.includes("calendar.readonly") &&
-    !oauth.includes("gmail.send"),
-  "no OAuth scope additions",
+    oauth.includes("LEO_GOOGLE_EXPECTED_SCOPES = LEO_GOOGLE_CURRENT_READ_SCOPES") &&
+    /LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED[^=]*= false/.test(oauth),
+  "no OAuth write scopes enabled in active grant",
 );
 
 const migrations = execSync("git ls-files supabase/migrations", {

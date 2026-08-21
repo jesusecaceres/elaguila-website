@@ -12,10 +12,43 @@ export const LEO_GMAIL_READONLY_SCOPE =
 export const LEO_CALENDAR_READONLY_SCOPE =
   "https://www.googleapis.com/auth/calendar.readonly" as const;
 
-export const LEO_GOOGLE_EXPECTED_SCOPES = [
+/**
+ * LEO-21C — Declared future Gmail write scope for GMAIL_REPLY.
+ * NOT enabled in the current grant expectation. Do not add to LEO_GOOGLE_EXPECTED_SCOPES
+ * until an explicit PM RED OAuth consent gate.
+ */
+export const LEO_GMAIL_SEND_SCOPE =
+  "https://www.googleapis.com/auth/gmail.send" as const;
+
+/** Alias: scopes that must be present on the live refresh-token grant today. */
+export const LEO_GOOGLE_CURRENT_READ_SCOPES = [
   LEO_GMAIL_READONLY_SCOPE,
   LEO_CALENDAR_READONLY_SCOPE,
 ] as const;
+
+/**
+ * Active expected OAuth grant — READ ONLY.
+ * Must not include gmail.send until a separate RED consent gate.
+ */
+export const LEO_GOOGLE_EXPECTED_SCOPES = LEO_GOOGLE_CURRENT_READ_SCOPES;
+
+/** Future write scope required for GMAIL_REPLY live send (not granted yet). */
+export const LEO_GMAIL_REPLY_REQUIRED_WRITE_SCOPE = LEO_GMAIL_SEND_SCOPE;
+
+/**
+ * Hard fail-closed switch: Gmail reply provider write capability.
+ * Remains false until PM authorizes OAuth grant upgrade + live adapter enablement.
+ */
+export const LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED: boolean = false;
+
+/**
+ * Truthful write-capability check for GMAIL_REPLY.
+ * Does not introspect Google's token scope list (runtime cannot safely prove grants yet).
+ * Returns false while LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED is false.
+ */
+export function isLeoGmailReplyWriteCapabilityEnabled(): boolean {
+  return LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED;
+}
 
 export const LEO_GOOGLE_BOUNDS = {
   maxMessagesDefault: 25,
