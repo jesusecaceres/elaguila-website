@@ -9,12 +9,18 @@
 import type { ResourceRecord } from "@/app/lib/recursos/types";
 import type { UrlCandidateProposal } from "./urlCandidateProposal";
 
-export type ProposalSource = "pdf_reextraction" | "url_recheck" | "partner_request" | "manual";
+export type ProposalSource = "pdf_reextraction" | "url_recheck" | "partner_request" | "manual" | "translation";
 
 /**
  * Fields eligible for a change proposal at all, mapped to their community_resources column.
  * This IS the server allow-list Gate 5H requires — accept/reject/bulk-accept actions only ever
  * write a column that appears here, never an arbitrary client-supplied name.
+ *
+ * Spanish Bridge (Gate ES-2A): the four *Es entries are the ONLY Spanish fields ever writable
+ * through this contract — no arbitrary *_es key is permitted. These are always safe fields
+ * structurally (never phone/address/is24Hours), but a proposal touching them is separately
+ * excluded from bulk-safe-accept whenever proposalSource === "translation" — see
+ * app/admin/recursosChangeProposalActions.ts's acceptAllSafeChangeProposalsAction.
  */
 export const WRITABLE_FIELD_COLUMNS: Record<string, string> = {
   organizationName: "organization_name",
@@ -35,6 +41,10 @@ export const WRITABLE_FIELD_COLUMNS: Record<string, string> = {
   eligibilityEn: "eligibility_en",
   languages: "languages",
   costModel: "cost_model",
+  shortDescriptionEs: "short_description_es",
+  detailsEs: "details_es",
+  eligibilityEs: "eligibility_es",
+  hoursNoteEs: "hours_note_es",
 };
 
 /**
@@ -55,6 +65,23 @@ export const SAFETY_SENSITIVE_FIELDS: ReadonlySet<string> = new Set([
 
 export function isSafetySensitiveField(field: string): boolean {
   return SAFETY_SENSITIVE_FIELDS.has(field);
+}
+
+/**
+ * Spanish Bridge (Gate ES-2D): identifies a resource whose PROSE content deserves extra scrutiny
+ * during translation review, even though the translation itself never touches a structured
+ * SAFETY_SENSITIVE_FIELDS value. A crisis/24-7/urgent-safety resource's Spanish description or
+ * eligibility text still needs individual human attention (e.g. a mistranslated eligibility
+ * qualifier on a DV shelter's Spanish page is a real harm even though "eligibilityEs" itself is
+ * not in SAFETY_SENSITIVE_FIELDS). Does not change any factual value — read-only classification,
+ * consumed by later gates (Cambios badge now; bulk-translation exclusion in a future gate).
+ */
+export function isHighRiskResourceForTranslation(resource: {
+  primaryCategory?: string | null;
+  crisisPhone?: string | null;
+  is24Hours?: boolean | null;
+}): boolean {
+  return resource.primaryCategory === "urgent-safety" || Boolean(resource.crisisPhone) || resource.is24Hours === true;
 }
 
 export type FieldChange = {
@@ -136,6 +163,14 @@ function getResourceFieldValue(resource: ResourceRecord, field: string): unknown
       return resource.languages;
     case "costModel":
       return resource.costModel;
+    case "shortDescriptionEs":
+      return resource.shortDescriptionEs;
+    case "detailsEs":
+      return resource.detailsEs;
+    case "eligibilityEs":
+      return resource.eligibilityEs;
+    case "hoursNoteEs":
+      return resource.contact.hoursNoteEs;
     default:
       return undefined;
   }

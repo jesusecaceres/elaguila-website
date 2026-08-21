@@ -7,6 +7,7 @@ import "server-only";
  * exclusively by the server actions in recursosChangeProposalActions.ts. Service-role only.
  */
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import type { ProposalSource } from "@/app/lib/recursos/intake/resourceChangeDetection";
 
 const TABLE = "resource_change_proposals";
 
@@ -16,6 +17,10 @@ export type ResourceChangeProposalRow = {
   id: string;
   resourceId: string;
   resourceOrganizationName: string | null;
+  /** Spanish Bridge (Gate ES-2D): carried so the Cambios UI can compute isHighRiskResourceForTranslation without a second query. */
+  resourcePrimaryCategory: string | null;
+  resourceCrisisPhone: string | null;
+  resourceIs24Hours: boolean | null;
   sourceIntakeJobId: string | null;
   fieldName: string;
   oldValue: unknown;
@@ -27,12 +32,20 @@ export type ResourceChangeProposalRow = {
   createdAt: string;
 };
 
+const RESOURCE_JOIN = "community_resources(organization_name, primary_category, crisis_phone, is_24_hours)";
+
 function rowFromDb(row: Record<string, unknown>): ResourceChangeProposalRow {
-  const joined = row.community_resources as { organization_name?: string } | null | undefined;
+  const joined = row.community_resources as
+    | { organization_name?: string; primary_category?: string; crisis_phone?: string | null; is_24_hours?: boolean }
+    | null
+    | undefined;
   return {
     id: String(row.id),
     resourceId: String(row.resource_id),
     resourceOrganizationName: joined?.organization_name ?? null,
+    resourcePrimaryCategory: joined?.primary_category ?? null,
+    resourceCrisisPhone: joined?.crisis_phone ?? null,
+    resourceIs24Hours: joined?.is_24_hours ?? null,
     sourceIntakeJobId: (row.source_intake_job_id as string | null) ?? null,
     fieldName: String(row.field_name),
     oldValue: row.old_value ?? null,
@@ -63,7 +76,7 @@ export async function dbListResourceChangeProposals(limit = 100): Promise<{ rows
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from(TABLE)
-      .select(`${SELECT_COLUMNS}, community_resources(organization_name)`)
+      .select(`${SELECT_COLUMNS}, ${RESOURCE_JOIN}`)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) return { rows: [], unavailable: true };
@@ -103,7 +116,7 @@ export type CreateResourceChangeProposalInput = {
   fieldName: string;
   oldValue: string | null;
   proposedValue: string | null;
-  proposalSource: "pdf_reextraction" | "url_recheck" | "partner_request" | "manual";
+  proposalSource: ProposalSource;
 };
 
 export type ResourceChangeProposalDbResult = { ok: true; id: string; skippedDuplicate: boolean } | { ok: false; error: string };

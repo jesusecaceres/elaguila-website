@@ -6,7 +6,7 @@ import { adminActionProofErr, adminActionProofOk, adminBtnPrimary, adminCardBase
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { dbListResourceChangeProposals, type ResourceChangeProposalRow } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
-import { isSafetySensitiveField } from "@/app/lib/recursos/intake/resourceChangeDetection";
+import { isSafetySensitiveField, isHighRiskResourceForTranslation } from "@/app/lib/recursos/intake/resourceChangeDetection";
 import { acceptAllSafeChangeProposalsAction, acceptChangeProposalAction, needsMoreResearchChangeProposalAction, rejectChangeProposalAction } from "@/app/admin/recursosChangeProposalActions";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,7 @@ const SOURCE_LABEL: Record<string, string> = {
   url_recheck: "Revisión de URL",
   partner_request: "Solicitud de socio",
   manual: "Manual",
+  translation: "Traducción",
 };
 
 function shortValue(v: unknown): string {
@@ -38,6 +39,12 @@ function shortValue(v: unknown): string {
 
 function ProposalRow({ p }: { p: ResourceChangeProposalRow }) {
   const safety = isSafetySensitiveField(p.fieldName);
+  const isTranslation = p.proposalSource === "translation";
+  const highRisk = isTranslation && isHighRiskResourceForTranslation({
+    primaryCategory: p.resourcePrimaryCategory,
+    crisisPhone: p.resourceCrisisPhone,
+    is24Hours: p.resourceIs24Hours,
+  });
   return (
     <div className={`${adminCardBase} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -50,7 +57,16 @@ function ProposalRow({ p }: { p: ResourceChangeProposalRow }) {
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          {safety ? (
+          {isTranslation ? (
+            <span className="inline-flex rounded-md border border-sky-300 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-900">
+              Traducción ES
+            </span>
+          ) : null}
+          {highRisk ? (
+            <span className="inline-flex rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-900">
+              Alto riesgo — revisar individualmente
+            </span>
+          ) : safety ? (
             <span className="inline-flex rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-900">
               Sensible / seguridad
             </span>
@@ -86,11 +102,25 @@ function ProposalRow({ p }: { p: ResourceChangeProposalRow }) {
   );
 }
 
-export default async function RecursosCambiosPage(props: { searchParams?: Promise<{ status_saved?: string; error?: string }> }) {
+type CambiosTipo = "todos" | "datos" | "traducciones";
+const TIPO_TABS: { value: CambiosTipo; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "datos", label: "Datos" },
+  { value: "traducciones", label: "Traducciones" },
+];
+
+export default async function RecursosCambiosPage(props: { searchParams?: Promise<{ status_saved?: string; error?: string; tipo?: string }> }) {
   await requireLeonixAdminPermission("can_manage_recursos");
   const sp = props.searchParams ? await props.searchParams : {};
+  const tipo: CambiosTipo = sp.tipo === "datos" || sp.tipo === "traducciones" ? sp.tipo : "todos";
 
-  const { rows, unavailable } = await dbListResourceChangeProposals();
+  const { rows: allRows, unavailable } = await dbListResourceChangeProposals();
+  const rows =
+    tipo === "todos"
+      ? allRows
+      : tipo === "traducciones"
+        ? allRows.filter((p) => p.proposalSource === "translation")
+        : allRows.filter((p) => p.proposalSource !== "translation");
   const pending = rows.filter((p) => p.status === "pending");
   const decided = rows.filter((p) => p.status !== "pending");
 
@@ -119,10 +149,22 @@ export default async function RecursosCambiosPage(props: { searchParams?: Promis
         purpose="Revisión campo por campo de public.resource_change_proposals. Aceptar actualiza únicamente ese campo en community_resources; Rechazar y Necesita más investigación nunca tocan el recurso."
         dataSource="Supabase `public.resource_change_proposals`. Cada acción re-lee la propuesta en el servidor, confirma que sigue pendiente, y escribe solo la columna permitida — nunca una sobrescritura completa."
         status="real"
-        safeActions={["Aceptar un cambio de campo", "Rechazar una propuesta", "Marcar que necesita más investigación", "Aceptar todos los cambios seguros de un recurso (excluye campos sensibles)"]}
-        nextGate="Gate 6 añade el historial de verificación completo y el motor de reverificación operativo."
-        warningNote="Los campos sensibles (teléfono de crisis, SMS, dirección, 24/7) siempre requieren revisión individual — nunca se incluyen en 'Aceptar cambios seguros'."
+        safeActions={["Aceptar un cambio de campo", "Rechazar una propuesta", "Marcar que necesita más investigación", "Aceptar todos los cambios seguros de un recurso (excluye campos sensibles y traducciones)"]}
+        nextGate="Ninguno planeado en esta fase — el motor de traducción llega en un gate futuro."
+        warningNote="Los campos sensibles (teléfono de crisis, SMS, dirección, 24/7) y toda propuesta de traducción siempre requieren revisión individual — ninguno de los dos se incluye en 'Aceptar cambios seguros'."
       />
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        {TIPO_TABS.map((t) => (
+          <Link
+            key={t.value}
+            href={t.value === "todos" ? "/admin/recursos/cambios" : `/admin/recursos/cambios?tipo=${t.value}`}
+            className={`${adminCtaChip} ${adminCtaChipCompact} ${tipo === t.value ? "border-[#7A1E2C] bg-[#7A1E2C] text-white hover:bg-[#6B1A26]" : ""}`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
 
       {sp.status_saved ? <p className={`${adminActionProofOk} mb-6`}>Guardado.</p> : null}
       {sp.error ? <p className={`${adminActionProofErr} mb-6`}>{sp.error}</p> : null}
@@ -141,7 +183,7 @@ export default async function RecursosCambiosPage(props: { searchParams?: Promis
           ) : (
             <div className="space-y-6">
               {[...pendingByResource.entries()].map(([resourceId, proposals]) => {
-                const safeCount = proposals.filter((p) => !isSafetySensitiveField(p.fieldName)).length;
+                const safeCount = proposals.filter((p) => !isSafetySensitiveField(p.fieldName) && p.proposalSource !== "translation").length;
                 return (
                   <section key={resourceId}>
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -152,7 +194,7 @@ export default async function RecursosCambiosPage(props: { searchParams?: Promis
                         <form action={acceptAllSafeChangeProposalsAction}>
                           <input type="hidden" name="resourceId" value={resourceId} />
                           <ExecutiveHubConfirmSubmitButton
-                            confirmMessage={`¿Aceptar los ${safeCount} cambios no sensibles de este recurso? Los campos sensibles (teléfono de crisis, SMS, dirección, 24/7) quedarán para revisión individual.`}
+                            confirmMessage={`¿Aceptar los ${safeCount} cambios no sensibles de este recurso? Los campos sensibles (teléfono de crisis, SMS, dirección, 24/7) y cualquier propuesta de traducción quedarán para revisión individual.`}
                             className={`${adminCtaChip} ${adminCtaChipCompact} border-[#C9B46A]/80 bg-[#FFFCF7] text-[#5C4E2E]`}
                           >
                             Aceptar cambios seguros ({safeCount})

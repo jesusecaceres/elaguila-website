@@ -93,10 +93,11 @@ assert("reverifyResourceViaUrl.ts no longer hardcodes is24Hours:false in the det
 })());
 
 // --- Gate 8: schema untouched (no migration expected this gate) --------------------------------
-assert("no new migration file added since Gate 1 (schema unchanged)", (() => {
+assert("only the expected Recursos migrations exist (Gate 1 schema + Coach-approved Spanish Bridge foundation)", (() => {
   const dir = path.join(root, "supabase", "migrations");
-  const files = fs.readdirSync(dir).filter((f) => /recursos/i.test(f));
-  return files.length === 1 && files[0] === "20260820120000_recursos_intake_os_schema.sql";
+  const files = fs.readdirSync(dir).filter((f) => /recursos/i.test(f)).sort();
+  const expected = ["20260820120000_recursos_intake_os_schema.sql", "20260821090000_recursos_spanish_bridge_foundation.sql"];
+  return files.length === expected.length && files.every((f, i) => f === expected[i]);
 })());
 
 // --- Gate 8: public contract never imports anything from the intake tree -----------------------

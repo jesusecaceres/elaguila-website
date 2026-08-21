@@ -149,10 +149,11 @@ if (exists(PUBLIC_QUERIES_PATH)) {
 }
 
 // --- no new migration, no pg_trgm enablement in code ---------------------------------------------------
-assert("no new migration file added in Gate 5 (schema unchanged since Gate 1)", (() => {
+assert("no unaccounted migration file added since Gate 1 (only the Coach-approved Spanish Bridge foundation migration is newer)", (() => {
   const migDir = path.join(root, "supabase", "migrations");
   const files = fs.readdirSync(migDir).filter((f) => f.endsWith(".sql"));
-  return files.filter((f) => f > "20260820120000_recursos_intake_os_schema.sql").length === 0;
+  const newerThanGate1 = files.filter((f) => f > "20260820120000_recursos_intake_os_schema.sql");
+  return newerThanGate1.filter((f) => f !== "20260821090000_recursos_spanish_bridge_foundation.sql").length === 0;
 })());
 assert("no functional pg_trgm usage introduced anywhere in the Gate 5 intake module", (() => {
   const dir = path.join(root, "app", "lib", "recursos", "intake");
