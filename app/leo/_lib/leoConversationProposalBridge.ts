@@ -42,7 +42,7 @@ export type LeoProposalTruthLabel =
   | "Prepared"
   | "Needs approval"
   | "Needs information"
-  | "Awaiting confirmation"
+  | "Approved — not executed yet"
   | "Executing"
   | "Executed — verification pending"
   | "Verified"
@@ -170,7 +170,7 @@ export function leoProposalTruthLabelForState(
     case "AWAITING_APPROVAL":
       return "Needs approval";
     case "APPROVED":
-      return "Awaiting confirmation";
+      return "Approved — not executed yet";
     case "EXECUTION_CLAIMED":
       return "Executing";
     case "EXECUTED":

@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
+import { leoListGovernedActionProposalCardsForOwner } from "@/app/leo/_lib/leoActionProposalService";
 import { getLeoAttentionBrief } from "@/app/leo/_lib/leoAttentionService";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
@@ -23,6 +24,7 @@ import { LeoClientCarePanel } from "./_components/LeoClientCarePanel";
 import { LeoMorningBriefPanel } from "./_components/LeoMorningBrief";
 import { LeoConversationPanel } from "./_components/LeoConversationPanel";
 import { LeoExecutiveHeader } from "./_components/LeoExecutiveHeader";
+import { LeoGovernedActionsPanel, type LeoGovernedActionsLoad } from "./_components/LeoGovernedActionsPanel";
 import { LeoGovernanceLegend } from "./_components/LeoGovernanceLegend";
 import { LeoMemoryPanel } from "./_components/LeoMemoryPanel";
 import { LeoNotificationSettings } from "./_components/LeoNotificationSettings";
@@ -96,6 +98,24 @@ async function loadMemory(): Promise<MemoryLoad> {
   }
 }
 
+async function loadGovernedActions(): Promise<LeoGovernedActionsLoad> {
+  try {
+    const res = await leoListGovernedActionProposalCardsForOwner({ limit: 40 });
+    if (!res.ok) {
+      return {
+        ok: false,
+        limitation: "Governed action proposals are temporarily unavailable.",
+      };
+    }
+    return { ok: true, cards: res.cards };
+  } catch {
+    return {
+      ok: false,
+      limitation: "Governed action proposals are temporarily unavailable.",
+    };
+  }
+}
+
 export default async function LeoExecutiveConsolePage() {
   const access = await resolveLeoAccess();
   if (!access.allowed) {
@@ -105,11 +125,12 @@ export default async function LeoExecutiveConsolePage() {
     redirect("/admin?leo_access_denied=1");
   }
 
-  const [attention, care, memory, selfIntelligence] = await Promise.all([
+  const [attention, care, memory, selfIntelligence, governedActions] = await Promise.all([
     loadAttention(),
     loadClientCare(),
     loadMemory(),
     loadSelfIntelligence(),
+    loadGovernedActions(),
   ]);
 
   const systemHealth = buildLeoSystemHealthSnapshot({
@@ -128,6 +149,8 @@ export default async function LeoExecutiveConsolePage() {
           <LeoMorningBriefPanel />
 
           <LeoSelfIntelligencePanel load={selfIntelligence} />
+
+          <LeoGovernedActionsPanel initialLoad={governedActions} />
 
           <div className="min-w-0 lg:max-w-none">
             <LeoConversationPanel />

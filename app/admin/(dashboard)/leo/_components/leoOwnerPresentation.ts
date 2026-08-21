@@ -336,7 +336,11 @@ export function presentConnectedActionProposalStateLabel(
     case "AWAITING_APPROVAL":
       return { primary: "Needs approval", secondary: "Owner approval required", tone: "approval" };
     case "APPROVED":
-      return { primary: "Approved", secondary: "Not executed yet", tone: "approved" };
+      return {
+        primary: "Approved — execution capability not enabled yet",
+        secondary: "Not executed yet",
+        tone: "approved",
+      };
     case "EXECUTION_CLAIMED":
       return { primary: "Executing", secondary: "Execution claimed — not verified", tone: "executing" };
     case "EXECUTED":

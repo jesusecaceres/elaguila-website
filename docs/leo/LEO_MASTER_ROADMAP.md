@@ -111,6 +111,15 @@ Always:
 
 Execution contract, stable failure model, provider adapter interface, null/blocked adapter, orchestrator (claim before execute). Gmail/Calendar remain read-only. No OAuth write scopes. No live provider writes.
 
+### LEO-21B — Owner Governed Action Approval Cockpit
+
+Owner cockpit on `/admin/leo` for inspect / approve / cancel of canonical `leo_action_proposals`.
+
+- fingerprint-bound approval with explicit confirmation
+- approval ≠ execution
+- no Execute / Send / Schedule controls
+- provider writes remain disabled
+
 ---
 
 ## LEO-22+ — Innovation Radar
@@ -150,8 +159,10 @@ Each gate must preserve:
 
 **Active family:** LEO-21 — Governed Connected Actions
 
-**Current gate:** LEO-21A — Provider-Neutral Governed Execution Runtime
+**Current gate:** LEO-21B — Owner Governed Action Approval Cockpit (complete when this build lands)
 
-Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; staging persistence for `leo_action_proposals` / `leo_tool_receipts` present (PM-certified).
+Next provider write gate requires separate certification. Provider writes remain disabled.
+
+Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; LEO-21A provider-neutral runtime; staging persistence for `leo_action_proposals` / `leo_tool_receipts` present (PM-certified).
 
 Provider writes remain disabled.

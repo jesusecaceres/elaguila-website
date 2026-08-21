@@ -7,6 +7,7 @@ import {
   createLeoActionProposal,
   transitionLeoActionProposalState,
   getLeoActionProposalForOwner,
+  listLeoActionProposalsForOwner,
   approveLeoActionProposalAtomic,
   claimLeoActionProposalExecutionAtomic,
   cancelLeoActionProposal,
@@ -15,6 +16,11 @@ import {
   markLeoActionProposalFailed,
   expireLeoActionProposals,
 } from "@/app/leo/_lib/leoActionProposalRepository";
+import {
+  mapLeoActionProposalToOwnerCard,
+  sortLeoGovernedActionCards,
+  type LeoGovernedActionProposalCard,
+} from "@/app/leo/_lib/leoGovernedActionProposalReadModel";
 import { computeLeoActionProposalFingerprint } from "@/app/leo/_lib/leoActionProposalFingerprint";
 import {
   LEO_ACTION_PROPOSAL_FAMILIES,
@@ -302,6 +308,25 @@ export async function leoGetGovernedActionProposalForOwner(input: {
   const proposal = await getLeoActionProposalForOwner(input.proposalId, ownerActorId);
   if (!proposal) return { ok: false, error: "not_found" };
   return { ok: true, proposal };
+}
+
+/**
+ * LEO-21B — Owner cockpit list from canonical leo_action_proposals only.
+ */
+export async function leoListGovernedActionProposalCardsForOwner(input?: {
+  limit?: number;
+}): Promise<
+  | { ok: true; cards: LeoGovernedActionProposalCard[] }
+  | { ok: false; error: string }
+> {
+  const access = await requireLeoOwnerAccess();
+  const ownerActorId = access.admin.authUserId?.trim();
+  if (!ownerActorId) return { ok: false, error: "missing_owner_actor_id" };
+  const proposals = await listLeoActionProposalsForOwner(ownerActorId, input?.limit ?? 40);
+  const cards = sortLeoGovernedActionCards(
+    proposals.map((p) => mapLeoActionProposalToOwnerCard(p)),
+  );
+  return { ok: true, cards };
 }
 
 /**

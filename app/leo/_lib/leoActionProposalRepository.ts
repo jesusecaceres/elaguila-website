@@ -119,6 +119,27 @@ export async function getLeoActionProposalForOwner(
   return mapRow(data as Row);
 }
 
+/**
+ * LEO-21B — Owner list from canonical leo_action_proposals (no second store).
+ * Newest first; UI applies governance priority sort for display.
+ */
+export async function listLeoActionProposalsForOwner(
+  ownerActorId: string,
+  limit = 40,
+): Promise<LeoActionProposal[]> {
+  if (!ownerActorId) return [];
+  const capped = Math.min(Math.max(1, limit), 80);
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("leo_action_proposals")
+    .select(COLS)
+    .eq("owner_actor_id", ownerActorId)
+    .order("created_at", { ascending: false })
+    .limit(capped);
+  if (error || !data) return [];
+  return (data as Row[]).map(mapRow);
+}
+
 export async function transitionLeoActionProposalState(
   proposalId: string,
   ownerActorId: string,

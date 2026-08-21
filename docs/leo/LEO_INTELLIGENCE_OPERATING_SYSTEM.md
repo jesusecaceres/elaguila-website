@@ -290,6 +290,8 @@ Provider-neutral runtime for future RED connected actions.
 - CAPABILITY ≠ AUTHORITY — having an adapter interface does not enable provider writes.
 - LEO-21A ships only the null/blocked adapter (`NOT_CONNECTED` / `SCOPE_INSUFFICIENT`); Gmail/Calendar remain read-only.
 
+**LEO-21B — Owner approval cockpit:** `/admin/leo` Governed Actions lists canonical proposals for inspect / approve / cancel. Approval requires `proposalId` + `expectedFingerprint` and an explicit confirmation. Approval does not execute. No Execute / Send / Schedule surface. Real provider writes require a separate future gate.
+
 ---
 
 ## 10. Autonomy Ladder
