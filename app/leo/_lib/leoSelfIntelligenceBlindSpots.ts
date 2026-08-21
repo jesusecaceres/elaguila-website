@@ -1,7 +1,9 @@
 /**
- * LEO-20A — Blind-spot model.
+ * LEO-20A / 20C — Blind-spot model.
  * Missing sensors → NOT_MEASURED / UNKNOWN. Never HEALTHY by omission.
+ * LEO-20C: DISCOVERY_SEO technical readiness is partial; search performance remains a blind spot.
  */
+import { LEO_DISCOVERY_SEO_SEARCH_PERFORMANCE_NOT_MEASURED } from "@/app/lib/seo/leonixDiscoveryContracts";
 import {
   LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS,
   type LeoSelfIntelligenceBlindSpot,
@@ -25,12 +27,6 @@ const DEFERRED_BLIND_SPOT_COPY: Record<
     businessWhyItMatters: "Cannot truthfully say where customers get stuck without journey sensors.",
     recommendedSensorOrFutureCapability: "Future journey analytics adapter with explicit coverage claims.",
   },
-  DISCOVERY_SEO: {
-    reason: "No canonical SEO measurement adapter is wired into LEO Self-Intelligence.",
-    whatEvidenceIsMissing: "Indexability, sitemap/schema health, and local discovery measurement sources.",
-    businessWhyItMatters: "Discovery weakness can silently limit growth while ops look busy.",
-    recommendedSensorOrFutureCapability: "Future SEO/discovery health adapter (technical + content evidence).",
-  },
   TRUST_REPUTATION: {
     reason: "No canonical connected reputation/reviews feed is available to Self-Intelligence.",
     whatEvidenceIsMissing: "Verified reviews/testimonials/transparency signals with provenance.",
@@ -51,6 +47,22 @@ const DEFERRED_BLIND_SPOT_COPY: Record<
   },
 };
 
+/** Search performance subcomponent — remains NOT_MEASURED after technical readiness lands. */
+export function buildLeoDiscoverySeoPerformanceBlindSpot(): LeoSelfIntelligenceBlindSpot {
+  return {
+    dimension: "DISCOVERY_SEO",
+    subcomponent: "SEARCH_PERFORMANCE",
+    state: "NOT_MEASURED",
+    reason:
+      "Search performance (rankings, impressions, clicks, CTR, indexation, organic landings) is not measured. Technical crawler/sitemap readiness is a separate partial sensor.",
+    whatEvidenceIsMissing: LEO_DISCOVERY_SEO_SEARCH_PERFORMANCE_NOT_MEASURED.join(" "),
+    businessWhyItMatters:
+      "Technical foundations can look fine while discovery demand silently weakens — performance must stay explicit.",
+    recommendedSensorOrFutureCapability:
+      "Future read-only Search Console (or equivalent) integration via canonical reporting — not invented from robots/sitemap.",
+  };
+}
+
 /** Deferred dimensions as explicit blind spots. */
 export function buildLeoSelfIntelligenceDeferredBlindSpots(): LeoSelfIntelligenceBlindSpot[] {
   return LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS.map((dimension) => ({
@@ -60,12 +72,14 @@ export function buildLeoSelfIntelligenceDeferredBlindSpots(): LeoSelfIntelligenc
   }));
 }
 
-/** V1 dimensions that are NOT_MEASURED/UNKNOWN also become blind spots. */
+/** V1 / measured dimensions that are NOT_MEASURED/UNKNOWN also become blind spots. */
 export function buildLeoSelfIntelligenceMeasuredBlindSpots(
   dimensions: LeoSelfIntelligenceDimensionResult[],
 ): LeoSelfIntelligenceBlindSpot[] {
   const spots: LeoSelfIntelligenceBlindSpot[] = [];
   for (const d of dimensions) {
+    // DISCOVERY_SEO: technical sensor is partial; performance is handled as a dedicated subcomponent spot.
+    if (d.dimension === "DISCOVERY_SEO") continue;
     if (d.state !== "NOT_MEASURED" && d.state !== "UNKNOWN") continue;
     if (d.coverage !== "NONE" && d.state === "UNKNOWN") {
       spots.push({
@@ -95,6 +109,7 @@ export function buildLeoSelfIntelligenceBlindSpots(
 ): LeoSelfIntelligenceBlindSpot[] {
   return [
     ...buildLeoSelfIntelligenceMeasuredBlindSpots(v1Dimensions),
+    buildLeoDiscoverySeoPerformanceBlindSpot(),
     ...buildLeoSelfIntelligenceDeferredBlindSpots(),
   ];
 }

@@ -109,6 +109,8 @@ Models are workers. LEO remains the operator. Provider output does not grant aut
 **Goal:** Leonix evaluates itself.
 
 - LEO-20A: Self-Intelligence V1 foundation (dynamic Internal Intelligence Profile; OPERATIONS / REVENUE_MONETIZATION_HEALTH / TECHNOLOGY_READINESS / PRODUCT_OPERATIONAL_HEALTH; deferred dimensions stay NOT_MEASURED)
+- LEO-20B: Owner executive cockpit for Self-Intelligence (presentation only)
+- LEO-20C: Technical discovery / SEO readiness sensor — DISCOVERY_SEO PARTIAL (internal robots/sitemap only); search performance NOT_MEASURED; no GSC/GA
 
 Report and recommend. Do not silently mutate.
 

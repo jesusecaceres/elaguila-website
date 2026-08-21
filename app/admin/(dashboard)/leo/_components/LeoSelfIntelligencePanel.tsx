@@ -178,12 +178,14 @@ function BlindSpotsSection({ spots }: { spots: LeoSelfIntelligenceBlindSpot[] })
       <ul className="mt-3 space-y-2">
         {spots.map((spot) => (
           <li
-            key={spot.dimension}
+            key={`${spot.dimension}:${spot.subcomponent ?? "full"}`}
             className="min-w-0 rounded-xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-3.5"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <p className="min-w-0 flex-1 break-words text-sm font-bold text-[#1E1810]">
-                {presentSelfIntelligenceDimension(spot.dimension)}
+                {spot.subcomponent === "SEARCH_PERFORMANCE"
+                  ? "SEO / Discovery — Search performance"
+                  : presentSelfIntelligenceDimension(spot.dimension)}
               </p>
               <span className="inline-flex rounded-md border border-[color:var(--lx-border)] bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
                 {presentSelfIntelligenceHealthState(spot.state)}
@@ -199,6 +201,32 @@ function BlindSpotsSection({ spots }: { spots: LeoSelfIntelligenceBlindSpot[] })
         ))}
       </ul>
     </details>
+  );
+}
+
+function DiscoverySeoPartialCallout({
+  dim,
+}: {
+  dim: LeoSelfIntelligenceDimensionResult;
+}) {
+  return (
+    <div
+      className="mb-4 min-w-0 rounded-xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/90 p-3.5 sm:p-4"
+      data-leo-si-discovery-seo
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">
+        Discovery / SEO
+      </p>
+      <p className="mt-1 text-sm font-bold text-[#1E1810]">
+        Partially measured — technical readiness only
+      </p>
+      <p className="mt-1.5 break-words text-sm leading-relaxed text-[#5C5346]">
+        {scrubOwnerFacingText(dim.reason)}
+      </p>
+      <p className="mt-2 text-xs font-semibold text-[#5C5346]">
+        Search performance: not measured (no rankings, impressions, clicks, or indexation proof).
+      </p>
+    </div>
   );
 }
 
@@ -226,6 +254,7 @@ export function LeoSelfIntelligencePanel({ load }: { load: LeoSelfIntelligenceLo
       profile.healthMap.find((d) => d.dimension === id) ??
       profile.dimensions.find((d) => d.dimension === id),
   ).filter((d): d is LeoSelfIntelligenceDimensionResult => Boolean(d));
+  const discoverySeo = profile.healthMap.find((d) => d.dimension === "DISCOVERY_SEO");
 
   return (
     <section
@@ -267,6 +296,8 @@ export function LeoSelfIntelligencePanel({ load }: { load: LeoSelfIntelligenceLo
           ))}
         </div>
       </div>
+
+      {discoverySeo ? <DiscoverySeoPartialCallout dim={discoverySeo} /> : null}
 
       <BlindSpotsSection spots={profile.blindSpots} />
 

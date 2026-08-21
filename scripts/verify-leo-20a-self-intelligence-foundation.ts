@@ -71,7 +71,7 @@ for (const s of ["KNOWN", "CONFIRMED", "INFERRED", "UNKNOWN"] as const) {
   check(LEO_SELF_INTELLIGENCE_EPISTEMIC_STATES.includes(s), `epistemic ${s}`);
 }
 check(LEO_SELF_INTELLIGENCE_V1_DIMENSIONS.length === 4, "four V1 dimensions");
-check(LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS.length === 6, "six deferred dimensions");
+check(LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS.length === 5, "five fully deferred dimensions (DISCOVERY_SEO technical is partial)");
 check(LEO_SELF_INTELLIGENCE_DIMENSIONS.length === 10, "ten total dimensions");
 
 const profileSrc = src("app/leo/_lib/leoSelfIntelligenceProfile.ts");
@@ -301,16 +301,22 @@ function baseInput(over: Partial<LeoSelfIntelligenceAdapterInput> = {}): LeoSelf
   const deferred = profile.blindSpots.filter((b) =>
     (LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS as readonly string[]).includes(b.dimension),
   );
-  check(deferred.length === 6, "deferred dimensions remain blind spots");
+  check(deferred.length === 5, "deferred dimensions remain blind spots");
   check(
     deferred.every((b) => b.state === "NOT_MEASURED"),
-    "deferred SEO/journey stay NOT_MEASURED without sensor",
+    "deferred dimensions stay NOT_MEASURED without sensor",
   );
   check(
-    deferred.some((b) => b.dimension === "DISCOVERY_SEO") &&
-      deferred.some((b) => b.dimension === "CUSTOMER_JOURNEY"),
-    "SEO and customer journey blind spots explicit",
+    deferred.some((b) => b.dimension === "CUSTOMER_JOURNEY"),
+    "customer journey blind spot explicit",
   );
+  const seoPerf = profile.blindSpots.find(
+    (b) => b.dimension === "DISCOVERY_SEO" && b.subcomponent === "SEARCH_PERFORMANCE",
+  );
+  check(Boolean(seoPerf) && seoPerf!.state === "NOT_MEASURED", "SEO search performance remains NOT_MEASURED blind spot");
+  const seoDim = profile.healthMap.find((d) => d.dimension === "DISCOVERY_SEO");
+  check(Boolean(seoDim) && seoDim!.coverage === "PARTIAL", "DISCOVERY_SEO technical readiness PARTIAL");
+  check(seoDim!.state !== "HEALTHY", "PARTIAL DISCOVERY_SEO cannot be HEALTHY");
 
   const ranked = rankLeoSelfIntelligenceNextMoves({
     dimensions: profile.healthMap,

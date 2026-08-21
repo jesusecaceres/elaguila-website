@@ -47,6 +47,8 @@ function scoreMove(m: LeoSelfIntelligenceNextMove): number {
 function moveFromDimension(d: LeoSelfIntelligenceDimensionResult): LeoSelfIntelligenceNextMove | null {
   if (d.state === "HEALTHY" || d.state === "NOT_MEASURED") return null;
   if (d.state === "UNKNOWN" && d.coverage === "NONE") return null;
+  // LEO-20C: technical discovery readiness alone must not drive Next Right Move ranking.
+  if (d.dimension === "DISCOVERY_SEO") return null;
 
   const severity: LeoSelfIntelligenceImpactLevel =
     d.state === "CRITICAL"
@@ -103,11 +105,16 @@ function moveFromBlindSpot(b: LeoSelfIntelligenceBlindSpot): LeoSelfIntelligence
   // Blind spots are diagnostic facts — only promote strategically important instrumentation gaps
   // as LOW-effort "acknowledge / plan sensor" recommendations, not fake urgent builds.
   if (b.dimension !== "CUSTOMER_JOURNEY" && b.dimension !== "DISCOVERY_SEO") return null;
+  // Search-performance gap stays diagnostic — not the automatic #1 company priority.
+  const titleSuffix =
+    b.subcomponent === "SEARCH_PERFORMANCE"
+      ? "search performance blind spot"
+      : `${b.dimension.toLowerCase().replace(/_/g, " ")} blind spot`;
   return {
-    id: `nrm:blind:${b.dimension}`.toLowerCase(),
-    title: `Acknowledge ${b.dimension.toLowerCase().replace(/_/g, " ")} blind spot`,
+    id: `nrm:blind:${b.dimension}:${b.subcomponent ?? "full"}`.toLowerCase(),
+    title: `Acknowledge ${titleSuffix}`,
     whyNow: b.reason,
-    evidenceRefs: [`blind_spot:${b.dimension}`],
+    evidenceRefs: [`blind_spot:${b.dimension}:${b.subcomponent ?? "full"}`],
     expectedBenefit: "Keeps decision-making honest by not treating unmeasured areas as healthy.",
     risk: "Turning a blind spot into an immediate large build can waste effort without sensor design.",
     effort: "LOW",

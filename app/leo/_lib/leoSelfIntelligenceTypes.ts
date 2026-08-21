@@ -32,7 +32,7 @@ export type LeoSelfIntelligenceV1Dimension = (typeof LEO_SELF_INTELLIGENCE_V1_DI
 export const LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS = [
   "BUSINESS_FOUNDATION",
   "CUSTOMER_JOURNEY",
-  "DISCOVERY_SEO",
+  // DISCOVERY_SEO: technical readiness is PARTIAL via LEO-20C; search performance stays NOT_MEASURED (subcomponent blind spot).
   "TRUST_REPUTATION",
   "MARKETING_CREATIVE",
   "COMMUNITY_IMPACT",
@@ -96,6 +96,8 @@ export type LeoSelfIntelligenceBlindSpot = {
   whatEvidenceIsMissing: string;
   businessWhyItMatters: string;
   recommendedSensorOrFutureCapability: string;
+  /** Optional subcomponent when a dimension is only partially instrumented (e.g. SEO performance). */
+  subcomponent?: string | null;
 };
 
 export type LeoSelfIntelligenceImpactLevel = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -158,6 +160,10 @@ export const LEO_SELF_INTELLIGENCE_NOT_CLAIMING = [
   "aggregate_health_percentage",
   "letter_grade",
   "fake_seo_score",
+  "fake_seo_rankings",
+  "fake_seo_impressions_clicks_ctr",
+  "fake_indexed_page_count",
+  "fake_organic_traffic",
   "fake_funnel_conversion",
   "fake_reputation_score",
   "fake_community_impact_score",

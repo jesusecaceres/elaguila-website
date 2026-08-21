@@ -30,14 +30,15 @@ function normalizeDimensionHealth(
     };
   }
 
-  // Absence of negative evidence with PARTIAL coverage must not silently stay HEALTHY
-  // without an explicit limitation — adapters already handle; keep guard.
-  if (d.state === "HEALTHY" && d.coverage === "PARTIAL" && d.limitations.length === 0) {
+  // LEO-20C doctrine: PARTIAL coverage cannot report HEALTHY.
+  if (d.state === "HEALTHY" && d.coverage === "PARTIAL") {
     return {
       ...d,
+      state: "WATCH",
+      reason: `${d.reason} (normalized: PARTIAL coverage cannot conclude HEALTHY).`,
       limitations: [
         ...d.limitations,
-        "HEALTHY with PARTIAL coverage — not proof of complete Leonix health in this dimension.",
+        "PARTIAL coverage forbids HEALTHY — foundations may exist without full-dimension proof.",
       ],
     };
   }
