@@ -185,7 +185,9 @@ function BlindSpotsSection({ spots }: { spots: LeoSelfIntelligenceBlindSpot[] })
               <p className="min-w-0 flex-1 break-words text-sm font-bold text-[#1E1810]">
                 {spot.subcomponent === "SEARCH_PERFORMANCE"
                   ? "SEO / Discovery — Search performance"
-                  : presentSelfIntelligenceDimension(spot.dimension)}
+                  : spot.dimension === "CUSTOMER_JOURNEY" && spot.subcomponent
+                    ? `Customer Journey — ${presentSelfIntelligenceDimension(spot.subcomponent)}`
+                    : presentSelfIntelligenceDimension(spot.dimension)}
               </p>
               <span className="inline-flex rounded-md border border-[color:var(--lx-border)] bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5C5346]">
                 {presentSelfIntelligenceHealthState(spot.state)}
@@ -230,6 +232,39 @@ function DiscoverySeoPartialCallout({
   );
 }
 
+function CustomerJourneyPartialCallout({
+  dim,
+}: {
+  dim: LeoSelfIntelligenceDimensionResult;
+}) {
+  const countNote = dim.limitations.find((l) => /Bounded ANALYTICS counts/i.test(l));
+  return (
+    <div
+      className="mb-4 min-w-0 rounded-xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-section)]/90 p-3.5 sm:p-4"
+      data-leo-si-customer-journey
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">
+        Customer Journey
+      </p>
+      <p className="mt-1 text-sm font-bold text-[#1E1810]">
+        Partially measured — buyer engagement only
+      </p>
+      <p className="mt-1.5 break-words text-sm leading-relaxed text-[#5C5346]">
+        {scrubOwnerFacingText(dim.reason)}
+      </p>
+      {countNote ? (
+        <p className="mt-2 break-words text-xs leading-relaxed text-[#5C5346]">
+          {scrubOwnerFacingText(countNote)}
+        </p>
+      ) : null}
+      <p className="mt-2 text-xs font-semibold text-[#5C5346]">
+        Still unmeasured: seller publish funnel, checkout-to-payment, renewal, and end-to-end attribution.
+        Event counts are not conversion or abandonment rates.
+      </p>
+    </div>
+  );
+}
+
 export function LeoSelfIntelligencePanel({ load }: { load: LeoSelfIntelligenceLoad }) {
   if (!load.ok) {
     return (
@@ -255,6 +290,7 @@ export function LeoSelfIntelligencePanel({ load }: { load: LeoSelfIntelligenceLo
       profile.dimensions.find((d) => d.dimension === id),
   ).filter((d): d is LeoSelfIntelligenceDimensionResult => Boolean(d));
   const discoverySeo = profile.healthMap.find((d) => d.dimension === "DISCOVERY_SEO");
+  const customerJourney = profile.healthMap.find((d) => d.dimension === "CUSTOMER_JOURNEY");
 
   return (
     <section
@@ -298,6 +334,7 @@ export function LeoSelfIntelligencePanel({ load }: { load: LeoSelfIntelligenceLo
       </div>
 
       {discoverySeo ? <DiscoverySeoPartialCallout dim={discoverySeo} /> : null}
+      {customerJourney ? <CustomerJourneyPartialCallout dim={customerJourney} /> : null}
 
       <BlindSpotsSection spots={profile.blindSpots} />
 

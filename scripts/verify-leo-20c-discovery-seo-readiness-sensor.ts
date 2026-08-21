@@ -146,8 +146,8 @@ const seoPerf = profile.blindSpots.find(
 );
 check(Boolean(seoPerf) && seoPerf!.state === "NOT_MEASURED", "search performance blind spot NOT_MEASURED");
 check(
-  (LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS as readonly string[]).includes("CUSTOMER_JOURNEY"),
-  "CUSTOMER_JOURNEY remains deferred",
+  !(LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS as readonly string[]).includes("CUSTOMER_JOURNEY"),
+  "CUSTOMER_JOURNEY not fully deferred after buyer-engagement sensor (20D)",
 );
 check(
   !(LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS as readonly string[]).includes("DISCOVERY_SEO"),
@@ -165,7 +165,13 @@ check(panel.includes("Search performance"), "cockpit shows search performance no
 check(!/execute|onExecute|Create proposal/i.test(panel) || panel.includes("Recommendation only"), "no execute authority in cockpit");
 
 const registry = src("app/leo/_lib/leoExecutiveReportingRegistry.ts");
-check(registry.includes('domain: "ANALYTICS"') && registry.includes("RESERVED"), "EXEC ANALYTICS remains reserved");
+check(
+  registry.includes('domain: "ANALYTICS"') &&
+    (registry.includes('adapterStatus: "PARTIAL"') || registry.includes("PARTIAL")),
+  "EXEC ANALYTICS is bounded PARTIAL (buyer engagement) — not a warehouse",
+);
+check(registry.includes("listing_analytics") || registry.includes("buyer-engagement"), "ANALYTICS notes mention bounded listing analytics");
+check(!registry.includes("second analytics warehouse") || registry.includes("No warehouse"), "no second warehouse doctrine preserved");
 
 check(!exists("supabase/migrations") || true, "migrations dir presence check");
 const migDir = path.join(ROOT, "supabase", "migrations");

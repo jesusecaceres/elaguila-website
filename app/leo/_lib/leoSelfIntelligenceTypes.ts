@@ -31,7 +31,7 @@ export type LeoSelfIntelligenceV1Dimension = (typeof LEO_SELF_INTELLIGENCE_V1_DI
 
 export const LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS = [
   "BUSINESS_FOUNDATION",
-  "CUSTOMER_JOURNEY",
+  // CUSTOMER_JOURNEY: buyer engagement PARTIAL via LEO-20D; seller/checkout/renewal remain NOT_MEASURED subcomponents.
   // DISCOVERY_SEO: technical readiness is PARTIAL via LEO-20C; search performance stays NOT_MEASURED (subcomponent blind spot).
   "TRUST_REPUTATION",
   "MARKETING_CREATIVE",
@@ -165,6 +165,9 @@ export const LEO_SELF_INTELLIGENCE_NOT_CLAIMING = [
   "fake_indexed_page_count",
   "fake_organic_traffic",
   "fake_funnel_conversion",
+  "fake_ctr",
+  "fake_abandonment_rate",
+  "fake_seller_publish_funnel",
   "fake_reputation_score",
   "fake_community_impact_score",
   "mrr_arr_unless_canonical",

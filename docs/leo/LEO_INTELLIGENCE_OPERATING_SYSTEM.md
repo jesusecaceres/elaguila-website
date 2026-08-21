@@ -261,9 +261,9 @@ LEO evaluates Leonix itself (inward-looking).
 
 **LEO-20C DISCOVERY_SEO:** PARTIAL internal technical-readiness evidence (robots/sitemap/hub coverage). Search performance remains NOT_MEASURED (no Search Console / rankings / impressions / clicks). Search Console is a future external read capability — not implemented.
 
-**Deferred (NOT_MEASURED until real sensors exist):** BUSINESS_FOUNDATION, CUSTOMER_JOURNEY, TRUST_REPUTATION, MARKETING_CREATIVE, COMMUNITY_IMPACT.
+**LEO-20D CUSTOMER_JOURNEY:** PARTIAL Buyer Engagement coverage via Executive Reporting ANALYTICS → `listing_analytics` event counts (impression → result open → detail → CTA/apply) in an explicit bounded window. End-to-end seller checkout/publish/renewal remain NOT_MEASURED. No conversion/abandonment rate is claimed without compatible population, window, grain, dedupe, semantics, and coverage.
 
-Customer Journey remains NOT_MEASURED for Self-Intelligence (fragmented listing analytics / payment signals are not a journey sensor in this build).
+**Deferred (NOT_MEASURED until real sensors exist):** BUSINESS_FOUNDATION, TRUST_REPUTATION, MARKETING_CREATIVE, COMMUNITY_IMPACT.
 
 Self intelligence reports and recommends. It does not silently rewrite Leonix. No fake aggregate health score.
 

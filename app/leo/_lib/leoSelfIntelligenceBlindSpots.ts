@@ -1,9 +1,11 @@
 /**
- * LEO-20A / 20C — Blind-spot model.
+ * LEO-20A / 20C / 20D — Blind-spot model.
  * Missing sensors → NOT_MEASURED / UNKNOWN. Never HEALTHY by omission.
  * LEO-20C: DISCOVERY_SEO technical readiness is partial; search performance remains a blind spot.
+ * LEO-20D: CUSTOMER_JOURNEY buyer engagement is partial; seller/checkout/renewal remain blind spots.
  */
 import { LEO_DISCOVERY_SEO_SEARCH_PERFORMANCE_NOT_MEASURED } from "@/app/lib/seo/leonixDiscoveryContracts";
+import { LEO_CUSTOMER_JOURNEY_REMAINING_BLIND_SPOT_SUBCOMPONENTS } from "@/app/leo/_lib/leoSelfIntelligenceCustomerJourneyAdapter";
 import {
   LEO_SELF_INTELLIGENCE_DEFERRED_DIMENSIONS,
   type LeoSelfIntelligenceBlindSpot,
@@ -20,12 +22,6 @@ const DEFERRED_BLIND_SPOT_COPY: Record<
     whatEvidenceIsMissing: "Canonical internal strategy profile with attributable priorities and product alignment evidence.",
     businessWhyItMatters: "Without foundation clarity, Next Right Move ranking can under-weight strategic context.",
     recommendedSensorOrFutureCapability: "Future owner-curated foundation record (not invented from marketing copy).",
-  },
-  CUSTOMER_JOURNEY: {
-    reason: "End-to-end checkout/application/drop-off instrumentation is not available to Self-Intelligence.",
-    whatEvidenceIsMissing: "Canonical funnel events across landing → publish → renewal with trustworthy attribution.",
-    businessWhyItMatters: "Cannot truthfully say where customers get stuck without journey sensors.",
-    recommendedSensorOrFutureCapability: "Future journey analytics adapter with explicit coverage claims.",
   },
   TRUST_REPUTATION: {
     reason: "No canonical connected reputation/reviews feed is available to Self-Intelligence.",
@@ -47,6 +43,36 @@ const DEFERRED_BLIND_SPOT_COPY: Record<
   },
 };
 
+const JOURNEY_SUBCOMPONENT_COPY: Record<
+  (typeof LEO_CUSTOMER_JOURNEY_REMAINING_BLIND_SPOT_SUBCOMPONENTS)[number],
+  Omit<LeoSelfIntelligenceBlindSpot, "dimension" | "state" | "subcomponent">
+> = {
+  SELLER_PUBLISH_FUNNEL: {
+    reason: "Seller preview → publish lifecycle is not measured as one canonical Self-Intelligence journey.",
+    whatEvidenceIsMissing: "Queryable seller-funnel stage events with trustworthy category coverage.",
+    businessWhyItMatters: "Owners can see buyer engagement while still missing where sellers stall before going live.",
+    recommendedSensorOrFutureCapability: "Future seller-publish journey sensor after global funnel events exist.",
+  },
+  CHECKOUT_TO_PAYMENT: {
+    reason: "Checkout start → payment completion is not joined into the buyer engagement journey sensor.",
+    whatEvidenceIsMissing: "Compatible checkout-start events correlated to payment records with proven population/window/grain.",
+    businessWhyItMatters: "Payment health is measured separately; checkout drop-off must not be invented from engagement counts.",
+    recommendedSensorOrFutureCapability: "Future checkout instrumentation + reporting adapter (not a payment-join guess).",
+  },
+  RENEWAL_JOURNEY: {
+    reason: "Listing renewal / entitlement renewal journeys are not measured in Self-Intelligence V1 journey coverage.",
+    whatEvidenceIsMissing: "Canonical renewal stage events with time windows and coverage claims.",
+    businessWhyItMatters: "Renewal friction can silently shrink inventory while buyer engagement still looks active.",
+    recommendedSensorOrFutureCapability: "Future renewal journey sensor when durable events exist.",
+  },
+  END_TO_END_ATTRIBUTION: {
+    reason: "End-to-end attribution from discovery through publish/payment is not available.",
+    whatEvidenceIsMissing: "Compatible multi-stage population, window, grain, and dedupe across systems.",
+    businessWhyItMatters: "Without attribution, LEO cannot honestly name end-to-end abandonment or conversion.",
+    recommendedSensorOrFutureCapability: "Future attribution architecture only when stages are proven compatible.",
+  },
+};
+
 /** Search performance subcomponent — remains NOT_MEASURED after technical readiness lands. */
 export function buildLeoDiscoverySeoPerformanceBlindSpot(): LeoSelfIntelligenceBlindSpot {
   return {
@@ -61,6 +87,16 @@ export function buildLeoDiscoverySeoPerformanceBlindSpot(): LeoSelfIntelligenceB
     recommendedSensorOrFutureCapability:
       "Future read-only Search Console (or equivalent) integration via canonical reporting — not invented from robots/sitemap.",
   };
+}
+
+/** Remaining CUSTOMER_JOURNEY stages after buyer-engagement PARTIAL lands. */
+export function buildLeoCustomerJourneyRemainingBlindSpots(): LeoSelfIntelligenceBlindSpot[] {
+  return LEO_CUSTOMER_JOURNEY_REMAINING_BLIND_SPOT_SUBCOMPONENTS.map((subcomponent) => ({
+    dimension: "CUSTOMER_JOURNEY" as const,
+    subcomponent,
+    state: "NOT_MEASURED" as const,
+    ...JOURNEY_SUBCOMPONENT_COPY[subcomponent],
+  }));
 }
 
 /** Deferred dimensions as explicit blind spots. */
@@ -78,8 +114,8 @@ export function buildLeoSelfIntelligenceMeasuredBlindSpots(
 ): LeoSelfIntelligenceBlindSpot[] {
   const spots: LeoSelfIntelligenceBlindSpot[] = [];
   for (const d of dimensions) {
-    // DISCOVERY_SEO: technical sensor is partial; performance is handled as a dedicated subcomponent spot.
-    if (d.dimension === "DISCOVERY_SEO") continue;
+    // Partial dimensions with dedicated subcomponent blind spots.
+    if (d.dimension === "DISCOVERY_SEO" || d.dimension === "CUSTOMER_JOURNEY") continue;
     if (d.state !== "NOT_MEASURED" && d.state !== "UNKNOWN") continue;
     if (d.coverage !== "NONE" && d.state === "UNKNOWN") {
       spots.push({
@@ -110,6 +146,7 @@ export function buildLeoSelfIntelligenceBlindSpots(
   return [
     ...buildLeoSelfIntelligenceMeasuredBlindSpots(v1Dimensions),
     buildLeoDiscoverySeoPerformanceBlindSpot(),
+    ...buildLeoCustomerJourneyRemainingBlindSpots(),
     ...buildLeoSelfIntelligenceDeferredBlindSpots(),
   ];
 }

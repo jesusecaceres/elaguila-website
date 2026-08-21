@@ -47,8 +47,9 @@ function scoreMove(m: LeoSelfIntelligenceNextMove): number {
 function moveFromDimension(d: LeoSelfIntelligenceDimensionResult): LeoSelfIntelligenceNextMove | null {
   if (d.state === "HEALTHY" || d.state === "NOT_MEASURED") return null;
   if (d.state === "UNKNOWN" && d.coverage === "NONE") return null;
-  // LEO-20C: technical discovery readiness alone must not drive Next Right Move ranking.
+  // LEO-20C/20D: partial technical SEO / buyer-engagement sensors alone must not dominate NRM.
   if (d.dimension === "DISCOVERY_SEO") return null;
+  if (d.dimension === "CUSTOMER_JOURNEY") return null;
 
   const severity: LeoSelfIntelligenceImpactLevel =
     d.state === "CRITICAL"

@@ -194,12 +194,13 @@ export const LEO_EXECUTIVE_DOMAIN_REGISTRY: readonly LeoExecutiveDomainRegistryE
   {
     domain: "ANALYTICS",
     label: "Analytics",
-    canonicalAdminRoute: "/admin",
-    adapterStatus: "RESERVED",
+    canonicalAdminRoute: "/admin/leo",
+    adapterStatus: "PARTIAL",
     supportsAttention: false,
-    supportsMetrics: false,
+    supportsMetrics: true,
     supportsWatch: false,
-    notes: "Do not invent a second analytics warehouse. Category analytics stay at source.",
+    notes:
+      "LEO-20D: bounded buyer-engagement listing_analytics counts only. No warehouse. No CTR/conversion rates. Category analytics remain at source for sellers.",
   },
   {
     domain: "AUTOMATION",

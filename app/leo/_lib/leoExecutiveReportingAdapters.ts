@@ -19,6 +19,7 @@ import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/we
 import {
   buildLeoIntelligenceRuntimeExecutiveSignals,
 } from "@/app/leo/_lib/leoIntelligenceRuntimeHealth";
+import { leoAnalyticsReportingAdapter } from "@/app/leo/_lib/leoExecutiveReportingAnalyticsAdapter";
 import {
   buildLeoExecutiveSignal,
   clampAdapterLimit,
@@ -818,4 +819,5 @@ export const LEO_EXECUTIVE_LIVE_ADAPTERS: LeoExecutiveReportingAdapter[] = [
   leoModerationReportingAdapter,
   leoIglesiasReportingAdapter,
   leoSystemReportingAdapter,
+  leoAnalyticsReportingAdapter,
 ];
