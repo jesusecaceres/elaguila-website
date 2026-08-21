@@ -52,19 +52,23 @@ export function leoGmailRecipientInToList(
 }
 
 /**
- * Bounded body normalization for future comparison.
- * Does not claim MIME equivalence. CRLF→LF, trim ends, collapse runs of spaces per line.
+ * Conservative body normalization for V1 comparison (LEO-21D).
+ * CRLF→LF, trim trailing whitespace per line end, normalize final newline.
+ * Does NOT collapse internal spaces (could hide material changes).
  */
 export function normalizeLeoGmailReplyBodyForCompare(raw: string | null | undefined): string {
   if (typeof raw !== "string") return "";
-  return raw
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
+  let s = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  s = s
     .split("\n")
-    .map((line) => line.replace(/[ \t]+/g, " ").trimEnd())
-    .join("\n")
-    .trim()
-    .slice(0, 8000);
+    .map((line) => line.replace(/[ \t]+$/g, ""))
+    .join("\n");
+  s = s.replace(/\n+$/g, "\n");
+  if (s.endsWith("\n") && s.length > 1) {
+    // keep single trailing newline or none consistently: strip all trailing newlines
+    s = s.replace(/\n+$/g, "");
+  }
+  return s.slice(0, 50_000);
 }
 
 export function hashLeoGmailReplyBodyNormalized(raw: string | null | undefined): string {
@@ -80,6 +84,49 @@ export function leoGmailNormalizedBodiesMatch(
   const b = normalizeLeoGmailReplyBodyForCompare(observedBody);
   if (!a || !b) return false;
   return a === b;
+}
+
+const MAX_PLAIN_TEXT_CHARS = 50_000;
+
+function decodeGmailBodyData(data: string): string | null {
+  try {
+    const b64 = data.replace(/-/g, "+").replace(/_/g, "/");
+    const buf = Buffer.from(b64, "base64");
+    if (buf.length > MAX_PLAIN_TEXT_CHARS * 2) return null;
+    return buf.toString("utf8").slice(0, MAX_PLAIN_TEXT_CHARS);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract first text/plain part from a format=full payload. In-memory only.
+ * Pure — safe for verifiers. Fail closed if missing / empty.
+ */
+export function extractLeoGmailTextPlainFromFullPayload(
+  payload: unknown,
+): { ok: true; text: string } | { ok: false; error: string } {
+  const parts: string[] = [];
+
+  function walk(node: unknown, depth: number): void {
+    if (!node || typeof node !== "object" || depth > 8) return;
+    const n = node as Record<string, unknown>;
+    const mimeType = typeof n.mimeType === "string" ? n.mimeType.toLowerCase() : "";
+    const body = n.body as { data?: unknown; size?: unknown } | undefined;
+    if (mimeType.startsWith("text/plain") && body && typeof body.data === "string") {
+      const decoded = decodeGmailBodyData(body.data);
+      if (decoded != null) parts.push(decoded);
+    }
+    if (Array.isArray(n.parts)) {
+      for (const p of n.parts) walk(p, depth + 1);
+    }
+  }
+
+  walk(payload, 0);
+  if (parts.length === 0) return { ok: false, error: "NO_TEXT_PLAIN" };
+  const first = parts[0] ?? "";
+  if (!first.trim()) return { ok: false, error: "AMBIGUOUS_EMPTY_TEXT_PLAIN" };
+  return { ok: true, text: first.slice(0, MAX_PLAIN_TEXT_CHARS) };
 }
 
 export type LeoGmailReplyPayloadValidation =

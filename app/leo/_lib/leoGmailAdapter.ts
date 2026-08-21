@@ -1,6 +1,8 @@
 /**
- * LEO-13 Gmail adapter — server-only, read-only, bounded.
- * No send/modify/delete. No attachments. No raw MIME bodies.
+ * LEO-13/21D Gmail adapter — server-only, bounded.
+ * Inbox/thread/message reads remain metadata-first.
+ * messages.send exists only via sendLeoGmailRawMessage (two-key gated by callers).
+ * No attachments persisted. No raw MIME persistence.
  */
 import "server-only";
 
@@ -11,6 +13,7 @@ import {
   isLeoGoogleWorkspaceConfigured,
   LEO_GOOGLE_BOUNDS,
 } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
+import { extractLeoGmailTextPlainFromFullPayload } from "@/app/leo/_lib/leoGmailReplyVerificationHelpers";
 import type {
   LeoEmailMessageEvidence,
   LeoGmailReadResult,
@@ -292,8 +295,8 @@ export async function readLeoGmailThread(threadId: string): Promise<LeoGmailRead
 }
 
 /**
- * LEO-21C — Bounded single-message metadata read for reply verification.
- * Read-only. No body/MIME dump. Reuses same gmailGet path.
+ * LEO-21C/21D — Bounded single-message metadata read.
+ * Read-only. Prefer readLeoGmailMessagePlainTextById for body verification.
  */
 export async function readLeoGmailMessageById(
   messageId: string,
@@ -301,7 +304,6 @@ export async function readLeoGmailMessageById(
   const limitations: string[] = [
     "Gmail message read-only — metadata only.",
     "No attachment or raw MIME body fetch.",
-    "Body comparison for VERIFIED is PARTIAL until a future safe body-read gate.",
   ];
 
   if (!messageId.trim()) {
@@ -366,5 +368,210 @@ export async function readLeoGmailMessageById(
       limitations: [...limitations, "Gmail message network/timeout failure."],
       errorCode: "GMAIL_MESSAGE_NETWORK_OR_TIMEOUT",
     };
+  }
+}
+
+export type LeoGmailPlainTextMessageRead =
+  | {
+      ok: true;
+      message: LeoEmailMessageEvidence;
+      plainText: string;
+      availability: "AVAILABLE";
+    }
+  | {
+      ok: false;
+      availability: LeoToolAvailability;
+      errorCode: string;
+      limitations: string[];
+    };
+
+/**
+ * LEO-21D — format=full read for ONE message id; extract text/plain only.
+ * Never persists raw MIME / full provider dump.
+ */
+export async function readLeoGmailMessagePlainTextById(
+  messageId: string,
+): Promise<LeoGmailPlainTextMessageRead> {
+  const limitations: string[] = [
+    "Gmail full-format read for verification — text/plain only.",
+    "Raw MIME and full provider JSON are not persisted.",
+  ];
+
+  if (!messageId.trim()) {
+    return {
+      ok: false,
+      availability: "UNAVAILABLE",
+      errorCode: "GMAIL_MESSAGE_ID_REQUIRED",
+      limitations: [...limitations, "messageId required."],
+    };
+  }
+  if (!isLeoGoogleWorkspaceConfigured()) {
+    return {
+      ok: false,
+      availability: "NOT_CONFIGURED",
+      errorCode: "GOOGLE_NOT_CONFIGURED",
+      limitations,
+    };
+  }
+
+  const tokenResult = await refreshLeoGoogleAccessToken();
+  if (tokenResult.availability !== "AVAILABLE" || !tokenResult.accessToken) {
+    return {
+      ok: false,
+      availability: "UNAVAILABLE",
+      errorCode: tokenResult.errorCode ?? "GOOGLE_TOKEN_UNAVAILABLE",
+      limitations,
+    };
+  }
+
+  try {
+    const res = await gmailGet(
+      `/users/me/messages/${encodeURIComponent(messageId.trim())}?format=full`,
+      tokenResult.accessToken,
+    );
+    if (!res.ok) {
+      return {
+        ok: false,
+        availability: "UNAVAILABLE",
+        errorCode: classifyLeoGmailHttpStatus(res.status),
+        limitations,
+      };
+    }
+    const raw = (await res.json()) as Record<string, unknown>;
+    const mapped = mapMessage(raw);
+    if (!mapped.messageId) {
+      return {
+        ok: false,
+        availability: "UNAVAILABLE",
+        errorCode: "GMAIL_MESSAGE_EMPTY",
+        limitations,
+      };
+    }
+    const extracted = extractLeoGmailTextPlainFromFullPayload(raw.payload);
+    if (!extracted.ok) {
+      return {
+        ok: false,
+        availability: "UNAVAILABLE",
+        errorCode: extracted.error,
+        limitations: [...limitations, "text/plain extraction failed."],
+      };
+    }
+    return {
+      ok: true,
+      message: mapped,
+      plainText: extracted.text,
+      availability: "AVAILABLE",
+    };
+  } catch {
+    return {
+      ok: false,
+      availability: "UNAVAILABLE",
+      errorCode: "GMAIL_MESSAGE_NETWORK_OR_TIMEOUT",
+      limitations,
+    };
+  }
+}
+
+export type LeoGmailSendTransportResult =
+  | {
+      ok: true;
+      messageId: string;
+      threadId: string | null;
+    }
+  | {
+      ok: false;
+      errorCode:
+        | "GOOGLE_NOT_CONFIGURED"
+        | "GOOGLE_TOKEN_UNAVAILABLE"
+        | "GMAIL_SEND_REJECTED"
+        | "GMAIL_SEND_TIMEOUT"
+        | "GMAIL_SEND_ERROR"
+        | "GMAIL_SEND_MISSING_ID";
+      httpStatus: number | null;
+      /** True only after the HTTP request may have been dispatched. */
+      dispatchStarted: boolean;
+    };
+
+/**
+ * LEO-21D — Minimal Gmail messages.send transport.
+ * Does not approve/claim/write receipts. Does not persist provider dumps.
+ */
+export async function sendLeoGmailRawMessage(input: {
+  rawBase64Url: string;
+  threadId: string;
+}): Promise<LeoGmailSendTransportResult> {
+  if (!isLeoGoogleWorkspaceConfigured()) {
+    return {
+      ok: false,
+      errorCode: "GOOGLE_NOT_CONFIGURED",
+      httpStatus: null,
+      dispatchStarted: false,
+    };
+  }
+  const tokenResult = await refreshLeoGoogleAccessToken();
+  if (tokenResult.availability !== "AVAILABLE" || !tokenResult.accessToken) {
+    return {
+      ok: false,
+      errorCode: "GOOGLE_TOKEN_UNAVAILABLE",
+      httpStatus: null,
+      dispatchStarted: false,
+    };
+  }
+
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), LEO_GOOGLE_BOUNDS.fetchTimeoutMs);
+  let dispatchStarted = false;
+  try {
+    dispatchStarted = true;
+    const res = await fetch(
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tokenResult.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          raw: input.rawBase64Url,
+          threadId: input.threadId,
+        }),
+        signal: ctrl.signal,
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      return {
+        ok: false,
+        errorCode: res.status >= 400 && res.status < 500 ? "GMAIL_SEND_REJECTED" : "GMAIL_SEND_ERROR",
+        httpStatus: res.status,
+        dispatchStarted: true,
+      };
+    }
+    const json = (await res.json()) as { id?: unknown; threadId?: unknown };
+    const messageId = typeof json.id === "string" ? json.id.trim() : "";
+    if (!messageId) {
+      return {
+        ok: false,
+        errorCode: "GMAIL_SEND_MISSING_ID",
+        httpStatus: res.status,
+        dispatchStarted: true,
+      };
+    }
+    return {
+      ok: true,
+      messageId,
+      threadId: typeof json.threadId === "string" ? json.threadId : null,
+    };
+  } catch (e) {
+    const aborted = e instanceof Error && e.name === "AbortError";
+    return {
+      ok: false,
+      errorCode: aborted ? "GMAIL_SEND_TIMEOUT" : "GMAIL_SEND_ERROR",
+      httpStatus: null,
+      dispatchStarted,
+    };
+  } finally {
+    clearTimeout(t);
   }
 }

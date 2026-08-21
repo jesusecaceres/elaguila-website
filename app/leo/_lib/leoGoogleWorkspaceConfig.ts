@@ -37,17 +37,27 @@ export const LEO_GMAIL_REPLY_REQUIRED_WRITE_SCOPE = LEO_GMAIL_SEND_SCOPE;
 
 /**
  * Hard fail-closed switch: Gmail reply provider write capability.
- * Remains false until PM authorizes OAuth grant upgrade + live adapter enablement.
+ * Env: LEO_GMAIL_REPLY_WRITE_ENABLED — only explicit "true" enables.
+ * Missing / empty / false / 0 / anything else → false.
+ * Do not set this in LEO-21D environments.
+ */
+export function isLeoGmailReplyWriteFlagEnabled(): boolean {
+  const v = process.env.LEO_GMAIL_REPLY_WRITE_ENABLED;
+  if (typeof v !== "string") return false;
+  return v.trim().toLowerCase() === "true";
+}
+
+/**
+ * @deprecated Prefer isLeoGmailReplyWriteFlagEnabled + scope proof (two-key).
+ * Kept as alias for the env write flag only (not full two-key authority).
  */
 export const LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED: boolean = false;
 
 /**
- * Truthful write-capability check for GMAIL_REPLY.
- * Does not introspect Google's token scope list (runtime cannot safely prove grants yet).
- * Returns false while LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED is false.
+ * Env write-flag check only. Full send authority also requires proven gmail.send.
  */
 export function isLeoGmailReplyWriteCapabilityEnabled(): boolean {
-  return LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED;
+  return isLeoGmailReplyWriteFlagEnabled();
 }
 
 export const LEO_GOOGLE_BOUNDS = {

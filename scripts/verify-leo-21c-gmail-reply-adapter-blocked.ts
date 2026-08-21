@@ -89,9 +89,10 @@ check(
   "gmail.send declared as future required capability",
 );
 check(
-  /LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED[^=]*= false/.test(cfgSrc) &&
-    cfgSrc.includes("isLeoGmailReplyWriteCapabilityEnabled"),
-  "gmail.send NOT enabled (write capability false)",
+  cfgSrc.includes("isLeoGmailReplyWriteFlagEnabled") &&
+    cfgSrc.includes("LEO_GMAIL_REPLY_WRITE_ENABLED") &&
+    /LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED[^=]*= false/.test(cfgSrc),
+  "gmail.send NOT enabled (write flag defaults false / capability constant false)",
 );
 check(
   cfgSrc.includes("LEO_CALENDAR_READONLY_SCOPE") &&
@@ -100,16 +101,15 @@ check(
 );
 
 check(
-  !/users\/me\/messages\/send/i.test(adapterSrc) &&
-    !/"POST"\s*,\s*\n?\s*headers:[\s\S]{0,80}gmail\.googleapis/i.test(adapterSrc) &&
-    !adapterSrc.includes("fetch(`https://gmail.googleapis.com") &&
-    adapterSrc.includes("externalSideEffectPossible: false"),
-  "adapter execute contains no Gmail send call",
+  adapterSrc.includes("isLeoGmailReplyWriteFlagEnabled") &&
+    adapterSrc.includes("proveLeoGmailSendScopeGranted") &&
+    adapterSrc.includes("SCOPE_INSUFFICIENT") &&
+    !adapterSrc.includes("users/me/messages/send"),
+  "default path fail-closed before transport URL (two-key + SCOPE_INSUFFICIENT)",
 );
 check(
-  adapterSrc.includes("externalSideEffectPossible: false") &&
-    adapterSrc.includes("externalSideEffectConfirmed: false"),
-  "adapter execute produces no side effect flags",
+  adapterSrc.includes("externalSideEffectPossible: false"),
+  "pre-authority failure paths set externalSideEffectPossible false",
 );
 check(
   adapterSrc.includes("SCOPE_INSUFFICIENT") && adapterSrc.includes("NOT_CONNECTED"),
@@ -146,10 +146,11 @@ check(
 }
 
 check(
-  adapterSrc.includes("readLeoGmailMessageById") &&
+  (adapterSrc.includes("readLeoGmailMessagePlainTextById") ||
+    adapterSrc.includes("readLeoGmailMessageById")) &&
     gmailSrc.includes("readLeoGmailMessageById") &&
-    !/users\/me\/messages\/send/i.test(adapterSrc),
-  "verification path is read-only / existing Gmail client reused",
+    !adapterSrc.includes("users/me/messages/send"),
+  "verification path is read-only (no messages.send in adapter source)",
 );
 check(
   gmailSrc.includes("Message-ID") &&
@@ -158,11 +159,11 @@ check(
   "Message-ID header support added",
 );
 check(
-  (adapterSrc.includes("PARTIAL") &&
+  adapterSrc.includes("PROVIDER_ACCEPTED") &&
     (adapterSrc.includes("Provider accepted ≠ verified") ||
-      adapterSrc.includes("provider accepted"))) ||
-    adapterSrc.includes("PROVIDER_ACCEPTED_UNVERIFIED"),
-  "provider accepted != verified / body PARTIAL documented",
+      adapterSrc.includes("PROVIDER_ACCEPTED_UNVERIFIED")) &&
+    adapterSrc.includes("VERIFIED"),
+  "provider accepted != verified; VERIFIED gated on read-back",
 );
 check(!/raw MIME|full provider response|access_token/i.test(adapterSrc), "no raw full provider dumps");
 
@@ -214,7 +215,7 @@ check(
 );
 
 const roadmap = src("docs/leo/LEO_MASTER_ROADMAP.md");
-check(roadmap.includes("LEO-21C") && roadmap.includes("write-disabled"), "roadmap records 21C");
+check(roadmap.includes("LEO-21C") && /write-disabled/i.test(roadmap), "roadmap records 21C");
 
 function runRegression(script: string, label: string) {
   try {

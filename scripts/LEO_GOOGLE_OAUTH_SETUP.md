@@ -28,17 +28,18 @@ Declared for a later RED PM gate only:
 
 - `https://www.googleapis.com/auth/gmail.send` — required for GMAIL_REPLY live send
 
-**Do not regenerate the refresh token in LEO-21C.** Code is write-disabled until explicitly authorized.
+**Do not regenerate the refresh token in LEO-21D.** Provider code is live-capable but authority is OFF (`LEO_GMAIL_REPLY_WRITE_ENABLED` unset/false + no `gmail.send` on current grant).
 
 Later sequence (separate gates):
 
-1. Code ready (LEO-21C) — adapter fail-closed
-2. Explicit PM authorization
+1. Code ready (LEO-21D) — live-capable, flag default false, two-key enforced
+2. Explicit PM authorization (LEO-21E RED)
 3. New owner consent requesting **union**: existing read scopes **plus** `gmail.send` (so Gmail/Calendar reads do not regress)
 4. Replace `LEO_GOOGLE_REFRESH_TOKEN` in Preview env
-5. Staging connection verification
-6. Single controlled live reply test
-7. Production = separate later decision
+5. Set `LEO_GMAIL_REPLY_WRITE_ENABLED=true` in Preview only after scope proof
+6. Staging connection verification
+7. Single controlled live reply test
+8. Production = separate later decision
 
 No secrets in docs. Never commit tokens.
 

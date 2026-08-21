@@ -8,7 +8,7 @@
  *
  * No adapter invoke without successful claim (or already-claimed continue).
  * No blind resend after UNKNOWN_EXTERNAL_OUTCOME.
- * CAPABILITY ≠ AUTHORITY — GMAIL_REPLY uses write-disabled adapter; other families null.
+ * CAPABILITY ≠ AUTHORITY — GMAIL_REPLY is live-capable behind two-key flag+scope; default OFF.
  */
 
 import "server-only";
@@ -45,7 +45,7 @@ export type LeoExecuteGovernedConnectedActionInput = {
   expectedFingerprint: string;
   /**
    * verify_only: never call execute; reconcile/verify after unknown or accepted-unverified.
-   * execute: claim then adapter (GMAIL_REPLY is write-disabled in LEO-21C).
+   * execute: claim then adapter (GMAIL_REPLY send requires write flag + proven gmail.send).
    */
   mode?: "execute" | "verify_only";
 };

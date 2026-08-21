@@ -122,13 +122,24 @@ Owner cockpit on `/admin/leo` for inspect / approve / cancel of canonical `leo_a
 
 ### LEO-21C — Gmail Reply Adapter (Write-Disabled / Scope-Aware)
 
-Gmail Reply provider adapter wired for `GMAIL_REPLY` only.
+Gmail Reply provider adapter wired for `GMAIL_REPLY` only (historical gate).
 
 - `gmail.send` declared as future required write scope
 - current OAuth grant expectation remains `gmail.readonly` + `calendar.readonly`
-- `execute` fail-closed: `SCOPE_INSUFFICIENT` / `NOT_CONNECTED` — no `messages.send`
-- verify-only is read-only; body verification PARTIAL (metadata has no plain body)
-- no live email; OAuth consent upgrade is a separate RED gate
+- LEO-21C shipped fail-closed before send; LEO-21D supersedes with live-capable code behind two-key authority OFF
+
+### LEO-21D — Gmail Reply Live-Capable Adapter (Feature Flag OFF)
+
+Provider code is **live-capable** but **authority remains OFF**.
+
+- Env switch `LEO_GMAIL_REPLY_WRITE_ENABLED` — only explicit `true` enables; default / missing → false
+- Two-key activation: write flag **and** proven live `gmail.send` (tokeninfo)
+- MIME plain-text builder + `messages.send` transport + pre-send thread revalidation
+- Full `format=full` text/plain body verification before `VERIFIED`
+- `PROVIDER_ACCEPTED` ≠ `VERIFIED`; timeout after dispatch → `UNKNOWN_EXTERNAL_OUTCOME` (no blind resend)
+- Execute API deferred (activation risk); 21B cockpit remains Approve / Cancel only
+- No live email; no OAuth grant change; no env mutation in this gate
+- Next: LEO-21E RED staging activation
 
 ---
 
@@ -169,10 +180,10 @@ Each gate must preserve:
 
 **Active family:** LEO-21 — Governed Connected Actions
 
-**Current gate:** LEO-21C — Gmail Reply Adapter (write-disabled / scope-aware)
+**Current gate:** LEO-21D — Gmail Reply live-capable adapter (authority OFF)
 
-Next: explicit PM authorization before any `gmail.send` consent / live reply test. Provider writes remain disabled.
+Next: LEO-21E RED staging activation (consent union + Preview token + write flag ON + one live test). Provider write currently impossible (flag off + no `gmail.send` grant).
 
-Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; LEO-21A provider-neutral runtime; LEO-21B approval cockpit; staging persistence present (PM-certified).
+Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; LEO-21A runtime; LEO-21B cockpit; LEO-21C adapter foundations; staging persistence present (PM-certified).
 
-Provider writes remain disabled.
+CAPABILITY ≠ AUTHORITY — live-capable code does not grant write authority.
