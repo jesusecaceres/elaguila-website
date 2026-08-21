@@ -22,6 +22,7 @@ import {
 } from "@/app/lib/recursos/server/communityResourcesDb";
 import { addDaysIso, DEFAULT_VERIFICATION_REVIEW_DAYS } from "@/app/lib/recursos/verificationStatus";
 import { validateResourceForVerification } from "@/app/lib/recursos/urgentResourceValidation";
+import { insertVerificationEvent } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import type {
   AudienceTag,
   CostModel,
@@ -257,6 +258,19 @@ export async function setVerificationStatusAction(formData: FormData): Promise<v
   const result = await dbSetCommunityResourceVerificationStatus(id, nextStatus, extra, actor);
   if (!result.ok) {
     redirect(`/admin/recursos/${id}?error=${encodeURIComponent(result.error)}`);
+  }
+
+  // Gate 6F/6I: every transition to "verified" — first pass or a later reverification cycle —
+  // appends a `reverified` event. Human-authorized only: this action already required
+  // validateResourceForVerification() to pass above; nothing here can be triggered by AI.
+  if (nextStatus === "verified") {
+    await insertVerificationEvent({
+      resourceId: id,
+      eventType: "reverified",
+      actorEmail: actor,
+      sourceUrl: record!.verification.officialSourceUrl,
+      notes: "Verified via admin action.",
+    });
   }
 
   auditAdminWrite("recurso_verification_status_changed", "community_resource", id, {

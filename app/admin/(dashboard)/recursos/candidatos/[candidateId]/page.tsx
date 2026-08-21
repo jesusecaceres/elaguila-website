@@ -4,8 +4,10 @@ import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { adminBtnPrimary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { CandidateReviewForm } from "@/app/admin/_components/recursos/CandidateReviewForm";
+import { VerificationTimeline } from "@/app/admin/_components/recursos/VerificationTimeline";
 import { dropCandidateAction, promoteCandidateAction } from "@/app/admin/recursosCandidateActions";
 import { dbGetCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
+import { dbListVerificationEventsForCandidate } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { isEvidenceSufficientForPriority1 } from "@/app/lib/recursos/verificationEvidence";
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
@@ -25,7 +27,7 @@ export default async function RecursosCandidateDetailPage(props: {
   const candidate = CANDIDATES.find((c) => c.candidateId === candidateId);
   if (!candidate) notFound();
 
-  const review = await dbGetCandidateReview(candidateId);
+  const [review, timeline] = await Promise.all([dbGetCandidateReview(candidateId), dbListVerificationEventsForCandidate(candidateId)]);
   const canPromote =
     review &&
     !review.promotedResourceId &&
@@ -125,6 +127,10 @@ export default async function RecursosCandidateDetailPage(props: {
           &quot;Ready for promotion&quot;, and — for help-now candidates — meets the stricter Priority-1 evidence bar.
         </p>
       ) : null}
+
+      <div className="mt-6">
+        <VerificationTimeline events={timeline} title="Historial de este candidato (interno)" compact />
+      </div>
     </div>
   );
 }

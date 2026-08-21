@@ -5,12 +5,14 @@ import { adminBtnPrimary, adminCardBase } from "@/app/admin/_components/adminThe
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { CandidateReviewForm } from "@/app/admin/_components/recursos/CandidateReviewForm";
+import { VerificationTimeline } from "@/app/admin/_components/recursos/VerificationTimeline";
 import { dropUrlCandidateAction, promoteUrlCandidateAction, saveUrlCandidateReviewAction } from "@/app/admin/recursosUrlCandidateActions";
 import { dbGetCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { isEvidenceSufficientForPriority1 } from "@/app/lib/recursos/verificationEvidence";
 import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
 import { decodeMatchMetadata } from "@/app/lib/recursos/intake/candidateMatchMetadata";
 import { dbListPendingResourceChangeProposalsForResource } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { dbListVerificationEventsForCandidate } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 
@@ -45,6 +47,7 @@ export default async function RecursosUrlCandidateDetailPage(props: {
   const proposal = decodeProposalFromDiscrepancies(review.discrepanciesFromPdf);
   const match = decodeMatchMetadata(review.discrepanciesFromPdf);
   const pendingChanges = match.matchedResourceId ? await dbListPendingResourceChangeProposalsForResource(match.matchedResourceId) : [];
+  const timeline = await dbListVerificationEventsForCandidate(candidateId);
 
   // Gate 5L: a candidate already classified as an update to an existing resource should not be
   // promoted into a SECOND resource — the primary workflow is reviewing the change proposals
@@ -183,6 +186,10 @@ export default async function RecursosUrlCandidateDetailPage(props: {
             : 'Promover se habilita cuando la evidencia confirma que la organización está activa, cita una fuente oficial actual, tiene disposición "Ready for promotion", y — para candidatos ayuda-ahora — cumple el estándar de evidencia Prioridad 1.'}
         </p>
       ) : null}
+
+      <div className="mt-6">
+        <VerificationTimeline events={timeline} title="Historial de este candidato (interno)" compact />
+      </div>
     </div>
   );
 }

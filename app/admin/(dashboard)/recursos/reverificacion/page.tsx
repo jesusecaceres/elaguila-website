@@ -3,12 +3,14 @@ import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
 import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
 import { AdminEmptyState } from "@/app/admin/_components/AdminEmptyState";
 import { AdminStatCard } from "@/app/admin/_components/AdminStatCard";
-import { adminActionProofErr, adminBtnPrimary, adminCardBase, adminDesktopTableOnly, adminMobileCardList, adminTableWrap, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
+import { adminActionProofErr, adminBtnPrimary, adminCardBase, adminCtaChip, adminCtaChipCompact, adminDesktopTableOnly, adminMobileCardList, adminTableWrap, adminTableZebraRow } from "@/app/admin/_components/adminTheme";
+import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { dbListCommunityResources } from "@/app/lib/recursos/server/communityResourcesDb";
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 import { buildReverificationQueue, DUE_SOON_WINDOW_DAYS, type ReverificationQueueEntry } from "@/app/lib/recursos/intake/reverificationQueue";
+import { startUrlReverificationAction } from "@/app/admin/recursosReverificationActions";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +51,24 @@ function QueueTable({ entries }: { entries: ReverificationQueueEntry[] }) {
                   {r.verification.nextVerificationAt ? new Date(r.verification.nextVerificationAt).toLocaleDateString() : "— sin fecha —"}
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
-                    Revisar →
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
+                      Revisar →
+                    </Link>
+                    {r.contact.websiteUrl || r.verification.officialSourceUrl ? (
+                      <form action={startUrlReverificationAction}>
+                        <input type="hidden" name="resourceId" value={r.id} />
+                        <ExecutiveHubConfirmSubmitButton
+                          confirmMessage={`¿Iniciar reverificación de "${r.organizationName}"? Se obtendrá su sitio oficial y se generarán propuestas de cambio si algo difiere — no se verifica ni publica nada automáticamente.`}
+                          className={`${adminCtaChip} ${adminCtaChipCompact}`}
+                        >
+                          Iniciar reverificación
+                        </ExecutiveHubConfirmSubmitButton>
+                      </form>
+                    ) : (
+                      <span className="text-[11px] text-[#8B7E70]">Sin sitio oficial para reverificar automáticamente</span>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -81,10 +98,23 @@ function QueueTable({ entries }: { entries: ReverificationQueueEntry[] }) {
                 <dd>{r.verification.nextVerificationAt ? new Date(r.verification.nextVerificationAt).toLocaleDateString() : "— sin fecha —"}</dd>
               </div>
             </dl>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
                 Revisar →
               </Link>
+              {r.contact.websiteUrl || r.verification.officialSourceUrl ? (
+                <form action={startUrlReverificationAction}>
+                  <input type="hidden" name="resourceId" value={r.id} />
+                  <ExecutiveHubConfirmSubmitButton
+                    confirmMessage={`¿Iniciar reverificación de "${r.organizationName}"?`}
+                    className={`${adminCtaChip} ${adminCtaChipCompact}`}
+                  >
+                    Iniciar reverificación
+                  </ExecutiveHubConfirmSubmitButton>
+                </form>
+              ) : (
+                <span className="text-[11px] text-[#8B7E70]">Sin sitio oficial</span>
+              )}
             </div>
           </div>
         ))}

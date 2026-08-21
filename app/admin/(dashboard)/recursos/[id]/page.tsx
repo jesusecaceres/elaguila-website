@@ -1,21 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
-import { adminActionProofErr, adminActionProofOk, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { adminActionProofErr, adminActionProofOk, adminBtnPrimary, adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { RecursoForm } from "@/app/admin/_components/recursos/RecursoForm";
+import { VerificationTimeline } from "@/app/admin/_components/recursos/VerificationTimeline";
 import { dbGetCommunityResourceById } from "@/app/lib/recursos/server/communityResourcesDb";
-import { updateRecursoAction } from "@/app/admin/recursosActions";
+import { updateRecursoAction, setVerificationStatusAction } from "@/app/admin/recursosActions";
+import { dbListPendingResourceChangeProposalsForResource } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { dbListVerificationEventsForResource } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditRecursoPage(props: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ saved?: string; error?: string }>;
+  searchParams?: Promise<{ saved?: string; error?: string; reverify_changes?: string }>;
 }) {
   const { id } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
   const record = await dbGetCommunityResourceById(id);
   if (!record) notFound();
+
+  const [pendingChanges, timeline] = await Promise.all([
+    dbListPendingResourceChangeProposalsForResource(id),
+    dbListVerificationEventsForResource(id),
+  ]);
 
   return (
     <div>
@@ -31,7 +40,49 @@ export default async function EditRecursoPage(props: {
       />
       {sp.saved ? <p className={`${adminActionProofOk} mb-6`}>Saved.</p> : null}
       {sp.error ? <p className={`${adminActionProofErr} mb-6`}>{sp.error}</p> : null}
+      {sp.reverify_changes !== undefined ? (
+        <p className={`${adminActionProofOk} mb-6`}>
+          Reverificación iniciada — {sp.reverify_changes} cambio(s) propuesto(s). Nada se verificó ni publicó automáticamente.{" "}
+          {Number(sp.reverify_changes) > 0 ? (
+            <Link href="/admin/recursos/cambios" className="font-bold underline">
+              Revisar cambios →
+            </Link>
+          ) : null}
+        </p>
+      ) : null}
+
+      <div className={`${adminCardBase} mb-6 flex flex-wrap items-center justify-between gap-3 p-5`}>
+        <div>
+          <p className="text-sm font-bold text-[#1E1810]">
+            Verificación: {record.verification.verificationStatus} · Última: {record.verification.lastVerifiedAt ? new Date(record.verification.lastVerifiedAt).toLocaleDateString() : "—"} · Próxima:{" "}
+            {record.verification.nextVerificationAt ? new Date(record.verification.nextVerificationAt).toLocaleDateString() : "—"}
+          </p>
+          {pendingChanges.length > 0 ? (
+            <p className="mt-1 text-xs text-amber-900">
+              {pendingChanges.length} cambio(s) pendiente(s) —{" "}
+              <Link href="/admin/recursos/cambios" className="font-bold underline">
+                revisar en Cambios
+              </Link>
+            </p>
+          ) : null}
+        </div>
+        <form action={setVerificationStatusAction}>
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="verificationStatus" value="verified" />
+          <ExecutiveHubConfirmSubmitButton
+            confirmMessage="¿Marcar la reverificación como completada? Esto confirma que el recurso sigue siendo válido — no requiere que haya cambios pendientes."
+            className={adminBtnPrimary}
+          >
+            Marcar reverificación completada
+          </ExecutiveHubConfirmSubmitButton>
+        </form>
+      </div>
+
       <RecursoForm mode="edit" initial={record} action={updateRecursoAction} />
+
+      <div className="mt-8">
+        <VerificationTimeline events={timeline} />
+      </div>
     </div>
   );
 }

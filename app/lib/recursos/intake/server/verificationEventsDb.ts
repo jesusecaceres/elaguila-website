@@ -43,6 +43,68 @@ export async function dbListCandidateIdsCreatedByJob(sourceIntakeJobId: string):
   }
 }
 
+export type VerificationEventRow = {
+  id: string;
+  candidateId: string | null;
+  resourceId: string | null;
+  sourceIntakeJobId: string | null;
+  eventType: VerificationEventType;
+  actorEmail: string | null;
+  sourceUrl: string | null;
+  sourceType: string | null;
+  notes: string | null;
+  previousValue: string | null;
+  acceptedValue: string | null;
+  fieldsConfirmed: string[] | null;
+  createdAt: string;
+};
+
+const EVENT_SELECT_COLUMNS = "id, candidate_id, resource_id, source_intake_job_id, event_type, actor_email, source_url, source_type, notes, previous_value, accepted_value, fields_confirmed, created_at";
+
+function eventRowFromDb(row: Record<string, unknown>): VerificationEventRow {
+  return {
+    id: String(row.id),
+    candidateId: (row.candidate_id as string | null) ?? null,
+    resourceId: (row.resource_id as string | null) ?? null,
+    sourceIntakeJobId: (row.source_intake_job_id as string | null) ?? null,
+    eventType: row.event_type as VerificationEventType,
+    actorEmail: (row.actor_email as string | null) ?? null,
+    sourceUrl: (row.source_url as string | null) ?? null,
+    sourceType: (row.source_type as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    previousValue: (row.previous_value as string | null) ?? null,
+    acceptedValue: (row.accepted_value as string | null) ?? null,
+    fieldsConfirmed: (row.fields_confirmed as string[] | null) ?? null,
+    createdAt: String(row.created_at),
+  };
+}
+
+/** Chronological (oldest first) timeline for one published resource — Gate 6K. Server-only, never exposed publicly. */
+export async function dbListVerificationEventsForResource(resourceId: string): Promise<VerificationEventRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select(EVENT_SELECT_COLUMNS).eq("resource_id", resourceId).order("created_at", { ascending: true });
+    if (error || !data) return [];
+    return data.map((r) => eventRowFromDb(r as Record<string, unknown>));
+  } catch {
+    return [];
+  }
+}
+
+/** Chronological (oldest first) timeline for one candidate — Gate 6L. Server-only, never exposed publicly. */
+export async function dbListVerificationEventsForCandidate(candidateId: string): Promise<VerificationEventRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select(EVENT_SELECT_COLUMNS).eq("candidate_id", candidateId).order("created_at", { ascending: true });
+    if (error || !data) return [];
+    return data.map((r) => eventRowFromDb(r as Record<string, unknown>));
+  } catch {
+    return [];
+  }
+}
+
 /** Fire-and-forget insert — never throws, matches auditAdminWrite()'s shape. Failure here must never block the primary action. */
 export async function insertVerificationEvent(input: InsertVerificationEventInput): Promise<void> {
   if (!isSupabaseAdminConfigured()) return;

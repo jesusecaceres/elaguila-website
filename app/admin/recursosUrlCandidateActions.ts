@@ -94,7 +94,19 @@ export async function saveUrlCandidateReviewAction(formData: FormData): Promise<
     redirect(`/admin/recursos/candidatos/url/${encodeURIComponent(candidateId)}?error=${encodeURIComponent(result.error)}`);
   }
 
-  await insertVerificationEvent({ candidateId, eventType: "evidence_recorded", actorEmail: actor, sourceType: "url", notes: `disposition=${disposition}` });
+  // Gate 6E: skip a redundant evidence_recorded event if nothing evidence-relevant actually changed.
+  const materiallyChanged =
+    existing!.disposition !== disposition ||
+    existing!.currentSourceUrl !== input.currentSourceUrl ||
+    existing!.currentSourceType !== input.currentSourceType ||
+    existing!.organizationConfirmedActive !== input.organizationConfirmedActive ||
+    existing!.is24HoursConfirmedExplicit !== input.is24HoursConfirmedExplicit ||
+    existing!.addressHandling !== input.addressHandling ||
+    existing!.verificationNotes !== input.verificationNotes ||
+    JSON.stringify([...existing!.fieldsConfirmed].sort()) !== JSON.stringify([...input.fieldsConfirmed].sort());
+  if (materiallyChanged) {
+    await insertVerificationEvent({ candidateId, eventType: "evidence_recorded", actorEmail: actor, sourceType: "url", notes: `disposition=${disposition}`, fieldsConfirmed: input.fieldsConfirmed });
+  }
   auditAdminWrite("recurso_url_candidate_review_saved", "community_resource_candidate_review", candidateId, { disposition, actorEmail: actor });
   revalidatePath("/admin/recursos/candidatos");
   revalidatePath(`/admin/recursos/candidatos/url/${candidateId}`);

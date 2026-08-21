@@ -27,7 +27,22 @@ import {
 } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { candidateToResourceDraft, type CandidateResourceRecord } from "@/app/lib/recursos/sourceIngestion";
 import { isEvidenceSufficientForPriority1, type CandidateReviewInput, type CandidateReviewDisposition } from "@/app/lib/recursos/verificationEvidence";
+import { insertVerificationEvent } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import candidatesData from "@/data/recursos/candidates/scc-community-resource-guide-2023.json";
+
+/** Gate 6E: skip a redundant evidence_recorded event if nothing evidence-relevant actually changed. */
+function evidenceMaterialSnapshot(input: Pick<CandidateReviewInput, "disposition" | "currentSourceUrl" | "currentSourceType" | "organizationConfirmedActive" | "fieldsConfirmed" | "is24HoursConfirmedExplicit" | "addressHandling" | "verificationNotes">): string {
+  return JSON.stringify({
+    disposition: input.disposition,
+    currentSourceUrl: input.currentSourceUrl,
+    currentSourceType: input.currentSourceType,
+    organizationConfirmedActive: input.organizationConfirmedActive,
+    fieldsConfirmed: [...input.fieldsConfirmed].sort(),
+    is24HoursConfirmedExplicit: input.is24HoursConfirmedExplicit,
+    addressHandling: input.addressHandling,
+    verificationNotes: input.verificationNotes,
+  });
+}
 
 const CANDIDATES = candidatesData as unknown as CandidateResourceRecord[];
 
@@ -75,6 +90,7 @@ export async function saveCandidateReviewAction(formData: FormData): Promise<voi
   const addressHandling = optStr(formData, "addressHandling") as CandidateReviewInput["addressHandling"];
 
   const actor = await currentActorEmail();
+  const existing = await dbGetCandidateReview(candidateId);
 
   const input: CandidateReviewInput = {
     candidateId,
@@ -94,6 +110,19 @@ export async function saveCandidateReviewAction(formData: FormData): Promise<voi
   const result = await dbSaveCandidateReview(input);
   if (!result.ok) {
     redirect(`/admin/recursos/candidatos/${encodeURIComponent(candidateId)}?error=${encodeURIComponent(result.error)}`);
+  }
+
+  const materiallyChanged = !existing || evidenceMaterialSnapshot(existing) !== evidenceMaterialSnapshot(input);
+  if (materiallyChanged) {
+    await insertVerificationEvent({
+      candidateId,
+      eventType: "evidence_recorded",
+      actorEmail: actor,
+      sourceUrl: input.currentSourceUrl,
+      sourceType: input.currentSourceType,
+      fieldsConfirmed: input.fieldsConfirmed,
+      notes: `disposition=${disposition}`,
+    });
   }
 
   auditAdminWrite("recurso_candidate_review_saved", "community_resource_candidate_review", candidateId, {
@@ -164,6 +193,15 @@ export async function promoteCandidateAction(formData: FormData): Promise<void> 
     redirect(`/admin/recursos/candidatos/${encodeURIComponent(candidateId)}?error=${encodeURIComponent(linked.error)}`);
   }
 
+  await insertVerificationEvent({
+    candidateId,
+    resourceId: result.id,
+    eventType: "promoted",
+    actorEmail: actor,
+    sourceUrl: review!.currentSourceUrl,
+    sourceType: review!.currentSourceType,
+    fieldsConfirmed: review!.fieldsConfirmed,
+  });
   auditAdminWrite("recurso_candidate_promoted", "community_resource", result.id, {
     candidateId,
     actorEmail: actor,
@@ -185,6 +223,8 @@ export async function dropCandidateAction(formData: FormData): Promise<void> {
   }
 
   const actor = await currentActorEmail();
+  const reason = optStr(formData, "dropReason");
+  await insertVerificationEvent({ candidateId, eventType: "dropped", actorEmail: actor, notes: reason ?? undefined });
   auditAdminWrite("recurso_candidate_dropped", "community_resource_candidate_review", candidateId, { actorEmail: actor });
   revalidatePath("/admin/recursos/candidatos");
   revalidatePath(`/admin/recursos/candidatos/${candidateId}`);
