@@ -108,7 +108,13 @@ assert("only the expected Recursos migrations exist (Gate 1 schema + Coach-appro
 })());
 
 // --- Gate 8: public contract never imports anything from the intake tree -----------------------
-assert("communityResourcesPublicQueries.ts imports nothing from app/lib/recursos/intake", exists("app/lib/recursos/server/communityResourcesPublicQueries.ts") && !/recursos\/intake/.test(read("app/lib/recursos/server/communityResourcesPublicQueries.ts")));
+assert(
+  "communityResourcesPublicQueries.ts imports nothing from app/lib/recursos/intake beyond the ES-8-authorized type-only spanish-status import",
+  exists("app/lib/recursos/server/communityResourcesPublicQueries.ts") &&
+    !/recursos\/intake/.test(
+      read("app/lib/recursos/server/communityResourcesPublicQueries.ts").replace(/import type \{[^}]*\} from "@\/app\/lib\/recursos\/intake\/server\/resourceSpanishStatusDb";?/g, ""),
+    ),
+);
 assert("no public route imports any admin/intake action file", (() => {
   const publicDir = path.join(root, "app", "recursos-comunitarios");
   if (!fs.existsSync(publicDir)) return true;

@@ -195,7 +195,8 @@ assert("URL candidate actions call auditAdminWrite for promote/drop/save", exist
 assert("communityResourcesPublicQueries.ts untouched by Gate 3", exists(PUBLIC_QUERIES_PATH));
 if (exists(PUBLIC_QUERIES_PATH)) {
   const src = read(PUBLIC_QUERIES_PATH);
-  assert("public query functions reference no intake module", !/recursos\/intake/.test(src));
+  const withoutSpanishStatusImport = src.replace(/import type \{[^}]*\} from "@\/app\/lib\/recursos\/intake\/server\/resourceSpanishStatusDb";?/g, "");
+  assert("public query functions reference no intake module beyond the ES-8-authorized type-only spanish-status import", !/recursos\/intake/.test(withoutSpanishStatusImport));
 }
 assert("types.ts untouched beyond the additive sourceDocument/sourceYear widen", exists(TYPES_PATH));
 

@@ -21,6 +21,7 @@ import {
 import { dbUpdateSingleResourceField } from "@/app/lib/recursos/intake/server/resourceFieldAcceptDb";
 import { insertVerificationEvent } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { isSafetySensitiveField } from "@/app/lib/recursos/intake/resourceChangeDetection";
+import { dbGetCommunityResourceSpanishStatus, dbSetCommunityResourceSpanishStatus } from "@/app/lib/recursos/intake/server/resourceSpanishStatusDb";
 
 async function actorEmail(): Promise<string | null> {
   const c = await cookies();
@@ -30,6 +31,54 @@ async function actorEmail(): Promise<string | null> {
 function str(f: FormData, k: string): string {
   const v = f.get(k);
   return typeof v === "string" ? v.trim() : "";
+}
+
+const TRANSLATABLE_EN_FIELDS = new Set(["shortDescriptionEn", "detailsEn", "eligibilityEn", "hoursNoteEn"]);
+const TRANSLATABLE_ES_FIELDS = new Set(["shortDescriptionEs", "detailsEs", "eligibilityEs", "hoursNoteEs"]);
+
+/**
+ * Gate ES-8L/M/N — called in the SAME accept workflow, right after a translatable presentation
+ * field write succeeds. Never erases Spanish text, never auto-regenerates, never touches factual
+ * verification_status/last_verified_at/next_verification_at — only ever downgrades spanish_status,
+ * and only when the just-accepted content genuinely puts the currently-trusted Spanish in doubt.
+ *
+ *   EN field accepted + spanish_status='verified_translation' -> needs_translation_review
+ *     (ES-8L: the approved translation was drafted from English facts that just changed).
+ *   EN field accepted + spanish_status='official_spanish' + source='official_bilingual_source'
+ *     -> needs_translation_review (ES-8M: conservative — a bilingual source's English side and
+ *     Spanish side are presented together, so an EN update warrants re-confirming the pair).
+ *   EN field accepted + spanish_status='official_spanish' + source='official_spanish_source'
+ *     -> NO CHANGE (ES-8M: Spanish is independently authoritative from its own official source —
+ *     Leonix's English presentation changing does not stale Spanish sourced separately).
+ *   ES field accepted + spanish_status already trusted (official_spanish OR verified_translation)
+ *     -> needs_translation_review (ES-8N: the Spanish text itself just changed — whatever was
+ *     previously confirmed no longer describes what's now in the column; source_type is always
+ *     PRESERVED as-is, never relabeled to ai_translation_reviewed or auto-flipped to official).
+ *
+ * Failure here is non-fatal (matches this file's existing per-item error tolerance) — a downgrade
+ * write failing must never roll back or block the field-content write that already succeeded.
+ */
+async function maybeDowngradeSpanishStatusOnAccept(resourceId: string, fieldName: string): Promise<void> {
+  const isEnField = TRANSLATABLE_EN_FIELDS.has(fieldName);
+  const isEsField = TRANSLATABLE_ES_FIELDS.has(fieldName);
+  if (!isEnField && !isEsField) return;
+
+  const spanishRow = await dbGetCommunityResourceSpanishStatus(resourceId);
+  if (!spanishRow) return;
+  const { spanishStatus, spanishSourceType } = spanishRow;
+
+  if (isEnField) {
+    if (spanishStatus === "official_spanish" && spanishSourceType === "official_spanish_source") return;
+    if (spanishStatus === "verified_translation" || (spanishStatus === "official_spanish" && spanishSourceType === "official_bilingual_source")) {
+      await dbSetCommunityResourceSpanishStatus(resourceId, "needs_translation_review", spanishSourceType);
+    }
+    return;
+  }
+
+  // isEsField
+  if (spanishStatus === "official_spanish" || spanishStatus === "verified_translation") {
+    await dbSetCommunityResourceSpanishStatus(resourceId, "needs_translation_review", spanishSourceType);
+  }
 }
 
 export async function acceptChangeProposalAction(formData: FormData): Promise<void> {
@@ -49,6 +98,7 @@ export async function acceptChangeProposalAction(formData: FormData): Promise<vo
   if (!fieldResult.ok) {
     redirect(`/admin/recursos/cambios?error=${encodeURIComponent(fieldResult.error)}`);
   }
+  await maybeDowngradeSpanishStatusOnAccept(proposal!.resourceId, proposal!.fieldName);
 
   await dbUpdateResourceChangeProposalStatus(id, "accepted", actor);
   await insertVerificationEvent({
@@ -141,6 +191,7 @@ export async function acceptAllSafeChangeProposalsAction(formData: FormData): Pr
   for (const proposal of safeOnes) {
     const fieldResult = await dbUpdateSingleResourceField(proposal.resourceId, proposal.fieldName, String(proposal.proposedValue), actor);
     if (!fieldResult.ok) continue; // one field failing must not abort the rest
+    await maybeDowngradeSpanishStatusOnAccept(proposal.resourceId, proposal.fieldName);
     await dbUpdateResourceChangeProposalStatus(proposal.id, "accepted", actor);
     await insertVerificationEvent({
       resourceId: proposal.resourceId,

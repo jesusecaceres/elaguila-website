@@ -156,7 +156,11 @@ if (exists(ORCHESTRATOR)) {
 assert("communityResourcesPublicQueries.ts untouched by Gate 4", exists(PUBLIC_QUERIES_PATH));
 if (exists(PUBLIC_QUERIES_PATH)) {
   const src = read(PUBLIC_QUERIES_PATH);
-  assert("public query functions reference no intake module", !/recursos\/intake/.test(src));
+  // Gate ES-8 authorizes exactly one narrow type-only exception: importing SpanishStatus/
+  // SpanishSourceType from resourceSpanishStatusDb.ts (reusing the vocabulary already built
+  // there rather than redeclaring it) — no runtime intake coupling beyond that.
+  const withoutSpanishStatusImport = src.replace(/import type \{[^}]*\} from "@\/app\/lib\/recursos\/intake\/server\/resourceSpanishStatusDb";?/g, "");
+  assert("public query functions reference no intake module beyond the ES-8-authorized type-only spanish-status import", !/recursos\/intake/.test(withoutSpanishStatusImport));
 }
 
 // --- job result route exists, supersedes_document_id supported ------------------------------------

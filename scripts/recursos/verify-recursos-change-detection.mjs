@@ -156,7 +156,8 @@ assert(
 // --- public queries unchanged -------------------------------------------------------------------------
 assert("communityResourcesPublicQueries.ts untouched by Gate 5", exists(PUBLIC_QUERIES_PATH));
 if (exists(PUBLIC_QUERIES_PATH)) {
-  assert("public query functions reference no intake module", !/recursos\/intake/.test(read(PUBLIC_QUERIES_PATH)));
+  const withoutSpanishStatusImport = read(PUBLIC_QUERIES_PATH).replace(/import type \{[^}]*\} from "@\/app\/lib\/recursos\/intake\/server\/resourceSpanishStatusDb";?/g, "");
+  assert("public query functions reference no intake module beyond the ES-8-authorized type-only spanish-status import", !/recursos\/intake/.test(withoutSpanishStatusImport));
 }
 
 // --- no new migration, no pg_trgm enablement in code ---------------------------------------------------

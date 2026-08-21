@@ -146,10 +146,14 @@ if (exists(REVERIFY)) {
 }
 
 // --- Public rendering unchanged, no auto official_spanish, no auto publish ----------------------------
-assert("public query file untouched by this gate", !exists(PUBLIC_QUERIES) || !/detectSourceLanguage|spanishIsOfficialSource|official_spanish_source/.test(read(PUBLIC_QUERIES)));
+// Gate ES-8 has now legitimately landed and is the intended owner of both of these — the public
+// query file DOES join spanish_status/spanish_source_type, and the public fallback resolver DOES
+// gate on spanish_status. These checks now assert that landing happened correctly, rather than
+// asserting it hadn't happened yet.
+assert("public query file carries spanish trust (Gate ES-8, expected)", exists(PUBLIC_QUERIES) && /spanish_status/.test(read(PUBLIC_QUERIES)));
 if (exists(BILINGUAL_FALLBACK)) {
-  const resolveFnBody = read(BILINGUAL_FALLBACK).match(/export function resolveResourceDescription[\s\S]*?\n}\n/)?.[0] ?? "";
-  assert("public fallback function body still unchanged by this gate (ES-8 deferred)", resolveFnBody.length > 0 && !/spanish_status|official_spanish/.test(resolveFnBody));
+  const resolveFnBody = read(BILINGUAL_FALLBACK).match(/export function resolveBilingualField[\s\S]*?\n}\n/)?.[0] ?? "";
+  assert("public resolver now gates on spanish_status (Gate ES-8, expected)", resolveFnBody.length > 0 && /spanishStatus/.test(resolveFnBody));
 }
 assert("no automatic community_resources.active flip anywhere in the promotion Spanish-handling block", exists(PROMOTE_ACTION) && !/active: true/.test(read(PROMOTE_ACTION)));
 

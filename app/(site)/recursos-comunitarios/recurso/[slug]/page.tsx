@@ -8,7 +8,7 @@ import { ResourceQuickActions } from "@/app/components/recursos/ResourceQuickAct
 import { navCopyLang, normalizeLang } from "@/app/lib/language";
 import { LEONIX_SITE_ORIGIN, leonixPageTitle } from "@/app/lib/leonixBrand";
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
-import { resolveResourceDescription } from "@/app/lib/recursos/recursosBilingualFallback";
+import { resolveBilingualField, isTrustedSpanishStatus } from "@/app/lib/recursos/recursosBilingualFallback";
 import { recursosCategoryHref, recursosResourcePath, RECURSOS_BASE_PATH } from "@/app/lib/recursos/recursosUrls";
 import { recursosResourceJsonLd } from "@/app/lib/recursos/recursosResourceJsonLd";
 import { listPublicCommunityResources, getPublicCommunityResourceBySlug } from "@/app/lib/recursos/server/communityResourcesPublicQueries";
@@ -36,6 +36,7 @@ const SECTION_LABEL: Record<RecursosLang, Record<string, string>> = {
     related: "Recursos relacionados",
     is24Hours: "Disponible 24/7",
     withheld: "Ubicación confidencial por seguridad. Contacta directamente para más información.",
+    spanishProvenance: "Información verificada por Leonix · Fuente oficial disponible",
   },
   en: {
     verified: "Verified information",
@@ -51,6 +52,7 @@ const SECTION_LABEL: Record<RecursosLang, Record<string, string>> = {
     related: "Related resources",
     is24Hours: "Available 24/7",
     withheld: "Confidential location for safety. Contact directly for more information.",
+    spanishProvenance: "Information verified by Leonix · Official source available",
   },
 };
 
@@ -75,7 +77,8 @@ export async function generateMetadata(props: {
   if (!resource) return {};
 
   const name = resource.programName ? `${resource.organizationName} — ${resource.programName}` : resource.organizationName;
-  const description = resolveResourceDescription(resource, navCopyLang(lang)).text || undefined;
+  const description =
+    resolveBilingualField({ esValue: resource.shortDescriptionEs, enValue: resource.shortDescriptionEn, lang: navCopyLang(lang), spanishStatus: resource.spanishStatus }).value || undefined;
   const path = recursosResourcePath(resource.slug);
   const title = lang === "en" ? `${name} — Community Resources` : `${name} — Recursos Comunitarios`;
 
@@ -105,9 +108,16 @@ export default async function RecursoDetailPage(props: {
 
   const canonicalPath = recursosResourcePath(resource.slug);
   const canonicalUrl = `${LEONIX_SITE_ORIGIN}${canonicalPath}`;
-  const { text: description, isEnglishFallback } = resolveResourceDescription(resource, recursosLang);
-  const eligibility = recursosLang === "en" ? resource.eligibilityEn || resource.eligibilityEs : resource.eligibilityEs || resource.eligibilityEn;
+  const description = resolveBilingualField({ esValue: resource.shortDescriptionEs, enValue: resource.shortDescriptionEn, lang: recursosLang, spanishStatus: resource.spanishStatus });
+  const eligibility = resolveBilingualField({ esValue: resource.eligibilityEs, enValue: resource.eligibilityEn, lang: recursosLang, spanishStatus: resource.spanishStatus });
+  const hoursNote = resolveBilingualField({ esValue: resource.contact.hoursNoteEs, enValue: resource.contact.hoursNoteEn, lang: recursosLang, spanishStatus: resource.spanishStatus });
   const verifiedDate = formatVerifiedDate(resource.verification.lastVerifiedAt, recursosLang);
+  // ES-8G: subtle trust line, ONLY when actual approved Spanish is genuinely being displayed —
+  // never during an EN fallback. For an English viewer, shown instead as a quieter "official
+  // source available" note when trusted Spanish exists (not a fallback concept on that side).
+  const showSpanishProvenance =
+    Boolean(resource.verification.officialSourceUrl) &&
+    (recursosLang === "es" ? description.displayLang === "es" && !description.isFallback : isTrustedSpanishStatus(resource.spanishStatus));
   const treatment = URGENCY_STYLE[resource.urgencyLevel];
 
   const addressWithheld = Boolean(resource.contact.address?.addressWithheldForSafety);
@@ -122,7 +132,7 @@ export default async function RecursoDetailPage(props: {
   const { resources: sameCategory } = await listPublicCommunityResources({ category: resource.primaryCategory, limit: 8 });
   const related = sameCategory.filter((r) => r.slug !== resource.slug).slice(0, 3);
 
-  const jsonLd = recursosResourceJsonLd(resource, canonicalUrl);
+  const jsonLd = recursosResourceJsonLd(resource, canonicalUrl, recursosLang);
 
   return (
     <main className="min-h-screen bg-[#FAF6EE] px-4 pb-24 pt-24 text-[#1F241C] sm:px-6 lg:px-8">
@@ -167,15 +177,18 @@ export default async function RecursoDetailPage(props: {
           </span>
         </div>
 
+        {/* ES-8G: Spanish provenance — only when approved Spanish is genuinely being shown, never during an EN fallback. Never mentions AI/machine translation. */}
+        {showSpanishProvenance ? <p className="mt-2 text-xs font-semibold text-[#556B3E]">{t.spanishProvenance}</p> : null}
+
         {/* 6: what they help with */}
-        {description ? (
+        {description.value ? (
           <section className="mt-6" aria-labelledby="recurso-que-ayuda">
             <h2 id="recurso-que-ayuda" className="text-sm font-bold uppercase tracking-wide text-[#556B3E]">
               {t.whatHelp}
             </h2>
             <p className="mt-2 text-base leading-relaxed text-[#1F241C]">
-              {description}
-              {isEnglishFallback ? <span className="ml-1 text-sm font-semibold text-[#8B7E70]">(EN)</span> : null}
+              {description.value}
+              {description.isFallback ? <span className="ml-1 text-sm font-semibold text-[#8B7E70]">(EN)</span> : null}
             </p>
           </section>
         ) : null}
@@ -187,10 +200,13 @@ export default async function RecursoDetailPage(props: {
 
         {/* 8–14: eligibility, cost, languages, service area, hours, address, source */}
         <dl className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {eligibility ? (
+          {eligibility.value ? (
             <div>
               <dt className="text-xs font-bold uppercase tracking-wide text-[#556B3E]">{t.eligibility}</dt>
-              <dd className="mt-1 text-sm leading-relaxed text-[#3D3428]">{eligibility}</dd>
+              <dd className="mt-1 text-sm leading-relaxed text-[#3D3428]">
+                {eligibility.value}
+                {eligibility.isFallback ? <span className="ml-1 text-xs font-semibold text-[#8B7E70]">(EN)</span> : null}
+              </dd>
             </div>
           ) : null}
           <div>
@@ -209,11 +225,12 @@ export default async function RecursoDetailPage(props: {
               <dd className="mt-1 text-sm leading-relaxed text-[#3D3428]">{resource.serviceArea}</dd>
             </div>
           ) : null}
-          {(recursosLang === "en" ? resource.contact.hoursNoteEn : resource.contact.hoursNoteEs) ? (
+          {hoursNote.value ? (
             <div>
               <dt className="text-xs font-bold uppercase tracking-wide text-[#556B3E]">{t.hours}</dt>
               <dd className="mt-1 text-sm leading-relaxed text-[#3D3428]">
-                {recursosLang === "en" ? resource.contact.hoursNoteEn : resource.contact.hoursNoteEs}
+                {hoursNote.value}
+                {hoursNote.isFallback ? <span className="ml-1 text-xs font-semibold text-[#8B7E70]">(EN)</span> : null}
               </dd>
             </div>
           ) : null}

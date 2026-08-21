@@ -140,11 +140,11 @@ if (exists(BILINGUAL_FALLBACK)) {
   assert("new doctrine states translation flows through resource_change_proposals / Cambios", /resource_change_proposals/.test(src) && /Cambios/.test(src));
   assert("new doctrine states translation never auto-applies/auto-publishes", /NEVER auto-applied or auto-published/.test(src));
   assert("new doctrine references spanish_status as the public-trust gate", /spanish_status/.test(src));
-  assert("resolveResourceDescription function body itself is unchanged (still the same fallback logic, ES-8 deferred)", /if \(lang === "en"\)/.test(src) && /isEnglishFallback: Boolean\(en\)/.test(src));
+  assert("public resolver (renamed resolveBilingualField in Gate ES-8) still exists and gates on spanish_status", /export function resolveBilingualField/.test(src) && /spanishStatus/.test(src));
 }
 
-// --- Public rendering / query contract untouched -------------------------------------------------
-assert("public query file untouched by this gate (no Spanish Bridge symbols present)", !exists(PUBLIC_QUERIES) || !/spanish_status|spanish_source_type|SpanishStatus/.test(read(PUBLIC_QUERIES)));
+// --- Public rendering / query contract — ES-8 is the gate that legitimately wires this up --------
+assert("public query file carries spanish_status/spanish_source_type (Gate ES-8, expected)", exists(PUBLIC_QUERIES) && /spanish_status/.test(read(PUBLIC_QUERIES)) && /spanish_source_type/.test(read(PUBLIC_QUERIES)));
 assert("PublicResourceRecord type in types.ts not touched by this gate", !exists(PUBLIC_TYPES) || !/spanishStatus|spanishSourceType/.test(read(PUBLIC_TYPES)));
 
 // --- No auto-translation / no auto-apply anywhere in this gate's new/changed code ----------------

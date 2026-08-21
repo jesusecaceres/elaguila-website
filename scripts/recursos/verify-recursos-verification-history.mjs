@@ -116,7 +116,13 @@ for (const p of [REVERIFY_ACTIONS, CHANGE_ACTIONS]) {
 assert("urgentResourceValidation.ts untouched (validation contract not weakened)", exists(URGENT_VALIDATION));
 
 // --- no public exposure, no public query changes, no auto-verify, no AI-verify -----------------------
-assert("communityResourcesPublicQueries.ts untouched by Gate 6", exists(PUBLIC_QUERIES_PATH) && !/recursos\/intake/.test(read(PUBLIC_QUERIES_PATH)));
+// Gate ES-8 authorizes exactly one narrow type-only exception here (SpanishStatus/SpanishSourceType
+// from resourceSpanishStatusDb.ts) — no runtime intake coupling beyond that.
+assert(
+  "communityResourcesPublicQueries.ts imports no intake module beyond the ES-8-authorized type-only spanish-status import",
+  exists(PUBLIC_QUERIES_PATH) &&
+    !/recursos\/intake/.test(read(PUBLIC_QUERIES_PATH).replace(/import type \{[^}]*\} from "@\/app\/lib\/recursos\/intake\/server\/resourceSpanishStatusDb";?/g, "")),
+);
 assert("no AI adapter ever sets verificationStatus to verified", (() => {
   const files = ["app/lib/recursos/intake/aiProposalAdapter.ts", "app/lib/recursos/intake/pdfOrganizationAiAdapter.ts"];
   return files.every((f) => !exists(f) || !/verificationStatus:\s*"verified"|verified:\s*true/.test(read(f)));

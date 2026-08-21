@@ -159,13 +159,13 @@ if (exists(DETAIL_PAGE)) {
 // --- Bulk-safe-accept / high-risk translation exclusion still intact (Phase A regression) -----------
 assert("resourceChangeDetection.ts still has isHighRiskResourceForTranslation", exists(CHANGE_DETECTION) && /export function isHighRiskResourceForTranslation/.test(read(CHANGE_DETECTION)));
 
-// --- ES-4H: public runtime behavior unchanged -------------------------------------------------------
-assert("public query file untouched by this gate", !exists(PUBLIC_QUERIES) || !/spanish_status|translateVerifiedFacts|spanishTranslationAdapter/.test(read(PUBLIC_QUERIES)));
+// --- ES-4H: public runtime behavior — ES-8 has now landed and legitimately owns both of these -------
+assert("public query file was never touched by translation-generation internals directly (translateVerifiedFacts/spanishTranslationAdapter stay out of the public query layer — only the narrow spanish_status/spanish_source_type join, which is ES-8's job, is expected)", !exists(PUBLIC_QUERIES) || !/translateVerifiedFacts|spanishTranslationAdapter/.test(read(PUBLIC_QUERIES)));
 if (exists(BILINGUAL_FALLBACK)) {
   const src = read(BILINGUAL_FALLBACK);
-  assert("resolveResourceDescription runtime logic still unchanged from Phase A (ES-8 deferred)", /if \(lang === "en"\)/.test(src) && /isEnglishFallback: Boolean\(en\)/.test(src));
-  const resolveFnBody = src.match(/export function resolveResourceDescription[\s\S]*?\n}\n/)?.[0] ?? "";
-  assert("no spanish_status gating added to the public fallback FUNCTION BODY yet (that's ES-8) — doctrine comment above it may reference spanish_status as documentation", resolveFnBody.length > 0 && !/spanish_status/.test(resolveFnBody));
+  assert("lang=en still preserves English as before (ES-8 kept this branch's behavior unchanged, just renamed the function)", /if \(input\.lang === "en"\)/.test(src));
+  const resolveFnBody = src.match(/export function resolveBilingualField[\s\S]*?\n}\n/)?.[0] ?? "";
+  assert("public fallback now gates on spanish_status (Gate ES-8, expected — this is the enforcement point named back in ES-4's own doctrine comment)", resolveFnBody.length > 0 && /spanishStatus/.test(resolveFnBody));
 }
 
 let passCount = 0;

@@ -54,11 +54,11 @@ function matchesServiceArea(resource: PublicResourceRecord, serviceArea: string)
   return normalize(resource.serviceArea).includes(q);
 }
 
-/** Filters a catalog of public resource records against a query. Pure, synchronous. */
-export function filterResources(
-  catalog: readonly PublicResourceRecord[],
+/** Filters a catalog of public resource records against a query. Pure, synchronous. Generic so callers passing the ES-8 spanish-trust-extended record type get it back unnarrowed. */
+export function filterResources<T extends PublicResourceRecord>(
+  catalog: readonly T[],
   filters: ResourceFilterQuery,
-): PublicResourceRecord[] {
+): T[] {
   if (!catalog || catalog.length === 0) return [];
 
   return catalog.filter((resource) => {

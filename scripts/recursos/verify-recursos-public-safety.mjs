@@ -147,9 +147,13 @@ for (const f of ALL_PUBLIC_FILES) {
 }
 if (exists("app/lib/recursos/recursosBilingualFallback.ts")) {
   const src = read("app/lib/recursos/recursosBilingualFallback.ts");
+  // "verified_translation" is the pre-existing SpanishStatus enum value (Phase A doctrine, not a
+  // machine-translation-provider reference) — excluded before running the broad TRANSLATION_RE
+  // heuristic, same as every other file legitimately reusing that established vocabulary.
+  const withoutKnownEnumValue = stripJsComments(src).replace(/verified_translation/g, "");
   assert(
     "bilingual fallback helper never invents Spanish text (English fallback only)",
-    /isEnglishFallback/.test(src) && !TRANSLATION_RE.test(stripJsComments(src)),
+    /isFallback/.test(src) && !TRANSLATION_RE.test(withoutKnownEnumValue),
   );
 }
 

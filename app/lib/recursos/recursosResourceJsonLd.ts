@@ -8,7 +8,9 @@
  * resource has no physical location (e.g. a hotline/text line) — `Organization` is the safe,
  * always-truthful fallback in that case.
  */
-import type { PublicResourceRecord } from "./types";
+import type { PublicResourceRecord, RecursosLang } from "./types";
+import type { PublicResourceWithSpanishTrust } from "./server/communityResourcesPublicQueries";
+import { resolveBilingualField } from "./recursosBilingualFallback";
 
 function composedAddress(resource: PublicResourceRecord): string | null {
   if (resource.contact.address?.addressWithheldForSafety) return null;
@@ -18,7 +20,7 @@ function composedAddress(resource: PublicResourceRecord): string | null {
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
-export function recursosResourceJsonLd(resource: PublicResourceRecord, canonicalUrl: string): Record<string, unknown> {
+export function recursosResourceJsonLd(resource: PublicResourceWithSpanishTrust, canonicalUrl: string, lang: RecursosLang): Record<string, unknown> {
   const addressText = composedAddress(resource);
   const phone = resource.contact.phone || resource.contact.crisisPhone || null;
   const name = resource.programName ? `${resource.organizationName} — ${resource.programName}` : resource.organizationName;
@@ -32,7 +34,8 @@ export function recursosResourceJsonLd(resource: PublicResourceRecord, canonical
     url: canonicalUrl,
   };
 
-  const description = resource.shortDescriptionEn || resource.shortDescriptionEs;
+  // Gate ES-8: JSON-LD must match what the page actually renders — same trust gate, same resolver.
+  const description = resolveBilingualField({ esValue: resource.shortDescriptionEs, enValue: resource.shortDescriptionEn, lang, spanishStatus: resource.spanishStatus }).value;
   if (description) json.description = description;
   if (phone) json.telephone = phone;
   if (addressText) {

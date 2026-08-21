@@ -27,6 +27,20 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import { toPublicResource, type PrimaryCategorySlug, type PublicResourceRecord, type ResourceRecord, type UrgencyLevel } from "@/app/lib/recursos/types";
 import { isEffectivelyVerified } from "@/app/lib/recursos/verificationStatus";
 import { rowToResourceRecord, slugifyResource, type CommunityResourceRow } from "./communityResourcesDb";
+import type { SpanishStatus, SpanishSourceType } from "@/app/lib/recursos/intake/server/resourceSpanishStatusDb";
+
+/**
+ * Gate ES-8: the public projection ALSO carries spanish_status/spanish_source_type — this is the
+ * ONLY public read of those two columns, joined here rather than by extending the shared
+ * `ResourceRecord`/`rowToResourceRecord()` (which intentionally never expose them, per
+ * resourceSpanishStatusDb.ts's own doctrine — a single narrow write/read path). Every public
+ * bilingual-rendering surface must use `spanishStatus` here (via resolveBilingualField()) rather
+ * than trusting *_es text presence alone.
+ */
+export type PublicResourceWithSpanishTrust = PublicResourceRecord & {
+  spanishStatus: SpanishStatus;
+  spanishSourceType: SpanishSourceType | null;
+};
 
 /** Query-level narrowing PLUS the effective-freshness re-check — the single safety chokepoint every public read goes through. */
 function isCurrentlyPublicEligible(record: ResourceRecord): boolean {
@@ -90,7 +104,19 @@ const PUBLIC_SELECT_COLUMNS = [
   "updated_at",
   "created_by",
   "updated_by",
+  // Gate ES-8 — read directly off the raw row below (never via rowToResourceRecord, which
+  // deliberately doesn't map these), attached onto PublicResourceWithSpanishTrust.
+  "spanish_status",
+  "spanish_source_type",
 ].join(", ");
+
+function withSpanishTrust(record: PublicResourceRecord, row: Record<string, unknown>): PublicResourceWithSpanishTrust {
+  return {
+    ...record,
+    spanishStatus: (row.spanish_status as SpanishStatus | undefined) ?? "not_available",
+    spanishSourceType: (row.spanish_source_type as SpanishSourceType | null | undefined) ?? null,
+  };
+}
 
 export type PublicResourceQuery = {
   category?: PrimaryCategorySlug | null;
@@ -101,7 +127,7 @@ export type PublicResourceQuery = {
 /** Public: active resources only, optionally filtered by category/urgency. */
 export async function listPublicCommunityResources(
   query: PublicResourceQuery = {},
-): Promise<{ resources: PublicResourceRecord[]; unavailable: boolean }> {
+): Promise<{ resources: PublicResourceWithSpanishTrust[]; unavailable: boolean }> {
   if (!isSupabaseAdminConfigured()) return { resources: [], unavailable: true };
   try {
     const supabase = getAdminSupabase();
@@ -118,8 +144,11 @@ export async function listPublicCommunityResources(
 
     const { data, error } = await q;
     if (error) return { resources: [], unavailable: true };
-    const records = (data ?? []).map((r) => rowToResourceRecord(r as unknown as CommunityResourceRow));
-    const resources = records.filter(isCurrentlyPublicEligible).map(toPublicResource);
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    const resources = rows
+      .map((row) => ({ row, record: rowToResourceRecord(row as unknown as CommunityResourceRow) }))
+      .filter(({ record }) => isCurrentlyPublicEligible(record))
+      .map(({ row, record }) => withSpanishTrust(toPublicResource(record), row));
     return { resources, unavailable: false };
   } catch {
     return { resources: [], unavailable: true };
@@ -127,7 +156,7 @@ export async function listPublicCommunityResources(
 }
 
 /** Public: a single active resource by slug, or null (never returns inactive/internal data). */
-export async function getPublicCommunityResourceBySlug(slug: string): Promise<PublicResourceRecord | null> {
+export async function getPublicCommunityResourceBySlug(slug: string): Promise<PublicResourceWithSpanishTrust | null> {
   if (!isSupabaseAdminConfigured()) return null;
   try {
     const supabase = getAdminSupabase();
@@ -139,9 +168,10 @@ export async function getPublicCommunityResourceBySlug(slug: string): Promise<Pu
       .eq("verification_status", "verified")
       .maybeSingle();
     if (error || !data) return null;
-    const record = rowToResourceRecord(data as unknown as CommunityResourceRow);
+    const row = data as unknown as Record<string, unknown>;
+    const record = rowToResourceRecord(row as unknown as CommunityResourceRow);
     if (!isCurrentlyPublicEligible(record)) return null;
-    return toPublicResource(record);
+    return withSpanishTrust(toPublicResource(record), row);
   } catch {
     return null;
   }
