@@ -415,6 +415,9 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     contact,
   };
 
+  // Leonix Ad Branding Layer (Gate 2A) — already validated by normalize; passed through as-is.
+  if (state.adBranding) draft.adBranding = state.adBranding;
+
   if (quickFacts.length) draft.quickFacts = quickFacts;
   if (about && (about.aboutText || about.specialtiesLine)) draft.about = about;
   if (services.length) draft.services = services;

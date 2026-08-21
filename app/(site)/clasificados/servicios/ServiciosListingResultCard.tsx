@@ -42,6 +42,7 @@ import {
   LX_CTA_INLINE_PRIMARY,
   LX_CTA_INLINE_SECONDARY,
   LX_CTA_INLINE_WHATSAPP,
+  resolveServiciosResultCardBranding,
 } from "@/app/(site)/servicios/components/serviciosLeonixBrand";
 
 /**
@@ -121,10 +122,19 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
   const cardSurface = promoted
     ? "border-[#D4A574]/45 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] ring-2 ring-[#D4A574]/20 transition hover:border-[#D4A574]/55 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]"
     : "border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] transition hover:border-[#D4A574]/45 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]";
+  // Leonix Ad Branding Layer (Gate 2C) — null for the vast majority of listings; the card
+  // renders byte-for-byte the same as before whenever no branding profile is set.
+  const cardBrand = resolveServiciosResultCardBranding(profile.adBranding);
 
   return (
     <li>
-      <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border ${cardSurface}`}>
+      <div
+        className={`flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border ${cardSurface}`}
+        style={cardBrand ? { borderColor: cardBrand.accentBorderColor } : undefined}
+      >
+          {cardBrand ? (
+            <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: cardBrand.accentColor }} aria-hidden />
+          ) : null}
           <Link
             href={href}
             onClick={() => trackServiciosResultCardClick(row)}

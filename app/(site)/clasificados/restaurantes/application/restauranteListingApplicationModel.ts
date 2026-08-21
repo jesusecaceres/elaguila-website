@@ -7,6 +7,7 @@
  */
 
 import type { RestauranteAmenitiesSelection } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import type { AdBrandingProfile } from "@/app/lib/adBranding";
 import { isRestauranteIdbRef } from "./restauranteDraftMedia";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import {
@@ -368,6 +369,12 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
     cateringEventsStack?: Partial<RestauranteCateringEventsStack>;
     /** Optional structured amenities (payments, accessibility, etc.) */
     restaurantAmenities?: RestauranteAmenitiesSelection;
+    /**
+     * Leonix Ad Branding Layer (Gate 3A — data foundation only, not yet rendered anywhere).
+     * Sourced exclusively from the global `app/lib/adBranding` preset contract — Restaurantes
+     * never defines its own theme/shade/background/logo-presentation ids.
+     */
+    adBranding?: AdBrandingProfile;
   };
 
 // ---------------------------------------------------------------------------

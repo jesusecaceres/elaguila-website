@@ -288,6 +288,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     confirmListingAccurate: true,
     confirmPhotosRepresentBusiness: true,
     confirmCommunityRules: true,
+    adBranding: null,
   };
 
   return normalizeClasificadosServiciosApplicationState(raw);

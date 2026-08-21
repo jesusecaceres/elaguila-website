@@ -47,6 +47,7 @@ import {
   getPrimaryCtaLabel,
   getServicesTitle,
   hasPhysicalAddress,
+  resolveServiciosResultCardBranding,
 } from "@/app/servicios/components/serviciosLeonixBrand";
 
 function getProfileCtaSecondary(_template: ServiciosListingTemplate, lang: ServiciosLang): string {
@@ -196,6 +197,9 @@ export function ServiciosProfessionalResultCard({
     : LX_IVORY_CARD;
   const isCompact = density === "compact";
   const displayChips = isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips;
+  // Leonix Ad Branding Layer (Gate 2C) — null for the vast majority of listings; the card
+  // renders byte-for-byte the same as before whenever no branding profile is set.
+  const cardBrand = resolveServiciosResultCardBranding(profile.adBranding);
 
   const body = (
     <>
@@ -203,8 +207,17 @@ export function ServiciosProfessionalResultCard({
         className={`${cardSurface} relative ${
           isCompact ? "sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(9.25rem,auto)] sm:items-stretch" : ""
         }`.trim()}
+        style={cardBrand ? { borderColor: cardBrand.accentBorderColor } : undefined}
       >
         <ServiciosResultCardBodyLink href={href} ariaLabel={cardNavigateLabel} onNavigate={onCardNavigate} />
+
+        {cardBrand ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-[3px]"
+            style={{ backgroundColor: cardBrand.accentColor }}
+            aria-hidden
+          />
+        ) : null}
 
         <div className={isCompact ? "pointer-events-none relative z-[2] flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5"}>
           <ServiciosAdaptiveLogoPlate
@@ -213,6 +226,8 @@ export function ServiciosProfessionalResultCard({
             fallbackMonogram={profile.identity.businessName}
             variant="card"
             className={isCompact ? "!h-12 !w-12 sm:!h-14 sm:!w-14" : ""}
+            presentation={profile.adBranding?.logo.presentation}
+            accentColor={cardBrand?.accentColor}
           />
 
           <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>

@@ -11,6 +11,7 @@ import type {
   ServiciosServiceVisualVariant,
   ServiciosTrustItem,
 } from "./serviciosBusinessProfile";
+import type { AdBrandingProfile } from "@/app/lib/adBranding";
 
 /** identity.slug · identity.businessName */
 export type ServiciosApplicationIdentityDraft = {
@@ -244,4 +245,10 @@ export type ServiciosApplicationDraft = {
   pendingCustomAmenityOption?: string;
   /** Credentials, license & insurance (optional) */
   credentials?: ServiciosApplicationCredentialsDraft;
+  /**
+   * Leonix Ad Branding Layer (Gate 2A — data path only, not yet rendered anywhere).
+   * Sourced from the global `app/lib/adBranding` contract; Servicios never defines its own
+   * theme/shade/background ids.
+   */
+  adBranding?: AdBrandingProfile;
 };

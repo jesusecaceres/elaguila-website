@@ -10,12 +10,14 @@ import {
   restaurantesGlobalShareRecorder,
 } from "../lib/recordRestaurantesGlobalAnalytics";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { resolveRestauranteBranding, restauranteLogoFrameSizeClass } from "./restauranteBrandResolver";
 
 const HEADER_SHELL =
   "relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-gradient-to-br from-[#1E1814] via-[#3B2117] to-[#2A2620] text-[#FFFCF7] shadow-[0_12px_40px_rgba(30,24,16,0.18)] sm:rounded-2xl";
 
-const LOGO_FRAME =
-  "relative mx-auto h-[5.25rem] w-[5.25rem] shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/85 bg-[#FFFCF7] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] sm:h-24 sm:w-24 lg:mx-0 lg:h-[5.5rem] lg:w-[5.5rem]";
+/** Logo frame styling minus footprint — size comes from `restauranteLogoFrameSizeClass`. */
+const LOGO_FRAME_BASE =
+  "relative mx-auto shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/85 bg-[#FFFCF7] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] lg:mx-0";
 
 const HERO_IMAGE_FRAME =
   "relative hidden w-full overflow-hidden lg:block lg:max-h-[300px] lg:min-h-[200px] lg:flex-[1.15] lg:rounded-xl lg:border lg:border-[#C9A84A]/35";
@@ -78,15 +80,34 @@ export function RestauranteProfileHeader({
 
   const heroImage = data.heroImageUrl?.trim() ?? "";
 
+  // Leonix Ad Branding Layer (Gate 3B) — every inline style below is applied ONLY when
+  // `data.adBranding` is set, so an unbranded listing renders through the exact same Tailwind
+  // classes as before this gate (no inline `style` attribute at all in that case).
+  const brand = resolveRestauranteBranding(data.adBranding);
+  const isBranded = Boolean(data.adBranding);
+  const logoFrameSizeClass = restauranteLogoFrameSizeClass(brand.logoPresentation);
+  const logoFrameStyle: React.CSSProperties | undefined = isBranded
+    ? {
+        ...(brand.logoPresentation === "circular" ? { borderRadius: "9999px" } : {}),
+        borderColor: brand.accentColor,
+      }
+    : undefined;
+
   return (
-    <section className={HEADER_SHELL} aria-label={lang === "en" ? "Restaurant profile" : "Perfil del restaurante"}>
+    <section
+      className={HEADER_SHELL}
+      style={brand.headerBackgroundStyle}
+      aria-label={lang === "en" ? "Restaurant profile" : "Perfil del restaurante"}
+      data-restaurante-ad-branding={data.adBranding ? data.adBranding.themeId : undefined}
+    >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent"
+        style={isBranded ? { backgroundImage: `linear-gradient(to right, transparent, ${brand.accentColor}, transparent)` } : undefined}
         aria-hidden
       />
       <div
         className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-[0.12]"
-        style={{ background: "radial-gradient(circle, #C9A84A 0%, transparent 70%)" }}
+        style={{ background: `radial-gradient(circle, ${isBranded ? brand.accentColor : "#C9A84A"} 0%, transparent 70%)` }}
         aria-hidden
       />
 
@@ -110,7 +131,7 @@ export function RestauranteProfileHeader({
           ) : null}
 
           <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
-          <div className={LOGO_FRAME}>
+          <div className={`${LOGO_FRAME_BASE} ${logoFrameSizeClass}`} style={logoFrameStyle}>
             {data.businessLogo?.trim() ? (
               <Image
                 src={data.businessLogo}
