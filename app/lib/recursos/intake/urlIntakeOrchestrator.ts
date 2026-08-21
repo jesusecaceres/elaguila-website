@@ -13,6 +13,8 @@ import { extractDeterministicSignals, looksConfidential } from "./htmlExtraction
 import { proposeCandidateFieldsWithAi } from "./aiProposalAdapter";
 import { encodeProposalAsDiscrepancies, type UrlCandidateProposal } from "./urlCandidateProposal";
 import { matchCandidateToExistingResource, type MatchResult } from "./matchCandidateToExistingResource";
+import { encodeMatchMetadata } from "./candidateMatchMetadata";
+import { generateChangeProposalsForMatch } from "./generateChangeProposalsForMatch";
 import { dbCreateUrlSourceDocument } from "./server/sourceDocumentsDb";
 import { dbCreateResourceIntakeJob, dbUpdateResourceIntakeJob } from "./server/resourceIntakeJobsDb";
 import { insertVerificationEvent } from "./server/verificationEventsDb";
@@ -84,6 +86,7 @@ export type UrlIntakeResult =
       match: MatchResult;
       aiUsed: boolean;
       warnings: string[];
+      changeCount: number;
     }
   | { ok: false; reason: string; jobId: string | null };
 
@@ -117,7 +120,15 @@ export async function runUrlIntake(rawUrl: string, actorEmail: string | null): P
 
   const { rows: existingResources } = await dbListCommunityResources();
   const match = matchCandidateToExistingResource(
-    { organizationName: proposal.organizationName, websiteUrl: proposal.websiteUrl, phone: proposal.phone, crisisPhone: proposal.crisisPhone },
+    {
+      organizationName: proposal.organizationName,
+      programName: proposal.programName,
+      websiteUrl: proposal.websiteUrl,
+      phone: proposal.phone,
+      crisisPhone: proposal.crisisPhone,
+      addressLine1: proposal.addressLine1,
+      addressZip: proposal.addressZip,
+    },
     existingResources,
   );
 
@@ -144,7 +155,7 @@ export async function runUrlIntake(rawUrl: string, actorEmail: string | null): P
     currentSourceType: /\.gov$/i.test(signals.hostname) ? "government" : "official_org_site",
     organizationConfirmedActive: null,
     fieldsConfirmed: [],
-    discrepanciesFromPdf: encodeProposalAsDiscrepancies(proposal),
+    discrepanciesFromPdf: [...encodeProposalAsDiscrepancies(proposal), ...encodeMatchMetadata(match)],
     is24HoursConfirmedExplicit: false,
     addressHandling: confidential ? "withheld_for_safety" : null,
     verificationNotes: notesParts.join(" "),
@@ -176,6 +187,21 @@ export async function runUrlIntake(rawUrl: string, actorEmail: string | null): P
     });
   }
 
+  let changeCount = 0;
+  if (match.classification === "EXISTING_RESOURCE_UPDATE" && match.matchedResourceId) {
+    const matchedResource = existingResources.find((r) => r.id === match.matchedResourceId);
+    if (matchedResource) {
+      const { changeCount: c } = await generateChangeProposalsForMatch({
+        proposal,
+        matchedResource,
+        sourceIntakeJobId: jobId,
+        proposalSource: "url_recheck",
+        actorEmail,
+      });
+      changeCount = c;
+    }
+  }
+
   await dbUpdateResourceIntakeJob(jobId, {
     status: "needs_review",
     provider: aiUsed ? "ai_gateway" : "deterministic_only",
@@ -192,5 +218,5 @@ export async function runUrlIntake(rawUrl: string, actorEmail: string | null): P
     jobId,
   });
 
-  return { ok: true, jobId, candidateId, proposal, match, aiUsed, warnings };
+  return { ok: true, jobId, candidateId, proposal, match, aiUsed, warnings, changeCount };
 }

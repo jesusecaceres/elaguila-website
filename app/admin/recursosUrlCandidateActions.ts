@@ -22,6 +22,7 @@ import {
 } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { isEvidenceSufficientForPriority1, type CandidateReviewInput, type CandidateReviewDisposition } from "@/app/lib/recursos/verificationEvidence";
 import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
+import { decodeMatchMetadata } from "@/app/lib/recursos/intake/candidateMatchMetadata";
 import { insertVerificationEvent } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 
 async function assertRecursosAdmin(): Promise<void> {
@@ -112,6 +113,14 @@ export async function promoteUrlCandidateAction(formData: FormData): Promise<voi
   }
   if (review!.disposition !== "ready_for_promotion") {
     redirect(`/admin/recursos/candidatos/url/${encodeURIComponent(candidateId)}?error=${encodeURIComponent('Disposition must be "ready_for_promotion" before promoting.')}`);
+  }
+  // Gate 5L: server-side guard, not just UI disabling — a candidate matched to an already-
+  // published resource must go through the Cambios review queue, never a second promotion.
+  const matchMeta = decodeMatchMetadata(review!.discrepanciesFromPdf);
+  if (matchMeta.classification === "EXISTING_RESOURCE_UPDATE" && matchMeta.matchedResourceId) {
+    redirect(
+      `/admin/recursos/candidatos/url/${encodeURIComponent(candidateId)}?error=${encodeURIComponent("This candidate matches an already-published resource — review it via Cambios instead of promoting a duplicate.")}`,
+    );
   }
   if (!review!.organizationConfirmedActive || !review!.currentSourceUrl) {
     redirect(

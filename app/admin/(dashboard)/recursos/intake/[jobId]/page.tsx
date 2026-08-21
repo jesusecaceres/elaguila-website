@@ -8,6 +8,7 @@ import { dbGetSourceDocument } from "@/app/lib/recursos/intake/server/sourceDocu
 import { dbListCandidateIdsCreatedByJob } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { dbGetCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
+import { buildSupersessionSummary } from "@/app/lib/recursos/intake/server/buildSupersessionSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,10 @@ export default async function RecursosPdfIntakeJobPage(props: { params: Promise<
     POSSIBLE_DUPLICATE: candidates.filter((c) => c.classification === "POSSIBLE_DUPLICATE").length,
     EXISTING_RESOURCE_UPDATE: candidates.filter((c) => c.classification === "EXISTING_RESOURCE_UPDATE").length,
   };
+
+  const supersessionSummary = sourceDocument?.supersedesDocumentId
+    ? await buildSupersessionSummary(sourceDocument.supersedesDocumentId, candidates.map((c) => c.proposal.organizationName))
+    : null;
 
   return (
     <div>
@@ -107,6 +112,48 @@ export default async function RecursosPdfIntakeJobPage(props: { params: Promise<
           </p>
         ) : null}
       </div>
+
+      {supersessionSummary ? (
+        <div className={`${adminCardBase} mb-6 p-5`}>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Resumen de edición actualizada</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Comparación informativa contra la edición anterior de esta guía. La ausencia de un recurso en la nueva edición NUNCA
+            desactiva nada automáticamente — solo se marca para revisión humana.
+          </p>
+          <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Sin cambios</dt>
+              <dd className="text-xl font-bold text-[#1E1810]">{supersessionSummary.existingUnchangedCount}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Cambiados</dt>
+              <dd className="text-xl font-bold text-[#1E1810]">{supersessionSummary.existingChangedCount}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Candidatos nuevos</dt>
+              <dd className="text-xl font-bold text-[#1E1810]">{supersessionSummary.newCandidateCount}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Posiblemente descontinuados</dt>
+              <dd className="text-xl font-bold text-[#1E1810]">{supersessionSummary.possiblyDiscontinued.length}</dd>
+            </div>
+          </dl>
+          {supersessionSummary.possiblyDiscontinued.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-950">
+              <p className="font-bold">No aparecen en la nueva edición (informativo — requiere confirmación humana):</p>
+              <ul className="mt-1 list-inside list-disc">
+                {supersessionSummary.possiblyDiscontinued.map((r) => (
+                  <li key={r.resourceId}>
+                    <Link href={`/admin/recursos/${r.resourceId}`} className="underline capitalize">
+                      {r.organizationName}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {candidates.length === 0 ? (
         <div className={`${adminCardBase} p-5`}>

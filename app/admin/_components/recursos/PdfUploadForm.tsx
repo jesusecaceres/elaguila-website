@@ -78,6 +78,16 @@ export function PdfUploadForm() {
         </label>
         <input id="sourceDate" name="sourceDate" type="date" className={adminInputClass} />
       </div>
+      <div>
+        <label htmlFor="supersedesDocumentId" className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
+          Reemplaza al documento (ID, opcional)
+        </label>
+        <input id="supersedesDocumentId" name="supersedesDocumentId" type="text" placeholder="ID del documento anterior si esta es una edición más nueva" className={adminInputClass} />
+        <p className="mt-1 text-[11px] leading-snug text-[#8B7E70]">
+          Si esta guía reemplaza una edición anterior ya subida, pega aquí el ID de ese documento para ver un resumen de qué
+          cambió, qué es nuevo y qué ya no aparece (nunca desactiva nada automáticamente).
+        </p>
+      </div>
       {error ? <p className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-900">{error}</p> : null}
       <button type="submit" disabled={busy} className={`${adminBtnPrimary} w-fit disabled:opacity-50`}>
         {busy ? "Analizando…" : "Analizar PDF"}

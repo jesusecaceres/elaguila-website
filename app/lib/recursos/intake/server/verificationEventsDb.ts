@@ -20,6 +20,10 @@ export type InsertVerificationEventInput = {
   sourceUrl?: string | null;
   sourceType?: string | null;
   notes?: string | null;
+  /** Gate 5 — reconstructs an accepted/rejected change: what it was, and (for accept) what it became. */
+  previousValue?: string | null;
+  accepted?: string | null;
+  fieldsConfirmed?: string[] | null;
 };
 
 /** Distinct candidate_ids created by a given intake job, derived from the append-only event log. */
@@ -53,6 +57,9 @@ export async function insertVerificationEvent(input: InsertVerificationEventInpu
       source_url: input.sourceUrl ?? null,
       source_type: input.sourceType ?? null,
       notes: input.notes ?? null,
+      previous_value: input.previousValue !== undefined ? input.previousValue : null,
+      accepted_value: input.accepted !== undefined ? input.accepted : null,
+      fields_confirmed: input.fieldsConfirmed ?? null,
     });
   } catch {
     // Never block the caller's primary action on audit-history failure.

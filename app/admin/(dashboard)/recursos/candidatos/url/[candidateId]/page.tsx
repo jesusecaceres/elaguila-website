@@ -9,10 +9,25 @@ import { dropUrlCandidateAction, promoteUrlCandidateAction, saveUrlCandidateRevi
 import { dbGetCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import { isEvidenceSufficientForPriority1 } from "@/app/lib/recursos/verificationEvidence";
 import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
+import { decodeMatchMetadata } from "@/app/lib/recursos/intake/candidateMatchMetadata";
+import { dbListPendingResourceChangeProposalsForResource } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 
 export const dynamic = "force-dynamic";
+
+const MATCH_LABEL: Record<string, string> = {
+  NEW: "Nuevo — sin coincidencia con recursos existentes",
+  LIKELY_MATCH: "Posible coincidencia con un recurso existente",
+  POSSIBLE_DUPLICATE: "Posible duplicado — múltiples recursos comparten una señal fuerte",
+  EXISTING_RESOURCE_UPDATE: "Coincide con un recurso ya publicado",
+};
+const MATCH_BADGE: Record<string, string> = {
+  NEW: "border border-emerald-200 bg-emerald-50 text-emerald-950",
+  LIKELY_MATCH: "border border-amber-200 bg-amber-50 text-amber-950",
+  POSSIBLE_DUPLICATE: "border border-rose-200 bg-rose-50 text-rose-900",
+  EXISTING_RESOURCE_UPDATE: "border border-sky-200 bg-sky-50 text-sky-950",
+};
 
 export default async function RecursosUrlCandidateDetailPage(props: {
   params: Promise<{ candidateId: string }>;
@@ -28,7 +43,16 @@ export default async function RecursosUrlCandidateDetailPage(props: {
   if (!review) notFound();
 
   const proposal = decodeProposalFromDiscrepancies(review.discrepanciesFromPdf);
+  const match = decodeMatchMetadata(review.discrepanciesFromPdf);
+  const pendingChanges = match.matchedResourceId ? await dbListPendingResourceChangeProposalsForResource(match.matchedResourceId) : [];
+
+  // Gate 5L: a candidate already classified as an update to an existing resource should not be
+  // promoted into a SECOND resource — the primary workflow is reviewing the change proposals
+  // already generated for the matched resource, not creating a duplicate. Promotion stays
+  // blocked for this classification regardless of evidence completeness.
+  const isExistingUpdate = match.classification === "EXISTING_RESOURCE_UPDATE" && Boolean(match.matchedResourceId);
   const canPromote =
+    !isExistingUpdate &&
     !review.promotedResourceId &&
     review.disposition === "ready_for_promotion" &&
     review.organizationConfirmedActive === true &&
@@ -59,6 +83,41 @@ export default async function RecursosUrlCandidateDetailPage(props: {
           . Continúa la verificación desde el panel principal de Recursos.
         </p>
       ) : null}
+
+      <section className={`${adminCardBase} mb-6 p-4 sm:p-5`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Coincidencia con recursos existentes</h3>
+          <span className={`inline-flex rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${MATCH_BADGE[match.classification] ?? ""}`}>
+            {match.classification}
+          </span>
+        </div>
+        <p className="mt-1 text-xs leading-snug text-[#7A7164]">{MATCH_LABEL[match.classification] ?? match.classification}</p>
+        {match.reasons.length > 0 ? <p className="mt-1 text-[11px] text-[#8B7E70]">Señales: {match.reasons.join(", ")}</p> : null}
+
+        {isExistingUpdate ? (
+          <div className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs text-sky-950">
+            <p>
+              Este candidato coincide con{" "}
+              <Link href={`/admin/recursos/${match.matchedResourceId}`} className="font-bold underline">
+                un recurso ya publicado
+              </Link>
+              . La promoción está bloqueada — el flujo correcto es revisar los cambios propuestos, no crear un recurso duplicado.
+            </p>
+            <p className="mt-1 font-bold">{pendingChanges.length} cambio(s) pendiente(s) para este recurso.</p>
+            <Link href="/admin/recursos/cambios" className="mt-2 inline-flex items-center gap-1 font-bold underline">
+              Revisar cambios →
+            </Link>
+          </div>
+        ) : match.classification === "POSSIBLE_DUPLICATE" ? (
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-900">
+            Advertencia: múltiples recursos existentes comparten una señal fuerte con este candidato. Revisa manualmente antes de promover.
+          </p>
+        ) : match.classification === "LIKELY_MATCH" ? (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-950">
+            Advertencia: este candidato podría coincidir con un recurso existente. Confirma antes de promover para evitar un duplicado.
+          </p>
+        ) : null}
+      </section>
 
       <section className={`${adminCardBase} mb-6 p-4 sm:p-5`}>
         <h3 className="text-sm font-bold uppercase tracking-wide text-[#7A2E2E]">Propuesta de intake por URL — NO es verdad verificada</h3>
@@ -119,8 +178,9 @@ export default async function RecursosUrlCandidateDetailPage(props: {
       </div>
       {!canPromote ? (
         <p className="mt-2 text-xs text-[#8B7E70]">
-          Promover se habilita cuando la evidencia confirma que la organización está activa, cita una fuente oficial actual, tiene
-          disposición &quot;Ready for promotion&quot;, y — para candidatos ayuda-ahora — cumple el estándar de evidencia Prioridad 1.
+          {isExistingUpdate
+            ? "Promover está deshabilitado porque este candidato coincide con un recurso ya publicado — usa la cola de Cambios en su lugar."
+            : 'Promover se habilita cuando la evidencia confirma que la organización está activa, cita una fuente oficial actual, tiene disposición "Ready for promotion", y — para candidatos ayuda-ahora — cumple el estándar de evidencia Prioridad 1.'}
         </p>
       ) : null}
     </div>

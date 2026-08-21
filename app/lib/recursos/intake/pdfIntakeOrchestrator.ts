@@ -19,6 +19,8 @@ import { proposeOrganizationsFromPages, type PdfOrganizationProposal } from "./p
 import { dedupeProposalsWithinJob } from "./pdfCandidateDedup";
 import { encodeProposalAsDiscrepancies } from "./urlCandidateProposal";
 import { matchCandidateToExistingResource, type MatchResult } from "./matchCandidateToExistingResource";
+import { encodeMatchMetadata } from "./candidateMatchMetadata";
+import { generateChangeProposalsForMatch } from "./generateChangeProposalsForMatch";
 import { dbCreateResourceIntakeJob, dbUpdateResourceIntakeJob } from "./server/resourceIntakeJobsDb";
 import { insertVerificationEvent } from "./server/verificationEventsDb";
 import { dbSaveCandidateReview } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
@@ -50,6 +52,7 @@ export type PdfIntakeCandidateSummary = {
   classification: MatchResult["classification"];
   matchedResourceName: string | null;
   sourcePages: number[];
+  changeCount: number;
 };
 
 export type PdfIntakeResult =
@@ -111,7 +114,15 @@ export async function processPdfIntake(params: {
 
   for (const proposal of deduped) {
     const match = matchCandidateToExistingResource(
-      { organizationName: proposal.organizationName, websiteUrl: proposal.websiteUrl, phone: proposal.phone, crisisPhone: proposal.crisisPhone },
+      {
+        organizationName: proposal.organizationName,
+        programName: proposal.programName,
+        websiteUrl: proposal.websiteUrl,
+        phone: proposal.phone,
+        crisisPhone: proposal.crisisPhone,
+        addressLine1: proposal.addressLine1,
+        addressZip: proposal.addressZip,
+      },
       existingResources,
     );
 
@@ -134,7 +145,7 @@ export async function processPdfIntake(params: {
       currentSourceType: null,
       organizationConfirmedActive: null,
       fieldsConfirmed: [],
-      discrepanciesFromPdf: encodeProposalAsDiscrepancies(proposal),
+      discrepanciesFromPdf: [...encodeProposalAsDiscrepancies(proposal), ...encodeMatchMetadata(match)],
       is24HoursConfirmedExplicit: false,
       addressHandling: proposal.addressWithheldForSafety ? "withheld_for_safety" : null,
       verificationNotes: notesParts.join(" "),
@@ -153,7 +164,22 @@ export async function processPdfIntake(params: {
       await insertVerificationEvent({ candidateId, sourceIntakeJobId: jobId, eventType: "ai_proposal_generated", actorEmail: params.actorEmail, sourceType: "pdf" });
     }
 
-    candidates.push({ candidateId, organizationName: proposal.organizationName, classification: match.classification, matchedResourceName: match.matchedResourceName, sourcePages: proposal.sourcePages });
+    let changeCount = 0;
+    if (match.classification === "EXISTING_RESOURCE_UPDATE" && match.matchedResourceId) {
+      const matchedResource = existingResources.find((r) => r.id === match.matchedResourceId);
+      if (matchedResource) {
+        const { changeCount: c } = await generateChangeProposalsForMatch({
+          proposal,
+          matchedResource,
+          sourceIntakeJobId: jobId,
+          proposalSource: "pdf_reextraction",
+          actorEmail: params.actorEmail,
+        });
+        changeCount = c;
+      }
+    }
+
+    candidates.push({ candidateId, organizationName: proposal.organizationName, classification: match.classification, matchedResourceName: match.matchedResourceName, sourcePages: proposal.sourcePages, changeCount });
   }
 
   await dbUpdateResourceIntakeJob(jobId, {

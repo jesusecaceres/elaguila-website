@@ -139,6 +139,19 @@ export async function dbGetResourceIntakeJob(id: string): Promise<ResourceIntake
   }
 }
 
+/** All jobs that processed a given source document — used for Gate 5 updated-guide comparison. */
+export async function dbListResourceIntakeJobsForDocument(sourceDocumentId: string): Promise<ResourceIntakeJobRow[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS).eq("source_document_id", sourceDocumentId);
+    if (error || !data) return [];
+    return data.map((r) => rowFromDb(r as Record<string, unknown>));
+  } catch {
+    return [];
+  }
+}
+
 export async function dbListRecentResourceIntakeJobs(limit = 20): Promise<{ rows: ResourceIntakeJobRow[]; unavailable: boolean }> {
   if (!isSupabaseAdminConfigured()) return { rows: [], unavailable: true };
   try {
