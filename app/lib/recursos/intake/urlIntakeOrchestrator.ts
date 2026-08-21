@@ -59,6 +59,15 @@ function buildDeterministicOnlyProposal(signals: ReturnType<typeof extractDeterm
     is24Hours: false,
     officialSourceUrl: finalUrl,
     confidenceNote: "Propuesta solo determinística — el proveedor de IA no estaba disponible. Requiere investigación humana completa.",
+    // Spanish Bridge (Gate ES-5B): no AI available means no Spanish EXTRACTION is possible either
+    // (deterministic-only extraction cannot faithfully pull Spanish prose) — but the deterministic
+    // language signal itself is still carried forward as advisory metadata for the human reviewer.
+    shortDescriptionEs: null,
+    detailsEs: null,
+    eligibilityEs: null,
+    hoursNoteEs: null,
+    detectedSourceLanguage: signals.detectedLanguage,
+    spanishIsOfficialSource: false,
   };
 }
 

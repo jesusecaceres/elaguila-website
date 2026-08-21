@@ -83,6 +83,12 @@ function baseProposal(overrides: Partial<UrlCandidateProposal> = {}): UrlCandida
     is24Hours: false,
     officialSourceUrl: "https://example.org",
     confidenceNote: null,
+    shortDescriptionEs: null,
+    detailsEs: null,
+    eligibilityEs: null,
+    hoursNoteEs: null,
+    detectedSourceLanguage: "en",
+    spanishIsOfficialSource: false,
     ...overrides,
   };
 }

@@ -9,7 +9,7 @@ import "server-only";
  * text it was given. It is explicitly instructed to leave a field null rather than guess, and to
  * never claim 24/7 or a crisis line without the source text saying so explicitly.
  */
-import type { DeterministicSignals } from "./htmlExtraction";
+import type { DeterministicSignals, DetectedLanguage } from "./htmlExtraction";
 import type { UrlCandidateProposal } from "./urlCandidateProposal";
 import type { CostModel, OrganizationType, PrimaryCategorySlug, UrgencyLevel } from "@/app/lib/recursos/types";
 
@@ -27,6 +27,11 @@ Rules:
 - suggestedUrgencyLevel MUST be exactly one of: help-now, i-need-help, want-to-connect. Only use help-now for genuine crisis/emergency/safety services.
 - organizationType MUST be exactly one of: nonprofit, government, faith-based, school-district, healthcare, community-clinic, hotline, other (or null).
 - costModel MUST be exactly one of: free, low_cost, eligibility_based, unknown (or null).
+
+SPANISH FIELDS — you will be told the source's detected language (es / en / bilingual / unknown):
+- If the source is SPANISH: extract shortDescriptionEs/detailsEs/eligibilityEs/hoursNoteEs DIRECTLY from the Spanish source text. This is EXTRACTION, not translation — transcribe/faithfully condense what the source already says, never invent or add. Leave the English *_en fields null unless the source itself also provides English text.
+- If the source is BILINGUAL (contains genuinely separate English and Spanish content): extract BOTH the English fields from their English text AND the Spanish fields from their own separate Spanish text. Never translate one language from the other — only extract each from its own source passage.
+- If the source is ENGLISH (or unknown): leave ALL Spanish fields (shortDescriptionEs, detailsEs, eligibilityEs, hoursNoteEs) null. Do NOT translate the English content into Spanish — translation only happens later, after human verification, through a separate process. Generating Spanish from English at this stage is forbidden.
 
 Return ONLY JSON matching this shape (use null for anything not clearly stated):
 {
@@ -52,7 +57,11 @@ Return ONLY JSON matching this shape (use null for anything not clearly stated):
   "costModel": string | null,
   "hoursNoteEn": string | null,
   "is24Hours": boolean,
-  "confidenceNote": string | null
+  "confidenceNote": string | null,
+  "shortDescriptionEs": string | null,
+  "detailsEs": string | null,
+  "eligibilityEs": string | null,
+  "hoursNoteEs": string | null
 }`;
 
 const CATEGORY_VALUES = new Set<PrimaryCategorySlug>(["urgent-safety", "food-basic-needs", "housing-rent", "mental-health-recovery", "health-clinics", "legal-immigration", "babies-kids-parents", "youth-education", "jobs-training", "seniors-disability", "transportation-access", "community-support"]);
@@ -70,7 +79,15 @@ function enumOrDefault<T extends string>(v: unknown, allowed: Set<T>, fallback: 
   return typeof v === "string" && allowed.has(v as T) ? (v as T) : fallback;
 }
 
-export function parseAiProposalJson(raw: string, officialSourceUrl: string): UrlCandidateProposal | null {
+/**
+ * Spanish Bridge (Gate ES-5B) — `detectedLanguage` is OUR deterministic signal (never the AI's
+ * own claim) and is the sole gate for whether Es fields are kept. Defense-in-depth: even though
+ * the prompt already instructs the model to leave Es fields null for an English-only source, if
+ * the model hallucinates Spanish content anyway when detectedLanguage is "en" or "unknown", this
+ * function forcibly nulls it out — English-only intake must never populate Spanish fields,
+ * regardless of what the model returns.
+ */
+export function parseAiProposalJson(raw: string, officialSourceUrl: string, detectedLanguage: DetectedLanguage = "unknown"): UrlCandidateProposal | null {
   const trimmed = raw.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   let parsed: unknown;
   try {
@@ -89,6 +106,13 @@ export function parseAiProposalJson(raw: string, officialSourceUrl: string): Url
   const o = parsed as Record<string, unknown>;
   const organizationName = str(o.organizationName);
   if (!organizationName) return null; // an organization name is the one non-negotiable field
+
+  const sourceMayHaveSpanish = detectedLanguage === "es" || detectedLanguage === "bilingual";
+  const shortDescriptionEs = sourceMayHaveSpanish ? str(o.shortDescriptionEs) : null;
+  const detailsEs = sourceMayHaveSpanish ? str(o.detailsEs) : null;
+  const eligibilityEs = sourceMayHaveSpanish ? str(o.eligibilityEs) : null;
+  const hoursNoteEs = sourceMayHaveSpanish ? str(o.hoursNoteEs) : null;
+  const spanishIsOfficialSource = sourceMayHaveSpanish && Boolean(shortDescriptionEs || detailsEs || eligibilityEs || hoursNoteEs);
 
   return {
     organizationName,
@@ -115,6 +139,12 @@ export function parseAiProposalJson(raw: string, officialSourceUrl: string): Url
     is24Hours: bool(o.is24Hours),
     officialSourceUrl,
     confidenceNote: str(o.confidenceNote),
+    shortDescriptionEs,
+    detailsEs,
+    eligibilityEs,
+    hoursNoteEs,
+    detectedSourceLanguage: detectedLanguage,
+    spanishIsOfficialSource,
   };
 }
 
@@ -126,6 +156,7 @@ function userPayload(signals: DeterministicSignals): string {
     jsonLdOrganizationName: signals.jsonLdOrganizationName,
     deterministicEmails: signals.emails,
     deterministicPhones: signals.phoneCandidates,
+    detectedLanguage: signals.detectedLanguage,
     pageText: signals.sanitizedText,
   });
 }
@@ -155,7 +186,7 @@ export async function proposeCandidateFieldsWithAi(signals: DeterministicSignals
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = json.choices?.[0]?.message?.content;
     if (!content) return null;
-    return parseAiProposalJson(content, officialSourceUrl);
+    return parseAiProposalJson(content, officialSourceUrl, signals.detectedLanguage);
   } catch {
     return null;
   } finally {

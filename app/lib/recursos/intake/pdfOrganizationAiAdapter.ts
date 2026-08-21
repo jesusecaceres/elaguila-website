@@ -8,6 +8,7 @@ import "server-only";
  * never has to carry an entire large PDF's text.
  */
 import type { UrlCandidateProposal } from "./urlCandidateProposal";
+import { detectSourceLanguageFromText, type DetectedLanguage } from "./htmlExtraction";
 
 const SYSTEM_PROMPT = `You are a FIELD EXTRACTION assistant for a community-resource directory admin tool.
 You read OCR'd text from several pages of a PDF resource guide and identify every distinct
@@ -27,7 +28,12 @@ Rules:
 - costModel MUST be exactly one of: free, low_cost, eligibility_based, unknown (or null).
 - For each organization, include sourcePages: the array of page numbers (from the provided page markers) where it appears.
 
-Return ONLY JSON: { "organizations": [ <one object per distinct organization, same field shape as before, plus "sourcePages": number[]> ] }
+SPANISH FIELDS — you will be told the detected language of this page batch (es / en / bilingual / unknown):
+- If the batch is SPANISH: extract shortDescriptionEs/detailsEs/eligibilityEs/hoursNoteEs DIRECTLY from the Spanish source text for each organization. This is EXTRACTION, not translation.
+- If the batch is BILINGUAL: extract BOTH English fields (from their English text) AND Spanish fields (from their own separate Spanish text) — never translate one from the other.
+- If the batch is ENGLISH (or unknown): leave ALL Spanish fields (shortDescriptionEs, detailsEs, eligibilityEs, hoursNoteEs) null for every organization. Do NOT translate — translation only happens later, after human verification, through a separate process.
+
+Return ONLY JSON: { "organizations": [ <one object per distinct organization, same field shape as before including shortDescriptionEs/detailsEs/eligibilityEs/hoursNoteEs, plus "sourcePages": number[]> ] }
 If no organizations are found on these pages, return { "organizations": [] }.`;
 
 const CATEGORY_VALUES = new Set(["urgent-safety", "food-basic-needs", "housing-rent", "mental-health-recovery", "health-clinics", "legal-immigration", "babies-kids-parents", "youth-education", "jobs-training", "seniors-disability", "transportation-access", "community-support"]);
@@ -44,11 +50,20 @@ function bool(v: unknown): boolean {
   return v === true;
 }
 
-function parseOneOrganization(o: Record<string, unknown>, officialSourceUrl: string): PdfOrganizationProposal | null {
+function parseOneOrganization(o: Record<string, unknown>, officialSourceUrl: string, detectedLanguage: DetectedLanguage): PdfOrganizationProposal | null {
   const organizationName = str(o.organizationName);
   if (!organizationName) return null;
   const withheld = bool(o.addressWithheldForSafety);
   const sourcePages = Array.isArray(o.sourcePages) ? o.sourcePages.filter((p): p is number => typeof p === "number") : [];
+
+  // Spanish Bridge (Gate ES-5D): same defense-in-depth gate as the URL adapter — even if the
+  // model hallucinates Spanish content for an English/unknown batch, it is forcibly discarded here.
+  const sourceMayHaveSpanish = detectedLanguage === "es" || detectedLanguage === "bilingual";
+  const shortDescriptionEs = sourceMayHaveSpanish ? str(o.shortDescriptionEs) : null;
+  const detailsEs = sourceMayHaveSpanish ? str(o.detailsEs) : null;
+  const eligibilityEs = sourceMayHaveSpanish ? str(o.eligibilityEs) : null;
+  const hoursNoteEs = sourceMayHaveSpanish ? str(o.hoursNoteEs) : null;
+  const spanishIsOfficialSource = sourceMayHaveSpanish && Boolean(shortDescriptionEs || detailsEs || eligibilityEs || hoursNoteEs);
 
   return {
     organizationName,
@@ -76,10 +91,16 @@ function parseOneOrganization(o: Record<string, unknown>, officialSourceUrl: str
     officialSourceUrl,
     confidenceNote: str(o.confidenceNote),
     sourcePages: sourcePages.length ? sourcePages : [],
+    shortDescriptionEs,
+    detailsEs,
+    eligibilityEs,
+    hoursNoteEs,
+    detectedSourceLanguage: detectedLanguage,
+    spanishIsOfficialSource,
   };
 }
 
-export function parsePdfOrganizationsJson(raw: string, officialSourceUrl: string): PdfOrganizationProposal[] {
+export function parsePdfOrganizationsJson(raw: string, officialSourceUrl: string, detectedLanguage: DetectedLanguage = "unknown"): PdfOrganizationProposal[] {
   const trimmed = raw.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   let parsed: unknown;
   try {
@@ -99,14 +120,14 @@ export function parsePdfOrganizationsJson(raw: string, officialSourceUrl: string
   if (!Array.isArray(list)) return [];
   return list
     .filter((x): x is Record<string, unknown> => !!x && typeof x === "object")
-    .map((o) => parseOneOrganization(o, officialSourceUrl))
+    .map((o) => parseOneOrganization(o, officialSourceUrl, detectedLanguage))
     .filter((x): x is PdfOrganizationProposal => x !== null)
     .slice(0, 40); // hard cap per batch — a sane page-range batch should never legitimately exceed this
 }
 
-function userPayload(pages: { pageNumber: number; text: string }[]): string {
+function userPayload(pages: { pageNumber: number; text: string }[], detectedLanguage: DetectedLanguage): string {
   const marked = pages.map((p) => `[PAGE ${p.pageNumber}]\n${p.text}`).join("\n\n");
-  return marked.slice(0, 12000); // cost control — one batch's worth of page text, not an entire large PDF
+  return JSON.stringify({ detectedLanguage, pages: marked.slice(0, 12000) }); // cost control — one batch's worth of page text, not an entire large PDF
 }
 
 /** Returns [] on any unavailability/error/timeout — caller must fail to human-review, never fabricate. */
@@ -114,6 +135,13 @@ export async function proposeOrganizationsFromPages(pages: { pageNumber: number;
   const key = process.env.AI_GATEWAY_API_KEY?.trim();
   if (!key) return [];
   if (pages.every((p) => !p.text.trim())) return [];
+
+  // Spanish Bridge (Gate ES-5D): PDF page text has no <html lang> attribute, so language
+  // detection here is text-density-only (detectSourceLanguageFromText), computed once per batch
+  // from the combined page text and passed to the model as explicit context, then re-enforced
+  // defensively in parseOneOrganization regardless of what the model does with it.
+  const combinedText = pages.map((p) => p.text).join(" ");
+  const detectedLanguage = detectSourceLanguageFromText(combinedText);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
@@ -127,7 +155,7 @@ export async function proposeOrganizationsFromPages(pages: { pageNumber: number;
         temperature: 0,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPayload(pages) },
+          { role: "user", content: userPayload(pages, detectedLanguage) },
         ],
       }),
     });
@@ -135,7 +163,7 @@ export async function proposeOrganizationsFromPages(pages: { pageNumber: number;
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = json.choices?.[0]?.message?.content;
     if (!content) return [];
-    return parsePdfOrganizationsJson(content, officialSourceUrl);
+    return parsePdfOrganizationsJson(content, officialSourceUrl, detectedLanguage);
   } catch {
     return [];
   } finally {

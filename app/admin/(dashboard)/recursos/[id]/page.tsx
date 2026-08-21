@@ -11,7 +11,7 @@ import { dbListPendingResourceChangeProposalsForResource } from "@/app/lib/recur
 import { dbListVerificationEventsForResource } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { dbGetCommunityResourceSpanishStatus } from "@/app/lib/recursos/intake/server/resourceSpanishStatusDb";
 import { isHighRiskResourceForTranslation } from "@/app/lib/recursos/intake/resourceChangeDetection";
-import { generateSpanishTranslationAction, regenerateSpanishTranslationAction, markSpanishReviewedAction } from "@/app/admin/recursosTranslationActions";
+import { generateSpanishTranslationAction, regenerateSpanishTranslationAction, markSpanishReviewedAction, confirmOfficialSpanishAction } from "@/app/admin/recursosTranslationActions";
 import { resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +79,13 @@ export default async function EditRecursoPage(props: {
     is24Hours: record.contact.is24Hours,
   });
   const hasSpanishContent = Boolean(record.shortDescriptionEs?.trim() || record.detailsEs?.trim() || record.eligibilityEs?.trim() || record.contact.hoursNoteEs?.trim());
+  const hasOfficialSpanishEvidence = spanishSourceType === "official_spanish_source" || spanishSourceType === "official_bilingual_source";
+  // ES-5J: official Spanish source content awaiting confirmation must never be nudged toward AI
+  // translation — official Spanish wins, no unnecessary AI spend.
+  const officialSpanishAwaitingConfirmation = hasOfficialSpanishEvidence && spanishStatus === "needs_translation_review";
+  const SPANISH_FIELD_NAMES = new Set(["shortDescriptionEs", "detailsEs", "eligibilityEs", "hoursNoteEs"]);
+  const pendingOnSpanishFields = pendingChanges.filter((p) => SPANISH_FIELD_NAMES.has(p.fieldName));
+  const canConfirmOfficialSpanish = isVerified && hasOfficialSpanishEvidence && hasSpanishContent && pendingOnSpanishFields.length === 0 && spanishStatus !== "official_spanish";
 
   return (
     <div>
@@ -157,6 +164,12 @@ export default async function EditRecursoPage(props: {
           </p>
         ) : null}
 
+        {hasOfficialSpanishEvidence ? (
+          <p className="mt-3 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2.5 text-xs font-semibold text-sky-950">
+            {spanishSourceType === "official_bilingual_source" ? "Fuente oficial bilingüe" : "Fuente oficial en español"} — el contenido en español proviene directamente de la fuente oficial, no de una traducción por IA. El español oficial siempre tiene prioridad sobre generar una traducción.
+          </p>
+        ) : null}
+
         <p className="mt-3 text-xs text-[#7A7164]">
           Fuente oficial: {record.verification.officialSourceUrl ?? "—"} · Última verificación:{" "}
           {record.verification.lastVerifiedAt ? new Date(record.verification.lastVerifiedAt).toLocaleDateString() : "—"}
@@ -179,35 +192,54 @@ export default async function EditRecursoPage(props: {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <form action={generateSpanishTranslationAction}>
-            <input type="hidden" name="resourceId" value={id} />
-            <ExecutiveHubConfirmSubmitButton
-              confirmMessage="¿Generar una traducción al español a partir de los hechos verificados en inglés? Esto solo crea propuestas revisables — no publica nada automáticamente."
-              className={`${adminBtnPrimary} ${isVerified ? "" : "pointer-events-none opacity-40"}`}
-            >
-              Generar traducción
-            </ExecutiveHubConfirmSubmitButton>
-          </form>
-          <form action={regenerateSpanishTranslationAction}>
-            <input type="hidden" name="resourceId" value={id} />
-            <ExecutiveHubConfirmSubmitButton
-              confirmMessage="¿Regenerar la traducción desde los hechos verificados actuales? Cualquier propuesta de traducción pendiente se rechazará y se reemplazará por un borrador nuevo. El español ya aceptado no se sobrescribe directamente — solo se proponen cambios revisables."
-              className={`rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] ${isVerified ? "" : "pointer-events-none opacity-40"}`}
-            >
-              Regenerar desde hechos verificados
-            </ExecutiveHubConfirmSubmitButton>
-          </form>
-          <form action={markSpanishReviewedAction}>
-            <input type="hidden" name="resourceId" value={id} />
-            <ExecutiveHubConfirmSubmitButton
-              confirmMessage="¿Marcar el español como revisado y aprobado? Esto NO modifica la verificación factual del recurso — solo certifica la presentación en español."
-              className={`rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ${isVerified && pendingTranslations.length === 0 && hasSpanishContent ? "" : "pointer-events-none opacity-40"}`}
-            >
-              Marcar español revisado
-            </ExecutiveHubConfirmSubmitButton>
-          </form>
+          {!officialSpanishAwaitingConfirmation ? (
+            <>
+              <form action={generateSpanishTranslationAction}>
+                <input type="hidden" name="resourceId" value={id} />
+                <ExecutiveHubConfirmSubmitButton
+                  confirmMessage="¿Generar una traducción al español a partir de los hechos verificados en inglés? Esto solo crea propuestas revisables — no publica nada automáticamente."
+                  className={`${adminBtnPrimary} ${isVerified ? "" : "pointer-events-none opacity-40"}`}
+                >
+                  Generar traducción
+                </ExecutiveHubConfirmSubmitButton>
+              </form>
+              <form action={regenerateSpanishTranslationAction}>
+                <input type="hidden" name="resourceId" value={id} />
+                <ExecutiveHubConfirmSubmitButton
+                  confirmMessage="¿Regenerar la traducción desde los hechos verificados actuales? Cualquier propuesta de traducción pendiente se rechazará y se reemplazará por un borrador nuevo. El español ya aceptado no se sobrescribe directamente — solo se proponen cambios revisables."
+                  className={`rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] ${isVerified ? "" : "pointer-events-none opacity-40"}`}
+                >
+                  Regenerar desde hechos verificados
+                </ExecutiveHubConfirmSubmitButton>
+              </form>
+            </>
+          ) : null}
+          {!hasOfficialSpanishEvidence ? (
+            <form action={markSpanishReviewedAction}>
+              <input type="hidden" name="resourceId" value={id} />
+              <ExecutiveHubConfirmSubmitButton
+                confirmMessage="¿Marcar el español como revisado y aprobado? Esto NO modifica la verificación factual del recurso — solo certifica la presentación en español."
+                className={`rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ${isVerified && pendingTranslations.length === 0 && hasSpanishContent ? "" : "pointer-events-none opacity-40"}`}
+              >
+                Marcar español revisado
+              </ExecutiveHubConfirmSubmitButton>
+            </form>
+          ) : (
+            <form action={confirmOfficialSpanishAction}>
+              <input type="hidden" name="resourceId" value={id} />
+              <ExecutiveHubConfirmSubmitButton
+                confirmMessage="¿Confirmar este español como oficial? Esto certifica que el contenido en español proviene directamente de la fuente oficial. Esto NO modifica la verificación factual del recurso."
+                className={`rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ${canConfirmOfficialSpanish ? "" : "pointer-events-none opacity-40"}`}
+              >
+                Confirmar español oficial
+              </ExecutiveHubConfirmSubmitButton>
+            </form>
+          )}
         </div>
         {!isVerified ? <p className="mt-2 text-xs text-[#8B7E70]">El recurso debe estar verificado (con verificación vigente) antes de generar o aprobar una traducción.</p> : null}
+        {officialSpanishAwaitingConfirmation ? (
+          <p className="mt-2 text-xs text-[#8B7E70]">Generar traducción está desactivado — este recurso ya tiene contenido de una fuente oficial en español esperando confirmación.</p>
+        ) : null}
 
         {translationEvents.length > 0 ? (
           <div className="mt-5">

@@ -58,6 +58,11 @@ function buildDeterministicOnlyProposal(signals: ReturnType<typeof extractDeterm
     hoursNoteEn: null,
     officialSourceUrl: finalUrl,
     confidenceNote: "Solo señales determinísticas — proveedor de IA no disponible durante la reverificación.",
+    // Spanish Bridge (Gate ES-5B): the deterministic language signal is a real signal (like
+    // phone/email extraction above) — carried forward. The actual Es content fields are left
+    // OMITTED (not set to null/false), matching the same "omit, never fabricate" doctrine as
+    // is24Hours above: deterministic-only extraction cannot faithfully pull Spanish prose.
+    detectedSourceLanguage: signals.detectedLanguage,
   };
   return proposal as UrlCandidateProposal;
 }

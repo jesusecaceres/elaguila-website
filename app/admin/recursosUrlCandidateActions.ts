@@ -24,6 +24,7 @@ import { isEvidenceSufficientForPriority1, type CandidateReviewInput, type Candi
 import { decodeProposalFromDiscrepancies } from "@/app/lib/recursos/intake/urlCandidateProposal";
 import { decodeMatchMetadata } from "@/app/lib/recursos/intake/candidateMatchMetadata";
 import { insertVerificationEvent } from "@/app/lib/recursos/intake/server/verificationEventsDb";
+import { dbSetCommunityResourceSpanishStatus } from "@/app/lib/recursos/intake/server/resourceSpanishStatusDb";
 
 async function assertRecursosAdmin(): Promise<void> {
   await requireLeonixAdminPermission("can_manage_recursos");
@@ -145,6 +146,13 @@ export async function promoteUrlCandidateAction(formData: FormData): Promise<voi
     redirect(`/admin/recursos/candidatos/url/${encodeURIComponent(candidateId)}?error=${encodeURIComponent("This help-now candidate's evidence does not meet the Priority-1 sufficiency bar yet.")}`);
   }
 
+  // Spanish Bridge (Gate ES-5F): preserve official-source Spanish carried by the candidate
+  // instead of hardcoding it blank. "Official-source" means the content was EXTRACTED directly
+  // from a source already in Spanish/bilingual (spanishIsOfficialSource=true) — never AI-
+  // translated at intake time. If the candidate carries no Spanish, this preserves the existing
+  // blank behavior exactly as before.
+  const hasOfficialSpanish = proposal.spanishIsOfficialSource && Boolean(proposal.shortDescriptionEs || proposal.detailsEs || proposal.eligibilityEs || proposal.hoursNoteEs);
+
   // Same structural lock as candidateToResourceDraft(): always inactive, always needs_review,
   // never auto-verified — the official source comes from the reviewer's confirmed URL, not the
   // raw AI/deterministic proposal.
@@ -153,9 +161,9 @@ export async function promoteUrlCandidateAction(formData: FormData): Promise<voi
     organizationName: proposal.organizationName ?? "",
     programName: proposal.programName ?? null,
     organizationType: proposal.organizationType ?? "other",
-    shortDescriptionEs: "",
+    shortDescriptionEs: proposal.shortDescriptionEs ?? "",
     shortDescriptionEn: proposal.suggestedDescriptionEn ?? "",
-    detailsEs: null,
+    detailsEs: proposal.detailsEs ?? null,
     detailsEn: null,
     primaryCategory: proposal.suggestedPrimaryCategory ?? "community-support",
     secondaryCategories: [],
@@ -166,7 +174,7 @@ export async function promoteUrlCandidateAction(formData: FormData): Promise<voi
     serviceTags: [],
     languages: proposal.languages ?? [],
     costModel: proposal.costModel ?? "unknown",
-    eligibilityEs: null,
+    eligibilityEs: proposal.eligibilityEs ?? null,
     eligibilityEn: proposal.eligibilityEn ?? null,
     serviceArea: proposal.serviceArea ?? null,
     contact: {
@@ -183,7 +191,7 @@ export async function promoteUrlCandidateAction(formData: FormData): Promise<voi
           ? { line1: proposal.addressLine1, city: proposal.addressCity ?? null, state: proposal.addressState ?? null, zip: proposal.addressZip ?? null }
           : null,
       mapsSearchHref: null,
-      hoursNoteEs: null,
+      hoursNoteEs: proposal.hoursNoteEs ?? null,
       hoursNoteEn: proposal.hoursNoteEn ?? null,
       weeklyHours: null,
       is24Hours: proposal.is24Hours ?? false,
@@ -216,6 +224,14 @@ export async function promoteUrlCandidateAction(formData: FormData): Promise<voi
 
   await insertVerificationEvent({ candidateId, resourceId: result.id, eventType: "promoted", actorEmail: actor, sourceType: "url" });
   auditAdminWrite("recurso_url_candidate_promoted", "community_resource", result.id, { candidateId, actorEmail: actor });
+
+  // Spanish Bridge (Gate ES-5G): source content exists, but a human still has to confirm it
+  // before public trust status changes — NEVER auto-set official_spanish here.
+  if (hasOfficialSpanish) {
+    const sourceType = proposal.detectedSourceLanguage === "bilingual" ? "official_bilingual_source" : "official_spanish_source";
+    await dbSetCommunityResourceSpanishStatus(result.id, "needs_translation_review", sourceType);
+    auditAdminWrite("recurso_official_spanish_carried_at_promotion", "community_resource", result.id, { candidateId, actorEmail: actor, spanishSourceType: sourceType });
+  }
   revalidatePath("/admin/recursos");
   revalidatePath("/admin/recursos/candidatos");
   revalidatePath(`/admin/recursos/candidatos/url/${candidateId}`);

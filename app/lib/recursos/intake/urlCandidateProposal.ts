@@ -14,6 +14,7 @@
  */
 import type { FieldDiscrepancy } from "@/app/lib/recursos/verificationEvidence";
 import type { CostModel, OrganizationType, PrimaryCategorySlug, UrgencyLevel } from "@/app/lib/recursos/types";
+import type { DetectedLanguage } from "./htmlExtraction";
 
 export type UrlCandidateProposal = {
   organizationName: string;
@@ -41,6 +42,19 @@ export type UrlCandidateProposal = {
   officialSourceUrl: string;
   /** Never true from AI/deterministic sources — present for shape completeness only. */
   confidenceNote: string | null;
+
+  // Spanish Bridge (Gate ES-5C) — populated ONLY when the source itself is in Spanish or
+  // bilingual (see aiProposalAdapter.ts). Never populated by translating English at intake time —
+  // that only ever happens post-verification via the Phase-B translator. Extracted/preserved
+  // directly from the source text, never invented.
+  shortDescriptionEs: string | null;
+  detailsEs: string | null;
+  eligibilityEs: string | null;
+  hoursNoteEs: string | null;
+  /** Advisory-only signal from htmlExtraction.ts's detectSourceLanguage() — never factual verification. */
+  detectedSourceLanguage: DetectedLanguage;
+  /** True only when shortDescriptionEs/etc above were extracted directly from an es/bilingual source — never true for AI-translated content. */
+  spanishIsOfficialSource: boolean;
 };
 
 const FIELD_KEYS: (keyof UrlCandidateProposal)[] = [
@@ -68,6 +82,12 @@ const FIELD_KEYS: (keyof UrlCandidateProposal)[] = [
   "is24Hours",
   "officialSourceUrl",
   "confidenceNote",
+  "shortDescriptionEs",
+  "detailsEs",
+  "eligibilityEs",
+  "hoursNoteEs",
+  "detectedSourceLanguage",
+  "spanishIsOfficialSource",
 ];
 
 function valueToString(v: unknown): string {
@@ -105,6 +125,7 @@ const CATEGORY_VALUES = new Set<PrimaryCategorySlug>([
 const URGENCY_VALUES = new Set<UrgencyLevel>(["help-now", "i-need-help", "want-to-connect"]);
 const ORG_TYPE_VALUES = new Set<OrganizationType>(["nonprofit", "government", "faith-based", "school-district", "healthcare", "community-clinic", "hotline", "other"]);
 const COST_MODEL_VALUES = new Set<CostModel>(["free", "low_cost", "eligibility_based", "unknown"]);
+const DETECTED_LANGUAGE_VALUES = new Set<DetectedLanguage>(["en", "es", "bilingual", "unknown"]);
 
 /** Best-effort reconstruction back from stored discrepancies — used to render/reuse a saved proposal. */
 export function decodeProposalFromDiscrepancies(discrepancies: FieldDiscrepancy[]): UrlCandidateProposal {
@@ -141,5 +162,14 @@ export function decodeProposalFromDiscrepancies(discrepancies: FieldDiscrepancy[
     is24Hours: get("is24Hours") === "true",
     officialSourceUrl: get("officialSourceUrl") ?? "",
     confidenceNote: get("confidenceNote"),
+    shortDescriptionEs: get("shortDescriptionEs"),
+    detailsEs: get("detailsEs"),
+    eligibilityEs: get("eligibilityEs"),
+    hoursNoteEs: get("hoursNoteEs"),
+    detectedSourceLanguage: (() => {
+      const v = get("detectedSourceLanguage");
+      return v && DETECTED_LANGUAGE_VALUES.has(v as DetectedLanguage) ? (v as DetectedLanguage) : "unknown";
+    })(),
+    spanishIsOfficialSource: get("spanishIsOfficialSource") === "true",
   };
 }

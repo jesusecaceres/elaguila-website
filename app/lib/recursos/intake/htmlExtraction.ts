@@ -16,7 +16,11 @@ export type DeterministicSignals = {
   headingCandidates: string[];
   jsonLdOrganizationName: string | null;
   sanitizedText: string;
+  /** Spanish Bridge (Gate ES-5A) — advisory only, never factual verification. */
+  detectedLanguage: DetectedLanguage;
 };
+
+export type DetectedLanguage = "en" | "es" | "bilingual" | "unknown";
 
 /** Strips script/style/svg/form/nav/noscript content entirely (tags + inner content). */
 function stripDangerousAndNoisyTags(html: string): string {
@@ -96,6 +100,72 @@ function extractJsonLdOrganizationName(html: string): string | null {
   return null;
 }
 
+function extractHtmlLangAttribute(html: string): string | null {
+  const m = html.match(/<html[^>]+\blang=["']([a-zA-Z-]+)["']/i);
+  return m ? m[1].toLowerCase() : null;
+}
+
+/**
+ * Spanish Bridge (Gate ES-5A) — common-function-word frequency signal. Deliberately uses a set
+ * of many short, high-frequency words rather than any single word, so one coincidental match
+ * (e.g. "la" as part of a proper noun) can't flip the result. Text-only, reusable for both
+ * post-tag-stripped HTML and raw PDF page text.
+ */
+const SPANISH_STOPWORDS = new Set([
+  "de", "la", "el", "en", "y", "que", "los", "las", "para", "con", "por", "una", "un", "es",
+  "del", "al", "su", "se", "como", "más", "si", "sin", "sobre", "también", "cómo", "dónde",
+  "gratis", "gratuito", "ayuda", "servicios", "horario", "teléfono", "dirección", "elegibilidad",
+]);
+const ENGLISH_STOPWORDS = new Set([
+  "the", "and", "for", "with", "that", "this", "are", "was", "from", "have", "your", "you",
+  "our", "not", "all", "can", "will", "about", "more", "how", "where", "free", "help", "services",
+  "hours", "phone", "address", "eligibility",
+]);
+
+function wordFrequencyRatios(text: string): { esRatio: number; enRatio: number; total: number } {
+  const words = (text.toLowerCase().match(/\b[a-záéíóúñü]+\b/gi) ?? []) as string[];
+  const total = words.length;
+  if (total === 0) return { esRatio: 0, enRatio: 0, total: 0 };
+  const esHits = words.filter((w) => SPANISH_STOPWORDS.has(w)).length;
+  const enHits = words.filter((w) => ENGLISH_STOPWORDS.has(w)).length;
+  return { esRatio: esHits / total, enRatio: enHits / total, total };
+}
+
+/**
+ * Text-only variant (no <html lang>) — usable for raw PDF page text where no lang attribute
+ * exists. Advisory signal only, never factual verification (see htmlToSafeText's module doc).
+ */
+export function detectSourceLanguageFromText(text: string): DetectedLanguage {
+  const { esRatio, enRatio, total } = wordFrequencyRatios(text);
+  if (total < 20) return "unknown"; // too little text for a reliable density signal
+  const esLeans = esRatio > 0.015;
+  const enLeans = enRatio > 0.015;
+  if (esLeans && enLeans && Math.min(esRatio, enRatio) / Math.max(esRatio, enRatio) > 0.35) return "bilingual";
+  if (esLeans && esRatio > enRatio * 1.5) return "es";
+  if (enLeans && enRatio > esRatio * 1.5) return "en";
+  return "unknown";
+}
+
+/**
+ * HTML variant — combines the <html lang="..."> attribute (when present) with the text-density
+ * signal, since either alone can mislead (a CMS can hardcode lang="en" on a Spanish page; a
+ * Spanish org name/address can appear on an otherwise-English page). Neither signal is trusted
+ * alone — this always requires the density signal to at least not contradict the attribute.
+ */
+export function detectSourceLanguage(html: string, text: string): DetectedLanguage {
+  const langAttr = extractHtmlLangAttribute(html);
+  const densitySignal = detectSourceLanguageFromText(text);
+
+  const attrSaysEs = langAttr?.startsWith("es") ?? false;
+  const attrSaysEn = langAttr?.startsWith("en") ?? false;
+
+  if (densitySignal === "bilingual") return "bilingual";
+  if (attrSaysEs && densitySignal !== "en") return "es";
+  if (attrSaysEn && densitySignal !== "es") return "en";
+  if (!langAttr) return densitySignal;
+  return densitySignal; // attribute contradicted the content — trust the actual text over a possibly-stale attribute
+}
+
 export function extractDeterministicSignals(html: string, finalUrl: string): DeterministicSignals {
   const text = htmlToSafeText(html);
   let hostname = "";
@@ -115,6 +185,7 @@ export function extractDeterministicSignals(html: string, finalUrl: string): Det
     headingCandidates: extractHeadingCandidates(html),
     jsonLdOrganizationName: extractJsonLdOrganizationName(html),
     sanitizedText: text.slice(0, MAX_TEXT_CHARS),
+    detectedLanguage: detectSourceLanguage(html, text),
   };
 }
 
