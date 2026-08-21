@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/app/admin/_components/AdminPageHeader";
-import { adminActionProofErr, adminActionProofOk, adminBtnPrimary, adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
+import { adminActionProofErr, adminActionProofOk, adminBtnPrimary, adminCardBase, adminCtaChip, adminCtaChipCompact, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { RecursoForm } from "@/app/admin/_components/recursos/RecursoForm";
 import { VerificationTimeline } from "@/app/admin/_components/recursos/VerificationTimeline";
@@ -11,10 +11,102 @@ import { dbListPendingResourceChangeProposalsForResource } from "@/app/lib/recur
 import { dbListVerificationEventsForResource } from "@/app/lib/recursos/intake/server/verificationEventsDb";
 import { dbGetCommunityResourceSpanishStatus } from "@/app/lib/recursos/intake/server/resourceSpanishStatusDb";
 import { isHighRiskResourceForTranslation } from "@/app/lib/recursos/intake/resourceChangeDetection";
-import { generateSpanishTranslationAction, regenerateSpanishTranslationAction, markSpanishReviewedAction, confirmOfficialSpanishAction } from "@/app/admin/recursosTranslationActions";
+import {
+  generateSpanishTranslationAction,
+  regenerateSpanishTranslationAction,
+  confirmOfficialSpanishAction,
+  editTranslationProposalAction,
+  approveSpanishTranslationAction,
+} from "@/app/admin/recursosTranslationActions";
 import { resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
+import { buildTranslationWorkspaceModel, type TranslationFieldModel, type TranslationFieldStatus } from "@/app/lib/recursos/intake/translation/resourceTranslationWorkspace";
+import { recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
 
 export const dynamic = "force-dynamic";
+
+const LEONIX_PUBLIC_ORIGIN = "https://www.leonixmedia.com";
+
+const FIELD_STATUS_META: Record<TranslationFieldStatus, { label: string; badge: string; border: string; bg: string }> = {
+  sin_contenido_base: { label: "Sin contenido base", badge: "border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[#7A7164]", border: "border-[color:var(--lx-border)]", bg: "bg-[color:var(--lx-card)]" },
+  no_generado: { label: "Sin contenido base", badge: "border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[#7A7164]", border: "border-[color:var(--lx-border)]", bg: "bg-[color:var(--lx-card)]" },
+  pendiente_de_revision: { label: "Pendiente de revisión", badge: "border border-amber-200 bg-amber-50 text-amber-950", border: "border-amber-200", bg: "bg-amber-50/40" },
+  requiere_atencion: { label: "Requiere atención", badge: "border border-rose-300 bg-rose-50 text-rose-900", border: "border-rose-300", bg: "bg-rose-50/50" },
+  publicado: { label: "Publicado", badge: "border border-emerald-200 bg-emerald-50 text-emerald-950", border: "border-emerald-200", bg: "bg-emerald-50/40" },
+};
+
+function StepProgress({ activeStep, isPublished, labels }: { activeStep: 1 | 2 | 3; isPublished: boolean; labels: [string, string, string] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wide">
+      {labels.map((label, i) => {
+        const n = (i + 1) as 1 | 2 | 3;
+        const done = isPublished || n < activeStep;
+        const active = !isPublished && n === activeStep;
+        return (
+          <span key={label} className="flex items-center gap-2">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${
+                done ? "border-emerald-700 bg-emerald-700 text-white" : active ? "border-[#7A1E2C] bg-[#7A1E2C] text-white" : "border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[#7A7164]"
+              }`}
+            >
+              {done ? "✓" : n}
+            </span>
+            <span className={active ? "text-[#7A1E2C]" : done ? "text-emerald-800" : "text-[#7A7164]"}>
+              {n}. {label}
+            </span>
+            {i < labels.length - 1 ? <span className="font-normal normal-case text-[#C9B46A]">→</span> : null}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReviewFieldRow({ field, resourceId }: { field: TranslationFieldModel; resourceId: string }) {
+  const meta = FIELD_STATUS_META[field.status];
+  return (
+    <div className={`rounded-lg border ${meta.border} ${meta.bg} p-3`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#5C4E2E]">{field.label}</p>
+        <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${meta.badge}`}>{meta.label}</span>
+      </div>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">English — hechos verificados</p>
+          <p className="mt-1 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-2 text-sm leading-relaxed text-[#1E1810]">
+            {field.enValue?.trim() || "Sin contenido en inglés"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">Español — propuesta</p>
+          {field.pendingProposal ? (
+            <form action={editTranslationProposalAction} className="mt-1">
+              <input type="hidden" name="resourceId" value={resourceId} />
+              <input type="hidden" name="proposalId" value={field.pendingProposal.id} />
+              <textarea
+                name="proposedValue"
+                defaultValue={field.proposedValue ?? ""}
+                rows={3}
+                className="w-full rounded-md border border-[color:var(--lx-border)] bg-white p-2 text-sm leading-relaxed text-[#1E1810] focus:border-[#7A1E2C] focus:outline-none"
+              />
+              {field.integrityInvented && field.integrityInvented.length > 0 ? (
+                <p className="mt-1 text-[11px] font-semibold text-rose-900">
+                  Conflicto: el texto propuesto contiene algo que no aparece en el inglés verificado ({field.integrityInvented.join(", ")}). Corrígelo antes de aprobar.
+                </p>
+              ) : null}
+              <button type="submit" className={`${adminCtaChip} ${adminCtaChipCompact} mt-1.5`}>
+                Guardar edición
+              </button>
+            </form>
+          ) : (
+            <p className="mt-1 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-2 text-sm leading-relaxed text-[#7A7164]">
+              {field.status === "sin_contenido_base" ? "Sin contenido en inglés — no requiere traducción." : field.esApprovedValue?.trim() || "—"}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const SPANISH_STATUS_LABEL: Record<string, string> = {
   official_spanish: "Español oficial",
@@ -37,21 +129,6 @@ const SPANISH_SOURCE_TYPE_LABEL: Record<string, string> = {
   staff_written: "Escrito por el equipo",
   none: "Ninguno",
 };
-
-function BilingualFieldRow({ label, en, es }: { label: string; en: string | null | undefined; es: string | null | undefined }) {
-  return (
-    <div className="grid gap-3 border-t border-[color:var(--lx-border)]/50 py-3 first:border-0 first:pt-0 sm:grid-cols-2">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label} · English</p>
-        <p className="mt-0.5 text-sm text-[#1E1810]">{en?.trim() || "—"}</p>
-      </div>
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label} · Español</p>
-        <p className="mt-0.5 text-sm text-[#1E1810]">{es?.trim() || "—"}</p>
-      </div>
-    </div>
-  );
-}
 
 export default async function EditRecursoPage(props: {
   params: Promise<{ id: string }>;
@@ -86,6 +163,12 @@ export default async function EditRecursoPage(props: {
   const SPANISH_FIELD_NAMES = new Set(["shortDescriptionEs", "detailsEs", "eligibilityEs", "hoursNoteEs"]);
   const pendingOnSpanishFields = pendingChanges.filter((p) => SPANISH_FIELD_NAMES.has(p.fieldName));
   const canConfirmOfficialSpanish = isVerified && hasOfficialSpanishEvidence && hasSpanishContent && pendingOnSpanishFields.length === 0 && spanishStatus !== "official_spanish";
+
+  // Owner Spanish Translation Review Workspace — the single model driving the 3-step workflow.
+  const workspace = buildTranslationWorkspaceModel(record, spanishStatus, spanishSourceType, pendingChanges);
+  const lastApprovalEvent = [...translationEvents].reverse().find((e) => e.eventType === "evidence_recorded" && e.notes?.startsWith("Aprobación final"));
+  const publicEsUrl = `${LEONIX_PUBLIC_ORIGIN}${recursosResourcePath(record.slug)}?lang=es`;
+  const publicEnUrl = `${LEONIX_PUBLIC_ORIGIN}${recursosResourcePath(record.slug)}?lang=en`;
 
   return (
     <div>
@@ -164,91 +247,180 @@ export default async function EditRecursoPage(props: {
           </p>
         ) : null}
 
-        {hasOfficialSpanishEvidence ? (
-          <p className="mt-3 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2.5 text-xs font-semibold text-sky-950">
-            {spanishSourceType === "official_bilingual_source" ? "Fuente oficial bilingüe" : "Fuente oficial en español"} — el contenido en español proviene directamente de la fuente oficial, no de una traducción por IA. El español oficial siempre tiene prioridad sobre generar una traducción.
-          </p>
-        ) : null}
-
         <p className="mt-3 text-xs text-[#7A7164]">
           Fuente oficial: {record.verification.officialSourceUrl ?? "—"} · Última verificación:{" "}
           {record.verification.lastVerifiedAt ? new Date(record.verification.lastVerifiedAt).toLocaleDateString() : "—"}
         </p>
 
-        {pendingTranslations.length > 0 ? (
-          <p className="mt-2 text-xs font-semibold text-amber-900">
-            {pendingTranslations.length} propuesta(s) de traducción pendiente(s) —{" "}
-            <Link href="/admin/recursos/cambios?tipo=traducciones" className="underline">
-              revisar en Cambios
-            </Link>
-          </p>
-        ) : null}
-
-        <div className="mt-4">
-          <BilingualFieldRow label="Descripción breve" en={record.shortDescriptionEn} es={record.shortDescriptionEs} />
-          <BilingualFieldRow label="Detalles" en={record.detailsEn} es={record.detailsEs} />
-          <BilingualFieldRow label="Elegibilidad" en={record.eligibilityEn} es={record.eligibilityEs} />
-          <BilingualFieldRow label="Horario" en={record.contact.hoursNoteEn} es={record.contact.hoursNoteEs} />
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          {!officialSpanishAwaitingConfirmation ? (
-            <>
-              <form action={generateSpanishTranslationAction}>
-                <input type="hidden" name="resourceId" value={id} />
-                <ExecutiveHubConfirmSubmitButton
-                  confirmMessage="¿Generar una traducción al español a partir de los hechos verificados en inglés? Esto solo crea propuestas revisables — no publica nada automáticamente."
-                  className={`${adminBtnPrimary} ${isVerified ? "" : "pointer-events-none opacity-40"}`}
-                >
-                  Generar traducción
-                </ExecutiveHubConfirmSubmitButton>
-              </form>
-              <form action={regenerateSpanishTranslationAction}>
-                <input type="hidden" name="resourceId" value={id} />
-                <ExecutiveHubConfirmSubmitButton
-                  confirmMessage="¿Regenerar la traducción desde los hechos verificados actuales? Cualquier propuesta de traducción pendiente se rechazará y se reemplazará por un borrador nuevo. El español ya aceptado no se sobrescribe directamente — solo se proponen cambios revisables."
-                  className={`rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] ${isVerified ? "" : "pointer-events-none opacity-40"}`}
-                >
-                  Regenerar desde hechos verificados
-                </ExecutiveHubConfirmSubmitButton>
-              </form>
-            </>
-          ) : null}
-          {!hasOfficialSpanishEvidence ? (
-            <form action={markSpanishReviewedAction}>
-              <input type="hidden" name="resourceId" value={id} />
-              <ExecutiveHubConfirmSubmitButton
-                confirmMessage="¿Marcar el español como revisado y aprobado? Esto NO modifica la verificación factual del recurso — solo certifica la presentación en español."
-                className={`rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ${isVerified && pendingTranslations.length === 0 && hasSpanishContent ? "" : "pointer-events-none opacity-40"}`}
-              >
-                Marcar español revisado
-              </ExecutiveHubConfirmSubmitButton>
-            </form>
-          ) : (
-            <form action={confirmOfficialSpanishAction}>
-              <input type="hidden" name="resourceId" value={id} />
-              <ExecutiveHubConfirmSubmitButton
-                confirmMessage="¿Confirmar este español como oficial? Esto certifica que el contenido en español proviene directamente de la fuente oficial. Esto NO modifica la verificación factual del recurso."
-                className={`rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ${canConfirmOfficialSpanish ? "" : "pointer-events-none opacity-40"}`}
-              >
-                Confirmar español oficial
-              </ExecutiveHubConfirmSubmitButton>
-            </form>
-          )}
-        </div>
         {!isVerified ? <p className="mt-2 text-xs text-[#8B7E70]">El recurso debe estar verificado (con verificación vigente) antes de generar o aprobar una traducción.</p> : null}
-        {officialSpanishAwaitingConfirmation ? (
-          <p className="mt-2 text-xs text-[#8B7E70]">Generar traducción está desactivado — este recurso ya tiene contenido de una fuente oficial en español esperando confirmación.</p>
-        ) : null}
+
+        {/* ================= PUBLISHED STATE ================= */}
+        {workspace.isPublished ? (
+          <div className="mt-4">
+            <StepProgress activeStep={3} isPublished labels={["Generar", "Revisar", "Publicar"]} />
+            <div className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3">
+              <p className="text-sm font-bold text-emerald-950">ESPAÑOL PUBLICADO ✓</p>
+              {lastApprovalEvent ? (
+                <p className="mt-1 text-xs text-emerald-900">Última aprobación ES: {new Date(lastApprovalEvent.createdAt).toLocaleString()}</p>
+              ) : null}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a href={publicEsUrl} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                Ver publicación ES ↗
+              </a>
+              <a href={publicEnUrl} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                Ver publicación EN ↗
+              </a>
+              {!hasOfficialSpanishEvidence ? (
+                <a href="#recurso-form" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                  Editar español
+                </a>
+              ) : null}
+              {!hasOfficialSpanishEvidence ? (
+                <form action={regenerateSpanishTranslationAction}>
+                  <input type="hidden" name="resourceId" value={id} />
+                  <ExecutiveHubConfirmSubmitButton
+                    confirmMessage="¿Regenerar la traducción desde los hechos verificados actuales? Se crea un borrador nuevo para revisar — el español ya publicado no se sobrescribe directamente hasta que apruebes el nuevo borrador."
+                    className={`${adminCtaChip} ${adminCtaChipCompact}`}
+                  >
+                    Regenerar desde hechos verificados
+                  </ExecutiveHubConfirmSubmitButton>
+                </form>
+              ) : null}
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {workspace.fields.map((f) => (
+                <div key={f.key} className="grid gap-2 border-t border-[color:var(--lx-border)]/50 pt-2 first:border-0 first:pt-0 sm:grid-cols-2">
+                  <p className="text-xs text-[#5C5346]">
+                    <span className="font-bold uppercase tracking-wide text-[#7A7164]">{f.label} (EN):</span> {f.enValue?.trim() || "SIN CONTENIDO BASE"}
+                  </p>
+                  <p className="text-xs text-[#5C5346]">
+                    <span className="font-bold uppercase tracking-wide text-[#7A7164]">{f.label} (ES):</span>{" "}
+                    {f.status === "sin_contenido_base" ? "SIN CONTENIDO BASE" : f.esApprovedValue?.trim() || "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : workspace.path === "no_base_content" ? (
+          /* ================= NO BASE CONTENT ================= */
+          <div className="mt-4 rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-3.5">
+            <p className="text-sm font-bold text-[#1E1810]">FALTA CONTENIDO BASE EN INGLÉS</p>
+            <p className="mt-1 text-xs text-[#7A7164]">No hay texto verificado para traducir todavía.</p>
+            <a href="#recurso-form" className={`${adminBtnPrimary} mt-3 inline-flex`}>
+              Completar información verificada
+            </a>
+          </div>
+        ) : workspace.path === "official_spanish" ? (
+          /* ================= OFFICIAL SPANISH PATH ================= */
+          <div className="mt-4">
+            <StepProgress
+              activeStep={officialSpanishAwaitingConfirmation ? 2 : 3}
+              isPublished={false}
+              labels={["Fuente oficial ES encontrada", "Revisar español oficial", "Confirmar y publicar"]}
+            />
+            <p className="mt-3 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2.5 text-xs font-semibold text-sky-950">
+              {spanishSourceType === "official_bilingual_source" ? "Fuente oficial bilingüe" : "Fuente oficial en español"} — el contenido en español proviene directamente de la fuente oficial, no de una traducción por IA. El español oficial siempre tiene prioridad sobre generar una traducción.
+            </p>
+            <div className="mt-4 space-y-2">
+              {workspace.fields.map((f) => (
+                <div key={f.key} className="grid gap-2 border-t border-[color:var(--lx-border)]/50 pt-2 first:border-0 first:pt-0 sm:grid-cols-2">
+                  <p className="text-xs text-[#5C5346]">
+                    <span className="font-bold uppercase tracking-wide text-[#7A7164]">{f.label} (EN):</span> {f.enValue?.trim() || "SIN CONTENIDO BASE"}
+                  </p>
+                  <p className="text-xs text-[#5C5346]">
+                    <span className="font-bold uppercase tracking-wide text-[#7A7164]">{f.label} (ES oficial):</span> {f.esApprovedValue?.trim() || "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <form action={confirmOfficialSpanishAction}>
+                <input type="hidden" name="resourceId" value={id} />
+                <ExecutiveHubConfirmSubmitButton
+                  confirmMessage="¿Confirmar este español como oficial? Esto certifica que el contenido en español proviene directamente de la fuente oficial. Esto NO modifica la verificación factual del recurso."
+                  className={`${adminBtnPrimary} ${canConfirmOfficialSpanish ? "" : "pointer-events-none opacity-40"}`}
+                >
+                  3. Confirmar y publicar
+                </ExecutiveHubConfirmSubmitButton>
+              </form>
+            </div>
+          </div>
+        ) : (
+          /* ================= AI TRANSLATION PATH ================= */
+          <div className="mt-4">
+            <StepProgress activeStep={workspace.activeStep} isPublished={false} labels={["Generar", "Revisar y editar", "Aprobar y publicar"]} />
+
+            {workspace.pendingTranslationCount === 0 ? (
+              <div className="mt-4">
+                <form action={generateSpanishTranslationAction}>
+                  <input type="hidden" name="resourceId" value={id} />
+                  <ExecutiveHubConfirmSubmitButton
+                    confirmMessage="¿Generar una traducción al español a partir de los hechos verificados en inglés? Esto solo crea propuestas revisables — no publica nada automáticamente."
+                    className={`${adminBtnPrimary} ${isVerified ? "" : "pointer-events-none opacity-40"}`}
+                  >
+                    1. Generar traducción
+                  </ExecutiveHubConfirmSubmitButton>
+                </form>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 space-y-3">
+                  {workspace.fields.map((f) => (
+                    <ReviewFieldRow key={f.key} field={f} resourceId={id} />
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <form action={regenerateSpanishTranslationAction}>
+                    <input type="hidden" name="resourceId" value={id} />
+                    <ExecutiveHubConfirmSubmitButton
+                      confirmMessage="¿Regenerar la traducción desde los hechos verificados actuales? Cualquier propuesta de traducción pendiente se rechazará y se reemplazará por un borrador nuevo."
+                      className={`rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)] ${isVerified ? "" : "pointer-events-none opacity-40"}`}
+                    >
+                      Regenerar desde hechos verificados
+                    </ExecutiveHubConfirmSubmitButton>
+                  </form>
+                  <form action={approveSpanishTranslationAction}>
+                    <input type="hidden" name="resourceId" value={id} />
+                    <ExecutiveHubConfirmSubmitButton
+                      confirmMessage="¿Aprobar esta presentación en español? Se guardarán tus ediciones, se aceptarán las traducciones mostradas y la presentación en español quedará disponible públicamente. Esto NO modifica la verificación factual del recurso."
+                      className={`${adminBtnPrimary} ${workspace.readyForFinalApproval ? "" : "pointer-events-none opacity-40"}`}
+                    >
+                      3. Aprobar español y publicar
+                    </ExecutiveHubConfirmSubmitButton>
+                  </form>
+                </div>
+                {!workspace.readyForFinalApproval ? (
+                  <p className="mt-2 text-xs text-[#8B7E70]">Resuelve los campos marcados &quot;Requiere atención&quot; antes de aprobar y publicar.</p>
+                ) : null}
+              </>
+            )}
+            {officialSpanishAwaitingConfirmation ? (
+              <p className="mt-2 text-xs text-[#8B7E70]">Generar traducción está desactivado — este recurso ya tiene contenido de una fuente oficial en español esperando confirmación.</p>
+            ) : null}
+          </div>
+        )}
+
+        <p className="mt-5 text-xs text-[#8B7E70]">
+          <Link href="/admin/recursos/cambios?tipo=traducciones" className="underline">
+            Ver en Cambios
+          </Link>{" "}
+          — la cola de cambios sigue siendo el mecanismo de revisión subyacente; este flujo de una página es la forma habitual de trabajar, no un reemplazo.
+        </p>
 
         {translationEvents.length > 0 ? (
           <div className="mt-5">
-            <VerificationTimeline events={translationEvents} title="Historial de traducción (interno)" compact />
+            <VerificationTimeline events={translationEvents} title="Historial de traducción (interno) — ver historial completo en Cambios" compact />
           </div>
         ) : null}
       </section>
 
-      <RecursoForm mode="edit" initial={record} action={updateRecursoAction} />
+      <div id="recurso-form">
+        <RecursoForm mode="edit" initial={record} action={updateRecursoAction} />
+      </div>
 
       <div className="mt-8">
         <VerificationTimeline events={timeline} />

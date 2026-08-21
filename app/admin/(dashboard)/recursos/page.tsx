@@ -146,11 +146,12 @@ export default async function RecursosAdminListPage(props: {
     loadSpanishReconciliationSnapshot(),
   ]);
   const spanishCounts = {
-    official: spanishSnapshot.entries.filter((e) => e.classification === "SPANISH_READY_OFFICIAL").length,
-    translation: spanishSnapshot.entries.filter((e) => e.classification === "SPANISH_READY_VERIFIED_TRANSLATION").length,
-    needsTranslation: spanishSnapshot.entries.filter((e) => e.classification === "NEEDS_SPANISH_TRANSLATION").length,
-    needsReview: spanishSnapshot.entries.filter((e) => e.classification === "NEEDS_TRANSLATION_REVIEW").length,
-    reverify: spanishSnapshot.entries.filter((e) => e.classification === "SOURCE_REVERIFICATION_REQUIRED").length,
+    listosParaTraducir: spanishSnapshot.entries.filter((e) => e.queueStatus === "LISTO_PARA_GENERAR").length,
+    sinContenidoBase: spanishSnapshot.entries.filter((e) => e.queueStatus === "SIN_CONTENIDO_BASE").length,
+    pendientesRevision: spanishSnapshot.entries.filter((e) => e.queueStatus === "REVISION_PENDIENTE" || e.queueStatus === "LISTO_PARA_PUBLICAR").length,
+    publicado: spanishSnapshot.entries.filter((e) => e.queueStatus === "ESPANOL_PUBLICADO").length,
+    fuenteOficial: spanishSnapshot.entries.filter((e) => e.queueStatus === "FUENTE_OFICIAL_ES").length,
+    reverify: spanishSnapshot.entries.filter((e) => e.queueStatus === "REVERIFICAR_PRIMERO").length,
   };
   const promotedCandidateIds = new Set(candidateReviews.filter((r) => r.disposition === "promoted").map((r) => r.candidateId));
   const candidateCounts = {
@@ -285,25 +286,26 @@ export default async function RecursosAdminListPage(props: {
           consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
         </p>
 
-        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          <AdminStatCard title="ES oficial listo" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.official} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=oficial" />
-          <AdminStatCard title="Traducción verificada lista" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.translation} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=traduccion" />
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          <AdminStatCard title="Listos para traducir" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.listosParaTraducir} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=listo_generar" />
           <AdminStatCard
-            title="Necesita traducción"
-            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.needsTranslation}
-            accent={!spanishSnapshot.unavailable && spanishCounts.needsTranslation > 0 ? "amber" : "default"}
+            title="Sin contenido base EN"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.sinContenidoBase}
+            accent={!spanishSnapshot.unavailable && spanishCounts.sinContenidoBase > 0 ? "amber" : "default"}
             actionLabel="Ver cola"
-            actionHref="/admin/recursos/espanol?tab=necesita_traduccion"
+            actionHref="/admin/recursos/espanol?tab=sin_contenido"
           />
           <AdminStatCard
-            title="Necesita revisión de español"
-            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.needsReview}
-            accent={!spanishSnapshot.unavailable && spanishCounts.needsReview > 0 ? "amber" : "default"}
+            title="Pendientes de revisión"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.pendientesRevision}
+            accent={!spanishSnapshot.unavailable && spanishCounts.pendientesRevision > 0 ? "amber" : "default"}
             actionLabel="Ver cola"
-            actionHref="/admin/recursos/espanol?tab=necesita_revision"
+            actionHref="/admin/recursos/espanol?tab=revision_pendiente"
           />
+          <AdminStatCard title="Español publicado" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.publicado} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=publicado" />
+          <AdminStatCard title="Fuente oficial ES" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.fuenteOficial} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=oficial_es" />
           <AdminStatCard
-            title="Fuente necesita reverificación"
+            title="Reverificación requerida"
             value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.reverify}
             accent={!spanishSnapshot.unavailable && spanishCounts.reverify > 0 ? "rose" : "default"}
             actionLabel="Ver cola"

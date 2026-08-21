@@ -13,6 +13,62 @@ import { dbListAllCommunityResourceSpanishStatuses, type SpanishStatus, type Spa
 import { dbListAllPendingResourceChangeProposals, type ResourceChangeProposalRow } from "./server/resourceChangeProposalsDb";
 import { classifySpanishReadiness, type SpanishReadinessClassification } from "./spanishReadinessClassification";
 import { isHighRiskResourceForTranslation } from "./resourceChangeDetection";
+import { checkFieldTranslationIntegrity } from "./translation/translationIntegrityCheck";
+
+const ES_FIELD_TO_EN_SOURCE: Record<string, (r: ResourceRecord) => string | null> = {
+  shortDescriptionEs: (r) => r.shortDescriptionEn,
+  detailsEs: (r) => r.detailsEn ?? null,
+  eligibilityEs: (r) => r.eligibilityEn ?? null,
+  hoursNoteEs: (r) => r.contact.hoursNoteEn ?? null,
+};
+
+function computeQueueStatus(params: {
+  classification: SpanishReadinessClassification;
+  officialSpanishAwaitingConfirmation: boolean;
+  spanishStatus: SpanishStatus;
+  pendingTranslationCount: number;
+  pendingTranslationsClean: boolean;
+  hasBaseContent: boolean;
+}): SpanishQueueStatus {
+  if (params.classification === "SOURCE_REVERIFICATION_REQUIRED") return "REVERIFICAR_PRIMERO";
+  if (params.officialSpanishAwaitingConfirmation) return "FUENTE_OFICIAL_ES";
+  if (params.spanishStatus === "official_spanish" || params.spanishStatus === "verified_translation") return "ESPANOL_PUBLICADO";
+  if (params.pendingTranslationCount > 0) return params.pendingTranslationsClean ? "LISTO_PARA_PUBLICAR" : "REVISION_PENDIENTE";
+  return params.hasBaseContent ? "LISTO_PARA_GENERAR" : "SIN_CONTENIDO_BASE";
+}
+
+/**
+ * Owner Spanish Translation Review Workspace — operational queue status. Richer than
+ * SpanishReadinessClassification: distinguishes "no English to translate from" (a content-
+ * completeness problem, never AI's fault) from "has English, not generated yet" (previously both
+ * silently lumped into NEEDS_SPANISH_TRANSLATION, which falsely counted zero-content resources as
+ * ready-to-translate), and distinguishes "pending review has an integrity conflict" from
+ * "pending review is clean and one click from publish." Derived live, same as
+ * SpanishReadinessClassification — no new stored column.
+ */
+export type SpanishQueueStatus =
+  | "SIN_CONTENIDO_BASE"
+  | "LISTO_PARA_GENERAR"
+  | "REVISION_PENDIENTE"
+  | "LISTO_PARA_PUBLICAR"
+  | "ESPANOL_PUBLICADO"
+  | "FUENTE_OFICIAL_ES"
+  | "REVERIFICAR_PRIMERO";
+
+export const SPANISH_QUEUE_STATUS_LABEL: Record<SpanishQueueStatus, string> = {
+  SIN_CONTENIDO_BASE: "Sin contenido base",
+  LISTO_PARA_GENERAR: "Listo para generar",
+  REVISION_PENDIENTE: "Revisión pendiente",
+  LISTO_PARA_PUBLICAR: "Listo para publicar",
+  ESPANOL_PUBLICADO: "Español publicado",
+  FUENTE_OFICIAL_ES: "Fuente oficial ES",
+  REVERIFICAR_PRIMERO: "Reverificar primero",
+};
+
+/** Content-readiness gate (owner workspace): translatable only if at least one EN presentation field is non-empty. */
+export function hasTranslatableBaseContent(resource: Pick<ResourceRecord, "shortDescriptionEn" | "detailsEn" | "eligibilityEn"> & { contact: Pick<ResourceRecord["contact"], "hoursNoteEn"> }): boolean {
+  return Boolean(resource.shortDescriptionEn?.trim() || resource.detailsEn?.trim() || resource.eligibilityEn?.trim() || resource.contact.hoursNoteEn?.trim());
+}
 
 export type SpanishReconciliationEntry = {
   resource: ResourceRecord;
@@ -27,6 +83,12 @@ export type SpanishReconciliationEntry = {
   pendingFactualCount: number;
   /** ES-6G: official-source Spanish evidence exists but a human hasn't confirmed it yet — routes to "Confirmar español oficial", never AI translation. */
   officialSpanishAwaitingConfirmation: boolean;
+  /** Owner workspace: at least one EN presentation field is non-empty. */
+  hasBaseContent: boolean;
+  /** Owner workspace: true only when every currently-pending translation proposal for this resource passes the integrity check against its own EN source. */
+  pendingTranslationsClean: boolean;
+  /** Owner workspace: the 7-value operational status driving queue CTAs — see SpanishQueueStatus. */
+  queueStatus: SpanishQueueStatus;
 };
 
 export type SpanishReconciliationSnapshot = {
@@ -71,14 +133,25 @@ export function buildSpanishReconciliationEntries(
     const spanishStatus: SpanishStatus = spanishRow?.spanishStatus ?? "not_available";
     const spanishSourceType = spanishRow?.spanishSourceType ?? null;
     const pending = pendingByResource.get(resource.id) ?? [];
-    const pendingTranslationCount = pending.filter((p) => p.proposalSource === "translation").length;
+    const pendingTranslations = pending.filter((p) => p.proposalSource === "translation");
+    const pendingTranslationCount = pendingTranslations.length;
     const pendingFactualCount = pending.filter((p) => p.proposalSource !== "translation").length;
+    const classification = classifySpanishReadiness(resource, spanishStatus, now);
+    const officialSpanishAwaitingConfirmation =
+      (spanishSourceType === "official_spanish_source" || spanishSourceType === "official_bilingual_source") && spanishStatus !== "official_spanish";
+    const hasBaseContent = hasTranslatableBaseContent(resource);
+    const pendingTranslationsClean = pendingTranslations.every((p) => {
+      const enSourceFn = ES_FIELD_TO_EN_SOURCE[p.fieldName];
+      const enSource = enSourceFn ? enSourceFn(resource) : null;
+      const integrity = checkFieldTranslationIntegrity(enSource, p.proposedValue == null ? null : String(p.proposedValue));
+      return integrity.ok;
+    });
 
     return {
       resource,
       spanishStatus,
       spanishSourceType,
-      classification: classifySpanishReadiness(resource, spanishStatus, now),
+      classification,
       highRisk: isHighRiskResourceForTranslation({
         primaryCategory: resource.primaryCategory,
         crisisPhone: resource.contact.crisisPhone,
@@ -90,8 +163,10 @@ export function buildSpanishReconciliationEntries(
       ),
       pendingTranslationCount,
       pendingFactualCount,
-      officialSpanishAwaitingConfirmation:
-        (spanishSourceType === "official_spanish_source" || spanishSourceType === "official_bilingual_source") && spanishStatus !== "official_spanish",
+      officialSpanishAwaitingConfirmation,
+      hasBaseContent,
+      pendingTranslationsClean,
+      queueStatus: computeQueueStatus({ classification, officialSpanishAwaitingConfirmation, spanishStatus, pendingTranslationCount, pendingTranslationsClean, hasBaseContent }),
     };
   });
 }
@@ -119,6 +194,7 @@ export async function loadSpanishReconciliationSnapshot(now: Date = new Date()):
  */
 export function isEligibleForBulkTranslationDraft(entry: SpanishReconciliationEntry): boolean {
   if (entry.classification !== "NEEDS_SPANISH_TRANSLATION") return false;
+  if (!entry.hasBaseContent) return false; // owner workspace: zero EN content is a content gap, never AI's job to fix
   if (entry.pendingTranslationCount > 0) return false;
   if (entry.officialSpanishAwaitingConfirmation) return false;
   if (entry.pendingFactualCount > 0) return false;

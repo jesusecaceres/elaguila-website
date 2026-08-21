@@ -144,13 +144,21 @@ assert("resource detail page exists", exists(DETAIL_PAGE));
 if (exists(DETAIL_PAGE)) {
   const src = read(DETAIL_PAGE);
   assert("page renders 'Presentación bilingüe' section", /Presentación bilingüe/.test(src));
-  assert("shows English and Spanish side by side for all 4 fields (BilingualFieldRow used 4 times)", (src.match(/<BilingualFieldRow/g) || []).length === 4);
+  // Owner Spanish Translation Review Workspace rewrite: the old 4x static <BilingualFieldRow/>
+  // grid was replaced by workspace.fields.map(...) (the same 4 fields, now status-aware and
+  // editable) — the field count guarantee now lives in resourceTranslationWorkspace.ts's
+  // FIELD_DEFS array, checked separately below.
+  assert("renders all 4 translatable fields via the workspace model (workspace.fields.map used for both published and review layouts)", (src.match(/workspace\.fields\.map/g) || []).length >= 2);
   assert("shows spanish_status label", /SPANISH_STATUS_LABEL/.test(src));
   assert("shows spanish_source_type label", /SPANISH_SOURCE_TYPE_LABEL/.test(src));
   assert("shows official source URL and last verified date within the bilingual section", /officialSourceUrl/.test(src));
   assert("wires generateSpanishTranslationAction", /generateSpanishTranslationAction/.test(src));
   assert("wires regenerateSpanishTranslationAction", /regenerateSpanishTranslationAction/.test(src));
-  assert("wires markSpanishReviewedAction", /markSpanishReviewedAction/.test(src));
+  // markSpanishReviewedAction is superseded in the primary UI by approveSpanishTranslationAction,
+  // which does strictly more (accepts the pending proposals AND marks Spanish reviewed in one
+  // atomic-checked action) — the old function is preserved unchanged in recursosTranslationActions.ts
+  // (checked above) but is no longer the page's wiring.
+  assert("wires approveSpanishTranslationAction (Owner Workspace Step 3 — supersedes markSpanishReviewedAction in the primary UI)", /approveSpanishTranslationAction/.test(src));
   assert("high-risk warning text present and gated by isHighRiskResourceForTranslation", /isHighRiskResourceForTranslation/.test(src) && /revisar cada traducción individualmente/i.test(src));
   assert("re-uses the existing VerificationTimeline component for translation history (no new timeline UI)", /VerificationTimeline events={translationEvents}/.test(src));
   assert("translation events filtered from the SAME already-fetched timeline (no second event query)", /timeline\.filter\(\(e\) => e\.sourceType === "translation"\)/.test(src));

@@ -83,15 +83,22 @@ assert("command-center shows 'no disponible' on unavailable, never a fake zero",
 assert("Spanish reconciliation queue page exists at /admin/recursos/espanol", espanolPageFile !== null);
 if (espanolPageFile) {
   assert("requires can_manage_recursos", /requireLeonixAdminPermission\("can_manage_recursos"\)/.test(espanolPageFile));
-  const TABS = ["Todos", "Oficial listo", "Traducción lista", "Necesita traducción", "Necesita revisión", "Reverificar fuente"];
-  assert("all 6 filter tabs present", TABS.every((t) => espanolPageFile.includes(t)), TABS);
+  // Owner Spanish Translation Review Workspace rewrite: the 6-value classification-based tab set
+  // was replaced by the richer 8-value queueStatus tab set (adds Sin contenido base / Listo para
+  // publicar / Español publicado as distinct operational states) — see
+  // verify-recursos-owner-spanish-workspace.mjs for full coverage of the new model.
+  const TABS = ["Todos", "Sin contenido base", "Listo para generar", "Revisión pendiente", "Listo para publicar", "Español publicado", "Fuente oficial ES", "Reverificar primero"];
+  assert("all 8 filter tabs present (queueStatus model)", TABS.every((t) => espanolPageFile.includes(t)), TABS);
   const ROW_FIELDS = ["organizationName", "primaryCategory", "urgencyLevel", "verification", "spanishStatus", "spanishSourceType", "hasOfficialSourceUrl", "highRisk", "pendingTranslationCount"];
   assert("row shows org/category/urgency/verification/spanish_status/spanish_source_type/official-URL/high-risk/pending-count", ROW_FIELDS.every((f) => espanolPageFile.includes(f)), ROW_FIELDS);
-  const ACTIONS = ["generateSpanishTranslationAction", "regenerateSpanishTranslationAction", "confirmOfficialSpanishAction"];
-  assert("wires Generar/Revisar traducción + Confirmar español oficial (reused, not reinvented)", ACTIONS.every((a) => espanolPageFile.includes(a)), ACTIONS);
+  // Generar/Revisar/Publicar now route to the one-page resource workspace (Link, not a direct
+  // form action) — only confirmOfficialSpanishAction is still fired directly from the queue row,
+  // since it's a single already-safe, already-narrow action with no multi-field review step.
+  assert("Generar/Revisar/Publicar route to the resource-level one-page workspace, not fired directly from the queue row", /Link href={`\/admin\/recursos\/\$\{resource\.id\}`} className={`\$\{adminCtaChip\} \$\{adminCtaChipCompact\}`}>\s*Generar/.test(espanolPageFile));
+  assert("wires confirmOfficialSpanishAction (reused, not reinvented)", /confirmOfficialSpanishAction/.test(espanolPageFile));
   assert("Ver recurso link present", /Ver recurso/.test(espanolPageFile));
-  assert("Reverificar fuente link present, gated on SOURCE_REVERIFICATION_REQUIRED", /canReverify[\s\S]{0,300}Reverificar fuente/.test(espanolPageFile));
-  assert("actions are conditionally rendered per resource state (canGenerate/canRegenerate/canConfirmOfficial/canReverify gates)", /canGenerate/.test(espanolPageFile) && /canConfirmOfficial/.test(espanolPageFile));
+  assert("Reverificar link present, gated on REVERIFICAR_PRIMERO queue status", /queueStatus === "REVERIFICAR_PRIMERO"[\s\S]{0,300}Reverificar/.test(espanolPageFile));
+  assert("actions are conditionally rendered per queueStatus (one branch per state, no ambiguous fallback)", /queueStatus === "SIN_CONTENIDO_BASE"/.test(espanolPageFile) && /queueStatus === "FUENTE_OFICIAL_ES"/.test(espanolPageFile));
 }
 
 // ---------- ES-6D/E/F: bulk draft action ----------
@@ -121,7 +128,14 @@ assert(
   "officialSpanishAwaitingConfirmation is derived from spanish_source_type official_* + status !== official_spanish",
   queueFile !== null && /official_spanish_source.*official_bilingual_source[\s\S]{0,80}spanishStatus !== "official_spanish"/.test(queueFile),
 );
-assert("queue page hides Generar when official Spanish is awaiting confirmation (canGenerate excludes it)", espanolPageFile !== null && /canGenerate = classification === "NEEDS_SPANISH_TRANSLATION" && !officialSpanishAwaitingConfirmation/.test(espanolPageFile));
+// Owner Spanish Translation Review Workspace rewrite: officialSpanishAwaitingConfirmation now
+// resolves straight to queueStatus="FUENTE_OFICIAL_ES" (see computeQueueStatus's precedence,
+// checked before LISTO_PARA_GENERAR), so a "Generar" CTA is structurally never reachable for an
+// official-source resource — not merely hidden by a separate boolean flag.
+assert(
+  "queue page hides Generar when official Spanish is awaiting confirmation (officialSpanishAwaitingConfirmation resolves to FUENTE_OFICIAL_ES before LISTO_PARA_GENERAR can ever be considered)",
+  queueFile !== null && /if \(params\.officialSpanishAwaitingConfirmation\) return "FUENTE_OFICIAL_ES";/.test(queueFile),
+);
 
 // ---------- ES-6H: stale/reverification exclusion ----------
 assert(

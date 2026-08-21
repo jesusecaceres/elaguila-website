@@ -16,9 +16,24 @@ import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { dbGetCommunityResourceById } from "@/app/lib/recursos/server/communityResourcesDb";
 import { resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
 import { generateSpanishTranslationProposals } from "@/app/lib/recursos/intake/translation/generateSpanishTranslationProposals";
-import { dbListPendingResourceChangeProposalsForResource, dbUpdateResourceChangeProposalStatus } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { checkFieldTranslationIntegrity } from "@/app/lib/recursos/intake/translation/translationIntegrityCheck";
+import {
+  dbListPendingResourceChangeProposalsForResource,
+  dbUpdateResourceChangeProposalStatus,
+  dbUpdatePendingResourceChangeProposalValue,
+  dbGetResourceChangeProposal,
+} from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { dbUpdateSingleResourceField } from "@/app/lib/recursos/intake/server/resourceFieldAcceptDb";
 import { dbSetCommunityResourceSpanishStatus, dbGetCommunityResourceSpanishStatus } from "@/app/lib/recursos/intake/server/resourceSpanishStatusDb";
 import { insertVerificationEvent } from "@/app/lib/recursos/intake/server/verificationEventsDb";
+import type { ResourceRecord } from "@/app/lib/recursos/types";
+
+const EN_SOURCE_BY_FIELD_NAME: Record<string, (r: ResourceRecord) => string | null> = {
+  shortDescriptionEs: (r) => r.shortDescriptionEn,
+  detailsEs: (r) => r.detailsEn ?? null,
+  eligibilityEs: (r) => r.eligibilityEn ?? null,
+  hoursNoteEs: (r) => r.contact.hoursNoteEn ?? null,
+};
 
 async function actorEmail(): Promise<string | null> {
   const c = await cookies();
@@ -54,9 +69,12 @@ export async function generateSpanishTranslationAction(formData: FormData): Prom
     skippedIntegrityFields: result.skippedIntegrityFields,
   });
 
+  // Owner Spanish Translation Review Workspace: return to the SAME resource, not Cambios — the
+  // bilingual card now renders the freshly generated proposals inline (Step 2), so the owner never
+  // has to leave the page they were already on.
   revalidatePath(`/admin/recursos/${resourceId}`);
   revalidatePath("/admin/recursos/cambios");
-  redirect(`/admin/recursos/cambios?tipo=traducciones&status_saved=1`);
+  redirect(`/admin/recursos/${resourceId}?saved=1`);
 }
 
 /**
@@ -96,7 +114,7 @@ export async function regenerateSpanishTranslationAction(formData: FormData): Pr
 
   revalidatePath(`/admin/recursos/${resourceId}`);
   revalidatePath("/admin/recursos/cambios");
-  redirect(`/admin/recursos/cambios?tipo=traducciones&status_saved=1`);
+  redirect(`/admin/recursos/${resourceId}?saved=1`);
 }
 
 /**
@@ -200,5 +218,126 @@ export async function confirmOfficialSpanishAction(formData: FormData): Promise<
   auditAdminWrite("recurso_official_spanish_confirmed", "community_resources", resourceId, { actorEmail: actor, spanishSourceType: sourceType });
 
   revalidatePath(`/admin/recursos/${resourceId}`);
+  redirect(`/admin/recursos/${resourceId}?saved=1`);
+}
+
+/**
+ * Owner Spanish Translation Review Workspace — lets the owner edit a pending translation
+ * proposal's wording before final approval (Step 2). Writes ONLY the pending proposal's
+ * proposed_value — never community_resources, never spanish_status. The edited text is re-run
+ * through the same integrity check on next render (resourceTranslationWorkspace.ts), so an owner
+ * edit that introduces an unverified phone/URL/email/24-7 claim/currency/number is caught the
+ * same way an AI-generated one would be, before it can ever be approved.
+ */
+export async function editTranslationProposalAction(formData: FormData): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_recursos");
+  const resourceId = str(formData, "resourceId");
+  const proposalId = str(formData, "proposalId");
+  const proposedValue = str(formData, "proposedValue");
+  if (!resourceId || !proposalId) redirect("/admin/recursos?error=unknown_resource");
+
+  const proposal = await dbGetResourceChangeProposal(proposalId);
+  if (!proposal || proposal.resourceId !== resourceId || proposal.proposalSource !== "translation" || proposal.status !== "pending") {
+    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("Esta propuesta de traducción ya no está disponible para editar.")}`);
+  }
+
+  const result = await dbUpdatePendingResourceChangeProposalValue(proposalId, proposedValue);
+  if (!result.ok) {
+    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent(result.error)}`);
+  }
+
+  const actor = await actorEmail();
+  auditAdminWrite("recurso_spanish_translation_proposal_edited", "resource_change_proposals", proposalId, { actorEmail: actor, resourceId, fieldName: proposal!.fieldName });
+
+  revalidatePath(`/admin/recursos/${resourceId}`);
+  redirect(`/admin/recursos/${resourceId}?saved=1`);
+}
+
+/**
+ * Owner Spanish Translation Review Workspace — Step 3, "Aprobar español y publicar". Single
+ * final-approval gesture replacing the old accept-each-proposal-then-Marcar-revisado sequence.
+ * Never partially publishes: every pending translation proposal for this resource is re-checked
+ * for integrity against its OWN EN source (catching anything an owner edit may have introduced)
+ * BEFORE any write happens; if any field fails, nothing is accepted and spanish_status is never
+ * touched. Only after every field is accepted does this set spanish_status='verified_translation'
+ * — so the resource can never be left showing "published" while a translation proposal is still
+ * pending, and never left "half accepted" with spanish_status still stale.
+ */
+export async function approveSpanishTranslationAction(formData: FormData): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_recursos");
+  const resourceId = str(formData, "resourceId");
+  if (!resourceId) redirect("/admin/recursos?error=unknown_resource");
+
+  const resource = await dbGetCommunityResourceById(resourceId);
+  if (!resource) redirect("/admin/recursos?error=unknown_resource");
+
+  if (resolveEffectiveVerificationStatus(resource!.verification) !== "verified") {
+    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("El recurso debe estar verificado antes de aprobar la presentación en español.")}`);
+  }
+
+  const pending = await dbListPendingResourceChangeProposalsForResource(resourceId);
+  const pendingTranslations = pending.filter((p) => p.proposalSource === "translation");
+  if (pendingTranslations.length === 0) {
+    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("No hay traducciones pendientes para aprobar.")}`);
+  }
+
+  // Re-check integrity against the CURRENT proposed value (owner edits included) for every field
+  // before writing anything — a single conflicting field blocks the entire approval.
+  const conflicting: string[] = [];
+  for (const p of pendingTranslations) {
+    const enSourceFn = EN_SOURCE_BY_FIELD_NAME[p.fieldName];
+    const enSource = enSourceFn ? enSourceFn(resource!) : null;
+    const proposedValue = p.proposedValue == null ? null : String(p.proposedValue);
+    const integrity = checkFieldTranslationIntegrity(enSource, proposedValue);
+    if (!integrity.ok) conflicting.push(p.fieldName);
+  }
+  if (conflicting.length > 0) {
+    redirect(
+      `/admin/recursos/${resourceId}?error=${encodeURIComponent(`Requiere atención antes de aprobar: ${conflicting.join(", ")} contiene texto que no coincide con el inglés verificado.`)}`,
+    );
+  }
+
+  const actor = await actorEmail();
+  const acceptedFieldNames: string[] = [];
+  for (const p of pendingTranslations) {
+    const fieldResult = await dbUpdateSingleResourceField(resourceId, p.fieldName, p.proposedValue == null ? "" : String(p.proposedValue), actor);
+    if (!fieldResult.ok) {
+      // Do not mark Spanish reviewed if any acceptance fails — report exactly how far it got.
+      redirect(
+        `/admin/recursos/${resourceId}?error=${encodeURIComponent(`No se pudo aceptar "${p.fieldName}": ${fieldResult.error}. Campos ya aceptados en este intento: ${acceptedFieldNames.join(", ") || "ninguno"}. El español NO se marcó como publicado.`)}`,
+      );
+    }
+    await dbUpdateResourceChangeProposalStatus(p.id, "accepted", actor);
+    await insertVerificationEvent({
+      resourceId,
+      eventType: "field_accepted",
+      actorEmail: actor,
+      sourceType: "translation",
+      previousValue: p.oldValue as string | null,
+      accepted: p.proposedValue as string | null,
+      notes: `field=${p.fieldName} (aprobación final de español)`,
+    });
+    acceptedFieldNames.push(p.fieldName);
+  }
+
+  const statusResult = await dbSetCommunityResourceSpanishStatus(resourceId, "verified_translation", "ai_translation_reviewed");
+  if (!statusResult.ok) {
+    redirect(
+      `/admin/recursos/${resourceId}?error=${encodeURIComponent(`Los campos se aceptaron pero no se pudo marcar el español como publicado: ${statusResult.error}. Vuelve a intentar la aprobación.`)}`,
+    );
+  }
+
+  await insertVerificationEvent({
+    resourceId,
+    eventType: "evidence_recorded",
+    actorEmail: actor,
+    sourceType: "translation",
+    notes: `Aprobación final de traducción al español — ${acceptedFieldNames.length} campo(s): ${acceptedFieldNames.join(", ")}.`,
+  });
+  auditAdminWrite("recurso_spanish_translation_approved_published", "community_resources", resourceId, { actorEmail: actor, acceptedFieldNames });
+
+  revalidatePath(`/admin/recursos/${resourceId}`);
+  revalidatePath("/admin/recursos/espanol");
+  revalidatePath("/admin/recursos/cambios");
   redirect(`/admin/recursos/${resourceId}?saved=1`);
 }

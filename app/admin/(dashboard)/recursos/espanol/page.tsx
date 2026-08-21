@@ -10,34 +10,42 @@ import {
   loadSpanishReconciliationSnapshot,
   isEligibleForBulkTranslationDraft,
   MAX_BULK_SPANISH_DRAFT_BATCH,
+  SPANISH_QUEUE_STATUS_LABEL,
   type SpanishReconciliationEntry,
   type BulkSpanishDraftSummary,
+  type SpanishQueueStatus,
 } from "@/app/lib/recursos/intake/spanishReconciliationQueue";
-import { SPANISH_READINESS_LABEL, type SpanishReadinessClassification } from "@/app/lib/recursos/intake/spanishReadinessClassification";
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 import { verificationStatusLabel, resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
-import { generateSpanishTranslationAction, regenerateSpanishTranslationAction, confirmOfficialSpanishAction } from "@/app/admin/recursosTranslationActions";
+import { confirmOfficialSpanishAction } from "@/app/admin/recursosTranslationActions";
 import { generateSpanishDraftsBatchAction } from "@/app/admin/recursosSpanishReconciliationActions";
+import { recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
 
 export const dynamic = "force-dynamic";
 
-type FiltroTab = "todos" | "oficial" | "traduccion" | "necesita_traduccion" | "necesita_revision" | "reverificar";
-const FILTRO_TABS: { value: FiltroTab; label: string; matches: (c: SpanishReadinessClassification) => boolean }[] = [
+const LEONIX_PUBLIC_ORIGIN = "https://www.leonixmedia.com";
+
+type FiltroTab = "todos" | "sin_contenido" | "listo_generar" | "revision_pendiente" | "listo_publicar" | "publicado" | "oficial_es" | "reverificar";
+const FILTRO_TABS: { value: FiltroTab; label: string; matches: (s: SpanishQueueStatus) => boolean }[] = [
   { value: "todos", label: "Todos", matches: () => true },
-  { value: "oficial", label: "Oficial listo", matches: (c) => c === "SPANISH_READY_OFFICIAL" },
-  { value: "traduccion", label: "Traducción lista", matches: (c) => c === "SPANISH_READY_VERIFIED_TRANSLATION" },
-  { value: "necesita_traduccion", label: "Necesita traducción", matches: (c) => c === "NEEDS_SPANISH_TRANSLATION" },
-  { value: "necesita_revision", label: "Necesita revisión", matches: (c) => c === "NEEDS_TRANSLATION_REVIEW" },
-  { value: "reverificar", label: "Reverificar fuente", matches: (c) => c === "SOURCE_REVERIFICATION_REQUIRED" },
+  { value: "sin_contenido", label: "Sin contenido base", matches: (s) => s === "SIN_CONTENIDO_BASE" },
+  { value: "listo_generar", label: "Listo para generar", matches: (s) => s === "LISTO_PARA_GENERAR" },
+  { value: "revision_pendiente", label: "Revisión pendiente", matches: (s) => s === "REVISION_PENDIENTE" },
+  { value: "listo_publicar", label: "Listo para publicar", matches: (s) => s === "LISTO_PARA_PUBLICAR" },
+  { value: "publicado", label: "Español publicado", matches: (s) => s === "ESPANOL_PUBLICADO" },
+  { value: "oficial_es", label: "Fuente oficial ES", matches: (s) => s === "FUENTE_OFICIAL_ES" },
+  { value: "reverificar", label: "Reverificar primero", matches: (s) => s === "REVERIFICAR_PRIMERO" },
 ];
 
-const CLASSIFICATION_BADGE: Record<SpanishReadinessClassification, string> = {
-  SPANISH_READY_OFFICIAL: "border border-emerald-200 bg-emerald-50 text-emerald-950",
-  SPANISH_READY_VERIFIED_TRANSLATION: "border border-sky-200 bg-sky-50 text-sky-950",
-  NEEDS_SPANISH_TRANSLATION: "border border-amber-200 bg-amber-50 text-amber-950",
-  NEEDS_TRANSLATION_REVIEW: "border border-orange-200 bg-orange-50 text-orange-950",
-  SOURCE_REVERIFICATION_REQUIRED: "border border-rose-200 bg-rose-50 text-rose-900",
+const QUEUE_STATUS_BADGE: Record<SpanishQueueStatus, string> = {
+  SIN_CONTENIDO_BASE: "border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[#7A7164]",
+  LISTO_PARA_GENERAR: "border border-[#C9B46A]/80 bg-[#FFFCF7] text-[#5C4E2E]",
+  REVISION_PENDIENTE: "border border-amber-200 bg-amber-50 text-amber-950",
+  LISTO_PARA_PUBLICAR: "border border-sky-200 bg-sky-50 text-sky-950",
+  ESPANOL_PUBLICADO: "border border-emerald-200 bg-emerald-50 text-emerald-950",
+  FUENTE_OFICIAL_ES: "border border-sky-300 bg-sky-50 text-sky-950",
+  REVERIFICAR_PRIMERO: "border border-rose-200 bg-rose-50 text-rose-900",
 };
 
 const SOURCE_TYPE_LABEL: Record<string, string> = {
@@ -49,13 +57,10 @@ const SOURCE_TYPE_LABEL: Record<string, string> = {
 };
 
 function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
-  const { resource, classification, spanishStatus, spanishSourceType, highRisk, hasOfficialSourceUrl, pendingTranslationCount, officialSpanishAwaitingConfirmation } = entry;
+  const { resource, queueStatus, spanishStatus, spanishSourceType, highRisk, hasOfficialSourceUrl, pendingTranslationCount } = entry;
   const effective = resolveEffectiveVerificationStatus(resource.verification);
-  const canGenerate = classification === "NEEDS_SPANISH_TRANSLATION" && !officialSpanishAwaitingConfirmation && pendingTranslationCount === 0;
-  const canRegenerate = pendingTranslationCount > 0 || spanishStatus === "verified_translation" || classification === "NEEDS_TRANSLATION_REVIEW";
-  const canConfirmOfficial = officialSpanishAwaitingConfirmation && entry.hasExistingSpanishText;
-  const canReverify = classification === "SOURCE_REVERIFICATION_REQUIRED";
   const eligibleForBulk = isEligibleForBulkTranslationDraft(entry);
+  const publicEsUrl = `${LEONIX_PUBLIC_ORIGIN}${recursosResourcePath(resource.slug)}?lang=es`;
 
   return (
     <div className={`${adminCardBase} p-4`}>
@@ -74,8 +79,8 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${CLASSIFICATION_BADGE[classification]}`}>
-            {SPANISH_READINESS_LABEL[classification]}
+          <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${QUEUE_STATUS_BADGE[queueStatus]}`}>
+            {SPANISH_QUEUE_STATUS_LABEL[queueStatus]}
           </span>
           {highRisk ? (
             <span className="inline-flex rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-900">
@@ -100,29 +105,39 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
         <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
           Ver recurso
         </Link>
-        {canGenerate ? (
+        {eligibleForBulk ? (
           <label className={`${adminCtaChip} ${adminCtaChipCompact} flex cursor-pointer items-center gap-1.5 border-[#C9B46A]/80 bg-[#FFFCF7]`}>
             <input type="checkbox" name="resourceId" value={resource.id} form="bulk-draft-form" className="h-3.5 w-3.5" />
             Incluir en lote
           </label>
         ) : null}
-        {canGenerate ? (
-          <form action={generateSpanishTranslationAction}>
-            <input type="hidden" name="resourceId" value={resource.id} />
-            <ExecutiveHubConfirmSubmitButton confirmMessage="¿Generar una traducción propuesta para este recurso? Se crea como propuesta pendiente — no se publica nada automáticamente." className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-              Generar traducción
-            </ExecutiveHubConfirmSubmitButton>
-          </form>
+
+        {queueStatus === "SIN_CONTENIDO_BASE" ? (
+          <Link href={`/admin/recursos/${resource.id}#recurso-form`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+            Completar recurso
+          </Link>
         ) : null}
-        {canRegenerate ? (
-          <form action={regenerateSpanishTranslationAction}>
-            <input type="hidden" name="resourceId" value={resource.id} />
-            <ExecutiveHubConfirmSubmitButton confirmMessage="¿Revisar traducción? Esto abre la cola de Cambios filtrada por traducciones para este recurso." className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-              Revisar traducción
-            </ExecutiveHubConfirmSubmitButton>
-          </form>
+        {queueStatus === "LISTO_PARA_GENERAR" ? (
+          <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+            Generar
+          </Link>
         ) : null}
-        {canConfirmOfficial ? (
+        {queueStatus === "REVISION_PENDIENTE" ? (
+          <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact} border-amber-300 bg-amber-50 text-amber-950`}>
+            Revisar
+          </Link>
+        ) : null}
+        {queueStatus === "LISTO_PARA_PUBLICAR" ? (
+          <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact} border-sky-300 bg-sky-50 text-sky-950`}>
+            Publicar
+          </Link>
+        ) : null}
+        {queueStatus === "ESPANOL_PUBLICADO" ? (
+          <a href={publicEsUrl} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+            Ver publicación ES ↗
+          </a>
+        ) : null}
+        {queueStatus === "FUENTE_OFICIAL_ES" ? (
           <form action={confirmOfficialSpanishAction}>
             <input type="hidden" name="resourceId" value={resource.id} />
             <ExecutiveHubConfirmSubmitButton
@@ -133,9 +148,9 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
             </ExecutiveHubConfirmSubmitButton>
           </form>
         ) : null}
-        {canReverify ? (
+        {queueStatus === "REVERIFICAR_PRIMERO" ? (
           <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact} border-rose-700 bg-rose-50 text-rose-900`}>
-            Reverificar fuente
+            Reverificar
           </Link>
         ) : null}
       </div>
@@ -151,16 +166,18 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
   const snapshot = await loadSpanishReconciliationSnapshot();
 
   const counts = {
-    official: snapshot.entries.filter((e) => e.classification === "SPANISH_READY_OFFICIAL").length,
-    translation: snapshot.entries.filter((e) => e.classification === "SPANISH_READY_VERIFIED_TRANSLATION").length,
-    needsTranslation: snapshot.entries.filter((e) => e.classification === "NEEDS_SPANISH_TRANSLATION").length,
-    needsReview: snapshot.entries.filter((e) => e.classification === "NEEDS_TRANSLATION_REVIEW").length,
-    reverify: snapshot.entries.filter((e) => e.classification === "SOURCE_REVERIFICATION_REQUIRED").length,
+    listosParaTraducir: snapshot.entries.filter((e) => e.queueStatus === "LISTO_PARA_GENERAR").length,
+    sinContenidoBase: snapshot.entries.filter((e) => e.queueStatus === "SIN_CONTENIDO_BASE").length,
+    pendientesRevision: snapshot.entries.filter((e) => e.queueStatus === "REVISION_PENDIENTE" || e.queueStatus === "LISTO_PARA_PUBLICAR").length,
+    listosPublicar: snapshot.entries.filter((e) => e.queueStatus === "LISTO_PARA_PUBLICAR").length,
+    publicado: snapshot.entries.filter((e) => e.queueStatus === "ESPANOL_PUBLICADO").length,
+    fuenteOficial: snapshot.entries.filter((e) => e.queueStatus === "FUENTE_OFICIAL_ES").length,
+    reverificar: snapshot.entries.filter((e) => e.queueStatus === "REVERIFICAR_PRIMERO").length,
   };
   const eligibleForBatch = snapshot.entries.filter(isEligibleForBulkTranslationDraft);
 
   const activeTab = FILTRO_TABS.find((t) => t.value === tab) ?? FILTRO_TABS[0];
-  const rows = snapshot.entries.filter((e) => activeTab.matches(e.classification));
+  const rows = snapshot.entries.filter((e) => activeTab.matches(e.queueStatus));
 
   let batchSummary: BulkSpanishDraftSummary | null = null;
   if (sp.batch_summary) {
@@ -176,7 +193,7 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
       <AdminPageHeader
         eyebrow="Recursos"
         title="Reconciliación de español"
-        subtitle="Clasificación en vivo de la disponibilidad de español para los 65 recursos verificados. Ninguna clasificación se guarda — se calcula en cada carga a partir de spanish_status, la frescura de verificación y las propuestas pendientes."
+        subtitle="Clasificación en vivo de la disponibilidad de español para los 65 recursos verificados. Ninguna clasificación se guarda — se calcula en cada carga a partir de spanish_status, la frescura de verificación, el contenido base en inglés y las propuestas pendientes."
         rightSlot={
           <Link href="/admin/recursos" className={adminBtnPrimary}>
             ← Volver al panel
@@ -185,13 +202,13 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
       />
 
       <AdminPagePurposeCard
-        title="Cola de reconciliación de español — Gate ES-6 (operacional)"
-        purpose="Clasifica cada recurso verificado en una de cinco categorías operativas y permite generar borradores de traducción en lote o dirigir el trabajo a la acción correcta (confirmar español oficial, revisar traducción, reverificar fuente)."
+        title="Cola de reconciliación de español (operacional)"
+        purpose="Clasifica cada recurso verificado en uno de siete estados operativos y siempre sugiere la acción correcta: completar contenido base, generar, revisar, publicar, confirmar español oficial o reverificar."
         dataSource="Deriva de community_resources (incluye spanish_status/spanish_source_type) + resource_change_proposals pendientes. Reutiliza generateSpanishTranslationProposals() — no existe un segundo motor de traducción."
         status="real"
-        safeActions={["Generar traducción (individual o en lote de hasta 20)", "Revisar traducción existente", "Confirmar español oficial", "Ver recurso / reverificar fuente"]}
-        nextGate="ES-7 — clasificación de entidades múltiples en fuentes PDF."
-        warningNote="Esta cola nunca aprueba ni publica nada automáticamente. La fuente oficial en español siempre tiene prioridad sobre la traducción por IA, y los recursos con hechos desactualizados o cambios pendientes quedan excluidos de la generación en lote."
+        safeActions={["Generar traducción (individual o en lote de hasta 20)", "Revisar y aprobar en el flujo de una página", "Confirmar español oficial", "Ver recurso / reverificar fuente"]}
+        nextGate="Ninguno planeado — el flujo de revisión de una página es la forma habitual de trabajar."
+        warningNote="Esta cola nunca aprueba ni publica nada automáticamente. Los recursos sin contenido base en inglés nunca se cuentan como listos para traducir, y la fuente oficial en español siempre tiene prioridad sobre la traducción por IA."
       />
 
       <section className={`${adminCardBase} mb-6 p-5`}>
@@ -199,12 +216,14 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
         <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">
           Cada número se calcula en el momento de cargar esta página. Si una consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
         </p>
-        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          <AdminStatCard title="ES oficial listo" value={snapshot.unavailable ? "—" : counts.official} />
-          <AdminStatCard title="Traducción verificada lista" value={snapshot.unavailable ? "—" : counts.translation} />
-          <AdminStatCard title="Necesita traducción" value={snapshot.unavailable ? "—" : counts.needsTranslation} accent={!snapshot.unavailable && counts.needsTranslation > 0 ? "amber" : "default"} />
-          <AdminStatCard title="Necesita revisión de español" value={snapshot.unavailable ? "—" : counts.needsReview} accent={!snapshot.unavailable && counts.needsReview > 0 ? "amber" : "default"} />
-          <AdminStatCard title="Fuente necesita reverificación" value={snapshot.unavailable ? "—" : counts.reverify} accent={!snapshot.unavailable && counts.reverify > 0 ? "rose" : "default"} />
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7">
+          <AdminStatCard title="Listos para traducir" value={snapshot.unavailable ? "—" : counts.listosParaTraducir} />
+          <AdminStatCard title="Sin contenido base EN" value={snapshot.unavailable ? "—" : counts.sinContenidoBase} accent={!snapshot.unavailable && counts.sinContenidoBase > 0 ? "amber" : "default"} />
+          <AdminStatCard title="Pendientes de revisión" value={snapshot.unavailable ? "—" : counts.pendientesRevision} accent={!snapshot.unavailable && counts.pendientesRevision > 0 ? "amber" : "default"} />
+          <AdminStatCard title="Listos para publicar" value={snapshot.unavailable ? "—" : counts.listosPublicar} />
+          <AdminStatCard title="Español publicado" value={snapshot.unavailable ? "—" : counts.publicado} />
+          <AdminStatCard title="Fuente oficial ES" value={snapshot.unavailable ? "—" : counts.fuenteOficial} />
+          <AdminStatCard title="Reverificación requerida" value={snapshot.unavailable ? "—" : counts.reverificar} accent={!snapshot.unavailable && counts.reverificar > 0 ? "rose" : "default"} />
         </div>
       </section>
 
@@ -225,7 +244,7 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
             <div className="text-xs text-[#5C5346]">
               <p>
                 <span className="font-bold">{eligibleForBatch.length}</span> recurso(s) elegible(s) ahora mismo para un borrador de traducción (máximo{" "}
-                {MAX_BULK_SPANISH_DRAFT_BATCH} por lote).
+                {MAX_BULK_SPANISH_DRAFT_BATCH} por lote). Los recursos sin contenido base en inglés nunca se incluyen.
               </p>
               <p className="mt-0.5 text-[#8B7E70]">
                 Marca casillas individuales arriba para elegir recursos específicos, o deja todo sin marcar para procesar los primeros {MAX_BULK_SPANISH_DRAFT_BATCH}{" "}

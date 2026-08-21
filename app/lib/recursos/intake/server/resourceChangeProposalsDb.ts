@@ -186,6 +186,32 @@ export async function dbCreateResourceChangeProposalIfNotPending(input: CreateRe
 
 export type UpdateProposalStatusResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * Owner Spanish Translation Review Workspace — lets an owner edit a translation proposal's
+ * wording before final approval. Updates ONLY `proposed_value` (never `status`/`old_value`/
+ * `proposal_source`) and only while the row is still `pending` (re-checked server-side, same
+ * discipline as dbUpdateResourceChangeProposalStatus). Never touches community_resources — the
+ * edited value stays a pending proposal until the explicit final-approval action accepts it.
+ */
+export async function dbUpdatePendingResourceChangeProposalValue(id: string, newProposedValue: string): Promise<UpdateProposalStatusResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "Supabase is not configured." };
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({ proposed_value: newProposedValue, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
+    if (error) return { ok: false, error: error.message };
+    if (!data) return { ok: false, error: "La propuesta ya no está pendiente — no se puede editar." };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "No se pudo guardar la edición." };
+  }
+}
+
 /** Transitions a proposal's status. Never touches community_resources — that is the caller's job, and only for 'accepted'. */
 export async function dbUpdateResourceChangeProposalStatus(
   id: string,

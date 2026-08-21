@@ -131,9 +131,13 @@ if (exists(DETAIL_PAGE)) {
   const src = read(DETAIL_PAGE);
   assert("shows official-source-in-Spanish / official-bilingual-source callout", /Fuente oficial bilingüe/.test(src) && /Fuente oficial en español/.test(src));
   assert("wires confirmOfficialSpanishAction", /confirmOfficialSpanishAction/.test(src));
-  assert("Generar/Regenerar hidden when official Spanish is awaiting confirmation (ES-5J)", /!officialSpanishAwaitingConfirmation/.test(src));
+  // Owner Spanish Translation Review Workspace rewrite: Generar/Regenerar now live exclusively in
+  // the workspace.path==="ai_translation" branch, which is structurally unreachable whenever
+  // official-source Spanish evidence exists (path becomes "official_spanish" instead) — a
+  // stronger guarantee than the old flag check (which only hid them mid-confirmation, not after).
+  assert("workspace routes official-source resources to the official_spanish path, never the ai_translation path", /workspace\.path === "official_spanish"/.test(src) && /workspace\.path === "no_base_content"/.test(src));
   assert("officialSpanishAwaitingConfirmation is gated on needs_translation_review + official evidence", /officialSpanishAwaitingConfirmation = hasOfficialSpanishEvidence && spanishStatus === "needs_translation_review"/.test(src));
-  assert("markSpanishReviewedAction (AI-translation language) hidden when official Spanish evidence exists", /!hasOfficialSpanishEvidence \? \(\s*<form action={markSpanishReviewedAction}/.test(src));
+  assert("AI-translation approval action hidden when official Spanish evidence exists (published branch explicitly excludes it)", /!hasOfficialSpanishEvidence \? \(\s*<a href="#recurso-form"/.test(src) && /!hasOfficialSpanishEvidence \? \(\s*<form action={regenerateSpanishTranslationAction}/.test(src));
 }
 
 // --- ES-5K: reverification keeps url_recheck provenance, never mislabels as ai_translation_reviewed ---
