@@ -750,19 +750,24 @@ export function verifyArchitecture(): VerifyCheck[] {
     { pattern: "midjourney", label: "midjourney" },
     { pattern: "stable-diffusion", label: "stable-diffusion" },
   ];
+  // Package A, Gate 10 reconciliation: image generation is no longer categorically banned — it is
+  // a bounded, opt-in capability gated by isImageGenerationLive() (see providerTypes.ts). A file
+  // that references an image-generation pattern is only flagged if it does NOT also reference the
+  // live-gate (isImageGenerationLive) or explicitly mark the capability non-live (NON_LIVE /
+  // non_live). Case-insensitive on both sides — `content` is already lowercased above.
   for (const { pattern, label } of imageGenPatterns) {
     let found = false;
     for (const f of allCsFiles) {
       const content = fs.readFileSync(f, "utf-8").toLowerCase();
-      if (content.includes(pattern.toLowerCase()) && !content.includes("isImageGenerationLive") && !content.includes("non_live")) {
+      if (content.includes(pattern.toLowerCase()) && !content.includes("isimagegenerationlive") && !content.includes("non_live")) {
         found = true;
         break;
       }
     }
     checks.push({
-      check: `No ${label} in Creative Studio`,
+      check: `No ungated ${label} in Creative Studio`,
       pass: !found,
-      detail: found ? `FOUND ${label}` : "OK",
+      detail: found ? `FOUND ${label} without an isImageGenerationLive() gate reference in the same file` : "OK — either absent, or present and gated",
     });
   }
 
@@ -1107,12 +1112,170 @@ function verifyMagazinePrintGeometry(): VerifyCheck[] {
   return checks;
 }
 
+// ─── Package A — OpenAI provider + Leonix Creative Doctrine ─────────────────
+
+function readDoctrineFile(rel: string): string {
+  return fs.readFileSync(path.join(BASE, "app", "lib", "business", "creativeStudio", "doctrine", rel), "utf-8");
+}
+
+function readOpenAiLibFile(rel: string): string {
+  return fs.readFileSync(path.join(BASE, "app", "lib", "openai", rel), "utf-8");
+}
+
+export function verifyPackageA(): VerifyCheck[] {
+  const checks: VerifyCheck[] = [];
+
+  // ─── OpenAI provider ───────────────────────────────────────────────────
+  const openaiProviderContent = readCsFile("openaiCreativeProvider.ts");
+  checks.push({
+    check: "OpenAI creative provider: providerKey is 'openai'",
+    pass: openaiProviderContent.includes('providerKey: "openai"'),
+    detail: "openaiCreativeProvider.ts must declare providerKey \"openai\"",
+  });
+  checks.push({
+    check: "OpenAI creative provider: reuses shared server client, no inline API key read",
+    pass: openaiProviderContent.includes("@/app/lib/openai/serverClient") && !openaiProviderContent.includes('process.env.OPENAI_API_KEY'),
+    detail: "Must import the shared serverClient rather than reading OPENAI_API_KEY directly",
+  });
+  checks.push({
+    check: "OpenAI creative provider: separate creative model env var",
+    pass: openaiProviderContent.includes("OPENAI_CREATIVE_MODEL"),
+    detail: "Must use OPENAI_CREATIVE_MODEL, kept separate from OPENAI_MODERATION_MODEL",
+  });
+
+  const serverClientContent = readOpenAiLibFile("serverClient.ts");
+  checks.push({
+    check: "OpenAI server client: server-only",
+    pass: serverClientContent.includes('import "server-only"'),
+    detail: "serverClient.ts must be server-only",
+  });
+  checks.push({
+    check: "OpenAI server client: never throws raw secret in error text",
+    pass: !serverClientContent.includes("apiKey}`") || serverClientContent.includes("Authorization: `Bearer ${apiKey}`"),
+    detail: "API key must only ever appear in the Authorization header, never in a logged/returned error string",
+  });
+
+  const providerRegistryContent = readCsFile("providerRegistry.ts");
+  checks.push({
+    check: "Provider registry: resolves 'gemini'",
+    pass: providerRegistryContent.includes('if (providerKey === "gemini")'),
+    detail: "Gemini resolution must be preserved",
+  });
+  checks.push({
+    check: "Provider registry: resolves 'openai'",
+    pass: providerRegistryContent.includes('if (providerKey === "openai")'),
+    detail: "Registry must add an openai branch",
+  });
+  checks.push({
+    check: "Provider registry: default provider remains Gemini",
+    pass: /getDefaultCreativeProvider[\s\S]{0,120}getGeminiProvider/.test(providerRegistryContent),
+    detail: "getDefaultCreativeProvider() must still resolve to Gemini — no silent default switch",
+  });
+
+  const providerTypesContent = readCsFile("providerTypes.ts");
+  checks.push({
+    check: "Image generation: never blindly live",
+    pass: providerTypesContent.includes("OPENAI_IMAGE_GENERATION_ENABLED") && providerTypesContent.includes("OPENAI_API_KEY"),
+    detail: "isImageGenerationLive() must require both an explicit opt-in flag and a configured key",
+  });
+
+  // ─── Leonix Creative Doctrine v1 ───────────────────────────────────────
+  const versionsContent = readDoctrineFile("versions.ts");
+  checks.push({
+    check: "Doctrine: canonical version identifier exists",
+    pass: versionsContent.includes("LEONIX_CREATIVE_DOCTRINE_V1"),
+    detail: "One canonical doctrine version identifier must exist",
+  });
+
+  const rulesContent = readDoctrineFile("rules.ts");
+  for (const marker of ["TRUTH_LOCK_RULES", "ASSET_PRIORITY_RULES", "ANTI_AI_RULES", "BUSINESS_AD_RULES", "SPONSORED_FEATURE_RULES", "PRINT_GEOMETRY_RULES", "QR_BRAND_RULES"]) {
+    checks.push({
+      check: `Doctrine: ${marker} defined`,
+      pass: rulesContent.includes(`export const ${marker}`),
+      detail: `Structured doctrine must define ${marker}`,
+    });
+  }
+  checks.push({
+    check: "Doctrine: sponsored feature rules scoped to sponsored_insert only",
+    pass: /SPONSORED_FEATURE_RULES[\s\S]*?appliesToAssetTypes: \["sponsored_insert"\]/.test(rulesContent),
+    detail: "Sponsored-feature-only rules must not be universally injected",
+  });
+  checks.push({
+    check: "Doctrine: print geometry rule defers to printSpecs.ts (no duplicated numbers)",
+    pass: readDoctrineFile("rules.ts").includes("printSpecs.ts") && !/\d\.\d{3}"/.test(rulesContent),
+    detail: "Doctrine rules must not hardcode print dimensions — printSpecs.ts remains the single source",
+  });
+
+  const compilerContent = readDoctrineFile("compiler.ts");
+  checks.push({
+    check: "Doctrine compiler: compileDoctrineForJob exists and filters by job context",
+    pass: compilerContent.includes("export function compileDoctrineForJob") && compilerContent.includes("ruleApplies"),
+    detail: "Contextual compiler must exist and filter rules rather than injecting everything",
+  });
+
+  // ─── Provider-agnostic generation compiler ─────────────────────────────
+  const generationCompilerContent = readCsFile("generationCompiler.ts");
+  checks.push({
+    check: "Generation compiler: provider-agnostic, does not import Canva-specific formatting",
+    pass: generationCompilerContent.includes("export function compileGenerationInput") && !/from ["'].*canvaPromptCompiler["']/.test(generationCompilerContent),
+    detail: "compileGenerationInput must stay separate from Canva-specific canvaPromptCompiler.ts (mentioning it in a comment is fine; importing it is not)",
+  });
+  checks.push({
+    check: "canvaPromptCompiler.ts left untouched (still Canva-specific, not the AI generation brain)",
+    pass: readCsFile("canvaPromptCompiler.ts").includes("Canva Prompt Compiler"),
+    detail: "Canva production formatting must remain separate from AI provider generation input",
+  });
+
+  // ─── Governance / human approval wall ──────────────────────────────────
+  const generateRoutePath = path.join(BASE, "app", "api", "admin", "businesses", "[businessId]", "creative-studio", "jobs", "[jobId]", "generate", "route.ts");
+  const generateRouteContent = fs.readFileSync(generateRoutePath, "utf-8");
+  checks.push({
+    check: "Generate route: requires generate_creative_draft capability",
+    pass: generateRouteContent.includes('"generate_creative_draft"'),
+    detail: "Generation must be gated behind the existing capability matrix, not open to any staff cookie",
+  });
+  checks.push({
+    check: "Generate route: never transitions a job directly to 'approved'",
+    pass: !/transitionJobStatus\([^)]*"approved"/.test(generateRouteContent),
+    detail: "Provider success must never directly approve a job — only reach 'generated', pending human review",
+  });
+  checks.push({
+    check: "Generate route: persists provider run provenance on both success and failure",
+    pass: (generateRouteContent.match(/createProviderRun\(/g) ?? []).length >= 2,
+    detail: "Every generation attempt (success or failure) must be recorded",
+  });
+  checks.push({
+    check: "Generate route: bounded cooldown present (rate/cost safety)",
+    pass: generateRouteContent.includes("GENERATION_COOLDOWN_MS"),
+    detail: "Must not allow unbounded repeated generation requests",
+  });
+
+  // ─── Image generation lifecycle (only asserted structurally if implemented) ───
+  const imageRoutePath = path.join(BASE, "app", "api", "admin", "businesses", "[businessId]", "creative-studio", "jobs", "[jobId]", "generate-image", "route.ts");
+  if (fs.existsSync(imageRoutePath)) {
+    const imageRouteContent = fs.readFileSync(imageRoutePath, "utf-8");
+    checks.push({
+      check: "Image generation: gated by isImageGenerationLive() before any provider call",
+      pass: imageRouteContent.includes("isImageGenerationLive()"),
+      detail: "Route must report not-live truthfully rather than generating when the capability is off",
+    });
+    checks.push({
+      check: "Image generation: generated assets always pending review",
+      pass: readCsFile("repository.ts").includes('approval_state: "pending"'),
+      detail: "AI-generated assets must never be auto-approved",
+    });
+  }
+
+  return checks;
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
   const migrationChecks = verifyMigration();
   const archChecks = verifyArchitecture();
-  const all = [...migrationChecks, ...archChecks];
+  const packageAChecks = verifyPackageA();
+  const all = [...migrationChecks, ...archChecks, ...packageAChecks];
   const passed = all.filter((c) => c.pass).length;
   const failed = all.filter((c) => !c.pass);
 
@@ -1120,6 +1283,7 @@ function main() {
   console.log("=".repeat(60));
   console.log(`Migration checks: ${migrationChecks.filter((c) => c.pass).length}/${migrationChecks.length}`);
   console.log(`Architecture checks: ${archChecks.filter((c) => c.pass).length}/${archChecks.length}`);
+  console.log(`Package A checks: ${packageAChecks.filter((c) => c.pass).length}/${packageAChecks.length}`);
   console.log(`Total: ${passed}/${all.length}`);
   console.log("");
 

@@ -35,6 +35,7 @@ import { listCommitmentsForBusiness, listEventsForCommitment } from "@/app/lib/b
 import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActions";
 import { listJobsForBusiness } from "@/app/lib/business/creativeStudio/repository";
 import { isCreativeStudioEnabled } from "@/app/lib/business/creativeStudio/featureFlag";
+import { getConfiguredCreativeProviders } from "@/app/lib/business/creativeStudio/providerRegistry";
 import { CreativeStudioPanel } from "./CreativeStudioActions";
 import { listBusinessOutcomes } from "@/app/lib/business/outcomes/repository";
 import { isOutcomesEnabled } from "@/app/lib/business/outcomes/featureFlag";
@@ -230,6 +231,8 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const creativeJobs = (canViewCreativeStudio && creativeStudioEnabled)
     ? await listJobsForBusiness(business.id)
     : [];
+  // Package A — truthful provider availability for staff (never claims an unconfigured provider is live).
+  const creativeProviderAvailability = canViewCreativeStudio ? await getConfiguredCreativeProviders() : { gemini: false, openai: false };
 
   // Program 7 — Outcomes + Advisor + Assistant
   const outcomesEnabled = await isOutcomesEnabled();
@@ -903,7 +906,11 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
               <h2 className="text-sm font-bold text-[#1E1810]">Creative Studio</h2>
               <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets.</p>
-              <CreativeStudioPanel businessId={business.id} jobs={creativeJobs.map((j) => ({ id: j.id, assetType: j.assetType, language: j.language, format: j.format, archetype: j.archetype, status: j.status, riskClass: j.riskClass, createdAt: j.createdAt }))} />
+              <CreativeStudioPanel
+                businessId={business.id}
+                jobs={creativeJobs.map((j) => ({ id: j.id, assetType: j.assetType, language: j.language, format: j.format, archetype: j.archetype, status: j.status, riskClass: j.riskClass, createdAt: j.createdAt }))}
+                providerAvailability={creativeProviderAvailability}
+              />
             </section>
           ) : null}
 

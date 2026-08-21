@@ -13,7 +13,42 @@ interface CreativeJob {
   createdAt: string;
 }
 
-export function CreativeStudioPanel({ businessId, jobs }: { businessId: string; jobs: CreativeJob[] }) {
+interface CreativeProviderAvailability {
+  gemini: boolean;
+  openai: boolean;
+}
+
+/** Package A — truthful, non-interactive provider status. Never renders a button for an unconfigured provider. */
+function ProviderAvailabilityRow({ providerAvailability }: { providerAvailability?: CreativeProviderAvailability }) {
+  if (!providerAvailability) return null;
+  const entries: Array<{ label: string; configured: boolean }> = [
+    { label: "Gemini", configured: providerAvailability.gemini },
+    { label: "OpenAI", configured: providerAvailability.openai },
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-gray-500">Generation providers:</span>
+      {entries.map((e) => (
+        <span
+          key={e.label}
+          className={`rounded px-2 py-0.5 font-medium ${e.configured ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+        >
+          {e.label} {e.configured ? "configured" : "not configured"}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function CreativeStudioPanel({
+  businessId,
+  jobs,
+  providerAvailability,
+}: {
+  businessId: string;
+  jobs: CreativeJob[];
+  providerAvailability?: CreativeProviderAvailability;
+}) {
   const [showNewJob, setShowNewJob] = useState(false);
 
   return (
@@ -27,6 +62,8 @@ export function CreativeStudioPanel({ businessId, jobs }: { businessId: string; 
           {showNewJob ? "Cancel" : "New Creative Job"}
         </button>
       </div>
+
+      <ProviderAvailabilityRow providerAvailability={providerAvailability} />
 
       {jobs.length === 0 && !showNewJob && (
         <p className="text-sm text-gray-500">No creative jobs yet.</p>
@@ -67,7 +104,10 @@ export function CreativeStudioPanel({ businessId, jobs }: { businessId: string; 
             <li>Approve</li>
             <li>Export Production Pack</li>
           </ol>
-          <p className="text-xs text-gray-400">Full job creation form will be available after SQL is applied to staging.</p>
+          <p className="text-xs text-gray-400">
+            Package A added the real generation engine (doctrine + OpenAI/Gemini provider execution) as API routes.
+            The full step-by-step job-creation wizard UI shown above is a separate, not-yet-built package.
+          </p>
         </div>
       )}
     </div>
