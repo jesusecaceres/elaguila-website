@@ -128,7 +128,14 @@ if (exists(ACTIONS)) {
 assert("reverificacion page shows pending change counts per resource", exists(REVERIFICACION_PAGE) && /pendingChangeCounts/.test(read(REVERIFICACION_PAGE)) && /dbListResourceChangeProposals/.test(read(REVERIFICACION_PAGE)));
 assert("reverificacion page shows official-website availability per resource", exists(REVERIFICACION_PAGE) && /hasWebsite/.test(read(REVERIFICACION_PAGE)));
 assert("resource detail page warns before reverification completion when changes are pending (does not silently allow overlooking them)", exists(RESOURCE_DETAIL_PAGE) && /pendingChanges\.length > 0/.test(read(RESOURCE_DETAIL_PAGE)) && /Atención: hay/.test(read(RESOURCE_DETAIL_PAGE)));
-assert("reverification completion is not blocked outright — a resource can still be reverified unchanged (Gate 6 behavior preserved)", exists(RESOURCE_DETAIL_PAGE) && /pointer-events-none/.test(read(RESOURCE_DETAIL_PAGE)) === false);
+{
+  const reverifyBtnBlock = exists(RESOURCE_DETAIL_PAGE) ? (read(RESOURCE_DETAIL_PAGE).match(/Marcar reverificación completada[\s\S]{0,400}/)?.[0] ?? "") : "";
+  const reverifyBtnBlockBefore = exists(RESOURCE_DETAIL_PAGE) ? (read(RESOURCE_DETAIL_PAGE).match(/[\s\S]{0,400}Marcar reverificación completada/)?.[0] ?? "") : "";
+  assert(
+    "reverification completion is not blocked outright — a resource can still be reverified unchanged (Gate 6 behavior preserved)",
+    reverifyBtnBlock.length > 0 && !/pointer-events-none/.test(reverifyBtnBlock) && !/pointer-events-none/.test(reverifyBtnBlockBefore),
+  );
+}
 
 // --- dashboard integration ------------------------------------------------------------------------
 const DASHBOARD = "app/admin/(dashboard)/recursos/page.tsx";
