@@ -49,7 +49,7 @@ export default async function FieldAgentBusinessPage({ params }: { params: Promi
 
       <section className="rounded-2xl border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4">
         <h2 className="mb-2 text-sm font-bold text-[color:var(--lx-text)]">Nota por voz / Voice note</h2>
-        <FieldAgentDictationSection />
+        <FieldAgentDictationSection businessId={businessId} />
       </section>
     </div>
   );

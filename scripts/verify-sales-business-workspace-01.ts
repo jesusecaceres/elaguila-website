@@ -355,6 +355,14 @@ check("Both admin/businesses pages call requireSalesWorkspaceAccess(), check a c
     assert.ok(text.includes("actorHasCapability(access.actor,"));
   }
 });
+check("Admin business detail formats phones via the server-safe phoneDisplay helper, never a \"use client\" module", () => {
+  const detailPage = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+  const phoneDisplay = read("app/lib/business/phoneDisplay.ts");
+  assert.ok(!/^\s*["']use client["']/.test(phoneDisplay), "phoneDisplay.ts must not be a client module");
+  assert.ok(phoneDisplay.includes("export function formatUsPhoneForDisplay"));
+  assert.ok(detailPage.includes('from "@/app/lib/business/phoneDisplay"'));
+  assert.ok(!detailPage.includes("Step6ContactsProfiles"), "server page must not import formatUsPhoneForDisplay from the client Step 6 module");
+});
 check("getAdminSupabase() (service-role) is never imported by a client component — no service-role write path is exposed to the browser", () => {
   const actionsText = read("app/admin/(dashboard)/businesses/[businessId]/BusinessWorkspaceActions.tsx");
   assert.ok(actionsText.startsWith('"use client";'));

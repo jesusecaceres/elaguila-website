@@ -23,7 +23,8 @@ import {
   deriveEffectiveOperatingModels,
   PRIMARY_OPERATING_MODE_VALUES,
 } from "../app/(site)/dashboard/business-tools/onboarding/wizardTypes";
-import { formatUsPhoneForDisplay, isPlatformHomepageOnly, normalizeHandleOrUrl } from "../app/(site)/dashboard/business-tools/onboarding/_steps/Step6ContactsProfiles";
+import { formatUsPhoneForDisplay } from "../app/lib/business/phoneDisplay";
+import { isPlatformHomepageOnly, normalizeHandleOrUrl } from "../app/(site)/dashboard/business-tools/onboarding/_steps/Step6ContactsProfiles";
 
 let passed = 0;
 function check(name: string, fn: () => void): void {

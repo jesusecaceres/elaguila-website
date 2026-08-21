@@ -11,7 +11,7 @@ import path from "node:path";
 
 import { clearCountryDependentGeography, physicalAddressSummary, summarizeServiceCoverage } from "../app/(site)/dashboard/business-tools/onboarding/wizardTypes";
 import { businessIdentityCopy } from "../app/(site)/dashboard/business-tools/_components/businessIdentityCopy";
-import { formatUsPhoneForDisplay } from "../app/(site)/dashboard/business-tools/onboarding/_steps/Step6ContactsProfiles";
+import { formatUsPhoneForDisplay } from "../app/lib/business/phoneDisplay";
 import { isKnownStateProvinceLabel } from "../app/lib/business/statesProvinces";
 import { validateServiceCoverage } from "../app/lib/business/validation";
 import type { StructuredLocationDetailsV1 } from "../app/lib/business/types";

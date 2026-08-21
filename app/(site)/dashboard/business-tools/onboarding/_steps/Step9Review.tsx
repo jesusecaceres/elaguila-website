@@ -18,7 +18,7 @@ import { businessLanguageLabel } from "@/app/lib/business/languages";
 import type { DuplicateWarningResult } from "@/app/lib/business/types";
 import type { BusinessIdentityCopy, Lang } from "../../_components/businessIdentityCopy";
 import { deriveEffectiveOperatingModels, physicalAddressSummary, summarizeServiceCoverage, type WizardDraftPayloadV2 } from "../wizardTypes";
-import { formatUsPhoneForDisplay } from "./Step6ContactsProfiles";
+import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
 
 function labelFrom(list: readonly { value: string; es: string; en: string }[], value: string, lang: Lang): string {
   return list.find((o) => o.value === value)?.[lang] ?? value;

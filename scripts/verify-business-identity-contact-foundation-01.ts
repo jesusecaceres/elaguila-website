@@ -22,7 +22,8 @@ import {
   PREFERRED_RESPONSE_METHODS,
 } from "../app/lib/business/constants";
 import { validateContact, validateCustomLink, validatePreferredResponseMethod } from "../app/lib/business/validation";
-import { formatUsPhoneForDisplay, isPlatformHomepageOnly } from "../app/(site)/dashboard/business-tools/onboarding/_steps/Step6ContactsProfiles";
+import { formatUsPhoneForDisplay } from "../app/lib/business/phoneDisplay";
+import { isPlatformHomepageOnly } from "../app/(site)/dashboard/business-tools/onboarding/_steps/Step6ContactsProfiles";
 
 let passed = 0;
 function check(name: string, fn: () => void): void {

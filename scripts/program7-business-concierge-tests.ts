@@ -288,6 +288,12 @@ const opportunityListRoute = readSource("app/api/admin/businesses/[businessId]/o
 const opportunityReviewRoute = readSource("app/api/admin/businesses/[businessId]/opportunities/[opportunityId]/route.ts");
 const generateRoute = readSource("app/api/admin/businesses/[businessId]/creative-studio/jobs/[jobId]/generate/route.ts");
 const opportunityRepo = readSource("app/lib/business/opportunity/repository.ts");
+const fieldDictation = readSource("app/admin/field/[businessId]/FieldAgentDictationSection.tsx");
+const fieldBusinessPage = readSource("app/admin/field/[businessId]/page.tsx");
+const evidenceRoute = readSource("app/api/admin/businesses/[businessId]/book/evidence/route.ts");
+const livingBookActor = readSource("app/admin/_lib/livingBookActor.ts");
+const evidenceRepo = readSource("app/lib/business/livingBook/repository.ts");
+const phoneDisplay = readSource("app/lib/business/phoneDisplay.ts");
 
 test("51. valid staff roster session is still the Business Concierge staff path", () =>
   sqlContains(accessSource, /actorType: "staff"/) &&
@@ -366,6 +372,64 @@ test("60. public/customer paths remain unaffected (no Sales Workspace import on 
     sqlContains(loginPage, /Owner bootstrap \(shared password\)/)
   );
 });
+
+test("61. admin business detail formats phones from server-safe phoneDisplay, not a use-client module", () =>
+  sqlContains(phoneDisplay, /export function formatUsPhoneForDisplay/) &&
+  !/^\s*["']use client["']/.test(phoneDisplay) &&
+  sqlContains(businessesDetailPage, /from "@\/app\/lib\/business\/phoneDisplay"/) &&
+  !sqlContains(businessesDetailPage, /Step6ContactsProfiles/));
+
+test("62. empty field voice note cannot submit", () =>
+  sqlContains(fieldDictation, /canSubmit/) &&
+  sqlContains(fieldDictation, /transcript\.trim\(\)/) &&
+  sqlContains(fieldDictation, /disabled=\{!canSubmit\}/));
+
+test("63. valid dictated/typed text can submit to existing evidence API", () =>
+  sqlContains(fieldDictation, /evidenceType: "staff_note"/) &&
+  sqlContains(fieldDictation, /\/book\/evidence/) &&
+  sqlContains(fieldDictation, /Guardar nota \/ Save note/));
+
+test("64. field voice note requires businessId", () =>
+  sqlContains(fieldDictation, /businessId/) &&
+  sqlContains(fieldDictation, /businessId\.trim\(\)/) &&
+  sqlContains(fieldBusinessPage, /FieldAgentDictationSection businessId=\{businessId\}/));
+
+test("65. field voice note save requires authorization", () =>
+  sqlContains(evidenceRoute, /requireSalesWorkspaceAccess/) &&
+  sqlContains(evidenceRoute, /create_evidence/) &&
+  sqlContains(fieldBusinessPage, /requireSalesWorkspaceAccess/));
+
+test("66. success clears textarea", () =>
+  sqlContains(fieldDictation, /setTranscript\(""\)/) &&
+  sqlContains(fieldDictation, /setSaved\(true\)/));
+
+test("67. failure retains textarea (no clear on error path)", () => {
+  const errorIdx = fieldDictation.indexOf("setError(String(body?.error");
+  const successClearIdx = fieldDictation.indexOf('setTranscript("")');
+  return errorIdx >= 0 && successClearIdx > errorIdx;
+});
+
+test("68. duplicate click while pending is prevented", () =>
+  sqlContains(fieldDictation, /inflightRef/) &&
+  sqlContains(fieldDictation, /inflightRef\.current/) &&
+  sqlContains(fieldDictation, /!saving/));
+
+test("69. note is stored against the intended business via evidence insert", () =>
+  sqlContains(evidenceRepo, /business_id: input.businessId/) &&
+  sqlContains(evidenceRepo, /export async function addEvidence/) &&
+  sqlContains(fieldDictation, /encodeURIComponent\(businessId\)/));
+
+test("70. owner bootstrap does not fabricate a staff roster identity on evidence save", () =>
+  sqlContains(livingBookActor, /salesActorToLivingBookActor/) &&
+  sqlContains(livingBookActor, /isOwnerBootstrapActor/) &&
+  sqlContains(livingBookActor, /type: "owner"/) &&
+  sqlContains(evidenceRoute, /salesActorToLivingBookActor\(access\.actor\)/) &&
+  !sqlContains(evidenceRoute, /staffActorToLivingBookActor\(access\.actor\)/));
+
+test("71. no automatic persistence before Save is clicked", () =>
+  !sqlContains(fieldDictation, /useEffect/) &&
+  sqlContains(fieldDictation, /onClick=\{\(\) => void saveNote\(\)\}/) &&
+  sqlContains(fieldDictation, /DictationButton/));
 
 // Report
 const passed = results.filter((r) => r.passed).length;

@@ -6,7 +6,7 @@ import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData"
 import { computeNextHelpfulAction, computeProfileCompleteness, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
 import { countryLabel } from "@/app/lib/business/countries";
-import { formatUsPhoneForDisplay } from "@/app/(site)/dashboard/business-tools/onboarding/_steps/Step6ContactsProfiles";
+import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
 import { physicalAddressSummary, summarizeServiceCoverage } from "@/app/(site)/dashboard/business-tools/onboarding/wizardTypes";
 import { businessIdentityCopy } from "@/app/(site)/dashboard/business-tools/_components/businessIdentityCopy";
 import { FollowUpPanel, NotesPanel, StatusQuickActions } from "./BusinessWorkspaceActions";

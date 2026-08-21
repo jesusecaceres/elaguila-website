@@ -8,6 +8,9 @@ import { WhyWeAsk } from "../../_components/OptionToggleGroup";
 import type { BusinessIdentityCopy, Lang } from "../../_components/businessIdentityCopy";
 import type { WizardContactDraftV2, WizardCustomLinkDraft, WizardDraftPayloadV2 } from "../wizardTypes";
 import { newContactDraftV2, newCustomLinkDraft, newDigitalProfileDraft } from "../wizardTypes";
+import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
+
+export { formatUsPhoneForDisplay };
 
 function updateContact(payload: WizardDraftPayloadV2, id: string, patch: Partial<WizardContactDraftV2>): WizardDraftPayloadV2 {
   return { ...payload, contacts: payload.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)) };
@@ -15,24 +18,6 @@ function updateContact(payload: WizardDraftPayloadV2, id: string, patch: Partial
 
 function updateCustomLink(payload: WizardDraftPayloadV2, id: string, patch: Partial<WizardCustomLinkDraft>): WizardDraftPayloadV2 {
   return { ...payload, customLinks: payload.customLinks.map((l) => (l.id === id ? { ...l, ...patch } : l)) };
-}
-
-/**
- * Display-only US/Canada (NANP) formatting — used both on the Step 6 input's blur (never while
- * focused, to avoid the classic cursor-jump bug live-reformatting causes) and, as of Gate
- * BCO-3R-B.5, to render Step 9 review and the completed-profile page so raw canonical digits
- * (e.g. "14088021531") are never shown to the owner. A bare 10-digit number, or an 11-digit
- * number with the "1" NANP country code (with or without a leading "+"), both format the same
- * friendly way; the leading "1" is the country code implied by the parenthesized-area-code format
- * itself, not lost information. Every other length/country code is left exactly as typed — a
- * meaningful (non-NANP) country code is never stripped, and canonical storage normalization still
- * happens separately via normalizePhone/normalizeContactValue, unchanged by this display step.
- */
-export function formatUsPhoneForDisplay(raw: string): string {
-  const digitsWithCountryCode = raw.replace(/\D/g, "");
-  const digits = digitsWithCountryCode.length === 11 && digitsWithCountryCode.startsWith("1") ? digitsWithCountryCode.slice(1) : digitsWithCountryCode;
-  if (digits.length !== 10) return raw;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 const PLATFORM_HOMEPAGE_DOMAINS: Partial<Record<string, string>> = {

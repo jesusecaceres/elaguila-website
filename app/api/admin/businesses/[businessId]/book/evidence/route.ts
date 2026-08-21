@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { salesActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
 import { CONSENT_STATES, CONFIDENCE_LEVELS, EVIDENCE_TYPES, FACT_VISIBILITIES, MAX_EVIDENCE_CAPTURED_TEXT_LENGTH } from "@/app/lib/business/livingBook/constants";
 import { addEvidence } from "@/app/lib/business/livingBook/repository";
 
@@ -57,7 +57,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
       reliability: reliability as never,
       visibility: visibility as never,
     },
-    staffActorToLivingBookActor(access.actor),
+    salesActorToLivingBookActor(access.actor),
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });

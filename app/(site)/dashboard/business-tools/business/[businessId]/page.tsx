@@ -24,7 +24,7 @@ import { businessIdentityCopy, type Lang } from "../../_components/businessIdent
 import { businessApiFetch } from "../../_components/businessApiClient";
 import { BusinessIdentityLangSwitch } from "../../_components/BusinessIdentityLangSwitch";
 import { physicalAddressSummary, summarizeServiceCoverage } from "../../onboarding/wizardTypes";
-import { formatUsPhoneForDisplay } from "../../onboarding/_steps/Step6ContactsProfiles";
+import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
 
 type SummaryResponse = {
   business: Business;
