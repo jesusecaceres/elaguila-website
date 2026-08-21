@@ -26,7 +26,15 @@ export type ReverifyResourceResult =
   | { ok: false; reason: string; jobId: string | null };
 
 function buildDeterministicOnlyProposal(signals: ReturnType<typeof extractDeterministicSignals>, finalUrl: string, resourceName: string, confidential: boolean): UrlCandidateProposal {
-  return {
+  // is24Hours is deliberately OMITTED, not set to `false`: extractDeterministicSignals has no
+  // capability to detect 24/7 status at all (confirmed — it only extracts phones/emails/address-
+  // like lines), so there is zero real signal either way. A hardcoded `false` here would fabricate
+  // a safety-sensitive claim with no evidence — confirmed live during Gate 8 QA, where this exact
+  // bug proposed flipping a genuinely-24/7 resource's is24Hours to false on every AI-unavailable
+  // reverification. detectResourceFieldChanges skips undefined fields entirely (never proposes
+  // replacing real data with "unknown"), so omitting it here is the correct, safe behavior — same
+  // fix pattern as convertPartnerRequestToProposals.ts (Gate 7).
+  const proposal: Partial<UrlCandidateProposal> = {
     organizationName: resourceName,
     programName: null,
     organizationType: null,
@@ -48,10 +56,10 @@ function buildDeterministicOnlyProposal(signals: ReturnType<typeof extractDeterm
     languages: [],
     costModel: null,
     hoursNoteEn: null,
-    is24Hours: false,
     officialSourceUrl: finalUrl,
     confidenceNote: "Solo señales determinísticas — proveedor de IA no disponible durante la reverificación.",
   };
+  return proposal as UrlCandidateProposal;
 }
 
 /** Reverifies ONE known resource against its own official URL. Never creates a new candidate. */
