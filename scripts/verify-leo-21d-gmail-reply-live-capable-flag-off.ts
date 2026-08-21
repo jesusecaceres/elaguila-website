@@ -259,14 +259,22 @@ check(
 }
 
 // UI
-check(!/data-leo-action=\"execute\"|>Execute</i.test(cockpit), "21B cockpit has no Execute");
-check(!/>\s*Send\s*</.test(cockpit) && !cockpit.includes("Send now"), "21B cockpit has no Send");
+check(
+  cockpit.includes('data-leo-action="execute-request"') &&
+    cockpit.includes("canExecute") &&
+    cockpit.includes("Send this exact approved reply"),
+  "21E.1 Execute surface exists and is capability-gated",
+);
+check(!cockpit.includes("Send now"), "21B cockpit has no Send now");
 check(!/>\s*Schedule\s*</.test(cockpit) && !cockpit.includes("Schedule now"), "21B cockpit has no Schedule");
 
-// Execution API deferred (LEO-21D) — avoid premature activation surface before 21E
+// Execution API exists as of 21E.1 — still authority OFF (flag + scope)
 check(
-  !exists("app/api/leo/action/proposal/[proposalId]/execute/route.ts"),
-  "execution API deferred (no UI activation surface)",
+  exists("app/api/leo/action/proposal/[proposalId]/execute/route.ts") &&
+    src("app/api/leo/action/proposal/[proposalId]/execute/route.ts").includes(
+      "leoExecuteGovernedConnectedAction",
+    ),
+  "execution API exists and calls orchestrator (authority still two-key gated)",
 );
 
 // Current config cannot send
@@ -293,7 +301,8 @@ check(
   "docs record LEO-21D live-capable authority OFF",
 );
 check(
-  src(paths.oauth).includes("LEO-21D") && src(paths.oauth).includes("Do not regenerate"),
+  src(paths.oauth).includes("Do not regenerate") &&
+    (src(paths.oauth).includes("LEO-21D") || src(paths.oauth).includes("LEO-21E.1")),
   "OAuth docs: no grant mutation in 21D",
 );
 

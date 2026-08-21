@@ -294,7 +294,9 @@ Provider-neutral runtime for future RED connected actions.
 
 **LEO-21C — Gmail Reply adapter (write-disabled foundation):** `leoGmailReplyConnectedActionAdapter` handles `GMAIL_REPLY` only. `gmail.send` is declared but **not** in the live expected grant.
 
-**LEO-21D — Live-capable path, authority OFF:** Write switch `LEO_GMAIL_REPLY_WRITE_ENABLED` defaults false. Two-key rule: flag **and** proven `gmail.send` on the live token. MIME + `messages.send` transport + pre-send revalidation + full text/plain body verification exist in code. Default configuration cannot send. No Execute UI. Execute API deferred until 21E. Future 21E is the RED staging activation gate. CAPABILITY ≠ AUTHORITY.
+**LEO-21D — Live-capable path, authority OFF:** Write switch `LEO_GMAIL_REPLY_WRITE_ENABLED` defaults false. Two-key rule: flag **and** proven `gmail.send` on the live token. MIME + `messages.send` transport + pre-send revalidation + full text/plain body verification exist in code. Default configuration cannot send.
+
+**LEO-21E.1 — Owner Execute surface, authority OFF:** `POST .../execute` with `{ expectedFingerprint }` only; Governed Actions Execute + RED confirmation; capability read model gates the button. OAuth helper requests future union including `gmail.send` but consent is not run in this gate. No Preview env change. No live email. Next: LEO-21E.2 RED staging activation. CAPABILITY ≠ AUTHORITY.
 
 ---
 

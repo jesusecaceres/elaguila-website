@@ -137,9 +137,16 @@ Provider code is **live-capable** but **authority remains OFF**.
 - MIME plain-text builder + `messages.send` transport + pre-send thread revalidation
 - Full `format=full` text/plain body verification before `VERIFIED`
 - `PROVIDER_ACCEPTED` ≠ `VERIFIED`; timeout after dispatch → `UNKNOWN_EXTERNAL_OUTCOME` (no blind resend)
-- Execute API deferred (activation risk); 21B cockpit remains Approve / Cancel only
-- No live email; no OAuth grant change; no env mutation in this gate
-- Next: LEO-21E RED staging activation
+- Execute API deferred in 21D; superseded by LEO-21E.1 surface (still authority OFF)
+
+### LEO-21E.1 — Owner Execute Surface (Authority Still OFF)
+
+- `POST /api/leo/action/proposal/[proposalId]/execute` — `{ expectedFingerprint }` only → orchestrator
+- Governed Actions Execute + RED confirmation ("Send this exact approved reply")
+- Capability read model: `writeFlagEnabled` ∧ `gmailSendScopeProven` ⇒ `gmailReplyExecutionAvailable`
+- OAuth helper prepared for three-scope union (not run in this gate)
+- No OAuth consent, no Preview env change, no write flag ON, no live email
+- Next: LEO-21E.2 RED Preview activation + one controlled test
 
 ---
 
@@ -180,10 +187,10 @@ Each gate must preserve:
 
 **Active family:** LEO-21 — Governed Connected Actions
 
-**Current gate:** LEO-21D — Gmail Reply live-capable adapter (authority OFF)
+**Current gate:** LEO-21E.1 — Owner Execute surface (authority OFF)
 
-Next: LEO-21E RED staging activation (consent union + Preview token + write flag ON + one live test). Provider write currently impossible (flag off + no `gmail.send` grant).
+Next: LEO-21E.2 RED Preview OAuth + token replace + write flag ON + one controlled live reply + flag OFF.
 
-Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; LEO-21A runtime; LEO-21B cockpit; LEO-21C adapter foundations; staging persistence present (PM-certified).
+Prerequisite satisfied: LEO-17–21D foundations; Execute API/UI code present; OAuth helper union prepared; write authority still OFF.
 
-CAPABILITY ≠ AUTHORITY — live-capable code does not grant write authority.
+CAPABILITY ≠ AUTHORITY — Execute surface does not grant write authority.

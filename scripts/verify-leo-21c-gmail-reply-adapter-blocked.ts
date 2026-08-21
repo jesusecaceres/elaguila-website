@@ -182,8 +182,13 @@ check(
   "null adapter retained for other families",
 );
 
-check(!/data-leo-action=\"execute\"|>Execute</i.test(cockpitSrc), "21B cockpit has no Execute");
-check(!/>\s*Send\s*</.test(cockpitSrc) && !cockpitSrc.includes("Send now"), "21B cockpit has no Send");
+check(
+  cockpitSrc.includes('data-leo-action="execute-request"') &&
+    cockpitSrc.includes("canExecute") &&
+    !cockpitSrc.includes("Schedule now"),
+  "21B cockpit Execute is capability-gated (no Schedule)",
+);
+check(!cockpitSrc.includes("Send now"), "21B cockpit has no Send now");
 check(
   !/>\s*Schedule\s*</.test(cockpitSrc) && !cockpitSrc.includes("Schedule now"),
   "21B cockpit has no Schedule",

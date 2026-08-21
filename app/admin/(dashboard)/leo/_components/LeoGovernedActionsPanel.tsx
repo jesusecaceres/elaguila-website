@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * LEO-21B — Governed Actions approval cockpit on /admin/leo.
- * Approve / Cancel only. No Execute / Send / Schedule.
+ * LEO-21B/21E.1 — Governed Actions cockpit on /admin/leo.
+ * Approve / Cancel always; Execute only when server two-key capability is true.
  * CAPABILITY ≠ AUTHORITY.
  */
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import type { LeoGovernedActionProposalCard } from "@/app/leo/_lib/leoGovernedActionProposalReadModel";
@@ -15,9 +15,9 @@ export type LeoGovernedActionsLoad =
   | { ok: true; cards: LeoGovernedActionProposalCard[] }
   | { ok: false; limitation: string };
 
-type ConfirmApprove = {
-  card: LeoGovernedActionProposalCard;
-};
+type ConfirmApprove = { kind: "approve"; card: LeoGovernedActionProposalCard };
+type ConfirmExecute = { kind: "execute"; card: LeoGovernedActionProposalCard };
+type ConfirmState = ConfirmApprove | ConfirmExecute | null;
 
 function formatWhen(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -60,11 +60,13 @@ function ProposalCard({
   card,
   busy,
   onRequestApprove,
+  onRequestExecute,
   onCancel,
 }: {
   card: LeoGovernedActionProposalCard;
   busy: boolean;
   onRequestApprove: (card: LeoGovernedActionProposalCard) => void;
+  onRequestExecute: (card: LeoGovernedActionProposalCard) => void;
   onCancel: (card: LeoGovernedActionProposalCard) => void;
 }) {
   return (
@@ -72,6 +74,7 @@ function ProposalCard({
       className="min-w-0 rounded-xl border border-[color:var(--lx-border)]/70 bg-white/90 p-3.5 sm:p-4"
       data-leo-proposal-id={card.proposalId}
       data-leo-proposal-state={card.proposalState}
+      data-leo-can-execute={card.canExecute ? "true" : "false"}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <h3 className="min-w-0 flex-1 break-words text-sm font-bold text-[#1E1810] sm:text-[15px]">
@@ -102,7 +105,7 @@ function ProposalCard({
         <span className="font-semibold text-[#1E1810]">Summary:</span> {card.payloadSummary}
       </p>
 
-      <details className="mt-2 open:pb-1" open={card.canApprove}>
+      <details className="mt-2 open:pb-1" open={card.canApprove || card.canExecute}>
         <summary className="cursor-pointer touch-manipulation py-1 text-[11px] font-bold uppercase tracking-wide text-[#A67C52]">
           Exact consequential content
         </summary>
@@ -148,6 +151,17 @@ function ProposalCard({
             Approve…
           </button>
         ) : null}
+        {card.canExecute ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onRequestExecute(card)}
+            className="min-h-12 w-full touch-manipulation rounded-xl border border-rose-500 bg-rose-800 px-4 py-3 text-sm font-bold text-white disabled:opacity-50 sm:w-auto sm:min-w-[10rem]"
+            data-leo-action="execute-request"
+          >
+            Execute
+          </button>
+        ) : null}
         {card.canCancel ? (
           <button
             type="button"
@@ -176,7 +190,10 @@ export function LeoGovernedActionsPanel({
     initialLoad.ok ? null : initialLoad.limitation,
   );
   const [actionError, setActionError] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<ConfirmApprove | null>(null);
+  const [actionInfo, setActionInfo] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
+  /** After UNKNOWN_EXTERNAL_OUTCOME — never offer Execute again for that proposal in-session. */
+  const [blockedExecuteIds, setBlockedExecuteIds] = useState<Record<string, true>>({});
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
 
@@ -202,13 +219,10 @@ export function LeoGovernedActionsPanel({
     return true;
   }, []);
 
-  useEffect(() => {
-    // Keep initial SSR truth; optional soft refresh if empty and ok.
-  }, []);
-
   const runCancel = (card: LeoGovernedActionProposalCard) => {
     setBusy(true);
     setActionError(null);
+    setActionInfo(null);
     startTransition(async () => {
       try {
         const res = await fetch(`/api/leo/action/proposal/${encodeURIComponent(card.proposalId)}`, {
@@ -237,6 +251,7 @@ export function LeoGovernedActionsPanel({
   const runApprove = (card: LeoGovernedActionProposalCard) => {
     setBusy(true);
     setActionError(null);
+    setActionInfo(null);
     startTransition(async () => {
       try {
         const res = await fetch(`/api/leo/action/proposal/${encodeURIComponent(card.proposalId)}`, {
@@ -270,6 +285,68 @@ export function LeoGovernedActionsPanel({
     });
   };
 
+  const runExecute = (card: LeoGovernedActionProposalCard) => {
+    setBusy(true);
+    setActionError(null);
+    setActionInfo(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch(
+          `/api/leo/action/proposal/${encodeURIComponent(card.proposalId)}/execute`,
+          {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+              expectedFingerprint: card.proposalFingerprint,
+            }),
+          },
+        );
+        const body = await res.json().catch(() => null);
+        setConfirm(null);
+        if (!res.ok || !body?.ok) {
+          setActionError(
+            typeof body?.error === "string"
+              ? body.error
+              : "Execute failed. Canonical state unchanged until refresh.",
+          );
+          await refreshFromServer();
+          return;
+        }
+        const result = body.result as {
+          status?: string;
+          safeFailureClass?: string | null;
+          warnings?: string[];
+          externalSideEffectPossible?: boolean;
+        };
+        if (result?.status === "UNKNOWN_EXTERNAL_OUTCOME") {
+          setBlockedExecuteIds((prev) => ({ ...prev, [card.proposalId]: true }));
+          setActionInfo(
+            "Unknown outcome — checking Gmail. Do not click Execute again. Reconcile-first.",
+          );
+        } else if (result?.status === "VERIFIED") {
+          setActionInfo("Verified reply sent.");
+        } else if (result?.status === "PROVIDER_ACCEPTED") {
+          setActionInfo("Provider accepted — verification pending.");
+        } else if (result?.status === "FAILED") {
+          setActionError(
+            Array.isArray(result.warnings) && result.warnings.length
+              ? result.warnings.join(" ")
+              : result.safeFailureClass
+                ? `Failed: ${result.safeFailureClass}`
+                : "Execution failed before send or with a safe failure class.",
+          );
+        }
+        await refreshFromServer();
+      } catch {
+        setActionError("Execute failed. Canonical state unchanged until refresh.");
+        setConfirm(null);
+      } finally {
+        setBusy(false);
+      }
+    });
+  };
+
   return (
     <section
       className={`${adminCardBase} min-w-0 space-y-3 p-3 sm:p-4`}
@@ -285,8 +362,8 @@ export function LeoGovernedActionsPanel({
             Governed Actions
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-[#5C5346]">
-            Owner approval for RED connected actions. Approval does not execute. Provider writes are
-            not enabled.
+            Owner approval and gated execution for RED connected actions. Approval does not execute.
+            Execute requires server two-key capability (write flag + proven gmail.send).
           </p>
         </div>
         <button
@@ -322,6 +399,11 @@ export function LeoGovernedActionsPanel({
           {actionError}
         </p>
       ) : null}
+      {actionInfo ? (
+        <p className="rounded-lg border border-[#1E4A7A]/30 bg-[#F0F5FA] px-3 py-2 text-sm text-[#1E4A7A]">
+          {actionInfo}
+        </p>
+      ) : null}
 
       {!loadError && cards.length === 0 ? (
         <p className="text-sm text-[#5C5346]">
@@ -331,21 +413,31 @@ export function LeoGovernedActionsPanel({
       ) : null}
 
       <div className="flex min-w-0 flex-col gap-3">
-        {cards.map((card) => (
-          <ProposalCard
-            key={card.proposalId}
-            card={card}
-            busy={busy || pending}
-            onRequestApprove={(c) => {
-              setActionError(null);
-              setConfirm({ card: c });
-            }}
-            onCancel={runCancel}
-          />
-        ))}
+        {cards.map((card) => {
+          const canExecute =
+            card.canExecute && !blockedExecuteIds[card.proposalId];
+          return (
+            <ProposalCard
+              key={card.proposalId}
+              card={{ ...card, canExecute }}
+              busy={busy || pending}
+              onRequestApprove={(c) => {
+                setActionError(null);
+                setActionInfo(null);
+                setConfirm({ kind: "approve", card: c });
+              }}
+              onRequestExecute={(c) => {
+                setActionError(null);
+                setActionInfo(null);
+                setConfirm({ kind: "execute", card: c });
+              }}
+              onCancel={runCancel}
+            />
+          );
+        })}
       </div>
 
-      {confirm ? (
+      {confirm?.kind === "approve" ? (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center"
           role="dialog"
@@ -359,8 +451,8 @@ export function LeoGovernedActionsPanel({
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-[#5C5346]">
               You are approving LEO to perform this exact RED action when execution capability is
-              enabled later. Clicking Approve does <span className="font-semibold">not</span> send
-              email or schedule calendar events now.
+              enabled. Clicking Approve does <span className="font-semibold">not</span> send email
+              or schedule calendar events now.
             </p>
             <p className="mt-3 text-sm text-[#1E1810]">
               <span className="font-semibold">Action:</span> {confirm.card.actionFamilyLabel}
@@ -390,6 +482,63 @@ export function LeoGovernedActionsPanel({
                 onClick={() => setConfirm(null)}
                 className="min-h-12 w-full touch-manipulation rounded-xl border border-[color:var(--lx-border)] bg-white px-4 py-3 text-sm font-bold text-[#1E1810] disabled:opacity-50"
                 data-leo-action="approve-dismiss"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirm?.kind === "execute" ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leo-execute-confirm-title"
+          data-leo-confirm="execute"
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-auto rounded-2xl border-2 border-rose-500 bg-white p-4 shadow-xl">
+            <h3 id="leo-execute-confirm-title" className="text-base font-bold text-rose-950">
+              Send this exact approved reply
+            </h3>
+            <p className="mt-2 text-sm font-semibold leading-relaxed text-rose-900">
+              RED governance — this will attempt a real Gmail send of the approved payload. No
+              payload changes. Fingerprint-bound.
+            </p>
+            <p className="mt-3 text-sm text-[#1E1810]">
+              <span className="font-semibold">Action family:</span> {confirm.card.actionFamilyLabel}
+            </p>
+            <p className="mt-1 break-words text-sm text-[#1E1810]">
+              <span className="font-semibold">Recipient:</span>{" "}
+              {confirm.card.recipientDisplay ?? confirm.card.targetSummary}
+            </p>
+            <p className="mt-1 break-all text-sm text-[#1E1810]">
+              <span className="font-semibold">Thread:</span>{" "}
+              {confirm.card.threadDisplay ?? "(see payload)"}
+            </p>
+            <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]">
+              Full approved body
+            </p>
+            <pre className="mt-1 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-rose-300 bg-rose-50 p-3 text-xs leading-relaxed text-[#1E1810]">
+              {confirm.card.bodyDisplay ?? confirm.card.payloadDetails.join("\n\n")}
+            </pre>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                disabled={busy || pending}
+                onClick={() => runExecute(confirm.card)}
+                className="min-h-12 w-full touch-manipulation rounded-xl border border-rose-700 bg-rose-800 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                data-leo-action="execute-confirm"
+              >
+                Send approved reply
+              </button>
+              <button
+                type="button"
+                disabled={busy || pending}
+                onClick={() => setConfirm(null)}
+                className="min-h-12 w-full touch-manipulation rounded-xl border border-[color:var(--lx-border)] bg-white px-4 py-3 text-sm font-bold text-[#1E1810] disabled:opacity-50"
+                data-leo-action="execute-dismiss"
               >
                 Back
               </button>

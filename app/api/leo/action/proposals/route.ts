@@ -46,8 +46,9 @@ export async function GET() {
       {
         ok: true,
         cards: res.cards,
+        capability: res.capability,
         limitations: [
-          "Approval does not execute. Provider writes are not enabled.",
+          "Approval does not execute. Execute requires two-key capability (write flag + proven gmail.send).",
           "CAPABILITY ≠ AUTHORITY.",
         ],
       },

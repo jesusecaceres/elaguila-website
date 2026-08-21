@@ -30,6 +30,12 @@ export type LeoGovernedActionProposalCard = {
   targetSummary: string;
   payloadSummary: string;
   payloadDetails: string[];
+  /** Exact recipient for GMAIL_* (safe display). */
+  recipientDisplay: string | null;
+  /** Exact approved body for GMAIL_* (safe display). */
+  bodyDisplay: string | null;
+  /** Thread id for GMAIL_REPLY when present. */
+  threadDisplay: string | null;
   truthLabel: string;
   statusPrimary: string;
   statusSecondary: string | null;
@@ -37,6 +43,11 @@ export type LeoGovernedActionProposalCard = {
   isExpired: boolean;
   canApprove: boolean;
   canCancel: boolean;
+  /** LEO-21E.1 — Execute only when APPROVED GMAIL_REPLY + two-key capability. */
+  canExecute: boolean;
+  writeFlagEnabled: boolean;
+  gmailSendScopeProven: boolean;
+  gmailReplyExecutionAvailable: boolean;
   whyApprovalRequired: string;
   executionCapabilityNote: string | null;
 };
@@ -68,6 +79,7 @@ function actionFamilyLabel(family: LeoActionProposalActionFamily): string {
 
 export function presentGovernedActionStatus(
   state: LeoActionProposalState,
+  opts?: { gmailReplyExecutionAvailable?: boolean; actionFamily?: LeoActionProposalActionFamily },
 ): { primary: string; secondary: string | null } {
   switch (state) {
     case "DRAFT":
@@ -76,16 +88,29 @@ export function presentGovernedActionStatus(
     case "AWAITING_APPROVAL":
       return { primary: "Needs approval", secondary: "RED — explicit owner approval required" };
     case "APPROVED":
+      if (opts?.actionFamily === "GMAIL_REPLY" && opts.gmailReplyExecutionAvailable) {
+        return {
+          primary: "Approved — ready to execute",
+          secondary: "Execution requires a second RED confirmation",
+        };
+      }
       return {
-        primary: "Approved — execution capability not enabled yet",
+        primary: "Approved — Gmail reply execution is not enabled",
         secondary: "Approval does not send, schedule, or execute",
       };
     case "EXECUTION_CLAIMED":
       return { primary: "Executing", secondary: "Execution claimed — not verified" };
     case "EXECUTED":
-      return { primary: "Executed — verification pending", secondary: "Provider accepted ≠ verified" };
+      return {
+        primary: "Provider accepted — verification pending",
+        secondary: "Provider accepted ≠ verified",
+      };
     case "VERIFIED":
-      return { primary: "Verified", secondary: null };
+      return {
+        primary:
+          opts?.actionFamily === "GMAIL_REPLY" ? "Verified reply sent" : "Verified",
+        secondary: null,
+      };
     case "FAILED":
       return { primary: "Failed", secondary: null };
     case "CANCELLED":
@@ -216,11 +241,20 @@ export function leoGovernedActionDisplayPriority(state: LeoActionProposalState):
 export function mapLeoActionProposalToOwnerCard(
   proposal: LeoActionProposal,
   nowMs: number = Date.now(),
+  capability?: {
+    writeFlagEnabled: boolean;
+    gmailSendScopeProven: boolean;
+    gmailReplyExecutionAvailable: boolean;
+  },
 ): LeoGovernedActionProposalCard {
   const expiresMs = Date.parse(proposal.expiresAt);
   const isExpired =
     proposal.proposalState === "EXPIRED" ||
     (Number.isFinite(expiresMs) && expiresMs <= nowMs);
+
+  const writeFlagEnabled = capability?.writeFlagEnabled ?? false;
+  const gmailSendScopeProven = capability?.gmailSendScopeProven ?? false;
+  const gmailReplyExecutionAvailable = capability?.gmailReplyExecutionAvailable ?? false;
 
   const canApprove =
     !isExpired &&
@@ -233,8 +267,50 @@ export function mapLeoActionProposalToOwnerCard(
       proposal.proposalState,
     );
 
-  const status = presentGovernedActionStatus(proposal.proposalState);
+  const canExecute =
+    !isExpired &&
+    proposal.proposalState === "APPROVED" &&
+    proposal.actionFamily === "GMAIL_REPLY" &&
+    writeFlagEnabled &&
+    gmailSendScopeProven &&
+    gmailReplyExecutionAvailable;
+
+  const status = presentGovernedActionStatus(proposal.proposalState, {
+    gmailReplyExecutionAvailable,
+    actionFamily: proposal.actionFamily,
+  });
   const { targetSummary, payloadSummary, payloadDetails } = buildTargetAndPayload(proposal);
+
+  const p = proposal.structuredPayload as Record<string, unknown>;
+  const target = asRecord(proposal.normalizedTarget);
+  const recipientDisplay =
+    proposal.actionFamily === "GMAIL_REPLY" || proposal.actionFamily === "GMAIL_SEND"
+      ? str(p.recipient) ?? str(target.recipientEmail) ?? str(target.recipient) ?? null
+      : null;
+  const bodyDisplay =
+    proposal.actionFamily === "GMAIL_REPLY" || proposal.actionFamily === "GMAIL_SEND"
+      ? str(p.body)
+      : null;
+  const threadDisplay =
+    proposal.actionFamily === "GMAIL_REPLY"
+      ? str(p.threadId) ?? str(target.threadId)
+      : null;
+
+  let executionCapabilityNote: string | null = null;
+  if (proposal.proposalState === "APPROVED" && proposal.actionFamily === "GMAIL_REPLY") {
+    executionCapabilityNote = gmailReplyExecutionAvailable
+      ? "Approved — Gmail reply execution is available. Execute requires a second RED confirmation."
+      : "Approved — Gmail reply execution is not enabled.";
+  } else if (proposal.proposalState === "APPROVED") {
+    executionCapabilityNote =
+      "Approved — execution capability not enabled for this action family.";
+  } else if (proposal.proposalState === "EXECUTION_CLAIMED") {
+    executionCapabilityNote = "Executing — do not retry send.";
+  } else if (proposal.proposalState === "EXECUTED") {
+    executionCapabilityNote = "Provider accepted — verification pending. Provider accepted ≠ verified.";
+  } else if (proposal.proposalState === "VERIFIED" && proposal.actionFamily === "GMAIL_REPLY") {
+    executionCapabilityNote = "Verified reply sent.";
+  }
 
   return {
     proposalId: proposal.proposalId,
@@ -254,6 +330,9 @@ export function mapLeoActionProposalToOwnerCard(
     targetSummary,
     payloadSummary,
     payloadDetails,
+    recipientDisplay,
+    bodyDisplay,
+    threadDisplay,
     truthLabel: leoProposalTruthLabelForState(proposal.proposalState, false),
     statusPrimary: status.primary,
     statusSecondary: status.secondary,
@@ -261,12 +340,13 @@ export function mapLeoActionProposalToOwnerCard(
     isExpired,
     canApprove,
     canCancel,
+    canExecute,
+    writeFlagEnabled,
+    gmailSendScopeProven,
+    gmailReplyExecutionAvailable,
     whyApprovalRequired:
       "RED governed action — LEO cannot execute without your explicit approval of this exact fingerprint.",
-    executionCapabilityNote:
-      proposal.proposalState === "APPROVED"
-        ? "Approved — execution capability not enabled yet. Approve does not send or schedule."
-        : null,
+    executionCapabilityNote,
   };
 }
 

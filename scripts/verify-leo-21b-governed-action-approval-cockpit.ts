@@ -77,12 +77,13 @@ check(presentGovernedActionStatus("AWAITING_APPROVAL").primary === "Needs approv
 check(presentGovernedActionStatus("PREPARED").primary === "Prepared", "Prepared visible");
 check(
   presentGovernedActionStatus("APPROVED").primary ===
-    "Approved — execution capability not enabled yet",
-  "Approved visible",
+    "Approved — Gmail reply execution is not enabled",
+  "Approved visible (capability off by default)",
 );
 check(presentGovernedActionStatus("EXECUTION_CLAIMED").primary === "Executing", "Executing visible");
 check(
-  presentGovernedActionStatus("EXECUTED").primary === "Executed — verification pending",
+  presentGovernedActionStatus("EXECUTED").primary ===
+    "Provider accepted — verification pending",
   "Executed pending verification visible",
 );
 check(presentGovernedActionStatus("VERIFIED").primary === "Verified", "Verified visible");
@@ -127,13 +128,18 @@ check(
 );
 check(
   panelSrc.includes("does not") &&
-    panelSrc.includes("not enabled") &&
+    panelSrc.includes("not execute") &&
     !panelSrc.includes("Send now"),
   "approval does not imply execution",
 );
 
-check(!/data-leo-action=\"execute\"|Execute now|>Execute</i.test(panelSrc), "no Execute button");
-check(!/>\s*Send\s*</.test(panelSrc) && !panelSrc.includes("Send now"), "no Send button");
+check(
+  panelSrc.includes('data-leo-action="execute-request"') &&
+    panelSrc.includes("canExecute") &&
+    panelSrc.includes("Send this exact approved reply"),
+  "Execute surface exists but is capability-gated (canExecute)",
+);
+check(!panelSrc.includes("Send now"), "no Send now one-click");
 check(!/>\s*Schedule\s*</.test(panelSrc) && !panelSrc.includes("Schedule now"), "no Schedule button");
 check(
   !panelSrc.includes("leoExecuteGovernedConnectedAction") &&

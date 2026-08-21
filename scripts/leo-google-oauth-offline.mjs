@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * LEO-13A — One-time LOCAL OAuth helper for Google Workspace refresh token.
+ * LEO Google OAuth — One-time LOCAL helper for Preview refresh token.
  *
  * LOCAL OPS ONLY. Not imported by the app. Not an API. Not deployed.
  *
@@ -12,19 +12,22 @@
  * Requires a Google Cloud OAuth client that allows loopback redirect:
  *   http://127.0.0.1:<port>/oauth/callback
  *
- * Scopes (read-only only):
+ * Scope union (LEO-21E.1 — prepared for future RED consent; DO NOT run until 21E.2):
  *   https://www.googleapis.com/auth/gmail.readonly
  *   https://www.googleapis.com/auth/calendar.readonly
+ *   https://www.googleapis.com/auth/gmail.send
  *
  * Does NOT write tokens to disk. Does NOT print access tokens or client secrets.
+ * DO NOT paste the refresh token into Cursor/chat.
  */
 
 import http from "node:http";
 import { URL } from "node:url";
 
-const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
-const SCOPES = `${GMAIL_SCOPE} ${CALENDAR_SCOPE}`;
+const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+const SCOPES = `${GMAIL_READONLY_SCOPE} ${CALENDAR_READONLY_SCOPE} ${GMAIL_SEND_SCOPE}`;
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const LISTEN_HOST = "127.0.0.1";
@@ -72,11 +75,15 @@ const authorizationUrl = `${AUTH_URL}?${authParams.toString()}`;
 console.log("");
 console.log("LEO Google OAuth — LOCAL ONE-TIME HELPER");
 console.log("========================================");
-console.log("Scopes: gmail.readonly + calendar.readonly only");
+console.log("Scope union:");
+console.log("  - gmail.readonly");
+console.log("  - calendar.readonly");
+console.log("  - gmail.send");
+console.log("(No modify, compose, or full-mailbox scopes)");
 console.log(`Loopback redirect: ${redirectUri}`);
 console.log("");
 console.log("1. Add this exact redirect URI to your Google Cloud OAuth client.");
-console.log("2. Open this URL in your browser and authorize the owner account:");
+console.log("2. Open this URL in your browser and authorize the configured LEO owner account:");
 console.log("");
 console.log(authorizationUrl);
 console.log("");
@@ -214,10 +221,11 @@ if (authorizedAccount) {
 }
 console.log("REFRESH TOKEN ACQUIRED: YES");
 console.log("");
-console.log("SENSITIVE — COPY THIS ONCE AND DO NOT SHARE OR SCREENSHOT");
+console.log("SENSITIVE — COPY THIS ONCE INTO A SECURE VAULT. DO NOT PASTE INTO CURSOR/CHAT.");
 console.log(refreshToken);
 console.log("");
-console.log("NEXT STEP: save the refresh token securely as LEO_GOOGLE_REFRESH_TOKEN in Vercel Preview");
-console.log("Also set LEO_GOOGLE_CLIENT_ID, LEO_GOOGLE_CLIENT_SECRET, and LEO_GOOGLE_ACCOUNT_EMAIL.");
+console.log("NEXT (LEO-21E.2 RED only): validate candidate token, then set LEO_GOOGLE_REFRESH_TOKEN in Vercel Preview only.");
+console.log("Also ensure LEO_GOOGLE_CLIENT_ID, LEO_GOOGLE_CLIENT_SECRET, and LEO_GOOGLE_ACCOUNT_EMAIL.");
+console.log("Do not enable LEO_GMAIL_REPLY_WRITE_ENABLED until scope proof passes. Production remains untouched.");
 console.log("");
 console.log("This helper did not write any secrets to disk.");

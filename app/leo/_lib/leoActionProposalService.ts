@@ -21,6 +21,10 @@ import {
   sortLeoGovernedActionCards,
   type LeoGovernedActionProposalCard,
 } from "@/app/leo/_lib/leoGovernedActionProposalReadModel";
+import {
+  getLeoGmailReplyExecutionCapability,
+  type LeoGmailReplyExecutionCapability,
+} from "@/app/leo/_lib/leoGmailReplyExecutionCapability";
 import { computeLeoActionProposalFingerprint } from "@/app/leo/_lib/leoActionProposalFingerprint";
 import {
   LEO_ACTION_PROPOSAL_FAMILIES,
@@ -316,17 +320,18 @@ export async function leoGetGovernedActionProposalForOwner(input: {
 export async function leoListGovernedActionProposalCardsForOwner(input?: {
   limit?: number;
 }): Promise<
-  | { ok: true; cards: LeoGovernedActionProposalCard[] }
+  | { ok: true; cards: LeoGovernedActionProposalCard[]; capability: LeoGmailReplyExecutionCapability }
   | { ok: false; error: string }
 > {
   const access = await requireLeoOwnerAccess();
   const ownerActorId = access.admin.authUserId?.trim();
   if (!ownerActorId) return { ok: false, error: "missing_owner_actor_id" };
+  const capability = await getLeoGmailReplyExecutionCapability();
   const proposals = await listLeoActionProposalsForOwner(ownerActorId, input?.limit ?? 40);
   const cards = sortLeoGovernedActionCards(
-    proposals.map((p) => mapLeoActionProposalToOwnerCard(p)),
+    proposals.map((p) => mapLeoActionProposalToOwnerCard(p, Date.now(), capability)),
   );
-  return { ok: true, cards };
+  return { ok: true, cards, capability };
 }
 
 /**
