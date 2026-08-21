@@ -10,10 +10,10 @@
  * existing transitionJobStatus() status machine (constants.ts).
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import {
   createInputSnapshot, createJobVersion, createProviderRun, getJobById, getLastProviderRunForJob,
-  getLatestBriefForJob, transitionJobStatus, type CreativeActor,
+  getLatestBriefForJob, transitionJobStatus,
 } from "@/app/lib/business/creativeStudio/repository";
 import { assembleResearchPacket } from "@/app/lib/business/creativeStudio/researchPacketAssembler";
 import { compileDoctrineForJob, inferCreativeFamilyFromAssetType } from "@/app/lib/business/creativeStudio/doctrine";
@@ -59,13 +59,7 @@ export async function POST(
     // Body is optional — providerKey defaults to the job's stored provider or the global default.
   }
 
-  const actor: CreativeActor = {
-    type: "staff",
-    rosterId: access.actor.rosterId,
-    authUserId: access.actor.authUserId,
-    email: access.actor.email,
-    role: access.actor.role,
-  };
+  const actor = salesActorToCreativeActor(access.actor);
 
   // 1. Assemble a fresh verified truth snapshot and persist it (append-only).
   const packet = await assembleResearchPacket(businessId);

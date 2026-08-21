@@ -21,7 +21,7 @@ function actorRosterId(actor: OpportunityActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;
 }
 function actorAuthUserId(actor: OpportunityActor): string | null {
-  return actor.type === "staff" ? actor.authUserId : null;
+  return actor.type === "system" ? null : actor.authUserId;
 }
 
 function mapRow(row: Record<string, unknown>): CreativeOpportunity {
@@ -175,46 +175,43 @@ async function transitionOpportunityState(
   return { ok: true, opportunity: mapRow(data) };
 }
 
+function reviewAttribution(
+  actor: Extract<OpportunityActor, { type: "staff" | "owner" }>,
+  reviewNote: string | null,
+): { reviewedByRosterId: string | null; reviewedByAuthUserId: string; reviewedByRole: string; reviewNote: string | null } {
+  return {
+    reviewedByRosterId: actor.type === "staff" ? actor.rosterId : null,
+    reviewedByAuthUserId: actor.authUserId,
+    reviewedByRole: actor.role,
+    reviewNote,
+  };
+}
+
 export async function reviewOpportunity(
   businessId: string,
   opportunityId: string,
   input: ReviewOpportunityInput,
-  actor: Extract<OpportunityActor, { type: "staff" }>,
+  actor: Extract<OpportunityActor, { type: "staff" | "owner" }>,
 ): Promise<TransitionOpportunityResult> {
-  return transitionOpportunityState(businessId, opportunityId, "reviewed", {
-    reviewedByRosterId: actor.rosterId,
-    reviewedByAuthUserId: actor.authUserId,
-    reviewedByRole: actor.role,
-    reviewNote: input.reviewNote,
-  });
+  return transitionOpportunityState(businessId, opportunityId, "reviewed", reviewAttribution(actor, input.reviewNote));
 }
 
 export async function approveOpportunity(
   businessId: string,
   opportunityId: string,
   input: ReviewOpportunityInput,
-  actor: Extract<OpportunityActor, { type: "staff" }>,
+  actor: Extract<OpportunityActor, { type: "staff" | "owner" }>,
 ): Promise<TransitionOpportunityResult> {
-  return transitionOpportunityState(businessId, opportunityId, "approved", {
-    reviewedByRosterId: actor.rosterId,
-    reviewedByAuthUserId: actor.authUserId,
-    reviewedByRole: actor.role,
-    reviewNote: input.reviewNote,
-  });
+  return transitionOpportunityState(businessId, opportunityId, "approved", reviewAttribution(actor, input.reviewNote));
 }
 
 export async function dismissOpportunity(
   businessId: string,
   opportunityId: string,
   input: ReviewOpportunityInput,
-  actor: Extract<OpportunityActor, { type: "staff" }>,
+  actor: Extract<OpportunityActor, { type: "staff" | "owner" }>,
 ): Promise<TransitionOpportunityResult> {
-  return transitionOpportunityState(businessId, opportunityId, "dismissed", {
-    reviewedByRosterId: actor.rosterId,
-    reviewedByAuthUserId: actor.authUserId,
-    reviewedByRole: actor.role,
-    reviewNote: input.reviewNote,
-  });
+  return transitionOpportunityState(businessId, opportunityId, "dismissed", reviewAttribution(actor, input.reviewNote));
 }
 
 /**

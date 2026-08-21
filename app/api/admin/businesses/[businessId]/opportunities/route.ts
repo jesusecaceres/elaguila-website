@@ -3,10 +3,9 @@
  * Reuses the existing Sales Workspace authorization boundary — no new auth system.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToOpportunityActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { generateOpportunitySuggestions } from "@/app/lib/business/opportunity/generateSuggestions";
 import { listOpportunitiesForBusiness } from "@/app/lib/business/opportunity/repository";
-import type { OpportunityActor } from "@/app/lib/business/opportunity/types";
 
 export async function GET(
   _req: NextRequest,
@@ -39,16 +38,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  if (!access.actor.rosterId) {
-    return NextResponse.json({ ok: false, error: "roster_required" }, { status: 403 });
-  }
-  const actor: OpportunityActor = {
-    type: "staff",
-    rosterId: access.actor.rosterId,
-    authUserId: access.actor.authUserId,
-    role: access.actor.role,
-  };
-
+  const actor = salesActorToOpportunityActor(access.actor);
   const result = await generateOpportunitySuggestions(businessId, actor);
   return NextResponse.json({ ok: true, created: result.created, skippedExisting: result.skippedExisting });
 }

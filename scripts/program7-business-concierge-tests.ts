@@ -278,6 +278,95 @@ test("50. push remains unavailable/provider-ready unless genuinely configured (n
   !sqlContains(swSource, /addEventListener\("push"/) &&
   !sqlContains(swRegistration, /pushManager/));
 
+const accessSource = readSource("app/admin/_lib/businessWorkspaceAccess.ts");
+const staffAuthRoute = readSource("app/admin/login/auth/route.ts");
+const bootstrapSubmitRoute = readSource("app/admin/login/submit/route.ts");
+const loginPage = readSource("app/admin/login/page.tsx");
+const businessesListPage = readSource("app/admin/(dashboard)/businesses/page.tsx");
+const businessesDetailPage = readSource("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const opportunityListRoute = readSource("app/api/admin/businesses/[businessId]/opportunities/route.ts");
+const opportunityReviewRoute = readSource("app/api/admin/businesses/[businessId]/opportunities/[opportunityId]/route.ts");
+const generateRoute = readSource("app/api/admin/businesses/[businessId]/creative-studio/jobs/[jobId]/generate/route.ts");
+const opportunityRepo = readSource("app/lib/business/opportunity/repository.ts");
+
+test("51. valid staff roster session is still the Business Concierge staff path", () =>
+  sqlContains(accessSource, /actorType: "staff"/) &&
+  sqlContains(accessSource, /lookupActiveAdminRosterByAuthUserId\(authUserId\)/) &&
+  sqlContains(accessSource, /lookupAuthUserById\(authUserId\)/) &&
+  sqlContains(staffAuthRoute, /bootstrap:\s*false/) &&
+  sqlContains(businessesListPage, /requireSalesWorkspaceAccess/));
+
+test("52. invalid staff session is denied (no cookie / no operator / auth user missing)", () =>
+  sqlContains(accessSource, /reason: "no_admin_cookie"/) &&
+  sqlContains(accessSource, /reason: "no_operator_identity"/) &&
+  sqlContains(accessSource, /reason: "auth_user_not_found"/) &&
+  sqlContains(accessSource, /"roster_not_found"/) &&
+  sqlContains(accessSource, /"roster_inactive"/));
+
+test("53. valid owner-bootstrap session is accepted as owner_bootstrap, not staff", () =>
+  sqlContains(accessSource, /isAdminBootstrapSession\(jar\)/) &&
+  sqlContains(accessSource, /ownerBootstrapAccess\(\)/) &&
+  sqlContains(accessSource, /actorType: "owner_bootstrap"/) &&
+  sqlContains(accessSource, /capabilitiesForRole\("super_admin"\)/) &&
+  !sqlContains(accessSource, /return \{ ok: false, reason: "bootstrap_session_not_allowed" \}/));
+
+test("54. invalid bootstrap is denied (password check + cookie gate remain)", () =>
+  sqlContains(bootstrapSubmitRoute, /process\.env\.ADMIN_PASSWORD/) &&
+  sqlContains(bootstrapSubmitRoute, /password !== expected/) &&
+  sqlContains(bootstrapSubmitRoute, /bootstrap:\s*true/) &&
+  sqlContains(accessSource, /if \(!requireAdminCookie\(jar\)\)/) &&
+  sqlContains(readSource("app/lib/supabase/adminSession.ts"), /cookies\.get\(LEONIX_ADMIN_BOOTSTRAP_COOKIE\)\?\.value === "1"/));
+
+test("55. owner bootstrap does not become a generic staff session", () => {
+  const bootstrapFn = accessSource.slice(accessSource.indexOf("function ownerBootstrapAccess"), accessSource.indexOf("export function isOwnerBootstrapActor"));
+  return (
+    bootstrapFn.includes('actorType: "owner_bootstrap"') &&
+    !bootstrapFn.includes('actorType: "staff"') &&
+    bootstrapFn.includes('rosterId: ""') &&
+    sqlContains(accessSource, /type: "owner"/) &&
+    sqlContains(bootstrapSubmitRoute, /applyLeonixAdminSessionCookies\(res, \{ bootstrap: true \}\)/)
+  );
+});
+
+test("56. no bootstrap secret reaches client props", () =>
+  !sqlContains(loginPage, /ADMIN_PASSWORD/) &&
+  !sqlContains(loginPage, /process\.env/) &&
+  !sqlContains(businessesListPage, /ADMIN_PASSWORD/) &&
+  !sqlContains(businessesDetailPage, /ADMIN_PASSWORD/) &&
+  sqlContains(accessSource, /import "server-only"/) &&
+  !sqlContains(bootstrapSubmitRoute, /console\.log/) &&
+  !sqlContains(bootstrapSubmitRoute, /console\.info/));
+
+test("57. Package B opportunity APIs accept valid owner access through the shared helper", () =>
+  sqlContains(opportunityListRoute, /salesActorToOpportunityActor/) &&
+  sqlContains(opportunityReviewRoute, /salesActorToOpportunityActor/) &&
+  sqlContains(opportunityListRoute, /requireSalesWorkspaceAccess/) &&
+  sqlContains(opportunityReviewRoute, /requireSalesWorkspaceAccess/) &&
+  !sqlContains(opportunityListRoute, /roster_required/) &&
+  !sqlContains(opportunityReviewRoute, /roster_required/));
+
+test("58. Package A Creative Studio generate route accepts valid owner access through the shared helper", () =>
+  sqlContains(generateRoute, /requireSalesWorkspaceAccess/) &&
+  sqlContains(generateRoute, /salesActorToCreativeActor/) &&
+  sqlContains(generateRoute, /generate_creative_draft/) &&
+  !sqlContains(generateRoute, /roster_required/));
+
+test("59. unknown / cross-business UUID safety is preserved on the opportunity repository", () =>
+  sqlContains(opportunityRepo, /\.eq\("id", opportunityId\)/) &&
+  sqlContains(opportunityRepo, /\.eq\("business_id", businessId\)/) &&
+  sqlContains(businessesDetailPage, /Business not found/) &&
+  sqlContains(businessesDetailPage, /getBusinessWorkspaceDetail\(businessId, access\.actor\)/));
+
+test("60. public/customer paths remain unaffected (no Sales Workspace import on public site)", () => {
+  const publicHome = readSource("app/(site)/page.tsx");
+  return (
+    !sqlContains(publicHome, /requireSalesWorkspaceAccess/) &&
+    !sqlContains(publicHome, /businessWorkspaceAccess/) &&
+    sqlContains(loginPage, /Staff \/ Team login/) &&
+    sqlContains(loginPage, /Owner bootstrap \(shared password\)/)
+  );
+});
+
 // Report
 const passed = results.filter((r) => r.passed).length;
 const failed = results.filter((r) => !r.passed).length;

@@ -4,7 +4,7 @@
  * business_id — see opportunity/repository.ts), not by this route alone.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToOpportunityActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { approveOpportunity, dismissOpportunity, reviewOpportunity } from "@/app/lib/business/opportunity/repository";
 import type { ReviewOpportunityInput } from "@/app/lib/business/opportunity/types";
 
@@ -27,9 +27,6 @@ export async function PATCH(
   if (!actorHasCapability(access.actor, "review_opportunity")) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
-  if (!access.actor.rosterId) {
-    return NextResponse.json({ ok: false, error: "roster_required" }, { status: 403 });
-  }
 
   let body: Record<string, unknown> = {};
   try {
@@ -45,7 +42,7 @@ export async function PATCH(
   const input: ReviewOpportunityInput = {
     reviewNote: typeof body.reviewNote === "string" && body.reviewNote.trim() ? body.reviewNote.trim() : null,
   };
-  const actor = { type: "staff" as const, rosterId: access.actor.rosterId, authUserId: access.actor.authUserId, role: access.actor.role };
+  const actor = salesActorToOpportunityActor(access.actor);
 
   const result = body.action === "approve"
     ? await approveOpportunity(businessId, opportunityId, input, actor)

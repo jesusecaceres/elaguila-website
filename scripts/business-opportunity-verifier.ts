@@ -81,6 +81,10 @@ function verifyDomainAndSecurity(): VerifyCheck[] {
 
   const listRouteContent = readSourceFile("app/api/admin/businesses/[businessId]/opportunities/route.ts");
   checks.push({ name: "List/generate route requires view_opportunities capability", passed: listRouteContent.includes('"view_opportunities"') });
+  checks.push({ name: "List/generate route accepts owner bootstrap through shared helper (not a parallel staff session)", passed: listRouteContent.includes("salesActorToOpportunityActor") && !listRouteContent.includes("roster_required") });
+
+  const reviewRouteContent = readSourceFile("app/api/admin/businesses/[businessId]/opportunities/[opportunityId]/route.ts");
+  checks.push({ name: "Review route accepts owner bootstrap through shared helper", passed: reviewRouteContent.includes("salesActorToOpportunityActor") && !reviewRouteContent.includes("roster_required") });
 
   return checks;
 }

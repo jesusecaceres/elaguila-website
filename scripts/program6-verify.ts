@@ -83,6 +83,18 @@ export function verifyCreativeStudioStructure(baseDir: string): VerifyResult[] {
     detail: hasCreativeCaps ? "OK" : "MISSING creative studio capabilities",
   });
 
+  const generateRoutePath = path.join(baseDir, "app", "api", "admin", "businesses", "[businessId]", "creative-studio", "jobs", "[jobId]", "generate", "route.ts");
+  const generateRoute = fs.existsSync(generateRoutePath) ? fs.readFileSync(generateRoutePath, "utf-8") : "";
+  const generateUsesSharedOwnerHelper =
+    generateRoute.includes("requireSalesWorkspaceAccess") &&
+    generateRoute.includes("salesActorToCreativeActor") &&
+    generateRoute.includes("generate_creative_draft");
+  results.push({
+    check: "Package A generate route accepts owner bootstrap through shared helper",
+    pass: generateUsesSharedOwnerHelper,
+    detail: generateUsesSharedOwnerHelper ? "OK" : "generate route must call requireSalesWorkspaceAccess + salesActorToCreativeActor",
+  });
+
   return results;
 }
 
@@ -136,4 +148,16 @@ export function verifyCreativeStudioDoctrines(baseDir: string): VerifyResult[] {
   });
 
   return results;
+}
+
+if (process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("program6-verify.ts")) {
+  const results = [...verifyCreativeStudioStructure(process.cwd()), ...verifyCreativeStudioDoctrines(process.cwd())];
+  let failed = 0;
+  console.log("\n=== Program 6 Creative Studio Verifier ===\n");
+  for (const r of results) {
+    if (!r.pass) failed += 1;
+    console.log(`  [${r.pass ? "PASS" : "FAIL"}] ${r.check}${r.detail && !r.pass ? ` — ${r.detail}` : ""}`);
+  }
+  console.log(`\n=== Results: ${results.length - failed} passed, ${failed} failed (total ${results.length}) ===\n`);
+  process.exit(failed > 0 ? 1 : 0);
 }

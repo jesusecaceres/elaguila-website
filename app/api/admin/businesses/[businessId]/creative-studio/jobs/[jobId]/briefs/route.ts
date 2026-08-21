@@ -8,8 +8,8 @@
  * to compile against, and Package A would be "demo-only" as explicitly disallowed.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { createBrief, getJobById, type CreateBriefInput, type CreativeActor } from "@/app/lib/business/creativeStudio/repository";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { createBrief, getJobById, type CreateBriefInput } from "@/app/lib/business/creativeStudio/repository";
 import { CREATIVE_LANES, RISK_CLASSES } from "@/app/lib/business/creativeStudio/constants";
 
 function requireNonEmptyString(value: unknown): value is string {
@@ -56,13 +56,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "bad_risk_class" }, { status: 400 });
   }
 
-  const actor: CreativeActor = {
-    type: "staff",
-    rosterId: access.actor.rosterId,
-    authUserId: access.actor.authUserId,
-    email: access.actor.email,
-    role: access.actor.role,
-  };
+  const actor = salesActorToCreativeActor(access.actor);
 
   const input: CreateBriefInput = {
     businessGoal: String(body.businessGoal),

@@ -8,13 +8,15 @@
  * business-owner PII.
  *
  * Locked doctrine (do not weaken):
- * - no roster row means no Sales Workspace access — ever;
+ * - no roster row means no *staff* Sales Workspace access — ever;
  * - no inferred owner_admin fallback;
  * - no anonymous or placeholder staff identity;
- * - the shared bootstrap password (ADMIN_PASSWORD, app/admin/login/submit/route.ts) NEVER
- *   authorizes Sales Workspace access on its own, even though it satisfies the legacy
- *   `leonix_admin` cookie check used everywhere else in app/admin/**;
- * - every mutation requires a real, currently-active roster identity;
+ * - the shared bootstrap password (ADMIN_PASSWORD, app/admin/login/submit/route.ts) is an
+ *   OWNER OVERRIDE only: a valid `leonix_admin` + `leonix_admin_bootstrap` cookie pair is
+ *   accepted as actorType "owner_bootstrap" with existing super_admin capabilities. It is
+ *   never turned into a staff roster session, never fabricates a roster row, and never
+ *   creates a Supabase Auth user;
+ * - every *staff* mutation still requires a real, currently-active roster identity;
  * - every page and route calls this independently — never trust the dashboard layout's cookie
  *   check alone (most existing app/api/admin/** routes only check that cookie; this package must
  *   not repeat that gap).
@@ -32,11 +34,13 @@
  *   email all agree after normalization.
  * A mismatch anywhere in that chain denies access before any business data is read.
  *
- * How a real identity is distinguished from the shared password, using only existing, already-
- * proven primitives (app/lib/supabase/adminSession.ts) — no new cookie/session mechanism:
+ * How a real staff identity is distinguished from the shared password, using only existing,
+ * already-proven primitives (app/lib/supabase/adminSession.ts) — no new cookie/session mechanism:
  * - app/admin/login/submit/route.ts (shared password) sets ONLY the bootstrap cookie and
  *   explicitly clears the operator-email/auth-user-id cookies (see applyLeonixAdminSessionCookies,
- *   bootstrap branch) — isAdminBootstrapSession() catches this and we deny outright.
+ *   bootstrap branch) — isAdminBootstrapSession() catches this and we authorize an
+ *   owner_bootstrap actor (not a staff actor). Operator cookies on a bootstrap session are
+ *   ignored so bootstrap can never be mistaken for a roster session.
  * - app/admin/login/auth/route.ts (real per-person login) verifies Supabase Auth credentials AND
  *   an active roster row BEFORE ever setting a cookie, then sets operator-email and auth-user-id
  *   together. We additionally re-verify the roster row is *still* active, and now also
@@ -44,8 +48,8 @@
  *   time — so a deactivated staff member or a forged/stale cookie loses access on the very next
  *   request, not after a 7-day cookie eventually expires.
  * - The `ADMIN_OPERATOR_EMAIL` env var fallback that the legacy resolver accepts is deliberately
- *   NOT accepted here — that is a shared, machine-level default, not a per-person session
- *   identity, and would make every visitor to this env "the same operator."
+ *   NOT accepted here as a staff identity — that is a shared, machine-level default, not a
+ *   per-person session identity, and would make every visitor to this env "the same operator."
  */
 import "server-only";
 
@@ -58,9 +62,22 @@ import {
   lookupAuthUserById,
 } from "@/app/lib/supabase/adminSession";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
+import type { CreativeActor } from "@/app/lib/business/creativeStudio/repository";
+import type { OpportunityActor } from "@/app/lib/business/opportunity/types";
 import { capabilitiesForRole, isSalesWorkspaceRole, type SalesWorkspaceCapability, type SalesWorkspaceRole } from "./salesWorkspaceCapabilities";
 
+export type SalesWorkspaceActorType = "staff" | "owner_bootstrap";
+
+/**
+ * Server-only attribution for owner-bootstrap writes. Not a roster id and not a created
+ * Supabase Auth user — Creative Studio / opportunity CHECKs require a uuid on some columns
+ * when a human reviews, and owner-type rows must not carry a fabricated roster FK.
+ */
+export const OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID = "00000000-0000-4000-a000-0000000000b7";
+const OWNER_BOOTSTRAP_ACTOR_EMAIL = "owner.bootstrap@leonix.internal";
+
 export type StrictSalesActor = {
+  actorType: SalesWorkspaceActorType;
   rosterId: string;
   authUserId: string;
   email: string;
@@ -95,7 +112,7 @@ export async function requireSalesWorkspaceAccess(): Promise<SalesWorkspaceAcces
     return { ok: false, reason: "no_admin_cookie" };
   }
   if (isAdminBootstrapSession(jar)) {
-    return { ok: false, reason: "bootstrap_session_not_allowed" };
+    return ownerBootstrapAccess();
   }
 
   const operatorEmail = getAdminOperatorEmailFromCookies(jar);
@@ -141,6 +158,7 @@ export async function requireSalesWorkspaceAccess(): Promise<SalesWorkspaceAcces
   return {
     ok: true,
     actor: {
+      actorType: "staff",
       rosterId: roster.rosterMemberId,
       authUserId,
       email: authUser.email,
@@ -148,6 +166,62 @@ export async function requireSalesWorkspaceAccess(): Promise<SalesWorkspaceAcces
       displayName: roster.displayName,
       capabilities: capabilitiesForRole(normalizedRole),
     },
+  };
+}
+
+function ownerBootstrapAccess(): SalesWorkspaceAccessResult {
+  return {
+    ok: true,
+    actor: {
+      actorType: "owner_bootstrap",
+      rosterId: "",
+      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
+      email: OWNER_BOOTSTRAP_ACTOR_EMAIL,
+      role: "super_admin",
+      displayName: "Leonix owner",
+      capabilities: capabilitiesForRole("super_admin"),
+    },
+  };
+}
+
+export function isOwnerBootstrapActor(actor: StrictSalesActor): boolean {
+  return actor.actorType === "owner_bootstrap";
+}
+
+/** Maps a verified workspace actor onto Creative Studio's staff|owner writer shape. */
+export function salesActorToCreativeActor(actor: StrictSalesActor): CreativeActor {
+  if (actor.actorType === "owner_bootstrap") {
+    return {
+      type: "owner",
+      rosterId: null,
+      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
+      email: actor.email,
+      role: actor.role,
+    };
+  }
+  return {
+    type: "staff",
+    rosterId: actor.rosterId,
+    authUserId: actor.authUserId,
+    email: actor.email,
+    role: actor.role,
+  };
+}
+
+/** Maps a verified workspace actor onto Package B's opportunity writer shape. Never emits a fake staff roster row. */
+export function salesActorToOpportunityActor(actor: StrictSalesActor): Extract<OpportunityActor, { type: "staff" | "owner" }> {
+  if (actor.actorType === "owner_bootstrap") {
+    return {
+      type: "owner",
+      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
+      role: actor.role,
+    };
+  }
+  return {
+    type: "staff",
+    rosterId: actor.rosterId,
+    authUserId: actor.authUserId,
+    role: actor.role,
   };
 }
 

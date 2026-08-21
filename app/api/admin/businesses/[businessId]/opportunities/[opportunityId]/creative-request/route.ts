@@ -8,10 +8,10 @@
  * (Package A).
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { getOpportunityById, markOpportunityCreativeRequested } from "@/app/lib/business/opportunity/repository";
 import type { OpportunityType } from "@/app/lib/business/opportunity/types";
-import { createJob, type CreativeActor } from "@/app/lib/business/creativeStudio/repository";
+import { createJob } from "@/app/lib/business/creativeStudio/repository";
 import { CREATIVE_DOCTRINE_VERSION, CREATIVE_TEMPLATE_VERSION, type CreativeAssetType, type CreativeLanguage } from "@/app/lib/business/creativeStudio/types";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
@@ -41,9 +41,6 @@ export async function POST(
   if (!actorHasCapability(access.actor, "create_opportunity_creative_request")) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
-  if (!access.actor.rosterId) {
-    return NextResponse.json({ ok: false, error: "roster_required" }, { status: 403 });
-  }
 
   const opportunity = await getOpportunityById(businessId, opportunityId);
   if (!opportunity) {
@@ -55,13 +52,7 @@ export async function POST(
 
   const language = await getBusinessPrimaryLanguage(businessId);
 
-  const creativeActor: CreativeActor = {
-    type: "staff",
-    rosterId: access.actor.rosterId,
-    authUserId: access.actor.authUserId,
-    email: access.actor.email,
-    role: access.actor.role,
-  };
+  const creativeActor = salesActorToCreativeActor(access.actor);
 
   const job = await createJob(
     businessId,
@@ -81,11 +72,11 @@ export async function POST(
       modelKey: "gemini-2.5-flash",
       creativeLane: "LANE_C_SPONSORED_EDITORIAL",
       riskClass: "NORMAL",
-      createdActorType: "staff",
-      createdByRosterId: access.actor.rosterId,
-      createdByAuthUserId: access.actor.authUserId,
-      createdByEmail: access.actor.email,
-      createdByRole: access.actor.role,
+      createdActorType: creativeActor.type,
+      createdByRosterId: creativeActor.rosterId,
+      createdByAuthUserId: creativeActor.authUserId,
+      createdByEmail: creativeActor.email,
+      createdByRole: creativeActor.role,
     },
     creativeActor,
   );

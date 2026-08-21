@@ -209,8 +209,23 @@ const accessText = read("app/admin/_lib/businessWorkspaceAccess.ts");
 check("Scenario: missing admin cookie -> denied before any other check runs", () => {
   assert.ok(/if \(!requireAdminCookie\(jar\)\) \{\s*return \{ ok: false, reason: "no_admin_cookie" \};/.test(accessText), "cookie check must be first and must deny closed");
 });
-check("Scenario: shared bootstrap password session -> denied, never treated as a real identity", () => {
-  assert.ok(/if \(isAdminBootstrapSession\(jar\)\) \{\s*return \{ ok: false, reason: "bootstrap_session_not_allowed" \};/.test(accessText));
+check("Scenario: valid owner-bootstrap session -> allowed as owner_bootstrap override with super_admin capabilities, never as a staff session", () => {
+  assert.ok(accessText.includes("isAdminBootstrapSession(jar)"), "must still detect the bootstrap cookie with the existing helper");
+  assert.ok(accessText.includes("ownerBootstrapAccess()"), "valid bootstrap must take the owner-override branch");
+  assert.ok(accessText.includes('actorType: "owner_bootstrap"'), "bootstrap actor must be tagged owner_bootstrap");
+  assert.ok(accessText.includes('role: "super_admin"'), "owner override reuses the existing super_admin capability matrix");
+  assert.ok(accessText.includes("capabilities: capabilitiesForRole(\"super_admin\")") || accessText.includes("capabilitiesForRole(\"super_admin\")"), "must reuse capabilitiesForRole, not invent parallel capability strings");
+  assert.ok(!/if \(isAdminBootstrapSession\(jar\)\) \{\s*return \{ ok: false, reason: "bootstrap_session_not_allowed" \};/.test(accessText), "valid owner bootstrap must no longer be denied outright");
+  const bootstrapIdx = accessText.indexOf("isAdminBootstrapSession(jar)");
+  const staffLookupIdx = accessText.indexOf("lookupActiveAdminRosterByAuthUserId(authUserId)");
+  assert.ok(bootstrapIdx >= 0 && staffLookupIdx > bootstrapIdx, "owner-bootstrap branch must run before the staff roster lookup so bootstrap is never treated as staff");
+});
+check("Owner-bootstrap override never fabricates a roster row or a Supabase Auth user", () => {
+  assert.ok(accessText.includes('rosterId: ""'), "owner_bootstrap rosterId must be empty — not a fabricated roster UUID");
+  assert.ok(!accessText.includes("insert(") && !accessText.includes(".from(\"admin_team_members\")"), "access helper must not write roster rows");
+  assert.ok(!accessText.includes("auth.admin.createUser") && !accessText.includes("signUp"), "must not create a Supabase Auth user");
+  assert.ok(accessText.includes("salesActorToCreativeActor") && accessText.includes("salesActorToOpportunityActor"), "Package A/B routes must be able to reuse shared owner adapters");
+  assert.ok(/if \(actor\.actorType === "owner_bootstrap"\) \{\s*return \{\s*type: "owner"/.test(accessText), "owner bootstrap must map to domain type owner, not staff");
 });
 check("Scenario: cookie present but no operator email/auth-user-id pair -> denied (no_operator_identity)", () => {
   assert.ok(accessText.includes('reason: "no_operator_identity"'));
@@ -247,7 +262,7 @@ check("Scenario: roster role is not one of the three Sales Workspace roles -> de
 });
 check("Scenario: allowed role succeeds and returns a full StrictSalesActor — never a partial or fallback object; the actor's email is the VERIFIED Auth email, not the bare cookie-claimed value", () => {
   assert.ok(/return \{\s*ok: true,\s*actor: \{/.test(accessText));
-  for (const field of ["rosterId: roster.rosterMemberId", "authUserId", "email: authUser.email", "role: normalizedRole", "capabilities: capabilitiesForRole(normalizedRole)"]) {
+  for (const field of ['actorType: "staff"', "rosterId: roster.rosterMemberId", "authUserId", "email: authUser.email", "role: normalizedRole", "capabilities: capabilitiesForRole(normalizedRole)"]) {
     assert.ok(accessText.includes(field), `success actor must set ${field}`);
   }
 });

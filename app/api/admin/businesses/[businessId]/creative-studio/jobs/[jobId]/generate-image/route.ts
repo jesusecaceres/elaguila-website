@@ -19,8 +19,8 @@
  */
 import { put } from "@vercel/blob";
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { createGeneratedImageAsset, createProviderRun, getJobById, getLastProviderRunForJob, type CreativeActor } from "@/app/lib/business/creativeStudio/repository";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { createGeneratedImageAsset, createProviderRun, getJobById, getLastProviderRunForJob } from "@/app/lib/business/creativeStudio/repository";
 import { isImageGenerationLive } from "@/app/lib/business/creativeStudio/providerTypes";
 import { resolveCreativeProvider } from "@/app/lib/business/creativeStudio/providerRegistry";
 
@@ -73,13 +73,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "prompt_required" }, { status: 400 });
   }
 
-  const actor: CreativeActor = {
-    type: "staff",
-    rosterId: access.actor.rosterId,
-    authUserId: access.actor.authUserId,
-    email: access.actor.email,
-    role: access.actor.role,
-  };
+  const actor = salesActorToCreativeActor(access.actor);
 
   const provider = await resolveCreativeProvider("openai");
   if (!provider?.generateImage) {

@@ -108,6 +108,7 @@ export interface CreativeOpportunity {
 
 export type OpportunityActor =
   | { type: "staff"; rosterId: string; authUserId: string; role: string }
+  | { type: "owner"; authUserId: string; role: string }
   | { type: "system"; role: string };
 
 export interface CreateOpportunityInput {
