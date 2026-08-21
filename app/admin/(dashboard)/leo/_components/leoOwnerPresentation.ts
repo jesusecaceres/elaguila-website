@@ -317,6 +317,51 @@ export function presentPreparedLifecycleLabel(status: string | null | undefined)
   }
 }
 
+/**
+ * LEO-21A — Owner vocabulary for governed connected-action proposal states.
+ * Provider-neutral labels only. Never "Sent" / "Scheduled" / "Done" without proof.
+ * No Execute/Send button in this gate.
+ */
+export function presentConnectedActionProposalStateLabel(
+  proposalState: string | null | undefined,
+): {
+  primary: string;
+  secondary: string | null;
+  tone: "prepared" | "approval" | "approved" | "executing" | "executed" | "verified" | "failed" | "neutral";
+} {
+  switch (proposalState) {
+    case "DRAFT":
+    case "PREPARED":
+      return { primary: "Prepared", secondary: "Not executed", tone: "prepared" };
+    case "AWAITING_APPROVAL":
+      return { primary: "Needs approval", secondary: "Owner approval required", tone: "approval" };
+    case "APPROVED":
+      return { primary: "Approved", secondary: "Not executed yet", tone: "approved" };
+    case "EXECUTION_CLAIMED":
+      return { primary: "Executing", secondary: "Execution claimed — not verified", tone: "executing" };
+    case "EXECUTED":
+      return {
+        primary: "Executed — verification pending",
+        secondary: "Provider accepted ≠ verified",
+        tone: "executed",
+      };
+    case "VERIFIED":
+      return { primary: "Verified", secondary: null, tone: "verified" };
+    case "FAILED":
+      return { primary: "Failed", secondary: null, tone: "failed" };
+    case "EXPIRED":
+      return { primary: "Expired", secondary: null, tone: "neutral" };
+    case "CANCELLED":
+      return { primary: "Cancelled", secondary: null, tone: "neutral" };
+    default:
+      return {
+        primary: proposalState ? humanizeInternalLabel(proposalState) : "Unknown",
+        secondary: null,
+        tone: "neutral",
+      };
+  }
+}
+
 export function presentGovernanceBanner(
   level: string | null | undefined,
 ): { show: boolean; text: string; tone: "yellow" | "red" | "never" } | null {

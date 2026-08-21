@@ -269,6 +269,29 @@ Self intelligence reports and recommends. It does not silently rewrite Leonix. N
 
 ---
 
+## 9A. Governed Connected Action Execution (LEO-21A)
+
+Provider-neutral runtime for future RED connected actions.
+
+**Truth separations (must never collapse):**
+
+| Concept | Meaning |
+|---|---|
+| **execution** | Adapter invoke after claim — not the same as verification |
+| **claim** | Local idempotency lock — not a provider side effect |
+| **provider accepted** | Provider returned an accepted object id — not verified |
+| **verified** | Read-back proved the approved fingerprint targets |
+| **unknown external outcome** | Must reconcile/verify before any retry — **no blind resend** |
+
+**Rules:**
+
+- Adapter cannot approve, claim, alter fingerprint/payload/governance, or write receipts directly.
+- Orchestrator requires owner access, APPROVED proposal, matching fingerprint, then atomic claim **before** adapter `execute`.
+- CAPABILITY ≠ AUTHORITY — having an adapter interface does not enable provider writes.
+- LEO-21A ships only the null/blocked adapter (`NOT_CONNECTED` / `SCOPE_INSUFFICIENT`); Gmail/Calendar remain read-only.
+
+---
+
 ## 10. Autonomy Ladder
 
 | Level | Capability |

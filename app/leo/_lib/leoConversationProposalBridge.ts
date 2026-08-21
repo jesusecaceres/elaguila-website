@@ -43,6 +43,9 @@ export type LeoProposalTruthLabel =
   | "Needs approval"
   | "Needs information"
   | "Awaiting confirmation"
+  | "Executing"
+  | "Executed — verification pending"
+  | "Verified"
   | "Cancelled"
   | "Expired"
   | "Failed";
@@ -168,6 +171,12 @@ export function leoProposalTruthLabelForState(
       return "Needs approval";
     case "APPROVED":
       return "Awaiting confirmation";
+    case "EXECUTION_CLAIMED":
+      return "Executing";
+    case "EXECUTED":
+      return "Executed — verification pending";
+    case "VERIFIED":
+      return "Verified";
     case "PREPARED":
     case "DRAFT":
       return "Prepared";
@@ -178,6 +187,7 @@ export function leoProposalTruthLabelForState(
     case "FAILED":
       return "Failed";
     default:
+      // Unknown states must not impersonate Prepared when post-claim.
       return "Prepared";
   }
 }

@@ -63,63 +63,31 @@ Permanent LEO operating documentation:
 
 No application code changes.
 
+### LEO-17B — Conversation → Governed Proposal Wiring
+
+Implemented: conversation / referent / preparation → durable proposal candidates.
+
+- owner approval remains explicit (API)
+- conversation POST does not approve
+- no provider writes
+
+### LEO-18 — Entity / Executive Context Safety
+
+Foundation completed for proposal-safe entity resolution and executive context packaging.
+
+### LEO-19 — Intelligence Router / Provider Workers
+
+Orchestration foundation completed (19A–19E). Models are workers. CAPABILITY ≠ AUTHORITY. Selection ≠ execution.
+
+### LEO-20 — Self-Intelligence V1
+
+Closed: interpret-only self-intelligence profile, cockpit, discovery/SEO + buyer-engagement sensors. No connected-action execution from Self-Intelligence.
+
 ---
 
 ## Future Roadmap
 
-## LEO-17B — Conversation → Governed Proposal Wiring
-
-**Goal:** Connect natural conversation to safe action proposals.
-
-- conversation / referent / preparation → durable proposal candidates
-- owner approval remains explicit
-- no provider writes in this gate
-
----
-
-## LEO-18 — LEO Memory Intelligence
-
-**Goal:** Executive memory.
-
-- decisions
-- lessons
-- architecture history
-- outcomes that compound institutional intelligence
-
----
-
-## LEO-19 — LEO Tool Intelligence Router
-
-**Goal:** Route tasks to the right intelligence capability, then select a provider *type* by policy.
-
-- LEO-19A: capability classification (executive / engineering / creative / research / data / unknown)
-- LEO-19B: provider registry + selection policy (provider types only; offline; no live invocation)
-- LEO-19C: provider adapter runtime contract (normalized invoke/result seam; offline/null adapter only)
-- LEO-19D: reconciles the proven LEO-10 reasoning worker behind the LEO-19 provider-neutral orchestration layer (transport-only REASONING_MODEL adapter; one AI entry path)
-- LEO-19E: intelligence runtime health observability (stage-separated worker truth; EXEC-REPORTS / system health / morning brief compatibility; no second telemetry system)
-
-Chain: Router → Registry → Selection Policy → Adapter Runtime → future provider implementations.
-
-Models are workers. LEO remains the operator. Provider output does not grant authority. Minimum necessary context. CAPABILITY ≠ AUTHORITY. Selection ≠ execution.
-
----
-
-## LEO-20 — LEO Self Intelligence
-
-**Goal:** Leonix evaluates itself.
-
-- LEO-20A: Self-Intelligence V1 foundation (dynamic Internal Intelligence Profile; OPERATIONS / REVENUE_MONETIZATION_HEALTH / TECHNOLOGY_READINESS / PRODUCT_OPERATIONAL_HEALTH; deferred dimensions stay NOT_MEASURED)
-- LEO-20B: Owner executive cockpit for Self-Intelligence (presentation only)
-- LEO-20C: Technical discovery / SEO readiness sensor — DISCOVERY_SEO PARTIAL (internal robots/sitemap only); search performance NOT_MEASURED; no GSC/GA
-- LEO-20D: Buyer engagement journey sensor — CUSTOMER_JOURNEY PARTIAL via EXEC ANALYTICS listing_analytics counts; no CTR/conversion/abandonment; seller funnel remains NOT_MEASURED
-
-Report and recommend. Do not silently mutate.
-
-Self-Intelligence consumes Executive Reporting and System Health — it does not replace them. Innovation Radar remains future outward-looking intelligence.
-
----
-
-## LEO-21 — LEO Connected Actions
+## LEO-21 — Governed Connected Actions
 
 **Goal:** Approved integrations under governance.
 
@@ -129,6 +97,7 @@ Possible connected systems:
 - Vercel
 - Supabase
 - Business systems
+- Google communications / calendar (proposal families already exist)
 
 Always:
 
@@ -136,6 +105,11 @@ Always:
 - execution claim / idempotency
 - durable receipt
 - read-back verification when required
+- CAPABILITY ≠ AUTHORITY
+
+### LEO-21A — Provider-Neutral Governed Execution Runtime
+
+Execution contract, stable failure model, provider adapter interface, null/blocked adapter, orchestrator (claim before execute). Gmail/Calendar remain read-only. No OAuth write scopes. No live provider writes.
 
 ---
 
@@ -174,6 +148,10 @@ Each gate must preserve:
 
 ## Current Next Gate
 
-**Next executable build:** LEO-17B — Conversation → Governed Proposal Wiring
+**Active family:** LEO-21 — Governed Connected Actions
 
-Prerequisite satisfied: LEO-17A persistence / approval / claim foundation.
+**Current gate:** LEO-21A — Provider-Neutral Governed Execution Runtime
+
+Prerequisite satisfied: LEO-17A/17B proposal + approval + claim; LEO-18/19/20 foundations closed; staging persistence for `leo_action_proposals` / `leo_tool_receipts` present (PM-certified).
+
+Provider writes remain disabled.
