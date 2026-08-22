@@ -194,7 +194,10 @@ export async function enrichLeoConversationWithAi(args: {
     return withMeta(answer, attachObservation(meta, observation));
   };
 
-  if (deterministic.intent === "UNKNOWN" || deterministic.answerState === "UNSUPPORTED_INTENT") {
+  if (
+    (deterministic.intent === "UNKNOWN" || deterministic.answerState === "UNSUPPORTED_INTENT") &&
+    deterministic.intent !== "GENERAL_REASONING"
+  ) {
     return finish(
       deterministic,
       baseMeta({
@@ -252,7 +255,8 @@ export async function enrichLeoConversationWithAi(args: {
     bundle.facts.length === 0 &&
     deterministic.intent !== "CAPABILITY_GOVERNANCE" &&
     deterministic.intent !== "CAPABILITY_OVERVIEW" &&
-    deterministic.intent !== "PROJECT_INTELLIGENCE"
+    deterministic.intent !== "PROJECT_INTELLIGENCE" &&
+    deterministic.intent !== "GENERAL_REASONING"
   ) {
     return finish(
       deterministic,

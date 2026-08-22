@@ -8,6 +8,48 @@ export const LEO_CANONICAL_MANIFEST_URL = "/manifest.webmanifest";
 export const LEO_PWA_DRAFT_STORAGE_KEY = "leonix:leo:composer-draft";
 export const LEO_PWA_SESSION_POINTER_KEY = "leonix:leo:last-session-id";
 
+export const LEO_COMPOSER_DRAFT_LIFECYCLES = [
+  "UNSENT_DRAFT",
+  "SUBMITTING",
+  "SUBMITTED_SUCCESS",
+  "SUBMITTED_FAILED",
+  "CLEARED",
+] as const;
+
+export type LeoComposerDraftLifecycle = (typeof LEO_COMPOSER_DRAFT_LIFECYCLES)[number];
+
+export type LeoComposerDraftRecord = {
+  v: 1;
+  lifecycle: LeoComposerDraftLifecycle;
+  text: string;
+};
+
+/** Only UNSENT_DRAFT restores. Legacy plain strings are treated as stale and discarded. */
+export function parseLeoComposerDraft(raw: string | null | undefined): string {
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw) as Partial<LeoComposerDraftRecord>;
+    if (parsed?.v === 1 && parsed.lifecycle === "UNSENT_DRAFT" && typeof parsed.text === "string") {
+      return parsed.text.slice(0, 2000);
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+export function serializeLeoComposerDraft(
+  text: string,
+  lifecycle: LeoComposerDraftLifecycle = "UNSENT_DRAFT",
+): string | null {
+  if (lifecycle !== "UNSENT_DRAFT" || !text.trim()) return null;
+  return JSON.stringify({
+    v: 1,
+    lifecycle: "UNSENT_DRAFT",
+    text: text.slice(0, 2000),
+  } satisfies LeoComposerDraftRecord);
+}
+
 export type LeoPwaCapabilities = {
   serviceWorkerSupported: boolean;
   notificationSupported: boolean;

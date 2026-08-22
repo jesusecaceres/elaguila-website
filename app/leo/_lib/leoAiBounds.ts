@@ -43,6 +43,7 @@ export const LEO_AI_ELIGIBLE_INTENTS = [
   "PROJECT_INTELLIGENCE",
   "COMMUNICATION_INTELLIGENCE",
   "SELF_INTELLIGENCE",
+  "GENERAL_REASONING",
 ] as const;
 
 export type LeoAiEligibleIntent = (typeof LEO_AI_ELIGIBLE_INTENTS)[number];

@@ -32,6 +32,8 @@ import { leoIntentIsWorkspaceCommand, useLeoWorkspaceController } from "./LeoWor
 import {
   LEO_OFFLINE_SUBMIT_MESSAGE,
   LEO_PWA_DRAFT_STORAGE_KEY,
+  parseLeoComposerDraft,
+  serializeLeoComposerDraft,
   LEO_PWA_SESSION_POINTER_KEY,
 } from "@/app/leo/_lib/leoPwaCapabilities";
 
@@ -101,7 +103,7 @@ function writeSessionPointer(sessionId: string | null) {
 
 function readDraft(): string {
   try {
-    return localStorage.getItem(DRAFT_KEY) ?? "";
+    return parseLeoComposerDraft(localStorage.getItem(DRAFT_KEY));
   } catch {
     return "";
   }
@@ -109,8 +111,9 @@ function readDraft(): string {
 
 function writeDraft(text: string) {
   try {
-    if (!text.trim()) localStorage.removeItem(DRAFT_KEY);
-    else localStorage.setItem(DRAFT_KEY, text.slice(0, 2000));
+    const serialized = serializeLeoComposerDraft(text, "UNSENT_DRAFT");
+    if (!serialized) localStorage.removeItem(DRAFT_KEY);
+    else localStorage.setItem(DRAFT_KEY, serialized);
   } catch {
     /* ignore */
   }
@@ -295,6 +298,10 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
     setHandsFree(false);
     setShowFullConversation(false);
     setHandsFreePersistWarning(null);
+    setQuestion("");
+    writeDraft("");
+    lastSubmittedRef.current = "";
+    composerDirtySinceSubmitRef.current = false;
   }, []);
 
   const submit = useCallback(

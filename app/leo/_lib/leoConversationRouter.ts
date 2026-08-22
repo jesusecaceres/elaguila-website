@@ -12,6 +12,7 @@ import type {
   LeoConversationRouteResult,
   LeoPreparationKind,
 } from "@/app/leo/_lib/leoTypes";
+import { classifyLeoConversationFallback } from "@/app/leo/_lib/leoConversationFallback";
 import {
   governanceActionKindForConnectedFamily,
   inferLeoConnectedActionFamily,
@@ -52,6 +53,7 @@ const VALID_INTENTS: readonly LeoConversationIntent[] = [
   "BUSINESS_CONCIERGE_CONTEXT",
   "EXECUTIVE_REPORTING",
   "SELF_INTELLIGENCE",
+  "GENERAL_REASONING",
   "UNKNOWN",
 ] as const;
 
@@ -568,12 +570,23 @@ export function routeLeoConversation(
     });
   }
 
+  const fallback = classifyLeoConversationFallback(request.question ?? "");
+  if (fallback === "GENERAL_REASONING_ALLOWED") {
+    return routeResult({
+      intent: "GENERAL_REASONING",
+      confidence: "medium",
+      inferredActionKind: "ANALYZE",
+      inferredPreparationKind: null,
+      routeNotes: ["general reasoning / conversation fallback"],
+    });
+  }
+
   return routeResult({
     intent: "UNKNOWN",
     confidence: "low",
     inferredActionKind: null,
     inferredPreparationKind: null,
-    routeNotes: ["no clear deterministic pattern"],
+    routeNotes: ["company fact requires evidence; no deterministic path"],
   });
 }
 

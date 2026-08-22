@@ -1518,15 +1518,29 @@ export async function runLeoConversationDeterministic(
       });
     }
 
+    case "GENERAL_REASONING":
+      return empty({
+        intent: "GENERAL_REASONING",
+        answerState: "ANSWERED",
+        summary:
+          "I'm here with you. I'll reason in general terms and use Leonix evidence only when it is already in this conversation. I will not invent live operational facts.",
+        limitations: [
+          "General reasoning is not live Leonix operational evidence.",
+          "Company-specific facts require retrieval; they will not be invented.",
+        ],
+        suggestedNextRetrieval: "Ask about attention, commitments, or a specific Leonix record when you need evidence.",
+        governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
+      });
+
     default:
       return empty({
         intent: "UNKNOWN",
-        answerState: "UNSUPPORTED_INTENT",
+        answerState: "INSUFFICIENT_EVIDENCE",
         summary:
-          "I do not have a supported deterministic retrieval path for this question. No answer was fabricated.",
-        unknowns: ["supported_intent"],
+          "That question needs live Leonix evidence I don't have here, so I won't invent an answer.",
+        unknowns: ["required_operational_evidence"],
         suggestedNextRetrieval:
-          "Try Attention, Client Care, Listing Reason (with listingId), Memory (with subject), Decision Support, Preparation, Capability overview, or Capability/Governance.",
+          "Ask about Attention, Client Care, email/calendar intelligence, commitments, or another evidence-backed surface.",
         governance: assessLeoGovernance({ actionKind: "ANALYZE", nowMs }),
       });
   }
